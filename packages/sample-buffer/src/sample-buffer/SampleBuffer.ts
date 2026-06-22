@@ -1,0 +1,235 @@
+/**
+ * Fixed-capacity circular buffer for numeric samples with percentile calculation
+ */
+
+import type { SampleBufferInterface } from '../interfaces/SampleBufferInterface.js';
+
+import {
+  EMPTY_LENGTH,
+  FIRST_ARRAY_INDEX,
+  INCREMENT_BY_ONE,
+  INITIAL_BUFFER_COUNT,
+  INITIAL_BUFFER_HEAD,
+  LAST_ARRAY_INDEX,
+  PERCENTILE_MAX
+} from '../constants/index.js';
+
+/**
+ * Fixed-capacity circular buffer for numeric samples
+ *
+ * Stores a sliding window of numeric measurements and calculates
+ * percentiles using linear interpolation. The buffer overwrites
+ * the oldest samples when full.
+ *
+ * Subclasses may override the protected hook methods to observe lifecycle
+ * events. All hooks have no-op defaults — super() call is not required
+ * unless the subclass needs base behavior.
+ *
+ * Fire points:
+ * - `onEvict(oldValue)` — before overwrite in the full-buffer push path
+ * - `onPush(value, evicted)` — end of push(), after length/head updated
+ * - `onClear()` — start of clear(), before state is reset
+ * - `onPercentile(pct, result)` — before returning from percentile()
+ *
+ * @example Basic usage
+ * ```typescript
+ * const buffer = new SampleBuffer(100);
+ *
+ * // Add samples
+ * for (let i = 0; i < 100; i++) {
+ *   buffer.push(Math.random() * 200);
+ * }
+ *
+ * // Get percentiles
+ * console.log(`p50: ${buffer.percentile(50)}`);
+ * console.log(`p95: ${buffer.percentile(95)}`);
+ * console.log(`p99: ${buffer.percentile(99)}`);
+ * ```
+ */
+export class SampleBuffer implements SampleBufferInterface {
+  protected _length = INITIAL_BUFFER_COUNT;
+  protected _capacity: number;
+  protected _head = INITIAL_BUFFER_HEAD;
+  protected _samples: number[];
+  protected _sortedCache: null | number[] = null;
+
+  /**
+   * Create a new sample buffer
+   *
+   * @param capacity - Maximum number of samples to store
+   */
+  constructor(capacity: number) {
+    this._capacity = capacity;
+    this._samples = Array.from<number>({ 'length': capacity });
+  }
+
+  /**
+   * Clear all samples from the buffer.
+   * Fire point: `onClear` is called at the start, before state is reset.
+   */
+  clear(): void {
+    this.onClear();
+    this._length = INITIAL_BUFFER_COUNT;
+    this._head = INITIAL_BUFFER_HEAD;
+    this._sortedCache = null;
+  }
+
+  /**
+   * Get samples in window order, then sort them ascending.
+   * Called internally by percentile(); subclasses may override to
+   * customize the sort or sample extraction.
+   */
+  protected buildSortedSamples(): number[] {
+    const result: number[] = Array.from<number>({ 'length': this._length });
+
+    for (let i = FIRST_ARRAY_INDEX; i < this._length; i++) {
+      const index = this._length < this._capacity
+        ? i
+        : (this._head + i) % this._capacity;
+
+      result[i] = this._samples[index]!;
+    }
+
+    return result.sort((left, right) => {
+      return left - right;
+    });
+  }
+
+  /**
+   * Whether the buffer has reached capacity
+   */
+  get isFull(): boolean {
+    return this._length === this._capacity;
+  }
+
+  /**
+   * Number of samples in the buffer
+   *
+   * Getter required: _length is mutated internally but exposed read-only
+   */
+  get length(): number {
+    // Ensure non-negative (defensive - _length should never be negative)
+    const result = Math.max(this._length, EMPTY_LENGTH);
+    return result;
+  }
+
+  /**
+   * Called at the start of clear(), before state is reset.
+   * No-op default — override to observe buffer clears.
+   */
+  protected onClear(): void {
+    // no-op
+  }
+
+  /**
+   * Called in the full-buffer push path, immediately before the oldest
+   * sample is overwritten. Not called when the buffer is not full.
+   * No-op default — override to observe evictions.
+   *
+   * @param _oldValue - The sample value that will be overwritten
+   */
+  protected onEvict(_oldValue: number): void {
+    // no-op
+  }
+
+  /**
+   * Called at the end of push(), after the sample has been stored and
+   * length/head updated.
+   * No-op default — override to observe pushes.
+   *
+   * @param _value - The sample value that was pushed
+   * @param _evicted - Whether an existing sample was evicted (buffer was full)
+   */
+  protected onPush(_value: number, _evicted: boolean): void {
+    // no-op
+  }
+
+  /**
+   * Called immediately before returning from percentile(), after the
+   * result has been calculated.
+   * Not called when the buffer is empty (undefined return path).
+   * No-op default — override to observe percentile calculations.
+   *
+   * @param _pct - The percentile requested (0-100)
+   * @param _result - The calculated result value
+   */
+  protected onPercentile(_pct: number, _result: number): void {
+    // no-op
+  }
+
+  /**
+   * Calculate a percentile from the buffered samples using linear interpolation
+   *
+   * @param pct - Percentile to calculate (0-100)
+   * @returns Percentile value or undefined if buffer is empty
+   */
+  percentile(pct: number): number | undefined {
+    if (this._length === EMPTY_LENGTH) {
+      return undefined;
+    }
+
+    this._sortedCache ??= this.buildSortedSamples();
+
+    const sorted = this._sortedCache;
+
+    let result: number;
+
+    // Handle edge cases
+    if (pct <= EMPTY_LENGTH) {
+      result = sorted[FIRST_ARRAY_INDEX]!;
+      this.onPercentile(pct, result);
+      return result;
+    }
+    if (pct >= PERCENTILE_MAX) {
+      result = sorted.at(LAST_ARRAY_INDEX)!;
+      this.onPercentile(pct, result);
+      return result;
+    }
+
+    // Linear interpolation for percentile
+    const rank = (pct / PERCENTILE_MAX) * (sorted.length - INCREMENT_BY_ONE);
+    const lowerIndex = Math.floor(rank);
+    const upperIndex = Math.ceil(rank);
+
+    if (lowerIndex === upperIndex) {
+      result = sorted[lowerIndex]!;
+      this.onPercentile(pct, result);
+      return result;
+    }
+
+    const fraction = rank - lowerIndex;
+    const lowerValue = sorted[lowerIndex]!;
+    const upperValue = sorted[upperIndex]!;
+
+    result = lowerValue + fraction * (upperValue - lowerValue);
+    this.onPercentile(pct, result);
+    return result;
+  }
+
+  /**
+   * Add a numeric sample to the buffer
+   *
+   * If the buffer is full, the oldest sample is overwritten.
+   * Fire point: `onEvict` fires before overwrite; `onPush` fires at end.
+   *
+   * @param value - Sample value
+   */
+  push(value: number): void {
+    // Invalidate sorted cache
+    this._sortedCache = null;
+
+    if (this._length < this._capacity) {
+      // Buffer not full - append
+      this._samples[this._length] = value;
+      this._length++;
+      this.onPush(value, false);
+    } else {
+      // Buffer full - overwrite oldest (at head position)
+      const oldValue = this._samples[this._head]!;
+      this.onEvict(oldValue);
+      this._samples[this._head] = value;
+      this._head = (this._head + INCREMENT_BY_ONE) % this._capacity;
+      this.onPush(value, true);
+    }
+  }
+}

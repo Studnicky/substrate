@@ -1,0 +1,16 @@
+import type { Agent as UndiciAgent } from 'undici';
+
+import type { DestroyOptionsType } from './DestroyOptionsType.js';
+import type { DispatcherHealthType } from './DispatcherHealthType.js';
+
+/**
+ * Interface for undici dispatcher
+ */
+export interface UndiciDispatcherInterface {
+  checkDispatcherHealth(origin: string): DispatcherHealthType;
+  close(): Promise<void>;
+  destroy(options?: DestroyOptionsType): Promise<void>;
+  getAgent(): UndiciAgent;
+  getSignal(): AbortSignal;
+  getStats(): Readonly<Record<string, unknown>>;
+}

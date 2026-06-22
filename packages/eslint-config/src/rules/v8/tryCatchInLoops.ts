@@ -1,0 +1,51 @@
+import type { Rule } from 'eslint';
+
+const LOOP_TYPES = new Set([
+  'DoWhileStatement',
+  'ForInStatement',
+  'ForOfStatement',
+  'ForStatement',
+  'WhileStatement'
+]);
+
+const createTryCatchInLoops: NonNullable<Rule.RuleModule['create']> = (context) => {
+  const onTryStatement: NonNullable<Rule.RuleListener['TryStatement']> = (node) => {
+    let parent: Rule.Node | null = node.parent;
+
+    while (parent !== null) {
+      if (LOOP_TYPES.has(parent.type)) {
+        context.report({
+          'messageId': 'tryCatchInLoop',
+          'node': node
+        });
+
+        return;
+      }
+
+      if (
+        parent.type === 'FunctionDeclaration'
+        || parent.type === 'FunctionExpression'
+        || parent.type === 'ArrowFunctionExpression'
+      ) {
+        return;
+      }
+
+      parent = parent.parent;
+    }
+  };
+
+  return { 'TryStatement': onTryStatement };
+};
+
+export const tryCatchInLoops: Rule.RuleModule = {
+  'create': createTryCatchInLoops,
+  'meta': {
+    'docs': {
+      'description': 'Disallow try-catch blocks inside loops; V8 cannot optimize functions containing try-catch in hot paths.',
+      'recommended': false
+    },
+    'messages': { 'tryCatchInLoop': 'v8Optimization/tryCatchInLoops: try-catch inside a loop prevents V8 optimization. Extract the try-catch to a wrapper function.' },
+    'schema': [],
+    'type': 'problem'
+  }
+};

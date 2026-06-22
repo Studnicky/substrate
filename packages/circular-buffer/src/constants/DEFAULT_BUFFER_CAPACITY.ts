@@ -1,0 +1,1 @@
+export const DEFAULT_BUFFER_CAPACITY = 128;

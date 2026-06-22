@@ -1,0 +1,31 @@
+/**
+ * RequestBuilder interface type
+ */
+
+import type { QueryValueType } from '../types/QueryValueType.js';
+import type { RequestInterceptorType } from '../types/RequestInterceptorType.js';
+import type { ResponseInterceptorType } from '../types/ResponseInterceptorType.js';
+
+/**
+ * Interface for fluent request builder for chaining request configuration
+ */
+export interface RequestBuilderInterface {
+  body(body: unknown): this;
+  delete(): Promise<Response>;
+  get(): Promise<Response>;
+  head(): Promise<Response>;
+  header(name: string, value: string): this;
+  headers(headers: Record<string, string>): this;
+  json(data: unknown): this;
+  metadata(metadata: Record<string, unknown>): this;
+  options(): Promise<Response>;
+  patch(): Promise<Response>;
+  post(): Promise<Response>;
+  put(): Promise<Response>;
+  queryString(key: string, value: QueryValueType | QueryValueType[]): this;
+  requestId(id: string): this;
+  requestInterceptor(interceptor: readonly RequestInterceptorType[] | RequestInterceptorType): this;
+  responseInterceptor(interceptor: readonly ResponseInterceptorType[] | ResponseInterceptorType): this;
+  signal(signal: AbortSignal): this;
+  timeout(ms: number): this;
+}

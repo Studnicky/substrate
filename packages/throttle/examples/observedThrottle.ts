@@ -1,0 +1,47 @@
+/** observedThrottle — subclass Throttle, override onAcquire and onRelease to collect telemetry, assert hooks fired. Run: npx tsx examples/observedThrottle.ts */
+
+import assert from 'node:assert/strict';
+
+import { Throttle } from '../src/index.js';
+
+class TelemetryThrottle extends Throttle {
+  readonly acquireEvents: Array<{ activeCount: number; queuedCount: number }> = [];
+  readonly releaseEvents: Array<{ activeCount: number; totalExecuted: number }> = [];
+
+  protected override onAcquire(activeCount: number, queuedCount: number): void {
+    this.acquireEvents.push({ activeCount, queuedCount });
+  }
+
+  protected override onRelease(activeCount: number, totalExecuted: number): void {
+    this.releaseEvents.push({ activeCount, totalExecuted });
+  }
+}
+
+const throttle = new TelemetryThrottle({ concurrencyLimit: 2 });
+
+await Promise.all(
+  [1, 2, 3].map((i) =>
+    throttle.execute(async () => Promise.resolve(i))
+  )
+);
+
+// onAcquire fires only for immediately-acquired slots (activeCount < limit).
+// With concurrencyLimit 2 and 3 ops, the first 2 acquire immediately; the 3rd queues.
+assert.equal(throttle.acquireEvents.length, 2, 'Expected 2 immediate acquire events (third op was queued)');
+
+// onRelease fires for each completed operation
+assert.ok(throttle.releaseEvents.length >= 3, 'Expected at least 3 release events');
+
+// All acquire events have positive activeCount
+for (const event of throttle.acquireEvents) {
+  assert.ok(event.activeCount > 0, 'activeCount must be > 0 at acquire');
+}
+
+// totalExecuted increments with each release
+const lastRelease = throttle.releaseEvents.at(-1);
+assert.ok(lastRelease !== undefined, 'Should have at least one release event');
+assert.ok(lastRelease.totalExecuted >= 3, 'totalExecuted should be >= 3 after all ops complete');
+
+console.log('observedThrottle acquireEvents:', throttle.acquireEvents);
+console.log('observedThrottle releaseEvents:', throttle.releaseEvents);
+console.log('observedThrottle stats:', throttle.getStats());

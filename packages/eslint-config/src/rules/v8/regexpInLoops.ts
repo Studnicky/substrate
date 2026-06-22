@@ -1,0 +1,82 @@
+import type { Rule } from 'eslint';
+
+const LOOP_TYPES = new Set([
+  'DoWhileStatement',
+  'ForInStatement',
+  'ForOfStatement',
+  'ForStatement',
+  'WhileStatement'
+]);
+
+const isJsonObject = (value: unknown): value is Record<string, unknown> => {
+  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+};
+
+const hasRegExpCallee = (node: Rule.Node): boolean => {
+  if (node.type !== 'NewExpression' && node.type !== 'CallExpression') {
+    return false;
+  }
+
+  const raw: unknown = node;
+
+  if (!isJsonObject(raw)) {
+    return false;
+  }
+
+  const callee = raw.callee;
+
+  if (!isJsonObject(callee)) {
+    return false;
+  }
+
+  return callee.type === 'Identifier' && callee.name === 'RegExp';
+};
+
+const createRegexpInLoops: NonNullable<Rule.RuleModule['create']> = (context) => {
+  const onExpression = (node: Rule.Node): void => {
+    if (!hasRegExpCallee(node)) {
+      return;
+    }
+
+    let parent: Rule.Node | null = node.parent;
+
+    while (parent !== null) {
+      if (LOOP_TYPES.has(parent.type)) {
+        context.report({
+          'messageId': 'regexpInLoop',
+          'node': node
+        });
+
+        return;
+      }
+
+      if (
+        parent.type === 'FunctionDeclaration'
+        || parent.type === 'FunctionExpression'
+        || parent.type === 'ArrowFunctionExpression'
+      ) {
+        return;
+      }
+
+      parent = parent.parent;
+    }
+  };
+
+  return {
+    'CallExpression': onExpression,
+    'NewExpression': onExpression
+  };
+};
+
+export const regexpInLoops: Rule.RuleModule = {
+  'create': createRegexpInLoops,
+  'meta': {
+    'docs': {
+      'description': 'Disallow RegExp construction inside loops; allocates a new RegExp object on every iteration.',
+      'recommended': false
+    },
+    'messages': { 'regexpInLoop': 'v8Optimization/regexpInLoops: RegExp construction inside a loop causes per-iteration allocation. Hoist the RegExp to the outer scope.' },
+    'schema': [],
+    'type': 'problem'
+  }
+};

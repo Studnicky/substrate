@@ -1,0 +1,45 @@
+import type { MutexConfigType } from '../types/MutexConfigType.js';
+import type { MutexStatsType } from '../types/MutexStatsType.js';
+
+/**
+ * Disposable lock handle for use with `await using` syntax (Node.js 24+)
+ *
+ * @example
+ * ```typescript
+ * await using lock = await mutex.acquireDisposable('key');
+ * // Lock automatically released when scope exits
+ * ```
+ */
+export interface MutexLockInterface {
+  /**
+   * Async dispose method for `await using` syntax
+   */
+  [Symbol.asyncDispose](): Promise<void>;
+
+  /**
+   * The key this lock is held for
+   */
+  readonly 'key': PropertyKey;
+
+  /**
+   * Manually release the lock (also called automatically via Symbol.asyncDispose)
+   */
+  release(): void;
+}
+
+/**
+ * Key-based mutual exclusion lock for serializing access to shared resources with optional request coalescing.
+ */
+export interface MutexInterface<K extends PropertyKey = string> {
+  acquire(key: K): Promise<() => void>;
+  acquireDisposable(key: K): Promise<MutexLockInterface>;
+  clear(): void;
+  completeQueue(): Promise<void>;
+  getConfig(): Readonly<MutexConfigType>;
+  getStats(): MutexStatsType;
+  isComplete(): boolean;
+  isLocked(key: K): boolean;
+  queueSize(key: K): number;
+  runExclusive<T>(key: K, fn: () => Promise<T> | T): Promise<T>;
+  size(): number;
+}

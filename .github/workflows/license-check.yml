@@ -1,0 +1,45 @@
+name: license-check
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: License compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@studnicky'
+      - run: pnpm install --prod --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate license report
+        run: npx license-report --csv > license-report.csv
+      - name: Check for disallowed licenses
+        run: |
+          if grep -E "AGPL|GPL|SSPL" license-report.csv; then
+            echo "ERROR: Disallowed license detected (AGPL, GPL, or SSPL)."
+            echo "Review the license-report.csv artifact for details."
+            exit 1
+          fi
+          echo "License check passed — no disallowed licenses found."
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: license-report
+          path: license-report.csv
+          retention-days: 30

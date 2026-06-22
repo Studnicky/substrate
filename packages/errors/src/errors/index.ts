@@ -1,0 +1,12 @@
+/**
+ * Error classes for this package.
+ *
+ * @packageDocumentation
+ */
+
+export { BaseError } from './BaseError.js';
+export { CliExitError } from './CliExitError.js';
+export { ErrorCodeRegistry } from './ErrorCodeRegistry.js';
+export { ModuleError } from './ModuleError.js';
+export { ValidationError } from './ValidationError.js';
+export { ValidationErrors } from './ValidationErrors.js';

@@ -1,0 +1,46 @@
+name: changelog-check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check:
+    name: Changelog entry required
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Unreleased section has content
+        run: |
+          if ! grep -q "^## \[Unreleased\]" CHANGELOG.md; then
+            echo "ERROR: CHANGELOG.md is missing an [Unreleased] section."
+            echo "Add your changes under ## [Unreleased] before merging to main."
+            exit 1
+          fi
+
+          # Extract content between [Unreleased] and the next ## heading
+          UNRELEASED_CONTENT=$(awk '/^## \[Unreleased\]/{found=1; next} found && /^## \[/{exit} found{print}' CHANGELOG.md)
+
+          # Check for at least one subsection with content
+          SUBSECTION_COUNT=$(echo "$UNRELEASED_CONTENT" | grep -cE "^### (Added|Changed|Fixed|Removed|Deprecated|Security)" || true)
+
+          if [ "$SUBSECTION_COUNT" -eq 0 ]; then
+            echo "ERROR: [Unreleased] section in CHANGELOG.md has no subsections."
+            echo "Add at least one of: ### Added, ### Changed, ### Fixed, ### Removed, ### Deprecated, ### Security"
+            exit 1
+          fi
+
+          # Check that at least one subsection has a non-empty entry
+          HAS_CONTENT=$(echo "$UNRELEASED_CONTENT" | grep -cE "^- " || true)
+
+          if [ "$HAS_CONTENT" -eq 0 ]; then
+            echo "ERROR: [Unreleased] section has subsection headers but no entries."
+            echo "Add at least one bullet entry under a subsection heading."
+            exit 1
+          fi
+
+          echo "CHANGELOG.md [Unreleased] section is valid with $SUBSECTION_COUNT subsection(s) and $HAS_CONTENT entries."

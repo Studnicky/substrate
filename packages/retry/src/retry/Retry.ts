@@ -1,0 +1,519 @@
+import { ConfigValidation } from '@studnicky/config';
+import { Pipeline } from '@studnicky/pipeline';
+import { setTimeout as sleep } from 'node:timers/promises';
+
+import type {
+  ErrorClassificationType,
+  RequestStatsType,
+  RetryConfigType,
+  RetryContextType,
+  RetryInterface
+} from '../interfaces/index.js';
+import type { RetryCallStateType } from '../types/RetryCallStateType.js';
+
+import {
+  DEFAULT_MAX_RETRIES,
+  EMPTY_LENGTH,
+  INCREMENT_BY_ONE,
+  INITIAL_COUNTER,
+  LAST_ARRAY_INDEX,
+  NO_DELAY_MS,
+  RETRY_CONFIG_KEYS
+} from '../constants/index.js';
+import {
+  ConfigurationError,
+  MaxRetriesExceededError,
+  NonRetryableError
+} from '../errors/index.js';
+import {
+  errorClassifier,
+  maxRetries,
+  retryInterceptor
+} from './config/schemas/index.js';
+import { DefaultHttpErrorClassifier } from './core/DefaultHttpErrorClassifier.js';
+import { RetryBuilder } from './RetryBuilder.js';
+
+/**
+ * Per-call FSM — one instance per `Retry.execute()` invocation.
+ * Not exported; internal to the module.
+ *
+ * Accepts guard and enter callbacks so it can delegate to the owning Retry
+ * instance's protected methods without requiring inheritance.
+ */
+class RetryCallFsm {
+  readonly #guard: (from: RetryCallStateType, to: RetryCallStateType) => boolean;
+  readonly #enter: (to: RetryCallStateType, from: RetryCallStateType) => void;
+  #state: RetryCallStateType = 'attempting';
+
+  constructor(
+    guard: (from: RetryCallStateType, to: RetryCallStateType) => boolean,
+    enter: (to: RetryCallStateType, from: RetryCallStateType) => void
+  ) {
+    this.#guard = guard;
+    this.#enter = enter;
+  }
+
+  get state(): RetryCallStateType {
+    return this.#state;
+  }
+
+  transition(to: RetryCallStateType): void {
+    const from = this.#state;
+
+    if (!this.#guard(from, to)) {
+      throw new Error(`Illegal state transition: ${from} → ${to}`);
+    }
+
+    this.#state = to;
+    this.#enter(to, from);
+  }
+}
+
+/**
+ * Base class for async operations with retry logic.
+ *
+ * Protocol-agnostic retry behavior with extensible error classification. The bare
+ * class performs NO observability of its own — it exposes protected lifecycle hooks
+ * (`onAttempt`, `onSuccess`, `onRetryableError`, `onRetryScheduled`, `onGiveUp`) that
+ * a consumer overrides to add logging/timing/metrics. Can be instantiated directly
+ * with an errorClassifier in config, or extended with a custom classifyError().
+ *
+ * @example Direct instantiation with config classifier
+ * ```typescript
+ * import { Retry, DefaultHttpErrorClassifier, BackoffStrategy } from '@studnicky/retry';
+ *
+ * const retry = new Retry({
+ *   maxRetries: 3,
+ *   errorClassifier: new DefaultHttpErrorClassifier()
+ * });
+ *
+ * const result = await retry.execute(() => fetchData());
+ * ```
+ *
+ * @example Adding observability via hooks
+ * ```typescript
+ * class ObservedRetry extends Retry {
+ *   protected override onRetryScheduled(attemptNumber: number, delayMs: number): void {
+ *     this.logger.warn('retry.scheduled', { attemptNumber, delayMs });
+ *   }
+ *   protected override onGiveUp(error: Error, attemptNumber: number, reason: string): void {
+ *     this.logger.error('retry.giveUp', { reason, attemptNumber, error: error.message });
+ *   }
+ * }
+ * ```
+ *
+ * @example Extension of classification
+ * ```typescript
+ * class FusekiRetry extends Retry {
+ *   protected classifyError(error: Error): ErrorClassificationType {
+ *     const msg = error.message.toLowerCase();
+ *     if (msg.includes('transaction abort') || msg.includes('503')) {
+ *       return { retryable: true, reason: 'Transient Fuseki error' };
+ *     }
+ *     return { retryable: false };
+ *   }
+ * }
+ * ```
+ *
+ * @example Builder pattern
+ * ```typescript
+ * const retry = Retry.builder()
+ *   .maxRetries(5)
+ *   .errorClassifier(new DefaultHttpErrorClassifier())
+ *   .build();
+ * ```
+ */
+export class Retry implements RetryInterface {
+  /**
+   * Create a new RetryBuilder for fluent configuration.
+   *
+   * @returns New builder instance for configuring retry behavior
+   */
+  static builder(): RetryBuilder<Retry> {
+    const result = new RetryBuilder(Retry);
+    return result;
+  }
+  /**
+   * Create a new Retry instance with the specified configuration.
+   *
+   * @param config - Optional partial configuration for retry behavior
+   * @returns New Retry instance
+   */
+  static create(config?: Partial<RetryConfigType>): Retry {
+    const result = new Retry(Retry.validateConfig(config));
+    return result;
+  }
+  private readonly classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
+  private readonly defaultClassifier: DefaultHttpErrorClassifier;
+  private readonly pipeline: Pipeline<RetryContextType>;
+
+  protected readonly maxRetries: number;
+
+  protected stats: RequestStatsType = {
+    'failedRequests': INITIAL_COUNTER,
+    'successfulRequests': INITIAL_COUNTER,
+    'totalRequests': INITIAL_COUNTER,
+    'totalRetries': INITIAL_COUNTER
+  };
+
+  constructor(config: Partial<RetryConfigType> = {}) {
+    this.maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
+    this.defaultClassifier = new DefaultHttpErrorClassifier();
+    this.pipeline = new Pipeline<RetryContextType>();
+
+    const interceptors = config.retryInterceptor === undefined
+      ? []
+      : Array.isArray(config.retryInterceptor)
+        ? config.retryInterceptor
+        : [config.retryInterceptor];
+
+    for (const fn of interceptors) {
+      this.pipeline.add(fn);
+    }
+
+    if (config.errorClassifier === undefined) {
+      // Arrow function required for subclass polymorphism - classifyError may be overridden
+      this.classifierFn = (error, attemptNumber) => { const result = this.classifyError(error, attemptNumber); return result; };
+    } else if (typeof config.errorClassifier === 'function') {
+      this.classifierFn = config.errorClassifier;
+    } else {
+      const classifier = config.errorClassifier;
+
+      this.classifierFn = (error, attemptNumber) => { const result = classifier.classify(error, attemptNumber); return result; };
+    }
+  }
+
+  /**
+   * Classify an error to determine if it should be retried.
+   *
+   * Subclasses can override this method to provide custom error classification logic.
+   * If errorClassifier is provided in config, it takes precedence over this method.
+   *
+   * @param error - The error that occurred
+   * @param attemptNumber - Current attempt number (0-indexed)
+   * @returns Classification result indicating whether to retry
+   */
+  protected classifyError(error: Error, attemptNumber: number): ErrorClassificationType {
+    const result = this.defaultClassifier.classify(error, attemptNumber);
+    return result;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Lifecycle hooks — no-op by default. The bare class does NO observability;
+  // override these to add logging/timing/metrics. (See @studnicky/logger, /timing.)
+  // ---------------------------------------------------------------------------
+
+  /** Fires at the start of each attempt (0-indexed). */
+  protected onAttempt(_attemptNumber: number): void {}
+
+  /** Fires after a successful attempt, with elapsed time since execute() began. */
+  protected onSuccess(_attemptNumber: number, _elapsedMs: number): void {}
+
+  /** Fires after an error is classified retryable, before the retry is scheduled. */
+  protected onRetryableError(
+    _attemptNumber: number,
+    _error: Error,
+    _classification: ErrorClassificationType
+  ): void {}
+
+  /** Fires once a retry delay is computed, before waiting. */
+  protected onRetryScheduled(_attemptNumber: number, _delayMs: number): void {}
+
+  /** Fires when retrying is abandoned. */
+  protected onGiveUp(
+    _error: Error,
+    _attemptNumber: number,
+    _reason: 'aborted' | 'exhausted' | 'nonRetryable'
+  ): void {}
+
+  // ---------------------------------------------------------------------------
+  // Per-call FSM hooks — called by RetryCallFsm on every transition.
+  // Override these in subclasses to observe or constrain call-level FSM edges.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Guard: returns true when the from → to transition is legal for a single call.
+   *
+   * Legal edges:
+   * - attempting → succeeded
+   * - attempting → waiting
+   * - attempting → failed
+   * - waiting   → attempting
+   * - waiting   → exhausted
+   * - waiting   → aborted
+   */
+  protected guardCall(from: RetryCallStateType, to: RetryCallStateType): boolean {
+    if (from === 'attempting' && to === 'succeeded') return true;
+    if (from === 'attempting' && to === 'waiting') return true;
+    if (from === 'attempting' && to === 'failed') return true;
+    if (from === 'waiting' && to === 'attempting') return true;
+    if (from === 'waiting' && to === 'exhausted') return true;
+    if (from === 'waiting' && to === 'aborted') return true;
+
+    return false;
+  }
+
+  /**
+   * Hook called when the per-call FSM enters a new state.
+   * No-op by default. Override to record or react to call-level transitions.
+   */
+  protected enterCall(_to: RetryCallStateType, _from: RetryCallStateType): void {}
+
+  /**
+   * Execute an async operation with retry logic.
+   *
+   * @param fn - Async operation to execute
+   * @returns Promise resolving to operation result
+   *
+   * @throws {MaxRetriesExceededError} When operation fails after all retry attempts
+   * @throws {NonRetryableError} When error is classified as non-retryable
+   */
+  async execute<T>(fn: () => Promise<T>): Promise<T> {
+    this.stats.totalRequests++;
+
+    const callFsm = new RetryCallFsm(
+      (from, to) => this.guardCall(from, to),
+      (to, from) => { this.enterCall(to, from); }
+    );
+    const startTime = Date.now();
+    const errors: Error[] = [];
+    const state: Record<string, unknown> = {};
+
+    for (let attempt = INITIAL_COUNTER; attempt <= this.maxRetries; attempt++) {
+      this.onAttempt(attempt);
+
+      try {
+        const result = await fn();
+
+        this.handleSuccess(callFsm, attempt, startTime);
+
+        return result;
+      } catch (error) {
+        const caughtError = error instanceof Error ? error : new Error(String(error));
+
+        errors.push(caughtError);
+
+        await this.handleError(callFsm, attempt, caughtError, errors, startTime, state);
+      }
+    }
+
+    return this.handleFinalFailure(callFsm, errors);
+  }
+
+  /**
+   * Get current request statistics.
+   */
+  getStats(): RequestStatsType {
+    const result = Object.freeze({ ...this.stats });
+    return result;
+  }
+
+  /**
+   * Handle error during execution.
+   */
+  private async handleError(
+    callFsm: RetryCallFsm,
+    attempt: number,
+    error: Error,
+    errors: Error[],
+    startTime: number,
+    state: Record<string, unknown>
+  ): Promise<void> {
+    const classification = this.classifierFn(error, attempt);
+
+    if (!classification.retryable) {
+      this.handleNonRetryableError(callFsm, attempt, error, classification);
+    }
+
+    this.onRetryableError(attempt, error, classification);
+
+    // performRetry transitions FSM: attempting → waiting, then checks budget,
+    // then (if budget remains) sleeps and transitions waiting → attempting.
+    await this.performRetry(callFsm, attempt, error, classification, errors, startTime, state);
+  }
+
+  /**
+   * Handle final failure after loop (unreachable in practice — exhaustion is
+   * caught inside handleError before the loop can exit normally).
+   */
+  private handleFinalFailure(_callFsm: RetryCallFsm, errors: Error[]): never {
+    this.stats.failedRequests++;
+
+    const finalError = errors.at(LAST_ARRAY_INDEX) ?? new Error('Unknown error occurred during retry');
+
+    this.onGiveUp(finalError, this.maxRetries, 'exhausted');
+
+    throw new MaxRetriesExceededError(
+      `Operation failed after ${this.maxRetries + INCREMENT_BY_ONE} attempts: ${String(finalError)}`,
+      this.maxRetries,
+      this.maxRetries + INCREMENT_BY_ONE,
+      errors.length > EMPTY_LENGTH ? errors : [finalError]
+    );
+  }
+
+  /**
+   * Handle interceptor abort.
+   */
+  private handleInterceptorAbort(callFsm: RetryCallFsm, attempt: number, error: Error): never {
+    this.stats.failedRequests++;
+
+    callFsm.transition('aborted');
+    this.onGiveUp(error, attempt, 'aborted');
+
+    throw new MaxRetriesExceededError(
+      `Operation aborted by retry interceptor after ${attempt + INCREMENT_BY_ONE} attempts: ${String(error)}`,
+      this.maxRetries,
+      attempt + INCREMENT_BY_ONE,
+      [error]
+    );
+  }
+
+  /**
+   * Handle max retries exceeded.
+   */
+  private handleMaxRetriesExceeded(
+    callFsm: RetryCallFsm,
+    attempt: number,
+    error: Error,
+    errors: Error[]
+  ): never {
+    this.stats.failedRequests++;
+
+    callFsm.transition('exhausted');
+    this.onGiveUp(error, attempt, 'exhausted');
+
+    throw new MaxRetriesExceededError(
+      `Operation failed after ${attempt + INCREMENT_BY_ONE} attempts: ${String(error)}`,
+      this.maxRetries,
+      attempt + INCREMENT_BY_ONE,
+      errors
+    );
+  }
+
+  /**
+   * Handle non-retryable error.
+   */
+  private handleNonRetryableError(
+    callFsm: RetryCallFsm,
+    attempt: number,
+    error: Error,
+    classification: ErrorClassificationType
+  ): never {
+    this.stats.failedRequests++;
+
+    callFsm.transition('failed');
+    this.onGiveUp(error, attempt, 'nonRetryable');
+
+    throw new NonRetryableError(
+      `Operation failed with non-retryable error: ${String(error)}`,
+      error,
+      classification.reason ?? 'Unknown reason',
+      attempt + INCREMENT_BY_ONE
+    );
+  }
+
+  /**
+   * Handle successful execution.
+   */
+  private handleSuccess(callFsm: RetryCallFsm, attempt: number, startTime: number): void {
+    this.stats.successfulRequests++;
+
+    callFsm.transition('succeeded');
+    this.onSuccess(attempt, Date.now() - startTime);
+  }
+
+  /**
+   * Perform retry with delay.
+   *
+   * Transitions the FSM: attempting → waiting first, then checks budget
+   * (waiting → exhausted) and interceptor abort (waiting → aborted) before
+   * sleeping and transitioning waiting → attempting for the next loop iteration.
+   */
+  private async performRetry(
+    callFsm: RetryCallFsm,
+    attempt: number,
+    error: Error,
+    classification: ErrorClassificationType,
+    errors: Error[],
+    startTime: number,
+    state: Record<string, unknown>
+  ): Promise<void> {
+    // Enter waiting state before any budget or abort checks so that terminal
+    // transitions (exhausted, aborted) always come from 'waiting'.
+    callFsm.transition('waiting');
+
+    if (attempt === this.maxRetries) {
+      this.handleMaxRetriesExceeded(callFsm, attempt, error, errors);
+    }
+
+    // Only count a retry when the budget allows another attempt.
+    this.stats.totalRetries++;
+
+    const context: RetryContextType = {
+      'abort': false,
+      'attemptNumber': attempt,
+      'classification': classification,
+      'delayMs': NO_DELAY_MS,
+      'elapsedMs': Date.now() - startTime,
+      'error': error,
+      'maxRetries': this.maxRetries,
+      'state': state,
+      'stats': Object.freeze({ ...this.stats })
+    };
+
+    const result = await this.pipeline.run(context);
+
+    if (result.abort === true) {
+      this.handleInterceptorAbort(callFsm, attempt, error);
+    }
+
+    this.onRetryScheduled(attempt, result.delayMs);
+
+    await sleep(result.delayMs);
+
+    callFsm.transition('attempting');
+  }
+
+  /**
+   * Reset statistics counters.
+   */
+  resetStats(): void {
+    this.stats = {
+      'failedRequests': INITIAL_COUNTER,
+      'successfulRequests': INITIAL_COUNTER,
+      'totalRequests': INITIAL_COUNTER,
+      'totalRetries': INITIAL_COUNTER
+    };
+  }
+
+  private static readonly propertyValidators: Record<string, (val: unknown) => void> = {
+    'errorClassifier': errorClassifier.validateErrorClassifier,
+    'maxRetries': maxRetries.validateMaxRetries,
+    'retryInterceptor': retryInterceptor.validateRetryInterceptor
+  };
+
+  private static validateConfig(config?: Partial<RetryConfigType>): Partial<RetryConfigType> {
+    try {
+      const userConfig = config ?? {};
+      const configObj = userConfig as Record<string, unknown>;
+
+      ConfigValidation.assertNoUnknownKeys(configObj, RETRY_CONFIG_KEYS);
+
+      for (const [key, validator] of Object.entries(Retry.propertyValidators)) {
+        if (key in userConfig) {
+          validator(configObj[key]);
+        }
+      }
+
+      return userConfig;
+    } catch (error) {
+      if (error instanceof ConfigurationError) {
+        throw error;
+      }
+      if (error instanceof Error) {
+        throw ConfigurationError.create(error.message);
+      }
+      throw ConfigurationError.create(String(error));
+    }
+  }
+}

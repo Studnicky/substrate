@@ -1,0 +1,11 @@
+/**
+ * The seven primitive type names defined by JSON Schema 2020-12.
+ */
+export type JsonSchemaTypeNameType =
+  | 'array'
+  | 'boolean'
+  | 'integer'
+  | 'null'
+  | 'number'
+  | 'object'
+  | 'string';

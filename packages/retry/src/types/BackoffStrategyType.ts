@@ -1,0 +1,4 @@
+/**
+ * Custom backoff strategy function for calculating retry delays
+ */
+export type BackoffStrategyType = (attemptNumber: number, baseDelayMs: number) => number;

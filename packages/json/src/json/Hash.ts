@@ -1,0 +1,87 @@
+/**
+ * Hash — FNV-1a structural hash for JSON-compatible values.
+ *
+ * The `Hash` class provides a deterministic FNV-1a 32-bit hex hash for any
+ * JSON-compatible value. Object key order is normalised (sorted alphabetically)
+ * so that two objects with the same entries in different insertion orders
+ * produce the same hash.
+ *
+ * Subclass `Hash` and override any `protected static` step to customise hashing.
+ */
+
+import { DataType } from './DataType.js';
+
+const FNV_OFFSET_BASIS = 2_166_136_261;
+const FNV_PRIME = 16_777_619;
+const UINT32_MASK = 0xFF_FF_FF_FF;
+
+export class Hash {
+  // ---------------------------------------------------------------------------
+  // Protected steps — override in subclasses to customise hashing
+  // ---------------------------------------------------------------------------
+
+  /** Compute the raw FNV-1a 32-bit integer for a string. */
+  protected static fnv1a32(input: string): number {
+    let hash = FNV_OFFSET_BASIS;
+
+    for (let i = 0; i < input.length; i++) {
+      hash ^= input.charCodeAt(i);
+      hash = Math.imul(hash, FNV_PRIME) >>> 0;
+    }
+
+    return hash & UINT32_MASK;
+  }
+
+  /** Encode a 32-bit unsigned integer as an 8-character lowercase hex string. */
+  protected static toHex32(n: number): string {
+    return (n >>> 0).toString(16).padStart(8, '0');
+  }
+
+  /**
+   * Recursively produce a canonical string representation of `value` for
+   * hashing. Override to add or strip fields before hashing.
+   */
+  protected static hashValue(value: unknown): string {
+    if (value === null) {
+      return 'null';
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
+    }
+    if (typeof value === 'number') {
+      return `n:${String(value)}`;
+    }
+    if (typeof value === 'string') {
+      return `s:${this.toHex32(this.fnv1a32(value))}`;
+    }
+    if (Array.isArray(value)) {
+      const parts = value.map((item: unknown) => this.hashValue(item));
+
+      return `[${parts.join(',')}]`;
+    }
+    if (DataType.isRecord(value)) {
+      const keys = Object.keys(value).sort();
+      const parts = keys.map((k) => `${k}:${this.hashValue(value[k])}`);
+
+      return `{${parts.join(',')}}`;
+    }
+
+    return `?:${typeof value}`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Public static API
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Compute a deterministic FNV-1a 32-bit hex hash of any JSON-compatible value.
+   *
+   * Object key order is normalised (sorted alphabetically) so that two objects
+   * with the same entries in different insertion orders produce the same hash.
+   */
+  public static value(input: unknown): string {
+    const serialised = this.hashValue(input);
+
+    return this.toHex32(this.fnv1a32(serialised));
+  }
+}

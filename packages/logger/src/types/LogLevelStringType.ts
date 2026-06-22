@@ -1,0 +1,18 @@
+/**
+ * String representation of log levels
+ *
+ * Valid values correspond to the LogLevel enum:
+ * - `'trace'` - Most verbose, detailed tracing information
+ * - `'debug'` - Verbose debugging information
+ * - `'info'` - General informational messages
+ * - `'warn'` - Warning messages for potentially harmful situations
+ * - `'error'` - Error messages for error events
+ * - `'silent'` - No logging
+ *
+ * @example
+ * ```typescript
+ * const level: LogLevelString = 'info';
+ * const logger = ConsoleLogger.create({ level });
+ * ```
+ */
+export type LogLevelStringType = 'debug' | 'error' | 'info' | 'silent' | 'trace' | 'warn';

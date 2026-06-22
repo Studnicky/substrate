@@ -1,0 +1,2 @@
+/** Result of attempting to coerce a string to a finite number. */
+export type CoerceToNumberResultType = number | undefined;

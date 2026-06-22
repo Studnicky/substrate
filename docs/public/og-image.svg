@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0f172a"/>
+  <!-- Teal accent bar -->
+  <rect x="0" y="0" width="8" height="630" fill="#14b8a6"/>
+  <!-- Logo mark (stacked bars) -->
+  <rect x="80" y="200" width="80" height="22" rx="11" fill="#14b8a6"/>
+  <rect x="80" y="234" width="80" height="22" rx="11" fill="#14b8a6" opacity="0.75"/>
+  <rect x="80" y="268" width="80" height="22" rx="11" fill="#14b8a6" opacity="0.5"/>
+  <!-- Title -->
+  <text x="200" y="232" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#f8fafc">Substrate</text>
+  <!-- Tagline -->
+  <text x="200" y="292" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="400" fill="#94a3b8">Subclass-first TypeScript primitives.</text>
+  <!-- Package name -->
+  <text x="200" y="370" font-family="ui-monospace, monospace" font-size="22" fill="#14b8a6">@studnicky/substrate</text>
+</svg>

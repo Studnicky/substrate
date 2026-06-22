@@ -1,0 +1,133 @@
+/**
+ * FetchClient configuration types
+ */
+
+import type { QueryParamsType } from '../types/QueryParamsType.js';
+import type { RequestInterceptorType } from '../types/RequestInterceptorType.js';
+import type { ResponseInterceptorType } from '../types/ResponseInterceptorType.js';
+import type { DispatcherConfigType } from './DispatcherConfigType.js';
+import type { FetchOptionsType } from './FetchOptionsType.js';
+
+/**
+ * Client configuration options
+ */
+export type ClientConfigType = {
+  /**
+   * Automatically generate request IDs for tracking
+   * Default: true
+   *
+   * When enabled, each request gets a unique ID for correlation
+   * The ID is accessible in interceptors via metadata.requestId
+   */
+  'autoGenerateRequestId'?: boolean;
+
+  /**
+   * Base URL prepended to all requests
+   */
+  'baseURL'?: string;
+
+  /**
+   * HTTP connection pooling configuration
+   *
+   * Enables connection reuse across multiple requests to prevent socket exhaustion.
+   * Essential when making many requests to the same endpoint (e.g., graph databases).
+   *
+   * Set `enabled: true` to activate connection pooling, which:
+   * - Reuses HTTP connections instead of creating new ones for each request
+   * - Limits concurrent connections to prevent exhausting system sockets
+   * - Implements proper keep-alive behavior for long-lived connections
+   * - Prevents ECONNREFUSED and 405 errors from socket exhaustion
+   *
+   * Uses undici (Node.js's high-performance HTTP client) for implementation.
+   *
+   * @example
+   * ```typescript
+   * // Minimal - prevents socket exhaustion
+   * { dispatcher: { enabled: true } }
+   *
+   * // Recommended - with explicit pool size
+   * { dispatcher: { enabled: true, connections: 20 } }
+   * ```
+   */
+  'dispatcher'?: DispatcherConfigType;
+
+  /**
+   * Default headers for all requests
+   */
+  'headers'?: Record<string, string>;
+
+  /**
+   * Default metadata for all requests
+   *
+   * Key-value pairs that flow through request/response interceptors
+   * Useful for logging, tracking, and correlating requests
+   *
+   * @example
+   * ```typescript
+   * {
+   *   metadata: {
+   *     service: 'user-api',
+   *     environment: 'production'
+   *   }
+   * }
+   * ```
+   */
+  'metadata'?: Record<string, unknown>;
+
+  /**
+   * Instance name for logging and identification
+   * Used to create instance-specific log prefixes: [ClassName] or [ClassName:name]
+   *
+   * @example
+   * ```typescript
+   * // Without name: logs show [FetchClient]
+   * const client = FetchClient.create({ baseURL: '...' });
+   *
+   * // With name: logs show [FetchClient:api]
+   * const client = FetchClient.create({ name: 'api', baseURL: '...' });
+   * ```
+   */
+  'name'?: string;
+
+  /**
+   * Additional fetch options applied to all requests
+   */
+  'options'?: FetchOptionsType;
+
+  /**
+   * Default query parameters for all requests
+   */
+  'params'?: QueryParamsType;
+
+  /**
+   * Custom function to generate request IDs
+   *
+   * If not provided, uses crypto.randomUUID()
+   * Only used when autoGenerateRequestId is true
+   *
+   * @example
+   * ```typescript
+   * {
+   *   requestIdGenerator: () => `req_${Date.now()}_${Math.random()}`
+   * }
+   * ```
+   */
+  'requestIdGenerator'?: () => string;
+
+  /**
+   * Request interceptor(s) to modify requests before sending
+   * Can be a single function or an array of functions executed in order
+   */
+  'requestInterceptor'?: readonly RequestInterceptorType[] | RequestInterceptorType;
+
+  /**
+   * Response interceptor(s) to modify responses after receiving
+   * Can be a single function or an array of functions executed in order
+   */
+  'responseInterceptor'?: readonly ResponseInterceptorType[] | ResponseInterceptorType;
+
+  /**
+   * Default timeout in milliseconds
+   */
+  'timeout'?: number;
+};

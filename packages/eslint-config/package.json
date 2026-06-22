@@ -1,0 +1,86 @@
+{
+  "name": "@studnicky/eslint-config",
+  "version": "1.0.0",
+  "description": "Shared ESLint 9 flat config for @studnicky packages",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js"
+    },
+    "./v8": {
+      "types": "./dist/v8.d.ts",
+      "import": "./dist/v8.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "eslint",
+    "eslint-config",
+    "flat-config",
+    "studnicky",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/eslint-config"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "homepage": "https://studnicky.github.io/substrate/packages/eslint-config",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "peerDependencies": {
+    "@stylistic/eslint-plugin": ">=2.0.0",
+    "@typescript-eslint/eslint-plugin": ">=8.0.0",
+    "@typescript-eslint/parser": ">=8.0.0",
+    "eslint": ">=9.0.0",
+    "eslint-plugin-import-x": ">=4.0.0",
+    "eslint-plugin-perfectionist": ">=4.0.0",
+    "eslint-plugin-regexp": ">=2.0.0",
+    "eslint-plugin-unused-imports": ">=4.0.0",
+    "typescript": ">=5.0.0",
+    "typescript-eslint": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "latest",
+    "@types/eslint": "latest",
+    "@types/node": "latest",
+    "eslint": "latest",
+    "eslint-plugin-import-x": "latest",
+    "eslint-plugin-perfectionist": "latest",
+    "eslint-plugin-regexp": "latest",
+    "eslint-plugin-unused-imports": "latest",
+    "typescript": "latest",
+    "typescript-eslint": "latest"
+  }
+}

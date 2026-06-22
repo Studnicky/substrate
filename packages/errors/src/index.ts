@@ -1,0 +1,37 @@
+/**
+ * @module @studnicky/errors
+ * @description Standardized error handling for all modules in the monorepo
+ */
+
+export {
+  CAUSE_CHAIN_DEPTH_LIMIT,
+  CAUSE_DEPTH_SENTINEL,
+  ErrorCode,
+  ErrorDefaults,
+  HttpStatus
+} from './constants/index.js';
+export {
+  BaseError,
+  CliExitError,
+  ErrorCodeRegistry,
+  ModuleError,
+  ValidationError,
+  ValidationErrors
+} from './errors/index.js';
+export type {
+  BaseErrorArgumentsType,
+  ErrorCodeDescriptorType,
+  ModuleErrorCreateOptionsType,
+  ModuleErrorInterface,
+  ModuleErrorOptionsType,
+  SerializedErrorType,
+  ValidationErrorArgumentsType,
+  ValidationViolationDetailType
+} from './interfaces/index.js';
+export type {
+  ErrorScenarioType,
+  ValidationAggregateViewType,
+  ValidationProblemDetailsType,
+  ValidationReportOptionsType,
+  ValidationViolationType
+} from './types/index.js';

@@ -1,0 +1,80 @@
+import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherStatsType.js';
+
+/**
+ * Error thrown when connection pool is exhausted (all sockets in use)
+ *
+ * This error indicates that all available connections in the pool are actively
+ * processing requests, and no connections are available for new requests.
+ * This typically suggests the connection pool is undersized for the current load.
+ *
+ * @example
+ * ```typescript
+ * import { FetchClient, SocketExhaustionError } from '@studnicky/fetch';
+ *
+ * try {
+ *   await client.get('/api/data');
+ * } catch (error) {
+ *   if (error instanceof SocketExhaustionError) {
+ *     console.error('Connection pool exhausted');
+ *     console.error(`Max connections: ${error.maxConnections}`);
+ *     console.error(`Free connections: ${error.freeConnections}`);
+ *     console.error(`Pending requests: ${error.pendingRequests}`);
+ *   }
+ * }
+ * ```
+ */
+export class SocketExhaustionError extends Error {
+  /**
+   * Complete dispatcher statistics at the time of error (undefined if unavailable)
+   * Always present for V8 optimization
+   */
+  readonly dispatcherStats: SocketDispatcherStatsType | undefined;
+
+  /**
+   * Number of free connections available (0 if stats unavailable)
+   * Always present for V8 optimization
+   */
+  readonly freeConnections: number;
+
+  /**
+   * Maximum number of connections in the pool (0 if stats unavailable)
+   * Always present for V8 optimization
+   */
+  readonly maxConnections: number;
+
+  /**
+   * Number of pending requests waiting for a connection (0 if stats unavailable)
+   * Always present for V8 optimization
+   */
+  readonly pendingRequests: number;
+
+  /**
+   * Number of queued requests (0 if stats unavailable)
+   * Always present for V8 optimization
+   */
+  readonly queuedRequests: number;
+
+  /**
+   * The URL that was being requested
+   */
+  readonly url: string;
+
+  constructor(
+    url: string,
+    dispatcherStats?: SocketDispatcherStatsType
+  ) {
+    const statsInfo = dispatcherStats
+      ? ` (connected: ${dispatcherStats.connected}, free: ${dispatcherStats.free}, pending: ${dispatcherStats.pending}, queued: ${dispatcherStats.queued})`
+      : '';
+
+    super(`Connection pool exhausted for ${url}${statsInfo}. All connections are in use. Consider increasing pool size.`);
+    this.name = 'SocketExhaustionError';
+    this.url = url;
+
+    this.maxConnections = dispatcherStats?.connected ?? 0;
+    this.freeConnections = dispatcherStats?.free ?? 0;
+    this.pendingRequests = dispatcherStats?.pending ?? 0;
+    this.queuedRequests = dispatcherStats?.queued ?? 0;
+    this.dispatcherStats = dispatcherStats;
+  }
+}

@@ -1,0 +1,18 @@
+export type { ErrorClassificationType } from './ErrorClassificationType.js';
+export type { ErrorClassifierInterface } from './ErrorClassifierInterface.js';
+export type {
+  ErrorWithAddressType,
+  ErrorWithCodeType,
+  ErrorWithErrnoType,
+  ErrorWithHostnameType,
+  ErrorWithPortType,
+  ErrorWithRetryAfterType,
+  ErrorWithStatusCodeType,
+  ErrorWithStatusType,
+  ErrorWithSyscallType
+} from './ErrorShapesType.js';
+export type { RequestStatsType } from './RequestStatsType.js';
+export type { RetryBuilderInterface } from './RetryBuilderInterface.js';
+export type { RetryConfigType } from './RetryConfigType.js';
+export type { RetryContextType } from './RetryContextType.js';
+export type { RetryInterface } from './RetryInterface.js';

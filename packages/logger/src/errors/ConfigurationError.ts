@@ -1,0 +1,27 @@
+import { LoggerError } from './LoggerError.js';
+
+/**
+ * Error thrown when logger configuration is invalid
+ *
+ * Used for type validation and configuration errors during
+ * logger initialization or builder configuration.
+ *
+ * @example
+ * ```typescript
+ * if (typeof config.level !== 'string' && typeof config.level !== 'number') {
+ *   throw new ConfigurationError('level must be a string or number');
+ * }
+ * ```
+ */
+export class ConfigurationError extends LoggerError {
+  /**
+   * Creates a new ConfigurationError
+   *
+   * @param message - Descriptive error message
+   * @param cause - Optional underlying error that caused this error
+   */
+  constructor(message: string, cause?: unknown) {
+    super(message, cause);
+    this.name = 'ConfigurationError';
+  }
+}

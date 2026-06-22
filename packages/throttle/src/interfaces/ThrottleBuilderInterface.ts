@@ -1,0 +1,29 @@
+import type { AdaptiveConfigInputType } from '../types/AdaptiveConfigInputType.js';
+import type { ThrottleInterface } from './ThrottleInterface.js';
+
+/**
+ * Contract for ThrottleBuilder
+ *
+ * Logger and timing are accessed via the telemetry context silo mechanism.
+ */
+export interface ThrottleBuilderInterface {
+  /**
+   * Build and return the configured Throttle instance
+   * @returns New Throttle instance with configured settings
+   */
+  build(): ThrottleInterface;
+
+  /**
+   * Enable adaptive concurrency with configuration
+   * @param config Adaptive concurrency configuration (only enabled and targetLatencyMs required)
+   * @returns This builder instance for chaining
+   */
+  withAdaptiveConcurrency(config: AdaptiveConfigInputType): this;
+
+  /**
+   * Set the concurrency limit
+   * @param limit Maximum number of concurrent operations
+   * @returns This builder instance for chaining
+   */
+  withConcurrencyLimit(limit: number): this;
+}

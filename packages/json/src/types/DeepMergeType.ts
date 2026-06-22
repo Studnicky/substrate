@@ -1,0 +1,29 @@
+// json-schema-uninexpressible: recursive type-level deep-merge cannot be expressed as a JSON Schema
+
+// json-schema-uninexpressible: helper mapper for the object-merge branch of DeepMergeType
+type DeepMergeObjectsType<TBaseShape extends object, TOverlayShape extends object> = {
+  readonly [K in keyof TBaseShape | keyof TOverlayShape]:
+  K extends keyof TOverlayShape
+    ? K extends keyof TBaseShape
+      ? DeepMergeType<TBaseShape[K], TOverlayShape[K]>
+      : TOverlayShape[K]
+    : K extends keyof TBaseShape
+      ? TBaseShape[K]
+      : never;
+};
+
+/** Deeply merges overlay shape onto base shape, type-level. */
+export type DeepMergeType<TBaseShape, TOverlayShape>
+  = [TOverlayShape] extends [undefined]
+    ? TBaseShape
+    : [TBaseShape] extends [undefined]
+      ? TOverlayShape
+      : TOverlayShape extends readonly unknown[]
+        ? TOverlayShape
+        : TBaseShape extends readonly unknown[]
+          ? TOverlayShape
+          : TOverlayShape extends object
+            ? TBaseShape extends object
+              ? DeepMergeObjectsType<TBaseShape, TOverlayShape>
+              : TOverlayShape
+            : TOverlayShape;

@@ -1,0 +1,26 @@
+/**
+ * Provider type for the `Scheduler` pattern.
+ * Inject via a scheduler-using class constructor. Default: `RealTimeScheduler`.
+ *
+ * @module
+ */
+import type { ScheduledTaskType } from './ScheduledTaskType.js';
+
+/**
+ * Supplies scheduling primitives.
+ * Implement to provide deterministic scheduling in tests.
+ */
+export type SchedulerProviderType = {
+  /** Cancels all tasks registered with this provider. */
+  readonly 'cancelAll': () => void;
+  /**
+   * Schedules `fire` to run once at the absolute epoch-ms `atMs`.
+   * If `atMs` is in the past, fires at the next opportunity.
+   */
+  readonly 'scheduleAt': (atMs: number, fire: () => Promise<void> | void) => ScheduledTaskType;
+  /**
+   * Schedules `fire` to run repeatedly every `intervalMs` milliseconds.
+   * The first fire occurs after `intervalMs` milliseconds.
+   */
+  readonly 'scheduleEvery': (intervalMs: number, fire: () => Promise<void> | void) => ScheduledTaskType;
+};

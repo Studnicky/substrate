@@ -1,0 +1,5 @@
+export type { MutexBuilderInterface } from './MutexBuilderInterface.js';
+export type {
+  MutexInterface,
+  MutexLockInterface
+} from './MutexInterface.js';

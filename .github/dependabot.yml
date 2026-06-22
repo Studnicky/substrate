@@ -1,0 +1,49 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    versioning-strategy: increase
+    open-pull-requests-limit: 10
+    labels:
+      - automated
+      - dependencies
+    commit-message:
+      prefix: deps
+    groups:
+      eslint-ecosystem:
+        applies-to: version-updates
+        update-types:
+          - major
+          - minor
+          - patch
+        patterns:
+          - '@eslint/*'
+          - '@stylistic/eslint-plugin'
+          - '@typescript-eslint/*'
+          - 'eslint'
+          - 'eslint-*'
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+        exclude-patterns:
+          - '@eslint/*'
+          - '@stylistic/eslint-plugin'
+          - '@typescript-eslint/*'
+          - 'eslint'
+          - 'eslint-*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - automated
+      - dependencies
+    commit-message:
+      prefix: ci

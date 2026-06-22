@@ -1,0 +1,29 @@
+import { LoggerError } from './LoggerError.js';
+
+/**
+ * Thrown when circular references are detected in log metadata
+ *
+ * Prevents infinite loops during serialization by detecting and
+ * reporting circular object references.
+ *
+ * @example
+ * ```typescript
+ * const obj = { name: 'test' };
+ * obj.self = obj; // circular reference
+ * throw new CircularReferenceError('Circular reference detected in metadata');
+ * ```
+ */
+export class CircularReferenceError extends LoggerError {
+  public override readonly name = 'CircularReferenceError';
+
+  /**
+   * Creates a new CircularReferenceError
+   *
+   * @param message - Descriptive error message
+   * @param cause - Optional underlying error that caused this error
+   */
+  constructor(message: string, cause?: unknown) {
+    super(message, cause);
+    Error.captureStackTrace(this, this.constructor);
+  }
+}

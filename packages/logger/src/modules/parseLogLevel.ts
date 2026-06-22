@@ -1,0 +1,30 @@
+import type { LogLevelStringType } from '../types/LogLevelStringType.js';
+import type { LogLevelType } from '../types/LogLevelType.js';
+
+import { LogLevel } from '../constants/LogLevel.js';
+import { LogLevelMap } from '../constants/LogLevelMap.js';
+
+/**
+ * Parses a log level value from either numeric or string format
+ *
+ * Accepts LogLevel values directly or string representations.
+ * Returns LogLevel.INFO as default for unrecognized string values.
+ *
+ * @param level - Log level as numeric value or string representation
+ * @returns The corresponding LogLevel value
+ *
+ * @example
+ * ```typescript
+ * parseLogLevel(LogLevel.DEBUG); // LogLevel.DEBUG
+ * parseLogLevel('debug'); // LogLevel.DEBUG
+ * parseLogLevel('info'); // LogLevel.INFO
+ * parseLogLevel('unknown'); // LogLevel.INFO (default)
+ * ```
+ */
+export function parseLogLevel(level: LogLevelStringType | LogLevelType): LogLevelType {
+  if (typeof level === 'number') {
+    return level;
+  }
+
+  return (LogLevelMap as Record<string, LogLevelType | undefined>)[level] ?? LogLevel.INFO;
+}

@@ -1,0 +1,86 @@
+{
+  "compilerOptions": {
+    "composite": false
+  },
+  "references": [
+    {
+      "path": "packages/cache"
+    },
+    {
+      "path": "packages/eslint-config"
+    },
+    {
+      "path": "packages/event-bus"
+    },
+    {
+      "path": "packages/file-lock"
+    },
+    {
+      "path": "packages/fsm"
+    },
+    {
+      "path": "packages/predicates"
+    },
+    {
+      "path": "packages/resilience"
+    },
+    {
+      "path": "packages/signal"
+    },
+    {
+      "path": "packages/batch"
+    },
+    {
+      "path": "packages/circular-buffer"
+    },
+    {
+      "path": "packages/concurrency"
+    },
+    {
+      "path": "packages/clock"
+    },
+    {
+      "path": "packages/config"
+    },
+    {
+      "path": "packages/context"
+    },
+    {
+      "path": "packages/errors"
+    },
+    {
+      "path": "packages/fetch"
+    },
+    {
+      "path": "packages/json"
+    },
+    {
+      "path": "packages/logger"
+    },
+    {
+      "path": "packages/mutex"
+    },
+    {
+      "path": "packages/pipeline"
+    },
+    {
+      "path": "packages/retry"
+    },
+    {
+      "path": "packages/sample-buffer"
+    },
+    {
+      "path": "packages/scheduler"
+    },
+    {
+      "path": "packages/throttle"
+    },
+    {
+      "path": "packages/timing"
+    },
+    {
+      "path": "packages/types"
+    }
+  ],
+  "files": []
+}

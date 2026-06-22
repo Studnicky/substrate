@@ -1,0 +1,57 @@
+[
+  {
+    "name": "bug",
+    "color": "d73a4a",
+    "description": "Something isn't working"
+  },
+  {
+    "name": "enhancement",
+    "color": "a3e635",
+    "description": "New feature or request"
+  },
+  {
+    "name": "documentation",
+    "color": "0075ca",
+    "description": "Improvements or additions to documentation"
+  },
+  {
+    "name": "breaking-change",
+    "color": "e11d48",
+    "description": "Introduces a breaking API change"
+  },
+  {
+    "name": "automated",
+    "color": "6b7280",
+    "description": "Automated by a bot or workflow"
+  },
+  {
+    "name": "dependencies",
+    "color": "1d4ed8",
+    "description": "Pull requests that update a dependency file"
+  },
+  {
+    "name": "security",
+    "color": "7c3aed",
+    "description": "Security-related fix or advisory"
+  },
+  {
+    "name": "ci",
+    "color": "0369a1",
+    "description": "CI/CD pipeline changes"
+  },
+  {
+    "name": "stale",
+    "color": "d4d4d4",
+    "description": "No recent activity — will be closed soon"
+  },
+  {
+    "name": "pinned",
+    "color": "8b5cf6",
+    "description": "Exempt from automatic stale closure"
+  },
+  {
+    "name": "work-in-progress",
+    "color": "c084fc",
+    "description": "Not ready for review or merge"
+  }
+]

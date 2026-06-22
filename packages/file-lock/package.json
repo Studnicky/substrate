@@ -1,0 +1,30 @@
+{
+  "name": "@studnicky/file-lock",
+  "version": "1.0.0",
+  "description": "Atomic rename-based single-writer file lock for Node.js",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/file-lock" },
+  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
+  "homepage": "https://studnicky.github.io/substrate/packages/file-lock",
+  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
+  "keywords": ["file-lock", "lockfile", "mutex", "atomic", "rename", "nodejs"],
+  "engines": { "node": ">=24.0.0" }
+}

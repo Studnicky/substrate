@@ -1,0 +1,11 @@
+/**
+ * Timing fields for operations with measurable duration.
+ * Include on completion events, not start events.
+ */
+export type TimingFieldsType = {
+  /**
+   * Duration in milliseconds.
+   * ALWAYS use this field name for timing.
+   */
+  'durationMs': number;
+};

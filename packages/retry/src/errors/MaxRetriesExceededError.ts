@@ -1,0 +1,35 @@
+import { LAST_ARRAY_INDEX } from '../constants/index.js';
+import { RetryError } from './RetryError.js';
+
+/**
+ * Error thrown when maximum retry attempts are exhausted
+ *
+ * Thrown by Retry when an operation fails on all attempts including the
+ * initial attempt plus all configured retries. Contains the complete
+ * error history from each attempt.
+ */
+export class MaxRetriesExceededError extends RetryError {
+  public readonly maxRetries: number;
+
+  /**
+   * Create a MaxRetriesExceededError
+   *
+   * @param message - Error description
+   * @param maxRetries - Maximum retries configured
+   * @param attempts - Total attempts made (maxRetries + 1)
+   * @param errors - All errors from each attempt
+   */
+  constructor(
+    message: string,
+    maxRetries: number,
+    attempts: number,
+    errors: Error[]
+  ) {
+    const cause = errors.at(LAST_ARRAY_INDEX) ?? new Error('Unknown error');
+
+    super(message, attempts, cause, errors);
+    this.maxRetries = maxRetries;
+    this.name = 'MaxRetriesExceededError';
+    Error.captureStackTrace(this, MaxRetriesExceededError);
+  }
+}

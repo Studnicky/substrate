@@ -1,0 +1,29 @@
+import type { ErrorClassifierFunctionType } from '../types/ErrorClassifierFunctionType.js';
+import type { RetryInterceptorType } from '../types/RetryInterceptorType.js';
+import type { ErrorClassifierInterface } from './ErrorClassifierInterface.js';
+import type { RetryInterface } from './RetryInterface.js';
+
+/**
+ * Fluent builder for constructing Retry instances with custom error classification and backoff strategies.
+ */
+export interface RetryBuilderInterface<T extends RetryInterface = RetryInterface> {
+  /**
+   * Build and return Retry instance
+   */
+  build(): T;
+
+  /**
+   * Set error classifier for determining retry behavior
+   */
+  errorClassifier(value: ErrorClassifierFunctionType | ErrorClassifierInterface): this;
+
+  /**
+   * Set maximum number of retry attempts
+   */
+  maxRetries(value: number): this;
+
+  /**
+   * Set retry interceptor for controlling delay and abort
+   */
+  retryInterceptor(value: RetryInterceptorType): this;
+}

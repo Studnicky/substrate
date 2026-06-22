@@ -1,0 +1,20 @@
+/**
+ * Validates autoGenerateRequestId boolean flag
+ */
+
+import { ConfigurationError } from '../../errors/index.js';
+
+/**
+ * Validates autoGenerateRequestId boolean flag
+ *
+ * @param val - Value to validate
+ * @throws ConfigurationError if validation fails
+ */
+export function validateAutoGenerateRequestId(val: unknown): void {
+  if (val === undefined || val === null) {
+    return;
+  }
+  if (typeof val !== 'boolean') {
+    throw new ConfigurationError('autoGenerateRequestId must be a boolean');
+  }
+}

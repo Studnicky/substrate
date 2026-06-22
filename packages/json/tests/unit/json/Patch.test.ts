@@ -1,0 +1,153 @@
+import assert from 'node:assert';
+import { describe, it } from 'node:test';
+
+import { Patch } from '../../../src/json/Patch.js';
+import { PatchError } from '../../../src/errors/PatchError.js';
+
+void describe('Patch', () => {
+  void describe('Patch.add', () => {
+    void it('adds a new property at a path', () => {
+      const target: Record<string, unknown> = { a: 1 };
+      Patch.add('/b', 2).apply(target);
+
+      assert.strictEqual(target['b'], 2);
+    });
+
+    void it('creates intermediate objects as needed', () => {
+      const target: Record<string, unknown> = {};
+      Patch.add('/foo/bar', 42).apply(target);
+
+      const foo = target['foo'] as Record<string, unknown>;
+
+      assert.strictEqual(foo['bar'], 42);
+    });
+  });
+
+  void describe('Patch.replace', () => {
+    void it('replaces an existing value', () => {
+      const target: Record<string, unknown> = { a: 1 };
+      Patch.replace('/a', 99).apply(target);
+
+      assert.strictEqual(target['a'], 99);
+    });
+
+    void it('throws PatchError when path does not exist', () => {
+      const target: Record<string, unknown> = {};
+
+      assert.throws(
+        () => Patch.replace('/missing', 1).apply(target),
+        PatchError
+      );
+    });
+  });
+
+  void describe('Patch.remove', () => {
+    void it('removes a property', () => {
+      const target: Record<string, unknown> = { a: 1, b: 2 };
+      Patch.remove('/a').apply(target);
+
+      assert.ok(!('a' in target));
+      assert.strictEqual(target['b'], 2);
+    });
+  });
+
+  void describe('Patch.copy', () => {
+    void it('copies a value to a new path', () => {
+      const target: Record<string, unknown> = { a: 1 };
+      Patch.copy('/a', '/b').apply(target);
+
+      assert.strictEqual(target['a'], 1);
+      assert.strictEqual(target['b'], 1);
+    });
+  });
+
+  void describe('Patch.move', () => {
+    void it('moves a value from one path to another', () => {
+      const target: Record<string, unknown> = { a: 1 };
+      Patch.move('/a', '/b').apply(target);
+
+      assert.ok(!('a' in target));
+      assert.strictEqual(target['b'], 1);
+    });
+  });
+
+  void describe('Patch.test', () => {
+    void it('passes when value matches', () => {
+      const target: Record<string, unknown> = { a: 1 };
+
+      assert.doesNotThrow(() => Patch.test('/a', 1).apply(target));
+    });
+
+    void it('throws PatchError when value does not match', () => {
+      const target: Record<string, unknown> = { a: 1 };
+
+      assert.throws(
+        () => Patch.test('/a', 2).apply(target),
+        PatchError
+      );
+    });
+  });
+
+  void describe('Patch.combine', () => {
+    void it('applies multiple operations sequentially', () => {
+      const target: Record<string, unknown> = { a: 1 };
+      Patch.combine(
+        Patch.add('/b', 2),
+        Patch.replace('/a', 10),
+        Patch.remove('/b')
+      ).apply(target);
+
+      assert.strictEqual(target['a'], 10);
+      assert.ok(!('b' in target));
+    });
+  });
+
+  void describe('Patch.isEmpty', () => {
+    void it('returns true for empty patch', () => {
+      assert.ok(new Patch([]).isEmpty());
+    });
+
+    void it('returns false for non-empty patch', () => {
+      assert.ok(!Patch.add('/a', 1).isEmpty());
+    });
+  });
+
+  void describe('Patch.toString', () => {
+    void it('returns a readable description', () => {
+      const p = Patch.combine(Patch.add('/a', 1), Patch.remove('/b'));
+      const str = p.toString();
+
+      assert.ok(str.includes('ADD'));
+      assert.ok(str.includes('REMOVE'));
+    });
+  });
+
+  void describe('Patch.fromPlain / toPlain', () => {
+    void it('round-trips through plain representation', () => {
+      const original = Patch.add('/x', 42);
+      const plain = original.toPlain();
+      const restored = Patch.fromPlain(plain);
+
+      assert.deepStrictEqual(restored.getOperations(), original.getOperations());
+    });
+  });
+
+  void describe('JSON Pointer path parsing', () => {
+    void it('handles nested paths with multiple segments', () => {
+      const target: Record<string, unknown> = {};
+      Patch.add('/a/b/c', 'deep').apply(target);
+
+      const a = target['a'] as Record<string, unknown>;
+      const b = a['b'] as Record<string, unknown>;
+
+      assert.strictEqual(b['c'], 'deep');
+    });
+
+    void it('handles escaped ~0 and ~1 in paths', () => {
+      const target: Record<string, unknown> = { 'a/b': 1 };
+      Patch.replace('/a~1b', 99).apply(target);
+
+      assert.strictEqual(target['a/b'], 99);
+    });
+  });
+});

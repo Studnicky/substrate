@@ -1,0 +1,2 @@
+/** Result of attempting to coerce a string to boolean. */
+export type CoerceToBooleanResultType = boolean | undefined;

@@ -1,0 +1,932 @@
+import { CircularBuffer } from '@studnicky/circular-buffer';
+import { ConfigValidation } from '@studnicky/config';
+import { SampleBuffer } from '@studnicky/sample-buffer';
+import { setTimeout as asyncSetTimeout } from 'node:timers/promises';
+
+import type {
+  AbortResultType,
+  AdaptiveConfigType,
+  ThrottleConfigType,
+  ThrottleInterface,
+  ThrottleStatsType,
+  ValidatedThrottleConfigType
+} from '../interfaces/index.js';
+import type { ThrottleStateType } from '../types/ThrottleStateType.js';
+
+import {
+  ADAPTIVE_CONFIG_KEYS,
+  DEFAULT_ADAPTIVE_CONFIG,
+  DEFAULT_BUFFER_CAPACITY,
+  DEFAULT_THROTTLE_CONCURRENCY,
+  DEFAULT_TIMEOUT,
+  EMPTY_LENGTH,
+  FIRST_ARRAY_INDEX,
+  INITIAL_COUNTER,
+  MIN_ADJUSTMENT_INTERVAL,
+  MIN_CONCURRENCY_LIMIT,
+  MIN_SAMPLE_WINDOW,
+  NO_DELAY_MS,
+  PERCENTILE_P50,
+  PERCENTILE_P95,
+  PERCENTILE_P99,
+  THROTTLE_CONFIG_KEYS
+} from '../constants/index.js';
+import {
+  ConfigurationError,
+  ThrottleAbortedError,
+  ThrottleDrainingError
+} from '../errors/index.js';
+
+/**
+ * Type alias for validated adaptive config
+ */
+type AdaptiveConfig = NonNullable<ValidatedThrottleConfigType['adaptive']>;
+
+/**
+ * Tracks an active operation for detach-and-abandon abort support
+ */
+type ActiveOperationType = {
+  /**
+   * Whether the operation has completed (naturally or via abort)
+   */
+  'completed': boolean;
+
+  /**
+   * Resolves the execute() promise with undefined (aborted state)
+   */
+  'resolve': () => void;
+};
+
+/**
+ * Generic async operation throttle with abort support
+ *
+ * Maintains a sliding window of N concurrent operations.
+ * As soon as one operation completes, the next queued operation starts.
+ *
+ * Default concurrency limit is 10.
+ *
+ * Abort behavior (detach-and-abandon):
+ * - Queued operations: resolve with undefined, never start
+ * - Active operations: resolve with undefined immediately, underlying function continues but result is discarded
+ * - New operations after abort: throw ThrottleAbortedError
+ *
+ * @example Basic throttling
+ * ```typescript
+ * const throttle = new Throttle();
+ *
+ * const results = await Promise.all(
+ *   urls.map(url => throttle.execute(async () => fetch(url)))
+ * );
+ * ```
+ *
+ * @example Abort all operations
+ * ```typescript
+ * const throttle = new Throttle({ concurrencyLimit: 5 });
+ *
+ * const operations = urls.map(url =>
+ *   throttle.execute(async () => fetch(url))
+ * );
+ *
+ * // Abort immediately - all pending execute() promises resolve with undefined
+ * const result = await throttle.abort();
+ * console.log(`Cancelled: ${result.cancelled}`);
+ * ```
+ *
+ * @example Graceful shutdown with timeout
+ * ```typescript
+ * const throttle = new Throttle({ concurrencyLimit: 10 });
+ *
+ * const operations = urls.map(url =>
+ *   throttle.execute(async () => fetch(url))
+ * );
+ *
+ * // On shutdown, give 5 seconds to complete then force abort
+ * process.on('SIGTERM', async () => {
+ *   const result = await throttle.abort({ timeout: 5000 });
+ *   console.log(`Completed: ${result.completed}, Cancelled: ${result.cancelled}`);
+ *   process.exit(0);
+ * });
+ * ```
+ */
+export class Throttle implements ThrottleInterface {
+  /**
+   * Factory method to create a new Throttle instance
+   *
+   * @param config - Optional configuration options
+   * @returns New Throttle instance
+   *
+   * @example
+   * ```typescript
+   * const throttle = Throttle.create({ concurrencyLimit: 5 });
+   * ```
+   */
+  static create(config?: Partial<ThrottleConfigType>): Throttle {
+    const result = new Throttle(config);
+    return result;
+  }
+
+  /**
+   * FSM state. Starts idle; transitions via transition().
+   */
+  #state: ThrottleStateType = 'idle';
+
+  private activeCount = INITIAL_COUNTER;
+  private readonly activeOperations = new Set<ActiveOperationType>();
+  private adjustmentCount = INITIAL_COUNTER;
+  private completionPromise: null | Promise<void> = null;
+  private config: ValidatedThrottleConfigType;
+  private lastAdjustmentTime = INITIAL_COUNTER;
+  private readonly latencyBuffer?: SampleBuffer;
+  private readonly observers: (() => void)[] = [];
+  private readonly queue: CircularBuffer<{
+    'reject': (error: Error) => void;
+    'resolve': () => void;
+  }>;
+
+  private totalExecuted = INITIAL_COUNTER;
+
+  /**
+   * Create a new Throttle instance
+   *
+   * @param config - Throttle configuration
+   * @param config.concurrencyLimit - Maximum concurrent operations (default: 10)
+   *
+   * @throws {ConfigurationError} When concurrencyLimit is not a positive integer
+   *
+   * @example Default throttle (limit of 10)
+   * ```typescript
+   * const throttle = new Throttle();
+   * ```
+   *
+   * @example Custom concurrency limit
+   * ```typescript
+   * const throttle = new Throttle({ concurrencyLimit: 5 });
+   * ```
+   */
+  constructor(config?: Partial<ThrottleConfigType>) {
+    this.config = Throttle.validateConfig(config);
+    this.queue = new CircularBuffer(DEFAULT_BUFFER_CAPACITY);
+
+    // Initialize latency buffer if adaptive is enabled
+    if (this.config.adaptive?.enabled === true) {
+      this.latencyBuffer = new SampleBuffer(this.config.adaptive.sampleWindow);
+    }
+  }
+
+  // ── FSM ─────────────────────────────────────────────────────────────────────
+
+  /**
+   * Transition the FSM to a new state.
+   *
+   * Calls guard(from, to); throws on an illegal edge. Updates #state.
+   * Calls onEnter(to, from) after the state change.
+   *
+   * @throws {Error} When the transition is not permitted by guard().
+   */
+  protected transition(to: ThrottleStateType): void {
+    const from = this.#state;
+
+    if (!this.guard(from, to)) {
+      throw new Error(`Illegal state transition: ${from} → ${to}`);
+    }
+
+    this.#state = to;
+    this.onEnter(to, from);
+  }
+
+  /**
+   * Guard: returns true when the from → to edge is legal.
+   *
+   * Legal edges:
+   * - idle     → active   (first slot acquired)
+   * - active   → idle     (all slots released, queue empty)
+   * - idle     → draining (drain() called while idle)
+   * - active   → draining (drain() called while active)
+   * - draining → idle     (drained: all ops complete)
+   * - *        → aborted  (abort() called from any state except aborted itself)
+   */
+  protected guard(from: ThrottleStateType, to: ThrottleStateType): boolean {
+    if (from === 'aborted') return false;          // aborted is terminal
+    if (to === 'aborted') return true;             // any non-aborted → aborted
+    if (from === 'idle' && to === 'active') return true;
+    if (from === 'active' && to === 'idle') return true;
+    if (from === 'idle' && to === 'draining') return true;
+    if (from === 'active' && to === 'draining') return true;
+    if (from === 'draining' && to === 'idle') return true;
+    return false;
+  }
+
+  /**
+   * Hook called when the FSM enters a new state.
+   * Subclasses override to react to transitions.
+   */
+  protected onEnter(_to: ThrottleStateType, _from: ThrottleStateType): void {}
+
+  /**
+   * The current FSM state.
+   */
+  protected get state(): ThrottleStateType {
+    return this.#state;
+  }
+
+  // ── Operations ───────────────────────────────────────────────────────────────
+
+  /**
+   * Forcefully abort the throttle and cancel ALL operations
+   *
+   * Uses detach-and-abandon pattern:
+   * - Queued operations: resolve with undefined, never start
+   * - Active operations: resolve with undefined immediately, underlying function continues but result is discarded
+   * - New operations after abort: throw ThrottleAbortedError
+   *
+   * @param options.timeout Milliseconds grace period before force abort (default: 0 = immediate)
+   * @returns Promise resolving to abort statistics
+   *
+   * @example Immediate abort - cancel everything now
+   * ```typescript
+   * const result = await throttle.abort();
+   * console.log(`Cancelled: ${result.cancelled}`);
+   * ```
+   *
+   * @example Graceful abort - give operations time to complete
+   * ```typescript
+   * // Wait up to 5 seconds for operations to complete, then force abort
+   * const result = await throttle.abort({ timeout: 5000 });
+   * if (result.timedOut) {
+   *   console.log(`Timeout reached, force cancelled ${result.cancelled} operations`);
+   * }
+   * ```
+   */
+  async abort(options?: { 'timeout'?: number }): Promise<AbortResultType> {
+    const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
+    if (this.#state === 'aborted') {
+      return {
+        'cancelled': INITIAL_COUNTER,
+        'completed': INITIAL_COUNTER,
+        'timedOut': false
+      };
+    }
+
+    const startTotal = this.totalExecuted;
+
+    // Transition to draining for the grace period (if not already draining)
+    if (this.#state !== 'draining') {
+      this.transition('draining');
+    }
+
+    const timedOut = await this.handleGracePeriod(timeout);
+
+    this.transition('aborted');
+
+    const cancelledCount = this.activeOperations.size + this.queue.length;
+
+    this.onAbortStart(cancelledCount);
+    this.cancelActiveOperations();
+    this.drainQueue();
+    this.notifyObservers();
+
+    return {
+      'cancelled': cancelledCount,
+      'completed': this.totalExecuted - startTotal,
+      'timedOut': timedOut
+    };
+  }
+
+  /**
+   * Acquire a concurrency slot
+   * Synchronously increments activeCount to prevent race conditions
+   */
+  private acquireSlot(): Promise<void> {
+    if (this.activeCount < this.config.concurrencyLimit) {
+      if (this.activeCount === INITIAL_COUNTER && this.#state === 'idle') {
+        this.transition('active');
+      }
+      this.activeCount++;
+      this.onAcquire(this.activeCount, this.queue.length);
+
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      this.queue.push({
+        'reject': reject,
+        'resolve': resolve
+      });
+    });
+  }
+
+  /**
+   * Calculate new concurrency limit based on latency
+   */
+  private calculateNewLimit(
+    adaptive: AdaptiveConfig,
+    p95: number
+  ): number {
+    if (p95 < adaptive.targetLatencyMs * adaptive.scaleUpThreshold
+        && this.config.concurrencyLimit < adaptive.maxConcurrency) {
+      return this.scaleConcurrency(adaptive, p95, 'up');
+    }
+
+    if (p95 > adaptive.targetLatencyMs * adaptive.scaleDownThreshold
+        && this.config.concurrencyLimit > adaptive.minConcurrency) {
+      return this.scaleConcurrency(adaptive, p95, 'down');
+    }
+
+    return this.config.concurrencyLimit;
+  }
+
+  /**
+   * Cancel all active operations by resolving them with undefined
+   */
+  private cancelActiveOperations(): void {
+    for (const operation of this.activeOperations) {
+      if (!operation.completed) {
+        operation.completed = true;
+        operation.resolve();
+      }
+    }
+    this.activeOperations.clear();
+    this.activeCount = INITIAL_COUNTER;
+  }
+
+  /**
+   * Enter draining mode to stop accepting new operations and wait for completion
+   *
+   * Sets the throttle to draining mode, preventing new operations from being queued
+   * while waiting for active and already-queued operations to complete normally.
+   * Use this for graceful shutdown where you want queued work to finish.
+   *
+   * @returns Promise that resolves when all operations complete
+   *
+   * @example Graceful shutdown
+   * ```typescript
+   * // Stop accepting new operations and wait for completion
+   * await throttle.drain();
+   * console.log('All operations completed gracefully');
+   * await cleanupResources();
+   * ```
+   */
+  async drain(): Promise<void> {
+    if (this.#state === 'draining' || this.#state === 'aborted') {
+      return await this.waitForCompletion();
+    }
+
+    this.transition('draining');
+    this.onDrainStart(this.activeCount, this.queue.length);
+
+    return await this.waitForCompletion();
+  }
+
+  /**
+   * Drain the queue by resolving all pending operations with undefined
+   */
+  private drainQueue(): void {
+    while (this.queue.length > EMPTY_LENGTH) {
+      const pendingTask = this.queue.shift();
+
+      if (pendingTask) {
+        pendingTask.resolve();
+      }
+    }
+  }
+
+  /**
+   * Execute an async operation with throttling
+   *
+   * @param fn - Async function to execute
+   * @returns Promise that resolves to the function's return value, or undefined if aborted
+   *
+   * @example Basic throttling
+   * ```typescript
+   * const result = await throttle.execute(async () => {
+   *   return fetch(url);
+   * });
+   * ```
+   */
+  async execute<T>(fn: () => Promise<T>): Promise<T | undefined> {
+    this.validateExecuteState();
+
+    return await new Promise<T | undefined>((resolveExecute, rejectExecute) => {
+      this.acquireSlot().then(() => {
+        if (this.#state === 'aborted') {
+          resolveExecute(undefined);
+
+          return;
+        }
+
+        const operation: ActiveOperationType = {
+          'completed': false,
+          'resolve': (): void => { resolveExecute(undefined); }
+        };
+
+        this.activeOperations.add(operation);
+
+        const operationStartTime = Date.now();
+
+        fn().then(
+          (result) => { this.handleOperationSuccess(operation, result, operationStartTime, resolveExecute); },
+          (error) => { this.handleOperationError(operation, error, rejectExecute); }
+        );
+      })
+        .catch(rejectExecute);
+    });
+  }
+
+  /**
+   * Get current throttle statistics
+   *
+   * @returns Throttle statistics object
+   * @returns stats.activeCount - Currently executing operations
+   * @returns stats.queuedCount - Operations waiting in queue
+   * @returns stats.totalExecuted - Total operations executed
+   * @returns stats.concurrencyLimit - Maximum concurrent operations
+   * @returns stats.isDraining - Whether the throttle is in draining mode
+   * @returns stats.isAborted - Whether the throttle has been aborted
+   *
+   * @example Monitor throttle state
+   * ```typescript
+   * const stats = throttle.getStats();
+   * console.log(`Active: ${stats.activeCount}/${stats.concurrencyLimit}`);
+   * console.log(`Queued: ${stats.queuedCount}`);
+   * ```
+   */
+  getStats(): ThrottleStatsType {
+    const stats: ThrottleStatsType = {
+      'activeCount': this.activeCount,
+      'concurrencyLimit': this.config.concurrencyLimit,
+      'isAborted': this.#state === 'aborted',
+      'isDraining': this.#state === 'draining',
+      'queuedCount': this.queue.length,
+      'totalExecuted': this.totalExecuted
+    };
+
+    // Add latency stats if buffer exists
+    if (this.latencyBuffer !== undefined) {
+      stats.latency = {
+        'p50': this.latencyBuffer.percentile(PERCENTILE_P50),
+        'p95': this.latencyBuffer.percentile(PERCENTILE_P95),
+        'p99': this.latencyBuffer.percentile(PERCENTILE_P99),
+        'sampleCount': this.latencyBuffer.length
+      };
+    }
+
+    // Add adaptive stats if enabled
+    if (this.config.adaptive?.enabled === true) {
+      stats.adaptive = {
+        'adjustmentCount': this.adjustmentCount,
+        'enabled': true,
+        'lastAdjustmentTime': this.lastAdjustmentTime,
+        'maxConcurrency': this.config.adaptive.maxConcurrency,
+        'minConcurrency': this.config.adaptive.minConcurrency,
+        'targetLatencyMs': this.config.adaptive.targetLatencyMs
+      };
+    }
+
+    return stats;
+  }
+
+  /**
+   * Handle grace period wait
+   */
+  private async handleGracePeriod(timeout: number): Promise<boolean> {
+    if (timeout <= DEFAULT_TIMEOUT || this.isComplete()) {
+      return false;
+    }
+
+    return await this.waitForGracePeriod(timeout);
+  }
+
+  /**
+   * Handle operation error
+   */
+  private handleOperationError(
+    operation: ActiveOperationType,
+    error: unknown,
+    rejectExecute: (error: unknown) => void
+  ): void {
+    if (operation.completed) {
+      return;
+    }
+
+    operation.completed = true;
+    this.activeOperations.delete(operation);
+    this.onReject(error);
+    this.releaseSlot();
+    rejectExecute(error);
+  }
+
+  /**
+   * Handle successful operation completion
+   */
+  private handleOperationSuccess<T>(
+    operation: ActiveOperationType,
+    result: T,
+    operationStartTime: number,
+    resolveExecute: (value: T | undefined) => void
+  ): void {
+    if (operation.completed) {
+      return;
+    }
+
+    operation.completed = true;
+    this.activeOperations.delete(operation);
+    this.totalExecuted++;
+
+    if (this.latencyBuffer !== undefined) {
+      const duration = Date.now() - operationStartTime;
+
+      this.latencyBuffer.push(duration);
+      this.maybeAdjustConcurrency();
+    }
+
+    this.releaseSlot();
+    this.onRelease(this.activeCount, this.totalExecuted);
+    resolveExecute(result);
+  }
+
+  /**
+   * Check if the throttle has completed all operations
+   *
+   * @returns True if no operations are active or queued
+   *
+   * @example Check completion state
+   * ```typescript
+   * if (throttle.isComplete()) {
+   *   console.log('Throttle has no pending work');
+   * }
+   * ```
+   */
+  isComplete(): boolean {
+    return this.activeCount === INITIAL_COUNTER && this.queue.length === EMPTY_LENGTH;
+  }
+
+  /**
+   * Adjust concurrency limit based on observed latencies
+   *
+   * Called after each successful operation. Scales up when latency is low,
+   * scales down when latency approaches the target.
+   */
+  private maybeAdjustConcurrency(): void {
+    const adaptive = this.config.adaptive;
+
+    if (!this.shouldAdjustConcurrency(adaptive)) {
+      return;
+    }
+
+    const p95 = this.latencyBuffer?.percentile(PERCENTILE_P95);
+
+    if (p95 === undefined) {
+      return;
+    }
+
+    const newLimit = this.calculateNewLimit(adaptive, p95);
+
+    if (newLimit !== this.config.concurrencyLimit) {
+      this.config.concurrencyLimit = newLimit;
+      this.adjustmentCount++;
+      this.processQueuedOperations();
+    }
+
+    this.lastAdjustmentTime = Date.now();
+  }
+
+  /**
+   * Notify all observers that the throttle is now idle.
+   *
+   * Transitions active → idle or draining → idle when all work is complete.
+   * No transition when aborted (terminal state).
+   */
+  private notifyObservers(): void {
+    if (this.#state === 'active' || this.#state === 'draining') {
+      this.transition('idle');
+    }
+
+    const length = this.observers.length;
+
+    for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
+      const observer = this.observers[i];
+
+      if (observer) {
+        observer();
+      }
+    }
+    this.observers.length = EMPTY_LENGTH;
+    this.completionPromise = null;
+  }
+
+  /**
+   * Fires when a slot is acquired immediately (activeCount < limit).
+   */
+  protected onAcquire(_activeCount: number, _queuedCount: number): void {}
+
+  /**
+   * Fires when abort is executed.
+   */
+  protected onAbortStart(_cancelledCount: number): void {}
+
+  /**
+   * Fires when adaptive concurrency adjusts the limit.
+   */
+  protected onAdaptiveAdjust(_previousLimit: number, _newLimit: number): void {}
+
+  /**
+   * Fires when drain is initiated.
+   */
+  protected onDrainStart(_activeCount: number, _queuedCount: number): void {}
+
+  /**
+   * Fires when an operation fails.
+   */
+  protected onReject(_reason: unknown): void {}
+
+  /**
+   * Fires when a slot is released.
+   */
+  protected onRelease(_activeCount: number, _totalExecuted: number): void {}
+
+  /**
+   * Process queued operations up to concurrency limit
+   * @returns Number of operations dequeued
+   */
+  private processQueuedOperations(): number {
+    let count = INITIAL_COUNTER;
+
+    while (this.queue.length > EMPTY_LENGTH && this.activeCount < this.config.concurrencyLimit) {
+      const pendingTask = this.queue.shift();
+
+      if (pendingTask) {
+        this.activeCount++;
+        pendingTask.resolve();
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  /**
+   * Release a concurrency slot and process queued operations
+   */
+  private releaseSlot(): void {
+    this.activeCount--;
+
+    if (this.queue.length > EMPTY_LENGTH) {
+      this.activeCount++;
+      const pendingTask = this.queue.shift();
+
+      if (pendingTask) {
+        pendingTask.resolve();
+        this.onRelease(this.activeCount, this.totalExecuted);
+      }
+    } else if (this.activeCount === INITIAL_COUNTER) {
+      this.onRelease(this.activeCount, this.totalExecuted);
+      this.notifyObservers();
+    }
+  }
+
+  /**
+   * Scale concurrency limit
+   */
+  private scaleConcurrency(
+    adaptive: AdaptiveConfig,
+    _p95: number,
+    direction: 'down' | 'up'
+  ): number {
+    const previousLimit = this.config.concurrencyLimit;
+    const newLimit = direction === 'up'
+      ? Math.min(previousLimit + adaptive.stepSize, adaptive.maxConcurrency)
+      : Math.max(previousLimit - adaptive.stepSize, adaptive.minConcurrency);
+
+    this.onAdaptiveAdjust(previousLimit, newLimit);
+
+    return newLimit;
+  }
+
+  /**
+   * Check if concurrency adjustment should occur
+   */
+  private shouldAdjustConcurrency(adaptive: AdaptiveConfig | undefined): adaptive is AdaptiveConfig {
+    if (adaptive?.enabled !== true) {
+      return false;
+    }
+
+    if (this.latencyBuffer?.isFull !== true) {
+      return false;
+    }
+
+    const now = Date.now();
+
+    return now - this.lastAdjustmentTime >= adaptive.adjustmentInterval;
+  }
+
+  /**
+   * Update throttle configuration
+   *
+   * @param config - Partial configuration to update
+   *
+   * @throws {ConfigurationError} When new config values fail validation
+   *
+   * @example Adjust concurrency limit
+   * ```typescript
+   * throttle.updateConfig({ concurrencyLimit: 20 });
+   * ```
+   */
+  updateConfig(config: Partial<ThrottleConfigType>): void {
+    const mergedConfig = {
+      ...this.config,
+      ...config
+    };
+
+    this.config = Throttle.validateConfig(mergedConfig);
+    this.processQueuedOperations();
+  }
+
+  /**
+   * Validate state before execute
+   */
+  private validateExecuteState(): void {
+    if (this.#state === 'aborted') {
+      throw new ThrottleAbortedError('Throttle has been aborted', INITIAL_COUNTER);
+    }
+
+    if (this.#state === 'draining') {
+      throw new ThrottleDrainingError('Throttle has been set to draining mode');
+    }
+  }
+
+  /**
+   * Wait for all active and queued operations to complete (internal use only)
+   *
+   * Returns a promise that resolves when the throttle becomes idle
+   * (no active operations and empty queue).
+   *
+   * @internal Used by drain() and abort() - not part of public API
+   */
+  private waitForCompletion(): Promise<void> {
+    if (this.isComplete()) {
+      return Promise.resolve();
+    }
+
+    this.completionPromise ??= new Promise<void>((resolve) => {
+      this.observers.push(resolve);
+    });
+
+    return this.completionPromise;
+  }
+
+  /**
+   * Wait for operations to complete, up to a maximum time
+   * @param timeout Maximum time to wait in milliseconds
+   * @returns true if timed out, false if completed within time
+   */
+  private async waitForGracePeriod(timeout: number): Promise<boolean> {
+    if (this.isComplete()) {
+      return false;
+    }
+
+    const controller = new AbortController();
+
+    // Register observer to abort the timeout when operations complete
+    // Arrow function required - AbortController.abort() needs its context
+    this.observers.push((): void => {
+      controller.abort();
+    });
+
+    try {
+      await asyncSetTimeout(timeout, undefined, { 'signal': controller.signal });
+
+      // Timeout completed - operations did not finish in time
+      return true;
+    } catch {
+      // AbortError - operations completed before timeout
+      return false;
+    }
+  }
+
+  private static readonly ADAPTIVE_DEFAULTS = {
+    ...DEFAULT_ADAPTIVE_CONFIG,
+    'targetLatencyMs': NO_DELAY_MS
+  } as const;
+
+  private static validateAdaptiveFields(adaptiveObj: Record<string, unknown>): void {
+    if (adaptiveObj.targetLatencyMs === undefined) {
+      throw ConfigurationError.create('adaptive.targetLatencyMs is required when adaptive is enabled');
+    }
+    ConfigValidation.assertNumber(adaptiveObj.targetLatencyMs, 'adaptive.targetLatencyMs');
+    ConfigValidation.assertPositive(adaptiveObj.targetLatencyMs, 'adaptive.targetLatencyMs');
+    ConfigValidation.assertNumber(adaptiveObj.minConcurrency, 'adaptive.minConcurrency');
+    ConfigValidation.assertInteger(adaptiveObj.minConcurrency, 'adaptive.minConcurrency');
+    ConfigValidation.assertMin(adaptiveObj.minConcurrency, MIN_CONCURRENCY_LIMIT, 'adaptive.minConcurrency');
+    ConfigValidation.assertNumber(adaptiveObj.maxConcurrency, 'adaptive.maxConcurrency');
+    ConfigValidation.assertInteger(adaptiveObj.maxConcurrency, 'adaptive.maxConcurrency');
+    ConfigValidation.assertMin(adaptiveObj.maxConcurrency, MIN_CONCURRENCY_LIMIT, 'adaptive.maxConcurrency');
+    ConfigValidation.assertNumber(adaptiveObj.scaleUpThreshold, 'adaptive.scaleUpThreshold');
+    ConfigValidation.assertPositive(adaptiveObj.scaleUpThreshold, 'adaptive.scaleUpThreshold');
+    ConfigValidation.assertNumber(adaptiveObj.scaleDownThreshold, 'adaptive.scaleDownThreshold');
+    ConfigValidation.assertPositive(adaptiveObj.scaleDownThreshold, 'adaptive.scaleDownThreshold');
+    ConfigValidation.assertNumber(adaptiveObj.sampleWindow, 'adaptive.sampleWindow');
+    ConfigValidation.assertInteger(adaptiveObj.sampleWindow, 'adaptive.sampleWindow');
+    ConfigValidation.assertMin(adaptiveObj.sampleWindow, MIN_SAMPLE_WINDOW, 'adaptive.sampleWindow');
+    ConfigValidation.assertNumber(adaptiveObj.adjustmentInterval, 'adaptive.adjustmentInterval');
+    ConfigValidation.assertInteger(adaptiveObj.adjustmentInterval, 'adaptive.adjustmentInterval');
+    ConfigValidation.assertMin(adaptiveObj.adjustmentInterval, MIN_ADJUSTMENT_INTERVAL, 'adaptive.adjustmentInterval');
+    ConfigValidation.assertNumber(adaptiveObj.stepSize, 'adaptive.stepSize');
+    ConfigValidation.assertInteger(adaptiveObj.stepSize, 'adaptive.stepSize');
+    ConfigValidation.assertMin(adaptiveObj.stepSize, MIN_CONCURRENCY_LIMIT, 'adaptive.stepSize');
+  }
+
+  private static buildEnabledAdaptiveConfig(adaptiveObj: Record<string, unknown>): Required<AdaptiveConfigType> {
+    const d = Throttle.ADAPTIVE_DEFAULTS;
+    const minConcurrency = (adaptiveObj.minConcurrency as number | undefined) ?? d.minConcurrency;
+    const maxConcurrency = (adaptiveObj.maxConcurrency as number | undefined) ?? d.maxConcurrency;
+    const scaleUpThreshold = (adaptiveObj.scaleUpThreshold as number | undefined) ?? d.scaleUpThreshold;
+    const scaleDownThreshold = (adaptiveObj.scaleDownThreshold as number | undefined) ?? d.scaleDownThreshold;
+
+    if (minConcurrency > maxConcurrency) {
+      throw ConfigurationError.create('adaptive.minConcurrency must be less than or equal to adaptive.maxConcurrency');
+    }
+    if (scaleUpThreshold >= scaleDownThreshold) {
+      throw ConfigurationError.create('adaptive.scaleUpThreshold must be less than adaptive.scaleDownThreshold');
+    }
+
+    return {
+      'adjustmentInterval': (adaptiveObj.adjustmentInterval as number | undefined) ?? d.adjustmentInterval,
+      'enabled': true,
+      'maxConcurrency': maxConcurrency,
+      'minConcurrency': minConcurrency,
+      'sampleWindow': (adaptiveObj.sampleWindow as number | undefined) ?? d.sampleWindow,
+      'scaleDownThreshold': scaleDownThreshold,
+      'scaleUpThreshold': scaleUpThreshold,
+      'stepSize': (adaptiveObj.stepSize as number | undefined) ?? d.stepSize,
+      'targetLatencyMs': adaptiveObj.targetLatencyMs as number
+    };
+  }
+
+  private static validateAdaptiveConfig(adaptive: unknown): Required<AdaptiveConfigType> | undefined {
+    if (adaptive === undefined) {
+      return undefined;
+    }
+
+    if (typeof adaptive !== 'object' || adaptive === null) {
+      throw ConfigurationError.create('adaptive must be an object');
+    }
+
+    const adaptiveObj = adaptive as Record<string, unknown>;
+    const d = Throttle.ADAPTIVE_DEFAULTS;
+
+    ConfigValidation.assertNoUnknownKeys(adaptiveObj, ADAPTIVE_CONFIG_KEYS);
+
+    if (adaptiveObj.enabled === undefined) {
+      throw ConfigurationError.create('adaptive.enabled is required');
+    }
+    ConfigValidation.assertBoolean(adaptiveObj.enabled, 'adaptive.enabled');
+
+    if (adaptiveObj.enabled === false) {
+      return {
+        'adjustmentInterval': d.adjustmentInterval,
+        'enabled': false,
+        'maxConcurrency': d.maxConcurrency,
+        'minConcurrency': d.minConcurrency,
+        'sampleWindow': d.sampleWindow,
+        'scaleDownThreshold': d.scaleDownThreshold,
+        'scaleUpThreshold': d.scaleUpThreshold,
+        'stepSize': d.stepSize,
+        'targetLatencyMs': d.targetLatencyMs
+      };
+    }
+
+    Throttle.validateAdaptiveFields(adaptiveObj);
+
+    return Throttle.buildEnabledAdaptiveConfig(adaptiveObj);
+  }
+
+  private static validateConfig(config?: Partial<ThrottleConfigType>): ValidatedThrottleConfigType {
+    const cfg = config ?? {};
+    const configObj = cfg as Record<string, unknown>;
+
+    ConfigValidation.assertNoUnknownKeys(configObj, THROTTLE_CONFIG_KEYS);
+    ConfigValidation.assertNumber(configObj.concurrencyLimit, 'concurrencyLimit');
+    ConfigValidation.assertInteger(configObj.concurrencyLimit, 'concurrencyLimit');
+    ConfigValidation.assertMin(configObj.concurrencyLimit, MIN_CONCURRENCY_LIMIT, 'concurrencyLimit');
+
+    const adaptive = Throttle.validateAdaptiveConfig(configObj.adaptive);
+    const concurrencyLimit = cfg.concurrencyLimit ?? DEFAULT_THROTTLE_CONCURRENCY;
+
+    if (adaptive?.enabled === true) {
+      if (concurrencyLimit < adaptive.minConcurrency) {
+        throw ConfigurationError.create(`concurrencyLimit (${concurrencyLimit}) must be at least adaptive.minConcurrency (${adaptive.minConcurrency})`);
+      }
+      if (concurrencyLimit > adaptive.maxConcurrency) {
+        throw ConfigurationError.create(`concurrencyLimit (${concurrencyLimit}) must be at most adaptive.maxConcurrency (${adaptive.maxConcurrency})`);
+      }
+    }
+
+    const result: ValidatedThrottleConfigType = { 'concurrencyLimit': concurrencyLimit };
+
+    if (adaptive !== undefined) {
+      result.adaptive = adaptive;
+    }
+
+    return result;
+  }
+}

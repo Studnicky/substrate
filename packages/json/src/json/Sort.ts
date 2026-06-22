@@ -1,0 +1,68 @@
+/**
+ * Sort — string comparator utilities.
+ *
+ * Provides:
+ * - `Sort.natural(a, b)` — locale-aware natural sort (numeric substrings).
+ * - `Sort.longestFirst(a, b)` — longest string first, then lexicographic.
+ * - `Sort.shortestFirst(a, b)` — shortest string first, then lexicographic.
+ *
+ * Subclass `Sort` and override individual static comparators as needed.
+ */
+
+export class Sort {
+  // ---------------------------------------------------------------------------
+  // Public static API
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Natural sort comparator using locale-aware comparison.
+   *
+   * Numeric substrings are compared as numbers: "file10" > "file2".
+   *
+   * @example
+   * ['file1', 'file10', 'file2'].sort(Sort.natural) // ['file1', 'file2', 'file10']
+   */
+  public static natural(a: string, b: string): number {
+    return a.localeCompare(b, undefined, { 'numeric': true, 'sensitivity': 'base' });
+  }
+
+  /**
+   * Sort strings longest-first, ties broken lexicographically.
+   *
+   * @example
+   * ['id', 'type', 'property'].sort(Sort.longestFirst) // ['property', 'type', 'id']
+   */
+  public static longestFirst(a: string, b: string): number {
+    if (a.length > b.length) {
+      return -1;
+    }
+    if (b.length > a.length) {
+      return 1;
+    }
+    if (a === b) {
+      return 0;
+    }
+
+    return a < b ? 1 : -1;
+  }
+
+  /**
+   * Sort strings shortest-first, ties broken lexicographically.
+   *
+   * @example
+   * ['property', 'id', 'type'].sort(Sort.shortestFirst) // ['id', 'type', 'property']
+   */
+  public static shortestFirst(a: string, b: string): number {
+    if (a.length < b.length) {
+      return -1;
+    }
+    if (b.length < a.length) {
+      return 1;
+    }
+    if (a === b) {
+      return 0;
+    }
+
+    return a < b ? -1 : 1;
+  }
+}

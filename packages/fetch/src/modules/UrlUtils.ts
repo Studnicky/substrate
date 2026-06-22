@@ -1,0 +1,103 @@
+/**
+ * URL and query string utilities as static class methods
+ */
+
+import type { QueryParamsType } from '../types/QueryParamsType.js';
+
+/**
+ * URL and query string utilities
+ */
+export class UrlUtils {
+  /**
+   * Builds a query string from parameters
+   *
+   * @param params - Query parameters
+   * @returns Query string without leading ?
+   */
+  static buildQueryString(params: QueryParamsType): string {
+    const pairs: string[] = [];
+
+    for (const [
+      key,
+      value
+    ] of Object.entries(params)) {
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      const encodedKey = encodeURIComponent(key);
+
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item !== undefined && item !== null) {
+            pairs.push(`${encodedKey}=${encodeURIComponent(String(item))}`);
+          }
+        }
+      } else {
+        pairs.push(`${encodedKey}=${encodeURIComponent(String(value))}`);
+      }
+    }
+
+    return pairs.join('&');
+  }
+
+  /**
+   * Builds a URL with query parameters
+   *
+   * @param baseUrl - Base URL (can include existing query params)
+   * @param params - Query parameters to append
+   * @returns Complete URL with query string
+   */
+  static buildUrl(baseUrl: string, params?: QueryParamsType): string {
+    if (!params) {
+      return baseUrl;
+    }
+
+    const queryString = UrlUtils.buildQueryString(params);
+
+    if (!queryString) {
+      return baseUrl;
+    }
+
+    const separator = baseUrl.includes('?') ? '&' : '?';
+
+    return `${baseUrl}${separator}${queryString}`;
+  }
+
+  /**
+   * Parses a query string into parameters
+   *
+   * @param queryString - Query string (with or without leading ?)
+   * @returns Parsed query parameters
+   */
+  static parseQueryString(queryString: string): QueryParamsType {
+    const cleanQuery = queryString.startsWith('?') ? queryString.slice(1) : queryString;
+
+    if (!cleanQuery) {
+      return {};
+    }
+
+    const params = new URLSearchParams(cleanQuery);
+    const result: QueryParamsType = {};
+
+    for (const [
+      key,
+      value
+    ] of params.entries()) {
+      const existing = result[key];
+
+      if (existing === undefined) {
+        result[key] = value;
+      } else if (Array.isArray(existing)) {
+        existing.push(value);
+      } else {
+        result[key] = [
+          existing,
+          value
+        ];
+      }
+    }
+
+    return result;
+  }
+}
