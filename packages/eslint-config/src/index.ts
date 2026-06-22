@@ -1,4 +1,4 @@
-import type { Linter } from 'eslint';
+import type { Linter, Rule } from 'eslint';
 
 import stylistic from '@stylistic/eslint-plugin';
 import importX from 'eslint-plugin-import-x';
@@ -8,6 +8,23 @@ import unusedImports from 'eslint-plugin-unused-imports';
 import tseslint from 'typescript-eslint';
 
 import { plugin } from './plugin.js';
+import { argumentsObject } from './rules/v8/argumentsObject.js';
+import { arrayFromIterators } from './rules/v8/arrayFromIterators.js';
+import { computedClassProperties } from './rules/v8/computedClassProperties.js';
+import { computedObjectProperties } from './rules/v8/computedObjectProperties.js';
+import { defineProperty } from './rules/v8/defineProperty.js';
+import { deleteProperty } from './rules/v8/deleteProperty.js';
+import { evalFunction } from './rules/v8/evalFunction.js';
+import { forInLoops } from './rules/v8/forInLoops.js';
+import { forOfArrays } from './rules/v8/forOfArrays.js';
+import { memoizeArrayLength } from './rules/v8/memoizeArrayLength.js';
+import { noConcatInLoops } from './rules/v8/noConcatInLoops.js';
+import { noSpreadInLoops } from './rules/v8/noSpreadInLoops.js';
+import { prototypeModification } from './rules/v8/prototypeModification.js';
+import { regexpInLoops } from './rules/v8/regexpInLoops.js';
+import { switchStatements } from './rules/v8/switchStatements.js';
+import { tryCatchInLoops } from './rules/v8/tryCatchInLoops.js';
+import { withStatement } from './rules/v8/withStatement.js';
 
 export { plugin } from './plugin.js';
 export { noThisAlias } from './rules/arch/noThisAlias.js';
@@ -18,6 +35,28 @@ export { noSuppressionComments } from './rules/noSuppressionComments.js';
 export { noTrivialShim } from './rules/noTrivialShim.js';
 export { singleExport } from './rules/singleExport.js';
 export { typeAliasMustEndType } from './rules/typeAliasMustEndType.js';
+
+const v8Plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
+  'rules': {
+    'arguments-object': argumentsObject,
+    'array-from-iterators': arrayFromIterators,
+    'computed-class-properties': computedClassProperties,
+    'computed-object-properties': computedObjectProperties,
+    'define-property': defineProperty,
+    'delete-property': deleteProperty,
+    'eval-function': evalFunction,
+    'for-in-loops': forInLoops,
+    'for-of-arrays': forOfArrays,
+    'memoize-array-length': memoizeArrayLength,
+    'no-concat-in-loops': noConcatInLoops,
+    'no-spread-in-loops': noSpreadInLoops,
+    'prototype-modification': prototypeModification,
+    'regexp-in-loops': regexpInLoops,
+    'switch-statements': switchStatements,
+    'try-catch-in-loops': tryCatchInLoops,
+    'with-statement': withStatement
+  }
+};
 
 export type EslintConfigOptionsType = {
   readonly 'tsconfigRootDir'?: string;
@@ -46,6 +85,7 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
       },
       'plugins': {
         '@studnicky': plugin,
+        '@studnicky/v8': v8Plugin,
         '@stylistic': stylistic,
         'import-x': importX,
         'perfectionist': perfectionistPlugin,
@@ -59,6 +99,7 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
         '@studnicky/interface-must-be-contract': 'error',
         '@studnicky/no-bind-apply-call': 'error',
         '@studnicky/no-suppression-comments': 'error',
+        '@studnicky/no-this-alias': 'error',
         // no-trivial-shim is intentionally disabled: it over-fires on legitimate
         // factory/accessor methods that return object/array literals or spreads,
         // and has no working autofix for those cases. Available via the plugin if
@@ -66,6 +107,24 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
         '@studnicky/no-trivial-shim': 'off',
         '@studnicky/single-export': 'error',
         '@studnicky/type-alias-must-end-type': 'error',
+        // @studnicky/v8 optimisation rules
+        '@studnicky/v8/arguments-object': 'error',
+        '@studnicky/v8/array-from-iterators': 'error',
+        '@studnicky/v8/computed-class-properties': 'error',
+        '@studnicky/v8/computed-object-properties': 'error',
+        '@studnicky/v8/define-property': 'error',
+        '@studnicky/v8/delete-property': 'error',
+        '@studnicky/v8/eval-function': 'error',
+        '@studnicky/v8/for-in-loops': 'error',
+        '@studnicky/v8/for-of-arrays': 'error',
+        '@studnicky/v8/memoize-array-length': 'error',
+        '@studnicky/v8/no-concat-in-loops': 'error',
+        '@studnicky/v8/no-spread-in-loops': 'error',
+        '@studnicky/v8/prototype-modification': 'error',
+        '@studnicky/v8/regexp-in-loops': 'error',
+        '@studnicky/v8/switch-statements': 'error',
+        '@studnicky/v8/try-catch-in-loops': 'error',
+        '@studnicky/v8/with-statement': 'error',
         // @stylistic
         '@stylistic/comma-dangle': ['error', 'never'],
         '@stylistic/eol-last': ['error', 'always'],
@@ -157,10 +216,10 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
       'rules': {
         '@studnicky/no-trivial-shim': 'off',
         '@studnicky/single-export': 'off',
+        '@studnicky/v8/for-of-arrays': 'off',
         '@typescript-eslint/consistent-type-exports': 'off',
         '@typescript-eslint/consistent-type-imports': 'off',
         '@typescript-eslint/dot-notation': 'off',
-        '@typescript-eslint/naming-convention': 'off',
         '@typescript-eslint/no-magic-numbers': 'off',
         '@typescript-eslint/no-meaningless-void-operator': 'off',
         '@typescript-eslint/no-unnecessary-type-assertion': 'off',

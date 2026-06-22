@@ -51,7 +51,8 @@ async function* process<T, TResult>(
     ? concurrency
     : (concurrency?.maxConcurrent ?? DEFAULT_BATCH_MAX_CONCURRENT);
 
-  for (let i = FIRST_ARRAY_INDEX; i < items.length; i += maxConcurrent) {
+  const itemsLen = items.length;
+  for (let i = FIRST_ARRAY_INDEX; i < itemsLen; i += maxConcurrent) {
     const batch = items.slice(i, i + maxConcurrent);
     const batchResults = await Promise.all(batch.map(operation));
 
@@ -101,7 +102,8 @@ async function* processSettled<T, TResult>(
     ? concurrency
     : (concurrency?.maxConcurrent ?? DEFAULT_BATCH_MAX_CONCURRENT);
 
-  for (let i = FIRST_ARRAY_INDEX; i < items.length; i += maxConcurrent) {
+  const itemsLen = items.length;
+  for (let i = FIRST_ARRAY_INDEX; i < itemsLen; i += maxConcurrent) {
     const batch = items.slice(i, i + maxConcurrent);
     const batchResults = await Promise.allSettled(batch.map(operation));
 

@@ -15,9 +15,9 @@ export class AsyncIter {
       if (notify !== null) { const n = notify; notify = null; n(); }
     }
 
-    async function drainSource(source: AsyncIterable<T>): Promise<void> {
+    async function drainSource(sourceIterator: AsyncIterable<T>): Promise<void> {
       try {
-        for await (const value of source) { enqueue({ 'value': value, 'variant': 'value' }); }
+        for await (const value of sourceIterator) { enqueue({ 'value': value, 'variant': 'value' }); }
         enqueue({ 'variant': 'done' });
       } catch (error: unknown) {
         enqueue({ 'error': error, 'variant': 'error' });
@@ -25,7 +25,10 @@ export class AsyncIter {
     }
 
     let active = sources.length;
-    for (const source of sources) { void drainSource(source); }
+    const sourcesLen = sources.length;
+    for (let i = 0; i < sourcesLen; i += 1) {
+      void drainSource(sources[i]!);
+    }
 
     while (active > 0 || queue.length > 0) {
       if (queue.length === 0) {
@@ -41,21 +44,21 @@ export class AsyncIter {
 
   /** Yield items for which predicate returns true (sync or async). */
   static async *filter<T>(
-    source: AsyncIterable<T>,
+    sourceIterator: AsyncIterable<T>,
     predicate: (item: T) => boolean | Promise<boolean>
   ): AsyncGenerator<T> {
-    for await (const item of source) {
+    for await (const item of sourceIterator) {
       if (await predicate(item)) { yield item; }
     }
   }
 
   /** Left-join enrichment: lookup per item; if non-null, merge item+enrichment; else yield item unchanged. */
   static async *enrich<T, E, R>(
-    source: AsyncIterable<T>,
+    sourceIterator: AsyncIterable<T>,
     lookup: (item: T) => Promise<E | null>,
     merge: (item: T, enrichment: E) => R
   ): AsyncGenerator<T | R> {
-    for await (const item of source) {
+    for await (const item of sourceIterator) {
       const enrichment = await lookup(item);
       if (enrichment !== null) { yield merge(item, enrichment); }
       else { yield item; }

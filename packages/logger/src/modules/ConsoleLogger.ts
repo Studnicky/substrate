@@ -14,13 +14,12 @@ import { safeStringify } from './safeStringify.js';
  * Dispatch map from LogLevelType to the corresponding console method.
  * SILENT has no console method — it is handled by shouldLog() returning false.
  */
-const consoleDispatch: Record<number, (message: string, data: LogDataType) => void> = {
-  [LogLevel.DEBUG]: (msg, data) => { console.debug(msg, data); },
-  [LogLevel.ERROR]: (msg, data) => { console.error(msg, data); },
-  [LogLevel.INFO]:  (msg, data) => { console.info(msg, data); },
-  [LogLevel.TRACE]: (msg, data) => { console.trace(msg, data); },
-  [LogLevel.WARN]:  (msg, data) => { console.warn(msg, data); }
-};
+const consoleDispatch: Record<number, (message: string, data: LogDataType) => void> = {};
+consoleDispatch[LogLevel.DEBUG] = (msg, data) => { console.debug(msg, data); };
+consoleDispatch[LogLevel.ERROR] = (msg, data) => { console.error(msg, data); };
+consoleDispatch[LogLevel.INFO]  = (msg, data) => { console.info(msg, data); };
+consoleDispatch[LogLevel.TRACE] = (msg, data) => { console.trace(msg, data); };
+consoleDispatch[LogLevel.WARN]  = (msg, data) => { console.warn(msg, data); };
 
 /**
  * Console-based logger implementation with configurable log level filtering
@@ -111,10 +110,7 @@ export class ConsoleLogger implements LoggerInterface {
     let hasMetadata = this.hasMetadata;
 
     if (!hasMetadata) {
-      for (const _ in mergedMetadata) {
-        hasMetadata = true;
-        break;
-      }
+      hasMetadata = Object.keys(mergedMetadata).length > 0;
     }
 
     return this.createChild(mergedMetadata);
@@ -202,10 +198,7 @@ export class ConsoleLogger implements LoggerInterface {
     let hasMetadata = this.hasMetadata;
 
     if (!hasMetadata) {
-      for (const _ in mergedMetadata) {
-        hasMetadata = true;
-        break;
-      }
+      hasMetadata = Object.keys(mergedMetadata).length > 0;
     }
 
     const logger = Object.create(this.constructor.prototype) as this;

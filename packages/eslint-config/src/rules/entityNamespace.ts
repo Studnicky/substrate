@@ -50,7 +50,9 @@ const scanNamespaceBody = (bodyNode: unknown): NamespaceMembersType => {
   const { body } = bodyNode;
   if (!Array.isArray(body)) { return result; }
 
-  for (const stmt of body) {
+  const bodyLen = body.length;
+  for (let i = 0; i < bodyLen; i += 1) {
+    const stmt = body[i];
     if (getNodeType(stmt) !== 'ExportNamedDeclaration') { continue; }
     const decl = getDeclaration(stmt);
     const declType = getNodeType(decl);
@@ -59,7 +61,9 @@ const scanNamespaceBody = (bodyNode: unknown): NamespaceMembersType => {
       if (!isJsonObject(decl)) { continue; }
       const { declarations } = decl;
       if (!Array.isArray(declarations)) { continue; }
-      for (const d of declarations) {
+      const declsLen = declarations.length;
+      for (let di = 0; di < declsLen; di += 1) {
+        const d = declarations[di];
         if (!isJsonObject(d) || !isJsonObject(d.id)) { continue; }
         const { name } = d.id;
         if (name === 'Schema') { result.hasSchema = true; }
@@ -96,7 +100,9 @@ const createEntityNamespace: NonNullable<Rule.RuleModule['create']> = (context) 
         return;
       }
 
-      for (const exportStmt of namespaceExports) {
+      const exportsLen = namespaceExports.length;
+      for (let ei = 0; ei < exportsLen; ei += 1) {
+        const exportStmt = namespaceExports[ei];
         const decl = getDeclaration(exportStmt);
         if (!isJsonObject(decl)) { continue; }
 

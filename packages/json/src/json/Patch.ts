@@ -148,7 +148,10 @@ export class Patch {
     const parts = this.parsePath(path);
     let current: unknown = target;
 
-    for (const part of parts) {
+    const partsLen = parts.length;
+    for (let i = 0; i < partsLen; i++) {
+      const part = parts[i]!;
+
       if (current === null || current === undefined) {
         throw new PatchError(`Path not found: ${path}`, 'getValue', path);
       }
@@ -266,67 +269,83 @@ export class Patch {
     } else {
       const asRecord = current as Record<string, unknown>;
 
-      delete asRecord[lastPart];
+      Reflect.deleteProperty(asRecord, lastPart);
+    }
+  }
+
+  /** Apply a single RFC-6902 `add` operation. */
+  private applyAdd(target: Record<string, unknown>, op: PatchOperationType): void {
+    this.setValue(target, op.path, op.value);
+  }
+
+  /** Apply a single RFC-6902 `replace` operation. */
+  private applyReplace(target: Record<string, unknown>, op: PatchOperationType): void {
+    if (!this.hasValue(target, op.path)) {
+      throw new PatchError(
+        `Cannot replace non-existent path: ${op.path}`,
+        op.op,
+        op.path
+      );
+    }
+    this.setValue(target, op.path, op.value);
+  }
+
+  /** Apply a single RFC-6902 `remove` operation. */
+  private applyRemove(target: Record<string, unknown>, op: PatchOperationType): void {
+    this.removeValue(target, op.path);
+  }
+
+  /** Apply a single RFC-6902 `copy` operation. */
+  private applyCopy(target: Record<string, unknown>, op: PatchOperationType): void {
+    if (op.from === undefined) {
+      throw new PatchError('copy operation requires "from"', op.op, op.path);
+    }
+    const copied = this.getValue(target, op.from);
+
+    this.setValue(target, op.path, copied);
+  }
+
+  /** Apply a single RFC-6902 `move` operation. */
+  private applyMove(target: Record<string, unknown>, op: PatchOperationType): void {
+    if (op.from === undefined) {
+      throw new PatchError('move operation requires "from"', op.op, op.path);
+    }
+    const moved = this.getValue(target, op.from);
+
+    this.removeValue(target, op.from);
+    this.setValue(target, op.path, moved);
+  }
+
+  /** Apply a single RFC-6902 `test` operation. */
+  private applyTest(target: Record<string, unknown>, op: PatchOperationType): void {
+    const actual = this.getValue(target, op.path);
+
+    if (actual !== op.value) {
+      throw new PatchError(
+        `Test failed at ${op.path}: expected ${String(op.value)}, got ${String(actual)}`,
+        op.op,
+        op.path
+      );
     }
   }
 
   /** Apply a single RFC-6902 operation to `target`. */
   protected applyOperation(target: Record<string, unknown>, op: PatchOperationType): void {
     switch (op.op) {
-      case 'add': {
-        this.setValue(target, op.path, op.value);
-        break;
-      }
-      case 'replace': {
-        if (!this.hasValue(target, op.path)) {
-          throw new PatchError(
-            `Cannot replace non-existent path: ${op.path}`,
-            op.op,
-            op.path
-          );
-        }
-        this.setValue(target, op.path, op.value);
-        break;
-      }
-      case 'remove': {
-        this.removeValue(target, op.path);
-        break;
-      }
-      case 'copy': {
-        if (op.from === undefined) {
-          throw new PatchError('copy operation requires "from"', op.op, op.path);
-        }
-        const copied = this.getValue(target, op.from);
-
-        this.setValue(target, op.path, copied);
-        break;
-      }
-      case 'move': {
-        if (op.from === undefined) {
-          throw new PatchError('move operation requires "from"', op.op, op.path);
-        }
-        const moved = this.getValue(target, op.from);
-
-        this.removeValue(target, op.from);
-        this.setValue(target, op.path, moved);
-        break;
-      }
-      case 'test': {
-        const actual = this.getValue(target, op.path);
-
-        if (actual !== op.value) {
-          throw new PatchError(
-            `Test failed at ${op.path}: expected ${String(op.value)}, got ${String(actual)}`,
-            op.op,
-            op.path
-          );
-        }
-        break;
-      }
-      default: {
-        const exhaustive: never = op.op;
-        throw new PatchError(`Unknown patch operation: ${String(exhaustive)}`, String(exhaustive), op.path);
-      }
+      case 'add':
+        return this.applyAdd(target, op);
+      case 'replace':
+        return this.applyReplace(target, op);
+      case 'remove':
+        return this.applyRemove(target, op);
+      case 'copy':
+        return this.applyCopy(target, op);
+      case 'move':
+        return this.applyMove(target, op);
+      case 'test':
+        return this.applyTest(target, op);
+      default:
+        throw new PatchError(`Unknown patch operation: ${String(op.op)}`, String(op.op), op.path);
     }
   }
 
@@ -345,11 +364,8 @@ export class Patch {
         return `MOVE ${op.from ?? '?'} → ${op.path}`;
       case 'test':
         return `TEST ${op.path} = ${JSON.stringify(op.value)}`;
-      default: {
-        const exhaustive: never = op.op;
-
-        return `${String(exhaustive).toUpperCase()} ${op.path}`;
-      }
+      default:
+        return `${String(op.op).toUpperCase()} ${op.path}`;
     }
   }
 }

@@ -28,7 +28,9 @@ export class UrlUtils {
       const encodedKey = encodeURIComponent(key);
 
       if (Array.isArray(value)) {
-        for (const item of value) {
+        const valueLen = value.length;
+        for (let vi = 0; vi < valueLen; vi += 1) {
+          const item = value[vi];
           if (item !== undefined && item !== null) {
             pairs.push(`${encodedKey}=${encodeURIComponent(String(item))}`);
           }

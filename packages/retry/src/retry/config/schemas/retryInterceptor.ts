@@ -14,7 +14,8 @@ function validateRetryInterceptor(val: unknown): void {
   }
 
   if (Array.isArray(val)) {
-    for (let i = 0; i < val.length; i++) {
+    const valLen = val.length;
+    for (let i = 0; i < valLen; i++) {
       if (typeof val[i] !== 'function') {
         throw ConfigurationError.create(`retryInterceptor[${i}] must be a function`);
       }

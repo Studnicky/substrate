@@ -14,7 +14,8 @@ export class DeadLetterQueueRetryGenerator<T> {
   }
 
   async *generate(): AsyncGenerator<DlqEntryType<T>> {
-    for await (const entry of this.#dlq.drain()) {
+    const drainIterator = this.#dlq.drain();
+    for await (const entry of drainIterator) {
       yield entry;
       await new Promise<void>((resolve) => { setTimeout(resolve, this.#intervalMs); });
     }

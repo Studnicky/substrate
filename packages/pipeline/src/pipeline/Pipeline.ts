@@ -140,7 +140,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
   async run(ctx: T): Promise<T> {
     let current = this.onRunStart(ctx);
 
-    for (let i = 0; i < this.fns.length; i++) {
+    const fnsLen = this.fns.length;
+    for (let i = 0; i < fnsLen; i++) {
       const fn = this.fns[i]!;
       const input = this.beforeStage(current, i);
       const output = await fn(input);

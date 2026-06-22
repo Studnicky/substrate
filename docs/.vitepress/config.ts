@@ -15,7 +15,7 @@ const SITE_URL = 'https://studnicky.github.io/substrate/';
 const SITE_BASE = '/substrate/';
 const SITE_OG_IMAGE = `${SITE_URL}og-image.svg`;
 const SITE_THEME_COLOR = '#14b8a6';
-const SITE_KEYWORDS = 'typescript,subclass,primitives,retry,throttle,mutex,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch';
+const SITE_KEYWORDS = 'typescript,subclass,primitives,retry,throttle,mutex,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,predicates,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
 const SITE_AUTHOR_NAME = 'Andrew Studnicky';
 const SITE_AUTHOR_URL = 'https://github.com/Studnicky';
 const SITE_REPO = 'https://github.com/Studnicky/substrate';
@@ -27,10 +27,11 @@ const bingVerify = seo.bingSiteVerification ?? '';
 const twitterHandle = seo.twitterHandle ?? '';
 
 const PACKAGES = [
-  'batch', 'circular-buffer', 'clock', 'config', 'context',
-  'errors', 'eslint-config', 'fetch', 'json', 'logger',
-  'mutex', 'pipeline', 'retry', 'sample-buffer', 'scheduler',
-  'throttle', 'timing', 'types'
+  'batch', 'cache', 'circular-buffer', 'clock', 'concurrency', 'config',
+  'context', 'errors', 'eslint-config', 'event-bus', 'fetch', 'file-lock',
+  'fsm', 'json', 'logger', 'mutex', 'pipeline', 'predicates', 'resilience',
+  'retry', 'sample-buffer', 'scheduler', 'signal', 'system', 'throttle',
+  'timing', 'types'
 ] as const;
 
 type HeadConfig = [string, Record<string, string>] | [string, Record<string, string>, string];

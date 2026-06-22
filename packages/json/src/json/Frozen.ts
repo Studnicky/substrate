@@ -35,12 +35,15 @@ export class Frozen {
     }
 
     if (Array.isArray(obj)) {
-      for (const item of obj) {
-        this.freezeValue(item, seen);
+      const objLen = (obj as unknown[]).length;
+      for (let i = 0; i < objLen; i += 1) {
+        this.freezeValue((obj as unknown[])[i], seen);
       }
     } else {
-      for (const child of Object.values(obj)) {
-        this.freezeValue(child, seen);
+      const children = Object.values(obj);
+      const childLen = children.length;
+      for (let i = 0; i < childLen; i += 1) {
+        this.freezeValue(children[i], seen);
       }
     }
 

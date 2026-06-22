@@ -167,8 +167,9 @@ export class Retry implements RetryInterface {
         ? config.retryInterceptor
         : [config.retryInterceptor];
 
-    for (const fn of interceptors) {
-      this.pipeline.add(fn);
+    const interceptorsLen = interceptors.length;
+    for (let i = 0; i < interceptorsLen; i += 1) {
+      this.pipeline.add(interceptors[i]!);
     }
 
     if (config.errorClassifier === undefined) {
@@ -268,6 +269,16 @@ export class Retry implements RetryInterface {
    * @throws {MaxRetriesExceededError} When operation fails after all retry attempts
    * @throws {NonRetryableError} When error is classified as non-retryable
    */
+  private async tryAttempt<T>(fn: () => Promise<T>): Promise<{ 'result': T; 'success': true } | { 'error': Error; 'success': false }> {
+    try {
+      const result = await fn();
+      return { 'result': result, 'success': true };
+    } catch (error) {
+      const caughtError = error instanceof Error ? error : new Error(String(error));
+      return { 'error': caughtError, 'success': false };
+    }
+  }
+
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     this.stats.totalRequests++;
 
@@ -282,19 +293,15 @@ export class Retry implements RetryInterface {
     for (let attempt = INITIAL_COUNTER; attempt <= this.maxRetries; attempt++) {
       this.onAttempt(attempt);
 
-      try {
-        const result = await fn();
+      const outcome = await this.tryAttempt(fn);
 
+      if (outcome.success) {
         this.handleSuccess(callFsm, attempt, startTime);
-
-        return result;
-      } catch (error) {
-        const caughtError = error instanceof Error ? error : new Error(String(error));
-
-        errors.push(caughtError);
-
-        await this.handleError(callFsm, attempt, caughtError, errors, startTime, state);
+        return outcome.result;
       }
+
+      errors.push(outcome.error);
+      await this.handleError(callFsm, attempt, outcome.error, errors, startTime, state);
     }
 
     return this.handleFinalFailure(callFsm, errors);

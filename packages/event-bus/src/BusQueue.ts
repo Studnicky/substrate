@@ -62,6 +62,14 @@ export class BusQueue<T> {
     queueMicrotask(() => { void this.#runDrainLoop(); });
   }
 
+  async #tryHandleItem(item: T): Promise<void> {
+    try {
+      await this.#handler(item);
+    } catch (err: unknown) {
+      if (this.#onError !== undefined) { this.#onError(err); }
+    }
+  }
+
   async #runDrainLoop(): Promise<void> {
     this.#draining = true;
     while (this.#queue.length > 0 && !this.#aborted) {
@@ -69,11 +77,7 @@ export class BusQueue<T> {
       if (item === undefined) { break; }
       const waiter = this.#backpressureWaiters.shift();
       if (waiter !== undefined) { waiter.resolve(); }
-      try {
-        await this.#handler(item);
-      } catch (err: unknown) {
-        if (this.#onError !== undefined) { this.#onError(err); }
-      }
+      await this.#tryHandleItem(item);
     }
     this.#draining = false;
     if (this.#queue.length === 0 || this.#aborted) {

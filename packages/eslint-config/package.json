@@ -15,10 +15,6 @@
     "./plugin": {
       "types": "./dist/plugin.d.ts",
       "import": "./dist/plugin.js"
-    },
-    "./v8": {
-      "types": "./dist/v8.d.ts",
-      "import": "./dist/v8.js"
     }
   },
   "files": [

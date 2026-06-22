@@ -114,10 +114,9 @@ export class RequestBuilder implements RequestBuilderInterface {
    * @returns This builder for chaining
    */
   header(name: string, value: string): this {
-    this.fetchOptions.headers = {
-      ...this.fetchOptions.headers,
-      [name]: value
-    };
+    const newHeaders: Record<string, string> = { ...this.fetchOptions.headers };
+    newHeaders[name] = value;
+    this.fetchOptions.headers = newHeaders;
 
     return this;
   }

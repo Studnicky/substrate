@@ -24,7 +24,8 @@ export class Hash {
   protected static fnv1a32(input: string): number {
     let hash = FNV_OFFSET_BASIS;
 
-    for (let i = 0; i < input.length; i++) {
+    const inputLen = input.length;
+    for (let i = 0; i < inputLen; i++) {
       hash ^= input.charCodeAt(i);
       hash = Math.imul(hash, FNV_PRIME) >>> 0;
     }

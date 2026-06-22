@@ -24,20 +24,29 @@ A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, sc
 | Package | Description |
 |---|---|
 | [@studnicky/batch](https://studnicky.github.io/substrate/packages/batch) | Batch concurrent execution for processing items in controlled batches |
+| [@studnicky/cache](https://studnicky.github.io/substrate/packages/cache) | LRU cache with optional TTL and capacity bounds |
 | [@studnicky/circular-buffer](https://studnicky.github.io/substrate/packages/circular-buffer) | Generic circular buffer with O(1) push and shift operations |
 | [@studnicky/clock](https://studnicky.github.io/substrate/packages/clock) | Wall-clock and monotonic time primitives with injectable providers for deterministic testing |
+| [@studnicky/concurrency](https://studnicky.github.io/substrate/packages/concurrency) | Keyed async channels, semaphore, and coalesce primitives |
 | [@studnicky/config](https://studnicky.github.io/substrate/packages/config) | Configuration validation utilities and type guards |
 | [@studnicky/context](https://studnicky.github.io/substrate/packages/context) | Per-request async context isolation using AsyncLocalStorage |
 | [@studnicky/errors](https://studnicky.github.io/substrate/packages/errors) | Standardized error handling for all modules |
 | [@studnicky/eslint-config](https://studnicky.github.io/substrate/packages/eslint-config) | Shared ESLint 9 flat config for @studnicky packages |
+| [@studnicky/event-bus](https://studnicky.github.io/substrate/packages/event-bus) | Publish/subscribe event bus with backpressure-aware queues |
 | [@studnicky/fetch](https://studnicky.github.io/substrate/packages/fetch) | Professional HTTP client with timeout, interceptors, and configured clients for Node.js |
+| [@studnicky/file-lock](https://studnicky.github.io/substrate/packages/file-lock) | Process-level advisory file locking |
+| [@studnicky/fsm](https://studnicky.github.io/substrate/packages/fsm) | Abstract finite state machine base class with effect interpreter |
 | [@studnicky/json](https://studnicky.github.io/substrate/packages/json) | JSON/object value-tools: deep merge, clone, equal, freeze, path access, sort, patch, hash |
 | [@studnicky/logger](https://studnicky.github.io/substrate/packages/logger) | Pluggable logging interface with Pino wrapper, child loggers, and metadata support for Node.js |
 | [@studnicky/mutex](https://studnicky.github.io/substrate/packages/mutex) | Key-based async mutex for preventing race conditions in concurrent operations |
 | [@studnicky/pipeline](https://studnicky.github.io/substrate/packages/pipeline) | Generic typed async pipeline for sequential context transforms |
+| [@studnicky/predicates](https://studnicky.github.io/substrate/packages/predicates) | Type-safe predicates and coercion utilities |
+| [@studnicky/resilience](https://studnicky.github.io/substrate/packages/resilience) | Circuit breaker, token bucket, and dead-letter queue primitives |
 | [@studnicky/retry](https://studnicky.github.io/substrate/packages/retry) | Generic async retry utility with extensible error classification |
 | [@studnicky/sample-buffer](https://studnicky.github.io/substrate/packages/sample-buffer) | Fixed-capacity circular buffer for numeric samples with percentile calculation |
 | [@studnicky/scheduler](https://studnicky.github.io/substrate/packages/scheduler) | Scheduler primitives — real-time (setTimeout/setInterval) and virtual (min-heap, deterministic) implementations |
+| [@studnicky/signal](https://studnicky.github.io/substrate/packages/signal) | AbortSignal composition utilities |
+| [@studnicky/system](https://studnicky.github.io/substrate/packages/system) | CPU/GPU/memory/platform detection for worker sizing |
 | [@studnicky/throttle](https://studnicky.github.io/substrate/packages/throttle) | Generic async operation throttle with sliding window concurrency control |
 | [@studnicky/timing](https://studnicky.github.io/substrate/packages/timing) | High-resolution timing tracker for collecting operation metrics |
 | [@studnicky/types](https://studnicky.github.io/substrate/packages/types) | Shared zero-runtime utility types and type-guard helpers for @studnicky/substrate |

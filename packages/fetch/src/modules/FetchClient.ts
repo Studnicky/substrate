@@ -137,8 +137,9 @@ export class FetchClient implements FetchClientInterface {
         ? config.requestInterceptor
         : [config.requestInterceptor];
 
-      for (const interceptor of interceptors) {
-        this.interceptors.addRequestInterceptor(interceptor);
+      const requestLen = interceptors.length;
+      for (let i = 0; i < requestLen; i += 1) {
+        this.interceptors.addRequestInterceptor(interceptors[i]!);
       }
     }
 
@@ -147,8 +148,9 @@ export class FetchClient implements FetchClientInterface {
         ? config.responseInterceptor
         : [config.responseInterceptor];
 
-      for (const interceptor of interceptors) {
-        this.interceptors.addResponseInterceptor(interceptor);
+      const responseLen = interceptors.length;
+      for (let i = 0; i < responseLen; i += 1) {
+        this.interceptors.addResponseInterceptor(interceptors[i]!);
       }
     }
   }
@@ -169,8 +171,9 @@ export class FetchClient implements FetchClientInterface {
 
     const perRequest = new Pipeline<RequestInterceptorContextType>();
 
-    for (const fn of perRequestInterceptors) {
-      perRequest.add(fn);
+    const perRequestLen = perRequestInterceptors.length;
+    for (let i = 0; i < perRequestLen; i += 1) {
+      perRequest.add(perRequestInterceptors[i]!);
     }
 
     return await perRequest.run(ctx);
@@ -192,8 +195,9 @@ export class FetchClient implements FetchClientInterface {
 
     const perResponse = new Pipeline<ResponseInterceptorContextType>();
 
-    for (const fn of perResponseInterceptors) {
-      perResponse.add(fn);
+    const perResponseLen = perResponseInterceptors.length;
+    for (let i = 0; i < perResponseLen; i += 1) {
+      perResponse.add(perResponseInterceptors[i]!);
     }
 
     return await perResponse.run(ctx);

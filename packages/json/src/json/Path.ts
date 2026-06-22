@@ -81,7 +81,10 @@ export class Path {
 
     let result = '';
 
-    for (const segment of segments) {
+    const segmentsLen = segments.length;
+    for (let i = 0; i < segmentsLen; i++) {
+      const segment = segments[i]!;
+
       if (/^\d+$/u.test(segment)) {
         result += `[${segment}]`;
       } else if (VALID_IDENTIFIER.test(segment)) {
@@ -123,7 +126,9 @@ export class Path {
       if (matches !== null) {
         let current: unknown = obj;
 
-        for (const match of matches) {
+        const matchesLen = matches.length;
+        for (let j = 0; j < matchesLen; j++) {
+          const match = matches[j]!;
           const key = match.slice(2, -2);
 
           if (current === null || current === undefined) {
@@ -143,8 +148,9 @@ export class Path {
     }
 
     let current: unknown = obj;
+    const partsLen = parts.length;
 
-    for (let i = 0; i < parts.length; i++) {
+    for (let i = 0; i < partsLen; i++) {
       const part = parts[i];
 
       if (part === undefined || part === '') {

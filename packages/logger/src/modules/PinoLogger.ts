@@ -91,14 +91,7 @@ export class PinoLogger implements LoggerInterface {
 
   protected static fromInstance(instance: pino.Logger): PinoLogger {
     const logger = Object.create(PinoLogger.prototype) as PinoLogger;
-
-    Object.defineProperty(logger, 'pinoInstance', {
-      'configurable': false,
-      'enumerable': false,
-      'value': instance,
-      'writable': false
-    });
-
+    (logger as unknown as { 'pinoInstance': pino.Logger }).pinoInstance = instance;
     return logger;
   }
 

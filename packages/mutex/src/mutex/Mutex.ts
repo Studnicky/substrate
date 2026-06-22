@@ -230,19 +230,20 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       }
     };
 
-    return {
+    const lockBase: Record<string, unknown> = {
       'key': key,
-      'release': doRelease,
-      [Symbol.asyncDispose]: async (): Promise<void> => {
-        // Async disposal pattern - ensure proper Promise resolution
-        await Promise.resolve();
+      'release': doRelease
+    };
+    (lockBase as Record<symbol, unknown>)[Symbol.asyncDispose] = async (): Promise<void> => {
+      // Async disposal pattern - ensure proper Promise resolution
+      await Promise.resolve();
 
-        if (!released) {
-          released = true;
-          release();
-        }
+      if (!released) {
+        released = true;
+        release();
       }
     };
+    return lockBase as unknown as MutexLockInterface;
   }
 
   /**
@@ -362,7 +363,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   clear(): void {
     for (const queue of this.queues.values()) {
-      for (const entry of queue) {
+      const queueLen = queue.length;
+      for (let i = 0; i < queueLen; i += 1) {
+        const entry = queue[i]!;
         if (entry.timeoutId) {
           clearTimeout(entry.timeoutId);
         }

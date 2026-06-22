@@ -24,8 +24,9 @@ export class DataType {
     seen.add(value);
 
     if (Array.isArray(value)) {
-      for (const item of value) {
-        if (this.walkForCycle(item, seen)) {
+      const itemLen = value.length;
+      for (let i = 0; i < itemLen; i += 1) {
+        if (this.walkForCycle(value[i], seen)) {
           return true;
         }
       }
@@ -35,8 +36,10 @@ export class DataType {
     }
 
     if (this.isPlainObject(value)) {
-      for (const child of Object.values(value)) {
-        if (this.walkForCycle(child, seen)) {
+      const children = Object.values(value);
+      const childLen = children.length;
+      for (let i = 0; i < childLen; i += 1) {
+        if (this.walkForCycle(children[i], seen)) {
           return true;
         }
       }
@@ -51,7 +54,7 @@ export class DataType {
     if (left.size !== right.size) {
       return false;
     }
-    for (const [key, leftVal] of left) {
+    for (const [key, leftVal] of left.entries()) {
       if (!right.has(key)) {
         return false;
       }
@@ -67,7 +70,7 @@ export class DataType {
     if (left.size !== right.size) {
       return false;
     }
-    for (const item of left) {
+    for (const item of left.values()) {
       if (!right.has(item)) {
         return false;
       }
@@ -87,7 +90,9 @@ export class DataType {
       return false;
     }
 
-    for (const key of leftKeys) {
+    const leftLen = leftKeys.length;
+    for (let i = 0; i < leftLen; i += 1) {
+      const key = leftKeys[i]!;
       if (!(key in right)) {
         return false;
       }
@@ -170,7 +175,8 @@ export class DataType {
       if (left.length !== right.length) {
         return false;
       }
-      for (let i = 0; i < left.length; i++) {
+      const leftLen = left.length;
+      for (let i = 0; i < leftLen; i++) {
         if (!this.deepEqual(left[i], right[i])) {
           return false;
         }

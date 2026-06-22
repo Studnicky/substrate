@@ -47,7 +47,7 @@ export class Clone {
   protected static cloneMap<K, V>(value: Map<K, V>): Map<K, V> {
     const cloned = new Map<K, V>();
 
-    for (const [k, v] of value) {
+    for (const [k, v] of value.entries()) {
       cloned.set(this.cloneValue(k), this.cloneValue(v));
     }
 
@@ -58,7 +58,7 @@ export class Clone {
   protected static cloneSet<V>(value: Set<V>): Set<V> {
     const cloned = new Set<V>();
 
-    for (const v of value) {
+    for (const v of value.values()) {
       cloned.add(this.cloneValue(v));
     }
 
@@ -77,7 +77,10 @@ export class Clone {
   protected static cloneObject(value: Record<string, unknown>): Record<string, unknown> {
     const cloned: Record<string, unknown> = {};
 
-    for (const key of Object.keys(value)) {
+    const keys = Object.keys(value);
+    const keysLen = keys.length;
+    for (let i = 0; i < keysLen; i += 1) {
+      const key = keys[i]!;
       cloned[key] = this.cloneValue(value[key]);
     }
 

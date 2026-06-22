@@ -116,8 +116,9 @@ export class Predicates {
   /** Count Unicode code points without allocating an intermediate array. */
   static codePointLength(str: string): number {
     let length = 0;
+    const strLen = str.length;
 
-    for (let index = 0; index < str.length; index++) {
+    for (let index = 0; index < strLen; index++) {
       length++;
       const code = str.codePointAt(index);
 
@@ -132,8 +133,9 @@ export class Predicates {
   /** Returns true as soon as `target` code points have been counted; stops early. */
   private static codePointLengthAtLeast(str: string, target: number): boolean {
     let count = 0;
+    const strLen = str.length;
 
-    for (let index = 0; index < str.length; index++) {
+    for (let index = 0; index < strLen; index++) {
       count++;
       if (count >= target) {
         return true;
@@ -151,8 +153,9 @@ export class Predicates {
   /** Returns false as soon as code-point count exceeds `limit`; stops early. */
   private static codePointLengthAtMost(str: string, limit: number): boolean {
     let count = 0;
+    const strLen = str.length;
 
-    for (let index = 0; index < str.length; index++) {
+    for (let index = 0; index < strLen; index++) {
       count++;
       if (count > limit) {
         return false;
@@ -192,7 +195,10 @@ export class Predicates {
       return value;
     }
 
-    for (const type of schemaTypes) {
+    const typesLen = schemaTypes.length;
+
+    for (let i = 0; i < typesLen; i += 1) {
+      const type = schemaTypes[i]!;
       const coercer = Predicates.coercionHandlers.get(type);
 
       if (coercer !== undefined) {
@@ -401,8 +407,10 @@ export class Predicates {
   }
 
   static satisfiesUniqueItems(value: unknown[]): boolean {
-    for (let index = 0; index < value.length; index++) {
-      for (let other = index + 1; other < value.length; other++) {
+    const valueLen = value.length;
+
+    for (let index = 0; index < valueLen; index++) {
+      for (let other = index + 1; other < valueLen; other++) {
         if (DataType.deepEqual(value[index], value[other])) {
           return false;
         }
