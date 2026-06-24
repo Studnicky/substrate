@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { RuleTester } from 'eslint';
@@ -8,6 +9,10 @@ import { noBindApplyCall } from '../../src/rules/noBindApplyCall.js';
 RuleTester.describe = describe;
 RuleTester.it = it;
 
+// Workspace root — projectService resolves the tsconfig and @studnicky/* module
+// symbols from here.
+const repoRoot = resolve(import.meta.dirname, '../../../..');
+
 const ruleTester = new RuleTester({
   'languageOptions': {
     'parser': parser,
@@ -15,7 +20,7 @@ const ruleTester = new RuleTester({
       'projectService': {
         'allowDefaultProject': ['*.ts']
       },
-      'tsconfigRootDir': '/Users/studs/Workspace/noocodec-substrate'
+      'tsconfigRootDir': repoRoot
     }
   }
 });

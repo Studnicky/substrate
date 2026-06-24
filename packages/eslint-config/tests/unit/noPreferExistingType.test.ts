@@ -1,9 +1,14 @@
+import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { noPreferExistingType } from '../../src/rules/noPreferExistingType.js';
+
+// Workspace root — projectService resolves the tsconfig and @studnicky/* module
+// symbols from here.
+const repoRoot = resolve(import.meta.dirname, '../../../..');
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -30,7 +35,7 @@ const ruleTester = new RuleTester({
       'projectService': {
         'allowDefaultProject': ['*.ts']
       },
-      'tsconfigRootDir': '/Users/studs/Workspace/noocodec-substrate'
+      'tsconfigRootDir': repoRoot
     }
   }
 });
