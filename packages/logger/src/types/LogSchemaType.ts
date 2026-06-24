@@ -1,6 +1,5 @@
 /**
  * Complete log record as it appears in CloudWatch.
- * Includes Pino-added fields.
  */
 
 import type { OperationLogMetadataType } from './OperationLogMetadataType.js';
@@ -9,7 +8,7 @@ import type { OperationLogMetadataType } from './OperationLogMetadataType.js';
  * Complete CloudWatch log schema type.
  */
 export type LogSchemaType = OperationLogMetadataType & {
-  /** Pino numeric level: 10=trace, 20=debug, 30=info, 40=warn, 50=error */
+  /** Numeric log level: 10=trace, 20=debug, 30=info, 40=warn, 50=error */
   'level': number;
 
   /** Log message */
@@ -18,6 +17,6 @@ export type LogSchemaType = OperationLogMetadataType & {
   /** Service name (from logger base metadata) */
   'service': string;
 
-  /** ISO 8601 timestamp (Pino) */
+  /** ISO 8601 timestamp */
   'time': string;
 };

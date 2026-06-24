@@ -2,8 +2,7 @@
  * Base error class for all modules in the monorepo.
  *
  * Extends `BaseError` with scenario-driven defaults, HTTP status codes,
- * and cause-chain traversal helpers. Existing subclasses continue to work
- * without modification.
+ * and cause-chain traversal helpers.
  *
  * @example Using scenario defaults
  * ```typescript
@@ -88,8 +87,7 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
   }
 
   /**
-   * Untyped context dictionary — preserved as `Record<string, unknown> | undefined`
-   * for backward compatibility with existing dependents.
+   * Untyped context dictionary typed as `Record<string, unknown> | undefined`.
    *
    * Shadows `BaseError.metadata` for the `ModuleError` public API surface.
    */
@@ -97,7 +95,6 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
 
   /**
    * Typed cause — narrows `Error.cause: unknown` to `Error | undefined`.
-   * Preserved for backward API compatibility.
    */
   public override readonly cause: Error | undefined;
 

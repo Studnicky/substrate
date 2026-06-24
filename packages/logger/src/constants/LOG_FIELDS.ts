@@ -23,7 +23,6 @@ export const LOG_FIELDS = {
   'STATUS': 'status',
 
   'TEAM_ID': 'teamId',
-  // Pino standard
   'TIME': 'time',
   'TRACE_ID': 'traceId',
   'USER_ID': 'userId'

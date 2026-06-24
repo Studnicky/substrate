@@ -11,8 +11,8 @@
  *
  * @example
  * ```typescript
- * const level: LogLevelString = 'info';
- * const logger = ConsoleLogger.create({ level });
+ * const level: LogLevelStringType = 'info';
+ * const logger = Logger.create({ level });
  * ```
  */
 export type LogLevelStringType = 'debug' | 'error' | 'info' | 'silent' | 'trace' | 'warn';

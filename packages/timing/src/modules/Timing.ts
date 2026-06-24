@@ -134,24 +134,19 @@ export class Timing implements TimingInterface {
    */
   protected constructor(options: TimingOptionsEntity.Type = {}) {
     try {
-      // Validate maxEvents BEFORE applying defaults
       if (options.maxEvents !== undefined) {
         TimingValidator.validateMaxEvents(options.maxEvents);
       }
 
-      // Validate precision if provided
       if (options.precision !== undefined) {
         TimingValidator.validatePrecision(options.precision);
       }
 
-      // Apply defaults AFTER validation
       const maxEvents = options.maxEvents ?? DEFAULT_MAX_EVENTS;
 
-      // Initialize timing tracker
       this._timingCache = new Set();
       this._maxEvents = maxEvents;
 
-      // Store decimal precisions for math-based rounding
       this._precisions = {
         'h': options.precision?.h ?? DEFAULT_DECIMAL_PRECISION.h,
         'm': options.precision?.m ?? DEFAULT_DECIMAL_PRECISION.m,
@@ -160,10 +155,8 @@ export class Timing implements TimingInterface {
         's': options.precision?.s ?? DEFAULT_DECIMAL_PRECISION.s
       };
 
-      // Capture start time via overridable hook
       this._startTime = this.readHrtime();
 
-      // Automatically add 'initialize' event
       this._timingCache.add({
         'name': 'initialize',
         'timestamp': this._startTime
@@ -212,7 +205,6 @@ export class Timing implements TimingInterface {
 
     const rawValue = Number(ns) / NS_PER_UNIT[unit];
 
-    // Apply precision via math rounding
     const precision = this._precisions[unit];
     const factor = Math.pow(10, precision);
 
@@ -256,7 +248,6 @@ export class Timing implements TimingInterface {
   event(data: TimingEventDataType): void {
     const currentTime = this.readHrtime();
 
-    // Check if we need to evict oldest event
     if (this._timingCache.size >= this._maxEvents) {
       const firstEvent = this._timingCache.values().next().value;
 

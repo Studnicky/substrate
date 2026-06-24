@@ -41,9 +41,6 @@ type AdaptiveConfigType = AdaptiveConfigEntity.Type;
 type ThrottleConfigType = ThrottleConfigEntity.Type;
 type ValidatedThrottleConfigType = ThrottleConfigEntity.ValidatedThrottleConfigType;
 
-/**
- * Type alias for validated adaptive config
- */
 type AdaptiveConfig = NonNullable<ValidatedThrottleConfigType['adaptive']>;
 
 /**
@@ -150,7 +147,7 @@ export class Throttle implements ThrottleInterface {
   }
 
   /**
-   * FSM state. Starts idle; transitions via transition().
+   * FSM state. Transitions via transition().
    */
   #state: ThrottleStateType = 'idle';
 
@@ -191,7 +188,6 @@ export class Throttle implements ThrottleInterface {
     this.config = Throttle.validateConfig(config);
     this.queue = CircularBuffer.create({ 'capacity': DEFAULT_BUFFER_CAPACITY, 'overflow': 'grow' });
 
-    // Initialize latency buffer if adaptive is enabled
     if (this.config.adaptive?.enabled === true) {
       this.latencyBuffer = SampleBuffer.create({ 'capacity': this.config.adaptive.sampleWindow });
     }
@@ -485,7 +481,6 @@ export class Throttle implements ThrottleInterface {
       'totalExecuted': this.totalExecuted
     };
 
-    // Add latency stats if buffer exists
     if (this.latencyBuffer !== undefined) {
       stats.latency = {
         'p50': this.latencyBuffer.percentile(PERCENTILE_P50),
@@ -495,7 +490,6 @@ export class Throttle implements ThrottleInterface {
       };
     }
 
-    // Add adaptive stats if enabled
     if (this.config.adaptive?.enabled === true) {
       stats.adaptive = {
         'adjustmentCount': this.adjustmentCount,
@@ -811,8 +805,6 @@ export class Throttle implements ThrottleInterface {
 
     const controller = new AbortController();
 
-    // Register observer to abort the timeout when operations complete
-    // Arrow function required - AbortController.abort() needs its context
     this.observers.push((): void => {
       controller.abort();
     });

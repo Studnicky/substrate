@@ -55,7 +55,6 @@ export class FileLock {
 
   /**
    * Alias for `FileLock.create({ path, ...options })`.
-   * Retained for call-site compatibility.
    */
   static async acquire(path: string, options?: Omit<FileLockOptionsEntity.Type, 'path'>): Promise<FileLock> {
     const result = await FileLock.create({ 'path': path, ...options });

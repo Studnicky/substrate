@@ -3,7 +3,7 @@ import { LoggerError } from './LoggerError.js';
 /**
  * Error thrown when a log builder fails validation.
  *
- * Thrown when required fields are missing from LogBody or LogError builders.
+ * Thrown when required fields are missing from LogBody or LogFault builders.
  *
  * @example
  * ```typescript

@@ -17,7 +17,7 @@ import type { TimingFieldsType } from '../interfaces/TimingFieldsType.js';
  *   service: 'api-gateway'
  * };
  *
- * const logger = ConsoleLogger.create({ metadata });
+ * const logger = Logger.create({ metadata });
  * ```
  */
 export type LogMetadataType = Record<string, unknown>;

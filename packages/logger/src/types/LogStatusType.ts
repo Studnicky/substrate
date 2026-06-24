@@ -21,16 +21,13 @@ import type { STATUS_CATEGORIES } from '../constants/LOG_STATUS.js';
  * ```
  */
 export type LogStatusType
-  // Lifecycle: pending, in_progress, complete
   = | 'cached'
   | 'complete'
   | 'failed'
-  // Success: success, partial, cached, skipped
   | 'in_progress'
   | 'invalid'
   | 'not_found'
   | 'partial'
-  // Failure: failed, timeout, invalid, not_found, unauthorized, rate_limited, unavailable
   | 'pending'
   | 'rate_limited'
   | 'retry_exhausted'
@@ -38,7 +35,6 @@ export type LogStatusType
   | 'skipped'
   | 'success'
   | 'timeout'
-  // Retry: retrying, retry_exhausted
   | 'unauthorized'
   | 'unavailable';
 

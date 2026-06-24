@@ -511,8 +511,6 @@ export class FetchClient implements FetchClientInterface {
    * - Only config headers: 1 allocation
    * - Only request headers: 1 allocation
    * - Both headers: 1 allocation
-   *
-   * Previous implementation: Always 2 allocations (outer + inner spread)
    */
   private mergeHeaders(requestHeaders?: Record<string, string>): Record<string, string> {
     // Fast path: no headers to merge

@@ -3,8 +3,6 @@ import type { ThrottleInterface } from './ThrottleInterface.js';
 
 /**
  * Contract for ThrottleBuilder
- *
- * Logger and timing are accessed via the telemetry context silo mechanism.
  */
 export interface ThrottleBuilderInterface {
   /**

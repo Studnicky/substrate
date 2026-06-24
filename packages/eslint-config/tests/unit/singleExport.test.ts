@@ -217,16 +217,16 @@ ruleTester.run('single-export', singleExport, {
       errors: [{ messageId: 'exportAll' }],
       filename: '/project/src/reexport.ts'
     },
-    // ── directory no longer exempts: /errors/-style path + non-Error class + const ──
+    // ── directory does not exempt: /errors/-style path + non-Error class + const ──
     {
-      name: 'forbids non-error class + const in /errors/ path — directory no longer exempts (tooMany)',
+      name: 'forbids non-error class + const in /errors/ path — directory does not exempt (tooMany)',
       code: 'export class Parser {} export const DEFAULT_DELIMITER = ":";',
       errors: [{ messageId: 'tooMany' }],
       filename: '/project/src/errors/parser.ts'
     },
-    // ── directory no longer exempts: /types/-style path + type + function ─────
+    // ── directory does not exempt: /types/-style path + type + function ─────────
     {
-      name: 'forbids type alias + function in /types/ path — directory no longer exempts (tooMany)',
+      name: 'forbids type alias + function in /types/ path — directory does not exempt (tooMany)',
       code: 'export type FooShape = { id: string }; export function buildFoo(): FooShape { return { id: "" }; }',
       errors: [{ messageId: 'tooMany' }],
       filename: '/project/src/types/fooShape.ts'

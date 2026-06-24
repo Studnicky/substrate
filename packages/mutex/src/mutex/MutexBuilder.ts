@@ -1,9 +1,3 @@
-/**
- * Builder for Mutex instances
- *
- * Provides a fluent interface for configuring and creating Mutex instances.
- */
-
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 import type { MutexBuilderInterface } from '../interfaces/index.js';
 import type { Mutex } from './Mutex.js';

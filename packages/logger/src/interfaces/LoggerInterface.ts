@@ -50,12 +50,12 @@ export interface LoggerInterface {
    *
    * @example
    * ```typescript
-   * const logger = ConsoleLogger.create({ level: 'info' });
+   * const logger = Logger.create({ level: 'info' });
    * const requestLogger = logger.child({ requestId: '123', userId: 'abc' });
-   * requestLogger.info('Processing request'); // Includes requestId and userId
+   * requestLogger.info(body); // record includes requestId and userId
    *
    * const operationLogger = requestLogger.child({ operation: 'upload' });
-   * operationLogger.info('Starting upload'); // Includes requestId, userId, and operation
+   * operationLogger.info(body); // record includes requestId, userId, and operation
    * ```
    */
   child(metadata: LogMetadataType): LoggerInterface;

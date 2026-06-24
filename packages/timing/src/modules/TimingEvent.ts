@@ -46,9 +46,7 @@ export class TimingEvent implements TimingEventInterface {
 
   private statusValue: TimingStatusValueType | undefined;
 
-  private constructor() {
-    // Private constructor - use TimingEvent.create()
-  }
+  private constructor() {}
 
   /**
    * Builds the timing event data.

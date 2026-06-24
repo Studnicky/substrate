@@ -1,12 +1,11 @@
 /**
- * Subclass-extension tests — prove the protected seams introduced by the
- * subclass-first redesign (REDESIGN.md §2, Wave 1).
+ * Subclass-extension tests — verify the protected seams on `BaseError` and `ModuleError`.
  *
  * Two extension scenarios:
  *   1. `AuditError extends BaseError` — overrides `serializeExtra()` and
  *      `formatUserMessage()`.
- *   2. `NetworkModuleError extends ModuleError` — proves the name-bug fix and
- *      that cause-chain helpers + toJSON work correctly on a subclass.
+ *   2. `NetworkModuleError extends ModuleError` — verifies that `name` resolves
+ *      to the concrete subclass and that cause-chain helpers + toJSON work correctly.
  */
 
 import type { ModuleErrorOptionsType } from '../../src/interfaces/index.js';

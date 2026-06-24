@@ -74,9 +74,7 @@ export class NoOpTiming implements TimingInterface {
   /**
    * Protected constructor. Use NoOpTiming.create() to instantiate.
    */
-  protected constructor() {
-    // No-op initialization
-  }
+  protected constructor() {}
 
   /**
    * No-operation clear method.
