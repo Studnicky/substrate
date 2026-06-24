@@ -80,7 +80,7 @@
   "dependencies": {
     "@studnicky/errors": "workspace:*",
     "@studnicky/pipeline": "workspace:*",
-    "undici": "8.5.0"
+    "undici": "^8.5.0"
   },
   "devDependencies": {
     "@studnicky/timing": "workspace:*"

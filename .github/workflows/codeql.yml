@@ -1,15 +1,15 @@
 name: CodeQL
 
 # Static analysis (CodeQL) for the TypeScript sources. Runs on pushes and PRs to
-# main and weekly, surfacing results under the repository's Security > Code scanning
-# tab. build-mode "none" is correct for JS/TS — CodeQL analyses the sources directly
-# without a compile step.
+# main and develop and weekly, surfacing results under the repository's
+# Security > Code scanning tab. build-mode "none" is correct for JS/TS — CodeQL
+# analyses the sources directly without a compile step.
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   schedule:
     - cron: '0 0 * * 1'
   workflow_dispatch:
