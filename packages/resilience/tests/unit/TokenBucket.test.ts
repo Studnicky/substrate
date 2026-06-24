@@ -59,9 +59,13 @@ const availableScenarios: Array<{
   },
 ];
 
+// Frozen clock so the assertions see no time-based refill — the getter values
+// are exact functions of setup alone.
+const frozenClock = (): number => 0;
+
 for (const { description, setup, assert: assertFn } of availableScenarios) {
   it(description, () => {
-    const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 5 });
+    const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 5, clock: frozenClock });
     setup(bucket);
     assertFn(bucket);
   });
