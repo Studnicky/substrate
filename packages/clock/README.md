@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/clock)
 
-`@studnicky/clock` provides a `Clock` class that delegates to a swappable `ClockProviderInterface`, returning epoch-ms from `.now()` and nanosecond timestamps from `.hrtime()` — both with per-instance monotonicity enforcement. Swap in `VirtualClockProvider` and `VirtualTimeCounter` for fully deterministic time control in tests.
+`@studnicky/clock` provides a `Clock` class that delegates to a swappable `ClockProviderType`, returning epoch-ms from `.now()` and nanosecond timestamps from `.hrtime()` — both with per-instance monotonicity enforcement. Swap in `VirtualClockProvider` and `VirtualTimeCounter` for fully deterministic time control in tests.
 
 ## Install
 
@@ -25,8 +25,8 @@ pnpm add @studnicky/clock
 ```ts
 import { Clock, RealTimeClockProvider } from '@studnicky/clock';
 
-const provider = new RealTimeClockProvider();
-const clock = new Clock(provider);
+const provider = RealTimeClockProvider.create();
+const clock = Clock.create(provider);
 
 const epochMs = clock.now();     // e.g. 1750000000000
 const ns = clock.hrtime();       // e.g. 1234567890123456789n
@@ -36,8 +36,8 @@ Pass an optional `offsetMs` to `RealTimeClockProvider` for clock-skew correction
 
 ```ts
 // Shift all readings forward by 500 ms
-const skewed = new RealTimeClockProvider(500);
-const clock = new Clock(skewed);
+const skewed = RealTimeClockProvider.create({ offsetMs: 500 });
+const clock = Clock.create(skewed);
 ```
 
 ### Testing — deterministic virtual time
@@ -45,9 +45,9 @@ const clock = new Clock(skewed);
 ```ts
 import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
 
-const counter = new VirtualTimeCounter(0);         // start at epoch-ms 0
-const provider = new VirtualClockProvider(counter);
-const clock = new Clock(provider);
+const counter = VirtualTimeCounter.create();         // start at epoch-ms 0
+const provider = VirtualClockProvider.create(counter);
+const clock = Clock.create(provider);
 
 console.log(clock.now());    // 0
 counter.advance(1000);
@@ -59,29 +59,49 @@ console.log(clock.now());    // 1500
 Multiple `Clock` instances can share one counter — all see advances immediately:
 
 ```ts
-const counter = new VirtualTimeCounter(0);
-const clockA = new Clock(new VirtualClockProvider(counter));
-const clockB = new Clock(new VirtualClockProvider(counter));
+const counter = VirtualTimeCounter.create();
+const clockA = Clock.create(VirtualClockProvider.create(counter));
+const clockB = Clock.create(VirtualClockProvider.create(counter));
 
 counter.advance(200);
 console.log(clockA.now()); // 200
 console.log(clockB.now()); // 200
 ```
 
-## Extending
-
-`ClockProviderInterface` is the DI seam — implement it to inject any time source:
+### Fluent builder API
 
 ```ts
-import type { ClockProviderInterface } from '@studnicky/clock';
+const clock = Clock.builder()
+  .withProvider(RealTimeClockProvider.create())
+  .build();
+
+const skewed = RealTimeClockProvider.builder()
+  .withOffsetMs(500)
+  .build();
+
+const counter = VirtualTimeCounter.builder()
+  .withStartMs(1000)
+  .build();
+
+const provider = VirtualClockProvider.builder()
+  .withCounter(counter)
+  .build();
+```
+
+## Extending
+
+`ClockProviderType` is the DI seam — implement it to inject any time source:
+
+```ts
+import type { ClockProviderType } from '@studnicky/clock';
 import { Clock } from '@studnicky/clock';
 
-class FixedClockProvider implements ClockProviderInterface {
+class FixedClockProvider implements ClockProviderType {
   hrtime(): bigint { return 42_000_000n; }
   now(): number    { return 42; }
 }
 
-const clock = new Clock(new FixedClockProvider());
+const clock = Clock.create(new FixedClockProvider());
 console.log(clock.now());    // 42
 console.log(clock.hrtime()); // 42000000n
 ```

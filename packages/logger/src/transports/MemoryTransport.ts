@@ -5,6 +5,7 @@ import type { TransportInterface } from './TransportInterface.js';
 import { LogLevel } from '../constants/LogLevel.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { parseLogLevel } from '../modules/parseLogLevel.js';
+import { MemoryTransportBuilder } from './MemoryTransportBuilder.js';
 
 /**
  * Transport that captures log records into an internal array for test assertions.
@@ -14,7 +15,7 @@ import { parseLogLevel } from '../modules/parseLogLevel.js';
  *
  * @example
  * ```typescript
- * const memory = new MemoryTransport();
+ * const memory = MemoryTransport.create();
  * const logger = Logger.create({ transports: [memory] });
  *
  * logger.info(body);
@@ -32,13 +33,18 @@ export class MemoryTransport implements TransportInterface {
    * @returns A new MemoryTransport instance
    */
   static create(options: MemoryTransportOptionsType = {}): MemoryTransport {
-    return new MemoryTransport(options);
+    return new this(options);
+  }
+
+  static builder(): MemoryTransportBuilder {
+    const result = MemoryTransportBuilder.create((options) => { const result = MemoryTransport.create(options); return result; });
+    return result;
   }
 
   readonly #buffer: LogRecordType[] = [];
   readonly #minLevel: number;
 
-  constructor(options: MemoryTransportOptionsType = {}) {
+  protected constructor(options: MemoryTransportOptionsType = {}) {
     if (options.level !== undefined
       && typeof options.level !== 'string'
       && typeof options.level !== 'number') {

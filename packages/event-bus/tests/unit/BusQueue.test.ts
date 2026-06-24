@@ -8,6 +8,7 @@
  * - onError called on handler throw without stopping delivery
  * - AbortSignal cancels the queue
  * - highWaterMark validation
+ * - handler validation
  */
 
 import { deepStrictEqual, strictEqual, throws } from 'node:assert/strict';
@@ -17,7 +18,7 @@ import { BusQueue } from '../../src/BusQueue.js';
 
 void it('calls handler for each enqueued item in order', async () => {
   const received: number[] = [];
-  const queue = new BusQueue<number>(async (item) => { received.push(item); });
+  const queue = BusQueue.create<number>({ 'handler': async (item) => { received.push(item); } });
 
   await queue.enqueue(1);
   await queue.enqueue(2);
@@ -32,8 +33,10 @@ void it('size reflects queue depth before drain', async () => {
 
   // Capture size inside the handler — at that moment the remaining items
   // are still sitting in the queue (shift happens before handler call).
-  const queue = new BusQueue<number>(async (_item) => {
-    observedSizes.push(queue.size);
+  const queue = BusQueue.create<number>({
+    'handler': async (_item) => {
+      observedSizes.push(queue.size);
+    },
   });
 
   // Enqueue synchronously before any await so all three land in the queue
@@ -52,7 +55,7 @@ void it('size reflects queue depth before drain', async () => {
 
 void it('drain() resolves when queue empties', async () => {
   const processed: string[] = [];
-  const queue = new BusQueue<string>(async (item) => { processed.push(item); });
+  const queue = BusQueue.create<string>({ 'handler': async (item) => { processed.push(item); } });
 
   void queue.enqueue('a');
   void queue.enqueue('b');
@@ -67,13 +70,13 @@ void it('onError is called when handler throws, delivery continues', async () =>
   const errors: unknown[] = [];
   const received: number[] = [];
 
-  const queue = new BusQueue<number>(
-    async (item) => {
+  const queue = BusQueue.create<number>({
+    'handler': async (item) => {
       if (item === 2) { throw new Error('boom'); }
       received.push(item);
     },
-    { onError: (err) => { errors.push(err); } },
-  );
+    'onError': (err) => { errors.push(err); },
+  });
 
   await queue.enqueue(1);
   await queue.enqueue(2);
@@ -89,10 +92,10 @@ void it('AbortSignal cancels queue: enqueue becomes no-op after abort', async ()
   const received: number[] = [];
   const controller = new AbortController();
 
-  const queue = new BusQueue<number>(
-    async (item) => { received.push(item); },
-    { signal: controller.signal },
-  );
+  const queue = BusQueue.create<number>({
+    'handler': async (item) => { received.push(item); },
+    'signal': controller.signal,
+  });
 
   await queue.enqueue(1);
   await queue.drain();
@@ -116,7 +119,7 @@ const highWaterMarkScenarios: Array<{ description: string; value: number }> = [
 for (const { description, value } of highWaterMarkScenarios) {
   it(description, () => {
     throws(
-      () => new BusQueue<number>(async () => {}, { highWaterMark: value }),
+      () => BusQueue.create<number>({ 'handler': async () => {}, 'highWaterMark': value }),
       { message: 'highWaterMark must be a positive integer' },
     );
   });

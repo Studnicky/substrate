@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const deleteProperty = createSelectorRule(
+export const deleteProperty = SelectorRule.create(
   'v8Optimization/deleteProperty',
   'UnaryExpression[operator="delete"][argument.type="MemberExpression"]',
   'delete on member expressions is forbidden. It breaks V8 optimizations.'

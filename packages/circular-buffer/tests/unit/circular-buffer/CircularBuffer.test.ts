@@ -7,23 +7,23 @@ import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 
 const constructionScenarios: Array<{ description: string; exec: () => void }> = [
   {
-    description: 'construction with default capacity starts empty',
+    description: 'construction with default options starts empty',
     exec: () => {
-      const buf = new CircularBuffer<number>();
+      const buf = CircularBuffer.create<number>();
       assert.equal(buf.length, 0);
     },
   },
   {
     description: 'construction with custom capacity 4 starts empty',
     exec: () => {
-      const buf = new CircularBuffer<string>(4);
+      const buf = CircularBuffer.create<string>({ 'capacity': 4 });
       assert.equal(buf.length, 0);
     },
   },
   {
     description: 'construction with capacity 1 starts empty',
     exec: () => {
-      const buf = new CircularBuffer<boolean>(1);
+      const buf = CircularBuffer.create<boolean>({ 'capacity': 1 });
       assert.equal(buf.length, 0);
     },
   },
@@ -33,17 +33,33 @@ for (const { description, exec } of constructionScenarios) {
   it(description, exec);
 }
 
-// ── push() length scenarios ───────────────────────────────────────────────────
+// ── push() length scenarios — overwrite mode (default) ───────────────────────
 
-const pushLengthScenarios: Array<{ description: string; capacity: number; itemsToPush: number; expectedLength: number }> = [
+const pushLengthOverwriteScenarios: Array<{ description: string; capacity: number; itemsToPush: number; expectedLength: number }> = [
   { description: 'push 4 items into capacity-4 buffer yields length 4', capacity: 4, itemsToPush: 4, expectedLength: 4 },
-  { description: 'push 5 items into capacity-2 buffer yields length 5 after grow', capacity: 2, itemsToPush: 5, expectedLength: 5 },
-  { description: 'push 3 items into capacity-2 buffer yields length 3 after grow', capacity: 2, itemsToPush: 3, expectedLength: 3 },
+  { description: 'push 5 items into capacity-2 overwrite buffer yields length 2 (capped at capacity)', capacity: 2, itemsToPush: 5, expectedLength: 2 },
+  { description: 'push 3 items into capacity-2 overwrite buffer yields length 2 (capped at capacity)', capacity: 2, itemsToPush: 3, expectedLength: 2 },
 ];
 
-for (const { description, capacity, itemsToPush, expectedLength } of pushLengthScenarios) {
+for (const { description, capacity, itemsToPush, expectedLength } of pushLengthOverwriteScenarios) {
   it(description, () => {
-    const buf = new CircularBuffer<number>(capacity);
+    const buf = CircularBuffer.create<number>({ 'capacity': capacity });
+    for (let i = 0; i < itemsToPush; i++) buf.push(i);
+    assert.equal(buf.length, expectedLength);
+  });
+}
+
+// ── push() length scenarios — grow mode ───────────────────────────────────────
+
+const pushLengthGrowScenarios: Array<{ description: string; capacity: number; itemsToPush: number; expectedLength: number }> = [
+  { description: 'grow mode: push 4 items into capacity-4 buffer yields length 4', capacity: 4, itemsToPush: 4, expectedLength: 4 },
+  { description: 'grow mode: push 5 items into capacity-2 buffer yields length 5 after grow', capacity: 2, itemsToPush: 5, expectedLength: 5 },
+  { description: 'grow mode: push 3 items into capacity-2 buffer yields length 3 after grow', capacity: 2, itemsToPush: 3, expectedLength: 3 },
+];
+
+for (const { description, capacity, itemsToPush, expectedLength } of pushLengthGrowScenarios) {
+  it(description, () => {
+    const buf = CircularBuffer.create<number>({ 'capacity': capacity, 'overflow': 'grow' });
     for (let i = 0; i < itemsToPush; i++) buf.push(i);
     assert.equal(buf.length, expectedLength);
   });
@@ -51,8 +67,8 @@ for (const { description, capacity, itemsToPush, expectedLength } of pushLengthS
 
 // ── push() increments length step by step ────────────────────────────────────
 
-it('push increments length with each push', () => {
-  const buf = new CircularBuffer<number>(8);
+it('push increments length with each push (below capacity)', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 8 });
   buf.push(1);
   assert.equal(buf.length, 1);
   buf.push(2);
@@ -67,28 +83,28 @@ const shiftEmptyScenarios: Array<{ description: string; exec: () => void }> = [
   {
     description: 'shift on empty buffer returns undefined',
     exec: () => {
-      const buf = new CircularBuffer<number>();
+      const buf = CircularBuffer.create<number>();
       assert.equal(buf.shift(), undefined);
     },
   },
   {
     description: 'shift on empty buffer does not throw',
     exec: () => {
-      const buf = new CircularBuffer<string>(4);
+      const buf = CircularBuffer.create<string>({ 'capacity': 4 });
       assert.doesNotThrow(() => buf.shift());
     },
   },
   {
     description: 'shift on never-pushed buffer returns undefined',
     exec: () => {
-      const buf = new CircularBuffer<object>();
+      const buf = CircularBuffer.create<object>();
       assert.equal(buf.shift(), undefined);
     },
   },
   {
     description: 'multiple successive shifts on empty buffer stay undefined',
     exec: () => {
-      const buf = new CircularBuffer<string>(4);
+      const buf = CircularBuffer.create<string>({ 'capacity': 4 });
       assert.equal(buf.shift(), undefined);
       assert.equal(buf.shift(), undefined);
       assert.equal(buf.shift(), undefined);
@@ -97,7 +113,7 @@ const shiftEmptyScenarios: Array<{ description: string; exec: () => void }> = [
   {
     description: 'shift returns undefined after all items are shifted',
     exec: () => {
-      const buf = new CircularBuffer<number>(4);
+      const buf = CircularBuffer.create<number>({ 'capacity': 4 });
       buf.push(1);
       buf.shift();
       assert.equal(buf.shift(), undefined);
@@ -126,7 +142,7 @@ const fifoOrderScenarios: Array<{ description: string; items: number[]; expected
 
 for (const { description, items, expected } of fifoOrderScenarios) {
   it(description, () => {
-    const buf = new CircularBuffer<number>(16);
+    const buf = CircularBuffer.create<number>({ 'capacity': 16 });
     for (const item of items) buf.push(item);
     const result: number[] = [];
     while (buf.length > 0) {
@@ -143,7 +159,7 @@ const edgeCaseScenarios: Array<{ description: string; exec: () => void }> = [
   {
     description: 'shift returns first item and decrements length',
     exec: () => {
-      const buf = new CircularBuffer<number>(4);
+      const buf = CircularBuffer.create<number>({ 'capacity': 4 });
       buf.push(42);
       buf.push(99);
       const result = buf.shift();
@@ -154,7 +170,7 @@ const edgeCaseScenarios: Array<{ description: string; exec: () => void }> = [
   {
     description: 'shift returns the only item and leaves length 0',
     exec: () => {
-      const buf = new CircularBuffer<number>(4);
+      const buf = CircularBuffer.create<number>({ 'capacity': 4 });
       buf.push(7);
       assert.equal(buf.shift(), 7);
       assert.equal(buf.length, 0);
@@ -163,7 +179,7 @@ const edgeCaseScenarios: Array<{ description: string; exec: () => void }> = [
   {
     description: 'length reflects item count not capacity',
     exec: () => {
-      const buf = new CircularBuffer<number>(100);
+      const buf = CircularBuffer.create<number>({ 'capacity': 100 });
       buf.push(1);
       buf.push(2);
       assert.equal(buf.length, 2);
@@ -172,7 +188,7 @@ const edgeCaseScenarios: Array<{ description: string; exec: () => void }> = [
   {
     description: 'length property has no setter (read-only)',
     exec: () => {
-      const buf = new CircularBuffer<number>(4);
+      const buf = CircularBuffer.create<number>({ 'capacity': 4 });
       buf.push(1);
       assert.equal(buf.length, 1);
     },
@@ -180,7 +196,7 @@ const edgeCaseScenarios: Array<{ description: string; exec: () => void }> = [
   {
     description: 'push then shift then push again works correctly',
     exec: () => {
-      const buf = new CircularBuffer<number>(4);
+      const buf = CircularBuffer.create<number>({ 'capacity': 4 });
       buf.push(1);
       buf.shift();
       buf.push(2);
@@ -191,7 +207,7 @@ const edgeCaseScenarios: Array<{ description: string; exec: () => void }> = [
   {
     description: 'works correctly with non-primitive values (objects)',
     exec: () => {
-      const buf = new CircularBuffer<{ id: number }>(4);
+      const buf = CircularBuffer.create<{ id: number }>({ 'capacity': 4 });
       const a = { id: 1 };
       const b = { id: 2 };
       buf.push(a);
@@ -203,7 +219,7 @@ const edgeCaseScenarios: Array<{ description: string; exec: () => void }> = [
   {
     description: 'push after shift does not corrupt order',
     exec: () => {
-      const buf = new CircularBuffer<number>(4);
+      const buf = CircularBuffer.create<number>({ 'capacity': 4 });
       buf.push(1);
       buf.push(2);
       buf.shift(); // remove 1
@@ -221,7 +237,7 @@ for (const { description, exec } of edgeCaseScenarios) {
 // ── Multi-step stateful: push/shift cycling ───────────────────────────────────
 
 it('push/shift cycling maintains correct order', () => {
-  const buf = new CircularBuffer<number>(4);
+  const buf = CircularBuffer.create<number>({ 'capacity': 4 });
   buf.push(1);
   buf.push(2);
   assert.equal(buf.shift(), 1);
@@ -233,7 +249,7 @@ it('push/shift cycling maintains correct order', () => {
 });
 
 it('capacity 1: push/shift cycling', () => {
-  const buf = new CircularBuffer<string>(1);
+  const buf = CircularBuffer.create<string>({ 'capacity': 1 });
   buf.push('A');
   assert.equal(buf.shift(), 'A');
   buf.push('B');
@@ -242,7 +258,7 @@ it('capacity 1: push/shift cycling', () => {
 });
 
 it('capacity 2: push/shift cycling', () => {
-  const buf = new CircularBuffer<number>(2);
+  const buf = CircularBuffer.create<number>({ 'capacity': 2 });
   buf.push(10);
   buf.push(20);
   assert.equal(buf.shift(), 10);
@@ -252,10 +268,50 @@ it('capacity 2: push/shift cycling', () => {
   assert.equal(buf.length, 0);
 });
 
-// ── Multi-step stateful: auto-grow / wraparound ───────────────────────────────
+// ── Overwrite mode: eviction semantics ───────────────────────────────────────
 
-it('pushing past capacity triggers grow and all items survive', () => {
-  const buf = new CircularBuffer<number>(4);
+it('overwrite mode: oldest item is evicted when full', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 3 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+  buf.push(4); // evicts 1
+
+  assert.equal(buf.length, 3);
+  assert.equal(buf.shift(), 2);
+  assert.equal(buf.shift(), 3);
+  assert.equal(buf.shift(), 4);
+});
+
+it('overwrite mode: FIFO order preserved after multiple evictions', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 3 });
+  for (let i = 1; i <= 7; i++) buf.push(i);
+  // After pushing 1..7 into capacity-3 ring: [5, 6, 7]
+  assert.equal(buf.length, 3);
+  assert.equal(buf.shift(), 5);
+  assert.equal(buf.shift(), 6);
+  assert.equal(buf.shift(), 7);
+});
+
+it('overwrite mode: length stays at capacity after overflow', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 4 });
+  for (let i = 0; i < 10; i++) buf.push(i);
+  assert.equal(buf.length, 4);
+});
+
+it('overwrite mode: capacity-1 ring always holds only the last pushed item', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 1 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+  assert.equal(buf.length, 1);
+  assert.equal(buf.shift(), 3);
+});
+
+// ── Grow mode: auto-grow / wraparound ─────────────────────────────────────────
+
+it('grow mode: pushing past capacity triggers grow and all items survive', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 4, 'overflow': 'grow' });
   for (let i = 0; i < 4; i++) buf.push(i);
   buf.push(4); // triggers grow
   assert.equal(buf.length, 5);
@@ -264,8 +320,8 @@ it('pushing past capacity triggers grow and all items survive', () => {
   }
 });
 
-it('wraparound: push many, shift some, push more — FIFO order preserved', () => {
-  const buf = new CircularBuffer<number>(4);
+it('grow mode: wraparound — push many, shift some, push more — FIFO order preserved', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 4, 'overflow': 'grow' });
   buf.push(1);
   buf.push(2);
   buf.push(3);
@@ -280,8 +336,8 @@ it('wraparound: push many, shift some, push more — FIFO order preserved', () =
   assert.equal(buf.shift(), 6);
 });
 
-it('head pointer wraps: push N, shift N/2, push N/2 more, drain in order', () => {
-  const buf = new CircularBuffer<number>(6);
+it('grow mode: head pointer wraps — push N, shift N/2, push N/2 more, drain in order', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 6, 'overflow': 'grow' });
   for (let i = 1; i <= 6; i++) buf.push(i);
   assert.equal(buf.shift(), 1);
   assert.equal(buf.shift(), 2);
@@ -296,8 +352,8 @@ it('head pointer wraps: push N, shift N/2, push N/2 more, drain in order', () =>
   assert.equal(buf.length, 0);
 });
 
-it('grow preserves items when head is not at index 0', () => {
-  const buf = new CircularBuffer<number>(4);
+it('grow mode: grow preserves items when head is not at index 0', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 4, 'overflow': 'grow' });
   buf.push(1);
   buf.push(2);
   buf.push(3);
@@ -315,10 +371,10 @@ it('grow preserves items when head is not at index 0', () => {
   assert.equal(buf.shift(), 7);
 });
 
-// ── Multi-step stateful: interleaved push/shift across grow cycles ────────────
+// ── Multi-step stateful: interleaved push/shift across grow cycles (grow mode) ─
 
-it('interleaved push/shift across multiple grow cycles preserves order', () => {
-  const buf = new CircularBuffer<number>(2);
+it('grow mode: interleaved push/shift across multiple grow cycles preserves order', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
   const pushed: number[] = [];
   const shifted: number[] = [];
 
@@ -339,8 +395,8 @@ it('interleaved push/shift across multiple grow cycles preserves order', () => {
   assert.deepEqual(shifted, pushed);
 });
 
-it('order is preserved after grow', () => {
-  const buf = new CircularBuffer<number>(2);
+it('grow mode: order is preserved after grow', () => {
+  const buf = CircularBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
   buf.push(1);
   buf.push(2);
   buf.push(3); // triggers grow

@@ -3,6 +3,7 @@
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
+import { TokenBucketBuilder } from './TokenBucketBuilder.js';
 import { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';
 
 export class TokenBucket {
@@ -12,7 +13,20 @@ export class TokenBucket {
   #tokens: number;
   #lastRefill: number;
 
-  constructor(options: TokenBucketOptionsInterface) {
+  static builder(): TokenBucketBuilder {
+    const factory = (options: TokenBucketOptionsInterface): TokenBucket => {
+      const result = TokenBucket.create(options);
+      return result;
+    };
+    const result = TokenBucketBuilder.create(factory);
+    return result;
+  }
+
+  static create(options: TokenBucketOptionsInterface): TokenBucket {
+    return new this(options);
+  }
+
+  protected constructor(options: TokenBucketOptionsInterface) {
     if (options.requestsPerSecond <= 0) {throw new ResilienceConfigError('requestsPerSecond must be > 0');}
     if (options.burstSize < 1) {throw new ResilienceConfigError('burstSize must be >= 1');}
     this.#requestsPerSecond = options.requestsPerSecond;

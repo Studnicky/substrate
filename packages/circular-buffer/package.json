@@ -39,6 +39,8 @@
   },
   "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" },
   "dependencies": {
-    "@studnicky/errors": "workspace:*"
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

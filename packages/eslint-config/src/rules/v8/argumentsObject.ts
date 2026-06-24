@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const argumentsObject = createSelectorRule(
+export const argumentsObject = SelectorRule.create(
   'v8Optimization/argumentsObject',
   'Identifier[name="arguments"]:not(MemberExpression > .property)',
   'arguments object is forbidden. Use rest parameters.'

@@ -14,7 +14,7 @@ type NumCtxType = {
   'value': number;
 };
 
-const pipeline = new Pipeline<NumCtxType>();
+const pipeline = Pipeline.create<NumCtxType>();
 
 // Stage 0: multiply by 2
 const removeDouble = pipeline.add((ctx) => { return { 'value': ctx.value * 2 }; });

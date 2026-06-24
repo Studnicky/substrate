@@ -2,10 +2,6 @@ import type { Rule } from 'eslint';
 
 import path from 'node:path';
 
-const isJsonObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-};
-
 const INDEX_FILES = new Set([
   'index.cts',
   'index.mts',
@@ -154,48 +150,6 @@ const isAllUpper = (value: string): boolean => {
   return value.length > 1 && value === value.toUpperCase() && value !== value.toLowerCase();
 };
 
-const TYPE_FILES = new Set([
-  'types.cts',
-  'types.mts',
-  'types.ts',
-  'types.tsx'
-]);
-
-const isExcludedFile = (fileName: string): boolean => {
-  const base = path.basename(fileName);
-
-  if (INDEX_FILES.has(base) || TYPE_FILES.has(base)) {
-    return true;
-  }
-  const normalized = fileName.split(path.sep).join('/');
-
-  return (
-    normalized.includes('/types/')
-    || normalized.includes('/interfaces/')
-    || normalized.includes('/constants/')
-    || normalized.includes('/errors/')
-  );
-};
-
-const hasEnumDeclaration = (program: unknown): boolean => {
-  if (!isJsonObject(program)) {
-    return false;
-  }
-
-  if (program.type !== 'Program') {
-    return false;
-  }
-  const body = program.body;
-
-  if (!Array.isArray(body)) {
-    return false;
-  }
-
-  return body.some((node: unknown) => {
-    return isJsonObject(node) && node.type === 'TSEnumDeclaration';
-  });
-};
-
 const matchesFilename = (exportName: string, fileName: string): boolean => {
   const base = CaseConverter.getFileBase(fileName);
   const normalized = fileName.split(path.sep).join('/');
@@ -217,6 +171,103 @@ const matchesFilename = (exportName: string, fileName: string): boolean => {
 
   return candidates.has(base);
 };
+
+type ExportKind =
+  | 'const-function'
+  | 'const-value'
+  | 'enum'
+  | 'error-class'
+  | 'function'
+  | 'interface'
+  | 'namespace'
+  | 'other'
+  | 'other-class'
+  | 'type'
+  | 'type-reexport';
+
+class ExportClassifier {
+  public static classify(node: Rule.Node): ExportKind {
+    if (node.type !== 'ExportNamedDeclaration') {
+      return 'other';
+    }
+    const exportNode = node as unknown as {
+      'declaration'?: {
+        'body'?: unknown;
+        'declarations'?: {
+          'id'?: { 'name'?: string; 'type'?: string; };
+          'init'?: { 'type'?: string; };
+        }[];
+        'id'?: { 'name'?: string; 'type'?: string; };
+        'kind'?: string;
+        'superClass'?: { 'name'?: string; 'type'?: string; } | null;
+        'type'?: string;
+      } | null;
+      'exportKind'?: string;
+      'specifiers'?: unknown[];
+    };
+
+    // Type-only re-export: export type { Foo } from '...' or export type { Foo }
+    if (exportNode.exportKind === 'type') {
+      return 'type-reexport';
+    }
+
+    const decl = exportNode.declaration;
+
+    if (decl === null || decl === undefined) {
+      return 'other';
+    }
+
+    const declType = decl.type ?? '';
+
+    if (declType === 'TSTypeAliasDeclaration') {
+      return 'type';
+    }
+
+    if (declType === 'TSInterfaceDeclaration') {
+      return 'interface';
+    }
+
+    if (declType === 'TSEnumDeclaration') {
+      return 'enum';
+    }
+
+    if (declType === 'TSModuleDeclaration') {
+      return 'namespace';
+    }
+
+    if (declType === 'FunctionDeclaration') {
+      return 'function';
+    }
+
+    if (declType === 'ClassDeclaration') {
+      const superClass = decl.superClass;
+
+      if (superClass !== null && superClass !== undefined) {
+        const superName = superClass.name ?? '';
+
+        if (superName === 'Error' || superName.endsWith('Error')) {
+          return 'error-class';
+        }
+      }
+
+      return 'other-class';
+    }
+
+    if (declType === 'VariableDeclaration' && decl.kind === 'const') {
+      for (const declarator of decl.declarations ?? []) {
+        const initType = declarator.init?.type ?? '';
+
+        if (initType === 'ArrowFunctionExpression' || initType === 'FunctionExpression') {
+          return 'const-function';
+        }
+      }
+
+      return 'const-value';
+    }
+
+    return 'other';
+  }
+}
 
 class ExportNames {
   public static extract(node: Rule.Node): string[] {
@@ -277,6 +328,22 @@ class ExportNames {
   }
 }
 
+const isTypeKind = (kind: ExportKind): boolean => {
+  return kind === 'type' || kind === 'interface' || kind === 'type-reexport';
+};
+
+const isConstValueKind = (kind: ExportKind): boolean => {
+  return kind === 'const-value';
+};
+
+const isEnumKind = (kind: ExportKind): boolean => {
+  return kind === 'enum';
+};
+
+const isErrorClassKind = (kind: ExportKind): boolean => {
+  return kind === 'error-class';
+};
+
 export const singleExport: Rule.RuleModule = {
   'create': (context) => {
     const fileName = context.filename;
@@ -284,10 +351,25 @@ export const singleExport: Rule.RuleModule = {
     if (fileName === '<input>' || fileName.length === 0) {
       return {};
     }
-    if (isExcludedFile(fileName)) {
-      return {};
+
+    const baseName = path.basename(fileName);
+
+    if (INDEX_FILES.has(baseName)) {
+      // Index files are exempt: multiple exports and export * are allowed.
+      // Only default exports remain forbidden.
+      const onExportDefaultDeclaration: NonNullable<Rule.RuleListener['ExportDefaultDeclaration']> = (node) => {
+        context.report({
+          'messageId': 'defaultExport',
+          'node': node
+        });
+      };
+
+      return {
+        'ExportDefaultDeclaration': onExportDefaultDeclaration
+      };
     }
 
+    const exportKinds: ExportKind[] = [];
     let exportNames: string[] = [];
     let reportedDefault = false;
     let firstExportNode: Rule.Node | undefined = undefined;
@@ -314,24 +396,23 @@ export const singleExport: Rule.RuleModule = {
         return;
       }
       firstExportNode ??= node;
+      exportKinds.push(ExportClassifier.classify(node));
       exportNames = exportNames.concat(ExportNames.extract(node));
     };
 
     const onProgramExit: NonNullable<Rule.RuleListener['Program:exit']> = (node) => {
-      if (hasEnumDeclaration(node)) {
-        return;
-      }
       if (sawExportAll) {
         const reportNode = firstExportNode ?? node;
 
         context.report({
-          'data': { 'file': path.basename(fileName) },
+          'data': { 'file': baseName },
           'messageId': 'exportAll',
           'node': reportNode
         });
 
         return;
       }
+
       const unique = [...new Set(exportNames)].filter((name) => {
         return name.length > 0;
       });
@@ -339,6 +420,26 @@ export const singleExport: Rule.RuleModule = {
       if (unique.length === 0) {
         return;
       }
+
+      // Content-based exemption: check if ALL exports are of the same exempt category.
+      if (exportKinds.length > 0) {
+        if (exportKinds.every(isTypeKind)) {
+          return;
+        }
+
+        if (exportKinds.every(isConstValueKind)) {
+          return;
+        }
+
+        if (exportKinds.every(isEnumKind)) {
+          return;
+        }
+
+        if (exportKinds.every(isErrorClassKind)) {
+          return;
+        }
+      }
+
       if (unique.length > 1) {
         const reportNode = firstExportNode ?? node;
 

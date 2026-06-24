@@ -26,7 +26,7 @@ pnpm add @studnicky/concurrency
 import { AsyncIter, Channel, Coalesce, Semaphore } from '@studnicky/concurrency';
 
 // Channel — keyed producer / consumer
-const channel = new Channel<string>();
+const channel = Channel.create<string>();
 channel.publish('events', 'hello');
 channel.publish('events', 'world');
 channel.close();
@@ -37,7 +37,7 @@ for await (const msg of channel.subscribe('events')) {
 // received === ['hello', 'world']
 
 // Semaphore — bound concurrency
-const sem = new Semaphore(2);
+const sem = Semaphore.create({ permits: 2 });
 const result = await sem.withPermit(async () => {
   // at most 2 callers reach here simultaneously
   return fetch('https://api.example.com/data');
@@ -45,7 +45,7 @@ const result = await sem.withPermit(async () => {
 console.log(sem.available); // 2 — permit returned
 
 // Coalesce — deduplicate concurrent calls
-const coalesce = new Coalesce<Response>();
+const coalesce = Coalesce.create<Response>();
 const [a, b] = await Promise.all([
   coalesce.run('user:42', () => fetch('/api/user/42')),
   coalesce.run('user:42', () => fetch('/api/user/42')), // shares the first fetch

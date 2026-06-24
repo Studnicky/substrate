@@ -89,22 +89,28 @@ export class Timing implements TimingInterface {
    */
   static builder(): TimingBuilder {
     const result = TimingBuilder.create((options: TimingOptionsEntity.Type) => {
-      const result = Timing.createInstance(options);
-      return result;
+      const instance = Timing.create(options);
+      return instance;
     });
     return result;
   }
 
   /**
-   * Factory method for subclass extension. Subclasses override this to return
-   * their own instance type so that Timing.builder() still works correctly.
+   * Direct factory method for creating a Timing instance.
+   * Subclasses benefit from `new this(options)` so that overrides work correctly.
    *
    * @param options - Timing configuration options
    * @returns A new Timing (or subclass) instance
+   *
+   * @example
+   * ```typescript
+   * import { Timing } from '@studnicky/timing';
+   *
+   * const timing = Timing.create({ maxEvents: 100 });
+   * ```
    */
-  protected static createInstance(options: TimingOptionsEntity.Type): Timing {
-    const result = new Timing(options);
-    return result;
+  static create(options: TimingOptionsEntity.Type = {}): Timing {
+    return new this(options);
   }
 
   protected readonly _maxEvents: number;

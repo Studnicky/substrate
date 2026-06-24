@@ -23,25 +23,25 @@ class DemoMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
 
 describe('EffectInterpreter', () => {
   it('getState() throws before start()', () => {
-    const interp = new EffectInterpreter(new DemoMachine(), {}, { machineId: 'test-1' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-1' });
     assert.throws(() => interp.getState(), /not started/);
   });
 
   it('send() throws before start()', async () => {
-    const interp = new EffectInterpreter(new DemoMachine(), {}, { machineId: 'test-2' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-2' });
     await assert.rejects(() => interp.send({ type: 'activate' }), /not running/);
   });
 
-  it('constructor throws FsmConfigError for empty machineId', () => {
+  it('create throws FsmConfigError for empty machineId', () => {
     assert.throws(
-      () => new EffectInterpreter(new DemoMachine(), {}, { machineId: '' }),
+      () => EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: '' }),
       { message: 'machineId must not be empty' }
     );
   });
 
   it('start() sets initial state and notifies observers', () => {
     const states: DemoState[] = [];
-    const interp = new EffectInterpreter(new DemoMachine(), {}, { machineId: 'test-3' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-3' });
     interp.subscribe(s => states.push(s));
     interp.start();
     assert.deepEqual(interp.getState(), { variant: 'idle' });
@@ -51,7 +51,7 @@ describe('EffectInterpreter', () => {
 
   it('send() transitions state and notifies observer', async () => {
     const states: DemoState[] = [];
-    const interp = new EffectInterpreter(new DemoMachine(), {}, { machineId: 'test-4' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-4' });
     interp.subscribe(s => states.push(s));
     interp.start();
     await interp.send({ type: 'activate' });
@@ -62,11 +62,11 @@ describe('EffectInterpreter', () => {
 
   it('effect handler is called after transition', async () => {
     const logged: string[] = [];
-    const interp = new EffectInterpreter(
-      new DemoMachine(),
-      { log: (e) => { logged.push(e.message); } },
-      { machineId: 'test-5' }
-    );
+    const interp = EffectInterpreter.create({
+      machine: new DemoMachine(),
+      handlers: { log: (e) => { logged.push(e.message); } },
+      machineId: 'test-5',
+    });
     interp.start();
     await interp.send({ type: 'activate' });
     assert.deepEqual(logged, ['activated']);
@@ -74,7 +74,7 @@ describe('EffectInterpreter', () => {
 
   it('unsubscribe stops notifications', async () => {
     const states: DemoState[] = [];
-    const interp = new EffectInterpreter(new DemoMachine(), {}, { machineId: 'test-6' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-6' });
     const unsub = interp.subscribe(s => states.push(s));
     interp.start();
     unsub();
@@ -83,7 +83,7 @@ describe('EffectInterpreter', () => {
   });
 
   it('processes events FIFO', async () => {
-    const interp = new EffectInterpreter(new DemoMachine(), {}, { machineId: 'test-7' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-7' });
     interp.start();
     const p1 = interp.send({ type: 'activate' });
     const p2 = interp.send({ type: 'deactivate' });

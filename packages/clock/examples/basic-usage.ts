@@ -12,8 +12,8 @@ import {
 
 // --- RealTimeClockProvider ---
 
-const realProvider = new RealTimeClockProvider();
-const realClock = new Clock(realProvider);
+const realProvider = RealTimeClockProvider.create();
+const realClock = Clock.create(realProvider);
 
 const nowA = realClock.now();
 const nowB = realClock.now();
@@ -27,9 +27,9 @@ console.log(`RealTimeClockProvider.hrtime(): first=${hrtA}n, second=${hrtB}n`);
 
 // --- VirtualTimeCounter + VirtualClockProvider ---
 
-const counter = new VirtualTimeCounter(0);
-const virtualProvider = new VirtualClockProvider(counter);
-const virtualClock = new Clock(virtualProvider);
+const counter = VirtualTimeCounter.create();
+const virtualProvider = VirtualClockProvider.create(counter);
+const virtualClock = Clock.create(virtualProvider);
 
 const startMs = virtualClock.now();
 console.log(`VirtualClock.now() at start: ${startMs}`);

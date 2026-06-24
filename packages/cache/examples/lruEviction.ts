@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 // #region usage
 import { LruCache } from '../src/index.js';
 
-const cache = new LruCache<string, string>({ 'capacity': 2 });
+const cache = LruCache.create<string, string>({ 'capacity': 2 });
 
 // Fill to capacity
 cache.set('a', 'alpha');

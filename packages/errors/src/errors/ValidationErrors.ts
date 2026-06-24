@@ -5,17 +5,37 @@ import type { ValidationProblemDetailsType } from '../types/ValidationProblemDet
 import type { ValidationReportOptionsType } from '../types/ValidationReportOptionsType.js';
 import type { ValidationViolationType } from '../types/ValidationViolationType.js';
 
+import { ValidationError } from './ValidationError.js';
+import { ValidationErrorsBuilder } from './ValidationErrorsBuilder.js';
+
 const DEFAULT_PROBLEM_TYPE = 'https://problems.studnicky.dev/validation';
 
 /**
  * Ordered, iterable collection of `ValidationViolationType` items.
  *
  * NOT a thrown error — returned by validators. Use `ValidationError` for single-violation boundary exceptions.
+ *
+ * Construct via `ValidationErrors.create(items)` or `ValidationErrors.builder().addViolation(v).build()`.
  */
 export class ValidationErrors implements Iterable<ValidationViolationType> {
   /** Creates a `ValidationErrors` from an array of violations. */
+  public static create(items: readonly ValidationViolationType[]): ValidationErrors {
+    const result = new this(items);
+    return result;
+  }
+
+  /** Returns a fluent builder for assembling a `ValidationErrors` incrementally. */
+  public static builder(): ValidationErrorsBuilder {
+    const result = ValidationErrorsBuilder.create((items) => {
+      const instance = ValidationErrors.create(items);
+      return instance;
+    });
+    return result;
+  }
+
+  /** Creates a `ValidationErrors` from an array of violations. */
   public static of(violations: ValidationViolationType[]): ValidationErrors {
-    const result = new ValidationErrors(violations);
+    const result = ValidationErrors.create(violations);
     return result;
   }
 
@@ -25,7 +45,8 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
       const items: ValidationViolationType[] = [...e.items];
       return items;
     });
-    return new ValidationErrors(violations);
+    const result = ValidationErrors.create(violations);
+    return result;
   }
 
   /** Maps Ajv-style validator errors into a `ValidationErrors` instance; empty when rawErrors is null/empty. */
@@ -36,7 +57,8 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
       | undefined
   ): ValidationErrors {
     if (rawErrors === null || rawErrors === undefined || rawErrors.length === 0) {
-      return new ValidationErrors([]);
+      const result = ValidationErrors.create([]);
+      return result;
     }
     const violations: ValidationViolationType[] = rawErrors.map((raw) => {
       const violation: ValidationViolationType = {
@@ -46,13 +68,17 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
       };
       return violation;
     });
-    return new ValidationErrors(violations);
+    const result = ValidationErrors.create(violations);
+    return result;
   }
 
   /** The raw ordered list of validation violations. */
   public readonly items: readonly ValidationViolationType[];
 
-  public constructor(items: readonly ValidationViolationType[]) {
+  protected constructor(items: readonly ValidationViolationType[]) {
+    if (!Array.isArray(items)) {
+      throw ValidationError.create({ 'message': 'items must be an array', 'path': 'items' });
+    }
     this.items = items;
   }
 

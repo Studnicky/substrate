@@ -4,17 +4,26 @@ import type { EventHandlerType } from './EventHandlerType.js';
 import type { UnsubscribeType } from './UnsubscribeType.js';
 
 import { BusQueue } from './BusQueue.js';
+import { EventBusBuilder } from './EventBusBuilder.js';
 
 export class EventBus<TTopicMap extends Record<string, unknown>> {
   readonly #store = new Map<string, Map<EventHandlerType<unknown>, BusQueue<unknown>>>();
   readonly #busController = new AbortController();
 
-  static create<TTopicMap extends Record<string, unknown>>(): EventBus<TTopicMap> {
-    const result = new EventBus<TTopicMap>();
+  static builder<TTopicMap extends Record<string, unknown>>(): EventBusBuilder<TTopicMap> {
+    const result = EventBusBuilder.create<TTopicMap>(() => {
+      const instance = EventBus.create<TTopicMap>();
+      return instance;
+    });
     return result;
   }
 
-  private constructor() {}
+  static create<TTopicMap extends Record<string, unknown>>(): EventBus<TTopicMap> {
+    const result = new this<TTopicMap>();
+    return result;
+  }
+
+  protected constructor() {}
 
   #getTopicMap<K extends keyof TTopicMap>(topic: K): Map<EventHandlerType<TTopicMap[K]>, BusQueue<TTopicMap[K]>> {
     const key = String(topic);
@@ -53,10 +62,10 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
       }
     }
 
-    const queue = new BusQueue<TTopicMap[K]>(
-      async (payload) => { await handler(payload); },
-      { 'signal': queueController.signal }
-    );
+    const queue = BusQueue.create<TTopicMap[K]>({
+      'handler': async (payload) => { await handler(payload, queueController.signal); },
+      'signal': queueController.signal
+    });
     topicMap.set(handler, queue);
 
     let unsubscribed = false;

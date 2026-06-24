@@ -18,7 +18,7 @@ import { Mutex } from '../../../src/mutex/index.js';
 // --- getStats() initial state ---
 
 it('getStats returns correct initial stats', () => {
-  const mutex = new Mutex<string>({ maxQueueSize: 100, timeout: 5000 });
+  const mutex = Mutex.create<string>({ maxQueueSize: 100, timeout: 5000 });
   const stats = mutex.getStats();
 
   strictEqual(stats.activeLocksCount, 0, 'Should have no active locks initially');
@@ -31,7 +31,7 @@ it('getStats returns correct initial stats', () => {
 // --- getStats() API shape ---
 
 it('provides same API shape as Throttle', () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
 
   strictEqual(typeof mutex.getStats, 'function', 'Should have getStats method');
   strictEqual(typeof mutex.isComplete, 'function', 'Should have isComplete method');
@@ -50,7 +50,7 @@ it('provides same API shape as Throttle', () => {
 // --- getStats() tracking active locks ---
 
 it('getStats tracks active locks', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const release = await mutex.acquire('key1');
   const stats = mutex.getStats();
 
@@ -61,7 +61,7 @@ it('getStats tracks active locks', async () => {
 });
 
 it('getStats tracks multiple active locks on different keys', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const release1 = await mutex.acquire('key1');
   const release2 = await mutex.acquire('key2');
   const release3 = await mutex.acquire('key3');
@@ -78,7 +78,7 @@ it('getStats tracks multiple active locks on different keys', async () => {
 });
 
 it('getStats tracks queued operations', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const release1 = await mutex.acquire('key1');
 
   void mutex.runExclusive('key1', async () => { await delay(5); });
@@ -98,7 +98,7 @@ it('getStats tracks queued operations', async () => {
 });
 
 it('getStats tracks queued operations across multiple keys', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const release1 = await mutex.acquire('key1');
   const release2 = await mutex.acquire('key2');
 
@@ -120,7 +120,7 @@ it('getStats tracks queued operations across multiple keys', async () => {
 });
 
 it('getStats increments totalExecuted correctly', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
 
   await mutex.runExclusive('key1', async () => { /* empty */ });
   await mutex.runExclusive('key2', async () => { /* empty */ });
@@ -142,7 +142,7 @@ const isCompleteInitialScenarios: Array<{
 }> = [
   {
     description: 'isComplete returns true initially',
-    check: () => new Mutex<string>().isComplete(),
+    check: () => Mutex.create<string>().isComplete(),
     expected: true
   }
 ];
@@ -154,7 +154,7 @@ for (const { description, check, expected } of isCompleteInitialScenarios) {
 }
 
 it('isComplete returns false when lock is held', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const release = await mutex.acquire('key1');
 
   strictEqual(mutex.isComplete(), false, 'Should not be complete with active lock');
@@ -163,7 +163,7 @@ it('isComplete returns false when lock is held', async () => {
 });
 
 it('isComplete returns true after lock is released', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const release = await mutex.acquire('key1');
 
   release();
@@ -173,7 +173,7 @@ it('isComplete returns true after lock is released', async () => {
 });
 
 it('isComplete returns false when operations are queued', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const release1 = await mutex.acquire('key1');
 
   void mutex.runExclusive('key1', async () => { await delay(5); });
@@ -187,7 +187,7 @@ it('isComplete returns false when operations are queued', async () => {
 });
 
 it('isComplete returns false with multiple active locks', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const release1 = await mutex.acquire('key1');
   const release2 = await mutex.acquire('key2');
 
@@ -200,7 +200,7 @@ it('isComplete returns false with multiple active locks', async () => {
 // --- completeQueue() ---
 
 it('completeQueue resolves immediately when already complete', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
 
   await mutex.completeQueue();
 
@@ -208,7 +208,7 @@ it('completeQueue resolves immediately when already complete', async () => {
 });
 
 it('completeQueue waits for active lock to be released', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   let lockReleased = false;
 
   void mutex.runExclusive('key1', async () => {
@@ -230,7 +230,7 @@ it('completeQueue waits for active lock to be released', async () => {
 });
 
 it('completeQueue waits for queued operations to complete', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const completed: number[] = [];
 
   void mutex.runExclusive('key1', async () => {
@@ -254,7 +254,7 @@ it('completeQueue waits for queued operations to complete', async () => {
 });
 
 it('completeQueue waits for multiple keys to complete', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   const completed: string[] = [];
 
   void mutex.runExclusive('key1', async () => {
@@ -277,7 +277,7 @@ it('completeQueue waits for multiple keys to complete', async () => {
 });
 
 it('completeQueue supports multiple observers', async () => {
-  const mutex = new Mutex<string>();
+  const mutex = Mutex.create<string>();
   let observer1Notified = false;
   let observer2Notified = false;
   let observer3Notified = false;

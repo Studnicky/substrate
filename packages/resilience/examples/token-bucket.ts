@@ -10,7 +10,7 @@ let now = 0;
 const clock = (): number => { const result = now; return result; };
 
 // 2 tokens/s, burst capacity 3 → starts full (3 tokens).
-const bucket = new TokenBucket({ 'burstSize': 3, 'clock': clock, 'requestsPerSecond': 2 });
+const bucket = TokenBucket.create({ 'burstSize': 3, 'clock': clock, 'requestsPerSecond': 2 });
 console.log('Initial available tokens:', bucket.available);
 
 // --- consume() drains tokens ---

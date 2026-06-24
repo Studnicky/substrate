@@ -20,6 +20,14 @@ class GrowLogBuffer<T> extends CircularBuffer<T> {
   }
 }
 
+class EvictLogBuffer<T> extends CircularBuffer<T> {
+  readonly evictLog: T[] = [];
+
+  override onEvict(item: T): void {
+    this.evictLog.push(item);
+  }
+}
+
 class PushCountBuffer<T> extends CircularBuffer<T> {
   pushCount = 0;
 
@@ -37,9 +45,14 @@ class ShiftLogBuffer<T> extends CircularBuffer<T> {
 }
 
 class FullTraceBuffer<T> extends CircularBuffer<T> {
+  readonly evictItems: T[] = [];
   readonly growEvents: number[] = [];
   readonly pushItems: T[] = [];
   readonly shiftItems: T[] = [];
+
+  override onEvict(item: T): void {
+    this.evictItems.push(item);
+  }
 
   override onGrow(_oldCapacity: number, newCapacity: number): void {
     this.growEvents.push(newCapacity);
@@ -54,11 +67,47 @@ class FullTraceBuffer<T> extends CircularBuffer<T> {
   }
 }
 
-// ── onGrow scenarios ──────────────────────────────────────────────────────────
+// ── onEvict scenarios ─────────────────────────────────────────────────────────
+
+it('onEvict is called with the evicted item when overwrite triggers', () => {
+  const buf = EvictLogBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3); // evicts 1
+  assert.deepStrictEqual(buf.evictLog, [1]);
+});
+
+it('onEvict receives items in FIFO eviction order', () => {
+  const buf = EvictLogBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3); // evicts 1
+  buf.push(4); // evicts 2
+  assert.deepStrictEqual(buf.evictLog, [1, 2]);
+});
+
+it('onEvict is not called when buffer is below capacity', () => {
+  const buf = EvictLogBuffer.create<number>({ 'capacity': 4 });
+  buf.push(1);
+  buf.push(2);
+  assert.strictEqual(buf.evictLog.length, 0);
+});
+
+it('onEvict receives exactly the oldest item (first in, first evicted)', () => {
+  const buf = EvictLogBuffer.create<string>({ 'capacity': 3 });
+  buf.push('a');
+  buf.push('b');
+  buf.push('c');
+  buf.push('d'); // evicts 'a'
+  assert.strictEqual(buf.evictLog[0], 'a');
+  assert.strictEqual(buf.evictLog.length, 1);
+});
+
+// ── onGrow scenarios (grow mode only) ─────────────────────────────────────────
 
 const onGrowScenarios: Array<{ description: string; capacity: number; items: number[]; expectedGrowCount: number }> = [
   {
-    description: 'onGrow is called when capacity is exceeded',
+    description: 'onGrow is called when capacity is exceeded in grow mode',
     capacity: 2,
     items: [1, 2, 3],
     expectedGrowCount: 1,
@@ -73,32 +122,49 @@ const onGrowScenarios: Array<{ description: string; capacity: number; items: num
 
 for (const { description, capacity, items, expectedGrowCount } of onGrowScenarios) {
   it(description, () => {
-    const buf = new GrowLogBuffer<number>(capacity);
+    const buf = GrowLogBuffer.create<number>({ 'capacity': capacity, 'overflow': 'grow' });
     for (const item of items) buf.push(item);
     assert.strictEqual(buf.growLog.length, expectedGrowCount);
   });
 }
 
+it('onGrow is not called in overwrite mode', () => {
+  const buf = GrowLogBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3); // overwrite, no grow
+  assert.strictEqual(buf.growLog.length, 0);
+});
+
 // ── onPush scenarios ──────────────────────────────────────────────────────────
 
-const onPushScenarios: Array<{ description: string; capacity: number; items: number[]; expectedPushCount: number }> = [
+const onPushScenarios: Array<{ description: string; capacity: number; items: number[]; expectedPushCount: number; overflow?: 'grow' | 'overwrite' }> = [
   {
-    description: 'onPush is called on each push (3 pushes)',
+    description: 'onPush is called on each push (3 pushes, no overflow)',
     capacity: 8,
     items: [1, 2, 3],
     expectedPushCount: 3,
   },
   {
-    description: 'onPush is called on push that triggers grow',
+    description: 'onPush is called on push that triggers grow (grow mode)',
+    capacity: 2,
+    items: [1, 2, 3],
+    expectedPushCount: 3,
+    overflow: 'grow',
+  },
+  {
+    description: 'onPush is called on each overwrite push (overwrite mode)',
     capacity: 2,
     items: [1, 2, 3],
     expectedPushCount: 3,
   },
 ];
 
-for (const { description, capacity, items, expectedPushCount } of onPushScenarios) {
+for (const { description, capacity, items, expectedPushCount, overflow } of onPushScenarios) {
   it(description, () => {
-    const buf = new PushCountBuffer<number>(capacity);
+    const buf = overflow !== undefined
+      ? PushCountBuffer.create<number>({ 'capacity': capacity, 'overflow': overflow })
+      : PushCountBuffer.create<number>({ 'capacity': capacity });
     for (const item of items) buf.push(item);
     assert.strictEqual(buf.pushCount, expectedPushCount);
   });
@@ -138,7 +204,7 @@ const onShiftScenarios: Array<{
 
 for (const { description, capacity, pushItems, shiftCount, expectedShiftLog } of onShiftScenarios) {
   it(description, () => {
-    const buf = new ShiftLogBuffer<number>(capacity);
+    const buf = ShiftLogBuffer.create<number>({ 'capacity': capacity });
     for (const item of pushItems) buf.push(item);
     for (let i = 0; i < shiftCount; i++) buf.shift();
     assert.deepStrictEqual(buf.shiftLog, expectedShiftLog);
@@ -156,14 +222,14 @@ it('onPush is called after push (length is already incremented)', () => {
     }
   }
 
-  const buf = new LengthCheckBuffer(8);
+  const buf = LengthCheckBuffer.create<number>({ 'capacity': 8 });
   buf.push(42);
 
   assert.strictEqual(lengthAtHook, 1);
 });
 
-it('onGrow receives correct old and new capacity', () => {
-  const buf = new GrowLogBuffer<number>(4);
+it('onGrow receives correct old and new capacity (grow mode)', () => {
+  const buf = GrowLogBuffer.create<number>({ 'capacity': 4, 'overflow': 'grow' });
   buf.push(1);
   buf.push(2);
   buf.push(3);
@@ -176,8 +242,8 @@ it('onGrow receives correct old and new capacity', () => {
   assert.strictEqual(entry.newCapacity, 8);
 });
 
-it('base class still operates correctly after grow', () => {
-  const buf = new GrowLogBuffer<number>(2);
+it('grow mode: base class still operates correctly after grow', () => {
+  const buf = GrowLogBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
   buf.push(1);
   buf.push(2);
   buf.push(3); // triggers grow
@@ -189,7 +255,7 @@ it('base class still operates correctly after grow', () => {
 });
 
 it('onShift received value matches shift return value', () => {
-  const buf = new ShiftLogBuffer<string>(4);
+  const buf = ShiftLogBuffer.create<string>({ 'capacity': 4 });
   buf.push('hello');
   const returned = buf.shift();
 
@@ -197,8 +263,8 @@ it('onShift received value matches shift return value', () => {
   assert.deepStrictEqual(buf.shiftLog, ['hello']);
 });
 
-it('FullTraceBuffer tracks grow, push, and shift events independently', () => {
-  const buf = new FullTraceBuffer<number>(2);
+it('FullTraceBuffer tracks evict, grow, push, and shift events independently (grow mode)', () => {
+  const buf = FullTraceBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
   buf.push(1);
   buf.push(2);
   buf.push(3); // triggers grow
@@ -208,10 +274,24 @@ it('FullTraceBuffer tracks grow, push, and shift events independently', () => {
   assert.strictEqual(buf.growEvents.length, 1);
   assert.strictEqual(buf.pushItems.length, 3);
   assert.strictEqual(buf.shiftItems.length, 2);
+  assert.strictEqual(buf.evictItems.length, 0); // grow mode never evicts
 });
 
-it('buffer produces correct FIFO order with all hooks active', () => {
-  const buf = new FullTraceBuffer<number>(2);
+it('FullTraceBuffer tracks evict events in overwrite mode', () => {
+  const buf = FullTraceBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3); // evicts 1
+  buf.push(4); // evicts 2
+
+  assert.strictEqual(buf.evictItems.length, 2);
+  assert.deepStrictEqual(buf.evictItems, [1, 2]);
+  assert.strictEqual(buf.growEvents.length, 0);
+  assert.strictEqual(buf.pushItems.length, 4);
+});
+
+it('grow mode: buffer produces correct FIFO order with all hooks active', () => {
+  const buf = FullTraceBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
   const values = [10, 20, 30, 40, 50];
   for (const v of values) buf.push(v);
 
@@ -236,7 +316,7 @@ it('subclass can read _length, _head, _tail, _capacity, _items', () => {
     }
   }
 
-  const buf = new InspectBuffer<number>(4);
+  const buf = InspectBuffer.create<number>({ 'capacity': 4 });
   buf.push(1);
   buf.push(2);
   buf.shift();

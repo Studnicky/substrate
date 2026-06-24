@@ -11,8 +11,8 @@ import assert from 'node:assert/strict';
 import { VirtualTimeCounter } from '../../clock/src/index.js';
 import { VirtualScheduler } from '../src/index.js';
 
-const counter = new VirtualTimeCounter(0);
-const scheduler = new VirtualScheduler(counter);
+const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+const scheduler = VirtualScheduler.create({ 'counter': counter });
 
 const fireOrder: number[] = [];
 

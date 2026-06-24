@@ -84,9 +84,9 @@ class RetryCallFsm {
  * ```typescript
  * import { Retry, DefaultHttpErrorClassifier, BackoffStrategy } from '@studnicky/retry';
  *
- * const retry = new Retry({
+ * const retry = Retry.create({
  *   maxRetries: 3,
- *   errorClassifier: new DefaultHttpErrorClassifier()
+ *   errorClassifier: DefaultHttpErrorClassifier.create()
  * });
  *
  * const result = await retry.execute(() => fetchData());
@@ -132,7 +132,11 @@ export class Retry implements RetryInterface {
    * @returns New builder instance for configuring retry behavior
    */
   static builder(): RetryBuilder<Retry> {
-    const result = new RetryBuilder(Retry);
+    const factory = (options: Partial<RetryConfigInterface>): Retry => {
+      const result = Retry.create(options);
+      return result;
+    };
+    const result = RetryBuilder.create(factory);
     return result;
   }
   /**
@@ -142,7 +146,7 @@ export class Retry implements RetryInterface {
    * @returns New Retry instance
    */
   static create(config?: Partial<RetryConfigInterface>): Retry {
-    const result = new Retry(Retry.validateConfig(config));
+    const result = new this(config);
     return result;
   }
   private readonly classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
@@ -158,18 +162,20 @@ export class Retry implements RetryInterface {
     'totalRetries': INITIAL_COUNTER
   };
 
-  constructor(config: Partial<RetryConfigInterface> = {}) {
-    this.maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
-    this.defaultClassifier = new DefaultHttpErrorClassifier();
-    this.pipeline = new Pipeline<RetryContextType>();
+  protected constructor(config: Partial<RetryConfigInterface> = {}) {
+    const validated = Retry.#validateConfig(config);
+
+    this.maxRetries = validated.maxRetries ?? DEFAULT_MAX_RETRIES;
+    this.defaultClassifier = DefaultHttpErrorClassifier.create();
+    this.pipeline = Pipeline.create<RetryContextType>();
 
     let interceptors: RetryInterceptorType[];
-    if (config.retryInterceptor === undefined) {
+    if (validated.retryInterceptor === undefined) {
       interceptors = [];
-    } else if (typeof config.retryInterceptor === 'function') {
-      interceptors = [config.retryInterceptor];
+    } else if (typeof validated.retryInterceptor === 'function') {
+      interceptors = [validated.retryInterceptor];
     } else {
-      interceptors = [...config.retryInterceptor];
+      interceptors = [...validated.retryInterceptor];
     }
 
     const interceptorsLen = interceptors.length;
@@ -177,13 +183,13 @@ export class Retry implements RetryInterface {
       this.pipeline.add(interceptors[i]!);
     }
 
-    if (config.errorClassifier === undefined) {
+    if (validated.errorClassifier === undefined) {
       // Arrow function required for subclass polymorphism - classifyError may be overridden
       this.classifierFn = (error, attemptNumber) => { const result = this.classifyError(error, attemptNumber); return result; };
-    } else if (typeof config.errorClassifier === 'function') {
-      this.classifierFn = config.errorClassifier;
+    } else if (typeof validated.errorClassifier === 'function') {
+      this.classifierFn = validated.errorClassifier;
     } else {
-      const classifier = config.errorClassifier;
+      const classifier = validated.errorClassifier;
 
       this.classifierFn = (error, attemptNumber) => { const result = classifier.classify(error, attemptNumber); return result; };
     }
@@ -504,7 +510,7 @@ export class Retry implements RetryInterface {
     'retryInterceptor': retryInterceptor.validateRetryInterceptor
   };
 
-  private static validateConfig(config?: Partial<RetryConfigInterface>): Partial<RetryConfigInterface> {
+  static #validateConfig(config?: Partial<RetryConfigInterface>): Partial<RetryConfigInterface> {
     try {
       const userConfig = config ?? {};
       const configObj = userConfig as Record<string, unknown>;

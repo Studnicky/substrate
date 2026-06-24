@@ -21,7 +21,7 @@ void describe('NoOpTransport', () => {
 
   void describe('write', () => {
     void it('accepts records without throwing', () => {
-      const transport = new NoOpTransport();
+      const transport = NoOpTransport.create();
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
 
       assert.doesNotThrow(() => {
@@ -35,7 +35,7 @@ void describe('NoOpTransport', () => {
 
     void it('never triggers any observable output', () => {
       const output: unknown[] = [];
-      const sideChannel = new NoOpTransport();
+      const sideChannel = NoOpTransport.create();
 
       // NoOpTransport should make no calls — observable only via side channel
       // Verify nothing leaked into an observing transport

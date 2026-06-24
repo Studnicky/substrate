@@ -6,44 +6,61 @@
 
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 import type { MutexBuilderInterface } from '../interfaces/index.js';
-
-import { Mutex } from './Mutex.js';
+import type { Mutex } from './Mutex.js';
 
 /**
  * Builder class for Mutex
  *
  * @example
  * ```typescript
- * const mutex = new MutexBuilder<string>()
+ * const mutex = Mutex.builder<string>()
  *   .withMaxQueueSize(100)
  *   .withTimeout(5000)
  *   .build();
  * ```
  */
 export class MutexBuilder<K extends PropertyKey = string> implements MutexBuilderInterface<K> {
-  private readonly config: Partial<MutexConfigEntity.Type>;
+  static create<K extends PropertyKey = string>(
+    create: (options: Partial<MutexConfigEntity.Type>) => Mutex<K>
+  ): MutexBuilder<K> {
+    return new MutexBuilder<K>(create);
+  }
 
-  constructor(initialConfig?: Partial<MutexConfigEntity.Type>) {
-    this.config = initialConfig ?? {};
+  readonly #create: (options: Partial<MutexConfigEntity.Type>) => Mutex<K>;
+  #enableCoalescing?: boolean;
+  #maxQueueSize?: number;
+  #timeout?: number;
+
+  private constructor(create: (options: Partial<MutexConfigEntity.Type>) => Mutex<K>) {
+    this.#create = create;
   }
 
   /**
    * Build the Mutex instance with the configured settings
    *
    * @returns New Mutex instance
-   * @throws {Error} If configuration validation fails
+   * @throws {ConfigurationError} If configuration validation fails
    *
    * @example
    * ```typescript
-   * const mutex = new MutexBuilder<string>()
+   * const mutex = Mutex.builder<string>()
    *   .withMaxQueueSize(100)
    *   .withTimeout(5000)
    *   .build();
    * ```
    */
   build(): Mutex<K> {
-    const result = Mutex.create<K>(this.config);
-    return result;
+    const options: Partial<MutexConfigEntity.Type> = {};
+    if (this.#enableCoalescing !== undefined) {
+      options.enableCoalescing = this.#enableCoalescing;
+    }
+    if (this.#maxQueueSize !== undefined) {
+      options.maxQueueSize = this.#maxQueueSize;
+    }
+    if (this.#timeout !== undefined) {
+      options.timeout = this.#timeout;
+    }
+    return this.#create(options);
   }
 
   /**
@@ -57,7 +74,7 @@ export class MutexBuilder<K extends PropertyKey = string> implements MutexBuilde
    *
    * @example
    * ```typescript
-   * const mutex = new MutexBuilder<string>()
+   * const mutex = Mutex.builder<string>()
    *   .withCoalescing(true)
    *   .build();
    *
@@ -69,8 +86,7 @@ export class MutexBuilder<K extends PropertyKey = string> implements MutexBuilde
    * ```
    */
   withCoalescing(enabled: boolean): this {
-    this.config.enableCoalescing = enabled;
-
+    this.#enableCoalescing = enabled;
     return this;
   }
 
@@ -82,14 +98,13 @@ export class MutexBuilder<K extends PropertyKey = string> implements MutexBuilde
    *
    * @example
    * ```typescript
-   * const mutex = new MutexBuilder<string>()
+   * const mutex = Mutex.builder<string>()
    *   .withMaxQueueSize(100)
    *   .build();
    * ```
    */
   withMaxQueueSize(size: number): this {
-    this.config.maxQueueSize = size;
-
+    this.#maxQueueSize = size;
     return this;
   }
 
@@ -101,14 +116,13 @@ export class MutexBuilder<K extends PropertyKey = string> implements MutexBuilde
    *
    * @example
    * ```typescript
-   * const mutex = new MutexBuilder<string>()
+   * const mutex = Mutex.builder<string>()
    *   .withTimeout(5000)
    *   .build();
    * ```
    */
   withTimeout(ms: number): this {
-    this.config.timeout = ms;
-
+    this.#timeout = ms;
     return this;
   }
 }

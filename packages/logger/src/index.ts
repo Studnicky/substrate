@@ -14,7 +14,7 @@
  * const logger = Logger.create({
  *   level: 'info',
  *   metadata: { service: 'api-layer' },
- *   transports: [new ConsoleTransport()]
+ *   transports: [ConsoleTransport.create()]
  * });
  *
  * // Normal log - all fields required: component, operation, status, message, context
@@ -44,10 +44,10 @@
  *
  * // Fan-out: console + memory capture for tests
  * import { MemoryTransport } from '@studnicky/logger/transports';
- * const memory = new MemoryTransport();
+ * const memory = MemoryTransport.create();
  * const testLogger = Logger.create({
  *   level: 'debug',
- *   transports: [new ConsoleTransport({ level: 'warn' }), memory]
+ *   transports: [ConsoleTransport.create({ level: 'warn' }), memory]
  * });
  * ```
  */
@@ -57,14 +57,19 @@ export type { LoggerOptionsInterface } from './interfaces/LoggerOptionsInterface
 export { LogBody } from './modules/LogBody.js';
 export { LogFault } from './modules/LogFault.js';
 export { Logger } from './modules/Logger.js';
+export { LoggerBuilder } from './modules/LoggerBuilder.js';
 export { parseLogLevel } from './modules/parseLogLevel.js';
 export { safeStringify } from './modules/safeStringify.js';
 export { ConsoleTransport } from './transports/ConsoleTransport.js';
+export { ConsoleTransportBuilder } from './transports/ConsoleTransportBuilder.js';
 export type { ConsoleTransportOptionsType } from './transports/ConsoleTransportOptionsType.js';
 export { FunctionTransport } from './transports/FunctionTransport.js';
+export { FunctionTransportBuilder } from './transports/FunctionTransportBuilder.js';
 export type { FunctionTransportOptionsType } from './transports/FunctionTransportOptionsType.js';
 export { MemoryTransport } from './transports/MemoryTransport.js';
+export { MemoryTransportBuilder } from './transports/MemoryTransportBuilder.js';
 export type { MemoryTransportOptionsType } from './transports/MemoryTransportOptionsType.js';
 export { NoOpTransport } from './transports/NoOpTransport.js';
+export { NoOpTransportBuilder } from './transports/NoOpTransportBuilder.js';
 export type { TransportInterface } from './transports/TransportInterface.js';
 export type { LogRecordType } from './types/LogRecordType.js';

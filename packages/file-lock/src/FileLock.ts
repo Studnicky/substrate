@@ -1,41 +1,38 @@
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 
-import type { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
-
+import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockConfigError } from './errors/FileLockConfigError.js';
+import { FileLockBuilder } from './FileLockBuilder.js';
 import { FileLockTimeoutError } from './FileLockTimeoutError.js';
 
 const DEFAULT_POLL_MS = 50;
 const DEFAULT_TIMEOUT_MS = 5000;
 
 export class FileLock {
-  readonly #lockPath: string;
-  readonly #originalPath: string;
-  #released = false;
-
-  private constructor(originalPath: string, lockPath: string) {
-    this.#originalPath = originalPath;
-    this.#lockPath = lockPath;
+  static builder(): FileLockBuilder {
+    // Factory closure so `create` retains its `this` binding when the builder calls it.
+    const result = FileLockBuilder.create((options) => {
+      const lock = FileLock.create(options);
+      return lock;
+    });
+    return result;
   }
 
-  static #isErrnoException(e: unknown): e is NodeJS.ErrnoException {
-    return e instanceof Error && 'code' in e;
-  }
-
-  static acquire(path: string, options?: FileLockOptionsEntity.Type): Promise<FileLock> {
-    if (options?.pollMs !== undefined && (options.pollMs <= 0 || Number.isNaN(options.pollMs))) {
-      return Promise.reject(new FileLockConfigError('pollMs must be a positive number'));
-    }
-    if (options?.timeoutMs !== undefined && (options.timeoutMs <= 0 || Number.isNaN(options.timeoutMs))) {
-      return Promise.reject(new FileLockConfigError('timeoutMs must be a positive number'));
+  static async create(options: FileLockOptionsEntity.Type): Promise<FileLock> {
+    if (!FileLockOptionsEntity.validate(options)) {
+      const messages = (FileLockOptionsEntity.validate.errors ?? [])
+        .map((e) => {
+          return e.message ?? String(e);
+        })
+        .join('; ');
+      return await Promise.reject(new FileLockConfigError(messages.length > 0 ? messages : 'invalid options'));
     }
 
-    const pollMs = options?.pollMs ?? DEFAULT_POLL_MS;
-    const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const { path, pollMs = DEFAULT_POLL_MS, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
     const lockPath = `${path}.lock.${String(process.pid)}`;
     const deadline = Date.now() + timeoutMs;
 
-    return new Promise<FileLock>((resolve, reject) => {
+    return await new Promise<FileLock>((resolve, reject) => {
       const attempt = (): void => {
         try {
           renameSync(path, lockPath);
@@ -54,6 +51,28 @@ export class FileLock {
       };
       attempt();
     });
+  }
+
+  /**
+   * Alias for `FileLock.create({ path, ...options })`.
+   * Retained for call-site compatibility.
+   */
+  static async acquire(path: string, options?: Omit<FileLockOptionsEntity.Type, 'path'>): Promise<FileLock> {
+    const result = await FileLock.create({ 'path': path, ...options });
+    return result;
+  }
+
+  static #isErrnoException(e: unknown): e is NodeJS.ErrnoException {
+    return e instanceof Error && 'code' in e;
+  }
+
+  readonly #lockPath: string;
+  readonly #originalPath: string;
+  #released = false;
+
+  protected constructor(originalPath: string, lockPath: string) {
+    this.#originalPath = originalPath;
+    this.#lockPath = lockPath;
   }
 
   read(): string {

@@ -12,7 +12,7 @@ import { DataType, Frozen, Patch, PatchError } from '../src/index.js';
 // Using the constructor with an array of operations
 const doc: Record<string, unknown> = { 'count': 0, 'meta': { 'version': 1 }, 'status': 'draft' };
 
-const patch = new Patch([
+const patch = Patch.create([
   { 'op': 'replace', 'path': '/status', 'value': 'published' },
   { 'op': 'add', 'path': '/publishedAt', 'value': '2026-06-22' },
   { 'op': 'remove', 'path': '/count' }
@@ -50,7 +50,7 @@ assert.throws(
   'test operation throws PatchError on mismatch'
 );
 
-console.log('isEmpty:', new Patch([]).isEmpty(), Patch.add('/a', 1).isEmpty());
+console.log('isEmpty:', Patch.create([]).isEmpty(), Patch.add('/a', 1).isEmpty());
 
 // ---------------------------------------------------------------------------
 // DataType — deep equality and type guards
@@ -106,7 +106,7 @@ assert.equal(doc2.name, 'beta', 'Patch.replace static factory');
 assert.equal(doc3.x, 1, 'combined patch: first op');
 assert.equal(doc3.y, 2, 'combined patch: second op');
 
-assert.equal(new Patch([]).isEmpty(), true, 'empty patch reports isEmpty');
+assert.equal(Patch.create([]).isEmpty(), true, 'empty patch reports isEmpty');
 assert.equal(Patch.add('/a', 1).isEmpty(), false, 'non-empty patch not isEmpty');
 
 assert.equal(nestedEqual, true, 'deepEqual for nested arrays');

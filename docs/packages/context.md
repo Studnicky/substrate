@@ -31,9 +31,9 @@ Use `Context.builder()` for the fluent construction style. `tryGet` returns `und
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/context` | `Context`, `ContextBuilder`, `ContextScope`, `ContextError` |
-| `@studnicky/context/errors` | `ContextError` |
-| `@studnicky/context/interfaces` | `ContextInterface`, `ContextConfigInterface`, `ContextScopeInterface` |
+| `@studnicky/context` | `Context`, `ContextBuilder`, `ContextScope`, `ContextScopeBuilder`, `ContextScopeOptionsInterface`, `ContextError`, `ContextConfigError` |
+| `@studnicky/context/errors` | `ContextError`, `ContextConfigError` |
+| `@studnicky/context/interfaces` | `ContextInterface`, `ContextScopeInterface` |
 
 ## Extending
 

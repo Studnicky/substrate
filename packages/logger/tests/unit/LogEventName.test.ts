@@ -6,10 +6,7 @@ import {
 import {
   EVENT_COMPONENTS
 } from '../../src/constants/EVENT_COMPONENTS.js';
-import {
-  createEventName,
-  parseEventName
-} from '../../src/types/LogEventNameType.js';
+import { LogEventName } from '../../src/modules/LogEventName.js';
 
 
 void describe('LogEventName', () => {
@@ -32,50 +29,50 @@ void describe('LogEventName', () => {
     });
   });
 
-  void describe('createEventName()', () => {
+  void describe('LogEventName.create()', () => {
     void it('should create event from component and operation', () => {
-      const event = createEventName('graph', 'query');
+      const event = LogEventName.create('graph', 'query');
 
       assert.strictEqual(event, 'graph.query');
     });
 
     void it('should work with complex operation names', () => {
-      const event = createEventName('queryPlanner', 'createPlan');
+      const event = LogEventName.create('queryPlanner', 'createPlan');
 
       assert.strictEqual(event, 'queryPlanner.createPlan');
     });
 
     void it('should work with EVENT_COMPONENTS constants', () => {
-      const event = createEventName(EVENT_COMPONENTS.CACHE, 'get');
+      const event = LogEventName.create(EVENT_COMPONENTS.CACHE, 'get');
 
       assert.strictEqual(event, 'cache.get');
     });
   });
 
-  void describe('parseEventName()', () => {
+  void describe('LogEventName.parse()', () => {
     void it('should parse event into component and operation', () => {
-      const result = parseEventName('graph.query');
+      const result = LogEventName.parse('graph.query');
 
       assert.strictEqual(result.component, 'graph');
       assert.strictEqual(result.operation, 'query');
     });
 
     void it('should handle complex operation names', () => {
-      const result = parseEventName('queryPlanner.createPlan');
+      const result = LogEventName.parse('queryPlanner.createPlan');
 
       assert.strictEqual(result.component, 'queryPlanner');
       assert.strictEqual(result.operation, 'createPlan');
     });
 
     void it('should handle events with multiple dots', () => {
-      const result = parseEventName('custom.nested.operation');
+      const result = LogEventName.parse('custom.nested.operation');
 
       assert.strictEqual(result.component, 'custom');
       assert.strictEqual(result.operation, 'nested.operation');
     });
 
     void it('should handle events without dots', () => {
-      const result = parseEventName('standalone');
+      const result = LogEventName.parse('standalone');
 
       assert.strictEqual(result.component, 'standalone');
       assert.strictEqual(result.operation, '');

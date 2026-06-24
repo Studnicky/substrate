@@ -28,14 +28,14 @@ void describe('FunctionTransport', () => {
 
     void it('throws ConfigurationError when sink is not a function', () => {
       assert.throws(
-        () => new FunctionTransport('not-a-function' as unknown as (r: LogRecordType) => void),
+        () => FunctionTransport.create('not-a-function' as unknown as (r: LogRecordType) => void),
         ConfigurationError
       );
     });
 
     void it('throws ConfigurationError when level option has invalid type', () => {
       assert.throws(
-        () => new FunctionTransport(() => {}, { level: [] as unknown as string }),
+        () => FunctionTransport.create(() => {}, { level: [] as unknown as string }),
         ConfigurationError
       );
     });
@@ -44,7 +44,7 @@ void describe('FunctionTransport', () => {
   void describe('bridging', () => {
     void it('calls the sink with the assembled record', () => {
       const captured: LogRecordType[] = [];
-      const transport = new FunctionTransport((record) => {
+      const transport = FunctionTransport.create((record) => {
         captured.push(record);
       });
 
@@ -60,7 +60,7 @@ void describe('FunctionTransport', () => {
 
     void it('calls the sink once per emit call', () => {
       let callCount = 0;
-      const transport = new FunctionTransport(() => { callCount++; });
+      const transport = FunctionTransport.create(() => { callCount++; });
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
 
       logger.trace(TestFactory.body('t'));
@@ -76,7 +76,7 @@ void describe('FunctionTransport', () => {
   void describe('level filtering', () => {
     void it('respects transport-level floor', () => {
       let callCount = 0;
-      const transport = new FunctionTransport(() => { callCount++; }, { level: LogLevel.WARN });
+      const transport = FunctionTransport.create(() => { callCount++; }, { level: LogLevel.WARN });
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
 
       logger.trace(TestFactory.body('t'));

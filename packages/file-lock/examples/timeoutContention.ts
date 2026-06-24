@@ -12,14 +12,14 @@ writeFileSync(filePath, 'contention test', 'utf8');
 import { FileLock, FileLockTimeoutError } from '../src/index.js';
 
 // Hold the first lock
-const firstLock = await FileLock.acquire(filePath);
+const firstLock = await FileLock.create({ 'path': filePath });
 
 let caught: FileLockTimeoutError | undefined;
 
 try {
   // Try to acquire again with a short timeout — throws because the file is at the lock path
   try {
-    await FileLock.acquire(filePath, { 'pollMs': 50, 'timeoutMs': 200 });
+    await FileLock.create({ 'path': filePath, 'pollMs': 50, 'timeoutMs': 200 });
   } catch (err) {
     if (err instanceof FileLockTimeoutError) {
       caught = err;

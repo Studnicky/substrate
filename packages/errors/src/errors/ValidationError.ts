@@ -5,6 +5,7 @@
  */
 import type { JsonValueType } from '@studnicky/types';
 
+import type { ValidationErrorArgumentsType } from '../interfaces/ValidationErrorArgumentsType.js';
 import type { ValidationViolationDetailType } from '../interfaces/ValidationViolationType.js';
 
 import { BaseError } from './BaseError.js';
@@ -16,14 +17,6 @@ ErrorCodeRegistry.register({
   'description': 'Input validation failed against the declared schema.',
   'retryable': false
 });
-
-/** Construction arguments for `ValidationError`. */
-export type ValidationErrorArgumentsType = Pick<ValidationViolationDetailType, 'message' | 'path'> & {
-  /** Optional correlation ID for distributed tracing. */
-  readonly 'correlationId'?: string | undefined;
-  /** Structured violation list (Ajv-style or custom). */
-  readonly 'violations'?: readonly Readonly<ValidationViolationDetailType>[] | undefined;
-};
 
 /**
  * Thrown when schema/type validation fails on a public API boundary.

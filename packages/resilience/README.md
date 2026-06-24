@@ -29,7 +29,7 @@ Tracks failures and opens the circuit after a threshold, then probes with a limi
 ```typescript
 import { CircuitBreaker, CircuitBreakerOpenError } from '@studnicky/resilience';
 
-const breaker = new CircuitBreaker({
+const breaker = CircuitBreaker.create({
   failureThreshold: 5,    // open after 5 consecutive failures
   resetTimeoutMs: 10_000, // probe after 10 s
   successThreshold: 2,    // close after 2 successes in half-open
@@ -56,7 +56,7 @@ Token bucket rate limiter. `consume` throws immediately when exhausted; `waitFor
 ```typescript
 import { TokenBucket, TokenBucketExhaustedError } from '@studnicky/resilience';
 
-const bucket = new TokenBucket({
+const bucket = TokenBucket.create({
   requestsPerSecond: 10,
   burstSize: 20, // allow bursts up to 20 tokens
 });
@@ -86,7 +86,7 @@ Bounded FIFO queue for items that failed processing. Drain via async generator.
 ```typescript
 import { DeadLetterQueue } from '@studnicky/resilience';
 
-const dlq = new DeadLetterQueue<JobPayload>({ capacity: 1000 });
+const dlq = DeadLetterQueue.create<JobPayload>({ capacity: 1000 });
 
 // Enqueue failed items
 try {
@@ -109,8 +109,8 @@ dlq.close(); // drain loop stops after current entries are consumed
 ```typescript
 import { DeadLetterQueue, DeadLetterQueueRetryGenerator } from '@studnicky/resilience';
 
-const dlq = new DeadLetterQueue<JobPayload>();
-const retryGen = new DeadLetterQueueRetryGenerator(dlq, { intervalMs: 5_000 });
+const dlq = DeadLetterQueue.create<JobPayload>();
+const retryGen = DeadLetterQueueRetryGenerator.create({ dlq, intervalMs: 5_000 });
 
 for await (const entry of retryGen.generate()) {
   await retryJob(entry.item); // each entry is yielded with a 5 s pause between

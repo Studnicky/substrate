@@ -5,9 +5,11 @@ export namespace FileLockOptionsEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
+      'path': { 'minLength': 1, 'type': 'string' },
       'pollMs': { 'exclusiveMinimum': 0, 'type': 'number' },
       'timeoutMs': { 'exclusiveMinimum': 0, 'type': 'number' }
     },
+    'required': ['path'],
     'type': 'object'
   } as const satisfies JsonSchemaObjectType;
 

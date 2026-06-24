@@ -16,7 +16,8 @@ export {
   ErrorCodeRegistry,
   ModuleError,
   ValidationError,
-  ValidationErrors
+  ValidationErrors,
+  ValidationErrorsBuilder
 } from './errors/index.js';
 export type {
   BaseErrorArgumentsType,

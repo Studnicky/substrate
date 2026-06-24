@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const computedClassProperties = createSelectorRule(
+export const computedClassProperties = SelectorRule.create(
   'v8Optimization/computedClassProperties',
   'ClassExpression Property[computed=true], ClassDeclaration Property[computed=true]',
   'Computed properties in classes break hidden classes.'

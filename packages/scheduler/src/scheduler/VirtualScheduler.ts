@@ -15,7 +15,9 @@ import type { PendingTaskType } from '../interfaces/PendingTaskType.js';
 import type { ScheduledTaskType } from '../interfaces/ScheduledTaskType.js';
 import type { SchedulerProviderType } from '../interfaces/SchedulerProviderType.js';
 
+import { SchedulerError } from '../errors/index.js';
 import { MinimumHeap } from './MinimumHeap.js';
+import { VirtualSchedulerBuilder } from './VirtualSchedulerBuilder.js';
 
 /**
  * `ScheduledTask` implementation backed by a cancel callback.
@@ -65,11 +67,25 @@ export class VirtualScheduler implements SchedulerProviderType {
    * @param counter - Shared `VirtualTimeCounter`. Pass the same instance to
    *                  `VirtualClockProvider` so `Clock.now()` and task fires stay in sync.
    */
-  public constructor(counter: Readonly<VirtualTimeCounter>) {
+  protected constructor(counter: Readonly<VirtualTimeCounter>) {
+    if (counter === null || typeof counter !== 'object' || typeof counter.nowMs !== 'function' || typeof counter.advance !== 'function') {
+      throw new SchedulerError('VirtualScheduler requires a valid VirtualTimeCounter instance with nowMs() and advance() methods');
+    }
     this.#cancelledIds = new Set();
     this.#counter = counter;
     this.#idCounter = 0;
     this.#heap = this.createHeap();
+  }
+
+  /** Creates a new `VirtualScheduler` with the given options. */
+  static create(options: { readonly 'counter': Readonly<VirtualTimeCounter> }): VirtualScheduler {
+    return new this(options.counter);
+  }
+
+  /** Returns a `VirtualSchedulerBuilder` pre-wired to create `VirtualScheduler` instances. */
+  static builder(): VirtualSchedulerBuilder {
+    const result = VirtualSchedulerBuilder.create((options) => { const instance = VirtualScheduler.create(options); return instance; });
+    return result;
   }
 
   /** Returns a unique task ID. Override to customise the ID format. */
@@ -80,7 +96,7 @@ export class VirtualScheduler implements SchedulerProviderType {
 
   /** Creates the heap used to store pending tasks. Override to substitute a custom heap. */
   protected createHeap(): MinimumHeap {
-    const result = new MinimumHeap();
+    const result = MinimumHeap.create();
     return result;
   }
 

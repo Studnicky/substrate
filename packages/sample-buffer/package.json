@@ -30,6 +30,8 @@
   "homepage": "https://studnicky.github.io/substrate/packages/sample-buffer",
   "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
   "dependencies": {
-    "@studnicky/errors": "workspace:*"
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

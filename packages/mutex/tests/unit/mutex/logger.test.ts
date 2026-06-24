@@ -7,11 +7,9 @@
 import { strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import {
-  Mutex, MutexBuilder
-} from '../../../src/mutex/index.js';
+import { Mutex } from '../../../src/mutex/index.js';
 
-// --- Constructor ---
+// --- Static create() ---
 
 const constructorScenarios: Array<{
   description: string;
@@ -20,11 +18,11 @@ const constructorScenarios: Array<{
 }> = [
   {
     description: 'creates mutex without configuration',
-    build: () => new Mutex<string>()
+    build: () => Mutex.create<string>()
   },
   {
     description: 'creates mutex with partial configuration',
-    build: () => new Mutex<string>({ maxQueueSize: 50 }),
+    build: () => Mutex.create<string>({ maxQueueSize: 50 }),
     expectedMaxQueueSize: 50
   }
 ];
@@ -100,11 +98,11 @@ const builderScenarios: Array<{
 }> = [
   {
     description: 'builder creates mutex with default settings',
-    build: () => new MutexBuilder<string>().build()
+    build: () => Mutex.builder<string>().build()
   },
   {
     description: 'builder creates mutex with explicit configuration',
-    build: () => new MutexBuilder<string>().withMaxQueueSize(10).withTimeout(1000).build(),
+    build: () => Mutex.builder<string>().withMaxQueueSize(10).withTimeout(1000).build(),
     expectedMaxQueueSize: 10,
     expectedTimeout: 1000
   }
@@ -125,7 +123,7 @@ for (const { description, build, expectedMaxQueueSize, expectedTimeout } of buil
 }
 
 it('builder-created mutex acquires and releases lock', async () => {
-  const mutex = new MutexBuilder<string>().build();
+  const mutex = Mutex.builder<string>().build();
   const release = await mutex.acquire('key1');
 
   strictEqual(mutex.isLocked('key1'), true);

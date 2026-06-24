@@ -19,6 +19,7 @@ export type { RetryContextType } from './interfaces/RetryContextType.js';
 export type { RetryInterface } from './interfaces/RetryInterface.js';
 export { BackoffStrategy } from './retry/backoff/index.js';
 export { DefaultHttpErrorClassifier } from './retry/core/DefaultHttpErrorClassifier.js';
+export { DefaultHttpErrorClassifierBuilder } from './retry/core/DefaultHttpErrorClassifierBuilder.js';
 export { ErrorClassifier } from './retry/core/ErrorClassifier.js';
 export { Retry } from './retry/Retry.js';
 export { RetryBuilder } from './retry/RetryBuilder.js';

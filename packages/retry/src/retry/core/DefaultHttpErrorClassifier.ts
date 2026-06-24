@@ -9,6 +9,7 @@ import {
   HTTP_TOO_MANY_REQUESTS
 } from '../../constants/index.js';
 import { errorTypeGuards } from '../validation/errorTypeGuards.js';
+import { DefaultHttpErrorClassifierBuilder } from './DefaultHttpErrorClassifierBuilder.js';
 import { ErrorClassifier } from './ErrorClassifier.js';
 
 /**
@@ -24,11 +25,29 @@ import { ErrorClassifier } from './ErrorClassifier.js';
  *
  * @example Basic usage
  * ```typescript
- * const classifier = new DefaultHttpErrorClassifier();
+ * const classifier = DefaultHttpErrorClassifier.create();
  * const classification = classifier.classify(error, 0);
  * ```
  */
 export class DefaultHttpErrorClassifier extends ErrorClassifier implements ErrorClassifierInterface {
+  static create(): DefaultHttpErrorClassifier {
+    const result = new this();
+    return result;
+  }
+
+  static builder(): DefaultHttpErrorClassifierBuilder {
+    const factory = (): DefaultHttpErrorClassifier => {
+      const result = DefaultHttpErrorClassifier.create();
+      return result;
+    };
+    const result = DefaultHttpErrorClassifierBuilder.create(factory);
+    return result;
+  }
+
+  protected constructor() {
+    super();
+  }
+
   /**
    * Classify an error to determine if it should be retried.
    *
@@ -41,7 +60,7 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
    *
    * @example
    * ```typescript
-   * const classifier = new DefaultHttpErrorClassifier();
+   * const classifier = DefaultHttpErrorClassifier.create();
    * const result = classifier.classify(new Error('503 Service Unavailable'), 0);
    * // result.retryable === true
    * // result.reason === 'Gateway error (503)'

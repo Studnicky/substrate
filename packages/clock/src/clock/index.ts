@@ -1,4 +1,8 @@
 export { Clock } from './Clock.js';
+export { ClockBuilder } from './ClockBuilder.js';
 export { RealTimeClockProvider } from './RealTimeClockProvider.js';
+export { RealTimeClockProviderBuilder } from './RealTimeClockProviderBuilder.js';
 export { VirtualClockProvider } from './VirtualClockProvider.js';
+export { VirtualClockProviderBuilder } from './VirtualClockProviderBuilder.js';
 export { VirtualTimeCounter } from './VirtualTimeCounter.js';
+export { VirtualTimeCounterBuilder } from './VirtualTimeCounterBuilder.js';

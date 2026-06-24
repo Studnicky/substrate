@@ -8,8 +8,16 @@ import { Throttle } from '../src/index.js';
 // #region usage
 
 class TelemetryThrottle extends Throttle {
+  static override create(config?: Parameters<typeof Throttle.create>[0]): TelemetryThrottle {
+    return new TelemetryThrottle(config);
+  }
+
   readonly acquireEvents: { 'activeCount': number; 'queuedCount': number }[] = [];
   readonly releaseEvents: { 'activeCount': number; 'totalExecuted': number }[] = [];
+
+  public constructor(config?: Parameters<typeof Throttle.create>[0]) {
+    super(config);
+  }
 
   protected override onAcquire(activeCount: number, queuedCount: number): void {
     this.acquireEvents.push({ 'activeCount': activeCount, 'queuedCount': queuedCount });
@@ -20,7 +28,7 @@ class TelemetryThrottle extends Throttle {
   }
 }
 
-const throttle = new TelemetryThrottle({ 'concurrencyLimit': 2 });
+const throttle = TelemetryThrottle.create({ 'concurrencyLimit': 2 });
 
 await Promise.all(
   [1, 2, 3].map((i) => {

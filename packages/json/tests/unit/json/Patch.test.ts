@@ -108,7 +108,7 @@ void describe('Patch', () => {
 
   void describe('Patch.isEmpty', () => {
     const isEmptyScenarios: Array<{ description: string; patch: Patch; expected: boolean }> = [
-      { description: 'isEmpty returns true for empty patch', patch: new Patch([]), expected: true },
+      { description: 'isEmpty returns true for empty patch', patch: Patch.create([]), expected: true },
       { description: 'isEmpty returns false for non-empty patch', patch: Patch.add('/a', 1), expected: false },
     ];
     for (const { description, patch, expected } of isEmptyScenarios) {

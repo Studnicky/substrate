@@ -8,6 +8,7 @@ import type { LogRecordType } from '../types/LogRecordType.js';
 
 import { LogLevel } from '../constants/LogLevel.js';
 import { configValidation } from './configValidation.js';
+import { LoggerBuilder } from './LoggerBuilder.js';
 import { parseLogLevel } from './parseLogLevel.js';
 
 /**
@@ -21,11 +22,11 @@ import { parseLogLevel } from './parseLogLevel.js';
  * ```typescript
  * import { Logger, ConsoleTransport, MemoryTransport } from '@studnicky/logger';
  *
- * const memory = new MemoryTransport();
+ * const memory = MemoryTransport.create();
  * const logger = Logger.create({
  *   level: 'debug',
  *   metadata: { service: 'api' },
- *   transports: [new ConsoleTransport({ level: 'warn' }), memory]
+ *   transports: [ConsoleTransport.create({ level: 'warn' }), memory]
  * });
  *
  * logger.info(body);   // reaches MemoryTransport only (ConsoleTransport floor is warn)
@@ -43,14 +44,19 @@ export class Logger implements LoggerInterface {
    * @returns A new Logger instance
    */
   static create(options: LoggerOptionsInterface = {}): Logger {
-    return new Logger(options);
+    return new this(options);
+  }
+
+  static builder(): LoggerBuilder {
+    const result = LoggerBuilder.create((options) => { const result = Logger.create(options); return result; });
+    return result;
   }
 
   readonly #level: LogLevelType;
   readonly #metadata: LogMetadataType;
   readonly #transports: readonly TransportInterface[];
 
-  constructor(options: LoggerOptionsInterface = {}) {
+  protected constructor(options: LoggerOptionsInterface = {}) {
     configValidation.assertPlainObject(options.metadata, 'metadata');
     if (options.transports !== undefined && !Array.isArray(options.transports)) {
       throw new Error('transports must be an array');
@@ -71,11 +77,12 @@ export class Logger implements LoggerInterface {
    * @returns A new Logger with merged metadata
    */
   child(metadata: LogMetadataType): Logger {
-    return new Logger({
+    const result = Logger.create({
       'level': this.#level,
       'metadata': { ...this.#metadata, ...metadata },
       'transports': this.#transports
     });
+    return result;
   }
 
   /**

@@ -1,5 +1,7 @@
 /** String-keyed fan-in async generator inbox; one active subscriber per key. */
 
+import { ChannelBuilder } from './ChannelBuilder.js';
+
 type ChannelStateType<T> = {
   readonly 'buffer': T[];
   'closed': boolean;
@@ -7,8 +9,25 @@ type ChannelStateType<T> = {
 };
 
 export class Channel<T> {
+  static builder<T>(): ChannelBuilder<T> {
+    const result = ChannelBuilder.create<T>(() => {
+      const channel = Channel.create<T>();
+      return channel;
+    });
+    return result;
+  }
+
+  static create<T>(): Channel<T> {
+    const result = new (this as unknown as new () => Channel<T>)();
+    return result;
+  }
+
   #closed = false;
   readonly #channels = new Map<string, ChannelStateType<T>>();
+
+  protected constructor() {
+    // no-op
+  }
 
   close(): void {
     this.#closed = true;

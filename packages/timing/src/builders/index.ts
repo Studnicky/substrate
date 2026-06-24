@@ -5,6 +5,9 @@
 /** Standard timing status constants */
 export { TIMING_STATUS } from '../constants/index.js';
 
+/** No-operation timing builder */
+export { NoOpTimingBuilder } from '../modules/NoOpTimingBuilder.js';
+
 /** Timing instance builder */
 export { TimingBuilder } from '../modules/TimingBuilder.js';
 

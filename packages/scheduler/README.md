@@ -26,8 +26,8 @@ pnpm add @studnicky/scheduler
 import { VirtualScheduler } from '@studnicky/scheduler';
 import { VirtualTimeCounter } from '@studnicky/clock';
 
-const counter = new VirtualTimeCounter(0);
-const scheduler = new VirtualScheduler(counter);
+const counter = VirtualTimeCounter.create({ startMs: 0 });
+const scheduler = VirtualScheduler.create({ counter });
 
 const fired: number[] = [];
 
@@ -48,7 +48,7 @@ Pass the same `VirtualTimeCounter` instance to `VirtualClockProvider` when you n
 ```ts
 import { RealTimeScheduler } from '@studnicky/scheduler';
 
-const scheduler = new RealTimeScheduler();
+const scheduler = RealTimeScheduler.create();
 
 const task = scheduler.scheduleAt(Date.now() + 1000, () => {
   console.log('fired after 1 s');

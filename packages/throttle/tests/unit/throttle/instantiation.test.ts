@@ -1,7 +1,7 @@
 /**
  * Throttle Instantiation Unit Tests
  *
- * Tests for creating Throttle instances via constructor, factory, and builder
+ * Tests for creating Throttle instances via factory and builder
  */
 
 import {
@@ -9,9 +9,7 @@ import {
 } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import {
-  Throttle, ThrottleBuilder
-} from '../../../src/throttle/index.js';
+import { Throttle } from '../../../src/throttle/index.js';
 
 /** Test fixtures for static factory method tests */
 class ThrottleTestHelpers {
@@ -27,23 +25,6 @@ class ThrottleTestHelpers {
     return first * second;
   }
 }
-
-// ── Constructor ───────────────────────────────────────────────────────────────
-
-void it('creates throttle with new Throttle()', () => {
-  const throttle = new Throttle({ concurrencyLimit: 5 });
-  const stats = throttle.getStats();
-
-  ok(throttle instanceof Throttle, 'Should be instance of Throttle');
-  strictEqual(stats.concurrencyLimit, 5, 'Should use provided config');
-});
-
-void it('creates throttle with no config', () => {
-  const throttle = new Throttle();
-  const stats = throttle.getStats();
-
-  strictEqual(stats.concurrencyLimit, 10, 'Should use default limit');
-});
 
 // ── Static factory method ─────────────────────────────────────────────────────
 
@@ -87,7 +68,7 @@ void it('executes with function arguments via closure', async () => {
 // ── Builder pattern ───────────────────────────────────────────────────────────
 
 void it('creates throttle with default settings', () => {
-  const throttle = new ThrottleBuilder().build();
+  const throttle = Throttle.builder().build();
   const stats = throttle.getStats();
 
   ok(throttle instanceof Throttle, 'Should return Throttle instance');
@@ -95,7 +76,7 @@ void it('creates throttle with default settings', () => {
 });
 
 void it('builds with custom concurrency limit', () => {
-  const throttle = new ThrottleBuilder()
+  const throttle = Throttle.builder()
     .withConcurrencyLimit(5)
     .build();
 
@@ -105,7 +86,7 @@ void it('builds with custom concurrency limit', () => {
 });
 
 void it('returns builder instance for chaining', () => {
-  const builder = new ThrottleBuilder();
+  const builder = Throttle.builder();
   const result = builder.withConcurrencyLimit(5);
 
   strictEqual(result, builder, 'withConcurrencyLimit should return this');
@@ -113,17 +94,14 @@ void it('returns builder instance for chaining', () => {
 
 // ── Functional equivalence ────────────────────────────────────────────────────
 
-void it('constructor, factory, and builder produce equivalent throttles', () => {
-  const viaConstructor = new Throttle({ concurrencyLimit: 7 });
+void it('factory and builder produce equivalent throttles', () => {
   const viaFactory = Throttle.create({ concurrencyLimit: 7 });
-  const viaBuilder = new ThrottleBuilder()
+  const viaBuilder = Throttle.builder()
     .withConcurrencyLimit(7)
     .build();
 
-  const stats1 = viaConstructor.getStats();
-  const stats2 = viaFactory.getStats();
-  const stats3 = viaBuilder.getStats();
+  const stats1 = viaFactory.getStats();
+  const stats2 = viaBuilder.getStats();
 
   strictEqual(stats1.concurrencyLimit, stats2.concurrencyLimit);
-  strictEqual(stats1.concurrencyLimit, stats3.concurrencyLimit);
 });

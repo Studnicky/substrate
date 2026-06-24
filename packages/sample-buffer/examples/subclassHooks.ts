@@ -13,7 +13,7 @@ class EvictionLog extends SampleBuffer {
   }
 }
 
-const log = new EvictionLog(3);
+const log = EvictionLog.create({ 'capacity': 3 });
 
 // First three fill the buffer — no evictions
 log.push(1);

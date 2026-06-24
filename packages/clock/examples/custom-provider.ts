@@ -28,7 +28,7 @@ class FixedClockProvider implements ClockProviderType {
 }
 
 const fixedProvider = new FixedClockProvider(9999, 9_999_000_000n);
-const clockFixed = new Clock(fixedProvider);
+const clockFixed = Clock.create(fixedProvider);
 
 console.log(`FixedClockProvider: now()=${clockFixed.now()}, hrtime()=${clockFixed.hrtime()}n`);
 
@@ -57,7 +57,7 @@ class CountingClockProvider implements ClockProviderType {
 }
 
 const countingProvider = new CountingClockProvider();
-const clockCounting = new Clock(countingProvider);
+const clockCounting = Clock.create(countingProvider);
 
 const firstNow = clockCounting.now();
 const secondNow = clockCounting.now();
@@ -66,8 +66,8 @@ console.log(`CountingClockProvider: firstNow=${firstNow}, secondNow=${secondNow}
 
 // --- DI seam: same Clock constructor, different behavior per provider ---
 
-const clockA = new Clock(new FixedClockProvider(1, 1_000_000n));
-const clockB = new Clock(new FixedClockProvider(2, 2_000_000n));
+const clockA = Clock.create(new FixedClockProvider(1, 1_000_000n));
+const clockB = Clock.create(new FixedClockProvider(2, 2_000_000n));
 
 console.log(`DI swap: clockA.now()=${clockA.now()}, clockB.now()=${clockB.now()}`);
 // #endregion usage

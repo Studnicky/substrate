@@ -1,6 +1,8 @@
 import type { TimingEventDataType } from '../interfaces/TimingEventDataType.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
+import { NoOpTimingBuilder } from './NoOpTimingBuilder.js';
+
 /**
  * No-operation timing tracker that discards all events.
  *
@@ -29,6 +31,7 @@ import type { TimingInterface } from '../interfaces/TimingInterface.js';
 export class NoOpTiming implements TimingInterface {
   /**
    * Creates a new NoOpTiming instance.
+   * Use `NoOpTiming.builder().build()` for a consistent builder API.
    *
    * @returns A new NoOpTiming instance
    *
@@ -45,7 +48,26 @@ export class NoOpTiming implements TimingInterface {
    * ```
    */
   static create(): NoOpTiming {
-    const result = new NoOpTiming();
+    return new this();
+  }
+
+  /**
+   * Creates a new NoOpTimingBuilder for a uniform builder API.
+   *
+   * @returns A new NoOpTimingBuilder instance
+   *
+   * @example
+   * ```typescript
+   * import { NoOpTiming } from '@studnicky/timing';
+   *
+   * const timing = NoOpTiming.builder().build();
+   * ```
+   */
+  static builder(): NoOpTimingBuilder {
+    const result = NoOpTimingBuilder.create(() => {
+      const instance = NoOpTiming.create();
+      return instance;
+    });
     return result;
   }
 

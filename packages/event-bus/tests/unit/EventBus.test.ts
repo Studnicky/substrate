@@ -83,6 +83,55 @@ void it('different topics are isolated from each other', async () => {
   await bus.close();
 });
 
+void it('handler receives an AbortSignal as second argument that is not aborted during normal delivery', async () => {
+  const bus = EventBus.create<TestTopics>();
+  let capturedSignal: AbortSignal | undefined;
+
+  bus.subscribe('ping', (payload, signal) => {
+    capturedSignal = signal;
+  });
+
+  await bus.publish('ping', 'hello');
+  await bus.drain();
+
+  deepStrictEqual(capturedSignal instanceof AbortSignal, true, 'signal should be an AbortSignal');
+  deepStrictEqual(capturedSignal?.aborted, false, 'signal should not be aborted during normal delivery');
+  await bus.close();
+});
+
+void it('captured subscription signal is aborted after unsubscribe()', async () => {
+  const bus = EventBus.create<TestTopics>();
+  let capturedSignal: AbortSignal | undefined;
+
+  const unsub = bus.subscribe('ping', (payload, signal) => {
+    capturedSignal = signal;
+  });
+
+  await bus.publish('ping', 'first');
+  await bus.drain();
+
+  deepStrictEqual(capturedSignal?.aborted, false, 'signal should not be aborted before unsubscribe');
+  unsub();
+  deepStrictEqual(capturedSignal?.aborted, true, 'signal should be aborted after unsubscribe');
+  await bus.close();
+});
+
+void it('captured subscription signal is aborted after bus.close()', async () => {
+  const bus = EventBus.create<TestTopics>();
+  let capturedSignal: AbortSignal | undefined;
+
+  bus.subscribe('ping', (payload, signal) => {
+    capturedSignal = signal;
+  });
+
+  await bus.publish('ping', 'hello');
+  await bus.drain();
+
+  deepStrictEqual(capturedSignal?.aborted, false, 'signal should not be aborted before close');
+  await bus.close();
+  deepStrictEqual(capturedSignal?.aborted, true, 'signal should be aborted after bus.close()');
+});
+
 void it('close() stops all delivery across all topics', async () => {
   const bus = EventBus.create<TestTopics>();
   const received: string[] = [];

@@ -20,17 +20,17 @@ const invalidConfigs: Array<{ description: string; config: { failureThreshold: n
 
 for (const { description, config } of invalidConfigs) {
   it(description, () => {
-    throws(() => { new CircuitBreaker(config); }, ResilienceConfigError);
+    throws(() => { CircuitBreaker.create(config); }, ResilienceConfigError);
   });
 }
 
 it('starts in closed state', () => {
-  const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeoutMs: 100 });
+  const cb = CircuitBreaker.create({ failureThreshold: 2, resetTimeoutMs: 100 });
   strictEqual(cb.state, 'closed');
 });
 
 it('trips to open after failureThreshold failures', async () => {
-  const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeoutMs: 100 });
+  const cb = CircuitBreaker.create({ failureThreshold: 2, resetTimeoutMs: 100 });
   await rejects(() => cb.execute(fail));
   strictEqual(cb.state, 'closed');
   await rejects(() => cb.execute(fail));
@@ -38,7 +38,7 @@ it('trips to open after failureThreshold failures', async () => {
 });
 
 it('resets failure count on success in closed state', async () => {
-  const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeoutMs: 100 });
+  const cb = CircuitBreaker.create({ failureThreshold: 3, resetTimeoutMs: 100 });
   await rejects(() => cb.execute(fail));
   await rejects(() => cb.execute(fail));
   await cb.execute(succeed); // success resets count
@@ -50,7 +50,7 @@ it('resets failure count on success in closed state', async () => {
 });
 
 it('throws CircuitBreakerOpenError when open', async () => {
-  const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeoutMs: 10_000 });
+  const cb = CircuitBreaker.create({ failureThreshold: 1, resetTimeoutMs: 10_000 });
   await rejects(() => cb.execute(fail));
   strictEqual(cb.state, 'open');
   await rejects(
@@ -60,7 +60,7 @@ it('throws CircuitBreakerOpenError when open', async () => {
 });
 
 it('CircuitBreakerOpenError includes name in message', async () => {
-  const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeoutMs: 10_000, name: 'my-cb' });
+  const cb = CircuitBreaker.create({ failureThreshold: 1, resetTimeoutMs: 10_000, name: 'my-cb' });
   await rejects(() => cb.execute(fail));
   await rejects(
     () => cb.execute(succeed),
@@ -71,7 +71,7 @@ it('CircuitBreakerOpenError includes name in message', async () => {
 it('transitions to halfOpen after resetTimeoutMs', async () => {
   let time = 0;
   const clock = (): number => time;
-  const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeoutMs: 100, clock });
+  const cb = CircuitBreaker.create({ failureThreshold: 1, resetTimeoutMs: 100, clock });
 
   await rejects(() => cb.execute(fail));
   strictEqual(cb.state, 'open');
@@ -84,7 +84,7 @@ it('transitions to halfOpen after resetTimeoutMs', async () => {
 it('stays open before resetTimeoutMs elapses', async () => {
   let time = 0;
   const clock = (): number => time;
-  const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeoutMs: 100, clock });
+  const cb = CircuitBreaker.create({ failureThreshold: 1, resetTimeoutMs: 100, clock });
 
   await rejects(() => cb.execute(fail));
   strictEqual(cb.state, 'open');
@@ -100,7 +100,7 @@ it('stays open before resetTimeoutMs elapses', async () => {
 it('returns to closed after successThreshold successes in halfOpen', async () => {
   let time = 0;
   const clock = (): number => time;
-  const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeoutMs: 100, successThreshold: 2, clock });
+  const cb = CircuitBreaker.create({ failureThreshold: 1, resetTimeoutMs: 100, successThreshold: 2, clock });
 
   await rejects(() => cb.execute(fail));
   time = 100;
@@ -114,7 +114,7 @@ it('returns to closed after successThreshold successes in halfOpen', async () =>
 it('failure in halfOpen re-opens the circuit', async () => {
   let time = 0;
   const clock = (): number => time;
-  const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeoutMs: 100, clock });
+  const cb = CircuitBreaker.create({ failureThreshold: 1, resetTimeoutMs: 100, clock });
 
   await rejects(() => cb.execute(fail));
   time = 100;
@@ -151,7 +151,7 @@ const stateControlScenarios: Array<{
 
 for (const { description, setup, action, expectedState } of stateControlScenarios) {
   it(description, async () => {
-    const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeoutMs: 100 });
+    const cb = CircuitBreaker.create({ failureThreshold: 1, resetTimeoutMs: 100 });
     await setup(cb);
     action(cb);
     strictEqual(cb.state, expectedState);
@@ -159,7 +159,7 @@ for (const { description, setup, action, expectedState } of stateControlScenario
 }
 
 it('execute succeeds after reset', async () => {
-  const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeoutMs: 100 });
+  const cb = CircuitBreaker.create({ failureThreshold: 1, resetTimeoutMs: 100 });
   await rejects(() => cb.execute(fail));
   cb.reset();
   const result = await cb.execute(succeed);

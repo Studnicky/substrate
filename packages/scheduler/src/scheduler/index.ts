@@ -1,2 +1,6 @@
+export { MinimumHeap } from './MinimumHeap.js';
+export { MinimumHeapBuilder } from './MinimumHeapBuilder.js';
 export { RealTimeScheduler } from './RealTimeScheduler.js';
+export { RealTimeSchedulerBuilder } from './RealTimeSchedulerBuilder.js';
 export { VirtualScheduler } from './VirtualScheduler.js';
+export { VirtualSchedulerBuilder } from './VirtualSchedulerBuilder.js';

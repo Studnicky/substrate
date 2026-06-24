@@ -1,4 +1,4 @@
-import type { AsyncLocalStorage } from 'node:async_hooks';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
  * ContextScope - An initialized context ready for execution.
@@ -7,8 +7,10 @@ import type { AsyncLocalStorage } from 'node:async_hooks';
  * with an explicit FSM: created → active → terminated.
  */
 import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
+import type { ContextScopeOptionsInterface } from './ContextScopeOptionsInterface.js';
 
-import { ContextError } from '../errors/ContextError.js';
+import { ContextConfigError, ContextError } from '../errors/ContextError.js';
+import { ContextScopeBuilder } from './ContextScopeBuilder.js';
 
 type ContextScopeState = 'active' | 'created' | 'terminated';
 
@@ -79,6 +81,27 @@ type ContextScopeState = 'active' | 'created' | 'terminated';
  * ```
  */
 export class ContextScope implements ContextScopeInterface {
+  /**
+   * Create a new ContextScope.
+   *
+   * @param options - Name, storage, and optional initial values
+   * @returns New ContextScope in the active state
+   */
+  static create(options: ContextScopeOptionsInterface): ContextScope {
+    return new this(options);
+  }
+
+  /**
+   * Create a fluent builder for constructing a ContextScope.
+   *
+   * @returns A new ContextScopeBuilder
+   */
+  static builder(): ContextScopeBuilder {
+    // Factory closure so `create` retains its `this` binding when the builder calls it.
+    const result = ContextScopeBuilder.create((options) => { const scope = ContextScope.create(options); return scope; });
+    return result;
+  }
+
   readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
   readonly #store: Map<string, unknown>;
   #state: ContextScopeState = 'created';
@@ -88,15 +111,19 @@ export class ContextScope implements ContextScopeInterface {
    */
   protected readonly name: string;
 
-  constructor(
-    name: string,
-    storage: AsyncLocalStorage<Map<string, unknown>>,
-    initial?: Record<string, unknown>
-  ) {
-    this.name = name;
-    this.#storage = storage;
-    this.#store = initial !== undefined
-      ? new Map<string, unknown>(Object.entries(initial))
+  protected constructor(options: ContextScopeOptionsInterface) {
+    if (typeof options.name !== 'string' || options.name.length === 0) {
+      throw new ContextConfigError('name must be a non-empty string');
+    }
+
+    if (!(options.storage instanceof AsyncLocalStorage)) {
+      throw new ContextConfigError('storage must be an AsyncLocalStorage instance');
+    }
+
+    this.name = options.name;
+    this.#storage = options.storage;
+    this.#store = options.initial !== undefined
+      ? new Map<string, unknown>(Object.entries(options.initial))
       : new Map<string, unknown>();
     // FSM: created → active
     this.transition('active');

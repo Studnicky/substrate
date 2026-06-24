@@ -8,6 +8,8 @@
 import type { ScheduledTaskType } from '../interfaces/ScheduledTaskType.js';
 import type { SchedulerProviderType } from '../interfaces/SchedulerProviderType.js';
 
+import { RealTimeSchedulerBuilder } from './RealTimeSchedulerBuilder.js';
+
 /** Internal record kept per active timer. */
 type ActiveTimerType = {
   readonly 'handle': ReturnType<typeof setTimeout>;
@@ -63,9 +65,20 @@ export class RealTimeScheduler implements SchedulerProviderType {
   /**
    * Property write order: #timers, #idCounter.
    */
-  public constructor() {
+  protected constructor() {
     this.#timers = new Map();
     this.#idCounter = 0;
+  }
+
+  /** Creates a new `RealTimeScheduler` instance. */
+  static create(): RealTimeScheduler {
+    return new this();
+  }
+
+  /** Returns a `RealTimeSchedulerBuilder` pre-wired to create `RealTimeScheduler` instances. */
+  static builder(): RealTimeSchedulerBuilder {
+    const result = RealTimeSchedulerBuilder.create(() => { const instance = RealTimeScheduler.create(); return instance; });
+    return result;
   }
 
   /** Returns a unique task ID. Override to customise the ID format. */

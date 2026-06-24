@@ -3,6 +3,7 @@
 import type { DlqEntryType } from './DlqEntryType.js';
 import type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
 
+import { DeadLetterQueueBuilder } from './DeadLetterQueueBuilder.js';
 import { DlqAbortedError } from './DlqAbortedError.js';
 import { DlqClosedError } from './DlqClosedError.js';
 import { DlqFullError } from './DlqFullError.js';
@@ -16,7 +17,20 @@ export class DeadLetterQueue<T> {
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
 
-  constructor(options?: DeadLetterQueueOptionsInterface) {
+  static builder<T>(): DeadLetterQueueBuilder<T> {
+    const factory = (options: DeadLetterQueueOptionsInterface): DeadLetterQueue<T> => {
+      const result = DeadLetterQueue.create<T>(options);
+      return result;
+    };
+    const result = DeadLetterQueueBuilder.create<T>(factory);
+    return result;
+  }
+
+  static create<T>(options?: DeadLetterQueueOptionsInterface): DeadLetterQueue<T> {
+    return new DeadLetterQueue<T>(options);
+  }
+
+  protected constructor(options?: DeadLetterQueueOptionsInterface) {
     const capacity = options?.capacity ?? Infinity;
     if (capacity !== undefined && (capacity <= 0 || Number.isNaN(capacity))) {
       throw new ResilienceConfigError('capacity must be > 0');

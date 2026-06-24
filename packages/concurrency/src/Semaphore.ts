@@ -1,18 +1,40 @@
 /** Counting permit gate. acquire() returns a release function. */
 
+import { SemaphoreOptionsEntity } from './entities/SemaphoreOptionsEntity.js';
 import { SemaphoreError } from './errors/SemaphoreError.js';
+import { SemaphoreBuilder } from './SemaphoreBuilder.js';
 
 export class Semaphore {
+  static builder(): SemaphoreBuilder {
+    const result = SemaphoreBuilder.create((options) => {
+      const semaphore = Semaphore.create(options);
+      return semaphore;
+    });
+    return result;
+  }
+
+  static create(options: SemaphoreOptionsEntity.Type): Semaphore {
+    const result = new this(options);
+    return result;
+  }
+
+  static #validate(options: SemaphoreOptionsEntity.Type): void {
+    if (!SemaphoreOptionsEntity.validate(options)) {
+      throw new SemaphoreError('permits must be a positive integer');
+    }
+    if (!Number.isInteger(options.permits) || options.permits < 1) {
+      throw new SemaphoreError('permits must be a positive integer');
+    }
+  }
+
   #available: number;
   readonly #permits: number;
   readonly #queue: (() => void)[];
 
-  constructor(permits: number) {
-    if (!Number.isInteger(permits) || permits < 1) {
-      throw new SemaphoreError('permits must be a positive integer');
-    }
-    this.#available = permits;
-    this.#permits = permits;
+  protected constructor(options: SemaphoreOptionsEntity.Type) {
+    Semaphore.#validate(options);
+    this.#available = options.permits;
+    this.#permits = options.permits;
     this.#queue = [];
   }
 

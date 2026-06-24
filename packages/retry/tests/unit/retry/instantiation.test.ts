@@ -1,7 +1,7 @@
 /**
  * Retry Instantiation Unit Tests
  *
- * Tests for creating Retry instances via constructor, factory, and builder.
+ * Tests for creating Retry instances via factory and builder.
  */
 
 import {
@@ -16,39 +16,10 @@ import {
 } from '../../../src/retry/index.js';
 
 // ---------------------------------------------------------------------------
-// Constructor scenarios
-// ---------------------------------------------------------------------------
-
-const constructorScenarios: Array<{ description: string; build: () => Retry }> = [
-  {
-    description: 'creates retry with new Retry({ maxRetries: 5 })',
-    build: () => new Retry({ maxRetries: 5 })
-  },
-  {
-    description: 'creates retry with new Retry() using defaults',
-    build: () => new Retry()
-  },
-  {
-    description: 'creates retry with new Retry({ errorClassifier, maxRetries })',
-    build: () => new Retry({ errorClassifier: new DefaultHttpErrorClassifier(), maxRetries: 3 })
-  },
-  {
-    description: 'creates retry with new Retry({ maxRetries, retryInterceptor })',
-    build: () => new Retry({ maxRetries: 3, retryInterceptor: () => ({ delayMs: 100 }) })
-  }
-];
-
-for (const { description, build } of constructorScenarios) {
-  it(description, () => {
-    ok(build() instanceof Retry);
-  });
-}
-
-// ---------------------------------------------------------------------------
 // Static factory method scenarios
 // ---------------------------------------------------------------------------
 
-const factoryScenarios: Array<{ description: string; build: () => Retry }> = [
+const createScenarios: Array<{ description: string; build: () => Retry }> = [
   {
     description: 'creates retry with Retry.create({ maxRetries: 5 })',
     build: () => Retry.create({ maxRetries: 5 })
@@ -56,10 +27,18 @@ const factoryScenarios: Array<{ description: string; build: () => Retry }> = [
   {
     description: 'creates retry with Retry.create() using defaults',
     build: () => Retry.create()
+  },
+  {
+    description: 'creates retry with Retry.create({ errorClassifier, maxRetries })',
+    build: () => Retry.create({ errorClassifier: DefaultHttpErrorClassifier.create(), maxRetries: 3 })
+  },
+  {
+    description: 'creates retry with Retry.create({ maxRetries, retryInterceptor })',
+    build: () => Retry.create({ maxRetries: 3, retryInterceptor: () => ({ delayMs: 100 }) })
   }
 ];
 
-for (const { description, build } of factoryScenarios) {
+for (const { description, build } of createScenarios) {
   it(description, () => {
     ok(build() instanceof Retry);
   });
@@ -71,8 +50,8 @@ for (const { description, build } of factoryScenarios) {
 
 const builderScenarios: Array<{ description: string; build: () => Retry }> = [
   {
-    description: 'creates retry with new RetryBuilder(Retry).build()',
-    build: () => new RetryBuilder(Retry).build()
+    description: 'creates retry with RetryBuilder.create(...).build()',
+    build: () => RetryBuilder.create((opts) => Retry.create(opts)).build()
   },
   {
     description: 'creates retry with Retry.builder().build()',
@@ -84,7 +63,7 @@ const builderScenarios: Array<{ description: string; build: () => Retry }> = [
   },
   {
     description: 'builds with errorClassifier and maxRetries',
-    build: () => Retry.builder().maxRetries(3).errorClassifier(new DefaultHttpErrorClassifier()).build()
+    build: () => Retry.builder().maxRetries(3).errorClassifier(DefaultHttpErrorClassifier.create()).build()
   },
   {
     description: 'builds with retryInterceptor and maxRetries',
@@ -94,7 +73,7 @@ const builderScenarios: Array<{ description: string; build: () => Retry }> = [
     description: 'chains all builder methods: maxRetries + errorClassifier + retryInterceptor',
     build: () => Retry.builder()
       .maxRetries(5)
-      .errorClassifier(new DefaultHttpErrorClassifier())
+      .errorClassifier(DefaultHttpErrorClassifier.create())
       .retryInterceptor(() => ({ delayMs: 100 }))
       .build()
   }
@@ -121,11 +100,11 @@ it('builder.maxRetries() returns builder instance for chaining', () => {
 // Functional equivalence
 // ---------------------------------------------------------------------------
 
-it('constructor and factory produce functionally equivalent instances', async () => {
-  const viaConstructor = new Retry({ maxRetries: 3 });
+it('create and factory produce functionally equivalent instances', async () => {
+  const viaCreate = Retry.create({ maxRetries: 3 });
   const viaFactory = Retry.create({ maxRetries: 3 });
 
-  const result1 = await viaConstructor.execute(async () => 'test');
+  const result1 = await viaCreate.execute(async () => 'test');
   const result2 = await viaFactory.execute(async () => 'test');
 
   strictEqual(result1, 'test');

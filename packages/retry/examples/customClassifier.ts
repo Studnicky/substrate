@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { ErrorClassificationType } from '../src/index.js';
+import type { ErrorClassificationType, RetryConfigInterface } from '../src/index.js';
 
 import { Retry } from '../src/index.js';
 
@@ -18,6 +18,10 @@ class DatabaseError extends Error {
 }
 
 class DatabaseRetry extends Retry {
+  constructor(config?: Partial<RetryConfigInterface>) {
+    super(config ?? {});
+  }
+
   protected override classifyError(error: Error): ErrorClassificationType {
     if (error instanceof DatabaseError && error.isDeadlock) {
       return { 'reason': 'Transient deadlock', 'retryable': true };

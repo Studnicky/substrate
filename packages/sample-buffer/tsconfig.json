@@ -13,8 +13,8 @@
     "dist"
   ],
   "references": [
-    {
-      "path": "../errors"
-    }
+    { "path": "../errors" },
+    { "path": "../json" },
+    { "path": "../types" }
   ]
 }

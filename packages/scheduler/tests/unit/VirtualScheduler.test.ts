@@ -104,7 +104,7 @@ describe('VirtualTimeCounter', () => {
     ];
     for (const { description, start, advances, expectedNowMs } of counterAdvanceScenarios) {
       it(description, () => {
-        const counter = new VirtualTimeCounter(start);
+        const counter = VirtualTimeCounter.create({ 'startMs': start });
         for (const delta of advances) { counter.advance(delta); }
         assert.strictEqual(counter.nowMs(), expectedNowMs);
       });
@@ -120,20 +120,25 @@ describe('VirtualTimeCounter', () => {
     }> = [
       { description: 'negative advance is ignored → stays at 0', start: 0, advance: NEGATIVE_ADVANCE, expectedNowMs: 0 },
       { description: 'zero advance is no-op → stays at 0', start: 0, advance: 0, expectedNowMs: 0 },
-      { description: 'negative start clamped to 0', start: NEGATIVE_START, advance: 0, expectedNowMs: 0 },
     ];
     for (const { description, start, advance, expectedNowMs } of counterEdgeCaseScenarios) {
       it(description, () => {
-        const counter = new VirtualTimeCounter(start);
+        const counter = VirtualTimeCounter.create({ 'startMs': start });
         counter.advance(advance);
         assert.strictEqual(counter.nowMs(), expectedNowMs);
       });
     }
+
+    it('negative startMs throws ClockError', () => {
+      assert.throws(() => {
+        VirtualTimeCounter.create({ 'startMs': NEGATIVE_START });
+      });
+    });
   });
 
   describe('unhappy path', () => {
     it('multiple advances accumulate correctly', () => {
-      const counter = new VirtualTimeCounter(0);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
 
       counter.advance(DELTA_A);
       counter.advance(DELTA_B);
@@ -152,8 +157,8 @@ describe('VirtualScheduler', () => {
   describe('happy path', () => {
     describe('scheduleAt', () => {
       it('task fires when advance passes atMs', () => {
-        const counter = new VirtualTimeCounter(0);
-        const sched = new VirtualScheduler(counter);
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+        const sched = VirtualScheduler.create({ 'counter': counter });
         let fired = false;
         const atMs = TASK_OFFSET_50;
         const task = sched.scheduleAt(atMs, () => {
@@ -168,8 +173,8 @@ describe('VirtualScheduler', () => {
       });
 
       it('task does not fire when advance falls short of atMs', () => {
-        const counter = new VirtualTimeCounter(0);
-        const sched = new VirtualScheduler(counter);
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+        const sched = VirtualScheduler.create({ 'counter': counter });
         let fired = false;
         const atMs = TASK_OFFSET_50;
         const task = sched.scheduleAt(atMs, () => {
@@ -186,8 +191,8 @@ describe('VirtualScheduler', () => {
 
     describe('scheduleEvery', () => {
       it('fires 3 times for advance=300 with interval=100', () => {
-        const counter = new VirtualTimeCounter(0);
-        const sched = new VirtualScheduler(counter);
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+        const sched = VirtualScheduler.create({ 'counter': counter });
         let fireCount = 0;
 
         sched.scheduleEvery(INTERVAL_100, () => {
@@ -199,8 +204,8 @@ describe('VirtualScheduler', () => {
       });
 
       it('fires once for advance equal to interval', () => {
-        const counter = new VirtualTimeCounter(0);
-        const sched = new VirtualScheduler(counter);
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+        const sched = VirtualScheduler.create({ 'counter': counter });
         let fireCount = 0;
 
         sched.scheduleEvery(INTERVAL_100, () => {
@@ -212,8 +217,8 @@ describe('VirtualScheduler', () => {
       });
 
       it('does not fire when advance less than interval', () => {
-        const counter = new VirtualTimeCounter(0);
-        const sched = new VirtualScheduler(counter);
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+        const sched = VirtualScheduler.create({ 'counter': counter });
         let fireCount = 0;
 
         sched.scheduleEvery(INTERVAL_100, () => {
@@ -227,8 +232,8 @@ describe('VirtualScheduler', () => {
 
     describe('cancelAll', () => {
       it('cancelAll prevents all pending tasks from firing', () => {
-        const counter = new VirtualTimeCounter(0);
-        const sched = new VirtualScheduler(counter);
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+        const sched = VirtualScheduler.create({ 'counter': counter });
         const rec = new FireRecord();
 
         for (let index = 0; index < EXPECTED_FIRES_3; index++) {
@@ -243,8 +248,8 @@ describe('VirtualScheduler', () => {
       });
 
       it('cancelAll on empty scheduler is a no-op', () => {
-        const counter = new VirtualTimeCounter(0);
-        const sched = new VirtualScheduler(counter);
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+        const sched = VirtualScheduler.create({ 'counter': counter });
 
         sched.cancelAll();
         sched.advance(ADVANCE_PASS);
@@ -255,8 +260,8 @@ describe('VirtualScheduler', () => {
 
     describe('runAll', () => {
       it('runAll fires all 3 pending tasks', () => {
-        const counter = new VirtualTimeCounter(0);
-        const sched = new VirtualScheduler(counter);
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+        const sched = VirtualScheduler.create({ 'counter': counter });
         const rec = new FireRecord();
 
         for (let index = 0; index < EXPECTED_FIRES_3; index++) {
@@ -273,8 +278,8 @@ describe('VirtualScheduler', () => {
 
   describe('edge cases', () => {
     it('cancelled task does not fire even when advance passes atMs', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
       let fired = false;
       const atMs = TASK_OFFSET_50;
       const task = sched.scheduleAt(atMs, () => {
@@ -290,8 +295,8 @@ describe('VirtualScheduler', () => {
     });
 
     it('runAll on empty scheduler fires 0 tasks', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
       const rec = new FireRecord();
 
       sched.runAll();
@@ -300,8 +305,8 @@ describe('VirtualScheduler', () => {
     });
 
     it('runAll skips the first cancelled task', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
       const rec = new FireRecord();
       const tasks: { readonly cancel: () => void }[] = [];
 
@@ -324,8 +329,8 @@ describe('VirtualScheduler', () => {
     });
 
     it('runAll with 4 tasks forces right-child-smaller siftDown path', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
       const rec = new FireRecord();
       const atMsValues = [10, TASK_AT_20, TASK_AT_15, TASK_AT_25];
 
@@ -340,8 +345,8 @@ describe('VirtualScheduler', () => {
     });
 
     it('runUntil only fires tasks at or before the specified time', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
       let aFired = false;
       let bFired = false;
 
@@ -358,8 +363,8 @@ describe('VirtualScheduler', () => {
     });
 
     it('interval tasks are rescheduled after each fire', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
       let count = 0;
 
       sched.scheduleEvery(ADVANCE_PASS, () => {
@@ -371,8 +376,8 @@ describe('VirtualScheduler', () => {
     });
 
     it('cancelled interval task does not reschedule', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
       let count = 0;
       const task = sched.scheduleEvery(ADVANCE_PASS, () => {
         count++;
@@ -388,8 +393,8 @@ describe('VirtualScheduler', () => {
 
   describe('unhappy path', () => {
     it('runAll on cancelled tasks fires zero tasks', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
       let fired = false;
       const task = sched.scheduleAt(TASK_OFFSET_50, () => {
         fired = true;
@@ -402,8 +407,8 @@ describe('VirtualScheduler', () => {
     });
 
     it('advance with 0 or negative delta does not advance counter', () => {
-      const counter = new VirtualTimeCounter(ADVANCE_PASS);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': ADVANCE_PASS });
+      const sched = VirtualScheduler.create({ 'counter': counter });
       let fired = false;
 
       sched.scheduleAt(EXPECTED_150, () => {
@@ -417,8 +422,8 @@ describe('VirtualScheduler', () => {
     });
 
     it('runUntil: rejected Promise from fire is silently caught', async () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
 
       sched.scheduleAt(TASK_OFFSET_50, async () => {
         await Promise.resolve();
@@ -433,8 +438,8 @@ describe('VirtualScheduler', () => {
     });
 
     it('runAll: rejected Promise from fire is silently caught', async () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new VirtualScheduler(counter);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
 
       sched.scheduleAt(TASK_OFFSET_50, async () => {
         await Promise.resolve();
@@ -457,7 +462,7 @@ describe('VirtualScheduler', () => {
           return -1;
         }
       };
-      const provider = new VirtualClockProvider(negCounter);
+      const provider = VirtualClockProvider.create(negCounter);
 
       assert.strictEqual(provider.now(), 0);
     });
@@ -474,6 +479,8 @@ describe('VirtualScheduler', () => {
       public cancelCount = 0;
       public cancelAllCount = 0;
       public advanceCount = 0;
+
+      public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
 
       protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
         this.scheduleCount++;
@@ -529,7 +536,7 @@ describe('VirtualScheduler', () => {
     ];
     for (const { description, act, getCount } of auditHookScenarios) {
       it(description, () => {
-        const counter = new VirtualTimeCounter(0);
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
         const sched = new AuditVirtualScheduler(counter);
         act(sched);
         assert.strictEqual(getCount(sched), 1);
@@ -538,12 +545,13 @@ describe('VirtualScheduler', () => {
 
     it('virtualCounter getter is accessible from subclass', () => {
       class CounterAccessor extends VirtualScheduler {
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
         public getCounter(): Readonly<VirtualTimeCounter> {
           return this.virtualCounter;
         }
       }
 
-      const counter = new VirtualTimeCounter(0);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
       const sched = new CounterAccessor(counter);
 
       assert.strictEqual(sched.getCounter().nowMs(), 0);
@@ -551,12 +559,13 @@ describe('VirtualScheduler', () => {
 
     it('isCancelled accessible from subclass', () => {
       class CancelChecker extends VirtualScheduler {
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
         public checkCancelled(id: string): boolean {
           return this.isCancelled(id);
         }
       }
 
-      const counter = new VirtualTimeCounter(0);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
       const sched = new CancelChecker(counter);
       const task = sched.scheduleAt(TASK_OFFSET_50, () => { return; });
 
@@ -569,13 +578,14 @@ describe('VirtualScheduler', () => {
       let heapCreatedCount = 0;
 
       class SpyHeapScheduler extends VirtualScheduler {
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
         protected override createHeap(): MinimumHeap {
           heapCreatedCount++;
-          return new MinimumHeap();
+          return MinimumHeap.create();
         }
       }
 
-      const counter = new VirtualTimeCounter(0);
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
       const sched = new SpyHeapScheduler(counter);
 
       // createHeap is called during construction — verify it ran

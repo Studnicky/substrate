@@ -10,10 +10,12 @@ import {
 
 import { Clock } from '../../src/clock/Clock.js';
 import { RealTimeClockProvider } from '../../src/clock/RealTimeClockProvider.js';
+import { RealTimeClockProviderOptionsEntity } from '../../src/entities/RealTimeClockProviderOptionsEntity.js';
 import { VirtualClockProvider } from '../../src/clock/VirtualClockProvider.js';
 import { VirtualTimeCounter } from '../../src/clock/VirtualTimeCounter.js';
 import type { Scenario } from '../helpers/Scenario.js';
 import { ScenarioRunner } from '../helpers/runScenarios.js';
+import type { ClockProviderType } from '../../src/interfaces/ClockProviderType.js';
 
 // ---------------------------------------------------------------------------
 // Named constants
@@ -57,8 +59,8 @@ type NowOutput = {
 };
 
 function execNow(input: Readonly<NowInput>): NowOutput {
-  const counter = new VirtualTimeCounter(input.startMs);
-  const clock = new Clock(new VirtualClockProvider(counter));
+  const counter = VirtualTimeCounter.create({ startMs: input.startMs });
+  const clock = Clock.create(VirtualClockProvider.create(counter));
 
   counter.advance(input.advanceMs);
 
@@ -106,8 +108,8 @@ type HrtimeOutput = {
 };
 
 function execHrtime(input: Readonly<HrtimeInput>): HrtimeOutput {
-  const counter = new VirtualTimeCounter(input.startMs);
-  const clock = new Clock(new VirtualClockProvider(counter));
+  const counter = VirtualTimeCounter.create({ startMs: input.startMs });
+  const clock = Clock.create(VirtualClockProvider.create(counter));
 
   return { ns: clock.hrtime() };
 }
@@ -151,7 +153,7 @@ const realHrtimeEdgeScenarios: readonly Scenario<RealHrtimeInput, RealHrtimeOutp
 ];
 
 function execRealHrtime(input: Readonly<RealHrtimeInput>): RealHrtimeOutput {
-  const provider = new RealTimeClockProvider(input.offsetMs);
+  const provider = RealTimeClockProvider.create({ offsetMs: input.offsetMs });
 
   return { isPositive: provider.hrtime() > ZERO_NS };
 }
@@ -176,7 +178,7 @@ const realNowScenarios: readonly Scenario<RealNowInput, RealNowOutput>[] = [{
 
 function execRealNow(input: Readonly<RealNowInput>): RealNowOutput {
   const before = Date.now();
-  const clock = new Clock(new RealTimeClockProvider(input.offsetMs));
+  const clock = Clock.create(RealTimeClockProvider.create({ offsetMs: input.offsetMs }));
   const value = clock.now();
   const after = Date.now();
   const TOLERANCE_MS = 5;
@@ -197,7 +199,7 @@ const offsetErrorScenarios: readonly Scenario<OffsetInput, never>[] = [
 ];
 
 function execOffsetConstruct(input: Readonly<OffsetInput>): never {
-  new RealTimeClockProvider(input.offsetMs);
+  RealTimeClockProvider.create({ offsetMs: input.offsetMs });
   throw new Error('expected throw');
 }
 
@@ -217,8 +219,8 @@ void describe('Clock', () => {
     ScenarioRunner.run('Clock.now zero start', nowEdgeScenarios, execNow);
 
     void it('now() is monotonically non-decreasing — same instance', () => {
-      const counter = new VirtualTimeCounter(START_MS_C);
-      const clock = new Clock(new VirtualClockProvider(counter));
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_C });
+      const clock = Clock.create(VirtualClockProvider.create(counter));
       const first = clock.now();
 
       counter.advance(ADVANCE_50);
@@ -232,8 +234,8 @@ void describe('Clock', () => {
     });
 
     void it('hrtime() is monotonically non-decreasing — same instance', () => {
-      const counter = new VirtualTimeCounter(START_MS_C);
-      const clock = new Clock(new VirtualClockProvider(counter));
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_C });
+      const clock = Clock.create(VirtualClockProvider.create(counter));
       const first = clock.hrtime();
 
       counter.advance(1);
@@ -243,10 +245,10 @@ void describe('Clock', () => {
     });
 
     void it('two instances with the same provider track monotonicity independently', () => {
-      const counter = new VirtualTimeCounter(START_MS_B);
-      const provider = new VirtualClockProvider(counter);
-      const clockA = new Clock(provider);
-      const clockB = new Clock(provider);
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_B });
+      const provider = VirtualClockProvider.create(counter);
+      const clockA = Clock.create(provider);
+      const clockB = Clock.create(provider);
 
       const aNow1 = clockA.now();
       const bNow1 = clockB.now();
@@ -266,13 +268,13 @@ void describe('Clock', () => {
     });
 
     void it('now() clamps backwards provider values to previous result', () => {
-      const counter = new VirtualTimeCounter(START_MS_B);
-      const clock = new Clock(new VirtualClockProvider(counter));
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_B });
+      const clock = Clock.create(VirtualClockProvider.create(counter));
 
       const first = clock.now();
 
-      const lowerCounter = new VirtualTimeCounter(START_MS_A);
-      const clockLower = new Clock(new VirtualClockProvider(lowerCounter));
+      const lowerCounter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const clockLower = Clock.create(VirtualClockProvider.create(lowerCounter));
       const lowerFirst = clockLower.now();
 
       const second = clockLower.now();
@@ -283,8 +285,8 @@ void describe('Clock', () => {
     });
 
     void it('VirtualClockProvider advance is reflected in subsequent now() calls', () => {
-      const counter = new VirtualTimeCounter(0);
-      const clock = new Clock(new VirtualClockProvider(counter));
+      const counter = VirtualTimeCounter.create();
+      const clock = Clock.create(VirtualClockProvider.create(counter));
 
       counter.advance(START_MS_A);
       const value = clock.now();
@@ -297,10 +299,10 @@ void describe('Clock', () => {
     ScenarioRunner.run('RealTimeClockProvider offsetMs validation', offsetErrorScenarios, execOffsetConstruct);
 
     void it('per-instance monotonicity: two clocks from same provider are independent', () => {
-      const counter = new VirtualTimeCounter(START_MS_A);
-      const provider = new VirtualClockProvider(counter);
-      const clockFast = new Clock(provider);
-      const clockSlow = new Clock(provider);
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const provider = VirtualClockProvider.create(counter);
+      const clockFast = Clock.create(provider);
+      const clockSlow = Clock.create(provider);
 
       counter.advance(ADVANCE_50);
       const fastNow = clockFast.now();
@@ -327,6 +329,8 @@ void describe('Clock', () => {
       #nowCallCount = 0;
       #hrtimeCallCount = 0;
 
+      public constructor(provider: ClockProviderType) { super(provider); }
+
       public get nowCallCount(): number { return this.#nowCallCount; }
       public get hrtimeCallCount(): number { return this.#hrtimeCallCount; }
 
@@ -342,8 +346,8 @@ void describe('Clock', () => {
     }
 
     void it('MeteredClock.readNow() intercepts now() calls and monotonicity holds', () => {
-      const counter = new VirtualTimeCounter(START_MS_A);
-      const clock = new MeteredClock(new VirtualClockProvider(counter));
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const clock = new MeteredClock(VirtualClockProvider.create(counter));
 
       const first = clock.now();
       counter.advance(ADVANCE_50);
@@ -355,8 +359,8 @@ void describe('Clock', () => {
     });
 
     void it('MeteredClock.readHrtime() intercepts hrtime() calls', () => {
-      const counter = new VirtualTimeCounter(START_MS_A);
-      const clock = new MeteredClock(new VirtualClockProvider(counter));
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const clock = new MeteredClock(VirtualClockProvider.create(counter));
 
       clock.hrtime();
       counter.advance(ADVANCE_50);
@@ -373,19 +377,21 @@ void describe('Clock', () => {
     const FIXED_RAW_MS = 12345;
 
     class OffsetRealTimeClockProvider extends RealTimeClockProvider {
+      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+
       protected override readRawMs(): number {
         return FIXED_RAW_MS;
       }
     }
 
     void it('OffsetRealTimeClockProvider.now() returns fixed raw value when offset is zero', () => {
-      const provider = new OffsetRealTimeClockProvider(0);
+      const provider = new OffsetRealTimeClockProvider({ offsetMs: 0 });
 
       assert.equal(provider.now(), FIXED_RAW_MS, 'now() uses overridden readRawMs()');
     });
 
     void it('OffsetRealTimeClockProvider.offsetMs getter is accessible to subclass', () => {
-      const provider = new OffsetRealTimeClockProvider(ADVANCE_50);
+      const provider = new OffsetRealTimeClockProvider({ offsetMs: ADVANCE_50 });
 
       assert.equal(provider.now(), FIXED_RAW_MS + ADVANCE_50, 'offsetMs accessor applied correctly');
     });
@@ -398,20 +404,22 @@ void describe('Clock', () => {
     const EXPECTED_VIRTUAL_NS = BigInt(FIXED_VIRTUAL_MS) * NS_PER_MS;
 
     class TracedVirtualClockProvider extends VirtualClockProvider {
+      public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+
       protected override readVirtualMs(): number {
         return FIXED_VIRTUAL_MS;
       }
     }
 
     void it('TracedVirtualClockProvider.now() returns fixed virtual ms', () => {
-      const counter = new VirtualTimeCounter(0);
+      const counter = VirtualTimeCounter.create();
       const provider = new TracedVirtualClockProvider(counter);
 
       assert.equal(provider.now(), FIXED_VIRTUAL_MS, 'now() uses overridden readVirtualMs()');
     });
 
     void it('TracedVirtualClockProvider.hrtime() returns fixed virtual ns', () => {
-      const counter = new VirtualTimeCounter(0);
+      const counter = VirtualTimeCounter.create();
       const provider = new TracedVirtualClockProvider(counter);
 
       assert.equal(provider.hrtime(), EXPECTED_VIRTUAL_NS, 'hrtime() uses overridden readVirtualMs()');

@@ -1,7 +1,23 @@
 /**
- * Circular buffer data structure for O(1) push and shift operations
+ * Fixed-capacity ring buffer with O(1) push and shift operations.
+ *
+ * By default (overflow: 'overwrite') the buffer evicts the oldest item when
+ * full, maintaining a fixed-size sliding window of the most recent N items.
+ *
+ * With overflow: 'grow' the buffer doubles capacity instead of evicting,
+ * preserving every item at the cost of unbounded growth.
+ *
+ * Subclasses may override the protected hook methods to observe lifecycle
+ * events. All hooks have no-op defaults — super() call is not required.
+ *
+ * Fire points:
+ * - `onEvict(item)` — in push(), before the oldest item is overwritten (overwrite mode only)
+ * - `onGrow(oldCapacity, newCapacity)` — end of grow(), after resize completes (grow mode only)
+ * - `onPush(item)` — end of push(), after item is inserted and length updated
+ * - `onShift(item)` — in shift(), before returning a defined item
  */
 
+import type { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import type { CircularBufferInterface } from '../interfaces/CircularBufferInterface.js';
 
 import {
@@ -15,40 +31,68 @@ import {
   INITIAL_BUFFER_TAIL
 } from '../constants/index.js';
 import { CircularBufferError } from '../errors/index.js';
+import { CircularBufferBuilder } from './CircularBufferBuilder.js';
 
-/**
- * Circular buffer with O(1) push and shift operations
- *
- * Provides constant-time queue operations by using a circular array
- * with head and tail pointers. Automatically grows capacity when full.
- *
- * Subclasses may override the protected hook methods to observe lifecycle
- * events. All hooks have no-op defaults — super() call is not required.
- *
- * Fire points:
- * - `onGrow(oldCapacity, newCapacity)` — end of grow(), after resize completes
- * - `onPush(item)` — end of push(), after item is inserted and length updated
- * - `onShift(item)` — in shift(), before returning a defined item
- */
 export class CircularBuffer<T> implements CircularBufferInterface<T> {
+  /**
+   * Create a fluent builder for constructing a CircularBuffer instance.
+   *
+   * @returns A new CircularBufferBuilder
+   *
+   * @example
+   * ```typescript
+   * const buf = CircularBuffer.builder<number>().withCapacity(16).build();
+   * ```
+   */
+  static builder<T>(): CircularBufferBuilder<T> {
+    const result = CircularBufferBuilder.create<T>((options) => {
+      const buffer = CircularBuffer.create<T>(options);
+      return buffer;
+    });
+    return result;
+  }
+
+  /**
+   * Create a new CircularBuffer instance.
+   *
+   * @param options - Construction options
+   * @returns New CircularBuffer instance
+   *
+   * @example
+   * ```typescript
+   * const buf = CircularBuffer.create<number>({ capacity: 16 });
+   * ```
+   */
+  static create<T>(options: CircularBufferOptionsEntity.Type = {}): CircularBuffer<T> {
+    // `new this(...)` so subclass factories return the subclass instance.
+    return new this(options);
+  }
+
   protected _length = INITIAL_BUFFER_COUNT;
   protected _head = INITIAL_BUFFER_HEAD;
   protected _items: (T | undefined)[];
   protected _tail = INITIAL_BUFFER_TAIL;
   protected _capacity: number;
 
+  readonly #overflow: 'grow' | 'overwrite';
+
   /**
-   * Create a new circular buffer
+   * Create a new circular buffer.
    *
-   * @param capacity - Initial capacity (default: 128)
+   * @param options - Construction options
+   * @param options.capacity - Initial capacity (default: 128)
+   * @param options.overflow - Overflow strategy: 'overwrite' evicts oldest (default), 'grow' doubles capacity
    */
-  constructor(capacity = DEFAULT_BUFFER_CAPACITY) {
+  protected constructor(options: CircularBufferOptionsEntity.Type = {}) {
+    const capacity = options.capacity ?? DEFAULT_BUFFER_CAPACITY;
+
     if (capacity <= 0 || !Number.isInteger(capacity)) {
       throw new CircularBufferError('capacity must be a positive integer');
     }
 
     this._capacity = capacity;
     this._items = Array.from<T | undefined>({ 'length': capacity });
+    this.#overflow = options.overflow ?? 'overwrite';
   }
 
   /**
@@ -85,7 +129,18 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   }
 
   /**
-   * Called at the end of grow(), after the buffer has been resized.
+   * Called when an item is evicted during an overwrite push (overflow: 'overwrite').
+   * Fires before the new item is written at the evicted slot.
+   * No-op default — override to observe evictions.
+   *
+   * @param _item - The item that was evicted
+   */
+  protected onEvict(_item: T): void {
+    // no-op
+  }
+
+  /**
+   * Called at the end of grow(), after the buffer has been resized (overflow: 'grow' only).
    * No-op default — override to observe capacity changes.
    *
    * @param _oldCapacity - Capacity before growth
@@ -97,7 +152,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
 
   /**
    * Called at the end of push(), after the item has been inserted and
-   * length incremented.
+   * length updated.
    * No-op default — override to observe item insertions.
    *
    * @param _item - The item that was pushed
@@ -118,14 +173,32 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   }
 
   /**
-   * Add an item to the end of the buffer
-   * Time complexity: O(1) amortized
+   * Add an item to the end of the buffer.
+   * Time complexity: O(1) amortized (overwrite mode: always O(1))
+   *
+   * In overwrite mode (default): when full, evicts the oldest item and
+   * overwrites its slot, advancing both head and tail. Length stays at capacity.
+   *
+   * In grow mode: when full, doubles capacity before inserting.
    *
    * @param item - Item to add
    */
   push(item: T): void {
     if (this._length === this._capacity) {
-      this.grow();
+      if (this.#overflow === 'grow') {
+        this.grow();
+      } else {
+        // overwrite: evict oldest, advance head, keep length at capacity
+        const evicted = this._items[this._head];
+        if (evicted !== undefined) {
+          this.onEvict(evicted);
+        }
+        this._items[this._tail] = item;
+        this._tail = (this._tail + INCREMENT_BY_ONE) % this._capacity;
+        this._head = (this._head + INCREMENT_BY_ONE) % this._capacity;
+        this.onPush(item);
+        return;
+      }
     }
 
     this._items[this._tail] = item;

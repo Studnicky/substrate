@@ -41,10 +41,14 @@ Subclass `Retry` and override any of the protected lifecycle hooks to add teleme
 
 ```typescript
 import { Retry } from '@studnicky/retry';
-import type { ErrorClassificationInterface } from '@studnicky/retry';
+import type { ErrorClassificationInterface, RetryConfigInterface } from '@studnicky/retry';
 
 class InstrumentedRetry extends Retry {
   readonly events: string[] = [];
+
+  constructor(config?: Partial<RetryConfigInterface>) {
+    super(config ?? {});
+  }
 
   protected override onRetryScheduled(attemptNumber: number, delayMs: number): void {
     this.events.push(`scheduled attempt=${attemptNumber} delay=${delayMs}ms`);

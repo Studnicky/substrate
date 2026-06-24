@@ -16,6 +16,10 @@ import { UrlUtils } from './UrlUtils.js';
  * Fluent request builder for chaining request configuration
  */
 export class RequestBuilder implements RequestBuilderInterface {
+  static create(client: FetchClientInterface, path: string): RequestBuilder {
+    return new RequestBuilder(client, path);
+  }
+
   private readonly client: FetchClientInterface;
   private readonly fetchOptions: FetchOptionsType = {};
   private readonly localRequestInterceptors: RequestInterceptorType[] = [];
@@ -24,7 +28,7 @@ export class RequestBuilder implements RequestBuilderInterface {
   private queryParams?: QueryParamsType;
   private requestBody?: unknown;
 
-  constructor(client: FetchClientInterface, path: string) {
+  protected constructor(client: FetchClientInterface, path: string) {
     this.client = client;
     this.path = path;
   }

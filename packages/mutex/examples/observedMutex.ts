@@ -24,7 +24,7 @@ class ObservedMutex extends Mutex<string> {
   }
 }
 
-const mutex = new ObservedMutex();
+const mutex = ObservedMutex.create<string>();
 
 // Run two exclusive operations on different keys
 await Promise.all([

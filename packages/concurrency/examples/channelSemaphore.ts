@@ -7,7 +7,7 @@ import { Channel, Semaphore } from '../src/index.js';
 
 class ChannelSemaphoreDemo {
   static async runChannel(): Promise<number[]> {
-    const channel = new Channel<number>();
+    const channel = Channel.create<number>();
 
     // Publish items before subscribing — they buffer in the channel
     channel.publish('nums', 1);
@@ -25,7 +25,7 @@ class ChannelSemaphoreDemo {
   }
 
   static async runChannelMultiKey(): Promise<{ 'a': string[]; 'b': string[] }> {
-    const channel = new Channel<string>();
+    const channel = Channel.create<string>();
 
     // Two independent keys — no cross-talk
     channel.publish('a', 'alpha');
@@ -49,7 +49,7 @@ class ChannelSemaphoreDemo {
   }
 
   static async runChannelConcurrent(): Promise<number[]> {
-    const channel = new Channel<number>();
+    const channel = Channel.create<number>();
     const received: number[] = [];
 
     // Start subscriber before publishing — it will wait for items
@@ -72,7 +72,7 @@ class ChannelSemaphoreDemo {
   }
 
   static async runSemaphoreWithPermit(): Promise<number> {
-    const sem = new Semaphore(2);
+    const sem = Semaphore.create({ 'permits': 2 });
 
     console.log('Semaphore permits:', sem.permits, 'available:', sem.available);
 
@@ -96,7 +96,7 @@ class ChannelSemaphoreDemo {
   }
 
   static async runSemaphoreAcquireRelease(): Promise<{ 'afterAcquire': number; 'afterRelease': number }> {
-    const sem = new Semaphore(1);
+    const sem = Semaphore.create({ 'permits': 1 });
 
     const release = await sem.acquire();
     const afterAcquire = sem.available;

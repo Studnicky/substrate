@@ -31,39 +31,56 @@ Acquire a lock, read and write the file while holding it, then release in a `try
 
 <!-- inline-ts-ok: two-line options-only snippet; no dedicated example isolates acquire options without contention context -->
 ```typescript
-const lock = await FileLock.acquire('/var/data/queue.json', {
+const lock = await FileLock.create({
+  path: '/var/data/queue.json',
   pollMs: 100,     // how often to retry when file is locked (default 50 ms)
   timeoutMs: 3000, // give up after 3 s (default 5000 ms)
 });
 ```
 
+### Builder API
+
+<<< ../../packages/file-lock/examples/builderAcquire.ts#usage
+
 ### Error handling
 
-`FileLock.acquire` throws `FileLockTimeoutError` when the lock cannot be acquired within `timeoutMs`:
+`FileLock.create` throws `FileLockTimeoutError` when the lock cannot be acquired within `timeoutMs`:
 
 <<< ../../packages/file-lock/examples/timeoutContention.ts#usage
 
 ## How it works
 
-`FileLock.acquire` uses `renameSync` to atomically move the target file to a PID-scoped lock path (`<path>.lock.<pid>`). Any process that cannot rename the file retries at `pollMs` intervals until `timeoutMs` elapses. On release, the file is renamed back to the original path. The mechanism is advisory — all participants must use `FileLock` for mutual exclusion to hold.
+`FileLock.create` uses `renameSync` to atomically move the target file to a PID-scoped lock path (`<path>.lock.<pid>`). Any process that cannot rename the file retries at `pollMs` intervals until `timeoutMs` elapses. On release, the file is renamed back to the original path. The mechanism is advisory — all participants must use `FileLock` for mutual exclusion to hold.
 
 ## API
 
 | Export | Type | Description |
 |--------|------|-------------|
-| `FileLock` | class | Advisory file lock; acquired via `FileLock.acquire` |
+| `FileLock` | class | Advisory file lock; acquired via `FileLock.create` or `FileLock.builder()` |
+| `FileLockBuilder` | class | Fluent builder for `FileLock`; returned by `FileLock.builder()` |
 | `FileLockTimeoutError` | class | Thrown when lock cannot be acquired within `timeoutMs` |
-| `FileLockOptionsType` | type | `{ pollMs?, timeoutMs? }` |
+| `FileLockOptionsEntity` | namespace | Schema and type for `FileLock` options |
 
 ### `FileLock`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| `acquire` | `static (path, options?) => Promise<FileLock>` | Acquires the lock; throws `FileLockTimeoutError` on timeout |
+| `create` | `static (options) => Promise<FileLock>` | Acquires the lock; throws `FileLockTimeoutError` on timeout or `FileLockConfigError` on invalid options |
+| `builder` | `static () => FileLockBuilder` | Returns a fluent builder for configuring and acquiring a lock |
+| `acquire` | `static (path, options?) => Promise<FileLock>` | Alias for `create({ path, ...options })`; retained for compatibility |
 | `read` | `() => string` | Reads the locked file as UTF-8 |
 | `write` | `(content: string) => void` | Writes content to the locked file |
 | `release` | `() => void` | Releases the lock; safe to call multiple times |
 | `[Symbol.dispose]` | `() => void` | Calls `release`; enables `using` syntax |
+
+### `FileLockBuilder`
+
+| Member | Signature | Description |
+|--------|-----------|-------------|
+| `withPath` | `(value: string) => this` | Sets the file path to lock |
+| `withPollMs` | `(value: number) => this` | Sets the poll interval in milliseconds |
+| `withTimeoutMs` | `(value: number) => this` | Sets the acquisition timeout in milliseconds |
+| `build` | `() => Promise<FileLock>` | Acquires and returns the lock |
 
 ### `FileLockTimeoutError`
 

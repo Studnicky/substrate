@@ -15,6 +15,8 @@ import { it } from 'node:test';
 
 import type { RetryCallStateType } from '../../../src/types/RetryCallStateType.js';
 
+import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+
 import {
   DefaultHttpErrorClassifier,
   Retry,
@@ -36,6 +38,10 @@ type TransitionRecord = { from: RetryCallStateType; to: RetryCallStateType };
  * Uses DefaultHttpErrorClassifier by default.
  */
 class TrackingRetry extends Retry {
+  constructor(config?: Partial<RetryConfigInterface>) {
+    super(config ?? {});
+  }
+
   readonly transitions: TransitionRecord[] = [];
 
   override enterCall(to: RetryCallStateType, from: RetryCallStateType): void {
@@ -68,7 +74,7 @@ const transitionScenarios: TransitionScenario[] = [
   {
     description: 'attempting → succeeded on immediate success',
     build: () => new TrackingRetry({
-      errorClassifier: new DefaultHttpErrorClassifier(),
+      errorClassifier: DefaultHttpErrorClassifier.create(),
       maxRetries: 3
     }),
     execute: (retry) => retry.execute(async () => 'ok'),
@@ -79,7 +85,7 @@ const transitionScenarios: TransitionScenario[] = [
   {
     description: 'attempting → waiting → attempting → succeeded on one retryable failure then success',
     build: () => new TrackingRetry({
-      errorClassifier: new DefaultHttpErrorClassifier(),
+      errorClassifier: DefaultHttpErrorClassifier.create(),
       maxRetries: 3,
       retryInterceptor: () => ({ delayMs: 0 })
     }),
@@ -112,7 +118,7 @@ const transitionScenarios: TransitionScenario[] = [
   {
     description: 'waiting → aborted via interceptor abort signal',
     build: () => new TrackingRetry({
-      errorClassifier: new DefaultHttpErrorClassifier(),
+      errorClassifier: DefaultHttpErrorClassifier.create(),
       maxRetries: 3,
       retryInterceptor: () => ({ abort: true, delayMs: 0 })
     }),
@@ -149,7 +155,7 @@ for (const { description, build, execute, expectedTransitions, expectReject } of
 
 it('waiting → exhausted when budget is gone (maxRetries: 1)', async () => {
   const retry = new TrackingRetry({
-    errorClassifier: new DefaultHttpErrorClassifier(),
+    errorClassifier: DefaultHttpErrorClassifier.create(),
     maxRetries: 1,
     retryInterceptor: () => ({ delayMs: 0 })
   });
@@ -185,6 +191,10 @@ it('attempting → failed surfaces NonRetryableError', async () => {
 
 it('illegal transition throws when guardCall returns false', async () => {
   class GuardRejectingRetry extends Retry {
+    constructor(config?: Partial<RetryConfigInterface>) {
+      super(config ?? {});
+    }
+
     override guardCall(from: RetryCallStateType, to: RetryCallStateType): boolean {
       if (from === 'attempting' && to === 'succeeded') return false;
       return super.guardCall(from, to);
@@ -192,7 +202,7 @@ it('illegal transition throws when guardCall returns false', async () => {
   }
 
   const retry = new GuardRejectingRetry({
-    errorClassifier: new DefaultHttpErrorClassifier(),
+    errorClassifier: DefaultHttpErrorClassifier.create(),
     maxRetries: 3
   });
 
@@ -219,9 +229,12 @@ it('illegal transition throws when guardCall returns false', async () => {
 // ---------------------------------------------------------------------------
 
 it('TrackingRetry is constructable via RetryBuilder', () => {
-  const retry = new RetryBuilder(TrackingRetry)
+  const retry = RetryBuilder.create((opts) => {
+    const result = new TrackingRetry(opts);
+    return result;
+  })
     .maxRetries(2)
-    .errorClassifier(new DefaultHttpErrorClassifier())
+    .errorClassifier(DefaultHttpErrorClassifier.create())
     .build();
 
   strictEqual(retry instanceof TrackingRetry, true);

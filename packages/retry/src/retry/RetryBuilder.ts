@@ -7,13 +7,6 @@ import type {
 import type { ErrorClassifierFunctionType } from '../types/ErrorClassifierFunctionType.js';
 import type { RetryInterceptorType } from '../types/RetryInterceptorType.js';
 
-/** Mutable config shape used internally during builder accumulation. */
-type BuilderConfig = {
-  'errorClassifier'?: ErrorClassifierFunctionType | ErrorClassifierInterface;
-  'maxRetries'?: number;
-  'retryInterceptor'?: RetryInterceptorType[];
-};
-
 /**
  * Builder for creating Retry instances with fluent API
  *
@@ -46,28 +39,26 @@ type BuilderConfig = {
  * ```
  */
 export class RetryBuilder<T extends RetryInterface = RetryInterface> implements RetryBuilderInterface<T> {
-  private readonly config: BuilderConfig = {};
-  private readonly ctor: new (config?: Partial<RetryConfigInterface>) => T;
-
-  constructor(ctor: new (config?: Partial<RetryConfigInterface>) => T) {
-    this.ctor = ctor;
+  static create<T extends RetryInterface = RetryInterface>(
+    create: (options: Partial<RetryConfigInterface>) => T
+  ): RetryBuilder<T> {
+    return new RetryBuilder<T>(create);
   }
 
-  /**
-   * Build and return Retry instance
-   * Config validation occurs in the constructor
-   */
-  build(): T {
-    const result = new this.ctor({ ...this.config });
-    return result;
+  readonly #create: (options: Partial<RetryConfigInterface>) => T;
+  #maxRetries?: number;
+  #errorClassifier?: ErrorClassifierFunctionType | ErrorClassifierInterface;
+  #retryInterceptors?: RetryInterceptorType[];
+
+  private constructor(create: (options: Partial<RetryConfigInterface>) => T) {
+    this.#create = create;
   }
 
   /**
    * Set error classifier for determining retry behavior
    */
   errorClassifier(value: ErrorClassifierFunctionType | ErrorClassifierInterface): this {
-    this.config.errorClassifier = value;
-
+    this.#errorClassifier = value;
     return this;
   }
 
@@ -75,8 +66,7 @@ export class RetryBuilder<T extends RetryInterface = RetryInterface> implements 
    * Set maximum number of retry attempts
    */
   maxRetries(value: number): this {
-    this.config.maxRetries = value;
-
+    this.#maxRetries = value;
     return this;
   }
 
@@ -86,14 +76,24 @@ export class RetryBuilder<T extends RetryInterface = RetryInterface> implements 
    * Multiple calls append to the pipeline in registration order.
    */
   retryInterceptor(value: RetryInterceptorType): this {
-    const current = this.config.retryInterceptor;
-
-    if (current === undefined) {
-      this.config.retryInterceptor = [value];
+    if (this.#retryInterceptors === undefined) {
+      this.#retryInterceptors = [value];
     } else {
-      current.push(value);
+      this.#retryInterceptors.push(value);
     }
-
     return this;
+  }
+
+  /**
+   * Build and return Retry instance
+   * Config validation occurs in create()
+   */
+  build(): T {
+    const config: Partial<RetryConfigInterface> = {
+      ...(this.#maxRetries !== undefined ? { 'maxRetries': this.#maxRetries } : {}),
+      ...(this.#errorClassifier !== undefined ? { 'errorClassifier': this.#errorClassifier } : {}),
+      ...(this.#retryInterceptors !== undefined ? { 'retryInterceptor': this.#retryInterceptors } : {})
+    };
+    return this.#create(config);
   }
 }

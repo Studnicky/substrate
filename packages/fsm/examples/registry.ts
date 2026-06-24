@@ -11,6 +11,8 @@ type ToggleState = { readonly 'variant': 'on' } | { readonly 'variant': 'off' };
 type ToggleEvent = { readonly 'type': 'toggle' };
 
 class Toggle extends StateMachine<ToggleState, ToggleEvent> {
+  static make(): Toggle { return new Toggle(); }
+
   getInitialState(): ToggleState {
     return { 'variant': 'off' };
   }
@@ -23,7 +25,7 @@ class Toggle extends StateMachine<ToggleState, ToggleEvent> {
   }
 }
 
-const interpreter = new EffectInterpreter(new Toggle(), undefined, { 'machineId': 'toggle-a' });
+const interpreter: EffectInterpreter<ToggleState, ToggleEvent> = EffectInterpreter.create({ 'machine': Toggle.make(), 'machineId': 'toggle-a' });
 interpreter.start();
 
 // Registry is empty before registration

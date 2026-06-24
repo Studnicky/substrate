@@ -10,12 +10,28 @@ import type { ResponseInterceptorContextType } from '../interfaces/ResponseInter
 import type { RequestInterceptorType } from '../types/RequestInterceptorType.js';
 import type { ResponseInterceptorType } from '../types/ResponseInterceptorType.js';
 
+import { InterceptorManagerBuilder } from './InterceptorManagerBuilder.js';
+
 /**
  * Manages request and response interceptors
  */
 export class InterceptorManager implements InterceptorManagerInterface {
-  private readonly requestPipeline = new Pipeline<RequestInterceptorContextType>();
-  private readonly responsePipeline = new Pipeline<ResponseInterceptorContextType>();
+  static create(): InterceptorManager {
+    return new this();
+  }
+
+  static builder(): InterceptorManagerBuilder {
+    const result = InterceptorManagerBuilder.create(() => {
+      const manager = InterceptorManager.create();
+      return manager;
+    });
+    return result;
+  }
+
+  private readonly requestPipeline = Pipeline.create<RequestInterceptorContextType>();
+  private readonly responsePipeline = Pipeline.create<ResponseInterceptorContextType>();
+
+  protected constructor() {}
 
   /**
    * Current request interceptors (readonly view)

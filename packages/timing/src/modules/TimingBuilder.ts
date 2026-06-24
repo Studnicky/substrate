@@ -32,16 +32,17 @@ export class TimingBuilder implements TimingBuilderInterface {
     return result;
   }
 
-  protected readonly _config: Partial<TimingOptionsEntity.Type> = {};
+  readonly #create: (options: TimingOptionsEntity.Type) => TimingInterface;
 
-  private readonly factory: (options: TimingOptionsEntity.Type) => TimingInterface;
+  #config: Partial<TimingOptionsEntity.Type> = {};
 
   /**
-   * Protected constructor. Use Timing.builder() to instantiate.
-   * @param factory - Factory function to create Timing instances
+   * Private constructor. Use Timing.builder() to instantiate.
+   * @param create - Factory closure to create Timing instances
    */
-  protected constructor(factory: (options: TimingOptionsEntity.Type) => TimingInterface) {
-    this.factory = factory;
+  private constructor(create: (options: TimingOptionsEntity.Type) => TimingInterface) {
+    this.#create = create;
+    this.#config = {};
   }
 
   /**
@@ -52,7 +53,7 @@ export class TimingBuilder implements TimingBuilderInterface {
    * @throws ConfigurationError if configuration is invalid
    */
   build(): TimingInterface {
-    const result = this.factory({ ...this._config });
+    const result = this.#create({ ...this.#config });
     return result;
   }
 
@@ -63,7 +64,7 @@ export class TimingBuilder implements TimingBuilderInterface {
    * @returns this for method chaining
    */
   maxEvents(value: number): this {
-    this._config.maxEvents = value;
+    this.#config.maxEvents = value;
 
     return this;
   }
@@ -74,7 +75,7 @@ export class TimingBuilder implements TimingBuilderInterface {
    * @returns this for method chaining
    */
   precision(config: TimingOptionsEntity.PrecisionConfigType): this {
-    this._config.precision = config;
+    this.#config.precision = config;
 
     return this;
   }

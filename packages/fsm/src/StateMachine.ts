@@ -7,6 +7,8 @@ export abstract class StateMachine<
   TEvent extends { readonly 'type': string },
   TEffect = never
 > {
+  protected constructor() {}
+
   abstract getInitialState(): TState;
 
   abstract reduce(state: TState, event: TEvent): FsmStepType<TState, TEffect>;

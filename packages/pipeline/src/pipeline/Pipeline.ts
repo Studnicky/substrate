@@ -25,7 +25,7 @@
  *
  * interface RequestCtx { url: string; headers: Record<string, string> }
  *
- * const pipeline = new Pipeline<RequestCtx>();
+ * const pipeline = Pipeline.create<RequestCtx>();
  *
  * // Add auth header
  * const remove = pipeline.add(async (ctx) => ({
@@ -44,8 +44,42 @@ import type { PipelineInterface } from '../interfaces/PipelineInterface.js';
 import type { PipelineFnType } from '../types/PipelineFnType.js';
 
 import { PipelineError } from '../errors/PipelineError.js';
+import { PipelineBuilder } from './PipelineBuilder.js';
 
 export class Pipeline<T> implements PipelineInterface<T> {
+  /**
+   * Create a fluent builder for constructing a Pipeline instance.
+   *
+   * @returns A new PipelineBuilder
+   *
+   * @example
+   * ```typescript
+   * const pipeline = Pipeline.builder<RequestCtx>().build();
+   * ```
+   */
+  static builder<T>(): PipelineBuilder<T> {
+    const result = PipelineBuilder.create<T>(() => { const instance = Pipeline.create<T>(); return instance; });
+    return result;
+  }
+
+  /**
+   * Create a new Pipeline instance.
+   *
+   * @returns New Pipeline instance
+   *
+   * @example
+   * ```typescript
+   * const pipeline = Pipeline.create<RequestCtx>();
+   * ```
+   */
+  static create<T>(): Pipeline<T> {
+    // `new this()` so subclass factories return the subclass instance.
+    return new this<T>();
+  }
+
+  // No-config construction — nothing to validate.
+  protected constructor() {}
+
   protected fns: PipelineFnType<T>[] = [];
 
   /**

@@ -40,16 +40,16 @@ export class LogBody extends BaseLogEntryBuilder implements LogBodyInterface {
    * @returns New LogBody builder
    */
   static create(): LogBody {
-    const result = new LogBody();
+    const result = new this();
     return result;
   }
 
   private messageValue: string | undefined;
 
   /**
-   * Private constructor - use LogBody.create()
+   * Protected constructor - use LogBody.create()
    */
-  private constructor() {
+  protected constructor() {
     super();
   }
 

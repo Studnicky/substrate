@@ -21,7 +21,17 @@ const VALID_OPS = new Set<PatchOpVariantType>(['add', 'copy', 'move', 'remove', 
 export class Patch {
   public readonly operations: readonly PatchOperationType[];
 
-  public constructor(operations: PatchOperationType | readonly PatchOperationType[] = []) {
+  /**
+   * Canonical entry point — validates operations and returns a `Patch` instance.
+   *
+   * Subclasses inherit this as `SubClass.create(...)` and receive the subclass
+   * type because `new this(...)` resolves to the receiver's concrete class.
+   */
+  public static create(operations: PatchOperationType | readonly PatchOperationType[] = []): Patch {
+    return new this(operations);
+  }
+
+  protected constructor(operations: PatchOperationType | readonly PatchOperationType[] = []) {
     const ops: readonly PatchOperationType[] = Array.isArray(operations)
       ? (operations as readonly PatchOperationType[])
       : [operations as PatchOperationType];

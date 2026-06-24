@@ -5,6 +5,9 @@
  *
  * @module
  */
+import { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
+import { ClockError } from '../errors/ClockError.js';
+import { VirtualTimeCounterBuilder } from './VirtualTimeCounterBuilder.js';
 
 /**
  * Mutable counter that tracks virtual epoch-ms for test scenarios.
@@ -12,16 +15,33 @@
  * instances see the change immediately.
  */
 export class VirtualTimeCounter {
+  static builder(): VirtualTimeCounterBuilder {
+    const result = VirtualTimeCounterBuilder.create((options) => {
+      const counter = VirtualTimeCounter.create(options);
+      return counter;
+    });
+    return result;
+  }
+
+  static create(options: VirtualTimeCounterOptionsEntity.Type = {}): VirtualTimeCounter {
+    return new this(options);
+  }
+
   /** Current virtual epoch-ms. Must be non-negative. */
   #nowMs: number;
 
   /**
    * Property write order: #nowMs.
-   *
-   * @param startMs - Initial virtual epoch-ms (defaults to 0).
    */
-  public constructor(startMs = 0) {
-    this.#nowMs = startMs >= 0 ? startMs : 0;
+  protected constructor(options: VirtualTimeCounterOptionsEntity.Type) {
+    if (!VirtualTimeCounterOptionsEntity.validate(options)) {
+      throw new ClockError('invalid VirtualTimeCounter options');
+    }
+    const resolved = options.startMs ?? 0;
+    if (!Number.isFinite(resolved) || resolved < 0) {
+      throw new ClockError('startMs must be a finite non-negative number');
+    }
+    this.#nowMs = resolved;
   }
 
   /**

@@ -1,6 +1,7 @@
 import type { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js';
 
 import { CacheConfigError } from './errors/index.js';
+import { LruCacheBuilder } from './LruCacheBuilder.js';
 
 type EntryType<V> = {
   /** Expiry timestamp (ms since epoch) or `0` (no expiry sentinel). */
@@ -26,7 +27,21 @@ export class LruCache<K, V> {
   #head: NodeType<string> | undefined;
   #tail: NodeType<string> | undefined;
 
-  public constructor(options: LruCacheOptionsEntity.Type) {
+  static create<K = unknown, V = unknown>(options: LruCacheOptionsEntity.Type): LruCache<K, V> {
+    // `new this(...)` so subclass factories return the subclass instance.
+    return new this(options);
+  }
+
+  static builder<K = unknown, V = unknown>(): LruCacheBuilder<K, V> {
+    const factory = (options: LruCacheOptionsEntity.Type): LruCache<K, V> => {
+      const result = LruCache.create<K, V>(options);
+      return result;
+    };
+    const result = LruCacheBuilder.create<K, V>(factory);
+    return result;
+  }
+
+  protected constructor(options: LruCacheOptionsEntity.Type) {
     if (options.capacity <= 0 || !Number.isInteger(options.capacity)) {
       throw new CacheConfigError('capacity must be a positive integer');
     }
@@ -63,6 +78,17 @@ export class LruCache<K, V> {
     this.promoteToHead(internalKey);
 
     return entry.value;
+  }
+
+  /**
+   * Inserts each `[key, value]` pair in array order. The last entry in the array
+   * ends up most-recently-used. An empty array is a no-op. `ttlMs` applies to all
+   * entries in the batch with the same precedence as the per-call TTL in `set`.
+   */
+  public setMany(entries: readonly (readonly [K, V])[], ttlMs?: number): void {
+    for (const [key, value] of entries) {
+      this.set(key, value, ttlMs);
+    }
   }
 
   /** Stores value; promotes existing key to MRU or evicts LRU tail if at capacity. */

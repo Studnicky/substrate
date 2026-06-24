@@ -18,7 +18,7 @@ const initialStatsScenarios: Array<{ description: string }> = [
 
 for (const { description } of initialStatsScenarios) {
   void it(description, () => {
-    const throttle = new Throttle({ concurrencyLimit: 5 });
+    const throttle = Throttle.create({ concurrencyLimit: 5 });
     const stats = throttle.getStats();
 
     strictEqual(stats.activeCount, 0);
@@ -31,7 +31,7 @@ for (const { description } of initialStatsScenarios) {
 // ── isComplete() ──────────────────────────────────────────────────────────────
 
 void it('returns true when no operations are active or queued', () => {
-  const throttle = new Throttle({ concurrencyLimit: 2 });
+  const throttle = Throttle.create({ concurrencyLimit: 2 });
 
   const isComplete = throttle.isComplete();
 

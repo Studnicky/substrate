@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `SampleBuffer.create({ capacity })` static factory — the single validated construction entry point.
+- `SampleBuffer.builder()` returns a `SampleBufferBuilder` for fluent construction via `.withCapacity(n).build()`.
+- `SampleBufferBuilder` class (separate file, single export) for fluent `SampleBuffer` construction.
+- `SampleBufferOptionsEntity` namespace with JSON Schema, `Type`, and `validate` for options validation.
+- Constructor is now `protected`; construction through `new SampleBuffer()` outside the class is no longer possible.
+
 ## [1.0.0] - 2026-06-22
 
 ### Added

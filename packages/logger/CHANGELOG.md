@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Logger, ConsoleTransport, MemoryTransport, FunctionTransport, and NoOpTransport constructors are non-public (protected). All instances are created through `Class.create(options)` or `Class.builder().build()`, both of which validate configuration in the single protected constructor.
+- LogBody and LogFault constructors are protected; `static create()` uses `new this()` for subclass-safe instantiation.
+- BaseLogEntryBuilder has an explicit protected constructor that concrete subclasses funnel through.
+- Five new builder classes: LoggerBuilder, ConsoleTransportBuilder, MemoryTransportBuilder, FunctionTransportBuilder, NoOpTransportBuilder — all exported from the package index and the relevant sub-barrels.
+
 ## [1.0.0] - 2026-06-23
 
 ### Added

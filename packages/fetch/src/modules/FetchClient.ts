@@ -40,6 +40,7 @@ import {
   SocketError,
   SocketExhaustionError
 } from '../errors/index.js';
+import { FetchClientBuilder } from './FetchClientBuilder.js';
 import { HttpMethods } from './HttpMethods.js';
 import { InterceptorManager } from './InterceptorManager.js';
 import { RequestBuilder } from './RequestBuilder.js';
@@ -116,26 +117,36 @@ export class FetchClient implements FetchClientInterface {
    * ```
    */
   static create(config: ClientConfigType = {}): FetchClient {
-    const result = new FetchClient(FetchClient.validateConfig(config));
+    return new this(config);
+  }
+
+  static builder(): FetchClientBuilder {
+    const result = FetchClientBuilder.create((options) => {
+      const client = FetchClient.create(options);
+      return client;
+    });
     return result;
   }
+
   private readonly config: ClientConfigType;
   private readonly dispatcher: undefined | UndiciDispatcher;
 
   private readonly interceptors: InterceptorManager;
 
-  constructor(config: ClientConfigType = {}) {
-    this.config = config;
-    this.interceptors = new InterceptorManager();
+  protected constructor(config: ClientConfigType = {}) {
+    const validated = FetchClient.validateConfig(config);
 
-    if (config.dispatcher?.enabled === true) {
-      this.dispatcher = UndiciDispatcher.create(config.dispatcher);
+    this.config = validated;
+    this.interceptors = InterceptorManager.create();
+
+    if (validated.dispatcher?.enabled === true) {
+      this.dispatcher = UndiciDispatcher.create(validated.dispatcher);
     }
 
-    if (config.requestInterceptor !== undefined) {
-      const interceptors: readonly RequestInterceptorType[] = Array.isArray(config.requestInterceptor)
-        ? config.requestInterceptor
-        : [config.requestInterceptor];
+    if (validated.requestInterceptor !== undefined) {
+      const interceptors: readonly RequestInterceptorType[] = Array.isArray(validated.requestInterceptor)
+        ? validated.requestInterceptor
+        : [validated.requestInterceptor];
 
       const requestLen = interceptors.length;
       for (let i = 0; i < requestLen; i += 1) {
@@ -143,10 +154,10 @@ export class FetchClient implements FetchClientInterface {
       }
     }
 
-    if (config.responseInterceptor !== undefined) {
-      const interceptors: readonly ResponseInterceptorType[] = Array.isArray(config.responseInterceptor)
-        ? config.responseInterceptor
-        : [config.responseInterceptor];
+    if (validated.responseInterceptor !== undefined) {
+      const interceptors: readonly ResponseInterceptorType[] = Array.isArray(validated.responseInterceptor)
+        ? validated.responseInterceptor
+        : [validated.responseInterceptor];
 
       const responseLen = interceptors.length;
       for (let i = 0; i < responseLen; i += 1) {
@@ -169,7 +180,7 @@ export class FetchClient implements FetchClientInterface {
       return ctx;
     }
 
-    const perRequest = new Pipeline<RequestInterceptorContextType>();
+    const perRequest = Pipeline.create<RequestInterceptorContextType>();
 
     const perRequestLen = perRequestInterceptors.length;
     for (let i = 0; i < perRequestLen; i += 1) {
@@ -193,7 +204,7 @@ export class FetchClient implements FetchClientInterface {
       return ctx;
     }
 
-    const perResponse = new Pipeline<ResponseInterceptorContextType>();
+    const perResponse = Pipeline.create<ResponseInterceptorContextType>();
 
     const perResponseLen = perResponseInterceptors.length;
     for (let i = 0; i < perResponseLen; i += 1) {
@@ -696,7 +707,7 @@ export class FetchClient implements FetchClientInterface {
    * ```
    */
   request(path: string): RequestBuilderInterface {
-    const result = new RequestBuilder(this, path);
+    const result = RequestBuilder.create(this, path);
     return result;
   }
 

@@ -23,7 +23,7 @@ pnpm add @studnicky/sample-buffer
 ```typescript
 import { SampleBuffer } from '@studnicky/sample-buffer';
 
-const buffer = new SampleBuffer(5);
+const buffer = SampleBuffer.create({ capacity: 5 });
 
 // Fill the buffer
 buffer.push(10);
@@ -73,7 +73,7 @@ class TrackedBuffer extends SampleBuffer {
   }
 }
 
-const tracked = new TrackedBuffer(3);
+const tracked = TrackedBuffer.create({ capacity: 3 });
 tracked.push(1);
 tracked.push(2);
 tracked.push(3);

@@ -7,7 +7,7 @@ import { Throttle } from '../src/index.js';
 
 // #region usage
 
-const throttle = new Throttle({ 'concurrencyLimit': 5 });
+const throttle = Throttle.create({ 'concurrencyLimit': 5 });
 
 // Submit 4 operations before draining
 const pending = Promise.all(

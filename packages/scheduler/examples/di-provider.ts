@@ -22,6 +22,8 @@ type SchedulerLogEntryType = {
 class LoggingScheduler extends VirtualScheduler {
   public readonly log: SchedulerLogEntryType[] = [];
 
+  public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+
   protected override onSchedule(id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
     this.log.push({ 'event': 'schedule', 'id': id });
   }
@@ -45,7 +47,7 @@ class WorkQueue {
   }
 }
 
-const counter = new VirtualTimeCounter(0);
+const counter = VirtualTimeCounter.create({ 'startMs': 0 });
 const loggingScheduler = new LoggingScheduler(counter);
 const queue = new WorkQueue(loggingScheduler);
 

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 // #region usage
 import { SampleBuffer } from '../src/index.js';
 
-const buffer = new SampleBuffer(5);
+const buffer = SampleBuffer.create({ 'capacity': 5 });
 
 // Fill to capacity
 buffer.push(10);
@@ -36,9 +36,9 @@ console.log('length after clear:', buffer.length); // 0
 // #endregion usage
 
 assert.equal(buffer.length, 0);
-assert.equal(new SampleBuffer(5).length, 0);
+assert.equal(SampleBuffer.create({ 'capacity': 5 }).length, 0);
 
-const full = new SampleBuffer(5);
+const full = SampleBuffer.create({ 'capacity': 5 });
 full.push(10); full.push(20); full.push(30); full.push(40); full.push(50);
 assert.equal(full.length, 5);
 assert.equal(full.isFull, true);

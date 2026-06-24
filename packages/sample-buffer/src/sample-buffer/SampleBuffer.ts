@@ -13,7 +13,9 @@ import {
   LAST_ARRAY_INDEX,
   PERCENTILE_MAX
 } from '../constants/index.js';
+import { SampleBufferOptionsEntity } from '../entities/SampleBufferOptionsEntity.js';
 import { SampleBufferError } from '../errors/index.js';
+import { SampleBufferBuilder } from './SampleBufferBuilder.js';
 
 /**
  * Fixed-capacity circular buffer for numeric samples
@@ -34,7 +36,7 @@ import { SampleBufferError } from '../errors/index.js';
  *
  * @example Basic usage
  * ```typescript
- * const buffer = new SampleBuffer(100);
+ * const buffer = SampleBuffer.create({ capacity: 100 });
  *
  * // Add samples
  * for (let i = 0; i < 100; i++) {
@@ -48,6 +50,31 @@ import { SampleBufferError } from '../errors/index.js';
  * ```
  */
 export class SampleBuffer implements SampleBufferInterface {
+  static builder(): SampleBufferBuilder {
+    const result = SampleBufferBuilder.create((options) => {
+      const buffer = SampleBuffer.create(options);
+      return buffer;
+    });
+    return result;
+  }
+
+  static create(options: SampleBufferOptionsEntity.Type): SampleBuffer {
+    return new this(options);
+  }
+
+  static #validate(options: SampleBufferOptionsEntity.Type): void {
+    if (!SampleBufferOptionsEntity.validate(options)) {
+      const errors = SampleBufferOptionsEntity.validate.errors ?? [];
+      const parts = errors.map((e) => {
+        const part = `${e.instancePath} ${e.message}`.trim();
+        return part;
+      });
+      const message = parts.join('; ');
+      throw new SampleBufferError(message.length > 0 ? message : 'invalid options');
+    }
+    // Domain invariant: capacity must be a positive integer (schema enforces minimum:1 and type:integer)
+  }
+
   protected _length = INITIAL_BUFFER_COUNT;
   protected _capacity: number;
   protected _head = INITIAL_BUFFER_HEAD;
@@ -57,15 +84,12 @@ export class SampleBuffer implements SampleBufferInterface {
   /**
    * Create a new sample buffer
    *
-   * @param capacity - Maximum number of samples to store
+   * @param options - Construction options including capacity
    */
-  constructor(capacity: number) {
-    if (capacity <= 0 || !Number.isInteger(capacity)) {
-      throw new SampleBufferError('capacity must be a positive integer');
-    }
-
-    this._capacity = capacity;
-    this._samples = Array.from<number>({ 'length': capacity });
+  protected constructor(options: SampleBufferOptionsEntity.Type) {
+    SampleBuffer.#validate(options);
+    this._capacity = options.capacity;
+    this._samples = Array.from<number>({ 'length': options.capacity });
   }
 
   /**

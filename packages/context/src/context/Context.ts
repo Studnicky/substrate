@@ -54,7 +54,7 @@ export class Context implements ContextInterface {
    */
   static builder(): ContextBuilder {
     // Factory closure so `create` retains its `this` binding when the builder calls it.
-    const result = new ContextBuilder((config) => { const result = Context.create(config); return result; });
+    const result = ContextBuilder.create((config) => { const result = Context.create(config); return result; });
     return result;
   }
 
@@ -199,7 +199,10 @@ export class Context implements ContextInterface {
    * ```
    */
   initialize(initial?: Record<string, unknown>): ContextScope {
-    const scope = new ContextScope(this.name, this.#storage, initial);
+    const options = initial !== undefined
+      ? { 'initial': initial, 'name': this.name, 'storage': this.#storage }
+      : { 'name': this.name, 'storage': this.#storage };
+    const scope = ContextScope.create(options);
 
     this.onInitialize(initial, scope);
 

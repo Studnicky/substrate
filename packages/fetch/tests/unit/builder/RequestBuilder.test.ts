@@ -105,7 +105,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const data = {
         age: 30,
         name: 'John'
@@ -125,7 +125,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const textData = 'plain text body';
 
       await builder.body(textData).post();
@@ -142,7 +142,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const buffer = Buffer.from('binary data');
 
       await builder.body(buffer).post();
@@ -159,7 +159,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.body(null).post();
       assert.strictEqual(capturedBody, null);
@@ -175,7 +175,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.body(undefined).post();
       assert.strictEqual(capturedBody, undefined);
@@ -191,7 +191,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const data = { key: 'value' };
 
       await builder.json(data).post();
@@ -208,7 +208,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .body({ first: 'body' })
@@ -230,7 +230,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.metadata({ operation: 'fetchUsers' }).get();
 
@@ -247,7 +247,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .metadata({ operation: 'fetchUsers' })
@@ -270,7 +270,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .metadata({ operation: 'first' })
@@ -290,7 +290,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.get();
 
@@ -307,7 +307,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.metadata({
         context: {
@@ -338,7 +338,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const customId = 'req_custom_123';
 
       await builder.requestId(customId).get();
@@ -356,7 +356,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .requestId('first_id')
@@ -376,7 +376,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.get();
 
@@ -395,7 +395,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const controller = new AbortController();
 
       await builder.signal(controller.signal).get();
@@ -413,7 +413,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const controller = new AbortController();
 
       await builder.signal(controller.signal).get();
@@ -434,7 +434,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const controller1 = new AbortController();
       const controller2 = new AbortController();
 
@@ -456,7 +456,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.get();
 
@@ -565,7 +565,7 @@ void describe('RequestBuilder', () => {
           }
         });
 
-        const builder = new RequestBuilder(client, '/test');
+        const builder = RequestBuilder.create(client, '/test');
 
         for (const [
           key,
@@ -589,7 +589,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .queryString('page', 1)
@@ -609,7 +609,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .queryString('active', true)
@@ -629,7 +629,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .queryString('filter', null)
@@ -648,7 +648,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.queryString('filter', undefined).get();
 
@@ -665,7 +665,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .queryString('tags', [])
@@ -686,7 +686,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.header('Authorization', 'Bearer token').get();
 
@@ -703,7 +703,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .header('Authorization', 'Bearer token')
@@ -726,7 +726,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.headers({
         Authorization: 'Bearer token',
@@ -749,7 +749,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .headers({ Authorization: 'Bearer token' })
@@ -772,7 +772,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .header('Authorization', 'Bearer first')
@@ -792,7 +792,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .header('content-type', 'application/json')
@@ -815,7 +815,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .header('Authorization', 'Bearer token')
@@ -846,7 +846,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.timeout(5000).get();
 
@@ -863,7 +863,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .timeout(5000)
@@ -883,7 +883,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.timeout(0).get();
 
@@ -904,7 +904,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .header('Authorization', 'Bearer token')
@@ -935,7 +935,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test')
+      const builder = RequestBuilder.create(client, '/test')
         .header('X-First', 'first')
         .timeout(5000);
 
@@ -961,7 +961,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .timeout(5000)
@@ -990,7 +990,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.get();
       assert.strictEqual(methodCalled, true);
@@ -1006,7 +1006,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const data = { key: 'value' };
 
       await builder.body(data).post();
@@ -1023,7 +1023,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const data = { key: 'value' };
 
       await builder.body(data).put();
@@ -1040,7 +1040,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
       const data = { key: 'value' };
 
       await builder.body(data).patch();
@@ -1057,7 +1057,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.delete();
       assert.strictEqual(methodCalled, true);
@@ -1073,7 +1073,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.head();
       assert.strictEqual(methodCalled, true);
@@ -1089,7 +1089,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.options();
       assert.strictEqual(methodCalled, true);
@@ -1107,7 +1107,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.requestInterceptor(passthroughRequestInterceptor1).get();
 
@@ -1131,7 +1131,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.requestInterceptor([
         passthroughRequestInterceptor1,
@@ -1159,7 +1159,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .requestInterceptor(passthroughRequestInterceptor1)
@@ -1184,7 +1184,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.responseInterceptor(passthroughResponseInterceptor1).get();
 
@@ -1208,7 +1208,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.responseInterceptor([
         passthroughResponseInterceptor1,
@@ -1236,7 +1236,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder
         .responseInterceptor(passthroughResponseInterceptor1)
@@ -1266,8 +1266,8 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder1 = new RequestBuilder(client, '/test1').timeout(1000);
-      const builder2 = new RequestBuilder(client, '/test2').timeout(2000);
+      const builder1 = RequestBuilder.create(client, '/test1').timeout(1000);
+      const builder2 = RequestBuilder.create(client, '/test2').timeout(2000);
 
       await builder1.get();
       await builder2.get();
@@ -1298,8 +1298,8 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder1 = new RequestBuilder(client, '/test1').header('X-First', 'value1');
-      const builder2 = new RequestBuilder(client, '/test2').header('X-Second', 'value2');
+      const builder1 = RequestBuilder.create(client, '/test1').header('X-First', 'value1');
+      const builder2 = RequestBuilder.create(client, '/test2').header('X-Second', 'value2');
 
       await builder1.get();
       await builder2.get();
@@ -1333,7 +1333,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '');
+      const builder = RequestBuilder.create(client, '');
 
       await builder.get();
       assert.strictEqual(capturedPath, '');
@@ -1349,7 +1349,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test?existing=value');
+      const builder = RequestBuilder.create(client, '/test?existing=value');
 
       await builder.queryString('new', 'param').get();
       assert.strictEqual(capturedPath, '/test?existing=value&new=param');
@@ -1365,7 +1365,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.queryString('search', 'hello world').get();
       assert.strictEqual(capturedPath, '/test?search=hello%20world');
@@ -1381,7 +1381,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.headers({}).get();
 
@@ -1400,7 +1400,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/test');
+      const builder = RequestBuilder.create(client, '/test');
 
       await builder.metadata({}).get();
 
@@ -1417,7 +1417,7 @@ void describe('RequestBuilder', () => {
         }
       });
 
-      const builder = new RequestBuilder(client, '/api/v1/users/123');
+      const builder = RequestBuilder.create(client, '/api/v1/users/123');
 
       await builder.get();
       assert.strictEqual(capturedPath, '/api/v1/users/123');

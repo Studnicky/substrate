@@ -20,6 +20,7 @@ import {
 import { setTimeout } from 'node:timers/promises';
 
 import { Context, ContextScope } from '../../../src/context/index.js';
+import type { ContextScopeOptionsInterface } from '../../../src/context/index.js';
 
 void describe('Context', () => {
   void describe('factory patterns', () => {
@@ -707,7 +708,7 @@ void describe('Context', () => {
       }
 
       const storage = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = new TracedScope('test', storage, { key: 'value' });
+      const scope = TracedScope.create({ 'initial': { 'key': 'value' }, 'name': 'test', 'storage': storage });
 
       const snapshot = scope.terminate();
 
@@ -719,6 +720,10 @@ void describe('Context', () => {
       class TracedScope extends ContextScope {
         executionCount = 0;
 
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
         protected override onBeforeExecute(): void {
           this.executionCount++;
         }
@@ -729,7 +734,7 @@ void describe('Context', () => {
       }
 
       const storage = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = new TracedScope('test', storage);
+      const scope = TracedScope.create({ 'name': 'test', 'storage': storage });
 
       scope.execute(() => {});
       scope.execute(() => {});
@@ -742,6 +747,10 @@ void describe('Context', () => {
       class TracedScope extends ContextScope {
         terminatedAccessCount = 0;
 
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
         protected override onTerminatedAccess(): void {
           this.terminatedAccessCount++;
         }
@@ -752,7 +761,7 @@ void describe('Context', () => {
       }
 
       const storage = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = new TracedScope('test', storage);
+      const scope = TracedScope.create({ 'name': 'test', 'storage': storage });
 
       scope.terminate();
 
@@ -768,13 +777,17 @@ void describe('Context', () => {
 
     void it('FSM guard rejects illegal transition terminated → active', () => {
       class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
         testTransition(to: 'active' | 'created' | 'terminated'): void {
           this.transition(to);
         }
       }
 
       const storage = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = new TracedScope('test', storage);
+      const scope = TracedScope.create({ 'name': 'test', 'storage': storage });
 
       scope.terminate();
 

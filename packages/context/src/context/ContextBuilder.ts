@@ -1,6 +1,8 @@
 import type { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import type { Context } from './Context.js';
 
+import { ContextConfigError } from '../errors/index.js';
+
 /**
  * Fluent builder for creating Context instances.
  *
@@ -10,6 +12,18 @@ import type { Context } from './Context.js';
  * ```
  */
 export class ContextBuilder {
+  /**
+   * Create a new ContextBuilder with the given factory closure.
+   *
+   * Called by `Context.builder()` — not intended for direct use.
+   *
+   * @param create - Factory that materializes a Context from validated config.
+   * @returns A new ContextBuilder
+   */
+  static create(create: (config: ContextConfigEntity.Type) => Context): ContextBuilder {
+    return new ContextBuilder(create);
+  }
+
   readonly #create: (config: ContextConfigEntity.Type) => Context;
 
   /**
@@ -23,7 +37,7 @@ export class ContextBuilder {
    *   Injected by `Context.builder()` so this module needs only a type-level
    *   reference to Context (no runtime import cycle).
    */
-  constructor(create: (config: ContextConfigEntity.Type) => Context) {
+  private constructor(create: (config: ContextConfigEntity.Type) => Context) {
     this.#create = create;
   }
 
@@ -43,7 +57,7 @@ export class ContextBuilder {
    */
   build(): Context {
     if (this.contextName === undefined) {
-      throw new Error('Context name is required');
+      throw new ContextConfigError('Context name is required');
     }
 
     const config: ContextConfigEntity.Type = { 'name': this.contextName };

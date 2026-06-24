@@ -1,10 +1,10 @@
 # @studnicky/eslint-config
 
-> Shared ESLint 9 flat config for @studnicky packages
+> Shared ESLint flat config for @studnicky packages
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/eslint-config)
 
-Shared ESLint 9 flat config factory for TypeScript projects. Provides a single `createEslintConfig()` call that wires up typescript-eslint, stylistic, perfectionist, import ordering, and a custom rule plugin — ready to spread into your flat config.
+Shared ESLint flat config factory for TypeScript projects. Provides a single `createEslintConfig()` call that wires up typescript-eslint, stylistic, perfectionist, import ordering, and a custom rule plugin — ready to spread into your flat config.
 
 ## Install
 
@@ -21,7 +21,7 @@ pnpm add -D @studnicky/eslint-config
 Also install peer dependencies:
 
 ```sh
-pnpm add -D eslint@>=9 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>=8 @typescript-eslint/parser@>=8 @stylistic/eslint-plugin@>=2 eslint-plugin-import-x@>=4 eslint-plugin-perfectionist@>=4 eslint-plugin-regexp@>=2 eslint-plugin-unused-imports@>=4 typescript@>=5
+pnpm add -D eslint@>=10 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>=8 @typescript-eslint/parser@>=8 @stylistic/eslint-plugin@>=5 eslint-plugin-import-x@>=4 eslint-plugin-perfectionist@>=5 eslint-plugin-regexp@>=3 eslint-plugin-unused-imports@>=4 typescript@>=6
 ```
 
 ## Usage

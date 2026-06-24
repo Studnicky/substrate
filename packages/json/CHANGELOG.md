@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `Patch` constructor is now `protected`; construct instances via `Patch.create(operations?)` (canonical entry point) or the existing static factories (`Patch.add`, `Patch.remove`, `Patch.replace`, `Patch.move`, `Patch.copy`, `Patch.test`, `Patch.combine`, `Patch.fromPlain`). Subclasses remain fully supported — `new this(...)` inside `make()` is unaffected.
+
 ## [1.0.0] - 2026-06-22
 
 ### Added

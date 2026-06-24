@@ -66,7 +66,7 @@ void describe('LogMetadataType', () => {
     });
 
     void it('should merge metadata in nested children', () => {
-      const memory = new MemoryTransport();
+      const memory = MemoryTransport.create();
       const logger = Logger.create({
         'level': LogLevel.TRACE,
         'transports': [memory]
@@ -85,7 +85,7 @@ void describe('LogMetadataType', () => {
     });
 
     void it('should support complex metadata structures', () => {
-      const memory = new MemoryTransport();
+      const memory = MemoryTransport.create();
       const logger = Logger.create({
         'level': LogLevel.TRACE,
         'transports': [memory]

@@ -7,7 +7,7 @@ import { Throttle } from '../src/index.js';
 
 // #region usage
 
-const throttle = new Throttle({ 'concurrencyLimit': 3 });
+const throttle = Throttle.create({ 'concurrencyLimit': 3 });
 
 const results = await Promise.all(
   [0, 1, 2, 3, 4, 5].map((i) => {

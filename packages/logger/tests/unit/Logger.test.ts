@@ -36,7 +36,7 @@ void describe('Logger', () => {
     void it('creates a logger with metadata', () => {
       const logger = Logger.create({ metadata: { service: 'api' } });
 
-      const memory = new MemoryTransport();
+      const memory = MemoryTransport.create();
       const childLogger = logger.child({});
       // Attach memory to a fresh logger with same config to test metadata flows
       const testLogger = Logger.create({
@@ -75,7 +75,7 @@ void describe('Logger', () => {
 
     for (const { description, level, expectedCount } of scenarios) {
       void it(description, () => {
-        const memory = new MemoryTransport();
+        const memory = MemoryTransport.create();
         const logger = Logger.create({ level, 'transports': [memory] });
 
         logger.trace(TestFactory.body('trace'));
@@ -91,8 +91,8 @@ void describe('Logger', () => {
 
   void describe('per-transport level filter', () => {
     void it('transport with warn floor ignores records below warn', () => {
-      const allMemory = new MemoryTransport({ level: LogLevel.TRACE });
-      const warnMemory = new MemoryTransport({ level: LogLevel.WARN });
+      const allMemory = MemoryTransport.create({ level: LogLevel.TRACE });
+      const warnMemory = MemoryTransport.create({ level: LogLevel.WARN });
 
       const logger = Logger.create({
         'level': LogLevel.TRACE,
@@ -111,8 +111,8 @@ void describe('Logger', () => {
     });
 
     void it('transports with different floors receive correct subsets', () => {
-      const debugMemory = new MemoryTransport({ level: LogLevel.DEBUG });
-      const errorMemory = new MemoryTransport({ level: LogLevel.ERROR });
+      const debugMemory = MemoryTransport.create({ level: LogLevel.DEBUG });
+      const errorMemory = MemoryTransport.create({ level: LogLevel.ERROR });
 
       const logger = Logger.create({
         'level': LogLevel.DEBUG,
@@ -132,8 +132,8 @@ void describe('Logger', () => {
 
   void describe('fan-out to multiple transports', () => {
     void it('delivers each record to all transports', () => {
-      const memory1 = new MemoryTransport();
-      const memory2 = new MemoryTransport();
+      const memory1 = MemoryTransport.create();
+      const memory2 = MemoryTransport.create();
 
       const logger = Logger.create({
         'level': LogLevel.TRACE,
@@ -148,10 +148,10 @@ void describe('Logger', () => {
 
     void it('a throwing transport does not prevent others from receiving records', () => {
       const received: number[] = [];
-      const throwingTransport = new FunctionTransport(() => {
+      const throwingTransport = FunctionTransport.create(() => {
         throw new Error('transport failure');
       });
-      const countingTransport = new FunctionTransport(() => {
+      const countingTransport = FunctionTransport.create(() => {
         received.push(1);
       });
 
@@ -169,7 +169,7 @@ void describe('Logger', () => {
 
   void describe('child metadata merging', () => {
     void it('child inherits parent metadata', () => {
-      const memory = new MemoryTransport();
+      const memory = MemoryTransport.create();
       const parent = Logger.create({
         'level': LogLevel.TRACE,
         'metadata': { service: 'api' },
@@ -187,7 +187,7 @@ void describe('Logger', () => {
     });
 
     void it('child metadata overrides parent key when key conflicts', () => {
-      const memory = new MemoryTransport();
+      const memory = MemoryTransport.create();
       const parent = Logger.create({
         'level': LogLevel.TRACE,
         'metadata': { service: 'v1' },
@@ -205,7 +205,7 @@ void describe('Logger', () => {
     });
 
     void it('grandchild merges metadata from both ancestors', () => {
-      const memory = new MemoryTransport();
+      const memory = MemoryTransport.create();
       const parent = Logger.create({
         'level': LogLevel.TRACE,
         'metadata': { service: 'api' },
@@ -228,7 +228,7 @@ void describe('Logger', () => {
     });
 
     void it('child shares transports with parent', () => {
-      const memory = new MemoryTransport();
+      const memory = MemoryTransport.create();
       const parent = Logger.create({
         'level': LogLevel.TRACE,
         'transports': [memory]
@@ -245,7 +245,7 @@ void describe('Logger', () => {
 
   void describe('record shape', () => {
     void it('record contains level, time, metadata, and data', () => {
-      const memory = new MemoryTransport();
+      const memory = MemoryTransport.create();
       const logger = Logger.create({
         'level': LogLevel.TRACE,
         'metadata': { service: 'test' },
@@ -269,7 +269,7 @@ void describe('Logger', () => {
     });
 
     void it('each level maps to the correct LogLevel constant', () => {
-      const memory = new MemoryTransport();
+      const memory = MemoryTransport.create();
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [memory] });
 
       logger.trace(TestFactory.body('t'));
@@ -291,7 +291,7 @@ void describe('Logger', () => {
   void describe('FunctionTransport bridging', () => {
     void it('calls the sink with the assembled record', () => {
       const captured: unknown[] = [];
-      const transport = new FunctionTransport((record) => {
+      const transport = FunctionTransport.create((record) => {
         captured.push(record);
       });
 
@@ -308,7 +308,7 @@ void describe('Logger', () => {
 
   void describe('NoOpTransport silence', () => {
     void it('accepts records without throwing', () => {
-      const noop = new NoOpTransport();
+      const noop = NoOpTransport.create();
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [noop] });
 
       assert.doesNotThrow(() => {

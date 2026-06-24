@@ -1,15 +1,66 @@
 import type { EffectHandlerMapType } from './EffectHandlerMapType.js';
 import type { StateMachine } from './StateMachine.js';
 
+import { EffectInterpreterBuilder } from './EffectInterpreterBuilder.js';
 import { FsmConfigError } from './errors/FsmConfigError.js';
 import { InterpreterNotRunningError } from './errors/InterpreterNotRunningError.js';
 import { InterpreterNotStartedError } from './errors/InterpreterNotStartedError.js';
+
+interface EffectInterpreterCreateOptionsInterface<
+  TState extends { readonly 'variant': string },
+  TEvent extends { readonly 'type': string },
+  TEffect extends { readonly 'variant': string } = never
+> {
+  readonly 'handlers'?: EffectHandlerMapType<TEffect> | undefined;
+  readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;
+  readonly 'machineId'?: string | undefined;
+}
+
+interface EffectInterpreterConstructorOptionsInterface<
+  TState extends { readonly 'variant': string },
+  TEvent extends { readonly 'type': string },
+  TEffect extends { readonly 'variant': string } = never
+> {
+  readonly 'handlers'?: EffectHandlerMapType<TEffect> | undefined;
+  readonly 'machine': StateMachine<TState, TEvent, TEffect>;
+  readonly 'machineId'?: string | undefined;
+}
 
 export class EffectInterpreter<
   TState extends { readonly 'variant': string },
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
+  static create<
+    S extends { readonly 'variant': string },
+    E extends { readonly 'type': string },
+    Ef extends { readonly 'variant': string } = never
+  >(options: EffectInterpreterCreateOptionsInterface<S, E, Ef>): EffectInterpreter<S, E, Ef> {
+    if (options.machine === undefined) {
+      throw new FsmConfigError('machine is required');
+    }
+    if (options.machineId !== undefined && options.machineId === '') {
+      throw new FsmConfigError('machineId must not be empty');
+    }
+    return new EffectInterpreter<S, E, Ef>({
+      'handlers': options.handlers,
+      'machine': options.machine,
+      'machineId': options.machineId
+    });
+  }
+
+  static builder<
+    S extends { readonly 'variant': string },
+    E extends { readonly 'type': string },
+    Ef extends { readonly 'variant': string } = never
+  >(): EffectInterpreterBuilder<S, E, Ef> {
+    const result = EffectInterpreterBuilder.create<S, E, Ef>((opts) => {
+      const instance = EffectInterpreter.create<S, E, Ef>(opts);
+      return instance;
+    });
+    return result;
+  }
+
   readonly #machine: StateMachine<TState, TEvent, TEffect>;
   readonly #handlers: EffectHandlerMapType<TEffect>;
   readonly #machineId: string;
@@ -19,17 +70,10 @@ export class EffectInterpreter<
   #running = false;
   #draining = false;
 
-  constructor(
-    machine: StateMachine<TState, TEvent, TEffect>,
-    handlers?: EffectHandlerMapType<TEffect>,
-    options?: { 'machineId'?: string }
-  ) {
-    if (options?.machineId !== undefined && options.machineId === '') {
-      throw new FsmConfigError('machineId must not be empty');
-    }
-    this.#machine = machine;
-    this.#handlers = handlers ?? ({});
-    this.#machineId = options?.machineId ?? crypto.randomUUID();
+  protected constructor(options: EffectInterpreterConstructorOptionsInterface<TState, TEvent, TEffect>) {
+    this.#machine = options.machine;
+    this.#handlers = options.handlers ?? ({});
+    this.#machineId = options.machineId ?? crypto.randomUUID();
   }
 
   start(): void {

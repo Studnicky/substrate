@@ -1,3 +1,5 @@
+import type { STATUS_CATEGORIES } from '../constants/LOG_STATUS.js';
+
 /**
  * Universal operation status values.
  *
@@ -40,8 +42,6 @@ export type LogStatusType
   | 'unauthorized'
   | 'unavailable';
 
-import { STATUS_CATEGORIES } from '../constants/LOG_STATUS.js';
-
 /**
  * Success status values.
  */
@@ -56,45 +56,3 @@ export type FailureStatusType = typeof STATUS_CATEGORIES.FAILURE[number];
  * Lifecycle status values.
  */
 export type LifecycleStatusType = typeof STATUS_CATEGORIES.LIFECYCLE[number];
-
-/**
- * Type predicate that checks if a status indicates a successful outcome.
- *
- * @param status - The status to check
- * @returns True if the status is a success status, with type narrowing
- */
-export function isSuccessStatus(status: LogStatusType): status is SuccessStatusType {
-  if (typeof status !== 'string') {
-    return false;
-  }
-
-  return (STATUS_CATEGORIES.SUCCESS as readonly string[]).includes(status);
-}
-
-/**
- * Type predicate that checks if a status indicates a failure outcome.
- *
- * @param status - The status to check
- * @returns True if the status is a failure status, with type narrowing
- */
-export function isFailureStatus(status: LogStatusType): status is FailureStatusType {
-  if (typeof status !== 'string') {
-    return false;
-  }
-
-  return (STATUS_CATEGORIES.FAILURE as readonly string[]).includes(status);
-}
-
-/**
- * Type predicate that checks if a status indicates a lifecycle state.
- *
- * @param status - The status to check
- * @returns True if the status is a lifecycle status, with type narrowing
- */
-export function isLifecycleStatus(status: LogStatusType): status is LifecycleStatusType {
-  if (typeof status !== 'string') {
-    return false;
-  }
-
-  return (STATUS_CATEGORIES.LIFECYCLE as readonly string[]).includes(status);
-}

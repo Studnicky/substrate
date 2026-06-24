@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const defineProperty = createSelectorRule(
+export const defineProperty = SelectorRule.create(
   'v8Optimization/defineProperty',
   'CallExpression[callee.object.name="Object"][callee.property.name="defineProperty"]',
   'Object.defineProperty breaks hidden classes.'

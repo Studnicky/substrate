@@ -8,6 +8,8 @@ import { LogBuildError } from '../errors/LogBuildError.js';
  * Base class for log entry builders providing shared fluent API methods.
  */
 export abstract class BaseLogEntryBuilder {
+  protected constructor() {}
+
   protected componentName: string | undefined;
   protected contextCalled = false;
   protected readonly contextData: Record<string, unknown> = {};

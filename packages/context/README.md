@@ -76,6 +76,7 @@ scope.execute(() => {
 **2. Observe FSM transitions with `onEnter`**
 
 ```typescript
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { ContextScope } from '@studnicky/context';
 
 class TracedScope extends ContextScope {
@@ -85,9 +86,10 @@ class TracedScope extends ContextScope {
     this.transitions.push({ to, from });
   }
 }
-```
 
-Note: `ContextScope` requires an `AsyncLocalStorage` instance to construct, so subclassing it in isolation is primarily useful when composing with a `Context` subclass that constructs the scope itself.
+const storage = new AsyncLocalStorage<Map<string, unknown>>();
+const scope = TracedScope.create({ name: 'traced', storage });
+```
 
 ## Documentation
 

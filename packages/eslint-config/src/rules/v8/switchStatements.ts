@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const switchStatements = createSelectorRule(
+export const switchStatements = SelectorRule.create(
   'v8Optimization/switchStatements',
   'SwitchStatement SwitchCase > BlockStatement',
   'Switch cases must be simple calls/returns only.'

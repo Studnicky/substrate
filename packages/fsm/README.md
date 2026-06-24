@@ -56,7 +56,13 @@ const handlers: EffectHandlerMapType<TrafficEffect> = {
   },
 };
 
-const interpreter = new EffectInterpreter(machine, handlers, { machineId: 'intersection-1' });
+const interpreter = EffectInterpreter.create({ machine, handlers, machineId: 'intersection-1' });
+// or via builder:
+// const interpreter = EffectInterpreter.builder<TrafficState, TrafficEvent, TrafficEffect>()
+//   .withMachine(machine)
+//   .withHandlers(handlers)
+//   .withOptions({ machineId: 'intersection-1' })
+//   .build();
 interpreter.start();
 
 const unsubscribe = interpreter.subscribe((state) => {

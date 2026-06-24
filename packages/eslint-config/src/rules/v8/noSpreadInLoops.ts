@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const noSpreadInLoops = createSelectorRule(
+export const noSpreadInLoops = SelectorRule.create(
   'v8Optimization/noSpreadInLoops',
   'ForStatement AssignmentExpression[left.type="Identifier"][right.type="ArrayExpression"] > ArrayExpression > SpreadElement',
   'Never use array spread in loops. It creates O(n^2) work.'

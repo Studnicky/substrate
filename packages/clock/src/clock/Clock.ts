@@ -8,6 +8,9 @@
  */
 import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
 
+import { ClockError } from '../errors/ClockError.js';
+import { ClockBuilder } from './ClockBuilder.js';
+
 const HRTIME_ZERO = 0n;
 
 /**
@@ -15,6 +18,18 @@ const HRTIME_ZERO = 0n;
  * while enforcing per-instance monotonicity for `now()` and `hrtime()`.
  */
 export class Clock {
+  static builder(): ClockBuilder {
+    const result = ClockBuilder.create((provider) => {
+      const clock = Clock.create(provider);
+      return clock;
+    });
+    return result;
+  }
+
+  static create(provider: ClockProviderType): Clock {
+    return new this(provider);
+  }
+
   readonly #provider: ClockProviderType;
   #lastHrtime: bigint;
   #lastNow: number;
@@ -22,10 +37,22 @@ export class Clock {
   /**
    * Property write order: #provider, #lastHrtime, #lastNow.
    */
-  public constructor(provider: ClockProviderType) {
+  protected constructor(provider: ClockProviderType) {
+    if (!Clock.isValidProvider(provider)) {
+      throw new ClockError('provider must implement ClockProviderType');
+    }
     this.#provider = provider;
     this.#lastHrtime = HRTIME_ZERO;
     this.#lastNow = 0;
+  }
+
+  private static isValidProvider(provider: unknown): provider is ClockProviderType {
+    return (
+      typeof provider === 'object' &&
+      provider !== null &&
+      typeof (provider as ClockProviderType).now === 'function' &&
+      typeof (provider as ClockProviderType).hrtime === 'function'
+    );
   }
 
   /**

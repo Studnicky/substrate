@@ -11,7 +11,7 @@ import {
 } from '../src/index.js';
 
 // --- Basic enqueue and drain ---
-const dlq = new DeadLetterQueue<string>({ 'capacity': 5 });
+const dlq = DeadLetterQueue.create<string>({ 'capacity': 5 });
 
 dlq.enqueue('job-1', 'timeout');
 dlq.enqueue('job-2', 'network error', new Error('ECONNREFUSED'));
@@ -28,18 +28,18 @@ console.log('Drained items:', collected);
 console.log('Queue size after drain:', dlq.size);
 
 // --- Capacity enforcement ---
-const bounded = new DeadLetterQueue<number>({ 'capacity': 2 });
+const bounded = DeadLetterQueue.create<number>({ 'capacity': 2 });
 bounded.enqueue(1, 'err');
 bounded.enqueue(2, 'err');
 console.log('Bounded queue size:', bounded.size);
 
 // --- DeadLetterQueueRetryGenerator re-yields entries with a pause ---
-const retryDlq = new DeadLetterQueue<string>();
+const retryDlq = DeadLetterQueue.create<string>();
 retryDlq.enqueue('retry-job-1', 'failed');
 retryDlq.enqueue('retry-job-2', 'failed');
 retryDlq.close();
 
-const gen = new DeadLetterQueueRetryGenerator(retryDlq, { 'intervalMs': 0 });
+const gen = DeadLetterQueueRetryGenerator.create({ 'dlq': retryDlq, 'intervalMs': 0 });
 const retried: string[] = [];
 for await (const entry of gen.generate()) {
   retried.push(entry.item);
@@ -49,7 +49,7 @@ console.log('Retried items:', retried);
 // --- AbortSignal aborts the queue on construction ---
 const controller = new AbortController();
 controller.abort();
-const abortedDlq = new DeadLetterQueue<string>({ 'signal': controller.signal });
+const abortedDlq = DeadLetterQueue.create<string>({ 'signal': controller.signal });
 const abortedEntries: string[] = [];
 for await (const entry of abortedDlq.drain()) {
   abortedEntries.push(entry.item);

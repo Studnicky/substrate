@@ -3,6 +3,7 @@
 import type { CircuitStateType } from './CircuitStateType.js';
 import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 
+import { CircuitBreakerBuilder } from './CircuitBreakerBuilder.js';
 import { CircuitBreakerOpenError } from './CircuitBreakerOpenError.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
@@ -17,7 +18,20 @@ export class CircuitBreaker {
   #successCount = 0;
   #openedAt = 0;
 
-  constructor(options: CircuitBreakerOptionsInterface) {
+  static builder(): CircuitBreakerBuilder {
+    const factory = (options: CircuitBreakerOptionsInterface): CircuitBreaker => {
+      const result = CircuitBreaker.create(options);
+      return result;
+    };
+    const result = CircuitBreakerBuilder.create(factory);
+    return result;
+  }
+
+  static create(options: CircuitBreakerOptionsInterface): CircuitBreaker {
+    return new this(options);
+  }
+
+  protected constructor(options: CircuitBreakerOptionsInterface) {
     if (options.failureThreshold < 1) {throw new ResilienceConfigError('failureThreshold must be >= 1');}
     if (options.resetTimeoutMs < 0) {throw new ResilienceConfigError('resetTimeoutMs must be >= 0');}
     this.#failureThreshold = options.failureThreshold;

@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const evalFunction = createSelectorRule(
+export const evalFunction = SelectorRule.create(
   'v8Optimization/evalFunction',
   'CallExpression[callee.name="eval"]',
   'eval() is forbidden. It breaks optimizations and is a security risk.'

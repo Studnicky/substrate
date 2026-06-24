@@ -18,11 +18,11 @@ import { Retry } from '../../../src/retry/index.js';
 const initialStatsScenarios: Array<{ description: string; build: () => Retry }> = [
   {
     description: 'getStats() returns all zeros for new Retry({ maxRetries: 3 })',
-    build: () => new Retry({ maxRetries: 3 })
+    build: () => Retry.create({ maxRetries: 3 })
   },
   {
     description: 'getStats() returns all zeros for new Retry() with defaults',
-    build: () => new Retry()
+    build: () => Retry.create()
   }
 ];
 
@@ -44,7 +44,7 @@ for (const { description, build } of initialStatsScenarios) {
 // ---------------------------------------------------------------------------
 
 it('getStats().totalRequests increments on each execute call', async () => {
-  const retry = new Retry({ maxRetries: 3 });
+  const retry = Retry.create({ maxRetries: 3 });
 
   await retry.execute(async () => 'first');
   strictEqual(retry.getStats().totalRequests, 1);
@@ -61,7 +61,7 @@ it('getStats().totalRequests increments on each execute call', async () => {
 // ---------------------------------------------------------------------------
 
 it('getStats().successfulRequests increments on success', async () => {
-  const retry = new Retry({ maxRetries: 3 });
+  const retry = Retry.create({ maxRetries: 3 });
 
   await retry.execute(async () => 'success');
 
@@ -71,7 +71,7 @@ it('getStats().successfulRequests increments on success', async () => {
 });
 
 it('getStats().failedRequests increments on non-retryable error', async () => {
-  const retry = new Retry({
+  const retry = Retry.create({
     errorClassifier: () => ({ retryable: false }),
     maxRetries: 3
   });
@@ -93,7 +93,7 @@ it('getStats().failedRequests increments on non-retryable error', async () => {
 
 it('getStats().totalRetries counts retry attempts (not the initial attempt)', async () => {
   let attempts = 0;
-  const retry = new Retry({
+  const retry = Retry.create({
     errorClassifier: () => ({ retryable: true }),
     maxRetries: 3,
     retryInterceptor: () => ({ delayMs: 0 })
@@ -118,7 +118,7 @@ it('getStats().totalRetries counts retry attempts (not the initial attempt)', as
 // ---------------------------------------------------------------------------
 
 it('getStats() returns a frozen stats object', () => {
-  const retry = new Retry({ maxRetries: 3 });
+  const retry = Retry.create({ maxRetries: 3 });
   const stats = retry.getStats();
 
   try {
@@ -135,7 +135,7 @@ it('getStats() returns a frozen stats object', () => {
 // ---------------------------------------------------------------------------
 
 it('resetStats() resets all stats to zero', async () => {
-  const retry = new Retry({ maxRetries: 3 });
+  const retry = Retry.create({ maxRetries: 3 });
 
   await retry.execute(async () => 'first');
   await retry.execute(async () => 'second');
@@ -147,7 +147,7 @@ it('resetStats() resets all stats to zero', async () => {
 });
 
 it('resetStats() allows new stats accumulation after reset', async () => {
-  const retry = new Retry({ maxRetries: 3 });
+  const retry = Retry.create({ maxRetries: 3 });
 
   await retry.execute(async () => 'first');
   retry.resetStats();

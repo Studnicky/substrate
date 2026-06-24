@@ -74,7 +74,7 @@ const onEvictScenarios: Array<{
 
 for (const { description, capacity, pushItems, expectedEvictedValues } of onEvictScenarios) {
   it(description, () => {
-    const buf = new EvictTracker(capacity);
+    const buf = EvictTracker.create({ capacity });
     for (const v of pushItems) buf.push(v);
     assert.deepStrictEqual(buf.evictedValues, expectedEvictedValues);
   });
@@ -91,7 +91,7 @@ it('onEvict is called before the value is overwritten (oldValue is still the evi
     }
   }
 
-  const buf = new CaptureEvict(2);
+  const buf = CaptureEvict.create({ capacity: 2 });
   buf.push(77);
   buf.push(88); // full
   buf.push(99); // evicts 77
@@ -136,7 +136,7 @@ const onPushScenarios: Array<{
 
 for (const { description, capacity, pushItems, expectedPushLog } of onPushScenarios) {
   it(description, () => {
-    const buf = new PushAudit(capacity);
+    const buf = PushAudit.create({ capacity });
     for (const v of pushItems) buf.push(v);
     assert.deepStrictEqual(buf.pushLog, expectedPushLog);
   });
@@ -153,7 +153,7 @@ it('onPush is called at end of push (length is updated when hook fires)', () => 
     }
   }
 
-  const buf = new CheckLength(5);
+  const buf = CheckLength.create({ capacity: 5 });
   buf.push(99);
 
   assert.equal(lengthAtHook, 1);
@@ -189,7 +189,7 @@ const onClearScenarios: Array<{
 
 for (const { description, pushItems, clearTimes, expectedClearCount } of onClearScenarios) {
   it(description, () => {
-    const buf = new ClearCounter(5);
+    const buf = ClearCounter.create({ capacity: 5 });
     for (const v of pushItems) buf.push(v);
     for (let i = 0; i < clearTimes; i++) buf.clear();
     assert.equal(buf.clearCount, expectedClearCount);
@@ -207,7 +207,7 @@ it('onClear is called before state is reset (length is still non-zero in hook)',
     }
   }
 
-  const buf = new CheckClear(5);
+  const buf = CheckClear.create({ capacity: 5 });
   buf.push(1);
   buf.push(2);
   buf.clear();
@@ -218,7 +218,7 @@ it('onClear is called before state is reset (length is still non-zero in hook)',
 // ── onPercentile scenarios ────────────────────────────────────────────────────
 
 it('onPercentile is called with the pct and result', () => {
-  const buf = new PercentileAudit(10);
+  const buf = PercentileAudit.create({ capacity: 10 });
   buf.push(10);
   buf.push(20);
   buf.push(30);
@@ -230,14 +230,14 @@ it('onPercentile is called with the pct and result', () => {
 });
 
 it('onPercentile is not called when buffer is empty', () => {
-  const buf = new PercentileAudit(5);
+  const buf = PercentileAudit.create({ capacity: 5 });
   buf.percentile(50); // returns undefined — hook must not fire
 
   assert.equal(buf.percentileLog.length, 0);
 });
 
 it('onPercentile result matches return value', () => {
-  const buf = new PercentileAudit(5);
+  const buf = PercentileAudit.create({ capacity: 5 });
   buf.push(10);
   buf.push(20);
   buf.push(30);
@@ -248,7 +248,7 @@ it('onPercentile result matches return value', () => {
 });
 
 it('onPercentile is called for p0 and p100 edge cases', () => {
-  const buf = new PercentileAudit(5);
+  const buf = PercentileAudit.create({ capacity: 5 });
   buf.push(5);
   buf.push(15);
   buf.percentile(0);
@@ -273,7 +273,7 @@ it('subclass can read _length, _capacity, _head, _samples, _sortedCache', () => 
     }
   }
 
-  const buf = new InspectBuffer(4);
+  const buf = InspectBuffer.create({ capacity: 4 });
   buf.push(1);
   buf.push(2);
 

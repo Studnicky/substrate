@@ -49,6 +49,7 @@ import {
   QueueSizeExceededError
 } from '../errors/index.js';
 import { configInternal } from './configInternal.js';
+import { MutexBuilder } from './MutexBuilder.js';
 
 type QueueEntryType = {
   'queuedAt': number;
@@ -110,8 +111,19 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   static create<K extends PropertyKey = string>(
     config?: Partial<MutexConfigEntity.Type>
   ): Mutex<K> {
-    const result = new Mutex<K>(config);
-    return result;
+    return new this(config);
+  }
+
+  /**
+   * Create a MutexBuilder for fluent configuration of a Mutex instance.
+   *
+   * @returns MutexBuilder instance
+   */
+  static builder<K extends PropertyKey = string>(): MutexBuilder<K> {
+    const builder = MutexBuilder.create<K>((options) => {
+      return new this(options);
+    });
+    return builder;
   }
 
   readonly #keyStates: Map<K, MutexKeyStateType>;
@@ -130,7 +142,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    *
    * @param config - Partial configuration object (validated internally, defaults applied)
    */
-  constructor(config?: Partial<MutexConfigEntity.Type>) {
+  protected constructor(config?: Partial<MutexConfigEntity.Type>) {
     this.#keyStates = new Map();
     this.locks = new Set();
     this.queues = new Map();

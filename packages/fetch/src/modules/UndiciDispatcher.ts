@@ -22,6 +22,7 @@ import {
   POOL_PRESSURE_THRESHOLD
 } from '../constants/PoolHealth.js';
 import { ConfigurationError } from '../errors/index.js';
+import { UndiciDispatcherBuilder } from './UndiciDispatcherBuilder.js';
 
 type OptionsRecordType = Record<string, unknown>;
 
@@ -95,13 +96,15 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * ```
    */
   static create(config: DispatcherConfigType = {}): UndiciDispatcher {
-    if (typeof config !== 'object' || Array.isArray(config)) {
-      throw new ConfigurationError('dispatcher configuration must be an object');
-    }
+    return new this(config);
+  }
 
-    validateDispatcher(config);
-
-    return new UndiciDispatcher(config);
+  static builder(): UndiciDispatcherBuilder {
+    const result = UndiciDispatcherBuilder.create((options) => {
+      const dispatcher = UndiciDispatcher.create(options);
+      return dispatcher;
+    });
+    return result;
   }
 
   private readonly abortController: AbortController;
@@ -109,11 +112,17 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
   private readonly agent: Agent;
 
   /**
-   * Private constructor - use UndiciDispatcher.create() instead
+   * Protected constructor - use UndiciDispatcher.create() instead
    *
    * @param config - Dispatcher configuration (validated in constructor)
    */
-  private constructor(config: DispatcherConfigType) {
+  protected constructor(config: DispatcherConfigType) {
+    if (typeof config !== 'object' || Array.isArray(config)) {
+      throw new ConfigurationError('dispatcher configuration must be an object');
+    }
+
+    validateDispatcher(config);
+
     this.abortController = new AbortController();
     this.agent = new Agent(UndiciDispatcher.toAgentOptions(config));
   }

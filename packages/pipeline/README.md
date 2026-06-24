@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/pipeline)
 
-`@studnicky/pipeline` provides a single `Pipeline<T>` class that runs a context value through an ordered list of async transform functions, passing each stage's output as the next stage's input. Stages are registered at runtime and can be removed individually or cleared wholesale.
+`@studnicky/pipeline` provides `Pipeline<T>`, a generic typed async pipeline that runs a context value through an ordered list of transform functions, passing each stage's output as the next stage's input. Construct instances via `Pipeline.create<T>()` or `Pipeline.builder<T>().build()`. Stages are registered at runtime and can be removed individually or cleared wholesale.
 
 ## Install
 
@@ -30,7 +30,9 @@ interface OrderCtx {
   discount: number;
 }
 
-const pipeline = new Pipeline<OrderCtx>();
+// Construct via create() or builder()
+const pipeline = Pipeline.create<OrderCtx>();
+// equivalent: Pipeline.builder<OrderCtx>().build()
 
 // Add stages — each receives the previous stage's output
 pipeline.add((ctx) => ({ ...ctx, total: ctx.items.length * 10 }));
@@ -72,7 +74,7 @@ class AuditPipeline extends Pipeline<AuditCtx> {
   }
 }
 
-const pipeline = new AuditPipeline();
+const pipeline = AuditPipeline.create();
 pipeline.add(async (ctx) => {
   // stage logic
   return ctx;

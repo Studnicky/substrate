@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { SampleBuffer } from '../../../src/sample-buffer/SampleBuffer.js';
+import { SampleBufferError } from '../../../src/errors/SampleBufferError.js';
 
 // ── Construction ─────────────────────────────────────────────────────────────
 
@@ -23,7 +24,7 @@ const constructionScenarios: Array<{
 
 for (const { description, capacity, expectedLength, expectedFull } of constructionScenarios) {
   it(description, () => {
-    const buf = new SampleBuffer(capacity);
+    const buf = SampleBuffer.create({ capacity });
     assert.equal(buf.length, expectedLength);
     assert.equal(buf.isFull, expectedFull);
   });
@@ -39,7 +40,7 @@ const capacityErrorScenarios: Array<{ description: string; input: number }> = [
 
 for (const { description, input } of capacityErrorScenarios) {
   it(description, () => {
-    assert.throws(() => new SampleBuffer(input), { message: 'capacity must be a positive integer' });
+    assert.throws(() => SampleBuffer.create({ capacity: input }), (err: unknown) => err instanceof SampleBufferError);
   });
 }
 
@@ -58,7 +59,7 @@ const isFullScenarios: Array<{
 
 for (const { description, capacity, pushCount, expected } of isFullScenarios) {
   it(description, () => {
-    const buf = new SampleBuffer(capacity);
+    const buf = SampleBuffer.create({ capacity });
     for (let i = 0; i < pushCount; i++) buf.push(i + 1);
     assert.equal(buf.isFull, expected);
   });
@@ -95,7 +96,7 @@ const percentileScenarios: Array<{
 
 for (const { description, capacity, samples, pct, expected } of percentileScenarios) {
   it(description, () => {
-    const buf = new SampleBuffer(capacity);
+    const buf = SampleBuffer.create({ capacity });
     for (const s of samples) buf.push(s);
     assert.equal(buf.percentile(pct), expected);
   });
@@ -117,7 +118,7 @@ const percentileRangeScenarios: Array<{
 
 for (const { description, capacity, sampleCount, pct, min, max } of percentileRangeScenarios) {
   it(description, () => {
-    const buf = new SampleBuffer(capacity);
+    const buf = SampleBuffer.create({ capacity });
     for (let i = 1; i <= sampleCount; i++) buf.push(i);
     const v = buf.percentile(pct);
     assert.ok(v !== undefined, 'percentile should be defined');
@@ -128,7 +129,7 @@ for (const { description, capacity, sampleCount, pct, min, max } of percentileRa
 // ── Stateful multi-step tests ─────────────────────────────────────────────────
 
 it('adds samples and increments length after each push', () => {
-  const buf = new SampleBuffer(10);
+  const buf = SampleBuffer.create({ capacity: 10 });
   buf.push(100);
   assert.equal(buf.length, 1);
   buf.push(200);
@@ -138,7 +139,7 @@ it('adds samples and increments length after each push', () => {
 });
 
 it('overwrites oldest sample when full', () => {
-  const buf = new SampleBuffer(3);
+  const buf = SampleBuffer.create({ capacity: 3 });
   buf.push(100);
   buf.push(200);
   buf.push(300);
@@ -151,14 +152,14 @@ it('overwrites oldest sample when full', () => {
 });
 
 it('maintains correct length when full after excess pushes', () => {
-  const buf = new SampleBuffer(5);
+  const buf = SampleBuffer.create({ capacity: 5 });
   for (let i = 0; i < 10; i++) buf.push(i * 10);
   assert.equal(buf.length, 5);
   assert.equal(buf.isFull, true);
 });
 
 it('clear() resets buffer to empty state', () => {
-  const buf = new SampleBuffer(10);
+  const buf = SampleBuffer.create({ capacity: 10 });
   buf.push(100);
   buf.push(200);
   buf.push(300);
@@ -169,7 +170,7 @@ it('clear() resets buffer to empty state', () => {
 });
 
 it('allows reuse after clear()', () => {
-  const buf = new SampleBuffer(3);
+  const buf = SampleBuffer.create({ capacity: 3 });
   buf.push(100);
   buf.push(200);
   buf.push(300);
@@ -181,7 +182,7 @@ it('allows reuse after clear()', () => {
 });
 
 it('recalculates percentile after new push (cache invalidation)', () => {
-  const buf = new SampleBuffer(10);
+  const buf = SampleBuffer.create({ capacity: 10 });
   buf.push(10);
   buf.push(20);
   buf.push(30);

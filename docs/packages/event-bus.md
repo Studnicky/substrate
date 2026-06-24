@@ -29,7 +29,7 @@ All subscribers on the same topic receive each published payload independently. 
 
 ### AbortSignal-based lifecycle
 
-Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. When the signal aborts the subscriber is removed and stops receiving events:
+Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. When the signal aborts the subscriber is removed and stops receiving events. The handler also receives the subscription's own AbortSignal as a second argument — it aborts on unsubscribe, on caller-signal abort, or on bus close. Use it to cancel in-flight async work:
 
 <<< ../../packages/event-bus/examples/abortSignal.ts#usage
 
@@ -37,17 +37,20 @@ Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. 
 
 | Export | Type | Description |
 |--------|------|-------------|
-| `EventBus<TTopicMap>` | class | Multi-topic pub/sub; created via `EventBus.create<T>()` |
-| `BusQueue<T>` | class | Bounded FIFO queue with backpressure; used internally per subscriber |
-| `EventHandlerType<T>` | type | `(payload: T) => Promise<void> \| void` |
+| `EventBus<TTopicMap>` | class | Multi-topic pub/sub; created via `EventBus.create<T>()` or `EventBus.builder<T>().build()` |
+| `EventBusBuilder<TTopicMap>` | class | Fluent builder for `EventBus`; obtained via `EventBus.builder<T>()` |
+| `BusQueue<T>` | class | Bounded FIFO queue with backpressure; created via `BusQueue.create(options)` or `BusQueue.builder<T>()` |
+| `BusQueueBuilder<T>` | class | Fluent builder for `BusQueue`; obtained via `BusQueue.builder<T>()` |
+| `EventHandlerType<T>` | type | `(payload: T, signal: AbortSignal) => Promise<void> \| void` |
 | `UnsubscribeType` | type | `() => void` — returned by `subscribe` |
-| `BusQueueOptionsType` | type | `{ highWaterMark?, onError?, signal? }` |
+| `BusQueueCreateOptionsType<T>` | type | `{ handler, highWaterMark?, onError?, signal? }` |
 
 ### `EventBus<TTopicMap>`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| `create` | `static create<T>() => EventBus<T>` | Factory; constructor is private |
+| `create` | `static create<T>() => EventBus<T>` | Factory; constructor is protected |
+| `builder` | `static builder<T>() => EventBusBuilder<T>` | Returns a fluent builder |
 | `subscribe` | `(topic, handler, options?) => UnsubscribeType` | Registers a subscriber; returns unsubscribe fn |
 | `publish` | `(topic, payload) => Promise<void>` | Enqueues payload to all topic subscribers |
 | `drain` | `() => Promise<void>` | Waits for all subscriber queues to empty |
@@ -57,7 +60,8 @@ Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. 
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| `constructor` | `(handler, options?)` | Accepts handler and optional `BusQueueOptionsType` |
+| `create` | `static create<T>(options: BusQueueCreateOptionsType<T>) => BusQueue<T>` | Factory; constructor is protected |
+| `builder` | `static builder<T>() => BusQueueBuilder<T>` | Returns a fluent builder |
 | `enqueue` | `(item: T) => Promise<void>` | Adds item; blocks caller when at `highWaterMark` |
 | `drain` | `() => Promise<void>` | Resolves when queue is empty or aborted |
 | `size` | `number` | Current queue depth |

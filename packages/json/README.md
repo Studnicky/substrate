@@ -74,7 +74,7 @@ const frozen = Frozen.deepFreeze({ nested: { value: 42 } });
 
 // --- Patch (instance-based, RFC-6902) ---
 const doc = { status: 'draft', count: 0 };
-const patch = new Patch([
+const patch = Patch.create([
   { op: 'replace', path: '/status', value: 'published' },
   { op: 'add', path: '/count', value: 1 },
 ]);

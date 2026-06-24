@@ -12,8 +12,8 @@ import assert from 'node:assert/strict';
 // #region usage
 import { LogBody, Logger, MemoryTransport } from '../src/index.js';
 
-const memoryAll = new MemoryTransport({ 'level': 'trace' });
-const memoryWarn = new MemoryTransport({ 'level': 'warn' });
+const memoryAll = MemoryTransport.create({ 'level': 'trace' });
+const memoryWarn = MemoryTransport.create({ 'level': 'warn' });
 
 const logger = Logger.create({
   'level': 'trace',

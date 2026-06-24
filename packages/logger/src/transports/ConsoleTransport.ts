@@ -6,6 +6,7 @@ import { LogLevel } from '../constants/LogLevel.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { parseLogLevel } from '../modules/parseLogLevel.js';
 import { safeStringify } from '../modules/safeStringify.js';
+import { ConsoleTransportBuilder } from './ConsoleTransportBuilder.js';
 
 type ConsoleFn = (message: string, record: LogRecordType) => void;
 
@@ -33,7 +34,7 @@ consoleDispatch[LogLevel.ERROR] = (msg, rec) => { console.error(msg, rec); };
  * ```typescript
  * const logger = Logger.create({
  *   level: 'debug',
- *   transports: [new ConsoleTransport({ level: 'debug' })]
+ *   transports: [ConsoleTransport.create({ level: 'debug' })]
  * });
  * ```
  */
@@ -45,12 +46,17 @@ export class ConsoleTransport implements TransportInterface {
    * @returns A new ConsoleTransport instance
    */
   static create(options: ConsoleTransportOptionsType = {}): ConsoleTransport {
-    return new ConsoleTransport(options);
+    return new this(options);
+  }
+
+  static builder(): ConsoleTransportBuilder {
+    const result = ConsoleTransportBuilder.create((options) => { const result = ConsoleTransport.create(options); return result; });
+    return result;
   }
 
   readonly #minLevel: number;
 
-  constructor(options: ConsoleTransportOptionsType = {}) {
+  protected constructor(options: ConsoleTransportOptionsType = {}) {
     if (options.level !== undefined
       && typeof options.level !== 'string'
       && typeof options.level !== 'number') {

@@ -6,7 +6,9 @@
  */
 import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
 
+import { RealTimeClockProviderOptionsEntity } from '../entities/RealTimeClockProviderOptionsEntity.js';
 import { ClockError } from '../errors/ClockError.js';
+import { RealTimeClockProviderBuilder } from './RealTimeClockProviderBuilder.js';
 
 /** Named constant: nanoseconds per millisecond (as BigInt). */
 const NS_PER_MS = 1_000_000n;
@@ -16,22 +18,36 @@ const NS_PER_MS = 1_000_000n;
  * Supports an optional epoch offset for clock-skew correction.
  */
 export class RealTimeClockProvider implements ClockProviderType {
+  static builder(): RealTimeClockProviderBuilder {
+    const result = RealTimeClockProviderBuilder.create((options) => {
+      const provider = RealTimeClockProvider.create(options);
+      return provider;
+    });
+    return result;
+  }
+
+  static create(options: RealTimeClockProviderOptionsEntity.Type = {}): RealTimeClockProvider {
+    return new this(options);
+  }
+
   /**
    * Optional epoch offset applied to `now()` and `hrtime()`.
-   * Default is 0. Set via constructor to shift the returned epoch-ms.
+   * Default is 0. Set via options to shift the returned epoch-ms.
    */
   readonly #offsetMs: number;
 
   /**
    * Property write order: #offsetMs.
-   *
-   * @param offsetMs - Optional millisecond offset applied to `Date.now()`. Defaults to 0.
    */
-  public constructor(offsetMs = 0) {
-    if (!Number.isFinite(offsetMs)) {
+  protected constructor(options: RealTimeClockProviderOptionsEntity.Type) {
+    if (!RealTimeClockProviderOptionsEntity.validate(options)) {
+      throw new ClockError('invalid RealTimeClockProvider options');
+    }
+    const resolved = options.offsetMs ?? 0;
+    if (!Number.isFinite(resolved)) {
       throw new ClockError('offsetMs must be a finite number');
     }
-    this.#offsetMs = offsetMs;
+    this.#offsetMs = resolved;
   }
 
   /**

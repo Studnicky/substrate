@@ -17,26 +17,26 @@ const invalidConfigs: Array<{ description: string; config: { requestsPerSecond: 
 
 for (const { description, config } of invalidConfigs) {
   it(description, () => {
-    throws(() => { new TokenBucket(config); }, ResilienceConfigError);
+    throws(() => { TokenBucket.create(config); }, ResilienceConfigError);
   });
 }
 
 it('succeeds when tokens are available', () => {
-  const bucket = new TokenBucket({ requestsPerSecond: 10, burstSize: 5 });
+  const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 5 });
   bucket.consume();
   bucket.consume();
   // no throw — 3 tokens remain
 });
 
 it('throws TokenBucketExhaustedError when exhausted', () => {
-  const bucket = new TokenBucket({ requestsPerSecond: 10, burstSize: 2 });
+  const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 2 });
   bucket.consume();
   bucket.consume();
   throws(() => { bucket.consume(); }, TokenBucketExhaustedError);
 });
 
 it('consumes multiple tokens at once', () => {
-  const bucket = new TokenBucket({ requestsPerSecond: 10, burstSize: 3 });
+  const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 3 });
   bucket.consume(3);
   throws(() => { bucket.consume(1); }, TokenBucketExhaustedError);
 });
@@ -61,7 +61,7 @@ const availableScenarios: Array<{
 
 for (const { description, setup, assert: assertFn } of availableScenarios) {
   it(description, () => {
-    const bucket = new TokenBucket({ requestsPerSecond: 10, burstSize: 5 });
+    const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 5 });
     setup(bucket);
     assertFn(bucket);
   });
@@ -70,7 +70,7 @@ for (const { description, setup, assert: assertFn } of availableScenarios) {
 it('refills over time with injectable clock', () => {
   let time = 0;
   const clock = (): number => time;
-  const bucket = new TokenBucket({ requestsPerSecond: 10, burstSize: 10, clock });
+  const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 10, clock });
   bucket.consume(10); // drain all
   strictEqual(bucket.available, 0);
 
@@ -81,14 +81,14 @@ it('refills over time with injectable clock', () => {
 it('does not exceed burstSize when refilling', () => {
   let time = 0;
   const clock = (): number => time;
-  const bucket = new TokenBucket({ requestsPerSecond: 10, burstSize: 5, clock });
+  const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 5, clock });
   time = 10_000; // 10 seconds → would add 100 tokens, capped at 5
   strictEqual(bucket.available, 5);
 });
 
 it('waitForToken resolves immediately when tokens are available', async () => {
   const clock = (): number => 0;
-  const bucket = new TokenBucket({ requestsPerSecond: 10, burstSize: 5, clock });
+  const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 5, clock });
   await bucket.waitForToken();  // uses default tokens: 1
   strictEqual(bucket.available, 4);
 });
@@ -96,7 +96,7 @@ it('waitForToken resolves immediately when tokens are available', async () => {
 it('waitForToken waits until refilled with injectable clock', async () => {
   let time = 0;
   const clock = (): number => time;
-  const bucket = new TokenBucket({ requestsPerSecond: 1000, burstSize: 1, clock });
+  const bucket = TokenBucket.create({ requestsPerSecond: 1000, burstSize: 1, clock });
   bucket.consume(); // drain
 
   // Advance clock concurrently so waitForToken resolves
@@ -110,7 +110,7 @@ it('waitForToken waits until refilled with injectable clock', async () => {
 
 it('waitForToken rejects when AbortSignal is aborted', async () => {
   const controller = new AbortController();
-  const bucket = new TokenBucket({ requestsPerSecond: 0.001, burstSize: 1 });
+  const bucket = TokenBucket.create({ requestsPerSecond: 0.001, burstSize: 1 });
   bucket.consume(); // drain to force a wait
 
   setImmediate(() => { controller.abort(new Error('cancelled')); });

@@ -3,7 +3,7 @@ import { it } from 'node:test';
 
 import { DEFAULT_MAX_EVENTS, TIMING_STATUS } from '../../src/constants/index.js';
 import type { TimingEventDataType } from '../../src/interfaces/TimingEventDataType.js';
-import type { TimingOptionsType } from '../../src/interfaces/TimingOptionsType.js';
+import type { TimingOptionsEntity } from '../../src/entities/TimingOptionsEntity.js';
 import { Timing } from '../../src/modules/Timing.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
 
@@ -33,7 +33,7 @@ class TracedTiming extends Timing {
   public clearCount = 0;
   public lastEventData: TimingEventDataType | undefined = undefined;
 
-  public constructor(options: TimingOptionsType = {}) {
+  public constructor(options: TimingOptionsEntity.Type = {}) {
     super(options);
   }
 

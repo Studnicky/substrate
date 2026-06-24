@@ -31,7 +31,7 @@ A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, sc
 | [@studnicky/config](https://studnicky.github.io/substrate/packages/config) | Configuration validation utilities and type guards |
 | [@studnicky/context](https://studnicky.github.io/substrate/packages/context) | Per-request async context isolation using AsyncLocalStorage |
 | [@studnicky/errors](https://studnicky.github.io/substrate/packages/errors) | Standardized error handling for all modules |
-| [@studnicky/eslint-config](https://studnicky.github.io/substrate/packages/eslint-config) | Shared ESLint 9 flat config for @studnicky packages |
+| [@studnicky/eslint-config](https://studnicky.github.io/substrate/packages/eslint-config) | Shared ESLint flat config for @studnicky packages |
 | [@studnicky/event-bus](https://studnicky.github.io/substrate/packages/event-bus) | Publish/subscribe event bus with backpressure-aware queues |
 | [@studnicky/fetch](https://studnicky.github.io/substrate/packages/fetch) | Professional HTTP client with timeout, interceptors, and configured clients for Node.js |
 | [@studnicky/file-lock](https://studnicky.github.io/substrate/packages/file-lock) | Process-level advisory file locking |

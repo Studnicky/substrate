@@ -35,6 +35,7 @@ import {
   ThrottleAbortedError,
   ThrottleDrainingError
 } from '../errors/index.js';
+import { ThrottleBuilder } from './ThrottleBuilder.js';
 
 type AdaptiveConfigType = AdaptiveConfigEntity.Type;
 type ThrottleConfigType = ThrottleConfigEntity.Type;
@@ -75,7 +76,7 @@ type ActiveOperationType = {
  *
  * @example Basic throttling
  * ```typescript
- * const throttle = new Throttle();
+ * const throttle = Throttle.create();
  *
  * const results = await Promise.all(
  *   urls.map(url => throttle.execute(async () => fetch(url)))
@@ -84,7 +85,7 @@ type ActiveOperationType = {
  *
  * @example Abort all operations
  * ```typescript
- * const throttle = new Throttle({ concurrencyLimit: 5 });
+ * const throttle = Throttle.create({ concurrencyLimit: 5 });
  *
  * const operations = urls.map(url =>
  *   throttle.execute(async () => fetch(url))
@@ -97,7 +98,7 @@ type ActiveOperationType = {
  *
  * @example Graceful shutdown with timeout
  * ```typescript
- * const throttle = new Throttle({ concurrencyLimit: 10 });
+ * const throttle = Throttle.create({ concurrencyLimit: 10 });
  *
  * const operations = urls.map(url =>
  *   throttle.execute(async () => fetch(url))
@@ -124,8 +125,28 @@ export class Throttle implements ThrottleInterface {
    * ```
    */
   static create(config?: Partial<ThrottleConfigType>): Throttle {
-    const result = new Throttle(config);
+    const result = new this(config);
     return result;
+  }
+
+  /**
+   * Return a fluent builder for creating Throttle instances
+   *
+   * @returns ThrottleBuilder instance
+   *
+   * @example
+   * ```typescript
+   * const throttle = Throttle.builder()
+   *   .withConcurrencyLimit(5)
+   *   .build();
+   * ```
+   */
+  static builder(): ThrottleBuilder {
+    const factory = (options: Partial<ThrottleConfigType>): Throttle => {
+      const instance = Throttle.create(options);
+      return instance;
+    };
+    return ThrottleBuilder.create(factory);
   }
 
   /**
@@ -158,21 +179,21 @@ export class Throttle implements ThrottleInterface {
    *
    * @example Default throttle (limit of 10)
    * ```typescript
-   * const throttle = new Throttle();
+   * const throttle = Throttle.create();
    * ```
    *
    * @example Custom concurrency limit
    * ```typescript
-   * const throttle = new Throttle({ concurrencyLimit: 5 });
+   * const throttle = Throttle.create({ concurrencyLimit: 5 });
    * ```
    */
-  constructor(config?: Partial<ThrottleConfigType>) {
+  protected constructor(config?: Partial<ThrottleConfigType>) {
     this.config = Throttle.validateConfig(config);
-    this.queue = new CircularBuffer(DEFAULT_BUFFER_CAPACITY);
+    this.queue = CircularBuffer.create({ 'capacity': DEFAULT_BUFFER_CAPACITY, 'overflow': 'grow' });
 
     // Initialize latency buffer if adaptive is enabled
     if (this.config.adaptive?.enabled === true) {
-      this.latencyBuffer = new SampleBuffer(this.config.adaptive.sampleWindow);
+      this.latencyBuffer = SampleBuffer.create({ 'capacity': this.config.adaptive.sampleWindow });
     }
   }
 

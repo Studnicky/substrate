@@ -10,7 +10,7 @@ const errorScenarios: Array<{ description: string; input: number }> = [
 ];
 for (const { description, input } of errorScenarios) {
   it(description, () => {
-    assert.throws(() => new Semaphore(input), SemaphoreError);
+    assert.throws(() => Semaphore.create({ 'permits': input }), SemaphoreError);
   });
 }
 
@@ -19,13 +19,13 @@ const getterScenarios: Array<{ description: string; permits: number }> = [
 ];
 for (const { description, permits } of getterScenarios) {
   it(description, () => {
-    const sem = new Semaphore(permits);
+    const sem = Semaphore.create({ permits });
     assert.equal(sem.permits, permits);
   });
 }
 
 it('acquire and release cycle decrements and restores available', async () => {
-  const sem = new Semaphore(2);
+  const sem = Semaphore.create({ 'permits': 2 });
   assert.equal(sem.available, 2);
 
   const r1 = await sem.acquire();
@@ -42,7 +42,7 @@ it('acquire and release cycle decrements and restores available', async () => {
 });
 
 it('double-release is safe (idempotent)', async () => {
-  const sem = new Semaphore(1);
+  const sem = Semaphore.create({ 'permits': 1 });
   const release = await sem.acquire();
   assert.equal(sem.available, 0);
 
@@ -52,7 +52,7 @@ it('double-release is safe (idempotent)', async () => {
 });
 
 it('queues waiters when all permits are taken', async () => {
-  const sem = new Semaphore(1);
+  const sem = Semaphore.create({ 'permits': 1 });
   const r1 = await sem.acquire();
 
   let secondAcquired = false;
@@ -76,7 +76,7 @@ it('queues waiters when all permits are taken', async () => {
 });
 
 it('withPermit runs callback under permit and releases on return', async () => {
-  const sem = new Semaphore(1);
+  const sem = Semaphore.create({ 'permits': 1 });
   let inside = false;
 
   await sem.withPermit(async () => {
@@ -89,7 +89,7 @@ it('withPermit runs callback under permit and releases on return', async () => {
 });
 
 it('withPermit releases permit even when callback throws', async () => {
-  const sem = new Semaphore(1);
+  const sem = Semaphore.create({ 'permits': 1 });
 
   await assert.rejects(
     () => sem.withPermit(async () => { throw new Error('boom'); }),

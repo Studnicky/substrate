@@ -31,8 +31,11 @@ export {
   TimeoutError
 } from './errors/index.js';
 export { FetchClient } from './modules/FetchClient.js';
+export { FetchClientBuilder } from './modules/FetchClientBuilder.js';
 export { HttpMethods } from './modules/HttpMethods.js';
 export { InterceptorManager } from './modules/InterceptorManager.js';
+export { InterceptorManagerBuilder } from './modules/InterceptorManagerBuilder.js';
 export { RequestBuilder } from './modules/RequestBuilder.js';
 export { UndiciDispatcher } from './modules/UndiciDispatcher.js';
+export { UndiciDispatcherBuilder } from './modules/UndiciDispatcherBuilder.js';
 export { UrlUtils } from './modules/UrlUtils.js';

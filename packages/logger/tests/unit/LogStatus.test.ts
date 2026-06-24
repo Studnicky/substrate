@@ -7,11 +7,7 @@ import {
   LOG_STATUS,
   STATUS_CATEGORIES
 } from '../../src/constants/LOG_STATUS.js';
-import {
-  isFailureStatus,
-  isLifecycleStatus,
-  isSuccessStatus
-} from '../../src/types/LogStatusType.js';
+import { LogStatus } from '../../src/modules/LogStatus.js';
 
 void describe('LogStatus', () => {
   void describe('LOG_STATUS constants', () => {
@@ -94,50 +90,50 @@ void describe('LogStatus', () => {
     });
   });
 
-  void describe('isSuccessStatus()', () => {
+  void describe('LogStatus.isSuccess()', () => {
     void it('should return true for success statuses', () => {
-      assert.strictEqual(isSuccessStatus('success'), true);
-      assert.strictEqual(isSuccessStatus('partial'), true);
-      assert.strictEqual(isSuccessStatus('cached'), true);
-      assert.strictEqual(isSuccessStatus('skipped'), true);
+      assert.strictEqual(LogStatus.isSuccess('success'), true);
+      assert.strictEqual(LogStatus.isSuccess('partial'), true);
+      assert.strictEqual(LogStatus.isSuccess('cached'), true);
+      assert.strictEqual(LogStatus.isSuccess('skipped'), true);
     });
 
     void it('should return false for non-success statuses', () => {
-      assert.strictEqual(isSuccessStatus('failed'), false);
-      assert.strictEqual(isSuccessStatus('pending'), false);
-      assert.strictEqual(isSuccessStatus('retrying'), false);
+      assert.strictEqual(LogStatus.isSuccess('failed'), false);
+      assert.strictEqual(LogStatus.isSuccess('pending'), false);
+      assert.strictEqual(LogStatus.isSuccess('retrying'), false);
     });
   });
 
-  void describe('isFailureStatus()', () => {
+  void describe('LogStatus.isFailure()', () => {
     void it('should return true for failure statuses', () => {
-      assert.strictEqual(isFailureStatus('failed'), true);
-      assert.strictEqual(isFailureStatus('timeout'), true);
-      assert.strictEqual(isFailureStatus('invalid'), true);
-      assert.strictEqual(isFailureStatus('not_found'), true);
-      assert.strictEqual(isFailureStatus('unauthorized'), true);
-      assert.strictEqual(isFailureStatus('rate_limited'), true);
-      assert.strictEqual(isFailureStatus('unavailable'), true);
+      assert.strictEqual(LogStatus.isFailure('failed'), true);
+      assert.strictEqual(LogStatus.isFailure('timeout'), true);
+      assert.strictEqual(LogStatus.isFailure('invalid'), true);
+      assert.strictEqual(LogStatus.isFailure('not_found'), true);
+      assert.strictEqual(LogStatus.isFailure('unauthorized'), true);
+      assert.strictEqual(LogStatus.isFailure('rate_limited'), true);
+      assert.strictEqual(LogStatus.isFailure('unavailable'), true);
     });
 
     void it('should return false for non-failure statuses', () => {
-      assert.strictEqual(isFailureStatus('success'), false);
-      assert.strictEqual(isFailureStatus('pending'), false);
-      assert.strictEqual(isFailureStatus('retrying'), false);
+      assert.strictEqual(LogStatus.isFailure('success'), false);
+      assert.strictEqual(LogStatus.isFailure('pending'), false);
+      assert.strictEqual(LogStatus.isFailure('retrying'), false);
     });
   });
 
-  void describe('isLifecycleStatus()', () => {
+  void describe('LogStatus.isLifecycle()', () => {
     void it('should return true for lifecycle statuses', () => {
-      assert.strictEqual(isLifecycleStatus('pending'), true);
-      assert.strictEqual(isLifecycleStatus('in_progress'), true);
-      assert.strictEqual(isLifecycleStatus('complete'), true);
+      assert.strictEqual(LogStatus.isLifecycle('pending'), true);
+      assert.strictEqual(LogStatus.isLifecycle('in_progress'), true);
+      assert.strictEqual(LogStatus.isLifecycle('complete'), true);
     });
 
     void it('should return false for non-lifecycle statuses', () => {
-      assert.strictEqual(isLifecycleStatus('success'), false);
-      assert.strictEqual(isLifecycleStatus('failed'), false);
-      assert.strictEqual(isLifecycleStatus('retrying'), false);
+      assert.strictEqual(LogStatus.isLifecycle('success'), false);
+      assert.strictEqual(LogStatus.isLifecycle('failed'), false);
+      assert.strictEqual(LogStatus.isLifecycle('retrying'), false);
     });
   });
 });

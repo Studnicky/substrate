@@ -15,7 +15,7 @@ const channelScenarios: Array<{ description: string; exec: () => Promise<void> }
   {
     description: 'publish then subscribe yields buffered items',
     exec: async () => {
-      const ch = new Channel<number>();
+      const ch = Channel.create<number>();
 
       ch.publish('a', 1);
       ch.publish('a', 2);
@@ -28,7 +28,7 @@ const channelScenarios: Array<{ description: string; exec: () => Promise<void> }
   {
     description: 'subscribe receives items published after subscription starts',
     exec: async () => {
-      const ch = new Channel<string>();
+      const ch = Channel.create<string>();
       const gen = ch.subscribe('b');
 
       const collected: string[] = [];
@@ -49,7 +49,7 @@ const channelScenarios: Array<{ description: string; exec: () => Promise<void> }
   {
     description: 'close() terminates subscribe',
     exec: async () => {
-      const ch = new Channel<number>();
+      const ch = Channel.create<number>();
       const gen = ch.subscribe('c');
 
       const items: number[] = [];
@@ -68,7 +68,7 @@ const channelScenarios: Array<{ description: string; exec: () => Promise<void> }
   {
     description: 'multiple keys are independent',
     exec: async () => {
-      const ch = new Channel<string>();
+      const ch = Channel.create<string>();
 
       ch.publish('x', 'from-x');
       ch.publish('y', 'from-y');
@@ -85,7 +85,7 @@ const channelScenarios: Array<{ description: string; exec: () => Promise<void> }
   {
     description: 'publish after close is a no-op',
     exec: async () => {
-      const ch = new Channel<number>();
+      const ch = Channel.create<number>();
       ch.close();
 
       ch.publish('z', 99); // must not throw

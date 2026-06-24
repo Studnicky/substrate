@@ -10,3 +10,4 @@ export { ErrorCodeRegistry } from './ErrorCodeRegistry.js';
 export { ModuleError } from './ModuleError.js';
 export { ValidationError } from './ValidationError.js';
 export { ValidationErrors } from './ValidationErrors.js';
+export { ValidationErrorsBuilder } from './ValidationErrorsBuilder.js';

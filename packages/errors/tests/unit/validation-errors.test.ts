@@ -24,13 +24,13 @@ class TestViolation {
 void describe('ValidationErrors', () => {
   void describe('construction', () => {
     void it('empty collection has ok === true and length === 0', () => {
-      const errs = new ValidationErrors([]);
+      const errs = ValidationErrors.create([]);
       ok(errs.ok);
       strictEqual(errs.length, 0);
     });
 
     void it('non-empty collection has ok === false', () => {
-      const errs = new ValidationErrors([TestViolation.of('/name', 'required', 'required')]);
+      const errs = ValidationErrors.create([TestViolation.of('/name', 'required', 'required')]);
       strictEqual(errs.ok, false);
       strictEqual(errs.length, 1);
     });
@@ -56,7 +56,7 @@ void describe('ValidationErrors', () => {
     });
 
     void it('merging empty collections yields empty', () => {
-      const merged = ValidationErrors.merge(new ValidationErrors([]), new ValidationErrors([]));
+      const merged = ValidationErrors.merge(ValidationErrors.create([]), ValidationErrors.create([]));
       ok(merged.ok);
     });
   });
@@ -110,7 +110,7 @@ void describe('ValidationErrors', () => {
     });
 
     void it('returns empty arrays for empty collection', () => {
-      const agg = new ValidationErrors([]).aggregate();
+      const agg = ValidationErrors.create([]).aggregate();
       strictEqual(agg.count, 0);
       deepStrictEqual(agg.paths, []);
       deepStrictEqual(agg.keywords, []);

@@ -42,6 +42,9 @@ export { TimingBuildError } from './errors/TimingBuildError.js';
 /** No-operation timing tracker class */
 export { NoOpTiming } from './modules/NoOpTiming.js';
 
+/** Builder for creating NoOpTiming instances */
+export { NoOpTimingBuilder } from './modules/NoOpTimingBuilder.js';
+
 /** High-resolution timing tracker class */
 export { Timing } from './modules/Timing.js';
 

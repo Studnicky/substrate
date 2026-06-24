@@ -11,14 +11,14 @@ import { DlqClosedError } from '../../src/DlqClosedError.js';
 import { DlqFullError } from '../../src/DlqFullError.js';
 
 it('enqueue adds an entry and increments size', () => {
-  const dlq = new DeadLetterQueue<string>();
+  const dlq = DeadLetterQueue.create<string>();
   dlq.enqueue('msg', 'parse-error');
   strictEqual(dlq.size, 1);
 });
 
 it('enqueue stores all entry fields', () => {
   const clock = (): number => 42;
-  const dlq = new DeadLetterQueue<string>({ clock });
+  const dlq = DeadLetterQueue.create<string>({ clock });
   const err = new Error('boom');
   dlq.enqueue('payload', 'decode-failed', err);
   strictEqual(dlq.size, 1);
@@ -52,7 +52,7 @@ const enqueueErrorScenarios: Array<{
 
 for (const { description, setup, errorType } of enqueueErrorScenarios) {
   it(description, () => {
-    const dlq = new DeadLetterQueue<string>({ capacity: 2 });
+    const dlq = DeadLetterQueue.create<string>({ capacity: 2 });
     setup(dlq);
     throws(() => { dlq.enqueue('c', 'r3'); }, errorType);
   });
@@ -61,7 +61,7 @@ for (const { description, setup, errorType } of enqueueErrorScenarios) {
 it('enqueue throws DlqAbortedError when constructed with already-aborted signal', () => {
   const controller = new AbortController();
   controller.abort();
-  const dlq = new DeadLetterQueue<string>({ signal: controller.signal });
+  const dlq = DeadLetterQueue.create<string>({ signal: controller.signal });
   throws(() => { dlq.enqueue('x', 'reason'); }, DlqAbortedError);
 });
 
@@ -76,14 +76,14 @@ const sizeScenarios: Array<{ description: string; setup: (dlq: DeadLetterQueue<s
 
 for (const { description, setup, expected } of sizeScenarios) {
   it(description, async () => {
-    const dlq = new DeadLetterQueue<string>();
+    const dlq = DeadLetterQueue.create<string>();
     await setup(dlq);
     strictEqual(dlq.size, expected);
   });
 }
 
 it('size decrements after drain consumes entry', async () => {
-  const dlq = new DeadLetterQueue<string>();
+  const dlq = DeadLetterQueue.create<string>();
   dlq.enqueue('a', 'r');
   const gen = dlq.drain();
   await gen.next();
@@ -106,14 +106,14 @@ const closedScenarios: Array<{ description: string; setup: (dlq: DeadLetterQueue
 
 for (const { description, setup, expected } of closedScenarios) {
   it(description, () => {
-    const dlq = new DeadLetterQueue<string>();
+    const dlq = DeadLetterQueue.create<string>();
     setup(dlq);
     strictEqual(dlq.closed, expected);
   });
 }
 
 it('drain yields entries in FIFO order', async () => {
-  const dlq = new DeadLetterQueue<string>();
+  const dlq = DeadLetterQueue.create<string>();
   dlq.enqueue('first', 'r');
   dlq.enqueue('second', 'r');
   dlq.close();
@@ -126,7 +126,7 @@ it('drain yields entries in FIFO order', async () => {
 });
 
 it('drain terminates after close() with no pending entries', async () => {
-  const dlq = new DeadLetterQueue<string>();
+  const dlq = DeadLetterQueue.create<string>();
   dlq.enqueue('a', 'r');
   dlq.close();
 
@@ -136,7 +136,7 @@ it('drain terminates after close() with no pending entries', async () => {
 });
 
 it('drain terminates after abort()', async () => {
-  const dlq = new DeadLetterQueue<number>();
+  const dlq = DeadLetterQueue.create<number>();
   dlq.enqueue(1, 'r');
 
   const entries: number[] = [];
@@ -150,7 +150,7 @@ it('drain terminates after abort()', async () => {
 });
 
 it('drain blocks until enqueue wakes it', async () => {
-  const dlq = new DeadLetterQueue<string>();
+  const dlq = DeadLetterQueue.create<string>();
 
   const collected: string[] = [];
   const drainPromise = (async () => {
@@ -171,7 +171,7 @@ it('drain blocks until enqueue wakes it', async () => {
 
 it('drain entry has correct fields', async () => {
   const clock = (): number => 999;
-  const dlq = new DeadLetterQueue<string>({ clock });
+  const dlq = DeadLetterQueue.create<string>({ clock });
   const err = new Error('test');
   dlq.enqueue('payload', 'my-reason', err);
   dlq.close();
@@ -190,7 +190,7 @@ it('drain entry has correct fields', async () => {
 
 it('drain aborts when signal fires', async () => {
   const controller = new AbortController();
-  const dlq = new DeadLetterQueue<string>({ signal: controller.signal });
+  const dlq = DeadLetterQueue.create<string>({ signal: controller.signal });
 
   const collected: string[] = [];
   const drainPromise = (async () => {

@@ -1,17 +1,11 @@
 /** Bounded async FIFO queue with backpressure; enqueue blocks at highWaterMark. */
 
-import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
+import type { BusQueueCreateOptionsType } from './BusQueueCreateOptionsType.js';
 
+import { BusQueueBuilder } from './BusQueueBuilder.js';
 import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 
 const busQueueDefaultHighWaterMark = 256;
-
-/** Full construction options including runtime-only fields not representable in JSON Schema. */
-type BusQueueOptionsType = {
-  readonly 'onError'?: (err: unknown) => void;
-  /** Runtime AbortSignal — not JSON-serializable, omitted from schema. */
-  readonly 'signal'?: AbortSignal;
-} & BusQueueOptionsEntity.Type;
 
 export class BusQueue<T> {
   readonly #handler: (item: T) => Promise<void>;
@@ -23,15 +17,31 @@ export class BusQueue<T> {
   #draining = false;
   #aborted = false;
 
-  constructor(handler: (item: T) => Promise<void>, options?: BusQueueOptionsType) {
-    const hwmOption = options?.highWaterMark;
+  static builder<T>(): BusQueueBuilder<T> {
+    const result = BusQueueBuilder.create<T>((options) => {
+      const instance = BusQueue.create<T>(options);
+      return instance;
+    });
+    return result;
+  }
+
+  static create<T>(options: BusQueueCreateOptionsType<T>): BusQueue<T> {
+    const result = new this<T>(options);
+    return result;
+  }
+
+  protected constructor(options: BusQueueCreateOptionsType<T>) {
+    if (typeof options.handler !== 'function') {
+      throw new BusQueueConfigError('handler must be a function');
+    }
+    const hwmOption = options.highWaterMark;
     if (hwmOption !== undefined && (!Number.isInteger(hwmOption) || hwmOption <= 0)) {
       throw new BusQueueConfigError('highWaterMark must be a positive integer');
     }
-    this.#handler = handler;
+    this.#handler = options.handler;
     this.#hwm = hwmOption ?? busQueueDefaultHighWaterMark;
-    this.#onError = options?.onError;
-    const signal = options?.signal;
+    this.#onError = options.onError;
+    const signal = options.signal;
     if (signal !== undefined) {
       if (signal.aborted) {
         this.#aborted = true;

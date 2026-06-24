@@ -31,7 +31,7 @@ describe('RealTimeScheduler', () => {
   describe('happy path', () => {
     describe('scheduleAt', () => {
       it('returns a ScheduledTask with id and atMs', () => {
-        const sched = new RealTimeScheduler();
+        const sched = RealTimeScheduler.create();
         const atMs = Date.now() + FAR_FUTURE_DELAY_MS;
         const task = sched.scheduleAt(atMs, () => {
           return;
@@ -46,7 +46,7 @@ describe('RealTimeScheduler', () => {
 
     describe('scheduleEvery', () => {
       it('returns a ScheduledTask with atMs and id', () => {
-        const sched = new RealTimeScheduler();
+        const sched = RealTimeScheduler.create();
         const task = sched.scheduleEvery(INTERVAL_MS, () => {
           return;
         });
@@ -60,7 +60,7 @@ describe('RealTimeScheduler', () => {
 
     describe('cancelAll', () => {
       it('clears multiple tasks without error', () => {
-        const sched = new RealTimeScheduler();
+        const sched = RealTimeScheduler.create();
 
         for (let index = 0; index < 3; index++) {
           sched.scheduleAt(Date.now() + FAR_FUTURE_DELAY_MS, () => {
@@ -98,14 +98,14 @@ describe('RealTimeScheduler', () => {
     ];
     for (const { description, act } of cancelNoErrorScenarios) {
       it(description, () => {
-        const sched = new RealTimeScheduler();
+        const sched = RealTimeScheduler.create();
         act(sched);
         assert.ok(true);
       });
     }
 
     it('cancelAll on empty scheduler is a no-op', () => {
-      const sched = new RealTimeScheduler();
+      const sched = RealTimeScheduler.create();
 
       sched.cancelAll();
 
@@ -113,7 +113,7 @@ describe('RealTimeScheduler', () => {
     });
 
     it('task IDs are unique across multiple schedules', () => {
-      const sched = new RealTimeScheduler();
+      const sched = RealTimeScheduler.create();
       const idSet = new Set<string>();
 
       for (let index = 0; index < TASK_COUNT; index++) {
@@ -131,7 +131,7 @@ describe('RealTimeScheduler', () => {
 
   describe('unhappy path', () => {
     it('cancel() on a fired task is a no-op (does not throw)', () => {
-      const sched = new RealTimeScheduler();
+      const sched = RealTimeScheduler.create();
       const atMs = Date.now() - 1;
       const task = sched.scheduleAt(atMs, () => {
         return;
@@ -142,7 +142,7 @@ describe('RealTimeScheduler', () => {
     });
 
     it('scheduleAt: rejected Promise from fire is silently caught', async () => {
-      const sched = new RealTimeScheduler();
+      const sched = RealTimeScheduler.create();
       const atMs = Date.now() - 1;
 
       sched.scheduleAt(atMs, async () => {
@@ -155,7 +155,7 @@ describe('RealTimeScheduler', () => {
     });
 
     it('scheduleEvery: rejected Promise from fire is silently caught', async () => {
-      const sched = new RealTimeScheduler();
+      const sched = RealTimeScheduler.create();
       const task = sched.scheduleEvery(1, async () => {
         await Promise.resolve();
         throw new Error('scheduleEvery reject');
@@ -179,6 +179,8 @@ describe('RealTimeScheduler', () => {
       public fireCount = 0;
       public cancelCount = 0;
       public cancelAllCount = 0;
+
+      public constructor() { super(); }
 
       protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
         this.scheduleCount++;
@@ -245,6 +247,7 @@ describe('RealTimeScheduler', () => {
 
     it('generateId override returns custom IDs', () => {
       class CustomIdScheduler extends RealTimeScheduler {
+        public constructor() { super(); }
         protected override generateId(): string {
           return 'custom-id';
         }

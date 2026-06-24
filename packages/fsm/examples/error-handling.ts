@@ -19,6 +19,8 @@ type BrokenState = { readonly 'variant': 'active' };
 type BrokenEvent = { readonly 'type': 'boom' };
 
 class BrokenMachine extends StateMachine<BrokenState, BrokenEvent> {
+  static make(): BrokenMachine { return new BrokenMachine(); }
+
   getInitialState(): BrokenState {
     return { 'variant': 'active' };
   }
@@ -29,7 +31,7 @@ class BrokenMachine extends StateMachine<BrokenState, BrokenEvent> {
   }
 }
 
-const broken = new BrokenMachine();
+const broken: BrokenMachine = BrokenMachine.make();
 const initialState: BrokenState = { 'variant': 'active' };
 
 // StateMachine.transition wraps reducer throws in ReducerThrewError
@@ -46,11 +48,12 @@ type SimpleState = { readonly 'variant': 'idle' };
 type SimpleEvent = { readonly 'type': 'noop' };
 
 class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
+  static make(): SimpleMachine { return new SimpleMachine(); }
   getInitialState(): SimpleState { return { 'variant': 'idle' }; }
   reduce(state: SimpleState): FsmStepType<SimpleState> { return { 'effects': [], 'state': state }; }
 }
 
-const notStarted = new EffectInterpreter(new SimpleMachine());
+const notStarted: EffectInterpreter<SimpleState, SimpleEvent> = EffectInterpreter.create({ 'machine': SimpleMachine.make() });
 
 // getState before start() throws InterpreterNotStartedError
 assert.throws(
@@ -62,7 +65,7 @@ console.log('InterpreterNotStartedError thrown and caught');
 
 // --- InterpreterNotRunningError ---
 
-const stopped = new EffectInterpreter(new SimpleMachine());
+const stopped: EffectInterpreter<SimpleState, SimpleEvent> = EffectInterpreter.create({ 'machine': SimpleMachine.make() });
 stopped.start();
 stopped.stop();
 

@@ -30,7 +30,7 @@ class TimedPipeline extends Pipeline<RequestCtxType> {
   }
 }
 
-const pipeline = new TimedPipeline();
+const pipeline = TimedPipeline.create<RequestCtxType>();
 
 // Stage: attach an Authorization header
 pipeline.add((ctx) => { return {

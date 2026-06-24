@@ -13,8 +13,8 @@ import { VirtualScheduler } from '../src/index.js';
 
 // --- Part 1: interval fires the expected number of times ---
 
-const counter = new VirtualTimeCounter(0);
-const scheduler = new VirtualScheduler(counter);
+const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+const scheduler = VirtualScheduler.create({ 'counter': counter });
 
 let count = 0;
 
@@ -27,8 +27,8 @@ console.log('Interval fire count:', count);
 
 // --- Part 2: cancelAll() prevents further fires ---
 
-const counter2 = new VirtualTimeCounter(0);
-const scheduler2 = new VirtualScheduler(counter2);
+const counter2 = VirtualTimeCounter.create({ 'startMs': 0 });
+const scheduler2 = VirtualScheduler.create({ 'counter': counter2 });
 
 let countAfterCancel = 0;
 

@@ -11,8 +11,8 @@ import {
 
 // --- hrtime matches epoch-ms * 1_000_000n ---
 
-const counterA = new VirtualTimeCounter(0);
-const clockA = new Clock(new VirtualClockProvider(counterA));
+const counterA = VirtualTimeCounter.create();
+const clockA = Clock.create(VirtualClockProvider.create(counterA));
 
 counterA.advance(100);
 
@@ -23,8 +23,8 @@ console.log(`epochMs=${epochMs}, hrtime=${ns}n (== ${epochMs} * 1_000_000n)`);
 
 // --- Monotonicity after advances ---
 
-const counterB = new VirtualTimeCounter(0);
-const clockB = new Clock(new VirtualClockProvider(counterB));
+const counterB = VirtualTimeCounter.create();
+const clockB = Clock.create(VirtualClockProvider.create(counterB));
 
 const deltas = [0, 50, 0, 200, 100];
 const readings: number[] = [];
@@ -40,10 +40,10 @@ console.log(`monotonicity sequence: ${readings.join(' → ')}`);
 
 // --- Two independent counters evolve independently ---
 
-const counterX = new VirtualTimeCounter(1000);
-const counterY = new VirtualTimeCounter(2000);
-const clockX = new Clock(new VirtualClockProvider(counterX));
-const clockY = new Clock(new VirtualClockProvider(counterY));
+const counterX = VirtualTimeCounter.create({ 'startMs': 1000 });
+const counterY = VirtualTimeCounter.create({ 'startMs': 2000 });
+const clockX = Clock.create(VirtualClockProvider.create(counterX));
+const clockY = Clock.create(VirtualClockProvider.create(counterY));
 
 counterX.advance(500);
 counterY.advance(100);
@@ -52,9 +52,9 @@ console.log(`independent counters: clockX.now()=${clockX.now()}, clockY.now()=${
 
 // --- Shared counter keeps multiple clocks in sync ---
 
-const shared = new VirtualTimeCounter(0);
-const clockP = new Clock(new VirtualClockProvider(shared));
-const clockQ = new Clock(new VirtualClockProvider(shared));
+const shared = VirtualTimeCounter.create();
+const clockP = Clock.create(VirtualClockProvider.create(shared));
+const clockQ = Clock.create(VirtualClockProvider.create(shared));
 
 shared.advance(300);
 

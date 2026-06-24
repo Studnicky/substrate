@@ -11,7 +11,7 @@ writeFileSync(filePath, 'dispose test', 'utf8');
 // #region usage
 import { FileLock } from '../src/index.js';
 
-const lock = await FileLock.acquire(filePath);
+const lock = await FileLock.create({ 'path': filePath });
 
 lock.write('written via lock');
 const content = lock.read();

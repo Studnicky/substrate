@@ -27,9 +27,9 @@ through all of them with `run()`. Each stage receives the context and returns a
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/pipeline` | `Pipeline`, `PipelineError` |
+| `@studnicky/pipeline` | `Pipeline`, `PipelineBuilder`, `PipelineError` |
 | `@studnicky/pipeline/interfaces` | `PipelineInterface` |
-| `@studnicky/pipeline/pipeline` | `Pipeline` (direct subpath) |
+| `@studnicky/pipeline/pipeline` | `Pipeline`, `PipelineBuilder` (direct subpath) |
 | `@studnicky/pipeline/types` | `PipelineFnType` |
 
 ## Extending

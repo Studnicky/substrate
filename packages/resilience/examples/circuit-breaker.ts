@@ -9,7 +9,7 @@ import { CircuitBreaker, CircuitBreakerOpenError } from '../src/index.js';
 let now = 0;
 const clock = (): number => { const result = now; return result; };
 
-const breaker = new CircuitBreaker({
+const breaker = CircuitBreaker.create({
   'clock': clock,
   'failureThreshold': 3,
   'name': 'test-service',

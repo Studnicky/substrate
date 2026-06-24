@@ -7,7 +7,7 @@ import { Coalesce } from '../src/index.js';
 
 class CoalesceDemo {
   static async runSharedInFlight(): Promise<{ 'a': string; 'b': string; 'callCount': number }> {
-    const coalesce = new Coalesce<string>();
+    const coalesce = Coalesce.create<string>();
     let callCount = 0;
 
     const factory = (): Promise<string> => {
@@ -28,7 +28,7 @@ class CoalesceDemo {
   }
 
   static async runIsInflight(): Promise<number> {
-    const coalesce = new Coalesce<number>();
+    const coalesce = Coalesce.create<number>();
 
     let resolve!: (v: number) => void;
     const factory = (): Promise<number> =>
@@ -51,7 +51,7 @@ class CoalesceDemo {
   }
 
   static async runDistinctKeys(): Promise<{ 'a': string; 'b': string; 'callCounts': Record<string, number> }> {
-    const coalesce = new Coalesce<string>();
+    const coalesce = Coalesce.create<string>();
     const callCounts: Record<string, number> = { 'a': 0, 'b': 0 };
 
     const factory = (key: string) => {return (): Promise<string> => {
@@ -69,7 +69,7 @@ class CoalesceDemo {
   }
 
   static async runSequentialCallsEachInvokeFactory(): Promise<{ 'callCount': number; 'first': number; 'second': number }> {
-    const coalesce = new Coalesce<number>();
+    const coalesce = Coalesce.create<number>();
     let callCount = 0;
 
     const factory = (): Promise<number> => {

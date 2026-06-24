@@ -1,8 +1,7 @@
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
 import type { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
 import type { ThrottleBuilderInterface } from '../interfaces/index.js';
-
-import { Throttle } from './Throttle.js';
+import type { Throttle } from './Throttle.js';
 
 type AdaptiveConfigInputType = AdaptiveConfigEntity.AdaptiveConfigInputType;
 type ThrottleConfigType = ThrottleConfigEntity.Type;
@@ -12,14 +11,23 @@ type ThrottleConfigType = ThrottleConfigEntity.Type;
  *
  * @example Basic usage
  * ```typescript
- * const throttle = new ThrottleBuilder()
+ * const throttle = Throttle.builder()
  *   .withConcurrencyLimit(5)
  *   .build();
  * ```
  *
  */
 export class ThrottleBuilder implements ThrottleBuilderInterface {
-  private readonly config: Partial<ThrottleConfigType> = {};
+  static create(create: (options: Partial<ThrottleConfigType>) => Throttle): ThrottleBuilder {
+    return new ThrottleBuilder(create);
+  }
+
+  readonly #create: (options: Partial<ThrottleConfigType>) => Throttle;
+  readonly #config: Partial<ThrottleConfigType> = {};
+
+  private constructor(create: (options: Partial<ThrottleConfigType>) => Throttle) {
+    this.#create = create;
+  }
 
   /**
    * Build and return the configured Throttle instance
@@ -28,14 +36,14 @@ export class ThrottleBuilder implements ThrottleBuilderInterface {
    *
    * @example
    * ```typescript
-   * const throttle = new ThrottleBuilder()
+   * const throttle = Throttle.builder()
    *   .withConcurrencyLimit(5)
    *   .build();
    * ```
    */
   build(): Throttle {
-    const result = Throttle.create(this.config);
-    return result;
+    const config: Partial<ThrottleConfigType> = { ...this.#config };
+    return this.#create(config);
   }
 
   /**
@@ -46,7 +54,7 @@ export class ThrottleBuilder implements ThrottleBuilderInterface {
    *
    * @example
    * ```typescript
-   * const throttle = new ThrottleBuilder()
+   * const throttle = Throttle.builder()
    *   .withConcurrencyLimit(10)
    *   .withAdaptiveConcurrency({
    *     enabled: true,
@@ -58,8 +66,7 @@ export class ThrottleBuilder implements ThrottleBuilderInterface {
    * ```
    */
   withAdaptiveConcurrency(config: AdaptiveConfigInputType): this {
-    this.config.adaptive = config;
-
+    this.#config.adaptive = config;
     return this;
   }
 
@@ -71,14 +78,13 @@ export class ThrottleBuilder implements ThrottleBuilderInterface {
    *
    * @example
    * ```typescript
-   * const throttle = new ThrottleBuilder()
+   * const throttle = Throttle.builder()
    *   .withConcurrencyLimit(5)
    *   .build();
    * ```
    */
   withConcurrencyLimit(limit: number): this {
-    this.config.concurrencyLimit = limit;
-
+    this.#config.concurrencyLimit = limit;
     return this;
   }
 }

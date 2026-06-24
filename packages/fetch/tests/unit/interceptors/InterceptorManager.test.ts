@@ -20,7 +20,7 @@ const createMockMetadata = (): RequestMetadataType => {
 
 void describe('InterceptorManager', () => {
   void it('should create empty manager', () => {
-    const manager = new InterceptorManager();
+    const manager = InterceptorManager.create();
 
     assert.strictEqual(manager.requestInterceptors.length, 0);
     assert.strictEqual(manager.responseInterceptors.length, 0);
@@ -28,7 +28,7 @@ void describe('InterceptorManager', () => {
 
   void describe('Request Interceptors', () => {
     void it('should add request interceptor', () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
 
       manager.addRequestInterceptor(async ({
         metadata, options, url
@@ -43,7 +43,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should apply single request interceptor', async () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
 
       manager.addRequestInterceptor(async ({
         metadata, options, url
@@ -72,7 +72,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should apply multiple request interceptors in order', async () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
       const order: number[] = [];
 
       manager.addRequestInterceptor(async ({
@@ -128,7 +128,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should allow interceptor to modify URL', async () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
 
       manager.addRequestInterceptor(async ({
         metadata, options, url
@@ -150,7 +150,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should allow interceptor to modify metadata', async () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
 
       manager.addRequestInterceptor(async ({
         metadata, options, url
@@ -178,7 +178,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should remove request interceptor', () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
       const remove = manager.addRequestInterceptor(async ({
         metadata, options, url
       }) => {
@@ -196,7 +196,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should handle synchronous interceptors', async () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
 
       manager.addRequestInterceptor(({
         metadata, options, url
@@ -226,7 +226,7 @@ void describe('InterceptorManager', () => {
 
   void describe('Response Interceptors', () => {
     void it('should add response interceptor', () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
 
       manager.addResponseInterceptor(async ({
         request, response
@@ -240,7 +240,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should apply single response interceptor', async () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
       const mockResponse = new Response('test', { status: 200 });
       const mockRequest = createMockMetadata();
 
@@ -267,7 +267,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should apply multiple response interceptors in order', async () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
       const order: number[] = [];
       const mockResponse = new Response('test');
       const mockRequest = createMockMetadata();
@@ -305,7 +305,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should allow interceptor to access request metadata', async () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
       const mockResponse = new Response('test');
       const mockRequest = createMockMetadata();
 
@@ -331,7 +331,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should remove response interceptor', () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
       const remove = manager.addResponseInterceptor(async ({
         request, response
       }) => {
@@ -348,7 +348,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should handle synchronous interceptors', async () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
       const mockResponse = new Response('test');
       const mockRequest = createMockMetadata();
 
@@ -373,7 +373,7 @@ void describe('InterceptorManager', () => {
 
   void describe('Clear Methods', () => {
     void it('should clear all request interceptors', () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
 
       manager.addRequestInterceptor(async ({
         metadata, options, url
@@ -400,7 +400,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should clear all response interceptors', () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
 
       manager.addResponseInterceptor(async ({
         request, response
@@ -425,7 +425,7 @@ void describe('InterceptorManager', () => {
     });
 
     void it('should clear all interceptors', () => {
-      const manager = new InterceptorManager();
+      const manager = InterceptorManager.create();
 
       manager.addRequestInterceptor(async ({
         metadata, options, url

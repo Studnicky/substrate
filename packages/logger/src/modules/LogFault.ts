@@ -52,7 +52,7 @@ export class LogFault extends BaseLogEntryBuilder implements LogFaultInterface {
    * @returns New LogFault builder
    */
   static create(): LogFault {
-    const result = new LogFault();
+    const result = new this();
     return result;
   }
   private causeValue: string | undefined;
@@ -64,9 +64,9 @@ export class LogFault extends BaseLogEntryBuilder implements LogFaultInterface {
   private stackValue: string | undefined;
 
   /**
-   * Private constructor - use LogFault.create()
+   * Protected constructor - use LogFault.create()
    */
-  private constructor() {
+  protected constructor() {
     super();
   }
 

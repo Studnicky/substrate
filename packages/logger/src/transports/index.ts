@@ -5,10 +5,14 @@
  */
 
 export { ConsoleTransport } from './ConsoleTransport.js';
+export { ConsoleTransportBuilder } from './ConsoleTransportBuilder.js';
 export type { ConsoleTransportOptionsType } from './ConsoleTransportOptionsType.js';
 export { FunctionTransport } from './FunctionTransport.js';
+export { FunctionTransportBuilder } from './FunctionTransportBuilder.js';
 export type { FunctionTransportOptionsType } from './FunctionTransportOptionsType.js';
 export { MemoryTransport } from './MemoryTransport.js';
+export { MemoryTransportBuilder } from './MemoryTransportBuilder.js';
 export type { MemoryTransportOptionsType } from './MemoryTransportOptionsType.js';
 export { NoOpTransport } from './NoOpTransport.js';
+export { NoOpTransportBuilder } from './NoOpTransportBuilder.js';
 export type { TransportInterface } from './TransportInterface.js';

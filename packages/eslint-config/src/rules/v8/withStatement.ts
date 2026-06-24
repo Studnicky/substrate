@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const withStatement = createSelectorRule(
+export const withStatement = SelectorRule.create(
   'v8Optimization/withStatement',
   'WithStatement',
   'with statements are forbidden. They break optimizations.'

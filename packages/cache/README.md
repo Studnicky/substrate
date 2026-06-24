@@ -25,23 +25,47 @@ pnpm add @studnicky/cache
 ```typescript
 import { LruCache } from '@studnicky/cache';
 
-// 1. Basic set/get
-const cache = new LruCache<string, number>({ capacity: 100 });
+// 1. Basic set/get — construct via LruCache.create()
+const cache = LruCache.create<string, number>({ capacity: 100 });
 
 cache.set('hits', 42);
 const hits = cache.get('hits'); // 42
 
-// 2. Default TTL — all entries expire after 5 seconds unless overridden
-const ttlCache = new LruCache<string, string>({ capacity: 50, ttlMs: 5_000 });
+// 2. Via builder — fluent API
+const built = LruCache.builder<string, number>()
+  .withCapacity(100)
+  .build();
+
+built.set('hits', 42);
+
+// 3. Default TTL — all entries expire after 5 seconds unless overridden
+const ttlCache = LruCache.create<string, string>({ capacity: 50, ttlMs: 5_000 });
 
 ttlCache.set('session', 'abc123');
 const session = ttlCache.get('session'); // 'abc123' (within 5s)
 
-// 3. Per-entry TTL override — this entry expires after 1 second regardless of cache default
+// Via builder with TTL
+const ttlBuilt = LruCache.builder<string, string>()
+  .withCapacity(50)
+  .withTtlMs(5_000)
+  .build();
+
+// 4. Per-entry TTL override — this entry expires after 1 second regardless of cache default
 ttlCache.set('shortLived', 'temp', 1_000);
 
-// 4. has, delete, clear, size
-const store = new LruCache<string, boolean>({ capacity: 10 });
+// 5. Bulk insert — entries are inserted in argument order; the last entry is MRU
+const batch = LruCache.create<string, number>({ capacity: 3 });
+batch.setMany([['a', 1], ['b', 2], ['c', 3]]);
+// Adding more entries evicts the oldest-by-arg-order first ('a', then 'b')
+batch.setMany([['d', 4], ['e', 5]]);
+// batch.get('a') === undefined (evicted); batch.get('e') === 5
+
+// Batch TTL applies to every entry in the call
+const timed = LruCache.create<string, string>({ capacity: 10 });
+timed.setMany([['x', 'one'], ['y', 'two']], 5_000); // both expire in 5 s
+
+// 6. has, delete, clear, size
+const store = LruCache.create<string, boolean>({ capacity: 10 });
 
 store.set('flag', true);
 store.has('flag');    // true

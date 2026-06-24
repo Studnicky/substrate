@@ -1,9 +1,22 @@
 import type { PendingTaskType } from '../interfaces/PendingTaskType.js';
 
+import { MinimumHeapBuilder } from './MinimumHeapBuilder.js';
+
 export class MinimumHeap {
   readonly #heap: PendingTaskType[];
 
-  public constructor() { this.#heap = []; }
+  protected constructor() { this.#heap = []; }
+
+  /** Creates a new `MinimumHeap` instance. */
+  static create(): MinimumHeap {
+    return new this();
+  }
+
+  /** Returns a `MinimumHeapBuilder` pre-wired to create `MinimumHeap` instances. */
+  static builder(): MinimumHeapBuilder {
+    const result = MinimumHeapBuilder.create(() => { const instance = MinimumHeap.create(); return instance; });
+    return result;
+  }
 
   public insert(task: Readonly<PendingTaskType>): void {
     this.#heap.push(task);

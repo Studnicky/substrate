@@ -7,6 +7,9 @@
 import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
 
+import { ClockError } from '../errors/ClockError.js';
+import { VirtualClockProviderBuilder } from './VirtualClockProviderBuilder.js';
+
 /** Named constant: nanoseconds per millisecond, as BigInt. */
 const NS_PER_MS = 1_000_000n;
 
@@ -16,13 +19,37 @@ const NS_PER_MS = 1_000_000n;
  * `hrtime()` returns the same value converted to nanoseconds.
  */
 export class VirtualClockProvider implements ClockProviderType {
+  static builder(): VirtualClockProviderBuilder {
+    const result = VirtualClockProviderBuilder.create((counter) => {
+      const provider = VirtualClockProvider.create(counter);
+      return provider;
+    });
+    return result;
+  }
+
+  static create(counter: Readonly<VirtualTimeCounter>): VirtualClockProvider {
+    return new this(counter);
+  }
+
   readonly #counter: Readonly<VirtualTimeCounter>;
 
   /**
    * Property write order: #counter.
    */
-  public constructor(counter: Readonly<VirtualTimeCounter>) {
+  protected constructor(counter: Readonly<VirtualTimeCounter>) {
+    if (!VirtualClockProvider.isValidCounter(counter)) {
+      throw new ClockError('counter must be a VirtualTimeCounter instance');
+    }
     this.#counter = counter;
+  }
+
+  private static isValidCounter(counter: unknown): counter is Readonly<VirtualTimeCounter> {
+    return (
+      typeof counter === 'object' &&
+      counter !== null &&
+      typeof (counter as VirtualTimeCounter).nowMs === 'function' &&
+      typeof (counter as VirtualTimeCounter).advance === 'function'
+    );
   }
 
   /**

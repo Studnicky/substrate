@@ -16,7 +16,7 @@ import {
 // ── Valid config ──────────────────────────────────────────────────────────────
 
 void it('accepts valid adaptive config with all required fields', () => {
-  const throttle = new Throttle({
+  const throttle = Throttle.create({
     adaptive: {
       adjustmentInterval: 1000,
       enabled: true,
@@ -42,7 +42,7 @@ void it('accepts valid adaptive config with all required fields', () => {
 });
 
 void it('accepts adaptive config with only required fields and applies defaults', () => {
-  const throttle = new Throttle({
+  const throttle = Throttle.create({
     adaptive: {
       enabled: true,
       targetLatencyMs: 200
@@ -58,7 +58,7 @@ void it('accepts adaptive config with only required fields and applies defaults'
 });
 
 void it('accepts disabled adaptive config without other fields', () => {
-  const throttle = new Throttle({
+  const throttle = Throttle.create({
     adaptive: { enabled: false },
     concurrencyLimit: 10
   });
@@ -75,7 +75,7 @@ void it('accepts disabled adaptive config without other fields', () => {
 
 void it('rejects non-object adaptive config', () => {
   throws(
-    () => { return new Throttle({ adaptive: 'invalid' as never }); },
+    () => { return Throttle.create({ adaptive: 'invalid' as never }); },
     ConfigurationError
   );
 });
@@ -84,7 +84,7 @@ void it('rejects missing enabled flag', () => {
   throws(
     () => {
       // @ts-expect-error Testing invalid config - missing enabled
-      return new Throttle({ adaptive: { targetLatencyMs: 200 } });
+      return Throttle.create({ adaptive: { targetLatencyMs: 200 } });
     },
     ConfigurationError
   );
@@ -94,7 +94,7 @@ void it('rejects non-boolean enabled', () => {
   throws(
     () => {
       // @ts-expect-error Testing invalid config - enabled must be boolean
-      return new Throttle({ adaptive: { enabled: 'yes' } });
+      return Throttle.create({ adaptive: { enabled: 'yes' } });
     },
     ConfigurationError
   );
@@ -103,7 +103,7 @@ void it('rejects non-boolean enabled', () => {
 void it('rejects missing targetLatencyMs when enabled', () => {
   // Note: targetLatencyMs is optional in the type but required at runtime when enabled=true
   throws(
-    () => { return new Throttle({ adaptive: { enabled: true } }); },
+    () => { return Throttle.create({ adaptive: { enabled: true } }); },
     ConfigurationError
   );
 });
@@ -118,7 +118,7 @@ const invalidTargetLatencyScenarios: Array<{ description: string; value: number 
 for (const { description, value } of invalidTargetLatencyScenarios) {
   void it(`rejects non-positive targetLatencyMs — ${description}`, () => {
     throws(
-      () => { return new Throttle({ adaptive: { enabled: true, targetLatencyMs: value } }); },
+      () => { return Throttle.create({ adaptive: { enabled: true, targetLatencyMs: value } }); },
       ConfigurationError
     );
   });
@@ -129,7 +129,7 @@ for (const { description, value } of invalidTargetLatencyScenarios) {
 void it('rejects minConcurrency less than 1', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           minConcurrency: 0,
@@ -144,7 +144,7 @@ void it('rejects minConcurrency less than 1', () => {
 void it('rejects non-integer minConcurrency', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           minConcurrency: 1.5,
@@ -159,7 +159,7 @@ void it('rejects non-integer minConcurrency', () => {
 void it('rejects minConcurrency greater than maxConcurrency', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           maxConcurrency: 5,
@@ -177,7 +177,7 @@ void it('rejects minConcurrency greater than maxConcurrency', () => {
 void it('rejects non-positive scaleUpThreshold', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           scaleUpThreshold: 0,
@@ -198,7 +198,7 @@ for (const { description, scaleUpThreshold, scaleDownThreshold } of invalidThres
   void it(`rejects scaleUpThreshold >= scaleDownThreshold — ${description}`, () => {
     throws(
       () => {
-        return new Throttle({
+        return Throttle.create({
           adaptive: {
             enabled: true,
             scaleDownThreshold,
@@ -217,7 +217,7 @@ for (const { description, scaleUpThreshold, scaleDownThreshold } of invalidThres
 void it('rejects sampleWindow less than 10', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           sampleWindow: 5,
@@ -232,7 +232,7 @@ void it('rejects sampleWindow less than 10', () => {
 void it('rejects non-integer sampleWindow', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           sampleWindow: 50.5,
@@ -249,7 +249,7 @@ void it('rejects non-integer sampleWindow', () => {
 void it('rejects adjustmentInterval less than 100', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           adjustmentInterval: 50,
           enabled: true,
@@ -264,7 +264,7 @@ void it('rejects adjustmentInterval less than 100', () => {
 void it('rejects non-integer adjustmentInterval', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           adjustmentInterval: 500.5,
           enabled: true,
@@ -281,7 +281,7 @@ void it('rejects non-integer adjustmentInterval', () => {
 void it('rejects stepSize less than 1', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           stepSize: 0,
@@ -296,7 +296,7 @@ void it('rejects stepSize less than 1', () => {
 void it('rejects non-integer stepSize', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           stepSize: 1.5,
@@ -313,11 +313,10 @@ void it('rejects non-integer stepSize', () => {
 void it('rejects unknown keys in adaptive config', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           targetLatencyMs: 200,
-          // @ts-expect-error Testing invalid config with unknown key
           unknownKey: 'value'
         }
       });
@@ -331,7 +330,7 @@ void it('rejects unknown keys in adaptive config', () => {
 void it('rejects concurrencyLimit below minConcurrency', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           minConcurrency: 10,
@@ -347,7 +346,7 @@ void it('rejects concurrencyLimit below minConcurrency', () => {
 void it('rejects concurrencyLimit above maxConcurrency', () => {
   throws(
     () => {
-      return new Throttle({
+      return Throttle.create({
         adaptive: {
           enabled: true,
           maxConcurrency: 10,
@@ -363,7 +362,7 @@ void it('rejects concurrencyLimit above maxConcurrency', () => {
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
 void it('applies default minConcurrency of 1', () => {
-  const throttle = new Throttle({
+  const throttle = Throttle.create({
     adaptive: {
       enabled: true,
       targetLatencyMs: 200
@@ -378,7 +377,7 @@ void it('applies default minConcurrency of 1', () => {
 });
 
 void it('applies default maxConcurrency of 100', () => {
-  const throttle = new Throttle({
+  const throttle = Throttle.create({
     adaptive: {
       enabled: true,
       targetLatencyMs: 200

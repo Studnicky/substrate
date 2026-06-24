@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const prototypeModification = createSelectorRule(
+export const prototypeModification = SelectorRule.create(
   'v8Optimization/prototypeModification',
   'AssignmentExpression[left.property.name="prototype"]',
   'Modifying prototype breaks V8 optimizations.'

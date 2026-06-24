@@ -28,6 +28,10 @@ type ErrorEventType = {
 
 // Subclass FetchClient to capture telemetry events via protected lifecycle hooks.
 class TelemetryClient extends FetchClient {
+  static override create(config: Parameters<typeof FetchClient.create>[0] = {}): TelemetryClient {
+    return new this(config);
+  }
+
   public readonly requestEvents: RequestEventType[] = [];
   public readonly responseEvents: ResponseEventType[] = [];
   public readonly errorEvents: ErrorEventType[] = [];
@@ -58,7 +62,7 @@ class TelemetryClient extends FetchClient {
   }
 }
 
-const client = new TelemetryClient({ 'baseURL': 'https://api.example.com' });
+const client = TelemetryClient.create({ 'baseURL': 'https://api.example.com' });
 
 // Simulate a successful request lifecycle
 client.simulateRequest('GET', '/users', 'req-001', 'https://api.example.com/users');

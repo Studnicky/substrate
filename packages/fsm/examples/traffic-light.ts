@@ -17,6 +17,8 @@ type TrafficEvent = { readonly 'type': 'advance' };
 type TrafficEffect = { readonly 'tone': string; readonly 'variant': 'playSound'; };
 
 class TrafficLight extends StateMachine<TrafficState, TrafficEvent, TrafficEffect> {
+  static make(): TrafficLight { return new TrafficLight(); }
+
   getInitialState(): TrafficState {
     return { 'variant': 'red' };
   }
@@ -39,8 +41,8 @@ const handlers: EffectHandlerMapType<TrafficEffect> = {
   }
 };
 
-const machine = new TrafficLight();
-const interpreter = new EffectInterpreter(machine, handlers, { 'machineId': 'test-light' });
+const machine: TrafficLight = TrafficLight.make();
+const interpreter: EffectInterpreter<TrafficState, TrafficEvent, TrafficEffect> = EffectInterpreter.create({ 'handlers': handlers, 'machine': machine, 'machineId': 'test-light' });
 
 const history: string[] = [];
 const unsubscribe = interpreter.subscribe((state) => { history.push(state.variant); });

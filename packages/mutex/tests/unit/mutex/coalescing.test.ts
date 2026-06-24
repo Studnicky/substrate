@@ -12,9 +12,7 @@ import {
   setTimeout as delay
 } from 'node:timers/promises';
 
-import {
-  Mutex, MutexBuilder
-} from '../../../src/mutex/index.js';
+import { Mutex } from '../../../src/mutex/index.js';
 import { coalescingConfig } from '../../fixtures/constants.js';
 
 it('shares result when coalescing is enabled', async () => {
@@ -232,7 +230,7 @@ it('coalescedCount increments for each joined request', async () => {
 });
 
 it('builder creates a coalescing mutex that tracks coalesced calls', async () => {
-  const mutex = new MutexBuilder<string>()
+  const mutex = Mutex.builder<string>()
     .withCoalescing(true)
     .build();
 

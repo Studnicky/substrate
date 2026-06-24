@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `FileLock.create(options)` — canonical async factory accepting `{ path, pollMs?, timeoutMs? }`; validates options via `FileLockOptionsEntity` schema and throws `FileLockConfigError` on invalid input.
+- `FileLock.builder()` — returns a `FileLockBuilder` with `withPath()`, `withPollMs()`, and `withTimeoutMs()` fluent setters; `build()` is `async` and resolves to a `FileLock`.
+- `FileLockBuilder` class exported from the package index and placed in its own `FileLockBuilder.ts` file (single-export rule).
+- `FileLockOptionsEntity` schema extended with the required `path` field.
+- `FileLock.acquire(path, options?)` is retained as an alias delegating to `FileLock.create({ path, ...options })`.
+
 ## [1.0.0] - 2026-06-22
 
 ### Added

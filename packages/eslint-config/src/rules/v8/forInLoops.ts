@@ -1,6 +1,6 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import { SelectorRule } from './SelectorRule.js';
 
-export const forInLoops = createSelectorRule(
+export const forInLoops = SelectorRule.create(
   'v8Optimization/forInLoops',
   'ForInStatement',
   'for...in loops are forbidden. Use Object.keys/entries.'

@@ -15,21 +15,21 @@ import { Throttle } from '../../../src/throttle/index.js';
 // ── Defaults ─────────────────────────────────────────────────────────────────
 
 void it('uses default configuration when no config provided', () => {
-  const throttle = new Throttle();
+  const throttle = Throttle.create();
   const stats = throttle.getStats();
 
   strictEqual(stats.concurrencyLimit, 10, 'Should use default limit of 10');
 });
 
 void it('allows custom concurrencyLimit', () => {
-  const throttle = new Throttle({ concurrencyLimit: 5 });
+  const throttle = Throttle.create({ concurrencyLimit: 5 });
   const stats = throttle.getStats();
 
   strictEqual(stats.concurrencyLimit, 5, 'Should use specified limit');
 });
 
 void it('uses default concurrencyLimit when not specified', () => {
-  const throttle = new Throttle({});
+  const throttle = Throttle.create({});
   const stats = throttle.getStats();
 
   strictEqual(stats.concurrencyLimit, 10, 'Should use default limit of 10');
@@ -46,13 +46,13 @@ const invalidConcurrencyScenarios: Array<{ description: string; value: number }>
 
 for (const { description, value } of invalidConcurrencyScenarios) {
   void it(`throws ConfigurationError for ${description} concurrencyLimit`, () => {
-    throws(() => new Throttle({ concurrencyLimit: value }), ConfigurationError);
+    throws(() => Throttle.create({ concurrencyLimit: value }), ConfigurationError);
   });
 }
 
 void it('accepts valid configuration', () => {
-  doesNotThrow(() => { new Throttle({ concurrencyLimit: 5 }); });
-  doesNotThrow(() => { new Throttle(); });
+  doesNotThrow(() => { Throttle.create({ concurrencyLimit: 5 }); });
+  doesNotThrow(() => { Throttle.create(); });
 });
 
 // ── updateConfig validation ───────────────────────────────────────────────────
@@ -64,19 +64,19 @@ const invalidUpdateScenarios: Array<{ description: string; value: number }> = [
 
 for (const { description, value } of invalidUpdateScenarios) {
   void it(`updateConfig throws ConfigurationError for ${description} concurrencyLimit`, () => {
-    const throttle = new Throttle();
+    const throttle = Throttle.create();
     throws(() => throttle.updateConfig({ concurrencyLimit: value }), ConfigurationError);
   });
 }
 
 void it('accepts valid updates', () => {
-  const throttle = new Throttle();
+  const throttle = Throttle.create();
 
   doesNotThrow(() => { throttle.updateConfig({ concurrencyLimit: 10 }); });
 });
 
 void it('allows partial config updates', () => {
-  const throttle = new Throttle({ concurrencyLimit: 5 });
+  const throttle = Throttle.create({ concurrencyLimit: 5 });
 
   throttle.updateConfig({ concurrencyLimit: 10 });
 

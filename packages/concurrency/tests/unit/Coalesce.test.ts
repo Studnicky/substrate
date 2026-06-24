@@ -6,7 +6,7 @@ const coalesceScenarios: Array<{ description: string; exec: () => Promise<void> 
   {
     description: 'concurrent calls for the same key share one factory invocation',
     exec: async () => {
-      const coalesce = new Coalesce<string>();
+      const coalesce = Coalesce.create<string>();
       let calls = 0;
 
       const factory = (): Promise<string> => {
@@ -29,7 +29,7 @@ const coalesceScenarios: Array<{ description: string; exec: () => Promise<void> 
   {
     description: 'different keys run independent factory calls',
     exec: async () => {
-      const coalesce = new Coalesce<number>();
+      const coalesce = Coalesce.create<number>();
       let calls = 0;
 
       const factory = (n: number) => (): Promise<number> => {
@@ -50,7 +50,7 @@ const coalesceScenarios: Array<{ description: string; exec: () => Promise<void> 
   {
     description: 'isInflight returns true while in-flight, false after resolution',
     exec: async () => {
-      const coalesce = new Coalesce<string>();
+      const coalesce = Coalesce.create<string>();
 
       let resolve!: (v: string) => void;
       const factory = (): Promise<string> =>
@@ -68,7 +68,7 @@ const coalesceScenarios: Array<{ description: string; exec: () => Promise<void> 
   {
     description: 'factory error propagates and entry is cleaned up',
     exec: async () => {
-      const coalesce = new Coalesce<string>();
+      const coalesce = Coalesce.create<string>();
 
       await assert.rejects(
         () => coalesce.run('k', () => Promise.reject(new Error('factory-error'))),
@@ -81,7 +81,7 @@ const coalesceScenarios: Array<{ description: string; exec: () => Promise<void> 
   {
     description: 'sequential calls after resolution each trigger a new factory call',
     exec: async () => {
-      const coalesce = new Coalesce<number>();
+      const coalesce = Coalesce.create<number>();
       let calls = 0;
       const factory = (): Promise<number> => Promise.resolve(++calls);
 

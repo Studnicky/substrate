@@ -5,6 +5,7 @@ import type { TransportInterface } from './TransportInterface.js';
 import { LogLevel } from '../constants/LogLevel.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { parseLogLevel } from '../modules/parseLogLevel.js';
+import { FunctionTransportBuilder } from './FunctionTransportBuilder.js';
 
 /**
  * Transport that delegates record delivery to a user-supplied function.
@@ -18,7 +19,7 @@ import { parseLogLevel } from '../modules/parseLogLevel.js';
  * import pino from 'pino';
  * const pinoLogger = pino();
  *
- * const transport = new FunctionTransport((record) => {
+ * const transport = FunctionTransport.create((record) => {
  *   pinoLogger[record.level](record.metadata, record.data.message);
  * });
  *
@@ -37,13 +38,18 @@ export class FunctionTransport implements TransportInterface {
     sink: (record: LogRecordType) => void,
     options: FunctionTransportOptionsType = {}
   ): FunctionTransport {
-    return new FunctionTransport(sink, options);
+    return new this(sink, options);
+  }
+
+  static builder(): FunctionTransportBuilder {
+    const result = FunctionTransportBuilder.create((sink, options) => { const result = FunctionTransport.create(sink, options); return result; });
+    return result;
   }
 
   readonly #minLevel: number;
   readonly #sink: (record: LogRecordType) => void;
 
-  constructor(sink: (record: LogRecordType) => void, options: FunctionTransportOptionsType = {}) {
+  protected constructor(sink: (record: LogRecordType) => void, options: FunctionTransportOptionsType = {}) {
     if (typeof sink !== 'function') {
       throw new ConfigurationError('sink must be a function');
     }

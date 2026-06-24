@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/eslint-config'
-description: Shared ESLint 9 flat config for @studnicky packages.
+description: Shared ESLint flat config for @studnicky packages.
 ---
 
 # @studnicky/eslint-config
 
-> Shared ESLint 9 flat config for `@studnicky` packages.
+> Shared ESLint flat config for `@studnicky` packages.
 
 ## Install
 

@@ -17,17 +17,6 @@ const registry = new Map<string, ErrorCodeDescriptorType>();
 let collisionHandler: ((code: string) => never) | undefined = undefined;
 
 /**
- * Sets the collision handler used by `ErrorCodeRegistry.register()`.
- * Called once during bootstrap to break the circular dependency between the
- * registry and its first error subclass.
- *
- * @internal — not re-exported through the package barrel.
- */
-export function setRegistryCollisionHandler(handler: (code: string) => never): void {
-  collisionHandler = handler;
-}
-
-/**
  * Static registry for hierarchical dotted camelCase error codes.
  * All `BaseError` subclasses register their codes here at module load.
  *
@@ -38,6 +27,17 @@ export class ErrorCodeRegistry {
   private constructor() {
     // Sealed — all access is via static methods. Not designed for subclassing.
     throw new Error('ErrorCodeRegistry is not instantiable');
+  }
+
+  /**
+   * Sets the collision handler used by `ErrorCodeRegistry.register()`.
+   * Called once during bootstrap to break the circular dependency between the
+   * registry and its first error subclass.
+   *
+   * @internal — not re-exported through the package barrel.
+   */
+  public static setCollisionHandler(handler: (code: string) => never): void {
+    collisionHandler = handler;
   }
 
   /**

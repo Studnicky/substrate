@@ -80,18 +80,36 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/clock:
     dependencies:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/concurrency:
     dependencies:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/config:
     dependencies:
@@ -305,6 +323,12 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/scheduler:
     dependencies:

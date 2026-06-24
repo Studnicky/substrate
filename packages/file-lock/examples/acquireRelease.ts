@@ -1,4 +1,4 @@
-/** acquireRelease — demonstrates acquire, write, read, and release with try/finally. Run: npx tsx examples/acquireRelease.ts */
+/** acquireRelease — demonstrates create, write, read, and release with try/finally. Run: npx tsx examples/acquireRelease.ts */
 
 import assert from 'node:assert/strict';
 import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -11,7 +11,7 @@ writeFileSync(filePath, 'initial content', 'utf8');
 // #region usage
 import { FileLock } from '../src/index.js';
 
-const lock = await FileLock.acquire(filePath);
+const lock = await FileLock.create({ 'path': filePath });
 
 let original: string;
 let updated: string;

@@ -25,6 +25,10 @@ interface TransitionRecord {
 class TrackingThrottle extends Throttle {
   readonly transitions: TransitionRecord[] = [];
 
+  public constructor(config?: Parameters<typeof Throttle.create>[0]) {
+    super(config);
+  }
+
   override guard(from: ThrottleStateType, to: ThrottleStateType): boolean {
     return super.guard(from, to);
   }

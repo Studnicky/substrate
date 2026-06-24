@@ -58,7 +58,7 @@ class BracketPipeline extends Pipeline<number> {
 void describe('Pipeline subclass extension', () => {
   void describe('beforeStage / afterStage hooks', () => {
     void it('fires before and after each registered stage in order', async () => {
-      const pipeline = new TracingPipeline<number>();
+      const pipeline = TracingPipeline.create<number>();
       pipeline.add((n) => n + 1);
       pipeline.add((n) => n * 2);
       pipeline.add((n) => n - 3);
@@ -76,14 +76,14 @@ void describe('Pipeline subclass extension', () => {
     });
 
     void it('does not fire when pipeline has no stages', async () => {
-      const pipeline = new TracingPipeline<string>();
+      const pipeline = TracingPipeline.create<string>();
       await pipeline.run('hello');
 
       assert.strictEqual(pipeline.trace.length, 0);
     });
 
     void it('fires once before and once after for a single stage', async () => {
-      const pipeline = new TracingPipeline<number>();
+      const pipeline = TracingPipeline.create<number>();
       pipeline.add((n) => n + 1);
       await pipeline.run(0);
 
@@ -95,7 +95,7 @@ void describe('Pipeline subclass extension', () => {
     });
 
     void it('base pipeline produces correct result with tracing hooks active', async () => {
-      const pipeline = new TracingPipeline<number>();
+      const pipeline = TracingPipeline.create<number>();
       pipeline.add((n) => n + 1);  // 5 → 6
       pipeline.add((n) => n * 2);  // 6 → 12
       pipeline.add((n) => n - 3);  // 12 → 9
@@ -114,7 +114,7 @@ void describe('Pipeline subclass extension', () => {
         }
       }
 
-      const pipeline = new CaptureBefore();
+      const pipeline = CaptureBefore.create();
       pipeline.add((n) => n + 10); // 0 → 10
       pipeline.add((n) => n + 10); // 10 → 20
 
@@ -134,7 +134,7 @@ void describe('Pipeline subclass extension', () => {
         }
       }
 
-      const pipeline = new CaptureAfter();
+      const pipeline = CaptureAfter.create();
       pipeline.add((n) => n + 5);   // 0 → 5
       pipeline.add((n) => n * 3);   // 5 → 15
 
@@ -162,7 +162,7 @@ void describe('Pipeline subclass extension', () => {
 
     for (const { description, check } of bracketHookCalledScenarios) {
       void it(description, async () => {
-        const pipeline = new BracketPipeline();
+        const pipeline = BracketPipeline.create();
         pipeline.add((n) => n);
         await pipeline.run(5);
         assert.strictEqual(check(pipeline), true);
@@ -170,7 +170,7 @@ void describe('Pipeline subclass extension', () => {
     }
 
     void it('onRunStart receives the original ctx value', async () => {
-      const pipeline = new BracketPipeline();
+      const pipeline = BracketPipeline.create();
       pipeline.add((n) => n); // identity
 
       await pipeline.run(5);
@@ -179,7 +179,7 @@ void describe('Pipeline subclass extension', () => {
 
     void it('onRunStart return value is passed to first stage', async () => {
       // BracketPipeline adds 1000 in onRunStart
-      const pipeline = new BracketPipeline();
+      const pipeline = BracketPipeline.create();
       let stageInput = -1;
       pipeline.add((n) => {
         stageInput = n;
@@ -193,7 +193,7 @@ void describe('Pipeline subclass extension', () => {
     void it('onRunComplete return value is the resolved value of run()', async () => {
       // BracketPipeline adds 1000 in onRunStart, subtracts 1000 in onRunComplete
       // so the net effect is zero
-      const pipeline = new BracketPipeline();
+      const pipeline = BracketPipeline.create();
       pipeline.add((n) => n + 5);
 
       const result = await pipeline.run(10);
@@ -202,7 +202,7 @@ void describe('Pipeline subclass extension', () => {
     });
 
     void it('both hooks are called even when pipeline has no stages', async () => {
-      const pipeline = new BracketPipeline();
+      const pipeline = BracketPipeline.create();
       await pipeline.run(7);
 
       assert.strictEqual(pipeline.runStartCalled, true);
@@ -218,7 +218,7 @@ void describe('Pipeline subclass extension', () => {
         }
       }
 
-      const pipeline = new InspectPipeline<number>();
+      const pipeline = InspectPipeline.create<number>();
       pipeline.add((n) => n + 1);
       pipeline.add((n) => n * 2);
 

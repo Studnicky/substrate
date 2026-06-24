@@ -34,7 +34,10 @@ type AppEvents = {
 
 const bus = EventBus.create<AppEvents>();
 
-bus.subscribe('user:created', async (payload) => {
+bus.subscribe('user:created', async (payload, signal) => {
+  // signal aborts when this subscriber is unsubscribed or the bus is closed.
+  // Pass it to fetch() or check signal.aborted to cancel async work early.
+  if (signal.aborted) { return; }
   console.log('User created:', payload.id);
 });
 
@@ -54,9 +57,11 @@ type AppEvents = { 'ping': string };
 const bus = EventBus.create<AppEvents>();
 const controller = new AbortController();
 
-bus.subscribe('ping', async (payload) => {
+bus.subscribe('ping', async (payload, signal) => {
+  // signal aborts when the caller's AbortController aborts, on unsubscribe(), or on close().
+  if (signal.aborted) { return; }
   console.log('Received:', payload);
-}, { signal: controller.signal });
+}, { 'signal': controller.signal });
 
 await bus.publish('ping', 'hello');
 await bus.drain();
@@ -75,12 +80,12 @@ await bus.close();
 ```typescript
 import { BusQueue } from '@studnicky/event-bus';
 
-const queue = new BusQueue<string>(
-  async (item) => {
+const queue = BusQueue.create<string>({
+  handler: async (item) => {
     console.log('Processing:', item);
   },
-  { highWaterMark: 10 },
-);
+  highWaterMark: 10,
+});
 
 await queue.enqueue('task-1');
 await queue.enqueue('task-2');

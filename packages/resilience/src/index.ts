@@ -1,9 +1,12 @@
 export { CircuitBreaker } from './CircuitBreaker.js';
+export { CircuitBreakerBuilder } from './CircuitBreakerBuilder.js';
 export { CircuitBreakerOpenError } from './CircuitBreakerOpenError.js';
 export type { CircuitStateType } from './CircuitStateType.js';
 
 export { DeadLetterQueue } from './DeadLetterQueue.js';
+export { DeadLetterQueueBuilder } from './DeadLetterQueueBuilder.js';
 export { DeadLetterQueueRetryGenerator } from './DeadLetterQueueRetryGenerator.js';
+export { DeadLetterQueueRetryGeneratorBuilder } from './DeadLetterQueueRetryGeneratorBuilder.js';
 export type { DeadLetterQueueRetryGeneratorOptionsType } from './DeadLetterQueueRetryGeneratorOptionsType.js';
 export { DlqAbortedError } from './DlqAbortedError.js';
 export { DlqClosedError } from './DlqClosedError.js';
@@ -22,4 +25,5 @@ export type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQue
 export type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
 export { TokenBucket } from './TokenBucket.js';
+export { TokenBucketBuilder } from './TokenBucketBuilder.js';
 export { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';

@@ -100,6 +100,8 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
   static readonly PROTO_MATCHERS = matchers.proto;
   static readonly STRING_MATCHERS = matchers.string;
 
+  protected constructor() {}
+
   /**
    * Classify an error to determine if it should be retried
    *

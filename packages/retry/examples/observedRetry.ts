@@ -3,11 +3,15 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { ErrorClassificationType } from '../src/index.js';
+import type { ErrorClassificationType, RetryConfigInterface } from '../src/index.js';
 
 import { MaxRetriesExceededError, Retry } from '../src/index.js';
 
 class TelemetryRetry extends Retry {
+  constructor(config?: Partial<RetryConfigInterface>) {
+    super(config ?? {});
+  }
+
   readonly scheduledEvents: { 'attemptNumber': number; 'delayMs': number }[] = [];
   readonly giveUpEvents: { 'attemptNumber': number; 'reason': string }[] = [];
 

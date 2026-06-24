@@ -38,7 +38,8 @@ Define a `StateMachine` subclass with `getInitialState` and `reduce`, then drive
 | Export | Type | Description |
 |--------|------|-------------|
 | `StateMachine<TState, TEvent, TEffect>` | abstract class | Base FSM; implement `getInitialState` and `reduce` |
-| `EffectInterpreter<TState, TEvent, TEffect>` | class | Drives a machine; dispatches effects asynchronously |
+| `EffectInterpreter<TState, TEvent, TEffect>` | class | Drives a machine; use `EffectInterpreter.create()` or `EffectInterpreter.builder()` |
+| `EffectInterpreterBuilder<TState, TEvent, TEffect>` | class | Fluent builder for `EffectInterpreter` |
 | `MachineRegistry` | class | Process-scoped named registry of interpreters |
 | `FsmStepType<TState, TEffect>` | type | `{ state, effects }` — return value of `reduce` |
 | `FsmTransitionType<TState, TEvent, TEffect>` | type | Function signature for standalone transition functions |

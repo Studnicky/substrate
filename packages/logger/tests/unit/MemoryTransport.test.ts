@@ -27,7 +27,7 @@ void describe('MemoryTransport', () => {
 
     void it('throws ConfigurationError on invalid level type', () => {
       assert.throws(
-        () => new MemoryTransport({ level: {} as unknown as string }),
+        () => MemoryTransport.create({ level: {} as unknown as string }),
         ConfigurationError
       );
     });
@@ -35,13 +35,13 @@ void describe('MemoryTransport', () => {
 
   void describe('records', () => {
     void it('starts empty', () => {
-      const transport = new MemoryTransport();
+      const transport = MemoryTransport.create();
 
       assert.strictEqual(transport.records().length, 0);
     });
 
     void it('captures records written via Logger', () => {
-      const transport = new MemoryTransport();
+      const transport = MemoryTransport.create();
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
 
       logger.info(TestFactory.body('hello'));
@@ -50,7 +50,7 @@ void describe('MemoryTransport', () => {
     });
 
     void it('captures multiple records in order', () => {
-      const transport = new MemoryTransport();
+      const transport = MemoryTransport.create();
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
 
       logger.info(TestFactory.body('first'));
@@ -66,7 +66,7 @@ void describe('MemoryTransport', () => {
     });
 
     void it('returns readonly array (same reference reflects new writes)', () => {
-      const transport = new MemoryTransport();
+      const transport = MemoryTransport.create();
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
       const snapshot = transport.records();
 
@@ -89,7 +89,7 @@ void describe('MemoryTransport', () => {
 
     for (const { description, level, expectedCount } of scenarios) {
       void it(description, () => {
-        const transport = new MemoryTransport({ level });
+        const transport = MemoryTransport.create({ level });
         const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
 
         logger.trace(TestFactory.body('trace'));
@@ -105,7 +105,7 @@ void describe('MemoryTransport', () => {
 
   void describe('clear', () => {
     void it('empties the buffer', () => {
-      const transport = new MemoryTransport();
+      const transport = MemoryTransport.create();
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
 
       logger.info(TestFactory.body('msg'));
@@ -115,7 +115,7 @@ void describe('MemoryTransport', () => {
     });
 
     void it('allows capturing new records after clear', () => {
-      const transport = new MemoryTransport();
+      const transport = MemoryTransport.create();
       const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
 
       logger.info(TestFactory.body('before'));
