@@ -5,11 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-06-22
+## [1.0.0] - 2026-06-23
 
 ### Added
 
-- Pluggable `LoggerInterface` with five implementations: `PinoLogger`, `ConsoleLogger`, `FanOutLogger`, `NoOpLogger`, and `SpyLogger`
-- Fluent `LogBody` and `LogFault` builders that enforce required fields (`component`, `operation`, `status`, `message`, `context`) at build time
+- `Logger` core with pluggable `TransportInterface` port; a Logger with no transports is a valid silent logger
+- `ConsoleTransport` — writes to console using a level-dispatch map; the only file permitted to use `console`
+- `NoOpTransport` — discards all records, replacing the previous `NoOpLogger`
+- `MemoryTransport` — captures `LogRecordType` records into an internal buffer; exposes `records()` and `clear()` for test assertion
+- `FunctionTransport` — generic bridge adapter; passes each record to a user-supplied sink function, enabling integration with pino, winston, or any external logger
+- Per-transport level filtering: each transport accepts an optional `level` option that acts as an independent floor above the Logger global floor
+- `LogRecordType` — immutable record assembled at emit time, carrying `level`, `time` (milliseconds), `metadata`, and `data`
+- `LoggerOptionsEntity` namespace — `Schema`, `Type`, and `validate` type guard for Logger configuration
+- `./transports` package export entry for direct transport imports
+- Fluent `LogBody` and `LogFault` builders retained with all required fields enforced at build time
 - Child loggers via `.child(metadata)` for correlation ID injection from async context
-- `SpyLogger` capture buffer (`entries`, `flush`, `clear`) for test assertion without output side-effects

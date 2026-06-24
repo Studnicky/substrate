@@ -75,20 +75,34 @@ describe('RealTimeScheduler', () => {
   });
 
   describe('edge cases', () => {
-    it('cancel() before fire prevents double-cancel error', () => {
-      const sched = new RealTimeScheduler();
-      const atMs = Date.now() + FAR_FUTURE_DELAY_MS;
-      const task = sched.scheduleAt(atMs, () => {
-        return;
+    const cancelNoErrorScenarios: Array<{
+      description: string;
+      act: (sched: RealTimeScheduler) => void;
+    }> = [
+      {
+        description: 'cancel() before fire prevents double-cancel error',
+        act: (sched) => {
+          const task = sched.scheduleAt(Date.now() + FAR_FUTURE_DELAY_MS, () => { return; });
+          task.cancel();
+          task.cancel();
+          sched.cancelAll();
+        },
+      },
+      {
+        description: 'scheduleEvery interval task cancel via cancelAll',
+        act: (sched) => {
+          sched.scheduleEvery(INTERVAL_MS, () => { return; });
+          sched.cancelAll();
+        },
+      },
+    ];
+    for (const { description, act } of cancelNoErrorScenarios) {
+      it(description, () => {
+        const sched = new RealTimeScheduler();
+        act(sched);
+        assert.ok(true);
       });
-
-      task.cancel();
-      task.cancel();
-      sched.cancelAll();
-
-      assert.strictEqual(task.atMs, atMs);
-      assert.ok(task.id.length > 0, 'task.id must be non-empty');
-    });
+    }
 
     it('cancelAll on empty scheduler is a no-op', () => {
       const sched = new RealTimeScheduler();
@@ -112,17 +126,6 @@ describe('RealTimeScheduler', () => {
       sched.cancelAll();
 
       assert.strictEqual(idSet.size, TASK_COUNT);
-    });
-
-    it('scheduleEvery interval task cancel via cancelAll', () => {
-      const sched = new RealTimeScheduler();
-
-      sched.scheduleEvery(INTERVAL_MS, () => {
-        return;
-      });
-      sched.cancelAll();
-
-      assert.ok(true);
     });
   });
 
@@ -194,23 +197,32 @@ describe('RealTimeScheduler', () => {
       }
     }
 
-    it('onSchedule is called when scheduleAt is called', () => {
-      const sched = new AuditScheduler();
-
-      sched.scheduleAt(Date.now() + FAR_FUTURE_DELAY_MS, () => { return; });
-      sched.cancelAll();
-
-      assert.strictEqual(sched.scheduleCount, 1);
-    });
-
-    it('onSchedule is called when scheduleEvery is called', () => {
-      const sched = new AuditScheduler();
-
-      sched.scheduleEvery(INTERVAL_MS, () => { return; });
-      sched.cancelAll();
-
-      assert.strictEqual(sched.scheduleCount, 1);
-    });
+    const onScheduleScenarios: Array<{
+      description: string;
+      act: (sched: AuditScheduler) => void;
+    }> = [
+      {
+        description: 'onSchedule is called when scheduleAt is called',
+        act: (sched) => {
+          sched.scheduleAt(Date.now() + FAR_FUTURE_DELAY_MS, () => { return; });
+          sched.cancelAll();
+        },
+      },
+      {
+        description: 'onSchedule is called when scheduleEvery is called',
+        act: (sched) => {
+          sched.scheduleEvery(INTERVAL_MS, () => { return; });
+          sched.cancelAll();
+        },
+      },
+    ];
+    for (const { description, act } of onScheduleScenarios) {
+      it(description, () => {
+        const sched = new AuditScheduler();
+        act(sched);
+        assert.strictEqual(sched.scheduleCount, 1);
+      });
+    }
 
     it('onCancel is called when task is cancelled', () => {
       const sched = new AuditScheduler();

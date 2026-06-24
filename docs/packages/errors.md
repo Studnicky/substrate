@@ -13,53 +13,23 @@ description: Standardized error hierarchy with cause-chain serialization and err
 pnpm add @studnicky/errors
 ```
 
-## Usage
+## BaseError subclass
 
-```typescript
-import { ModuleError, ValidationError, ErrorCode } from '@studnicky/errors';
+Extend `BaseError` to add domain codes, `toJSON()` serialization, user-facing messages, and cause-chain traversal:
 
-// Module-scoped error
-throw ModuleError.create({
-  module: 'UserService',
-  message: 'User not found',
-  code: ErrorCode.notFound
-});
+<<< ../../packages/errors/examples/01-base-error.ts#usage
 
-// Validation error with violations
-throw new ValidationError({
-  message: 'Invalid input',
-  violations: [
-    { field: 'email', message: 'must be a valid email address' }
-  ]
-});
-```
+## ModuleError with scenario defaults
 
-### BaseError with cause chain
+`ModuleError.create()` resolves HTTP status codes, retry flags, and error codes from a named scenario:
 
-```typescript
-import { BaseError } from '@studnicky/errors';
+<<< ../../packages/errors/examples/02-module-error.ts#usage
 
-class DatabaseError extends BaseError {
-  constructor(message: string, cause?: Error) {
-    super({ message, cause });
-  }
-}
+## Domain subclass extending ModuleError
 
-try {
-  await db.query(sql);
-} catch (err) {
-  throw new DatabaseError('Query failed', err instanceof Error ? err : undefined);
-}
-```
+Add domain-specific `create()`, `serializeExtra()`, and `formatUserMessage()` by subclassing `ModuleError`:
 
-### Error code registry
-
-```typescript
-import { ErrorCodeRegistry } from '@studnicky/errors';
-
-const registry = new ErrorCodeRegistry();
-registry.register('userNotFound', { message: 'User not found', httpStatus: 404 });
-```
+<<< ../../packages/errors/examples/03-domain-subclass.ts#usage
 
 ## Subpath exports
 
@@ -73,17 +43,6 @@ registry.register('userNotFound', { message: 'User not found', httpStatus: 404 }
 
 ## Extending
 
-All errors extend `BaseError`, which itself extends the native `Error`. Add domain-specific errors by extending `ModuleError`:
-
-```typescript
-import { ModuleError } from '@studnicky/errors';
-import type { ModuleErrorCreateOptionsInterface } from '@studnicky/errors';
-
-class AuthError extends ModuleError {
-  static override create(options: ModuleErrorCreateOptionsInterface): AuthError {
-    return new AuthError(options);
-  }
-}
-```
+All errors extend `BaseError`, which itself extends the native `Error`. Add domain-specific errors by extending `ModuleError` and overriding `serializeExtra()` and `formatUserMessage()` as shown in the domain subclass example above.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/errors)

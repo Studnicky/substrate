@@ -12,17 +12,33 @@
  * static factories for one-shot operations).
  */
 
-import type { PatchOperationType } from '../types/index.js';
+import type { PatchOperationType, PatchOpVariantType } from '../types/index.js';
 
 import { PatchError } from '../errors/PatchError.js';
+
+const VALID_OPS = new Set<PatchOpVariantType>(['add', 'copy', 'move', 'remove', 'replace', 'test']);
 
 export class Patch {
   public readonly operations: readonly PatchOperationType[];
 
   public constructor(operations: PatchOperationType | readonly PatchOperationType[] = []) {
-    this.operations = Array.isArray(operations)
+    const ops: readonly PatchOperationType[] = Array.isArray(operations)
       ? (operations as readonly PatchOperationType[])
       : [operations as PatchOperationType];
+
+    const opsLen = ops.length;
+    for (let i = 0; i < opsLen; i += 1) {
+      const operation = ops[i]!;
+      if (!VALID_OPS.has(operation.op)) {
+        throw new PatchError(
+          `Invalid patch operation "${String(operation.op)}"; must be one of: ${[...VALID_OPS].join(', ')}`,
+          String(operation.op),
+          operation.path
+        );
+      }
+    }
+
+    this.operations = ops;
   }
 
   // ---------------------------------------------------------------------------
@@ -37,7 +53,8 @@ export class Patch {
    * when called on the subclass constructor.
    */
   protected static make(ops: PatchOperationType | readonly PatchOperationType[]): Patch {
-    return new this(ops);
+    const result = new this(ops);
+    return result;
   }
 
   // ---------------------------------------------------------------------------
@@ -46,44 +63,54 @@ export class Patch {
 
   /** Create a patch that adds `value` at `path`. */
   public static add(path: string, value: unknown): Patch {
-    return this.make({ 'op': 'add', 'path': path, 'value': value });
+    const result = this.make({ 'op': 'add', 'path': path, 'value': value });
+    return result;
   }
 
   /** Combine multiple patches into a single patch. */
   public static combine(...patches: readonly Patch[]): Patch {
-    const ops = patches.flatMap((p) => [...p.operations]);
+    const ops = patches.flatMap((p) => {
+      const patchOps: PatchOperationType[] = [...p.operations];
+      return patchOps;
+    });
 
     return this.make(ops);
   }
 
   /** Create a patch that copies a value from `from` to `path`. */
   public static copy(from: string, path: string): Patch {
-    return this.make({ 'from': from, 'op': 'copy', 'path': path });
+    const result = this.make({ 'from': from, 'op': 'copy', 'path': path });
+    return result;
   }
 
   /** Deserialize a patch from a plain-object representation. */
   public static fromPlain(plain: { readonly 'operations': readonly PatchOperationType[] }): Patch {
-    return this.make(plain.operations);
+    const result = this.make(plain.operations);
+    return result;
   }
 
   /** Create a patch that moves a value from `from` to `path`. */
   public static move(from: string, path: string): Patch {
-    return this.make({ 'from': from, 'op': 'move', 'path': path });
+    const result = this.make({ 'from': from, 'op': 'move', 'path': path });
+    return result;
   }
 
   /** Create a patch that removes the value at `path`. */
   public static remove(path: string): Patch {
-    return this.make({ 'op': 'remove', 'path': path });
+    const result = this.make({ 'op': 'remove', 'path': path });
+    return result;
   }
 
   /** Create a patch that replaces the value at `path` with `value`. */
   public static replace(path: string, value: unknown): Patch {
-    return this.make({ 'op': 'replace', 'path': path, 'value': value });
+    const result = this.make({ 'op': 'replace', 'path': path, 'value': value });
+    return result;
   }
 
   /** Create a patch that tests the value at `path` equals `value`. */
   public static test(path: string, value: unknown): Patch {
-    return this.make({ 'op': 'test', 'path': path, 'value': value });
+    const result = this.make({ 'op': 'test', 'path': path, 'value': value });
+    return result;
   }
 
   // ---------------------------------------------------------------------------
@@ -110,19 +137,22 @@ export class Patch {
 
   /** Return a copy of the operations array. */
   public getOperations(): PatchOperationType[] {
-    return [...this.operations];
+    const ops: PatchOperationType[] = [...this.operations];
+    return ops;
   }
 
   /** Serialize to a plain object. */
   public toPlain(): { readonly 'operations': readonly PatchOperationType[] } {
-    return { 'operations': this.operations };
+    const plain = { 'operations': this.operations };
+    return plain;
   }
 
   /** Human-readable summary of operations. */
   public toString(): string {
-    return this.operations
-      .map((op) => this.describeOp(op))
+    const result = this.operations
+      .map((op) => { const result = this.describeOp(op); return result; })
       .join(', ');
+    return result;
   }
 
   // ---------------------------------------------------------------------------
@@ -139,7 +169,7 @@ export class Patch {
     }
 
     return path.slice(1).split('/').map((part) =>
-      part.replace(/~1/gu, '/').replace(/~0/gu, '~')
+    { const result = part.replace(/~1/gu, '/').replace(/~0/gu, '~'); return result; }
     );
   }
 
@@ -329,24 +359,26 @@ export class Patch {
     }
   }
 
+  private static readonly operationAppliers: Record<
+    string,
+    (self: Patch, target: Record<string, unknown>, op: PatchOperationType) => void
+  > = {
+    'add': (self, target, op) => { self.applyAdd(target, op); },
+    'copy': (self, target, op) => { self.applyCopy(target, op); },
+    'move': (self, target, op) => { self.applyMove(target, op); },
+    'remove': (self, target, op) => { self.applyRemove(target, op); },
+    'replace': (self, target, op) => { self.applyReplace(target, op); },
+    'test': (self, target, op) => { self.applyTest(target, op); }
+  };
+
   /** Apply a single RFC-6902 operation to `target`. */
   protected applyOperation(target: Record<string, unknown>, op: PatchOperationType): void {
-    switch (op.op) {
-      case 'add':
-        return this.applyAdd(target, op);
-      case 'replace':
-        return this.applyReplace(target, op);
-      case 'remove':
-        return this.applyRemove(target, op);
-      case 'copy':
-        return this.applyCopy(target, op);
-      case 'move':
-        return this.applyMove(target, op);
-      case 'test':
-        return this.applyTest(target, op);
-      default:
-        throw new PatchError(`Unknown patch operation: ${String(op.op)}`, String(op.op), op.path);
+    const applier = Patch.operationAppliers[op.op];
+
+    if (applier === undefined) {
+      throw new PatchError(`Unknown patch operation: ${String(op.op)}`, String(op.op), op.path);
     }
+    applier(this, target, op);
   }
 
   /** Produce a human-readable description of a single operation. */
@@ -354,14 +386,14 @@ export class Patch {
     switch (op.op) {
       case 'add':
         return `ADD ${op.path} = ${JSON.stringify(op.value)}`;
-      case 'replace':
-        return `REPLACE ${op.path} = ${JSON.stringify(op.value)}`;
-      case 'remove':
-        return `REMOVE ${op.path}`;
       case 'copy':
         return `COPY ${op.from ?? '?'} → ${op.path}`;
       case 'move':
         return `MOVE ${op.from ?? '?'} → ${op.path}`;
+      case 'remove':
+        return `REMOVE ${op.path}`;
+      case 'replace':
+        return `REPLACE ${op.path} = ${JSON.stringify(op.value)}`;
       case 'test':
         return `TEST ${op.path} = ${JSON.stringify(op.value)}`;
       default:

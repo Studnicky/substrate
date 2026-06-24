@@ -46,6 +46,7 @@ import type {
 
 import { ErrorDefaults } from '../constants/index.js';
 import { BaseError } from './BaseError.js';
+import { ValidationError } from './ValidationError.js';
 
 /**
  * Base error for all modules. Extends `BaseError` while preserving the
@@ -61,7 +62,16 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
    */
   static create(message: string, options: ModuleErrorCreateOptionsType): ModuleError {
     if (!(options.scenario in ErrorDefaults)) {
-      throw new TypeError(`Invalid error scenario: ${String(options.scenario)}. Must be one of: ${Object.keys(ErrorDefaults).join(', ')}`);
+      throw ValidationError.create({
+        'message': `Must be one of: ${Object.keys(ErrorDefaults).join(', ')}`,
+        'path': 'scenario',
+        'violations': [
+          {
+            'message': `Invalid error scenario: ${String(options.scenario)}`,
+            'path': 'scenario'
+          }
+        ]
+      });
     }
 
     const defaults = ErrorDefaults[options.scenario];
@@ -100,11 +110,17 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
    */
   protected constructor(message: string, options: ModuleErrorOptionsType) {
     if (typeof message !== 'string' || message.length === 0) {
-      throw new TypeError('ModuleError message must be a non-empty string');
+      throw ValidationError.create({
+        'message': 'Must be a non-empty string',
+        'path': 'message'
+      });
     }
 
     if (typeof options.code !== 'string' || options.code.length === 0) {
-      throw new TypeError('ModuleError code must be a non-empty string');
+      throw ValidationError.create({
+        'message': 'Must be a non-empty string',
+        'path': 'code'
+      });
     }
 
     super({
@@ -148,29 +164,31 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
    * Default returns `{}`.
    */
   protected override serializeExtra(): Record<string, unknown> {
-    return {};
+    const extra: Record<string, unknown> = {};
+    return extra;
   }
 
   /**
    * Finds the first cause of a specific type in the chain.
    */
   findCauseOfType<T extends Error>(errorType: new (...args: never[]) => T): T | undefined {
-    const result = this.walkCauseChain().find((error): error is T => error instanceof errorType);
-    return result;
+    const found = this.walkCauseChain().find((error): error is T => {return error instanceof errorType;});
+    return found;
   }
 
   /**
    * Returns the full error chain including all causes.
    */
   getCauseChain(): Error[] {
-    return this.walkCauseChain();
+    const result = this.walkCauseChain();
+    return result;
   }
 
   /**
    * Returns `true` if this error or any cause is an instance of `errorType`.
    */
   hasCauseOfType(errorType: new (...args: never[]) => Error): boolean {
-    const result = this.walkCauseChain().some((error) => error instanceof errorType);
+    const result = this.walkCauseChain().some((error) => {return error instanceof errorType;});
     return result;
   }
 

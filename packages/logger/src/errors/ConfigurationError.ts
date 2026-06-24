@@ -22,6 +22,5 @@ export class ConfigurationError extends LoggerError {
    */
   constructor(message: string, cause?: unknown) {
     super(message, cause);
-    this.name = 'ConfigurationError';
   }
 }

@@ -79,6 +79,7 @@ export class NoOpTiming implements TimingInterface {
    * @returns Empty events with zero duration
    */
   getEvents(): Record<string, number> {
-    return { 'durationMs': 0 };
+    const events: Record<string, number> = { 'durationMs': 0 };
+    return events;
   }
 }

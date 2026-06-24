@@ -1,11 +1,12 @@
 /** Bounded FIFO DLQ with async-generator drain; enqueue() throws on capacity/closed/aborted. */
 
-import type { DeadLetterQueueOptionsType } from './DeadLetterQueueOptionsType.js';
 import type { DlqEntryType } from './DlqEntryType.js';
+import type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
 
 import { DlqAbortedError } from './DlqAbortedError.js';
 import { DlqClosedError } from './DlqClosedError.js';
 import { DlqFullError } from './DlqFullError.js';
+import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
 export class DeadLetterQueue<T> {
   readonly #capacity: number;
@@ -15,9 +16,13 @@ export class DeadLetterQueue<T> {
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
 
-  constructor(options?: DeadLetterQueueOptionsType) {
-    this.#capacity = options?.capacity ?? Infinity;
-    this.#clock = options?.clock ?? (() => Date.now());
+  constructor(options?: DeadLetterQueueOptionsInterface) {
+    const capacity = options?.capacity ?? Infinity;
+    if (capacity !== undefined && (capacity <= 0 || Number.isNaN(capacity))) {
+      throw new ResilienceConfigError('capacity must be > 0');
+    }
+    this.#capacity = capacity;
+    this.#clock = options?.clock ?? (() => { const result = Date.now(); return result; });
     const signal = options?.signal;
     if (signal !== undefined) {
       if (signal.aborted) { this.#aborted = true; }
@@ -25,8 +30,10 @@ export class DeadLetterQueue<T> {
     }
   }
 
-  get size(): number { return this.#entries.length; }
-  get closed(): boolean { return this.#closed; }
+  get size(): number { const result = this.#entries.length;
+    return result; }
+  get closed(): boolean { const result = this.#closed;
+    return result; }
 
   /** Throws DlqFullError | DlqClosedError | DlqAbortedError on failure. */
   enqueue(item: T, reason: string, error?: Error): void {

@@ -1,41 +1,55 @@
 /**
- * FanOutLogger — broadcast to multiple logger targets.
+ * Fan-out to multiple transports via Logger.
  *
- * Demonstrates: FanOutLogger.create([primary, spy]), every call reaches both.
+ * Demonstrates: Logger with multiple MemoryTransports, per-transport level
+ * filtering, and child loggers reaching all transports.
  *
  * Run: npx tsx packages/logger/examples/03-fanout.ts
  */
+
 import assert from 'node:assert/strict';
 
-import {
-  FanOutLogger, LogBody, NoOpLogger, SpyLogger
-} from '../src/index.js';
+// #region usage
+import { LogBody, Logger, MemoryTransport } from '../src/index.js';
 
-const spyA = SpyLogger.wrap(NoOpLogger.create());
-const spyB = SpyLogger.wrap(NoOpLogger.create());
-const fanOut = FanOutLogger.create([spyA, spyB]);
+const memoryAll = new MemoryTransport({ 'level': 'trace' });
+const memoryWarn = new MemoryTransport({ 'level': 'warn' });
+
+const logger = Logger.create({
+  'level': 'trace',
+  'transports': [memoryAll, memoryWarn]
+});
 
 const body = LogBody.create()
   .component('router')
   .operation('handle')
   .status('success')
   .message('Request routed')
-  .context({ route: '/api/users' })
+  .context({ 'route': '/api/users' })
   .build();
 
-fanOut.info(body);
+logger.info(body);
 
-assert.strictEqual(spyA.entries.length, 1, 'spyA received the log');
-assert.strictEqual(spyB.entries.length, 1, 'spyB received the log');
-assert.strictEqual(spyA.entries[0]?.message, 'Request routed');
-assert.strictEqual(spyB.entries[0]?.message, 'Request routed');
+console.log('memoryAll after info:', memoryAll.records().length);
+console.log('memoryWarn after info:', memoryWarn.records().length);
 
-// Child fan-out
-const child = fanOut.child({ requestId: 'req-999' });
-child.info(body);
+logger.warn(body);
 
-assert.strictEqual(spyA.entries.length, 2, 'spyA received child log');
-assert.strictEqual(spyB.entries.length, 2, 'spyB received child log');
+console.log('memoryAll after warn:', memoryAll.records().length);
+console.log('memoryWarn after warn:', memoryWarn.records().length);
 
-console.log(`FanOutLogger: ${spyA.entries.length} entries in spyA, ${spyB.entries.length} entries in spyB`);
-console.log('Both targets received every broadcast including child logger calls');
+// Child logger reaches all transports
+const child = logger.child({ 'requestId': 'req-999' });
+
+child.error(body);
+
+console.log('memoryAll after child error:', memoryAll.records().length);
+console.log('memoryWarn after child error:', memoryWarn.records().length);
+console.log('child metadata.requestId:', memoryAll.records()[2]?.metadata.requestId);
+// #endregion usage
+
+assert.strictEqual(memoryAll.records().length, 3, 'memoryAll received all 3 records');
+assert.strictEqual(memoryWarn.records().length, 2, 'memoryWarn received warn + error only');
+assert.strictEqual(memoryAll.records()[2]?.metadata.requestId, 'req-999', 'child metadata on record');
+
+console.log('03-fanout: all assertions passed');

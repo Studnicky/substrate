@@ -15,62 +15,20 @@ pnpm add @studnicky/types
 
 ## Usage
 
-All exports are zero-runtime — types are erased at compile time, `Wire` is a pure-static class.
+`Guard` provides type-safe narrowing accessors for wire-format values. `Empty` produces fresh empty collection instances and predicates. Type utilities (`JsonValueType`, `DeepReadonlyType`, `DeepMergeType`) are erased at compile time and carry no runtime cost:
 
-```typescript
-import type { JsonValue, JsonObject, DeepReadonly, DeepMergeType } from '@studnicky/types';
-import { Wire } from '@studnicky/types';
-
-// JsonValue — recursive readonly JSON-safe union
-function serialize(v: JsonValue): string {
-  return JSON.stringify(v);
-}
-
-// DeepReadonly — recursive readonly wrapper
-function freeze<T>(v: T): DeepReadonly<T> {
-  return Object.freeze(v) as DeepReadonly<T>;
-}
-
-// Wire — type-safe accessors for wire format values
-const value = Wire.string(record, 'name');         // string | undefined
-const num   = Wire.number(record, 'count');        // number | undefined
-const bool  = Wire.boolean(record, 'active');      // boolean | undefined
-```
-
-### JSON Schema types
-
-```typescript
-import type { JsonSchema, JsonSchemaObject, JsonSchemaTypeName } from '@studnicky/types';
-
-const schema: JsonSchemaObject = {
-  type: 'object',
-  properties: {
-    name: { type: 'string' }
-  }
-};
-```
+<<< ../../packages/types/examples/guard-accessors.ts#usage
 
 ## Subpath exports
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/types` | All types + `Wire` |
-| `@studnicky/types/types` | `JsonValue`, `JsonObject`, `DeepReadonly`, `DeepMergeType`, `JsonSchema`, `JsonSchemaObject`, `JsonSchemaTypeName` |
-| `@studnicky/types/guards` | `Wire` |
+| `@studnicky/types` | All types + `Guard` + `Empty` |
+| `@studnicky/types/types` | `JsonValueType`, `JsonObjectType`, `DeepReadonlyType`, `DeepMergeType`, `JsonSchemaType`, `JsonSchemaObjectType`, `JsonSchemaTypeNameType` |
+| `@studnicky/types/guards` | `Guard`, `Empty` |
 
 ## Extending
 
-`Wire` is a pure-static class. Extend it to add domain-specific accessors:
-
-```typescript
-import { Wire } from '@studnicky/types';
-
-class DomainWire extends Wire {
-  static userId(record: Record<string, unknown>, key: string): string | undefined {
-    const v = Wire.string(record, key);
-    return v?.startsWith('usr_') ? v : undefined;
-  }
-}
-```
+`Guard` is a pure-static class. Extend it and `static override isRecord` to customise record detection — `asRecord` and `asRecordArray` delegate through `this.isRecord`, so overrides propagate automatically. The subclass pattern is demonstrated in the usage example above.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/types)

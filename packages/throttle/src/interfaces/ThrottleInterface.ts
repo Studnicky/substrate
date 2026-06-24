@@ -1,6 +1,8 @@
+import type { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
 import type { AbortResultType } from './AbortResultType.js';
-import type { ThrottleConfigType } from './ThrottleConfigType.js';
 import type { ThrottleStatsType } from './ThrottleStatsType.js';
+
+type ThrottleConfigType = ThrottleConfigEntity.Type;
 
 /**
  * Contract for throttle implementations that limit concurrent async operations.

@@ -1,10 +1,11 @@
-import type {
-  ThrottleBuilderInterface,
-  ThrottleConfigType
-} from '../interfaces/index.js';
-import type { AdaptiveConfigInputType } from '../types/AdaptiveConfigInputType.js';
+import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
+import type { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
+import type { ThrottleBuilderInterface } from '../interfaces/index.js';
 
 import { Throttle } from './Throttle.js';
+
+type AdaptiveConfigInputType = AdaptiveConfigEntity.AdaptiveConfigInputType;
+type ThrottleConfigType = ThrottleConfigEntity.Type;
 
 /**
  * Builder for creating Throttle instances with a fluent API

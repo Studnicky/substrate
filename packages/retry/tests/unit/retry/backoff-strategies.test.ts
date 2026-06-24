@@ -7,153 +7,163 @@
 import {
   ok, strictEqual
 } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
+
+import type { BackoffStrategyType } from '../../../src/types/BackoffStrategyType.js';
 
 import { BackoffStrategy } from '../../../src/retry/index.js';
 
-void describe('Backoff Strategies', () => {
-  void describe('BackoffStrategy.constant', () => {
-    void it('returns same delay regardless of attempt number', () => {
-      const baseDelay = 100;
+// ---------------------------------------------------------------------------
+// BackoffStrategy.constant
+// ---------------------------------------------------------------------------
 
-      strictEqual(BackoffStrategy.constant(0, baseDelay), 100);
-      strictEqual(BackoffStrategy.constant(1, baseDelay), 100);
-      strictEqual(BackoffStrategy.constant(2, baseDelay), 100);
-      strictEqual(BackoffStrategy.constant(5, baseDelay), 100);
-      strictEqual(BackoffStrategy.constant(10, baseDelay), 100);
-    });
+const constantScenarios: Array<{
+  description: string;
+  attempt: number;
+  baseDelay: number;
+  expected: number;
+}> = [
+  { description: 'constant attempt 0 baseDelay 100 returns 100', attempt: 0, baseDelay: 100, expected: 100 },
+  { description: 'constant attempt 1 baseDelay 100 returns 100', attempt: 1, baseDelay: 100, expected: 100 },
+  { description: 'constant attempt 2 baseDelay 100 returns 100', attempt: 2, baseDelay: 100, expected: 100 },
+  { description: 'constant attempt 5 baseDelay 100 returns 100', attempt: 5, baseDelay: 100, expected: 100 },
+  { description: 'constant attempt 10 baseDelay 100 returns 100', attempt: 10, baseDelay: 100, expected: 100 },
+  { description: 'constant attempt 0 baseDelay 50 returns 50', attempt: 0, baseDelay: 50, expected: 50 },
+  { description: 'constant attempt 0 baseDelay 200 returns 200', attempt: 0, baseDelay: 200, expected: 200 },
+  { description: 'constant attempt 0 baseDelay 1000 returns 1000', attempt: 0, baseDelay: 1000, expected: 1000 }
+];
 
-    void it('returns correct delay for different base values', () => {
-      strictEqual(BackoffStrategy.constant(0, 50), 50);
-      strictEqual(BackoffStrategy.constant(0, 200), 200);
-      strictEqual(BackoffStrategy.constant(0, 1000), 1000);
-    });
+for (const { description, attempt, baseDelay, expected } of constantScenarios) {
+  it(description, () => {
+    strictEqual(BackoffStrategy.constant(attempt, baseDelay), expected);
   });
+}
 
-  void describe('BackoffStrategy.linear', () => {
-    void it('increases linearly with attempt number', () => {
-      const baseDelay = 100;
+// ---------------------------------------------------------------------------
+// BackoffStrategy.linear
+// ---------------------------------------------------------------------------
 
-      // Delay = baseDelay * (attemptNumber + 1)
-      strictEqual(BackoffStrategy.linear(0, baseDelay), 100);
-      strictEqual(BackoffStrategy.linear(1, baseDelay), 200);
-      strictEqual(BackoffStrategy.linear(2, baseDelay), 300);
-      strictEqual(BackoffStrategy.linear(3, baseDelay), 400);
-      strictEqual(BackoffStrategy.linear(4, baseDelay), 500);
-    });
+const linearScenarios: Array<{
+  description: string;
+  attempt: number;
+  baseDelay: number;
+  expected: number;
+}> = [
+  { description: 'linear attempt 0 baseDelay 100 returns 100', attempt: 0, baseDelay: 100, expected: 100 },
+  { description: 'linear attempt 1 baseDelay 100 returns 200', attempt: 1, baseDelay: 100, expected: 200 },
+  { description: 'linear attempt 2 baseDelay 100 returns 300', attempt: 2, baseDelay: 100, expected: 300 },
+  { description: 'linear attempt 3 baseDelay 100 returns 400', attempt: 3, baseDelay: 100, expected: 400 },
+  { description: 'linear attempt 4 baseDelay 100 returns 500', attempt: 4, baseDelay: 100, expected: 500 },
+  { description: 'linear attempt 0 baseDelay 50 returns 50', attempt: 0, baseDelay: 50, expected: 50 },
+  { description: 'linear attempt 1 baseDelay 50 returns 100', attempt: 1, baseDelay: 50, expected: 100 },
+  { description: 'linear attempt 2 baseDelay 50 returns 150', attempt: 2, baseDelay: 50, expected: 150 }
+];
 
-    void it('works with different base delays', () => {
-      strictEqual(BackoffStrategy.linear(0, 50), 50);
-      strictEqual(BackoffStrategy.linear(1, 50), 100);
-      strictEqual(BackoffStrategy.linear(2, 50), 150);
-    });
+for (const { description, attempt, baseDelay, expected } of linearScenarios) {
+  it(description, () => {
+    strictEqual(BackoffStrategy.linear(attempt, baseDelay), expected);
   });
+}
 
-  void describe('BackoffStrategy.exponential', () => {
-    void it('increases exponentially with attempt number', () => {
-      const baseDelay = 100;
+// ---------------------------------------------------------------------------
+// BackoffStrategy.exponential
+// ---------------------------------------------------------------------------
 
-      // Delay = baseDelay * (2 ^ attemptNumber)
-      strictEqual(BackoffStrategy.exponential(0, baseDelay), 100);
-      strictEqual(BackoffStrategy.exponential(1, baseDelay), 200);
-      strictEqual(BackoffStrategy.exponential(2, baseDelay), 400);
-      strictEqual(BackoffStrategy.exponential(3, baseDelay), 800);
-      strictEqual(BackoffStrategy.exponential(4, baseDelay), 1600);
-    });
+const exponentialScenarios: Array<{
+  description: string;
+  attempt: number;
+  baseDelay: number;
+  expected: number;
+}> = [
+  { description: 'exponential attempt 0 baseDelay 100 returns 100', attempt: 0, baseDelay: 100, expected: 100 },
+  { description: 'exponential attempt 1 baseDelay 100 returns 200', attempt: 1, baseDelay: 100, expected: 200 },
+  { description: 'exponential attempt 2 baseDelay 100 returns 400', attempt: 2, baseDelay: 100, expected: 400 },
+  { description: 'exponential attempt 3 baseDelay 100 returns 800', attempt: 3, baseDelay: 100, expected: 800 },
+  { description: 'exponential attempt 4 baseDelay 100 returns 1600', attempt: 4, baseDelay: 100, expected: 1600 },
+  { description: 'exponential attempt 0 baseDelay 50 returns 50', attempt: 0, baseDelay: 50, expected: 50 },
+  { description: 'exponential attempt 1 baseDelay 50 returns 100', attempt: 1, baseDelay: 50, expected: 100 },
+  { description: 'exponential attempt 2 baseDelay 50 returns 200', attempt: 2, baseDelay: 50, expected: 200 },
+  { description: 'exponential attempt 3 baseDelay 50 returns 400', attempt: 3, baseDelay: 50, expected: 400 }
+];
 
-    void it('works with different base delays', () => {
-      strictEqual(BackoffStrategy.exponential(0, 50), 50);
-      strictEqual(BackoffStrategy.exponential(1, 50), 100);
-      strictEqual(BackoffStrategy.exponential(2, 50), 200);
-      strictEqual(BackoffStrategy.exponential(3, 50), 400);
-    });
+for (const { description, attempt, baseDelay, expected } of exponentialScenarios) {
+  it(description, () => {
+    strictEqual(BackoffStrategy.exponential(attempt, baseDelay), expected);
   });
+}
 
-  void describe('BackoffStrategy.exponentialWithJitter', () => {
-    void it('returns value within expected range', () => {
-      const baseDelay = 100;
+// ---------------------------------------------------------------------------
+// BackoffStrategy.exponentialWithJitter — randomized, range-checked
+// ---------------------------------------------------------------------------
 
-      for (let i = 0; i < 100; i++) {
-        const delay = BackoffStrategy.exponentialWithJitter(0, baseDelay);
+const jitterRangeScenarios: Array<{
+  description: string;
+  attempt: number;
+  minMultiplier: number;
+  maxMultiplier: number;
+}> = [
+  { description: 'exponentialWithJitter attempt 0 baseDelay 100 is within 50–150', attempt: 0, minMultiplier: 0.5, maxMultiplier: 1.5 },
+  { description: 'exponentialWithJitter attempt 1 baseDelay 100 is within 100–300', attempt: 1, minMultiplier: 0.5, maxMultiplier: 1.5 },
+  { description: 'exponentialWithJitter attempt 2 baseDelay 100 is within 200–600', attempt: 2, minMultiplier: 0.5, maxMultiplier: 1.5 },
+  { description: 'exponentialWithJitter attempt 3 baseDelay 100 is within 400–1200', attempt: 3, minMultiplier: 0.5, maxMultiplier: 1.5 }
+];
 
-        // Attempt 0: base delay is 100, jitter multiplier is 0.5-1.5
-        // So range is 50-150
-        ok(delay >= 50, `Delay ${delay} should be >= 50`);
-        ok(delay <= 150, `Delay ${delay} should be <= 150`);
-      }
-    });
+const BASE_DELAY_JITTER = 100;
 
-    void it('increases base delay exponentially with jitter range', () => {
-      const baseDelay = 100;
+for (const { description, attempt, minMultiplier, maxMultiplier } of jitterRangeScenarios) {
+  it(description, () => {
+    const exponentialBase = BASE_DELAY_JITTER * Math.pow(2, attempt);
+    const minExpected = Math.floor(exponentialBase * minMultiplier);
+    const maxExpected = Math.floor(exponentialBase * maxMultiplier);
 
-      // Sample multiple times to verify range
-      // Delay = baseDelay * 2^attempt * jitter(0.5-1.5)
-      for (let attempt = 0; attempt <= 3; attempt++) {
-        const exponentialBase = baseDelay * Math.pow(2, attempt);
-        const minExpected = Math.floor(exponentialBase * 0.5);
-        const maxExpected = Math.floor(exponentialBase * 1.5);
-
-        for (let i = 0; i < 50; i++) {
-          const delay = BackoffStrategy.exponentialWithJitter(attempt, baseDelay);
-
-          ok(delay >= minExpected, `Attempt ${attempt}: Delay ${delay} should be >= ${minExpected}`);
-          ok(delay <= maxExpected, `Attempt ${attempt}: Delay ${delay} should be <= ${maxExpected}`);
-        }
-      }
-    });
-
-    void it('produces varying results due to jitter', () => {
-      const results = new Set<number>();
-
-      // Generate multiple values - they should vary due to jitter
-      for (let i = 0; i < 20; i++) {
-        results.add(BackoffStrategy.exponentialWithJitter(0, 100));
-      }
-
-      // Should have some variety (not all the same)
-      ok(results.size > 1, 'Jitter should produce varying results');
-    });
+    for (let i = 0; i < 50; i++) {
+      const delay = BackoffStrategy.exponentialWithJitter(attempt, BASE_DELAY_JITTER);
+      ok(delay >= minExpected, `Attempt ${attempt}: delay ${delay} should be >= ${minExpected}`);
+      ok(delay <= maxExpected, `Attempt ${attempt}: delay ${delay} should be <= ${maxExpected}`);
+    }
   });
+}
 
-  void describe('BackoffStrategy.withCeiling', () => {
-    void it('caps exponential backoff at maximum', () => {
-      const cappedExponential = BackoffStrategy.withCeiling(BackoffStrategy.exponential, 500);
+it('exponentialWithJitter produces varying results due to jitter', () => {
+  const results = new Set<number>();
 
-      strictEqual(cappedExponential(0, 100), 100);
-      strictEqual(cappedExponential(1, 100), 200);
-      strictEqual(cappedExponential(2, 100), 400);
-      // Would be 800, capped at 500
-      strictEqual(cappedExponential(3, 100), 500);
-      // Would be 1600, capped at 500
-      strictEqual(cappedExponential(4, 100), 500);
-    });
+  for (let i = 0; i < 20; i++) {
+    results.add(BackoffStrategy.exponentialWithJitter(0, 100));
+  }
 
-    void it('caps linear backoff at maximum', () => {
-      const cappedLinear = BackoffStrategy.withCeiling(BackoffStrategy.linear, 300);
-
-      strictEqual(cappedLinear(0, 100), 100);
-      strictEqual(cappedLinear(1, 100), 200);
-      // Would be 300, at ceiling
-      strictEqual(cappedLinear(2, 100), 300);
-      // Would be 400, capped at 300
-      strictEqual(cappedLinear(3, 100), 300);
-    });
-
-    void it('does not affect constant backoff below ceiling', () => {
-      const cappedConstant = BackoffStrategy.withCeiling(BackoffStrategy.constant, 500);
-
-      strictEqual(cappedConstant(0, 100), 100);
-      strictEqual(cappedConstant(5, 100), 100);
-      strictEqual(cappedConstant(10, 100), 100);
-    });
-
-    void it('returns ceiling when delay exceeds it', () => {
-      const cappedConstant = BackoffStrategy.withCeiling(BackoffStrategy.constant, 50);
-
-      // Base delay of 100 exceeds ceiling of 50
-      strictEqual(cappedConstant(0, 100), 50);
-    });
-  });
+  ok(results.size > 1, 'Jitter should produce varying results');
 });
+
+// ---------------------------------------------------------------------------
+// BackoffStrategy.withCeiling
+// ---------------------------------------------------------------------------
+
+const withCeilingScenarios: Array<{
+  description: string;
+  strategy: BackoffStrategyType;
+  ceiling: number;
+  attempt: number;
+  baseDelay: number;
+  expected: number;
+}> = [
+  { description: 'withCeiling(exponential, 500) attempt 0 baseDelay 100 returns 100', strategy: BackoffStrategy.exponential, ceiling: 500, attempt: 0, baseDelay: 100, expected: 100 },
+  { description: 'withCeiling(exponential, 500) attempt 1 baseDelay 100 returns 200', strategy: BackoffStrategy.exponential, ceiling: 500, attempt: 1, baseDelay: 100, expected: 200 },
+  { description: 'withCeiling(exponential, 500) attempt 2 baseDelay 100 returns 400', strategy: BackoffStrategy.exponential, ceiling: 500, attempt: 2, baseDelay: 100, expected: 400 },
+  { description: 'withCeiling(exponential, 500) attempt 3 baseDelay 100 caps at 500', strategy: BackoffStrategy.exponential, ceiling: 500, attempt: 3, baseDelay: 100, expected: 500 },
+  { description: 'withCeiling(exponential, 500) attempt 4 baseDelay 100 caps at 500', strategy: BackoffStrategy.exponential, ceiling: 500, attempt: 4, baseDelay: 100, expected: 500 },
+  { description: 'withCeiling(linear, 300) attempt 0 baseDelay 100 returns 100', strategy: BackoffStrategy.linear, ceiling: 300, attempt: 0, baseDelay: 100, expected: 100 },
+  { description: 'withCeiling(linear, 300) attempt 1 baseDelay 100 returns 200', strategy: BackoffStrategy.linear, ceiling: 300, attempt: 1, baseDelay: 100, expected: 200 },
+  { description: 'withCeiling(linear, 300) attempt 2 baseDelay 100 returns 300 at ceiling', strategy: BackoffStrategy.linear, ceiling: 300, attempt: 2, baseDelay: 100, expected: 300 },
+  { description: 'withCeiling(linear, 300) attempt 3 baseDelay 100 caps at 300', strategy: BackoffStrategy.linear, ceiling: 300, attempt: 3, baseDelay: 100, expected: 300 },
+  { description: 'withCeiling(constant, 500) attempt 0 baseDelay 100 unaffected returns 100', strategy: BackoffStrategy.constant, ceiling: 500, attempt: 0, baseDelay: 100, expected: 100 },
+  { description: 'withCeiling(constant, 500) attempt 5 baseDelay 100 unaffected returns 100', strategy: BackoffStrategy.constant, ceiling: 500, attempt: 5, baseDelay: 100, expected: 100 },
+  { description: 'withCeiling(constant, 500) attempt 10 baseDelay 100 unaffected returns 100', strategy: BackoffStrategy.constant, ceiling: 500, attempt: 10, baseDelay: 100, expected: 100 },
+  { description: 'withCeiling(constant, 50) caps baseDelay 100 at ceiling 50', strategy: BackoffStrategy.constant, ceiling: 50, attempt: 0, baseDelay: 100, expected: 50 }
+];
+
+for (const { description, strategy, ceiling, attempt, baseDelay, expected } of withCeilingScenarios) {
+  it(description, () => {
+    const capped = BackoffStrategy.withCeiling(strategy, ceiling);
+    strictEqual(capped(attempt, baseDelay), expected);
+  });
+}

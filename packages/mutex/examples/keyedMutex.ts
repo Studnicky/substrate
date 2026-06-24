@@ -2,6 +2,7 @@
 
 import assert from 'node:assert/strict';
 
+// #region usage
 import { Mutex } from '../src/index.js';
 
 const mutex = Mutex.create<string>();
@@ -13,18 +14,15 @@ class KeyedMutexDemo {
   static async runParallelKeys(): Promise<void> {
     // Two concurrent runExclusive calls on DIFFERENT keys should both start immediately
     await Promise.all([
-      mutex.runExclusive('keyA', async () => {
+      mutex.runExclusive('keyA', () => {
         completionOrder.push('keyA');
       }),
-      mutex.runExclusive('keyB', async () => {
+      mutex.runExclusive('keyB', () => {
         completionOrder.push('keyB');
-      }),
+      })
     ]);
 
-    // Both completed — order may vary but both must be present
-    assert.equal(completionOrder.length, 2);
-    assert.ok(completionOrder.includes('keyA'));
-    assert.ok(completionOrder.includes('keyB'));
+    console.log('Completion order (parallel keys):', completionOrder);
   }
 
   static async runSerialSameKey(): Promise<void> {
@@ -33,40 +31,45 @@ class KeyedMutexDemo {
     const results: number[] = [];
 
     await Promise.all([
-      mutex.runExclusive('shared', async () => {
+      mutex.runExclusive('shared', () => {
         const snapshot = counter;
         counter++;
         results.push(snapshot);
       }),
-      mutex.runExclusive('shared', async () => {
+      mutex.runExclusive('shared', () => {
         const snapshot = counter;
         counter++;
         results.push(snapshot);
       }),
-      mutex.runExclusive('shared', async () => {
+      mutex.runExclusive('shared', () => {
         const snapshot = counter;
         counter++;
         results.push(snapshot);
-      }),
+      })
     ]);
 
-    // Serialized increments: each operation saw a unique snapshot (0, 1, 2)
-    assert.equal(counter, 3);
-    assert.deepEqual(results.sort((a, b) => a - b), [0, 1, 2]);
+    console.log('Serialized counter:', counter);
+    console.log('Serialized results:', results.sort((a, b) => { return a - b; }));
   }
 
-  static async showStats(): Promise<void> {
+  static showStats(): void {
     const stats = mutex.getStats();
-    assert.equal(stats.activeLocksCount, 0);
-    assert.equal(stats.queuedCount, 0);
-    assert.ok(stats.totalExecuted >= 5, `Expected at least 5 executions, got ${stats.totalExecuted}`);
+    console.log('Stats:', stats);
   }
 }
 
 await KeyedMutexDemo.runParallelKeys();
 await KeyedMutexDemo.runSerialSameKey();
-await KeyedMutexDemo.showStats();
+KeyedMutexDemo.showStats();
+// #endregion usage
+
+assert.equal(completionOrder.length, 2);
+assert.ok(completionOrder.includes('keyA'));
+assert.ok(completionOrder.includes('keyB'));
 
 const finalStats = mutex.getStats();
-console.log('Stats:', finalStats);
-console.log('keyedMutex example passed.');
+assert.equal(finalStats.activeLocksCount, 0);
+assert.equal(finalStats.queuedCount, 0);
+assert.ok(finalStats.totalExecuted >= 5, `Expected at least 5 executions, got ${finalStats.totalExecuted}`);
+
+console.log('keyedMutex: all assertions passed');

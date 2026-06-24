@@ -9,72 +9,74 @@ RuleTester.describe = describe;
 RuleTester.it = it;
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module'
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts']
+      },
+      'tsconfigRootDir': '/Users/studs/Workspace/noocodec-substrate'
     }
   }
 });
 
 ruleTester.run('no-bind-apply-call', noBindApplyCall, {
-  valid: [
-    // Normal method call — not bind/call/apply
-    { code: `obj.run();` },
-    // Property named bind on non-function context (still a MemberExpression — rule checks property name)
-    // A method named "bindData" is fine since property name is not exactly bind/call/apply
-    { code: `obj.bindData();` },
-    { code: `obj.callback();` },
-    { code: `obj.callMe();` },
-    { code: `obj.applicant();` },
-    // Regular function call (no member expression)
-    { code: `run();` },
-    // Arrow function — no bind needed
-    { code: `const greet = () => { return 'hello'; };` },
-    // Computed property access that resolves to something other than bind/call/apply
-    { code: `obj['method']();` }
+  'valid': [
+    // Class instance with an `apply` method — receiver is not callable, must NOT report.
+    {
+      'code': 'class P { apply(x: number): void { void x; } } const p = new P(); p.apply(1);',
+      'name': 'class instance with apply method — not a Function, no report'
+    },
+    // Class instance with a `call` method.
+    {
+      'code': 'class Q { call(x: number): void { void x; } } const q = new Q(); q.call(2);',
+      'name': 'class instance with call method — not a Function, no report'
+    },
+    // Class instance with a `bind` method.
+    {
+      'code': 'class R { bind(x: number): void { void x; } } const r = new R(); r.bind(3);',
+      'name': 'class instance with bind method — not a Function, no report'
+    },
+    // Plain object literal with an `apply` method — not a Function.
+    {
+      'code': 'const o = { apply(n: number): void { void n; } }; o.apply(4);',
+      'name': 'plain object with apply method — not callable, no report'
+    },
+    // `any`-typed receiver — `any` has no call signatures, cannot prove callable, no report.
+    {
+      'code': 'const a: any = {}; a.apply(null);',
+      'name': 'any-typed receiver — unprovable, no report'
+    },
+    // Normal method call unrelated to bind/call/apply.
+    {
+      'code': 'declare const obj: { run(): void }; obj.run();',
+      'name': 'normal non-bind method call — no report'
+    }
   ],
-  invalid: [
-    // .bind(...)
+  'invalid': [
+    // Named function reference — receiver is callable, .apply is Function.prototype.apply.
     {
-      code: `const fn = myFunc.bind(this);`,
-      errors: [{ messageId: 'forbidden' }]
+      'code': 'function f(x: number, y: number): void { void x; void y; } f.apply(null, [1, 2]);',
+      'errors': [{ 'messageId': 'forbidden' }],
+      'name': 'function declaration .apply — forbidden'
     },
-    // .call(...)
+    // Arrow function constant — callable receiver.
     {
-      code: `myFunc.call(null, 1, 2);`,
-      errors: [{ messageId: 'forbidden' }]
+      'code': 'const g = (): void => {}; g.bind(null);',
+      'errors': [{ 'messageId': 'forbidden' }],
+      'name': 'arrow function .bind — forbidden'
     },
-    // .apply(...)
+    // Function expression — callable receiver.
     {
-      code: `myFunc.apply(context, args);`,
-      errors: [{ messageId: 'forbidden' }]
+      'code': 'const h = function (): void {}; h.call(undefined);',
+      'errors': [{ 'messageId': 'forbidden' }],
+      'name': 'function expression .call — forbidden'
     },
-    // .bind with no arguments still forbidden
+    // Computed member access with literal string 'apply' on a function.
     {
-      code: `const bound = fn.bind(null);`,
-      errors: [{ messageId: 'forbidden' }]
-    },
-    // Chained .bind
-    {
-      code: `const a = foo.bar.bind(ctx);`,
-      errors: [{ messageId: 'forbidden' }]
-    },
-    // Computed member expression with literal 'bind'
-    {
-      code: `fn['bind'](this);`,
-      errors: [{ messageId: 'forbidden' }]
-    },
-    // Computed member expression with literal 'call'
-    {
-      code: `fn['call'](null);`,
-      errors: [{ messageId: 'forbidden' }]
-    },
-    // Computed member expression with literal 'apply'
-    {
-      code: `fn['apply'](null, []);`,
-      errors: [{ messageId: 'forbidden' }]
+      'code': "function k(): void {} k['apply'](null, []);",
+      'errors': [{ 'messageId': 'forbidden' }],
+      'name': "computed k['apply'] on function declaration — forbidden"
     }
   ]
 });

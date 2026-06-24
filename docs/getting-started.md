@@ -26,6 +26,7 @@ pnpm add @studnicky/retry
 
 ## Minimal usage example
 
+<!-- inline-ts-ok: consumer-facing snippet using the published @studnicky/retry import and live fetch; illustrates install-and-use ergonomics, not an in-repo runnable example (those use relative ../src imports) -->
 ```typescript
 import { Retry } from '@studnicky/retry';
 
@@ -49,6 +50,7 @@ const result = await retry.execute(async () => {
 
 Every class exposes protected lifecycle hooks. Subclass to add observability without touching the base class:
 
+<!-- inline-ts-ok: consumer-facing subclass illustration using the published @studnicky/retry import; demonstrates the extension pattern, not an in-repo runnable example -->
 ```typescript
 import { Retry } from '@studnicky/retry';
 import type { RetryContextInterface } from '@studnicky/retry';

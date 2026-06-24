@@ -8,11 +8,25 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./types": { "types": "./dist/types/index.d.ts", "import": "./dist/types/index.js" },
-    "./guards": { "types": "./dist/guards/index.d.ts", "import": "./dist/guards/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    },
+    "./guards": {
+      "types": "./dist/guards/index.d.ts",
+      "import": "./dist/guards/index.js"
+    }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports",
@@ -20,7 +34,14 @@
     "type-check": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
-  "keywords": ["types", "utility-types", "type-guards", "json", "readonly", "deep-merge"],
+  "keywords": [
+    "types",
+    "utility-types",
+    "type-guards",
+    "json",
+    "readonly",
+    "deep-merge"
+  ],
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "repository": {
@@ -28,8 +49,19 @@
     "url": "git+https://github.com/Studnicky/substrate.git",
     "directory": "packages/types"
   },
-  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
   "homepage": "https://studnicky.github.io/substrate/packages/types",
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
-  "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" }
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "json-schema-to-ts": "^3.1.1"
+  }
 }

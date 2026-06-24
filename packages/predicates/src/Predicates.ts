@@ -84,13 +84,15 @@ export class Predicates {
     [
       'array',
       (value: unknown): boolean => {
-        return Array.isArray(value);
+        const result = Array.isArray(value);
+        return result;
       }
     ],
     [
       'integer',
       (value: unknown): boolean => {
-        return Predicates.isIntegerValue(value);
+        const result = Predicates.isIntegerValue(value);
+        return result;
       }
     ],
     [
@@ -102,7 +104,8 @@ export class Predicates {
     [
       'number',
       (value: unknown): boolean => {
-        return Predicates.isFiniteNumber(value);
+        const result = Predicates.isFiniteNumber(value);
+        return result;
       }
     ],
     [
@@ -234,9 +237,11 @@ export class Predicates {
   }
 
   static matchesAnyType(schemaTypes: string[], value: unknown): boolean {
-    return schemaTypes.some((schemaType: string): boolean => {
-      return Predicates.matchesType(schemaType, value);
+    const result = schemaTypes.some((schemaType: string): boolean => {
+      const result = Predicates.matchesType(schemaType, value);
+      return result;
     });
+    return result;
   }
 
   static matchesType(schemaType: string, value: unknown): boolean {
@@ -246,13 +251,16 @@ export class Predicates {
   }
 
   static satisfiesConst(value: unknown, constValue: unknown): boolean {
-    return DataType.deepEqual(value, constValue);
+    const result = DataType.deepEqual(value, constValue);
+    return result;
   }
 
   static satisfiesEnum(value: unknown, enumValues: unknown[]): boolean {
-    return enumValues.some((enumValue: unknown): boolean => {
-      return DataType.deepEqual(value, enumValue);
+    const result = enumValues.some((enumValue: unknown): boolean => {
+      const result = DataType.deepEqual(value, enumValue);
+      return result;
     });
+    return result;
   }
 
   static checkMinimum(value: number, minimum: number, exclusive: boolean): boolean {
@@ -290,17 +298,20 @@ export class Predicates {
   }
 
   static satisfiesMultipleOf(value: number, divisor: number): boolean {
-    return Predicates.checkMultipleOf(value, divisor);
+    const result = Predicates.checkMultipleOf(value, divisor);
+    return result;
   }
 
   /** Fast-paths: len<min→false, len>=2*min→true; walks code points only in residual band. */
   static checkMinLength(value: string, minimum: number): boolean {
-    return Predicates.satisfiesMinLength(value, minimum);
+    const result = Predicates.satisfiesMinLength(value, minimum);
+    return result;
   }
 
   /** Fast-path: code_points <= utf16_length, so value.length<=max is definitely true. */
   static checkMaxLength(value: string, maximum: number): boolean {
-    return Predicates.satisfiesMaxLength(value, maximum);
+    const result = Predicates.satisfiesMaxLength(value, maximum);
+    return result;
   }
 
   static checkPattern(value: string, pattern: RegExp | string): boolean {
@@ -331,7 +342,8 @@ export class Predicates {
   }
 
   static satisfiesPattern(value: string, regex: RegExp): boolean {
-    return regex.test(value);
+    const result = regex.test(value);
+    return result;
   }
 
   /** Only base64/base64url are actively checked; unknown encodings return true per spec. */
@@ -377,7 +389,8 @@ export class Predicates {
   }
 
   static checkUniqueItems(value: unknown[]): boolean {
-    return Predicates.satisfiesUniqueItems(value);
+    const result = Predicates.satisfiesUniqueItems(value);
+    return result;
   }
 
   /** Validates minContains/maxContains bounds against match count from a contains schema. */
@@ -421,19 +434,23 @@ export class Predicates {
   }
 
   static checkRequired(value: Record<string, unknown>, required: string[]): boolean {
-    return Predicates.hasAllRequiredProperties(value, required);
+    const result = Predicates.hasAllRequiredProperties(value, required);
+    return result;
   }
 
   static hasAllRequiredProperties(value: Record<string, unknown>, required: string[]): boolean {
-    return required.every((key: string): boolean => {
+    const result = required.every((key: string): boolean => {
       return key in value;
     });
+    return result;
   }
 
   static hasNoAdditionalProperties(value: Record<string, unknown>, allowedKeys: Set<string>): boolean {
-    return Object.keys(value).every((key: string): boolean => {
-      return allowedKeys.has(key);
+    const result = Object.keys(value).every((key: string): boolean => {
+      const result = allowedKeys.has(key);
+      return result;
     });
+    return result;
   }
 
   static satisfiesMinProperties(value: Record<string, unknown>, minimum: number): boolean {

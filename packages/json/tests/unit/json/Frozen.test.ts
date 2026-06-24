@@ -42,10 +42,13 @@ void describe('Frozen', () => {
       assert.doesNotThrow(() => Frozen.deepFreeze(obj));
     });
 
-    void it('passes through primitives unchanged', () => {
-      assert.strictEqual(Frozen.deepFreeze(42), 42);
-      assert.strictEqual(Frozen.deepFreeze('hello'), 'hello');
-      assert.strictEqual(Frozen.deepFreeze(null), null);
-    });
+    const primitivePassthroughScenarios: Array<{ description: string; input: unknown; expected: unknown }> = [
+      { description: 'deepFreeze passes through number unchanged', input: 42, expected: 42 },
+      { description: 'deepFreeze passes through string unchanged', input: 'hello', expected: 'hello' },
+      { description: 'deepFreeze passes through null unchanged', input: null, expected: null },
+    ];
+    for (const { description, input, expected } of primitivePassthroughScenarios) {
+      void it(description, () => { assert.strictEqual(Frozen.deepFreeze(input), expected); });
+    }
   });
 });

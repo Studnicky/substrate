@@ -202,7 +202,8 @@ export class DataType {
    * (Date, Map, Set, class instances) are treated as leaves.
    */
   public static hasCycle(value: unknown): boolean {
-    return this.walkForCycle(value, new WeakSet());
+    const result = this.walkForCycle(value, new WeakSet());
+    return result;
   }
 
   /** Type guard for plain objects whose prototype is `Object.prototype` or `null`. */

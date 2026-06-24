@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/substrate",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "license": "MIT",
@@ -22,12 +22,16 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "tsc -b --clean",
+    "predocs:build": "node scripts/stamp-version.mjs",
     "docs:build": "vitepress build docs",
     "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs",
-    "lint": "oxlint packages && eslint .",
+    "lint": "oxlint packages && eslint . && pnpm run lint:docs",
+    "lint:docs": "node scripts/check-docs-includes.mjs",
     "lint:fix": "oxlint packages --fix && eslint . --fix",
     "lint:oxlint": "oxlint packages",
+    "stamp-version": "node scripts/stamp-version.mjs",
+    "stamp-version:check": "node scripts/stamp-version.mjs --check",
     "test": "pnpm -r --if-present run test",
     "typecheck": "tsc -b"
   },

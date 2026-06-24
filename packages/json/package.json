@@ -27,6 +27,10 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema/index.js"
     }
   },
   "files": [
@@ -73,6 +77,9 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@studnicky/types": "workspace:*"
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/types": "workspace:*",
+    "ajv": "^8.18.0",
+    "ajv-formats": "^3.0.1"
   }
 }

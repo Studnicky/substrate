@@ -80,17 +80,20 @@ export class VirtualScheduler implements SchedulerProviderType {
 
   /** Creates the heap used to store pending tasks. Override to substitute a custom heap. */
   protected createHeap(): MinimumHeap {
-    return new MinimumHeap();
+    const result = new MinimumHeap();
+    return result;
   }
 
   /** Protected access to the shared virtual time counter. */
   protected get virtualCounter(): Readonly<VirtualTimeCounter> {
-    return this.#counter;
+    const result = this.#counter;
+    return result;
   }
 
   /** Returns `true` if the given task ID has been cancelled. */
   protected isCancelled(id: string): boolean {
-    return this.#cancelledIds.has(id);
+    const result = this.#cancelledIds.has(id);
+    return result;
   }
 
   /** Called after a task is inserted into the heap via `scheduleAt` or `scheduleEvery`. */

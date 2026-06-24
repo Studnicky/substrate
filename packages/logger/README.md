@@ -1,10 +1,10 @@
 # @studnicky/logger
 
-> Pluggable logging interface with Pino wrapper, child loggers, and metadata support for Node.js
+> Pluggable logging interface with transport architecture for Node.js
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/logger)
 
-`@studnicky/logger` provides a typed `LoggerInterface` with structured log builders and five ready-to-use implementations. Every log entry is constructed via the `LogBody` or `LogFault` builder — required fields are enforced at build time. Correlation IDs flow from child loggers, not from the builders.
+`@studnicky/logger` provides a typed `LoggerInterface` with a pluggable transport system and structured log builders. Every log entry is constructed via the `LogBody` or `LogFault` builder — required fields are enforced at build time. Correlation IDs flow from child loggers, not from the builders.
 
 ## Install
 
@@ -21,9 +21,13 @@ pnpm add @studnicky/logger
 ## Usage
 
 ```typescript
-import { PinoLogger, LogBody, LogFault, NoOpLogger } from '@studnicky/logger';
+import { Logger, ConsoleTransport, LogBody, LogFault } from '@studnicky/logger';
 
-const logger = PinoLogger.create({ level: 'info' });
+const logger = Logger.create({
+  level: 'info',
+  metadata: { service: 'api' },
+  transports: [new ConsoleTransport()]
+});
 
 // Structured info log
 const body = LogBody.create()
@@ -57,22 +61,67 @@ const requestLogger = logger.child({ requestId: 'req-abc', userId: 'u-123' });
 requestLogger.info(body);
 ```
 
-## Extending
+## Transport architecture
 
-Combine loggers with `FanOutLogger` to broadcast to multiple sinks, or implement `LoggerInterface` directly:
+The `Logger` core emits `LogRecordType` records to each configured transport. A Logger with no transports is valid and silent.
 
 ```typescript
-import { FanOutLogger, PinoLogger, SpyLogger, NoOpLogger } from '@studnicky/logger';
-import type { LoggerInterface } from '@studnicky/logger/interfaces';
+import {
+  Logger,
+  ConsoleTransport,
+  MemoryTransport,
+  FunctionTransport,
+  NoOpTransport
+} from '@studnicky/logger';
 
-// Fan-out to console + test spy
-const primary = PinoLogger.create({ level: 'info' });
-const spy = SpyLogger.wrap(NoOpLogger.create());
-const logger = FanOutLogger.create([primary, spy]);
+// Fan-out: console (warn+) and memory capture for tests
+const memory = new MemoryTransport();
+const logger = Logger.create({
+  level: 'debug',
+  transports: [
+    new ConsoleTransport({ level: 'warn' }), // only warn and above
+    memory                                    // all records at or above global floor
+  ]
+});
 
-// In tests: assert what was logged
-const entries = spy.entries;
-console.log(entries[0]?.message);
+logger.info(body);  // reaches memory only
+logger.warn(body);  // reaches both
+
+// Assert captured records in tests
+const records = memory.records();
+records[0]?.level;    // LogLevel.WARN
+records[0]?.metadata; // { service: 'api' }
+records[0]?.data;     // LogBodyDataType
+memory.clear();
+
+// Bridge to an external logger via FunctionTransport
+import pino from 'pino';
+const pinoLogger = pino();
+const bridged = Logger.create({
+  transports: [new FunctionTransport((r) => pinoLogger.info(r.metadata, r.data.message))]
+});
+
+// Implement your own transport
+import type { TransportInterface, LogRecordType } from '@studnicky/logger';
+class RemoteTransport implements TransportInterface {
+  write(record: LogRecordType): void {
+    // send to remote sink
+  }
+}
+```
+
+## Per-transport level filtering
+
+Each transport accepts an optional `level` option that adds an independent filter above the Logger global floor:
+
+```typescript
+const logger = Logger.create({
+  level: 'debug',
+  transports: [
+    new ConsoleTransport({ level: 'debug' }), // debug and above
+    new ConsoleTransport({ level: 'warn' }),   // warn and above only
+  ]
+});
 ```
 
 ## Documentation

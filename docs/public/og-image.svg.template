@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="@studnicky/substrate — Subclass-first TypeScript primitives">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0b1018"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="22%" cy="50%" r="30%">
+      <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="logo-clip">
+      <rect x="90" y="165" width="300" height="300" rx="60" ry="60"/>
+    </clipPath>
+    <filter id="logo-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Soft teal radial glow behind logo -->
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- Logo tile drop shadow -->
+  <rect x="90" y="165" width="300" height="300" rx="60" ry="60" fill="#0f172a" filter="url(#logo-shadow)"/>
+
+  <!-- Logo image clipped to rounded rect -->
+  <image href="{{LOGO_DATA_URI}}" x="90" y="165" width="300" height="300" clip-path="url(#logo-clip)" preserveAspectRatio="xMidYMid slice"/>
+
+  <!-- Logo tile border -->
+  <rect x="90" y="165" width="300" height="300" rx="60" ry="60" fill="none" stroke="#14b8a6" stroke-width="2" stroke-opacity="0.35"/>
+
+  <!-- Wordmark: Substrate -->
+  <text x="440" y="300" font-family="Helvetica, Arial, sans-serif" font-size="96" font-weight="800" fill="#f8fafc" letter-spacing="-2">Substrate</text>
+
+  <!-- Tagline -->
+  <text x="440" y="358" font-family="Helvetica, Arial, sans-serif" font-size="34" fill="#94a3b8">Subclass-first TypeScript primitives.</text>
+
+  <!-- Package ID -->
+  <text x="440" y="412" font-family="Menlo, monospace" font-size="30" fill="#2dd4bf">@studnicky/substrate</text>
+
+  <!-- Version pill background -->
+  <rect x="440" y="436" width="142" height="46" rx="23" ry="23" fill="#14b8a6"/>
+
+  <!-- Version pill text -->
+  <text x="511" y="467" font-family="Helvetica, Arial, sans-serif" font-size="24" font-weight="700" fill="#04201c" text-anchor="middle">v{{VERSION}}</text>
+</svg>

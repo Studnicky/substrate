@@ -20,7 +20,16 @@
       "path": "../config"
     },
     {
+      "path": "../errors"
+    },
+    {
+      "path": "../json"
+    },
+    {
       "path": "../sample-buffer"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/logger'
-description: Pluggable logging with Pino wrapper, child loggers, and structured builders.
+description: Pluggable logging with transport architecture, child loggers, and structured builders.
 ---
 
 # @studnicky/logger
 
-> Pluggable logging interface with Pino wrapper, child loggers, and metadata support for Node.js.
+> Pluggable logging interface with transport architecture, child loggers, and metadata support for Node.js.
 
 ## Install
 
@@ -13,91 +13,36 @@ description: Pluggable logging with Pino wrapper, child loggers, and structured 
 pnpm add @studnicky/logger
 ```
 
+Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
+
 ## Usage
 
-```typescript
-import { ConsoleLogger, LogBody, LogFault } from '@studnicky/logger';
+Build a `Logger` instance with `Logger.create`, attach transports, then pass structured `LogBody` or `LogFault` entries to the log methods:
 
-const logger = ConsoleLogger.create({ level: 'info', prefix: '[App]' });
+<<< ../../packages/logger/examples/01-memory-transport.ts#usage
 
-// Structured log with required fields
-const body = LogBody.create()
-  .component('UserService')
-  .operation('createUser')
-  .status('success')
-  .message('User created')
-  .context({ userId: '123' })
-  .duration(45)
-  .build();
+## LogBody and LogFault builders
 
-logger.info(body);
-```
+`LogBody` and `LogFault` are fluent builders that enforce required fields (`component`, `operation`, `status`, `message`, `context`) at build time. `LogFault` adds `name` and a `fromError()` convenience. Missing required fields throw `LogBuildError`:
 
-### Pino logger
+<<< ../../packages/logger/examples/02-log-builders.ts#usage
 
-```typescript
-import { PinoLogger } from '@studnicky/logger';
+## Fan-out and level filtering
 
-const logger = PinoLogger.create({ metadata: { service: 'api-layer' } });
+Pass multiple transports to `Logger.create`. Each transport has its own level floor — entries below the floor are silently dropped. Child loggers share all parent transports and merge their metadata into every record:
 
-// Error with fault builder
-try {
-  await processRequest();
-} catch (err) {
-  const fault = LogFault.create()
-    .component('RequestHandler')
-    .operation('processRequest')
-    .status('failed')
-    .fromError(err)
-    .context({ requestId: ctx.requestId })
-    .build();
-
-  logger.error(fault);
-}
-```
-
-### Child loggers
-
-```typescript
-const requestLogger = logger.child({ requestId: '789', traceId: 'abc' });
-requestLogger.info('Processing request'); // includes requestId/traceId in all entries
-```
-
-### Fan-out and no-op
-
-```typescript
-import { FanOutLogger, NoOpLogger } from '@studnicky/logger';
-
-// Broadcast to multiple loggers
-const fanOut = new FanOutLogger([pinoLogger, cloudLogger]);
-
-// Silent logger for tests
-const silent = new NoOpLogger();
-```
+<<< ../../packages/logger/examples/03-fanout.ts#usage
 
 ## Subpath exports
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/logger` | `ConsoleLogger`, `ConsoleLoggerBuilder`, `FanOutLogger`, `LogBody`, `LogFault`, `NoOpLogger`, `PinoLogger`, `PinoLoggerBuilder`, `SpyLogger` |
+| `@studnicky/logger` | `Logger`, `LogBody`, `LogFault`, `ConsoleTransport`, `FunctionTransport`, `MemoryTransport`, `NoOpTransport`, `LoggerOptionsEntity`, `parseLogLevel`, `safeStringify` |
 | `@studnicky/logger/builders` | Builder classes |
 | `@studnicky/logger/constants` | Log level constants |
 | `@studnicky/logger/errors` | Logger error classes |
 | `@studnicky/logger/interfaces` | Interface types |
+| `@studnicky/logger/transports` | Transport classes and `TransportInterface` |
 | `@studnicky/logger/types` | `LogStatusType` and other type aliases |
-
-## Extending
-
-`ConsoleLogger` exposes a protected `createChild` hook:
-
-```typescript
-import { ConsoleLogger } from '@studnicky/logger';
-
-class CorrelatedLogger extends ConsoleLogger {
-  protected override onChildCreate(metadata: Record<string, unknown>): void {
-    metrics.increment('logger.child.created');
-  }
-}
-```
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/logger)

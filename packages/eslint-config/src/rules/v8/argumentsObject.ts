@@ -2,6 +2,6 @@ import { createSelectorRule } from './createSelectorRule.js';
 
 export const argumentsObject = createSelectorRule(
   'v8Optimization/argumentsObject',
-  'Identifier[name="arguments"]',
+  'Identifier[name="arguments"]:not(MemberExpression > .property)',
   'arguments object is forbidden. Use rest parameters.'
 );

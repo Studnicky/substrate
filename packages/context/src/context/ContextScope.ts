@@ -96,8 +96,8 @@ export class ContextScope implements ContextScopeInterface {
     this.name = name;
     this.#storage = storage;
     this.#store = initial !== undefined
-      ? new Map(Object.entries(initial))
-      : new Map();
+      ? new Map<string, unknown>(Object.entries(initial))
+      : new Map<string, unknown>();
     // FSM: created → active
     this.transition('active');
   }
@@ -127,8 +127,8 @@ export class ContextScope implements ContextScopeInterface {
    * All other transitions are illegal.
    */
   protected guard(from: ContextScopeState, to: ContextScopeState): boolean {
-    if (from === 'created' && to === 'active') return true;
-    if (from === 'active' && to === 'terminated') return true;
+    if (from === 'created' && to === 'active') {return true;}
+    if (from === 'active' && to === 'terminated') {return true;}
 
     return false;
   }
@@ -143,7 +143,8 @@ export class ContextScope implements ContextScopeInterface {
    * The current FSM state.
    */
   protected get state(): ContextScopeState {
-    return this.#state;
+    const result = this.#state;
+    return result;
   }
 
   /**
@@ -166,7 +167,8 @@ export class ContextScope implements ContextScopeInterface {
    * @returns The (possibly augmented) snapshot returned from terminate()
    */
   protected onTerminate(snapshot: Record<string, unknown>): Record<string, unknown> {
-    return snapshot;
+    const result = snapshot;
+    return result;
   }
 
   /**

@@ -104,8 +104,8 @@ void describe('ModuleError', () => {
           ModuleError.create('', { scenario: 'INTERNAL' });
         },
         {
-          message: 'ModuleError message must be a non-empty string',
-          name: 'TypeError'
+          message: /Validation failed at "message"/u,
+          name: 'ValidationError'
         }
       );
     });
@@ -117,37 +117,48 @@ void describe('ModuleError', () => {
           ModuleError.create('Test', { scenario: 'INVALID' });
         },
         {
-          message: /Invalid error scenario: INVALID/u,
-          name: 'TypeError'
+          message: /Validation failed at "scenario"/u,
+          name: 'ValidationError'
         }
       );
     });
   });
 
   void describe('scenarios', () => {
-    void it('CONNECTION scenario has correct defaults', () => {
-      const error = ModuleError.create('Connection failed', { scenario: 'CONNECTION' });
+    const scenarioScenarios: Array<{
+      description: string;
+      scenario: 'CONNECTION' | 'AUTHENTICATION' | 'NOT_FOUND';
+      message: string;
+      expected: { code: string; statusCode: number; retryable: boolean };
+    }> = [
+      {
+        description: 'CONNECTION scenario has correct defaults',
+        expected: { code: 'CONNECTION_ERROR', retryable: true, statusCode: 503 },
+        message: 'Connection failed',
+        scenario: 'CONNECTION'
+      },
+      {
+        description: 'AUTHENTICATION scenario has correct defaults',
+        expected: { code: 'AUTHENTICATION_ERROR', retryable: false, statusCode: 401 },
+        message: 'Auth failed',
+        scenario: 'AUTHENTICATION'
+      },
+      {
+        description: 'NOT_FOUND scenario has correct defaults',
+        expected: { code: 'NOT_FOUND', retryable: false, statusCode: 404 },
+        message: 'Not found',
+        scenario: 'NOT_FOUND'
+      }
+    ];
 
-      strictEqual(error.code, 'CONNECTION_ERROR');
-      strictEqual(error.statusCode, 503);
-      strictEqual(error.retryable, true);
-    });
-
-    void it('AUTHENTICATION scenario has correct defaults', () => {
-      const error = ModuleError.create('Auth failed', { scenario: 'AUTHENTICATION' });
-
-      strictEqual(error.code, 'AUTHENTICATION_ERROR');
-      strictEqual(error.statusCode, 401);
-      strictEqual(error.retryable, false);
-    });
-
-    void it('NOT_FOUND scenario has correct defaults', () => {
-      const error = ModuleError.create('Not found', { scenario: 'NOT_FOUND' });
-
-      strictEqual(error.code, 'NOT_FOUND');
-      strictEqual(error.statusCode, 404);
-      strictEqual(error.retryable, false);
-    });
+    for (const { description, scenario, message, expected } of scenarioScenarios) {
+      void it(description, () => {
+        const error = ModuleError.create(message, { scenario });
+        strictEqual(error.code, expected.code);
+        strictEqual(error.statusCode, expected.statusCode);
+        strictEqual(error.retryable, expected.retryable);
+      });
+    }
 
     void it('allows overriding scenario retryable', () => {
       const error = ModuleError.create('Connection failed', {
@@ -560,25 +571,26 @@ void describe('ModuleError', () => {
   });
 
   void describe('instanceof checks', () => {
-    void it('is instance of Error', () => {
-      const error = ModuleError.create('Test', { scenario: 'INTERNAL' });
+    const instanceofScenarios: Array<{ description: string; useSubclass: boolean }> = [
+      { description: 'is instance of Error', useSubclass: false },
+      { description: 'is instance of ModuleError', useSubclass: false },
+      { description: 'subclass is instance of both ModuleError and Error', useSubclass: true }
+    ];
 
-      ok(error instanceof Error);
-    });
-
-    void it('is instance of ModuleError', () => {
-      const error = ModuleError.create('Test', { scenario: 'INTERNAL' });
-
-      ok(error instanceof ModuleError);
-    });
-
-    void it('subclass is instance of both ModuleError and Error', () => {
-      const error = NetworkError.create('Test');
-
-      ok(error instanceof Error);
-      ok(error instanceof ModuleError);
-      ok(error instanceof NetworkError);
-    });
+    for (const { description, useSubclass } of instanceofScenarios) {
+      void it(description, () => {
+        if (useSubclass) {
+          const error = NetworkError.create('Test');
+          ok(error instanceof Error);
+          ok(error instanceof ModuleError);
+          ok(error instanceof NetworkError);
+        } else {
+          const error = ModuleError.create('Test', { scenario: 'INTERNAL' });
+          ok(error instanceof Error);
+          ok(error instanceof ModuleError);
+        }
+      });
+    }
   });
 
   void describe('captures stack trace', () => {

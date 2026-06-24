@@ -8,242 +8,263 @@ import { ConfigValidation } from '../../../src/validation/configValidation.js';
 
 void describe('configValidation', () => {
   void describe('assertString', () => {
-    void it('passes for a string value', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertString('hello', 'field'));
-    });
+    const scenarios: Array<{ description: string; input: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for a string value', input: 'hello', shouldThrow: false },
+      { description: 'skips validation for undefined', input: undefined, shouldThrow: false },
+      { description: 'skips validation for null', input: null, shouldThrow: false },
+      { description: 'throws for a number', input: 42, shouldThrow: true },
+    ];
 
-    void it('skips validation for undefined', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertString(undefined, 'field'));
-    });
-
-    void it('skips validation for null', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertString(null, 'field'));
-    });
-
-    void it('throws for a number', () => {
-      assert.throws(
-        () => ConfigValidation.assertString(42, 'field'),
-        (err: unknown) => {
-          assert.ok(err instanceof ConfigurationError);
-          assert.strictEqual(err.message, 'field must be a string');
-          return true;
+    for (const { description, input, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(
+            () => ConfigValidation.assertString(input, 'field'),
+            (err: unknown) => {
+              assert.ok(err instanceof ConfigurationError);
+              assert.strictEqual(err.message, 'field must be a string');
+              return true;
+            }
+          );
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertString(input, 'field'));
         }
-      );
-    });
+      });
+    }
   });
 
   void describe('assertNumber', () => {
-    void it('passes for a valid number', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertNumber(5, 'count'));
-    });
+    const scenarios: Array<{ description: string; input: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for a valid number', input: 5, shouldThrow: false },
+      { description: 'skips for null', input: null, shouldThrow: false },
+      { description: 'throws for NaN', input: NaN, shouldThrow: true },
+    ];
 
-    void it('throws for NaN', () => {
-      assert.throws(
-        () => ConfigValidation.assertNumber(NaN, 'count'),
-        ConfigurationError
-      );
-    });
-
-    void it('skips for null', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertNumber(null, 'count'));
-    });
+    for (const { description, input, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertNumber(input, 'count'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertNumber(input, 'count'));
+        }
+      });
+    }
   });
 
   void describe('assertBoolean', () => {
-    void it('passes for true', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertBoolean(true, 'flag'));
-    });
+    const scenarios: Array<{ description: string; input: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for true', input: true, shouldThrow: false },
+      { description: 'passes for false', input: false, shouldThrow: false },
+      { description: 'throws for a string', input: 'true', shouldThrow: true },
+    ];
 
-    void it('passes for false', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertBoolean(false, 'flag'));
-    });
-
-    void it('throws for a string', () => {
-      assert.throws(
-        () => ConfigValidation.assertBoolean('true', 'flag'),
-        ConfigurationError
-      );
-    });
+    for (const { description, input, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertBoolean(input, 'flag'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertBoolean(input, 'flag'));
+        }
+      });
+    }
   });
 
   void describe('assertFunction', () => {
-    void it('passes for a function', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertFunction(() => {}, 'fn'));
-    });
+    const scenarios: Array<{ description: string; input: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for a function', input: () => {}, shouldThrow: false },
+      { description: 'throws for a non-function', input: 42, shouldThrow: true },
+    ];
 
-    void it('throws for a non-function', () => {
-      assert.throws(
-        () => ConfigValidation.assertFunction(42, 'fn'),
-        ConfigurationError
-      );
-    });
+    for (const { description, input, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertFunction(input, 'fn'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertFunction(input, 'fn'));
+        }
+      });
+    }
   });
 
   void describe('assertInteger', () => {
-    void it('passes for an integer', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertInteger(10, 'count'));
-    });
+    const scenarios: Array<{ description: string; input: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for an integer', input: 10, shouldThrow: false },
+      { description: 'throws for a float', input: 3.14, shouldThrow: true },
+    ];
 
-    void it('throws for a float', () => {
-      assert.throws(
-        () => ConfigValidation.assertInteger(3.14, 'count'),
-        ConfigurationError
-      );
-    });
+    for (const { description, input, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertInteger(input, 'count'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertInteger(input, 'count'));
+        }
+      });
+    }
   });
 
   void describe('assertFinite', () => {
-    void it('passes for a finite number', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertFinite(100, 'val'));
-    });
+    const scenarios: Array<{ description: string; input: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for a finite number', input: 100, shouldThrow: false },
+      { description: 'throws for Infinity', input: Infinity, shouldThrow: true },
+      { description: 'throws for -Infinity', input: -Infinity, shouldThrow: true },
+    ];
 
-    void it('throws for Infinity', () => {
-      assert.throws(
-        () => ConfigValidation.assertFinite(Infinity, 'val'),
-        ConfigurationError
-      );
-    });
-
-    void it('throws for -Infinity', () => {
-      assert.throws(
-        () => ConfigValidation.assertFinite(-Infinity, 'val'),
-        ConfigurationError
-      );
-    });
+    for (const { description, input, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertFinite(input, 'val'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertFinite(input, 'val'));
+        }
+      });
+    }
   });
 
   void describe('assertNonNegative', () => {
-    void it('passes for 0', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertNonNegative(0, 'count'));
-    });
+    const scenarios: Array<{ description: string; input: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for 0', input: 0, shouldThrow: false },
+      { description: 'passes for positive number', input: 5, shouldThrow: false },
+      { description: 'throws for negative number', input: -1, shouldThrow: true },
+    ];
 
-    void it('passes for positive number', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertNonNegative(5, 'count'));
-    });
-
-    void it('throws for negative number', () => {
-      assert.throws(
-        () => ConfigValidation.assertNonNegative(-1, 'count'),
-        ConfigurationError
-      );
-    });
+    for (const { description, input, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertNonNegative(input, 'count'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertNonNegative(input, 'count'));
+        }
+      });
+    }
   });
 
   void describe('assertPositive', () => {
-    void it('passes for a positive number', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertPositive(1, 'val'));
-    });
+    const scenarios: Array<{ description: string; input: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for a positive number', input: 1, shouldThrow: false },
+      { description: 'throws for 0', input: 0, shouldThrow: true },
+      { description: 'throws for negative', input: -5, shouldThrow: true },
+    ];
 
-    void it('throws for 0', () => {
-      assert.throws(
-        () => ConfigValidation.assertPositive(0, 'val'),
-        ConfigurationError
-      );
-    });
-
-    void it('throws for negative', () => {
-      assert.throws(
-        () => ConfigValidation.assertPositive(-5, 'val'),
-        ConfigurationError
-      );
-    });
+    for (const { description, input, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertPositive(input, 'val'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertPositive(input, 'val'));
+        }
+      });
+    }
   });
 
   void describe('assertMin', () => {
-    void it('passes when value meets minimum', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertMin(10, 10, 'val'));
-    });
+    const scenarios: Array<{ description: string; value: unknown; min: number; shouldThrow: boolean }> = [
+      { description: 'passes when value meets minimum', value: 10, min: 10, shouldThrow: false },
+      { description: 'throws when value is below minimum', value: 4, min: 5, shouldThrow: true },
+    ];
 
-    void it('throws when value is below minimum', () => {
-      assert.throws(
-        () => ConfigValidation.assertMin(4, 5, 'val'),
-        ConfigurationError
-      );
-    });
+    for (const { description, value, min, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertMin(value, min, 'val'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertMin(value, min, 'val'));
+        }
+      });
+    }
   });
 
   void describe('assertPositiveOrInfinity', () => {
-    void it('passes for Infinity', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertPositiveOrInfinity(Infinity, 'val'));
-    });
+    const scenarios: Array<{ description: string; input: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for Infinity', input: Infinity, shouldThrow: false },
+      { description: 'passes for positive number', input: 1, shouldThrow: false },
+      { description: 'throws for 0', input: 0, shouldThrow: true },
+    ];
 
-    void it('passes for positive number', () => {
-      assert.doesNotThrow(() => ConfigValidation.assertPositiveOrInfinity(1, 'val'));
-    });
-
-    void it('throws for 0', () => {
-      assert.throws(
-        () => ConfigValidation.assertPositiveOrInfinity(0, 'val'),
-        ConfigurationError
-      );
-    });
+    for (const { description, input, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertPositiveOrInfinity(input, 'val'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertPositiveOrInfinity(input, 'val'));
+        }
+      });
+    }
   });
 
   void describe('assertHasMethod', () => {
-    void it('passes when object has the method', () => {
-      assert.doesNotThrow(() =>
-        ConfigValidation.assertHasMethod({ log: () => {} }, 'log', 'logger')
-      );
-    });
+    const scenarios: Array<{ description: string; target: unknown; shouldThrow: boolean }> = [
+      { description: 'passes when object has the method', target: { log: () => {} }, shouldThrow: false },
+      { description: 'throws when object lacks the method', target: {}, shouldThrow: true },
+      { description: 'throws when value is not an object', target: 42, shouldThrow: true },
+    ];
 
-    void it('throws when object lacks the method', () => {
-      assert.throws(
-        () => ConfigValidation.assertHasMethod({}, 'log', 'logger'),
-        ConfigurationError
-      );
-    });
-
-    void it('throws when value is not an object', () => {
-      assert.throws(
-        () => ConfigValidation.assertHasMethod(42, 'log', 'logger'),
-        ConfigurationError
-      );
-    });
+    for (const { description, target, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertHasMethod(target, 'log', 'logger'), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertHasMethod(target, 'log', 'logger'));
+        }
+      });
+    }
   });
 
   void describe('assertFunctionOrObjectWithMethod', () => {
-    void it('passes for a function', () => {
-      assert.doesNotThrow(() =>
-        ConfigValidation.assertFunctionOrObjectWithMethod(() => {}, 'emit', 'handler')
-      );
-    });
+    const scenarios: Array<{ description: string; target: unknown; shouldThrow: boolean }> = [
+      { description: 'passes for a function', target: () => {}, shouldThrow: false },
+      { description: 'passes for an object with the method', target: { emit: () => {} }, shouldThrow: false },
+      { description: 'throws for an object missing the method', target: {}, shouldThrow: true },
+    ];
 
-    void it('passes for an object with the method', () => {
-      assert.doesNotThrow(() =>
-        ConfigValidation.assertFunctionOrObjectWithMethod({ emit: () => {} }, 'emit', 'handler')
-      );
-    });
-
-    void it('throws for an object missing the method', () => {
-      assert.throws(
-        () => ConfigValidation.assertFunctionOrObjectWithMethod({}, 'emit', 'handler'),
-        ConfigurationError
-      );
-    });
+    for (const { description, target, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(
+            () => ConfigValidation.assertFunctionOrObjectWithMethod(target, 'emit', 'handler'),
+            ConfigurationError
+          );
+        } else {
+          assert.doesNotThrow(() =>
+            ConfigValidation.assertFunctionOrObjectWithMethod(target, 'emit', 'handler')
+          );
+        }
+      });
+    }
   });
 
   void describe('assertNoUnknownKeys', () => {
-    void it('passes when all keys are known', () => {
-      const known = new Set(['a', 'b', 'c']);
-      assert.doesNotThrow(() =>
-        ConfigValidation.assertNoUnknownKeys({ a: 1, b: 2 }, known)
-      );
-    });
+    const scenarios: Array<{ description: string; input: Record<string, unknown>; known: Set<string>; shouldThrow: boolean }> = [
+      {
+        description: 'passes when all keys are known',
+        input: { a: 1, b: 2 },
+        known: new Set(['a', 'b', 'c']),
+        shouldThrow: false,
+      },
+      {
+        description: 'throws when an unknown key is present',
+        input: { a: 1, x: 99 },
+        known: new Set(['a', 'b']),
+        shouldThrow: true,
+      },
+    ];
 
-    void it('throws when an unknown key is present', () => {
-      const known = new Set(['a', 'b']);
-      assert.throws(
-        () => ConfigValidation.assertNoUnknownKeys({ a: 1, x: 99 }, known),
-        ConfigurationError
-      );
-    });
+    for (const { description, input, known, shouldThrow } of scenarios) {
+      void it(description, () => {
+        if (shouldThrow) {
+          assert.throws(() => ConfigValidation.assertNoUnknownKeys(input, known), ConfigurationError);
+        } else {
+          assert.doesNotThrow(() => ConfigValidation.assertNoUnknownKeys(input, known));
+        }
+      });
+    }
   });
 });
 
 void describe('ConfigValidation subclass extension', () => {
   class StrictConfigValidation extends ConfigValidation {
     protected static override onValidationError(message: string): never {
-      throw ModuleError.create(message, { 'scenario': 'CONFIGURATION' });
+      throw ModuleError.create(message, { scenario: 'CONFIGURATION' });
     }
   }
 

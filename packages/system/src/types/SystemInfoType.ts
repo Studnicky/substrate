@@ -4,8 +4,8 @@ import type { MemoryInfoType } from './MemoryInfoType.js';
 import type { PlatformInfoType } from './PlatformInfoType.js';
 
 export type SystemInfoType = {
-  readonly cpu: CpuInfoType;
-  readonly gpu: GpuInfoType | null;
-  readonly memory: MemoryInfoType;
-  readonly platform: PlatformInfoType;
+  readonly 'cpu': CpuInfoType;
+  readonly 'gpu': GpuInfoType | null;
+  readonly 'memory': MemoryInfoType;
+  readonly 'platform': PlatformInfoType;
 };

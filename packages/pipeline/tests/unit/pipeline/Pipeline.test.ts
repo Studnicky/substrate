@@ -66,59 +66,86 @@ void describe('Pipeline', () => {
   });
 
   void describe('clear()', () => {
-    void it('removes all transform functions', async () => {
-      const pipeline = new Pipeline<string>();
-      pipeline.add((s) => s + '!');
-      pipeline.add((s) => s.toUpperCase());
-      pipeline.clear();
-      const result = await pipeline.run('hello');
-      assert.strictEqual(result, 'hello');
-    });
+    const clearScenarios: Array<{
+      description: string;
+      setupFns: Array<(s: string) => string>;
+      expected: string;
+    }> = [
+      {
+        description: 'removes all transform functions',
+        setupFns: [(s) => s + '!', (s) => s.toUpperCase()],
+        expected: 'hello',
+      },
+      {
+        description: 'can be called multiple times',
+        setupFns: [(s) => s],
+        expected: 'test',
+      },
+    ];
+
+    for (const { description, setupFns, expected } of clearScenarios) {
+      void it(description, async () => {
+        const pipeline = new Pipeline<string>();
+        for (const fn of setupFns) {
+          pipeline.add(fn);
+        }
+        pipeline.clear();
+        pipeline.clear();
+        const result = await pipeline.run(expected);
+        assert.strictEqual(result, expected);
+      });
+    }
 
     void it('can be called on an empty pipeline', () => {
       const pipeline = new Pipeline<string>();
       assert.doesNotThrow(() => pipeline.clear());
     });
-
-    void it('can be called multiple times', async () => {
-      const pipeline = new Pipeline<string>();
-      pipeline.add((s) => s);
-      pipeline.clear();
-      pipeline.clear();
-      const result = await pipeline.run('test');
-      assert.strictEqual(result, 'test');
-    });
   });
 
   void describe('run()', () => {
-    void it('returns the input unchanged when pipeline is empty', async () => {
-      const pipeline = new Pipeline<number>();
-      const result = await pipeline.run(42);
-      assert.strictEqual(result, 42);
-    });
+    const runScenarios: Array<{
+      description: string;
+      fns: Array<(n: number) => number>;
+      input: number;
+      expected: number;
+    }> = [
+      {
+        description: 'returns the input unchanged when pipeline is empty',
+        fns: [],
+        input: 42,
+        expected: 42,
+      },
+      {
+        description: 'applies a single synchronous transform',
+        fns: [(n) => n + 10],
+        input: 5,
+        expected: 15,
+      },
+      {
+        description: 'chains multiple transforms in order',
+        // (5 + 1) * 2 - 3 = 9
+        fns: [(n) => n + 1, (n) => n * 2, (n) => n - 3],
+        input: 5,
+        expected: 9,
+      },
+    ];
 
-    void it('applies a single synchronous transform', async () => {
-      const pipeline = new Pipeline<number>();
-      pipeline.add((n) => n + 10);
-      const result = await pipeline.run(5);
-      assert.strictEqual(result, 15);
-    });
+    for (const { description, fns, input, expected } of runScenarios) {
+      void it(description, async () => {
+        const pipeline = new Pipeline<number>();
+        for (const fn of fns) {
+          pipeline.add(fn);
+        }
+        const result = await pipeline.run(input);
+        assert.strictEqual(result, expected);
+      });
+    }
 
     void it('applies a single async transform', async () => {
       const pipeline = new Pipeline<string>();
       pipeline.add(async (s) => s + ' world');
       const result = await pipeline.run('hello');
       assert.strictEqual(result, 'hello world');
-    });
-
-    void it('chains multiple transforms in order', async () => {
-      const pipeline = new Pipeline<number>();
-      pipeline.add((n) => n + 1);
-      pipeline.add((n) => n * 2);
-      pipeline.add((n) => n - 3);
-      // (5 + 1) * 2 - 3 = 9
-      const result = await pipeline.run(5);
-      assert.strictEqual(result, 9);
     });
 
     void it('chains async and sync transforms', async () => {

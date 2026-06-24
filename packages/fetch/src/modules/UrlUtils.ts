@@ -51,13 +51,13 @@ export class UrlUtils {
    * @returns Complete URL with query string
    */
   static buildUrl(baseUrl: string, params?: QueryParamsType): string {
-    if (!params) {
+    if (params === undefined) {
       return baseUrl;
     }
 
     const queryString = UrlUtils.buildQueryString(params);
 
-    if (!queryString) {
+    if (queryString === '') {
       return baseUrl;
     }
 
@@ -75,7 +75,7 @@ export class UrlUtils {
   static parseQueryString(queryString: string): QueryParamsType {
     const cleanQuery = queryString.startsWith('?') ? queryString.slice(1) : queryString;
 
-    if (!cleanQuery) {
+    if (cleanQuery === '') {
       return {};
     }
 

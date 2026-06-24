@@ -7,6 +7,8 @@
  *
  * Subclass and `static override onValidationError` to change the thrown error type.
  */
+import { Guard } from '@studnicky/types';
+
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 
 export class ConfigValidation {
@@ -26,7 +28,7 @@ export class ConfigValidation {
     if (val === undefined || val === null) {
       return;
     }
-    if (typeof val !== 'string') {
+    if (!Guard.isString(val)) {
       this.onValidationError(`${name} must be a string`);
     }
   }
@@ -35,7 +37,7 @@ export class ConfigValidation {
     if (val === undefined || val === null) {
       return;
     }
-    if (typeof val !== 'number' || Number.isNaN(val)) {
+    if (!Guard.isNumber(val)) {
       this.onValidationError(`${name} must be a number`);
     }
   }
@@ -44,7 +46,7 @@ export class ConfigValidation {
     if (val === undefined || val === null) {
       return;
     }
-    if (typeof val !== 'boolean') {
+    if (!Guard.isBoolean(val)) {
       this.onValidationError(`${name} must be a boolean`);
     }
   }
@@ -53,7 +55,7 @@ export class ConfigValidation {
     if (val === undefined || val === null) {
       return;
     }
-    if (typeof val !== 'function') {
+    if (!Guard.isFunction(val)) {
       this.onValidationError(`${name} must be a function`);
     }
   }
@@ -140,12 +142,12 @@ export class ConfigValidation {
     if (val === undefined || val === null) {
       return;
     }
-    if (typeof val !== 'object') {
+    if (!Guard.isObject(val)) {
       this.onValidationError(`${name} must be an object`);
       return;
     }
     try {
-      if (!(method in val) || typeof (val as Record<string, unknown>)[method] !== 'function') {
+      if (!(method in val) || typeof (val)[method] !== 'function') {
         this.onValidationError(`${name} must have a ${method} method`);
       }
     } catch (error) {
@@ -162,12 +164,12 @@ export class ConfigValidation {
     if (val === undefined || val === null) {
       return;
     }
-    if (typeof val === 'function') {
+    if (Guard.isFunction(val)) {
       return;
     }
-    if (typeof val === 'object') {
+    if (Guard.isObject(val)) {
       try {
-        if (method in val && typeof (val as Record<string, unknown>)[method] === 'function') {
+        if (method in val && typeof (val)[method] === 'function') {
           return;
         }
       } catch {

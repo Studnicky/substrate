@@ -27,9 +27,7 @@ export class MaxRetriesExceededError extends RetryError {
   ) {
     const cause = errors.at(LAST_ARRAY_INDEX) ?? new Error('Unknown error');
 
-    super(message, attempts, cause, errors);
+    super(message, attempts, { 'cause': cause, 'code': 'retry.maxRetriesExceeded', 'errors': errors });
     this.maxRetries = maxRetries;
-    this.name = 'MaxRetriesExceededError';
-    Error.captureStackTrace(this, MaxRetriesExceededError);
   }
 }

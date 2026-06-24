@@ -290,7 +290,8 @@ void describe('Headers Error Scenarios', () => {
     void it('handles explicit Content-Type with JSON body', async () => {
       const client = FetchClient.create({ baseURL: testUrl });
 
-      const response = await client.post('/posts', { title: 'Test' }, {
+      const response = await client.post('/posts', {
+        body: { title: 'Test' },
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -300,7 +301,8 @@ void describe('Headers Error Scenarios', () => {
     void it('handles mismatched Content-Type and body', async () => {
       const client = FetchClient.create({ baseURL: testUrl });
 
-      const response = await client.post('/posts', JSON.stringify({ title: 'Test' }), {
+      const response = await client.post('/posts', {
+        body: JSON.stringify({ title: 'Test' }),
         headers: { 'Content-Type': 'text/plain' }
       });
 
@@ -313,7 +315,8 @@ void describe('Headers Error Scenarios', () => {
         headers: { 'content-type': 'application/json' }
       });
 
-      const response = await client.post('/posts', JSON.stringify({ title: 'Test' }), {
+      const response = await client.post('/posts', {
+        body: JSON.stringify({ title: 'Test' }),
         headers: { 'Content-Type': 'text/plain' }
       });
 

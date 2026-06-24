@@ -17,7 +17,22 @@
       "path": "../config"
     },
     {
+      "path": "../errors"
+    },
+    {
+      "path": "../json"
+    },
+    {
+      "path": "../logger"
+    },
+    {
       "path": "../pipeline"
+    },
+    {
+      "path": "../timing"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

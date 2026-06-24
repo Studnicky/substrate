@@ -1,4 +1,4 @@
-import type { PrecisionConfigType } from './PrecisionConfigType.js';
+import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 import type { TimingInterface } from './TimingInterface.js';
 
 /**
@@ -26,5 +26,5 @@ export interface TimingBuilderInterface {
    * @param config - Precision configuration per time unit
    * @returns this for method chaining
    */
-  precision(config: PrecisionConfigType): TimingBuilderInterface;
+  precision(config: TimingOptionsEntity.PrecisionConfigType): TimingBuilderInterface;
 }

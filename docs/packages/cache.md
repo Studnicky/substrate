@@ -17,49 +17,21 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-```typescript
-import { LruCache } from '@studnicky/cache';
+Create an `LruCache` instance with a capacity, then use `set`, `get`, `has`, `delete`, and `clear`:
 
-// Fixed capacity, no TTL
-const cache = new LruCache<string, Response>({ capacity: 500 });
+<<< ../../packages/cache/examples/basicCache.ts#usage
 
-cache.set('key', response);
-const hit = cache.get('key'); // Response | undefined
+## LRU eviction
 
-// With a default TTL for all entries
-const ttlCache = new LruCache<string, string>({
-  capacity: 200,
-  ttlMs: 60_000, // 1 minute
-});
+When the cache is at capacity, the least-recently-used entry is evicted on the next `set`. Reading an entry promotes it to most-recently-used:
 
-ttlCache.set('session:abc', token);
-```
+<<< ../../packages/cache/examples/lruEviction.ts#usage
 
-### Per-entry TTL override
+## TTL expiry
 
-```typescript
-// Override TTL on individual writes
-cache.set('short-lived', value, 5_000); // expires in 5 s regardless of default
-```
+Pass `ttlMs` to expire entries automatically. Eviction is lazy — entries are removed on the next `get` or `has` after the TTL has elapsed:
 
-### Key prefix
-
-```typescript
-// All internal keys are prefixed with "user:"
-const userCache = new LruCache<number, UserRecord>({
-  capacity: 1000,
-  prefix: 'user',
-});
-```
-
-### Other operations
-
-```typescript
-cache.has(key);    // checks existence and lazily evicts expired entries
-cache.delete(key); // returns true if the entry existed
-cache.clear();     // empties the cache and resets the LRU list
-cache.size;        // count of stored entries (may include lazily un-evicted expired entries)
-```
+<<< ../../packages/cache/examples/ttlExpiry.ts#usage
 
 ## API
 

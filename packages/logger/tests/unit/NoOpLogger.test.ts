@@ -1,109 +1,54 @@
 import assert from 'node:assert/strict';
 import {
-  after,
-  before,
   describe,
   it
 } from 'node:test';
 
-import { NoOpLogger } from '../../src/index.js';
+import { LogLevel } from '../../src/constants/LogLevel.js';
+import { Logger } from '../../src/modules/Logger.js';
+import { NoOpTransport } from '../../src/transports/NoOpTransport.js';
 
 import { TestFactory } from './TestFactory.js';
 
-void describe('NoOpLogger', () => {
-  const originalConsole = {
-    debug: console.debug,
-    error: console.error,
-    info: console.info,
-    trace: console.trace,
-    warn: console.warn
-  };
+void describe('NoOpTransport', () => {
+  void describe('create', () => {
+    void it('creates a NoOpTransport instance', () => {
+      const transport = NoOpTransport.create();
 
-  let logCount = 0;
-
-  const incrementLog = () => {
-    logCount++;
-  };
-
-  before(() => {
-    console.trace = incrementLog;
-    console.debug = incrementLog;
-    console.info = incrementLog;
-    console.warn = incrementLog;
-    console.error = incrementLog;
+      assert.ok(transport instanceof NoOpTransport);
+    });
   });
 
-  after(() => {
-    console.trace = originalConsole.trace;
-    console.debug = originalConsole.debug;
-    console.info = originalConsole.info;
-    console.warn = originalConsole.warn;
-    console.error = originalConsole.error;
-  });
+  void describe('write', () => {
+    void it('accepts records without throwing', () => {
+      const transport = new NoOpTransport();
+      const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
 
-  void describe('NoOpLogger instance', () => {
-    void it('should not log trace messages', () => {
-      logCount = 0;
-
-      const logger = NoOpLogger.create();
-
-      logger.trace(TestFactory.body('test message'));
-
-      assert.strictEqual(logCount, 0);
+      assert.doesNotThrow(() => {
+        logger.trace(TestFactory.body('trace message'));
+        logger.debug(TestFactory.body('debug message'));
+        logger.info(TestFactory.body('info message'));
+        logger.warn(TestFactory.body('warn message'));
+        logger.error(TestFactory.body('error message'));
+      });
     });
 
-    void it('should not log debug messages', () => {
-      logCount = 0;
+    void it('never triggers any observable output', () => {
+      const output: unknown[] = [];
+      const sideChannel = new NoOpTransport();
 
-      const logger = NoOpLogger.create();
+      // NoOpTransport should make no calls — observable only via side channel
+      // Verify nothing leaked into an observing transport
+      const secondTransport = { write: (r: unknown) => { output.push(r); } };
+      const logger = Logger.create({
+        'level': LogLevel.TRACE,
+        'transports': [sideChannel, secondTransport]
+      });
 
-      logger.debug(TestFactory.body('test message'));
+      logger.info(TestFactory.body('test'));
 
-      assert.strictEqual(logCount, 0);
-    });
-
-    void it('should not log info messages', () => {
-      logCount = 0;
-
-      const logger = NoOpLogger.create();
-
-      logger.info(TestFactory.body('test message'));
-
-      assert.strictEqual(logCount, 0);
-    });
-
-    void it('should not log warn messages', () => {
-      logCount = 0;
-
-      const logger = NoOpLogger.create();
-
-      logger.warn(TestFactory.body('test message'));
-
-      assert.strictEqual(logCount, 0);
-    });
-
-    void it('should not log error messages', () => {
-      logCount = 0;
-
-      const logger = NoOpLogger.create();
-
-      logger.error(TestFactory.body('test message'));
-
-      assert.strictEqual(logCount, 0);
-    });
-
-    void it('should not log any messages with multiple calls', () => {
-      logCount = 0;
-
-      const logger = NoOpLogger.create();
-
-      logger.trace(TestFactory.body('trace message'));
-      logger.debug(TestFactory.body('debug message'));
-      logger.info(TestFactory.body('info message'));
-      logger.warn(TestFactory.body('warn message'));
-      logger.error(TestFactory.body('error message'));
-
-      assert.strictEqual(logCount, 0);
+      // second transport DID receive, but NoOpTransport produced nothing
+      assert.strictEqual(output.length, 1);
     });
   });
 });

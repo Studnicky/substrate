@@ -2,7 +2,7 @@
  * Configured HTTP client with interceptors and fluent request builder
  */
 
-import { Pipeline } from '@studnicky/pipeline';
+import { Pipeline, PipelineError } from '@studnicky/pipeline';
 import { randomUUID } from 'node:crypto';
 
 import type { ClientConfigType } from '../interfaces/ClientConfigType.js';
@@ -132,7 +132,7 @@ export class FetchClient implements FetchClientInterface {
       this.dispatcher = UndiciDispatcher.create(config.dispatcher);
     }
 
-    if (config.requestInterceptor) {
+    if (config.requestInterceptor !== undefined) {
       const interceptors: readonly RequestInterceptorType[] = Array.isArray(config.requestInterceptor)
         ? config.requestInterceptor
         : [config.requestInterceptor];
@@ -143,7 +143,7 @@ export class FetchClient implements FetchClientInterface {
       }
     }
 
-    if (config.responseInterceptor) {
+    if (config.responseInterceptor !== undefined) {
       const interceptors: readonly ResponseInterceptorType[] = Array.isArray(config.responseInterceptor)
         ? config.responseInterceptor
         : [config.responseInterceptor];
@@ -223,7 +223,7 @@ export class FetchClient implements FetchClientInterface {
 
     let url = `${base}${pathPart}`;
 
-    if (this.config.params) {
+    if (this.config.params !== undefined) {
       url = UrlUtils.buildUrl(url, this.config.params);
     }
 
@@ -242,7 +242,7 @@ export class FetchClient implements FetchClientInterface {
     let requestId = options.requestId ?? '';
 
     if (requestId === '' && autoGenerateRequestId) {
-      requestId = this.config.requestIdGenerator
+      requestId = this.config.requestIdGenerator !== undefined
         ? this.config.requestIdGenerator()
         : randomUUID();
     }
@@ -371,24 +371,34 @@ export class FetchClient implements FetchClientInterface {
 
     this.onRequestStart(method, path, metadata.requestId, url);
 
-    const requestContext = await this.applyRequestInterceptors(
-      {
-        'metadata': metadata,
-        'options': this.mergeOptions(options),
-        'url': url
-      },
-      this.normalizeRequestInterceptorTypes(options.requestInterceptor)
-    );
+    let requestContext: RequestInterceptorContextType;
+    try {
+      requestContext = await this.applyRequestInterceptors(
+        {
+          'metadata': metadata,
+          'options': this.mergeOptions(options),
+          'url': url
+        },
+        this.normalizeRequestInterceptorTypes(options.requestInterceptor)
+      );
+    } catch (err: unknown) {
+      throw err instanceof PipelineError && err.cause !== undefined ? err.cause : err;
+    }
 
     const response = await this.executeRequest(requestContext, method, metadata.requestId);
 
-    const responseContext = await this.applyResponseInterceptors(
-      {
-        'request': requestContext.metadata,
-        'response': response
-      },
-      this.normalizeResponseInterceptorTypes(options.responseInterceptor)
-    );
+    let responseContext: ResponseInterceptorContextType;
+    try {
+      responseContext = await this.applyResponseInterceptors(
+        {
+          'request': requestContext.metadata,
+          'response': response
+        },
+        this.normalizeResponseInterceptorTypes(options.responseInterceptor)
+      );
+    } catch (err: unknown) {
+      throw err instanceof PipelineError && err.cause !== undefined ? err.cause : err;
+    }
 
     return responseContext.response;
   }
@@ -493,7 +503,7 @@ export class FetchClient implements FetchClientInterface {
    *
    * Previous implementation: Always 2 allocations (outer + inner spread)
    */
-  private mergeHeaders(requestHeaders?: Record<string, string> | unknown): Record<string, string> {
+  private mergeHeaders(requestHeaders?: Record<string, string>): Record<string, string> {
     // Fast path: no headers to merge
     if (this.config.headers === undefined && requestHeaders === undefined) {
       return {};
@@ -506,13 +516,13 @@ export class FetchClient implements FetchClientInterface {
 
     // Fast path: only request headers
     if (this.config.headers === undefined) {
-      return requestHeaders as Record<string, string>;
+      return requestHeaders;
     }
 
     // Only allocate once when both exist
     return {
       ...this.config.headers,
-      ...(requestHeaders as Record<string, string>)
+      ...requestHeaders
     };
   }
 
@@ -601,12 +611,11 @@ export class FetchClient implements FetchClientInterface {
    * Performs a PATCH request
    *
    * @param path - Request path (relative to baseURL)
-   * @param body - Request body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
-   * @param options - Request options
+   * @param options - Request options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    * @returns Response promise
    */
-  async patch(path: string, body?: unknown, options?: FetchOptionsType): Promise<Response> {
-    const result = this.fetch(path, this.prepareBodyRequest('PATCH', body, options));
+  async patch(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+    const result = this.fetch(path, this.prepareBodyRequest('PATCH', options));
     return await result;
   }
 
@@ -614,12 +623,11 @@ export class FetchClient implements FetchClientInterface {
    * Performs a POST request
    *
    * @param path - Request path (relative to baseURL)
-   * @param body - Request body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
-   * @param options - Request options
+   * @param options - Request options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    * @returns Response promise
    */
-  async post(path: string, body?: unknown, options?: FetchOptionsType): Promise<Response> {
-    const result = this.fetch(path, this.prepareBodyRequest('POST', body, options));
+  async post(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+    const result = this.fetch(path, this.prepareBodyRequest('POST', options));
     return await result;
   }
 
@@ -629,11 +637,11 @@ export class FetchClient implements FetchClientInterface {
    */
   private prepareBodyRequest(
     method: 'PATCH' | 'POST' | 'PUT',
-    body: unknown,
-    options?: FetchOptionsType
+    options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }
   ): FetchOptionsType {
+    const { body, ...restOptions } = options ?? {};
     const serializedBody = this.serializeBody(body);
-    const fetchOptions: FetchOptionsType = { ...options, 'method': method };
+    const fetchOptions: FetchOptionsType = { ...restOptions, 'method': method };
 
     if (serializedBody !== undefined) {
       fetchOptions.body = serializedBody;
@@ -653,12 +661,11 @@ export class FetchClient implements FetchClientInterface {
    * Performs a PUT request
    *
    * @param path - Request path (relative to baseURL)
-   * @param body - Request body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
-   * @param options - Request options
+   * @param options - Request options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    * @returns Response promise
    */
-  async put(path: string, body?: unknown, options?: FetchOptionsType): Promise<Response> {
-    const result = this.fetch(path, this.prepareBodyRequest('PUT', body, options));
+  async put(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+    const result = this.fetch(path, this.prepareBodyRequest('PUT', options));
     return await result;
   }
 

@@ -1,4 +1,4 @@
-import { TypeGuards } from '@studnicky/config';
+import { Guard } from '@studnicky/config';
 
 import type { BackoffStrategyType } from '../../types/BackoffStrategyType.js';
 
@@ -11,7 +11,8 @@ const maxMultiplier = 32;
 /** Backoff strategy computations as static methods. */
 export class BackoffStrategy {
   static constant(_attemptNumber: number, baseDelayMs: number): number {
-    return baseDelayMs;
+    const result = baseDelayMs;
+    return result;
   }
 
   static exponential(attemptNumber: number, baseDelayMs: number): number {
@@ -40,10 +41,11 @@ export class BackoffStrategy {
 
   /** Wraps a strategy capping its output at ceilingMs. */
   static withCeiling(strategy: BackoffStrategyType, ceilingMs: number): BackoffStrategyType {
-    return (attempt, base) => Math.min(ceilingMs, strategy(attempt, base));
+    return (attempt, base) => { const result = Math.min(ceilingMs, strategy(attempt, base)); return result; };
   }
 
   static isValid(value: unknown): value is BackoffStrategyType {
-    return TypeGuards.isFunction(value);
+    const result = Guard.isFunction(value);
+    return result;
   }
 }

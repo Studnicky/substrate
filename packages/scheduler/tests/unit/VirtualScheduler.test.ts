@@ -91,60 +91,44 @@ class FireRecord {
 
 describe('VirtualTimeCounter', () => {
   describe('happy path', () => {
-    it('zero start, no advances → 0', () => {
-      const counter = new VirtualTimeCounter(0);
-
-      assert.strictEqual(counter.nowMs(), 0);
-    });
-
-    it('advance 100ms → 100', () => {
-      const counter = new VirtualTimeCounter(0);
-
-      counter.advance(ADVANCE_PASS);
-
-      assert.strictEqual(counter.nowMs(), ADVANCE_PASS);
-    });
-
-    it('two advances sum to 300', () => {
-      const counter = new VirtualTimeCounter(0);
-
-      counter.advance(ADVANCE_PASS);
-      counter.advance(ADVANCE_200);
-
-      assert.strictEqual(counter.nowMs(), EXPECTED_300);
-    });
-
-    it('start at 100 + advance 50 → 150', () => {
-      const counter = new VirtualTimeCounter(START_100);
-
-      counter.advance(ADVANCE_50);
-
-      assert.strictEqual(counter.nowMs(), EXPECTED_150);
-    });
+    const counterAdvanceScenarios: Array<{
+      description: string;
+      start: number;
+      advances: number[];
+      expectedNowMs: number;
+    }> = [
+      { description: 'zero start, no advances → 0', start: 0, advances: [], expectedNowMs: 0 },
+      { description: 'advance 100ms → 100', start: 0, advances: [ADVANCE_PASS], expectedNowMs: ADVANCE_PASS },
+      { description: 'two advances sum to 300', start: 0, advances: [ADVANCE_PASS, ADVANCE_200], expectedNowMs: EXPECTED_300 },
+      { description: 'start at 100 + advance 50 → 150', start: START_100, advances: [ADVANCE_50], expectedNowMs: EXPECTED_150 },
+    ];
+    for (const { description, start, advances, expectedNowMs } of counterAdvanceScenarios) {
+      it(description, () => {
+        const counter = new VirtualTimeCounter(start);
+        for (const delta of advances) { counter.advance(delta); }
+        assert.strictEqual(counter.nowMs(), expectedNowMs);
+      });
+    }
   });
 
   describe('edge cases', () => {
-    it('negative advance is ignored → stays at 0', () => {
-      const counter = new VirtualTimeCounter(0);
-
-      counter.advance(NEGATIVE_ADVANCE);
-
-      assert.strictEqual(counter.nowMs(), 0);
-    });
-
-    it('zero advance is no-op → stays at 0', () => {
-      const counter = new VirtualTimeCounter(0);
-
-      counter.advance(0);
-
-      assert.strictEqual(counter.nowMs(), 0);
-    });
-
-    it('negative start clamped to 0', () => {
-      const counter = new VirtualTimeCounter(NEGATIVE_START);
-
-      assert.strictEqual(counter.nowMs(), 0);
-    });
+    const counterEdgeCaseScenarios: Array<{
+      description: string;
+      start: number;
+      advance: number;
+      expectedNowMs: number;
+    }> = [
+      { description: 'negative advance is ignored → stays at 0', start: 0, advance: NEGATIVE_ADVANCE, expectedNowMs: 0 },
+      { description: 'zero advance is no-op → stays at 0', start: 0, advance: 0, expectedNowMs: 0 },
+      { description: 'negative start clamped to 0', start: NEGATIVE_START, advance: 0, expectedNowMs: 0 },
+    ];
+    for (const { description, start, advance, expectedNowMs } of counterEdgeCaseScenarios) {
+      it(description, () => {
+        const counter = new VirtualTimeCounter(start);
+        counter.advance(advance);
+        assert.strictEqual(counter.nowMs(), expectedNowMs);
+      });
+    }
   });
 
   describe('unhappy path', () => {
@@ -512,53 +496,45 @@ describe('VirtualScheduler', () => {
       }
     }
 
-    it('onSchedule called on scheduleAt', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new AuditVirtualScheduler(counter);
-
-      sched.scheduleAt(TASK_OFFSET_50, () => { return; });
-
-      assert.strictEqual(sched.scheduleCount, 1);
-    });
-
-    it('onFire called when task fires via advance', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new AuditVirtualScheduler(counter);
-
-      sched.scheduleAt(TASK_OFFSET_50, () => { return; });
-      sched.advance(ADVANCE_PASS);
-
-      assert.strictEqual(sched.fireCount, 1);
-    });
-
-    it('onCancel called when task cancel() is called', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new AuditVirtualScheduler(counter);
-      const task = sched.scheduleAt(TASK_OFFSET_50, () => { return; });
-
-      task.cancel();
-
-      assert.strictEqual(sched.cancelCount, 1);
-    });
-
-    it('onCancelAll called via cancelAll()', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new AuditVirtualScheduler(counter);
-
-      sched.scheduleAt(TASK_OFFSET_50, () => { return; });
-      sched.cancelAll();
-
-      assert.strictEqual(sched.cancelAllCount, 1);
-    });
-
-    it('onAdvance called on advance()', () => {
-      const counter = new VirtualTimeCounter(0);
-      const sched = new AuditVirtualScheduler(counter);
-
-      sched.advance(ADVANCE_PASS);
-
-      assert.strictEqual(sched.advanceCount, 1);
-    });
+    const auditHookScenarios: Array<{
+      description: string;
+      act: (sched: AuditVirtualScheduler) => void;
+      getCount: (sched: AuditVirtualScheduler) => number;
+    }> = [
+      {
+        description: 'onSchedule called on scheduleAt',
+        act: (sched) => { sched.scheduleAt(TASK_OFFSET_50, () => { return; }); },
+        getCount: (sched) => sched.scheduleCount,
+      },
+      {
+        description: 'onFire called when task fires via advance',
+        act: (sched) => { sched.scheduleAt(TASK_OFFSET_50, () => { return; }); sched.advance(ADVANCE_PASS); },
+        getCount: (sched) => sched.fireCount,
+      },
+      {
+        description: 'onCancel called when task cancel() is called',
+        act: (sched) => { const task = sched.scheduleAt(TASK_OFFSET_50, () => { return; }); task.cancel(); },
+        getCount: (sched) => sched.cancelCount,
+      },
+      {
+        description: 'onCancelAll called via cancelAll()',
+        act: (sched) => { sched.scheduleAt(TASK_OFFSET_50, () => { return; }); sched.cancelAll(); },
+        getCount: (sched) => sched.cancelAllCount,
+      },
+      {
+        description: 'onAdvance called on advance()',
+        act: (sched) => { sched.advance(ADVANCE_PASS); },
+        getCount: (sched) => sched.advanceCount,
+      },
+    ];
+    for (const { description, act, getCount } of auditHookScenarios) {
+      it(description, () => {
+        const counter = new VirtualTimeCounter(0);
+        const sched = new AuditVirtualScheduler(counter);
+        act(sched);
+        assert.strictEqual(getCount(sched), 1);
+      });
+    }
 
     it('virtualCounter getter is accessible from subclass', () => {
       class CounterAccessor extends VirtualScheduler {

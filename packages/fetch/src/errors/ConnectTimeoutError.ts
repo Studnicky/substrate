@@ -17,17 +17,13 @@
  * }
  * ```
  */
-export class ConnectTimeoutError extends Error {
-  /**
-   * The underlying undici error (undefined if not applicable)
-   * Always present for V8 optimization
-   */
-  override readonly cause: Error | undefined;
+import { FetchBaseError } from './FetchBaseError.js';
 
+export class ConnectTimeoutError extends FetchBaseError {
   /**
    * Undici error code
    */
-  readonly code: 'UND_ERR_CONNECT_TIMEOUT';
+  readonly undiciCode: 'UND_ERR_CONNECT_TIMEOUT';
 
   /**
    * The URL that was being requested
@@ -35,10 +31,8 @@ export class ConnectTimeoutError extends Error {
   readonly url: string;
 
   constructor(url: string, cause?: Error) {
-    super(`Connection timeout for ${url}`, cause !== undefined ? { 'cause': cause } : undefined);
-    this.name = 'ConnectTimeoutError';
-    this.code = 'UND_ERR_CONNECT_TIMEOUT';
+    super({ 'cause': cause, 'code': 'fetch.connectTimeout', 'message': `Connection timeout for ${url}`, 'retryable': true });
+    this.undiciCode = 'UND_ERR_CONNECT_TIMEOUT';
     this.url = url;
-    this.cause = cause;
   }
 }

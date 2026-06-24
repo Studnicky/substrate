@@ -10,152 +10,133 @@
 import {
   deepStrictEqual, ok, rejects, strictEqual
 } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
 import {
   setTimeout as delay
 } from 'node:timers/promises';
 
 import { Mutex } from '../../../src/mutex/index.js';
 
-void describe('Mutex Lock Acquisition and Release', () => {
-  void describe('acquire() and release()', () => {
-    void it('acquires and releases lock', async () => {
-      const mutex = Mutex.create();
+// --- acquire() and release() ---
 
-      const release = await mutex.acquire('key1');
+it('acquires and releases lock', async () => {
+  const mutex = Mutex.create();
+  const release = await mutex.acquire('key1');
 
-      ok(mutex.isLocked('key1'), 'Key should be locked');
+  ok(mutex.isLocked('key1'), 'Key should be locked');
 
-      release();
+  release();
+  await delay(10);
 
-      await delay(10);
+  ok(!mutex.isLocked('key1'), 'Key should be unlocked after release');
+});
 
-      ok(!mutex.isLocked('key1'), 'Key should be unlocked after release');
-    });
+it('handles multiple sequential acquisitions', async () => {
+  const mutex = Mutex.create();
+  const release1 = await mutex.acquire('key1');
 
-    void it('handles multiple sequential acquisitions', async () => {
-      const mutex = Mutex.create();
+  ok(mutex.isLocked('key1'));
+  release1();
+  await delay(10);
 
-      const release1 = await mutex.acquire('key1');
+  const release2 = await mutex.acquire('key1');
 
-      ok(mutex.isLocked('key1'));
-      release1();
+  ok(mutex.isLocked('key1'));
+  release2();
+});
 
-      await delay(10);
+it('distinguishes between different keys', async () => {
+  const mutex = Mutex.create();
+  const release1 = await mutex.acquire('key1');
 
-      const release2 = await mutex.acquire('key1');
+  ok(mutex.isLocked('key1'));
+  ok(!mutex.isLocked('key2'));
 
-      ok(mutex.isLocked('key1'));
-      release2();
-    });
+  const release2 = await mutex.acquire('key2');
 
-    void it('distinguishes between different keys', async () => {
-      const mutex = Mutex.create();
+  ok(mutex.isLocked('key1'));
+  ok(mutex.isLocked('key2'));
 
-      const release1 = await mutex.acquire('key1');
+  release1();
+  release2();
+});
 
-      ok(mutex.isLocked('key1'));
-      ok(!mutex.isLocked('key2'));
+// --- runExclusive() return values ---
 
-      const release2 = await mutex.acquire('key2');
+const syncReturnScenarios: Array<{
+  description: string;
+  fn: () => unknown;
+  expected: unknown;
+}> = [
+  {
+    description: 'runExclusive returns value from sync function returning string',
+    fn: () => 'sync-result',
+    expected: 'sync-result'
+  },
+  {
+    description: 'runExclusive returns value from sync function returning number',
+    fn: () => 100,
+    expected: 100
+  }
+];
 
-      ok(mutex.isLocked('key1'));
-      ok(mutex.isLocked('key2'));
+for (const { description, fn, expected } of syncReturnScenarios) {
+  it(description, async () => {
+    const mutex = Mutex.create();
+    const result = await mutex.runExclusive('key1', fn);
 
-      release1();
-      release2();
-    });
+    strictEqual(result, expected);
+  });
+}
+
+it('executes async function with exclusive access', async () => {
+  const mutex = Mutex.create();
+
+  const result = await mutex.runExclusive('key1', async () => {
+    ok(mutex.isLocked('key1'), 'Key should be locked during execution');
+
+    return 42;
   });
 
-  void describe('runExclusive()', () => {
-    void it('executes async function with exclusive access', async () => {
-      const mutex = Mutex.create();
+  strictEqual(result, 42);
+  await delay(10);
+  ok(!mutex.isLocked('key1'), 'Key should be unlocked after execution');
+});
 
-      const result = await mutex.runExclusive('key1', async () => {
-        ok(mutex.isLocked('key1'), 'Key should be locked during execution');
+it('returns value from async function', async () => {
+  const mutex = Mutex.create();
+  const result = await mutex.runExclusive('key1', async () => {
+    await delay(5);
 
-        return 42;
-      });
-
-      strictEqual(result, 42);
-
-      await delay(10);
-
-      ok(!mutex.isLocked('key1'), 'Key should be unlocked after execution');
-    });
-
-    void it('executes sync function with exclusive access', async () => {
-      const mutex = Mutex.create();
-
-      const result = await mutex.runExclusive('key1', () => {
-        return 'sync-result';
-      });
-
-      strictEqual(result, 'sync-result');
-    });
-
-    void it('returns value from async function', async () => {
-      const mutex = Mutex.create();
-
-      const result = await mutex.runExclusive('key1', async () => {
-        await delay(5);
-
-        return 'async-result';
-      });
-
-      strictEqual(result, 'async-result');
-    });
-
-    void it('returns value from sync function', async () => {
-      const mutex = Mutex.create();
-
-      const result = await mutex.runExclusive('key1', () => {
-        return 100;
-      });
-
-      strictEqual(result, 100);
-    });
-
-    void it('releases lock even if function throws', async () => {
-      const mutex = Mutex.create();
-
-      await rejects(
-        async () => {
-          await mutex.runExclusive('key1', async () => {
-            throw new Error('Test error');
-          });
-        },
-        { message: 'Test error' }
-      );
-
-      await delay(10);
-
-      ok(!mutex.isLocked('key1'), 'Key should be unlocked after error');
-    });
-
-    void it('handles multiple sequential operations', async () => {
-      const mutex = Mutex.create();
-      const results: string[] = [];
-
-      await mutex.runExclusive('key1', async () => {
-        results.push('first');
-      });
-
-      await mutex.runExclusive('key1', async () => {
-        results.push('second');
-      });
-
-      await mutex.runExclusive('key1', async () => {
-        results.push('third');
-      });
-
-      deepStrictEqual(results, [
-        'first',
-        'second',
-        'third'
-      ]);
-    });
+    return 'async-result';
   });
+
+  strictEqual(result, 'async-result');
+});
+
+it('releases lock even if function throws', async () => {
+  const mutex = Mutex.create();
+
+  await rejects(
+    async () => {
+      await mutex.runExclusive('key1', async () => {
+        throw new Error('Test error');
+      });
+    },
+    { message: 'Test error' }
+  );
+
+  await delay(10);
+  ok(!mutex.isLocked('key1'), 'Key should be unlocked after error');
+});
+
+it('handles multiple sequential operations', async () => {
+  const mutex = Mutex.create();
+  const results: string[] = [];
+
+  await mutex.runExclusive('key1', async () => { results.push('first'); });
+  await mutex.runExclusive('key1', async () => { results.push('second'); });
+  await mutex.runExclusive('key1', async () => { results.push('third'); });
+
+  deepStrictEqual(results, ['first', 'second', 'third']);
 });

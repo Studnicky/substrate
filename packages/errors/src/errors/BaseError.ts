@@ -201,7 +201,8 @@ export abstract class BaseError extends Error {
    * `super.serializeExtra()` need not be called — the default returns `{}`.
    */
   protected serializeExtra(): Record<string, unknown> {
-    return {};
+    const extra: Record<string, unknown> = {};
+    return extra;
   }
 
   /**
@@ -211,7 +212,8 @@ export abstract class BaseError extends Error {
    * `super.formatUserMessage()` need not be called — the default returns `this.message`.
    */
   protected formatUserMessage(): string {
-    return this.message;
+    const message: string = this.message;
+    return message;
   }
 
   /**
@@ -242,6 +244,7 @@ export abstract class BaseError extends Error {
    * Delegates to `formatUserMessage()` — override that method in subclasses.
    */
   public toUserMessage(): string {
-    return this.formatUserMessage();
+    const result = this.formatUserMessage();
+    return result;
   }
 }

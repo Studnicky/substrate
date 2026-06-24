@@ -19,15 +19,17 @@
  * }
  * ```
  */
-export class AbortError extends Error {
+import { FetchBaseError } from './FetchBaseError.js';
+
+export class AbortError extends FetchBaseError {
   /**
    * The URL that was fetched
    */
   readonly url: string;
 
   constructor(url: string, reason?: string) {
-    super(`Request to ${url} was aborted${(reason !== undefined && reason !== '') ? `: ${reason}` : ''}`);
-    this.name = 'AbortError';
+    const message = `Request to ${url} was aborted${(reason !== undefined && reason !== '') ? `: ${reason}` : ''}`;
+    super({ 'code': 'fetch.aborted', 'message': message, 'retryable': false });
     this.url = url;
   }
 }

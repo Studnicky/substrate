@@ -15,8 +15,6 @@ import { LoggerError } from './LoggerError.js';
  * ```
  */
 export class InvalidLogLevelError extends LoggerError {
-  public override readonly name = 'InvalidLogLevelError';
-
   /**
    * Creates a new InvalidLogLevelError
    *
@@ -25,6 +23,5 @@ export class InvalidLogLevelError extends LoggerError {
    */
   constructor(message: string, cause?: unknown) {
     super(message, cause);
-    Error.captureStackTrace(this, this.constructor);
   }
 }

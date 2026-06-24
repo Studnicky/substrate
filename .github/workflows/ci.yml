@@ -36,9 +36,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: pnpm run stamp-version:check
       - run: pnpm run typecheck
       - run: pnpm run lint
       - run: pnpm run test
       - run: pnpm run build
+      - name: Verify dist artifacts
+        shell: bash
+        run: |
+          missing=0
+          for pkgjson in packages/*/package.json; do
+            dir=$(dirname "$pkgjson")
+            if [ -f "$dir/dist/index.js" ]; then continue; fi
+            echo "::error::missing dist/index.js for $dir"; missing=1
+          done
+          test "$missing" -eq 0
       - run: pnpm audit --prod --audit-level high
-        continue-on-error: true

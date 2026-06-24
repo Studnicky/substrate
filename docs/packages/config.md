@@ -13,28 +13,28 @@ description: Configuration validation utilities and type guards.
 pnpm add @studnicky/config
 ```
 
+Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
+
 ## Usage
 
-```typescript
-import { ConfigValidation, TypeGuards } from '@studnicky/config';
+Validate required fields and check types in a configuration object. All assertion methods skip `undefined`/`null` values, and throw `ConfigurationError` on failure:
 
-// Validate required fields in a config object
-ConfigValidation.requireString(config, 'apiUrl');
-ConfigValidation.requireNumber(config, 'timeout');
+<<< ../../packages/config/examples/validate-config.ts#usage
 
-// Type guards
-if (TypeGuards.isString(value)) {
-  // value is string
-}
+## Subpath exports
 
-if (TypeGuards.isNonNullObject(value)) {
-  // value is Record<string, unknown>
-}
-```
+| Subpath | Contents |
+|---------|----------|
+| `@studnicky/config` | `ConfigValidation`, `Guard`, `ConfigurationError`, `ensureError` |
+| `@studnicky/config/errors` | `ConfigurationError`, `ensureError` |
+| `@studnicky/config/validation` | `ConfigValidation`, `Guard` |
 
-### ensureError
+## ensureError
 
-```typescript
+`ensureError` converts any caught value to a typed `Error`. Use it to safely handle `unknown` catches without unsafe casts:
+
+<!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates ensureError -->
+```ts
 import { ensureError } from '@studnicky/config';
 
 try {
@@ -45,29 +45,10 @@ try {
 }
 ```
 
-## Subpath exports
-
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/config` | `ConfigValidation`, `TypeGuards`, `ConfigurationError`, `ensureError` |
-| `@studnicky/config/errors` | `ConfigurationError`, `ensureError` |
-| `@studnicky/config/validation` | `ConfigValidation`, `TypeGuards` |
-
 ## Extending
 
-`ConfigValidation` is a pure-static class. Extend with domain-specific validators:
+`ConfigValidation` is a static class. Subclass it and override `onValidationError` to emit a domain-specific error type instead of `ConfigurationError`:
 
-```typescript
-import { ConfigValidation } from '@studnicky/config';
-
-class AppConfigValidation extends ConfigValidation {
-  static requirePositiveNumber(config: Record<string, unknown>, key: string): void {
-    ConfigValidation.requireNumber(config, key);
-    if ((config[key] as number) <= 0) {
-      throw new Error(`${key} must be positive`);
-    }
-  }
-}
-```
+<<< ../../packages/config/examples/custom-error.ts#usage
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/config)

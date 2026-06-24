@@ -1,3 +1,5 @@
+import { BaseError } from '@studnicky/errors';
+
 /**
  * Base error class for all logger-related errors
  *
@@ -10,9 +12,7 @@
  * throw new LoggerError('Failed to write log', originalError);
  * ```
  */
-export class LoggerError extends Error {
-  public override readonly cause?: unknown;
-
+export class LoggerError extends BaseError {
   /**
    * Creates a new LoggerError
    *
@@ -20,9 +20,6 @@ export class LoggerError extends Error {
    * @param cause - Optional underlying error that caused this error
    */
   constructor(message: string, cause?: unknown) {
-    super(message);
-    this.name = 'LoggerError';
-    this.cause = cause;
-    Error.captureStackTrace(this, this.constructor);
+    super({ 'cause': cause, 'code': 'logger.error', 'message': message });
   }
 }

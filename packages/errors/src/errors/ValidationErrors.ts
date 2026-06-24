@@ -15,12 +15,17 @@ const DEFAULT_PROBLEM_TYPE = 'https://problems.studnicky.dev/validation';
 export class ValidationErrors implements Iterable<ValidationViolationType> {
   /** Creates a `ValidationErrors` from an array of violations. */
   public static of(violations: ValidationViolationType[]): ValidationErrors {
-    return new ValidationErrors(violations);
+    const result = new ValidationErrors(violations);
+    return result;
   }
 
   /** Merges multiple `ValidationErrors` collections into one. */
   public static merge(...errors: ValidationErrors[]): ValidationErrors {
-    return new ValidationErrors(errors.flatMap((e) => [...e.items]));
+    const violations = errors.flatMap((e) => {
+      const items: ValidationViolationType[] = [...e.items];
+      return items;
+    });
+    return new ValidationErrors(violations);
   }
 
   /** Maps Ajv-style validator errors into a `ValidationErrors` instance; empty when rawErrors is null/empty. */
@@ -30,14 +35,17 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
       | null
       | undefined
   ): ValidationErrors {
-    if (rawErrors == null || rawErrors.length === 0) {
+    if (rawErrors === null || rawErrors === undefined || rawErrors.length === 0) {
       return new ValidationErrors([]);
     }
-    const violations: ValidationViolationType[] = rawErrors.map((raw) => ({
-      'keyword': raw.keyword,
-      'message': raw.message ?? raw.keyword,
-      'path': raw.instancePath
-    }));
+    const violations: ValidationViolationType[] = rawErrors.map((raw) => {
+      const violation: ValidationViolationType = {
+        'keyword': raw.keyword,
+        'message': raw.message ?? raw.keyword,
+        'path': raw.instancePath
+      };
+      return violation;
+    });
     return new ValidationErrors(violations);
   }
 
@@ -78,7 +86,8 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
 
   /** Number of violations in this collection. */
   public get length(): number {
-    return this.items.length;
+    const result = this.items.length;
+    return result;
   }
 
   /** `true` when there are no violations. */
@@ -87,6 +96,7 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
   }
 
   public [Symbol.iterator](): Iterator<ValidationViolationType> {
-    return this.items[Symbol.iterator]();
+    const result = this.items[Symbol.iterator]();
+    return result;
   }
 }

@@ -1,3 +1,7 @@
-export class DlqClosedError extends Error {
-  constructor() { super('Dead letter queue is closed'); this.name = 'DlqClosedError'; }
+import { ResilienceError } from './errors/ResilienceError.js';
+
+export class DlqClosedError extends ResilienceError {
+  constructor() {
+    super({ 'code': 'resilience.dlqClosed', 'message': 'Dead letter queue is closed', 'retryable': false });
+  }
 }

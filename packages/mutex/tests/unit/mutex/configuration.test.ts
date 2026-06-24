@@ -11,9 +11,7 @@
 import {
   deepStrictEqual, notStrictEqual, strictEqual, throws
 } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
 
 import {
   configInternal, Mutex
@@ -22,191 +20,175 @@ import {
   defaultConfig, fullConfig
 } from '../../fixtures/constants.js';
 
-void describe('Mutex Configuration Validation', () => {
-  void describe('Default Configuration', () => {
-    void it('uses defaults when no config provided', () => {
-      const mutex = Mutex.create();
-      const config = mutex.getConfig();
+// --- Default configuration ---
 
-      strictEqual(config.maxQueueSize, 0);
-      strictEqual(config.timeout, 0);
-      strictEqual(config.enableCoalescing, false);
-    });
+it('uses defaults when no config provided', () => {
+  const mutex = Mutex.create();
+  const config = mutex.getConfig();
 
-    void it('accepts empty config object', () => {
-      const mutex = Mutex.create(defaultConfig);
-      const config = mutex.getConfig();
+  strictEqual(config.maxQueueSize, 0);
+  strictEqual(config.timeout, 0);
+  strictEqual(config.enableCoalescing, false);
+});
 
-      strictEqual(config.maxQueueSize, 0);
-      strictEqual(config.timeout, 0);
-    });
+it('accepts empty config object', () => {
+  const mutex = Mutex.create(defaultConfig);
+  const config = mutex.getConfig();
 
-    void it('works with no configuration limits', async () => {
-      const mutex = Mutex.create(defaultConfig);
+  strictEqual(config.maxQueueSize, 0);
+  strictEqual(config.timeout, 0);
+});
 
-      const result = await mutex.runExclusive('key1', async () => {
-        return 'success';
-      });
+it('works with no configuration limits', async () => {
+  const mutex = Mutex.create(defaultConfig);
+  const result = await mutex.runExclusive('key1', async () => 'success');
 
-      strictEqual(result, 'success');
-    });
+  strictEqual(result, 'success');
+});
+
+it('accepts valid full configuration', () => {
+  const mutex = Mutex.create(fullConfig);
+  const config = mutex.getConfig();
+
+  strictEqual(config.maxQueueSize, 100);
+  strictEqual(config.timeout, 5000);
+});
+
+// --- Valid partial configs ---
+
+const validPartialConfigs: Array<{
+  description: string;
+  config: Parameters<typeof Mutex.create>[0];
+  expectedMaxQueueSize: number;
+  expectedTimeout: number;
+}> = [
+  {
+    description: 'accepts partial configuration with only maxQueueSize',
+    config: { maxQueueSize: 5 },
+    expectedMaxQueueSize: 5,
+    expectedTimeout: 0
+  },
+  {
+    description: 'accepts only maxQueueSize = 50',
+    config: { maxQueueSize: 50 },
+    expectedMaxQueueSize: 50,
+    expectedTimeout: 0
+  },
+  {
+    description: 'accepts only timeout',
+    config: { timeout: 2000 },
+    expectedMaxQueueSize: 0,
+    expectedTimeout: 2000
+  }
+];
+
+for (const { description, config, expectedMaxQueueSize, expectedTimeout } of validPartialConfigs) {
+  it(description, () => {
+    const mutex = Mutex.create(config);
+    const resolved = mutex.getConfig();
+
+    strictEqual(resolved.maxQueueSize, expectedMaxQueueSize);
+    strictEqual(resolved.timeout, expectedTimeout);
   });
+}
 
-  void describe('Valid Configuration', () => {
-    void it('accepts valid full configuration', () => {
-      const mutex = Mutex.create(fullConfig);
-      const config = mutex.getConfig();
+it('accepts enableCoalescing', () => {
+  const mutex = Mutex.create({ enableCoalescing: true });
+  const config = mutex.getConfig();
 
-      strictEqual(config.maxQueueSize, 100);
-      strictEqual(config.timeout, 5000);
-    });
+  strictEqual(config.enableCoalescing, true);
+});
 
-    void it('accepts partial configuration', () => {
-      const mutex = Mutex.create({ maxQueueSize: 5 });
-      const config = mutex.getConfig();
+// --- Invalid configs ---
 
-      strictEqual(config.maxQueueSize, 5);
-      strictEqual(config.timeout, 0);
-    });
+const invalidConfigs: Array<{
+  description: string;
+  config: Parameters<typeof Mutex.create>[0];
+  messagePattern: string;
+}> = [
+  {
+    description: 'rejects negative maxQueueSize',
+    config: { maxQueueSize: -1 },
+    messagePattern: 'maxQueueSize'
+  },
+  {
+    description: 'rejects negative timeout',
+    config: { timeout: -100 },
+    messagePattern: 'timeout'
+  },
+  {
+    description: 'rejects non-integer maxQueueSize',
+    config: { maxQueueSize: 1.5 },
+    messagePattern: 'maxQueueSize'
+  },
+  {
+    description: 'rejects non-integer timeout',
+    config: { timeout: 100.5 },
+    messagePattern: 'timeout'
+  },
+  {
+    description: 'rejects non-boolean enableCoalescing',
+    config: { enableCoalescing: 'true' as unknown as boolean },
+    messagePattern: 'enableCoalescing'
+  }
+];
 
-    void it('accepts only maxQueueSize', () => {
-      const mutex = Mutex.create({ maxQueueSize: 50 });
-      const config = mutex.getConfig();
-
-      strictEqual(config.maxQueueSize, 50);
-    });
-
-    void it('accepts only timeout', () => {
-      const mutex = Mutex.create({ timeout: 2000 });
-      const config = mutex.getConfig();
-
-      strictEqual(config.timeout, 2000);
-    });
-
-    void it('accepts enableCoalescing', () => {
-      const mutex = Mutex.create({ enableCoalescing: true });
-      const config = mutex.getConfig();
-
-      strictEqual(config.enableCoalescing, true);
-    });
+for (const { description, config, messagePattern } of invalidConfigs) {
+  it(description, () => {
+    throws(
+      () => { Mutex.create(config); },
+      (error: Error) => error.message.includes(messagePattern)
+    );
   });
+}
 
-  void describe('Invalid Configuration', () => {
-    void it('rejects negative maxQueueSize', () => {
-      throws(
-        () => {
-          return Mutex.create({ maxQueueSize: -1 });
-        },
-        (error: Error) => {
-          return error.message.includes('maxQueueSize');
-        }
-      );
-    });
+it('rejects unknown configuration keys', () => {
+  throws(
+    () => {
+      const invalidConfig: Partial<Record<string, unknown>> = { unknownKey: 'value' };
 
-    void it('rejects negative timeout', () => {
-      throws(
-        () => {
-          return Mutex.create({ timeout: -100 });
-        },
-        (error: Error) => {
-          return error.message.includes('timeout');
-        }
-      );
-    });
+      Mutex.create(invalidConfig);
+    },
+    (error: Error) => error.message.includes('Unknown')
+  );
+});
 
-    void it('rejects non-integer maxQueueSize', () => {
-      throws(
-        () => {
-          return Mutex.create({ maxQueueSize: 1.5 });
-        },
-        (error: Error) => {
-          return error.message.includes('maxQueueSize');
-        }
-      );
-    });
+// --- configInternal.validateConfig ---
 
-    void it('rejects non-integer timeout', () => {
-      throws(
-        () => {
-          return Mutex.create({ timeout: 100.5 });
-        },
-        (error: Error) => {
-          return error.message.includes('timeout');
-        }
-      );
-    });
+it('validateConfig validates and returns config', () => {
+  const config = configInternal.validateConfig({ maxQueueSize: 100 });
 
-    void it('rejects non-boolean enableCoalescing', () => {
-      throws(
-        () => {
-          return Mutex.create({ enableCoalescing: 'true' as unknown as boolean });
-        },
-        (error: Error) => {
-          return error.message.includes('enableCoalescing');
-        }
-      );
-    });
+  strictEqual(config.maxQueueSize, 100);
+  strictEqual(config.timeout, 0);
+});
 
-    void it('rejects unknown configuration keys', () => {
-      throws(
-        () => {
-          const invalidConfig: Partial<Record<string, unknown>> = { unknownKey: 'value' };
+it('validateConfig rejects invalid config', () => {
+  throws(
+    () => { configInternal.validateConfig({ timeout: -100 }); },
+    (error: Error) => error.message.includes('timeout')
+  );
+});
 
-          return Mutex.create(invalidConfig);
-        },
-        (error: Error) => {
-          return error.message.includes('Unknown');
-        }
-      );
-    });
-  });
+// --- Configuration immutability ---
 
-  void describe('configInternal.validateConfig() Function', () => {
-    void it('validates and returns config', () => {
-      const config = configInternal.validateConfig({ maxQueueSize: 100 });
+it('returns a copy of configuration', () => {
+  const mutex = Mutex.create({ maxQueueSize: 10 });
+  const config1 = mutex.getConfig();
+  const config2 = mutex.getConfig();
 
-      strictEqual(config.maxQueueSize, 100);
-      strictEqual(config.timeout, 0);
-    });
+  notStrictEqual(config1, config2);
+  deepStrictEqual(config1, config2);
+});
 
-    void it('rejects invalid config', () => {
-      throws(
-        () => {
-          return configInternal.validateConfig({ timeout: -100 });
-        },
-        (error: Error) => {
-          return error.message.includes('timeout');
-        }
-      );
-    });
-  });
+it('does not allow external modification', () => {
+  const mutex = Mutex.create({ maxQueueSize: 100, timeout: 5000 });
+  const config = mutex.getConfig();
 
-  void describe('Configuration Immutability', () => {
-    void it('returns a copy of configuration', () => {
-      const mutex = Mutex.create({ maxQueueSize: 10 });
+  // Attempt to modify readonly property — TypeScript prevents this at compile
+  // time so we use Object.assign to bypass and verify runtime behaviour.
+  Object.assign(config, { maxQueueSize: 999 });
 
-      const config1 = mutex.getConfig();
-      const config2 = mutex.getConfig();
+  const config2 = mutex.getConfig();
 
-      notStrictEqual(config1, config2);
-      deepStrictEqual(config1, config2);
-    });
-
-    void it('does not allow external modification', () => {
-      const mutex = Mutex.create({
-        maxQueueSize: 100,
-        timeout: 5000
-      });
-
-      const config = mutex.getConfig();
-
-      // Attempt to modify readonly property - TypeScript prevents this at compile time,
-      // so we use Object.assign to bypass and verify runtime behavior
-      Object.assign(config, { maxQueueSize: 999 });
-
-      const config2 = mutex.getConfig();
-
-      strictEqual(config2.maxQueueSize, 100);
-    });
-  });
+  strictEqual(config2.maxQueueSize, 100);
 });

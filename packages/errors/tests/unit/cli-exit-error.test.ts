@@ -23,20 +23,18 @@ void describe('CliExitError', () => {
       ok(err instanceof CliExitError);
     });
 
-    void it('defaults exitCode to 1', () => {
-      const err = new CliExitError();
-      strictEqual(err.exitCode, 1);
-    });
+    const exitCodeScenarios: Array<{ description: string; input: number | undefined; expected: number }> = [
+      { description: 'defaults exitCode to 1', expected: 1, input: undefined },
+      { description: 'accepts a custom exitCode', expected: 2, input: 2 },
+      { description: 'has exitCode 0 for success', expected: 0, input: 0 }
+    ];
 
-    void it('accepts a custom exitCode', () => {
-      const err = new CliExitError(2);
-      strictEqual(err.exitCode, 2);
-    });
-
-    void it('has exitCode 0 for success', () => {
-      const err = new CliExitError(0);
-      strictEqual(err.exitCode, 0);
-    });
+    for (const { description, input, expected } of exitCodeScenarios) {
+      void it(description, () => {
+        const err = input === undefined ? new CliExitError() : new CliExitError(input);
+        strictEqual(err.exitCode, expected);
+      });
+    }
 
     void it('has code cli.exit', () => {
       const err = new CliExitError();

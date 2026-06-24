@@ -13,68 +13,34 @@ description: Generic typed async pipeline for sequential context transforms.
 pnpm add @studnicky/pipeline
 ```
 
+Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
+
 ## Usage
 
-```typescript
-import { Pipeline } from '@studnicky/pipeline';
+Build a `Pipeline<T>` instance, register stages with `add()`, and run a context
+through all of them with `run()`. Each stage receives the context and returns a
+(possibly transformed) copy. `add()` returns a removal function:
 
-interface RequestCtx {
-  url: string;
-  headers: Record<string, string>;
-  body?: unknown;
-}
-
-const pipeline = new Pipeline<RequestCtx>();
-
-// Add transforms — each receives and returns the context
-const removeAuth = pipeline.add(async (ctx) => ({
-  ...ctx,
-  headers: { ...ctx.headers, Authorization: `Bearer ${getToken()}` }
-}));
-
-const removeLogging = pipeline.add(async (ctx) => {
-  console.log(`[pipeline] ${ctx.url}`);
-  return ctx;
-});
-
-// Run the pipeline
-const result = await pipeline.run({ url: '/api/data', headers: {} });
-
-// Remove a stage when no longer needed
-removeAuth();
-```
+<<< ../../packages/pipeline/examples/basic-pipeline.ts#usage
 
 ## Subpath exports
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/pipeline` | `Pipeline` |
+| `@studnicky/pipeline` | `Pipeline`, `PipelineError` |
 | `@studnicky/pipeline/interfaces` | `PipelineInterface` |
 | `@studnicky/pipeline/pipeline` | `Pipeline` (direct subpath) |
 | `@studnicky/pipeline/types` | `PipelineFnType` |
 
 ## Extending
 
-`Pipeline` exposes four protected hooks — `onRunStart`, `beforeStage`, `afterStage`, and `onRunComplete`:
+`Pipeline` exposes four protected hooks — `onRunStart`, `beforeStage`, `afterStage`,
+and `onRunComplete` — that subclasses can override to inject timing, logging, or
+context mutation without coupling the core pipeline to any external dependency:
 
-```typescript
-import { Pipeline } from '@studnicky/pipeline';
+<<< ../../packages/pipeline/examples/subclass-hooks.ts#usage
 
-class TimedPipeline<T> extends Pipeline<T> {
-  private startMs = 0;
-
-  protected override onRunStart(ctx: T): T {
-    this.startMs = Date.now();
-    return ctx;
-  }
-
-  protected override onRunComplete(ctx: T): T {
-    metrics.timing('pipeline.duration', Date.now() - this.startMs);
-    return ctx;
-  }
-}
-```
-
-The `stages` getter exposes a readonly view of all registered transforms, useful for inspection or tooling.
+The `stages` getter exposes a readonly view of all registered transforms, useful
+for inspection or tooling.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/pipeline)

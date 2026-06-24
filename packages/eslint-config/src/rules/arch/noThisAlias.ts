@@ -11,33 +11,31 @@ const isThisExpression = (node: unknown): boolean => {
   return Reflect.get(node, 'type') === 'ThisExpression';
 };
 
-const createNoThisAlias: NonNullable<Rule.RuleModule['create']> = (context) => {
-  const onAssignmentExpression: NonNullable<Rule.RuleListener['AssignmentExpression']> = (node) => {
-    if (isThisExpression(node.right)) {
-      context.report({
-        'messageId': 'alias',
-        'node': node
-      });
-    }
-  };
-
-  const onVariableDeclarator: NonNullable<Rule.RuleListener['VariableDeclarator']> = (node) => {
-    if (isThisExpression(node.init)) {
-      context.report({
-        'messageId': 'alias',
-        'node': node
-      });
-    }
-  };
-
-  return {
-    'AssignmentExpression': onAssignmentExpression,
-    'VariableDeclarator': onVariableDeclarator
-  };
-};
-
 export const noThisAlias: Rule.RuleModule = {
-  'create': createNoThisAlias,
+  'create': (context) => {
+    const onAssignmentExpression: NonNullable<Rule.RuleListener['AssignmentExpression']> = (node) => {
+      if (isThisExpression(node.right)) {
+        context.report({
+          'messageId': 'alias',
+          'node': node
+        });
+      }
+    };
+
+    const onVariableDeclarator: NonNullable<Rule.RuleListener['VariableDeclarator']> = (node) => {
+      if (isThisExpression(node.init)) {
+        context.report({
+          'messageId': 'alias',
+          'node': node
+        });
+      }
+    };
+
+    return {
+      'AssignmentExpression': onAssignmentExpression,
+      'VariableDeclarator': onVariableDeclarator
+    };
+  },
   'meta': {
     'docs': {
       'description': 'Disallow aliasing `this` to another variable or assignment.',

@@ -1,6 +1,8 @@
-// Run: npx tsx packages/sample-buffer/examples/subclassHooks.ts
+/** subclassHooks — override onEvict to record evicted samples. Run: npx tsx examples/subclassHooks.ts */
 
 import assert from 'node:assert/strict';
+
+// #region usage
 import { SampleBuffer } from '../src/index.js';
 
 class EvictionLog extends SampleBuffer {
@@ -22,8 +24,11 @@ log.push(3);
 log.push(4); // evicts 1
 log.push(5); // evicts 2
 
+console.log('evicted:', log.evicted); // [1, 2]
+// #endregion usage
+
 assert.equal(log.evicted.length, 2);
 assert.equal(log.evicted[0], 1);
 assert.equal(log.evicted[1], 2);
 
-console.log('subclassHooks: all assertions passed. evicted =', log.evicted);
+console.log('subclassHooks: all assertions passed');

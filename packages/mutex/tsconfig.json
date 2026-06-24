@@ -15,6 +15,15 @@
   "references": [
     {
       "path": "../config"
+    },
+    {
+      "path": "../errors"
+    },
+    {
+      "path": "../json"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

@@ -21,7 +21,12 @@
       "import": "./dist/EventBus.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
@@ -29,9 +34,31 @@
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/event-bus" },
-  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
-  "keywords": ["event-bus", "pubsub", "backpressure", "bus-queue", "typescript"],
-  "engines": { "node": ">=24.0.0" }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/event-bus"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "keywords": [
+    "event-bus",
+    "pubsub",
+    "backpressure",
+    "bus-queue",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*"
+  }
 }

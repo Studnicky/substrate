@@ -15,55 +15,17 @@ pnpm add @studnicky/fetch
 
 ## Usage
 
-```typescript
-import { FetchClient, RequestBuilder } from '@studnicky/fetch';
-
-// Configured client with defaults
-const client = new FetchClient({
-  baseUrl: 'https://api.example.com',
-  timeout: 10000
-});
-
-const data = await client.get('/users/123');
-
-// Fluent request builder
-const response = await new RequestBuilder('https://api.example.com/data')
-  .method('POST')
-  .header('Content-Type', 'application/json')
-  .body({ name: 'Alice' })
-  .timeout(5000)
-  .send();
-```
+<<< ../../packages/fetch/examples/01-client-config.ts#usage
 
 ### Interceptors
 
-```typescript
-import { InterceptorManager } from '@studnicky/fetch';
-
-const manager = new InterceptorManager();
-
-manager.addRequest(async (req) => {
-  req.headers.set('Authorization', `Bearer ${getToken()}`);
-  return req;
-});
-
-manager.addResponse(async (res) => {
-  if (res.status === 401) refreshToken();
-  return res;
-});
-```
+<<< ../../packages/fetch/examples/02-interceptors.ts#usage
 
 ### URL utilities
 
-```typescript
-import { UrlUtils } from '@studnicky/fetch';
-
-const url = UrlUtils.buildQuery('https://api.example.com/search', {
-  q: 'typescript',
-  page: 1
-});
-// https://api.example.com/search?q=typescript&page=1
-```
+| Export | Purpose |
+|--------|---------|
+| `UrlUtils` | Static helpers for building and parsing URLs |
 
 ## Subpath exports
 
@@ -78,24 +40,8 @@ const url = UrlUtils.buildQuery('https://api.example.com/search', {
 
 ## Extending
 
-`FetchClient` exposes protected lifecycle hooks for request and response:
+`FetchClient` exposes protected lifecycle hooks — `onRequestStart`, `onResponseSuccess`, `onRequestError` — that subclasses override to add telemetry without modifying core behavior.
 
-```typescript
-import { FetchClient } from '@studnicky/fetch';
-
-class TrackedClient extends FetchClient {
-  protected override onRequestStart(method: string, path: string, requestId: string, url: string): void {
-    metrics.increment('http.request', { method });
-  }
-
-  protected override onResponseSuccess(method: string, requestId: string, statusCode: number, durationMs: number): void {
-    metrics.timing('http.duration', durationMs, { status: statusCode });
-  }
-
-  protected override onRequestError(error: unknown, method: string, requestId: string, url: string, durationMs: number): void {
-    metrics.increment('http.error', { method });
-  }
-}
-```
+<<< ../../packages/fetch/examples/03-telemetry-hooks.ts#usage
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/fetch)

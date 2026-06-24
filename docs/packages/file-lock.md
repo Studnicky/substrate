@@ -17,33 +17,19 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-```typescript
-import { FileLock } from '@studnicky/file-lock';
+Acquire a lock, read and write the file while holding it, then release in a `try/finally` block:
 
-// Acquire a lock; blocks until available or timeout
-const lock = await FileLock.acquire('/var/run/myapp/state.json');
-
-try {
-  const content = lock.read();
-  const state = JSON.parse(content);
-  state.lastRun = Date.now();
-  lock.write(JSON.stringify(state));
-} finally {
-  lock.release(); // renames lock file back to original path
-}
-```
+<<< ../../packages/file-lock/examples/acquireRelease.ts#usage
 
 ### With `using` (explicit resource management)
 
-```typescript
-{
-  await using lock = await FileLock.acquire('/var/run/myapp/pid');
-  lock.write(String(process.pid));
-} // lock.release() called automatically on block exit
-```
+`FileLock` implements `Symbol.dispose`, so it can be released automatically at block exit. Call `lock[Symbol.dispose]()` directly or use the `using` keyword with TypeScript's explicit resource management:
+
+<<< ../../packages/file-lock/examples/usingDispose.ts#usage
 
 ### Custom poll interval and timeout
 
+<!-- inline-ts-ok: two-line options-only snippet; no dedicated example isolates acquire options without contention context -->
 ```typescript
 const lock = await FileLock.acquire('/var/data/queue.json', {
   pollMs: 100,     // how often to retry when file is locked (default 50 ms)
@@ -53,19 +39,9 @@ const lock = await FileLock.acquire('/var/data/queue.json', {
 
 ### Error handling
 
-```typescript
-import { FileLock, FileLockTimeoutError } from '@studnicky/file-lock';
+`FileLock.acquire` throws `FileLockTimeoutError` when the lock cannot be acquired within `timeoutMs`:
 
-try {
-  const lock = await FileLock.acquire(path, { timeoutMs: 1000 });
-  // ...
-  lock.release();
-} catch (err) {
-  if (err instanceof FileLockTimeoutError) {
-    console.error(`Timed out after ${err.timeoutMs}ms on ${err.path}`);
-  }
-}
-```
+<<< ../../packages/file-lock/examples/timeoutContention.ts#usage
 
 ## How it works
 

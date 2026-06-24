@@ -35,7 +35,8 @@ export class Hash {
 
   /** Encode a 32-bit unsigned integer as an 8-character lowercase hex string. */
   protected static toHex32(n: number): string {
-    return (n >>> 0).toString(16).padStart(8, '0');
+    const result = (n >>> 0).toString(16).padStart(8, '0');
+    return result;
   }
 
   /**
@@ -56,13 +57,13 @@ export class Hash {
       return `s:${this.toHex32(this.fnv1a32(value))}`;
     }
     if (Array.isArray(value)) {
-      const parts = value.map((item: unknown) => this.hashValue(item));
+      const parts = value.map((item: unknown) => { const result = this.hashValue(item); return result; });
 
       return `[${parts.join(',')}]`;
     }
     if (DataType.isRecord(value)) {
       const keys = Object.keys(value).sort();
-      const parts = keys.map((k) => `${k}:${this.hashValue(value[k])}`);
+      const parts = keys.map((k) => { const result = `${k}:${this.hashValue(value[k])}`; return result; });
 
       return `{${parts.join(',')}}`;
     }

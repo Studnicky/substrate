@@ -43,6 +43,8 @@
 import type { PipelineInterface } from '../interfaces/PipelineInterface.js';
 import type { PipelineFnType } from '../types/PipelineFnType.js';
 
+import { PipelineError } from '../errors/PipelineError.js';
+
 export class Pipeline<T> implements PipelineInterface<T> {
   protected fns: PipelineFnType<T>[] = [];
 
@@ -53,7 +55,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * can inspect pipeline contents without subclassing.
    */
   get stages(): readonly PipelineFnType<T>[] {
-    return this.fns;
+    const result = this.fns;
+    return result;
   }
 
   /**
@@ -90,7 +93,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @returns Context to use as input to the first stage
    */
   protected onRunStart(ctx: T): T {
-    return ctx;
+    const result = ctx;
+    return result;
   }
 
   /**
@@ -103,7 +107,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @returns Context to pass to the stage fn
    */
   protected beforeStage(ctx: T, _index: number): T {
-    return ctx;
+    const result = ctx;
+    return result;
   }
 
   /**
@@ -116,7 +121,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @returns Context to use as input to the next stage
    */
   protected afterStage(ctx: T, _index: number): T {
-    return ctx;
+    const result = ctx;
+    return result;
   }
 
   /**
@@ -128,7 +134,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @returns Final resolved value
    */
   protected onRunComplete(ctx: T): T {
-    return ctx;
+    const result = ctx;
+    return result;
   }
 
   /**
@@ -137,6 +144,15 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @param ctx - Initial context value
    * @returns Context after all transforms have been applied
    */
+  private async runStage(fn: PipelineFnType<T>, input: T): Promise<T> {
+    try {
+      const output = await fn(input);
+      return output;
+    } catch (err: unknown) {
+      throw new PipelineError('Pipeline stage failed', err);
+    }
+  }
+
   async run(ctx: T): Promise<T> {
     let current = this.onRunStart(ctx);
 
@@ -144,7 +160,7 @@ export class Pipeline<T> implements PipelineInterface<T> {
     for (let i = 0; i < fnsLen; i++) {
       const fn = this.fns[i]!;
       const input = this.beforeStage(current, i);
-      const output = await fn(input);
+      const output = await this.runStage(fn, input);
       current = this.afterStage(output, i);
     }
 

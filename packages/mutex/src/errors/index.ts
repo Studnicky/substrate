@@ -1,3 +1,4 @@
-export { ConfigurationError } from './ConfigurationError.js';
 export { LockTimeoutError } from './LockTimeoutError.js';
+export { MutexError } from './MutexError.js';
 export { QueueSizeExceededError } from './QueueSizeExceededError.js';
+export { ConfigurationError } from '@studnicky/config';

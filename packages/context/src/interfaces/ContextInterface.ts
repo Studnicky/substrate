@@ -1,10 +1,10 @@
-import type { ContextConfigType } from './ContextConfigType.js';
+import type { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import type { ContextScopeInterface } from './ContextScopeInterface.js';
 
 /**
  * Provides scoped key-value storage that propagates through asynchronous execution boundaries.
  */
-export interface ContextInterface extends ContextConfigType {
+export interface ContextInterface extends ContextConfigEntity.Type {
   /**
    * Removes a value from the context.
    */

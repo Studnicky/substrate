@@ -1,44 +1,38 @@
-/**
- * Settled batch processing example.
- *
- * Demonstrates `batchConcurrent.processSettled` with partial-failure support.
- * One of the four input items rejects; the others fulfill normally. The
- * `processSettled` method uses `Promise.allSettled` internally so a single
- * rejection does not abort the batch or subsequent batches.
- *
- * The example also shows the custom "mapper" pattern: a typed arrow-const
- * mapper is defined and passed as the `operation` argument. This is the
- * primary extension seam for `batchConcurrent` — inject any typed async
- * function that matches `(item: T) => Promise<TResult>`.
- *
- * Run:
- *   npx tsx packages/batch/examples/settled-processing.ts
- */
+/** settled-processing — processSettled with partial-failure: one of four items rejects, others fulfill. Run: npx tsx examples/settled-processing.ts */
 
 import assert from 'node:assert/strict';
+
+// #region usage
 import { batchConcurrent } from '../src/index.js';
 
-type Item = { id: number; shouldFail: boolean };
-type Result = { id: number; value: string };
+type Item = { 'id': number; 'shouldFail': boolean };
 
 // Custom typed mapper — the extension seam for batchConcurrent.
-const processItem = async (item: Item): Promise<Result> => {
-  if (item.shouldFail) {
-    throw new Error(`Item ${item.id} failed`);
+// Static method on the produced type is the canonical shape.
+class Result {
+  constructor(
+    readonly id: number,
+    readonly value: string
+  ) {}
+
+  static process(item: Item): Promise<Result> {
+    if (item.shouldFail) {
+      return Promise.reject(new Error(`Item ${item.id} failed`));
+    }
+    return Promise.resolve(new Result(item.id, `processed-${item.id}`));
   }
-  return { id: item.id, value: `processed-${item.id}` };
-};
+}
 
 const items: Item[] = [
-  { id: 1, shouldFail: false },
-  { id: 2, shouldFail: true },
-  { id: 3, shouldFail: false },
-  { id: 4, shouldFail: false },
+  { 'id': 1, 'shouldFail': false },
+  { 'id': 2, 'shouldFail': true },
+  { 'id': 3, 'shouldFail': false },
+  { 'id': 4, 'shouldFail': false }
 ];
 
 const allSettled: PromiseSettledResult<Result>[] = [];
 
-for await (const batch of batchConcurrent.processSettled(items, processItem, 2)) {
+for await (const batch of batchConcurrent.processSettled(items, Result.process, 2)) {
   console.log('Batch settled results:');
   for (const result of batch) {
     if (result.status === 'fulfilled') {
@@ -50,25 +44,32 @@ for await (const batch of batchConcurrent.processSettled(items, processItem, 2))
   allSettled.push(...batch);
 }
 
+console.log('Total settled:', allSettled.length);
+// #endregion usage
+
 // All 4 items must have been processed (fulfilled or rejected).
 assert.equal(allSettled.length, 4, 'Expected 4 settled results');
 
-const fulfilled = allSettled.filter((r): r is PromiseFulfilledResult<Result> => r.status === 'fulfilled');
-const rejected = allSettled.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+const fulfilled = allSettled.filter((r): r is PromiseFulfilledResult<Result> => {return r.status === 'fulfilled';});
+const rejected = allSettled.filter((r): r is PromiseRejectedResult => {return r.status === 'rejected';});
 
 assert.equal(fulfilled.length, 3, 'Expected 3 fulfilled results');
 assert.equal(rejected.length, 1, 'Expected 1 rejected result');
 
 // Verify fulfilled values.
-const fulfilledValues = fulfilled.map((r) => r.value).sort((a, b) => a.id - b.id);
+const fulfilledValues: Result[] = [];
+for (const r of fulfilled) {
+  fulfilledValues.push(r.value);
+}
+fulfilledValues.sort((a, b) => {return a.id - b.id;});
 assert.deepEqual(fulfilledValues, [
-  { id: 1, value: 'processed-1' },
-  { id: 3, value: 'processed-3' },
-  { id: 4, value: 'processed-4' },
+  new Result(1, 'processed-1'),
+  new Result(3, 'processed-3'),
+  new Result(4, 'processed-4')
 ]);
 
 // Verify rejected reason.
-assert.ok(rejected[0].reason instanceof Error);
-assert.equal((rejected[0].reason as Error).message, 'Item 2 failed');
+assert.ok(rejected[0]!.reason instanceof Error);
+assert.equal(rejected[0]!.reason.message, 'Item 2 failed');
 
-console.log('settled-processing: OK');
+console.log('settled-processing: all assertions passed');

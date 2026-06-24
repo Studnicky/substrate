@@ -13,42 +13,23 @@ description: JSON/object value-tools — deep merge, clone, equal, freeze, patch
 pnpm add @studnicky/json
 ```
 
-## Usage
+## Merge and Clone
 
-All exports are pure-static utility classes — no state, no singletons.
+Deep merge nested objects — overlay wins on conflict, base keys are preserved, arrays are replaced atomically by default. Clone produces a new object with no shared references, with full Date/Map/Set awareness:
 
-```typescript
-import { Clone, Merge, DataType, Frozen, Hash, Path, Sort, Patch } from '@studnicky/json';
+<<< ../../packages/json/examples/merge-clone.ts#usage
 
-// Deep clone (Map/Set/Date aware)
-const copy = Clone.deep(original);
+## Patch, DataType, and Frozen
 
-// Shallow clone
-const shallow = Clone.shallow(obj);
+Apply RFC-6902 JSON Patch operations using either the constructor or static factory methods. `DataType` provides deep structural equality and type guards. `Frozen.deepFreeze` freezes all levels safely, including circular structures:
 
-// Deep merge — type-safe, V8-monomorphic
-const merged = Merge.deep(base, overlay);
+<<< ../../packages/json/examples/patch-datatype.ts#usage
 
-// Deep structural equality (NaN/Date/RegExp/Set/Map aware)
-const equal = DataType.deepEqual(a, b);
+## Path, Sort, Hash, and StructuralHash
 
-// Cycle-safe deep freeze
-const frozen = Frozen.deep(value);
+Convert JSON Pointers to JS access notation, read values via proto-safe dot-paths, sort arrays naturally, and produce deterministic FNV-1a hashes. `StructuralHash` strips annotation-only keys (`$id`, `title`, `description`) before hashing:
 
-// FNV-1a 32-bit hash for JSON-compatible values
-const hash = Hash.fnv32(value);
-
-// JSON Pointer → dot-path access
-const val = Path.get(obj, 'user.profile.name');
-
-// Natural sort comparator
-const sorted = [...items].sort(Sort.natural);
-
-// RFC 6902 JSON Patch
-const result = Patch.apply(document, [
-  { op: 'replace', path: '/name', value: 'Alice' }
-]);
-```
+<<< ../../packages/json/examples/path-sort-hash.ts#usage
 
 ## Subpath exports
 
@@ -62,16 +43,6 @@ const result = Patch.apply(document, [
 
 ## Extending
 
-Since the utilities are pure-static, compose them by wrapping in a domain-specific static class:
-
-```typescript
-import { Merge, Clone } from '@studnicky/json';
-
-class ConfigUtils {
-  static merge<T extends object>(base: T, overrides: Partial<T>): T {
-    return Merge.deep(Clone.deep(base), overrides as T);
-  }
-}
-```
+Since the utilities are pure-static, compose them by wrapping in a domain-specific static class. The `merge-clone` example above shows subclassing `Merge` to change array-merge behaviour.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/json)

@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "../clock"
+    },
+    {
+      "path": "../errors"
     }
   ]
 }

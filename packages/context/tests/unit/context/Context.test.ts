@@ -45,6 +45,28 @@ void describe('Context', () => {
         { message: 'Context name is required' }
       );
     });
+
+    const invalidNameScenarios: Array<{ description: string; config: unknown }> = [
+      {
+        description: 'create() throws when name is empty string',
+        config: { name: '' }
+      },
+      {
+        description: 'create() throws when name is not a string',
+        config: { name: 0 as unknown as string }
+      }
+    ];
+
+    for (const { description, config } of invalidNameScenarios) {
+      void it(description, () => {
+        throws(
+          () => {
+            return Context.create(config as { name: string });
+          },
+          { message: /name must be a non-empty string/ }
+        );
+      });
+    }
   });
 
   void describe('initialize', () => {
@@ -199,25 +221,53 @@ void describe('Context', () => {
   });
 
   void describe('get/set operations', () => {
-    void it('set() adds values to the store', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize();
+    const setGetScenarios: Array<{
+      description: string;
+      initial: Record<string, unknown>;
+      run: (context: Context) => void;
+    }> = [
+      {
+        description: 'set() adds values to the store',
+        initial: {},
+        run: (context) => {
+          context.set('key', 'value');
+          strictEqual(context.get<string>('key'), 'value');
+        }
+      },
+      {
+        description: 'set() overwrites existing values',
+        initial: { key: 'original' },
+        run: (context) => {
+          context.set('key', 'updated');
+          strictEqual(context.get<string>('key'), 'updated');
+        }
+      },
+      {
+        description: 'tryGet() returns undefined when key not found',
+        initial: {},
+        run: (context) => {
+          strictEqual(context.tryGet('nonexistent'), undefined);
+        }
+      },
+      {
+        description: 'tryGet() returns value when key exists',
+        initial: { key: 'value' },
+        run: (context) => {
+          strictEqual(context.tryGet<string>('key'), 'value');
+        }
+      }
+    ];
 
-      scope.execute(() => {
-        context.set('key', 'value');
-        strictEqual(context.get<string>('key'), 'value');
+    for (const { description, initial, run } of setGetScenarios) {
+      void it(description, () => {
+        const context = Context.create({ name: 'test' });
+        const scope = context.initialize(initial);
+
+        scope.execute(() => {
+          run(context);
+        });
       });
-    });
-
-    void it('set() overwrites existing values', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize({ key: 'original' });
-
-      scope.execute(() => {
-        context.set('key', 'updated');
-        strictEqual(context.get<string>('key'), 'updated');
-      });
-    });
+    }
 
     void it('get() throws when key not found', () => {
       const context = Context.create({ name: 'my-context' });
@@ -232,44 +282,39 @@ void describe('Context', () => {
         );
       });
     });
-
-    void it('tryGet() returns undefined when key not found', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize();
-
-      scope.execute(() => {
-        strictEqual(context.tryGet('nonexistent'), undefined);
-      });
-    });
-
-    void it('tryGet() returns value when key exists', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize({ key: 'value' });
-
-      scope.execute(() => {
-        strictEqual(context.tryGet<string>('key'), 'value');
-      });
-    });
   });
 
   void describe('has/delete/keys operations', () => {
-    void it('has() returns false for missing keys', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize();
+    const hasScenarios: Array<{
+      description: string;
+      initial: Record<string, unknown>;
+      key: string;
+      expected: boolean;
+    }> = [
+      {
+        description: 'has() returns false for missing keys',
+        initial: {},
+        key: 'missing',
+        expected: false
+      },
+      {
+        description: 'has() returns true for existing keys',
+        initial: { exists: true },
+        key: 'exists',
+        expected: true
+      }
+    ];
 
-      scope.execute(() => {
-        strictEqual(context.has('missing'), false);
+    for (const { description, initial, key, expected } of hasScenarios) {
+      void it(description, () => {
+        const context = Context.create({ name: 'test' });
+        const scope = context.initialize(initial);
+
+        scope.execute(() => {
+          strictEqual(context.has(key), expected);
+        });
       });
-    });
-
-    void it('has() returns true for existing keys', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize({ exists: true });
-
-      scope.execute(() => {
-        strictEqual(context.has('exists'), true);
-      });
-    });
+    }
 
     void it('delete() removes keys', () => {
       const context = Context.create({ name: 'test' });
@@ -346,50 +391,81 @@ void describe('Context', () => {
   });
 
   void describe('isActive', () => {
-    void it('returns false outside execute()', () => {
-      const context = Context.create({ name: 'test' });
+    const isActiveScenarios: Array<{
+      description: string;
+      run: () => boolean;
+      expected: boolean;
+    }> = [
+      {
+        description: 'returns false outside execute()',
+        run: () => {
+          const context = Context.create({ name: 'test' });
 
-      strictEqual(context.isActive(), false);
-    });
+          return context.isActive();
+        },
+        expected: false
+      },
+      {
+        description: 'returns true within execute()',
+        run: () => {
+          const context = Context.create({ name: 'test' });
+          const scope = context.initialize();
+          let active = false;
 
-    void it('returns true within execute()', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize();
+          scope.execute(() => {
+            active = context.isActive();
+          });
 
-      scope.execute(() => {
-        strictEqual(context.isActive(), true);
+          return active;
+        },
+        expected: true
+      }
+    ];
+
+    for (const { description, run, expected } of isActiveScenarios) {
+      void it(description, () => {
+        strictEqual(run(), expected);
       });
-    });
+    }
   });
 
   void describe('error handling outside context', () => {
-    void it('get() throws outside execute()', () => {
-      const context = Context.create({ name: 'my-context' });
+    const outsideContextScenarios: Array<{
+      description: string;
+      throws: boolean;
+      run: (context: Context) => unknown;
+      expected?: { message: string };
+    }> = [
+      {
+        description: 'get() throws outside execute()',
+        throws: true,
+        run: (context) => context.get('key'),
+        expected: { message: 'No active my-context context - ensure code runs within execute()' }
+      },
+      {
+        description: 'set() throws outside execute()',
+        throws: true,
+        run: (context) => context.set('key', 'value'),
+        expected: { message: 'No active my-context context - ensure code runs within execute()' }
+      },
+      {
+        description: 'tryGet() returns undefined outside execute()',
+        throws: false,
+        run: (context) => context.tryGet('key')
+      }
+    ];
 
-      throws(
-        () => {
-          return context.get('key');
-        },
-        { message: 'No active my-context context - ensure code runs within execute()' }
-      );
-    });
+    for (const scenario of outsideContextScenarios) {
+      void it(scenario.description, () => {
+        const context = Context.create({ name: 'my-context' });
 
-    void it('set() throws outside execute()', () => {
-      const context = Context.create({ name: 'my-context' });
-
-      throws(
-        () => {
-          return context.set('key', 'value');
-        },
-        { message: 'No active my-context context - ensure code runs within execute()' }
-      );
-    });
-
-    void it('tryGet() returns undefined outside execute()', () => {
-      const context = Context.create({ name: 'my-context' });
-
-      strictEqual(context.tryGet('key'), undefined);
-    });
+        if (scenario.throws) {
+          throws(() => scenario.run(context), scenario.expected);
+        } else {
+          strictEqual(scenario.run(context), undefined);
+        }
+      });
+    }
   });
 
   void describe('async propagation', () => {

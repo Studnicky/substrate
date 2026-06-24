@@ -3,7 +3,6 @@
  * Wraps undici Agent with validated configuration
  */
 
-import type { Agent as UndiciAgent } from 'undici';
 
 import { setTimeout } from 'node:timers/promises';
 import { Agent } from 'undici';
@@ -26,36 +25,27 @@ import { ConfigurationError } from '../errors/index.js';
 
 type OptionsRecordType = Record<string, unknown>;
 
-type TimeoutConfigType = {
+type MergedConfigType = {
+  'allowH2': boolean;
+  'autoSelectFamily': boolean;
+  'autoSelectFamilyAttemptTimeout': number;
   'bodyTimeout': number;
+  'clientTtl': number | undefined;
+  'connections': null | number;
   'connectTimeout': number;
+  'enabled': boolean | undefined;
   'headersTimeout': number;
   'keepAliveMaxTimeout': number;
   'keepAliveTimeout': number;
   'keepAliveTimeoutThreshold': number;
-};
-
-type ConnectionConfigType = {
-  'connections': null | number;
+  'localAddress': string | undefined;
   'maxConcurrentStreams': number;
   'maxHeaderSize': number;
-  'maxResponseSize': number;
-  'pipelining': number;
-};
-
-type FeatureConfigType = {
-  'allowH2': boolean;
-  'autoSelectFamily': boolean;
-  'autoSelectFamilyAttemptTimeout': number;
-  'strictContentLength': boolean;
-};
-
-type MergedConfigType = ConnectionConfigType & FeatureConfigType & TimeoutConfigType & {
-  'clientTtl': number | undefined;
-  'enabled': boolean | undefined;
-  'localAddress': string | undefined;
   'maxOrigins': number | undefined;
   'maxRequestsPerClient': number | undefined;
+  'maxResponseSize': number;
+  'pipelining': number;
+  'strictContentLength': boolean;
 };
 
 /**
@@ -116,7 +106,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
 
   private readonly abortController: AbortController;
 
-  private readonly agent: UndiciAgent;
+  private readonly agent: Agent;
 
   /**
    * Private constructor - use UndiciDispatcher.create() instead
@@ -182,7 +172,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
   checkDispatcherHealth(origin: string): DispatcherHealthType {
     const stats = this.agent.stats[origin] as SocketDispatcherStatsType | undefined;
 
-    if (!stats) {
+    if (stats === undefined) {
       return {
         'healthy': true,
         'queueRatio': undefined,
@@ -271,7 +261,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    *
    * @returns Undici Agent instance
    */
-  getAgent(): UndiciAgent {
+  getAgent(): Agent {
     const result = this.agent;
     return result;
   }
@@ -332,49 +322,32 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     return Object.freeze(frozenStats);
   }
 
-  private static mergeTimeoutConfig(config: DispatcherConfigType): TimeoutConfigType {
-    return {
-      'bodyTimeout': config.bodyTimeout ?? DefaultDispatcherConfig.bodyTimeout,
-      'connectTimeout': config.connectTimeout ?? DefaultDispatcherConfig.connectTimeout,
-      'headersTimeout': config.headersTimeout ?? DefaultDispatcherConfig.headersTimeout,
-      'keepAliveMaxTimeout': config.keepAliveMaxTimeout ?? DefaultDispatcherConfig.keepAliveMaxTimeout,
-      'keepAliveTimeout': config.keepAliveTimeout ?? DefaultDispatcherConfig.keepAliveTimeout,
-      'keepAliveTimeoutThreshold':
-        config.keepAliveTimeoutThreshold ?? DefaultDispatcherConfig.keepAliveTimeoutThreshold
-    };
-  }
-
-  private static mergeConnectionConfig(config: DispatcherConfigType): ConnectionConfigType {
-    return {
-      'connections': config.connections === undefined ? DefaultDispatcherConfig.connections : config.connections,
-      'maxConcurrentStreams': config.maxConcurrentStreams ?? DefaultDispatcherConfig.maxConcurrentStreams,
-      'maxHeaderSize': config.maxHeaderSize ?? DefaultDispatcherConfig.maxHeaderSize,
-      'maxResponseSize': config.maxResponseSize ?? DefaultDispatcherConfig.maxResponseSize,
-      'pipelining': config.pipelining ?? DefaultDispatcherConfig.pipelining
-    };
-  }
-
-  private static mergeFeatureConfig(config: DispatcherConfigType): FeatureConfigType {
-    return {
+  private static mergeWithDefaults(config: DispatcherConfigType): MergedConfigType {
+    const merged: MergedConfigType = {
       'allowH2': config.allowH2 ?? DefaultDispatcherConfig.allowH2,
       'autoSelectFamily': config.autoSelectFamily ?? DefaultDispatcherConfig.autoSelectFamily,
       'autoSelectFamilyAttemptTimeout':
         config.autoSelectFamilyAttemptTimeout ?? DefaultDispatcherConfig.autoSelectFamilyAttemptTimeout,
+      'bodyTimeout': config.bodyTimeout ?? DefaultDispatcherConfig.bodyTimeout,
+      'clientTtl': config.clientTtl,
+      'connections': config.connections === undefined ? DefaultDispatcherConfig.connections : config.connections,
+      'connectTimeout': config.connectTimeout ?? DefaultDispatcherConfig.connectTimeout,
+      'enabled': config.enabled,
+      'headersTimeout': config.headersTimeout ?? DefaultDispatcherConfig.headersTimeout,
+      'keepAliveMaxTimeout': config.keepAliveMaxTimeout ?? DefaultDispatcherConfig.keepAliveMaxTimeout,
+      'keepAliveTimeout': config.keepAliveTimeout ?? DefaultDispatcherConfig.keepAliveTimeout,
+      'keepAliveTimeoutThreshold':
+        config.keepAliveTimeoutThreshold ?? DefaultDispatcherConfig.keepAliveTimeoutThreshold,
+      'localAddress': config.localAddress,
+      'maxConcurrentStreams': config.maxConcurrentStreams ?? DefaultDispatcherConfig.maxConcurrentStreams,
+      'maxHeaderSize': config.maxHeaderSize ?? DefaultDispatcherConfig.maxHeaderSize,
+      'maxOrigins': config.maxOrigins,
+      'maxRequestsPerClient': config.maxRequestsPerClient,
+      'maxResponseSize': config.maxResponseSize ?? DefaultDispatcherConfig.maxResponseSize,
+      'pipelining': config.pipelining ?? DefaultDispatcherConfig.pipelining,
       'strictContentLength': config.strictContentLength ?? DefaultDispatcherConfig.strictContentLength
     };
-  }
-
-  private static mergeWithDefaults(config: DispatcherConfigType): MergedConfigType {
-    return {
-      ...UndiciDispatcher.mergeTimeoutConfig(config),
-      ...UndiciDispatcher.mergeConnectionConfig(config),
-      ...UndiciDispatcher.mergeFeatureConfig(config),
-      'clientTtl': config.clientTtl,
-      'enabled': config.enabled,
-      'localAddress': config.localAddress,
-      'maxOrigins': config.maxOrigins,
-      'maxRequestsPerClient': config.maxRequestsPerClient
-    };
+    return merged;
   }
 
   private static setIfTruthy(options: OptionsRecordType, key: string, value: unknown): void {

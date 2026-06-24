@@ -131,7 +131,7 @@ void describe('FetchClient Body Serialization', () => {
       description, expectedInResponse, input
     } of jsonObjectScenarios) {
       void it(`should serialize ${description} correctly via POST`, async () => {
-        const response = await ctx.client.post(`${ctx.testUrl}/posts`, input);
+        const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: input });
 
         assert.strictEqual(response.status, 201);
 
@@ -141,7 +141,7 @@ void describe('FetchClient Body Serialization', () => {
       });
 
       void it(`should serialize ${description} correctly via PUT`, async () => {
-        const response = await ctx.client.put(`${ctx.testUrl}/posts/1`, input);
+        const response = await ctx.client.put(`${ctx.testUrl}/posts/1`, { body: input });
 
         assert.strictEqual(response.status, 200);
 
@@ -154,7 +154,7 @@ void describe('FetchClient Body Serialization', () => {
       });
 
       void it(`should serialize ${description} correctly via PATCH`, async () => {
-        const response = await ctx.client.patch(`${ctx.testUrl}/posts/1`, input);
+        const response = await ctx.client.patch(`${ctx.testUrl}/posts/1`, { body: input });
 
         assert.strictEqual(response.status, 200);
 
@@ -224,7 +224,7 @@ void describe('FetchClient Body Serialization', () => {
       description, input, shouldHaveBody
     } of primitiveScenarios) {
       void it(`should serialize ${description} correctly`, async () => {
-        const response = await ctx.client.post(`${ctx.testUrl}/posts`, input);
+        const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: input });
 
         if (shouldHaveBody) {
           assert.strictEqual(response.status, 201);
@@ -238,7 +238,7 @@ void describe('FetchClient Body Serialization', () => {
   void describe('Binary Data Serialization', () => {
     void it('should serialize Buffer objects', async () => {
       const buffer = Buffer.from('test buffer content', 'utf8');
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, buffer);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: buffer });
 
       assert.strictEqual(response.status, 201);
     });
@@ -247,7 +247,7 @@ void describe('FetchClient Body Serialization', () => {
       const encoder = new TextEncoder();
       const arrayBuffer = encoder.encode('test arraybuffer content').buffer;
 
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, arrayBuffer);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: arrayBuffer });
 
       assert.strictEqual(response.status, 201);
     });
@@ -256,14 +256,14 @@ void describe('FetchClient Body Serialization', () => {
       const encoder = new TextEncoder();
       const uint8Array = encoder.encode('test uint8array content');
 
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, uint8Array);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: uint8Array });
 
       assert.strictEqual(response.status, 201);
     });
 
     void it('should serialize empty Buffer', async () => {
       const buffer = Buffer.alloc(0);
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, buffer);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: buffer });
 
       assert.strictEqual(response.status, 201);
     });
@@ -273,7 +273,7 @@ void describe('FetchClient Body Serialization', () => {
 
       largeBuffer.fill('a');
 
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, largeBuffer);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: largeBuffer });
 
       assert.strictEqual(response.status, 201);
     });
@@ -288,7 +288,7 @@ void describe('FetchClient Body Serialization', () => {
         4,
         5
       ];
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, array);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: array });
 
       assert.strictEqual(response.status, 201);
     });
@@ -304,14 +304,14 @@ void describe('FetchClient Body Serialization', () => {
           name: 'Item 2'
         }
       ];
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, array);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: array });
 
       assert.strictEqual(response.status, 201);
     });
 
     void it('should serialize Date objects as JSON', async () => {
       const date = new Date('2024-01-01T00:00:00Z');
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { timestamp: date });
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: { timestamp: date } });
 
       assert.strictEqual(response.status, 201);
 
@@ -333,7 +333,7 @@ void describe('FetchClient Body Serialization', () => {
         name: 'test',
         optional: null as null
       };
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, mixed);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: mixed });
 
       assert.strictEqual(response.status, 201);
     });
@@ -345,14 +345,14 @@ void describe('FetchClient Body Serialization', () => {
         largeObject[`key${i}`] = `value${i}`;
       }
 
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, largeObject);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: largeObject });
 
       assert.strictEqual(response.status, 201);
     });
 
     void it('should handle deeply nested objects', async () => {
       const deeplyNested = { level1: { level2: { level3: { level4: { level5: { value: 'deep' } } } } } };
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, deeplyNested);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: deeplyNested });
 
       assert.strictEqual(response.status, 201);
     });
@@ -364,14 +364,14 @@ void describe('FetchClient Body Serialization', () => {
         quotes: 'He said "hello"',
         unicode: '你好世界'
       };
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, specialChars);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: specialChars });
 
       assert.strictEqual(response.status, 201);
     });
 
     void it('should handle empty array', async () => {
       const emptyArray: unknown[] = [];
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, emptyArray);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: emptyArray });
 
       assert.strictEqual(response.status, 201);
     });
@@ -390,7 +390,7 @@ void describe('FetchClient Body Serialization', () => {
 
       await assert.rejects(
         async () => {
-          await ctx.client.post(`${ctx.testUrl}/posts`, circular);
+          await ctx.client.post(`${ctx.testUrl}/posts`, { body: circular });
         },
         (error: Error) => {
           assert.ok(error instanceof TypeError);
@@ -408,7 +408,7 @@ void describe('FetchClient Body Serialization', () => {
         [symbolKey]: 'symbol value'
       };
 
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, objWithSymbol);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: objWithSymbol });
 
       assert.strictEqual(response.status, 201);
 
@@ -426,7 +426,7 @@ void describe('FetchClient Body Serialization', () => {
         }
       };
 
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, objWithFunction);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: objWithFunction });
 
       assert.strictEqual(response.status, 201);
 
@@ -444,7 +444,7 @@ void describe('FetchClient Body Serialization', () => {
 
       await assert.rejects(
         async () => {
-          await ctx.client.post(`${ctx.testUrl}/posts`, objWithBigInt);
+          await ctx.client.post(`${ctx.testUrl}/posts`, { body: objWithBigInt });
         },
         (error: Error) => {
           assert.ok(error instanceof TypeError);
@@ -461,7 +461,7 @@ void describe('FetchClient Body Serialization', () => {
         undefined: undefined
       };
 
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, objWithUndefined);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: objWithUndefined });
 
       assert.strictEqual(response.status, 201);
 
@@ -479,7 +479,7 @@ void describe('FetchClient Body Serialization', () => {
     };
 
     void it('should serialize consistently via POST', async () => {
-      const response = await ctx.client.post(`${ctx.testUrl}/posts`, testBody);
+      const response = await ctx.client.post(`${ctx.testUrl}/posts`, { body: testBody });
 
       assert.strictEqual(response.status, 201);
 
@@ -490,7 +490,7 @@ void describe('FetchClient Body Serialization', () => {
     });
 
     void it('should serialize consistently via PUT', async () => {
-      const response = await ctx.client.put(`${ctx.testUrl}/posts/1`, testBody);
+      const response = await ctx.client.put(`${ctx.testUrl}/posts/1`, { body: testBody });
 
       assert.strictEqual(response.status, 200);
 
@@ -501,7 +501,7 @@ void describe('FetchClient Body Serialization', () => {
     });
 
     void it('should serialize consistently via PATCH', async () => {
-      const response = await ctx.client.patch(`${ctx.testUrl}/posts/1`, testBody);
+      const response = await ctx.client.patch(`${ctx.testUrl}/posts/1`, { body: testBody });
 
       assert.strictEqual(response.status, 200);
 

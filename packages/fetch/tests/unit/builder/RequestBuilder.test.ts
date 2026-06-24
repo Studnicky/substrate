@@ -58,9 +58,9 @@ const createMockClient = (handlers: {
   'get'?: (path: string, options?: unknown) => Promise<Response>;
   'head'?: (path: string, options?: unknown) => Promise<Response>;
   'options'?: (path: string, options?: unknown) => Promise<Response>;
-  'patch'?: (path: string, body?: unknown, options?: unknown) => Promise<Response>;
-  'post'?: (path: string, body?: unknown, options?: unknown) => Promise<Response>;
-  'put'?: (path: string, body?: unknown, options?: unknown) => Promise<Response>;
+  'patch'?: (path: string, options?: { body?: unknown } & Record<string, unknown>) => Promise<Response>;
+  'post'?: (path: string, options?: { body?: unknown } & Record<string, unknown>) => Promise<Response>;
+  'put'?: (path: string, options?: { body?: unknown } & Record<string, unknown>) => Promise<Response>;
 } = {}): MockClient => {
   return {
     delete: handlers.delete ?? (async () => {
@@ -98,8 +98,8 @@ void describe('RequestBuilder', () => {
     void it('should set JSON body with object', async () => {
       let capturedBody: unknown;
       const client = createMockClient({
-        post: async (_path, body) => {
-          capturedBody = body;
+        post: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }
@@ -118,8 +118,8 @@ void describe('RequestBuilder', () => {
     void it('should set string body', async () => {
       let capturedBody: unknown;
       const client = createMockClient({
-        post: async (_path, body) => {
-          capturedBody = body;
+        post: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }
@@ -135,8 +135,8 @@ void describe('RequestBuilder', () => {
     void it('should set Buffer body', async () => {
       let capturedBody: unknown;
       const client = createMockClient({
-        post: async (_path, body) => {
-          capturedBody = body;
+        post: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }
@@ -152,8 +152,8 @@ void describe('RequestBuilder', () => {
     void it('should set null body', async () => {
       let capturedBody: unknown = 'not-set';
       const client = createMockClient({
-        post: async (_path, body) => {
-          capturedBody = body;
+        post: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }
@@ -168,8 +168,8 @@ void describe('RequestBuilder', () => {
     void it('should set undefined body', async () => {
       let capturedBody: unknown = 'not-set';
       const client = createMockClient({
-        post: async (_path, body) => {
-          capturedBody = body;
+        post: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }
@@ -184,8 +184,8 @@ void describe('RequestBuilder', () => {
     void it('should support json() as alias for body()', async () => {
       let capturedBody: unknown;
       const client = createMockClient({
-        post: async (_path, body) => {
-          capturedBody = body;
+        post: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }
@@ -201,8 +201,8 @@ void describe('RequestBuilder', () => {
     void it('should override body when set multiple times', async () => {
       let capturedBody: unknown;
       const client = createMockClient({
-        post: async (_path, body) => {
-          capturedBody = body;
+        post: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }
@@ -999,8 +999,8 @@ void describe('RequestBuilder', () => {
     void it('should execute POST request with body', async () => {
       let capturedBody: unknown;
       const client = createMockClient({
-        post: async (_path, body) => {
-          capturedBody = body;
+        post: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }
@@ -1016,8 +1016,8 @@ void describe('RequestBuilder', () => {
     void it('should execute PUT request with body', async () => {
       let capturedBody: unknown;
       const client = createMockClient({
-        put: async (_path, body) => {
-          capturedBody = body;
+        put: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }
@@ -1033,8 +1033,8 @@ void describe('RequestBuilder', () => {
     void it('should execute PATCH request with body', async () => {
       let capturedBody: unknown;
       const client = createMockClient({
-        patch: async (_path, body) => {
-          capturedBody = body;
+        patch: async (_path, opts) => {
+          capturedBody = opts?.body;
 
           return new Response();
         }

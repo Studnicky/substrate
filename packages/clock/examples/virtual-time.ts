@@ -1,15 +1,12 @@
-/**
- * Virtual time control — multiple VirtualTimeCounter sequences,
- * hrtime/epoch-ms alignment, and monotonicity verification.
- *
- * Run: npx tsx packages/clock/examples/virtual-time.ts
- */
+/** virtual-time — multiple VirtualTimeCounter sequences, hrtime/epoch-ms alignment, and monotonicity verification. Run: npx tsx packages/clock/examples/virtual-time.ts */
+
 import assert from 'node:assert/strict';
 
+// #region usage
 import {
   Clock,
   VirtualClockProvider,
-  VirtualTimeCounter,
+  VirtualTimeCounter
 } from '../src/index.js';
 
 // --- hrtime matches epoch-ms * 1_000_000n ---
@@ -22,7 +19,6 @@ counterA.advance(100);
 const epochMs = clockA.now();
 const ns = clockA.hrtime();
 
-assert.equal(ns, BigInt(epochMs) * 1_000_000n, 'hrtime equals epoch-ms * 1_000_000n');
 console.log(`epochMs=${epochMs}, hrtime=${ns}n (== ${epochMs} * 1_000_000n)`);
 
 // --- Monotonicity after advances ---
@@ -30,18 +26,14 @@ console.log(`epochMs=${epochMs}, hrtime=${ns}n (== ${epochMs} * 1_000_000n)`);
 const counterB = new VirtualTimeCounter(0);
 const clockB = new Clock(new VirtualClockProvider(counterB));
 
+const deltas = [0, 50, 0, 200, 100];
 const readings: number[] = [];
 
-for (const delta of [0, 50, 0, 200, 100]) {
-  counterB.advance(delta);
-  readings.push(clockB.now());
-}
+const deltasLen = deltas.length;
 
-for (let i = 1; i < readings.length; i++) {
-  assert.ok(
-    (readings[i] ?? 0) >= (readings[i - 1] ?? 0),
-    `now() must not decrease: readings[${i - 1}]=${readings[i - 1]}, readings[${i}]=${readings[i]}`,
-  );
+for (let i = 0; i < deltasLen; i++) {
+  counterB.advance(deltas[i] ?? 0);
+  readings.push(clockB.now());
 }
 
 console.log(`monotonicity sequence: ${readings.join(' → ')}`);
@@ -56,8 +48,6 @@ const clockY = new Clock(new VirtualClockProvider(counterY));
 counterX.advance(500);
 counterY.advance(100);
 
-assert.equal(clockX.now(), 1500);
-assert.equal(clockY.now(), 2100);
 console.log(`independent counters: clockX.now()=${clockX.now()}, clockY.now()=${clockY.now()}`);
 
 // --- Shared counter keeps multiple clocks in sync ---
@@ -68,8 +58,23 @@ const clockQ = new Clock(new VirtualClockProvider(shared));
 
 shared.advance(300);
 
+console.log(`shared counter: clockP.now()=${clockP.now()}, clockQ.now()=${clockQ.now()}`);
+// #endregion usage
+
+assert.equal(ns, BigInt(epochMs) * 1_000_000n, 'hrtime equals epoch-ms * 1_000_000n');
+
+const readingsLen = readings.length;
+
+for (let i = 1; i < readingsLen; i++) {
+  assert.ok(
+    (readings[i] ?? 0) >= (readings[i - 1] ?? 0),
+    `now() must not decrease: readings[${i - 1}]=${readings[i - 1]}, readings[${i}]=${readings[i]}`
+  );
+}
+
+assert.equal(clockX.now(), 1500);
+assert.equal(clockY.now(), 2100);
 assert.equal(clockP.now(), 300);
 assert.equal(clockQ.now(), 300);
-console.log(`shared counter: clockP.now()=${clockP.now()}, clockQ.now()=${clockQ.now()}`);
 
 console.log('virtual-time: all assertions passed');

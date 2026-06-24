@@ -1,4 +1,4 @@
-import type { MutexConfigType } from '../types/MutexConfigType.js';
+import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 import type { MutexStatsType } from '../types/MutexStatsType.js';
 
 /**
@@ -35,7 +35,7 @@ export interface MutexInterface<K extends PropertyKey = string> {
   acquireDisposable(key: K): Promise<MutexLockInterface>;
   clear(): void;
   completeQueue(): Promise<void>;
-  getConfig(): Readonly<MutexConfigType>;
+  getConfig(): Readonly<MutexConfigEntity.Type>;
   getStats(): MutexStatsType;
   isComplete(): boolean;
   isLocked(key: K): boolean;

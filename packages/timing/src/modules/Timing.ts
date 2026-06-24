@@ -1,11 +1,11 @@
+import { ConfigurationError } from '@studnicky/config';
+
+import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 import type { TimingEventDataType } from '../interfaces/TimingEventDataType.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
-import type { TimingOptionsType } from '../interfaces/TimingOptionsType.js';
 
 import { DEFAULT_DECIMAL_PRECISION, DEFAULT_MAX_EVENTS, NS_PER_UNIT } from '../constants/index.js';
-import { ConfigurationError } from '../errors/ConfigurationError.js';
-import { validateMaxEvents } from '../validation/schemas/validateMaxEvents.js';
-import { validatePrecision } from '../validation/schemas/validatePrecision.js';
+import { TimingValidator } from '../validation/TimingValidator.js';
 import { TimingBuilder } from './TimingBuilder.js';
 
 /**
@@ -88,7 +88,7 @@ export class Timing implements TimingInterface {
    * ```
    */
   static builder(): TimingBuilder {
-    const result = TimingBuilder.create((options: TimingOptionsType) => {
+    const result = TimingBuilder.create((options: TimingOptionsEntity.Type) => {
       const result = Timing.createInstance(options);
       return result;
     });
@@ -102,8 +102,9 @@ export class Timing implements TimingInterface {
    * @param options - Timing configuration options
    * @returns A new Timing (or subclass) instance
    */
-  protected static createInstance(options: TimingOptionsType): Timing {
-    return new Timing(options);
+  protected static createInstance(options: TimingOptionsEntity.Type): Timing {
+    const result = new Timing(options);
+    return result;
   }
 
   protected readonly _maxEvents: number;
@@ -125,16 +126,16 @@ export class Timing implements TimingInterface {
    * @param options - Timing configuration options
    * @throws ConfigurationError - When configuration validation fails
    */
-  protected constructor(options: TimingOptionsType = {}) {
+  protected constructor(options: TimingOptionsEntity.Type = {}) {
     try {
       // Validate maxEvents BEFORE applying defaults
       if (options.maxEvents !== undefined) {
-        validateMaxEvents(options.maxEvents);
+        TimingValidator.validateMaxEvents(options.maxEvents);
       }
 
       // Validate precision if provided
       if (options.precision !== undefined) {
-        validatePrecision(options.precision);
+        TimingValidator.validatePrecision(options.precision);
       }
 
       // Apply defaults AFTER validation
@@ -169,11 +170,11 @@ export class Timing implements TimingInterface {
 
       // Wrap other errors as ConfigurationError
       if (error instanceof Error) {
-        throw new ConfigurationError(error.message);
+        throw ConfigurationError.create(error.message, error);
       }
 
       // Unknown error type
-      throw new ConfigurationError(String(error));
+      throw ConfigurationError.create(String(error));
     }
   }
 
@@ -355,5 +356,6 @@ export class Timing implements TimingInterface {
    *
    * @returns Current time in nanoseconds
    */
-  protected readHrtime(): bigint { return process.hrtime.bigint(); }
+  protected readHrtime(): bigint { const result = process.hrtime.bigint();
+    return result; }
 }

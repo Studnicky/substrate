@@ -7,3 +7,4 @@
  */
 
 export { batchConcurrent } from './batch/index.js';
+export { BatchError } from './errors/index.js';

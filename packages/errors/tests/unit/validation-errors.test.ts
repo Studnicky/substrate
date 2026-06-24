@@ -15,11 +15,11 @@ import {
 import { ValidationErrors } from '../../src/errors/ValidationErrors.js';
 import type { ValidationViolationType } from '../../src/types/ValidationViolationType.js';
 
-const violation = (path: string, keyword: string, message: string): ValidationViolationType => ({
-  keyword,
-  message,
-  path
-});
+class TestViolation {
+  public static of(path: string, keyword: string, message: string): ValidationViolationType {
+    return { keyword, message, path };
+  }
+}
 
 void describe('ValidationErrors', () => {
   void describe('construction', () => {
@@ -30,7 +30,7 @@ void describe('ValidationErrors', () => {
     });
 
     void it('non-empty collection has ok === false', () => {
-      const errs = new ValidationErrors([violation('/name', 'required', 'required')]);
+      const errs = new ValidationErrors([TestViolation.of('/name', 'required', 'required')]);
       strictEqual(errs.ok, false);
       strictEqual(errs.length, 1);
     });
@@ -38,7 +38,7 @@ void describe('ValidationErrors', () => {
 
   void describe('ValidationErrors.of()', () => {
     void it('produces correct collection from array', () => {
-      const v = violation('/email', 'format', 'must be email');
+      const v = TestViolation.of('/email', 'format', 'must be email');
       const errs = ValidationErrors.of([v]);
       strictEqual(errs.length, 1);
       strictEqual(errs.items[0], v);
@@ -47,8 +47,8 @@ void describe('ValidationErrors', () => {
 
   void describe('ValidationErrors.merge()', () => {
     void it('combines violations from multiple collections', () => {
-      const a = ValidationErrors.of([violation('/a', 'required', 'required')]);
-      const b = ValidationErrors.of([violation('/b', 'minLength', 'too short')]);
+      const a = ValidationErrors.of([TestViolation.of('/a', 'required', 'required')]);
+      const b = ValidationErrors.of([TestViolation.of('/b', 'minLength', 'too short')]);
       const merged = ValidationErrors.merge(a, b);
       strictEqual(merged.length, 2);
       strictEqual(merged.items[0]?.path, '/a');
@@ -62,20 +62,18 @@ void describe('ValidationErrors', () => {
   });
 
   void describe('ValidationErrors.fromValidatorErrors()', () => {
-    void it('returns empty collection for null', () => {
-      const errs = ValidationErrors.fromValidatorErrors(null);
-      ok(errs.ok);
-    });
+    const emptyInputScenarios: Array<{ description: string; input: null | undefined | never[] }> = [
+      { description: 'returns empty collection for null', input: null },
+      { description: 'returns empty collection for undefined', input: undefined },
+      { description: 'returns empty collection for empty array', input: [] }
+    ];
 
-    void it('returns empty collection for undefined', () => {
-      const errs = ValidationErrors.fromValidatorErrors(undefined);
-      ok(errs.ok);
-    });
-
-    void it('returns empty collection for empty array', () => {
-      const errs = ValidationErrors.fromValidatorErrors([]);
-      ok(errs.ok);
-    });
+    for (const { description, input } of emptyInputScenarios) {
+      void it(description, () => {
+        const errs = ValidationErrors.fromValidatorErrors(input);
+        ok(errs.ok);
+      });
+    }
 
     void it('maps Ajv-style errors to violations', () => {
       const rawErrors = [
@@ -100,10 +98,10 @@ void describe('ValidationErrors', () => {
   void describe('aggregate()', () => {
     void it('returns deduplicated sorted paths and keywords', () => {
       const errs = ValidationErrors.of([
-        violation('/b', 'minLength', 'too short'),
-        violation('/a', 'required', 'required'),
-        violation('/b', 'type', 'wrong type'),
-        violation('/a', 'required', 'required again')
+        TestViolation.of('/b', 'minLength', 'too short'),
+        TestViolation.of('/a', 'required', 'required'),
+        TestViolation.of('/b', 'type', 'wrong type'),
+        TestViolation.of('/a', 'required', 'required again')
       ]);
       const agg = errs.aggregate();
       strictEqual(agg.count, 4);
@@ -121,7 +119,7 @@ void describe('ValidationErrors', () => {
 
   void describe('report()', () => {
     void it('returns RFC 7807 shape with defaults', () => {
-      const errs = ValidationErrors.of([violation('/x', 'required', 'required')]);
+      const errs = ValidationErrors.of([TestViolation.of('/x', 'required', 'required')]);
       const report = errs.report();
       strictEqual(report.type, 'https://problems.studnicky.dev/validation');
       strictEqual(report.title, 'Validation failed');
@@ -132,14 +130,14 @@ void describe('ValidationErrors', () => {
 
     void it('uses plural detail for multiple errors', () => {
       const errs = ValidationErrors.of([
-        violation('/a', 'required', 'required'),
-        violation('/b', 'format', 'bad format')
+        TestViolation.of('/a', 'required', 'required'),
+        TestViolation.of('/b', 'format', 'bad format')
       ]);
       strictEqual(errs.report().detail, '2 validation errors');
     });
 
     void it('applies provided type and status overrides', () => {
-      const errs = ValidationErrors.of([violation('/x', 'required', 'required')]);
+      const errs = ValidationErrors.of([TestViolation.of('/x', 'required', 'required')]);
       const report = errs.report({ type: 'https://example.com/custom', status: 400 });
       strictEqual(report.type, 'https://example.com/custom');
       strictEqual(report.status, 400);
@@ -147,7 +145,7 @@ void describe('ValidationErrors', () => {
     });
 
     void it('applies provided title override', () => {
-      const errs = ValidationErrors.of([violation('/x', 'required', 'required')]);
+      const errs = ValidationErrors.of([TestViolation.of('/x', 'required', 'required')]);
       const report = errs.report({ title: 'Schema check failed' });
       strictEqual(report.title, 'Schema check failed');
     });
@@ -155,8 +153,8 @@ void describe('ValidationErrors', () => {
 
   void describe('iterable', () => {
     void it('spread yields all violations', () => {
-      const v1 = violation('/a', 'required', 'required');
-      const v2 = violation('/b', 'minLength', 'too short');
+      const v1 = TestViolation.of('/a', 'required', 'required');
+      const v2 = TestViolation.of('/b', 'minLength', 'too short');
       const errs = ValidationErrors.of([v1, v2]);
       const spread = [...errs];
       strictEqual(spread.length, 2);
@@ -166,9 +164,9 @@ void describe('ValidationErrors', () => {
 
     void it('for-of iterates violations in order', () => {
       const violations = [
-        violation('/a', 'required', 'required'),
-        violation('/b', 'format', 'bad format'),
-        violation('/c', 'type', 'wrong type')
+        TestViolation.of('/a', 'required', 'required'),
+        TestViolation.of('/b', 'format', 'bad format'),
+        TestViolation.of('/c', 'type', 'wrong type')
       ];
       const errs = ValidationErrors.of(violations);
       const collected: ValidationViolationType[] = [];

@@ -57,7 +57,8 @@ export class Frozen {
    * Called once per object, after cycle detection.
    */
   protected static shouldFreeze(_value: object): boolean {
-    return true;
+    const result = true;
+    return result;
   }
 
   // ---------------------------------------------------------------------------
@@ -71,6 +72,7 @@ export class Frozen {
    * Returns the same reference, frozen in place.
    */
   public static deepFreeze<T>(value: T): T {
-    return this.freezeValue(value, new WeakSet());
+    const result = this.freezeValue(value, new WeakSet());
+    return result;
   }
 }

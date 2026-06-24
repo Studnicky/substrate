@@ -146,21 +146,35 @@ void describe('Pipeline subclass extension', () => {
   });
 
   void describe('onRunStart / onRunComplete hooks', () => {
-    void it('onRunStart is called before any stage', async () => {
+    const bracketHookCalledScenarios: Array<{
+      description: string;
+      check: (pipeline: BracketPipeline) => boolean;
+    }> = [
+      {
+        description: 'onRunStart is called before any stage',
+        check: (p) => p.runStartCalled,
+      },
+      {
+        description: 'onRunComplete is called after all stages',
+        check: (p) => p.runCompleteCalled,
+      },
+    ];
+
+    for (const { description, check } of bracketHookCalledScenarios) {
+      void it(description, async () => {
+        const pipeline = new BracketPipeline();
+        pipeline.add((n) => n);
+        await pipeline.run(5);
+        assert.strictEqual(check(pipeline), true);
+      });
+    }
+
+    void it('onRunStart receives the original ctx value', async () => {
       const pipeline = new BracketPipeline();
       pipeline.add((n) => n); // identity
 
       await pipeline.run(5);
-      assert.strictEqual(pipeline.runStartCalled, true);
       assert.strictEqual(pipeline.runStartCtx, 5);
-    });
-
-    void it('onRunComplete is called after all stages', async () => {
-      const pipeline = new BracketPipeline();
-      pipeline.add((n) => n); // identity
-
-      await pipeline.run(5);
-      assert.strictEqual(pipeline.runCompleteCalled, true);
     });
 
     void it('onRunStart return value is passed to first stage', async () => {

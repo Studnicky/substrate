@@ -2,6 +2,7 @@
 
 import assert from 'node:assert/strict';
 
+// #region usage
 import { Retry } from '../src/index.js';
 
 class Counter {
@@ -22,19 +23,20 @@ const counter = new Counter();
 
 const retry = Retry.builder()
   .maxRetries(3)
-  .retryInterceptor(() => ({ delayMs: 0 }))
+  .retryInterceptor(() => {return { 'delayMs': 0 };})
   .build();
 
-const result = await retry.execute(async () => {
+const result = await retry.execute(() => {
   const attempt = counter.increment();
   if (attempt <= failCount) {
     throw new Error(`Transient failure on attempt ${attempt}`);
   }
-  return `success on attempt ${attempt}`;
+  return Promise.resolve(`success on attempt ${attempt}`);
 });
 
 console.log(`Result: ${result}`);
 console.log('Stats:', retry.getStats());
+// #endregion usage
 
 assert.equal(result, `success on attempt ${failCount + 1}`);
 assert.equal(retry.getStats().totalRequests, 1);

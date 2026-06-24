@@ -3,10 +3,10 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 /**
  * Context implementation using AsyncLocalStorage.
  */
-import type { ContextConfigType } from '../interfaces/ContextConfigType.js';
+import type { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import type { ContextInterface } from '../interfaces/ContextInterface.js';
 
-import { ContextError } from '../errors/ContextError.js';
+import { ContextConfigError, ContextError } from '../errors/ContextError.js';
 import { ContextBuilder } from './ContextBuilder.js';
 import { ContextScope } from './ContextScope.js';
 
@@ -54,7 +54,8 @@ export class Context implements ContextInterface {
    */
   static builder(): ContextBuilder {
     // Factory closure so `create` retains its `this` binding when the builder calls it.
-    return new ContextBuilder((config) => Context.create(config));
+    const result = new ContextBuilder((config) => { const result = Context.create(config); return result; });
+    return result;
   }
 
   /**
@@ -68,9 +69,10 @@ export class Context implements ContextInterface {
    * const context = Context.create({ name: 'request' });
    * ```
    */
-  static create(config: ContextConfigType): Context {
+  static create(config: ContextConfigEntity.Type): Context {
     // `new this(...)` so subclass factories return the subclass instance.
-    return new this(config);
+    const result = new this(config);
+    return result;
   }
 
   readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
@@ -80,7 +82,11 @@ export class Context implements ContextInterface {
    */
   readonly name: string;
 
-  protected constructor(config: ContextConfigType) {
+  protected constructor(config: ContextConfigEntity.Type) {
+    if (typeof config.name !== 'string' || config.name.length === 0) {
+      throw new ContextConfigError('name must be a non-empty string');
+    }
+
     this.name = config.name;
     this.#storage = new AsyncLocalStorage<Map<string, unknown>>();
   }
@@ -98,7 +104,7 @@ export class Context implements ContextInterface {
     const store = this.#storage.getStore();
 
     if (store === undefined) {
-      if (this.onMissingContext()) return new Map();
+      if (this.onMissingContext()) {return new Map();}
 
       throw new ContextError(`No active ${this.name} context - ensure code runs within execute()`);
     }
@@ -115,7 +121,8 @@ export class Context implements ContextInterface {
    * Subclasses override to implement lenient-mode or logging behavior.
    */
   protected onMissingContext(_key?: string): boolean {
-    return false;
+    const result = false;
+    return result;
   }
 
   /**
@@ -140,7 +147,8 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   delete(key: string): boolean {
-    return this.getStore().delete(key);
+    const result = this.getStore().delete(key);
+    return result;
   }
 
   /**
@@ -170,7 +178,8 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   has(key: string): boolean {
-    return this.getStore().has(key);
+    const result = this.getStore().has(key);
+    return result;
   }
 
   /**
@@ -213,7 +222,8 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   keys(): string[] {
-    return [...this.getStore().keys()];
+    const store = this.getStore();
+    return [...store.keys()];
   }
 
   /**
@@ -235,7 +245,8 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   snapshot(): Record<string, unknown> {
-    return Object.fromEntries(this.getStore());
+    const result = Object.fromEntries(this.getStore());
+    return result;
   }
 
   /**
@@ -249,6 +260,7 @@ export class Context implements ContextInterface {
    * @returns The value, or undefined
    */
   tryGet<T>(key: string): T | undefined {
-    return this.#storage.getStore()?.get(key) as T | undefined;
+    const result = this.#storage.getStore()?.get(key) as T | undefined;
+    return result;
   }
 }

@@ -47,6 +47,7 @@ export class CliExitError extends BaseError {
    * Default returns `''` (empty string — CLI exit errors are silent by design).
    */
   protected static buildExitMessage(_exitCode: number): string {
-    return '';
+    const result = '';
+    return result;
   }
 }

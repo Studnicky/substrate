@@ -1,7 +1,94 @@
-import { createSelectorRule } from './createSelectorRule.js';
+import type { Rule } from 'eslint';
+import type ts from 'typescript';
 
-export const arrayFromIterators = createSelectorRule(
-  'v8Optimization/arrayFromIterators',
-  'CallExpression[callee.object.name="Array"][callee.property.name="from"][arguments.0.type="CallExpression"][arguments.0.callee.property.name=/entries|keys|values/]',
-  'Avoid Array.from on iterators in hot paths.'
-);
+type ParserServicesType = {
+  readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
+  readonly 'program'?: ts.Program;
+};
+
+const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
+{return value !== null && value !== undefined && typeof value === 'object';};
+
+const hasTypeServices = (value: unknown): value is Required<ParserServicesType> => {
+  if (!isNonNullObject(value)) { return false; }
+  if (!('program' in value) || !isNonNullObject(value.program)) { return false; }
+
+  return typeof value.program.getTypeChecker === 'function'
+    && 'esTreeNodeToTSNodeMap' in value
+    && value.esTreeNodeToTSNodeMap instanceof Map;
+};
+
+// Returns true only for the two zero-ambiguity structurally-certain constructors:
+// new Map(...) and new Set(...)
+const isMapOrSetConstruction = (node: unknown): boolean => {
+  if (!isNonNullObject(node)) { return false; }
+  if (node.type !== 'NewExpression') { return false; }
+  const callee = node.callee;
+  if (!isNonNullObject(callee)) { return false; }
+  if (callee.type !== 'Identifier') { return false; }
+  const name = callee.name;
+  return name === 'Map' || name === 'Set';
+};
+
+const isArrayFromCall = (node: unknown): boolean => {
+  if (!isNonNullObject(node)) { return false; }
+  if (node.type !== 'CallExpression') { return false; }
+  const callee = node.callee;
+  if (!isNonNullObject(callee)) { return false; }
+  if (callee.type !== 'MemberExpression') { return false; }
+  const obj = callee.object;
+  if (!isNonNullObject(obj) || obj.type !== 'Identifier' || obj.name !== 'Array') { return false; }
+  const prop = callee.property;
+  if (!isNonNullObject(prop) || prop.type !== 'Identifier' || prop.name !== 'from') { return false; }
+  return true;
+};
+
+export const arrayFromIterators: Rule.RuleModule = {
+  'create': (context) => {
+    const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
+      if (!isArrayFromCall(node)) { return; }
+
+      const rawNode = node as unknown as Record<string, unknown>;
+      const args = rawNode.arguments;
+      if (!Array.isArray(args) || args.length === 0) { return; }
+      const firstArg: unknown = args[0];
+
+      const servicesUnknown: unknown = context.sourceCode.parserServices;
+
+      if (hasTypeServices(servicesUnknown)) {
+        // Type-checker path: flag when the first argument's return type is iterable but not an array.
+        const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(firstArg);
+        if (tsNode === undefined) { return; }
+        const checker = servicesUnknown.program.getTypeChecker();
+        const type = checker.getTypeAtLocation(tsNode);
+
+        const isArray = 'isArrayType' in checker && typeof checker.isArrayType === 'function'
+          && checker.isArrayType(type);
+
+        // Only flag when not already an array (Array.from on an array is a different anti-pattern).
+        // Flag any iterable that is not an array: Map, Set, generator returns, custom iterables.
+        if (!isArray) {
+          context.report({ 'messageId': 'forbidden', 'node': node });
+        }
+        return;
+      }
+
+      // No type services: only flag structurally-certain cases — new Map(...) or new Set(...).
+      // Any other expression (identifiers, arbitrary calls) could be an array — do not guess.
+      if (isMapOrSetConstruction(firstArg)) {
+        context.report({ 'messageId': 'forbidden', 'node': node });
+      }
+    };
+
+    return { 'CallExpression': onCallExpression };
+  },
+  'meta': {
+    'docs': {
+      'description': 'Avoid Array.from on iterators in hot paths.',
+      'recommended': false
+    },
+    'messages': { 'forbidden': 'v8Optimization/arrayFromIterators: Avoid Array.from on iterators in hot paths.' },
+    'schema': [],
+    'type': 'problem'
+  }
+};

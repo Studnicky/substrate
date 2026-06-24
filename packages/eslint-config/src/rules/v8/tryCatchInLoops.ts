@@ -8,37 +8,35 @@ const LOOP_TYPES = new Set([
   'WhileStatement'
 ]);
 
-const createTryCatchInLoops: NonNullable<Rule.RuleModule['create']> = (context) => {
-  const onTryStatement: NonNullable<Rule.RuleListener['TryStatement']> = (node) => {
-    let parent: Rule.Node | null = node.parent;
-
-    while (parent !== null) {
-      if (LOOP_TYPES.has(parent.type)) {
-        context.report({
-          'messageId': 'tryCatchInLoop',
-          'node': node
-        });
-
-        return;
-      }
-
-      if (
-        parent.type === 'FunctionDeclaration'
-        || parent.type === 'FunctionExpression'
-        || parent.type === 'ArrowFunctionExpression'
-      ) {
-        return;
-      }
-
-      parent = parent.parent;
-    }
-  };
-
-  return { 'TryStatement': onTryStatement };
-};
-
 export const tryCatchInLoops: Rule.RuleModule = {
-  'create': createTryCatchInLoops,
+  'create': (context) => {
+    const onTryStatement: NonNullable<Rule.RuleListener['TryStatement']> = (node) => {
+      let parent: Rule.Node | null = node.parent;
+
+      while (parent !== null) {
+        if (LOOP_TYPES.has(parent.type)) {
+          context.report({
+            'messageId': 'tryCatchInLoop',
+            'node': node
+          });
+
+          return;
+        }
+
+        if (
+          parent.type === 'FunctionDeclaration'
+          || parent.type === 'FunctionExpression'
+          || parent.type === 'ArrowFunctionExpression'
+        ) {
+          return;
+        }
+
+        parent = parent.parent;
+      }
+    };
+
+    return { 'TryStatement': onTryStatement };
+  },
   'meta': {
     'docs': {
       'description': 'Disallow try-catch blocks inside loops; V8 cannot optimize functions containing try-catch in hot paths.',

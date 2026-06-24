@@ -22,8 +22,6 @@ export class NonRetryableError extends RetryError {
     public readonly reason: string,
     attempts: number
   ) {
-    super(message, attempts, originalError);
-    this.name = 'NonRetryableError';
-    Error.captureStackTrace(this, NonRetryableError);
+    super(message, attempts, { 'cause': originalError, 'code': 'retry.nonRetryable', 'errors': [] });
   }
 }

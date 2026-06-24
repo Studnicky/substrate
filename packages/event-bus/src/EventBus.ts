@@ -10,7 +10,8 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
   readonly #busController = new AbortController();
 
   static create<TTopicMap extends Record<string, unknown>>(): EventBus<TTopicMap> {
-    return new EventBus<TTopicMap>();
+    const result = new EventBus<TTopicMap>();
+    return result;
   }
 
   private constructor() {}
@@ -71,7 +72,7 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
   async publish<K extends keyof TTopicMap>(topic: K, payload: TTopicMap[K]): Promise<void> {
     const topicMap = this.#store.get(String(topic));
     if (topicMap === undefined || topicMap.size === 0) { return; }
-    await Promise.all([...topicMap.values()].map((q) => q.enqueue(payload as unknown)));
+    await Promise.all([...topicMap.values()].map((q) => { const result = q.enqueue(payload); return result; }));
   }
 
   async drain(): Promise<void> {

@@ -1,7 +1,8 @@
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 
-import type { FileLockOptionsType } from './FileLockOptionsType.js';
+import type { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 
+import { FileLockConfigError } from './errors/FileLockConfigError.js';
 import { FileLockTimeoutError } from './FileLockTimeoutError.js';
 
 const DEFAULT_POLL_MS = 50;
@@ -21,7 +22,14 @@ export class FileLock {
     return e instanceof Error && 'code' in e;
   }
 
-  static acquire(path: string, options?: FileLockOptionsType): Promise<FileLock> {
+  static acquire(path: string, options?: FileLockOptionsEntity.Type): Promise<FileLock> {
+    if (options?.pollMs !== undefined && (options.pollMs <= 0 || Number.isNaN(options.pollMs))) {
+      return Promise.reject(new FileLockConfigError('pollMs must be a positive number'));
+    }
+    if (options?.timeoutMs !== undefined && (options.timeoutMs <= 0 || Number.isNaN(options.timeoutMs))) {
+      return Promise.reject(new FileLockConfigError('timeoutMs must be a positive number'));
+    }
+
     const pollMs = options?.pollMs ?? DEFAULT_POLL_MS;
     const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const lockPath = `${path}.lock.${String(process.pid)}`;
@@ -49,7 +57,8 @@ export class FileLock {
   }
 
   read(): string {
-    return readFileSync(this.#lockPath, 'utf8');
+    const result = readFileSync(this.#lockPath, 'utf8');
+    return result;
   }
 
   write(content: string): void {

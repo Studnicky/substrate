@@ -17,58 +17,17 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-### CPU
+### CPU, memory, and platform
 
-```typescript
-import { System } from '@studnicky/system';
+Read CPU topology, memory usage, and platform info synchronously, plus computed shorthands for common worker-pool decisions:
 
-const cpu = System.cpu;
-// { arch: 'arm64', logicalCount: 10, physicalCount: 10, model: 'Apple M2 Pro' }
+<<< ../../packages/system/examples/cpuMemoryPlatform.ts#usage
 
-System.logicalCpuCount;    // 10
-System.optimalWorkerCount; // 9 — logicalCount - 1, min 1
-```
+### GPU detection and full snapshot
 
-### Memory
+GPU detection is async — it shells out to `system_profiler` (macOS), `nvidia-smi` (Linux NVIDIA), or `rocm-smi` (Linux AMD). Results are cached after the first call. `System.snapshot()` returns all four info objects together:
 
-```typescript
-const mem = System.memory;
-// { totalMb: 32768, freeMb: 18432 }
-```
-
-### Platform
-
-```typescript
-const platform = System.platform;
-// { os: 'darwin', arch: 'arm64', isAppleSilicon: true, nodeVersion: 'v22.3.0' }
-
-System.isAppleSilicon; // true
-```
-
-### GPU detection
-
-GPU detection is async — it shells out to `system_profiler` (macOS), `nvidia-smi` (Linux NVIDIA), or `rocm-smi` (Linux AMD). Results are cached after the first call.
-
-```typescript
-const gpu = await System.gpu();
-if (gpu !== null) {
-  console.log(gpu.name);       // 'Apple M2 Pro'
-  console.log(gpu.computeApi); // 'metal' | 'cuda' | 'opencl' | 'software'
-  console.log(gpu.vramMb);     // 24576, or null when not reported
-}
-```
-
-### Full snapshot
-
-```typescript
-const info = await System.snapshot();
-// {
-//   cpu:      CpuInfoType,
-//   memory:   MemoryInfoType,
-//   platform: PlatformInfoType,
-//   gpu:      GpuInfoType | null
-// }
-```
+<<< ../../packages/system/examples/snapshot.ts#usage
 
 ## API
 

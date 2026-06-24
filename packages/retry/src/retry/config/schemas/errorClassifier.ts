@@ -5,15 +5,17 @@
 import { ConfigValidation } from '@studnicky/config';
 
 /**
- * Validates errorClassifier parameter
+ * Internal validator for the errorClassifier configuration parameter.
  */
-function validateErrorClassifier(val: unknown): void {
-  ConfigValidation.assertFunctionOrObjectWithMethod(val, 'classify', 'errorClassifier');
+class ErrorClassifierValidator {
+  static validate(val: unknown): void {
+    ConfigValidation.assertFunctionOrObjectWithMethod(val, 'classify', 'errorClassifier');
+  }
 }
 
 /**
  * Single export matching filename
  */
-const errorClassifier = { 'validateErrorClassifier': validateErrorClassifier };
+const errorClassifier = { 'validateErrorClassifier': ErrorClassifierValidator.validate };
 
 export { errorClassifier };

@@ -72,20 +72,24 @@ void describe('Patch', () => {
   });
 
   void describe('Patch.test', () => {
-    void it('passes when value matches', () => {
-      const target: Record<string, unknown> = { a: 1 };
-
-      assert.doesNotThrow(() => Patch.test('/a', 1).apply(target));
-    });
-
-    void it('throws PatchError when value does not match', () => {
-      const target: Record<string, unknown> = { a: 1 };
-
-      assert.throws(
-        () => Patch.test('/a', 2).apply(target),
-        PatchError
-      );
-    });
+    const patchTestScenarios: Array<{
+      description: string;
+      value: number;
+      shouldThrow: boolean;
+    }> = [
+      { description: 'Patch.test passes when value matches', value: 1, shouldThrow: false },
+      { description: 'Patch.test throws PatchError when value does not match', value: 2, shouldThrow: true },
+    ];
+    for (const { description, value, shouldThrow } of patchTestScenarios) {
+      void it(description, () => {
+        const target: Record<string, unknown> = { a: 1 };
+        if (shouldThrow) {
+          assert.throws(() => Patch.test('/a', value).apply(target), PatchError);
+        } else {
+          assert.doesNotThrow(() => Patch.test('/a', value).apply(target));
+        }
+      });
+    }
   });
 
   void describe('Patch.combine', () => {
@@ -103,13 +107,13 @@ void describe('Patch', () => {
   });
 
   void describe('Patch.isEmpty', () => {
-    void it('returns true for empty patch', () => {
-      assert.ok(new Patch([]).isEmpty());
-    });
-
-    void it('returns false for non-empty patch', () => {
-      assert.ok(!Patch.add('/a', 1).isEmpty());
-    });
+    const isEmptyScenarios: Array<{ description: string; patch: Patch; expected: boolean }> = [
+      { description: 'isEmpty returns true for empty patch', patch: new Patch([]), expected: true },
+      { description: 'isEmpty returns false for non-empty patch', patch: Patch.add('/a', 1), expected: false },
+    ];
+    for (const { description, patch, expected } of isEmptyScenarios) {
+      void it(description, () => { assert.strictEqual(patch.isEmpty(), expected); });
+    }
   });
 
   void describe('Patch.toString', () => {

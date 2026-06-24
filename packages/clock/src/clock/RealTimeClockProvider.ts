@@ -6,6 +6,8 @@
  */
 import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
 
+import { ClockError } from '../errors/ClockError.js';
+
 /** Named constant: nanoseconds per millisecond (as BigInt). */
 const NS_PER_MS = 1_000_000n;
 
@@ -26,6 +28,9 @@ export class RealTimeClockProvider implements ClockProviderType {
    * @param offsetMs - Optional millisecond offset applied to `Date.now()`. Defaults to 0.
    */
   public constructor(offsetMs = 0) {
+    if (!Number.isFinite(offsetMs)) {
+      throw new ClockError('offsetMs must be a finite number');
+    }
     this.#offsetMs = offsetMs;
   }
 
@@ -33,21 +38,24 @@ export class RealTimeClockProvider implements ClockProviderType {
    * Extension seam: subclasses may override to replace the raw `Date.now()` source.
    */
   protected readRawMs(): number {
-    return Date.now();
+    const result = Date.now();
+    return result;
   }
 
   /**
    * Extension seam: subclasses may override to replace the raw `performance.now()` source.
    */
   protected readRawHrtimeMs(): number {
-    return performance.now();
+    const result = performance.now();
+    return result;
   }
 
   /**
    * Extension seam: exposes the constructor-supplied offset to subclasses.
    */
   protected get offsetMs(): number {
-    return this.#offsetMs;
+    const result = this.#offsetMs;
+    return result;
   }
 
   /**

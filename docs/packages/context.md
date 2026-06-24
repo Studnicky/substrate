@@ -13,54 +13,19 @@ description: Per-request async context isolation using AsyncLocalStorage.
 pnpm add @studnicky/context
 ```
 
+Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
+
 ## Usage
 
-```typescript
-import { Context } from '@studnicky/context';
+Create a named context, initialize a scope with seed values, run code inside `execute()`, then call `terminate()` to extract the final snapshot:
 
-// Create a named context store (one per logical domain)
-const requestContext = Context.create({ name: 'request' });
+<<< ../../packages/context/examples/basic-context.ts#usage
 
-// In your request handler
-async function handleRequest(req: Request): Promise<Response> {
-  const scope = requestContext.initialize({
-    requestId: crypto.randomUUID(),
-    startedAt: Date.now()
-  });
+## Builder API and tryGet vs get
 
-  return scope.execute(async () => {
-    // Anywhere in the async call tree:
-    const id = requestContext.get<string>('requestId');
-    console.log('handling', id);
+Use `Context.builder()` for the fluent construction style. `tryGet` returns `undefined` for absent keys; `get` throws `ContextError`:
 
-    return new Response('ok');
-  });
-}
-```
-
-### Builder
-
-```typescript
-import { Context } from '@studnicky/context';
-
-const ctx = Context.builder()
-  .name('background-job')
-  .build();
-```
-
-### Terminate to extract final state
-
-```typescript
-const scope = requestContext.initialize({ requestId: '123' });
-
-const result = await scope.execute(async () => {
-  requestContext.set('statusCode', 200);
-  return processRequest();
-});
-
-const finalState = scope.terminate();
-// { requestId: '123', statusCode: 200 }
-```
+<<< ../../packages/context/examples/builder-api.ts#usage
 
 ## Subpath exports
 
@@ -72,20 +37,8 @@ const finalState = scope.terminate();
 
 ## Extending
 
-`Context` uses `AsyncLocalStorage` internally. Subclass to add initialization hooks:
+Override `onInitialize` to seed default values into every scope without requiring callers to pass them:
 
-```typescript
-import { Context } from '@studnicky/context';
-
-class TracedContext extends Context {
-  protected override onInitialize(values: Record<string, unknown>): void {
-    log.debug({ keys: Object.keys(values) }, 'context initialized');
-  }
-
-  protected override onTerminate(state: Record<string, unknown>): void {
-    log.debug({ keys: Object.keys(state) }, 'context terminated');
-  }
-}
-```
+<<< ../../packages/context/examples/subclass-hooks.ts#usage
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/context)

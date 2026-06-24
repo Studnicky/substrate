@@ -1,5 +1,6 @@
-import type { Linter, Rule } from 'eslint';
+import type { Linter } from 'eslint';
 
+import { ConfigurationError } from '@studnicky/config';
 import stylistic from '@stylistic/eslint-plugin';
 import importX from 'eslint-plugin-import-x';
 import perfectionistPlugin from 'eslint-plugin-perfectionist';
@@ -8,61 +9,50 @@ import unusedImports from 'eslint-plugin-unused-imports';
 import tseslint from 'typescript-eslint';
 
 import { plugin } from './plugin.js';
-import { argumentsObject } from './rules/v8/argumentsObject.js';
-import { arrayFromIterators } from './rules/v8/arrayFromIterators.js';
-import { computedClassProperties } from './rules/v8/computedClassProperties.js';
-import { computedObjectProperties } from './rules/v8/computedObjectProperties.js';
-import { defineProperty } from './rules/v8/defineProperty.js';
-import { deleteProperty } from './rules/v8/deleteProperty.js';
-import { evalFunction } from './rules/v8/evalFunction.js';
-import { forInLoops } from './rules/v8/forInLoops.js';
-import { forOfArrays } from './rules/v8/forOfArrays.js';
-import { memoizeArrayLength } from './rules/v8/memoizeArrayLength.js';
-import { noConcatInLoops } from './rules/v8/noConcatInLoops.js';
-import { noSpreadInLoops } from './rules/v8/noSpreadInLoops.js';
-import { prototypeModification } from './rules/v8/prototypeModification.js';
-import { regexpInLoops } from './rules/v8/regexpInLoops.js';
-import { switchStatements } from './rules/v8/switchStatements.js';
-import { tryCatchInLoops } from './rules/v8/tryCatchInLoops.js';
-import { withStatement } from './rules/v8/withStatement.js';
+import { v8Plugin } from './v8Plugin.js';
 
 export { plugin } from './plugin.js';
 export { noThisAlias } from './rules/arch/noThisAlias.js';
 export { entityNamespace } from './rules/entityNamespace.js';
 export { interfaceMustBeContract } from './rules/interfaceMustBeContract.js';
 export { noBindApplyCall } from './rules/noBindApplyCall.js';
+export { noExportAlias } from './rules/noExportAlias.js';
+export { noFreestandingVerbNoun } from './rules/noFreestandingVerbNoun.js';
+export { noPreferExistingType } from './rules/noPreferExistingType.js';
 export { noSuppressionComments } from './rules/noSuppressionComments.js';
 export { noTrivialShim } from './rules/noTrivialShim.js';
+export { noTypeAliasing } from './rules/noTypeAliasing.js';
+export { preferCollectionTypes } from './rules/preferCollectionTypes.js';
+export { requireOptionsObject } from './rules/requireOptionsObject.js';
 export { singleExport } from './rules/singleExport.js';
 export { typeAliasMustEndType } from './rules/typeAliasMustEndType.js';
-
-const v8Plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
-  'rules': {
-    'arguments-object': argumentsObject,
-    'array-from-iterators': arrayFromIterators,
-    'computed-class-properties': computedClassProperties,
-    'computed-object-properties': computedObjectProperties,
-    'define-property': defineProperty,
-    'delete-property': deleteProperty,
-    'eval-function': evalFunction,
-    'for-in-loops': forInLoops,
-    'for-of-arrays': forOfArrays,
-    'memoize-array-length': memoizeArrayLength,
-    'no-concat-in-loops': noConcatInLoops,
-    'no-spread-in-loops': noSpreadInLoops,
-    'prototype-modification': prototypeModification,
-    'regexp-in-loops': regexpInLoops,
-    'switch-statements': switchStatements,
-    'try-catch-in-loops': tryCatchInLoops,
-    'with-statement': withStatement
-  }
-};
+export { argumentsObject } from './rules/v8/argumentsObject.js';
+export { arrayFromIterators } from './rules/v8/arrayFromIterators.js';
+export { computedClassProperties } from './rules/v8/computedClassProperties.js';
+export { computedObjectProperties } from './rules/v8/computedObjectProperties.js';
+export { defineProperty } from './rules/v8/defineProperty.js';
+export { deleteProperty } from './rules/v8/deleteProperty.js';
+export { evalFunction } from './rules/v8/evalFunction.js';
+export { forInLoops } from './rules/v8/forInLoops.js';
+export { forOfArrays } from './rules/v8/forOfArrays.js';
+export { noConcatInLoops } from './rules/v8/noConcatInLoops.js';
+export { noSpreadInLoops } from './rules/v8/noSpreadInLoops.js';
+export { prototypeModification } from './rules/v8/prototypeModification.js';
+export { regexpInLoops } from './rules/v8/regexpInLoops.js';
+export { switchStatements } from './rules/v8/switchStatements.js';
+export { tryCatchInLoops } from './rules/v8/tryCatchInLoops.js';
+export { withStatement } from './rules/v8/withStatement.js';
+export { v8Plugin } from './v8Plugin.js';
 
 export type EslintConfigOptionsType = {
   readonly 'tsconfigRootDir'?: string;
 };
 
 export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Config[] => {
+  if (options?.tsconfigRootDir !== undefined && (typeof options.tsconfigRootDir !== 'string' || options.tsconfigRootDir.length === 0)) {
+    throw ConfigurationError.create('tsconfigRootDir must be a non-empty string');
+  }
+
   const result = tseslint.config(
     {
       'ignores': [
@@ -72,7 +62,7 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
       ]
     },
     {
-      'files': ['packages/*/src/**/*.ts'],
+      'files': ['packages/*/src/**/*.ts', 'packages/*/examples/**/*.ts'],
       'languageOptions': {
         'parser': tseslint.parser,
         'parserOptions': {
@@ -91,20 +81,22 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
         'perfectionist': perfectionistPlugin,
         'regexp': regexp,
         'unused-imports': unusedImports,
-        ...tseslint.plugin ? { '@typescript-eslint': tseslint.plugin } : {}
+        ...tseslint.plugin !== null && tseslint.plugin !== undefined ? { '@typescript-eslint': tseslint.plugin } : {}
       },
       'rules': {
         // @studnicky custom rules
         '@studnicky/entity-namespace': 'error',
         '@studnicky/interface-must-be-contract': 'error',
         '@studnicky/no-bind-apply-call': 'error',
+        '@studnicky/no-export-alias': 'error',
+        '@studnicky/no-freestanding-verb-noun': 'error',
+        '@studnicky/no-prefer-existing-type': 'error',
         '@studnicky/no-suppression-comments': 'error',
         '@studnicky/no-this-alias': 'error',
-        // no-trivial-shim is intentionally disabled: it over-fires on legitimate
-        // factory/accessor methods that return object/array literals or spreads,
-        // and has no working autofix for those cases. Available via the plugin if
-        // a project wants to opt in.
-        '@studnicky/no-trivial-shim': 'off',
+        '@studnicky/no-trivial-shim': 'error',
+        '@studnicky/no-type-aliasing': 'error',
+        '@studnicky/prefer-collection-types': 'warn',
+        '@studnicky/require-options-object': 'error',
         '@studnicky/single-export': 'error',
         '@studnicky/type-alias-must-end-type': 'error',
         // @studnicky/v8 optimisation rules
@@ -117,7 +109,6 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
         '@studnicky/v8/eval-function': 'error',
         '@studnicky/v8/for-in-loops': 'error',
         '@studnicky/v8/for-of-arrays': 'error',
-        '@studnicky/v8/memoize-array-length': 'error',
         '@studnicky/v8/no-concat-in-loops': 'error',
         '@studnicky/v8/no-spread-in-loops': 'error',
         '@studnicky/v8/prototype-modification': 'error',
@@ -136,6 +127,7 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
         '@stylistic/semi': ['error', 'always'],
         // @typescript-eslint — auto-fixable set
         '@typescript-eslint/array-type': ['error', { 'default': 'array' }],
+        '@typescript-eslint/await-thenable': 'error',
         '@typescript-eslint/consistent-type-exports': 'error',
         '@typescript-eslint/consistent-type-imports': ['error', { 'fixStyle': 'separate-type-imports' }],
         '@typescript-eslint/dot-notation': 'error',
@@ -151,10 +143,16 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
             'selector': 'typeAlias'
           }
         ],
+        '@typescript-eslint/no-duplicate-type-constituents': 'error',
+        '@typescript-eslint/no-explicit-any': ['error', { 'fixToUnknown': true }],
+        '@typescript-eslint/no-floating-promises': 'error',
         '@typescript-eslint/no-inferrable-types': 'error',
         '@typescript-eslint/no-meaningless-void-operator': 'error',
+        '@typescript-eslint/no-misused-promises': 'error',
+        '@typescript-eslint/no-redundant-type-constituents': 'error',
         '@typescript-eslint/no-unnecessary-type-assertion': 'error',
         '@typescript-eslint/no-unnecessary-type-constraint': 'error',
+        '@typescript-eslint/no-unsafe-assignment': 'error',
         '@typescript-eslint/no-unused-vars': ['error', {
           // `_`-prefixed args are intentionally-unused parameters on no-op
           // template-method/lifecycle hooks that subclasses override.
@@ -163,43 +161,91 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
         }],
         '@typescript-eslint/no-useless-empty-export': 'error',
         '@typescript-eslint/non-nullable-type-assertion-style': 'error',
-
         '@typescript-eslint/prefer-as-const': 'error',
         '@typescript-eslint/prefer-function-type': 'error',
         '@typescript-eslint/prefer-nullish-coalescing': 'error',
         '@typescript-eslint/prefer-optional-chain': 'error',
-
+        '@typescript-eslint/require-await': 'error',
         '@typescript-eslint/return-await': ['error', 'always'],
+        '@typescript-eslint/strict-boolean-expressions': ['error', {
+          'allowNullableObject': false,
+          'allowNumber': false,
+          'allowString': false
+        }],
+        // Core
+        'arrow-body-style': ['error', 'always'],
+        'consistent-return': 'error',
+        'curly': ['error', 'all'],
+        'eqeqeq': ['error', 'always'],
         // import-x
         'import-x/newline-after-import': 'error',
         'import-x/no-default-export': 'error',
-        // Core
+        'no-array-constructor': 'error',
+        'no-case-declarations': 'error',
+        'no-class-assign': 'error',
+        'no-cond-assign': ['error', 'always'],
+        'no-console': 'error',
+        'no-const-assign': 'error',
+        'no-constant-condition': 'error',
+        'no-debugger': 'error',
+        'no-duplicate-case': 'error',
+        'no-duplicate-imports': ['error', { 'allowSeparateTypeImports': true }],
+        'no-else-return': ['error', { 'allowElseIf': false }],
+        'no-eq-null': 'error',
+        'no-eval': 'error',
         'no-extra-bind': 'error',
+        'no-func-assign': 'error',
+        'no-global-assign': 'error',
+        'no-implicit-coercion': 'error',
+        'no-implicit-globals': 'error',
+        'no-invalid-regexp': 'error',
         'no-lonely-if': 'error',
+        'no-multi-assign': 'error',
+        'no-nested-ternary': 'error',
+        'no-new-func': 'error',
+        'no-new-wrappers': 'error',
+        'no-object-constructor': 'error',
+        'no-prototype-builtins': 'error',
+        'no-template-curly-in-string': 'error',
+        'no-throw-literal': 'error',
+        'no-unexpected-multiline': 'error',
+        'no-unreachable': 'error',
+        'no-unsafe-negation': 'error',
+        'no-unused-expressions': 'error',
         'no-var': 'error',
         'object-shorthand': ['error', 'never'],
+        'one-var': ['error', 'never'],
+        'perfectionist/sort-array-includes': ['error', { 'order': 'asc', 'type': 'natural' }],
         'perfectionist/sort-classes': 'off',
+        'perfectionist/sort-decorators': ['error', { 'order': 'asc', 'type': 'natural' }],
         // Perfectionist sorting
         'perfectionist/sort-enums': 'error',
         'perfectionist/sort-exports': 'error',
+        'perfectionist/sort-heritage-clauses': ['error', { 'order': 'asc', 'type': 'natural' }],
         'perfectionist/sort-imports': 'error',
-
         'perfectionist/sort-interfaces': 'error',
+        'perfectionist/sort-intersection-types': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-maps': ['error', { 'order': 'asc', 'type': 'natural' }],
         'perfectionist/sort-modules': 'off',
         'perfectionist/sort-named-exports': 'error',
         'perfectionist/sort-named-imports': 'error',
         'perfectionist/sort-object-types': 'error',
         'perfectionist/sort-objects': 'error',
+        'perfectionist/sort-sets': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-switch-case': ['error', { 'order': 'asc', 'type': 'natural' }],
         'perfectionist/sort-union-types': 'off',
-
+        'perfectionist/sort-variable-declarations': ['error', { 'order': 'asc', 'type': 'natural' }],
         'prefer-const': 'error',
+        'prefer-rest-params': 'error',
+        'prefer-spread': 'error',
         'prefer-template': 'error',
-
         // regexp
         'regexp/no-unused-capturing-group': 'error',
 
         'regexp/no-useless-flag': 'error',
+
         'regexp/prefer-regexp-exec': 'error',
+        'require-yield': 'error',
         // unused-imports
         'unused-imports/no-unused-imports': 'error'
       }
@@ -235,6 +281,25 @@ export const createEslintConfig = (options?: EslintConfigOptionsType): Linter.Co
       'rules': {
         '@studnicky/single-export': 'off',
         'import-x/no-default-export': 'off'
+      }
+    },
+    // Example files — runnable demos. Full type-aware rigor via the dedicated
+    // tsconfig.eslint.json, relaxing only rules that govern library authoring
+    // (single-export modules) or that conflict with a demo's purpose (console
+    // output). Correctness, type-safety, and style rules stay fully enforced.
+    {
+      'files': ['packages/*/examples/**/*.ts'],
+      'languageOptions': {
+        'parserOptions': {
+          'project': ['./tsconfig.eslint.json'],
+          'projectService': false,
+          'tsconfigRootDir': options?.tsconfigRootDir ?? process.cwd()
+        }
+      },
+      'rules': {
+        '@studnicky/single-export': 'off',
+        'import-x/no-default-export': 'off',
+        'no-console': 'off'
       }
     }
   ) as Linter.Config[];

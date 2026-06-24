@@ -52,14 +52,31 @@ describe('MachineRegistry', () => {
     assert.equal(MachineRegistry.get('gone'), undefined);
   });
 
-  it('has() returns true when registered', () => {
-    MachineRegistry.register('present', Fixture.interpreter());
-    assert.equal(MachineRegistry.has('present'), true);
-  });
-
-  it('has() returns false when not registered', () => {
-    assert.equal(MachineRegistry.has('absent'), false);
-  });
+  const hasScenarios: Array<{
+    description: string;
+    setup: () => void;
+    name: string;
+    expected: boolean;
+  }> = [
+    {
+      description: 'has() returns true when registered',
+      setup: () => { MachineRegistry.register('present', Fixture.interpreter()); },
+      name: 'present',
+      expected: true,
+    },
+    {
+      description: 'has() returns false when not registered',
+      setup: () => {},
+      name: 'absent',
+      expected: false,
+    },
+  ];
+  for (const { description, setup, name, expected } of hasScenarios) {
+    it(description, () => {
+      setup();
+      assert.equal(MachineRegistry.has(name), expected);
+    });
+  }
 
   it('list() returns all registered names', () => {
     MachineRegistry.register('a', Fixture.interpreter());

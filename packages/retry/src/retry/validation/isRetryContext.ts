@@ -1,4 +1,4 @@
-import { TypeGuards } from '@studnicky/config';
+import { Guard } from '@studnicky/config';
 
 import type { RetryContextType } from '../../interfaces/RetryContextType.js';
 
@@ -13,11 +13,11 @@ import { isRequestStats } from './isRequestStats.js';
  * @returns True if value is a valid RetryContextType
  */
 export function isRetryContext(value: unknown): value is RetryContextType {
-  if (!TypeGuards.isObject(value)) {
+  if (!Guard.isObject(value)) {
     return false;
   }
 
-  if (!TypeGuards.isNonNegativeInteger(value.attemptNumber)) {
+  if (!Guard.isNonNegativeInteger(value.attemptNumber)) {
     return false;
   }
 
@@ -33,7 +33,7 @@ export function isRetryContext(value: unknown): value is RetryContextType {
     return false;
   }
 
-  if (!TypeGuards.isNonNegativeInteger(value.maxRetries)) {
+  if (!Guard.isNonNegativeInteger(value.maxRetries)) {
     return false;
   }
 
@@ -41,7 +41,7 @@ export function isRetryContext(value: unknown): value is RetryContextType {
     return false;
   }
 
-  if (!TypeGuards.isObject(value.state)) {
+  if (!Guard.isObject(value.state)) {
     return false;
   }
 

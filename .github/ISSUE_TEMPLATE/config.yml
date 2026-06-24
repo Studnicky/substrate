@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://studnicky.github.io/substrate/
+    about: Guides, API reference, and architecture docs for @studnicky/substrate.
+  - name: GitHub Discussions
+    url: https://github.com/Studnicky/substrate/discussions
+    about: Questions, ideas, and general discussion about @studnicky/substrate.

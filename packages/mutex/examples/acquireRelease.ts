@@ -2,19 +2,14 @@
 
 import assert from 'node:assert/strict';
 
+// #region usage
 import { Mutex } from '../src/index.js';
 
 const mutex = Mutex.create<string>();
 
 class AcquireReleaseDemo {
   static async runManualRelease(): Promise<void> {
-    // Not locked before acquisition
-    assert.equal(mutex.isLocked('resource'), false);
-
     const release = await mutex.acquire('resource');
-
-    // Locked immediately after acquire
-    assert.equal(mutex.isLocked('resource'), true);
 
     // Queue a second waiter without awaiting — it will sit in the queue
     let secondAcquired = false;
@@ -24,11 +19,11 @@ class AcquireReleaseDemo {
     });
 
     // The second waiter is in the queue
-    assert.equal(mutex.queueSize('resource'), 1);
+    console.log('Queue size while locked:', mutex.queueSize('resource'));
 
     try {
       // Critical section — 'resource' is exclusively held here
-      assert.equal(mutex.isLocked('resource'), true);
+      console.log('Is locked:', mutex.isLocked('resource'));
     } finally {
       release();
     }
@@ -36,25 +31,30 @@ class AcquireReleaseDemo {
     // Wait for the queued waiter to complete
     await secondPromise;
 
-    assert.ok(secondAcquired, 'Second acquire should have completed after release');
-    assert.equal(mutex.isLocked('resource'), false);
-    assert.equal(mutex.queueSize('resource'), 0);
+    console.log('Second acquired:', secondAcquired);
+    console.log('Is locked after all released:', mutex.isLocked('resource'));
+    console.log('Queue size after completion:', mutex.queueSize('resource'));
   }
 
   static async runDisposable(): Promise<void> {
     // acquireDisposable — manual release via .release()
     const lock = await mutex.acquireDisposable('disposable');
 
-    assert.equal(mutex.isLocked('disposable'), true);
-    assert.equal(lock.key, 'disposable');
+    console.log('Lock key:', lock.key);
+    console.log('Is locked (disposable):', mutex.isLocked('disposable'));
 
     lock.release();
 
-    assert.equal(mutex.isLocked('disposable'), false);
+    console.log('Is locked after release:', mutex.isLocked('disposable'));
   }
 }
 
 await AcquireReleaseDemo.runManualRelease();
 await AcquireReleaseDemo.runDisposable();
+// #endregion usage
 
-console.log('acquireRelease example passed.');
+assert.equal(mutex.isLocked('resource'), false);
+assert.equal(mutex.queueSize('resource'), 0);
+assert.equal(mutex.isLocked('disposable'), false);
+
+console.log('acquireRelease: all assertions passed');

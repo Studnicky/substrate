@@ -6,4 +6,4 @@
 export { ConfigurationError } from './errors/index.js';
 export { ensureError } from './errors/index.js';
 export { ConfigValidation } from './validation/index.js';
-export { TypeGuards } from './validation/index.js';
+export { Guard } from '@studnicky/types';

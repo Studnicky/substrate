@@ -40,7 +40,8 @@ export class Clone {
 
   /** Clone an array element-by-element. */
   protected static cloneArray<T>(value: T[]): T[] {
-    return value.map((item: T) => this.cloneValue(item));
+    const result = value.map((item: T) => { const result = this.cloneValue(item); return result; });
+    return result;
   }
 
   /** Clone a Map, deep-cloning both keys and values. */
@@ -67,7 +68,8 @@ export class Clone {
 
   /** Clone a Date by timestamp. */
   protected static cloneDate(value: Date): Date {
-    return new Date(value.getTime());
+    const result = new Date(value.getTime());
+    return result;
   }
 
   /**
@@ -100,13 +102,15 @@ export class Clone {
    * transfer semantics for non-plain classes.
    */
   public static deep<T>(value: T): T {
-    return this.cloneValue(value);
+    const result = this.cloneValue(value);
+    return result;
   }
 
   /**
    * Shallow clone a plain-object record.
    */
   public static shallow<T extends Record<string, unknown>>(value: T): T {
-    return { ...value };
+    const clone: T = { ...value };
+    return clone;
   }
 }

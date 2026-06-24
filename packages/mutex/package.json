@@ -40,16 +40,36 @@
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/mutex" },
-  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/mutex"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
   "homepage": "https://studnicky.github.io/substrate/packages/mutex",
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
-  "keywords": ["mutex", "lock", "concurrency", "async", "race-condition", "typescript", "nodejs"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "keywords": [
+    "mutex",
+    "lock",
+    "concurrency",
+    "async",
+    "race-condition",
+    "typescript",
+    "nodejs"
+  ],
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@studnicky/config": "workspace:*"
+    "@studnicky/config": "workspace:*",
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

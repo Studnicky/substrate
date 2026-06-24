@@ -19,52 +19,15 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ### Compose a signal from a caller signal and/or a deadline
 
-```typescript
-import { Signal } from '@studnicky/signal';
-
-// Caller provides a signal; add a deadline
-async function fetchData(url: string, signal?: AbortSignal): Promise<Response> {
-  const composed = Signal.compose({ signal, deadlineMs: 5_000 });
-  return fetch(url, { signal: composed });
-}
-```
-
 `Signal.compose` combines a caller `AbortSignal` and a timeout deadline using `AbortSignal.any`. The composed signal aborts as soon as either source fires. If neither is provided, it returns the never-aborting sentinel so consuming code always receives a valid `AbortSignal`.
 
-### Timeout-only signal
+<<< ../../packages/signal/examples/compose.ts#usage
 
-```typescript
-const signal = Signal.timeout(3_000); // AbortSignal.timeout(3000)
-await fetch(url, { signal });
-```
+### Never-aborting sentinel and timeout signal
 
-### Never-aborting sentinel
+The sentinel is a singleton — `Signal.never()` returns the same `AbortSignal` instance on every call. `Signal.timeout(ms)` wraps `AbortSignal.timeout` for convenience.
 
-```typescript
-const signal = Signal.never();
-// Useful as a default parameter when a caller provides no signal
-await longRunningTask(signal);
-```
-
-The sentinel is a singleton — `Signal.never()` returns the same `AbortSignal` instance on every call.
-
-### Practical pattern — propagate cancellation with a budget
-
-```typescript
-import { Signal } from '@studnicky/signal';
-
-async function processWithBudget(
-  items: string[],
-  signal?: AbortSignal
-): Promise<void> {
-  const budget = Signal.compose({ signal, deadlineMs: 10_000 });
-
-  for (const item of items) {
-    if (budget.aborted) break;
-    await processItem(item, budget);
-  }
-}
-```
+<<< ../../packages/signal/examples/neverTimeout.ts#usage
 
 ## API
 

@@ -1,9 +1,6 @@
 export type { AbortResultType } from './AbortResultType.js';
-export type { AdaptiveConfigType } from './AdaptiveConfigType.js';
 export type { AdaptiveStatsType } from './AdaptiveStatsType.js';
 export type { LatencyStatsType } from './LatencyStatsType.js';
 export type { ThrottleBuilderInterface } from './ThrottleBuilderInterface.js';
-export type { ThrottleConfigType } from './ThrottleConfigType.js';
 export type { ThrottleInterface } from './ThrottleInterface.js';
 export type { ThrottleStatsType } from './ThrottleStatsType.js';
-export type { ValidatedThrottleConfigType } from './ValidatedThrottleConfigType.js';

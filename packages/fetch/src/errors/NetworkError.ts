@@ -18,12 +18,9 @@
  * }
  * ```
  */
-export class NetworkError extends Error {
-  /**
-   * The underlying error that caused the network failure
-   */
-  override readonly cause: Error | undefined;
+import { FetchBaseError } from './FetchBaseError.js';
 
+export class NetworkError extends FetchBaseError {
   /**
    * The URL that was fetched
    */
@@ -31,10 +28,7 @@ export class NetworkError extends Error {
 
   constructor(url: string, cause?: Error) {
     const causeMessage = cause !== undefined ? `: ${cause.message}` : '';
-
-    super(`Network error for ${url}${causeMessage}`);
-    this.name = 'NetworkError';
+    super({ 'cause': cause, 'code': 'fetch.networkError', 'message': `Network error for ${url}${causeMessage}`, 'retryable': true });
     this.url = url;
-    this.cause = cause;
   }
 }

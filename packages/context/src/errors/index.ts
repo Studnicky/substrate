@@ -1,1 +1,1 @@
-export * from './ContextError.js';
+export { ContextConfigError, ContextError } from './ContextError.js';

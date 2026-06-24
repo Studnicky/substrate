@@ -5,44 +5,35 @@
  */
 
 import { strictEqual } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
 
 import { Throttle } from '../../../src/throttle/index.js';
 
-void describe('State Management', () => {
-  void describe('getStats()', () => {
-    void it('returns correct initial stats', () => {
-      const throttle = new Throttle({ concurrencyLimit: 5 });
+// ── getStats() ────────────────────────────────────────────────────────────────
 
-      const stats = throttle.getStats();
+const initialStatsScenarios: Array<{ description: string }> = [
+  { description: 'returns correct initial stats' },
+  { description: 'returns stats with no operations' },
+];
 
-      strictEqual(stats.activeCount, 0);
-      strictEqual(stats.queuedCount, 0);
-      strictEqual(stats.totalExecuted, 0);
-      strictEqual(stats.concurrencyLimit, 5);
-    });
+for (const { description } of initialStatsScenarios) {
+  void it(description, () => {
+    const throttle = new Throttle({ concurrencyLimit: 5 });
+    const stats = throttle.getStats();
 
-    void it('returns stats with no operations', () => {
-      const throttle = new Throttle({ concurrencyLimit: 5 });
-
-      const stats = throttle.getStats();
-
-      strictEqual(stats.activeCount, 0);
-      strictEqual(stats.queuedCount, 0);
-      strictEqual(stats.totalExecuted, 0);
-      strictEqual(stats.concurrencyLimit, 5);
-    });
+    strictEqual(stats.activeCount, 0);
+    strictEqual(stats.queuedCount, 0);
+    strictEqual(stats.totalExecuted, 0);
+    strictEqual(stats.concurrencyLimit, 5);
   });
+}
 
-  void describe('isComplete()', () => {
-    void it('returns true when no operations are active or queued', () => {
-      const throttle = new Throttle({ concurrencyLimit: 2 });
+// ── isComplete() ──────────────────────────────────────────────────────────────
 
-      const isComplete = throttle.isComplete();
+void it('returns true when no operations are active or queued', () => {
+  const throttle = new Throttle({ concurrencyLimit: 2 });
 
-      strictEqual(isComplete, true, 'Should be complete initially');
-    });
-  });
+  const isComplete = throttle.isComplete();
+
+  strictEqual(isComplete, true, 'Should be complete initially');
 });

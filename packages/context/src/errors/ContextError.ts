@@ -1,12 +1,25 @@
+import { BaseError } from '@studnicky/errors';
+
 /**
- * Error thrown when context operations fail
+ * Error thrown when context operations fail.
  *
  * Thrown by Context when attempting invalid operations such as
  * accessing destroyed contexts or exceeding scope limits.
  */
-export class ContextError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ContextError';
+export class ContextError extends BaseError {
+  constructor(message: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'context.error', 'message': message, 'retryable': false });
+  }
+}
+
+/**
+ * Error thrown when Context configuration is invalid.
+ *
+ * Thrown during Context construction when the provided config
+ * does not satisfy required constraints.
+ */
+export class ContextConfigError extends BaseError {
+  constructor(message: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'context.invalidConfig', 'message': message, 'retryable': false });
   }
 }

@@ -1,38 +1,21 @@
-import assert from 'node:assert';
-import {
-  describe, it
-} from 'node:test';
+import { doesNotThrow, throws } from 'node:assert/strict';
+import { it } from 'node:test';
 
 import { FetchClient } from '../../../src/index.js';
 
-void describe('timeout validation', () => {
-  void it('should reject non-number timeout', () => {
-    assert.throws(() => {
-      FetchClient.create({ timeout: '5000' as never });
-    }, /timeout must be a number/u);
-  });
+const invalidTimeoutScenarios: Array<{ description: string; value: unknown; messagePattern: RegExp }> = [
+  { description: 'rejects non-number timeout', value: '5000', messagePattern: /timeout must be a number/u },
+  { description: 'rejects negative timeout', value: -1, messagePattern: /timeout must be positive/u },
+  { description: 'rejects zero timeout', value: 0, messagePattern: /timeout must be positive/u },
+  { description: 'rejects infinite timeout', value: Infinity, messagePattern: /timeout must be finite/u },
+];
 
-  void it('should reject negative timeout', () => {
-    assert.throws(() => {
-      FetchClient.create({ timeout: -1 });
-    }, /timeout must be positive/u);
+for (const { description, value, messagePattern } of invalidTimeoutScenarios) {
+  it(description, () => {
+    throws(() => { FetchClient.create({ timeout: value as never }); }, messagePattern);
   });
+}
 
-  void it('should reject infinite timeout', () => {
-    assert.throws(() => {
-      FetchClient.create({ timeout: Infinity });
-    }, /timeout must be finite/u);
-  });
-
-  void it('should accept valid timeout', () => {
-    assert.doesNotThrow(() => {
-      FetchClient.create({ timeout: 5000 });
-    });
-  });
-
-  void it('should reject zero timeout', () => {
-    assert.throws(() => {
-      FetchClient.create({ timeout: 0 });
-    }, /timeout must be positive/u);
-  });
+it('accepts valid timeout', () => {
+  doesNotThrow(() => { FetchClient.create({ timeout: 5000 }); });
 });

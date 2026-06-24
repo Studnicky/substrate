@@ -3,18 +3,18 @@
  * Generic async retry utility with extensible error classification
  */
 
+export { RetryConfigEntity } from './entities/RetryConfigEntity.js';
 export {
   ConfigurationError,
   MaxRetriesExceededError,
   NonRetryableError,
   RetryError
 } from './errors/index.js';
-
 export type { ErrorClassificationType } from './interfaces/ErrorClassificationType.js';
 export type { ErrorClassifierInterface } from './interfaces/ErrorClassifierInterface.js';
 export type { RequestStatsType } from './interfaces/RequestStatsType.js';
 export type { RetryBuilderInterface } from './interfaces/RetryBuilderInterface.js';
-export type { RetryConfigType } from './interfaces/RetryConfigType.js';
+export type { RetryConfigInterface } from './interfaces/RetryConfigInterface.js';
 export type { RetryContextType } from './interfaces/RetryContextType.js';
 export type { RetryInterface } from './interfaces/RetryInterface.js';
 export { BackoffStrategy } from './retry/backoff/index.js';

@@ -1,7 +1,6 @@
-import type { PrecisionConfigType } from '../interfaces/PrecisionConfigType.js';
+import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 import type { TimingBuilderInterface } from '../interfaces/TimingBuilderInterface.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
-import type { TimingOptionsType } from '../interfaces/TimingOptionsType.js';
 
 /**
  * Builder for creating Timing instances.
@@ -28,20 +27,20 @@ export class TimingBuilder implements TimingBuilderInterface {
    * @param factory - Factory function to create Timing instances
    * @returns A new TimingBuilder instance
    */
-  static create(factory: (options: TimingOptionsType) => TimingInterface): TimingBuilder {
+  static create(factory: (options: TimingOptionsEntity.Type) => TimingInterface): TimingBuilder {
     const result = new TimingBuilder(factory);
     return result;
   }
 
-  protected readonly _config: Partial<TimingOptionsType> = {};
+  protected readonly _config: Partial<TimingOptionsEntity.Type> = {};
 
-  private readonly factory: (options: TimingOptionsType) => TimingInterface;
+  private readonly factory: (options: TimingOptionsEntity.Type) => TimingInterface;
 
   /**
    * Protected constructor. Use Timing.builder() to instantiate.
    * @param factory - Factory function to create Timing instances
    */
-  protected constructor(factory: (options: TimingOptionsType) => TimingInterface) {
+  protected constructor(factory: (options: TimingOptionsEntity.Type) => TimingInterface) {
     this.factory = factory;
   }
 
@@ -74,7 +73,7 @@ export class TimingBuilder implements TimingBuilderInterface {
    * @param config - Precision configuration per time unit
    * @returns this for method chaining
    */
-  precision(config: PrecisionConfigType): this {
+  precision(config: TimingOptionsEntity.PrecisionConfigType): this {
     this._config.precision = config;
 
     return this;

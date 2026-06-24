@@ -17,81 +17,23 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-### Channel — keyed producer/consumer
+### Channel and Semaphore
 
-```typescript
-import { Channel } from '@studnicky/concurrency';
+Channel provides keyed producer/consumer buffering; Semaphore gates concurrent access to a shared resource with a counting permit:
 
-const channel = new Channel<string>();
-
-// Producer
-channel.publish('events', 'hello');
-channel.publish('events', 'world');
-
-// Consumer — async generator; one subscriber per key
-for await (const message of channel.subscribe('events')) {
-  console.log(message); // 'hello', 'world'
-}
-
-channel.close(); // signals all subscribers to stop
-```
-
-### Semaphore — counting permit gate
-
-```typescript
-import { Semaphore } from '@studnicky/concurrency';
-
-const sem = new Semaphore(3); // max 3 concurrent operations
-
-// Manual acquire/release
-const release = await sem.acquire();
-try {
-  await doWork();
-} finally {
-  release();
-}
-
-// Convenience wrapper
-await sem.withPermit(async () => {
-  await doWork();
-});
-
-sem.available; // current permit count
-sem.permits;   // total permit count
-```
+<<< ../../packages/concurrency/examples/channelSemaphore.ts#usage
 
 ### Coalesce — deduplicate concurrent calls by key
 
-```typescript
-import { Coalesce } from '@studnicky/concurrency';
+All concurrent callers for the same key share a single in-flight promise; sequential callers each invoke the factory independently:
 
-const coalesce = new Coalesce<UserRecord>();
-
-// All concurrent calls for the same key share one in-flight promise
-const user = await coalesce.run('user:42', () => fetchUser(42));
-
-coalesce.isInflight('user:42'); // false — promise has resolved
-```
+<<< ../../packages/concurrency/examples/coalesce.ts#usage
 
 ### AsyncIter — merge, filter, enrich
 
-```typescript
-import { AsyncIter } from '@studnicky/concurrency';
+Compose async iterables with FIFO merge, sync/async predicate filter, and left-join enrichment:
 
-// FIFO merge of multiple async generators in arrival order
-const merged = AsyncIter.merge(streamA, streamB, streamC);
-for await (const item of merged) { /* ... */ }
-
-// Filter
-const evens = AsyncIter.filter(numbers, (n) => n % 2 === 0);
-
-// Left-join enrichment
-const enriched = AsyncIter.enrich(
-  records,
-  async (record) => fetchMetadata(record.id), // returns null to skip
-  (record, meta) => ({ ...record, ...meta })
-);
-```
+<<< ../../packages/concurrency/examples/asyncIter.ts#usage
 
 ## API
 

@@ -63,7 +63,7 @@ export class RequestBuilder implements RequestBuilderInterface {
    * Builds final path with query parameters
    */
   private buildPath(): string {
-    if (!this.queryParams) {
+    if (this.queryParams === undefined) {
       return this.path;
     }
 
@@ -190,12 +190,21 @@ export class RequestBuilder implements RequestBuilderInterface {
   }
 
   /**
+   * Builds options for body-bearing methods, merging fetchOptions with the stored request body
+   */
+  private buildBodyOptions(): Omit<FetchOptionsType, 'body'> & { 'body'?: unknown } {
+    const opts: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown } = this.buildOptions();
+    opts.body = this.requestBody;
+    return opts;
+  }
+
+  /**
    * Executes a PATCH request
    *
    * @returns Response promise
    */
   async patch(): Promise<Response> {
-    const result = this.client.patch(this.buildPath(), this.requestBody, this.buildOptions());
+    const result = this.client.patch(this.buildPath(), this.buildBodyOptions());
     return await result;
   }
 
@@ -205,7 +214,7 @@ export class RequestBuilder implements RequestBuilderInterface {
    * @returns Response promise
    */
   async post(): Promise<Response> {
-    const result = this.client.post(this.buildPath(), this.requestBody, this.buildOptions());
+    const result = this.client.post(this.buildPath(), this.buildBodyOptions());
     return await result;
   }
 
@@ -215,7 +224,7 @@ export class RequestBuilder implements RequestBuilderInterface {
    * @returns Response promise
    */
   async put(): Promise<Response> {
-    const result = this.client.put(this.buildPath(), this.requestBody, this.buildOptions());
+    const result = this.client.put(this.buildPath(), this.buildBodyOptions());
     return await result;
   }
 

@@ -28,7 +28,9 @@
  * }
  * ```
  */
-export class HTTPError extends Error {
+import { FetchBaseError } from './FetchBaseError.js';
+
+export class HTTPError extends FetchBaseError {
   /**
    * The Response object for accessing headers and body
    */
@@ -50,8 +52,11 @@ export class HTTPError extends Error {
   readonly url: string;
 
   constructor(url: string, response: Response) {
-    super(`HTTP ${response.status} ${response.statusText}: ${url}`);
-    this.name = 'HTTPError';
+    super({
+      'code': 'fetch.httpError',
+      'message': `HTTP ${response.status} ${response.statusText}: ${url}`,
+      'retryable': response.status >= 500
+    });
     this.url = url;
     this.status = response.status;
     this.statusText = response.statusText;

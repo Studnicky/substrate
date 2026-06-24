@@ -1,7 +1,8 @@
 /** Token bucket rate limiter; consume() throws when exhausted, waitForToken() blocks until available. */
 
-import type { TokenBucketOptionsType } from './TokenBucketOptionsType.js';
+import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
+import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 import { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';
 
 export class TokenBucket {
@@ -11,12 +12,12 @@ export class TokenBucket {
   #tokens: number;
   #lastRefill: number;
 
-  constructor(options: TokenBucketOptionsType) {
-    if (options.requestsPerSecond <= 0) throw new RangeError('requestsPerSecond must be > 0');
-    if (options.burstSize < 1) throw new RangeError('burstSize must be >= 1');
+  constructor(options: TokenBucketOptionsInterface) {
+    if (options.requestsPerSecond <= 0) {throw new ResilienceConfigError('requestsPerSecond must be > 0');}
+    if (options.burstSize < 1) {throw new ResilienceConfigError('burstSize must be >= 1');}
     this.#requestsPerSecond = options.requestsPerSecond;
     this.#burstSize = options.burstSize;
-    this.#clock = options.clock ?? (() => Date.now());
+    this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
     this.#tokens = options.burstSize;
     this.#lastRefill = this.#clock();
   }
@@ -34,7 +35,9 @@ export class TokenBucket {
   }
 
   /** Wait until tokens are available, then consume. */
-  async waitForToken(tokens = 1, signal?: AbortSignal): Promise<void> {
+  async waitForToken(options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}): Promise<void> {
+    const tokens = options.tokens ?? 1;
+    const signal = options.signal;
     while (true) {
       this.#refill();
       if (this.#tokens >= tokens) { this.#tokens -= tokens; return; }

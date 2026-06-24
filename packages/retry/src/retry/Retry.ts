@@ -1,15 +1,16 @@
 import { ConfigValidation } from '@studnicky/config';
 import { Pipeline } from '@studnicky/pipeline';
-import { setTimeout as sleep } from 'node:timers/promises';
+import { setTimeout } from 'node:timers/promises';
 
 import type {
   ErrorClassificationType,
   RequestStatsType,
-  RetryConfigType,
+  RetryConfigInterface,
   RetryContextType,
   RetryInterface
 } from '../interfaces/index.js';
 import type { RetryCallStateType } from '../types/RetryCallStateType.js';
+import type { RetryInterceptorType } from '../types/RetryInterceptorType.js';
 
 import {
   DEFAULT_MAX_RETRIES,
@@ -54,7 +55,8 @@ class RetryCallFsm {
   }
 
   get state(): RetryCallStateType {
-    return this.#state;
+    const result = this.#state;
+    return result;
   }
 
   transition(to: RetryCallStateType): void {
@@ -139,7 +141,7 @@ export class Retry implements RetryInterface {
    * @param config - Optional partial configuration for retry behavior
    * @returns New Retry instance
    */
-  static create(config?: Partial<RetryConfigType>): Retry {
+  static create(config?: Partial<RetryConfigInterface>): Retry {
     const result = new Retry(Retry.validateConfig(config));
     return result;
   }
@@ -156,16 +158,19 @@ export class Retry implements RetryInterface {
     'totalRetries': INITIAL_COUNTER
   };
 
-  constructor(config: Partial<RetryConfigType> = {}) {
+  constructor(config: Partial<RetryConfigInterface> = {}) {
     this.maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.defaultClassifier = new DefaultHttpErrorClassifier();
     this.pipeline = new Pipeline<RetryContextType>();
 
-    const interceptors = config.retryInterceptor === undefined
-      ? []
-      : Array.isArray(config.retryInterceptor)
-        ? config.retryInterceptor
-        : [config.retryInterceptor];
+    let interceptors: RetryInterceptorType[];
+    if (config.retryInterceptor === undefined) {
+      interceptors = [];
+    } else if (typeof config.retryInterceptor === 'function') {
+      interceptors = [config.retryInterceptor];
+    } else {
+      interceptors = [...config.retryInterceptor];
+    }
 
     const interceptorsLen = interceptors.length;
     for (let i = 0; i < interceptorsLen; i += 1) {
@@ -244,12 +249,12 @@ export class Retry implements RetryInterface {
    * - waiting   → aborted
    */
   protected guardCall(from: RetryCallStateType, to: RetryCallStateType): boolean {
-    if (from === 'attempting' && to === 'succeeded') return true;
-    if (from === 'attempting' && to === 'waiting') return true;
-    if (from === 'attempting' && to === 'failed') return true;
-    if (from === 'waiting' && to === 'attempting') return true;
-    if (from === 'waiting' && to === 'exhausted') return true;
-    if (from === 'waiting' && to === 'aborted') return true;
+    if (from === 'attempting' && to === 'succeeded') {return true;}
+    if (from === 'attempting' && to === 'waiting') {return true;}
+    if (from === 'attempting' && to === 'failed') {return true;}
+    if (from === 'waiting' && to === 'attempting') {return true;}
+    if (from === 'waiting' && to === 'exhausted') {return true;}
+    if (from === 'waiting' && to === 'aborted') {return true;}
 
     return false;
   }
@@ -283,7 +288,7 @@ export class Retry implements RetryInterface {
     this.stats.totalRequests++;
 
     const callFsm = new RetryCallFsm(
-      (from, to) => this.guardCall(from, to),
+      (from, to) => { const result = this.guardCall(from, to); return result; },
       (to, from) => { this.enterCall(to, from); }
     );
     const startTime = Date.now();
@@ -476,7 +481,7 @@ export class Retry implements RetryInterface {
 
     this.onRetryScheduled(attempt, result.delayMs);
 
-    await sleep(result.delayMs);
+    await setTimeout(result.delayMs);
 
     callFsm.transition('attempting');
   }
@@ -499,7 +504,7 @@ export class Retry implements RetryInterface {
     'retryInterceptor': retryInterceptor.validateRetryInterceptor
   };
 
-  private static validateConfig(config?: Partial<RetryConfigType>): Partial<RetryConfigType> {
+  private static validateConfig(config?: Partial<RetryConfigInterface>): Partial<RetryConfigInterface> {
     try {
       const userConfig = config ?? {};
       const configObj = userConfig as Record<string, unknown>;

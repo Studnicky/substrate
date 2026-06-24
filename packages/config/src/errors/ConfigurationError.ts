@@ -1,6 +1,4 @@
-import type { BaseErrorArgumentsType } from '@studnicky/errors';
-
-import { BaseError } from '@studnicky/errors';
+import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
 
 /**
  * Configuration validation error. Extends `BaseError` so consumers get
@@ -18,7 +16,8 @@ export class ConfigurationError extends BaseError {
    * @param cause   - Optional underlying cause.
    */
   public static create(message: string, cause?: unknown): ConfigurationError {
-    return new ConfigurationError({ 'cause': cause, 'code': ConfigurationError.errorCode, 'message': message, 'retryable': false });
+    const result = new ConfigurationError({ 'cause': cause, 'code': ConfigurationError.errorCode, 'message': message, 'retryable': false });
+    return result;
   }
 
   protected constructor(args: Readonly<BaseErrorArgumentsType>) {

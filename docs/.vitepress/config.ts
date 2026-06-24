@@ -13,13 +13,13 @@ const SITE_TAGLINE = 'Subclass-first TypeScript primitives.';
 const SITE_DESCRIPTION = 'A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base.';
 const SITE_URL = 'https://studnicky.github.io/substrate/';
 const SITE_BASE = '/substrate/';
-const SITE_OG_IMAGE = `${SITE_URL}og-image.svg`;
+const SITE_OG_IMAGE = `${SITE_URL}og-image.png`;
 const SITE_THEME_COLOR = '#14b8a6';
 const SITE_KEYWORDS = 'typescript,subclass,primitives,retry,throttle,mutex,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,predicates,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
 const SITE_AUTHOR_NAME = 'Andrew Studnicky';
 const SITE_AUTHOR_URL = 'https://github.com/Studnicky';
 const SITE_REPO = 'https://github.com/Studnicky/substrate';
-const SITE_LOGO = `${SITE_URL}logo.svg`;
+const SITE_LOGO = `${SITE_URL}logo.png`;
 
 const seo = pkg.substrate?.seo ?? {};
 const googleVerify = seo.googleSiteVerification ?? '';
@@ -53,7 +53,8 @@ const jsonLd = JSON.stringify({
   programmingLanguage: 'TypeScript',
   runtimePlatform: 'Node.js',
   codeRepository: SITE_REPO,
-  author: { '@type': 'Person', name: SITE_AUTHOR_NAME, url: SITE_AUTHOR_URL }
+  author: { '@type': 'Person', name: SITE_AUTHOR_NAME, url: SITE_AUTHOR_URL },
+  image: SITE_LOGO
 });
 
 export default withMermaid(defineConfig({
@@ -68,9 +69,11 @@ export default withMermaid(defineConfig({
   appearance: true,
 
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
-    ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
+    ['link', { rel: 'icon', type: 'image/x-icon', href: `${SITE_BASE}favicon.ico` }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${SITE_BASE}icon-32.png` }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: `${SITE_BASE}icon-16.png` }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: `${SITE_BASE}apple-touch-icon.png` }],
+    ['link', { rel: 'manifest', href: `${SITE_BASE}manifest.webmanifest` }],
     ['meta', { name: 'theme-color', content: SITE_THEME_COLOR }],
     ['meta', { name: 'robots', content: 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1' }],
     ['meta', { name: 'author', content: SITE_AUTHOR_NAME }],
@@ -82,6 +85,10 @@ export default withMermaid(defineConfig({
     ['meta', { property: 'og:description', content: SITE_DESCRIPTION }],
     ['meta', { property: 'og:url', content: SITE_URL }],
     ['meta', { property: 'og:image', content: SITE_OG_IMAGE }],
+    ['meta', { property: 'og:image:type', content: 'image/png' }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    ['meta', { property: 'og:image:secure_url', content: SITE_OG_IMAGE }],
     ['meta', { property: 'og:image:alt', content: SITE_TITLE }],
     ['meta', { property: 'og:locale', content: 'en_US' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
@@ -93,7 +100,7 @@ export default withMermaid(defineConfig({
   ],
 
   themeConfig: {
-    logo: '/logo.svg',
+    logo: '/logo.png',
     siteTitle: 'Substrate',
     nav: [
       { text: 'Guide', link: '/getting-started' },

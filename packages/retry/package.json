@@ -52,18 +52,38 @@
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/retry" },
-  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/retry"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
   "homepage": "https://studnicky.github.io/substrate/packages/retry",
-  "keywords": ["retry", "async", "resilience", "backoff", "error-classification", "typescript", "nodejs"],
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
+  "keywords": [
+    "retry",
+    "async",
+    "resilience",
+    "backoff",
+    "error-classification",
+    "typescript",
+    "nodejs"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"
   },
   "dependencies": {
     "@studnicky/config": "workspace:*",
-    "@studnicky/pipeline": "workspace:*"
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
+    "@studnicky/pipeline": "workspace:*",
+    "@studnicky/types": "workspace:*"
   },
   "peerDependencies": {
     "@studnicky/logger": "workspace:*",

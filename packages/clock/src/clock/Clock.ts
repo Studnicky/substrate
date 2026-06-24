@@ -33,7 +33,8 @@ export class Clock {
    * hrtime value before monotonicity clamping is applied.
    */
   protected readHrtime(): bigint {
-    return this.#provider.hrtime();
+    const result = this.#provider.hrtime();
+    return result;
   }
 
   /**
@@ -41,7 +42,8 @@ export class Clock {
    * now value before monotonicity clamping is applied.
    */
   protected readNow(): number {
-    return this.#provider.now();
+    const result = this.#provider.now();
+    return result;
   }
 
   /**

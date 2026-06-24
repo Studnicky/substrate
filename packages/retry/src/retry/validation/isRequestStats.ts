@@ -1,4 +1,4 @@
-import { TypeGuards } from '@studnicky/config';
+import { Guard } from '@studnicky/config';
 
 import type { RequestStatsType } from '../../interfaces/RequestStatsType.js';
 
@@ -19,14 +19,14 @@ import type { RequestStatsType } from '../../interfaces/RequestStatsType.js';
  * ```
  */
 export function isRequestStats(value: unknown): value is RequestStatsType {
-  if (!TypeGuards.isObject(value)) {
+  if (!Guard.isObject(value)) {
     return false;
   }
 
   return (
-    TypeGuards.isNonNegativeInteger(value.totalRequests)
-    && TypeGuards.isNonNegativeInteger(value.successfulRequests)
-    && TypeGuards.isNonNegativeInteger(value.failedRequests)
-    && TypeGuards.isNonNegativeInteger(value.totalRetries)
+    Guard.isNonNegativeInteger(value.totalRequests)
+    && Guard.isNonNegativeInteger(value.successfulRequests)
+    && Guard.isNonNegativeInteger(value.failedRequests)
+    && Guard.isNonNegativeInteger(value.totalRetries)
   );
 }

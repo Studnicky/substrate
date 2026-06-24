@@ -4,8 +4,8 @@
  * Provides a fluent interface for configuring and creating Mutex instances.
  */
 
+import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 import type { MutexBuilderInterface } from '../interfaces/index.js';
-import type { MutexConfigType } from '../types/MutexConfigType.js';
 
 import { Mutex } from './Mutex.js';
 
@@ -21,9 +21,9 @@ import { Mutex } from './Mutex.js';
  * ```
  */
 export class MutexBuilder<K extends PropertyKey = string> implements MutexBuilderInterface<K> {
-  private readonly config: Partial<MutexConfigType>;
+  private readonly config: Partial<MutexConfigEntity.Type>;
 
-  constructor(initialConfig?: Partial<MutexConfigType>) {
+  constructor(initialConfig?: Partial<MutexConfigEntity.Type>) {
     this.config = initialConfig ?? {};
   }
 
@@ -42,7 +42,8 @@ export class MutexBuilder<K extends PropertyKey = string> implements MutexBuilde
    * ```
    */
   build(): Mutex<K> {
-    return Mutex.create<K>(this.config);
+    const result = Mutex.create<K>(this.config);
+    return result;
   }
 
   /**

@@ -17,84 +17,21 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-### Define a machine
+Define a `StateMachine` subclass with `getInitialState` and `reduce`, then drive it with `EffectInterpreter`. The interpreter manages the mailbox, dispatches effects, and notifies subscribers on every state change:
 
-```typescript
-import { StateMachine } from '@studnicky/fsm';
-import type { FsmStepType } from '@studnicky/fsm';
+<<< ../../packages/fsm/examples/traffic-light.ts#usage
 
-type TrafficState =
-  | { readonly variant: 'red' }
-  | { readonly variant: 'green' }
-  | { readonly variant: 'amber' };
+## MachineRegistry — named singleton registry
 
-type TrafficEvent =
-  | { readonly type: 'advance' };
+`MachineRegistry` is a process-scoped store for named interpreter instances. Registering under a key makes the interpreter accessible from any module without passing references:
 
-type TrafficEffect =
-  | { readonly variant: 'playSound'; readonly tone: string };
+<<< ../../packages/fsm/examples/registry.ts#usage
 
-class TrafficLight extends StateMachine<TrafficState, TrafficEvent, TrafficEffect> {
-  getInitialState(): TrafficState {
-    return { variant: 'red' };
-  }
+## Error handling
 
-  reduce(state: TrafficState, event: TrafficEvent): FsmStepType<TrafficState, TrafficEffect> {
-    if (event.type === 'advance') {
-      if (state.variant === 'red')   return { state: { variant: 'green' }, effects: [] };
-      if (state.variant === 'green') return { state: { variant: 'amber' }, effects: [{ variant: 'playSound', tone: 'chime' }] };
-      if (state.variant === 'amber') return { state: { variant: 'red' }, effects: [] };
-    }
-    return { state, effects: [] };
-  }
-}
-```
+`StateMachine.transition` wraps any throw from `reduce` in a `ReducerThrewError`. `EffectInterpreter` guards against reads before `start()` and sends after `stop()`:
 
-### Run with EffectInterpreter
-
-```typescript
-import { EffectInterpreter } from '@studnicky/fsm';
-import type { EffectHandlerMapType } from '@studnicky/fsm';
-
-const machine = new TrafficLight();
-
-const handlers: EffectHandlerMapType<TrafficEffect> = {
-  playSound: async (effect) => {
-    await audioSystem.play(effect.tone);
-  },
-};
-
-const interpreter = new EffectInterpreter(machine, handlers, { machineId: 'intersection-1' });
-interpreter.start();
-
-// Observe state changes
-const unsubscribe = interpreter.subscribe((state) => {
-  console.log('State:', state.variant);
-});
-
-await interpreter.send({ type: 'advance' }); // red → green
-await interpreter.send({ type: 'advance' }); // green → amber (plays sound)
-await interpreter.send({ type: 'advance' }); // amber → red
-
-interpreter.stop();
-unsubscribe();
-```
-
-### MachineRegistry — named singleton registry
-
-```typescript
-import { MachineRegistry } from '@studnicky/fsm';
-
-MachineRegistry.register('intersection-1', interpreter);
-
-// Later, in another module
-const found = MachineRegistry.get('intersection-1');
-found?.send({ type: 'advance' });
-
-MachineRegistry.list();         // ['intersection-1']
-MachineRegistry.has('x');       // false
-MachineRegistry.unregister('intersection-1');
-```
+<<< ../../packages/fsm/examples/error-handling.ts#usage
 
 ## API
 

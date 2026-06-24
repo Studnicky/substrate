@@ -23,7 +23,8 @@ export class Sort {
    * ['file1', 'file10', 'file2'].sort(Sort.natural) // ['file1', 'file2', 'file10']
    */
   public static natural(a: string, b: string): number {
-    return a.localeCompare(b, undefined, { 'numeric': true, 'sensitivity': 'base' });
+    const result = a.localeCompare(b, undefined, { 'numeric': true, 'sensitivity': 'base' });
+    return result;
   }
 
   /**

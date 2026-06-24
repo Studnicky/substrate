@@ -1,29 +1,41 @@
 /** observedThrottle — subclass Throttle, override onAcquire and onRelease to collect telemetry, assert hooks fired. Run: npx tsx examples/observedThrottle.ts */
 
 import assert from 'node:assert/strict';
+import { setTimeout } from 'node:timers/promises';
 
 import { Throttle } from '../src/index.js';
 
+// #region usage
+
 class TelemetryThrottle extends Throttle {
-  readonly acquireEvents: Array<{ activeCount: number; queuedCount: number }> = [];
-  readonly releaseEvents: Array<{ activeCount: number; totalExecuted: number }> = [];
+  readonly acquireEvents: { 'activeCount': number; 'queuedCount': number }[] = [];
+  readonly releaseEvents: { 'activeCount': number; 'totalExecuted': number }[] = [];
 
   protected override onAcquire(activeCount: number, queuedCount: number): void {
-    this.acquireEvents.push({ activeCount, queuedCount });
+    this.acquireEvents.push({ 'activeCount': activeCount, 'queuedCount': queuedCount });
   }
 
   protected override onRelease(activeCount: number, totalExecuted: number): void {
-    this.releaseEvents.push({ activeCount, totalExecuted });
+    this.releaseEvents.push({ 'activeCount': activeCount, 'totalExecuted': totalExecuted });
   }
 }
 
-const throttle = new TelemetryThrottle({ concurrencyLimit: 2 });
+const throttle = new TelemetryThrottle({ 'concurrencyLimit': 2 });
 
 await Promise.all(
-  [1, 2, 3].map((i) =>
-    throttle.execute(async () => Promise.resolve(i))
-  )
+  [1, 2, 3].map((i) => {
+    const result = throttle.execute(async () => {
+      await setTimeout(1);
+      return i;
+    });
+    return result;
+  })
 );
+
+console.log('observedThrottle acquireEvents:', throttle.acquireEvents);
+console.log('observedThrottle releaseEvents:', throttle.releaseEvents);
+console.log('observedThrottle stats:', throttle.getStats());
+// #endregion usage
 
 // onAcquire fires only for immediately-acquired slots (activeCount < limit).
 // With concurrencyLimit 2 and 3 ops, the first 2 acquire immediately; the 3rd queues.
@@ -42,6 +54,4 @@ const lastRelease = throttle.releaseEvents.at(-1);
 assert.ok(lastRelease !== undefined, 'Should have at least one release event');
 assert.ok(lastRelease.totalExecuted >= 3, 'totalExecuted should be >= 3 after all ops complete');
 
-console.log('observedThrottle acquireEvents:', throttle.acquireEvents);
-console.log('observedThrottle releaseEvents:', throttle.releaseEvents);
-console.log('observedThrottle stats:', throttle.getStats());
+console.log('observedThrottle: all assertions passed');

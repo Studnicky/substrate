@@ -41,5 +41,8 @@
   "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
   "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
   "keywords": ["semaphore", "coalesce", "single-flight", "channel", "async-iter", "concurrency", "typescript"],
-  "engines": { "node": ">=24.0.0" }
+  "engines": { "node": ">=24.0.0" },
+  "dependencies": {
+    "@studnicky/errors": "workspace:*"
+  }
 }

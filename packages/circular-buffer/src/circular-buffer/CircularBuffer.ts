@@ -14,6 +14,7 @@ import {
   INITIAL_BUFFER_HEAD,
   INITIAL_BUFFER_TAIL
 } from '../constants/index.js';
+import { CircularBufferError } from '../errors/index.js';
 
 /**
  * Circular buffer with O(1) push and shift operations
@@ -42,6 +43,10 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * @param capacity - Initial capacity (default: 128)
    */
   constructor(capacity = DEFAULT_BUFFER_CAPACITY) {
+    if (capacity <= 0 || !Number.isInteger(capacity)) {
+      throw new CircularBufferError('capacity must be a positive integer');
+    }
+
     this._capacity = capacity;
     this._items = Array.from<T | undefined>({ 'length': capacity });
   }

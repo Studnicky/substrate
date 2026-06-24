@@ -56,7 +56,7 @@ export class HttpMethods {
     url: string,
     opts: FetchOptionsType = {}
   ): Promise<Response> {
-    if (!url || typeof url !== 'string') {
+    if (typeof url !== 'string' || url === '') {
       throw new ConfigurationError('url must be a non-empty string');
     }
 
@@ -113,7 +113,7 @@ export class HttpMethods {
 
     const signals = [timeoutController.signal];
 
-    if (externalSignal) {
+    if (externalSignal !== undefined) {
       signals.push(externalSignal);
     }
     const combinedSignal = AbortSignal.any(signals);
@@ -177,11 +177,11 @@ export class HttpMethods {
    * Performs a PATCH request
    *
    * @param url - Request URL
-   * @param body - Request body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
-   * @param opts - Fetch options
+   * @param opts - Fetch options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    */
-  static async patch(url: string, body?: unknown, opts: FetchOptionsType = {}): Promise<Response> {
-    const fetchOptions: FetchOptionsType = { ...opts, 'method': 'PATCH' };
+  static async patch(url: string, opts?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+    const { body, ...restOpts } = opts ?? {};
+    const fetchOptions: FetchOptionsType = { ...restOpts, 'method': 'PATCH' };
 
     const serialized = HttpMethods.serializeRequestBody(body);
 
@@ -189,7 +189,7 @@ export class HttpMethods {
       fetchOptions.body = serialized;
 
       if (HttpMethods.needsContentType(body)) {
-        fetchOptions.headers = { 'Content-Type': 'application/json', ...opts.headers };
+        fetchOptions.headers = { 'Content-Type': 'application/json', ...restOpts.headers };
       }
     }
 
@@ -200,11 +200,11 @@ export class HttpMethods {
    * Performs a POST request
    *
    * @param url - Request URL
-   * @param body - Request body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
-   * @param opts - Fetch options
+   * @param opts - Fetch options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    */
-  static async post(url: string, body?: unknown, opts: FetchOptionsType = {}): Promise<Response> {
-    const fetchOptions: FetchOptionsType = { ...opts, 'method': 'POST' };
+  static async post(url: string, opts?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+    const { body, ...restOpts } = opts ?? {};
+    const fetchOptions: FetchOptionsType = { ...restOpts, 'method': 'POST' };
 
     const serialized = HttpMethods.serializeRequestBody(body);
 
@@ -212,7 +212,7 @@ export class HttpMethods {
       fetchOptions.body = serialized;
 
       if (HttpMethods.needsContentType(body)) {
-        fetchOptions.headers = { 'Content-Type': 'application/json', ...opts.headers };
+        fetchOptions.headers = { 'Content-Type': 'application/json', ...restOpts.headers };
       }
     }
 
@@ -223,11 +223,11 @@ export class HttpMethods {
    * Performs a PUT request
    *
    * @param url - Request URL
-   * @param body - Request body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
-   * @param opts - Fetch options
+   * @param opts - Fetch options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    */
-  static async put(url: string, body?: unknown, opts: FetchOptionsType = {}): Promise<Response> {
-    const fetchOptions: FetchOptionsType = { ...opts, 'method': 'PUT' };
+  static async put(url: string, opts?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+    const { body, ...restOpts } = opts ?? {};
+    const fetchOptions: FetchOptionsType = { ...restOpts, 'method': 'PUT' };
 
     const serialized = HttpMethods.serializeRequestBody(body);
 
@@ -235,7 +235,7 @@ export class HttpMethods {
       fetchOptions.body = serialized;
 
       if (HttpMethods.needsContentType(body)) {
-        fetchOptions.headers = { 'Content-Type': 'application/json', ...opts.headers };
+        fetchOptions.headers = { 'Content-Type': 'application/json', ...restOpts.headers };
       }
     }
 

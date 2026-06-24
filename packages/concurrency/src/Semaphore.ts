@@ -1,5 +1,7 @@
 /** Counting permit gate. acquire() returns a release function. */
 
+import { SemaphoreError } from './errors/SemaphoreError.js';
+
 export class Semaphore {
   #available: number;
   readonly #permits: number;
@@ -7,15 +9,17 @@ export class Semaphore {
 
   constructor(permits: number) {
     if (!Number.isInteger(permits) || permits < 1) {
-      throw new RangeError(`permits must be an integer >= 1, got ${permits}`);
+      throw new SemaphoreError('permits must be a positive integer');
     }
     this.#available = permits;
     this.#permits = permits;
     this.#queue = [];
   }
 
-  get available(): number { return this.#available; }
-  get permits(): number { return this.#permits; }
+  get available(): number { const result = this.#available;
+    return result; }
+  get permits(): number { const result = this.#permits;
+    return result; }
 
   async acquire(): Promise<() => void> {
     if (this.#available > 0) {

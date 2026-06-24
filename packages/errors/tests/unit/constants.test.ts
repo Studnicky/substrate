@@ -61,151 +61,99 @@ void describe('HttpStatus', () => {
 });
 
 void describe('ErrorDefaults', () => {
-  void describe('AUTHENTICATION', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.AUTHENTICATION, {
-        code: ErrorCode.AUTHENTICATION_ERROR,
-        retryable: false,
-        statusCode: HttpStatus.UNAUTHORIZED
-      });
+  const defaultsScenarios: Array<{
+    description: string;
+    scenario: keyof typeof ErrorDefaults;
+    expected: { code: string; retryable: boolean; statusCode: number };
+  }> = [
+    {
+      description: 'AUTHENTICATION has correct defaults',
+      expected: { code: ErrorCode.AUTHENTICATION_ERROR, retryable: false, statusCode: HttpStatus.UNAUTHORIZED },
+      scenario: 'AUTHENTICATION'
+    },
+    {
+      description: 'AUTHORIZATION has correct defaults',
+      expected: { code: ErrorCode.AUTHORIZATION_ERROR, retryable: false, statusCode: HttpStatus.FORBIDDEN },
+      scenario: 'AUTHORIZATION'
+    },
+    {
+      description: 'CONNECTION has correct defaults',
+      expected: { code: ErrorCode.CONNECTION_ERROR, retryable: true, statusCode: HttpStatus.SERVICE_UNAVAILABLE },
+      scenario: 'CONNECTION'
+    },
+    {
+      description: 'DATABASE has correct defaults',
+      expected: { code: ErrorCode.DATABASE_ERROR, retryable: false, statusCode: HttpStatus.INTERNAL_SERVER_ERROR },
+      scenario: 'DATABASE'
+    },
+    {
+      description: 'NOT_FOUND has correct defaults',
+      expected: { code: ErrorCode.NOT_FOUND, retryable: false, statusCode: HttpStatus.NOT_FOUND },
+      scenario: 'NOT_FOUND'
+    },
+    {
+      description: 'TIMEOUT has correct defaults',
+      expected: { code: ErrorCode.TIMEOUT_ERROR, retryable: true, statusCode: HttpStatus.GATEWAY_TIMEOUT },
+      scenario: 'TIMEOUT'
+    },
+    {
+      description: 'VALIDATION has correct defaults',
+      expected: { code: ErrorCode.VALIDATION_ERROR, retryable: false, statusCode: HttpStatus.BAD_REQUEST },
+      scenario: 'VALIDATION'
+    },
+    {
+      description: 'RATE_LIMIT has correct defaults',
+      expected: { code: ErrorCode.RATE_LIMIT_ERROR, retryable: true, statusCode: HttpStatus.TOO_MANY_REQUESTS },
+      scenario: 'RATE_LIMIT'
+    },
+    {
+      description: 'EXTERNAL_SERVICE has correct defaults',
+      expected: { code: ErrorCode.EXTERNAL_SERVICE_ERROR, retryable: true, statusCode: HttpStatus.BAD_GATEWAY },
+      scenario: 'EXTERNAL_SERVICE'
+    },
+    {
+      description: 'CONFIGURATION has correct defaults',
+      expected: { code: ErrorCode.CONFIGURATION_ERROR, retryable: false, statusCode: HttpStatus.INTERNAL_SERVER_ERROR },
+      scenario: 'CONFIGURATION'
+    },
+    {
+      description: 'INTERNAL has correct defaults',
+      expected: { code: ErrorCode.INTERNAL_ERROR, retryable: false, statusCode: HttpStatus.INTERNAL_SERVER_ERROR },
+      scenario: 'INTERNAL'
+    }
+  ];
+
+  for (const { description, scenario, expected } of defaultsScenarios) {
+    void it(description, () => {
+      deepStrictEqual(ErrorDefaults[scenario], expected);
+    });
+  }
+
+  void it('AUTHENTICATION is used via ModuleError.create()', () => {
+    const error = ModuleError.create('Authentication failed', {
+      context: { userId: '123' },
+      scenario: 'AUTHENTICATION'
     });
 
-    void it('is used via ModuleError.create()', () => {
-      const error = ModuleError.create('Authentication failed', {
-        context: { userId: '123' },
-        scenario: 'AUTHENTICATION'
-      });
-
-      strictEqual(error.code, ErrorCode.AUTHENTICATION_ERROR);
-      strictEqual(error.statusCode, HttpStatus.UNAUTHORIZED);
-      strictEqual(error.retryable, false);
-      deepStrictEqual(error.context, { userId: '123' });
-    });
+    strictEqual(error.code, ErrorCode.AUTHENTICATION_ERROR);
+    strictEqual(error.statusCode, HttpStatus.UNAUTHORIZED);
+    strictEqual(error.retryable, false);
+    deepStrictEqual(error.context, { userId: '123' });
   });
 
-  void describe('AUTHORIZATION', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.AUTHORIZATION, {
-        code: ErrorCode.AUTHORIZATION_ERROR,
-        retryable: false,
-        statusCode: HttpStatus.FORBIDDEN
-      });
-    });
-  });
+  const retryableScenariosArgs: Array<{ description: string; message: string; scenario: 'CONNECTION' | 'TIMEOUT' | 'RATE_LIMIT' | 'EXTERNAL_SERVICE' }> = [
+    { description: 'CONNECTION marks errors as retryable', message: 'Connection lost', scenario: 'CONNECTION' },
+    { description: 'TIMEOUT marks errors as retryable', message: 'Operation timed out', scenario: 'TIMEOUT' },
+    { description: 'RATE_LIMIT marks errors as retryable', message: 'Rate limit exceeded', scenario: 'RATE_LIMIT' },
+    { description: 'EXTERNAL_SERVICE marks errors as retryable', message: 'Service unavailable', scenario: 'EXTERNAL_SERVICE' }
+  ];
 
-  void describe('CONNECTION', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.CONNECTION, {
-        code: ErrorCode.CONNECTION_ERROR,
-        retryable: true,
-        statusCode: HttpStatus.SERVICE_UNAVAILABLE
-      });
-    });
-
-    void it('marks errors as retryable', () => {
-      const error = ModuleError.create('Connection lost', { scenario: 'CONNECTION' });
-
+  for (const { description, message, scenario } of retryableScenariosArgs) {
+    void it(description, () => {
+      const error = ModuleError.create(message, { scenario });
       strictEqual(error.retryable, true);
     });
-  });
-
-  void describe('DATABASE', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.DATABASE, {
-        code: ErrorCode.DATABASE_ERROR,
-        retryable: false,
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR
-      });
-    });
-  });
-
-  void describe('NOT_FOUND', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.NOT_FOUND, {
-        code: ErrorCode.NOT_FOUND,
-        retryable: false,
-        statusCode: HttpStatus.NOT_FOUND
-      });
-    });
-  });
-
-  void describe('TIMEOUT', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.TIMEOUT, {
-        code: ErrorCode.TIMEOUT_ERROR,
-        retryable: true,
-        statusCode: HttpStatus.GATEWAY_TIMEOUT
-      });
-    });
-
-    void it('marks errors as retryable', () => {
-      const error = ModuleError.create('Operation timed out', { scenario: 'TIMEOUT' });
-
-      strictEqual(error.retryable, true);
-    });
-  });
-
-  void describe('VALIDATION', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.VALIDATION, {
-        code: ErrorCode.VALIDATION_ERROR,
-        retryable: false,
-        statusCode: HttpStatus.BAD_REQUEST
-      });
-    });
-  });
-
-  void describe('RATE_LIMIT', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.RATE_LIMIT, {
-        code: ErrorCode.RATE_LIMIT_ERROR,
-        retryable: true,
-        statusCode: HttpStatus.TOO_MANY_REQUESTS
-      });
-    });
-
-    void it('marks errors as retryable', () => {
-      const error = ModuleError.create('Rate limit exceeded', { scenario: 'RATE_LIMIT' });
-
-      strictEqual(error.retryable, true);
-    });
-  });
-
-  void describe('EXTERNAL_SERVICE', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.EXTERNAL_SERVICE, {
-        code: ErrorCode.EXTERNAL_SERVICE_ERROR,
-        retryable: true,
-        statusCode: HttpStatus.BAD_GATEWAY
-      });
-    });
-
-    void it('marks errors as retryable', () => {
-      const error = ModuleError.create('Service unavailable', { scenario: 'EXTERNAL_SERVICE' });
-
-      strictEqual(error.retryable, true);
-    });
-  });
-
-  void describe('CONFIGURATION', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.CONFIGURATION, {
-        code: ErrorCode.CONFIGURATION_ERROR,
-        retryable: false,
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR
-      });
-    });
-  });
-
-  void describe('INTERNAL', () => {
-    void it('has correct defaults', () => {
-      deepStrictEqual(ErrorDefaults.INTERNAL, {
-        code: ErrorCode.INTERNAL_ERROR,
-        retryable: false,
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR
-      });
-    });
-  });
+  }
 });
 
 void describe('ErrorDefaults Integration', () => {

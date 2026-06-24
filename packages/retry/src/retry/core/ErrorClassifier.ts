@@ -243,10 +243,11 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
    * @returns Non-retryable error classification
    */
   protected nonRetryable(reason: string): ErrorClassificationType {
-    return {
+    const classification: ErrorClassificationType = {
       'reason': reason,
       'retryable': false
     };
+    return classification;
   }
 
   /**
@@ -256,9 +257,10 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
    * @returns Retryable error classification
    */
   protected retryable(reason: string): ErrorClassificationType {
-    return {
+    const classification: ErrorClassificationType = {
       'reason': reason,
       'retryable': true
     };
+    return classification;
   }
 }

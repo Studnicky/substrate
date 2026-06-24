@@ -32,6 +32,13 @@ describe('EffectInterpreter', () => {
     await assert.rejects(() => interp.send({ type: 'activate' }), /not running/);
   });
 
+  it('constructor throws FsmConfigError for empty machineId', () => {
+    assert.throws(
+      () => new EffectInterpreter(new DemoMachine(), {}, { machineId: '' }),
+      { message: 'machineId must not be empty' }
+    );
+  });
+
   it('start() sets initial state and notifies observers', () => {
     const states: DemoState[] = [];
     const interp = new EffectInterpreter(new DemoMachine(), {}, { machineId: 'test-3' });

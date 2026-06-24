@@ -1,5 +1,5 @@
 /**
- * Interval tasks example — demonstrates scheduleEvery() and cancelAll() with VirtualScheduler.
+ * interval-tasks — demonstrates scheduleEvery() and cancelAll() with VirtualScheduler.
  * Shows that a 50 ms interval fires 4 times when virtual time advances 200 ms from 0,
  * and that cancelAll() prevents further fires after it is called.
  *
@@ -7,6 +7,7 @@
  */
 import assert from 'node:assert/strict';
 
+// #region usage
 import { VirtualTimeCounter } from '../../clock/src/index.js';
 import { VirtualScheduler } from '../src/index.js';
 
@@ -21,7 +22,6 @@ let count = 0;
 scheduler.scheduleEvery(50, () => { count++; });
 
 scheduler.advance(200);
-assert.equal(count, 4, `Expected 4 fires from a 50 ms interval over 200 ms; got ${count.toString()}`);
 
 console.log('Interval fire count:', count);
 
@@ -38,6 +38,10 @@ scheduler2.scheduleEvery(50, () => { countAfterCancel++; });
 scheduler2.cancelAll();
 scheduler2.advance(200);
 
+console.log('Fires after cancelAll():', countAfterCancel);
+// #endregion usage
+
+assert.equal(count, 4, `Expected 4 fires from a 50 ms interval over 200 ms; got ${count.toString()}`);
 assert.equal(countAfterCancel, 0, 'Expected 0 fires after cancelAll()');
 
-console.log('Fires after cancelAll():', countAfterCancel);
+console.log('interval-tasks: all assertions passed');

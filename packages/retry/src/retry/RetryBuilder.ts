@@ -1,11 +1,18 @@
 import type {
   ErrorClassifierInterface,
   RetryBuilderInterface,
-  RetryConfigType,
+  RetryConfigInterface,
   RetryInterface
 } from '../interfaces/index.js';
 import type { ErrorClassifierFunctionType } from '../types/ErrorClassifierFunctionType.js';
 import type { RetryInterceptorType } from '../types/RetryInterceptorType.js';
+
+/** Mutable config shape used internally during builder accumulation. */
+type BuilderConfig = {
+  'errorClassifier'?: ErrorClassifierFunctionType | ErrorClassifierInterface;
+  'maxRetries'?: number;
+  'retryInterceptor'?: RetryInterceptorType[];
+};
 
 /**
  * Builder for creating Retry instances with fluent API
@@ -39,10 +46,10 @@ import type { RetryInterceptorType } from '../types/RetryInterceptorType.js';
  * ```
  */
 export class RetryBuilder<T extends RetryInterface = RetryInterface> implements RetryBuilderInterface<T> {
-  private readonly config: Partial<RetryConfigType> = {};
-  private readonly ctor: new (config?: Partial<RetryConfigType>) => T;
+  private readonly config: BuilderConfig = {};
+  private readonly ctor: new (config?: Partial<RetryConfigInterface>) => T;
 
-  constructor(ctor: new (config?: Partial<RetryConfigType>) => T) {
+  constructor(ctor: new (config?: Partial<RetryConfigInterface>) => T) {
     this.ctor = ctor;
   }
 
@@ -83,10 +90,8 @@ export class RetryBuilder<T extends RetryInterface = RetryInterface> implements 
 
     if (current === undefined) {
       this.config.retryInterceptor = [value];
-    } else if (Array.isArray(current)) {
-      current.push(value);
     } else {
-      this.config.retryInterceptor = [current, value];
+      current.push(value);
     }
 
     return this;

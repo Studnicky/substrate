@@ -37,5 +37,8 @@
   "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
   "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
   "keywords": ["fsm", "state-machine", "finite-state-machine", "reducer", "actor", "typescript"],
-  "engines": { "node": ">=24.0.0" }
+  "engines": { "node": ">=24.0.0" },
+  "dependencies": {
+    "@studnicky/errors": "workspace:*"
+  }
 }

@@ -16,17 +16,13 @@
  * }
  * ```
  */
-export class HeadersTimeoutError extends Error {
-  /**
-   * The underlying undici error (undefined if not applicable)
-   * Always present for V8 optimization
-   */
-  override readonly cause: Error | undefined;
+import { FetchBaseError } from './FetchBaseError.js';
 
+export class HeadersTimeoutError extends FetchBaseError {
   /**
    * Undici error code
    */
-  readonly code: 'UND_ERR_HEADERS_TIMEOUT';
+  readonly undiciCode: 'UND_ERR_HEADERS_TIMEOUT';
 
   /**
    * The URL that was being requested
@@ -34,10 +30,8 @@ export class HeadersTimeoutError extends Error {
   readonly url: string;
 
   constructor(url: string, cause?: Error) {
-    super(`Headers timeout for ${url}`, cause !== undefined ? { 'cause': cause } : undefined);
-    this.name = 'HeadersTimeoutError';
-    this.code = 'UND_ERR_HEADERS_TIMEOUT';
+    super({ 'cause': cause, 'code': 'fetch.headersTimeout', 'message': `Headers timeout for ${url}`, 'retryable': true });
+    this.undiciCode = 'UND_ERR_HEADERS_TIMEOUT';
     this.url = url;
-    this.cause = cause;
   }
 }

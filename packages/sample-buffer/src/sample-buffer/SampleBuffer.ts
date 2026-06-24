@@ -13,6 +13,7 @@ import {
   LAST_ARRAY_INDEX,
   PERCENTILE_MAX
 } from '../constants/index.js';
+import { SampleBufferError } from '../errors/index.js';
 
 /**
  * Fixed-capacity circular buffer for numeric samples
@@ -59,6 +60,10 @@ export class SampleBuffer implements SampleBufferInterface {
    * @param capacity - Maximum number of samples to store
    */
   constructor(capacity: number) {
+    if (capacity <= 0 || !Number.isInteger(capacity)) {
+      throw new SampleBufferError('capacity must be a positive integer');
+    }
+
     this._capacity = capacity;
     this._samples = Array.from<number>({ 'length': capacity });
   }

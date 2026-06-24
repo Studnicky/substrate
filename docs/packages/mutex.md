@@ -15,37 +15,15 @@ pnpm add @studnicky/mutex
 
 ## Usage
 
-```typescript
-import { Mutex } from '@studnicky/mutex';
+Acquire a lock on a named key with `runExclusive`. Different keys run concurrently; the same key serializes:
 
-const mutex = Mutex.create<string>({
-  maxQueueSize: 100,
-  timeout: 5000
-});
+<<< ../../packages/mutex/examples/keyedMutex.ts#usage
 
-// Different keys run concurrently
-await Promise.all([
-  mutex.runExclusive('user:1', async () => resolveUser('user:1')),
-  mutex.runExclusive('user:2', async () => resolveUser('user:2'))
-]);
+## Manual acquire/release
 
-// Same key serializes
-await Promise.all([
-  mutex.runExclusive('user:1', async () => processFirst()),
-  mutex.runExclusive('user:1', async () => processSecond()) // waits
-]);
-```
+Use `acquire()` when you need explicit try/finally control, or `acquireDisposable()` for a releaseable handle:
 
-### Builder
-
-```typescript
-import { MutexBuilder } from '@studnicky/mutex';
-
-const mutex = new MutexBuilder<string>()
-  .timeout(3000)
-  .maxQueueSize(50)
-  .build();
-```
+<<< ../../packages/mutex/examples/acquireRelease.ts#usage
 
 ## Subpath exports
 
@@ -58,22 +36,8 @@ const mutex = new MutexBuilder<string>()
 
 ## Extending
 
-```typescript
-import { Mutex } from '@studnicky/mutex';
+Subclass `Mutex` and override `afterAcquire` and `beforeRelease` to collect timing telemetry without coupling the mutex core to any metrics library:
 
-class TrackedMutex extends Mutex<string> {
-  protected override onAcquire(key: string): void {
-    log.debug({ key }, 'mutex acquired');
-  }
-
-  protected override onRelease(key: string): void {
-    log.debug({ key }, 'mutex released');
-  }
-
-  protected override onTimeout(key: string): void {
-    log.warn({ key }, 'mutex acquisition timed out');
-  }
-}
-```
+<<< ../../packages/mutex/examples/observedMutex.ts#usage
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/mutex)

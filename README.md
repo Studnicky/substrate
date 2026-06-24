@@ -1,13 +1,13 @@
-<p align="center"><a href="https://studnicky.github.io/substrate/"><img src="https://raw.githubusercontent.com/Studnicky/substrate/main/docs/public/og-image.svg" alt="@studnicky/substrate — Subclass-first TypeScript primitives" width="720" /></a></p>
+<p align="center"><a href="https://studnicky.github.io/substrate/"><img src="https://raw.githubusercontent.com/Studnicky/substrate/main/docs/public/og-image.png" alt="@studnicky/substrate: subclass-first TypeScript primitives — retry, throttle, mutex, scheduler, clock, pipeline, and more, each a usable class and an extension base" width="1200" /></a></p>
 
 # @studnicky/substrate
 
 > Subclass-first TypeScript primitives.
 
 [![CI](https://github.com/Studnicky/substrate/actions/workflows/ci.yml/badge.svg)](https://github.com/Studnicky/substrate/actions/workflows/ci.yml)
-[![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/)
-[![Node](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](https://nodejs.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/)
+[![node](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](package.json)
+[![version](https://img.shields.io/badge/version-1.0.0-14b8a6)](CHANGELOG.md)
 
 **[Documentation](https://studnicky.github.io/substrate/)** · **[Releases](https://github.com/Studnicky/substrate/releases)**
 

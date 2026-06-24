@@ -1,2 +1,3 @@
+export { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js';
+export { CacheConfigError, CacheError } from './errors/index.js';
 export { LruCache } from './LruCache.js';
-export type { LruCacheOptionsType } from './LruCacheOptionsType.js';

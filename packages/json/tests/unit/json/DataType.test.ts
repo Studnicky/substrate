@@ -5,18 +5,24 @@ import { DataType } from '../../../src/json/DataType.js';
 
 void describe('DataType', () => {
   void describe('DataType.deepEqual', () => {
-    void it('returns true for identical primitives', () => {
-      assert.ok(DataType.deepEqual(1, 1));
-      assert.ok(DataType.deepEqual('a', 'a'));
-      assert.ok(DataType.deepEqual(true, true));
-      assert.ok(DataType.deepEqual(null, null));
-    });
+    const deepEqualTrueScenarios: Array<{ description: string; a: unknown; b: unknown }> = [
+      { description: 'identical numbers are equal', a: 1, b: 1 },
+      { description: 'identical strings are equal', a: 'a', b: 'a' },
+      { description: 'identical booleans are equal', a: true, b: true },
+      { description: 'null equals null', a: null, b: null },
+    ];
+    for (const { description, a, b } of deepEqualTrueScenarios) {
+      void it(description, () => { assert.ok(DataType.deepEqual(a, b)); });
+    }
 
-    void it('returns false for differing primitives', () => {
-      assert.ok(!DataType.deepEqual(1, 2));
-      assert.ok(!DataType.deepEqual('a', 'b'));
-      assert.ok(!DataType.deepEqual(null, undefined));
-    });
+    const deepEqualFalseScenarios: Array<{ description: string; a: unknown; b: unknown }> = [
+      { description: '1 does not equal 2', a: 1, b: 2 },
+      { description: '"a" does not equal "b"', a: 'a', b: 'b' },
+      { description: 'null does not equal undefined', a: null, b: undefined },
+    ];
+    for (const { description, a, b } of deepEqualFalseScenarios) {
+      void it(description, () => { assert.ok(!DataType.deepEqual(a, b)); });
+    }
 
     void it('treats NaN as equal to NaN', () => {
       assert.ok(DataType.deepEqual(NaN, NaN));
@@ -75,37 +81,52 @@ void describe('DataType', () => {
   });
 
   void describe('DataType.isPlainObject', () => {
-    void it('returns true for plain objects', () => {
-      assert.ok(DataType.isPlainObject({}));
-      assert.ok(DataType.isPlainObject({ a: 1 }));
-      assert.ok(DataType.isPlainObject(Object.create(null)));
-    });
+    const isPlainObjectTrueScenarios: Array<{ description: string; input: unknown }> = [
+      { description: 'returns true for empty object', input: {} },
+      { description: 'returns true for object with properties', input: { a: 1 } },
+      { description: 'returns true for null-prototype object', input: Object.create(null) },
+    ];
+    for (const { description, input } of isPlainObjectTrueScenarios) {
+      void it(description, () => { assert.ok(DataType.isPlainObject(input)); });
+    }
 
-    void it('returns false for non-plain objects', () => {
-      assert.ok(!DataType.isPlainObject([]));
-      assert.ok(!DataType.isPlainObject(null));
-      assert.ok(!DataType.isPlainObject(new Date()));
-      assert.ok(!DataType.isPlainObject('string'));
-    });
+    const isPlainObjectFalseScenarios: Array<{ description: string; input: unknown }> = [
+      { description: 'returns false for array', input: [] },
+      { description: 'returns false for null', input: null },
+      { description: 'returns false for Date instance', input: new Date() },
+      { description: 'returns false for string', input: 'string' },
+    ];
+    for (const { description, input } of isPlainObjectFalseScenarios) {
+      void it(description, () => { assert.ok(!DataType.isPlainObject(input)); });
+    }
   });
 
   void describe('DataType.isRecord', () => {
-    void it('returns true for objects', () => {
-      assert.ok(DataType.isRecord({}));
-      assert.ok(DataType.isRecord(new Map()));
-    });
+    const isRecordTrueScenarios: Array<{ description: string; input: unknown }> = [
+      { description: 'returns true for plain object', input: {} },
+      { description: 'returns true for Map instance', input: new Map() },
+    ];
+    for (const { description, input } of isRecordTrueScenarios) {
+      void it(description, () => { assert.ok(DataType.isRecord(input)); });
+    }
 
-    void it('returns false for arrays and nulls', () => {
-      assert.ok(!DataType.isRecord([]));
-      assert.ok(!DataType.isRecord(null));
-    });
+    const isRecordFalseScenarios: Array<{ description: string; input: unknown }> = [
+      { description: 'returns false for array', input: [] },
+      { description: 'returns false for null', input: null },
+    ];
+    for (const { description, input } of isRecordFalseScenarios) {
+      void it(description, () => { assert.ok(!DataType.isRecord(input)); });
+    }
   });
 
   void describe('DataType.hasCycle', () => {
-    void it('returns false for acyclic values', () => {
-      assert.ok(!DataType.hasCycle({ a: 1, b: [2, 3] }));
-      assert.ok(!DataType.hasCycle([1, { x: 2 }]));
-    });
+    const hasCycleFalseScenarios: Array<{ description: string; input: unknown }> = [
+      { description: 'returns false for acyclic object', input: { a: 1, b: [2, 3] } },
+      { description: 'returns false for acyclic array', input: [1, { x: 2 }] },
+    ];
+    for (const { description, input } of hasCycleFalseScenarios) {
+      void it(description, () => { assert.ok(!DataType.hasCycle(input)); });
+    }
 
     void it('returns true for cyclic objects', () => {
       const obj: Record<string, unknown> = { a: 1 };

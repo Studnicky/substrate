@@ -13,6 +13,6 @@ export type {
 } from './ErrorShapesType.js';
 export type { RequestStatsType } from './RequestStatsType.js';
 export type { RetryBuilderInterface } from './RetryBuilderInterface.js';
-export type { RetryConfigType } from './RetryConfigType.js';
+export type { RetryConfigInterface } from './RetryConfigInterface.js';
 export type { RetryContextType } from './RetryContextType.js';
 export type { RetryInterface } from './RetryInterface.js';

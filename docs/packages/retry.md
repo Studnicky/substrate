@@ -17,38 +17,9 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-```typescript
-import { Retry, DefaultHttpErrorClassifier } from '@studnicky/retry';
+Build a `Retry` instance with the builder, then pass any operation to `execute`. The instance tracks stats and retries on transient failures:
 
-// Static factory
-const retry = Retry.create({ maxRetries: 3 });
-
-// Builder
-const retry2 = Retry.builder()
-  .maxRetries(5)
-  .errorClassifier(new DefaultHttpErrorClassifier())
-  .build();
-
-// Execute any async operation
-const data = await retry.execute(async () => {
-  const res = await fetch('https://api.example.com/resource');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-});
-```
-
-### With backoff interceptor
-
-```typescript
-import { Retry } from '@studnicky/retry';
-
-const retry = Retry.builder()
-  .maxRetries(4)
-  .retryInterceptor((ctx) => ({
-    delayMs: Math.pow(2, ctx.attemptNumber) * 100
-  }))
-  .build();
-```
+<<< ../../packages/retry/examples/basicRetry.ts#usage
 
 ## Subpath exports
 
@@ -62,28 +33,17 @@ const retry = Retry.builder()
 | `@studnicky/retry/matchers` | Error matcher utilities |
 | `@studnicky/retry/types` | `BackoffStrategyType`, `ErrorClassifierFunctionType`, `RetryInterceptorType` |
 
-## Extending
+## Custom error classification
 
-`Retry` exposes protected lifecycle hooks — override to add observability:
+Subclass `Retry` and override `classifyError` to control which errors are retryable for your domain:
 
-```typescript
-import { Retry } from '@studnicky/retry';
-import type { RetryContextInterface } from '@studnicky/retry';
+<<< ../../packages/retry/examples/customClassifier.ts#usage
 
-class ObservableRetry extends Retry {
-  protected override onAttempt(ctx: RetryContextInterface): void {
-    metrics.increment('retry.attempt', { attempt: ctx.attemptNumber });
-  }
+## Observability hooks
 
-  protected override onSuccess(ctx: RetryContextInterface): void {
-    metrics.increment('retry.success');
-  }
+Override `onRetryScheduled` and `onGiveUp` to collect telemetry without coupling the retry core to any metrics library:
 
-  protected override onGiveUp(ctx: RetryContextInterface, error: Error): void {
-    metrics.increment('retry.exhausted');
-  }
-}
-```
+<<< ../../packages/retry/examples/observedRetry.ts#usage
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 

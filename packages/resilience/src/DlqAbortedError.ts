@@ -1,3 +1,7 @@
-export class DlqAbortedError extends Error {
-  constructor() { super('Dead letter queue is aborted'); this.name = 'DlqAbortedError'; }
+import { ResilienceError } from './errors/ResilienceError.js';
+
+export class DlqAbortedError extends ResilienceError {
+  constructor() {
+    super({ 'code': 'resilience.dlqAborted', 'message': 'Dead letter queue is aborted', 'retryable': false });
+  }
 }

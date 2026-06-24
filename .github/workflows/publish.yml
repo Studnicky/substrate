@@ -1,11 +1,21 @@
-name: publish
+name: Publish Packages
+
+# Publishes all 27 @studnicky/* workspace packages to GitHub Packages when a
+# semver tag (v*) is pushed. Nothing publishes on merge to main — tags are the
+# only trigger. workflow_dispatch allows a manual dry-run against the tag-less
+# path (validate + publish guard via NPM_PUBLISH_ENABLED).
 
 on:
   push:
-    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  # ─── validate ────────────────────────────────────────────────────────────────
   validate:
     name: Validate
     runs-on: ubuntu-latest
@@ -15,48 +25,170 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10.32.1
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: pnpm
           registry-url: 'https://npm.pkg.github.com'
           scope: '@studnicky'
-      - run: pnpm install --frozen-lockfile
+
+      # VERSION-MATCH GATE — must run before install so no tooling deps are needed.
+      # On a tag push: derive expected version from the tag (strip leading "v") and
+      # assert it equals root package.json, then assert every workspace package matches.
+      # On workflow_dispatch (no tag): derive expected version from root package.json
+      # only and skip the tag-equality check.
+      - name: Version-match gate
+        run: |
+          set -euo pipefail
+
+          ROOT_VERSION=$(node -p "require('./package.json').version")
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$TAG_VERSION" != "$ROOT_VERSION" ]]; then
+              echo "::error::Tag version (${TAG_VERSION}) does not match root package.json version (${ROOT_VERSION})"
+              exit 1
+            fi
+            EXPECTED_VERSION="$TAG_VERSION"
+          else
+            # workflow_dispatch — no tag; use root version as the expected lockstep version
+            EXPECTED_VERSION="$ROOT_VERSION"
+          fi
+
+          echo "Expected lockstep version: ${EXPECTED_VERSION}"
+
+          MISMATCHES=()
+          for pkg_json in packages/*/package.json; do
+            pkg_name=$(node -p "require('./${pkg_json}').name")
+            pkg_ver=$(node -p "require('./${pkg_json}').version")
+            if [[ "$pkg_ver" != "$EXPECTED_VERSION" ]]; then
+              MISMATCHES+=("${pkg_name}@${pkg_ver}")
+            fi
+          done
+
+          if [[ ${#MISMATCHES[@]} -gt 0 ]]; then
+            echo "::error::The following workspace packages are not at version ${EXPECTED_VERSION}:"
+            for m in "${MISMATCHES[@]}"; do
+              echo "::error::  ${m}"
+            done
+            exit 1
+          fi
+
+          echo "All workspace packages confirmed at version ${EXPECTED_VERSION}."
+
+      # CHANGELOG GATE — assert CHANGELOG.md contains a heading for the release version
+      - name: Changelog gate
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          if ! grep -qE "^## \[?${VERSION}\]?" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md does not contain an entry for version ${VERSION}"
+            exit 1
+          fi
+          echo "CHANGELOG.md entry for ${VERSION} confirmed."
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: pnpm run typecheck
-      - run: pnpm run lint
-      - run: pnpm run test
-      - run: pnpm run build
 
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Build
+        run: pnpm run build
+
+  # ─── publish ─────────────────────────────────────────────────────────────────
   publish:
     name: Publish to GitHub Packages
     needs: validate
+    # Defense-in-depth: a tag push still no-ops until the repo variable is set true.
     if: ${{ vars.NPM_PUBLISH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      published: ${{ steps.publish-packages.outputs.published }}
+      version: ${{ steps.capture-version.outputs.version }}
     permissions:
       contents: read
       packages: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10.32.1
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: pnpm
           registry-url: 'https://npm.pkg.github.com'
           scope: '@studnicky'
-      - run: pnpm install --frozen-lockfile
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: pnpm run build
-      - run: pnpm -r publish --no-git-checks --access public
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Capture version
+        id: capture-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # pnpm -r publish is idempotent: it skips packages whose current version is
+      # already on the registry, so no manual npm-view loop is required here.
+      - name: Publish all packages
+        id: publish-packages
+        run: |
+          pnpm -r publish --provenance --no-git-checks --access public
+          echo "published=true" >> "$GITHUB_OUTPUT"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── release ─────────────────────────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: publish
+    if: needs.publish.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract changelog notes
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.publish.outputs.version }}"
+          NOTES=$(awk "/^## \[?${VERSION}\]?/{f=1;next} /^## \[/{f=0} f" CHANGELOG.md \
+            | sed '/^$/N;/^\n$/d')
+          if [[ -z "$NOTES" ]]; then
+            NOTES="Release v${VERSION}"
+          fi
+          echo "$NOTES" > release_notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.publish.outputs.version }}"
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes-file release_notes.md \
+            --verify-tag=false

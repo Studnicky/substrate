@@ -47,7 +47,8 @@ export class Merge {
    * Override to union, concat, or otherwise combine arrays.
    */
   protected static mergeArrays(_base: unknown[], overlay: unknown[]): unknown[] {
-    return overlay;
+    const result = overlay;
+    return result;
   }
 
   /** Merge two plain objects key-by-key in alphabetical union order. */

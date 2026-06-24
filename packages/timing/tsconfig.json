@@ -11,5 +11,19 @@
   "exclude": [
     "node_modules",
     "dist"
+  ],
+  "references": [
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../errors"
+    },
+    {
+      "path": "../json"
+    },
+    {
+      "path": "../types"
+    }
   ]
 }

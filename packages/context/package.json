@@ -8,11 +8,25 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./errors": { "types": "./dist/errors/index.d.ts", "import": "./dist/errors/index.js" },
-    "./interfaces": { "types": "./dist/interfaces/index.d.ts", "import": "./dist/interfaces/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./errors": {
+      "types": "./dist/errors/index.d.ts",
+      "import": "./dist/errors/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
+    }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports",
@@ -22,7 +36,13 @@
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "keywords": ["context", "async-local-storage", "async", "request-context", "typescript"],
+  "keywords": [
+    "context",
+    "async-local-storage",
+    "async",
+    "request-context",
+    "typescript"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Studnicky/substrate.git",
@@ -36,5 +56,13 @@
     "registry": "https://npm.pkg.github.com",
     "access": "public"
   },
-  "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" }
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*"
+  }
 }

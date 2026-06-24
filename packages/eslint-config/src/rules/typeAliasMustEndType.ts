@@ -1,8 +1,8 @@
 import type { Rule } from 'eslint';
 
-const createTypeAliasMustEndType: NonNullable<Rule.RuleModule['create']> = (context) => {
-  return {
-    'TSTypeAliasDeclaration': (node: Rule.Node) => {
+export const typeAliasMustEndType: Rule.RuleModule = {
+  'create': (context) => {
+    const listener: NonNullable<Rule.RuleListener['TSTypeAliasDeclaration']> = (node: Rule.Node) => {
       const rawNode = node as unknown as {
         'id': { 'name': string };
         'parent': { 'type': string };
@@ -16,12 +16,9 @@ const createTypeAliasMustEndType: NonNullable<Rule.RuleModule['create']> = (cont
         'messageId': 'mustEndType',
         'node': node
       });
-    }
-  };
-};
-
-export const typeAliasMustEndType: Rule.RuleModule = {
-  'create': createTypeAliasMustEndType,
+    };
+    return { 'TSTypeAliasDeclaration': listener };
+  },
   'meta': {
     'docs': {
       'description':

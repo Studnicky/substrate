@@ -1,4 +1,6 @@
-import type { LruCacheOptionsType } from './LruCacheOptionsType.js';
+import type { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js';
+
+import { CacheConfigError } from './errors/index.js';
 
 type EntryType<V> = {
   /** Expiry timestamp (ms since epoch) or `0` (no expiry sentinel). */
@@ -24,7 +26,11 @@ export class LruCache<K, V> {
   #head: NodeType<string> | undefined;
   #tail: NodeType<string> | undefined;
 
-  public constructor(options: LruCacheOptionsType) {
+  public constructor(options: LruCacheOptionsEntity.Type) {
+    if (options.capacity <= 0 || !Number.isInteger(options.capacity)) {
+      throw new CacheConfigError('capacity must be a positive integer');
+    }
+
     this.#capacity = options.capacity;
     this.#defaultTtlMs = options.ttlMs;
     this.#entries = new Map();
@@ -36,7 +42,8 @@ export class LruCache<K, V> {
 
   /** Includes expired entries not yet lazily evicted. */
   public get size(): number {
-    return this.#entries.size;
+    const result = this.#entries.size;
+    return result;
   }
 
   /** Promotes entry to MRU on hit; returns undefined on miss or expiry (lazily evicts). */

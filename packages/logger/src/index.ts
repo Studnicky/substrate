@@ -1,17 +1,21 @@
 /**
  * @packageDocumentation
- * Pluggable logging interface with Pino wrapper, child loggers, and metadata support.
+ * Pluggable logging interface with transport architecture for Node.js.
  *
  * Correlation IDs (requestId, traceId, userId, orgId, teamId) are injected via
  * child loggers from async context, not from the LogBody/LogFault builders.
  *
  * @example
  * ```typescript
- * import { PinoLogger, LogBody, LogFault } from '@studnicky/logger';
+ * import { Logger, ConsoleTransport, LogBody, LogFault } from '@studnicky/logger';
  * import type { LogStatusType } from '@studnicky/logger/types';
  * import { LOG_STATUS } from '@studnicky/logger/constants';
  *
- * const logger = PinoLogger.create({ metadata: { service: 'api-layer' } });
+ * const logger = Logger.create({
+ *   level: 'info',
+ *   metadata: { service: 'api-layer' },
+ *   transports: [new ConsoleTransport()]
+ * });
  *
  * // Normal log - all fields required: component, operation, status, message, context
  * const body = LogBody.create()
@@ -38,32 +42,29 @@
  *
  * logger.error(fault);
  *
- * // Error from caught exception
- * try {
- *   await executeQuery();
- * } catch (err) {
- *   const fault = LogFault.create()
- *     .component('graph')
- *     .operation('query')
- *     .status('failed')
- *     .fromError(err)
- *     .context({})
- *     .build();
- *
- *   logger.error(fault);
- * }
+ * // Fan-out: console + memory capture for tests
+ * import { MemoryTransport } from '@studnicky/logger/transports';
+ * const memory = new MemoryTransport();
+ * const testLogger = Logger.create({
+ *   level: 'debug',
+ *   transports: [new ConsoleTransport({ level: 'warn' }), memory]
+ * });
  * ```
  */
 
-export { ConsoleLogger } from './modules/ConsoleLogger.js';
-export { ConsoleLoggerBuilder } from './modules/ConsoleLoggerBuilder.js';
-export { FanOutLogger } from './modules/FanOutLogger.js';
-export { isCloudEnvironment } from './modules/isCloudEnvironment.js';
+export { LoggerOptionsEntity } from './entities/LoggerOptionsEntity.js';
+export type { LoggerOptionsInterface } from './interfaces/LoggerOptionsInterface.js';
 export { LogBody } from './modules/LogBody.js';
 export { LogFault } from './modules/LogFault.js';
-export { NoOpLogger } from './modules/NoOpLogger.js';
+export { Logger } from './modules/Logger.js';
 export { parseLogLevel } from './modules/parseLogLevel.js';
-export { PinoLogger } from './modules/PinoLogger.js';
-export { PinoLoggerBuilder } from './modules/PinoLoggerBuilder.js';
 export { safeStringify } from './modules/safeStringify.js';
-export { SpyLogger } from './modules/SpyLogger.js';
+export { ConsoleTransport } from './transports/ConsoleTransport.js';
+export type { ConsoleTransportOptionsType } from './transports/ConsoleTransportOptionsType.js';
+export { FunctionTransport } from './transports/FunctionTransport.js';
+export type { FunctionTransportOptionsType } from './transports/FunctionTransportOptionsType.js';
+export { MemoryTransport } from './transports/MemoryTransport.js';
+export type { MemoryTransportOptionsType } from './transports/MemoryTransportOptionsType.js';
+export { NoOpTransport } from './transports/NoOpTransport.js';
+export type { TransportInterface } from './transports/TransportInterface.js';
+export type { LogRecordType } from './types/LogRecordType.js';

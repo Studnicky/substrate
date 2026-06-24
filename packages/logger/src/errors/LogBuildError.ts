@@ -1,3 +1,5 @@
+import { LoggerError } from './LoggerError.js';
+
 /**
  * Error thrown when a log builder fails validation.
  *
@@ -8,7 +10,7 @@
  * throw new LogBuildError('LogBody: component is required');
  * ```
  */
-export class LogBuildError extends Error {
+export class LogBuildError extends LoggerError {
   /**
    * Creates a new LogBuildError
    *
@@ -16,7 +18,5 @@ export class LogBuildError extends Error {
    */
   constructor(message: string) {
     super(message);
-    this.name = 'LogBuildError';
-    Error.captureStackTrace(this, this.constructor);
   }
 }

@@ -1,4 +1,4 @@
-import type { ContextConfigType } from '../interfaces/ContextConfigType.js';
+import type { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import type { Context } from './Context.js';
 
 /**
@@ -10,7 +10,7 @@ import type { Context } from './Context.js';
  * ```
  */
 export class ContextBuilder {
-  readonly #create: (config: ContextConfigType) => Context;
+  readonly #create: (config: ContextConfigEntity.Type) => Context;
 
   /**
    * The context name, held as a protected field so subclasses can read it
@@ -23,7 +23,7 @@ export class ContextBuilder {
    *   Injected by `Context.builder()` so this module needs only a type-level
    *   reference to Context (no runtime import cycle).
    */
-  constructor(create: (config: ContextConfigType) => Context) {
+  constructor(create: (config: ContextConfigEntity.Type) => Context) {
     this.#create = create;
   }
 
@@ -33,7 +33,7 @@ export class ContextBuilder {
    *
    * @param config - The resolved config that will be passed to the factory
    */
-  protected validateBuild(_config: ContextConfigType): void {}
+  protected validateBuild(_config: ContextConfigEntity.Type): void {}
 
   /**
    * Build and return the configured Context instance.
@@ -46,7 +46,7 @@ export class ContextBuilder {
       throw new Error('Context name is required');
     }
 
-    const config: ContextConfigType = { 'name': this.contextName };
+    const config: ContextConfigEntity.Type = { 'name': this.contextName };
 
     this.validateBuild(config);
 

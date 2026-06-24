@@ -16,17 +16,13 @@
  * }
  * ```
  */
-export class SocketError extends Error {
-  /**
-   * The underlying undici error (undefined if not applicable)
-   * Always present for V8 optimization
-   */
-  override readonly cause: Error | undefined;
+import { FetchBaseError } from './FetchBaseError.js';
 
+export class SocketError extends FetchBaseError {
   /**
    * Undici error code
    */
-  readonly code: 'UND_ERR_SOCKET';
+  readonly undiciCode: 'UND_ERR_SOCKET';
 
   /**
    * The URL that was being requested
@@ -34,10 +30,8 @@ export class SocketError extends Error {
   readonly url: string;
 
   constructor(url: string, cause?: Error) {
-    super(`Socket error for ${url}`, cause !== undefined ? { 'cause': cause } : undefined);
-    this.name = 'SocketError';
-    this.code = 'UND_ERR_SOCKET';
+    super({ 'cause': cause, 'code': 'fetch.socketError', 'message': `Socket error for ${url}`, 'retryable': true });
+    this.undiciCode = 'UND_ERR_SOCKET';
     this.url = url;
-    this.cause = cause;
   }
 }

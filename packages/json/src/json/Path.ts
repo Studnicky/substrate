@@ -77,7 +77,7 @@ export class Path {
     const segments = jsonPointer
       .split('/')
       .slice(1)
-      .map((seg) => seg.replaceAll('~1', '/').replaceAll('~0', '~'));
+      .map((seg) => { const result = seg.replaceAll('~1', '/').replaceAll('~0', '~'); return result; });
 
     let result = '';
 
@@ -114,7 +114,7 @@ export class Path {
     obj: unknown,
     path: string,
     options?: PathGetOptionsType
-  ): PathWildcardResultType | unknown {
+  ): unknown {
     if (path === '') {
       return obj;
     }

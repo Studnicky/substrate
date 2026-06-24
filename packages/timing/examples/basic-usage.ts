@@ -1,10 +1,9 @@
-// Demonstrates building a Timing instance, recording component.operation and
-// component.operation.status events, and inspecting the elapsed-ms output map.
-// Run: npx tsx packages/timing/examples/basic-usage.ts
+/** basic-usage — build a Timing instance, record component.operation events, and inspect elapsed-ms output. Run: npx tsx examples/basic-usage.ts */
 
 import assert from 'node:assert/strict';
 
-import { TIMING_STATUS, Timing, TimingEvent } from '../src/index.js';
+// #region usage
+import { Timing, TIMING_STATUS, TimingEvent } from '../src/index.js';
 
 const timing = Timing.builder().maxEvents(50).build();
 
@@ -40,6 +39,9 @@ timing.event(
 
 const events = timing.getEvents();
 
+console.log('events:', events);
+// #endregion usage
+
 // Structural assertions — deterministic regardless of wall-clock timing
 assert.ok('initialize' in events, 'initialize key must be present');
 assert.ok('GraphAdapter.query' in events, 'GraphAdapter.query key must be present');
@@ -51,6 +53,6 @@ assert.ok('durationMs' in events, 'durationMs key must be present');
 assert.equal(typeof events['GraphAdapter.query'], 'number');
 assert.equal(typeof events['CacheService.get.start'], 'number');
 assert.ok(events['GraphAdapter.query'] >= 0);
-assert.ok(events['durationMs'] >= 0);
+assert.ok(events.durationMs >= 0);
 
-console.log('events:', events);
+console.log('basic-usage: all assertions passed');

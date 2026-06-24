@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose a new primitive, API seam, option, or documentation page
+labels: ["enhancement"]
+body:
+  - id: problem
+    type: textarea
+    attributes:
+      label: Problem
+      description: What gap motivates the request? Cite the package, class, or docs page that surfaced it.
+    validations:
+      required: true
+  - id: proposal
+    type: textarea
+    attributes:
+      label: Proposed API
+      description: Sketch the API. If a new method or class, include the signature and a usage example.
+      render: ts
+  - id: alternatives
+    type: textarea
+    attributes:
+      label: Alternatives considered
+      description: Existing primitives, subclassing approaches, or workarounds you have already evaluated.

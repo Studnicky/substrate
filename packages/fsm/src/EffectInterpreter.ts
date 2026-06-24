@@ -1,6 +1,10 @@
 import type { EffectHandlerMapType } from './EffectHandlerMapType.js';
 import type { StateMachine } from './StateMachine.js';
 
+import { FsmConfigError } from './errors/FsmConfigError.js';
+import { InterpreterNotRunningError } from './errors/InterpreterNotRunningError.js';
+import { InterpreterNotStartedError } from './errors/InterpreterNotStartedError.js';
+
 export class EffectInterpreter<
   TState extends { readonly 'variant': string },
   TEvent extends { readonly 'type': string },
@@ -20,6 +24,9 @@ export class EffectInterpreter<
     handlers?: EffectHandlerMapType<TEffect>,
     options?: { 'machineId'?: string }
   ) {
+    if (options?.machineId !== undefined && options.machineId === '') {
+      throw new FsmConfigError('machineId must not be empty');
+    }
     this.#machine = machine;
     this.#handlers = handlers ?? ({});
     this.#machineId = options?.machineId ?? crypto.randomUUID();
@@ -38,14 +45,14 @@ export class EffectInterpreter<
 
   getState(): TState {
     if (this.#currentState === undefined) {
-      throw new Error(`EffectInterpreter '${this.#machineId}' not started — call start() first`);
+      throw new InterpreterNotStartedError(`EffectInterpreter '${this.#machineId}' not started — call start() first`);
     }
     return this.#currentState;
   }
 
   async send(event: TEvent): Promise<void> {
     if (!this.#running) {
-      throw new Error(`EffectInterpreter '${this.#machineId}' not running — call start() first`);
+      throw new InterpreterNotRunningError(`EffectInterpreter '${this.#machineId}' not running — call start() first`);
     }
     this.#mailbox.push(event);
     if (!this.#draining) { await this.#drain(); }

@@ -60,16 +60,21 @@ Import the V8-optimization rules directly:
 
 ```js
 // eslint.config.mjs
-import { v8 } from '@studnicky/eslint-config/v8';
+import { v8Plugin } from '@studnicky/eslint-config/v8';
 
 export default [
-  ...v8,
+  {
+    plugins: { '@studnicky/v8': v8Plugin },
+    rules: { '@studnicky/v8/no-spread-in-loops': 'error' }
+  }
 ];
 ```
 
 ## Custom rules
 
-The package ships a plugin with four rules under the `@studnicky` namespace:
+The package ships two rule plugins registered by `createEslintConfig()`.
+
+**`@studnicky` namespace** (14 rules via `plugin` from `@studnicky/eslint-config/plugin`):
 
 | Rule | Purpose |
 |------|---------|
@@ -77,6 +82,15 @@ The package ships a plugin with four rules under the `@studnicky` namespace:
 | `@studnicky/no-suppression-comments` | Disallows eslint-disable and @ts-ignore suppression comments |
 | `@studnicky/no-trivial-shim` | Flags thin wrapper functions that add no behavior |
 | `@studnicky/single-export` | Enforces one named export per file |
+
+**`@studnicky/v8` namespace** (16 rules via `v8Plugin` from `@studnicky/eslint-config/v8`):
+
+| Rule | Purpose |
+|------|---------|
+| `@studnicky/v8/no-spread-in-loops` | Avoid spread operators inside loops |
+| `@studnicky/v8/for-of-arrays` | Prefer `for` / `for-of` over `forEach` on arrays |
+
+Full rule reference: https://studnicky.github.io/substrate/packages/eslint-config
 
 ## Documentation
 

@@ -17,9 +17,7 @@ export {
 } from './hasCorrelation.js';
 // Log data type
 export type { LogDataType } from './LogDataType.js';
-// Log event type and utilities
-export type { LogEventNameType } from './LogEventNameType.js';
-
+// Log event utilities
 export {
   createEventName,
   parseEventName

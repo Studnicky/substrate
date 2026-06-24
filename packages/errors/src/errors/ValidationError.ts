@@ -18,13 +18,9 @@ ErrorCodeRegistry.register({
 });
 
 /** Construction arguments for `ValidationError`. */
-export type ValidationErrorArgumentsType = {
+export type ValidationErrorArgumentsType = Pick<ValidationViolationDetailType, 'message' | 'path'> & {
   /** Optional correlation ID for distributed tracing. */
   readonly 'correlationId'?: string | undefined;
-  /** Human-readable validation failure summary. */
-  readonly 'message': string;
-  /** The parameter or field path that failed validation. */
-  readonly 'path': string;
   /** Structured violation list (Ajv-style or custom). */
   readonly 'violations'?: readonly Readonly<ValidationViolationDetailType>[] | undefined;
 };
@@ -42,7 +38,8 @@ export class ValidationError extends BaseError {
    * Creates a new `ValidationError`.
    */
   public static create(args: Readonly<ValidationErrorArgumentsType>): ValidationError {
-    return new ValidationError(args);
+    const result = new ValidationError(args);
+    return result;
   }
 
   /** Structured list of validation violations. */
@@ -69,7 +66,8 @@ export class ValidationError extends BaseError {
    * Fire-point: called as a static helper from the constructor initializer.
    */
   protected static buildMessage(path: string, summary: string): string {
-    return `Validation failed at "${path}": ${summary}`;
+    const result = `Validation failed at "${path}": ${summary}`;
+    return result;
   }
 
   /**
@@ -100,6 +98,7 @@ export class ValidationError extends BaseError {
   }
 
   public override toUserMessage(): string {
-    return this.formatUserMessage();
+    const result = this.formatUserMessage();
+    return result;
   }
 }

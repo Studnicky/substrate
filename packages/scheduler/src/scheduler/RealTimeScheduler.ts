@@ -76,17 +76,19 @@ export class RealTimeScheduler implements SchedulerProviderType {
 
   /** Creates a one-shot timer. Override to substitute the timer backend. */
   protected createTimeout(fire: () => void, delayMs: number): ReturnType<typeof setTimeout> {
-    return setTimeout(fire, delayMs);
+    const result = setTimeout(fire, delayMs);
+    return result;
   }
 
   /** Creates a repeating timer. Override to substitute the timer backend. */
   protected createInterval(fire: () => void, intervalMs: number): ReturnType<typeof setInterval> {
-    return setInterval(fire, intervalMs);
+    const result = setInterval(fire, intervalMs);
+    return result;
   }
 
   /** Clears a timer handle. Override to control timer clearing. */
   protected clearTimer(
-    handle: ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>,
+    handle: ReturnType<typeof setTimeout>  ,
     variant: 'interval' | 'timeout'
   ): void {
     if (variant === 'interval') {

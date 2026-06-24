@@ -1,14 +1,18 @@
-import { TypeGuards } from '@studnicky/config';
+import { Guard } from '@studnicky/config';
 
-import type { RetryConfigType } from '../../interfaces/RetryConfigType.js';
+import type { RetryConfigInterface } from '../../interfaces/RetryConfigInterface.js';
 
 import { Retry } from '../Retry.js';
 
 /**
- * Type guard for RetryConfigType
+ * Type guard for RetryConfigInterface.
+ *
+ * Validates both the JSON-serializable subset (maxRetries via schema) and the
+ * runtime members (errorClassifier, retryInterceptor) by delegating to Retry.create,
+ * which runs the full validation pipeline.
  *
  * @param value - Value to check
- * @returns True if value is a valid RetryConfigType
+ * @returns True if value is a valid RetryConfigInterface
  *
  * @example
  * ```typescript
@@ -17,8 +21,8 @@ import { Retry } from '../Retry.js';
  * }
  * ```
  */
-export function isRetryConfig(value: unknown): value is RetryConfigType {
-  if (!TypeGuards.isObject(value)) {
+export function isRetryConfig(value: unknown): value is RetryConfigInterface {
+  if (!Guard.isObject(value)) {
     return false;
   }
 

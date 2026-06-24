@@ -1,2 +1,3 @@
-/** Type-safe wire format accessors */
-export { Wire } from './Wire.js';
+/** Type-safe accessors and type guards */
+export { Empty } from './Empty.js';
+export { Guard } from './Guard.js';

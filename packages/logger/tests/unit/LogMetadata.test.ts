@@ -6,10 +6,9 @@ import {
   it
 } from 'node:test';
 
-import {
-  ConsoleLogger,
-  PinoLogger
-} from '../../src/index.js';
+import { LogLevel } from '../../src/constants/LogLevel.js';
+import { Logger } from '../../src/modules/Logger.js';
+import { MemoryTransport } from '../../src/transports/MemoryTransport.js';
 
 import { TestFactory } from './TestFactory.js';
 
@@ -53,9 +52,9 @@ void describe('LogMetadataType', () => {
     });
   });
 
-  void describe('ConsoleLogger with metadata', () => {
+  void describe('Logger with metadata', () => {
     void it('should include metadata in child loggers', () => {
-      const logger = ConsoleLogger.create();
+      const logger = Logger.create();
       const metadata: LogMetadataType = {
         requestId: '123',
         userId: '456'
@@ -63,38 +62,34 @@ void describe('LogMetadataType', () => {
 
       const child = logger.child(metadata);
 
-      assert.ok(child instanceof ConsoleLogger);
+      assert.ok(child instanceof Logger);
     });
 
     void it('should merge metadata in nested children', () => {
-      const logger = ConsoleLogger.create();
+      const memory = new MemoryTransport();
+      const logger = Logger.create({
+        'level': LogLevel.TRACE,
+        'transports': [memory]
+      });
 
       const child1 = logger.child({ level1: 'value1' });
       const child2 = child1.child({ level2: 'value2' });
 
-      assert.ok(child1 instanceof ConsoleLogger);
-      assert.ok(child2 instanceof ConsoleLogger);
-    });
-  });
+      child2.info(TestFactory.body('nested metadata'));
 
-  void describe('PinoLogger with metadata', () => {
-    void it('should include metadata in child loggers', () => {
-      const logger = PinoLogger.create();
-      const metadata: LogMetadataType = {
-        requestId: '789',
-        traceId: 'abc'
-      };
+      const record = memory.records()[0];
 
-      const child = logger.child(metadata);
-
-      assert.ok(child instanceof PinoLogger);
-      assert.doesNotThrow(() => {
-        child.info(TestFactory.body('test'));
-      });
+      assert.ok(record);
+      assert.strictEqual(record.metadata.level1, 'value1');
+      assert.strictEqual(record.metadata.level2, 'value2');
     });
 
     void it('should support complex metadata structures', () => {
-      const logger = PinoLogger.create();
+      const memory = new MemoryTransport();
+      const logger = Logger.create({
+        'level': LogLevel.TRACE,
+        'transports': [memory]
+      });
       const metadata: LogMetadataType = {
         context: {
           request: {
@@ -115,10 +110,11 @@ void describe('LogMetadataType', () => {
 
       const child = logger.child(metadata);
 
-      assert.ok(child instanceof PinoLogger);
       assert.doesNotThrow(() => {
         child.info(TestFactory.body('complex metadata test'));
       });
+
+      assert.strictEqual(memory.records().length, 1);
     });
   });
 });

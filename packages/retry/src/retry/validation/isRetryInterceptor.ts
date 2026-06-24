@@ -1,4 +1,4 @@
-import { TypeGuards } from '@studnicky/config';
+import { Guard } from '@studnicky/config';
 
 import type { RetryInterceptorType } from '../../types/RetryInterceptorType.js';
 
@@ -9,6 +9,6 @@ import type { RetryInterceptorType } from '../../types/RetryInterceptorType.js';
  * @returns True if value is a function (RetryInterceptorType)
  */
 export function isRetryInterceptor(value: unknown): value is RetryInterceptorType {
-  const result = TypeGuards.isFunction(value);
+  const result = Guard.isFunction(value);
   return result;
 }

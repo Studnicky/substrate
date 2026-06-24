@@ -14,8 +14,6 @@ import { LoggerError } from './LoggerError.js';
  * ```
  */
 export class CircularReferenceError extends LoggerError {
-  public override readonly name = 'CircularReferenceError';
-
   /**
    * Creates a new CircularReferenceError
    *
@@ -24,6 +22,5 @@ export class CircularReferenceError extends LoggerError {
    */
   constructor(message: string, cause?: unknown) {
     super(message, cause);
-    Error.captureStackTrace(this, this.constructor);
   }
 }

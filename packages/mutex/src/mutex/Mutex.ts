@@ -28,11 +28,11 @@
  * ```
  */
 
+import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 import type {
   MutexInterface,
   MutexLockInterface
 } from '../interfaces/index.js';
-import type { MutexConfigType } from '../types/MutexConfigType.js';
 import type { MutexKeyStateType } from '../types/MutexKeyStateType.js';
 import type { MutexStatsType } from '../types/MutexStatsType.js';
 
@@ -108,15 +108,16 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
   static create<K extends PropertyKey = string>(
-    config?: Partial<MutexConfigType>
+    config?: Partial<MutexConfigEntity.Type>
   ): Mutex<K> {
-    return new Mutex<K>(config);
+    const result = new Mutex<K>(config);
+    return result;
   }
 
   readonly #keyStates: Map<K, MutexKeyStateType>;
 
   private coalescedCount = INITIAL_COUNTER;
-  private readonly config: MutexConfigType;
+  private readonly config: MutexConfigEntity.Type;
   private readonly inFlightOperations: Map<K, InFlightOperationType>;
   private readonly lockMetrics: Map<K, LockMetricsType>;
   private readonly locks: Set<K>;
@@ -129,7 +130,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    *
    * @param config - Partial configuration object (validated internally, defaults applied)
    */
-  constructor(config?: Partial<MutexConfigType>) {
+  constructor(config?: Partial<MutexConfigEntity.Type>) {
     this.#keyStates = new Map();
     this.locks = new Set();
     this.queues = new Map();
@@ -311,10 +312,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * - `locked → unlocked`
    */
   protected guardKey(from: MutexKeyStateType, to: MutexKeyStateType): boolean {
-    if (from === 'unlocked' && to === 'locked') return true;
-    if (from === 'locked' && to === 'queued') return true;
-    if (from === 'queued' && to === 'locked') return true;
-    if (from === 'locked' && to === 'unlocked') return true;
+    if (from === 'unlocked' && to === 'locked') {return true;}
+    if (from === 'locked' && to === 'queued') {return true;}
+    if (from === 'queued' && to === 'locked') {return true;}
+    if (from === 'locked' && to === 'unlocked') {return true;}
 
     return false;
   }
@@ -366,7 +367,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       const queueLen = queue.length;
       for (let i = 0; i < queueLen; i += 1) {
         const entry = queue[i]!;
-        if (entry.timeoutId) {
+        if (entry.timeoutId !== undefined) {
           clearTimeout(entry.timeoutId);
         }
         entry.reject(new Error('Mutex cleared - all pending operations rejected'));
@@ -501,7 +502,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     } finally {
       this.inFlightOperations.delete(key);
 
-      if (release) {
+      if (release !== undefined) {
         release();
       }
     }
@@ -518,8 +519,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * console.log(`Max queue size: ${config.maxQueueSize}`);
    * ```
    */
-  getConfig(): Readonly<MutexConfigType> {
-    return { ...this.config };
+  getConfig(): Readonly<MutexConfigEntity.Type> {
+    const config: MutexConfigEntity.Type = { ...this.config };
+    return config;
   }
 
   /**
@@ -541,7 +543,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
   getStats(): MutexStatsType {
-    return {
+    const stats: MutexStatsType = {
       'activeLocksCount': this.locks.size,
       'coalescedCount': this.coalescedCount,
       'maxQueueSize': this.config.maxQueueSize,
@@ -549,6 +551,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       'timeout': this.config.timeout,
       'totalExecuted': this.totalExecuted
     };
+    return stats;
   }
 
   /**
@@ -576,7 +579,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   ): void {
     const timeoutQueue = this.queues.get(key);
 
-    if (timeoutQueue) {
+    if (timeoutQueue !== undefined) {
       const index = timeoutQueue.findIndex((entry) => {
         return entry.timeoutId === timeoutId;
       });
@@ -639,7 +642,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
   isLocked(key: K): boolean {
-    return this.locks.has(key);
+    const result = this.locks.has(key);
+    return result;
   }
 
   /**
@@ -661,7 +665,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     for (let index = FIRST_ARRAY_INDEX; index < length; index++) {
       const observer = this.observers[index];
 
-      if (observer) {
+      if (observer !== undefined) {
         observer();
       }
     }
@@ -674,8 +678,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private processNextInQueue(key: K, queue: QueueEntryType[]): void {
     const next = queue.shift();
 
-    if (next) {
-      if (next.timeoutId) {
+    if (next !== undefined) {
+      if (next.timeoutId !== undefined) {
         clearTimeout(next.timeoutId);
       }
 
@@ -711,7 +715,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   queueSize(key: K): number {
     const queue = this.queues.get(key);
 
-    return queue ? queue.length : EMPTY_LENGTH;
+    return queue !== undefined ? queue.length : EMPTY_LENGTH;
   }
 
   /**
@@ -721,7 +725,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     const metrics = this.lockMetrics.get(key);
     const releasedAt = Date.now();
 
-    if (metrics) {
+    if (metrics !== undefined) {
       const holdTimeMs = releasedAt - metrics.acquiredAt;
 
       try {
@@ -742,7 +746,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     const queue = this.queues.get(key);
 
-    if (queue && queue.length > EMPTY_LENGTH) {
+    if (queue !== undefined && queue.length > EMPTY_LENGTH) {
       this.processNextInQueue(key, queue);
     } else {
       this.releaseLockCompletely(key);
@@ -808,7 +812,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private runExclusiveCoalesced<T>(key: K, fn: () => Promise<T> | T): Promise<T> {
     const inFlight = this.inFlightOperations.get(key);
 
-    if (inFlight) {
+    if (inFlight !== undefined) {
       return this.joinInFlightOperation<T>(key, inFlight);
     }
 
@@ -864,7 +868,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
   size(): number {
-    return this.locks.size;
+    const result = this.locks.size;
+    return result;
   }
 
   /**

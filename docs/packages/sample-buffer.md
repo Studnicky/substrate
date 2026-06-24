@@ -15,24 +15,9 @@ pnpm add @studnicky/sample-buffer
 
 ## Usage
 
-```typescript
-import { SampleBuffer } from '@studnicky/sample-buffer';
+Create a `SampleBuffer` with a fixed capacity, push numeric samples into it, and read back percentiles. When full, the oldest sample is evicted to make room for each new one:
 
-const samples = new SampleBuffer(100); // capacity: 100 samples
-
-// Record latency samples
-samples.push(12.5);
-samples.push(45.2);
-samples.push(8.1);
-
-// Percentiles
-console.log(samples.percentile(50));  // median
-console.log(samples.percentile(95));  // p95
-console.log(samples.percentile(99));  // p99
-
-// Stats
-console.log(samples.count);  // number of samples recorded
-```
+<<< ../../packages/sample-buffer/examples/basicUsage.ts#usage
 
 ## Subpath exports
 
@@ -45,21 +30,8 @@ console.log(samples.count);  // number of samples recorded
 
 ## Extending
 
-```typescript
-import { SampleBuffer } from '@studnicky/sample-buffer';
+Subclass `SampleBuffer` and override any lifecycle hook to observe buffer events. All hooks are no-ops by default — only override what you need:
 
-class AlertingBuffer extends SampleBuffer {
-  constructor(capacity: number, private readonly threshold: number) {
-    super(capacity);
-  }
-
-  override push(sample: number): void {
-    super.push(sample);
-    if (this.percentile(99) > this.threshold) {
-      alerts.trigger('p99-exceeded', { p99: this.percentile(99) });
-    }
-  }
-}
-```
+<<< ../../packages/sample-buffer/examples/subclassHooks.ts#usage
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/sample-buffer)

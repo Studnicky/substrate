@@ -48,7 +48,7 @@ void describe('Standalone HTTP Methods', () => {
         title: 'test',
         userId: 1
       };
-      const response = await post(`${testUrl}/posts`, body);
+      const response = await post(`${testUrl}/posts`, { body });
 
       assert.strictEqual(response.status, 201);
       const data = await response.json() as { title: string };
@@ -58,16 +58,18 @@ void describe('Standalone HTTP Methods', () => {
 
     void it('should auto-set Content-Type for JSON', async () => {
       const response = await post(`${testUrl}/posts`, {
-        body: 'content',
-        title: 'test',
-        userId: 1
+        body: {
+          body: 'content',
+          title: 'test',
+          userId: 1
+        }
       });
 
       assert.strictEqual(response.status, 201);
     });
 
     void it('should support string body', async () => {
-      const response = await post(`${testUrl}/posts`, 'plain text');
+      const response = await post(`${testUrl}/posts`, { body: 'plain text' });
 
       assert.strictEqual(response.status, 201);
     });
@@ -81,7 +83,7 @@ void describe('Standalone HTTP Methods', () => {
         title: 'updated',
         userId: 1
       };
-      const response = await put(`${testUrl}/posts/1`, body);
+      const response = await put(`${testUrl}/posts/1`, { body });
 
       assert.strictEqual(response.status, 200);
       const data = await response.json() as { title: string };
@@ -91,10 +93,12 @@ void describe('Standalone HTTP Methods', () => {
 
     void it('should auto-set Content-Type for JSON', async () => {
       const response = await put(`${testUrl}/posts/1`, {
-        body: 'content',
-        id: 1,
-        title: 'test',
-        userId: 1
+        body: {
+          body: 'content',
+          id: 1,
+          title: 'test',
+          userId: 1
+        }
       });
 
       assert.strictEqual(response.status, 200);
@@ -104,7 +108,7 @@ void describe('Standalone HTTP Methods', () => {
   void describe('PATCH', () => {
     void it('should make PATCH request with JSON body', async () => {
       const body = { title: 'partial update' };
-      const response = await patch(`${testUrl}/posts/1`, body);
+      const response = await patch(`${testUrl}/posts/1`, { body });
 
       assert.strictEqual(response.status, 200);
       const data = await response.json() as { title: string };
@@ -113,7 +117,7 @@ void describe('Standalone HTTP Methods', () => {
     });
 
     void it('should auto-set Content-Type for JSON', async () => {
-      const response = await patch(`${testUrl}/posts/1`, { title: 'patched' });
+      const response = await patch(`${testUrl}/posts/1`, { body: { title: 'patched' } });
 
       assert.strictEqual(response.status, 200);
     });

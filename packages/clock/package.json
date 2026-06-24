@@ -26,5 +26,8 @@
   "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
   "homepage": "https://studnicky.github.io/substrate/packages/clock",
   "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
-  "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" }
+  "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" },
+  "dependencies": {
+    "@studnicky/errors": "workspace:*"
+  }
 }

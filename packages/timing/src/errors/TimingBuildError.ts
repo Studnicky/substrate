@@ -1,3 +1,5 @@
+import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
+
 /**
  * Error thrown when building a timing event fails validation.
  *
@@ -14,17 +16,21 @@
  * }
  * ```
  */
-export class TimingBuildError extends Error {
+export class TimingBuildError extends BaseError {
+  /** Fixed error code for all timing build failures. */
+  public static readonly errorCode = 'timing.buildFailed';
+
   /**
    * Creates a new TimingBuildError.
    * @param message - Description of the build validation failure
+   * @param cause   - Optional underlying cause
    */
-  constructor(message: string) {
-    super(message);
-    this.name = 'TimingBuildError';
+  public static create(message: string, cause?: unknown): TimingBuildError {
+    const result = new TimingBuildError({ 'cause': cause, 'code': TimingBuildError.errorCode, 'message': message, 'retryable': false });
+    return result;
+  }
 
-    if ('captureStackTrace' in Error) {
-      Error.captureStackTrace(this, TimingBuildError);
-    }
+  protected constructor(args: Readonly<BaseErrorArgumentsType>) {
+    super(args);
   }
 }

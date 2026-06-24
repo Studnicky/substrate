@@ -1,6 +1,7 @@
-export class CircuitBreakerOpenError extends Error {
+import { ResilienceError } from './errors/ResilienceError.js';
+
+export class CircuitBreakerOpenError extends ResilienceError {
   constructor(name: string) {
-    super(`Circuit breaker '${name}' is open`);
-    this.name = 'CircuitBreakerOpenError';
+    super({ 'code': 'resilience.circuitOpen', 'message': `Circuit breaker '${name}' is open`, 'retryable': true });
   }
 }

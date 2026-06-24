@@ -1,47 +1,69 @@
 import type { Rule } from 'eslint';
+import type ts from 'typescript';
 
-const isBannedMethod = (node: unknown): boolean => {
-  if (node === null || node === undefined) {
-    return false;
-  }
-  if (typeof node !== 'object') {
-    return false;
-  }
+type ParserServicesType = {
+  readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
+  readonly 'program'?: ts.Program;
+};
+
+const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
+{return value !== null && value !== undefined && typeof value === 'object';};
+
+const hasTypeServices = (value: unknown): value is Required<ParserServicesType> => {
+  if (!isNonNullObject(value)) { return false; }
+  if (!('program' in value) || !isNonNullObject(value.program)) { return false; }
+  if (typeof value.program.getTypeChecker !== 'function') { return false; }
+  if (!('esTreeNodeToTSNodeMap' in value) || !isNonNullObject(value.esTreeNodeToTSNodeMap)) { return false; }
+
+  // Duck-type the Map: avoid cross-realm instanceof failures when the Map is from a different module instance.
+  return typeof value.esTreeNodeToTSNodeMap.get === 'function';
+};
+
+const isBannedPropertyName = (node: unknown): boolean => {
+  if (node === null || node === undefined) { return false; }
+  if (typeof node !== 'object') { return false; }
 
   if (Reflect.get(node, 'type') === 'Identifier') {
-    return Reflect.get(node, 'name') === 'bind'
-      || Reflect.get(node, 'name') === 'call'
-      || Reflect.get(node, 'name') === 'apply';
+    const name: unknown = Reflect.get(node, 'name');
+    return name === 'bind' || name === 'call' || name === 'apply';
   }
   if (Reflect.get(node, 'type') === 'Literal') {
-    return Reflect.get(node, 'value') === 'bind'
-      || Reflect.get(node, 'value') === 'call'
-      || Reflect.get(node, 'value') === 'apply';
+    const value: unknown = Reflect.get(node, 'value');
+    return value === 'bind' || value === 'call' || value === 'apply';
   }
 
   return false;
 };
 
-const createNoBindApplyCall: NonNullable<Rule.RuleModule['create']> = (context) => {
-  const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-    const { callee } = node;
-
-    if (callee.type !== 'MemberExpression') {
-      return;
-    }
-    if (isBannedMethod(callee.property)) {
-      context.report({
-        'messageId': 'forbidden',
-        'node': node
-      });
-    }
-  };
-
-  return { 'CallExpression': onCallExpression };
-};
-
 export const noBindApplyCall: Rule.RuleModule = {
-  'create': createNoBindApplyCall,
+  'create': (context) => {
+    const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
+      const { callee } = node;
+
+      if (callee.type !== 'MemberExpression') { return; }
+      if (!isBannedPropertyName(callee.property)) { return; }
+
+      // Property name matches — now prove the receiver is a callable Function via the type checker.
+      // Without that proof we do not report: "if we cannot prove it, we do not enforce it."
+      const servicesUnknown: unknown = context.sourceCode.parserServices;
+      if (!hasTypeServices(servicesUnknown)) { return; }
+
+      const { object } = callee;
+      const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(object);
+      if (tsNode === undefined) { return; }
+
+      const checker = servicesUnknown.program.getTypeChecker();
+      const type = checker.getTypeAtLocation(tsNode);
+
+      // A callable Function has at least one call signature.
+      // Class instances, plain objects, and `any` have zero call signatures — do not report.
+      if (type.getCallSignatures().length === 0) { return; }
+
+      context.report({ 'messageId': 'forbidden', 'node': node });
+    };
+
+    return { 'CallExpression': onCallExpression };
+  },
   'meta': {
     'docs': {
       'description': 'Disallow Function.prototype.bind/call/apply usage.',

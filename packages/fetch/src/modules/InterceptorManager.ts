@@ -21,14 +21,16 @@ export class InterceptorManager implements InterceptorManagerInterface {
    * Current request interceptors (readonly view)
    */
   get requestInterceptors(): readonly RequestInterceptorType[] {
-    return this.requestPipeline.stages;
+    const result = this.requestPipeline.stages;
+    return result;
   }
 
   /**
    * Current response interceptors (readonly view)
    */
   get responseInterceptors(): readonly ResponseInterceptorType[] {
-    return this.responsePipeline.stages;
+    const result = this.responsePipeline.stages;
+    return result;
   }
 
   /**

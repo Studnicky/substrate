@@ -34,7 +34,7 @@ void describe('FetchClient HTTP Methods', () => {
       title: 'test',
       userId: 1
     };
-    const response = await client.post('/posts', body);
+    const response = await client.post('/posts', { body });
 
     assert.strictEqual(response.status, 201);
 
@@ -52,7 +52,7 @@ void describe('FetchClient HTTP Methods', () => {
       title: 'updated',
       userId: 1
     };
-    const response = await client.put('/posts/1', body);
+    const response = await client.put('/posts/1', { body });
 
     assert.strictEqual(response.status, 200);
   });
@@ -61,7 +61,7 @@ void describe('FetchClient HTTP Methods', () => {
     const client = FetchClient.create({ baseURL: testUrl });
 
     const body = { title: 'patched' };
-    const response = await client.patch('/posts/1', body);
+    const response = await client.patch('/posts/1', { body });
 
     assert.strictEqual(response.status, 200);
   });

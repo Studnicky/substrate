@@ -7,9 +7,7 @@
  */
 
 import { strictEqual, throws } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
 
 import { Throttle } from '../../../src/throttle/index.js';
 import type { ThrottleStateType } from '../../../src/types/ThrottleStateType.js';
@@ -58,124 +56,122 @@ class BlockingThrottle extends TrackingThrottle {
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
-void describe('Throttle FSM', () => {
-  // 1. Initial state
-  void it('starts in idle state', () => {
-    const throttle = new TrackingThrottle({ concurrencyLimit: 2 });
+// 1. Initial state
+void it('starts in idle state', () => {
+  const throttle = new TrackingThrottle({ concurrencyLimit: 2 });
 
-    strictEqual(throttle.currentState, 'idle');
-    strictEqual(throttle.transitions.length, 0);
+  strictEqual(throttle.currentState, 'idle');
+  strictEqual(throttle.transitions.length, 0);
+});
+
+// 2. idle → active on first execute
+void it('transitions idle → active when first slot is acquired', async () => {
+  const throttle = BlockingThrottle.withConcurrency(2);
+
+  let unblock!: () => void;
+  const blocker = new Promise<void>((resolve) => { unblock = resolve; });
+
+  const executePromise = throttle.execute(async () => {
+    await blocker;
+    return 'done';
   });
 
-  // 2. idle → active on first execute
-  void it('transitions idle → active when first slot is acquired', async () => {
-    const throttle = BlockingThrottle.withConcurrency(2);
+  // Yield so the slot acquisition runs synchronously before we assert
+  await Promise.resolve();
 
-    let unblock!: () => void;
-    const blocker = new Promise<void>((resolve) => { unblock = resolve; });
+  const idleToActive = throttle.transitions.find(
+    (t) => t.from === 'idle' && t.to === 'active'
+  );
+  strictEqual(idleToActive !== undefined, true, 'expected idle → active transition');
 
-    const executePromise = throttle.execute(async () => {
-      await blocker;
-      return 'done';
-    });
+  unblock();
+  await executePromise;
+});
 
-    // Yield so the slot acquisition runs synchronously before we assert
-    await Promise.resolve();
+// 3. active → idle after operation completes
+void it('transitions active → idle when the last operation finishes', async () => {
+  const throttle = BlockingThrottle.withConcurrency(2);
 
-    const idleToActive = throttle.transitions.find(
-      (t) => t.from === 'idle' && t.to === 'active'
-    );
-    strictEqual(idleToActive !== undefined, true, 'expected idle → active transition');
+  let unblock!: () => void;
+  const blocker = new Promise<void>((resolve) => { unblock = resolve; });
 
-    unblock();
-    await executePromise;
+  const executePromise = throttle.execute(async () => {
+    await blocker;
+    return 42;
   });
 
-  // 3. active → idle after operation completes
-  void it('transitions active → idle when the last operation finishes', async () => {
-    const throttle = BlockingThrottle.withConcurrency(2);
+  await Promise.resolve();
 
-    let unblock!: () => void;
-    const blocker = new Promise<void>((resolve) => { unblock = resolve; });
+  unblock();
+  await executePromise;
 
-    const executePromise = throttle.execute(async () => {
-      await blocker;
-      return 42;
-    });
+  // After await the operation is complete; idle should be back
+  strictEqual(throttle.currentState, 'idle');
 
-    await Promise.resolve();
+  const activeToIdle = throttle.transitions.find(
+    (t) => t.from === 'active' && t.to === 'idle'
+  );
+  strictEqual(activeToIdle !== undefined, true, 'expected active → idle transition');
+});
 
-    unblock();
-    await executePromise;
+// 4. idle → draining on drain() with no active work
+void it('transitions idle → draining when drain() is called on an empty throttle', async () => {
+  const throttle = new TrackingThrottle({ concurrencyLimit: 2 });
 
-    // After await the operation is complete; idle should be back
-    strictEqual(throttle.currentState, 'idle');
+  strictEqual(throttle.currentState, 'idle');
 
-    const activeToIdle = throttle.transitions.find(
-      (t) => t.from === 'active' && t.to === 'idle'
-    );
-    strictEqual(activeToIdle !== undefined, true, 'expected active → idle transition');
-  });
+  const drainPromise = throttle.drain();
+  await drainPromise;
 
-  // 4. idle → draining on drain() with no active work
-  void it('transitions idle → draining when drain() is called on an empty throttle', async () => {
-    const throttle = new TrackingThrottle({ concurrencyLimit: 2 });
+  const idleToDraining = throttle.transitions.find(
+    (t) => t.from === 'idle' && t.to === 'draining'
+  );
+  strictEqual(idleToDraining !== undefined, true, 'expected idle → draining transition');
+});
 
-    strictEqual(throttle.currentState, 'idle');
+// 5. any → aborted on abort()
+void it('transitions to aborted state after abort() is called', async () => {
+  const throttle = new TrackingThrottle({ concurrencyLimit: 2 });
 
-    const drainPromise = throttle.drain();
-    await drainPromise;
+  await throttle.abort();
 
-    const idleToDraining = throttle.transitions.find(
-      (t) => t.from === 'idle' && t.to === 'draining'
-    );
-    strictEqual(idleToDraining !== undefined, true, 'expected idle → draining transition');
-  });
+  strictEqual(throttle.currentState, 'aborted');
 
-  // 5. any → aborted on abort()
-  void it('transitions to aborted state after abort() is called', async () => {
-    const throttle = new TrackingThrottle({ concurrencyLimit: 2 });
+  const toAborted = throttle.transitions.find((t) => t.to === 'aborted');
+  strictEqual(toAborted !== undefined, true, 'expected a transition to aborted');
+});
 
-    await throttle.abort();
+// 6. aborted is terminal — abort() called twice returns early without re-transitioning
+void it('does not add a second aborted transition when abort() is called twice', async () => {
+  const throttle = new TrackingThrottle({ concurrencyLimit: 2 });
 
-    strictEqual(throttle.currentState, 'aborted');
+  await throttle.abort();
+  const countAfterFirst = throttle.transitions.filter((t) => t.to === 'aborted').length;
 
-    const toAborted = throttle.transitions.find((t) => t.to === 'aborted');
-    strictEqual(toAborted !== undefined, true, 'expected a transition to aborted');
-  });
+  await throttle.abort();
+  const countAfterSecond = throttle.transitions.filter((t) => t.to === 'aborted').length;
 
-  // 6. aborted is terminal — abort() called twice returns early without re-transitioning
-  void it('does not add a second aborted transition when abort() is called twice', async () => {
-    const throttle = new TrackingThrottle({ concurrencyLimit: 2 });
+  strictEqual(countAfterFirst, countAfterSecond, 'second abort() must not produce another transition');
+});
 
-    await throttle.abort();
-    const countAfterFirst = throttle.transitions.filter((t) => t.to === 'aborted').length;
-
-    await throttle.abort();
-    const countAfterSecond = throttle.transitions.filter((t) => t.to === 'aborted').length;
-
-    strictEqual(countAfterFirst, countAfterSecond, 'second abort() must not produce another transition');
-  });
-
-  // 7. Illegal transition throws with the expected message
-  void it('throws on an illegal transition with a message containing "Illegal state transition"', () => {
-    /**
-     * GuardBlockingThrottle — blocks a specific edge so we can trigger the throw.
-     */
-    class GuardBlockingThrottle extends TrackingThrottle {
-      override guard(from: ThrottleStateType, to: ThrottleStateType): boolean {
-        if (from === 'idle' && to === 'active') return false;
-        return super.guard(from, to);
-      }
+// 7. Illegal transition throws with the expected message
+void it('throws on an illegal transition with a message containing "Illegal state transition"', () => {
+  /**
+   * GuardBlockingThrottle — blocks a specific edge so we can trigger the throw.
+   */
+  class GuardBlockingThrottle extends TrackingThrottle {
+    override guard(from: ThrottleStateType, to: ThrottleStateType): boolean {
+      if (from === 'idle' && to === 'active') return false;
+      return super.guard(from, to);
     }
+  }
 
-    const throttle = new GuardBlockingThrottle({ concurrencyLimit: 2 });
+  const throttle = new GuardBlockingThrottle({ concurrencyLimit: 2 });
 
-    throws(
-      () => { throttle.forceTransition('active'); },
-      (err: unknown) => {
-        return err instanceof Error && err.message.includes('Illegal state transition');
-      }
-    );
-  });
+  throws(
+    () => { throttle.forceTransition('active'); },
+    (err: unknown) => {
+      return err instanceof Error && err.message.includes('Illegal state transition');
+    }
+  );
 });

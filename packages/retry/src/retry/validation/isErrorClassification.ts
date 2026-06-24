@@ -1,4 +1,4 @@
-import { TypeGuards } from '@studnicky/config';
+import { Guard } from '@studnicky/config';
 
 import type { ErrorClassificationType } from '../../interfaces/ErrorClassificationType.js';
 
@@ -20,7 +20,7 @@ import type { ErrorClassificationType } from '../../interfaces/ErrorClassificati
  * ```
  */
 export function isErrorClassification(value: unknown): value is ErrorClassificationType {
-  if (!TypeGuards.isObject(value)) {
+  if (!Guard.isObject(value)) {
     return false;
   }
 

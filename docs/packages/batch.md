@@ -13,37 +13,19 @@ description: Batch concurrent execution — process items in controlled parallel
 pnpm add @studnicky/batch
 ```
 
+Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
+
 ## Usage
 
-`batchConcurrent` is a namespace object with a `process` async generator. It yields results batch-by-batch, enabling incremental processing and backpressure handling.
+`batchConcurrent.process` is an async generator that yields results batch-by-batch, enabling incremental processing and backpressure handling. Pass any async operation and a concurrency limit:
 
-```typescript
-import { batchConcurrent } from '@studnicky/batch';
+<<< ../../packages/batch/examples/basic-processing.ts#usage
 
-const urls = ['https://a.com', 'https://b.com', 'https://c.com', 'https://d.com'];
+## Partial-failure support
 
-// Process 2 at a time, handle results as each batch completes
-for await (const batchResults of batchConcurrent.process(urls, fetchData, 2)) {
-  console.log('Batch complete:', batchResults);
-}
-```
+`batchConcurrent.processSettled` uses `Promise.allSettled` internally so a single rejection does not abort the batch or subsequent batches. Each yield produces a `PromiseSettledResult[]` covering both fulfilled values and rejection reasons:
 
-### With options object
-
-```typescript
-for await (const results of batchConcurrent.process(items, processItem, { maxConcurrent: 5 })) {
-  saveResults(results);
-}
-```
-
-### Collect all results
-
-```typescript
-const allResults: string[] = [];
-for await (const batch of batchConcurrent.process(items, processItem, 10)) {
-  allResults.push(...batch);
-}
-```
+<<< ../../packages/batch/examples/settled-processing.ts#usage
 
 ## Subpath exports
 
@@ -52,25 +34,5 @@ for await (const batch of batchConcurrent.process(items, processItem, 10)) {
 | `@studnicky/batch` | `batchConcurrent` |
 | `@studnicky/batch/batch` | `batchConcurrent` (direct subpath) |
 | `@studnicky/batch/constants` | Default batch configuration constants |
-
-## Extending
-
-`batchConcurrent` is a pure-static namespace (`process` is a generator function). To add instrumentation, wrap the generator:
-
-```typescript
-import { batchConcurrent } from '@studnicky/batch';
-
-async function* instrumentedBatch<T, R>(
-  items: readonly T[],
-  fn: (item: T) => Promise<R>,
-  concurrency: number
-): AsyncGenerator<R[]> {
-  let batchIndex = 0;
-  for await (const batch of batchConcurrent.process(items, fn, concurrency)) {
-    metrics.increment('batch.complete', { batchIndex: batchIndex++ });
-    yield batch;
-  }
-}
-```
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/batch)

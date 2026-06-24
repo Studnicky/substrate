@@ -1,5 +1,7 @@
 import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherStatsType.js';
 
+import { FetchBaseError } from './FetchBaseError.js';
+
 /**
  * Error thrown when connection pool is exhausted (all sockets in use)
  *
@@ -23,7 +25,7 @@ import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherSt
  * }
  * ```
  */
-export class SocketExhaustionError extends Error {
+export class SocketExhaustionError extends FetchBaseError {
   /**
    * Complete dispatcher statistics at the time of error (undefined if unavailable)
    * Always present for V8 optimization
@@ -63,12 +65,15 @@ export class SocketExhaustionError extends Error {
     url: string,
     dispatcherStats?: SocketDispatcherStatsType
   ) {
-    const statsInfo = dispatcherStats
+    const statsInfo = dispatcherStats !== undefined
       ? ` (connected: ${dispatcherStats.connected}, free: ${dispatcherStats.free}, pending: ${dispatcherStats.pending}, queued: ${dispatcherStats.queued})`
       : '';
 
-    super(`Connection pool exhausted for ${url}${statsInfo}. All connections are in use. Consider increasing pool size.`);
-    this.name = 'SocketExhaustionError';
+    super({
+      'code': 'fetch.socketExhaustion',
+      'message': `Connection pool exhausted for ${url}${statsInfo}. All connections are in use. Consider increasing pool size.`,
+      'retryable': true
+    });
     this.url = url;
 
     this.maxConnections = dispatcherStats?.connected ?? 0;

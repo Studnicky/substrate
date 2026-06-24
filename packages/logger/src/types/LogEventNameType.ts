@@ -1,26 +1,4 @@
 /**
- * Event name type for structured logging.
- *
- * Events follow the `component.operation` pattern, enabling filtering
- * at any level of granularity (e.g. in CloudWatch Logs Insights).
- *
- * @example
- * ```typescript
- * import type { LogEventNameType } from '@studnicky/logger/types';
- *
- * const event: LogEventNameType = 'db.query';
- * const customEvent: LogEventNameType = 'myModule.customOp';
- * ```
- *
- * @example CloudWatch filtering
- * ```sql
- * filter event like /^db\./
- * filter event = 'cache.get'
- * ```
- */
-export type LogEventNameType = string;
-
-/**
  * Create a properly formatted event string.
  *
  * @param component - The component prefix
@@ -33,7 +11,7 @@ export type LogEventNameType = string;
  * // Returns: 'cache.get'
  * ```
  */
-export function createEventName(component: string, operation: string): LogEventNameType {
+export function createEventName(component: string, operation: string): string {
   const result = `${component}.${operation}`;
   return result;
 }
@@ -50,7 +28,7 @@ export function createEventName(component: string, operation: string): LogEventN
  * // component: 'graph', operation: 'query'
  * ```
  */
-export function parseEventName(event: LogEventNameType): { 'component': string; 'operation': string } {
+export function parseEventName(event: string): { 'component': string; 'operation': string } {
   const dotIndex = event.indexOf('.');
 
   if (dotIndex === -1) {

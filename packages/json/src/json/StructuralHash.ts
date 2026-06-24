@@ -23,7 +23,8 @@ export class StructuralHash {
    * Override to extend or restrict the metadata key set.
    */
   protected static isMetadataKey(key: string): boolean {
-    return STRUCTURAL_METADATA_KEYS.has(key);
+    const result = STRUCTURAL_METADATA_KEYS.has(key);
+    return result;
   }
 
   /**
@@ -32,7 +33,7 @@ export class StructuralHash {
    */
   protected static stripMetadata(value: unknown): unknown {
     if (Array.isArray(value)) {
-      return value.map((item: unknown) => this.stripMetadata(item));
+      return value.map((item: unknown) => { const result = this.stripMetadata(item); return result; });
     }
 
     if (typeof value !== 'object' || value === null) {
@@ -62,6 +63,7 @@ export class StructuralHash {
    * Two schemas that differ only in annotations produce the same hash.
    */
   public static of(schema: Record<string, unknown>): string {
-    return Hash.value(this.stripMetadata(schema));
+    const result = Hash.value(this.stripMetadata(schema));
+    return result;
   }
 }

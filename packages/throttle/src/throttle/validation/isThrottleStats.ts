@@ -1,4 +1,4 @@
-import { TypeGuards } from '@studnicky/config';
+import { Guard } from '@studnicky/config';
 
 import type { ThrottleStatsType } from '../../interfaces/ThrottleStatsType.js';
 
@@ -11,23 +11,23 @@ import type { ThrottleStatsType } from '../../interfaces/ThrottleStatsType.js';
  * @returns True if value is a valid ThrottleStatsType
  */
 export function isThrottleStats(value: unknown): value is ThrottleStatsType {
-  if (!TypeGuards.isObject(value)) {
+  if (!Guard.isObject(value)) {
     return false;
   }
 
-  if (!TypeGuards.isNonNegativeInteger(value.activeCount)) {
+  if (!Guard.isNonNegativeInteger(value.activeCount)) {
     return false;
   }
 
-  if (!TypeGuards.isNonNegativeInteger(value.queuedCount)) {
+  if (!Guard.isNonNegativeInteger(value.queuedCount)) {
     return false;
   }
 
-  if (!TypeGuards.isNonNegativeInteger(value.totalExecuted)) {
+  if (!Guard.isNonNegativeInteger(value.totalExecuted)) {
     return false;
   }
 
-  if (!TypeGuards.isPositiveInteger(value.concurrencyLimit)) {
+  if (!Guard.isPositiveInteger(value.concurrencyLimit)) {
     return false;
   }
 

@@ -1,4 +1,4 @@
-import { TypeGuards } from '@studnicky/config';
+import { Guard } from '@studnicky/config';
 
 import type { ThrottleInterface } from '../../interfaces/ThrottleInterface.js';
 
@@ -11,16 +11,16 @@ import type { ThrottleInterface } from '../../interfaces/ThrottleInterface.js';
  * @returns True if value is a valid ThrottleInterface
  */
 export function isThrottle(value: unknown): value is ThrottleInterface {
-  if (!TypeGuards.isObject(value)) {
+  if (!Guard.isObject(value)) {
     return false;
   }
 
   return (
-    TypeGuards.isFunction(value.execute)
-    && TypeGuards.isFunction(value.getStats)
-    && TypeGuards.isFunction(value.updateConfig)
-    && TypeGuards.isFunction(value.isComplete)
-    && TypeGuards.isFunction(value.drain)
-    && TypeGuards.isFunction(value.abort)
+    Guard.isFunction(value.execute)
+    && Guard.isFunction(value.getStats)
+    && Guard.isFunction(value.updateConfig)
+    && Guard.isFunction(value.isComplete)
+    && Guard.isFunction(value.drain)
+    && Guard.isFunction(value.abort)
   );
 }

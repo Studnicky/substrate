@@ -8,12 +8,15 @@
  * - Hash       — FNV-1a 32-bit hash for JSON-compatible values
  * - Merge      — V8-monomorphic deep merge with type inference
  * - Patch      — RFC-6902 JSON Patch (add/remove/replace/move/copy/test)
+ * - JsonError  — abstract base error for all json package errors
  * - PatchError — error thrown when a patch operation fails
  * - Path       — JSON Pointer → access notation + proto-safe dot-path get
  * - Sort       — natural sort + length comparators
  * - StructuralHash — schema hash with metadata-key stripping
+ * - SchemaValidator — compile a JSON Schema 2020-12 into a type-guard predicate (Ajv-backed)
  */
 
+export { JsonError } from './errors/index.js';
 export { PatchError } from './errors/index.js';
 export type { PathWildcardResultType } from './interfaces/index.js';
 export { Clone } from './json/index.js';
@@ -25,4 +28,6 @@ export { Patch } from './json/index.js';
 export { Path } from './json/index.js';
 export { Sort } from './json/index.js';
 export { StructuralHash } from './json/index.js';
+export { SchemaValidator } from './schema/index.js';
 export type { DeepMergeType, PatchApplyResultType, PatchOperationType, PatchOpVariantType } from './types/index.js';
+export type { ValidateFunction } from 'ajv';

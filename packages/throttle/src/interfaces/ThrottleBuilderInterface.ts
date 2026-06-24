@@ -1,4 +1,4 @@
-import type { AdaptiveConfigInputType } from '../types/AdaptiveConfigInputType.js';
+import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
 import type { ThrottleInterface } from './ThrottleInterface.js';
 
 /**
@@ -18,7 +18,7 @@ export interface ThrottleBuilderInterface {
    * @param config Adaptive concurrency configuration (only enabled and targetLatencyMs required)
    * @returns This builder instance for chaining
    */
-  withAdaptiveConcurrency(config: AdaptiveConfigInputType): this;
+  withAdaptiveConcurrency(config: AdaptiveConfigEntity.AdaptiveConfigInputType): this;
 
   /**
    * Set the concurrency limit

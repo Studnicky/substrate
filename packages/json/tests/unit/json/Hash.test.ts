@@ -28,11 +28,14 @@ void describe('Hash', () => {
       assert.notStrictEqual(Hash.value([1, 2]), Hash.value([1, 3]));
     });
 
-    void it('handles null and primitives', () => {
-      assert.ok(typeof Hash.value(null) === 'string');
-      assert.ok(typeof Hash.value(42) === 'string');
-      assert.ok(typeof Hash.value('hello') === 'string');
-    });
+    const primitiveHashScenarios: Array<{ description: string; input: unknown }> = [
+      { description: 'returns a string for null', input: null },
+      { description: 'returns a string for a number', input: 42 },
+      { description: 'returns a string for a string', input: 'hello' },
+    ];
+    for (const { description, input } of primitiveHashScenarios) {
+      void it(description, () => { assert.ok(typeof Hash.value(input) === 'string'); });
+    }
 
     void it('handles nested structures', () => {
       const h1 = Hash.value({ a: { b: { c: 1 } } });

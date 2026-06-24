@@ -33,8 +33,8 @@
 /** Standard timing status constants */
 export { TIMING_STATUS } from './constants/index.js';
 
-/** Error thrown when timing configuration is invalid */
-export { ConfigurationError } from './errors/ConfigurationError.js';
+/** Timing options entity with schema and validation */
+export { TimingOptionsEntity } from './entities/TimingOptionsEntity.js';
 
 /** Error thrown when building a timing event fails validation */
 export { TimingBuildError } from './errors/TimingBuildError.js';
@@ -47,3 +47,9 @@ export { Timing } from './modules/Timing.js';
 
 /** Timing event data builder */
 export { TimingEvent } from './modules/TimingEvent.js';
+
+/** Static validation methods for timing configuration values */
+export { TimingValidator } from './validation/TimingValidator.js';
+
+/** Error thrown when timing configuration is invalid */
+export { ConfigurationError } from '@studnicky/config';

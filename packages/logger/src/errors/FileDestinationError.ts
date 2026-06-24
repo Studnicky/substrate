@@ -16,8 +16,6 @@ import { LoggerError } from './LoggerError.js';
  * ```
  */
 export class FileDestinationError extends LoggerError {
-  public override readonly name = 'FileDestinationError';
-
   /**
    * Creates a new FileDestinationError
    *
@@ -26,6 +24,5 @@ export class FileDestinationError extends LoggerError {
    */
   constructor(message: string, cause?: unknown) {
     super(message, cause);
-    Error.captureStackTrace(this, this.constructor);
   }
 }

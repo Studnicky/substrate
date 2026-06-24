@@ -15,6 +15,9 @@ pnpm add -D @studnicky/eslint-config
 
 ## Usage
 
+Call `createEslintConfig` in your project's `eslint.config.ts`:
+
+<!-- inline-ts-ok: conceptual eslint.config.ts file — not a runnable library demo -->
 ```typescript
 // eslint.config.ts
 import { createEslintConfig } from '@studnicky/eslint-config';
@@ -23,6 +26,10 @@ export default createEslintConfig({
   tsconfigRootDir: import.meta.dirname
 });
 ```
+
+The example below verifies the factory returns a well-formed flat config array with all expected plugins registered:
+
+<<< ../../packages/eslint-config/examples/configUsage.ts#usage
 
 The config includes rules for:
 - TypeScript (via `typescript-eslint`)
@@ -44,6 +51,7 @@ The config includes rules for:
 
 Pass options to `createEslintConfig` to configure the TypeScript project service root, then spread additional config objects to extend:
 
+<!-- inline-ts-ok: conceptual eslint.config.ts file — not a runnable library demo -->
 ```typescript
 import { createEslintConfig } from '@studnicky/eslint-config';
 

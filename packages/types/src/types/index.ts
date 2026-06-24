@@ -5,3 +5,4 @@ export type { JsonSchemaType } from './JsonSchema.js';
 export type { JsonSchemaObjectType } from './JsonSchemaObject.js';
 export type { JsonSchemaTypeNameType } from './JsonSchemaTypeName.js';
 export type { JsonValueType } from './JsonValue.js';
+export type { FromSchema } from 'json-schema-to-ts';

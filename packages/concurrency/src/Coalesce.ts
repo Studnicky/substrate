@@ -15,6 +15,7 @@ export class Coalesce<T> {
   }
 
   isInflight(key: string): boolean {
-    return this.#inFlight.has(key);
+    const result = this.#inFlight.has(key);
+    return result;
   }
 }

@@ -15,8 +15,8 @@ export interface FetchClientInterface {
   get(path: string, options?: FetchOptionsType): Promise<Response>;
   head(path: string, options?: FetchOptionsType): Promise<Response>;
   options(path: string, options?: FetchOptionsType): Promise<Response>;
-  patch(path: string, body?: unknown, options?: FetchOptionsType): Promise<Response>;
-  post(path: string, body?: unknown, options?: FetchOptionsType): Promise<Response>;
-  put(path: string, body?: unknown, options?: FetchOptionsType): Promise<Response>;
+  patch(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response>;
+  post(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response>;
+  put(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response>;
   request(path: string): RequestBuilderInterface;
 }

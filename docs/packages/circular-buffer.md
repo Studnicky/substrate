@@ -15,24 +15,9 @@ pnpm add @studnicky/circular-buffer
 
 ## Usage
 
-```typescript
-import { CircularBuffer } from '@studnicky/circular-buffer';
+Push items into the buffer and shift them off in FIFO order. The buffer grows automatically when capacity is reached:
 
-const buffer = new CircularBuffer<string>(5);
-
-buffer.push('a');
-buffer.push('b');
-buffer.push('c');
-
-console.log(buffer.length); // 3
-console.log(buffer.shift()); // 'a'
-console.log(buffer.length); // 2
-
-// When capacity is reached, oldest item is overwritten
-buffer.push('d');
-buffer.push('e');
-buffer.push('f'); // overwrites 'b'
-```
+<<< ../../packages/circular-buffer/examples/basicUsage.ts#usage
 
 ## Subpath exports
 
@@ -45,16 +30,8 @@ buffer.push('f'); // overwrites 'b'
 
 ## Extending
 
-`CircularBuffer` is a class — subclass to add domain-specific behavior:
+`CircularBuffer` is a class — subclass to add domain-specific behavior. Override the protected hooks `onGrow`, `onPush`, and `onShift` to observe lifecycle events without coupling business logic to the buffer internals:
 
-```typescript
-import { CircularBuffer } from '@studnicky/circular-buffer';
-
-class TimestampedBuffer<T> extends CircularBuffer<{ value: T; at: number }> {
-  pushWithTimestamp(value: T): void {
-    this.push({ value, at: Date.now() });
-  }
-}
-```
+<<< ../../packages/circular-buffer/examples/subclassHooks.ts#usage
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/circular-buffer)

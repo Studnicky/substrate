@@ -17,9 +17,10 @@
  * }
  * ```
  */
-export class ConfigurationError extends Error {
+import { FetchBaseError } from './FetchBaseError.js';
+
+export class ConfigurationError extends FetchBaseError {
   constructor(message: string) {
-    super(message);
-    this.name = 'ConfigurationError';
+    super({ 'code': 'fetch.configurationInvalid', 'message': message, 'retryable': false });
   }
 }

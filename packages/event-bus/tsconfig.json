@@ -5,6 +5,22 @@
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "references": [
+    {
+      "path": "../errors"
+    },
+    {
+      "path": "../json"
+    },
+    {
+      "path": "../types"
+    }
+  ]
 }

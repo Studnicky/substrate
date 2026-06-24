@@ -15,22 +15,19 @@ pnpm add @studnicky/throttle
 
 ## Usage
 
-```typescript
-import { Throttle } from '@studnicky/throttle';
+Build a `Throttle` instance with the constructor or factory, then pass any operation to `execute`. The instance tracks stats and enforces the concurrency limit:
 
-// Default: 10 concurrent operations
-const throttle = new Throttle();
+<<< ../../packages/throttle/examples/basicThrottle.ts#usage
 
-// Or configure explicitly
-const throttle2 = Throttle.create({ concurrencyLimit: 5 });
+## Drain
 
-const results = await Promise.all(
-  urls.map(url => throttle.execute(async () => fetch(url)))
-);
-```
+Call `drain()` to stop accepting new work and wait for all active and queued operations to finish gracefully:
+
+<<< ../../packages/throttle/examples/drainThrottle.ts#usage
 
 ### Abort support
 
+<!-- inline-ts-ok: no abort example file exists; pattern is self-contained and distinct from drain -->
 ```typescript
 const throttle = Throttle.create({ concurrencyLimit: 3 });
 
@@ -40,6 +37,7 @@ await throttle.abort();
 
 ### Builder
 
+<!-- inline-ts-ok: no builder example file exists; ThrottleBuilder usage is a brief API surface demo -->
 ```typescript
 import { ThrottleBuilder } from '@studnicky/throttle';
 
@@ -60,18 +58,10 @@ const throttle = new ThrottleBuilder()
 
 ## Extending
 
-```typescript
-import { Throttle } from '@studnicky/throttle';
+Subclass `Throttle` and override `onAcquire` and `onRelease` to collect telemetry without coupling the throttle core to any metrics library:
 
-class TracedThrottle extends Throttle {
-  protected override onExecuteStart(): void {
-    metrics.gauge('throttle.active', this.stats.activeCount);
-  }
+<<< ../../packages/throttle/examples/observedThrottle.ts#usage
 
-  protected override onExecuteComplete(): void {
-    metrics.gauge('throttle.active', this.stats.activeCount);
-  }
-}
-```
+The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/throttle)

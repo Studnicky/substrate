@@ -58,11 +58,11 @@ export class TimingEvent implements TimingEventInterface {
    */
   build(): TimingEventDataType {
     if (this.componentValue === undefined) {
-      throw new TimingBuildError('TimingEvent requires component()');
+      throw TimingBuildError.create('TimingEvent requires component()');
     }
 
     if (this.operationValue === undefined) {
-      throw new TimingBuildError('TimingEvent requires operation()');
+      throw TimingBuildError.create('TimingEvent requires operation()');
     }
 
     const event = this.statusValue === undefined

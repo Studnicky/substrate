@@ -3,7 +3,6 @@
  * These enable filtering, correlation, and CloudWatch indexing.
  */
 
-import type { LogEventNameType } from '../types/LogEventNameType.js';
 import type { LogStatusType } from '../types/LogStatusType.js';
 
 /**
@@ -14,7 +13,7 @@ export type CoreLogFieldsType = {
    * Hierarchical event identifier: component.operation
    * @example 'api.request', 'queryPlanner.createPlan', 'cache.get'
    */
-  'event': LogEventNameType;
+  'event': string;
 
   /**
    * Operation outcome (semantic, not HTTP-specific)

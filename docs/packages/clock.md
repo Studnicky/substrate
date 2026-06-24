@@ -15,47 +15,40 @@ pnpm add @studnicky/clock
 
 ## Usage
 
-```typescript
-import { Clock, RealTimeClockProvider, VirtualClockProvider } from '@studnicky/clock';
+Build a `Clock` instance with a provider, then call `now()` for epoch-ms and `hrtime()` for nanosecond bigint. Both reads are monotonically clamped per instance:
 
-// Production: real wall-clock time
-const clock = new Clock(new RealTimeClockProvider());
-
-console.log(clock.now());    // ms since epoch (monotonic-clamped)
-console.log(clock.hrtime()); // nanosecond bigint (monotonic-clamped)
-```
-
-### Deterministic testing
-
-```typescript
-import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
-
-const counter = new VirtualTimeCounter(Date.now());
-const provider = new VirtualClockProvider(counter);
-const clock = new Clock(provider);
-
-// Advance time without sleeping
-counter.advance(5000); // jump forward 5 seconds
-console.log(clock.now()); // reflects the advanced time
-```
+<<< ../../packages/clock/examples/basic-usage.ts#usage
 
 ## Subpath exports
 
 | Subpath | Contents |
 |---------|----------|
 | `@studnicky/clock` | `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCounter` |
-| `@studnicky/clock/interfaces` | `ClockProviderInterface` |
+| `@studnicky/clock/interfaces` | `ClockProviderType` |
+
+## Virtual time control
+
+`VirtualTimeCounter` and `VirtualClockProvider` give deterministic time control — no sleeping, no wall-clock dependency. Multiple independent or shared counters can drive separate clocks:
+
+<<< ../../packages/clock/examples/virtual-time.ts#usage
+
+## Custom providers
+
+Implement `ClockProviderType` (two methods: `now(): number` and `hrtime(): bigint`) to inject any time source into `Clock`. Swapping the provider changes what `Clock` returns without touching consumers:
+
+<<< ../../packages/clock/examples/custom-provider.ts#usage
 
 ## Extending
 
-`Clock` exposes two protected read hooks:
+`Clock` exposes two protected read hooks — subclasses may override them to intercept or replace values before monotonicity clamping:
 
+<!-- inline-ts-ok: conceptual subclass pattern; no standalone runnable example exists for Clock subclassing -->
 ```typescript
 import { Clock } from '@studnicky/clock';
-import type { ClockProviderInterface } from '@studnicky/clock';
+import type { ClockProviderType } from '@studnicky/clock/interfaces';
 
 class TrackedClock extends Clock {
-  constructor(provider: ClockProviderInterface) {
+  constructor(provider: ClockProviderType) {
     super(provider);
   }
 

@@ -32,44 +32,42 @@ const hasRegExpCallee = (node: Rule.Node): boolean => {
   return callee.type === 'Identifier' && callee.name === 'RegExp';
 };
 
-const createRegexpInLoops: NonNullable<Rule.RuleModule['create']> = (context) => {
-  const onExpression = (node: Rule.Node): void => {
-    if (!hasRegExpCallee(node)) {
-      return;
-    }
-
-    let parent: Rule.Node | null = node.parent;
-
-    while (parent !== null) {
-      if (LOOP_TYPES.has(parent.type)) {
-        context.report({
-          'messageId': 'regexpInLoop',
-          'node': node
-        });
-
-        return;
-      }
-
-      if (
-        parent.type === 'FunctionDeclaration'
-        || parent.type === 'FunctionExpression'
-        || parent.type === 'ArrowFunctionExpression'
-      ) {
-        return;
-      }
-
-      parent = parent.parent;
-    }
-  };
-
-  return {
-    'CallExpression': onExpression,
-    'NewExpression': onExpression
-  };
-};
-
 export const regexpInLoops: Rule.RuleModule = {
-  'create': createRegexpInLoops,
+  'create': (context) => {
+    const onExpression = (node: Rule.Node): void => {
+      if (!hasRegExpCallee(node)) {
+        return;
+      }
+
+      let parent: Rule.Node | null = node.parent;
+
+      while (parent !== null) {
+        if (LOOP_TYPES.has(parent.type)) {
+          context.report({
+            'messageId': 'regexpInLoop',
+            'node': node
+          });
+
+          return;
+        }
+
+        if (
+          parent.type === 'FunctionDeclaration'
+          || parent.type === 'FunctionExpression'
+          || parent.type === 'ArrowFunctionExpression'
+        ) {
+          return;
+        }
+
+        parent = parent.parent;
+      }
+    };
+
+    return {
+      'CallExpression': onExpression,
+      'NewExpression': onExpression
+    };
+  },
   'meta': {
     'docs': {
       'description': 'Disallow RegExp construction inside loops; allocates a new RegExp object on every iteration.',

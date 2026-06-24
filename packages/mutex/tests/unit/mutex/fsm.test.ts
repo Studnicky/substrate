@@ -8,9 +8,7 @@
 import {
   deepStrictEqual, ok, throws
 } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
 import {
   setTimeout as delay
 } from 'node:timers/promises';
@@ -56,116 +54,99 @@ class ForcingMutex extends Mutex<string> {
   }
 }
 
-void describe('Mutex per-key FSM', () => {
-  void describe('unlocked → locked on first acquire', () => {
-    void it('records unlocked → locked when a key is acquired with no contention', async () => {
-      const mutex = TrackingMutex.tracked();
+it('records unlocked → locked when a key is acquired with no contention', async () => {
+  const mutex = TrackingMutex.tracked();
 
-      const release = await mutex.acquire('alpha');
+  const release = await mutex.acquire('alpha');
 
-      const first = mutex.transitions[0];
+  const first = mutex.transitions[0];
 
-      ok(first !== undefined, 'At least one transition should be recorded');
-      deepStrictEqual(first.key, 'alpha');
-      deepStrictEqual(first.from, 'unlocked');
-      deepStrictEqual(first.to, 'locked');
+  ok(first !== undefined, 'At least one transition should be recorded');
+  deepStrictEqual(first.key, 'alpha');
+  deepStrictEqual(first.from, 'unlocked');
+  deepStrictEqual(first.to, 'locked');
 
-      release();
-    });
-  });
+  release();
+});
 
-  void describe('locked → queued on contended acquire', () => {
-    void it('records locked → queued when a second acquire arrives while the key is held', async () => {
-      const mutex = TrackingMutex.tracked();
+it('records locked → queued when a second acquire arrives while the key is held', async () => {
+  const mutex = TrackingMutex.tracked();
 
-      // Hold the lock — do not await the second acquire
-      const firstRelease = await mutex.acquire('beta');
+  // Hold the lock — do not await the second acquire
+  const firstRelease = await mutex.acquire('beta');
 
-      // Start a second acquisition without awaiting — this queues it
-      const pendingAcquire = mutex.acquire('beta');
+  // Start a second acquisition without awaiting — this queues it
+  const pendingAcquire = mutex.acquire('beta');
 
-      // Give the microtask queue a tick for the queued transition to fire
-      await delay(0);
+  // Give the microtask queue a tick for the queued transition to fire
+  await delay(0);
 
-      const queuedTransition = mutex.transitions.find(
-        (t) => t.key === 'beta' && t.from === 'locked' && t.to === 'queued'
+  const queuedTransition = mutex.transitions.find(
+    (t) => t.key === 'beta' && t.from === 'locked' && t.to === 'queued'
+  );
+
+  ok(queuedTransition !== undefined, 'locked → queued transition should be recorded');
+
+  // Clean up
+  firstRelease();
+  const secondRelease = await pendingAcquire;
+
+  secondRelease();
+});
+
+it('records queued → locked when the lock is released to the next waiter', async () => {
+  const mutex = TrackingMutex.tracked();
+
+  const firstRelease = await mutex.acquire('gamma');
+  const pendingAcquire = mutex.acquire('gamma');
+
+  await delay(0);
+
+  // Release first holder — hands off to queued waiter
+  firstRelease();
+
+  const secondRelease = await pendingAcquire;
+
+  const handoffTransition = mutex.transitions.find(
+    (t) => t.key === 'gamma' && t.from === 'queued' && t.to === 'locked'
+  );
+
+  ok(handoffTransition !== undefined, 'queued → locked transition should be recorded');
+
+  secondRelease();
+});
+
+it('records locked → unlocked when the sole holder releases', async () => {
+  const mutex = TrackingMutex.tracked();
+
+  const release = await mutex.acquire('delta');
+
+  release();
+
+  // Allow microtasks to settle
+  await delay(0);
+
+  const unlockedTransition = mutex.transitions.find(
+    (t) => t.key === 'delta' && t.from === 'locked' && t.to === 'unlocked'
+  );
+
+  ok(unlockedTransition !== undefined, 'locked → unlocked transition should be recorded');
+});
+
+it('throws when guardKey rejects the edge', () => {
+  const mutex = new ForcingMutex();
+
+  // Directly call forceKeyTransition targeting 'unlocked' which is blocked.
+  throws(
+    () => { mutex.forceKeyTransition('epsilon', 'unlocked'); },
+    (error: unknown) => {
+      ok(error instanceof Error, 'Should throw an Error');
+      ok(
+        error.message.includes('Illegal state transition'),
+        `Error message should contain "Illegal state transition", got: ${error.message}`
       );
 
-      ok(queuedTransition !== undefined, 'locked → queued transition should be recorded');
-
-      // Clean up
-      firstRelease();
-      const secondRelease = await pendingAcquire;
-
-      secondRelease();
-    });
-  });
-
-  void describe('queued → locked on release with waiter', () => {
-    void it('records queued → locked when the lock is released to the next waiter', async () => {
-      const mutex = TrackingMutex.tracked();
-
-      const firstRelease = await mutex.acquire('gamma');
-
-      const pendingAcquire = mutex.acquire('gamma');
-
-      await delay(0);
-
-      // Release first holder — hands off to queued waiter
-      firstRelease();
-
-      const secondRelease = await pendingAcquire;
-
-      const handoffTransition = mutex.transitions.find(
-        (t) => t.key === 'gamma' && t.from === 'queued' && t.to === 'locked'
-      );
-
-      ok(handoffTransition !== undefined, 'queued → locked transition should be recorded');
-
-      secondRelease();
-    });
-  });
-
-  void describe('locked → unlocked on release with empty queue', () => {
-    void it('records locked → unlocked when the sole holder releases', async () => {
-      const mutex = TrackingMutex.tracked();
-
-      const release = await mutex.acquire('delta');
-
-      release();
-
-      // Allow microtasks to settle
-      await delay(0);
-
-      const unlockedTransition = mutex.transitions.find(
-        (t) => t.key === 'delta' && t.from === 'locked' && t.to === 'unlocked'
-      );
-
-      ok(unlockedTransition !== undefined, 'locked → unlocked transition should be recorded');
-    });
-  });
-
-  void describe('illegal transition throws', () => {
-    void it('throws when guardKey rejects the edge', () => {
-      const mutex = new ForcingMutex();
-
-      // Manually lock the key by setting up an in-progress lock (use forceKeyTransition
-      // to get the FSM into 'locked' state, bypassing guardKey for the setup step)
-      // Since guardKey blocks 'unlocked' → anything that isn't a legal edge,
-      // we rely on a real acquire to get to 'locked', then test the blocked edge.
-      // Instead: directly call forceKeyTransition targeting 'unlocked' which is blocked.
-      throws(
-        () => { mutex.forceKeyTransition('epsilon', 'unlocked'); },
-        (error: unknown) => {
-          ok(error instanceof Error, 'Should throw an Error');
-          ok(
-            error.message.includes('Illegal state transition'),
-            `Error message should contain "Illegal state transition", got: ${error.message}`
-          );
-
-          return true;
-        }
-      );
-    });
-  });
+      return true;
+    }
+  );
 });

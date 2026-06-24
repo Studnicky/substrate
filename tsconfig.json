@@ -80,6 +80,9 @@
     },
     {
       "path": "packages/types"
+    },
+    {
+      "path": "packages/system"
     }
   ],
   "files": []

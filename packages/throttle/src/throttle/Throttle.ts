@@ -1,15 +1,14 @@
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { ConfigValidation } from '@studnicky/config';
 import { SampleBuffer } from '@studnicky/sample-buffer';
-import { setTimeout as asyncSetTimeout } from 'node:timers/promises';
+import { setTimeout } from 'node:timers/promises';
 
+import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
+import type { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
 import type {
   AbortResultType,
-  AdaptiveConfigType,
-  ThrottleConfigType,
   ThrottleInterface,
-  ThrottleStatsType,
-  ValidatedThrottleConfigType
+  ThrottleStatsType
 } from '../interfaces/index.js';
 import type { ThrottleStateType } from '../types/ThrottleStateType.js';
 
@@ -36,6 +35,10 @@ import {
   ThrottleAbortedError,
   ThrottleDrainingError
 } from '../errors/index.js';
+
+type AdaptiveConfigType = AdaptiveConfigEntity.Type;
+type ThrottleConfigType = ThrottleConfigEntity.Type;
+type ValidatedThrottleConfigType = ThrottleConfigEntity.ValidatedThrottleConfigType;
 
 /**
  * Type alias for validated adaptive config
@@ -206,13 +209,13 @@ export class Throttle implements ThrottleInterface {
    * - *        → aborted  (abort() called from any state except aborted itself)
    */
   protected guard(from: ThrottleStateType, to: ThrottleStateType): boolean {
-    if (from === 'aborted') return false;          // aborted is terminal
-    if (to === 'aborted') return true;             // any non-aborted → aborted
-    if (from === 'idle' && to === 'active') return true;
-    if (from === 'active' && to === 'idle') return true;
-    if (from === 'idle' && to === 'draining') return true;
-    if (from === 'active' && to === 'draining') return true;
-    if (from === 'draining' && to === 'idle') return true;
+    if (from === 'aborted') {return false;}          // aborted is terminal
+    if (to === 'aborted') {return true;}             // any non-aborted → aborted
+    if (from === 'idle' && to === 'active') {return true;}
+    if (from === 'active' && to === 'idle') {return true;}
+    if (from === 'idle' && to === 'draining') {return true;}
+    if (from === 'active' && to === 'draining') {return true;}
+    if (from === 'draining' && to === 'idle') {return true;}
     return false;
   }
 
@@ -226,7 +229,8 @@ export class Throttle implements ThrottleInterface {
    * The current FSM state.
    */
   protected get state(): ThrottleStateType {
-    return this.#state;
+    const result = this.#state;
+    return result;
   }
 
   // ── Operations ───────────────────────────────────────────────────────────────
@@ -384,7 +388,7 @@ export class Throttle implements ThrottleInterface {
     while (this.queue.length > EMPTY_LENGTH) {
       const pendingTask = this.queue.shift();
 
-      if (pendingTask) {
+      if (pendingTask !== undefined) {
         pendingTask.resolve();
       }
     }
@@ -606,7 +610,7 @@ export class Throttle implements ThrottleInterface {
     for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
       const observer = this.observers[i];
 
-      if (observer) {
+      if (observer !== undefined) {
         observer();
       }
     }
@@ -654,7 +658,7 @@ export class Throttle implements ThrottleInterface {
     while (this.queue.length > EMPTY_LENGTH && this.activeCount < this.config.concurrencyLimit) {
       const pendingTask = this.queue.shift();
 
-      if (pendingTask) {
+      if (pendingTask !== undefined) {
         this.activeCount++;
         pendingTask.resolve();
         count++;
@@ -674,7 +678,7 @@ export class Throttle implements ThrottleInterface {
       this.activeCount++;
       const pendingTask = this.queue.shift();
 
-      if (pendingTask) {
+      if (pendingTask !== undefined) {
         pendingTask.resolve();
         this.onRelease(this.activeCount, this.totalExecuted);
       }
@@ -793,7 +797,7 @@ export class Throttle implements ThrottleInterface {
     });
 
     try {
-      await asyncSetTimeout(timeout, undefined, { 'signal': controller.signal });
+      await setTimeout(timeout, undefined, { 'signal': controller.signal });
 
       // Timeout completed - operations did not finish in time
       return true;

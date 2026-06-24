@@ -5,11 +5,14 @@ import { Clone } from '../../../src/json/Clone.js';
 
 void describe('Clone', () => {
   void describe('Clone.deep', () => {
-    void it('clones primitives by value', () => {
-      assert.strictEqual(Clone.deep(42), 42);
-      assert.strictEqual(Clone.deep('hello'), 'hello');
-      assert.strictEqual(Clone.deep(null), null);
-    });
+    const primitiveScenarios: Array<{ description: string; input: unknown; expected: unknown }> = [
+      { description: 'clones number by value', input: 42, expected: 42 },
+      { description: 'clones string by value', input: 'hello', expected: 'hello' },
+      { description: 'clones null by value', input: null, expected: null },
+    ];
+    for (const { description, input, expected } of primitiveScenarios) {
+      void it(description, () => { assert.strictEqual(Clone.deep(input), expected); });
+    }
 
     void it('clones arrays without sharing references', () => {
       const original = [1, [2, 3], { a: 4 }];

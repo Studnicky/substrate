@@ -10,201 +10,218 @@
 import {
   deepStrictEqual, ok, strictEqual, throws
 } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
 
 import {
   Mutex, MutexBuilder
 } from '../../../src/mutex/index.js';
 import { fullConfig } from '../../fixtures/constants.js';
 
-void describe('Mutex Creation', () => {
-  void describe('Constructor', () => {
-    void it('creates with no config', () => {
-      const mutex = new Mutex<string>();
-      const config = mutex.getConfig();
+// --- Constructor ---
 
-      strictEqual(config.maxQueueSize, 0);
-      strictEqual(config.timeout, 0);
-    });
+const constructorScenarios: Array<{
+  description: string;
+  build: () => Mutex<string>;
+  expectedMaxQueueSize: number;
+  expectedTimeout: number;
+}> = [
+  {
+    description: 'constructor creates with no config',
+    build: () => new Mutex<string>(),
+    expectedMaxQueueSize: 0,
+    expectedTimeout: 0
+  },
+  {
+    description: 'constructor creates with partial config',
+    build: () => new Mutex<string>({ maxQueueSize: 50 }),
+    expectedMaxQueueSize: 50,
+    expectedTimeout: 0
+  },
+  {
+    description: 'constructor creates with full config',
+    build: () => new Mutex<string>(fullConfig),
+    expectedMaxQueueSize: 100,
+    expectedTimeout: 5000
+  }
+];
 
-    void it('creates with partial config', () => {
-      const mutex = new Mutex<string>({ maxQueueSize: 50 });
-      const config = mutex.getConfig();
+for (const { description, build, expectedMaxQueueSize, expectedTimeout } of constructorScenarios) {
+  it(description, () => {
+    const config = build().getConfig();
 
-      strictEqual(config.maxQueueSize, 50);
-      strictEqual(config.timeout, 0);
-    });
-
-    void it('creates with full config', () => {
-      const mutex = new Mutex<string>(fullConfig);
-      const config = mutex.getConfig();
-
-      strictEqual(config.maxQueueSize, 100);
-      strictEqual(config.timeout, 5000);
-    });
+    strictEqual(config.maxQueueSize, expectedMaxQueueSize);
+    strictEqual(config.timeout, expectedTimeout);
   });
+}
 
-  void describe('Static create() Method', () => {
-    void it('creates with no config', () => {
-      const mutex = Mutex.create();
-      const config = mutex.getConfig();
+// --- Static create() ---
 
-      strictEqual(config.maxQueueSize, 0);
-      strictEqual(config.timeout, 0);
-    });
+const createScenarios: Array<{
+  description: string;
+  build: () => Mutex<string>;
+  expectedMaxQueueSize: number;
+  expectedTimeout: number;
+}> = [
+  {
+    description: 'Mutex.create() creates with no config',
+    build: () => Mutex.create(),
+    expectedMaxQueueSize: 0,
+    expectedTimeout: 0
+  },
+  {
+    description: 'Mutex.create() creates with partial config',
+    build: () => Mutex.create({ timeout: 3000 }),
+    expectedMaxQueueSize: 0,
+    expectedTimeout: 3000
+  },
+  {
+    description: 'Mutex.create() creates with full config',
+    build: () => Mutex.create(fullConfig),
+    expectedMaxQueueSize: 100,
+    expectedTimeout: 5000
+  }
+];
 
-    void it('creates with partial config', () => {
-      const mutex = Mutex.create({ timeout: 3000 });
-      const config = mutex.getConfig();
+for (const { description, build, expectedMaxQueueSize, expectedTimeout } of createScenarios) {
+  it(description, () => {
+    const config = build().getConfig();
 
-      strictEqual(config.maxQueueSize, 0);
-      strictEqual(config.timeout, 3000);
-    });
-
-    void it('creates with full config', () => {
-      const mutex = Mutex.create(fullConfig);
-      const config = mutex.getConfig();
-
-      strictEqual(config.maxQueueSize, 100);
-      strictEqual(config.timeout, 5000);
-    });
-
-    void it('creates functional mutex', async () => {
-      const mutex = Mutex.create<number>();
-      const release = await mutex.acquire(42);
-
-      ok(mutex.isLocked(42));
-
-      release();
-    });
+    strictEqual(config.maxQueueSize, expectedMaxQueueSize);
+    strictEqual(config.timeout, expectedTimeout);
   });
+}
 
-  void describe('Builder Pattern', () => {
-    void it('creates with no configuration', () => {
-      const mutex = new MutexBuilder<string>().build();
-      const config = mutex.getConfig();
+it('Mutex.create() produces functional mutex', async () => {
+  const mutex = Mutex.create<number>();
+  const release = await mutex.acquire(42);
 
-      strictEqual(config.maxQueueSize, 0);
-      strictEqual(config.timeout, 0);
-    });
+  ok(mutex.isLocked(42));
 
-    void it('creates with single property', () => {
-      const mutex = new MutexBuilder<string>()
-        .withMaxQueueSize(75)
-        .build();
-      const config = mutex.getConfig();
-
-      strictEqual(config.maxQueueSize, 75);
-      strictEqual(config.timeout, 0);
-    });
-
-    void it('creates with chained methods', () => {
-      const mutex = new MutexBuilder<string>()
-        .withMaxQueueSize(50)
-        .withTimeout(1000)
-        .build();
-      const config = mutex.getConfig();
-
-      strictEqual(config.maxQueueSize, 50);
-      strictEqual(config.timeout, 1000);
-    });
-
-    void it('creates with all properties', () => {
-      const mutex = new MutexBuilder<string>()
-        .withMaxQueueSize(150)
-        .withTimeout(7500)
-        .withCoalescing(true)
-        .build();
-      const config = mutex.getConfig();
-
-      strictEqual(config.maxQueueSize, 150);
-      strictEqual(config.timeout, 7500);
-      strictEqual(config.enableCoalescing, true);
-    });
-
-    void it('creates with initial config', () => {
-      const mutex = new MutexBuilder<string>({
-        maxQueueSize: 25,
-        timeout: 1000
-      }).build();
-      const config = mutex.getConfig();
-
-      strictEqual(config.maxQueueSize, 25);
-      strictEqual(config.timeout, 1000);
-    });
-
-    void it('creates functional mutex', async () => {
-      const mutex = new MutexBuilder<string>()
-        .withMaxQueueSize(10)
-        .withTimeout(5000)
-        .build();
-
-      const result = await mutex.runExclusive('key1', async () => {
-        return 'success';
-      });
-
-      strictEqual(result, 'success');
-    });
-
-    void it('validates configuration on build', () => {
-      throws(
-        () => {
-          return new MutexBuilder<string>().withMaxQueueSize(-1)
-            .build();
-        },
-        (error: Error) => {
-          return error.message.includes('maxQueueSize');
-        }
-      );
-    });
-  });
-
-  void describe('Equivalence Between Creation Methods', () => {
-    void it('produces equivalent mutexes from create() and builder', () => {
-      const mutex1 = Mutex.create(fullConfig);
-
-      const mutex2 = new MutexBuilder<string>()
-        .withMaxQueueSize(100)
-        .withTimeout(5000)
-        .build();
-
-      deepStrictEqual(mutex1.getConfig(), mutex2.getConfig());
-    });
-  });
-
-  void describe('Type Safety', () => {
-    void it('supports string keys', async () => {
-      const mutex = Mutex.create();
-      const result = await mutex.runExclusive('key1', () => {
-        return 'value';
-      });
-
-      strictEqual(result, 'value');
-    });
-
-    void it('supports number keys', async () => {
-      const mutex = Mutex.create<number>();
-      const result = await mutex.runExclusive(42, () => {
-        return 'answer';
-      });
-
-      strictEqual(result, 'answer');
-    });
-
-    void it('supports composite string keys', async () => {
-      const mutex = Mutex.create();
-      const key = JSON.stringify({
-        entityType: 'User',
-        id: '123'
-      });
-
-      const result = await mutex.runExclusive(key, () => {
-        return 'data';
-      });
-
-      strictEqual(result, 'data');
-    });
-  });
+  release();
 });
+
+// --- Builder pattern ---
+
+const builderScenarios: Array<{
+  description: string;
+  build: () => Mutex<string>;
+  expectedMaxQueueSize: number;
+  expectedTimeout: number;
+  expectedCoalescing?: boolean;
+}> = [
+  {
+    description: 'builder creates with no configuration',
+    build: () => new MutexBuilder<string>().build(),
+    expectedMaxQueueSize: 0,
+    expectedTimeout: 0
+  },
+  {
+    description: 'builder creates with single property withMaxQueueSize',
+    build: () => new MutexBuilder<string>().withMaxQueueSize(75).build(),
+    expectedMaxQueueSize: 75,
+    expectedTimeout: 0
+  },
+  {
+    description: 'builder creates with chained methods',
+    build: () => new MutexBuilder<string>().withMaxQueueSize(50).withTimeout(1000).build(),
+    expectedMaxQueueSize: 50,
+    expectedTimeout: 1000
+  },
+  {
+    description: 'builder creates with all properties',
+    build: () => new MutexBuilder<string>().withMaxQueueSize(150).withTimeout(7500).withCoalescing(true).build(),
+    expectedMaxQueueSize: 150,
+    expectedTimeout: 7500,
+    expectedCoalescing: true
+  },
+  {
+    description: 'builder creates with initial config',
+    build: () => new MutexBuilder<string>({ maxQueueSize: 25, timeout: 1000 }).build(),
+    expectedMaxQueueSize: 25,
+    expectedTimeout: 1000
+  }
+];
+
+for (const { description, build, expectedMaxQueueSize, expectedTimeout, expectedCoalescing } of builderScenarios) {
+  it(description, () => {
+    const config = build().getConfig();
+
+    strictEqual(config.maxQueueSize, expectedMaxQueueSize);
+    strictEqual(config.timeout, expectedTimeout);
+    if (expectedCoalescing !== undefined) {
+      strictEqual(config.enableCoalescing, expectedCoalescing);
+    }
+  });
+}
+
+it('builder creates functional mutex', async () => {
+  const mutex = new MutexBuilder<string>()
+    .withMaxQueueSize(10)
+    .withTimeout(5000)
+    .build();
+
+  const result = await mutex.runExclusive('key1', async () => 'success');
+
+  strictEqual(result, 'success');
+});
+
+it('builder validates configuration on build', () => {
+  throws(
+    () => { new MutexBuilder<string>().withMaxQueueSize(-1).build(); },
+    (error: Error) => error.message.includes('maxQueueSize')
+  );
+});
+
+// --- Equivalence ---
+
+it('Mutex.create() and builder produce equivalent configs', () => {
+  const mutex1 = Mutex.create(fullConfig);
+  const mutex2 = new MutexBuilder<string>().withMaxQueueSize(100).withTimeout(5000).build();
+
+  deepStrictEqual(mutex1.getConfig(), mutex2.getConfig());
+});
+
+// --- Type safety ---
+
+const keySafetyScenarios: Array<{
+  description: string;
+  run: () => Promise<unknown>;
+  expected: unknown;
+}> = [
+  {
+    description: 'supports string keys',
+    run: async () => {
+      const mutex = Mutex.create();
+
+      return mutex.runExclusive('key1', () => 'value');
+    },
+    expected: 'value'
+  },
+  {
+    description: 'supports number keys',
+    run: async () => {
+      const mutex = Mutex.create<number>();
+
+      return mutex.runExclusive(42, () => 'answer');
+    },
+    expected: 'answer'
+  },
+  {
+    description: 'supports composite string keys',
+    run: async () => {
+      const mutex = Mutex.create();
+      const key = JSON.stringify({ entityType: 'User', id: '123' });
+
+      return mutex.runExclusive(key, () => 'data');
+    },
+    expected: 'data'
+  }
+];
+
+for (const { description, run, expected } of keySafetyScenarios) {
+  it(description, async () => {
+    const result = await run();
+
+    strictEqual(result, expected);
+  });
+}

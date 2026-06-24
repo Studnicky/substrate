@@ -1,3 +1,5 @@
+import { BaseError } from '@studnicky/errors';
+
 /**
  * Error thrown when operations are rejected during throttle drain
  *
@@ -5,15 +7,13 @@
  * drain() has been called. Draining mode rejects new operations while
  * allowing in-flight operations to complete.
  */
-export class ThrottleDrainingError extends Error {
+export class ThrottleDrainingError extends BaseError {
   /**
    * Create a ThrottleDrainingError
    *
    * @param message - Error message
    */
   constructor(message: string) {
-    super(message);
-    this.name = 'ThrottleDrainingError';
-    Error.captureStackTrace(this, ThrottleDrainingError);
+    super({ 'code': 'throttle.draining', 'message': message, 'retryable': false });
   }
 }

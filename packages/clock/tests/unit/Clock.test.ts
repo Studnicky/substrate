@@ -185,6 +185,23 @@ function execRealNow(input: Readonly<RealNowInput>): RealNowOutput {
 }
 
 // ---------------------------------------------------------------------------
+// RealTimeClockProvider offsetMs validation (error scenarios)
+// ---------------------------------------------------------------------------
+
+type OffsetInput = { readonly offsetMs: number };
+
+const offsetErrorScenarios: readonly Scenario<OffsetInput, never>[] = [
+  { name: 'rejects NaN offsetMs', input: { offsetMs: NaN }, expected: { throws: 'clock.invalidConfig' } },
+  { name: 'rejects Infinity offsetMs', input: { offsetMs: Infinity }, expected: { throws: 'clock.invalidConfig' } },
+  { name: 'rejects -Infinity offsetMs', input: { offsetMs: -Infinity }, expected: { throws: 'clock.invalidConfig' } },
+];
+
+function execOffsetConstruct(input: Readonly<OffsetInput>): never {
+  new RealTimeClockProvider(input.offsetMs);
+  throw new Error('expected throw');
+}
+
+// ---------------------------------------------------------------------------
 // describe blocks
 // ---------------------------------------------------------------------------
 
@@ -277,6 +294,8 @@ void describe('Clock', () => {
   });
 
   void describe('unhappy path', () => {
+    ScenarioRunner.run('RealTimeClockProvider offsetMs validation', offsetErrorScenarios, execOffsetConstruct);
+
     void it('per-instance monotonicity: two clocks from same provider are independent', () => {
       const counter = new VirtualTimeCounter(START_MS_A);
       const provider = new VirtualClockProvider(counter);

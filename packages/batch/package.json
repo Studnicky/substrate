@@ -27,5 +27,8 @@
   "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/batch" },
   "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
   "homepage": "https://studnicky.github.io/substrate/packages/batch",
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" }
+  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
+  "dependencies": {
+    "@studnicky/errors": "workspace:*"
+  }
 }

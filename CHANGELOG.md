@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Release and CI infrastructure: GitHub Actions workflows for CI, Pages deployment, publishing, changelog enforcement, security audits, stale issue management, and license checking.
+- `@studnicky/system` package: CPU/GPU/memory/platform detection for worker sizing.
+- `@studnicky/eslint-config` exposes the V8-optimization rules to consumers: a `v8Plugin` registry and every individual rule are exported, with a dedicated `./v8` subpath alongside `./plugin`.
+- Brand assets and version-stamped social/share imagery: real logo wired into the docs nav, favicon set, and Open Graph `og-image`, with a `stamp-version` script that injects the package version and logo into the share templates.
+
+### Fixed
+
+- `@studnicky/system` is included in the root TypeScript build graph, so its `dist` output is produced and published from a clean build.
 
 ## [1.0.0] - 2026-06-22
 

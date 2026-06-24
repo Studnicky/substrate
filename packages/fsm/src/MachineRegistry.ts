@@ -17,14 +17,17 @@ export class MachineRegistry {
   }
 
   static get(name: string): BoundedInterpreter | undefined {
-    return MachineRegistry.#registry.get(name);
+    const result = MachineRegistry.#registry.get(name);
+    return result;
   }
 
   static has(name: string): boolean {
-    return MachineRegistry.#registry.has(name);
+    const result = MachineRegistry.#registry.has(name);
+    return result;
   }
 
   static list(): readonly string[] {
-    return [...MachineRegistry.#registry.keys()];
+    const keys = MachineRegistry.#registry.keys();
+    return [...keys];
   }
 }

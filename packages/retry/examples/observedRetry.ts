@@ -2,19 +2,21 @@
 
 import assert from 'node:assert/strict';
 
-import { MaxRetriesExceededError, Retry } from '../src/index.js';
+// #region usage
 import type { ErrorClassificationType } from '../src/index.js';
 
+import { MaxRetriesExceededError, Retry } from '../src/index.js';
+
 class TelemetryRetry extends Retry {
-  readonly scheduledEvents: Array<{ attemptNumber: number; delayMs: number }> = [];
-  readonly giveUpEvents: Array<{ attemptNumber: number; reason: string }> = [];
+  readonly scheduledEvents: { 'attemptNumber': number; 'delayMs': number }[] = [];
+  readonly giveUpEvents: { 'attemptNumber': number; 'reason': string }[] = [];
 
   protected override classifyError(_error: Error): ErrorClassificationType {
-    return { retryable: true, reason: 'always retryable' };
+    return { 'reason': 'always retryable', 'retryable': true };
   }
 
   protected override onRetryScheduled(attemptNumber: number, delayMs: number): void {
-    this.scheduledEvents.push({ attemptNumber, delayMs });
+    this.scheduledEvents.push({ 'attemptNumber': attemptNumber, 'delayMs': delayMs });
   }
 
   protected override onGiveUp(
@@ -22,19 +24,19 @@ class TelemetryRetry extends Retry {
     attemptNumber: number,
     reason: 'aborted' | 'exhausted' | 'nonRetryable'
   ): void {
-    this.giveUpEvents.push({ attemptNumber, reason });
+    this.giveUpEvents.push({ 'attemptNumber': attemptNumber, 'reason': reason });
   }
 }
 
 const maxRetries = 2;
 const retry = new TelemetryRetry({
-  maxRetries,
-  retryInterceptor: () => ({ delayMs: 0 })
+  'maxRetries': maxRetries,
+  'retryInterceptor': () => {return { 'delayMs': 0 };}
 });
 
 // Operation always fails — exercises scheduled and giveUp hooks
 try {
-  await retry.execute(async () => {
+  await retry.execute(() => {
     throw new Error('always fails');
   });
 } catch (err) {
@@ -44,10 +46,11 @@ try {
 console.log('Scheduled events:', retry.scheduledEvents);
 console.log('GiveUp events:', retry.giveUpEvents);
 console.log('Stats:', retry.getStats());
+// #endregion usage
 
 // onRetryScheduled fires once per scheduled retry (maxRetries times)
 assert.equal(retry.scheduledEvents.length, maxRetries);
-assert.ok(retry.scheduledEvents.every((e) => e.delayMs === 0));
+assert.ok(retry.scheduledEvents.every((e) => {return e.delayMs === 0;}));
 
 // onGiveUp fires once with reason 'exhausted'
 assert.equal(retry.giveUpEvents.length, 1);

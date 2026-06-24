@@ -290,15 +290,17 @@ void describe('BaseError', () => {
   });
 
   void describe('static toMessage()', () => {
-    void it('returns message from Error instance', () => {
-      const err = new Error('error message');
-      strictEqual(BaseError.toMessage(err), 'error message');
-    });
+    const toMessageScenarios: Array<{ description: string; input: unknown; expected: string }> = [
+      { description: 'returns message from Error instance', expected: 'error message', input: new Error('error message') },
+      { description: 'converts non-Error string to string', expected: 'plain string', input: 'plain string' },
+      { description: 'converts non-Error number to string', expected: '42', input: 42 }
+    ];
 
-    void it('converts non-Error to string', () => {
-      strictEqual(BaseError.toMessage('plain string'), 'plain string');
-      strictEqual(BaseError.toMessage(42), '42');
-    });
+    for (const { description, input, expected } of toMessageScenarios) {
+      void it(description, () => {
+        strictEqual(BaseError.toMessage(input), expected);
+      });
+    }
   });
 });
 
@@ -315,17 +317,17 @@ void describe('ErrorCodeRegistry', () => {
     strictEqual(descriptor.retryable, true);
   });
 
-  void it('isRegistered returns true for registered code', () => {
-    ok(ErrorCodeRegistry.isRegistered('test.generic'));
-  });
+  const isRegisteredScenarios: Array<{ description: string; input: string; expected: boolean }> = [
+    { description: 'isRegistered returns true for registered code', expected: true, input: 'test.generic' },
+    { description: 'isRegistered returns false for unknown code', expected: false, input: 'unknown.code.xyz' },
+    { description: 'isRegistered returns false for empty string', expected: false, input: '' }
+  ];
 
-  void it('isRegistered returns false for unknown code', () => {
-    strictEqual(ErrorCodeRegistry.isRegistered('unknown.code.xyz'), false);
-  });
-
-  void it('isRegistered returns false for empty string', () => {
-    strictEqual(ErrorCodeRegistry.isRegistered(''), false);
-  });
+  for (const { description, input, expected } of isRegisteredScenarios) {
+    void it(description, () => {
+      strictEqual(ErrorCodeRegistry.isRegistered(input), expected);
+    });
+  }
 
   void it('describe returns undefined for unknown code', () => {
     strictEqual(ErrorCodeRegistry.describe('unknown.code.xyz'), undefined);

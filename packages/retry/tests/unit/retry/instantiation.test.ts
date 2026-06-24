@@ -1,15 +1,13 @@
 /**
  * Retry Instantiation Unit Tests
  *
- * Tests for creating Retry instances via constructor, factory, and builder
+ * Tests for creating Retry instances via constructor, factory, and builder.
  */
 
 import {
   ok, strictEqual
 } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
 
 import {
   DefaultHttpErrorClassifier,
@@ -17,132 +15,119 @@ import {
   RetryBuilder
 } from '../../../src/retry/index.js';
 
-void describe('Retry Instantiation', () => {
-  void describe('constructor', () => {
-    void it('creates retry with new Retry()', () => {
-      const retry = new Retry({ maxRetries: 5 });
+// ---------------------------------------------------------------------------
+// Constructor scenarios
+// ---------------------------------------------------------------------------
 
-      ok(retry instanceof Retry, 'Should be instance of Retry');
-    });
+const constructorScenarios: Array<{ description: string; build: () => Retry }> = [
+  {
+    description: 'creates retry with new Retry({ maxRetries: 5 })',
+    build: () => new Retry({ maxRetries: 5 })
+  },
+  {
+    description: 'creates retry with new Retry() using defaults',
+    build: () => new Retry()
+  },
+  {
+    description: 'creates retry with new Retry({ errorClassifier, maxRetries })',
+    build: () => new Retry({ errorClassifier: new DefaultHttpErrorClassifier(), maxRetries: 3 })
+  },
+  {
+    description: 'creates retry with new Retry({ maxRetries, retryInterceptor })',
+    build: () => new Retry({ maxRetries: 3, retryInterceptor: () => ({ delayMs: 100 }) })
+  }
+];
 
-    void it('creates retry with no config (uses defaults)', () => {
-      const retry = new Retry();
-
-      ok(retry instanceof Retry, 'Should be instance of Retry');
-    });
-
-    void it('creates retry with errorClassifier', () => {
-      const classifier = new DefaultHttpErrorClassifier();
-      const retry = new Retry({
-        errorClassifier: classifier,
-        maxRetries: 3
-      });
-
-      ok(retry instanceof Retry);
-    });
-
-    void it('creates retry with retryInterceptor', () => {
-      const retry = new Retry({
-        maxRetries: 3,
-        retryInterceptor: () => {
-          return { delayMs: 100 };
-        }
-      });
-
-      ok(retry instanceof Retry);
-    });
+for (const { description, build } of constructorScenarios) {
+  it(description, () => {
+    ok(build() instanceof Retry);
   });
+}
 
-  void describe('static factory method', () => {
-    void it('creates retry with Retry.create(config)', () => {
-      const retry = Retry.create({ maxRetries: 5 });
+// ---------------------------------------------------------------------------
+// Static factory method scenarios
+// ---------------------------------------------------------------------------
 
-      ok(retry instanceof Retry, 'Should return Retry instance');
-    });
+const factoryScenarios: Array<{ description: string; build: () => Retry }> = [
+  {
+    description: 'creates retry with Retry.create({ maxRetries: 5 })',
+    build: () => Retry.create({ maxRetries: 5 })
+  },
+  {
+    description: 'creates retry with Retry.create() using defaults',
+    build: () => Retry.create()
+  }
+];
 
-    void it('creates retry with Retry.create() and no config', () => {
-      const retry = Retry.create();
-
-      ok(retry instanceof Retry, 'Should use defaults');
-    });
+for (const { description, build } of factoryScenarios) {
+  it(description, () => {
+    ok(build() instanceof Retry);
   });
+}
 
-  void describe('builder pattern', () => {
-    void it('creates retry with new RetryBuilder().build()', () => {
-      const retry = new RetryBuilder(Retry).build();
+// ---------------------------------------------------------------------------
+// Builder pattern scenarios
+// ---------------------------------------------------------------------------
 
-      ok(retry instanceof Retry, 'Should return Retry instance');
-    });
+const builderScenarios: Array<{ description: string; build: () => Retry }> = [
+  {
+    description: 'creates retry with new RetryBuilder(Retry).build()',
+    build: () => new RetryBuilder(Retry).build()
+  },
+  {
+    description: 'creates retry with Retry.builder().build()',
+    build: () => Retry.builder().build()
+  },
+  {
+    description: 'builds with custom maxRetries(7)',
+    build: () => Retry.builder().maxRetries(7).build()
+  },
+  {
+    description: 'builds with errorClassifier and maxRetries',
+    build: () => Retry.builder().maxRetries(3).errorClassifier(new DefaultHttpErrorClassifier()).build()
+  },
+  {
+    description: 'builds with retryInterceptor and maxRetries',
+    build: () => Retry.builder().maxRetries(3).retryInterceptor(() => ({ delayMs: 50 })).build()
+  },
+  {
+    description: 'chains all builder methods: maxRetries + errorClassifier + retryInterceptor',
+    build: () => Retry.builder()
+      .maxRetries(5)
+      .errorClassifier(new DefaultHttpErrorClassifier())
+      .retryInterceptor(() => ({ delayMs: 100 }))
+      .build()
+  }
+];
 
-    void it('creates retry with Retry.builder().build()', () => {
-      const retry = Retry.builder().build();
-
-      ok(retry instanceof Retry, 'Should return Retry instance');
-    });
-
-    void it('builds with custom max retries', () => {
-      const retry = Retry.builder()
-        .maxRetries(7)
-        .build();
-
-      ok(retry instanceof Retry);
-    });
-
-    void it('builds with error classifier', () => {
-      const retry = Retry.builder()
-        .maxRetries(3)
-        .errorClassifier(new DefaultHttpErrorClassifier())
-        .build();
-
-      ok(retry instanceof Retry);
-    });
-
-    void it('builds with retry interceptor', () => {
-      const retry = Retry.builder()
-        .maxRetries(3)
-        .retryInterceptor(() => {
-          return { delayMs: 50 };
-        })
-        .build();
-
-      ok(retry instanceof Retry);
-    });
-
-    void it('chains all builder methods', () => {
-      const retry = Retry.builder()
-        .maxRetries(5)
-        .errorClassifier(new DefaultHttpErrorClassifier())
-        .retryInterceptor(() => {
-          return { delayMs: 100 };
-        })
-        .build();
-
-      ok(retry instanceof Retry);
-    });
-
-    void it('returns builder instance for chaining', () => {
-      const builder = Retry.builder();
-      const result = builder.maxRetries(5);
-
-      strictEqual(result, builder, 'maxRetries should return this');
-    });
+for (const { description, build } of builderScenarios) {
+  it(description, () => {
+    ok(build() instanceof Retry);
   });
+}
 
-  void describe('functional equivalence', () => {
-    void it('constructor and factory produce equivalent instances', async () => {
-      const viaConstructor = new Retry({ maxRetries: 3 });
-      const viaFactory = Retry.create({ maxRetries: 3 });
+// ---------------------------------------------------------------------------
+// Builder fluent return — non-scenario, identity check
+// ---------------------------------------------------------------------------
 
-      // Both should work the same way
-      const result1 = await viaConstructor.execute(async () => {
-        return 'test';
-      });
-      const result2 = await viaFactory.execute(async () => {
-        return 'test';
-      });
+it('builder.maxRetries() returns builder instance for chaining', () => {
+  const builder = Retry.builder();
+  const result = builder.maxRetries(5);
 
-      strictEqual(result1, 'test');
-      strictEqual(result2, 'test');
-    });
-  });
+  strictEqual(result, builder, 'maxRetries should return this');
+});
+
+// ---------------------------------------------------------------------------
+// Functional equivalence
+// ---------------------------------------------------------------------------
+
+it('constructor and factory produce functionally equivalent instances', async () => {
+  const viaConstructor = new Retry({ maxRetries: 3 });
+  const viaFactory = Retry.create({ maxRetries: 3 });
+
+  const result1 = await viaConstructor.execute(async () => 'test');
+  const result2 = await viaFactory.execute(async () => 'test');
+
+  strictEqual(result1, 'test');
+  strictEqual(result2, 'test');
 });

@@ -30,7 +30,8 @@ export class VirtualClockProvider implements ClockProviderType {
    * the public API surface.
    */
   protected get counter(): Readonly<VirtualTimeCounter> {
-    return this.#counter;
+    const result = this.#counter;
+    return result;
   }
 
   /**
@@ -38,7 +39,8 @@ export class VirtualClockProvider implements ClockProviderType {
    * virtual ms value before it is consumed by `hrtime()` and `now()`.
    */
   protected readVirtualMs(): number {
-    return this.#counter.nowMs();
+    const result = this.#counter.nowMs();
+    return result;
   }
 
   /** Returns the virtual time in nanoseconds (epoch-ms * 1,000,000). */

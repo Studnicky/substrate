@@ -15,50 +15,15 @@ pnpm add @studnicky/timing
 
 ## Usage
 
-```typescript
-import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
+Build a `Timing` instance with the builder, then record `component.operation` and `component.operation.status` events. Elapsed milliseconds are collected in a flat map keyed by event name:
 
-const timing = Timing.builder()
-  .maxEvents(100)
-  .build();
-
-// Record a point event
-timing.event(
-  TimingEvent.create()
-    .component('GraphAdapter')
-    .operation('query')
-    .build()
-);
-
-// Record a start/end pair
-timing.event(
-  TimingEvent.create()
-    .component('DatabaseAdapter')
-    .operation('connect')
-    .status(TIMING_STATUS.START)
-    .build()
-);
-// ... do work ...
-timing.event(
-  TimingEvent.create()
-    .component('DatabaseAdapter')
-    .operation('connect')
-    .status(TIMING_STATUS.END)
-    .build()
-);
-
-// Emit as logging context
-const ctx = timing.getEvents();
-// { 'GraphAdapter.query': 12.34, 'DatabaseAdapter.connect.start': 15.67, ... }
-```
+<<< ../../packages/timing/examples/basic-usage.ts#usage
 
 ### No-op for production disabling
 
-```typescript
-import { NoOpTiming } from '@studnicky/timing';
+`NoOpTiming` implements the same interface with zero overhead — all calls are accepted and discarded:
 
-const timing = new NoOpTiming(); // all calls are no-ops
-```
+<<< ../../packages/timing/examples/noop-timing.ts#usage
 
 ## Subpath exports
 
@@ -73,19 +38,8 @@ const timing = new NoOpTiming(); // all calls are no-ops
 
 ## Extending
 
-`Timing` exposes protected hooks for event recording:
+`Timing` exposes a protected `onEvent` hook. Subclass and override it to intercept events for metrics export, structured logging, or test assertions:
 
-```typescript
-import { Timing } from '@studnicky/timing';
-
-class CloudTiming extends Timing {
-  protected override onEvent(component: string, operation: string, elapsedMs: number): void {
-    cloudwatch.putMetricData({
-      MetricName: `${component}.${operation}`,
-      Value: elapsedMs
-    });
-  }
-}
-```
+<<< ../../packages/timing/examples/instrumented-timing.ts#usage
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/timing)

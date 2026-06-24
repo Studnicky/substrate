@@ -8,9 +8,7 @@
 import {
   ok, strictEqual
 } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
 import {
   setTimeout as delay
 } from 'node:timers/promises';
@@ -101,212 +99,208 @@ class AllHooksMutex extends Mutex<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Tests
+// afterAcquire
 // ---------------------------------------------------------------------------
 
-void describe('Observability Hooks', () => {
-  void describe('afterAcquire', () => {
-    void it('fires when lock is acquired immediately', async () => {
-      const mutex = new AcquireTrackingMutex();
+it('afterAcquire fires when lock is acquired immediately', async () => {
+  const mutex = new AcquireTrackingMutex();
+  const release = await mutex.acquire('key1');
 
-      const release = await mutex.acquire('key1');
+  strictEqual(mutex.acquireEvents.length, 1);
+  const ev = mutex.acquireEvents[0];
 
-      strictEqual(mutex.acquireEvents.length, 1);
-      const ev = mutex.acquireEvents[0];
+  ok(ev !== undefined, 'Expected acquire event');
+  strictEqual(ev.key, 'key1');
+  ok(ev.waitTimeMs >= 0);
+  ok(ev.waitTimeMs < 10);
 
-      ok(ev !== undefined, 'Expected acquire event');
-      strictEqual(ev.key, 'key1');
-      ok(ev.waitTimeMs >= 0);
-      ok(ev.waitTimeMs < 10);
+  release();
+});
 
-      release();
-    });
+it('afterAcquire fires when lock is acquired after waiting', async () => {
+  const mutex = new AcquireTrackingMutex();
+  const release1 = await mutex.acquire('key1');
 
-    void it('fires when lock is acquired after waiting', async () => {
-      const mutex = new AcquireTrackingMutex();
+  strictEqual(mutex.acquireEvents.length, 1);
 
-      const release1 = await mutex.acquire('key1');
+  const promise2 = mutex.acquire('key1');
 
-      strictEqual(mutex.acquireEvents.length, 1);
+  await delay(50);
+  release1();
 
-      const promise2 = mutex.acquire('key1');
+  const release2 = await promise2;
 
-      await delay(50);
-      release1();
+  strictEqual(mutex.acquireEvents.length, 2);
+  const ev = mutex.acquireEvents[1];
 
-      const release2 = await promise2;
+  ok(ev !== undefined, 'Expected second acquire event');
+  strictEqual(ev.key, 'key1');
+  ok(ev.waitTimeMs >= 40);
 
-      strictEqual(mutex.acquireEvents.length, 2);
-      const ev = mutex.acquireEvents[1];
+  release2();
+});
 
-      ok(ev !== undefined, 'Expected second acquire event');
-      strictEqual(ev.key, 'key1');
-      ok(ev.waitTimeMs >= 40);
+it('afterAcquire tracks separate keys independently', async () => {
+  const mutex = new AcquireTrackingMutex();
+  const release1 = await mutex.acquire('key1');
+  const release2 = await mutex.acquire('key2');
 
-      release2();
-    });
+  strictEqual(mutex.acquireEvents.length, 2);
+  const [ev0, ev1] = mutex.acquireEvents;
 
-    void it('tracks separate keys independently', async () => {
-      const mutex = new AcquireTrackingMutex();
+  ok(ev0 !== undefined && ev1 !== undefined, 'Expected two events');
+  strictEqual(ev0.key, 'key1');
+  strictEqual(ev1.key, 'key2');
 
-      const release1 = await mutex.acquire('key1');
-      const release2 = await mutex.acquire('key2');
+  release1();
+  release2();
+});
 
-      strictEqual(mutex.acquireEvents.length, 2);
-      const [ev0, ev1] = mutex.acquireEvents;
+// ---------------------------------------------------------------------------
+// beforeRelease
+// ---------------------------------------------------------------------------
 
-      ok(ev0 !== undefined && ev1 !== undefined, 'Expected two events');
-      strictEqual(ev0.key, 'key1');
-      strictEqual(ev1.key, 'key2');
+it('beforeRelease fires when lock is released', async () => {
+  const mutex = new ReleaseTrackingMutex();
+  const release = await mutex.acquire('key1');
 
-      release1();
-      release2();
-    });
-  });
+  await delay(50);
+  release();
 
-  void describe('beforeRelease', () => {
-    void it('fires when lock is released', async () => {
-      const mutex = new ReleaseTrackingMutex();
+  strictEqual(mutex.releaseEvents.length, 1);
+  const ev = mutex.releaseEvents[0];
 
-      const release = await mutex.acquire('key1');
+  ok(ev !== undefined, 'Expected release event');
+  strictEqual(ev.key, 'key1');
+  ok(ev.holdTimeMs >= 40);
+});
 
-      await delay(50);
-      release();
+it('beforeRelease tracks hold time for each lock/release cycle', async () => {
+  const mutex = new ReleaseTrackingMutex();
+  const release1 = await mutex.acquire('key1');
 
-      strictEqual(mutex.releaseEvents.length, 1);
-      const ev = mutex.releaseEvents[0];
+  await delay(30);
+  release1();
 
-      ok(ev !== undefined, 'Expected release event');
-      strictEqual(ev.key, 'key1');
-      ok(ev.holdTimeMs >= 40);
-    });
+  const release2 = await mutex.acquire('key1');
 
-    void it('tracks hold time for each lock/release cycle', async () => {
-      const mutex = new ReleaseTrackingMutex();
+  await delay(30);
+  release2();
 
-      const release1 = await mutex.acquire('key1');
+  strictEqual(mutex.releaseEvents.length, 2);
+  const [ev0, ev1] = mutex.releaseEvents;
 
-      await delay(30);
-      release1();
+  ok(ev0 !== undefined && ev1 !== undefined, 'Expected two release events');
+  ok(ev0.holdTimeMs >= 20);
+  ok(ev1.holdTimeMs >= 20);
+});
 
-      const release2 = await mutex.acquire('key1');
+// ---------------------------------------------------------------------------
+// onTimeout
+// ---------------------------------------------------------------------------
 
-      await delay(30);
-      release2();
+it('onTimeout fires when lock acquisition times out', async () => {
+  const mutex = new TimeoutTrackingMutex({ timeout: 50 });
+  const release1 = await mutex.acquire('key1');
 
-      strictEqual(mutex.releaseEvents.length, 2);
-      const [ev0, ev1] = mutex.releaseEvents;
+  try {
+    await mutex.acquire('key1');
+    throw new Error('Expected timeout error');
+  } catch {
+    strictEqual(mutex.timeoutEvents.length, 1);
+    const ev = mutex.timeoutEvents[0];
 
-      ok(ev0 !== undefined && ev1 !== undefined, 'Expected two release events');
-      ok(ev0.holdTimeMs >= 20);
-      ok(ev1.holdTimeMs >= 20);
-    });
-  });
+    ok(ev !== undefined, 'Expected timeout event');
+    strictEqual(ev.key, 'key1');
+    strictEqual(ev.timeoutMs, 50);
+  }
 
-  void describe('onTimeout', () => {
-    void it('fires when lock acquisition times out', async () => {
-      const mutex = new TimeoutTrackingMutex({ timeout: 50 });
+  release1();
+});
 
-      const release1 = await mutex.acquire('key1');
+// ---------------------------------------------------------------------------
+// onContended
+// ---------------------------------------------------------------------------
 
-      try {
-        await mutex.acquire('key1');
-        throw new Error('Expected timeout error');
-      } catch {
-        strictEqual(mutex.timeoutEvents.length, 1);
-        const ev = mutex.timeoutEvents[0];
+it('onContended fires when lock is held and a waiter queues', async () => {
+  const mutex = new ContentionTrackingMutex();
+  const release1 = await mutex.acquire('key1');
+  const promise2 = mutex.acquire('key1');
 
-        ok(ev !== undefined, 'Expected timeout event');
-        strictEqual(ev.key, 'key1');
-        strictEqual(ev.timeoutMs, 50);
-      }
+  strictEqual(mutex.contentionEvents.length, 1);
+  const ev = mutex.contentionEvents[0];
 
-      release1();
-    });
-  });
+  ok(ev !== undefined, 'Expected contention event');
+  strictEqual(ev.key, 'key1');
+  strictEqual(ev.queueSize, 0);
 
-  void describe('onContended', () => {
-    void it('fires when lock is held and a waiter queues', async () => {
-      const mutex = new ContentionTrackingMutex();
+  release1();
+  const release2 = await promise2;
 
-      const release1 = await mutex.acquire('key1');
+  release2();
+});
 
-      const promise2 = mutex.acquire('key1');
+// ---------------------------------------------------------------------------
+// afterRelease
+// ---------------------------------------------------------------------------
 
-      strictEqual(mutex.contentionEvents.length, 1);
-      const ev = mutex.contentionEvents[0];
+it('afterRelease fires after lock is completely released', async () => {
+  const mutex = new AfterReleaseTrackingMutex();
+  const release = await mutex.acquire('key1');
 
-      ok(ev !== undefined, 'Expected contention event');
-      strictEqual(ev.key, 'key1');
-      strictEqual(ev.queueSize, 0);
+  release();
 
-      release1();
-      const release2 = await promise2;
+  strictEqual(mutex.afterReleaseEvents.length, 1);
+  strictEqual(mutex.afterReleaseEvents[0], 'key1');
+});
 
-      release2();
-    });
-  });
+// ---------------------------------------------------------------------------
+// Hook error isolation
+// ---------------------------------------------------------------------------
 
-  void describe('afterRelease', () => {
-    void it('fires after lock is completely released', async () => {
-      const mutex = new AfterReleaseTrackingMutex();
+it('does not break mutex functionality if afterAcquire and beforeRelease throw', async () => {
+  const mutex = new ThrowingMutex();
+  const release = await mutex.acquire('key1');
 
-      const release = await mutex.acquire('key1');
+  ok(mutex.isLocked('key1'));
 
-      release();
+  release();
 
-      strictEqual(mutex.afterReleaseEvents.length, 1);
-      strictEqual(mutex.afterReleaseEvents[0], 'key1');
-    });
-  });
+  ok(!mutex.isLocked('key1'));
+});
 
-  void describe('Hook error isolation', () => {
-    void it('does not break mutex functionality if afterAcquire and beforeRelease throw', async () => {
-      const mutex = new ThrowingMutex();
+it('continues processing queue if afterAcquire throws', async () => {
+  const mutex = new ThrowingQueueMutex();
+  const release1 = await mutex.acquire('key1');
+  const promise2 = mutex.acquire('key1');
 
-      const release = await mutex.acquire('key1');
+  release1();
 
-      ok(mutex.isLocked('key1'));
+  const release2 = await promise2;
 
-      release();
+  release2();
 
-      ok(!mutex.isLocked('key1'));
-    });
+  strictEqual(mutex.acquireKeys.length, 2);
+  strictEqual(mutex.acquireKeys[0], 'acquired-key1');
+  strictEqual(mutex.acquireKeys[1], 'acquired-key1');
+});
 
-    void it('continues processing queue if afterAcquire throws', async () => {
-      const mutex = new ThrowingQueueMutex();
+// ---------------------------------------------------------------------------
+// Combined metrics tracking
+// ---------------------------------------------------------------------------
 
-      const release1 = await mutex.acquire('key1');
-      const promise2 = mutex.acquire('key1');
+it('tracks all metrics in a single subclass', async () => {
+  const mutex = new AllHooksMutex();
+  const release1 = await mutex.acquire('key1');
 
-      release1();
+  await delay(30);
+  release1();
 
-      const release2 = await promise2;
+  const release2 = await mutex.acquire('key2');
 
-      release2();
+  release2();
 
-      strictEqual(mutex.acquireKeys.length, 2);
-      strictEqual(mutex.acquireKeys[0], 'acquired-key1');
-      strictEqual(mutex.acquireKeys[1], 'acquired-key1');
-    });
-  });
-
-  void describe('Combined metrics tracking', () => {
-    void it('tracks all metrics in a single subclass', async () => {
-      const mutex = new AllHooksMutex();
-
-      const release1 = await mutex.acquire('key1');
-
-      await delay(30);
-      release1();
-
-      const release2 = await mutex.acquire('key2');
-
-      release2();
-
-      strictEqual(mutex.acquired.length, 2);
-      strictEqual(mutex.released.length, 2);
-      ok(mutex.totalHoldTime >= 20);
-    });
-  });
+  strictEqual(mutex.acquired.length, 2);
+  strictEqual(mutex.released.length, 2);
+  ok(mutex.totalHoldTime >= 20);
 });

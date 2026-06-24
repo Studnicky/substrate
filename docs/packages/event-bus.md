@@ -17,57 +17,21 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-```typescript
-import { EventBus } from '@studnicky/event-bus';
+Subscribe to a topic, publish a payload, and drain the queue. The subscriber receives every published item:
 
-type AppEvents = {
-  'user:created': { id: string; email: string };
-  'order:placed': { orderId: string; total: number };
-};
+<<< ../../packages/event-bus/examples/pubSub.ts#usage
 
-const bus = EventBus.create<AppEvents>();
+### Multiple subscribers
 
-// Subscribe
-const unsubscribe = bus.subscribe('user:created', async (payload) => {
-  console.log('New user', payload.id);
-});
+All subscribers on the same topic receive each published payload independently. Calling the returned unsubscribe function removes that subscriber:
 
-// Publish — waits until all subscriber queues accept the item
-await bus.publish('user:created', { id: '1', email: 'a@example.com' });
-
-// Clean up one subscriber
-unsubscribe();
-
-// Drain all pending items, then close the bus
-await bus.close();
-```
+<<< ../../packages/event-bus/examples/multiSubscriber.ts#usage
 
 ### AbortSignal-based lifecycle
 
-```typescript
-const controller = new AbortController();
+Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. When the signal aborts the subscriber is removed and stops receiving events:
 
-bus.subscribe('order:placed', async (payload) => {
-  await processOrder(payload.orderId);
-}, { signal: controller.signal });
-
-// Subscriber stops and is removed when the signal aborts
-controller.abort();
-```
-
-### BusQueue — standalone backpressure queue
-
-```typescript
-import { BusQueue } from '@studnicky/event-bus';
-
-const queue = new BusQueue<string>(
-  async (item) => { await sendEmail(item); },
-  { highWaterMark: 100, onError: (err) => console.error(err) }
-);
-
-await queue.enqueue('user@example.com'); // blocks caller at highWaterMark
-await queue.drain();                     // waits until queue is empty
-```
+<<< ../../packages/event-bus/examples/abortSignal.ts#usage
 
 ## API
 

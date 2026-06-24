@@ -1,8 +1,17 @@
 /** Bounded async FIFO queue with backpressure; enqueue blocks at highWaterMark. */
 
-import type { BusQueueOptionsType } from './BusQueueOptionsType.js';
+import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
+
+import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 
 const busQueueDefaultHighWaterMark = 256;
+
+/** Full construction options including runtime-only fields not representable in JSON Schema. */
+type BusQueueOptionsType = {
+  readonly 'onError'?: (err: unknown) => void;
+  /** Runtime AbortSignal — not JSON-serializable, omitted from schema. */
+  readonly 'signal'?: AbortSignal;
+} & BusQueueOptionsEntity.Type;
 
 export class BusQueue<T> {
   readonly #handler: (item: T) => Promise<void>;
@@ -15,8 +24,12 @@ export class BusQueue<T> {
   #aborted = false;
 
   constructor(handler: (item: T) => Promise<void>, options?: BusQueueOptionsType) {
+    const hwmOption = options?.highWaterMark;
+    if (hwmOption !== undefined && (!Number.isInteger(hwmOption) || hwmOption <= 0)) {
+      throw new BusQueueConfigError('highWaterMark must be a positive integer');
+    }
     this.#handler = handler;
-    this.#hwm = options?.highWaterMark ?? busQueueDefaultHighWaterMark;
+    this.#hwm = hwmOption ?? busQueueDefaultHighWaterMark;
     this.#onError = options?.onError;
     const signal = options?.signal;
     if (signal !== undefined) {
@@ -29,7 +42,8 @@ export class BusQueue<T> {
   }
 
   get size(): number {
-    return this.#queue.length;
+    const result = this.#queue.length;
+    return result;
   }
 
   async enqueue(item: T): Promise<void> {
@@ -37,14 +51,14 @@ export class BusQueue<T> {
     this.#queue.push(item);
     this.#scheduleLoop();
     if (this.#queue.length < this.#hwm) { return; }
-    return await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve) => {
       this.#backpressureWaiters.push({ 'resolve': resolve });
     });
   }
 
   async drain(): Promise<void> {
     if (this.#queue.length === 0 || this.#aborted) { return; }
-    return await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve) => {
       this.#drainWaiters.push({ 'resolve': resolve });
     });
   }

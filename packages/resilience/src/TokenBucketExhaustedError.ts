@@ -1,6 +1,7 @@
-export class TokenBucketExhaustedError extends Error {
+import { ResilienceError } from './errors/ResilienceError.js';
+
+export class TokenBucketExhaustedError extends ResilienceError {
   constructor() {
-    super('Token bucket exhausted');
-    this.name = 'TokenBucketExhaustedError';
+    super({ 'code': 'resilience.tokenBucketExhausted', 'message': 'Token bucket exhausted', 'retryable': true });
   }
 }

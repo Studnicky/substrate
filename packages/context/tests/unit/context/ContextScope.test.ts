@@ -66,35 +66,44 @@ void describe('ContextScope Lifecycle', () => {
       ]);
     });
 
-    void it('scope transitions to terminated state after terminate()', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize();
+    const terminatedStateScenarios: Array<{
+      description: string;
+      run: (context: Context) => () => unknown;
+      expectedMessage: string;
+    }> = [
+      {
+        description: 'scope transitions to terminated state after terminate()',
+        run: (context) => {
+          const scope = context.initialize();
 
-      scope.terminate();
+          scope.terminate();
 
-      throws(
-        () => {
-          return scope.execute(() => {
+          return () => scope.execute(() => {
             // Intentionally empty - testing that terminated scope throws
           });
         },
-        { message: 'test scope has been terminated' }
-      );
-    });
+        expectedMessage: 'test scope has been terminated'
+      },
+      {
+        description: 'terminate can only be called once',
+        run: (context) => {
+          const scope = context.initialize();
 
-    void it('terminate can only be called once', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize();
+          scope.terminate();
 
-      scope.terminate();
-
-      throws(
-        () => {
-          return scope.terminate();
+          return () => scope.terminate();
         },
-        { message: 'test scope has already been terminated' }
-      );
-    });
+        expectedMessage: 'test scope has already been terminated'
+      }
+    ];
+
+    for (const { description, run, expectedMessage } of terminatedStateScenarios) {
+      void it(description, () => {
+        const context = Context.create({ name: 'test' });
+
+        throws(run(context), { message: expectedMessage });
+      });
+    }
   });
 
   void describe('state accumulation across execute calls', () => {
@@ -442,29 +451,32 @@ void describe('ContextScope Lifecycle', () => {
       );
     });
 
-    void it('can terminate immediately after initialize without execute', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize({
-        a: 1,
-        b: 2
+    const immediateTerminateScenarios: Array<{
+      description: string;
+      initial: Record<string, unknown> | undefined;
+      expected: Record<string, unknown>;
+    }> = [
+      {
+        description: 'can terminate immediately after initialize without execute',
+        initial: { a: 1, b: 2 },
+        expected: { a: 1, b: 2 }
+      },
+      {
+        description: 'returns empty object when initialized without values and no execute',
+        initial: undefined,
+        expected: {}
+      }
+    ];
+
+    for (const { description, initial, expected } of immediateTerminateScenarios) {
+      void it(description, () => {
+        const context = Context.create({ name: 'test' });
+        const scope = context.initialize(initial);
+        const final = scope.terminate();
+
+        deepStrictEqual(final, expected);
       });
-
-      const final = scope.terminate();
-
-      deepStrictEqual(final, {
-        a: 1,
-        b: 2
-      });
-    });
-
-    void it('returns empty object when initialized without values and no execute', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize();
-
-      const final = scope.terminate();
-
-      deepStrictEqual(final, {});
-    });
+    }
   });
 
   void describe('error handling', () => {
@@ -542,33 +554,75 @@ void describe('ContextScope Lifecycle', () => {
   });
 
   void describe('edge cases', () => {
-    void it('handles undefined values', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize({ undef: undefined });
+    // Pattern: initialize({ key: value }) → execute → get → verify → terminate → verify final
+    const simpleKeyValueScenarios: Array<{
+      description: string;
+      initial: Record<string, unknown>;
+      checkInExecute: (context: Context) => void;
+      checkInFinal: (final: Record<string, unknown>) => void;
+    }> = [
+      {
+        description: 'handles undefined values',
+        initial: { undef: undefined },
+        checkInExecute: (context) => {
+          strictEqual(context.get<undefined>('undef'), undefined);
+          strictEqual(context.has('undef'), true);
+        },
+        checkInFinal: (final) => {
+          strictEqual(final.undef, undefined);
+          ok('undef' in final);
+        }
+      },
+      {
+        description: 'handles null values',
+        initial: { nul: null },
+        checkInExecute: (context) => {
+          strictEqual(context.get<null>('nul'), null);
+        },
+        checkInFinal: (final) => {
+          strictEqual(final.nul, null);
+        }
+      },
+      {
+        description: 'handles Symbol keys via string conversion',
+        initial: { 'Symbol(test)': 'value' },
+        checkInExecute: (context) => {
+          strictEqual(context.get<string>('Symbol(test)'), 'value');
+        },
+        checkInFinal: (_final) => { /* key presence verified in execute */ }
+      },
+      {
+        description: 'handles empty string key',
+        initial: { '': 'empty-key-value' },
+        checkInExecute: (context) => {
+          strictEqual(context.get<string>(''), 'empty-key-value');
+        },
+        checkInFinal: (_final) => { /* key presence verified in execute */ }
+      },
+      {
+        description: 'handles very long key names',
+        initial: { ['a'.repeat(10_000)]: 'value' },
+        checkInExecute: (context) => {
+          strictEqual(context.get<string>('a'.repeat(10_000)), 'value');
+        },
+        checkInFinal: (_final) => { /* key presence verified in execute */ }
+      }
+    ];
 
-      scope.execute(() => {
-        strictEqual(context.get<undefined>('undef'), undefined);
-        strictEqual(context.has('undef'), true);
+    for (const { description, initial, checkInExecute, checkInFinal } of simpleKeyValueScenarios) {
+      void it(description, () => {
+        const context = Context.create({ name: 'test' });
+        const scope = context.initialize(initial);
+
+        scope.execute(() => {
+          checkInExecute(context);
+        });
+
+        const final = scope.terminate();
+
+        checkInFinal(final);
       });
-
-      const final = scope.terminate();
-
-      strictEqual(final.undef, undefined);
-      ok('undef' in final);
-    });
-
-    void it('handles null values', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize({ nul: null });
-
-      scope.execute(() => {
-        strictEqual(context.get<null>('nul'), null);
-      });
-
-      const final = scope.terminate();
-
-      strictEqual(final.nul, null);
-    });
+    }
 
     void it('handles complex object values', () => {
       const context = Context.create({ name: 'test' });
@@ -606,34 +660,6 @@ void describe('ContextScope Lifecycle', () => {
         const retrieved = context.get<typeof Fixture.doubleNumber>('fn');
 
         strictEqual(retrieved(5), 10);
-      });
-    });
-
-    void it('handles Symbol keys via string conversion', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize({ 'Symbol(test)': 'value' });
-
-      scope.execute(() => {
-        strictEqual(context.get<string>('Symbol(test)'), 'value');
-      });
-    });
-
-    void it('handles empty string key', () => {
-      const context = Context.create({ name: 'test' });
-      const scope = context.initialize({ '': 'empty-key-value' });
-
-      scope.execute(() => {
-        strictEqual(context.get<string>(''), 'empty-key-value');
-      });
-    });
-
-    void it('handles very long key names', () => {
-      const context = Context.create({ name: 'test' });
-      const longKey = 'a'.repeat(10_000);
-      const scope = context.initialize({ [longKey]: 'value' });
-
-      scope.execute(() => {
-        strictEqual(context.get<string>(longKey), 'value');
       });
     });
 

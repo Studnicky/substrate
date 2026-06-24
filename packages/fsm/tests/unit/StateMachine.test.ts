@@ -22,19 +22,22 @@ class ThrowingMachine extends StateMachine<ToggleState, ToggleEvent> {
 }
 
 describe('StateMachine', () => {
-  it('transitions off → on', () => {
-    const machine = new ToggleMachine();
-    const step = machine.transition({ variant: 'off' }, { type: 'toggle' });
-    assert.deepEqual(step.state, { variant: 'on' });
-    assert.deepEqual(step.effects, []);
-  });
-
-  it('transitions on → off', () => {
-    const machine = new ToggleMachine();
-    const step = machine.transition({ variant: 'on' }, { type: 'toggle' });
-    assert.deepEqual(step.state, { variant: 'off' });
-    assert.deepEqual(step.effects, []);
-  });
+  const transitionScenarios: Array<{
+    description: string;
+    input: ToggleState;
+    expectedVariant: 'on' | 'off';
+  }> = [
+    { description: 'transitions off → on', input: { variant: 'off' }, expectedVariant: 'on' },
+    { description: 'transitions on → off', input: { variant: 'on' }, expectedVariant: 'off' },
+  ];
+  for (const { description, input, expectedVariant } of transitionScenarios) {
+    it(description, () => {
+      const machine = new ToggleMachine();
+      const step = machine.transition(input, { type: 'toggle' });
+      assert.deepEqual(step.state, { variant: expectedVariant });
+      assert.deepEqual(step.effects, []);
+    });
+  }
 
   it('wraps reducer throw as ReducerThrewError', () => {
     const machine = new ThrowingMachine();

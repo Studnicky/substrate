@@ -1,0 +1,50 @@
+name: Bug report
+description: A behavior in @studnicky/substrate that does not match the documented contract
+labels: ["bug"]
+body:
+  - id: summary
+    type: textarea
+    attributes:
+      label: Summary
+      description: One or two sentences. What did you expect, what happened.
+    validations:
+      required: true
+  - id: packages
+    type: input
+    attributes:
+      label: Affected package(s)
+      placeholder: "@studnicky/retry, @studnicky/resilience"
+    validations:
+      required: true
+  - id: version
+    type: input
+    attributes:
+      label: Package version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - id: node
+    type: input
+    attributes:
+      label: Node version
+      placeholder: "v24.x"
+    validations:
+      required: true
+  - id: repro
+    type: textarea
+    attributes:
+      label: Minimal reproduction
+      description: Smallest setup and call that exhibits the issue. Copy-pasteable TypeScript.
+      render: ts
+    validations:
+      required: true
+  - id: expected
+    type: textarea
+    attributes:
+      label: Expected behavior
+      description: What should have happened, with reference to the documented contract if possible.
+  - id: actual
+    type: textarea
+    attributes:
+      label: Actual behavior
+      description: Observed output, including any error message and stack trace.

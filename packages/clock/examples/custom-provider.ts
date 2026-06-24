@@ -1,12 +1,10 @@
-/**
- * Custom ClockProviderType — implement the two-method interface to inject
- * any time source into Clock. Swapping the provider changes what Clock returns.
- *
- * Run: npx tsx packages/clock/examples/custom-provider.ts
- */
+/** custom-provider — implement ClockProviderType to inject any time source into Clock. Run: npx tsx packages/clock/examples/custom-provider.ts */
+
 import assert from 'node:assert/strict';
 
+// #region usage
 import type { ClockProviderType } from '../src/index.js';
+
 import { Clock } from '../src/index.js';
 
 // --- Custom provider with fixed values ---
@@ -31,9 +29,6 @@ class FixedClockProvider implements ClockProviderType {
 
 const fixedProvider = new FixedClockProvider(9999, 9_999_000_000n);
 const clockFixed = new Clock(fixedProvider);
-
-assert.equal(clockFixed.now(), 9999, 'now() returns the fixed epoch-ms');
-assert.equal(clockFixed.hrtime(), 9_999_000_000n, 'hrtime() returns the fixed nanoseconds');
 
 console.log(`FixedClockProvider: now()=${clockFixed.now()}, hrtime()=${clockFixed.hrtime()}n`);
 
@@ -67,7 +62,6 @@ const clockCounting = new Clock(countingProvider);
 const firstNow = clockCounting.now();
 const secondNow = clockCounting.now();
 
-assert.ok(secondNow >= firstNow, 'monotonicity holds across counting provider calls');
 console.log(`CountingClockProvider: firstNow=${firstNow}, secondNow=${secondNow}`);
 
 // --- DI seam: same Clock constructor, different behavior per provider ---
@@ -75,8 +69,13 @@ console.log(`CountingClockProvider: firstNow=${firstNow}, secondNow=${secondNow}
 const clockA = new Clock(new FixedClockProvider(1, 1_000_000n));
 const clockB = new Clock(new FixedClockProvider(2, 2_000_000n));
 
+console.log(`DI swap: clockA.now()=${clockA.now()}, clockB.now()=${clockB.now()}`);
+// #endregion usage
+
+assert.equal(clockFixed.now(), 9999, 'now() returns the fixed epoch-ms');
+assert.equal(clockFixed.hrtime(), 9_999_000_000n, 'hrtime() returns the fixed nanoseconds');
+assert.ok(secondNow >= firstNow, 'monotonicity holds across counting provider calls');
 assert.equal(clockA.now(), 1);
 assert.equal(clockB.now(), 2);
-console.log(`DI swap: clockA.now()=${clockA.now()}, clockB.now()=${clockB.now()}`);
 
 console.log('custom-provider: all assertions passed');

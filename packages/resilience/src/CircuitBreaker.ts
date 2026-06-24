@@ -1,9 +1,10 @@
 /** Async circuit breaker: closed → open (on failure threshold) → halfOpen (on timeout) → closed. */
 
-import type { CircuitBreakerOptionsType } from './CircuitBreakerOptionsType.js';
 import type { CircuitStateType } from './CircuitStateType.js';
+import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 
 import { CircuitBreakerOpenError } from './CircuitBreakerOpenError.js';
+import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
 export class CircuitBreaker {
   readonly #failureThreshold: number;
@@ -16,17 +17,18 @@ export class CircuitBreaker {
   #successCount = 0;
   #openedAt = 0;
 
-  constructor(options: CircuitBreakerOptionsType) {
-    if (options.failureThreshold < 1) throw new RangeError('failureThreshold must be >= 1');
-    if (options.resetTimeoutMs < 0) throw new RangeError('resetTimeoutMs must be >= 0');
+  constructor(options: CircuitBreakerOptionsInterface) {
+    if (options.failureThreshold < 1) {throw new ResilienceConfigError('failureThreshold must be >= 1');}
+    if (options.resetTimeoutMs < 0) {throw new ResilienceConfigError('resetTimeoutMs must be >= 0');}
     this.#failureThreshold = options.failureThreshold;
     this.#resetTimeoutMs = options.resetTimeoutMs;
     this.#successThreshold = options.successThreshold ?? 1;
     this.#name = options.name ?? 'circuit-breaker';
-    this.#clock = options.clock ?? (() => Date.now());
+    this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
   }
 
-  get state(): CircuitStateType { return this.#state; }
+  get state(): CircuitStateType { const result = this.#state;
+    return result; }
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     this.#checkHalfOpen();

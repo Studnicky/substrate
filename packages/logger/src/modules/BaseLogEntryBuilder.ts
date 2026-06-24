@@ -1,4 +1,3 @@
-import type { BaseLogEntryBuilderInterface } from '../interfaces/BaseLogEntryBuilderInterface.js';
 import type { LogBodyDataType } from '../interfaces/LogBodyDataType.js';
 import type { LogFaultDataType } from '../interfaces/LogFaultDataType.js';
 import type { LogStatusType } from '../types/LogStatusType.js';
@@ -8,7 +7,7 @@ import { LogBuildError } from '../errors/LogBuildError.js';
 /**
  * Base class for log entry builders providing shared fluent API methods.
  */
-export abstract class BaseLogEntryBuilder implements BaseLogEntryBuilderInterface {
+export abstract class BaseLogEntryBuilder {
   protected componentName: string | undefined;
   protected contextCalled = false;
   protected readonly contextData: Record<string, unknown> = {};

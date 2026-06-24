@@ -14,7 +14,9 @@
  * }
  * ```
  */
-export class TimeoutError extends Error {
+import { FetchBaseError } from './FetchBaseError.js';
+
+export class TimeoutError extends FetchBaseError {
   /**
    * The URL that was fetched
    */
@@ -26,8 +28,7 @@ export class TimeoutError extends Error {
   readonly url: string;
 
   constructor(url: string, timeoutMs: number) {
-    super(`Request to ${url} timed out after ${timeoutMs}ms`);
-    this.name = 'TimeoutError';
+    super({ 'code': 'fetch.timeout', 'message': `Request to ${url} timed out after ${timeoutMs}ms`, 'retryable': true });
     this.url = url;
     this.timeoutMs = timeoutMs;
   }

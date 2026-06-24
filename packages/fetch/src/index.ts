@@ -22,6 +22,7 @@ export {
   BodyTimeoutError,
   ConfigurationError,
   ConnectTimeoutError,
+  FetchBaseError,
   HeadersTimeoutError,
   HTTPError,
   NetworkError,

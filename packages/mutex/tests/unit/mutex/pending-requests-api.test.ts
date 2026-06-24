@@ -8,377 +8,292 @@
 import {
   deepStrictEqual, ok, strictEqual
 } from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { it } from 'node:test';
 import {
   setTimeout as delay
 } from 'node:timers/promises';
 
 import { Mutex } from '../../../src/mutex/index.js';
 
-void describe('Pending Requests API', () => {
-  void describe('getStats()', () => {
-    void it('returns correct initial stats', () => {
-      const mutex = new Mutex<string>({
-        maxQueueSize: 100,
-        timeout: 5000
-      });
+// --- getStats() initial state ---
 
-      const stats = mutex.getStats();
+it('getStats returns correct initial stats', () => {
+  const mutex = new Mutex<string>({ maxQueueSize: 100, timeout: 5000 });
+  const stats = mutex.getStats();
 
-      strictEqual(stats.activeLocksCount, 0, 'Should have no active locks initially');
-      strictEqual(stats.queuedCount, 0, 'Should have no queued operations initially');
-      strictEqual(stats.totalExecuted, 0, 'Should have executed nothing initially');
-      strictEqual(stats.maxQueueSize, 100, 'Should match config');
-      strictEqual(stats.timeout, 5000, 'Should match config');
-    });
+  strictEqual(stats.activeLocksCount, 0, 'Should have no active locks initially');
+  strictEqual(stats.queuedCount, 0, 'Should have no queued operations initially');
+  strictEqual(stats.totalExecuted, 0, 'Should have executed nothing initially');
+  strictEqual(stats.maxQueueSize, 100, 'Should match config');
+  strictEqual(stats.timeout, 5000, 'Should match config');
+});
 
-    void it('tracks active locks', async () => {
-      const mutex = new Mutex<string>();
+// --- getStats() API shape ---
 
-      const release = await mutex.acquire('key1');
+it('provides same API shape as Throttle', () => {
+  const mutex = new Mutex<string>();
 
-      const stats = mutex.getStats();
+  strictEqual(typeof mutex.getStats, 'function', 'Should have getStats method');
+  strictEqual(typeof mutex.isComplete, 'function', 'Should have isComplete method');
+  strictEqual(typeof mutex.completeQueue, 'function', 'Should have completeQueue method');
 
-      strictEqual(stats.activeLocksCount, 1, 'Should have 1 active lock');
-      strictEqual(stats.totalExecuted, 1, 'Should have executed 1 operation');
+  const stats = mutex.getStats();
 
-      release();
-    });
+  strictEqual(typeof stats, 'object', 'Stats should be an object');
+  ok('activeLocksCount' in stats, 'Should have activeLocksCount');
+  ok('queuedCount' in stats, 'Should have queuedCount');
+  ok('totalExecuted' in stats, 'Should have totalExecuted');
+  ok('maxQueueSize' in stats, 'Should have maxQueueSize');
+  ok('timeout' in stats, 'Should have timeout');
+});
 
-    void it('tracks multiple active locks on different keys', async () => {
-      const mutex = new Mutex<string>();
+// --- getStats() tracking active locks ---
 
-      const release1 = await mutex.acquire('key1');
-      const release2 = await mutex.acquire('key2');
-      const release3 = await mutex.acquire('key3');
+it('getStats tracks active locks', async () => {
+  const mutex = new Mutex<string>();
+  const release = await mutex.acquire('key1');
+  const stats = mutex.getStats();
 
-      const stats = mutex.getStats();
+  strictEqual(stats.activeLocksCount, 1, 'Should have 1 active lock');
+  strictEqual(stats.totalExecuted, 1, 'Should have executed 1 operation');
 
-      strictEqual(stats.activeLocksCount, 3, 'Should have 3 active locks');
-      strictEqual(stats.queuedCount, 0, 'Should have no queued operations');
-      strictEqual(stats.totalExecuted, 3, 'Should have executed 3 operations');
+  release();
+});
 
-      release1();
-      release2();
-      release3();
-    });
+it('getStats tracks multiple active locks on different keys', async () => {
+  const mutex = new Mutex<string>();
+  const release1 = await mutex.acquire('key1');
+  const release2 = await mutex.acquire('key2');
+  const release3 = await mutex.acquire('key3');
 
-    void it('tracks queued operations', async () => {
-      const mutex = new Mutex<string>();
+  const stats = mutex.getStats();
 
-      const release1 = await mutex.acquire('key1');
+  strictEqual(stats.activeLocksCount, 3, 'Should have 3 active locks');
+  strictEqual(stats.queuedCount, 0, 'Should have no queued operations');
+  strictEqual(stats.totalExecuted, 3, 'Should have executed 3 operations');
 
-      void mutex.runExclusive('key1', async () => {
-        await delay(5);
-      });
-      void mutex.runExclusive('key1', async () => {
-        await delay(5);
-      });
-      void mutex.runExclusive('key1', async () => {
-        await delay(5);
-      });
+  release1();
+  release2();
+  release3();
+});
 
-      await delay(10);
+it('getStats tracks queued operations', async () => {
+  const mutex = new Mutex<string>();
+  const release1 = await mutex.acquire('key1');
 
-      const stats = mutex.getStats();
+  void mutex.runExclusive('key1', async () => { await delay(5); });
+  void mutex.runExclusive('key1', async () => { await delay(5); });
+  void mutex.runExclusive('key1', async () => { await delay(5); });
 
-      strictEqual(stats.activeLocksCount, 1, 'Should have 1 active lock');
-      strictEqual(stats.queuedCount, 3, 'Should have 3 queued operations');
-      strictEqual(stats.totalExecuted, 1, 'Should have executed 1 operation');
+  await delay(10);
 
-      release1();
-      await mutex.completeQueue();
-    });
+  const stats = mutex.getStats();
 
-    void it('tracks queued operations across multiple keys', async () => {
-      const mutex = new Mutex<string>();
+  strictEqual(stats.activeLocksCount, 1, 'Should have 1 active lock');
+  strictEqual(stats.queuedCount, 3, 'Should have 3 queued operations');
+  strictEqual(stats.totalExecuted, 1, 'Should have executed 1 operation');
 
-      const release1 = await mutex.acquire('key1');
-      const release2 = await mutex.acquire('key2');
+  release1();
+  await mutex.completeQueue();
+});
 
-      void mutex.runExclusive('key1', async () => {
-        await delay(5);
-      });
-      void mutex.runExclusive('key1', async () => {
-        await delay(5);
-      });
-      void mutex.runExclusive('key2', async () => {
-        await delay(5);
-      });
+it('getStats tracks queued operations across multiple keys', async () => {
+  const mutex = new Mutex<string>();
+  const release1 = await mutex.acquire('key1');
+  const release2 = await mutex.acquire('key2');
 
-      await delay(10);
+  void mutex.runExclusive('key1', async () => { await delay(5); });
+  void mutex.runExclusive('key1', async () => { await delay(5); });
+  void mutex.runExclusive('key2', async () => { await delay(5); });
 
-      const stats = mutex.getStats();
+  await delay(10);
 
-      strictEqual(stats.activeLocksCount, 2, 'Should have 2 active locks');
-      strictEqual(stats.queuedCount, 3, 'Should have 3 queued operations total');
-      strictEqual(stats.totalExecuted, 2, 'Should have executed 2 operations');
+  const stats = mutex.getStats();
 
-      release1();
-      release2();
-      await mutex.completeQueue();
-    });
+  strictEqual(stats.activeLocksCount, 2, 'Should have 2 active locks');
+  strictEqual(stats.queuedCount, 3, 'Should have 3 queued operations total');
+  strictEqual(stats.totalExecuted, 2, 'Should have executed 2 operations');
 
-    void it('increments totalExecuted correctly', async () => {
-      const mutex = new Mutex<string>();
+  release1();
+  release2();
+  await mutex.completeQueue();
+});
 
-      await mutex.runExclusive('key1', async () => {
-        // Intentionally empty - testing execution count increment
-      });
-      await mutex.runExclusive('key2', async () => {
-        // Intentionally empty - testing execution count increment
-      });
-      await mutex.runExclusive('key1', async () => {
-        // Intentionally empty - testing execution count increment
-      });
+it('getStats increments totalExecuted correctly', async () => {
+  const mutex = new Mutex<string>();
 
-      const stats = mutex.getStats();
+  await mutex.runExclusive('key1', async () => { /* empty */ });
+  await mutex.runExclusive('key2', async () => { /* empty */ });
+  await mutex.runExclusive('key1', async () => { /* empty */ });
 
-      strictEqual(stats.totalExecuted, 3, 'Should have executed 3 operations');
-      strictEqual(stats.activeLocksCount, 0, 'Should have no active locks');
-      strictEqual(stats.queuedCount, 0, 'Should have no queued operations');
+  const stats = mutex.getStats();
+
+  strictEqual(stats.totalExecuted, 3, 'Should have executed 3 operations');
+  strictEqual(stats.activeLocksCount, 0, 'Should have no active locks');
+  strictEqual(stats.queuedCount, 0, 'Should have no queued operations');
+});
+
+// --- isComplete() ---
+
+const isCompleteInitialScenarios: Array<{
+  description: string;
+  check: () => boolean;
+  expected: boolean;
+}> = [
+  {
+    description: 'isComplete returns true initially',
+    check: () => new Mutex<string>().isComplete(),
+    expected: true
+  }
+];
+
+for (const { description, check, expected } of isCompleteInitialScenarios) {
+  it(description, () => {
+    strictEqual(check(), expected);
+  });
+}
+
+it('isComplete returns false when lock is held', async () => {
+  const mutex = new Mutex<string>();
+  const release = await mutex.acquire('key1');
+
+  strictEqual(mutex.isComplete(), false, 'Should not be complete with active lock');
+
+  release();
+});
+
+it('isComplete returns true after lock is released', async () => {
+  const mutex = new Mutex<string>();
+  const release = await mutex.acquire('key1');
+
+  release();
+  await delay(5);
+
+  strictEqual(mutex.isComplete(), true, 'Should be complete after release');
+});
+
+it('isComplete returns false when operations are queued', async () => {
+  const mutex = new Mutex<string>();
+  const release1 = await mutex.acquire('key1');
+
+  void mutex.runExclusive('key1', async () => { await delay(5); });
+
+  await delay(10);
+
+  strictEqual(mutex.isComplete(), false, 'Should not be complete with queued operations');
+
+  release1();
+  await mutex.completeQueue();
+});
+
+it('isComplete returns false with multiple active locks', async () => {
+  const mutex = new Mutex<string>();
+  const release1 = await mutex.acquire('key1');
+  const release2 = await mutex.acquire('key2');
+
+  strictEqual(mutex.isComplete(), false, 'Should not be complete with multiple locks');
+
+  release1();
+  release2();
+});
+
+// --- completeQueue() ---
+
+it('completeQueue resolves immediately when already complete', async () => {
+  const mutex = new Mutex<string>();
+
+  await mutex.completeQueue();
+
+  strictEqual(mutex.isComplete(), true, 'Should be complete');
+});
+
+it('completeQueue waits for active lock to be released', async () => {
+  const mutex = new Mutex<string>();
+  let lockReleased = false;
+
+  void mutex.runExclusive('key1', async () => {
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        lockReleased = true;
+        resolve();
+      }, 50);
     });
   });
 
-  void describe('isComplete()', () => {
-    void it('returns true initially', () => {
-      const mutex = new Mutex<string>();
-      const isComplete = mutex.isComplete();
+  await delay(10);
+  strictEqual(lockReleased, false, 'Lock should not be released yet');
 
-      strictEqual(isComplete, true, 'Should be complete initially');
-    });
+  await mutex.completeQueue();
 
-    void it('returns false when lock is held', async () => {
-      const mutex = new Mutex<string>();
+  strictEqual(lockReleased, true, 'Lock should be released after completeQueue');
+  strictEqual(mutex.isComplete(), true, 'Should be complete');
+});
 
-      const release = await mutex.acquire('key1');
-      const isComplete = mutex.isComplete();
+it('completeQueue waits for queued operations to complete', async () => {
+  const mutex = new Mutex<string>();
+  const completed: number[] = [];
 
-      strictEqual(isComplete, false, 'Should not be complete with active lock');
-
-      release();
-    });
-
-    void it('returns true after lock is released', async () => {
-      const mutex = new Mutex<string>();
-
-      const release = await mutex.acquire('key1');
-
-      release();
-
-      await delay(5);
-
-      const isCompleteAfterRelease = mutex.isComplete();
-
-      strictEqual(isCompleteAfterRelease, true, 'Should be complete after release');
-    });
-
-    void it('returns false when operations are queued', async () => {
-      const mutex = new Mutex<string>();
-
-      const release1 = await mutex.acquire('key1');
-
-      void mutex.runExclusive('key1', async () => {
-        await delay(5);
-      });
-
-      await delay(10);
-
-      const isCompleteWhileQueued = mutex.isComplete();
-
-      strictEqual(isCompleteWhileQueued, false, 'Should not be complete with queued operations');
-
-      release1();
-      await mutex.completeQueue();
-    });
-
-    void it('returns false with multiple active locks', async () => {
-      const mutex = new Mutex<string>();
-
-      const release1 = await mutex.acquire('key1');
-      const release2 = await mutex.acquire('key2');
-      const isCompleteWithMultipleLocks = mutex.isComplete();
-
-      strictEqual(isCompleteWithMultipleLocks, false, 'Should not be complete with multiple locks');
-
-      release1();
-      release2();
-    });
+  void mutex.runExclusive('key1', async () => {
+    await new Promise<void>((resolve) => { setTimeout(() => { completed.push(1); resolve(); }, 20); });
+  });
+  void mutex.runExclusive('key1', async () => {
+    await new Promise<void>((resolve) => { setTimeout(() => { completed.push(2); resolve(); }, 20); });
+  });
+  void mutex.runExclusive('key1', async () => {
+    await new Promise<void>((resolve) => { setTimeout(() => { completed.push(3); resolve(); }, 20); });
   });
 
-  void describe('completeQueue()', () => {
-    void it('resolves immediately when already complete', async () => {
-      const mutex = new Mutex<string>();
+  await delay(10);
+  strictEqual(completed.length, 0, 'No operations should be complete yet');
 
-      await mutex.completeQueue();
-      const isComplete = mutex.isComplete();
+  await mutex.completeQueue();
 
-      strictEqual(isComplete, true, 'Should be complete');
-    });
+  strictEqual(completed.length, 3, 'All operations should be complete');
+  deepStrictEqual(completed, [1, 2, 3], 'Operations should complete in order');
+  strictEqual(mutex.isComplete(), true, 'Should be complete');
+});
 
-    void it('waits for active lock to be released', async () => {
-      const mutex = new Mutex<string>();
+it('completeQueue waits for multiple keys to complete', async () => {
+  const mutex = new Mutex<string>();
+  const completed: string[] = [];
 
-      let lockReleased = false;
-
-      void mutex.runExclusive('key1', async () => {
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            lockReleased = true;
-            resolve();
-          }, 50);
-        });
-      });
-
-      await delay(10);
-
-      strictEqual(lockReleased, false, 'Lock should not be released yet');
-
-      await mutex.completeQueue();
-      const isCompleteAfterWait = mutex.isComplete();
-
-      strictEqual(lockReleased, true, 'Lock should be released after completeQueue');
-      strictEqual(isCompleteAfterWait, true, 'Should be complete');
-    });
-
-    void it('waits for queued operations to complete', async () => {
-      const mutex = new Mutex<string>();
-
-      const completed: number[] = [];
-
-      void mutex.runExclusive('key1', async () => {
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            completed.push(1);
-            resolve();
-          }, 20);
-        });
-      });
-      void mutex.runExclusive('key1', async () => {
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            completed.push(2);
-            resolve();
-          }, 20);
-        });
-      });
-      void mutex.runExclusive('key1', async () => {
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            completed.push(3);
-            resolve();
-          }, 20);
-        });
-      });
-
-      await delay(10);
-
-      strictEqual(completed.length, 0, 'No operations should be complete yet');
-
-      await mutex.completeQueue();
-      const isCompleteAfterQueue = mutex.isComplete();
-
-      strictEqual(completed.length, 3, 'All operations should be complete');
-      deepStrictEqual(completed, [
-        1,
-        2,
-        3
-      ], 'Operations should complete in order');
-      strictEqual(isCompleteAfterQueue, true, 'Should be complete');
-    });
-
-    void it('waits for multiple keys to complete', async () => {
-      const mutex = new Mutex<string>();
-
-      const completed: string[] = [];
-
-      void mutex.runExclusive('key1', async () => {
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            completed.push('key1');
-            resolve();
-          }, 30);
-        });
-      });
-      void mutex.runExclusive('key2', async () => {
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            completed.push('key2');
-            resolve();
-          }, 20);
-        });
-      });
-      void mutex.runExclusive('key3', async () => {
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            completed.push('key3');
-            resolve();
-          }, 10);
-        });
-      });
-
-      await delay(5);
-
-      strictEqual(completed.length, 0, 'No operations should be complete yet');
-
-      await mutex.completeQueue();
-      const isCompleteMultipleKeys = mutex.isComplete();
-
-      strictEqual(completed.length, 3, 'All operations should be complete');
-      strictEqual(isCompleteMultipleKeys, true, 'Should be complete');
-    });
-
-    void it('supports multiple observers', async () => {
-      const mutex = new Mutex<string>();
-
-      let observer1Notified = false;
-      let observer2Notified = false;
-      let observer3Notified = false;
-
-      void mutex.runExclusive('key1', async () => {
-        await delay(50);
-      });
-
-      await delay(10);
-
-      void mutex.completeQueue().then(() => {
-        observer1Notified = true;
-      });
-      void mutex.completeQueue().then(() => {
-        observer2Notified = true;
-      });
-      void mutex.completeQueue().then(() => {
-        observer3Notified = true;
-      });
-
-      await mutex.completeQueue();
-      const isCompleteAfterObservers = mutex.isComplete();
-
-      strictEqual(observer1Notified, true, 'Observer 1 should be notified');
-      strictEqual(observer2Notified, true, 'Observer 2 should be notified');
-      strictEqual(observer3Notified, true, 'Observer 3 should be notified');
-      strictEqual(isCompleteAfterObservers, true, 'Should be complete');
-    });
+  void mutex.runExclusive('key1', async () => {
+    await new Promise<void>((resolve) => { setTimeout(() => { completed.push('key1'); resolve(); }, 30); });
+  });
+  void mutex.runExclusive('key2', async () => {
+    await new Promise<void>((resolve) => { setTimeout(() => { completed.push('key2'); resolve(); }, 20); });
+  });
+  void mutex.runExclusive('key3', async () => {
+    await new Promise<void>((resolve) => { setTimeout(() => { completed.push('key3'); resolve(); }, 10); });
   });
 
-  void describe('API Consistency with Throttle', () => {
-    void it('provides same API shape as Throttle', () => {
-      const mutex = new Mutex<string>();
+  await delay(5);
+  strictEqual(completed.length, 0, 'No operations should be complete yet');
 
-      strictEqual(typeof mutex.getStats, 'function', 'Should have getStats method');
-      strictEqual(typeof mutex.isComplete, 'function', 'Should have isComplete method');
-      strictEqual(typeof mutex.completeQueue, 'function', 'Should have completeQueue method');
+  await mutex.completeQueue();
 
-      const stats = mutex.getStats();
+  strictEqual(completed.length, 3, 'All operations should be complete');
+  strictEqual(mutex.isComplete(), true, 'Should be complete');
+});
 
-      strictEqual(typeof stats, 'object', 'Stats should be an object');
-      ok('activeLocksCount' in stats, 'Should have activeLocksCount');
-      ok('queuedCount' in stats, 'Should have queuedCount');
-      ok('totalExecuted' in stats, 'Should have totalExecuted');
-      ok('maxQueueSize' in stats, 'Should have maxQueueSize');
-      ok('timeout' in stats, 'Should have timeout');
-    });
-  });
+it('completeQueue supports multiple observers', async () => {
+  const mutex = new Mutex<string>();
+  let observer1Notified = false;
+  let observer2Notified = false;
+  let observer3Notified = false;
+
+  void mutex.runExclusive('key1', async () => { await delay(50); });
+
+  await delay(10);
+
+  void mutex.completeQueue().then(() => { observer1Notified = true; });
+  void mutex.completeQueue().then(() => { observer2Notified = true; });
+  void mutex.completeQueue().then(() => { observer3Notified = true; });
+
+  await mutex.completeQueue();
+
+  strictEqual(observer1Notified, true, 'Observer 1 should be notified');
+  strictEqual(observer2Notified, true, 'Observer 2 should be notified');
+  strictEqual(observer3Notified, true, 'Observer 3 should be notified');
+  strictEqual(mutex.isComplete(), true, 'Should be complete');
 });

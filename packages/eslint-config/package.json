@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/eslint-config",
   "version": "1.0.0",
-  "description": "Shared ESLint 9 flat config for @studnicky packages",
+  "description": "Shared ESLint flat config for @studnicky packages",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -15,12 +15,17 @@
     "./plugin": {
       "types": "./dist/plugin.d.ts",
       "import": "./dist/plugin.js"
+    },
+    "./v8": {
+      "types": "./dist/v8Plugin.d.ts",
+      "import": "./dist/v8Plugin.js"
     }
   },
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc",
@@ -66,6 +71,9 @@
     "eslint-plugin-unused-imports": ">=4.0.0",
     "typescript": ">=5.0.0",
     "typescript-eslint": ">=8.0.0"
+  },
+  "dependencies": {
+    "@studnicky/config": "workspace:*"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "latest",

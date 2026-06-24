@@ -7,7 +7,7 @@
 export { Context } from './context/Context.js';
 export { ContextBuilder } from './context/ContextBuilder.js';
 export { ContextScope } from './context/ContextScope.js';
-export { ContextError } from './errors/ContextError.js';
-export type { ContextConfigType } from './interfaces/ContextConfigType.js';
+export { ContextConfigEntity } from './entities/ContextConfigEntity.js';
+export { ContextConfigError, ContextError } from './errors/ContextError.js';
 export type { ContextInterface } from './interfaces/ContextInterface.js';
 export type { ContextScopeInterface } from './interfaces/ContextScopeInterface.js';
