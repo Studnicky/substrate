@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-25
+
 ### Added
 
 - `@studnicky/virtual-fs`: an in-memory, synchronous, subclass-first filesystem primitive — `VirtualFileSystem` with a fluent builder, `onCreate`/`onRead`/`onWrite`/`onRename`/`onDelete` lifecycle hooks, an injectable `@studnicky/clock` provider for deterministic `mtimeMs`, and an exported `FileSystemInterface` contract.
