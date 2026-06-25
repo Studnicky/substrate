@@ -21,6 +21,18 @@ Build a `Retry` instance with the builder, then pass any operation to `execute`.
 
 <<< ../../packages/retry/examples/basicRetry.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/retry/examples/basicRetry" title="Basic retry with backoff" />
+
+The output shows the builder API (`.builder().maxRetries(3).retryInterceptor(...).build()`), the operation failing twice before succeeding on the third attempt, and final stats reporting 2 retries.
+
+### Lifecycle hooks
+
+`TelemetryRetry` subclasses `Retry` and overrides `onAttempt`, `onRetryableError`, `onRetryScheduled`, `onGiveUp`, and `enterCall`. Each hook logs its FSM transition as the retry cycle runs, and the give-up event fires after the `maxRetries=2` budget is exhausted.
+
+<RunnableExample src="packages/retry/examples/observedRetry" title="Observed retry — lifecycle hook trace" />
+
 ## Subpath exports
 
 | Subpath | Contents |

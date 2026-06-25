@@ -19,6 +19,12 @@ Extend `BaseError` to add domain codes, `toJSON()` serialization, user-facing me
 
 <<< ../../packages/errors/examples/01-base-error.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/errors/examples/01-base-error" title="BaseError subclass with code, toJSON, and cause chain" />
+
+The output shows the error code, timestamp, retryable flag, user message, serialized domain field from `serializeExtra()`, and a two-node cause chain traversal.
+
 ## ModuleError with scenario defaults
 
 `ModuleError.create()` resolves HTTP status codes, retry flags, and error codes from a named scenario:

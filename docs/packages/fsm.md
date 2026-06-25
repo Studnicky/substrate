@@ -110,4 +110,20 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 | `send` | `(event: TEvent) => Promise<void>` | Enqueues event and drains mailbox |
 | `subscribe` | `(observer) => () => void` | Registers a state observer; returns unsubscribe fn |
 
+## Try it
+
+Run the examples below directly in the browser to see the FSM primitives in action.
+
+### Builder
+
+The builder chains machine, handlers, and options before calling `build()` — the interpreter is ready to start with no constructor parameters.
+
+<RunnableExample src="packages/fsm/examples/builder-fsm" title="FSM builder" />
+
+### Lifecycle hooks
+
+Every state transition fires hooks on both the machine and interpreter layers — watch the paired log lines as each advance propagates.
+
+<RunnableExample src="packages/fsm/examples/observedFsm" title="FSM lifecycle hooks" />
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/fsm)

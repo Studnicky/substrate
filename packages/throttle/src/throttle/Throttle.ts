@@ -1,7 +1,6 @@
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { ConfigValidation } from '@studnicky/config';
 import { SampleBuffer } from '@studnicky/sample-buffer';
-import { setTimeout } from 'node:timers/promises';
 
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
 import type { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
@@ -35,6 +34,7 @@ import {
   ThrottleAbortedError,
   ThrottleDrainingError
 } from '../errors/index.js';
+import { Delay } from './Delay.js';
 import { ThrottleBuilder } from './ThrottleBuilder.js';
 
 type AdaptiveConfigType = AdaptiveConfigEntity.Type;
@@ -845,7 +845,7 @@ export class Throttle implements ThrottleInterface {
     });
 
     try {
-      await setTimeout(timeout, undefined, { 'signal': controller.signal });
+      await Delay.for(timeout, controller.signal);
 
       // Timeout completed - operations did not finish in time
       return true;

@@ -21,6 +21,7 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 | [@studnicky/batch](/packages/batch) | Batch concurrent execution: process items in controlled parallel groups |
 | [@studnicky/concurrency](/packages/concurrency) | Keyed async channels, semaphore, and coalesce primitives |
 | [@studnicky/file-lock](/packages/file-lock) | Process-level advisory file locking |
+| [@studnicky/virtual-fs](/packages/virtual-fs) | In-memory synchronous filesystem primitive with browser compatibility |
 | [@studnicky/signal](/packages/signal) | AbortSignal composition utilities |
 
 ## Time

@@ -29,6 +29,12 @@ Validate required fields and check types in a configuration object. All assertio
 | `@studnicky/config/errors` | `ConfigurationError`, `ensureError` |
 | `@studnicky/config/validation` | `ConfigValidation`, `Guard` |
 
+## Try it
+
+<RunnableExample src="packages/config/examples/validate-config" title="Config validation and type guards" />
+
+The output shows fields passing validation, guard results for `isPositiveInteger`/`isObject`/`isFunction`, and the `ConfigurationError` messages thrown for wrong types and unknown keys.
+
 ## ensureError
 
 `ensureError` converts any caught value to a typed `Error`. Use it to safely handle `unknown` catches without unsafe casts:

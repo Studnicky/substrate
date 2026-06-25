@@ -39,6 +39,20 @@ Pass `ttlMs` to expire entries automatically. Eviction is lazy: entries are remo
 
 <<< ../../packages/cache/examples/setMany.ts#usage
 
+## Try it
+
+### Builder
+
+`LruCache.builder().withCapacity(2).withTtlMs(5_000).withPrefix('demo').build()` constructs the cache through the fluent builder. Press Execute to watch set, get, and LRU eviction at capacity 2: reading a key promotes it, so the next insert evicts the other key. The final assertions confirm which keys survived.
+
+<RunnableExample src="packages/cache/examples/builder-cache" title="Builder — fluent LRU cache construction" />
+
+### Lifecycle hooks
+
+`TracingCache` subclasses `LruCache` and overrides eight hooks: `onHit`, `onMiss`, `onSet`, `onUpdate`, `onEvict`, `onExpire`, `onDelete`, and `onClear`. With capacity=2, watch the event sequence: set a, set b, hit a, update a, evict b for capacity, miss b, delete c, set d, clear. A second TTL scenario shows expire firing before miss.
+
+<RunnableExample src="packages/cache/examples/observedCache" title="Observed cache — lifecycle hook trace" />
+
 ## Observability hooks
 
 `LruCache` exposes protected lifecycle hooks that a subclass can override to

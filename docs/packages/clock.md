@@ -79,4 +79,20 @@ class TrackedClock extends Clock {
 }
 ```
 
+## Try it
+
+The examples below run directly in the browser against the published package.
+
+### Builder
+
+Watch the builder chain assemble a virtual clock — each step is logged.
+
+<RunnableExample src="packages/clock/examples/builder-clock" title="Clock builder" />
+
+### Lifecycle hooks
+
+Each `now()` and `hrtime()` read fires the corresponding hook on the counter, provider, and clock layers.
+
+<RunnableExample src="packages/clock/examples/observedClock" title="Clock lifecycle hooks" />
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/clock)

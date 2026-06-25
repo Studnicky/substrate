@@ -1,0 +1,20 @@
+/** Isomorphic promisified delay using the global setTimeout, with optional AbortSignal support. */
+export class Delay {
+  static for(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (signal?.aborted === true) {
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+        return;
+      }
+
+      const id = globalThis.setTimeout(resolve, ms);
+
+      if (signal !== undefined) {
+        signal.addEventListener('abort', () => {
+          globalThis.clearTimeout(id);
+          reject(new DOMException('The operation was aborted', 'AbortError'));
+        }, { 'once': true });
+      }
+    });
+  }
+}

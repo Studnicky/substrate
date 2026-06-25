@@ -29,6 +29,12 @@ The sentinel is a singleton: `Signal.never()` returns the same `AbortSignal` ins
 
 <<< ../../packages/signal/examples/neverTimeout.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/signal/examples/compose" title="AbortSignal composition — all four cases" />
+
+The output confirms each composition case: caller+deadline composite, caller-only passthrough, deadline-only timeout, the never-aborting sentinel, and `SignalError` thrown for invalid deadline values.
+
 ## API
 
 | Export | Type | Description |

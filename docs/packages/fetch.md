@@ -13,6 +13,10 @@ description: HTTP client with timeout, interceptors, and configured clients.
 pnpm add @studnicky/fetch
 ```
 
+::: info Live demo unavailable
+In-browser execution of this package is not supported. The client is built on Node's `undici` (socket pools and HTTP/1.1 keep-alive), which cannot be bundled for a browser runtime. The examples below are shown statically.
+:::
+
 ## Usage
 
 <<< ../../packages/fetch/examples/01-client-config.ts#usage
