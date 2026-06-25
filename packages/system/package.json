@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/system",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Hardware and platform information for runtime decisions about worker pool sizes and hardware-accelerated code paths",
   "type": "module",
   "sideEffects": false,
@@ -8,9 +8,17 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports",
@@ -18,12 +26,32 @@
     "type-check": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
-  "keywords": ["system", "hardware", "cpu", "gpu", "memory", "platform", "workers"],
+  "keywords": [
+    "system",
+    "hardware",
+    "cpu",
+    "gpu",
+    "memory",
+    "platform",
+    "workers"
+  ],
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/system" },
-  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/system"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
   "homepage": "https://studnicky.github.io/substrate/packages/system",
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
-  "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" }
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  }
 }

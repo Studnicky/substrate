@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/concurrency",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Async coordination primitives: Semaphore, Coalesce, Channel, AsyncIter",
   "type": "module",
   "sideEffects": false,
@@ -29,7 +29,12 @@
       "import": "./dist/AsyncIter.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
@@ -37,11 +42,30 @@
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/concurrency" },
-  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
-  "keywords": ["semaphore", "coalesce", "single-flight", "channel", "async-iter", "concurrency", "typescript"],
-  "engines": { "node": ">=24.0.0" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/concurrency"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "keywords": [
+    "semaphore",
+    "coalesce",
+    "single-flight",
+    "channel",
+    "async-iter",
+    "concurrency",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "dependencies": {
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",

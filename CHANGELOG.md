@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-24
+
 ### Added
 
 - Exhaustive `protected` observability hooks at every debug-relevant lifecycle stage across the primitives — no-ops by default, overridable without coupling the base implementation to any logging or metrics backend. Coverage spans `cache` (hit/miss/set/update/evict/expire/delete/clear), `event-bus` (publish/subscribe/deliver/enqueue/dequeue/drop/overflow/slow-consumer/handler-error), `resilience` (breaker trip/open/half-open/close, token-bucket, dead-letter), `fsm` (transition/enter/exit/effect/registry), `concurrency` (semaphore/channel/coalesce), `fetch` (full request lifecycle including per-interceptor stages), `scheduler` (fire-error/drift/miss), `pipeline` (per-stage), plus `clock`, `file-lock`, `circular-buffer`, `context`, `logger`, `mutex`, `sample-buffer`, `throttle`, `timing`, and `retry`.

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/circular-buffer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Generic circular buffer with O(1) push and shift operations",
   "type": "module",
   "sideEffects": false,
@@ -8,12 +8,29 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".":                 { "types": "./dist/index.d.ts",                   "import": "./dist/index.js" },
-    "./circular-buffer": { "types": "./dist/circular-buffer/index.d.ts",   "import": "./dist/circular-buffer/index.js" },
-    "./interfaces":      { "types": "./dist/interfaces/index.d.ts",        "import": "./dist/interfaces/index.js" },
-    "./constants":       { "types": "./dist/constants/index.d.ts",         "import": "./dist/constants/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./circular-buffer": {
+      "types": "./dist/circular-buffer/index.d.ts",
+      "import": "./dist/circular-buffer/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants/index.d.ts",
+      "import": "./dist/constants/index.js"
+    }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports",
@@ -23,7 +40,13 @@
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "keywords": ["circular-buffer", "queue", "data-structure", "typescript", "studnicky"],
+  "keywords": [
+    "circular-buffer",
+    "queue",
+    "data-structure",
+    "typescript",
+    "studnicky"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Studnicky/substrate.git",
@@ -37,7 +60,10 @@
     "registry": "https://npm.pkg.github.com",
     "access": "public"
   },
-  "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
   "dependencies": {
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
