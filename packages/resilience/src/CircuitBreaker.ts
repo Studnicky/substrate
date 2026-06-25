@@ -47,14 +47,15 @@ export class CircuitBreaker {
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     this.#checkHalfOpen();
     if (this.#state === 'open') {
+      this.onReject();
       throw new CircuitBreakerOpenError(this.#name);
     }
     try {
       const result = await fn();
-      this.#onSuccess();
+      this.#recordSuccess();
       return result;
     } catch (err: unknown) {
-      this.#onFailure();
+      this.#recordFailure(err);
       throw err;
     }
   }
@@ -64,37 +65,103 @@ export class CircuitBreaker {
     this.#failureCount = 0;
     this.#successCount = 0;
     this.#openedAt = 0;
+    this.onClose();
   }
 
   forceClosed(): void { this.reset(); }
-  forceOpen(): void { this.#state = 'open'; this.#openedAt = this.#clock(); }
+
+  forceOpen(): void {
+    this.#state = 'open';
+    this.#openedAt = this.#clock();
+    this.onOpen();
+  }
+
+  /**
+   * Fires after `fn()` resolves successfully in any circuit state.
+   * Override to add logging, metrics, or tracing. Must not throw or block.
+   */
+  protected onSuccess(): void {}
+
+  /**
+   * Fires after `fn()` throws in any circuit state.
+   * Override to add logging, metrics, or tracing. Must not throw or block.
+   */
+  protected onFailure(_error: unknown): void {}
+
+  /**
+   * Fires when the failure threshold is reached and the circuit transitions closed → open.
+   * Does NOT fire on the halfOpen → open re-open path. Must not throw or block.
+   */
+  protected onTrip(): void {}
+
+  /**
+   * Fires every time the circuit state becomes open (threshold trip or halfOpen → open on failure).
+   * Must not throw or block.
+   */
+  protected onOpen(): void {}
+
+  /**
+   * Fires when the circuit transitions open → halfOpen after resetTimeoutMs.
+   * Must not throw or block.
+   */
+  protected onHalfOpen(): void {}
+
+  /**
+   * Fires when the circuit becomes closed (successThreshold reached in halfOpen or manual reset).
+   * Must not throw or block.
+   */
+  protected onClose(): void {}
+
+  /**
+   * Fires when execute() short-circuits because the circuit is open.
+   * Must not throw or block.
+   */
+  protected onReject(): void {}
 
   #checkHalfOpen(): void {
     if (this.#state === 'open' && this.#clock() - this.#openedAt >= this.#resetTimeoutMs) {
       this.#state = 'halfOpen';
       this.#successCount = 0;
+      this.onHalfOpen();
     }
   }
 
-  #onSuccess(): void {
+  #recordSuccess(): void {
     if (this.#state === 'halfOpen') {
       this.#successCount += 1;
-      if (this.#successCount >= this.#successThreshold) { this.reset(); }
+      if (this.#successCount >= this.#successThreshold) {
+        this.#state = 'closed';
+        this.#failureCount = 0;
+        this.#successCount = 0;
+        this.#openedAt = 0;
+        this.onSuccess();
+        this.onClose();
+      } else {
+        this.onSuccess();
+      }
     } else {
       this.#failureCount = 0;
+      this.onSuccess();
     }
   }
 
-  #onFailure(): void {
+  #recordFailure(err: unknown): void {
     if (this.#state === 'halfOpen') {
       this.#state = 'open';
       this.#openedAt = this.#clock();
+      this.onFailure(err);
+      this.onOpen();
       return;
     }
     this.#failureCount += 1;
     if (this.#failureCount >= this.#failureThreshold) {
       this.#state = 'open';
       this.#openedAt = this.#clock();
+      this.onFailure(err);
+      this.onTrip();
+      this.onOpen();
+    } else {
+      this.onFailure(err);
     }
   }
 }

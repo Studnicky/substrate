@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
+import { PipelineError } from '../../../src/errors/PipelineError.js';
 
 // ── Test subclasses ──────────────────────────────────────────────────────────
 
@@ -227,5 +228,188 @@ void describe('Pipeline subclass extension', () => {
       pipeline.clear();
       assert.strictEqual(pipeline.fnCount(), 0);
     });
+  });
+});
+
+// ── ObservingPipeline subclass ────────────────────────────────────────────────
+
+class ObservingPipeline<T> extends Pipeline<T> {
+  readonly stageStartEvents: Array<{ 'index': number; 'ctx': T }> = [];
+  readonly stageSuccessEvents: Array<{ 'index': number; 'ctx': T }> = [];
+  readonly stageErrorEvents: Array<{ 'index': number; 'error': unknown }> = [];
+  readonly runErrorEvents: Array<{ 'error': unknown }> = [];
+
+  protected override onStageStart(index: number, ctx: T): void {
+    this.stageStartEvents.push({ 'index': index, 'ctx': ctx });
+  }
+
+  protected override onStageSuccess(index: number, ctx: T): void {
+    this.stageSuccessEvents.push({ 'index': index, 'ctx': ctx });
+  }
+
+  protected override onStageError(index: number, error: unknown): void {
+    this.stageErrorEvents.push({ 'index': index, 'error': error });
+  }
+
+  protected override onRunError(error: unknown): void {
+    this.runErrorEvents.push({ 'error': error });
+  }
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks', () => {
+  void it('onStageStart fires for each stage in index order', async () => {
+    const pipeline = ObservingPipeline.create<number>();
+    pipeline.add((n) => n + 1);
+    pipeline.add((n) => n + 2);
+    pipeline.add((n) => n + 3);
+
+    await pipeline.run(0);
+
+    assert.strictEqual(pipeline.stageStartEvents.length, 3);
+    assert.strictEqual(pipeline.stageStartEvents[0]?.index, 0);
+    assert.strictEqual(pipeline.stageStartEvents[1]?.index, 1);
+    assert.strictEqual(pipeline.stageStartEvents[2]?.index, 2);
+  });
+
+  void it('onStageSuccess fires after each successful stage with the output ctx', async () => {
+    const pipeline = ObservingPipeline.create<number>();
+    pipeline.add((n) => n + 10); // 0 → 10
+    pipeline.add((n) => n * 3); // 10 → 30
+
+    await pipeline.run(0);
+
+    assert.strictEqual(pipeline.stageSuccessEvents.length, 2);
+    assert.strictEqual(pipeline.stageSuccessEvents[0]?.ctx, 10);
+    assert.strictEqual(pipeline.stageSuccessEvents[1]?.ctx, 30);
+  });
+
+  void it('onStageStart fires with ctx AFTER beforeStage returns', async () => {
+    class ShiftingPipeline extends ObservingPipeline<number> {
+      protected override beforeStage(ctx: number, index: number): number {
+        return ctx + 100;
+      }
+    }
+
+    const pipeline = ShiftingPipeline.create();
+    pipeline.add((n) => n);
+
+    await pipeline.run(5);
+
+    // onStageStart should see 5 + 100 = 105 (the value after beforeStage)
+    assert.strictEqual(pipeline.stageStartEvents[0]?.ctx, 105);
+  });
+
+  void it('onStageSuccess fires BEFORE afterStage', async () => {
+    const order: string[] = [];
+
+    class OrderPipeline extends Pipeline<number> {
+      protected override onStageSuccess(_index: number, _ctx: number): void {
+        order.push('onStageSuccess');
+      }
+
+      protected override afterStage(ctx: number, index: number): number {
+        order.push('afterStage');
+        return ctx;
+      }
+    }
+
+    const pipeline = OrderPipeline.create();
+    pipeline.add((n) => n);
+
+    await pipeline.run(1);
+
+    assert.deepStrictEqual(order, ['onStageSuccess', 'afterStage']);
+  });
+
+  void it('onStageError fires when a stage throws, with correct index and error', async () => {
+    const pipeline = ObservingPipeline.create<number>();
+    const thrownError = new Error('stage 1 fails');
+
+    pipeline.add((n) => n + 1);
+    pipeline.add((_n) => { throw thrownError; });
+    pipeline.add((n) => n + 3);
+
+    await assert.rejects(() => { return pipeline.run(0); });
+
+    assert.strictEqual(pipeline.stageErrorEvents.length, 1);
+    assert.strictEqual(pipeline.stageErrorEvents[0]?.index, 1);
+    assert.strictEqual(pipeline.stageErrorEvents[0]?.error, thrownError);
+  });
+
+  void it('onStageError does not fire for successful stages', async () => {
+    const pipeline = ObservingPipeline.create<number>();
+    pipeline.add((n) => n + 1);
+    pipeline.add((n) => n + 2);
+
+    await pipeline.run(0);
+
+    assert.strictEqual(pipeline.stageErrorEvents.length, 0);
+  });
+
+  void it('onRunError fires when any stage throws', async () => {
+    const pipeline = ObservingPipeline.create<number>();
+    pipeline.add((_n) => { throw new Error('fail'); });
+
+    await assert.rejects(() => { return pipeline.run(0); });
+
+    assert.strictEqual(pipeline.runErrorEvents.length, 1);
+  });
+
+  void it('onRunError receives the PipelineError (wrapped)', async () => {
+    const pipeline = ObservingPipeline.create<number>();
+    pipeline.add((_n) => { throw new Error('original'); });
+
+    await assert.rejects(() => { return pipeline.run(0); });
+
+    assert.ok(pipeline.runErrorEvents[0]?.error instanceof PipelineError);
+  });
+
+  void it('onStageError fires before onRunError', async () => {
+    const order: string[] = [];
+
+    class OrderedErrorPipeline extends Pipeline<number> {
+      protected override onStageError(_index: number, _error: unknown): void {
+        order.push('onStageError');
+      }
+
+      protected override onRunError(_error: unknown): void {
+        order.push('onRunError');
+      }
+    }
+
+    const pipeline = OrderedErrorPipeline.create();
+    pipeline.add((_n) => { throw new Error('fail'); });
+
+    await assert.rejects(() => { return pipeline.run(0); });
+
+    assert.deepStrictEqual(order, ['onStageError', 'onRunError']);
+  });
+
+  void it('onStageStart fires for erroring stage but onStageSuccess does not, for successful stages onStageSuccess fires', async () => {
+    const pipeline = ObservingPipeline.create<number>();
+    pipeline.add((n) => n + 1); // stage 0 — succeeds
+    pipeline.add((_n) => { throw new Error('fail at stage 1'); }); // stage 1 — fails
+
+    await assert.rejects(() => { return pipeline.run(0); });
+
+    // onStageStart fired for indices 0 and 1
+    assert.strictEqual(pipeline.stageStartEvents.length, 2);
+    assert.strictEqual(pipeline.stageStartEvents[0]?.index, 0);
+    assert.strictEqual(pipeline.stageStartEvents[1]?.index, 1);
+
+    // onStageSuccess only fired for index 0 (not index 1)
+    assert.strictEqual(pipeline.stageSuccessEvents.length, 1);
+    assert.strictEqual(pipeline.stageSuccessEvents[0]?.index, 0);
+  });
+
+  void it('onStageStart and onStageSuccess do not fire when pipeline has no stages', async () => {
+    const pipeline = ObservingPipeline.create<number>();
+
+    await pipeline.run(0);
+
+    assert.strictEqual(pipeline.stageStartEvents.length, 0);
+    assert.strictEqual(pipeline.stageSuccessEvents.length, 0);
   });
 });

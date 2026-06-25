@@ -11,6 +11,12 @@ export class BusQueue<T> {
   readonly #handler: (item: T) => Promise<void>;
   readonly #hwm: number;
   readonly #onError: ((err: unknown) => void) | undefined;
+  readonly #onEnqueueCb: ((depth: number) => void) | undefined;
+  readonly #onDequeueCb: ((depth: number) => void) | undefined;
+  readonly #onDropCb: (() => void) | undefined;
+  readonly #onOverflowCb: ((depth: number) => void) | undefined;
+  readonly #onSlowConsumerCb: ((depth: number, highWaterMark: number) => void) | undefined;
+  readonly #onHandlerErrorCb: ((error: unknown) => void) | undefined;
   readonly #queue: T[] = [];
   readonly #backpressureWaiters: { 'resolve': () => void }[] = [];
   readonly #drainWaiters: { 'resolve': () => void }[] = [];
@@ -41,6 +47,12 @@ export class BusQueue<T> {
     this.#handler = options.handler;
     this.#hwm = hwmOption ?? busQueueDefaultHighWaterMark;
     this.#onError = options.onError;
+    this.#onEnqueueCb = options.onEnqueue;
+    this.#onDequeueCb = options.onDequeue;
+    this.#onDropCb = options.onDrop;
+    this.#onOverflowCb = options.onOverflow;
+    this.#onSlowConsumerCb = options.onSlowConsumer;
+    this.#onHandlerErrorCb = options.onHandlerError;
     const signal = options.signal;
     if (signal !== undefined) {
       if (signal.aborted) {
@@ -57,10 +69,16 @@ export class BusQueue<T> {
   }
 
   async enqueue(item: T): Promise<void> {
-    if (this.#aborted) { return; }
+    if (this.#aborted) { this.onDrop(); if (this.#onDropCb !== undefined) { this.#onDropCb(); } return; }
     this.#queue.push(item);
+    this.onEnqueue(this.#queue.length);
+    if (this.#onEnqueueCb !== undefined) { this.#onEnqueueCb(this.#queue.length); }
     this.#scheduleLoop();
     if (this.#queue.length < this.#hwm) { return; }
+    this.onOverflow(this.#queue.length);
+    if (this.#onOverflowCb !== undefined) { this.#onOverflowCb(this.#queue.length); }
+    this.onSlowConsumer(this.#queue.length, this.#hwm);
+    if (this.#onSlowConsumerCb !== undefined) { this.#onSlowConsumerCb(this.#queue.length, this.#hwm); }
     await new Promise<void>((resolve) => {
       this.#backpressureWaiters.push({ 'resolve': resolve });
     });
@@ -91,6 +109,8 @@ export class BusQueue<T> {
       await this.#handler(item);
     } catch (err: unknown) {
       if (this.#onError !== undefined) { this.#onError(err); }
+      this.onHandlerError(err);
+      if (this.#onHandlerErrorCb !== undefined) { this.#onHandlerErrorCb(err); }
     }
   }
 
@@ -101,6 +121,8 @@ export class BusQueue<T> {
       if (item === undefined) { break; }
       const waiter = this.#backpressureWaiters.shift();
       if (waiter !== undefined) { waiter.resolve(); }
+      this.onDequeue(this.#queue.length);
+      if (this.#onDequeueCb !== undefined) { this.#onDequeueCb(this.#queue.length); }
       await this.#tryHandleItem(item);
     }
     this.#draining = false;
@@ -109,4 +131,22 @@ export class BusQueue<T> {
       this.#drainWaiters.length = 0;
     }
   }
+
+  /** Fires when an item is added to the queue (after push). */
+  protected onEnqueue(_depth: number): void {}
+
+  /** Fires when an item is removed from the queue for processing (after shift). */
+  protected onDequeue(_depth: number): void {}
+
+  /** Fires when enqueue is called but the queue is already aborted (item silently dropped). */
+  protected onDrop(): void {}
+
+  /** Fires when queue depth reaches highWaterMark and caller will block (backpressure begins). */
+  protected onOverflow(_depth: number): void {}
+
+  /** Fires when queue depth reaches highWaterMark — same moment as onOverflow; args include depth and hwm. */
+  protected onSlowConsumer(_depth: number, _highWaterMark: number): void {}
+
+  /** Fires after handler throws and onError callback (if any) has been called. */
+  protected onHandlerError(_error: unknown): void {}
 }

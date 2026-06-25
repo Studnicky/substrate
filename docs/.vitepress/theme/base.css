@@ -1,0 +1,119 @@
+/**
+ * base.css - shared visual rules for the Substrate docs site.
+ * All brand colours are consumed via var(--vp-c-brand-*) from palette.css.
+ */
+
+:root {
+  --vp-font-family-base: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --vp-font-family-mono: "SF Mono", Menlo, Consolas, ui-monospace, monospace;
+
+  /* Brand signature gradient (violet to magenta to berry pink) on the home
+     hero name and the hero image glow. */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #7c5aed 28%, #d048ef 62%, #ec4899);
+
+  --vp-home-hero-image-background-image: linear-gradient(150deg, rgba(124, 90, 237, 0.5), rgba(208, 72, 239, 0.4) 50%, rgba(20, 184, 166, 0.35));
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+.dark {
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #a78bfa 28%, #e879f9 62%, #f472b6);
+}
+
+.vp-doc a { color: var(--vp-c-brand-1); text-decoration: none; }
+.vp-doc a:hover { color: var(--vp-c-brand-2); text-decoration: underline; }
+
+.vp-doc h2 {
+  border-bottom: 1px solid var(--vp-c-divider);
+  padding-bottom: 0.4rem;
+  margin-top: 2.4rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.vp-doc h3 { font-weight: 600; margin-top: 1.75rem; }
+
+.vp-doc :not(pre) > code {
+  background: #f5f5f5;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  color: var(--vp-c-text-1);
+  font-size: 0.875em;
+  padding: 0.1em 0.35em;
+}
+.dark .vp-doc :not(pre) > code { background: #1a1a1a; }
+
+.vp-doc div[class*="language-"] { border: 1px solid var(--vp-c-divider); border-radius: 4px; }
+
+.vp-doc table { border-collapse: collapse; width: 100%; }
+.vp-doc th { background: var(--vp-c-bg-alt); border-bottom: 1px solid var(--vp-c-divider); font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.vp-doc td, .vp-doc th { border-bottom: 1px solid var(--vp-c-divider); padding: 0.5rem 0.75rem; }
+
+/* Sidebar header logo: rendered into the sidebar-nav-before slot in theme/index.ts. */
+.VPSidebar .substrate-sidebar-logo {
+  display: block;
+  width: 168px;
+  height: 168px;
+  margin: 0.5rem auto 1.25rem;
+  background-image: url('/logo.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+@media (max-width: 960px) {
+  .VPSidebar .substrate-sidebar-logo { width: 120px; height: 120px; }
+}
+
+.VPSidebarItem.level-0 > .item > .text {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-3);
+}
+.VPSidebarItem.is-active > .item > .link > .text { color: var(--vp-c-brand-1); font-weight: 600; }
+
+.vp-doc blockquote {
+  border-left: 3px solid var(--vp-c-brand-1);
+  background: var(--vp-c-bg-alt);
+  border-radius: 0 4px 4px 0;
+  color: var(--vp-c-text-2);
+  padding: 0.65rem 1rem;
+}
+
+.VPFeature {
+  border: 1px solid var(--vp-c-divider) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+.VPFeature:hover { border-color: var(--vp-c-brand-1) !important; }
+
+/* Feature icons use Material Symbols SVGs filled with the brand colour. */
+.VPFeature .icon {
+  background: var(--vp-c-brand-soft) !important;
+  color: var(--vp-c-brand-1) !important;
+}
+.VPFeature .icon > svg { width: 28px; height: 28px; fill: currentColor; }
+
+/* ── DAG diagrams (mermaid) ──────────────────────────────────────────────────
+   mermaid's JS theme cannot read CSS vars (khroma parses concrete colours only),
+   so node fills are themed here instead - these vars DO resolve in real CSS and
+   adapt to light/dark automatically. */
+.substrate-mermaid { background: transparent; text-align: center; }
+.substrate-mermaid svg { max-width: 100%; height: auto; }
+.substrate-mermaid .node rect,
+.substrate-mermaid .node circle,
+.substrate-mermaid .node ellipse,
+.substrate-mermaid .node polygon,
+.substrate-mermaid .node path {
+  fill: var(--vp-c-bg-soft) !important;
+  stroke: var(--vp-c-brand-1) !important;
+  stroke-width: 1.4px !important;
+}
+.substrate-mermaid .node .nodeLabel,
+.substrate-mermaid .node text,
+.substrate-mermaid span.nodeLabel { color: var(--vp-c-text-1) !important; fill: var(--vp-c-text-1) !important; }
+.substrate-mermaid .edgePaths path,
+.substrate-mermaid .flowchart-link { stroke: var(--vp-c-divider) !important; }
+.substrate-mermaid .edgeLabel,
+.substrate-mermaid .edgeLabel p { background: var(--vp-c-bg) !important; color: var(--vp-c-text-2) !important; }
+.substrate-mermaid marker { fill: var(--vp-c-divider) !important; stroke: var(--vp-c-divider) !important; }

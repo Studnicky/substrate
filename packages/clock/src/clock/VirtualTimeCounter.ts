@@ -44,6 +44,23 @@ export class VirtualTimeCounter {
     this.#nowMs = resolved;
   }
 
+  // ---------------------------------------------------------------------------
+  // Lifecycle hooks — no-op by default. Override to add logging/tracing/metrics.
+  // Overrides must not throw or block.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fires after a successful `advance()` call (positive delta only), with the
+   * applied delta and the resulting epoch-ms after the advance.
+   */
+  protected onAdvance(_deltaMs: number, _nowMs: number): void {}
+
+  /**
+   * Fires after each `nowMs()` call, with the current virtual epoch-ms value
+   * that was returned to the caller.
+   */
+  protected onNowMs(_value: number): void {}
+
   /**
    * Advances virtual time by `deltaMs` milliseconds.
    * No-ops if `deltaMs` is negative or zero.
@@ -53,11 +70,13 @@ export class VirtualTimeCounter {
       return;
     }
     this.#nowMs = this.#nowMs + deltaMs;
+    this.onAdvance(deltaMs, this.#nowMs);
   }
 
   /** Returns the current virtual epoch-ms (always non-negative). */
   public nowMs(): number {
     const result = this.#nowMs;
+    this.onNowMs(result);
     return result;
   }
 }

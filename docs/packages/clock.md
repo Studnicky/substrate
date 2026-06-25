@@ -28,7 +28,7 @@ Build a `Clock` instance with a provider, then call `now()` for epoch-ms and `hr
 
 ## Virtual time control
 
-`VirtualTimeCounter` and `VirtualClockProvider` give deterministic time control — no sleeping, no wall-clock dependency. Multiple independent or shared counters can drive separate clocks:
+`VirtualTimeCounter` and `VirtualClockProvider` give deterministic time control with no sleeping and no wall-clock dependency. Multiple independent or shared counters can drive separate clocks:
 
 <<< ../../packages/clock/examples/virtual-time.ts#usage
 
@@ -38,9 +38,28 @@ Implement `ClockProviderType` (two methods: `now(): number` and `hrtime(): bigin
 
 <<< ../../packages/clock/examples/custom-provider.ts#usage
 
+## Observability hooks
+
+Every stateful operation across `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, and `VirtualTimeCounter` exposes a protected lifecycle hook. Subclass any of these classes and override the relevant hook to add logging, metrics, or tracing without touching public API behavior.
+
+| Hook | Class | When it fires | Args |
+|------|-------|---------------|------|
+| `onNow(timestamp)` | `Clock` | After each `now()` call, with the monotonically-clamped epoch-ms returned to the caller | `timestamp: number` |
+| `onHrtime(value)` | `Clock` | After each `hrtime()` call, with the monotonically-clamped nanosecond bigint returned to the caller | `value: bigint` |
+| `onNow(timestamp)` | `RealTimeClockProvider` | After each `now()` call, with the final epoch-ms (raw + offset) returned to the caller | `timestamp: number` |
+| `onHrtime(value)` | `RealTimeClockProvider` | After each `hrtime()` call, with the final nanosecond bigint (performance.now() + offset) returned to the caller | `value: bigint` |
+| `onNow(timestamp)` | `VirtualClockProvider` | After each `now()` call, with the virtual epoch-ms (clamped to 0 if negative) returned to the caller | `timestamp: number` |
+| `onHrtime(value)` | `VirtualClockProvider` | After each `hrtime()` call, with the virtual nanosecond bigint returned to the caller | `value: bigint` |
+| `onAdvance(deltaMs, nowMs)` | `VirtualTimeCounter` | After each positive `advance()` call, with the applied delta and the resulting epoch-ms | `deltaMs: number, nowMs: number` |
+| `onNowMs(value)` | `VirtualTimeCounter` | After each `nowMs()` call, with the current virtual epoch-ms returned to the caller | `value: number` |
+
+<<< ../../packages/clock/examples/observedClock.ts#usage
+
+The base class never calls any logger or metrics library. All hooks are no-ops by default.
+
 ## Extending
 
-`Clock` exposes two protected read hooks — subclasses may override them to intercept or replace values before monotonicity clamping:
+`Clock` exposes two protected read hooks that subclasses may override to intercept or replace values before monotonicity clamping:
 
 <!-- inline-ts-ok: conceptual subclass pattern; no standalone runnable example exists for Clock subclassing -->
 ```typescript

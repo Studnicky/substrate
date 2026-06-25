@@ -15,6 +15,7 @@ import { deepStrictEqual, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { BusQueue } from '../../src/BusQueue.js';
+import type { BusQueueCreateOptionsType } from '../../src/BusQueueCreateOptionsType.js';
 
 void it('calls handler for each enqueued item in order', async () => {
   const received: number[] = [];
@@ -124,3 +125,127 @@ for (const { description, value } of highWaterMarkScenarios) {
     );
   });
 }
+
+// ── Observability hook tests ────────────────────────────────────────────────
+
+void it('onEnqueue callback fires with correct depth when item is added', async () => {
+  const depths: number[] = [];
+  const queue = BusQueue.create<number>({
+    'handler': async (_item) => {},
+    'onEnqueue': (depth) => { depths.push(depth); },
+  });
+
+  void queue.enqueue(1);
+  void queue.enqueue(2);
+  void queue.enqueue(3);
+  await queue.drain();
+
+  deepStrictEqual(depths, [1, 2, 3]);
+});
+
+void it('onDequeue callback fires with correct depth when item is processed', async () => {
+  const depths: number[] = [];
+  const queue = BusQueue.create<number>({
+    'handler': async (_item) => {},
+    'onDequeue': (depth) => { depths.push(depth); },
+  });
+
+  void queue.enqueue(1);
+  void queue.enqueue(2);
+  void queue.enqueue(3);
+  await queue.drain();
+
+  // After shift: [2,3]=2, [3]=1, []=0
+  deepStrictEqual(depths, [2, 1, 0]);
+});
+
+void it('onDrop callback fires when enqueue is called on aborted queue', async () => {
+  let dropCount = 0;
+  const controller = new AbortController();
+  controller.abort();
+
+  const queue = BusQueue.create<number>({
+    'handler': async (_item) => {},
+    'signal': controller.signal,
+    'onDrop': () => { dropCount += 1; },
+  });
+
+  await queue.enqueue(1);
+  await queue.enqueue(2);
+
+  strictEqual(dropCount, 2);
+});
+
+void it('onOverflow and onSlowConsumer callbacks fire when queue reaches highWaterMark', async () => {
+  const overflowDepths: number[] = [];
+  const slowConsumerArgs: Array<{ 'depth': number; 'hwm': number }> = [];
+
+  let resolveBlock!: () => void;
+  const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
+  let first = true;
+
+  const queue = BusQueue.create<number>({
+    'handler': async (_item) => {
+      if (first) {
+        first = false;
+        await blockFirst;
+      }
+    },
+    'highWaterMark': 2,
+    'onOverflow': (depth) => { overflowDepths.push(depth); },
+    'onSlowConsumer': (depth, hwm) => { slowConsumerArgs.push({ 'depth': depth, 'hwm': hwm }); },
+  });
+
+  // Enqueue 2 items without await so they both land before drain loop runs
+  void queue.enqueue(1);
+  void queue.enqueue(2);
+
+  // This third enqueue reaches hwm=2 and should trigger overflow/slowConsumer
+  const enqueuePromise = queue.enqueue(3);
+
+  // Allow microtasks to start the drain loop (which unblocks backpressure)
+  await Promise.resolve();
+  await Promise.resolve();
+
+  // Unblock the first handler so backpressure resolves
+  resolveBlock();
+  await enqueuePromise;
+  await queue.drain();
+
+  strictEqual(overflowDepths.length >= 1, true, 'onOverflow should fire at least once');
+  strictEqual(slowConsumerArgs.length >= 1, true, 'onSlowConsumer should fire at least once');
+  strictEqual(slowConsumerArgs[0]!.hwm, 2, 'hwm should be passed to onSlowConsumer');
+});
+
+void it('onHandlerError callback fires when handler throws', async () => {
+  const errors: unknown[] = [];
+
+  const queue = BusQueue.create<number>({
+    'handler': async (_item) => { throw new Error('handler error'); },
+    'onHandlerError': (err) => { errors.push(err); },
+  });
+
+  await queue.enqueue(1);
+  await queue.drain();
+
+  strictEqual(errors.length, 1);
+  strictEqual((errors[0] as Error).message, 'handler error');
+});
+
+void it('protected onEnqueue hook fires via subclass override', async () => {
+  const depths: number[] = [];
+
+  class ObservedQueue extends BusQueue<number> {
+    static override create(options: BusQueueCreateOptionsType<number>): ObservedQueue {
+      return new ObservedQueue(options);
+    }
+    protected override onEnqueue(depth: number): void { depths.push(depth); }
+  }
+
+  const queue = ObservedQueue.create({ 'handler': async (_item) => {} });
+  void queue.enqueue(10);
+  void queue.enqueue(20);
+  await queue.drain();
+
+  deepStrictEqual(depths, [1, 2]);
+});

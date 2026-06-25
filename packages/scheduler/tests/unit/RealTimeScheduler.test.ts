@@ -259,5 +259,115 @@ describe('RealTimeScheduler', () => {
       assert.strictEqual(task.id, 'custom-id');
       sched.cancelAll();
     });
+
+    // -------------------------------------------------------------------------
+    // New hooks: onFireError, onDrift, onMiss, onIdle
+    // -------------------------------------------------------------------------
+
+    it('onMiss fires when scheduleAt receives a past atMs', () => {
+      class MissHookScheduler extends RealTimeScheduler {
+        public missIds: string[] = [];
+        public missAtMs: number[] = [];
+        public constructor() { super(); }
+        protected override onMiss(id: string, atMs: number, _nowMs: number): void {
+          this.missIds.push(id);
+          this.missAtMs.push(atMs);
+        }
+      }
+
+      const sched = new MissHookScheduler();
+      const pastMs = Date.now() - 1;
+      const task = sched.scheduleAt(pastMs, () => { return; });
+
+      assert.strictEqual(sched.missIds.length, 1);
+      assert.strictEqual(sched.missAtMs[0], pastMs);
+      task.cancel();
+      sched.cancelAll();
+    });
+
+    it('onMiss does NOT fire for a future scheduleAt', () => {
+      class MissHookScheduler extends RealTimeScheduler {
+        public missCount = 0;
+        public constructor() { super(); }
+        protected override onMiss(_id: string, _atMs: number, _nowMs: number): void {
+          this.missCount++;
+        }
+      }
+
+      const sched = new MissHookScheduler();
+      const task = sched.scheduleAt(Date.now() + FAR_FUTURE_DELAY_MS, () => { return; });
+
+      assert.strictEqual(sched.missCount, 0);
+      task.cancel();
+      sched.cancelAll();
+    });
+
+    it('onFireError fires when a scheduled task throws synchronously', async () => {
+      class FireErrorHookScheduler extends RealTimeScheduler {
+        public fireErrorCount = 0;
+        public constructor() { super(); }
+        protected override onFireError(_id: string, _error: unknown): void {
+          this.fireErrorCount++;
+        }
+      }
+
+      const sched = new FireErrorHookScheduler();
+      // Schedule in the past so it fires at next event-loop turn
+      sched.scheduleAt(Date.now() - 1, () => { throw new Error('sync throw'); });
+
+      await setTimeoutPromise(FLUSH_DELAY_MS);
+
+      assert.strictEqual(sched.fireErrorCount, 1);
+      sched.cancelAll();
+    });
+
+    it('onFireError fires when a scheduled task rejects asynchronously', async () => {
+      class FireErrorHookScheduler extends RealTimeScheduler {
+        public fireErrorCount = 0;
+        public constructor() { super(); }
+        protected override onFireError(_id: string, _error: unknown): void {
+          this.fireErrorCount++;
+        }
+      }
+
+      const sched = new FireErrorHookScheduler();
+      sched.scheduleAt(Date.now() - 1, async () => { throw new Error('async reject'); });
+
+      await setTimeoutPromise(FLUSH_DELAY_MS);
+
+      assert.strictEqual(sched.fireErrorCount, 1);
+      sched.cancelAll();
+    });
+
+    it('onIdle fires after cancelAll clears all tasks', () => {
+      class IdleHookScheduler extends RealTimeScheduler {
+        public idleCount = 0;
+        public constructor() { super(); }
+        protected override onIdle(): void {
+          this.idleCount++;
+        }
+      }
+
+      const sched = new IdleHookScheduler();
+      sched.scheduleAt(Date.now() + FAR_FUTURE_DELAY_MS, () => { return; });
+      sched.cancelAll();
+
+      assert.strictEqual(sched.idleCount, 1);
+    });
+
+    it('onIdle fires on cancelAll even when no tasks were scheduled', () => {
+      class IdleHookScheduler extends RealTimeScheduler {
+        public idleCount = 0;
+        public constructor() { super(); }
+        protected override onIdle(): void {
+          this.idleCount++;
+        }
+      }
+
+      const sched = new IdleHookScheduler();
+      sched.cancelAll();
+
+      assert.strictEqual(sched.idleCount, 1);
+    });
   });
 });

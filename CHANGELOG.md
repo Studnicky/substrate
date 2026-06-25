@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Exhaustive `protected` observability hooks at every debug-relevant lifecycle stage across the primitives — no-ops by default, overridable without coupling the base implementation to any logging or metrics backend. Coverage spans `cache` (hit/miss/set/update/evict/expire/delete/clear), `event-bus` (publish/subscribe/deliver/enqueue/dequeue/drop/overflow/slow-consumer/handler-error), `resilience` (breaker trip/open/half-open/close, token-bucket, dead-letter), `fsm` (transition/enter/exit/effect/registry), `concurrency` (semaphore/channel/coalesce), `fetch` (full request lifecycle including per-interceptor stages), `scheduler` (fire-error/drift/miss), `pipeline` (per-stage), plus `clock`, `file-lock`, `circular-buffer`, `context`, `logger`, `mutex`, `sample-buffer`, `throttle`, `timing`, and `retry`.
+- `batchConcurrent` accepts optional lifecycle-hook callbacks so the free-function API gains the same observability seams as the class-based primitives.
+- `mutex` `onRelease` hook, distinct from the existing `afterRelease` seam.
+- Runnable trace demos: each package ships an `examples/observed<Pkg>.ts` that overrides the hooks to print a realistic debug trace and self-verifies with assertions (`npx tsx packages/<pkg>/examples/observed<pkg>.ts`).
+- Documentation: per-package **Observability hooks** tables (hook · when it fires · args) transcluded from the demos, and a central `concepts/lifecycle-hooks.md` page documenting the convention and mapping every hook to its package, wired into the nav and sidebar.
+- Brand assets: docs logo, favicon set, and custom VitePress theme.
+
 ## [1.0.0] - 2026-06-24
 
 ### Added

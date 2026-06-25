@@ -21,7 +21,7 @@ Build a `Timing` instance with the builder, then record `component.operation` an
 
 ### No-op for production disabling
 
-`NoOpTiming` implements the same interface with zero overhead — all calls are accepted and discarded:
+`NoOpTiming` implements the same interface with zero overhead; all calls are accepted and discarded:
 
 <<< ../../packages/timing/examples/noop-timing.ts#usage
 
@@ -38,8 +38,22 @@ Build a `Timing` instance with the builder, then record `component.operation` an
 
 ## Extending
 
-`Timing` exposes a protected `onEvent` hook. Subclass and override it to intercept events for metrics export, structured logging, or test assertions:
+`Timing` exposes five protected observability hooks. Subclass and override them to intercept events for metrics export, structured logging, or test assertions:
 
 <<< ../../packages/timing/examples/instrumented-timing.ts#usage
+
+## Observability hooks
+
+| Hook | When it fires | Args |
+|------|---------------|------|
+| `onInitialize` | After the instance is fully initialized | `startTime: bigint` |
+| `onEvent` | After an event is added to the cache | `data: TimingEventDataType, timestamp: bigint` |
+| `onEvict` | Before an event is evicted from the cache | `name: string` |
+| `onClear` | Before the cache is cleared | _(none)_ |
+| `onGetEvents` | At the start of each `getEvents()` call | `eventCount: number` |
+
+<<< ../../packages/timing/examples/observedTiming.ts#usage
+
+The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/timing)

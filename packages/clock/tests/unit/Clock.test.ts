@@ -320,6 +320,266 @@ void describe('Clock', () => {
     });
   });
 
+  void describe('lifecycle hooks', () => {
+    // -----------------------------------------------------------------------
+    // Clock hooks: onNow / onHrtime
+    // -----------------------------------------------------------------------
+
+    class HookedClock extends Clock {
+      public constructor(provider: ClockProviderType) { super(provider); }
+
+      readonly nowEvents: number[] = [];
+      readonly hrtimeEvents: bigint[] = [];
+
+      protected override onNow(timestamp: number): void {
+        this.nowEvents.push(timestamp);
+      }
+
+      protected override onHrtime(value: bigint): void {
+        this.hrtimeEvents.push(value);
+      }
+    }
+
+    void it('Clock.onNow fires once per now() call with the returned value', () => {
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const clock = new HookedClock(VirtualClockProvider.create(counter));
+
+      const result = clock.now();
+
+      assert.equal(clock.nowEvents.length, 1, 'onNow fires once');
+      assert.equal(clock.nowEvents[0], result, 'onNow receives the returned value');
+      assert.equal(clock.nowEvents[0], START_MS_A, 'value matches start time');
+    });
+
+    void it('Clock.onNow fires on every now() call, including clamped values', () => {
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_B });
+      const clock = new HookedClock(VirtualClockProvider.create(counter));
+
+      clock.now();
+      clock.now(); // counter has not advanced — clamped to previous
+
+      assert.equal(clock.nowEvents.length, 2, 'onNow fires on every call');
+      assert.equal(clock.nowEvents[0], START_MS_B);
+      assert.equal(clock.nowEvents[1], START_MS_B, 'clamped value is still reported');
+    });
+
+    void it('Clock.onNow fires with the advanced value after counter advance', () => {
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const clock = new HookedClock(VirtualClockProvider.create(counter));
+
+      clock.now(); // first read at START_MS_A
+      counter.advance(ADVANCE_50);
+      clock.now(); // second read at START_MS_A + ADVANCE_50
+
+      assert.equal(clock.nowEvents.length, 2);
+      assert.equal(clock.nowEvents[0], START_MS_A);
+      assert.equal(clock.nowEvents[1], START_MS_A + ADVANCE_50);
+    });
+
+    void it('Clock.onHrtime fires once per hrtime() call with the returned value', () => {
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const clock = new HookedClock(VirtualClockProvider.create(counter));
+
+      const result = clock.hrtime();
+
+      assert.equal(clock.hrtimeEvents.length, 1, 'onHrtime fires once');
+      assert.equal(clock.hrtimeEvents[0], result, 'onHrtime receives the returned value');
+      assert.equal(clock.hrtimeEvents[0], BigInt(START_MS_A) * NS_PER_MS);
+    });
+
+    void it('Clock.onHrtime fires on every hrtime() call', () => {
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const clock = new HookedClock(VirtualClockProvider.create(counter));
+
+      clock.hrtime();
+      counter.advance(ADVANCE_50);
+      clock.hrtime();
+
+      assert.equal(clock.hrtimeEvents.length, 2, 'onHrtime fires on both calls');
+      assert.equal(clock.hrtimeEvents[0], BigInt(START_MS_A) * NS_PER_MS);
+      assert.equal(clock.hrtimeEvents[1], BigInt(START_MS_A + ADVANCE_50) * NS_PER_MS);
+    });
+
+    // -----------------------------------------------------------------------
+    // RealTimeClockProvider hooks: onNow / onHrtime
+    // -----------------------------------------------------------------------
+
+    const FIXED_MS = 10_000;
+
+    class HookedRealProvider extends RealTimeClockProvider {
+      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+
+      readonly nowEvents: number[] = [];
+      readonly hrtimeEvents: bigint[] = [];
+
+      protected override readRawMs(): number { return FIXED_MS; }
+      protected override readRawHrtimeMs(): number { return FIXED_MS; }
+
+      protected override onNow(timestamp: number): void {
+        this.nowEvents.push(timestamp);
+      }
+
+      protected override onHrtime(value: bigint): void {
+        this.hrtimeEvents.push(value);
+      }
+    }
+
+    void it('RealTimeClockProvider.onNow fires once per now() call with returned value', () => {
+      const provider = new HookedRealProvider({ offsetMs: 0 });
+
+      const result = provider.now();
+
+      assert.equal(provider.nowEvents.length, 1, 'onNow fires once');
+      assert.equal(provider.nowEvents[0], result, 'onNow receives returned value');
+      assert.equal(provider.nowEvents[0], FIXED_MS);
+    });
+
+    void it('RealTimeClockProvider.onNow includes the offset in the reported value', () => {
+      const OFFSET = 200;
+      const provider = new HookedRealProvider({ offsetMs: OFFSET });
+
+      provider.now();
+
+      assert.equal(provider.nowEvents[0], FIXED_MS + OFFSET, 'offset is applied before hook');
+    });
+
+    void it('RealTimeClockProvider.onHrtime fires once per hrtime() call with returned value', () => {
+      const provider = new HookedRealProvider({ offsetMs: 0 });
+
+      const result = provider.hrtime();
+
+      assert.equal(provider.hrtimeEvents.length, 1, 'onHrtime fires once');
+      assert.equal(provider.hrtimeEvents[0], result, 'onHrtime receives returned value');
+    });
+
+    // -----------------------------------------------------------------------
+    // VirtualClockProvider hooks: onNow / onHrtime
+    // -----------------------------------------------------------------------
+
+    class HookedVirtualProvider extends VirtualClockProvider {
+      public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+
+      readonly nowEvents: number[] = [];
+      readonly hrtimeEvents: bigint[] = [];
+
+      protected override onNow(timestamp: number): void {
+        this.nowEvents.push(timestamp);
+      }
+
+      protected override onHrtime(value: bigint): void {
+        this.hrtimeEvents.push(value);
+      }
+    }
+
+    void it('VirtualClockProvider.onNow fires once per now() call with virtual time', () => {
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const provider = new HookedVirtualProvider(counter);
+
+      const result = provider.now();
+
+      assert.equal(provider.nowEvents.length, 1, 'onNow fires once');
+      assert.equal(provider.nowEvents[0], result, 'onNow receives returned value');
+      assert.equal(provider.nowEvents[0], START_MS_A);
+    });
+
+    void it('VirtualClockProvider.onNow reflects counter advances on subsequent calls', () => {
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const provider = new HookedVirtualProvider(counter);
+
+      provider.now();
+      counter.advance(ADVANCE_50);
+      provider.now();
+
+      assert.equal(provider.nowEvents.length, 2);
+      assert.equal(provider.nowEvents[0], START_MS_A);
+      assert.equal(provider.nowEvents[1], START_MS_A + ADVANCE_50);
+    });
+
+    void it('VirtualClockProvider.onHrtime fires once per hrtime() call with ns value', () => {
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const provider = new HookedVirtualProvider(counter);
+
+      const result = provider.hrtime();
+
+      assert.equal(provider.hrtimeEvents.length, 1, 'onHrtime fires once');
+      assert.equal(provider.hrtimeEvents[0], result, 'onHrtime receives returned value');
+      assert.equal(provider.hrtimeEvents[0], BigInt(START_MS_A) * NS_PER_MS);
+    });
+
+    // -----------------------------------------------------------------------
+    // VirtualTimeCounter hooks: onAdvance / onNowMs
+    // -----------------------------------------------------------------------
+
+    class HookedCounter extends VirtualTimeCounter {
+      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+
+      readonly advanceEvents: { 'deltaMs': number; 'nowMs': number }[] = [];
+      readonly nowMsEvents: number[] = [];
+
+      protected override onAdvance(deltaMs: number, nowMs: number): void {
+        this.advanceEvents.push({ 'deltaMs': deltaMs, 'nowMs': nowMs });
+      }
+
+      protected override onNowMs(value: number): void {
+        this.nowMsEvents.push(value);
+      }
+    }
+
+    void it('VirtualTimeCounter.onAdvance fires on positive advance with delta and new value', () => {
+      const counter = new HookedCounter({ startMs: START_MS_A });
+
+      counter.advance(ADVANCE_50);
+
+      assert.equal(counter.advanceEvents.length, 1, 'onAdvance fires once');
+      assert.equal(counter.advanceEvents[0]!.deltaMs, ADVANCE_50, 'delta is correct');
+      assert.equal(counter.advanceEvents[0]!.nowMs, START_MS_A + ADVANCE_50, 'nowMs reflects new value');
+    });
+
+    void it('VirtualTimeCounter.onAdvance does not fire for zero or negative delta', () => {
+      const counter = new HookedCounter({ startMs: START_MS_A });
+
+      counter.advance(0);
+      counter.advance(-10);
+
+      assert.equal(counter.advanceEvents.length, 0, 'onAdvance does not fire for non-positive delta');
+    });
+
+    void it('VirtualTimeCounter.onAdvance fires for each positive advance call in sequence', () => {
+      const counter = new HookedCounter({ startMs: 0 });
+
+      counter.advance(100);
+      counter.advance(200);
+
+      assert.equal(counter.advanceEvents.length, 2, 'onAdvance fires for each call');
+      assert.equal(counter.advanceEvents[0]!.deltaMs, 100);
+      assert.equal(counter.advanceEvents[0]!.nowMs, 100);
+      assert.equal(counter.advanceEvents[1]!.deltaMs, 200);
+      assert.equal(counter.advanceEvents[1]!.nowMs, 300, 'cumulative nowMs is correct');
+    });
+
+    void it('VirtualTimeCounter.onNowMs fires once per nowMs() call with current value', () => {
+      const counter = new HookedCounter({ startMs: START_MS_A });
+
+      const result = counter.nowMs();
+
+      assert.equal(counter.nowMsEvents.length, 1, 'onNowMs fires once');
+      assert.equal(counter.nowMsEvents[0], result, 'onNowMs receives returned value');
+      assert.equal(counter.nowMsEvents[0], START_MS_A);
+    });
+
+    void it('VirtualTimeCounter.onNowMs fires on every nowMs() call including after advance', () => {
+      const counter = new HookedCounter({ startMs: START_MS_A });
+
+      counter.nowMs(); // first read
+      counter.advance(ADVANCE_50);
+      counter.nowMs(); // second read
+
+      assert.equal(counter.nowMsEvents.length, 2, 'onNowMs fires on both calls');
+      assert.equal(counter.nowMsEvents[0], START_MS_A);
+      assert.equal(counter.nowMsEvents[1], START_MS_A + ADVANCE_50);
+    });
+  });
+
   void describe('subclass extension seams', () => {
     // -------------------------------------------------------------------------
     // MeteredClock — instruments readNow() and readHrtime()

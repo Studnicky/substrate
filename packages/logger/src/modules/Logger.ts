@@ -82,6 +82,7 @@ export class Logger implements LoggerInterface {
       'metadata': { ...this.#metadata, ...metadata },
       'transports': this.#transports
     });
+    this.onChildCreate(metadata);
     return result;
   }
 
@@ -132,6 +133,7 @@ export class Logger implements LoggerInterface {
 
   private emit(level: LogLevelType, data: LogDataType): void {
     if (level < this.#level) {
+      this.onDropped(level);
       return;
     }
 
@@ -141,6 +143,8 @@ export class Logger implements LoggerInterface {
       'metadata': this.#metadata,
       'time': Date.now()
     };
+
+    this.onLog(level, record);
 
     const count = this.#transports.length;
 
@@ -154,8 +158,37 @@ export class Logger implements LoggerInterface {
   private writeToTransport(transport: TransportInterface, record: LogRecordType): void {
     try {
       transport.write(record);
-    } catch {
+    } catch (error) {
       // One failing transport must not prevent others from receiving the record.
+      this.onTransportError(transport, record, error);
     }
   }
+
+  /**
+   * Hook called after a record is assembled and before fan-out to transports.
+   * Override in subclasses to observe every emitted record.
+   * Default implementation is a no-op.
+   */
+  protected onLog(_level: LogLevelType, _record: LogRecordType): void {}
+
+  /**
+   * Hook called when a record is below the logger's level floor and is discarded.
+   * Override in subclasses to observe dropped records.
+   * Default implementation is a no-op.
+   */
+  protected onDropped(_level: LogLevelType): void {}
+
+  /**
+   * Hook called after a child logger is created via `.child()`.
+   * Override in subclasses to observe child logger creation.
+   * Default implementation is a no-op.
+   */
+  protected onChildCreate(_bindings: LogMetadataType): void {}
+
+  /**
+   * Hook called when a transport's `write()` throws.
+   * Override in subclasses to observe transport errors.
+   * Default implementation is a no-op.
+   */
+  protected onTransportError(_transport: TransportInterface, _record: LogRecordType, _error: unknown): void {}
 }

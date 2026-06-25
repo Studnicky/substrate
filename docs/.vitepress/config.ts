@@ -10,28 +10,31 @@ const pkg = JSON.parse(
 
 const SITE_TITLE = 'Substrate';
 const SITE_TAGLINE = 'Subclass-first TypeScript primitives.';
-const SITE_DESCRIPTION = 'A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base.';
+const SITE_DESCRIPTION = 'A subclass-first toolkit of TypeScript primitives: retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base.';
 const SITE_URL = 'https://studnicky.github.io/substrate/';
 const SITE_BASE = '/substrate/';
 const SITE_OG_IMAGE = `${SITE_URL}og-image.png`;
-const SITE_THEME_COLOR = '#14b8a6';
+const SITE_THEME_COLOR = '#7c5aed';
 const SITE_KEYWORDS = 'typescript,subclass,primitives,retry,throttle,mutex,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,predicates,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
 const SITE_AUTHOR_NAME = 'Andrew Studnicky';
 const SITE_AUTHOR_URL = 'https://github.com/Studnicky';
 const SITE_REPO = 'https://github.com/Studnicky/substrate';
-const SITE_LOGO = `${SITE_URL}logo.png`;
+const SITE_LOGO = `${SITE_URL}og-image.png`;
 
 const seo = pkg.substrate?.seo ?? {};
 const googleVerify = seo.googleSiteVerification ?? '';
 const bingVerify = seo.bingSiteVerification ?? '';
 const twitterHandle = seo.twitterHandle ?? '';
 
-const PACKAGES = [
-  'batch', 'cache', 'circular-buffer', 'clock', 'concurrency', 'config',
-  'context', 'errors', 'eslint-config', 'event-bus', 'fetch', 'file-lock',
-  'fsm', 'json', 'logger', 'mutex', 'pipeline', 'predicates', 'resilience',
-  'retry', 'sample-buffer', 'scheduler', 'signal', 'system', 'throttle',
-  'timing', 'types'
+const STATEFUL = [
+  'batch', 'cache', 'circular-buffer', 'clock', 'concurrency', 'context',
+  'event-bus', 'file-lock', 'fsm', 'logger', 'mutex', 'pipeline', 'resilience',
+  'retry', 'sample-buffer', 'scheduler', 'throttle', 'timing'
+] as const;
+
+const STATELESS = [
+  'config', 'errors', 'eslint-config', 'fetch', 'json', 'predicates',
+  'signal', 'system', 'types'
 ] as const;
 
 type HeadConfig = [string, Record<string, string>] | [string, Record<string, string>, string];
@@ -100,10 +103,11 @@ export default withMermaid(defineConfig({
   ],
 
   themeConfig: {
-    logo: '/logo.png',
+    logo: '/logo.svg',
     siteTitle: 'Substrate',
     nav: [
       { text: 'Guide', link: '/getting-started' },
+      { text: 'Lifecycle Hooks', link: '/concepts/lifecycle-hooks' },
       { text: 'Packages', link: '/packages/' },
       { text: 'GitHub', link: SITE_REPO }
     ],
@@ -123,17 +127,52 @@ export default withMermaid(defineConfig({
           ]
         },
         {
+          text: 'Concepts',
+          items: [
+            { text: 'Lifecycle Hooks', link: '/concepts/lifecycle-hooks' }
+          ]
+        },
+        {
           text: 'Packages',
           items: [
-            { text: 'Packages Index', link: '/packages/' },
-            ...PACKAGES.map(pkg => ({ text: `@studnicky/${pkg}`, link: `/packages/${pkg}` }))
+            { text: 'Packages Index', link: '/packages/' }
           ]
+        },
+        {
+          text: 'Stateful primitives',
+          collapsed: false,
+          items: STATEFUL.map(p => ({ text: `@studnicky/${p}`, link: `/packages/${p}` }))
+        },
+        {
+          text: 'Stateless utilities',
+          collapsed: false,
+          items: STATELESS.map(p => ({ text: `@studnicky/${p}`, link: `/packages/${p}` }))
         }
       ]
     }
   },
 
-  mermaid: { theme: 'dark' },
+  mermaid: {
+    theme: 'base',
+    themeVariables: {
+      fontFamily: 'var(--vp-font-family-mono)',
+      background: '#ffffff',
+      primaryColor: '#f5f3ff',
+      primaryTextColor: '#2e1065',
+      primaryBorderColor: '#7c5aed',
+      lineColor: '#94a3b8',
+      textColor: '#334155',
+      secondaryColor: '#faf5ff',
+      tertiaryColor: '#f8fafc'
+    },
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      nodeSpacing: 28,
+      rankSpacing: 44
+    }
+  },
+  mermaidPlugin: { class: 'mermaid substrate-mermaid' },
 
   transformPageData(pageData) {
     const canonical = `${SITE_URL}${pageData.relativePath.replace(/\.md$/, '')}`;

@@ -95,3 +95,48 @@ const coalesceScenarios: Array<{ description: string; exec: () => Promise<void> 
 for (const { description, exec } of coalesceScenarios) {
   it(description, exec);
 }
+
+// Hook observation tests
+class ObservedCoalesce<T> extends Coalesce<T> {
+  readonly startEvents: string[] = [];
+  readonly joinEvents: string[] = [];
+  readonly settledEvents: { 'key': string; 'success': boolean }[] = [];
+
+  protected override onCoalesceStart(key: string): void {
+    this.startEvents.push(key);
+  }
+  protected override onCoalesceJoin(key: string): void {
+    this.joinEvents.push(key);
+  }
+  protected override onCoalesceSettled(key: string, success: boolean): void {
+    this.settledEvents.push({ 'key': key, 'success': success });
+  }
+}
+
+it('onCoalesceStart fires once for leader, onCoalesceJoin fires for each joiner', async () => {
+  const c = new ObservedCoalesce<string>();
+  const factory = (): Promise<string> => new Promise((resolve) => setTimeout(() => resolve('v'), 10));
+
+  await Promise.all([
+    c.run('k', factory),
+    c.run('k', factory),
+    c.run('k', factory),
+  ]);
+
+  assert.deepEqual(c.startEvents, ['k']);
+  assert.deepEqual(c.joinEvents, ['k', 'k']);
+});
+
+it('onCoalesceSettled fires with success=true on resolution', async () => {
+  const c = new ObservedCoalesce<number>();
+  await c.run('k', () => Promise.resolve(42));
+  assert.equal(c.settledEvents.length, 1);
+  assert.deepEqual(c.settledEvents[0], { 'key': 'k', 'success': true });
+});
+
+it('onCoalesceSettled fires with success=false on rejection', async () => {
+  const c = new ObservedCoalesce<number>();
+  await assert.rejects(() => c.run('k', () => Promise.reject(new Error('fail'))), /fail/);
+  assert.equal(c.settledEvents.length, 1);
+  assert.deepEqual(c.settledEvents[0], { 'key': 'k', 'success': false });
+});

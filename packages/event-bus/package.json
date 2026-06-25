@@ -30,6 +30,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
   "license": "MIT",

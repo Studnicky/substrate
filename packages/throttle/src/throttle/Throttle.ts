@@ -328,11 +328,14 @@ export class Throttle implements ThrottleInterface {
       return Promise.resolve();
     }
 
+    this.onContended(this.activeCount, this.queue.length);
+
     return new Promise<void>((resolve, reject) => {
       this.queue.push({
         'reject': reject,
         'resolve': resolve
       });
+      this.onAcquireWait(this.queue.length);
     });
   }
 
@@ -616,7 +619,10 @@ export class Throttle implements ThrottleInterface {
    * No transition when aborted (terminal state).
    */
   private notifyObservers(): void {
-    if (this.#state === 'active' || this.#state === 'draining') {
+    if (this.#state === 'draining') {
+      this.onDrainComplete(this.totalExecuted);
+      this.transition('idle');
+    } else if (this.#state === 'active') {
       this.transition('idle');
     }
 
@@ -639,6 +645,26 @@ export class Throttle implements ThrottleInterface {
   protected onAcquire(_activeCount: number, _queuedCount: number): void {}
 
   /**
+   * Fires when a caller arrives at a fully-saturated window and is about to
+   * be queued. Fires before onAcquireWait. Useful for detecting congestion.
+   */
+  protected onContended(_activeCount: number, _queuedCount: number): void {}
+
+  /**
+   * Fires immediately after a caller is pushed onto the queue because the
+   * window is saturated. The argument is the queue length after enqueue.
+   */
+  protected onAcquireWait(_queuedCount: number): void {}
+
+  /**
+   * Fires each time a slot is granted to a previously-queued caller (i.e. the
+   * sliding window advances and a waiter is dequeued). Fires before the
+   * waiter's promise resolves. activeCount is the new in-flight count;
+   * queuedCount is the remaining queue depth.
+   */
+  protected onWindowSlide(_activeCount: number, _queuedCount: number): void {}
+
+  /**
    * Fires when abort is executed.
    */
   protected onAbortStart(_cancelledCount: number): void {}
@@ -652,6 +678,13 @@ export class Throttle implements ThrottleInterface {
    * Fires when drain is initiated.
    */
   protected onDrainStart(_activeCount: number, _queuedCount: number): void {}
+
+  /**
+   * Fires when a drain cycle completes — all queued and active operations
+   * have finished and the throttle is about to transition draining → idle.
+   * totalExecuted is the cumulative completed count at that moment.
+   */
+  protected onDrainComplete(_totalExecuted: number): void {}
 
   /**
    * Fires when an operation fails.
@@ -675,6 +708,7 @@ export class Throttle implements ThrottleInterface {
 
       if (pendingTask !== undefined) {
         this.activeCount++;
+        this.onWindowSlide(this.activeCount, this.queue.length);
         pendingTask.resolve();
         count++;
       }
@@ -694,6 +728,7 @@ export class Throttle implements ThrottleInterface {
       const pendingTask = this.queue.shift();
 
       if (pendingTask !== undefined) {
+        this.onWindowSlide(this.activeCount, this.queue.length);
         pendingTask.resolve();
         this.onRelease(this.activeCount, this.totalExecuted);
       }

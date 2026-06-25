@@ -81,10 +81,12 @@ export class LogFault extends BaseLogEntryBuilder implements LogFaultInterface {
     this.validateRequiredFields();
 
     if (this.faultName === undefined) {
+      this.onBuildError('name');
       throw new LogBuildError('LogFault: name is required');
     }
 
     if (this.faultMessage === undefined) {
+      this.onBuildError('message');
       throw new LogBuildError('LogFault: message is required');
     }
 
@@ -93,6 +95,7 @@ export class LogFault extends BaseLogEntryBuilder implements LogFaultInterface {
     // validateRequiredFields() throws if statusValue is undefined; this guard
     // narrows the type for the compiler without a non-null assertion.
     if (this.statusValue === undefined) {
+      this.onBuildError('status');
       throw new LogBuildError('LogFault: status is required');
     }
 
@@ -107,6 +110,7 @@ export class LogFault extends BaseLogEntryBuilder implements LogFaultInterface {
       ...(this.stackValue !== undefined && { 'stack': this.stackValue })
     };
 
+    this.onBuild(result);
     return Object.freeze(result);
   }
 

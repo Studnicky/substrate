@@ -20,7 +20,7 @@ void describe('socket error classes', () => {
       assert.ok(error instanceof SocketExhaustionError);
       assert.equal(error.name, 'SocketExhaustionError');
       assert.equal(error.url, 'https://api.example.com/data');
-      assert.ok(error.message.includes('https://api.example.com/data'));
+      assert.ok(error.message.includes(error.url));
       assert.ok(error.message.includes('Connection pool exhausted'));
       assert.equal(error.maxConnections, 0);
       assert.equal(error.freeConnections, 0);

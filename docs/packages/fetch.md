@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/fetch'
-description: Professional HTTP client with timeout, interceptors, and configured clients.
+description: HTTP client with timeout, interceptors, and configured clients.
 ---
 
 # @studnicky/fetch
 
-> Professional HTTP client with timeout, interceptors, and configured clients for Node.js.
+> HTTP client with timeout, interceptors, and configured clients for Node.js.
 
 ## Install
 
@@ -38,10 +38,24 @@ pnpm add @studnicky/fetch
 | `@studnicky/fetch/modules` | Module re-exports |
 | `@studnicky/fetch/types` | `QueryParamsType`, `RequestInterceptorType`, `ResponseInterceptorType` |
 
-## Extending
+## Observability hooks
 
-`FetchClient` exposes protected lifecycle hooks — `onRequestStart`, `onResponseSuccess`, `onRequestError` — that subclasses override to add telemetry without modifying core behavior.
+Override any protected hook to add logging, metrics, or tracing without modifying core behavior.
 
-<<< ../../packages/fetch/examples/03-telemetry-hooks.ts#usage
+| Hook | When it fires | Args |
+|------|--------------|------|
+| `onRequestStart` | Before the request is sent | `method, path, requestId, url` |
+| `onResponseSuccess` | HTTP 2xx response received | `method, requestId, statusCode, durationMs` |
+| `onResponseError` | HTTP non-2xx response received | `method, requestId, statusCode, durationMs` |
+| `onRequestError` | Network-level error (connect fail, etc.) | `error, method, requestId, url, durationMs` |
+| `onTimeout` | Request aborted by timeout | `method, requestId, url, timeoutMs` |
+| `onAbort` | Request aborted by caller | `method, requestId, url` |
+| `onRequestIntercept` | After each request interceptor stage | `index, context` |
+| `onResponseIntercept` | After each response interceptor stage | `index, context` |
+| `onDispatcherDestroy` | Dispatcher is about to be destroyed | _(none)_ |
+
+<<< ../../packages/fetch/examples/observedFetch.ts#usage
+
+The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/fetch)

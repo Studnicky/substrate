@@ -32,6 +32,14 @@ class TracedTiming extends Timing {
   public evictCount = 0;
   public clearCount = 0;
   public lastEventData: TimingEventDataType | undefined = undefined;
+  // initCount and lastInitStartTime are written from onInitialize which fires
+  // inside super() before class field initializers run. Use `declare` so
+  // TypeScript knows the type but emits no own-property initializer that
+  // would reset the value after super() returns.
+  declare public initCount: number;
+  declare public lastInitStartTime: bigint | undefined;
+  public getEventsCount = 0;
+  public lastGetEventsEventCount: number | undefined = undefined;
 
   public constructor(options: TimingOptionsEntity.Type = {}) {
     super(options);
@@ -53,6 +61,20 @@ class TracedTiming extends Timing {
 
   protected override onClear(): void {
     this.clearCount++;
+  }
+
+  protected override onInitialize(startTime: bigint): void {
+    // Bootstrap counter here because this fires before field initializers run.
+    if (this.initCount === undefined) {
+      this.initCount = 0;
+    }
+    this.initCount++;
+    this.lastInitStartTime = startTime;
+  }
+
+  protected override onGetEvents(eventCount: number): void {
+    this.getEventsCount++;
+    this.lastGetEventsEventCount = eventCount;
   }
 
   public testConvertTime(ns: bigint, unit: 'ms'): number {
@@ -699,4 +721,26 @@ void it('convertTime is accessible from subclass and converts correctly', () => 
   const result = traced.testConvertTime(1_000_000n, 'ms');
 
   assert.strictEqual(result, 1);
+});
+
+void it('onInitialize hook fires once at construction with a bigint startTime', () => {
+  const traced = new TracedTiming({});
+
+  assert.strictEqual(traced.initCount, 1);
+  assert.strictEqual(typeof traced.lastInitStartTime, 'bigint');
+});
+
+void it('onGetEvents hook fires on each getEvents() call with correct event count', () => {
+  const traced = new TracedTiming({});
+
+  // Cache contains only the initialize event at this point
+  traced.getEvents();
+  assert.strictEqual(traced.getEventsCount, 1);
+  assert.strictEqual(traced.lastGetEventsEventCount, 1);
+
+  // Add one event — cache now has initialize + the new event
+  traced.event(TimingEvent.create().component('TestService').operation('probe').build());
+  traced.getEvents();
+  assert.strictEqual(traced.getEventsCount, 2);
+  assert.strictEqual(traced.lastGetEventsEventCount, 2);
 });

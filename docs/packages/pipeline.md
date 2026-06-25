@@ -34,13 +34,33 @@ through all of them with `run()`. Each stage receives the context and returns a
 
 ## Extending
 
-`Pipeline` exposes four protected hooks — `onRunStart`, `beforeStage`, `afterStage`,
-and `onRunComplete` — that subclasses can override to inject timing, logging, or
+`Pipeline` exposes four protected hooks (`onRunStart`, `beforeStage`, `afterStage`,
+and `onRunComplete`) that subclasses can override to inject timing, logging, or
 context mutation without coupling the core pipeline to any external dependency:
 
 <<< ../../packages/pipeline/examples/subclass-hooks.ts#usage
 
 The `stages` getter exposes a readonly view of all registered transforms, useful
 for inspection or tooling.
+
+## Observability hooks
+
+`Pipeline` exposes eight protected hooks for observing every stage of execution.
+The four **intercept hooks** (`onRunStart`, `beforeStage`, `afterStage`, `onRunComplete`) return `T` and can transform the context. The four **observer hooks** are void and fire at every stage boundary and error path.
+
+| Hook | When it fires | Args |
+|------|---------------|------|
+| `onRunStart(ctx)` | Before the first stage; return value becomes the initial ctx | `ctx: T` |
+| `beforeStage(ctx, index)` | Before each stage fn; return value is passed to the stage fn | `ctx: T`, `index: number` |
+| `onStageStart(index, ctx)` | After `beforeStage`, before the stage fn — void observer | `index: number`, `ctx: T` |
+| `onStageSuccess(index, ctx)` | After the stage fn succeeds, before `afterStage` — void observer | `index: number`, `ctx: T` |
+| `afterStage(ctx, index)` | After each stage fn; return value becomes ctx for the next stage | `ctx: T`, `index: number` |
+| `onStageError(index, error)` | When a stage fn throws, before the error is wrapped — void observer | `index: number`, `error: unknown` |
+| `onRunError(error)` | When a stage error propagates out of `run()`, after `onStageError` — void observer | `error: unknown` |
+| `onRunComplete(ctx)` | After all stages complete; return value is the resolved result | `ctx: T` |
+
+<<< ../../packages/pipeline/examples/observedPipeline.ts#usage
+
+The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/pipeline)

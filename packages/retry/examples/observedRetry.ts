@@ -19,16 +19,34 @@ class TelemetryRetry extends Retry {
     return { 'reason': 'always retryable', 'retryable': true };
   }
 
+  protected override onAttempt(attemptNumber: number): void {
+    console.log(`[retry] attempt ${attemptNumber} starting`);
+  }
+
+  protected override onRetryableError(
+    attemptNumber: number,
+    error: Error,
+    classification: ErrorClassificationType
+  ): void {
+    console.log(`[retry] attempt ${attemptNumber} retryable error: ${error.message} (${classification.reason ?? 'no reason'})`);
+  }
+
   protected override onRetryScheduled(attemptNumber: number, delayMs: number): void {
+    console.log(`[retry] attempt ${attemptNumber} scheduled retry in ${delayMs}ms`);
     this.scheduledEvents.push({ 'attemptNumber': attemptNumber, 'delayMs': delayMs });
   }
 
   protected override onGiveUp(
-    _error: Error,
+    error: Error,
     attemptNumber: number,
     reason: 'aborted' | 'exhausted' | 'nonRetryable'
   ): void {
+    console.log(`[retry] give up after ${attemptNumber} attempts: ${reason} — ${error.message}`);
     this.giveUpEvents.push({ 'attemptNumber': attemptNumber, 'reason': reason });
+  }
+
+  protected override enterCall(to: string, from: string): void {
+    console.log(`[retry] call FSM ${from} → ${to}`);
   }
 }
 
