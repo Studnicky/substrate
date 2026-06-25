@@ -33,6 +33,9 @@
       "import": "./dist/types/index.js"
     }
   },
+  "browser": {
+    "./dist/modules/UndiciDispatcher.js": "./dist/modules/browser/UndiciDispatcher.js"
+  },
   "files": [
     "dist",
     "README.md",
