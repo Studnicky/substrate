@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/config",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Configuration validation utilities and type guards",
   "type": "module",
   "sideEffects": false,
@@ -40,7 +40,12 @@
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "keywords": ["config", "validation", "type-guards", "configuration"],
+  "keywords": [
+    "config",
+    "validation",
+    "type-guards",
+    "configuration"
+  ],
   "homepage": "https://studnicky.github.io/substrate/packages/config",
   "repository": {
     "type": "git",
