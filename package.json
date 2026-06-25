@@ -36,6 +36,12 @@
     "typecheck": "tsc -b"
   },
   "devDependencies": {
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/language": "^6.12.3",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.43.1",
+    "@lezer/highlight": "^1.2.3",
     "@studnicky/eslint-config": "workspace:*",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/node": "^26.0.1",
@@ -46,6 +52,7 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "mermaid": "^11.15.0",
     "oxlint": "^1.71.0",
+    "sucrase": "^3.35.1",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.0",

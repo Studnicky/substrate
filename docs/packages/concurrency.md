@@ -73,6 +73,16 @@ internal lifecycle events without modifying the class logic.
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
+## Try it
+
+The builder demo constructs a `Semaphore` via `Semaphore.builder().withPermits(2).build()` and a `Channel` via `Channel.builder().build()`. Watch the Semaphore limit concurrent executions to two at a time across four competing tasks, then watch the Channel deliver three buffered items in publish order.
+
+<RunnableExample src="packages/concurrency/examples/builderConcurrency" title="Semaphore and Channel builders" />
+
+The async-iter demo uses native `async function*` generators as sources — no Node.js streams — and passes them through `AsyncIter.merge`, `AsyncIter.filter`, and `AsyncIter.enrich`. Watch the merged output interleave values from two independent ranges, the filter keep only even numbers, and the final composed pipeline emit only the multiples-of-three with a `tier` enrichment applied to values above five.
+
+<RunnableExample src="packages/concurrency/examples/asyncIter" title="AsyncIter merge / filter / enrich" />
+
 ## API
 
 | Export | Type | Description |

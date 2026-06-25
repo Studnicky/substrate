@@ -1,13 +1,24 @@
-import { existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { basename, dirname } from 'node:path';
+import type { FileSystemInterface } from '@studnicky/virtual-fs';
+
+import type { FileLockCreateOptionsType } from './FileLockCreateOptionsType.js';
+import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
 
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockConfigError } from './errors/FileLockConfigError.js';
 import { FileLockBuilder } from './FileLockBuilder.js';
 import { FileLockTimeoutError } from './FileLockTimeoutError.js';
+import { LockPathHelpers } from './LockPathHelpers.js';
+import { NodeFileSystem } from './NodeFileSystem.js';
+import { NodeOwnerToken } from './NodeOwnerToken.js';
 
 const DEFAULT_POLL_MS = 50;
 const DEFAULT_TIMEOUT_MS = 5000;
+
+type FileLockInternalOptions = {
+  readonly 'fs': FileSystemInterface;
+  readonly 'lockPath': string;
+  readonly 'originalPath': string;
+};
 
 /**
  * Process-level advisory file lock using atomic rename.
@@ -42,8 +53,14 @@ export class FileLock {
     return result;
   }
 
-  static async create(options: FileLockOptionsEntity.Type): Promise<FileLock> {
-    if (!FileLockOptionsEntity.validate(options)) {
+  static async create(options: FileLockCreateOptionsType): Promise<FileLock> {
+    const schemaOptions: FileLockOptionsEntity.Type = {
+      'path': options.path,
+      ...(options.pollMs !== undefined ? { 'pollMs': options.pollMs } : {}),
+      ...(options.timeoutMs !== undefined ? { 'timeoutMs': options.timeoutMs } : {})
+    };
+
+    if (!FileLockOptionsEntity.validate(schemaOptions)) {
       const messages = (FileLockOptionsEntity.validate.errors ?? [])
         .map((e) => {
           return e.message ?? String(e);
@@ -52,11 +69,14 @@ export class FileLock {
       return await Promise.reject(new FileLockConfigError(messages.length > 0 ? messages : 'invalid options'));
     }
 
-    const { path, pollMs = DEFAULT_POLL_MS, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
-    const lockPath = `${path}.lock.${String(process.pid)}`;
+    const { path, pollMs = DEFAULT_POLL_MS, timeoutMs = DEFAULT_TIMEOUT_MS } = schemaOptions;
+
+    const fs: FileSystemInterface = options.fileSystem ?? new NodeFileSystem();
+    const ownerToken: OwnerTokenInterface = options.ownerToken ?? new NodeOwnerToken();
+    const lockPath = `${path}.lock.${ownerToken.get()}`;
 
     // Construct instance first so protected hooks can fire during acquisition.
-    const instance = new this(path, lockPath);
+    const instance = new this({ 'fs': fs, 'lockPath': lockPath, 'originalPath': path });
     await instance.#acquire(path, lockPath, pollMs, timeoutMs);
     return instance;
   }
@@ -65,18 +85,20 @@ export class FileLock {
    * Alias for `FileLock.create({ path, ...options })`.
    * Uses `this.create()` so subclasses retain their prototype through this alias.
    */
-  static async acquire(path: string, options?: Omit<FileLockOptionsEntity.Type, 'path'>): Promise<FileLock> {
+  static async acquire(path: string, options?: Omit<FileLockCreateOptionsType, 'path'>): Promise<FileLock> {
     const result = await this.create({ 'path': path, ...options });
     return result;
   }
 
+  readonly #fs: FileSystemInterface;
   readonly #lockPath: string;
   readonly #originalPath: string;
   #released = false;
 
-  protected constructor(originalPath: string, lockPath: string) {
-    this.#originalPath = originalPath;
-    this.#lockPath = lockPath;
+  protected constructor(options: FileLockInternalOptions) {
+    this.#fs = options.fs;
+    this.#originalPath = options.originalPath;
+    this.#lockPath = options.lockPath;
   }
 
   // ---------------------------------------------------------------------------
@@ -94,7 +116,7 @@ export class FileLock {
     // lock variant exists), bail immediately rather than waiting the full timeout.
     // When a holder has the file, they renamed it to a `.lock.<pid>` path, so `path`
     // is absent but the file still exists as a lock — polling makes sense.
-    if (!existsSync(path) && !FileLock.#anyLockExists(path)) {
+    if (!this.#fs.existsSync(path) && !this.#anyLockExists(path)) {
       this.onTimeout(path);
       return await Promise.reject(new FileLockTimeoutError(path, timeoutMs));
     }
@@ -102,7 +124,7 @@ export class FileLock {
     return await new Promise<void>((resolve, reject) => {
       const poll = (): void => {
         try {
-          renameSync(path, lockPath);
+          this.#fs.renameSync(path, lockPath);
           this.onAcquire(path);
           resolve();
         } catch (error: unknown) {
@@ -130,15 +152,15 @@ export class FileLock {
   }
 
   /**
-   * Check whether a `.lock.<pid>` variant of the given path exists.
+   * Check whether a `.lock.<token>` variant of the given path exists.
    * Used to detect contention pre-flight: if any process has renamed the file,
    * a lock variant will be present even when the original path is absent.
    */
-  static #anyLockExists(path: string): boolean {
+  #anyLockExists(path: string): boolean {
     try {
-      const dir = dirname(path);
-      const base = basename(path);
-      const entries = readdirSync(dir);
+      const dir = LockPathHelpers.dirname(path);
+      const base = LockPathHelpers.basename(path);
+      const entries = this.#fs.readdirSync(dir);
       const lockPrefix = `${base}.lock.`;
       for (const entry of entries) {
         if (entry.startsWith(lockPrefix)) { return true; }
@@ -151,18 +173,18 @@ export class FileLock {
   }
 
   read(): string {
-    const result = readFileSync(this.#lockPath, 'utf8');
+    const result = this.#fs.readFileSync(this.#lockPath, 'utf8');
     return result;
   }
 
   write(content: string): void {
-    writeFileSync(this.#lockPath, content, 'utf8');
+    this.#fs.writeFileSync(this.#lockPath, content, 'utf8');
   }
 
   release(): void {
     if (this.#released) { return; }
     this.#released = true;
-    renameSync(this.#lockPath, this.#originalPath);
+    this.#fs.renameSync(this.#lockPath, this.#originalPath);
     this.onRelease(this.#originalPath);
   }
 

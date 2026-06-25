@@ -3,6 +3,7 @@
  *
  * @module
  */
+export type { SystemProviderInterface } from './interfaces/SystemProviderInterface.js';
 export { GpuDetector } from './modules/GpuDetector.js';
 export { System } from './System.js';
 export type { CpuInfoType } from './types/CpuInfoType.js';

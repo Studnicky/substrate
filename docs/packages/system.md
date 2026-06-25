@@ -29,6 +29,12 @@ GPU detection is async: it shells out to `system_profiler` (macOS), `nvidia-smi`
 
 <<< ../../packages/system/examples/snapshot.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/system/examples/cpuMemoryPlatform" title="CPU topology, memory, and platform info" />
+
+The output shows live CPU architecture, model, logical and physical counts, `optimalWorkerCount`, total and free memory in megabytes, OS name, runtime version string, and the Apple Silicon flag — all read from `navigator` in-browser.
+
 ## API
 
 | Export | Type | Description |

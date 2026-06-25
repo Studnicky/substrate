@@ -53,4 +53,20 @@ Pass a `hooks` object inside the options argument to receive callbacks at every 
 | `@studnicky/batch/batch` | `batchConcurrent` (direct subpath) |
 | `@studnicky/batch/constants` | Default batch configuration constants |
 
+## Try it
+
+`batchConcurrent` is a free-function primitive, not a class — its observability hooks are callback fields on the options object, not subclass overrides.
+
+### Usage
+
+Run a batch of items with concurrency 2 and watch results arrive batch-by-batch.
+
+<RunnableExample src="packages/batch/examples/basic-processing" title="Batch concurrent processing" />
+
+### Hooks
+
+Every callback field fires in order — `onBatchStart`, then per-item `onItemStart`/`onItemSuccess` (or `onItemError`)/`onItemSettled`, then `onBatchComplete`. Item 3 rejects intentionally so `onItemError` is visible.
+
+<RunnableExample src="packages/batch/examples/observedBatch" title="Batch hooks callbacks" />
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/batch)

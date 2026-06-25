@@ -23,6 +23,16 @@ through all of them with `run()`. Each stage receives the context and returns a
 
 <<< ../../packages/pipeline/examples/basic-pipeline.ts#usage
 
+## Try it
+
+The builder demo constructs a `Pipeline` via `Pipeline.builder<RequestCtx>().build()` and registers three stages. Watch how each stage receives the transformed context from the previous one — `status`, `headers`, and `body` all accumulate in order.
+
+<RunnableExample src="packages/pipeline/examples/builderPipeline" title="Pipeline builder" />
+
+The hooks demo subclasses `Pipeline` and overrides all eight protected lifecycle hooks, then runs both a happy path and a failing path. Watch the happy path emit `runStart → beforeStage → stageStart → stageSuccess → afterStage` for each of three stages, then `runComplete`. The failing path shows `stageError` at index 1 followed by `runError` wrapping the stage failure in a `PipelineError`.
+
+<RunnableExample src="packages/pipeline/examples/observedPipeline" title="Pipeline lifecycle hooks" />
+
 ## Subpath exports
 
 | Subpath | Contents |

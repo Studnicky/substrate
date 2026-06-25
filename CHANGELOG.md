@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `@studnicky/virtual-fs`: an in-memory, synchronous, subclass-first filesystem primitive — `VirtualFileSystem` with a fluent builder, `onCreate`/`onRead`/`onWrite`/`onRename`/`onDelete` lifecycle hooks, an injectable `@studnicky/clock` provider for deterministic `mtimeMs`, and an exported `FileSystemInterface` contract.
+- In-browser runnable examples across the documentation: every package page ships press-to-run demos that execute the real package source in the browser (a `RunnableExample` component over a Sucrase-based runtime) and show live console output. Each stateful primitive demonstrates both its fluent builder and a lifecycle-hook subclass; stateless utilities show a usage demo.
+- Formal ESLint plugin documentation: a dedicated **ESLint Plugins** section with an overview/install/config page and one page per rule (14 `@studnicky` configuration rules and 16 `@studnicky/v8` performance rules), wired into the sidebar. Importability is documented for the `createEslintConfig` factory and the raw `plugin`/`v8Plugin` objects via the `.`, `./plugin`, and `./v8` subpath exports.
+
+### Changed
+
+- `@studnicky/retry` and `@studnicky/throttle` are now isomorphic: the promisified delay runs on the global timer instead of `node:timers/promises`, so they execute in browsers as well as Node with identical behavior.
+- `@studnicky/system` reads hardware information through a provider seam selected by export condition — Node uses `node:os`/`node:child_process`, browsers use `navigator` and WebGL (`WEBGL_debug_renderer_info`). The public `System` API is unchanged.
+- `@studnicky/file-lock` performs all filesystem access through an injected `FileSystemInterface` (default Node `fs` adapter) and an injectable owner token (default `process.pid` in Node), so the same lock semantics run in the browser against a `VirtualFileSystem`.
+
 ## [1.1.0] - 2026-06-24
 
 ### Added

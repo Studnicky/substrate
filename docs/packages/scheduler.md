@@ -77,4 +77,14 @@ Both `VirtualScheduler` and `RealTimeScheduler` expose the same set of protected
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
+## Try it
+
+The builder demo constructs a `VirtualScheduler` via `VirtualScheduler.builder().withCounter(...).build()`. Watch how `scheduleAt` fires the one-shot exactly once and `scheduleEvery` fires the interval four times as virtual time advances 200 ms in a single `advance()` call.
+
+<RunnableExample src="packages/scheduler/examples/builderScheduler" title="VirtualScheduler builder" />
+
+The hooks demo subclasses `VirtualScheduler` and overrides nine protected lifecycle methods. Observe the full trace: every `scheduleAt`/`scheduleEvery` call emits `schedule`; each `advance()` emits `advance` then `runUntil`; the failing task triggers both `fire` and `fireError`; the interval task emits `reschedule` after each fire; and `cancelAll` followed by `idle` appear at the end.
+
+<RunnableExample src="packages/scheduler/examples/observedScheduler" title="Scheduler lifecycle hooks" />
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/scheduler)

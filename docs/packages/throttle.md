@@ -25,6 +25,20 @@ Call `drain()` to stop accepting new work and wait for all active and queued ope
 
 <<< ../../packages/throttle/examples/drainThrottle.ts#usage
 
+## Try it
+
+### Builder
+
+`Throttle.builder().withConcurrencyLimit(3).build()` constructs the throttle through the fluent builder. Press Execute to submit 6 operations through the concurrencyLimit-3 throttle; all 6 complete in order, and stats confirm 6 total executed with the configured limit.
+
+<RunnableExample src="packages/throttle/examples/builder-throttle" title="Builder — fluent throttle construction" />
+
+### Lifecycle hooks
+
+`TracingThrottle` subclasses `Throttle` and overrides eight hooks: `onAcquire`, `onContended`, `onAcquireWait`, `onWindowSlide`, `onRelease`, `onDrainStart`, `onDrainComplete`, and the FSM transition hook `onEnter`. With concurrencyLimit=2 and 4 ops submitted, watch the first two acquire immediately, the second two contend and queue, then window-slide events as slots free up. A `drain()` call then drains the throttle gracefully.
+
+<RunnableExample src="packages/throttle/examples/observedThrottle" title="Observed throttle — lifecycle hook trace" />
+
 ### Abort support
 
 <!-- inline-ts-ok: no abort example file exists; pattern is self-contained and distinct from drain -->
@@ -37,12 +51,12 @@ await throttle.abort();
 
 ### Builder
 
-<!-- inline-ts-ok: no builder example file exists; ThrottleBuilder usage is a brief API surface demo -->
+<!-- inline-ts-ok: brief API surface demo -->
 ```typescript
-import { ThrottleBuilder } from '@studnicky/throttle';
+import { Throttle } from '@studnicky/throttle';
 
-const throttle = new ThrottleBuilder()
-  .concurrencyLimit(8)
+const throttle = Throttle.builder()
+  .withConcurrencyLimit(8)
   .build();
 ```
 

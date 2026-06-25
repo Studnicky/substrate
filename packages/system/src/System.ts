@@ -1,14 +1,12 @@
-import os from 'node:os';
-
 import type { CpuInfoType } from './types/CpuInfoType.js';
 import type { GpuInfoType } from './types/GpuInfoType.js';
 import type { MemoryInfoType } from './types/MemoryInfoType.js';
 import type { PlatformInfoType } from './types/PlatformInfoType.js';
 import type { SystemInfoType } from './types/SystemInfoType.js';
 
-import { GpuDetector } from './modules/GpuDetector.js';
+import { SystemProvider } from './providers/SystemProvider.js';
 
-const BYTES_PER_MB = 1024 * 1024;
+const PROVIDER = new SystemProvider();
 
 export class System {
   static #gpuCache: GpuInfoType | null | undefined = undefined;
@@ -18,14 +16,9 @@ export class System {
   }
 
   static get cpu(): CpuInfoType {
-    const cpus = os.cpus();
-    const logicalCount = cpus.length;
-    const firstCpu = cpus[0];
-    const model = firstCpu !== undefined ? firstCpu.model : 'Unknown';
-
-    // Heuristic: assume hyperthreading halves physical count on x86,
-    // Apple Silicon does not use hyperthreading.
-    const arch = os.arch();
+    const logicalCount = PROVIDER.logicalCpuCount();
+    const model = PROVIDER.cpuModel();
+    const arch = PROVIDER.arch();
     const hasHyperthreading = arch !== 'arm64';
     const physicalCount = hasHyperthreading
       ? Math.max(1, Math.round(logicalCount / 2))
@@ -41,18 +34,18 @@ export class System {
 
   static get memory(): MemoryInfoType {
     return {
-      'freeMb': Math.floor(os.freemem() / BYTES_PER_MB),
-      'totalMb': Math.floor(os.totalmem() / BYTES_PER_MB)
+      'freeMb': PROVIDER.freeMb(),
+      'totalMb': PROVIDER.totalMb()
     };
   }
 
   static get platform(): PlatformInfoType {
-    const platformStr = os.platform();
-    const arch = os.arch();
+    const platformStr = PROVIDER.platform();
+    const arch = PROVIDER.arch();
 
     return {
       'isAppleSilicon': platformStr === 'darwin' && arch === 'arm64',
-      'nodeVersion': process.version,
+      'nodeVersion': PROVIDER.runtimeVersion(),
       'os': platformStr
     };
   }
@@ -62,25 +55,25 @@ export class System {
       return System.#gpuCache;
     }
 
-    const detected = GpuDetector.detect();
+    const detected = PROVIDER.detectGpu();
     System.#gpuCache = detected;
 
     return System.#gpuCache;
   }
 
   static get logicalCpuCount(): number {
-    const cpus = os.cpus();
-    return cpus.length;
+    const result = PROVIDER.logicalCpuCount();
+    return result;
   }
 
   static get optimalWorkerCount(): number {
-    const cpus = os.cpus();
-    return Math.max(1, cpus.length - 1);
+    const result = Math.max(1, PROVIDER.logicalCpuCount() - 1);
+    return result;
   }
 
   static get isAppleSilicon(): boolean {
-    const platformStr = os.platform();
-    const arch = os.arch();
+    const platformStr = PROVIDER.platform();
+    const arch = PROVIDER.arch();
     return platformStr === 'darwin' && arch === 'arm64';
   }
 

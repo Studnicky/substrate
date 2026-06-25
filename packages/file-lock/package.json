@@ -50,9 +50,14 @@
   "engines": {
     "node": ">=24.0.0"
   },
+  "browser": {
+    "./dist/NodeFileSystem.js": "./dist/browser/NodeFileSystem.js",
+    "./dist/NodeOwnerToken.js": "./dist/browser/NodeOwnerToken.js"
+  },
   "dependencies": {
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/types": "workspace:*"
+    "@studnicky/types": "workspace:*",
+    "@studnicky/virtual-fs": "workspace:*"
   }
 }

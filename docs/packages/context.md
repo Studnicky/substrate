@@ -15,6 +15,10 @@ pnpm add @studnicky/context
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
+::: info Live demo unavailable
+In-browser execution of this package is not supported. Async context propagation across `await` boundaries relies on Node's `AsyncLocalStorage` from `node:async_hooks`, which browsers do not provide. The examples below are shown statically.
+:::
+
 ## Usage
 
 Create a named context, initialize a scope with seed values, run code inside `execute()`, then call `terminate()` to extract the final snapshot:

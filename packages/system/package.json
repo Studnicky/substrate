@@ -13,6 +13,10 @@
       "import": "./dist/index.js"
     }
   },
+  "browser": {
+    "./dist/modules/GpuDetector.js": "./dist/modules/browser/GpuDetector.js",
+    "./dist/providers/SystemProvider.js": "./dist/providers/browser/SystemProvider.js"
+  },
   "files": [
     "dist",
     "README.md",

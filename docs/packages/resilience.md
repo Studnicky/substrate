@@ -83,6 +83,16 @@ Subclass any primitive and override protected hooks to add logging, metrics, or 
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
+## Try it
+
+The builder demo constructs a `CircuitBreaker` via `CircuitBreaker.builder().withName().withFailureThreshold().withResetTimeoutMs().withSuccessThreshold().withClock().build()` and walks the breaker through all three states: closed, open (fast-rejection), and half-open probe back to closed. No real timers are used — the clock is a deterministic function.
+
+<RunnableExample src="packages/resilience/examples/builderResilience" title="CircuitBreaker builder" />
+
+The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overrides their lifecycle hooks. Watch the full scenario: two failures trigger `onFailure`, `onTrip`, and `onOpen`; a rejected call triggers `onReject`; advancing the virtual clock into half-open triggers `onHalfOpen`, `onSuccess`, and `onClose`; and DLQ drain emits `onDequeue` for every item recovered from the queue.
+
+<RunnableExample src="packages/resilience/examples/observedResilience" title="Resilience lifecycle hooks" />
+
 ## API
 
 | Export | Type | Description |
