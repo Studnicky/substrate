@@ -49,6 +49,12 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 <<< ../../packages/predicates/examples/arrayAndObject.ts#content
 
+## Try it
+
+<RunnableExample src="packages/predicates/examples/typeInference" title="JSON Schema type inference and numeric guards" />
+
+The output shows `inferValueType` mapping JS values to JSON Schema type names, `isFiniteNumber`/`isIntegerValue` narrowing numerics, and `matchesType`/`matchesAnyType` performing union-aware dispatch.
+
 ## API
 
 | Export | Type | Description |

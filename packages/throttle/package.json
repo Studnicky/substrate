@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/throttle",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Generic async operation throttle with sliding window concurrency control",
   "type": "module",
   "sideEffects": false,

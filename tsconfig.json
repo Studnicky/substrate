@@ -83,6 +83,9 @@
     },
     {
       "path": "packages/system"
+    },
+    {
+      "path": "packages/virtual-fs"
     }
   ],
   "files": []

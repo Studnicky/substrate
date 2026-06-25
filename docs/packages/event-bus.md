@@ -68,6 +68,16 @@ Subclass `EventBus` or `BusQueue` and override any of the protected hook methods
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
+## Try it
+
+The builder demo constructs a typed `EventBus` via `EventBus.builder<AppEvents>().build()` and publishes three events across two topics. Watch each subscriber receive only the events for its topic, and note the final `drain()` call ensures all handlers complete before the bus closes.
+
+<RunnableExample src="packages/event-bus/examples/builderEventBus" title="EventBus builder" />
+
+The hooks demo subclasses `EventBus` and overrides seven protected lifecycle methods. Watch the full fan-out trace: `subscribe` fires once per handler registration; `publish` fires once per `bus.publish()` call; `enqueue` and `dequeue` fire once per subscriber per publish; and `deliver` fires after each handler invocation. `unsubscribe` fires for the explicit `unsub1()` call, and `dispose` fires on `bus.close()`.
+
+<RunnableExample src="packages/event-bus/examples/observedEventBus" title="EventBus lifecycle hooks" />
+
 ## API
 
 | Export | Type | Description |

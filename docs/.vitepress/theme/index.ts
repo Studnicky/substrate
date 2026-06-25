@@ -2,6 +2,7 @@ import { h } from 'vue';
 import type { Theme } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 import PackageGrid from './PackageGrid.vue';
+import RunnableExample from './components/RunnableExample.vue';
 import './palette.css';
 import './base.css';
 
@@ -18,6 +19,7 @@ export const theme: Theme = {
   },
   enhanceApp({ app }) {
     app.component('PackageGrid', PackageGrid);
+    app.component('RunnableExample', RunnableExample);
   },
 };
 export default theme;

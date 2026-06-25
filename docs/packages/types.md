@@ -19,6 +19,12 @@ pnpm add @studnicky/types
 
 <<< ../../packages/types/examples/guard-accessors.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/types/examples/guard-accessors" title="Guard accessors, type predicates, and Empty producers" />
+
+The output shows `Guard.isRecord`/`asRecord`/`asRecordArray` narrowing, scalar accessors, the `StrictGuard` static-override subclass, and `Empty` producing and testing fresh zero-value collection instances.
+
 ## Subpath exports
 
 | Subpath | Contents |

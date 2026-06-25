@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/system",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Hardware and platform information for runtime decisions about worker pool sizes and hardware-accelerated code paths",
   "type": "module",
   "sideEffects": false,
@@ -12,6 +12,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "browser": {
+    "./dist/modules/GpuDetector.js": "./dist/modules/browser/GpuDetector.js",
+    "./dist/providers/SystemProvider.js": "./dist/providers/browser/SystemProvider.js"
   },
   "files": [
     "dist",

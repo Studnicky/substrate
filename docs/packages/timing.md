@@ -25,6 +25,20 @@ Build a `Timing` instance with the builder, then record `component.operation` an
 
 <<< ../../packages/timing/examples/noop-timing.ts#usage
 
+## Try it
+
+### Builder
+
+`Timing.builder().maxEvents(50).build()` constructs the tracker. Press Execute to record a `GraphAdapter.query` event plus three `CacheService.get` events with `start`, `complete`, and `hit` statuses. The output map shows each event key with its elapsed-milliseconds value relative to instance creation.
+
+<RunnableExample src="packages/timing/examples/basic-usage" title="Basic timing — builder, events, elapsed-ms output" />
+
+### Lifecycle hooks
+
+`ObservedTiming` subclasses `Timing` and overrides five hooks: `onInitialize`, `onEvent`, `onEvict`, `onClear`, and `onGetEvents`. With `maxEvents=3` the cache holds three entries; the fourth event triggers `onEvict` for the oldest. Watch the hook trace print for every operation, including the two `getEvents()` calls and the single `clear()`.
+
+<RunnableExample src="packages/timing/examples/observedTiming" title="Observed timing — lifecycle hook trace" />
+
 ## Subpath exports
 
 | Subpath | Contents |

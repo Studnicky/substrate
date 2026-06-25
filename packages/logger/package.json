@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/logger",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Pluggable logging interface with transport architecture for Node.js",
   "type": "module",
   "sideEffects": false,

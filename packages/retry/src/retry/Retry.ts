@@ -1,6 +1,5 @@
 import { ConfigValidation } from '@studnicky/config';
 import { Pipeline } from '@studnicky/pipeline';
-import { setTimeout } from 'node:timers/promises';
 
 import type {
   ErrorClassificationType,
@@ -32,6 +31,7 @@ import {
   retryInterceptor
 } from './config/schemas/index.js';
 import { DefaultHttpErrorClassifier } from './core/DefaultHttpErrorClassifier.js';
+import { Delay } from './Delay.js';
 import { RetryBuilder } from './RetryBuilder.js';
 
 /**
@@ -487,7 +487,7 @@ export class Retry implements RetryInterface {
 
     this.onRetryScheduled(attempt, result.delayMs);
 
-    await setTimeout(result.delayMs);
+    await Delay.for(result.delayMs);
 
     callFsm.transition('attempting');
   }

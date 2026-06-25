@@ -63,4 +63,20 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 | `@studnicky/logger/transports` | Transport classes and `TransportInterface` |
 | `@studnicky/logger/types` | `LogStatusType` and other type aliases |
 
+## Try it
+
+The examples below run in the browser via the embedded playground.
+
+### Builder
+
+The builder wires level, metadata, and transports before calling `build()` — the resulting logger is already configured for fan-out and level filtering.
+
+<RunnableExample src="packages/logger/examples/builder-logger" title="Logger builder" />
+
+### Lifecycle hooks
+
+Each log call fires `onLog`, filtered calls fire `onDropped`, and transport failures surface via `onTransportError` — all without modifying Logger's public API.
+
+<RunnableExample src="packages/logger/examples/observedLogger" title="Logger lifecycle hooks" />
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/logger)

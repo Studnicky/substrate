@@ -1,18 +1,33 @@
-import type { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
+import type { FileSystemInterface } from '@studnicky/virtual-fs';
+
 import type { FileLock } from './FileLock.js';
+import type { FileLockCreateOptionsType } from './FileLockCreateOptionsType.js';
+import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
 
 export class FileLockBuilder {
-  static create(create: (options: FileLockOptionsEntity.Type) => Promise<FileLock>): FileLockBuilder {
+  static create(create: (options: FileLockCreateOptionsType) => Promise<FileLock>): FileLockBuilder {
     return new FileLockBuilder(create);
   }
 
-  readonly #create: (options: FileLockOptionsEntity.Type) => Promise<FileLock>;
+  readonly #create: (options: FileLockCreateOptionsType) => Promise<FileLock>;
+  #fileSystem?: FileSystemInterface;
+  #ownerToken?: OwnerTokenInterface;
   #path?: string;
   #pollMs?: number;
   #timeoutMs?: number;
 
-  private constructor(create: (options: FileLockOptionsEntity.Type) => Promise<FileLock>) {
+  private constructor(create: (options: FileLockCreateOptionsType) => Promise<FileLock>) {
     this.#create = create;
+  }
+
+  withFileSystem(value: FileSystemInterface): this {
+    this.#fileSystem = value;
+    return this;
+  }
+
+  withOwnerToken(value: OwnerTokenInterface): this {
+    this.#ownerToken = value;
+    return this;
   }
 
   withPath(value: string): this {
@@ -31,11 +46,14 @@ export class FileLockBuilder {
   }
 
   async build(): Promise<FileLock> {
-    const options: FileLockOptionsEntity.Type = {
+    const options: FileLockCreateOptionsType = {
       'path': this.#path ?? '',
+      ...(this.#fileSystem !== undefined ? { 'fileSystem': this.#fileSystem } : {}),
+      ...(this.#ownerToken !== undefined ? { 'ownerToken': this.#ownerToken } : {}),
       ...(this.#pollMs !== undefined ? { 'pollMs': this.#pollMs } : {}),
       ...(this.#timeoutMs !== undefined ? { 'timeoutMs': this.#timeoutMs } : {})
     };
-    return await this.#create(options);
+    const result = await this.#create(options);
+    return result;
   }
 }

@@ -1,0 +1,2 @@
+export type { FileSystemInterface } from './FileSystemInterface.js';
+export type { StatResultInterface } from './StatResultInterface.js';

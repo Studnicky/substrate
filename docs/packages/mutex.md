@@ -25,6 +25,16 @@ Use `acquire()` when you need explicit try/finally control, or `acquireDisposabl
 
 <<< ../../packages/mutex/examples/acquireRelease.ts#usage
 
+## Try it
+
+The builder demo constructs a `Mutex` via `Mutex.builder().withTimeout().withMaxQueueSize().build()`. Watch the stats output — `maxQueueSize` and `timeout` reflect the values set on the builder, and `totalExecuted` increments with every `runExclusive` call.
+
+<RunnableExample src="packages/mutex/examples/builderMutex" title="Mutex builder" />
+
+The hooks demo subclasses `Mutex` and overrides eight protected lifecycle methods. Observe the trace: `beforeAcquire` fires for every caller regardless of contention; `onContended` fires only for the queued waiter; `onAcquireWait` fires only after the waiter acquires through the queue; and `onQueueDrain` fires once the key's queue empties.
+
+<RunnableExample src="packages/mutex/examples/observedMutex" title="Mutex lifecycle hooks" />
+
 ## Subpath exports
 
 | Subpath | Contents |

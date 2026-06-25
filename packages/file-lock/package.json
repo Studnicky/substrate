@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/file-lock",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Atomic rename-based single-writer file lock for Node.js",
   "type": "module",
   "sideEffects": false,
@@ -50,9 +50,14 @@
   "engines": {
     "node": ">=24.0.0"
   },
+  "browser": {
+    "./dist/NodeFileSystem.js": "./dist/browser/NodeFileSystem.js",
+    "./dist/NodeOwnerToken.js": "./dist/browser/NodeOwnerToken.js"
+  },
   "dependencies": {
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/types": "workspace:*"
+    "@studnicky/types": "workspace:*",
+    "@studnicky/virtual-fs": "workspace:*"
   }
 }

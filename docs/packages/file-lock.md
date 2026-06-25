@@ -68,6 +68,20 @@ const lock = await FileLock.create({
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
+## Try it in the browser
+
+By default, `FileLock` performs all filesystem operations through the real Node.js `fs` module (atomic rename on disk). These demos inject an in-memory `@studnicky/virtual-fs` `VirtualFileSystem` so the exact same lock semantics — atomic rename-based acquisition, contention polling, release — run entirely in the browser.
+
+### Builder with injected VirtualFileSystem
+
+<RunnableExample src="packages/file-lock/examples/vfsLock" title="FileLock with VirtualFileSystem — browser-safe lock" />
+
+### Lifecycle hooks with contention
+
+Two `FileLock` instances share the same `VirtualFileSystem` path. The holder acquires first; the waiter sees `onContended` and `onAcquireWait` events until the holder releases, then acquires and fires `onAcquire`.
+
+<RunnableExample src="packages/file-lock/examples/observedVfsLock" title="Observed FileLock with VirtualFileSystem — contention trace" />
+
 ## How it works
 
 `FileLock.create` uses `renameSync` to atomically move the target file to a PID-scoped lock path (`<path>.lock.<pid>`). Any process that cannot rename the file retries at `pollMs` intervals until `timeoutMs` elapses. On release, the file is renamed back to the original path. The mechanism is advisory: all participants must use `FileLock` for mutual exclusion to hold.

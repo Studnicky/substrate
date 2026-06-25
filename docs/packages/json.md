@@ -19,6 +19,12 @@ Deep merge nested objects: overlay wins on conflict, base keys are preserved, an
 
 <<< ../../packages/json/examples/merge-clone.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/json/examples/merge-clone" title="Deep merge and clone" />
+
+The output shows overlay keys winning on conflict, base keys preserved, arrays replaced atomically by default, and `ConcatMerge` demonstrating the static-override subclass pattern.
+
 ## Patch, DataType, and Frozen
 
 Apply RFC-6902 JSON Patch operations using either the constructor or static factory methods. `DataType` provides deep structural equality and type guards. `Frozen.deepFreeze` freezes all levels safely, including circular structures:

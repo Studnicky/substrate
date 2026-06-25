@@ -1,25 +1,41 @@
 /** asyncIter — demonstrates AsyncIter.merge, AsyncIter.filter, and AsyncIter.enrich. Run: npx tsx examples/asyncIter.ts */
 
 import assert from 'node:assert/strict';
-import { Readable } from 'node:stream';
 
 // #region usage
 import { AsyncIter } from '../src/index.js';
 
-function* range(start: number, end: number): Generator<number> {
-  for (let i = start; i <= end; i += 1) { yield i; }
+// Native async sources — `async function*` is an AsyncIterable in browsers and
+// Node alike, so AsyncIter's combinators consume them directly (no node:stream).
+// Each awaits a microtask before yielding to model a genuinely asynchronous
+// producer.
+async function* range(start: number, end: number): AsyncGenerator<number> {
+  for (let i = start; i <= end; i += 1) {
+    await Promise.resolve();
+    yield i;
+  }
 }
 
-function* words(items: string[]): Generator<string> {
-  for (const item of items) { yield item; }
+async function* words(items: string[]): AsyncGenerator<string> {
+  for (const item of items) {
+    await Promise.resolve();
+    yield item;
+  }
+}
+
+async function* itemsOf<T>(items: T[]): AsyncGenerator<T> {
+  for (const item of items) {
+    await Promise.resolve();
+    yield item;
+  }
 }
 
 class AsyncIterDemo {
   static async runMerge(): Promise<void> {
     // Merge two non-overlapping ranges
     const merged = AsyncIter.merge(
-      Readable.from(range(1, 3)),
-      Readable.from(range(10, 12))
+      range(1, 3),
+      range(10, 12)
     );
     const results: number[] = [];
     for await (const n of merged) {
@@ -39,6 +55,8 @@ class AsyncIterDemo {
     assert.ok(results.indexOf(2) < results.indexOf(3));
     assert.ok(results.indexOf(10) < results.indexOf(11));
     assert.ok(results.indexOf(11) < results.indexOf(12));
+
+    console.log('merge results:', results);
   }
 
   static async runMergeEmpty(): Promise<void> {
@@ -47,21 +65,23 @@ class AsyncIterDemo {
       results.push(n);
     }
     assert.equal(results.length, 0);
+    console.log('merge empty: []');
   }
 
   static async runFilter(): Promise<void> {
-    const evens = AsyncIter.filter(Readable.from(range(1, 10)), (n) => {return n % 2 === 0;});
+    const evens = AsyncIter.filter(range(1, 10), (n) => { return n % 2 === 0; });
     const results: number[] = [];
     for await (const n of evens) {
       results.push(n);
     }
     assert.deepEqual(results, [2, 4, 6, 8, 10]);
+    console.log('filter evens:', results);
   }
 
   static async runFilterAsync(): Promise<void> {
     // Predicate may return a Promise
     const longWords = AsyncIter.filter(
-      Readable.from(words(['hi', 'hello', 'hey', 'greetings'])),
+      words(['hi', 'hello', 'hey', 'greetings']),
       async (w) => { const result = await Promise.resolve(w.length > 3); return result; }
     );
     const results: string[] = [];
@@ -69,6 +89,7 @@ class AsyncIterDemo {
       results.push(w);
     }
     assert.deepEqual(results, ['hello', 'greetings']);
+    console.log('filter long words:', results);
   }
 
   static async runEnrich(): Promise<void> {
@@ -76,13 +97,13 @@ class AsyncIterDemo {
     type Enrichment = { 'label': string };
     type Enriched = { 'id': number; 'label': string };
 
-    const items = Readable.from<Item>([{ 'id': 1 }, { 'id': 2 }, { 'id': 3 }]);
+    const items = itemsOf<Item>([{ 'id': 1 }, { 'id': 2 }, { 'id': 3 }]);
 
     // Only even ids get enrichment; odd ids pass through unchanged
     const enriched = AsyncIter.enrich<Item, Enrichment, Enriched>(
       items,
-      (item) => {const result = Promise.resolve(item.id % 2 === 0 ? { 'label': `even-${item.id}` } : null); return result;},
-      (item, enrichment) => {return { 'id': item.id, 'label': enrichment.label };}
+      (item) => { const result = Promise.resolve(item.id % 2 === 0 ? { 'label': `even-${item.id}` } : null); return result; },
+      (item, enrichment) => { return { 'id': item.id, 'label': enrichment.label }; }
     );
 
     const results: (Item | Enriched)[] = [];
@@ -100,19 +121,21 @@ class AsyncIterDemo {
 
     // id:3 — unenriched
     assert.deepEqual(results[2], { 'id': 3 });
+
+    console.log('enrich results:', results);
   }
 
   static async runMergeFilterEnrichPipeline(): Promise<void> {
     // Compose all three combinators in a pipeline
     const merged = AsyncIter.merge<number>(
-      Readable.from(range(1, 5)),
-      Readable.from(range(6, 10))
+      range(1, 5),
+      range(6, 10)
     );
-    const filtered = AsyncIter.filter<number>(merged, (n) => {return n % 3 === 0;});
+    const filtered = AsyncIter.filter<number>(merged, (n) => { return n % 3 === 0; });
     const enriched = AsyncIter.enrich<number, { 'tier': string }, { 'n': number; 'tier': string }>(
       filtered,
-      (n) => {const result = Promise.resolve(n > 5 ? { 'tier': 'high' as const } : null); return result;},
-      (n, e) => {return { 'n': n, 'tier': e.tier };}
+      (n) => { const result = Promise.resolve(n > 5 ? { 'tier': 'high' as const } : null); return result; },
+      (n, e) => { return { 'n': n, 'tier': e.tier }; }
     );
 
     const results: ({ 'n': number; 'tier': string } | number)[] = [];
@@ -134,6 +157,8 @@ class AsyncIterDemo {
     assert.deepEqual(sorted[0], 3);
     assert.deepEqual(sorted[1], { 'n': 6, 'tier': 'high' });
     assert.deepEqual(sorted[2], { 'n': 9, 'tier': 'high' });
+
+    console.log('merge+filter+enrich pipeline:', sorted);
   }
 }
 // #endregion usage
