@@ -1,11 +1,12 @@
 /** usingDispose — demonstrates Symbol.dispose for explicit resource management. Run: npx tsx examples/usingDispose.ts */
 
 import assert from 'node:assert/strict';
-import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const filePath = path.join(os.tmpdir(), `file-lock-dispose-${String(process.pid)}.txt`);
+const dir = mkdtempSync(path.join(os.tmpdir(), 'file-lock-example-'));
+const filePath = path.join(dir, 'lock.txt');
 writeFileSync(filePath, 'dispose test', 'utf8');
 
 // #region usage

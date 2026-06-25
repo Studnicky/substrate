@@ -1,11 +1,12 @@
 /** builderAcquire — acquire a lock via the fluent builder, then release. Run: npx tsx examples/builderAcquire.ts */
 
 import assert from 'node:assert/strict';
-import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const filePath = path.join(os.tmpdir(), `file-lock-builder-${String(process.pid)}.txt`);
+const dir = mkdtempSync(path.join(os.tmpdir(), 'file-lock-example-'));
+const filePath = path.join(dir, 'lock.txt');
 writeFileSync(filePath, 'queued', 'utf8');
 
 // #region usage

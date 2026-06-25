@@ -13,14 +13,14 @@
  */
 
 import { strictEqual, ok, rejects } from 'node:assert/strict';
-import { mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { it, beforeEach, afterEach } from 'node:test';
 
 import { FileLock, FileLockTimeoutError } from '../../src/index.js';
 
-const TEST_DIR = join(tmpdir(), `file-lock-tests-${String(process.pid)}`);
+let TEST_DIR = '';
 
 class FileLockTestHelpers {
   public static makePath(name: string): string {
@@ -29,7 +29,7 @@ class FileLockTestHelpers {
 }
 
 beforeEach(() => {
-  mkdirSync(TEST_DIR, { recursive: true });
+  TEST_DIR = mkdtempSync(join(tmpdir(), 'file-lock-tests-'));
 });
 
 afterEach(() => {

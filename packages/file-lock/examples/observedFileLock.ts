@@ -1,7 +1,7 @@
 /** observedFileLock — subclass with console.log trace on every lifecycle hook. Run: npx tsx examples/observedFileLock.ts */
 
 import assert from 'node:assert/strict';
-import { rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -47,8 +47,8 @@ class TracedFileLock extends FileLock {
   }
 }
 
-const dir = os.tmpdir();
-const filePath = path.join(dir, `observed-file-lock-${String(process.pid)}.txt`);
+const dir = mkdtempSync(path.join(os.tmpdir(), 'observed-file-lock-'));
+const filePath = path.join(dir, 'lock.txt');
 
 // --- Scenario 1: clean acquire and release ---
 writeFileSync(filePath, 'scenario-1');
@@ -57,7 +57,7 @@ lock1.write('modified');
 lock1.release();
 
 // --- Scenario 2: contended acquire (second lock waits, holder released before timeout) ---
-const filePath2 = path.join(dir, `observed-file-lock-${String(process.pid)}-2.txt`);
+const filePath2 = path.join(dir, 'lock-2.txt');
 writeFileSync(filePath2, 'scenario-2');
 const holder = await TracedFileLock.create({ 'path': filePath2 }) as TracedFileLock;
 
@@ -72,7 +72,7 @@ const lock2 = await TracedFileLock.create({
 lock2.release();
 
 // --- Scenario 3: timeout on a file that does not exist ---
-const missingPath = path.join(dir, `observed-file-lock-${String(process.pid)}-missing.txt`);
+const missingPath = path.join(dir, 'missing.txt');
 let timedOut = false;
 try {
   await TracedFileLock.create({ 'path': missingPath, 'timeoutMs': 50 });
