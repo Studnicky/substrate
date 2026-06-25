@@ -13,9 +13,13 @@ description: HTTP client with timeout, interceptors, and configured clients.
 pnpm add @studnicky/fetch
 ```
 
-::: info Live demo unavailable
-In-browser execution of this package is not supported. The client is built on Node's `undici` (socket pools and HTTP/1.1 keep-alive), which cannot be bundled for a browser runtime. The examples below are shown statically.
-:::
+`@studnicky/fetch` runs in the browser and Node alike: every request goes through the runtime's native `fetch`, and the interceptor pipeline, timeout, request builder, and URL utilities work in both. The undici connection-pool dispatcher (socket pools, HTTP/1.1 keep-alive) is a **Node-only enhancement** — disabled by default and enabled with `dispatcher: { enabled: true }`. In the browser, native `fetch` handles connection management, so enabling the undici dispatcher there throws a clear error.
+
+## Try it
+
+A real `GET` over native `fetch`, with a request/response interceptor pipeline and a timeout — press Run to watch it fetch live:
+
+<RunnableExample src="packages/fetch/examples/browserFetch" title="Live GET over native fetch with interceptors" />
 
 ## Usage
 

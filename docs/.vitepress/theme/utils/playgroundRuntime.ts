@@ -23,17 +23,17 @@ import { transform } from 'sucrase';
 //   context      — uses node:async_hooks (AsyncLocalStorage); cross-await
 //                  propagation has no faithful browser equivalent
 //   eslint-config — Node dev tool; pulls in typescript-eslint, unrs-resolver
-//   fetch        — built on undici (socket pools); cannot bundle for browser
 //
-// system and file-lock are isomorphic: their Node-only internals are swapped
-// for browser siblings by the `substrate-browser-swap` Vite plugin (see
-// docs/.vitepress/config.ts), so they ARE included here.
+// system, file-lock, and fetch are isomorphic: their Node-only internals are
+// swapped for browser siblings by the `substrate-browser-swap` Vite plugin (see
+// docs/.vitepress/config.ts), so they ARE included here. (fetch runs over the
+// browser's native `fetch`; the undici connection-pool dispatcher is the
+// swapped Node-only enhancement.)
 const SOURCE_GLOB = import.meta.glob(
   [
     '../../../../packages/*/src/index.ts',
     '!../../../../packages/context/src/index.ts',
-    '!../../../../packages/eslint-config/src/index.ts',
-    '!../../../../packages/fetch/src/index.ts'
+    '!../../../../packages/eslint-config/src/index.ts'
   ],
   { eager: true }
 ) as Record<string, Record<string, unknown>>;
@@ -44,8 +44,7 @@ const RAW_GLOB = import.meta.glob(
   [
     '../../../../packages/*/examples/**/*.ts',
     '!../../../../packages/context/examples/**/*.ts',
-    '!../../../../packages/eslint-config/examples/**/*.ts',
-    '!../../../../packages/fetch/examples/**/*.ts'
+    '!../../../../packages/eslint-config/examples/**/*.ts'
   ],
   { query: '?raw', import: 'default', eager: true }
 ) as Record<string, string>;

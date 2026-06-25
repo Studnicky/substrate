@@ -4,7 +4,6 @@
  */
 
 
-import { setTimeout } from 'node:timers/promises';
 import { Agent } from 'undici';
 
 import type { DestroyOptionsType } from '../interfaces/DestroyOptionsType.js';
@@ -22,6 +21,7 @@ import {
   POOL_PRESSURE_THRESHOLD
 } from '../constants/PoolHealth.js';
 import { ConfigurationError } from '../errors/index.js';
+import { Delay } from './Delay.js';
 import { UndiciDispatcherBuilder } from './UndiciDispatcherBuilder.js';
 
 type OptionsRecordType = Record<string, unknown>;
@@ -258,7 +258,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     const timeout = options?.timeout;
 
     if (timeout !== undefined && timeout > 0) {
-      await setTimeout(timeout);
+      await Delay.for(timeout);
     }
 
     this.abortController.abort();
