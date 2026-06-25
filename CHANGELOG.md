@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `@studnicky/fetch` is now isomorphic: requests run over the runtime's native `fetch` in both the browser and Node, with the interceptor pipeline, timeout, request builder, and URL utilities working identically in each. The undici connection-pool dispatcher is a Node-only enhancement — disabled by default and selected by export condition; enabling it in a browser throws a clear error. Adds a live in-browser runnable demo and corrects the prior "Node-only" documentation.
+
 ## [1.2.0] - 2026-06-25
 
 ### Added

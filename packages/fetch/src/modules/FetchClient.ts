@@ -2,8 +2,6 @@
  * Configured HTTP client with interceptors and fluent request builder
  */
 
-import { randomUUID } from 'node:crypto';
-
 import type { ClientConfigType } from '../interfaces/ClientConfigType.js';
 import type { DestroyOptionsType } from '../interfaces/DestroyOptionsType.js';
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
@@ -262,7 +260,7 @@ export class FetchClient implements FetchClientInterface {
     if (requestId === '' && autoGenerateRequestId) {
       requestId = this.config.requestIdGenerator !== undefined
         ? this.config.requestIdGenerator()
-        : randomUUID();
+        : globalThis.crypto.randomUUID();
     }
 
     return {
