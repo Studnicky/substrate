@@ -18,7 +18,7 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 | [@studnicky/retry](/packages/retry) | Generic async retry with extensible error classification and backoff strategies |
 | [@studnicky/throttle](/packages/throttle) | Sliding-window concurrency throttle with adaptive limits and abort support |
 | [@studnicky/mutex](/packages/mutex) | Key-based async mutual exclusion with queue and timeout support |
-| [@studnicky/batch](/packages/batch) | Batch concurrent execution — process items in controlled parallel groups |
+| [@studnicky/batch](/packages/batch) | Batch concurrent execution: process items in controlled parallel groups |
 | [@studnicky/concurrency](/packages/concurrency) | Keyed async channels, semaphore, and coalesce primitives |
 | [@studnicky/file-lock](/packages/file-lock) | Process-level advisory file locking |
 | [@studnicky/signal](/packages/signal) | AbortSignal composition utilities |
@@ -71,4 +71,4 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 
 | Package | Description |
 |---------|-------------|
-| [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint 9 flat config for `@studnicky` packages |
+| [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint flat config for `@studnicky` packages |

@@ -53,7 +53,8 @@ class VirtualTask implements ScheduledTaskType {
  * - `createHeap()` — override to substitute a custom heap implementation
  * - `virtualCounter` — protected getter for the shared time counter
  * - `isCancelled(id)` — query the cancelled-IDs set
- * - Lifecycle hooks: `onSchedule`, `onFire`, `onCancel`, `onCancelAll`, `onAdvance`, `onRunUntil`
+ * - Lifecycle hooks: `onSchedule`, `onFire`, `onFireError`, `onReschedule`, `onCancel`,
+ *   `onCancelAll`, `onAdvance`, `onRunUntil`, `onIdle`
  */
 export class VirtualScheduler implements SchedulerProviderType {
   readonly #cancelledIds: Set<string>;
@@ -112,11 +113,52 @@ export class VirtualScheduler implements SchedulerProviderType {
     return result;
   }
 
+  /**
+   * Invokes a pending task's `fire` callback with error containment.
+   * Synchronous throws are forwarded to `onFireError`; async rejections are
+   * forwarded via a `.catch` handler. Returns `true` when the synchronous
+   * portion succeeded (i.e. fire did not throw), `false` when it did.
+   *
+   * Extracted from the hot loop bodies so V8 can optimise the loops
+   * independently of try/catch deoptimisation.
+   */
+  #invokeTask(task: PendingTaskType): boolean {
+    let fireResult: Promise<void> | void;
+
+    try {
+      fireResult = task.fire();
+    } catch (error: unknown) {
+      this.onFireError(task.id, error);
+      return false;
+    }
+
+    if (fireResult instanceof Promise) {
+      fireResult.catch((error: unknown) => {
+        this.onFireError(task.id, error);
+      });
+    }
+
+    return true;
+  }
+
   /** Called after a task is inserted into the heap via `scheduleAt` or `scheduleEvery`. */
   protected onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void { return; }
 
   /** Called immediately before a task's `fire` callback is invoked. */
   protected onFire(_id: string): void { return; }
+
+  /**
+   * Called when a fired task's callback throws synchronously or returns a rejected Promise.
+   * The error is still silently swallowed by the scheduler — this hook is the only
+   * observability seam for task-level failures.
+   */
+  protected onFireError(_id: string, _error: unknown): void { return; }
+
+  /**
+   * Called after an interval task is re-inserted into the heap following a successful fire.
+   * Fires once per reschedule, with the newly computed `atMs`.
+   */
+  protected onReschedule(_id: string, _atMs: number): void { return; }
 
   /** Called when a task's `cancel()` method is invoked. */
   protected onCancel(_id: string): void { return; }
@@ -131,6 +173,12 @@ export class VirtualScheduler implements SchedulerProviderType {
   protected onRunUntil(_atMs: number): void { return; }
 
   /**
+   * Called after `runUntil` or `runAll` empties the heap (no pending tasks remain).
+   * Also called after `cancelAll` drains all tasks.
+   */
+  protected onIdle(): void { return; }
+
+  /**
    * Cancels all pending tasks without advancing virtual time.
    */
   public cancelAll(): void {
@@ -141,6 +189,7 @@ export class VirtualScheduler implements SchedulerProviderType {
       task = this.#heap.removeMinimum();
     }
     this.onCancelAll();
+    this.onIdle();
   }
 
   /**
@@ -220,17 +269,12 @@ export class VirtualScheduler implements SchedulerProviderType {
       }
 
       this.onFire(task.id);
-      const fireResult = task.fire();
+      const succeeded = this.#invokeTask(task);
 
-      if (fireResult instanceof Promise) {
-        fireResult.catch(() => {
-          return;
-        });
-      }
-
-      if (task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
+      if (succeeded && task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
+        const nextAtMs = task.atMs + task.intervalMs;
         const rescheduled: PendingTaskType = {
-          'atMs': task.atMs + task.intervalMs,
+          'atMs': nextAtMs,
           'fire': task.fire,
           'id': task.id,
           'intervalMs': task.intervalMs,
@@ -238,7 +282,12 @@ export class VirtualScheduler implements SchedulerProviderType {
         };
 
         this.#heap.insert(rescheduled);
+        this.onReschedule(task.id, nextAtMs);
       }
+    }
+
+    if (this.#heap.peekAtMs() === undefined) {
+      this.onIdle();
     }
   }
 
@@ -259,13 +308,9 @@ export class VirtualScheduler implements SchedulerProviderType {
       }
 
       this.onFire(task.id);
-      const fireResult = task.fire();
-
-      if (fireResult instanceof Promise) {
-        fireResult.catch(() => {
-          return;
-        });
-      }
+      this.#invokeTask(task);
     }
+
+    this.onIdle();
   }
 }

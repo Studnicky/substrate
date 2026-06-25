@@ -304,3 +304,161 @@ it('tracks all metrics in a single subclass', async () => {
   strictEqual(mutex.released.length, 2);
   ok(mutex.totalHoldTime >= 20);
 });
+
+// ---------------------------------------------------------------------------
+// onAcquireWait
+// ---------------------------------------------------------------------------
+
+class AcquireWaitTrackingMutex extends Mutex<string> {
+  readonly acquireWaitEvents: Array<{ key: string; waitTimeMs: number }> = [];
+
+  protected override onAcquireWait(key: string, waitTimeMs: number): void {
+    this.acquireWaitEvents.push({ key, waitTimeMs });
+  }
+}
+
+it('onAcquireWait does NOT fire when lock acquired immediately', async () => {
+  const mutex = new AcquireWaitTrackingMutex();
+  const release = await mutex.acquire('key1');
+
+  strictEqual(mutex.acquireWaitEvents.length, 0);
+
+  release();
+});
+
+it('onAcquireWait fires when caller had to queue, with correct key and waitTimeMs >= 0', async () => {
+  const mutex = new AcquireWaitTrackingMutex();
+  const release1 = await mutex.acquire('key1');
+  const pending2 = mutex.acquire('key1');
+
+  await delay(10);
+  release1();
+
+  const release2 = await pending2;
+
+  strictEqual(mutex.acquireWaitEvents.length, 1);
+  const ev = mutex.acquireWaitEvents[0];
+
+  ok(ev !== undefined, 'Expected acquireWait event');
+  strictEqual(ev.key, 'key1');
+  ok(ev.waitTimeMs >= 0);
+
+  release2();
+});
+
+it('onAcquireWait fires once per queued waiter', async () => {
+  const mutex = new AcquireWaitTrackingMutex();
+  const release1 = await mutex.acquire('key1');
+  const pending2 = mutex.acquire('key1');
+  const pending3 = mutex.acquire('key1');
+
+  release1();
+  const release2 = await pending2;
+
+  release2();
+  const release3 = await pending3;
+
+  strictEqual(mutex.acquireWaitEvents.length, 2);
+
+  release3();
+});
+
+// ---------------------------------------------------------------------------
+// onRelease
+// ---------------------------------------------------------------------------
+
+class ReleaseHookTrackingMutex extends Mutex<string> {
+  readonly onReleaseEvents: string[] = [];
+
+  protected override onRelease(key: string): void {
+    this.onReleaseEvents.push(key);
+  }
+}
+
+it('onRelease fires on every release regardless of queue state', async () => {
+  const mutex = new ReleaseHookTrackingMutex();
+  const release = await mutex.acquire('key1');
+
+  release();
+
+  strictEqual(mutex.onReleaseEvents.length, 1);
+  strictEqual(mutex.onReleaseEvents[0], 'key1');
+});
+
+it('onRelease fires when handing to next waiter', async () => {
+  const mutex = new ReleaseHookTrackingMutex();
+  const release1 = await mutex.acquire('key1');
+  const pending2 = mutex.acquire('key1');
+
+  strictEqual(mutex.onReleaseEvents.length, 0);
+
+  release1();
+
+  strictEqual(mutex.onReleaseEvents.length, 1);
+  strictEqual(mutex.onReleaseEvents[0], 'key1');
+
+  const release2 = await pending2;
+
+  release2();
+});
+
+// ---------------------------------------------------------------------------
+// onQueueDrain
+// ---------------------------------------------------------------------------
+
+class QueueDrainTrackingMutex extends Mutex<string> {
+  readonly queueDrainEvents: string[] = [];
+
+  protected override onQueueDrain(key: string): void {
+    this.queueDrainEvents.push(key);
+  }
+}
+
+it('onQueueDrain fires when last waiter dequeues normally', async () => {
+  const mutex = new QueueDrainTrackingMutex();
+  const release1 = await mutex.acquire('key1');
+  const pending2 = mutex.acquire('key1');
+
+  release1();
+  const release2 = await pending2;
+
+  strictEqual(mutex.queueDrainEvents.length, 1);
+  strictEqual(mutex.queueDrainEvents[0], 'key1');
+
+  release2();
+});
+
+it('onQueueDrain fires when last timed-out waiter leaves the queue', async () => {
+  const mutex = new QueueDrainTrackingMutex({ 'timeout': 30 });
+  const release1 = await mutex.acquire('key1');
+
+  try {
+    await mutex.acquire('key1');
+  } catch {
+    // expected timeout
+  }
+
+  strictEqual(mutex.queueDrainEvents.length, 1);
+  strictEqual(mutex.queueDrainEvents[0], 'key1');
+
+  release1();
+});
+
+it('onQueueDrain does NOT fire when there is still a waiter in queue', async () => {
+  const mutex = new QueueDrainTrackingMutex();
+  const release1 = await mutex.acquire('key1');
+  const pending2 = mutex.acquire('key1');
+  const pending3 = mutex.acquire('key1');
+
+  release1();
+
+  // At this point: pending2 acquires the lock, queue still has pending3 — no drain yet
+  const release2 = await pending2;
+
+  strictEqual(mutex.queueDrainEvents.length, 0);
+
+  release2();
+  await pending3.then((r) => { r(); });
+
+  strictEqual(mutex.queueDrainEvents.length, 1);
+});

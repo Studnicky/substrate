@@ -55,7 +55,8 @@ class RealTimeTask implements ScheduledTaskType {
  * - `createTimeout(fire, delayMs)` — override to substitute the timer backend
  * - `createInterval(fire, intervalMs)` — override to substitute the timer backend
  * - `clearTimer(handle, variant)` — override to control timer clearing
- * - Lifecycle hooks: `onSchedule`, `onFire`, `onCancel`, `onCancelAll`
+ * - Lifecycle hooks: `onSchedule`, `onFire`, `onFireError`, `onDrift`, `onMiss`,
+ *   `onCancel`, `onCancelAll`, `onIdle`
  */
 export class RealTimeScheduler implements SchedulerProviderType {
   /** Map from task ID to active timer. */
@@ -117,11 +118,47 @@ export class RealTimeScheduler implements SchedulerProviderType {
   /** Called inside the timer callback, immediately before `fire` is invoked. */
   protected onFire(_id: string): void { return; }
 
+  /**
+   * Called when a fired task's callback throws synchronously or returns a rejected Promise.
+   * The error is still silently swallowed by the scheduler — this hook is the only
+   * observability seam for task-level failures.
+   */
+  protected onFireError(_id: string, _error: unknown): void { return; }
+
+  /**
+   * Called when a one-shot task fires later than its scheduled `atMs`.
+   * Only meaningful for `scheduleAt` — `scheduleEvery` tasks are not tracked against a
+   * wall-clock due time in the same way.
+   *
+   * @param id - Task ID
+   * @param dueMs - Originally requested epoch-ms fire time
+   * @param actualMs - `Date.now()` at the moment of actual fire
+   * @param driftMs - `actualMs - dueMs` (always positive when this hook fires)
+   */
+  protected onDrift(_id: string, _dueMs: number, _actualMs: number, _driftMs: number): void { return; }
+
+  /**
+   * Called when `scheduleAt` receives an `atMs` that is already in the past
+   * (`atMs < Date.now()` at scheduling time). The task will still be scheduled
+   * to fire at the next event-loop turn.
+   *
+   * @param id - Task ID
+   * @param atMs - The requested (past) fire time
+   * @param nowMs - `Date.now()` at the time `scheduleAt` was called
+   */
+  protected onMiss(_id: string, _atMs: number, _nowMs: number): void { return; }
+
   /** Called when a task's `cancel()` method is invoked. */
   protected onCancel(_id: string): void { return; }
 
-  /** Called at the end of `cancelAll()`. */
+  /** Called at the end of `cancelAll()`, after all timers have been cleared. */
   protected onCancelAll(): void { return; }
+
+  /**
+   * Called after `cancelAll` drains all tracked tasks (no tasks remain active).
+   * Not fired on individual `cancel()` calls — only when the scheduler is fully drained.
+   */
+  protected onIdle(): void { return; }
 
   /** Cancels and removes all currently-tracked tasks. */
   public cancelAll(): void {
@@ -130,26 +167,47 @@ export class RealTimeScheduler implements SchedulerProviderType {
     }
     this.#timers.clear();
     this.onCancelAll();
+    this.onIdle();
   }
 
   /**
    * Schedules `fire` once at `atMs` (epoch-ms).
-   * If `atMs` is in the past, fires at the next event-loop turn.
+   * If `atMs` is in the past, fires at the next event-loop turn (and `onMiss` fires).
    */
   public scheduleAt(atMs: number, fire: () => Promise<void> | void): ScheduledTaskType {
     const id = this.generateId();
-    const rawDelayMs = atMs - Date.now();
+    const scheduleNowMs = Date.now();
+    const rawDelayMs = atMs - scheduleNowMs;
     const delayMs = rawDelayMs < 0 ? 0 : rawDelayMs;
     const timers = this.#timers;
+
+    if (rawDelayMs < 0) {
+      this.onMiss(id, atMs, scheduleNowMs);
+    }
 
     const handle = this.createTimeout(() => {
       timers.delete(id);
       this.onFire(id);
-      const result = fire();
+
+      const fireNowMs = Date.now();
+      const drift = fireNowMs - atMs;
+
+      if (drift > 0) {
+        this.onDrift(id, atMs, fireNowMs, drift);
+      }
+
+      let result: Promise<void> | void;
+
+      try {
+        result = fire();
+      } catch (error: unknown) {
+        this.onFireError(id, error);
+        return;
+      }
 
       if (result instanceof Promise) {
-        result.catch(() => {
-          return;
+        result.catch((error: unknown) => {
+          this.onFireError(id, error);
         });
       }
     }, delayMs);
@@ -188,11 +246,18 @@ export class RealTimeScheduler implements SchedulerProviderType {
 
     const handle = this.createInterval(() => {
       this.onFire(id);
-      const result = fire();
+      let result: Promise<void> | void;
+
+      try {
+        result = fire();
+      } catch (error: unknown) {
+        this.onFireError(id, error);
+        return;
+      }
 
       if (result instanceof Promise) {
-        result.catch(() => {
-          return;
+        result.catch((error: unknown) => {
+          this.onFireError(id, error);
         });
       }
     }, intervalMs);

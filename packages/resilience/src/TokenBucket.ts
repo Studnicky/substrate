@@ -44,8 +44,12 @@ export class TokenBucket {
   /** Throws TokenBucketExhaustedError if no token available. */
   consume(tokens = 1): void {
     this.#refill();
-    if (this.#tokens < tokens) { throw new TokenBucketExhaustedError(); }
+    if (this.#tokens < tokens) {
+      this.onTokenDepleted();
+      throw new TokenBucketExhaustedError();
+    }
     this.#tokens -= tokens;
+    this.onTokenAcquired(tokens);
   }
 
   /** Wait until tokens are available, then consume. */
@@ -54,7 +58,11 @@ export class TokenBucket {
     const signal = options.signal;
     while (true) {
       this.#refill();
-      if (this.#tokens >= tokens) { this.#tokens -= tokens; return; }
+      if (this.#tokens >= tokens) {
+        this.#tokens -= tokens;
+        this.onTokenAcquired(tokens);
+        return;
+      }
       const waitMs = Math.ceil((tokens - this.#tokens) / this.#requestsPerSecond * 1000);
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(resolve, waitMs);
@@ -63,11 +71,32 @@ export class TokenBucket {
     }
   }
 
+  /**
+   * Fires after `consume()` or `waitForToken()` successfully deducts tokens.
+   * Override to add logging, metrics, or tracing. Must not throw or block.
+   */
+  protected onTokenAcquired(_count: number): void {}
+
+  /**
+   * Fires when `consume()` finds insufficient tokens, before throwing.
+   * Must not throw or block.
+   */
+  protected onTokenDepleted(): void {}
+
+  /**
+   * Fires when the internal refill adds tokens due to elapsed time.
+   * Only fires when `added > 0`. Must not throw or block.
+   */
+  protected onRefill(_added: number): void {}
+
   #refill(): void {
     const now = this.#clock();
     const elapsed = now - this.#lastRefill;
     const newTokens = (elapsed / 1000) * this.#requestsPerSecond;
+    const prev = this.#tokens;
     this.#tokens = Math.min(this.#burstSize, this.#tokens + newTokens);
     this.#lastRefill = now;
+    const added = this.#tokens - prev;
+    if (added > 0) { this.onRefill(added); }
   }
 }

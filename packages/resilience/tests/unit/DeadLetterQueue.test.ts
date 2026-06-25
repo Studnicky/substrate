@@ -9,6 +9,7 @@ import { DeadLetterQueue } from '../../src/DeadLetterQueue.js';
 import { DlqAbortedError } from '../../src/DlqAbortedError.js';
 import { DlqClosedError } from '../../src/DlqClosedError.js';
 import { DlqFullError } from '../../src/DlqFullError.js';
+import type { DeadLetterQueueOptionsInterface } from '../../src/interfaces/DeadLetterQueueOptionsInterface.js';
 
 it('enqueue adds an entry and increments size', () => {
   const dlq = DeadLetterQueue.create<string>();
@@ -200,4 +201,50 @@ it('drain aborts when signal fires', async () => {
   setImmediate(() => { controller.abort(); });
   await drainPromise;
   strictEqual(collected.length, 0);
+});
+
+// --- Lifecycle hook tests ---
+
+class ObservedDlq<T> extends DeadLetterQueue<T> {
+  readonly events: Array<{ type: string; item?: T }> = [];
+  constructor(options?: DeadLetterQueueOptionsInterface) { super(options); }
+  protected override onEnqueue(item: T): void { this.events.push({ 'type': 'enqueue', 'item': item }); }
+  protected override onDequeue(item: T): void { this.events.push({ 'type': 'dequeue', 'item': item }); }
+  protected override onOverflow(): void { this.events.push({ 'type': 'overflow' }); }
+  protected override onClose(): void { this.events.push({ 'type': 'close' }); }
+  protected override onAbort(): void { this.events.push({ 'type': 'abort' }); }
+}
+
+it('onEnqueue fires with correct item', () => {
+  const dlq = new ObservedDlq<string>();
+  dlq.enqueue('hello', 'test-reason');
+  strictEqual(dlq.events[0]?.type, 'enqueue');
+  strictEqual(dlq.events[0]?.item, 'hello');
+});
+
+it('onDequeue fires when drain yields', async () => {
+  const dlq = new ObservedDlq<string>();
+  dlq.enqueue('x', 'reason');
+  dlq.close();
+  for await (const _entry of dlq.drain()) { /* consume */ }
+  ok(dlq.events.some((e) => { return e.type === 'dequeue' && e.item === 'x'; }));
+});
+
+it('onOverflow fires before DlqFullError', () => {
+  const dlq = new ObservedDlq<string>({ capacity: 1 });
+  dlq.enqueue('first', 'r');
+  throws(() => { dlq.enqueue('second', 'r'); }, DlqFullError);
+  ok(dlq.events.some((e) => { return e.type === 'overflow'; }));
+});
+
+it('onClose fires when close() called', () => {
+  const dlq = new ObservedDlq<string>();
+  dlq.close();
+  ok(dlq.events.some((e) => { return e.type === 'close'; }));
+});
+
+it('onAbort fires when abort() called', () => {
+  const dlq = new ObservedDlq<string>();
+  dlq.abort();
+  ok(dlq.events.some((e) => { return e.type === 'abort'; }));
 });

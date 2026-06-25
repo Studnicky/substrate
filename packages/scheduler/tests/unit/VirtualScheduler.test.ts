@@ -596,5 +596,194 @@ describe('VirtualScheduler', () => {
       sched.advance(ADVANCE_PASS);
       assert.strictEqual(fired, true);
     });
+
+    // -------------------------------------------------------------------------
+    // New hooks: onFireError, onReschedule, onIdle
+    // -------------------------------------------------------------------------
+
+    it('onFireError fires when a synchronously-throwing task is run via runAll', () => {
+      class ErrorHookScheduler extends VirtualScheduler {
+        public fireErrorIds: string[] = [];
+        public fireErrorValues: unknown[] = [];
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onFireError(id: string, error: unknown): void {
+          this.fireErrorIds.push(id);
+          this.fireErrorValues.push(error);
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new ErrorHookScheduler(counter);
+      const thrownError = new Error('task boom');
+
+      sched.scheduleAt(TASK_OFFSET_50, () => { throw thrownError; });
+      sched.runAll();
+
+      assert.strictEqual(sched.fireErrorIds.length, 1);
+      assert.strictEqual(sched.fireErrorValues[0], thrownError);
+    });
+
+    it('onFireError fires when a synchronously-throwing task is run via advance', () => {
+      class ErrorHookScheduler extends VirtualScheduler {
+        public fireErrorCount = 0;
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onFireError(_id: string, _error: unknown): void {
+          this.fireErrorCount++;
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new ErrorHookScheduler(counter);
+
+      sched.scheduleAt(TASK_OFFSET_50, () => { throw new Error('sync throw'); });
+      sched.advance(ADVANCE_PASS);
+
+      assert.strictEqual(sched.fireErrorCount, 1);
+    });
+
+    it('onFireError fires for an async-rejecting task run via runAll', async () => {
+      class AsyncErrorHookScheduler extends VirtualScheduler {
+        public asyncErrorCount = 0;
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onFireError(_id: string, _error: unknown): void {
+          this.asyncErrorCount++;
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new AsyncErrorHookScheduler(counter);
+
+      sched.scheduleAt(TASK_OFFSET_50, async () => { throw new Error('async reject'); });
+      sched.runAll();
+
+      // Allow the microtask queue to flush so the promise rejection is handled.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      assert.strictEqual(sched.asyncErrorCount, 1);
+    });
+
+    it('onReschedule fires once per interval task re-arm after fire', () => {
+      class RescheduleHookScheduler extends VirtualScheduler {
+        public rescheduleIds: string[] = [];
+        public rescheduleAtMs: number[] = [];
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onReschedule(id: string, atMs: number): void {
+          this.rescheduleIds.push(id);
+          this.rescheduleAtMs.push(atMs);
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new RescheduleHookScheduler(counter);
+
+      // interval=100; advance=300 → fires at 100, 200, 300 → 3 reschedules (after each fire)
+      sched.scheduleEvery(INTERVAL_100, () => { return; });
+      sched.advance(ADVANCE_MULTI);
+
+      assert.strictEqual(sched.rescheduleIds.length, EXPECTED_FIRES_3);
+      // Each reschedule atMs should be the prior fire atMs + interval
+      assert.strictEqual(sched.rescheduleAtMs[0], INTERVAL_100 + INTERVAL_100);
+      assert.strictEqual(sched.rescheduleAtMs[1], INTERVAL_100 + INTERVAL_100 + INTERVAL_100);
+    });
+
+    it('onReschedule does not fire for cancelled interval tasks', () => {
+      class RescheduleHookScheduler extends VirtualScheduler {
+        public rescheduleCount = 0;
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onReschedule(_id: string, _atMs: number): void {
+          this.rescheduleCount++;
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new RescheduleHookScheduler(counter);
+      const task = sched.scheduleEvery(INTERVAL_100, () => { return; });
+
+      // Fire once (reschedule happens), then cancel, then advance again (no more reschedule)
+      sched.advance(INTERVAL_100);
+      task.cancel();
+      sched.advance(ADVANCE_200);
+
+      // Only 1 reschedule: the one right after the first fire
+      assert.strictEqual(sched.rescheduleCount, 1);
+    });
+
+    it('onIdle fires after runAll empties the heap', () => {
+      class IdleHookScheduler extends VirtualScheduler {
+        public idleCount = 0;
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onIdle(): void {
+          this.idleCount++;
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new IdleHookScheduler(counter);
+
+      sched.scheduleAt(TASK_OFFSET_50, () => { return; });
+      sched.runAll();
+
+      // runAll always calls onIdle at the end (heap is empty after draining)
+      assert.strictEqual(sched.idleCount, 1);
+    });
+
+    it('onIdle fires after advance drains all tasks', () => {
+      class IdleHookScheduler extends VirtualScheduler {
+        public idleCount = 0;
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onIdle(): void {
+          this.idleCount++;
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new IdleHookScheduler(counter);
+
+      sched.scheduleAt(TASK_OFFSET_50, () => { return; });
+      // Advance past the only task — heap drains → onIdle
+      sched.advance(ADVANCE_PASS);
+
+      assert.strictEqual(sched.idleCount, 1);
+    });
+
+    it('onIdle fires after cancelAll', () => {
+      class IdleHookScheduler extends VirtualScheduler {
+        public idleCount = 0;
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onIdle(): void {
+          this.idleCount++;
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new IdleHookScheduler(counter);
+
+      sched.scheduleAt(TASK_OFFSET_50, () => { return; });
+      sched.cancelAll();
+
+      assert.strictEqual(sched.idleCount, 1);
+    });
+
+    it('onIdle does NOT fire when tasks remain after partial advance', () => {
+      class IdleHookScheduler extends VirtualScheduler {
+        public idleCount = 0;
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onIdle(): void {
+          this.idleCount++;
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new IdleHookScheduler(counter);
+
+      // Schedule two tasks; advance past only the first
+      sched.scheduleAt(TASK_OFFSET_50, () => { return; });
+      sched.scheduleAt(EXPECTED_150, () => { return; });
+      sched.advance(ADVANCE_PASS);
+
+      // Heap still has the task at 150 — must NOT idle
+      assert.strictEqual(sched.idleCount, 0);
+    });
   });
 });

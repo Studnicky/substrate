@@ -295,6 +295,24 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   protected onTimeout(_key: K, _timeoutMs: number): void {}
 
+  /**
+   * Fires only when a queued waiter finally acquires the lock (never fires for immediate grants).
+   * Override in a subclass to measure per-caller queue wait times.
+   */
+  protected onAcquireWait(_key: K, _waitTimeMs: number): void {}
+
+  /**
+   * Fires on every lock release by its holder, before any handoff or drop.
+   * Override in a subclass to observe every release regardless of queue state.
+   */
+  protected onRelease(_key: K): void {}
+
+  /**
+   * Fires when the last waiter for a key leaves the queue (by acquiring or timing out).
+   * Override in a subclass to react when contention for a key fully clears.
+   */
+  protected onQueueDrain(_key: K): void {}
+
   // ── Per-key FSM ──────────────────────────────────────────────────────────
 
   /**
@@ -462,6 +480,12 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
           }
 
           resolve(releaseFunction);
+
+          try {
+            this.onAcquireWait(key, waitTimeMs);
+          } catch {
+            // hook errors must not interrupt acquisition
+          }
         },
         'timeoutId': timeoutId
       };
@@ -601,6 +625,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
         if (timeoutQueue.length === EMPTY_LENGTH) {
           this.queues.delete(key);
+          this.onQueueDrain(key);
           // FSM: the last waiter timed out; holder still holds the lock but queue is
           // now empty — transition queued → locked to reflect the unchallenged holder.
           const currentState = this.#keyStates.get(key) ?? 'unlocked';
@@ -710,6 +735,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     if (queue.length === EMPTY_LENGTH) {
       this.queues.delete(key);
+      this.onQueueDrain(key);
     }
   }
 
@@ -755,6 +781,12 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   private release(key: K): void {
     this.recordLockReleaseMetrics(key);
+
+    try {
+      this.onRelease(key);
+    } catch {
+      // hook errors must not interrupt release
+    }
 
     const queue = this.queues.get(key);
 

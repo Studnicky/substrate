@@ -56,9 +56,23 @@ const throttle = new ThrottleBuilder()
 | `@studnicky/throttle/interfaces` | Interface types |
 | `@studnicky/throttle/types` | `AdaptiveConfigInputType` |
 
-## Extending
+## Observability hooks
 
-Subclass `Throttle` and override `onAcquire` and `onRelease` to collect telemetry without coupling the throttle core to any metrics library:
+Subclass `Throttle` and override any of the protected hooks below to add logging, metrics, or tracing without coupling the throttle core to any observability library.
+
+| Hook | When it fires | Args |
+|------|--------------|------|
+| `onEnter(to, from)` | Every FSM state transition | `to: ThrottleStateType`, `from: ThrottleStateType` |
+| `onAcquire(activeCount, queuedCount)` | A slot is granted immediately (window not full) | `activeCount: number`, `queuedCount: number` |
+| `onContended(activeCount, queuedCount)` | A caller arrives at a saturated window and is about to queue | `activeCount: number`, `queuedCount: number` |
+| `onAcquireWait(queuedCount)` | A caller has been pushed onto the queue; queue depth after enqueue | `queuedCount: number` |
+| `onWindowSlide(activeCount, queuedCount)` | A queued caller is dequeued and granted a slot; fires before its promise resolves | `activeCount: number`, `queuedCount: number` |
+| `onRelease(activeCount, totalExecuted)` | A concurrency slot is freed after an operation completes | `activeCount: number`, `totalExecuted: number` |
+| `onDrainStart(activeCount, queuedCount)` | `drain()` is called and draining mode begins | `activeCount: number`, `queuedCount: number` |
+| `onDrainComplete(totalExecuted)` | All operations finish and the throttle transitions draining → idle | `totalExecuted: number` |
+| `onAbortStart(cancelledCount)` | `abort()` executes and is about to cancel operations | `cancelledCount: number` |
+| `onAdaptiveAdjust(previousLimit, newLimit)` | Adaptive concurrency changes the concurrency limit | `previousLimit: number`, `newLimit: number` |
+| `onReject(reason)` | An operation's async function throws or rejects | `reason: unknown` |
 
 <<< ../../packages/throttle/examples/observedThrottle.ts#usage
 

@@ -14,8 +14,16 @@
  *   initial ctx passed to stage 0
  * - `beforeStage(ctx, index)` — before each stage fn; return value is
  *   passed to the stage fn
+ * - `onStageStart(index, ctx)` — after beforeStage, before the stage fn;
+ *   void observer, no-op by default
+ * - `onStageSuccess(index, ctx)` — after the stage fn succeeds, before
+ *   afterStage; void observer, no-op by default
  * - `afterStage(ctx, index)` — after each stage fn; return value becomes
  *   ctx for the next stage (or the final result if it was the last stage)
+ * - `onStageError(index, error)` — when a stage fn throws, before the
+ *   error is wrapped and re-thrown; void observer, no-op by default
+ * - `onRunError(error)` — when a stage error propagates out of run(),
+ *   after onStageError; void observer, no-op by default
  * - `onRunComplete(ctx)` — after all stages complete; return value is the
  *   resolved result of run()
  *
@@ -172,17 +180,56 @@ export class Pipeline<T> implements PipelineInterface<T> {
     return result;
   }
 
+  // ── Void observer hooks ────────────────────────────────────────────────────
+
+  /**
+   * Fires at the start of each stage, after beforeStage(), before the stage fn runs.
+   * No-op by default. Overrides must not throw or block.
+   *
+   * @param _index - Zero-based index of the stage
+   * @param _ctx - Context value being passed to the stage fn
+   */
+  protected onStageStart(_index: number, _ctx: T): void {}
+
+  /**
+   * Fires after each stage fn completes successfully, before afterStage().
+   * No-op by default. Overrides must not throw or block.
+   *
+   * @param _index - Zero-based index of the stage
+   * @param _ctx - Context value returned by the stage fn
+   */
+  protected onStageSuccess(_index: number, _ctx: T): void {}
+
+  /**
+   * Fires when a stage fn throws, before the error is wrapped and re-thrown.
+   * No-op by default. Overrides must not throw or block.
+   *
+   * @param _index - Zero-based index of the failing stage
+   * @param _error - The raw error thrown by the stage fn
+   */
+  protected onStageError(_index: number, _error: unknown): void {}
+
+  /**
+   * Fires when a stage error propagates out of run(), after onStageError().
+   * The error at this point is a PipelineError wrapping the original.
+   * No-op by default. Overrides must not throw or block.
+   *
+   * @param _error - The PipelineError propagating out of run()
+   */
+  protected onRunError(_error: unknown): void {}
+
   /**
    * Run the context through all registered transforms in order
    *
    * @param ctx - Initial context value
    * @returns Context after all transforms have been applied
    */
-  private async runStage(fn: PipelineFnType<T>, input: T): Promise<T> {
+  private async runStage(fn: PipelineFnType<T>, input: T, index: number): Promise<T> {
     try {
       const output = await fn(input);
       return output;
     } catch (err: unknown) {
+      this.onStageError(index, err);
       throw new PipelineError('Pipeline stage failed', err);
     }
   }
@@ -190,12 +237,19 @@ export class Pipeline<T> implements PipelineInterface<T> {
   async run(ctx: T): Promise<T> {
     let current = this.onRunStart(ctx);
 
-    const fnsLen = this.fns.length;
-    for (let i = 0; i < fnsLen; i++) {
-      const fn = this.fns[i]!;
-      const input = this.beforeStage(current, i);
-      const output = await this.runStage(fn, input);
-      current = this.afterStage(output, i);
+    try {
+      const fnsLen = this.fns.length;
+      for (let i = 0; i < fnsLen; i++) {
+        const fn = this.fns[i]!;
+        const input = this.beforeStage(current, i);
+        this.onStageStart(i, input);
+        const output = await this.runStage(fn, input, i);
+        this.onStageSuccess(i, output);
+        current = this.afterStage(output, i);
+      }
+    } catch (err: unknown) {
+      this.onRunError(err);
+      throw err;
     }
 
     return this.onRunComplete(current);

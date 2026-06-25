@@ -29,9 +29,27 @@ Build a `Logger` instance with `Logger.create`, attach transports, then pass str
 
 ## Fan-out and level filtering
 
-Pass multiple transports to `Logger.create`. Each transport has its own level floor — entries below the floor are silently dropped. Child loggers share all parent transports and merge their metadata into every record:
+Pass multiple transports to `Logger.create`. Each transport has its own level floor; entries below the floor are silently dropped. Child loggers share all parent transports and merge their metadata into every record:
 
 <<< ../../packages/logger/examples/03-fanout.ts#usage
+
+## Observability hooks
+
+Subclass `Logger`, `LogBody`, or `LogFault` and override any of the protected hooks below to inject tracing, metrics, or debug logging without modifying the class itself.
+
+| Hook | Class | When it fires | Args |
+|------|-------|---------------|------|
+| `onFieldSet` | `BaseLogEntryBuilder` | After each fluent setter call | `field: string, value: unknown` |
+| `onBuild` | `BaseLogEntryBuilder` | After `build()` assembles the frozen result | `result: LogBodyDataType \| LogFaultDataType` |
+| `onBuildError` | `BaseLogEntryBuilder` | When a required field is missing and `build()` is about to throw | `field: string` |
+| `onLog` | `Logger` | After a record is assembled, before fan-out to transports | `level: LogLevelType, record: LogRecordType` |
+| `onDropped` | `Logger` | When a record is below the logger's level floor and is discarded | `level: LogLevelType` |
+| `onChildCreate` | `Logger` | After a child logger is created via `.child()` | `bindings: LogMetadataType` |
+| `onTransportError` | `Logger` | When a transport's `write()` throws | `transport: TransportInterface, record: LogRecordType, error: unknown` |
+
+<<< ../../packages/logger/examples/observedLogger.ts#usage
+
+The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 ## Subpath exports
 

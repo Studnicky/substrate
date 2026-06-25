@@ -11,6 +11,7 @@
  * events. All hooks have no-op defaults — super() call is not required.
  *
  * Fire points:
+ * - `onOverflow(item)` — in push(), when full in overwrite mode, before eviction (overwrite mode only)
  * - `onEvict(item)` — in push(), before the oldest item is overwritten (overwrite mode only)
  * - `onGrow(oldCapacity, newCapacity)` — end of grow(), after resize completes (grow mode only)
  * - `onPush(item)` — end of push(), after item is inserted and length updated
@@ -129,6 +130,18 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   }
 
   /**
+   * Called in push() when the buffer is full and overflow strategy is 'overwrite'.
+   * Fires before onEvict — carries the incoming item, not the one being dropped.
+   * Not called in grow mode (onGrow covers that path).
+   * No-op default — override to observe overflow events.
+   *
+   * @param _item - The incoming item that triggered the overflow
+   */
+  protected onOverflow(_item: T): void {
+    // no-op
+  }
+
+  /**
    * Called when an item is evicted during an overwrite push (overflow: 'overwrite').
    * Fires before the new item is written at the evicted slot.
    * No-op default — override to observe evictions.
@@ -189,6 +202,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
         this.grow();
       } else {
         // overwrite: evict oldest, advance head, keep length at capacity
+        this.onOverflow(item);
         const evicted = this._items[this._head];
         if (evicted !== undefined) {
           this.onEvict(evicted);

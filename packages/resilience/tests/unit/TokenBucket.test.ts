@@ -8,6 +8,7 @@ import { it } from 'node:test';
 import { ResilienceConfigError } from '../../src/errors/ResilienceConfigError.js';
 import { TokenBucket } from '../../src/TokenBucket.js';
 import { TokenBucketExhaustedError } from '../../src/TokenBucketExhaustedError.js';
+import type { TokenBucketOptionsInterface } from '../../src/interfaces/TokenBucketOptionsInterface.js';
 
 // Constructor validation scenarios
 const invalidConfigs: Array<{ description: string; config: { requestsPerSecond: number; burstSize: number } }> = [
@@ -119,4 +120,46 @@ it('waitForToken rejects when AbortSignal is aborted', async () => {
 
   setImmediate(() => { controller.abort(new Error('cancelled')); });
   await rejects(() => bucket.waitForToken({ 'tokens': 1, 'signal': controller.signal }));
+});
+
+// --- Lifecycle hook tests ---
+
+class ObservedBucket extends TokenBucket {
+  readonly events: Array<{ type: string; value?: number }> = [];
+  constructor(options: TokenBucketOptionsInterface) { super(options); }
+  protected override onTokenAcquired(count: number): void { this.events.push({ 'type': 'acquired', 'value': count }); }
+  protected override onTokenDepleted(): void { this.events.push({ 'type': 'depleted' }); }
+  protected override onRefill(added: number): void { this.events.push({ 'type': 'refill', 'value': added }); }
+}
+
+it('onTokenAcquired fires after consume()', () => {
+  const bucket = new ObservedBucket({ requestsPerSecond: 10, burstSize: 5, clock: frozenClock });
+  bucket.consume(2);
+  strictEqual(bucket.events[0]?.type, 'acquired');
+  strictEqual(bucket.events[0]?.value, 2);
+});
+
+it('onTokenDepleted fires before throw on exhausted consume()', () => {
+  const bucket = new ObservedBucket({ requestsPerSecond: 10, burstSize: 2, clock: frozenClock });
+  bucket.consume(2); // exhaust
+  throws(() => { bucket.consume(1); }, TokenBucketExhaustedError);
+  ok(bucket.events.some((e) => { return e.type === 'depleted'; }));
+});
+
+it('onRefill fires when tokens refilled by clock', () => {
+  let time = 0;
+  const clock = (): number => time;
+  const bucket = new ObservedBucket({ requestsPerSecond: 10, burstSize: 10, clock });
+  bucket.consume(10); // drain all
+  bucket.events.length = 0; // clear acquire events
+  time = 500; // 500 ms → ~5 new tokens
+  // trigger refill via available getter
+  const _avail = bucket.available;
+  ok(bucket.events.some((e) => { return e.type === 'refill' && (e.value ?? 0) > 0; }));
+});
+
+it('onTokenAcquired fires after waitForToken()', async () => {
+  const bucket = new ObservedBucket({ requestsPerSecond: 10, burstSize: 5, clock: frozenClock });
+  await bucket.waitForToken();
+  ok(bucket.events.some((e) => { return e.type === 'acquired'; }));
 });

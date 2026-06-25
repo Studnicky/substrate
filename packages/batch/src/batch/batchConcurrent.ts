@@ -5,6 +5,10 @@
  * Yields results as each batch completes, enabling incremental processing.
  */
 
+import type { BatchHooksInterface } from '../interfaces/BatchHooksInterface.js';
+import type { BatchOptionsInterface } from '../interfaces/BatchOptionsInterface.js';
+import type { BatchStatsType } from '../interfaces/BatchStatsType.js';
+
 import {
   DEFAULT_BATCH_MAX_CONCURRENT, EMPTY_LENGTH, FIRST_ARRAY_INDEX
 } from '../constants/index.js';
@@ -41,12 +45,24 @@ class BatchConcurrentRunner {
    * for await (const batchResults of batchConcurrent.process(urls, fetchData, { maxConcurrent: 2 })) {
    *   console.log('Batch complete:', batchResults);
    * }
+   *
+   * // With observability hooks
+   * for await (const batchResults of batchConcurrent.process(urls, fetchData, {
+   *   hooks: {
+   *     onBatchStart(total) { console.log('starting', total, 'items'); },
+   *     onItemError(index, error) { console.error('item', index, 'failed:', error); },
+   *     onBatchComplete(stats) { console.log('done', stats); },
+   *   },
+   *   maxConcurrent: 2,
+   * })) {
+   *   console.log('Batch complete:', batchResults);
+   * }
    * ```
    */
   static async *process<T, TResult>(
     items: readonly T[],
     operation: (item: T) => Promise<TResult>,
-    concurrency?: number | { 'maxConcurrent'?: number }
+    concurrency?: number | BatchOptionsInterface<TResult>
   ): AsyncGenerator<TResult[], void, unknown> {
     if (items.length === EMPTY_LENGTH) {
       return;
@@ -56,17 +72,52 @@ class BatchConcurrentRunner {
       ? concurrency
       : (concurrency?.maxConcurrent ?? DEFAULT_BATCH_MAX_CONCURRENT);
 
+    const hooks: BatchHooksInterface<TResult> | undefined = typeof concurrency === 'object'
+      ? concurrency.hooks
+      : undefined;
+
     if (maxConcurrent <= 0 || !Number.isInteger(maxConcurrent)) {
       throw new BatchError('maxConcurrent must be a positive integer');
     }
 
     const itemsLen = items.length;
+    let succeeded = 0;
+    let failed = 0;
+
+    hooks?.onBatchStart?.(itemsLen);
+
     for (let i = FIRST_ARRAY_INDEX; i < itemsLen; i += maxConcurrent) {
       const batch = items.slice(i, i + maxConcurrent);
-      const batchResults = await Promise.all(batch.map(operation));
+
+      if (batch.length === maxConcurrent) {
+        hooks?.onConcurrencySaturated?.();
+      }
+
+      const batchOffset = i;
+      const batchResults = await Promise.all(
+        batch.map(async (item, batchIdx) => {
+          const globalIndex = batchOffset + batchIdx;
+          hooks?.onItemStart?.(globalIndex);
+          try {
+            const result = await operation(item);
+            succeeded++;
+            hooks?.onItemSuccess?.(globalIndex, result);
+            hooks?.onItemSettled?.(globalIndex);
+            return result;
+          } catch (error) {
+            failed++;
+            hooks?.onItemError?.(globalIndex, error);
+            hooks?.onItemSettled?.(globalIndex);
+            throw error;
+          }
+        })
+      );
 
       yield batchResults;
     }
+
+    const stats: BatchStatsType = { 'failed': failed, 'succeeded': succeeded, 'total': itemsLen };
+    hooks?.onBatchComplete?.(stats);
   }
 
   /**
@@ -96,12 +147,21 @@ class BatchConcurrentRunner {
    *     }
    *   }
    * }
+   *
+   * // With observability hooks
+   * for await (const batchResults of batchConcurrent.processSettled(urls, fetchData, {
+   *   hooks: {
+   *     onItemError(index, error) { console.warn('item', index, 'rejected:', error); },
+   *     onBatchComplete(stats) { console.log('done', stats); },
+   *   },
+   *   maxConcurrent: 2,
+   * })) { ... }
    * ```
    */
   static async *processSettled<T, TResult>(
     items: readonly T[],
     operation: (item: T) => Promise<TResult>,
-    concurrency?: number | { 'maxConcurrent'?: number }
+    concurrency?: number | BatchOptionsInterface<TResult>
   ): AsyncGenerator<PromiseSettledResult<TResult>[], void, unknown> {
     if (items.length === EMPTY_LENGTH) {
       return;
@@ -111,13 +171,48 @@ class BatchConcurrentRunner {
       ? concurrency
       : (concurrency?.maxConcurrent ?? DEFAULT_BATCH_MAX_CONCURRENT);
 
+    const hooks: BatchHooksInterface<TResult> | undefined = typeof concurrency === 'object'
+      ? concurrency.hooks
+      : undefined;
+
     const itemsLen = items.length;
+    let succeeded = 0;
+    let failed = 0;
+
+    hooks?.onBatchStart?.(itemsLen);
+
     for (let i = FIRST_ARRAY_INDEX; i < itemsLen; i += maxConcurrent) {
       const batch = items.slice(i, i + maxConcurrent);
-      const batchResults = await Promise.allSettled(batch.map(operation));
+
+      if (batch.length === maxConcurrent) {
+        hooks?.onConcurrencySaturated?.();
+      }
+
+      const batchOffset = i;
+      const batchResults = await Promise.allSettled(
+        batch.map(async (item, batchIdx) => {
+          const globalIndex = batchOffset + batchIdx;
+          hooks?.onItemStart?.(globalIndex);
+          try {
+            const result = await operation(item);
+            succeeded++;
+            hooks?.onItemSuccess?.(globalIndex, result);
+            hooks?.onItemSettled?.(globalIndex);
+            return result;
+          } catch (error) {
+            failed++;
+            hooks?.onItemError?.(globalIndex, error);
+            hooks?.onItemSettled?.(globalIndex);
+            throw error;
+          }
+        })
+      );
 
       yield batchResults;
     }
+
+    const stats: BatchStatsType = { 'failed': failed, 'succeeded': succeeded, 'total': itemsLen };
+    hooks?.onBatchComplete?.(stats);
   }
 }
 

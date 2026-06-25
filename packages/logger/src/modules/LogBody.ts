@@ -64,6 +64,7 @@ export class LogBody extends BaseLogEntryBuilder implements LogBodyInterface {
     this.validateRequiredFields();
 
     if (this.messageValue === undefined) {
+      this.onBuildError('message');
       throw new LogBuildError('LogBody: message is required');
     }
 
@@ -72,6 +73,7 @@ export class LogBody extends BaseLogEntryBuilder implements LogBodyInterface {
     // validateRequiredFields() throws if statusValue is undefined; this guard
     // narrows the type for the compiler without a non-null assertion.
     if (this.statusValue === undefined) {
+      this.onBuildError('status');
       throw new LogBuildError('LogBody: status is required');
     }
 
@@ -83,6 +85,7 @@ export class LogBody extends BaseLogEntryBuilder implements LogBodyInterface {
       ...(this.durationMs !== undefined && { 'durationMs': this.durationMs })
     };
 
+    this.onBuild(result);
     return Object.freeze(result);
   }
 

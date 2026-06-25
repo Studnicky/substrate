@@ -74,18 +74,40 @@ export class RealTimeClockProvider implements ClockProviderType {
     return result;
   }
 
+  // ---------------------------------------------------------------------------
+  // Lifecycle hooks — no-op by default. Override to add logging/tracing/metrics.
+  // Overrides must not throw or block.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fires after each `now()` call, with the final epoch-ms value (raw + offset)
+   * that was returned to the caller.
+   */
+  protected onNow(_timestamp: number): void {}
+
+  /**
+   * Fires after each `hrtime()` call, with the final nanosecond bigint value
+   * (derived from performance.now() + offset) that was returned to the caller.
+   */
+  protected onHrtime(_value: bigint): void {}
+
   /**
    * Returns a monotonic nanosecond timestamp derived from `performance.now()`.
    * Not guaranteed to match `Date.now()` — use for elapsed-time measurements only.
    */
   public hrtime(): bigint {
     const ms = this.readRawHrtimeMs() + this.offsetMs;
+    const result = BigInt(Math.round(ms * Number(NS_PER_MS)));
 
-    return BigInt(Math.round(ms * Number(NS_PER_MS)));
+    this.onHrtime(result);
+    return result;
   }
 
   /** Returns the current wall-clock time in milliseconds since the Unix epoch. */
   public now(): number {
-    return this.readRawMs() + this.offsetMs;
+    const result = this.readRawMs() + this.offsetMs;
+
+    this.onNow(result);
+    return result;
   }
 }

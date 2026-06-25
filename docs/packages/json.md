@@ -1,6 +1,6 @@
 ---
 title: '@studnicky/json'
-description: JSON/object value-tools — deep merge, clone, equal, freeze, patch, hash, path, sort.
+description: JSON and object utilities for deep merge, clone, equality, freeze, patch, hash, path access, and sort.
 ---
 
 # @studnicky/json
@@ -15,7 +15,7 @@ pnpm add @studnicky/json
 
 ## Merge and Clone
 
-Deep merge nested objects — overlay wins on conflict, base keys are preserved, arrays are replaced atomically by default. Clone produces a new object with no shared references, with full Date/Map/Set awareness:
+Deep merge nested objects: overlay wins on conflict, base keys are preserved, and arrays are replaced atomically by default. Clone produces a new object with no shared references, with full Date/Map/Set awareness:
 
 <<< ../../packages/json/examples/merge-clone.ts#usage
 

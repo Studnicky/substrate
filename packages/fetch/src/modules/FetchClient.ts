@@ -2,7 +2,6 @@
  * Configured HTTP client with interceptors and fluent request builder
  */
 
-import { Pipeline, PipelineError } from '@studnicky/pipeline';
 import { randomUUID } from 'node:crypto';
 
 import type { ClientConfigType } from '../interfaces/ClientConfigType.js';
@@ -33,12 +32,14 @@ import {
   validateURL
 } from '../config/schemas/index.js';
 import {
+  AbortError,
   BodyTimeoutError,
   ConfigurationError,
   ConnectTimeoutError,
   HeadersTimeoutError,
   SocketError,
-  SocketExhaustionError
+  SocketExhaustionError,
+  TimeoutError
 } from '../errors/index.js';
 import { FetchClientBuilder } from './FetchClientBuilder.js';
 import { HttpMethods } from './HttpMethods.js';
@@ -174,20 +175,23 @@ export class FetchClient implements FetchClientInterface {
     context: RequestInterceptorContextType,
     perRequestInterceptors: RequestInterceptorType[]
   ): Promise<RequestInterceptorContextType> {
-    const ctx = await this.interceptors.applyRequestInterceptors(context);
+    let ctx = context;
+    const clientInterceptors = this.interceptors.requestInterceptors;
+    const clientLen = clientInterceptors.length;
 
-    if (perRequestInterceptors.length === 0) {
-      return ctx;
+    for (let i = 0; i < clientLen; i += 1) {
+      ctx = await clientInterceptors[i]!(ctx);
+      this.onRequestIntercept(i, ctx);
     }
-
-    const perRequest = Pipeline.create<RequestInterceptorContextType>();
 
     const perRequestLen = perRequestInterceptors.length;
-    for (let i = 0; i < perRequestLen; i += 1) {
-      perRequest.add(perRequestInterceptors[i]!);
+
+    for (let j = 0; j < perRequestLen; j += 1) {
+      ctx = await perRequestInterceptors[j]!(ctx);
+      this.onRequestIntercept(clientLen + j, ctx);
     }
 
-    return await perRequest.run(ctx);
+    return ctx;
   }
 
   /**
@@ -198,20 +202,23 @@ export class FetchClient implements FetchClientInterface {
     context: ResponseInterceptorContextType,
     perResponseInterceptors: ResponseInterceptorType[]
   ): Promise<ResponseInterceptorContextType> {
-    const ctx = await this.interceptors.applyResponseInterceptors(context);
+    let ctx = context;
+    const clientInterceptors = this.interceptors.responseInterceptors;
+    const clientLen = clientInterceptors.length;
 
-    if (perResponseInterceptors.length === 0) {
-      return ctx;
+    for (let i = 0; i < clientLen; i += 1) {
+      ctx = await clientInterceptors[i]!(ctx);
+      this.onResponseIntercept(i, ctx);
     }
-
-    const perResponse = Pipeline.create<ResponseInterceptorContextType>();
 
     const perResponseLen = perResponseInterceptors.length;
-    for (let i = 0; i < perResponseLen; i += 1) {
-      perResponse.add(perResponseInterceptors[i]!);
+
+    for (let j = 0; j < perResponseLen; j += 1) {
+      ctx = await perResponseInterceptors[j]!(ctx);
+      this.onResponseIntercept(clientLen + j, ctx);
     }
 
-    return await perResponse.run(ctx);
+    return ctx;
   }
 
   /**
@@ -318,6 +325,7 @@ export class FetchClient implements FetchClientInterface {
    */
   async destroy(options?: DestroyOptionsType): Promise<void> {
     if (this.dispatcher !== undefined) {
+      this.onDispatcherDestroy();
       await this.dispatcher.destroy(options);
     }
   }
@@ -336,11 +344,27 @@ export class FetchClient implements FetchClientInterface {
       const response = await HttpMethods.fetch(requestContext.url, requestContext.options);
       const duration = Date.now() - startTime;
 
-      this.onResponseSuccess(method, requestId, response.status, duration);
+      if (response.ok) {
+        this.onResponseSuccess(method, requestId, response.status, duration);
+      } else {
+        this.onResponseError(method, requestId, response.status, duration);
+      }
 
       return response;
     } catch (error) {
       const duration = Date.now() - startTime;
+
+      if (error instanceof TimeoutError) {
+        this.onTimeout(method, requestId, requestContext.url, error.timeoutMs);
+        this.onRequestError(error, method, requestId, requestContext.url, duration);
+        throw error;
+      }
+
+      if (error instanceof AbortError) {
+        this.onAbort(method, requestId, requestContext.url);
+        this.onRequestError(error, method, requestId, requestContext.url, duration);
+        throw error;
+      }
 
       if (error instanceof Error) {
         const wrappedError = this.wrapUndiciError(error, requestContext.url, method, requestId, duration);
@@ -382,34 +406,24 @@ export class FetchClient implements FetchClientInterface {
 
     this.onRequestStart(method, path, metadata.requestId, url);
 
-    let requestContext: RequestInterceptorContextType;
-    try {
-      requestContext = await this.applyRequestInterceptors(
-        {
-          'metadata': metadata,
-          'options': this.mergeOptions(options),
-          'url': url
-        },
-        this.normalizeRequestInterceptorTypes(options.requestInterceptor)
-      );
-    } catch (err: unknown) {
-      throw err instanceof PipelineError && err.cause !== undefined ? err.cause : err;
-    }
+    const requestContext = await this.applyRequestInterceptors(
+      {
+        'metadata': metadata,
+        'options': this.mergeOptions(options),
+        'url': url
+      },
+      this.normalizeRequestInterceptorTypes(options.requestInterceptor)
+    );
 
     const response = await this.executeRequest(requestContext, method, metadata.requestId);
 
-    let responseContext: ResponseInterceptorContextType;
-    try {
-      responseContext = await this.applyResponseInterceptors(
-        {
-          'request': requestContext.metadata,
-          'response': response
-        },
-        this.normalizeResponseInterceptorTypes(options.responseInterceptor)
-      );
-    } catch (err: unknown) {
-      throw err instanceof PipelineError && err.cause !== undefined ? err.cause : err;
-    }
+    const responseContext = await this.applyResponseInterceptors(
+      {
+        'request': requestContext.metadata,
+        'response': response
+      },
+      this.normalizeResponseInterceptorTypes(options.responseInterceptor)
+    );
 
     return responseContext.response;
   }
@@ -502,6 +516,44 @@ export class FetchClient implements FetchClientInterface {
     _statusCode: number,
     _durationMs: number
   ): void {}
+
+  /** Fires when an HTTP response with non-2xx status is received. */
+  protected onResponseError(
+    _method: string,
+    _requestId: string,
+    _statusCode: number,
+    _durationMs: number
+  ): void {}
+
+  /** Fires when a request is aborted by a timeout. */
+  protected onTimeout(
+    _method: string,
+    _requestId: string,
+    _url: string,
+    _timeoutMs: number
+  ): void {}
+
+  /** Fires when a request is aborted by the caller. */
+  protected onAbort(
+    _method: string,
+    _requestId: string,
+    _url: string
+  ): void {}
+
+  /** Fires after each request interceptor stage, with the output context. */
+  protected onRequestIntercept(
+    _index: number,
+    _context: RequestInterceptorContextType
+  ): void {}
+
+  /** Fires after each response interceptor stage, with the output context. */
+  protected onResponseIntercept(
+    _index: number,
+    _context: ResponseInterceptorContextType
+  ): void {}
+
+  /** Fires when the client's dispatcher is about to be destroyed. */
+  protected onDispatcherDestroy(): void {}
 
   /**
    * Merges headers from config and request options

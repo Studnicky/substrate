@@ -131,7 +131,7 @@ export class ContextScope implements ContextScopeInterface {
 
   /**
    * Transition the FSM to a new state.
-   * Subclasses can override onEnter() to react to transitions.
+   * Subclasses can override onExit() and onEnter() to react to transitions.
    */
   protected transition(to: ContextScopeState): void {
     const from = this.#state;
@@ -140,6 +140,7 @@ export class ContextScope implements ContextScopeInterface {
       throw new ContextError(`Illegal state transition: ${from} → ${to}`);
     }
 
+    this.onExit(from, to);
     this.#state = to;
     this.onEnter(to, from);
   }
@@ -159,6 +160,17 @@ export class ContextScope implements ContextScopeInterface {
 
     return false;
   }
+
+  /**
+   * Hook called before the FSM leaves a state, before `#state` is updated.
+   *
+   * Fires in `transition()` after the guard check, before `#state` is assigned
+   * and before `onEnter` is called.
+   *
+   * @param _from - The state being left
+   * @param _to - The state being entered
+   */
+  protected onExit(_from: ContextScopeState, _to: ContextScopeState): void {}
 
   /**
    * Hook called when the FSM enters a new state.
@@ -185,6 +197,23 @@ export class ContextScope implements ContextScopeInterface {
    * Subclasses override to add post-execution behavior.
    */
   protected onAfterExecute(): void {}
+
+  /**
+   * Hook called when the function passed to `execute()` throws.
+   *
+   * Fires before the error is re-thrown. The scope remains usable after
+   * (the fn threw, not the scope itself).
+   *
+   * @param _error - The error thrown by the wrapped function
+   */
+  protected onError(_error: unknown): void {}
+
+  /**
+   * Hook called in `terminate()` after the internal store is cleared.
+   *
+   * Fires after `this.#store.clear()`, before `onTerminate` is called.
+   */
+  protected onDispose(): void {}
 
   /**
    * Hook called during terminate() with the final snapshot.
@@ -223,8 +252,13 @@ export class ContextScope implements ContextScopeInterface {
     }
 
     this.onBeforeExecute();
-    const result = this.#storage.run(this.#store, fn);
-
+    let result: TResult;
+    try {
+      result = this.#storage.run(this.#store, fn);
+    } catch (error) {
+      this.onError(error);
+      throw error;
+    }
     this.onAfterExecute();
 
     return result;
@@ -249,6 +283,7 @@ export class ContextScope implements ContextScopeInterface {
     const snapshot = Object.fromEntries(this.#store);
 
     this.#store.clear();
+    this.onDispose();
 
     return this.onTerminate(snapshot);
   }

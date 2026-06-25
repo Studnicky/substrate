@@ -44,6 +44,22 @@ class ShiftLogBuffer<T> extends CircularBuffer<T> {
   }
 }
 
+class OverflowEvictOrderBuffer<T> extends CircularBuffer<T> {
+  readonly overflowLog: T[] = [];
+  readonly evictLog: T[] = [];
+  readonly eventLog: Array<{ 'event': string; 'item': T }> = [];
+
+  override onOverflow(item: T): void {
+    this.overflowLog.push(item);
+    this.eventLog.push({ 'event': 'overflow', 'item': item });
+  }
+
+  override onEvict(item: T): void {
+    this.evictLog.push(item);
+    this.eventLog.push({ 'event': 'evict', 'item': item });
+  }
+}
+
 class FullTraceBuffer<T> extends CircularBuffer<T> {
   readonly evictItems: T[] = [];
   readonly growEvents: number[] = [];
@@ -324,4 +340,55 @@ it('subclass can read _length, _head, _tail, _capacity, _items', () => {
   const state = buf.inspect();
   assert.strictEqual(state.length, 1);
   assert.strictEqual(state.capacity, 4);
+});
+
+// ── onOverflow scenarios ──────────────────────────────────────────────────────
+
+it('onOverflow is called with the incoming item when buffer is full (overwrite mode)', () => {
+  const buf = OverflowEvictOrderBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3); // overflow: incoming=3, evicts 1
+  assert.deepStrictEqual(buf.overflowLog, [3]);
+});
+
+it('onOverflow is not called when buffer is below capacity', () => {
+  const buf = OverflowEvictOrderBuffer.create<number>({ 'capacity': 4 });
+  buf.push(1);
+  buf.push(2);
+  assert.strictEqual(buf.overflowLog.length, 0);
+});
+
+it('onOverflow is not called in grow mode', () => {
+  const buf = OverflowEvictOrderBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3); // triggers grow, not overflow
+  assert.strictEqual(buf.overflowLog.length, 0);
+});
+
+it('onOverflow fires before onEvict: incoming item logged before outgoing item', () => {
+  const buf = OverflowEvictOrderBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3); // overflow incoming=3, evicts 1
+
+  assert.deepStrictEqual(buf.overflowLog, [3]);
+  assert.deepStrictEqual(buf.evictLog, [1]);
+
+  // Verify sequence: overflow fires before evict
+  assert.strictEqual(buf.eventLog[0]?.event, 'overflow');
+  assert.strictEqual(buf.eventLog[0]?.item, 3);
+  assert.strictEqual(buf.eventLog[1]?.event, 'evict');
+  assert.strictEqual(buf.eventLog[1]?.item, 1);
+});
+
+it('onOverflow fires on every overwrite push (multiple overflows)', () => {
+  const buf = OverflowEvictOrderBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3); // overflow
+  buf.push(4); // overflow
+  buf.push(5); // overflow
+  assert.deepStrictEqual(buf.overflowLog, [3, 4, 5]);
 });

@@ -70,15 +70,37 @@ export class VirtualClockProvider implements ClockProviderType {
     return result;
   }
 
+  // ---------------------------------------------------------------------------
+  // Lifecycle hooks — no-op by default. Override to add logging/tracing/metrics.
+  // Overrides must not throw or block.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fires after each `now()` call, with the virtual epoch-ms value (clamped
+   * to 0 if the counter is negative) that was returned to the caller.
+   */
+  protected onNow(_timestamp: number): void {}
+
+  /**
+   * Fires after each `hrtime()` call, with the virtual nanosecond bigint
+   * value that was returned to the caller.
+   */
+  protected onHrtime(_value: bigint): void {}
+
   /** Returns the virtual time in nanoseconds (epoch-ms * 1,000,000). */
   public hrtime(): bigint {
-    return BigInt(this.readVirtualMs()) * NS_PER_MS;
+    const result = BigInt(this.readVirtualMs()) * NS_PER_MS;
+
+    this.onHrtime(result);
+    return result;
   }
 
   /** Returns the virtual epoch-ms (always non-negative). */
   public now(): number {
     const ms = this.readVirtualMs();
+    const result = ms >= 0 ? ms : 0;
 
-    return ms >= 0 ? ms : 0;
+    this.onNow(result);
+    return result;
   }
 }

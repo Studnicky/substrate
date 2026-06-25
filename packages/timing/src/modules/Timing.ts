@@ -161,6 +161,8 @@ export class Timing implements TimingInterface {
         'name': 'initialize',
         'timestamp': this._startTime
       });
+
+      this.onInitialize(this._startTime);
     } catch (error) {
       // Re-throw ConfigurationError as-is
       if (error instanceof ConfigurationError) {
@@ -307,6 +309,8 @@ export class Timing implements TimingInterface {
    * ```
    */
   getEvents(): Record<string, number> {
+    this.onGetEvents(this._timingCache.size);
+
     const currentTime = this.readHrtime();
     const totalNs = currentTime - this._startTime;
     const durationMs = this.convertTime(totalNs, 'ms');
@@ -346,6 +350,12 @@ export class Timing implements TimingInterface {
    * @param _name - The name of the event being evicted
    */
   protected onEvict(_name: string): void { return; }
+
+  /** Fires after the instance is fully initialized. _startTime is the hrtime bigint captured at creation. */
+  protected onInitialize(_startTime: bigint): void { return; }
+
+  /** Fires at the start of each getEvents() call, before computing elapsed times. _eventCount is the number of entries in the cache at that moment. */
+  protected onGetEvents(_eventCount: number): void { return; }
 
   /**
    * Returns the current high-resolution time as a bigint nanosecond value.

@@ -32,8 +32,6 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
       topicMap = new Map<EventHandlerType<unknown>, BusQueue<unknown>>();
       this.#store.set(key, topicMap);
     }
-    // Single cast at the typed boundary — the runtime map is keyed by string,
-    // and per-K typing is enforced by the method signature above.
     return topicMap as Map<EventHandlerType<TTopicMap[K]>, BusQueue<TTopicMap[K]>>;
   }
 
@@ -63,10 +61,20 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
     }
 
     const queue = BusQueue.create<TTopicMap[K]>({
-      'handler': async (payload) => { await handler(payload, queueController.signal); },
+      'handler': async (payload) => {
+        await handler(payload, queueController.signal);
+        this.onDeliver(topic, payload);
+      },
+      'onDequeue': (_depth) => { this.onDequeue(topic); },
+      'onDrop': () => { this.onDrop(topic); },
+      'onEnqueue': (_depth) => { this.onEnqueue(topic); },
+      'onHandlerError': (err) => { this.onHandlerError(topic, err); },
+      'onOverflow': (depth) => { this.onOverflow(topic, depth); },
+      'onSlowConsumer': (depth, _hwm) => { this.onSlowConsumer(topic, depth); },
       'signal': queueController.signal
     });
     topicMap.set(handler, queue);
+    this.onSubscribe(topic);
 
     let unsubscribed = false;
     return (): void => {
@@ -75,12 +83,14 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
       this.#store.get(String(topic))?.delete(handler as EventHandlerType<unknown>);
       queueController.abort();
       this.#busController.signal.removeEventListener('abort', stopQueue);
+      this.onUnsubscribe(topic);
     };
   }
 
   async publish<K extends keyof TTopicMap>(topic: K, payload: TTopicMap[K]): Promise<void> {
     const topicMap = this.#store.get(String(topic));
     if (topicMap === undefined || topicMap.size === 0) { return; }
+    this.onPublish(topic, payload);
     await Promise.all([...topicMap.values()].map((q) => { const result = q.enqueue(payload); return result; }));
   }
 
@@ -93,7 +103,41 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
   }
 
   async close(): Promise<void> {
+    this.onDispose();
     this.#busController.abort();
     await this.drain();
   }
+
+  /** Fires when publish() is called for a topic (once per publish, before fan-out). */
+  protected onPublish<K extends keyof TTopicMap>(_topic: K, _payload: TTopicMap[K]): void {}
+
+  /** Fires when a subscriber is registered for a topic. */
+  protected onSubscribe<K extends keyof TTopicMap>(_topic: K): void {}
+
+  /** Fires when a subscriber is removed (unsubscribe fn called or signal aborted). */
+  protected onUnsubscribe<K extends keyof TTopicMap>(_topic: K): void {}
+
+  /** Fires after each individual event delivery to a handler (per-queue, per-event). */
+  protected onDeliver<K extends keyof TTopicMap>(_topic: K, _payload: TTopicMap[K]): void {}
+
+  /** Fires when a subscriber queue is at or above highWaterMark (backpressure). */
+  protected onSlowConsumer<K extends keyof TTopicMap>(_topic: K, _depth: number): void {}
+
+  /** Fires when a subscriber handler throws an error. */
+  protected onHandlerError<K extends keyof TTopicMap>(_topic: K, _error: unknown): void {}
+
+  /** Fires when the bus is closed (bus.close() called). */
+  protected onDispose(): void {}
+
+  /** Fires when an event is enqueued to a subscriber queue. */
+  protected onEnqueue<K extends keyof TTopicMap>(_topic: K): void {}
+
+  /** Fires when an event is dequeued from a subscriber queue for delivery. */
+  protected onDequeue<K extends keyof TTopicMap>(_topic: K): void {}
+
+  /** Fires when an event is dropped (queue aborted / subscriber gone). */
+  protected onDrop<K extends keyof TTopicMap>(_topic: K): void {}
+
+  /** Fires when overflow/backpressure begins on a subscriber queue. */
+  protected onOverflow<K extends keyof TTopicMap>(_topic: K, _depth: number): void {}
 }

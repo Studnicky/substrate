@@ -140,6 +140,35 @@ export class Context implements ContextInterface {
   ): void {}
 
   /**
+   * Hook called after `set()` stores a value in the context.
+   *
+   * Subclasses override to observe or trace write operations.
+   *
+   * @param _key - The key that was set
+   * @param _value - The value that was stored
+   */
+  protected onSet(_key: string, _value: unknown): void {}
+
+  /**
+   * Hook called after a successful `get()` retrieval.
+   *
+   * Only fires when the key exists and the value is returned.
+   * Does NOT fire for `tryGet()` (that is a silent path).
+   *
+   * @param _key - The key that was retrieved
+   * @param _value - The value that was returned
+   */
+  protected onGet(_key: string, _value: unknown): void {}
+
+  /**
+   * Hook called after `delete()` removes (or attempts to remove) a key.
+   *
+   * @param _key - The key that was targeted
+   * @param _existed - Whether the key existed before deletion
+   */
+  protected onDelete(_key: string, _existed: boolean): void {}
+
+  /**
    * Removes a value from the context.
    *
    * @param key - The key to remove
@@ -148,6 +177,7 @@ export class Context implements ContextInterface {
    */
   delete(key: string): boolean {
     const result = this.getStore().delete(key);
+    this.onDelete(key, result);
     return result;
   }
 
@@ -167,7 +197,9 @@ export class Context implements ContextInterface {
       throw new ContextError(`Key '${key}' not found in ${this.name} context`);
     }
 
-    return store.get(key) as T;
+    const value = store.get(key) as T;
+    this.onGet(key, value);
+    return value;
   }
 
   /**
@@ -239,6 +271,7 @@ export class Context implements ContextInterface {
    */
   set<T>(key: string, value: T): void {
     this.getStore().set(key, value);
+    this.onSet(key, value);
   }
 
   /**

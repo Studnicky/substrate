@@ -29,8 +29,11 @@ import { SampleBufferBuilder } from './SampleBufferBuilder.js';
  * unless the subclass needs base behavior.
  *
  * Fire points:
+ * - `onOverflow(value)` — start of full-buffer push path, before eviction
  * - `onEvict(oldValue)` — before overwrite in the full-buffer push path
  * - `onPush(value, evicted)` — end of push(), after length/head updated
+ * - `onComputeStart(length)` — start of buildSortedSamples(), before sort
+ * - `onComputeComplete(length, sorted)` — end of buildSortedSamples(), after sort
  * - `onClear()` — start of clear(), before state is reset
  * - `onPercentile(pct, result)` — before returning from percentile()
  *
@@ -109,6 +112,8 @@ export class SampleBuffer implements SampleBufferInterface {
    * customize the sort or sample extraction.
    */
   protected buildSortedSamples(): number[] {
+    this.onComputeStart(this._length);
+
     const result: number[] = Array.from<number>({ 'length': this._length });
 
     for (let i = FIRST_ARRAY_INDEX; i < this._length; i++) {
@@ -119,9 +124,11 @@ export class SampleBuffer implements SampleBufferInterface {
       result[i] = this._samples[index]!;
     }
 
-    return result.sort((left, right) => {
+    result.sort((left, right) => {
       return left - right;
     });
+    this.onComputeComplete(this._length, result);
+    return result;
   }
 
   /**
@@ -162,6 +169,15 @@ export class SampleBuffer implements SampleBufferInterface {
   }
 
   /**
+   * Called at the start of the full-buffer push path, before any eviction.
+   * Receives the incoming sample value that triggered the overflow.
+   * No-op default — override to observe buffer overflow events.
+   *
+   * @param _value - The incoming sample value that caused the overflow
+   */
+  protected onOverflow(_value: number): void {}
+
+  /**
    * Called at the end of push(), after the sample has been stored and
    * length/head updated.
    * No-op default — override to observe pushes.
@@ -185,6 +201,25 @@ export class SampleBuffer implements SampleBufferInterface {
   protected onPercentile(_pct: number, _result: number): void {
     // no-op
   }
+
+  /**
+   * Called at the start of buildSortedSamples(), before sorting.
+   * Fires on a cache miss in percentile() — indicates a sort is about to run.
+   * No-op default — override to observe sort/compute start events.
+   *
+   * @param _length - Number of samples about to be sorted
+   */
+  protected onComputeStart(_length: number): void {}
+
+  /**
+   * Called at the end of buildSortedSamples(), after sorting is complete.
+   * Fires on a cache miss in percentile() — the result is the freshly sorted array.
+   * No-op default — override to observe sort/compute completion.
+   *
+   * @param _length - Number of samples that were sorted
+   * @param _sorted - The sorted sample array (do not mutate)
+   */
+  protected onComputeComplete(_length: number, _sorted: readonly number[]): void {}
 
   /**
    * Calculate a percentile from the buffered samples using linear interpolation
@@ -254,6 +289,7 @@ export class SampleBuffer implements SampleBufferInterface {
       this.onPush(value, false);
     } else {
       // Buffer full - overwrite oldest (at head position)
+      this.onOverflow(value);
       const oldValue = this._samples[this._head]!;
       this.onEvict(oldValue);
       this._samples[this._head] = value;

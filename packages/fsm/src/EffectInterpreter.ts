@@ -81,10 +81,13 @@ export class EffectInterpreter<
     this.#currentState = this.#machine.getInitialState();
     this.#running = true;
     this.#notifyObservers();
+    this.onStart(this.#currentState);
   }
 
   stop(): void {
+    const state = this.#currentState;
     this.#running = false;
+    this.onStop(state);
   }
 
   getState(): TState {
@@ -98,6 +101,7 @@ export class EffectInterpreter<
     if (!this.#running) {
       throw new InterpreterNotRunningError(`EffectInterpreter '${this.#machineId}' not running — call start() first`);
     }
+    this.onEnqueue(event);
     this.#mailbox.push(event);
     if (!this.#draining) { await this.#drain(); }
   }
@@ -107,6 +111,38 @@ export class EffectInterpreter<
     return () => { this.#observers.delete(observer); };
   }
 
+  // ---------------------------------------------------------------------------
+  // Lifecycle hooks — no-op by default. The bare class does NO observability;
+  // override to add logging/tracing/metrics. Overrides must not throw or block.
+  // ---------------------------------------------------------------------------
+
+  /** Fires when the interpreter starts and the initial state is set. */
+  protected onStart(_state: TState): void {}
+
+  /** Fires when the interpreter is stopped. Receives the last known state. */
+  protected onStop(_state: TState | undefined): void {}
+
+  /** Fires when an event is enqueued in the mailbox. */
+  protected onEnqueue(_event: TEvent): void {}
+
+  /** Fires when the interpreter transitions to a new state variant. */
+  protected onTransition(_from: TState, _to: TState, _event: TEvent): void {}
+
+  /** Fires when entering a new state variant (after commit). */
+  protected onEnterState(_state: TState): void {}
+
+  /** Fires when exiting a state variant (before commit). */
+  protected onExitState(_state: TState): void {}
+
+  /** Fires before invoking an effect handler. */
+  protected onEffectStart(_effect: TEffect): void {}
+
+  /** Fires after an effect handler resolves successfully. */
+  protected onEffectSuccess(_effect: TEffect): void {}
+
+  /** Fires when an effect handler throws. */
+  protected onEffectError(_effect: TEffect, _error: Error): void {}
+
   async #drain(): Promise<void> {
     this.#draining = true;
     while (this.#mailbox.length > 0) {
@@ -115,17 +151,35 @@ export class EffectInterpreter<
       const currentState = this.#currentState;
       if (currentState === undefined) { break; }
       const step = this.#machine.transition(currentState, event);
+      const prevState = currentState;
       this.#currentState = step.state;
+      if (prevState.variant !== step.state.variant) {
+        this.onExitState(prevState);
+        this.onTransition(prevState, step.state, event);
+        this.onEnterState(step.state);
+      }
       this.#notifyObservers();
       for (const effect of step.effects) {
         const variantKey = effect.variant as keyof EffectHandlerMapType<TEffect>;
         const handler = this.#handlers[variantKey];
         if (handler !== undefined) {
-          await handler(effect as Extract<TEffect, { 'variant': typeof variantKey }>);
+          await this.#invokeHandler(effect, handler as (e: TEffect) => Promise<void> | void);
         }
       }
     }
     this.#draining = false;
+  }
+
+  async #invokeHandler(effect: TEffect, handler: (e: TEffect) => Promise<void> | void): Promise<void> {
+    this.onEffectStart(effect);
+    try {
+      await handler(effect);
+      this.onEffectSuccess(effect);
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      this.onEffectError(effect, error);
+      throw error;
+    }
   }
 
   #notifyObservers(): void {

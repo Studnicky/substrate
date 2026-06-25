@@ -17,11 +17,32 @@ type NodeType<K> = {
 
 const noExpiry = 0;
 
-/** In-process LRU + TTL cache with O(1) promotion on read. */
+/**
+ * In-process LRU + TTL cache with O(1) promotion on read.
+ *
+ * The base class performs NO observability of its own — it exposes protected
+ * lifecycle hooks that a consumer overrides to add logging, timing, or metrics.
+ * Overrides must not throw or block; hooks are called synchronously and
+ * exceptions propagate to the caller.
+ *
+ * @example Adding observability via hooks
+ * ```typescript
+ * class ObservedCache extends LruCache<string, number> {
+ *   protected override onHit(key: string, value: number): void {
+ *     console.log(`[cache] hit key=${key} value=${value}`);
+ *   }
+ *   protected override onMiss(key: string): void {
+ *     console.log(`[cache] miss key=${key}`);
+ *   }
+ * }
+ * ```
+ */
 export class LruCache<K, V> {
   readonly #capacity: number;
   readonly #defaultTtlMs: number | undefined;
   readonly #entries: Map<string, EntryType<V>>;
+  /** Maps internal (prefixed) string key → original caller key, for use in hooks. */
+  readonly #keyMap: Map<string, K>;
   readonly #nodes: Map<string, NodeType<string>>;
   readonly #prefix: string;
   #head: NodeType<string> | undefined;
@@ -49,11 +70,60 @@ export class LruCache<K, V> {
     this.#capacity = options.capacity;
     this.#defaultTtlMs = options.ttlMs;
     this.#entries = new Map();
+    this.#keyMap = new Map();
     this.#nodes = new Map();
     this.#prefix = options.prefix ?? '';
     this.#head = undefined;
     this.#tail = undefined;
   }
+
+  // ---------------------------------------------------------------------------
+  // Lifecycle hooks — no-op by default. The bare class does NO observability;
+  // override these to add logging, timing, or metrics. Overrides must not throw
+  // or block; hooks fire synchronously after the relevant state mutation.
+  // ---------------------------------------------------------------------------
+
+  /** Fires when `get()` finds a live, non-expired entry. */
+  protected onHit(_key: K, _value: V): void {}
+
+  /**
+   * Fires when `get()` returns undefined — either because the key is absent or
+   * because the entry was expired and lazily evicted. Use `onExpire` to
+   * distinguish expired entries.
+   */
+  protected onMiss(_key: K): void {}
+
+  /** Fires when `set()` inserts a NEW key (key was not previously present). */
+  protected onSet(_key: K): void {}
+
+  /** Fires when `set()` overwrites the value for an EXISTING key. */
+  protected onUpdate(_key: K): void {}
+
+  /**
+   * Fires when an entry is removed to make room for a new one (capacity
+   * eviction of the LRU tail). The evicted key is the one removed, not the
+   * one being inserted.
+   */
+  protected onEvict(_key: K, _reason: 'capacity'): void {}
+
+  /**
+   * Fires when `get()` or `has()` encounters an entry whose TTL has elapsed
+   * and lazily removes it. Called before the entry is dropped, while the key
+   * is still known.
+   */
+  protected onExpire(_key: K): void {}
+
+  /**
+   * Fires when `delete()` removes an entry that actually existed. Not called
+   * when delete() is a no-op for an absent key.
+   */
+  protected onDelete(_key: K): void {}
+
+  /**
+   * Fires when `clear()` empties the cache. `count` is the number of entries
+   * present (including expired-but-not-yet-evicted ones) before the wipe.
+   */
+  protected onClear(_count: number): void {}
 
   /** Includes expired entries not yet lazily evicted. */
   public get size(): number {
@@ -67,15 +137,19 @@ export class LruCache<K, V> {
     const entry = this.#entries.get(internalKey);
 
     if (entry === undefined) {
+      this.onMiss(key);
       return undefined;
     }
 
     if (LruCache.isExpired(entry)) {
+      this.onExpire(key);
       this.removeEntry(internalKey);
+      this.onMiss(key);
       return undefined;
     }
 
     this.promoteToHead(internalKey);
+    this.onHit(key, entry.value);
 
     return entry.value;
   }
@@ -103,6 +177,7 @@ export class LruCache<K, V> {
       existing.expiresAt = expiresAt;
       existing.value = value;
       this.promoteToHead(internalKey);
+      this.onUpdate(key);
       return;
     }
 
@@ -116,6 +191,7 @@ export class LruCache<K, V> {
     };
 
     this.#entries.set(internalKey, entry);
+    this.#keyMap.set(internalKey, key);
 
     const node: NodeType<string> = {
       'key': internalKey,
@@ -125,6 +201,7 @@ export class LruCache<K, V> {
 
     this.#nodes.set(internalKey, node);
     this.insertAtHead(node);
+    this.onSet(key);
   }
 
   /** Returns true if key exists and has not expired; lazily evicts expired entries. */
@@ -137,6 +214,7 @@ export class LruCache<K, V> {
     }
 
     if (LruCache.isExpired(entry)) {
+      this.onExpire(key);
       this.removeEntry(internalKey);
       return false;
     }
@@ -150,16 +228,20 @@ export class LruCache<K, V> {
 
     if (existed) {
       this.removeEntry(internalKey);
+      this.onDelete(key);
     }
 
     return existed;
   }
 
   public clear(): void {
+    const count = this.#entries.size;
     this.#entries.clear();
+    this.#keyMap.clear();
     this.#nodes.clear();
     this.#head = undefined;
     this.#tail = undefined;
+    this.onClear(count);
   }
 
   private static isExpired<V>(entry: EntryType<V>): boolean {
@@ -223,6 +305,7 @@ export class LruCache<K, V> {
 
   private removeEntry(key: string): void {
     this.#entries.delete(key);
+    this.#keyMap.delete(key);
     const node = this.#nodes.get(key);
 
     if (node !== undefined) {
@@ -232,12 +315,18 @@ export class LruCache<K, V> {
   }
 
   private evictTail(key: string): void {
+    const originalKey = this.#keyMap.get(key);
     this.#entries.delete(key);
+    this.#keyMap.delete(key);
     const node = this.#nodes.get(key);
 
     if (node !== undefined) {
       this.unlinkNode(node);
       this.#nodes.delete(key);
+    }
+
+    if (originalKey !== undefined) {
+      this.onEvict(originalKey, 'capacity');
     }
   }
 }
