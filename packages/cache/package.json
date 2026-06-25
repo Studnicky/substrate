@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/cache",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "In-process LRU + TTL cache with O(1) promotion",
   "type": "module",
   "sideEffects": false,

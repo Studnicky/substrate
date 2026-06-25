@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/signal",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "AbortSignal composition: compose, timeout sentinel, and never-aborting reference",
   "type": "module",
   "sideEffects": false,
