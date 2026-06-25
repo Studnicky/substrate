@@ -5,7 +5,7 @@ description: CPU, GPU, memory, and platform introspection for Node.js processes.
 
 # @studnicky/system
 
-> Static host-system inspection — CPU topology, GPU detection (Metal/CUDA/ROCm), memory, and platform info.
+> Static host-system inspection: CPU topology, GPU detection (Metal/CUDA/ROCm), memory, and platform info.
 
 ## Install
 
@@ -25,7 +25,7 @@ Read CPU topology, memory usage, and platform info synchronously, plus computed 
 
 ### GPU detection and full snapshot
 
-GPU detection is async — it shells out to `system_profiler` (macOS), `nvidia-smi` (Linux NVIDIA), or `rocm-smi` (Linux AMD). Results are cached after the first call. `System.snapshot()` returns all four info objects together:
+GPU detection is async: it shells out to `system_profiler` (macOS), `nvidia-smi` (Linux NVIDIA), or `rocm-smi` (Linux AMD). Results are cached after the first call. `System.snapshot()` returns all four info objects together:
 
 <<< ../../packages/system/examples/snapshot.ts#usage
 
@@ -49,7 +49,7 @@ GPU detection is async — it shells out to `system_profiler` (macOS), `nvidia-s
 | `platform` | `static get platform(): PlatformInfoType` | OS, Node.js version, Apple Silicon flag |
 | `gpu` | `static gpu(): Promise<GpuInfoType \| null>` | Detects GPU; returns `null` when unavailable; cached after first call |
 | `logicalCpuCount` | `static get logicalCpuCount(): number` | Shorthand for `System.cpu.logicalCount` |
-| `optimalWorkerCount` | `static get optimalWorkerCount(): number` | `max(1, logicalCpuCount - 1)` — leaves one core for the event loop |
+| `optimalWorkerCount` | `static get optimalWorkerCount(): number` | `max(1, logicalCpuCount - 1)` (leaves one core for the event loop) |
 | `isAppleSilicon` | `static get isAppleSilicon(): boolean` | True on `darwin`/`arm64` |
 | `snapshot` | `static snapshot(): Promise<SystemInfoType>` | Returns all info as a single object |
 

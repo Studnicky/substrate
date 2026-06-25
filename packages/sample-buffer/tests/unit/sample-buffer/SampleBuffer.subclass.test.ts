@@ -259,6 +259,128 @@ it('onPercentile is called for p0 and p100 edge cases', () => {
   assert.equal(buf.percentileLog[1]?.pct, 100);
 });
 
+// ── onOverflow scenarios ─────────────────────────────────────────────────────
+
+class OverflowTracker extends SampleBuffer {
+  readonly overflowValues: number[] = [];
+
+  override onOverflow(value: number): void {
+    this.overflowValues.push(value);
+  }
+}
+
+it('onOverflow is not called when buffer is not full', () => {
+  const buf = OverflowTracker.create({ 'capacity': 3 });
+  buf.push(1);
+  buf.push(2);
+  assert.equal(buf.overflowValues.length, 0);
+});
+
+it('onOverflow is called when buffer is full', () => {
+  const buf = OverflowTracker.create({ 'capacity': 3 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+  buf.push(4); // overflow
+  assert.equal(buf.overflowValues.length, 1);
+  assert.equal(buf.overflowValues[0], 4);
+});
+
+it('onOverflow is called before onEvict', () => {
+  class OverflowEvictOrder extends SampleBuffer {
+    readonly events: string[] = [];
+
+    override onOverflow(value: number): void {
+      this.events.push(`overflow:${String(value)}`);
+    }
+
+    override onEvict(oldValue: number): void {
+      this.events.push(`evict:${String(oldValue)}`);
+    }
+  }
+
+  const buf = OverflowEvictOrder.create({ 'capacity': 2 });
+  buf.push(10);
+  buf.push(20);
+  buf.push(30); // overflow evicts 10
+  assert.deepStrictEqual(buf.events, ['overflow:30', 'evict:10']);
+});
+
+it('onOverflow receives the incoming value (not the evicted value)', () => {
+  const buf = OverflowTracker.create({ 'capacity': 2 });
+  buf.push(10);
+  buf.push(20);
+  buf.push(30); // overflow, incoming=30, evicted=10
+  assert.equal(buf.overflowValues[0], 30);
+});
+
+// ── onComputeStart / onComputeComplete scenarios ──────────────────────────────
+
+class ComputeAudit extends SampleBuffer {
+  readonly computeStartLengths: number[] = [];
+  readonly computeCompletes: Array<{ 'length': number; 'sorted': readonly number[] }> = [];
+
+  override onComputeStart(length: number): void {
+    this.computeStartLengths.push(length);
+  }
+
+  override onComputeComplete(length: number, sorted: readonly number[]): void {
+    this.computeCompletes.push({ 'length': length, 'sorted': sorted });
+  }
+}
+
+it('onComputeStart is not called when buffer is empty', () => {
+  const buf = ComputeAudit.create({ 'capacity': 5 });
+  buf.percentile(50);
+  assert.equal(buf.computeStartLengths.length, 0);
+});
+
+it('onComputeStart fires once per cache miss', () => {
+  const buf = ComputeAudit.create({ 'capacity': 5 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+  buf.percentile(50);
+  buf.percentile(50); // cache hit — no second compute
+  assert.equal(buf.computeStartLengths.length, 1);
+});
+
+it('onComputeStart receives the current sample count', () => {
+  const buf = ComputeAudit.create({ 'capacity': 5 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+  buf.percentile(50);
+  assert.equal(buf.computeStartLengths[0], 3);
+});
+
+it('onComputeComplete fires once per cache miss with sorted result', () => {
+  const buf = ComputeAudit.create({ 'capacity': 5 });
+  buf.push(30);
+  buf.push(10);
+  buf.push(20);
+  buf.percentile(50);
+  assert.equal(buf.computeCompletes.length, 1);
+  assert.deepStrictEqual(buf.computeCompletes[0]?.sorted, [10, 20, 30]);
+});
+
+it('onComputeComplete is not called when buffer is empty', () => {
+  const buf = ComputeAudit.create({ 'capacity': 5 });
+  buf.percentile(50);
+  assert.equal(buf.computeCompletes.length, 0);
+});
+
+it('onComputeStart fires again after cache is invalidated by push', () => {
+  const buf = ComputeAudit.create({ 'capacity': 5 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+  buf.percentile(50); // cache miss — fires
+  buf.push(4);        // invalidates cache
+  buf.percentile(50); // cache miss again — fires
+  assert.equal(buf.computeStartLengths.length, 2);
+});
+
 // ── Protected field access ────────────────────────────────────────────────────
 
 it('subclass can read _length, _capacity, _head, _samples, _sortedCache', () => {

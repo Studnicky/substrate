@@ -29,6 +29,6 @@ pnpm add @studnicky/types
 
 ## Extending
 
-`Guard` is a pure-static class. Extend it and `static override isRecord` to customise record detection — `asRecord` and `asRecordArray` delegate through `this.isRecord`, so overrides propagate automatically. The subclass pattern is demonstrated in the usage example above.
+`Guard` is a pure-static class. Extend it and `static override isRecord` to customise record detection; `asRecord` and `asRecordArray` delegate through `this.isRecord`, so overrides propagate automatically. The subclass pattern is demonstrated in the usage example above.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/types)

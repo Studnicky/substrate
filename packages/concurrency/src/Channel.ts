@@ -39,12 +39,18 @@ export class Channel<T> {
         notify();
       }
     }
+    this.onClose();
   }
 
   publish(key: string, item: T): void {
-    if (this.#closed) { return; }
+    if (this.#closed) {
+      this.onPublishDropped(key, item);
+      return;
+    }
     const ch = this.#getOrCreate(key);
     ch.buffer.push(item);
+    this.onEnqueue(key, item);
+    this.onSend(key, item);
     if (ch.notify !== null) {
       const notify = ch.notify;
       ch.notify = null;
@@ -58,7 +64,12 @@ export class Channel<T> {
 
     while (true) {
       const item = ch.buffer.shift();
-      if (item !== undefined) { yield item; continue; }
+      if (item !== undefined) {
+        this.onDequeue(key, item);
+        this.onReceive(key, item);
+        yield item;
+        continue;
+      }
       if (ch.closed) { return; }
       await new Promise<void>((resolve) => { ch.notify = resolve; });
     }
@@ -71,4 +82,40 @@ export class Channel<T> {
     this.#channels.set(key, fresh);
     return fresh;
   }
+
+  /**
+   * Fires in publish() right after ch.buffer.push(item) — item landed in buffer.
+   * Overrides must not throw or block.
+   */
+  protected onEnqueue(_key: string, _item: T): void {}
+
+  /**
+   * Fires in publish() when channel is open, after buffer push (before notify).
+   * Overrides must not throw or block.
+   */
+  protected onSend(_key: string, _item: T): void {}
+
+  /**
+   * Fires in subscribe() right after buffer.shift() succeeds — item dequeued.
+   * Overrides must not throw or block.
+   */
+  protected onDequeue(_key: string, _item: T): void {}
+
+  /**
+   * Fires in subscribe() after shift() confirms item present, before yield.
+   * Overrides must not throw or block.
+   */
+  protected onReceive(_key: string, _item: T): void {}
+
+  /**
+   * Fires in publish() when #closed is true (item silently dropped).
+   * Overrides must not throw or block.
+   */
+  protected onPublishDropped(_key: string, _item: T): void {}
+
+  /**
+   * Fires in close(), after closing and notifying all keys.
+   * Overrides must not throw or block.
+   */
+  protected onClose(): void {}
 }

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/signal",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AbortSignal composition: compose, timeout sentinel, and never-aborting reference",
   "type": "module",
   "sideEffects": false,
@@ -13,7 +13,12 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
@@ -21,12 +26,30 @@
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/signal" },
-  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/signal"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
   "homepage": "https://studnicky.github.io/substrate/packages/signal",
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
-  "keywords": ["abort", "signal", "abortsignal", "cancellation", "timeout", "typescript"],
-  "engines": { "node": ">=24.0.0" },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "keywords": [
+    "abort",
+    "signal",
+    "abortsignal",
+    "cancellation",
+    "timeout",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "dependencies": {
     "@studnicky/errors": "workspace:*"
   }

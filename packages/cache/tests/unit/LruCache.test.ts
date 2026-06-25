@@ -260,3 +260,208 @@ it('setMany: existing key in batch is updated and promoted to MRU', () => {
   assert.equal(cache.get('c'), 3);
   assert.equal(cache.get('d'), 4);
 });
+
+// ---------------------------------------------------------------------------
+// Lifecycle hooks — recording subclass
+// ---------------------------------------------------------------------------
+
+type HookEventType =
+  | { 'event': 'hit'; 'key': string; 'value': number }
+  | { 'event': 'miss'; 'key': string }
+  | { 'event': 'set'; 'key': string }
+  | { 'event': 'update'; 'key': string }
+  | { 'event': 'evict'; 'key': string; 'reason': 'capacity' }
+  | { 'event': 'expire'; 'key': string }
+  | { 'event': 'delete'; 'key': string }
+  | { 'event': 'clear'; 'count': number };
+
+class RecordingCache extends LruCache<string, number> {
+  readonly log: HookEventType[] = [];
+
+  protected override onHit(key: string, value: number): void {
+    this.log.push({ 'event': 'hit', 'key': key, 'value': value });
+  }
+
+  protected override onMiss(key: string): void {
+    this.log.push({ 'event': 'miss', 'key': key });
+  }
+
+  protected override onSet(key: string): void {
+    this.log.push({ 'event': 'set', 'key': key });
+  }
+
+  protected override onUpdate(key: string): void {
+    this.log.push({ 'event': 'update', 'key': key });
+  }
+
+  protected override onEvict(key: string, reason: 'capacity'): void {
+    this.log.push({ 'event': 'evict', 'key': key, 'reason': reason });
+  }
+
+  protected override onExpire(key: string): void {
+    this.log.push({ 'event': 'expire', 'key': key });
+  }
+
+  protected override onDelete(key: string): void {
+    this.log.push({ 'event': 'delete', 'key': key });
+  }
+
+  protected override onClear(count: number): void {
+    this.log.push({ 'event': 'clear', 'count': count });
+  }
+}
+
+const hookScenarios: Array<{ description: string; exec: () => void | Promise<void> }> = [
+  {
+    description: 'onMiss fires when get() finds no entry',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.get('absent');
+      assert.equal(cache.log.length, 1);
+      assert.deepEqual(cache.log[0], { 'event': 'miss', 'key': 'absent' });
+    },
+  },
+  {
+    description: 'onSet fires when a new key is inserted',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.set('a', 1);
+      assert.equal(cache.log.length, 1);
+      assert.deepEqual(cache.log[0], { 'event': 'set', 'key': 'a' });
+    },
+  },
+  {
+    description: 'onHit fires on get() for a live entry',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.set('a', 42);
+      cache.log.length = 0; // clear set event
+      cache.get('a');
+      assert.equal(cache.log.length, 1);
+      assert.deepEqual(cache.log[0], { 'event': 'hit', 'key': 'a', 'value': 42 });
+    },
+  },
+  {
+    description: 'onUpdate fires when set() overwrites an existing key',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.set('a', 1);
+      cache.log.length = 0;
+      cache.set('a', 2);
+      assert.equal(cache.log.length, 1);
+      assert.deepEqual(cache.log[0], { 'event': 'update', 'key': 'a' });
+    },
+  },
+  {
+    description: 'onEvict fires with reason "capacity" when LRU tail is removed',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 2 });
+      cache.set('first', 1);
+      cache.set('second', 2);
+      cache.log.length = 0;
+      cache.set('third', 3); // evicts 'first'
+      const evictEvents = cache.log.filter((e) => { return e.event === 'evict'; });
+      assert.equal(evictEvents.length, 1);
+      assert.deepEqual(evictEvents[0], { 'event': 'evict', 'key': 'first', 'reason': 'capacity' });
+    },
+  },
+  {
+    description: 'onDelete fires when delete() removes an existing entry',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.set('k', 5);
+      cache.log.length = 0;
+      cache.delete('k');
+      assert.equal(cache.log.length, 1);
+      assert.deepEqual(cache.log[0], { 'event': 'delete', 'key': 'k' });
+    },
+  },
+  {
+    description: 'onDelete does NOT fire when delete() is called on absent key',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.delete('nonexistent');
+      assert.equal(cache.log.length, 0);
+    },
+  },
+  {
+    description: 'onClear fires with correct count of entries present before clear',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.set('a', 1);
+      cache.set('b', 2);
+      cache.set('c', 3);
+      cache.log.length = 0;
+      cache.clear();
+      assert.equal(cache.log.length, 1);
+      assert.deepEqual(cache.log[0], { 'event': 'clear', 'count': 3 });
+    },
+  },
+  {
+    description: 'onClear fires with count 0 when cache is already empty',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.clear();
+      assert.equal(cache.log.length, 1);
+      assert.deepEqual(cache.log[0], { 'event': 'clear', 'count': 0 });
+    },
+  },
+  {
+    description: 'onExpire and onMiss both fire (in that order) when get() hits an expired entry',
+    exec: async () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.set('x', 7, 1); // 1 ms TTL
+      cache.log.length = 0;
+      await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
+      const result = cache.get('x');
+      assert.equal(result, undefined);
+      assert.equal(cache.log.length, 2);
+      assert.deepEqual(cache.log[0], { 'event': 'expire', 'key': 'x' });
+      assert.deepEqual(cache.log[1], { 'event': 'miss', 'key': 'x' });
+    },
+  },
+  {
+    description: 'onExpire fires when has() encounters an expired entry',
+    exec: async () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.set('y', 9, 1); // 1 ms TTL
+      cache.log.length = 0;
+      await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
+      const present = cache.has('y');
+      assert.equal(present, false);
+      const expireEvents = cache.log.filter((e) => { return e.event === 'expire'; });
+      assert.equal(expireEvents.length, 1);
+      assert.deepEqual(expireEvents[0], { 'event': 'expire', 'key': 'y' });
+    },
+  },
+  {
+    description: 'set-vs-update: onSet fires for new key, onUpdate fires for overwrite (never both)',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 10 });
+      cache.set('k', 1); // new → onSet
+      cache.set('k', 2); // overwrite → onUpdate
+      const sets = cache.log.filter((e) => { return e.event === 'set'; });
+      const updates = cache.log.filter((e) => { return e.event === 'update'; });
+      assert.equal(sets.length, 1);
+      assert.equal(updates.length, 1);
+    },
+  },
+  {
+    description: 'onEvict fires with the correct evicted key, not the inserted key',
+    exec: () => {
+      const cache = new RecordingCache({ 'capacity': 1 });
+      cache.set('lru', 0);
+      cache.log.length = 0;
+      cache.set('new', 1);
+      const evictEvents = cache.log.filter((e) => { return e.event === 'evict'; });
+      assert.equal(evictEvents.length, 1);
+      if (evictEvents[0]?.event === 'evict') {
+        assert.equal(evictEvents[0].key, 'lru');
+      }
+    },
+  },
+];
+
+for (const { description, exec } of hookScenarios) {
+  it(description, exec);
+}

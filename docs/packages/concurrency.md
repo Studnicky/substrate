@@ -1,6 +1,6 @@
 ---
 title: '@studnicky/concurrency'
-description: Async concurrency primitives — channels, semaphores, coalescing, and iterable utilities.
+description: "Async concurrency primitives: channels, semaphores, coalescing, and iterable utilities."
 ---
 
 # @studnicky/concurrency
@@ -23,17 +23,55 @@ Channel provides keyed producer/consumer buffering; Semaphore gates concurrent a
 
 <<< ../../packages/concurrency/examples/channelSemaphore.ts#usage
 
-### Coalesce — deduplicate concurrent calls by key
+### Coalesce: deduplicate concurrent calls by key
 
 All concurrent callers for the same key share a single in-flight promise; sequential callers each invoke the factory independently:
 
 <<< ../../packages/concurrency/examples/coalesce.ts#usage
 
-### AsyncIter — merge, filter, enrich
+### AsyncIter: merge, filter, enrich
 
 Compose async iterables with FIFO merge, sync/async predicate filter, and left-join enrichment:
 
 <<< ../../packages/concurrency/examples/asyncIter.ts#usage
+
+## Observability hooks
+
+Each class exposes protected hook methods you can override in a subclass to observe
+internal lifecycle events without modifying the class logic.
+
+### Semaphore hooks
+
+| Hook | When it fires | Args |
+|------|--------------|------|
+| `onAcquire` | Permit granted immediately | `permitsBefore: number` |
+| `onAcquireWait` | Caller queued (no permit available) | — |
+| `onContended` | New waiter added to queue | `queueLength: number` |
+| `onRelease` | Permit returned to pool (no waiting callers) | `permitsAfter: number` |
+| `onReleaseDelegated` | Permit handed to queued waiter | — |
+
+### Channel hooks
+
+| Hook | When it fires | Args |
+|------|--------------|------|
+| `onEnqueue` | Item added to buffer | `key: string, item: T` |
+| `onSend` | Publish succeeds (channel open) | `key: string, item: T` |
+| `onDequeue` | Item removed from buffer by subscriber | `key: string, item: T` |
+| `onReceive` | Subscriber yields an item | `key: string, item: T` |
+| `onPublishDropped` | Publish attempted on closed channel | `key: string, item: T` |
+| `onClose` | Channel closes (all keys) | — |
+
+### Coalesce hooks
+
+| Hook | When it fires | Args |
+|------|--------------|------|
+| `onCoalesceStart` | Leader caller invokes the factory | `key: string` |
+| `onCoalesceJoin` | Caller joined an in-flight call | `key: string` |
+| `onCoalesceSettled` | In-flight promise settled | `key: string, success: boolean` |
+
+<<< ../../packages/concurrency/examples/observedConcurrency.ts#usage
+
+The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 ## API
 

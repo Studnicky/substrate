@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/event-bus",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Typed async pub/sub with per-subscriber backpressure via BusQueue",
   "type": "module",
   "sideEffects": false,
@@ -30,6 +30,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
   "license": "MIT",

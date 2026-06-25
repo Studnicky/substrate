@@ -5,7 +5,7 @@ description: The three design principles behind every Substrate primitive.
 
 # Architecture
 
-Every Substrate class is designed around three principles. Together they ensure every primitive is safe to use directly and safe to subclass — with no coupling to any external infrastructure.
+Every Substrate class is designed around three principles. Together they ensure every primitive is safe to use directly and safe to subclass, with no coupling to any external infrastructure.
 
 ## 1. Subclass-first seams
 
@@ -13,9 +13,9 @@ Public methods delegate to protected lifecycle hooks with no-op defaults. The ho
 
 ```
 public method(args) {
-  this.onBefore(args);      // protected hook — no-op default
+  this.onBefore(args);      // protected hook (no-op default)
   const result = doWork();
-  this.onAfter(result);     // protected hook — no-op default
+  this.onAfter(result);     // protected hook (no-op default)
   return result;
 }
 ```
@@ -52,7 +52,7 @@ const retry = Retry.create({ maxRetries: 3 });
 await retry.execute(async () => doWork());
 ```
 
-And in production you extend once per application boundary — the extension carries the logger reference:
+In production, extend once per application boundary; the extension carries the logger reference:
 
 <!-- inline-ts-ok: conceptual production-extension illustration with an external Logger dependency; demonstrates the boundary pattern, not an in-repo runnable example -->
 ```typescript
@@ -69,22 +69,22 @@ class AppRetry extends Retry {
 
 ## 3. No exported singletons
 
-Every stateful class is `new`-able and injectable. Static helpers on domain classes are pure-static utility classes — no module-level mutable state:
+Every stateful class is `new`-able and injectable. Static helpers on domain classes are pure-static utility classes with no module-level mutable state:
 
 <!-- inline-ts-ok: conceptual cross-package overview contrasting stateful constructors with pure-static utilities; spans many packages, not a single in-repo runnable example -->
 ```typescript
-// Stateful — new-able, injectable
+// Stateful: new-able, injectable
 const retry   = Retry.create({ maxRetries: 3 });
 const mutex   = Mutex.create<string>({ timeout: 5000 });
 const context = Context.create({ name: 'request' });
 
-// Pure-static utilities — no state
+// Pure-static utilities: no state
 const merged  = Merge.deep(base, overlay);
 const cloned  = Clone.deep(original);
 const hashed  = Hash.fnv32(value);
 ```
 
-Stateful classes expose an explicit FSM funnel through `transition()`. All state changes flow through a single point — no scattered `this.state = ...` assignments:
+Stateful classes expose an explicit FSM funnel through `transition()`. All state changes flow through a single point, with no scattered `this.state = ...` assignments:
 
 <!-- inline-ts-ok: conceptual one-line illustration of the transition() funnel on an undefined fsm instance; demonstrates the funnel principle, not an in-repo runnable example -->
 ```typescript
@@ -104,6 +104,29 @@ protected override guard(from: string, to: string): boolean {
 protected override onEnter(to: string, from: string): void {
   this.log.info({ from, to }, 'state changed');
 }
+```
+
+## Package families
+
+The 27 packages split into two families. Stateful primitives hold runtime state and expose a lifecycle; stateless utilities are pure functions or static method collections with no instances.
+
+```mermaid
+flowchart TD
+    subgraph Stateful["Stateful (subclass-first, FSM-backed)"]
+        direction LR
+        C["Concurrency\nRetry · Throttle · Mutex\nBatch · Concurrency\nFile-Lock · Signal"]
+        T["Time\nClock · Scheduler · Timing"]
+        S["State & Flow\nContext · FSM · Pipeline"]
+        O["I/O & Observability\nEvent-Bus · Fetch\nLogger · Errors · Resilience · System"]
+    end
+    subgraph Stateless["Stateless (pure / type-only)"]
+        direction LR
+        D["Data\nCache · JSON · Predicates\nTypes · Config"]
+        B["Buffers\nCircular-Buffer\nSample-Buffer"]
+        F["Foundation\nESLint Config"]
+    end
+    Consumer["Consumer code"] -->|"extends or new"| Stateful
+    Consumer -->|"static call"| Stateless
 ```
 
 ## FSM overview
@@ -128,4 +151,4 @@ stateDiagram-v2
   end note
 ```
 
-Transitions that violate the guard throw immediately — the FSM never enters an inconsistent state.
+Transitions that violate the guard throw immediately; the FSM never enters an inconsistent state.

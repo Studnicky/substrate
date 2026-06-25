@@ -48,9 +48,29 @@ const lock = await FileLock.create({
 
 <<< ../../packages/file-lock/examples/timeoutContention.ts#usage
 
+## Observability hooks
+
+`FileLock` exposes protected lifecycle hooks at every stage of acquisition, contention, and release. Subclass `FileLock` and override any hook to add logging, metrics, or tracing without touching the core acquire/release logic.
+
+| Hook | When it fires | Args |
+|------|---------------|------|
+| `onAcquireStart(path)` | Once, before the first rename attempt | `path: string` — the file being locked |
+| `onAcquireWait(path, attempt)` | Before each poll sleep when the lock is not yet available | `path: string`, `attempt: number` — 1-based wait count |
+| `onContended(path)` | Every time a rename attempt fails because another holder has the file | `path: string` |
+| `onAcquire(path)` | Once, when the rename succeeds and the lock is held | `path: string` |
+| `onRelease(path)` | Once, after the file is renamed back to its original path | `path: string` |
+| `onStaleDetected(path)` | When a stale lock file from a dead process is detected | `path: string` — not fired by the base class; implement in a subclass that adds stale-lock recovery |
+| `onStaleBreak(path)` | After a stale lock file has been broken | `path: string` — not fired by the base class |
+| `onTimeout(path)` | Once, when the acquisition deadline elapses | `path: string` |
+| `onError(path, error)` | When a filesystem error other than contention is caught during acquisition | `path: string`, `error: Error` |
+
+<<< ../../packages/file-lock/examples/observedFileLock.ts#usage
+
+The base class never calls any logger or metrics library. All hooks are no-ops by default.
+
 ## How it works
 
-`FileLock.create` uses `renameSync` to atomically move the target file to a PID-scoped lock path (`<path>.lock.<pid>`). Any process that cannot rename the file retries at `pollMs` intervals until `timeoutMs` elapses. On release, the file is renamed back to the original path. The mechanism is advisory — all participants must use `FileLock` for mutual exclusion to hold.
+`FileLock.create` uses `renameSync` to atomically move the target file to a PID-scoped lock path (`<path>.lock.<pid>`). Any process that cannot rename the file retries at `pollMs` intervals until `timeoutMs` elapses. On release, the file is renamed back to the original path. The mechanism is advisory: all participants must use `FileLock` for mutual exclusion to hold.
 
 ## API
 

@@ -98,3 +98,76 @@ it('withPermit releases permit even when callback throws', async () => {
 
   assert.equal(sem.available, 1);
 });
+
+// Hook observation tests
+class ObservedSemaphore extends Semaphore {
+  readonly acquireEvents: number[] = [];
+  readonly acquireWaitEvents: number[] = [];
+  readonly contendedEvents: number[] = [];
+  readonly releaseEvents: number[] = [];
+  readonly releaseDelegatedEvents: number[] = [];
+
+  constructor(permits: number) { super({ 'permits': permits }); }
+
+  protected override onAcquire(permitsBefore: number): void {
+    this.acquireEvents.push(permitsBefore);
+  }
+  protected override onAcquireWait(): void {
+    this.acquireWaitEvents.push(1);
+  }
+  protected override onContended(queueLength: number): void {
+    this.contendedEvents.push(queueLength);
+  }
+  protected override onRelease(permitsAfter: number): void {
+    this.releaseEvents.push(permitsAfter);
+  }
+  protected override onReleaseDelegated(): void {
+    this.releaseDelegatedEvents.push(1);
+  }
+}
+
+it('onAcquire fires with correct permitsBefore when permit available immediately', async () => {
+  const sem = new ObservedSemaphore(2);
+  await sem.acquire();
+  assert.deepEqual(sem.acquireEvents, [2]);
+  await sem.acquire();
+  assert.deepEqual(sem.acquireEvents, [2, 1]);
+});
+
+it('onAcquireWait and onContended fire when all permits taken', async () => {
+  const sem = new ObservedSemaphore(1);
+  const r1 = await sem.acquire();
+
+  const pending = sem.acquire();
+  await Promise.resolve();
+
+  assert.equal(sem.acquireWaitEvents.length, 1);
+  assert.deepEqual(sem.contendedEvents, [1]);
+
+  r1();
+  await pending;
+});
+
+it('onRelease fires with correct permitsAfter on normal release', async () => {
+  const sem = new ObservedSemaphore(2);
+  const r1 = await sem.acquire();
+  const r2 = await sem.acquire();
+  r2();
+  assert.deepEqual(sem.releaseEvents, [1]);
+  r1();
+  assert.deepEqual(sem.releaseEvents, [1, 2]);
+});
+
+it('onReleaseDelegated fires when queued waiter gets the permit', async () => {
+  const sem = new ObservedSemaphore(1);
+  const r1 = await sem.acquire();
+
+  const pending = sem.acquire();
+  await Promise.resolve();
+
+  r1();
+  await pending;
+
+  assert.equal(sem.releaseDelegatedEvents.length, 1);
+  assert.equal(sem.releaseEvents.length, 0);
+});

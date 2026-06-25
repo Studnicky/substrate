@@ -87,24 +87,42 @@ export abstract class BaseLogEntryBuilder {
   protected onFieldSet(_field: string, _value: unknown): void {}
 
   /**
+   * Hook called after `build()` assembles the frozen result.
+   * Override in subclasses to observe completed build results.
+   * Default implementation is a no-op.
+   */
+  protected onBuild(_result: LogBodyDataType | LogFaultDataType): void {}
+
+  /**
+   * Hook called when a required field is missing and `build()` is about to throw.
+   * Override in subclasses to observe build errors before they are thrown.
+   * Default implementation is a no-op.
+   */
+  protected onBuildError(_field: string): void {}
+
+  /**
    * Validates the fields shared by all log entry builders.
    * Throws LogBuildError if component, operation, status, or context are missing.
    * Subclasses call this and then validate their own additional required fields.
    */
   protected validateRequiredFields(): void {
     if (this.componentName === undefined) {
+      this.onBuildError('component');
       throw new LogBuildError(`${this.constructor.name}: component is required`);
     }
 
     if (this.operationName === undefined) {
+      this.onBuildError('operation');
       throw new LogBuildError(`${this.constructor.name}: operation is required`);
     }
 
     if (this.statusValue === undefined) {
+      this.onBuildError('status');
       throw new LogBuildError(`${this.constructor.name}: status is required`);
     }
 
     if (!this.contextCalled) {
+      this.onBuildError('context');
       throw new LogBuildError(`${this.constructor.name}: context is required (use empty object {} if no context needed)`);
     }
   }

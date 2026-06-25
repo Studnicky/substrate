@@ -45,11 +45,15 @@ export class Semaphore {
 
   async acquire(): Promise<() => void> {
     if (this.#available > 0) {
+      const permitsBefore = this.#available;
       this.#available -= 1;
+      this.onAcquire(permitsBefore);
       return this.#buildRelease();
     }
+    this.onAcquireWait();
     return await new Promise<() => void>((resolve) => {
       this.#queue.push(() => { resolve(this.#buildRelease()); });
+      this.onContended(this.#queue.length);
     });
   }
 
@@ -69,7 +73,45 @@ export class Semaphore {
 
   #release(): void {
     const next = this.#queue.shift();
-    if (next !== undefined) { next(); return; }
+    if (next !== undefined) {
+      next();
+      this.onReleaseDelegated();
+      return;
+    }
     this.#available += 1;
+    this.onRelease(this.#available);
   }
+
+  /**
+   * Fires when a permit is granted immediately.
+   * `permitsBefore` is the available count BEFORE decrement.
+   * Overrides must not throw or block.
+   */
+  protected onAcquire(_permitsBefore: number): void {}
+
+  /**
+   * Fires when the caller had to queue (no permit available).
+   * Overrides must not throw or block.
+   */
+  protected onAcquireWait(): void {}
+
+  /**
+   * Fires when a new waiter is added to the queue.
+   * `queueLength` is the queue length AFTER push.
+   * Overrides must not throw or block.
+   */
+  protected onContended(_queueLength: number): void {}
+
+  /**
+   * Fires when a permit is returned to the pool (no waiting callers).
+   * `permitsAfter` is the available count AFTER increment.
+   * Overrides must not throw or block.
+   */
+  protected onRelease(_permitsAfter: number): void {}
+
+  /**
+   * Fires when a permit is handed to a queued waiter (not returned to pool).
+   * Overrides must not throw or block.
+   */
+  protected onReleaseDelegated(): void {}
 }

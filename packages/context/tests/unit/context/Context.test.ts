@@ -798,5 +798,83 @@ void describe('Context', () => {
         { message: 'Illegal state transition: terminated → active' }
       );
     });
+
+    void it('onSet fires after set() with key and value', () => {
+      const events: { 'key': string; 'value': unknown }[] = [];
+      class TracedContext extends Context {
+        protected override onSet(key: string, value: unknown): void {
+          events.push({ 'key': key, 'value': value });
+        }
+      }
+      const context = TracedContext.create({ 'name': 'traced' });
+      const scope = context.initialize();
+      scope.execute(() => {
+        context.set('a', 1);
+        context.set('b', 'hello');
+      });
+      scope.terminate();
+      strictEqual(events.length, 2);
+      strictEqual(events[0]!.key, 'a');
+      strictEqual(events[0]!.value, 1);
+      strictEqual(events[1]!.key, 'b');
+      strictEqual(events[1]!.value, 'hello');
+    });
+
+    void it('onGet fires after get() with key and value', () => {
+      const events: { 'key': string; 'value': unknown }[] = [];
+      class TracedContext extends Context {
+        protected override onGet(key: string, value: unknown): void {
+          events.push({ 'key': key, 'value': value });
+        }
+      }
+      const context = TracedContext.create({ 'name': 'traced' });
+      const scope = context.initialize({ 'x': 42 });
+      scope.execute(() => {
+        context.get<number>('x');
+        context.get<number>('x');
+      });
+      scope.terminate();
+      strictEqual(events.length, 2);
+      strictEqual(events[0]!.key, 'x');
+      strictEqual(events[0]!.value, 42);
+    });
+
+    void it('onDelete fires after delete() with key and existence flag', () => {
+      const events: { 'existed': boolean; 'key': string }[] = [];
+      class TracedContext extends Context {
+        protected override onDelete(key: string, existed: boolean): void {
+          events.push({ 'existed': existed, 'key': key });
+        }
+      }
+      const context = TracedContext.create({ 'name': 'traced' });
+      const scope = context.initialize({ 'toRemove': 'yes' });
+      scope.execute(() => {
+        context.delete('toRemove');
+        context.delete('missing');
+      });
+      scope.terminate();
+      strictEqual(events.length, 2);
+      strictEqual(events[0]!.key, 'toRemove');
+      strictEqual(events[0]!.existed, true);
+      strictEqual(events[1]!.key, 'missing');
+      strictEqual(events[1]!.existed, false);
+    });
+
+    void it('onGet does not fire for tryGet', () => {
+      const events: string[] = [];
+      class TracedContext extends Context {
+        protected override onGet(key: string): void {
+          events.push(key);
+        }
+      }
+      const context = TracedContext.create({ 'name': 'traced' });
+      const scope = context.initialize({ 'k': 1 });
+      scope.execute(() => {
+        context.tryGet('k');
+        context.tryGet('missing');
+      });
+      scope.terminate();
+      strictEqual(events.length, 0);
+    });
   });
 });

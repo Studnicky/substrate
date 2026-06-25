@@ -39,8 +39,29 @@ export class DeadLetterQueueRetryGenerator<T> {
   async *generate(): AsyncGenerator<DlqEntryType<T>> {
     const drainIterator = this.#dlq.drain();
     for await (const entry of drainIterator) {
+      this.onYield(entry);
       yield entry;
+      this.onWait(this.#intervalMs);
       await new Promise<void>((resolve) => { setTimeout(resolve, this.#intervalMs); });
     }
+    this.onDone();
   }
+
+  /**
+   * Fires immediately before each entry is yielded from `generate()`.
+   * Override to add logging, metrics, or tracing. Must not throw or block.
+   */
+  protected onYield(_entry: DlqEntryType<T>): void {}
+
+  /**
+   * Fires before each inter-entry delay in `generate()`.
+   * Override to add logging, metrics, or tracing. Must not throw or block.
+   */
+  protected onWait(_intervalMs: number): void {}
+
+  /**
+   * Fires when the generator finishes (DLQ closed or aborted, drain exhausted).
+   * Must not throw or block.
+   */
+  protected onDone(): void {}
 }

@@ -29,9 +29,44 @@ All subscribers on the same topic receive each published payload independently. 
 
 ### AbortSignal-based lifecycle
 
-Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. When the signal aborts the subscriber is removed and stops receiving events. The handler also receives the subscription's own AbortSignal as a second argument — it aborts on unsubscribe, on caller-signal abort, or on bus close. Use it to cancel in-flight async work:
+Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. When the signal aborts the subscriber is removed and stops receiving events. The handler also receives the subscription's own AbortSignal as a second argument; it aborts on unsubscribe, on caller-signal abort, or on bus close. Use it to cancel in-flight async work:
 
 <<< ../../packages/event-bus/examples/abortSignal.ts#usage
+
+## Observability hooks
+
+Subclass `EventBus` or `BusQueue` and override any of the protected hook methods to instrument lifecycle events without modifying the base class.
+
+### EventBus hooks
+
+| Hook | When it fires | Args |
+|------|--------------|------|
+| `onPublish(topic, payload)` | Once per `publish()` call, before fan-out | `topic: K`, `payload: TTopicMap[K]` |
+| `onSubscribe(topic)` | When a subscriber registers | `topic: K` |
+| `onUnsubscribe(topic)` | When a subscriber is removed | `topic: K` |
+| `onDeliver(topic, payload)` | After each successful handler invocation | `topic: K`, `payload: TTopicMap[K]` |
+| `onEnqueue(topic)` | When an event enters a subscriber queue | `topic: K` |
+| `onDequeue(topic)` | When an event is dequeued for processing | `topic: K` |
+| `onDrop(topic)` | When an event is dropped (queue aborted) | `topic: K` |
+| `onOverflow(topic, depth)` | When backpressure begins on a subscriber queue | `topic: K`, `depth: number` |
+| `onSlowConsumer(topic, depth)` | Same as onOverflow — queue reached highWaterMark | `topic: K`, `depth: number` |
+| `onHandlerError(topic, error)` | When a subscriber handler throws | `topic: K`, `error: unknown` |
+| `onDispose()` | When `bus.close()` is called | — |
+
+### BusQueue hooks
+
+| Hook | When it fires | Args |
+|------|--------------|------|
+| `onEnqueue(depth)` | Item added to queue | `depth: number` |
+| `onDequeue(depth)` | Item removed from queue for processing | `depth: number` |
+| `onDrop()` | Enqueue called on aborted queue | — |
+| `onOverflow(depth)` | Queue depth reached highWaterMark | `depth: number` |
+| `onSlowConsumer(depth, highWaterMark)` | Same moment as onOverflow with hwm context | `depth: number`, `highWaterMark: number` |
+| `onHandlerError(error)` | Handler threw | `error: unknown` |
+
+<<< ../../packages/event-bus/examples/observedEventBus.ts#usage
+
+The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 ## API
 
@@ -42,7 +77,7 @@ Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. 
 | `BusQueue<T>` | class | Bounded FIFO queue with backpressure; created via `BusQueue.create(options)` or `BusQueue.builder<T>()` |
 | `BusQueueBuilder<T>` | class | Fluent builder for `BusQueue`; obtained via `BusQueue.builder<T>()` |
 | `EventHandlerType<T>` | type | `(payload: T, signal: AbortSignal) => Promise<void> \| void` |
-| `UnsubscribeType` | type | `() => void` — returned by `subscribe` |
+| `UnsubscribeType` | type | `() => void` (returned by `subscribe`) |
 | `BusQueueCreateOptionsType<T>` | type | `{ handler, highWaterMark?, onError?, signal? }` |
 
 ### `EventBus<TTopicMap>`

@@ -1,6 +1,6 @@
 ---
 title: '@studnicky/signal'
-description: AbortSignal composition helpers — deadline, caller signal, and never-aborting sentinel.
+description: AbortSignal composition helpers for deadline, caller signal, and never-aborting sentinel.
 ---
 
 # @studnicky/signal
@@ -25,7 +25,7 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ### Never-aborting sentinel and timeout signal
 
-The sentinel is a singleton — `Signal.never()` returns the same `AbortSignal` instance on every call. `Signal.timeout(ms)` wraps `AbortSignal.timeout` for convenience.
+The sentinel is a singleton: `Signal.never()` returns the same `AbortSignal` instance on every call. `Signal.timeout(ms)` wraps `AbortSignal.timeout` for convenience.
 
 <<< ../../packages/signal/examples/neverTimeout.ts#usage
 

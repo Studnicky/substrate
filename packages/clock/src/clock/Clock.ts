@@ -73,6 +73,23 @@ export class Clock {
     return result;
   }
 
+  // ---------------------------------------------------------------------------
+  // Lifecycle hooks — no-op by default. Override to add logging/tracing/metrics.
+  // Overrides must not throw or block.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fires after each `now()` call, with the monotonically-clamped epoch-ms
+   * value that was returned to the caller.
+   */
+  protected onNow(_timestamp: number): void {}
+
+  /**
+   * Fires after each `hrtime()` call, with the monotonically-clamped
+   * nanosecond bigint value that was returned to the caller.
+   */
+  protected onHrtime(_value: bigint): void {}
+
   /**
    * Returns a monotonic nanosecond timestamp from the underlying provider.
    * Never returns a value smaller than the previous call on this instance.
@@ -84,6 +101,7 @@ export class Clock {
       this.#lastHrtime = candidate;
     }
 
+    this.onHrtime(this.#lastHrtime);
     return this.#lastHrtime;
   }
 
@@ -98,6 +116,7 @@ export class Clock {
       this.#lastNow = candidate;
     }
 
+    this.onNow(this.#lastNow);
     return this.#lastNow;
   }
 }

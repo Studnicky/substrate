@@ -72,9 +72,9 @@ class InstrumentedRetry extends Retry {
 const retry = new InstrumentedRetry({ maxRetries: 3 });
 ```
 
-The base `Retry` class never logs — the hooks are no-ops by default. Override only what you need.
+The base `Retry` class never logs; the hooks are no-ops by default. Override only what you need.
 
 ## Next steps
 
-- [Architecture](/architecture) — understand the three design principles in depth
-- [Packages](/packages/) — browse all 18 packages with API examples
+- [Architecture](/architecture): the three design principles in depth
+- [Packages](/packages/): all 27 packages with API examples

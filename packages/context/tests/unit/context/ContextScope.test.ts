@@ -13,6 +13,7 @@
  * - Error handling and edge cases
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   deepStrictEqual, ok, strictEqual, throws
 } from 'node:assert/strict';
@@ -21,7 +22,8 @@ import {
 } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
-import { Context } from '../../../src/context/index.js';
+import { Context, ContextScope } from '../../../src/context/index.js';
+import type { ContextScopeOptionsInterface } from '../../../src/context/index.js';
 
 // Test fixture — hangs off a class per standards
 class Fixture {
@@ -681,6 +683,128 @@ void describe('ContextScope Lifecycle', () => {
       const final = scope.terminate();
 
       strictEqual(Object.keys(final).length, 1000);
+    });
+  });
+
+  void describe('subclass hook extension', () => {
+    void it('onExit fires before onEnter on FSM transition', () => {
+      const log: string[] = [];
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onExit(from: string, to: string): void {
+          log.push(`exit:${from}→${to}`);
+        }
+
+        protected override onEnter(to: string, from: string): void {
+          log.push(`enter:${to}←${from}`);
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      // construction fires created→active; clear log so we only see terminate transition
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+      log.length = 0;
+      scope.terminate();
+      deepStrictEqual(log, ['exit:active→terminated', 'enter:terminated←active']);
+    });
+
+    void it('onError fires with the thrown error, scope remains usable', () => {
+      const errors: unknown[] = [];
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onError(error: unknown): void {
+          errors.push(error);
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+      const err = new Error('bang');
+      throws(() => {
+        scope.execute(() => { throw err; });
+      }, { message: 'bang' });
+      strictEqual(errors.length, 1);
+      strictEqual(errors[0], err);
+      // Scope still usable after fn threw
+      const ran: boolean[] = [];
+      scope.execute(() => { ran.push(true); });
+      strictEqual(ran.length, 1);
+      scope.terminate();
+    });
+
+    void it('onError does not fire on clean execute', () => {
+      const errors: unknown[] = [];
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onError(error: unknown): void {
+          errors.push(error);
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+      scope.execute(() => { return 42; });
+      strictEqual(errors.length, 0);
+      scope.terminate();
+    });
+
+    void it('onDispose fires after store clear, before onTerminate', () => {
+      const log: string[] = [];
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onDispose(): void {
+          log.push('dispose');
+        }
+
+        protected override onTerminate(snapshot: Record<string, unknown>): Record<string, unknown> {
+          log.push('terminate');
+          return snapshot;
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+      scope.terminate();
+      deepStrictEqual(log, ['dispose', 'terminate']);
+    });
+
+    void it('onAfterExecute does not fire when fn throws', () => {
+      const afterCount: number[] = [];
+      const errCount: unknown[] = [];
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onAfterExecute(): void {
+          afterCount.push(1);
+        }
+
+        protected override onError(e: unknown): void {
+          errCount.push(e);
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+      throws(() => {
+        scope.execute(() => { throw new Error('fail'); });
+      });
+      strictEqual(afterCount.length, 0);
+      strictEqual(errCount.length, 1);
+      scope.terminate();
     });
   });
 

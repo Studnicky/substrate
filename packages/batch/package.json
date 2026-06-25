@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/batch",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Batch concurrent execution for processing items in controlled batches",
   "type": "module",
   "sideEffects": false,
@@ -8,11 +8,25 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".":           { "types": "./dist/index.d.ts",            "import": "./dist/index.js" },
-    "./batch":     { "types": "./dist/batch/index.d.ts",      "import": "./dist/batch/index.js" },
-    "./constants": { "types": "./dist/constants/index.d.ts",  "import": "./dist/constants/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./batch": {
+      "types": "./dist/batch/index.d.ts",
+      "import": "./dist/batch/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants/index.d.ts",
+      "import": "./dist/constants/index.js"
+    }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports",
@@ -21,13 +35,31 @@
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
   "license": "MIT",
-  "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "keywords": ["batch", "concurrency", "async", "generator", "typescript"],
-  "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/batch" },
-  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
+  "keywords": [
+    "batch",
+    "concurrency",
+    "async",
+    "generator",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/batch"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
   "homepage": "https://studnicky.github.io/substrate/packages/batch",
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
   "dependencies": {
     "@studnicky/errors": "workspace:*"
   }

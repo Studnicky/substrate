@@ -24,12 +24,21 @@ export class Coalesce<T> {
 
   async run(key: string, factory: () => Promise<T>): Promise<T> {
     const existing = this.#inFlight.get(key);
-    if (existing !== undefined) { return await existing; }
+    if (existing !== undefined) {
+      this.onCoalesceJoin(key);
+      return await existing;
+    }
 
-    const started = factory().finally(() => {
-      this.#inFlight.delete(key);
-    });
+    let success = false;
+    const started = factory()
+      .then((v) => { success = true; return v; })
+      .catch((e: unknown) => { success = false; throw e; })
+      .finally(() => {
+        this.#inFlight.delete(key);
+        this.onCoalesceSettled(key, success);
+      });
     this.#inFlight.set(key, started);
+    this.onCoalesceStart(key);
     return await started;
   }
 
@@ -37,4 +46,23 @@ export class Coalesce<T> {
     const result = this.#inFlight.has(key);
     return result;
   }
+
+  /**
+   * Fires when this is the leader caller — factory is about to be invoked.
+   * Overrides must not throw or block.
+   */
+  protected onCoalesceStart(_key: string): void {}
+
+  /**
+   * Fires when this caller joined an in-flight call.
+   * Overrides must not throw or block.
+   */
+  protected onCoalesceJoin(_key: string): void {}
+
+  /**
+   * Fires when the in-flight promise settles.
+   * `success` is true on resolve, false on reject.
+   * Overrides must not throw or block.
+   */
+  protected onCoalesceSettled(_key: string, _success: boolean): void {}
 }
