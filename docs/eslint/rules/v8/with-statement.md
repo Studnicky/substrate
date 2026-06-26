@@ -7,7 +7,7 @@ description: 'Disallows with statements.'
 
 Disallows `with` statements. The `with` statement makes scope resolution dynamic — V8 cannot determine at compile time which binding a variable name refers to, so it cannot generate optimized code for the entire surrounding function.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

@@ -1,30 +1,30 @@
-/** configUsage — createEslintConfig factory smoke test. Run: npx tsx examples/configUsage.ts */
+/** configUsage — plugin smoke test. Run: npx tsx examples/configUsage.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
-import { createEslintConfig } from '../src/index.js';
+import { plugin, v8Plugin } from '../src/index.js';
 
-const config = createEslintConfig();
+const config = {
+  'plugins': {
+    '@studnicky': plugin,
+    '@studnicky/v8': v8Plugin
+  },
+  'rules': {
+    '@studnicky/type-alias-must-end-type': 'error'
+  }
+};
 
-const rulePluginNames = config
-  .flatMap((entry) => { const result = Object.keys(entry.plugins ?? {}); return result; })
-  .filter((name, index, arr) => { return arr.indexOf(name) === index; })
-  .sort();
+const pluginRuleCount = Object.keys(plugin.rules).length;
+const v8PluginRuleCount = Object.keys(v8Plugin.rules).length;
 
-console.log(`createEslintConfig() returned ${config.length} config entries`);
-console.log(`Plugins registered: ${rulePluginNames.join(', ')}`);
-
-const configWithOptions = createEslintConfig({ 'tsconfigRootDir': process.cwd() });
-
-console.log(`createEslintConfig({ tsconfigRootDir }) returned ${configWithOptions.length} config entries`);
+console.log(`@studnicky plugin rules: ${pluginRuleCount}`);
+console.log(`@studnicky/v8 plugin rules: ${v8PluginRuleCount}`);
+console.log(`Config plugins registered: ${Object.keys(config.plugins).join(', ')}`);
 // #endregion usage
 
-assert.ok(Array.isArray(config) && config.length > 0, 'createEslintConfig() must return a non-empty array');
-assert.ok(
-  rulePluginNames.includes('@studnicky') && rulePluginNames.includes('@typescript-eslint'),
-  'expected @studnicky and @typescript-eslint plugins'
-);
-assert.ok(Array.isArray(configWithOptions) && configWithOptions.length === config.length, 'tsconfigRootDir option must not change entry count');
+assert.ok('type-alias-must-end-type' in plugin.rules, 'plugin.rules must contain type-alias-must-end-type');
+assert.ok(pluginRuleCount > 0, 'plugin.rules must be non-empty');
+assert.ok(v8PluginRuleCount > 0, 'v8Plugin.rules must be non-empty');
 
 console.log('configUsage: all assertions passed');

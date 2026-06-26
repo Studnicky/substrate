@@ -7,7 +7,7 @@ description: 'Disallows RegExp construction inside loop bodies.'
 
 Disallows `new RegExp(...)` or `RegExp(...)` inside any loop body. Constructing a RegExp object on every iteration allocates a new object and recompiles the pattern. Hoist the regexp to the outer scope and reuse it.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

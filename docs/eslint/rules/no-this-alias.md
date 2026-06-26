@@ -7,7 +7,7 @@ description: 'Disallows assigning this to a variable or binding it via assignmen
 
 Disallows capturing `this` into a local variable (`const self = this`) or via assignment expression. Use arrow functions to preserve lexical `this` instead.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

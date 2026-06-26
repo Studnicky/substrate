@@ -7,7 +7,7 @@ description: 'Disallows for...of over arrays; prefer index loops.'
 
 Disallows `for...of` over arrays or tuples. When type services are available the rule uses the TypeScript checker to confirm the iterated value is an array type. Without type services, only literal array expressions are flagged. Use a counted `for` loop for arrays — index access on typed arrays is faster than the iterator protocol.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

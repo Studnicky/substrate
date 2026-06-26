@@ -11,7 +11,7 @@ Index files (`index.ts`, `index.mts`, `index.cts`, `index.tsx`) are exempt from 
 
 Exempt categories (files containing only these may export multiple symbols): type-only exports, const-value exports, enum exports, or error-class exports.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

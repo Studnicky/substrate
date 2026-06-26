@@ -161,9 +161,6 @@ importers:
 
   packages/eslint-config:
     dependencies:
-      '@studnicky/config':
-        specifier: workspace:*
-        version: link:../config
       '@typescript-eslint/eslint-plugin':
         specifier: '>=8.0.0'
         version: 8.62.0(@typescript-eslint/parser@8.62.0(eslint@10.5.0)(typescript@6.0.3))(eslint@10.5.0)(typescript@6.0.3)

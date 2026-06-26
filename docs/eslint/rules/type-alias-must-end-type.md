@@ -7,7 +7,7 @@ description: 'Requires exported type aliases to end in Type.'
 
 Exported `type` aliases must end in `Type`. This applies only to exported declarations; unexported type aliases are unrestricted.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

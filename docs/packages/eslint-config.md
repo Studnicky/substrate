@@ -5,7 +5,7 @@ description: Shared ESLint flat config for @studnicky packages.
 
 # @studnicky/eslint-config
 
-Shared ESLint flat config factory for TypeScript projects. Ships a single `createEslintConfig()` call that wires up typescript-eslint, stylistic, perfectionist, import ordering, unused-imports, regexp, and two custom rule plugins.
+Standard ESLint plugin for TypeScript projects. Ships two namespaced rule sets — `plugin` (14 `@studnicky` rules) and `v8Plugin` (16 `@studnicky/v8` rules) — plus individual rule modules.
 
 ## Install
 
@@ -27,23 +27,26 @@ pnpm add -D eslint@>=10 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>
 
 ## Usage
 
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// eslint.config.ts
-import { createEslintConfig } from '@studnicky/eslint-config';
+```js
+// eslint.config.mjs
+import { plugin, v8Plugin } from '@studnicky/eslint-config';
 
-export default createEslintConfig({ tsconfigRootDir: import.meta.dirname });
+export default [
+  {
+    plugins: { '@studnicky': plugin, '@studnicky/v8': v8Plugin },
+    rules: {
+      '@studnicky/type-alias-must-end-type': 'error',
+      '@studnicky/v8/no-spread-in-loops': 'error'
+    }
+  }
+];
 ```
-
-The factory registers both plugins (`@studnicky` and `@studnicky/v8`) automatically. Full usage example:
-
-<<< ../../packages/eslint-config/examples/configUsage.ts#usage
 
 ## Subpath exports
 
 | Subpath | Exports |
 |---------|---------|
-| `@studnicky/eslint-config` | `createEslintConfig`, `plugin`, `v8Plugin`, and all individual rule modules |
+| `@studnicky/eslint-config` | `plugin`, `v8Plugin`, and all individual rule modules |
 | `@studnicky/eslint-config/plugin` | `plugin` (the `@studnicky` ESLint plugin object) |
 | `@studnicky/eslint-config/v8` | `v8Plugin` (the `@studnicky/v8` ESLint plugin object) |
 

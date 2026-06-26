@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/eslint-config",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "description": "Shared ESLint flat config for @studnicky packages",
   "type": "module",
   "sideEffects": false,
@@ -71,9 +71,6 @@
     "eslint-plugin-unused-imports": ">=4.0.0",
     "typescript": ">=6.0.0",
     "typescript-eslint": ">=8.0.0"
-  },
-  "dependencies": {
-    "@studnicky/config": "workspace:*"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "^5.10.0",

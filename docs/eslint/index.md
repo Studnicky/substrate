@@ -5,12 +5,12 @@ description: '@studnicky ESLint plugins — configuration rules and V8 performan
 
 # ESLint Plugins
 
-`@studnicky/eslint-config` ships two custom ESLint plugins alongside the shared flat config factory:
+`@studnicky/eslint-config` ships two custom ESLint plugins:
 
 - **`@studnicky`** — 14 structural and semantic rules that enforce the substrate codebase doctrine.
 - **`@studnicky/v8`** — 16 V8 performance rules that flag patterns preventing V8 from using optimized code paths.
 
-Both plugins are registered automatically when using `createEslintConfig()`.
+Register both plugins in your flat config to enable the rules.
 
 ## Install
 
@@ -36,32 +36,44 @@ pnpm add -D eslint@>=10 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>
 
 | Subpath | Exports |
 |---------|---------|
-| `@studnicky/eslint-config` | `createEslintConfig`, `plugin`, `v8Plugin`, and all individual rule modules |
+| `@studnicky/eslint-config` | `plugin`, `v8Plugin`, and all individual rule modules |
 | `@studnicky/eslint-config/plugin` | `plugin` (the `@studnicky` ESLint plugin object) |
 | `@studnicky/eslint-config/v8` | `v8Plugin` (the `@studnicky/v8` ESLint plugin object) |
 
-## Using the factory
+## Usage
 
-Pass the factory result directly as your flat config:
+Import `plugin` and `v8Plugin` and register them in a flat-config entry:
 
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// eslint.config.ts
-import { createEslintConfig } from '@studnicky/eslint-config';
-
-export default createEslintConfig({ tsconfigRootDir: import.meta.dirname });
-```
-
-Spread to extend with additional rules:
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// eslint.config.ts
-import { createEslintConfig } from '@studnicky/eslint-config';
+```js
+// eslint.config.mjs
+import { plugin, v8Plugin } from '@studnicky/eslint-config';
 
 export default [
-  ...createEslintConfig({ tsconfigRootDir: import.meta.dirname }),
-  { rules: { 'no-console': 'warn' } }
+  {
+    plugins: { '@studnicky': plugin, '@studnicky/v8': v8Plugin },
+    rules: {
+      '@studnicky/type-alias-must-end-type': 'error',
+      '@studnicky/v8/no-spread-in-loops': 'error'
+    }
+  }
+];
+```
+
+Combine with additional rules in the same entry:
+
+```js
+// eslint.config.mjs
+import { plugin, v8Plugin } from '@studnicky/eslint-config';
+
+export default [
+  {
+    plugins: { '@studnicky': plugin, '@studnicky/v8': v8Plugin },
+    rules: {
+      '@studnicky/type-alias-must-end-type': 'error',
+      '@studnicky/v8/no-spread-in-loops': 'error',
+      'no-console': 'warn'
+    }
+  }
 ];
 ```
 

@@ -9,7 +9,7 @@ Disallows module-scope function declarations and `const` arrow functions whose n
 
 The default verb set covers `get`, `set`, `create`, `parse`, `build`, `fetch`, `format`, `validate`, `serialize`, `deserialize`, `handle`, `process`, `transform`, `convert`, `map`, `filter`, `reduce`, and others.
 
-**Fixable:** No · **Options:** `additionalPrefixes`, `ignorePrefixes` · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** `additionalPrefixes`, `ignorePrefixes` · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

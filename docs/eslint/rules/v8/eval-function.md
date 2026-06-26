@@ -7,7 +7,7 @@ description: 'Disallows eval().'
 
 Disallows `eval(...)`. The presence of `eval` prevents V8 from optimizing the surrounding function because it must assume any local variable may be accessed or modified by the evaluated string. It is also a security risk.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 
