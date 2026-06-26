@@ -7,7 +7,7 @@ description: 'Disallows for...in loops.'
 
 `for...in` enumerates string keys including inherited ones, triggers deoptimization on objects with non-enumerable or accessor properties, and produces string keys even when integer indexing is expected. Use `Object.keys()`, `Object.values()`, or `Object.entries()` instead.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

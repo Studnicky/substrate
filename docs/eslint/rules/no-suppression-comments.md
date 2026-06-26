@@ -7,7 +7,7 @@ description: 'Disallows all lint and type suppression comments.'
 
 Disallows all lint and type suppression comments: `eslint-disable`, `eslint-disable-line`, `eslint-disable-next-line`, `eslint-enable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `tslint:disable`, `tslint:disable-line`, and `tslint:disable-next-line`. The auto-fix removes the entire comment line when the line is otherwise whitespace-only.
 
-**Fixable:** Yes (removes the comment line) · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** Yes (removes the comment line) · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

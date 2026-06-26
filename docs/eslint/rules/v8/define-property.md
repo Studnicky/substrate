@@ -7,7 +7,7 @@ description: 'Disallows Object.defineProperty.'
 
 Disallows `Object.defineProperty(...)`. Changing property descriptor flags after object creation forces V8 to transition to a new hidden class or fall back to dictionary mode, invalidating all previously compiled inline caches for that shape.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

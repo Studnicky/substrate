@@ -7,7 +7,7 @@ description: 'Disallows .bind(), .call(), and .apply() on callable receivers.'
 
 Disallows `.bind()`, `.call()`, and `.apply()` on callable receivers. When TypeScript type services are available the rule confirms the receiver is a `Function` via the type checker before reporting. Refactor to use arrow functions or pass arguments directly.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

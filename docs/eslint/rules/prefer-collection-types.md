@@ -14,7 +14,7 @@ Flags four patterns where arrays or plain objects perform worse than `Set` or `M
 
 Set.has is 29× faster than Array.includes on equal-size inputs.
 
-**Fixable:** No · **Options:** `checkArrayLiterals`, `checkFromEntries`, `checkModuleScopeArrays` · **When enabled by `createEslintConfig()`:** `warn`
+**Fixable:** No · **Options:** `checkArrayLiterals`, `checkFromEntries`, `checkModuleScopeArrays` · **Suggested severity:** `warn`
 
 ## ✗ Incorrect
 
