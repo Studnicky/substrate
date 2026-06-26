@@ -1,10 +1,10 @@
 # @studnicky/eslint-config
 
-> Shared ESLint flat config for @studnicky packages
+> Custom ESLint rule plugin for @studnicky packages
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/eslint-config)
 
-Shared ESLint flat config factory for TypeScript projects. Provides a single `createEslintConfig()` call that wires up typescript-eslint, stylistic, perfectionist, import ordering, and a custom rule plugin — ready to spread into your flat config.
+Custom ESLint rule plugin that ships two namespaced rule sets for TypeScript projects. Register `plugin` and `v8Plugin` in your flat config and enable the rules you want.
 
 ## Install
 
@@ -28,51 +28,33 @@ pnpm add -D eslint@>=10 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>
 
 ```js
 // eslint.config.mjs
-import { createEslintConfig } from '@studnicky/eslint-config';
-
-export default createEslintConfig();
-```
-
-## Extending
-
-Pass `tsconfigRootDir` to point the TypeScript projectService at your config:
-
-```js
-// eslint.config.mjs
-import { createEslintConfig } from '@studnicky/eslint-config';
-
-export default createEslintConfig({ tsconfigRootDir: import.meta.dirname });
-```
-
-Spread the result and append custom rules:
-
-```js
-// eslint.config.mjs
-import { createEslintConfig } from '@studnicky/eslint-config';
-
-export default [
-  ...createEslintConfig({ tsconfigRootDir: import.meta.dirname }),
-  { rules: { 'no-console': 'warn' } }
-];
-```
-
-Import the V8-optimization rules directly:
-
-```js
-// eslint.config.mjs
-import { v8Plugin } from '@studnicky/eslint-config/v8';
+import { plugin, v8Plugin } from '@studnicky/eslint-config';
 
 export default [
   {
-    plugins: { '@studnicky/v8': v8Plugin },
-    rules: { '@studnicky/v8/no-spread-in-loops': 'error' }
+    plugins: {
+      '@studnicky': plugin,
+      '@studnicky/v8': v8Plugin
+    },
+    rules: {
+      '@studnicky/type-alias-must-end-type': 'error',
+      '@studnicky/single-export': 'error',
+      '@studnicky/no-trivial-shim': 'error',
+      '@studnicky/v8/no-spread-in-loops': 'error'
+    }
   }
 ];
 ```
 
-## Custom rules
+Import plugins from the dedicated subpath entries if you only need one namespace:
 
-The package ships two rule plugins registered by `createEslintConfig()`.
+```js
+// eslint.config.mjs
+import { plugin } from '@studnicky/eslint-config/plugin';
+import { v8Plugin } from '@studnicky/eslint-config/v8';
+```
+
+## Custom rules
 
 **`@studnicky` namespace** (14 rules via `plugin` from `@studnicky/eslint-config/plugin`):
 
