@@ -4,19 +4,20 @@
  *
  * @example
  * ```typescript
- * import { get, HTTPError } from '@studnicky/fetch';
+ * import { FetchClient, HTTPError } from '@studnicky/fetch';
+ * import type { ResponseContextType } from '@studnicky/fetch';
  *
- * // Using a response interceptor to throw on HTTP errors
- * const api = FetchClient.create({
- *   baseURL: 'https://api.example.com',
- *   responseInterceptor: async (response) => {
- *     if (!response.ok) {
- *       throw new HTTPError(response.url, response);
+ * // Subclass and override onResponse to throw on HTTP error status
+ * class StrictClient extends FetchClient {
+ *   protected override async onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+ *     if (!context.response.ok) {
+ *       throw new HTTPError(context.response.url, context.response);
  *     }
- *     return response;
+ *     return context;
  *   }
- * });
+ * }
  *
+ * const api = StrictClient.create({ baseURL: 'https://api.example.com' });
  * try {
  *   await api.get('/users/99999');
  * } catch (error) {

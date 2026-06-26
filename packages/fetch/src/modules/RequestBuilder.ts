@@ -7,8 +7,6 @@ import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
 import type { RequestBuilderInterface } from '../interfaces/RequestBuilderInterface.js';
 import type { QueryParamsType } from '../types/QueryParamsType.js';
 import type { QueryValueType } from '../types/QueryValueType.js';
-import type { RequestInterceptorType } from '../types/RequestInterceptorType.js';
-import type { ResponseInterceptorType } from '../types/ResponseInterceptorType.js';
 
 import { UrlUtils } from './UrlUtils.js';
 
@@ -22,8 +20,6 @@ export class RequestBuilder implements RequestBuilderInterface {
 
   private readonly client: FetchClientInterface;
   private readonly fetchOptions: FetchOptionsType = {};
-  private readonly localRequestInterceptors: RequestInterceptorType[] = [];
-  private readonly localResponseInterceptors: ResponseInterceptorType[] = [];
   private readonly path: string;
   private queryParams?: QueryParamsType;
   private requestBody?: unknown;
@@ -46,21 +42,10 @@ export class RequestBuilder implements RequestBuilderInterface {
   }
 
   /**
-   * Builds final fetch options with per-request interceptors
-   * Always converts to arrays for uniform processing
+   * Builds final fetch options
    */
   private buildOptions(): FetchOptionsType {
-    const options = { ...this.fetchOptions };
-
-    if (this.localRequestInterceptors.length > 0) {
-      options.requestInterceptor = this.localRequestInterceptors;
-    }
-
-    if (this.localResponseInterceptors.length > 0) {
-      options.responseInterceptor = this.localResponseInterceptors;
-    }
-
-    return options;
+    return { ...this.fetchOptions };
   }
 
   /**
@@ -160,7 +145,7 @@ export class RequestBuilder implements RequestBuilderInterface {
    * Sets request metadata for logging and tracking
    *
    * Merged with client-level metadata
-   * Accessible in interceptors via metadata.metadata
+   * Accessible in lifecycle hooks via metadata.metadata
    *
    * @param metadata - Key-value pairs for tracking
    * @returns This builder for chaining
@@ -300,40 +285,6 @@ export class RequestBuilder implements RequestBuilderInterface {
    */
   requestId(id: string): this {
     this.fetchOptions.requestId = id;
-
-    return this;
-  }
-
-  /**
-   * Adds request interceptor(s) for this request only
-   * Can be called multiple times to add multiple interceptors
-   *
-   * @param interceptor - Function(s) to modify request before sending
-   * @returns This builder for chaining
-   */
-  requestInterceptor(interceptor: readonly RequestInterceptorType[] | RequestInterceptorType): this {
-    const interceptors: readonly RequestInterceptorType[] = Array.isArray(interceptor)
-      ? interceptor
-      : [interceptor];
-
-    this.localRequestInterceptors.push(...interceptors);
-
-    return this;
-  }
-
-  /**
-   * Adds response interceptor(s) for this request only
-   * Can be called multiple times to add multiple interceptors
-   *
-   * @param interceptor - Function(s) to modify response after receiving
-   * @returns This builder for chaining
-   */
-  responseInterceptor(interceptor: readonly ResponseInterceptorType[] | ResponseInterceptorType): this {
-    const interceptors: readonly ResponseInterceptorType[] = Array.isArray(interceptor)
-      ? interceptor
-      : [interceptor];
-
-    this.localResponseInterceptors.push(...interceptors);
 
     return this;
   }

@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 
 // #region usage
-import type { RequestInterceptorContextType } from '../src/interfaces/RequestInterceptorContextType.js';
-import type { ResponseInterceptorContextType } from '../src/interfaces/ResponseInterceptorContextType.js';
+import type { RequestContextType } from '../src/interfaces/RequestContextType.js';
+import type { ResponseContextType } from '../src/interfaces/ResponseContextType.js';
 
 import { FetchClient } from '../src/index.js';
 
@@ -40,6 +40,22 @@ class ObservedFetch extends FetchClient {
 
   readonly hookLog: string[] = [];
 
+  protected override onRequest(context: RequestContextType): Promise<RequestContextType> {
+    console.log(`[fetch] onRequest url=${context.url}`);
+    this.hookLog.push('onRequest');
+    // Stamp a correlation header on every outgoing request
+    const headers: Record<string, string> = context.options.headers ?? {};
+    headers['X-Observed'] = 'true';
+    const result: RequestContextType = { ...context, 'options': { ...context.options, 'headers': headers } };
+    return Promise.resolve(result);
+  }
+
+  protected override onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+    console.log(`[fetch] onResponse status=${context.response.status}`);
+    this.hookLog.push('onResponse');
+    return Promise.resolve(context);
+  }
+
   protected override onRequestStart(method: string, _path: string, requestId: string, url: string): void {
     const line = `[fetch] onRequestStart method=${method} url=${url} requestId=${requestId}`;
 
@@ -68,16 +84,6 @@ class ObservedFetch extends FetchClient {
     this.hookLog.push('onRequestError');
   }
 
-  protected override onRequestIntercept(index: number, context: RequestInterceptorContextType): void {
-    console.log(`[fetch] onRequestIntercept index=${index} url=${context.url}`);
-    this.hookLog.push(`onRequestIntercept:${index}`);
-  }
-
-  protected override onResponseIntercept(index: number, context: ResponseInterceptorContextType): void {
-    console.log(`[fetch] onResponseIntercept index=${index} status=${context.response.status}`);
-    this.hookLog.push(`onResponseIntercept:${index}`);
-  }
-
   protected override onDispatcherDestroy(): void {
     console.log('[fetch] onDispatcherDestroy');
     this.hookLog.push('onDispatcherDestroy');
@@ -86,19 +92,7 @@ class ObservedFetch extends FetchClient {
 
 const client = ObservedFetch.create({
   'baseURL': baseURL,
-  'dispatcher': { 'connections': 2, 'enabled': true },
-  'requestInterceptor': (ctx) => {
-    // Stamp a correlation header on every outgoing request
-    const headers: Record<string, string> = ctx.options.headers ?? {};
-
-    headers['X-Observed'] = 'true';
-    return { ...ctx, 'options': { ...ctx.options, 'headers': headers } };
-  },
-  'responseInterceptor': (ctx) => {
-    // Log the response status via the hook seam; nothing to mutate here
-    console.log(`[fetch] responseInterceptor status=${ctx.response.status}`);
-    return ctx;
-  }
+  'dispatcher': { 'connections': 2, 'enabled': true }
 });
 
 // Scenario 1: successful request
@@ -115,10 +109,10 @@ await client.destroy();
 server.close();
 
 assert.ok(client.hookLog.includes('onRequestStart'), 'onRequestStart fired');
+assert.ok(client.hookLog.includes('onRequest'), 'onRequest fired');
+assert.ok(client.hookLog.includes('onResponse'), 'onResponse fired');
 assert.ok(client.hookLog.includes('onResponseSuccess'), 'onResponseSuccess fired for 200');
 assert.ok(client.hookLog.includes('onResponseError'), 'onResponseError fired for 503');
-assert.ok(client.hookLog.includes('onRequestIntercept:0'), 'onRequestIntercept fired');
-assert.ok(client.hookLog.includes('onResponseIntercept:0'), 'onResponseIntercept fired');
 assert.ok(client.hookLog.includes('onDispatcherDestroy'), 'onDispatcherDestroy fired');
 
 console.log('observedFetch: all assertions passed');

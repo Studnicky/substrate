@@ -93,8 +93,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
   /**
    * Readonly view of the registered transform functions.
    * Returns the live array reference as a readonly view — order reflects
-   * registration order. Exposed so external observers (e.g. `InterceptorManager`)
-   * can inspect pipeline contents without subclassing.
+   * registration order. Exposed so external observers can inspect pipeline
+   * contents without subclassing.
    */
   get stages(): readonly PipelineFnType<T>[] {
     const result = this.fns;

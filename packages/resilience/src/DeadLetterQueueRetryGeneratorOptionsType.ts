@@ -1,3 +1,3 @@
 export type DeadLetterQueueRetryGeneratorOptionsType = {
-  readonly 'intervalMs': number;
+  'intervalMs': number;
 };

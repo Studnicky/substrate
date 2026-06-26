@@ -14,15 +14,15 @@ import type { JsonValueType } from '@studnicky/types';
  */
 export type SerializedErrorType = {
   /** Serialized cause, or `null` if absent, or sentinel string if chain is truncated. */
-  readonly 'cause': SerializedErrorType | string | null;
+  'cause': SerializedErrorType | string | null;
   /** Registered error code string. */
-  readonly 'code': string;
+  'code': string;
   /** Structured context dictionary; may be `undefined` when omitted. */
-  readonly 'context': Readonly<Record<string, JsonValueType>> | undefined;
+  'context': Readonly<Record<string, JsonValueType>> | undefined;
   /** Correlation ID, or `null` if absent. */
-  readonly 'correlationId': string | null;
+  'correlationId': string | null;
   /** Human-readable error message. */
-  readonly 'message': string;
+  'message': string;
   /** Unix millisecond timestamp at time of construction, or `0` for native errors. */
-  readonly 'timestamp': number;
+  'timestamp': number;
 };

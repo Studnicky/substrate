@@ -1,5 +1,5 @@
 /**
- * Configured HTTP client with interceptors and fluent request builder
+ * Configured HTTP client with subclass-overridable lifecycle hooks and a fluent request builder
  */
 
 import type { ClientConfigType } from '../interfaces/ClientConfigType.js';
@@ -7,12 +7,10 @@ import type { DestroyOptionsType } from '../interfaces/DestroyOptionsType.js';
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
 import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
 import type { RequestBuilderInterface } from '../interfaces/RequestBuilderInterface.js';
-import type { RequestInterceptorContextType } from '../interfaces/RequestInterceptorContextType.js';
+import type { RequestContextType } from '../interfaces/RequestContextType.js';
 import type { RequestMetadataType } from '../interfaces/RequestMetadataType.js';
-import type { ResponseInterceptorContextType } from '../interfaces/ResponseInterceptorContextType.js';
+import type { ResponseContextType } from '../interfaces/ResponseContextType.js';
 import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherStatsType.js';
-import type { RequestInterceptorType } from '../types/RequestInterceptorType.js';
-import type { ResponseInterceptorType } from '../types/ResponseInterceptorType.js';
 import type { ValidatorFnType } from '../types/ValidatorFnType.js';
 
 import {
@@ -24,8 +22,6 @@ import {
   validateOptions,
   validateParams,
   validateRequestIdGenerator,
-  validateRequestInterceptor,
-  validateResponseInterceptor,
   validateTimeout,
   validateURL
 } from '../config/schemas/index.js';
@@ -41,13 +37,10 @@ import {
 } from '../errors/index.js';
 import { FetchClientBuilder } from './FetchClientBuilder.js';
 import { HttpMethods } from './HttpMethods.js';
-import { InterceptorManager } from './InterceptorManager.js';
 import { RequestBuilder } from './RequestBuilder.js';
 import { UndiciDispatcher } from './UndiciDispatcher.js';
 import { UrlUtils } from './UrlUtils.js';
 
-type RequestInterceptorInputType = readonly RequestInterceptorType[] | RequestInterceptorType | undefined;
-type ResponseInterceptorInputType = readonly ResponseInterceptorType[] | ResponseInterceptorType | undefined;
 type ErrorWithCodeType = Error & { 'code'?: string };
 
 /**
@@ -61,59 +54,42 @@ const UNDICI_ERROR_MAP: Record<string, 'body' | 'connect' | 'headers' | 'socket'
 };
 
 /**
- * HTTP client with default configuration and interceptors
+ * HTTP client with default configuration and subclass-overridable lifecycle hooks.
+ *
+ * Extend this class and override `onRequest` and/or `onResponse` to transform
+ * the outgoing request context (url, options, metadata) or the incoming response
+ * context before the final Response is returned to the caller.
+ *
+ * @example Subclass with request and response transformation
+ * ```typescript
+ * class AuthClient extends FetchClient {
+ *   static override create(config = {}): AuthClient {
+ *     return new this(config);
+ *   }
+ *
+ *   protected override async onRequest(context: RequestContextType): Promise<RequestContextType> {
+ *     return {
+ *       ...context,
+ *       options: {
+ *         ...context.options,
+ *         headers: { ...context.options.headers, Authorization: `Bearer ${getToken()}` }
+ *       }
+ *     };
+ *   }
+ *
+ *   protected override async onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+ *     if (!context.response.ok) throw new Error(`Request failed: ${context.response.status}`);
+ *     return context;
+ *   }
+ * }
+ * ```
  */
 export class FetchClient implements FetchClientInterface {
-  private static readonly EMPTY_ARRAY: never[] = Object.freeze([]) as never[];
-
   /**
    * Creates a new configured HTTP client
    *
    * @param config - Client configuration
    * @returns New FetchClient instance
-   *
-   * @example Single Interceptor
-   * ```typescript
-   * const api = FetchClient.create({
-   *   baseURL: 'https://api.example.com',
-   *   headers: { Authorization: 'Bearer token' },
-   *   timeout: 5000,
-   *   requestInterceptor: async (url, options) => {
-   *     options.headers = { ...options.headers, 'X-Custom': 'value' };
-   *     return { url, options };
-   *   },
-   *   responseInterceptor: async (response) => {
-   *     if (!response.ok) throw new Error('Request failed');
-   *     return response;
-   *   }
-   * });
-   *
-   * await api.get('/users');
-   * ```
-   *
-   * @example Multiple Interceptors (Array)
-   * ```typescript
-   * const api = FetchClient.create({
-   *   baseURL: 'https://api.example.com',
-   *   requestInterceptor: [
-   *     async (url, options) => {
-   *       // Add auth
-   *       options.headers = { ...options.headers, Authorization: 'Bearer token' };
-   *       return { url, options };
-   *     },
-   *     async (url, options) => {
-   *       // Add request ID
-   *       options.headers = { ...options.headers, 'X-Request-ID': generateId() };
-   *       return { url, options };
-   *     },
-   *     async (url, options) => {
-   *       // Log request
-   *       console.log(`[REQUEST] ${options.method} ${url}`);
-   *       return { url, options };
-   *     }
-   *   ]
-   * });
-   * ```
    */
   static create(config: ClientConfigType = {}): FetchClient {
     return new this(config);
@@ -130,93 +106,14 @@ export class FetchClient implements FetchClientInterface {
   private readonly config: ClientConfigType;
   private readonly dispatcher: undefined | UndiciDispatcher;
 
-  private readonly interceptors: InterceptorManager;
-
   protected constructor(config: ClientConfigType = {}) {
     const validated = FetchClient.validateConfig(config);
 
     this.config = validated;
-    this.interceptors = InterceptorManager.create();
 
     if (validated.dispatcher?.enabled === true) {
       this.dispatcher = UndiciDispatcher.create(validated.dispatcher);
     }
-
-    if (validated.requestInterceptor !== undefined) {
-      const interceptors: readonly RequestInterceptorType[] = Array.isArray(validated.requestInterceptor)
-        ? validated.requestInterceptor
-        : [validated.requestInterceptor];
-
-      const requestLen = interceptors.length;
-      for (let i = 0; i < requestLen; i += 1) {
-        this.interceptors.addRequestInterceptor(interceptors[i]!);
-      }
-    }
-
-    if (validated.responseInterceptor !== undefined) {
-      const interceptors: readonly ResponseInterceptorType[] = Array.isArray(validated.responseInterceptor)
-        ? validated.responseInterceptor
-        : [validated.responseInterceptor];
-
-      const responseLen = interceptors.length;
-      for (let i = 0; i < responseLen; i += 1) {
-        this.interceptors.addResponseInterceptor(interceptors[i]!);
-      }
-    }
-  }
-
-  /**
-   * Applies request interceptors to context
-   * Client-level interceptors run first, then per-request interceptors
-   */
-  private async applyRequestInterceptors(
-    context: RequestInterceptorContextType,
-    perRequestInterceptors: RequestInterceptorType[]
-  ): Promise<RequestInterceptorContextType> {
-    let ctx = context;
-    const clientInterceptors = this.interceptors.requestInterceptors;
-    const clientLen = clientInterceptors.length;
-
-    for (let i = 0; i < clientLen; i += 1) {
-      ctx = await clientInterceptors[i]!(ctx);
-      this.onRequestIntercept(i, ctx);
-    }
-
-    const perRequestLen = perRequestInterceptors.length;
-
-    for (let j = 0; j < perRequestLen; j += 1) {
-      ctx = await perRequestInterceptors[j]!(ctx);
-      this.onRequestIntercept(clientLen + j, ctx);
-    }
-
-    return ctx;
-  }
-
-  /**
-   * Applies response interceptors to context
-   * Client-level interceptors run first, then per-request interceptors
-   */
-  private async applyResponseInterceptors(
-    context: ResponseInterceptorContextType,
-    perResponseInterceptors: ResponseInterceptorType[]
-  ): Promise<ResponseInterceptorContextType> {
-    let ctx = context;
-    const clientInterceptors = this.interceptors.responseInterceptors;
-    const clientLen = clientInterceptors.length;
-
-    for (let i = 0; i < clientLen; i += 1) {
-      ctx = await clientInterceptors[i]!(ctx);
-      this.onResponseIntercept(i, ctx);
-    }
-
-    const perResponseLen = perResponseInterceptors.length;
-
-    for (let j = 0; j < perResponseLen; j += 1) {
-      ctx = await perResponseInterceptors[j]!(ctx);
-      this.onResponseIntercept(clientLen + j, ctx);
-    }
-
-    return ctx;
   }
 
   /**
@@ -332,7 +229,7 @@ export class FetchClient implements FetchClientInterface {
    * Executes the HTTP request with error handling
    */
   private async executeRequest(
-    requestContext: RequestInterceptorContextType,
+    requestContext: RequestContextType,
     method: string,
     requestId: string
   ): Promise<Response> {
@@ -395,7 +292,7 @@ export class FetchClient implements FetchClientInterface {
   }
 
   /**
-   * Internal fetch method that applies configuration and interceptors
+   * Internal fetch method that applies configuration and lifecycle hooks
    */
   private async fetch(path: string, options: FetchOptionsType = {}): Promise<Response> {
     const method = options.method ?? 'GET';
@@ -404,24 +301,18 @@ export class FetchClient implements FetchClientInterface {
 
     this.onRequestStart(method, path, metadata.requestId, url);
 
-    const requestContext = await this.applyRequestInterceptors(
-      {
-        'metadata': metadata,
-        'options': this.mergeOptions(options),
-        'url': url
-      },
-      this.normalizeRequestInterceptorTypes(options.requestInterceptor)
-    );
+    const requestContext = await this.onRequest({
+      'metadata': metadata,
+      'options': this.mergeOptions(options),
+      'url': url
+    });
 
     const response = await this.executeRequest(requestContext, method, metadata.requestId);
 
-    const responseContext = await this.applyResponseInterceptors(
-      {
-        'request': requestContext.metadata,
-        'response': response
-      },
-      this.normalizeResponseInterceptorTypes(options.responseInterceptor)
-    );
+    const responseContext = await this.onResponse({
+      'request': requestContext.metadata,
+      'response': response
+    });
 
     return responseContext.response;
   }
@@ -490,6 +381,56 @@ export class FetchClient implements FetchClientInterface {
     return await result;
   }
 
+  /**
+   * Override to transform the outgoing request context before the HTTP call.
+   *
+   * Return the context unchanged for a no-op (default behaviour).
+   * Mutate or replace `url`, `options`, or `metadata` to alter the request.
+   *
+   * @param context - Request context containing url, options, and metadata
+   * @returns Transformed (or unchanged) request context
+   *
+   * @example
+   * ```typescript
+   * protected override async onRequest(context: RequestContextType): Promise<RequestContextType> {
+   *   return {
+   *     ...context,
+   *     options: {
+   *       ...context.options,
+   *       headers: { ...context.options.headers, Authorization: `Bearer ${getToken()}` }
+   *     }
+   *   };
+   * }
+   * ```
+   */
+  protected onRequest(context: RequestContextType): Promise<RequestContextType> {
+    const result: RequestContextType = context;
+    return Promise.resolve(result);
+  }
+
+  /**
+   * Override to transform the response context after the HTTP call returns.
+   *
+   * Return the context unchanged for a no-op (default behaviour).
+   * Replace `response` to transform what the caller receives.
+   * Throw from this method to reject the request with a custom error.
+   *
+   * @param context - Response context containing the HTTP response and request metadata
+   * @returns Transformed (or unchanged) response context
+   *
+   * @example
+   * ```typescript
+   * protected override async onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+   *   if (!context.response.ok) throw new Error(`HTTP ${context.response.status}`);
+   *   return context;
+   * }
+   * ```
+   */
+  protected onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+    const result: ResponseContextType = context;
+    return Promise.resolve(result);
+  }
+
   /** Fires when a request is about to start. */
   protected onRequestStart(
     _method: string,
@@ -536,18 +477,6 @@ export class FetchClient implements FetchClientInterface {
     _method: string,
     _requestId: string,
     _url: string
-  ): void {}
-
-  /** Fires after each request interceptor stage, with the output context. */
-  protected onRequestIntercept(
-    _index: number,
-    _context: RequestInterceptorContextType
-  ): void {}
-
-  /** Fires after each response interceptor stage, with the output context. */
-  protected onResponseIntercept(
-    _index: number,
-    _context: ResponseInterceptorContextType
   ): void {}
 
   /** Fires when the client's dispatcher is about to be destroyed. */
@@ -607,48 +536,6 @@ export class FetchClient implements FetchClientInterface {
     };
 
     return merged;
-  }
-
-  /**
-   * Normalizes request interceptor parameter to array
-   * Extracted as class method to avoid function allocation in hot path
-   *
-   * V8 Optimization: Returns a static frozen empty array for undefined
-   * interceptors, eliminating 20,000+ allocations/sec at 10K req/sec.
-   *
-   * @param interceptor - Single interceptor, array, or undefined
-   * @returns Array of request interceptors
-   */
-  private normalizeRequestInterceptorTypes(interceptor: RequestInterceptorInputType): RequestInterceptorType[] {
-    if (interceptor === undefined) {
-      return FetchClient.EMPTY_ARRAY;
-    }
-    if (Array.isArray(interceptor)) {
-      return interceptor as RequestInterceptorType[];
-    }
-
-    return [interceptor as RequestInterceptorType];
-  }
-
-  /**
-   * Normalizes response interceptor parameter to array
-   * Extracted as class method to avoid function allocation in hot path
-   *
-   * V8 Optimization: Returns a static frozen empty array for undefined
-   * interceptors, eliminating 20,000+ allocations/sec at 10K req/sec.
-   *
-   * @param interceptor - Single interceptor, array, or undefined
-   * @returns Array of response interceptors
-   */
-  private normalizeResponseInterceptorTypes(interceptor: ResponseInterceptorInputType): ResponseInterceptorType[] {
-    if (interceptor === undefined) {
-      return FetchClient.EMPTY_ARRAY;
-    }
-    if (Array.isArray(interceptor)) {
-      return interceptor as ResponseInterceptorType[];
-    }
-
-    return [interceptor as ResponseInterceptorType];
   }
 
   /**
@@ -855,8 +742,6 @@ export class FetchClient implements FetchClientInterface {
     'options': validateOptions,
     'params': validateParams,
     'requestIdGenerator': validateRequestIdGenerator,
-    'requestInterceptor': validateRequestInterceptor,
-    'responseInterceptor': validateResponseInterceptor,
     'timeout': validateTimeout
   };
 

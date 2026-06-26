@@ -57,89 +57,6 @@ void describe('FetchClient Constructor', () => {
       assert.ok(client instanceof FetchClient);
     });
 
-    void it('should create client with single request interceptor', () => {
-      const client = FetchClient.create({
-        requestInterceptor: async ({
-          metadata, options, url
-        }) => {
-          return {
-            metadata,
-            options,
-            url
-          };
-        }
-      });
-
-      assert.ok(client instanceof FetchClient);
-    });
-
-    void it('should create client with array of request interceptors', () => {
-      const client = FetchClient.create({
-        requestInterceptor: [
-          async ({
-            metadata, options, url
-          }) => {
-            return {
-              metadata,
-              options,
-              url
-            };
-          },
-          async ({
-            metadata, options, url
-          }) => {
-            return {
-              metadata,
-              options,
-              url
-            };
-          }
-        ]
-      });
-
-      assert.ok(client instanceof FetchClient);
-    });
-
-    void it('should create client with single response interceptor', () => {
-      const client = FetchClient.create({
-        responseInterceptor: async ({
-          request, response
-        }) => {
-          return {
-            request,
-            response
-          };
-        }
-      });
-
-      assert.ok(client instanceof FetchClient);
-    });
-
-    void it('should create client with array of response interceptors', () => {
-      const client = FetchClient.create({
-        responseInterceptor: [
-          async ({
-            request, response
-          }) => {
-            return {
-              request,
-              response
-            };
-          },
-          async ({
-            request, response
-          }) => {
-            return {
-              request,
-              response
-            };
-          }
-        ]
-      });
-
-      assert.ok(client instanceof FetchClient);
-    });
-
     void it('should create client with custom requestIdGenerator', () => {
       const client = FetchClient.create({
         requestIdGenerator: () => {
@@ -244,11 +161,11 @@ void describe('FetchClient Constructor', () => {
       );
     });
 
-    void it('should reject invalid requestInterceptor', () => {
+    void it('should reject requestInterceptor as an unknown configuration key', () => {
       assert.throws(
         () => {
-          // @ts-expect-error - Testing invalid input
-          FetchClient.create({ requestInterceptor: 'not-a-function' });
+          // @ts-expect-error - requestInterceptor was removed; passing it is an unknown key
+          FetchClient.create({ requestInterceptor: () => {} });
         },
         (error: unknown): error is Error => {
           if (error instanceof Error) {
@@ -263,11 +180,11 @@ void describe('FetchClient Constructor', () => {
       );
     });
 
-    void it('should reject invalid responseInterceptor', () => {
+    void it('should reject responseInterceptor as an unknown configuration key', () => {
       assert.throws(
         () => {
-          // @ts-expect-error - Testing invalid input
-          FetchClient.create({ responseInterceptor: 123 });
+          // @ts-expect-error - responseInterceptor was removed; passing it is an unknown key
+          FetchClient.create({ responseInterceptor: () => {} });
         },
         (error: unknown): error is Error => {
           if (error instanceof Error) {
@@ -310,31 +227,6 @@ void describe('FetchClient Constructor', () => {
       assert.strictEqual(data.title, 'Test Post');
     });
 
-    void it('should apply default headers to requests', async () => {
-      let capturedHeaders: globalThis.Headers | undefined;
-      const client = FetchClient.create({
-        baseURL: testUrl,
-        headers: { 'X-Custom-Header': 'test-value' },
-        requestInterceptor: async ({
-          metadata, options, url
-        }) => {
-          capturedHeaders = new globalThis.Headers(options.headers);
-
-          return {
-            metadata,
-            options,
-            url
-          };
-        }
-      });
-
-      await client.get('/posts/1');
-
-      if (capturedHeaders !== undefined) {
-        assert.strictEqual(capturedHeaders.get('X-Custom-Header'), 'test-value');
-      }
-    });
-
     void it('should apply default timeout to requests', async () => {
       const client = FetchClient.create({
         baseURL: testUrl,
@@ -354,171 +246,57 @@ void describe('FetchClient Constructor', () => {
       );
     });
 
-    void it('should execute configured request interceptor', async () => {
-      let interceptorCalled = false;
-      const client = FetchClient.create({
-        baseURL: testUrl,
-        requestInterceptor: async ({
-          metadata, options, url
-        }) => {
-          interceptorCalled = true;
-
-          return {
-            metadata,
-            options,
-            url
-          };
-        }
-      });
-
-      await client.get('/posts/1');
-
-      assert.strictEqual(interceptorCalled, true);
-    });
-
-    void it('should execute configured response interceptor', async () => {
-      let interceptorCalled = false;
-      const client = FetchClient.create({
-        baseURL: testUrl,
-        responseInterceptor: async ({
-          request, response
-        }) => {
-          interceptorCalled = true;
-
-          return {
-            request,
-            response
-          };
-        }
-      });
-
-      await client.get('/posts/1');
-
-      assert.strictEqual(interceptorCalled, true);
-    });
-
     void it('should use custom requestIdGenerator', async () => {
-      let generatedId: string | undefined;
-      const client = FetchClient.create({
+      const generatedIds: string[] = [];
+
+      class TrackingClient extends FetchClient {
+        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): TrackingClient {
+          return new this(config);
+        }
+
+        protected override onRequestStart(_method: string, _path: string, requestId: string, _url: string): void {
+          generatedIds.push(requestId);
+        }
+      }
+
+      const client = TrackingClient.create({
         baseURL: testUrl,
         requestIdGenerator: () => {
           return 'custom-test-id';
-        },
-        requestInterceptor: async ({
-          metadata, options, url
-        }) => {
-          generatedId = metadata.requestId;
-
-          return {
-            metadata,
-            options,
-            url
-          };
         }
       });
 
       await client.get('/posts/1');
 
-      assert.strictEqual(generatedId, 'custom-test-id');
-    });
-
-    void it('should execute array of request interceptors in order', async () => {
-      const order: number[] = [];
-      const client = FetchClient.create({
-        baseURL: testUrl,
-        requestInterceptor: [
-          async ({
-            metadata, options, url
-          }) => {
-            order.push(1);
-
-            return {
-              metadata,
-              options,
-              url
-            };
-          },
-          async ({
-            metadata, options, url
-          }) => {
-            order.push(2);
-
-            return {
-              metadata,
-              options,
-              url
-            };
-          }
-        ]
-      });
-
-      await client.get('/posts/1');
-
-      assert.deepStrictEqual(order, [
-        1,
-        2
-      ]);
-    });
-
-    void it('should execute array of response interceptors in order', async () => {
-      const order: number[] = [];
-      const client = FetchClient.create({
-        baseURL: testUrl,
-        responseInterceptor: [
-          async ({
-            request, response
-          }) => {
-            order.push(1);
-
-            return {
-              request,
-              response
-            };
-          },
-          async ({
-            request, response
-          }) => {
-            order.push(2);
-
-            return {
-              request,
-              response
-            };
-          }
-        ]
-      });
-
-      await client.get('/posts/1');
-
-      assert.deepStrictEqual(order, [
-        1,
-        2
-      ]);
+      assert.strictEqual(generatedIds[0], 'custom-test-id');
     });
 
     void it('should merge default metadata with request metadata', async () => {
-      let capturedMetadata: Record<string, unknown> | undefined;
-      const client = FetchClient.create({
-        baseURL: testUrl,
-        metadata: { service: 'test-service' },
-        requestInterceptor: async ({
-          metadata, options, url
-        }) => {
-          capturedMetadata = metadata.metadata;
+      const capturedMetadata: Record<string, unknown>[] = [];
 
-          return {
-            metadata,
-            options,
-            url
-          };
+      class MetadataClient extends FetchClient {
+        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): MetadataClient {
+          return new this(config);
         }
+
+        protected override async onRequest(
+          context: import('../../../src/interfaces/RequestContextType.js').RequestContextType
+        ): Promise<import('../../../src/interfaces/RequestContextType.js').RequestContextType> {
+          capturedMetadata.push({ ...context.metadata.metadata });
+          return context;
+        }
+      }
+
+      const client = MetadataClient.create({
+        baseURL: testUrl,
+        metadata: { service: 'test-service' }
       });
 
       await client.get('/posts/1', { metadata: { operation: 'get-post' } });
 
-      assert.ok(capturedMetadata);
-      assert.strictEqual(capturedMetadata.service, 'test-service');
-      assert.strictEqual(capturedMetadata.operation, 'get-post');
+      assert.ok(capturedMetadata[0] !== undefined);
+      assert.strictEqual(capturedMetadata[0].service, 'test-service');
+      assert.strictEqual(capturedMetadata[0].operation, 'get-post');
     });
   });
 });

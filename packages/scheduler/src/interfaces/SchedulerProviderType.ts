@@ -12,15 +12,15 @@ import type { ScheduledTaskType } from './ScheduledTaskType.js';
  */
 export type SchedulerProviderType = {
   /** Cancels all tasks registered with this provider. */
-  readonly 'cancelAll': () => void;
+  'cancelAll': () => void;
   /**
    * Schedules `fire` to run once at the absolute epoch-ms `atMs`.
    * If `atMs` is in the past, fires at the next opportunity.
    */
-  readonly 'scheduleAt': (atMs: number, fire: () => Promise<void> | void) => ScheduledTaskType;
+  'scheduleAt': (atMs: number, fire: () => Promise<void> | void) => ScheduledTaskType;
   /**
    * Schedules `fire` to run repeatedly every `intervalMs` milliseconds.
    * The first fire occurs after `intervalMs` milliseconds.
    */
-  readonly 'scheduleEvery': (intervalMs: number, fire: () => Promise<void> | void) => ScheduledTaskType;
+  'scheduleEvery': (intervalMs: number, fire: () => Promise<void> | void) => ScheduledTaskType;
 };

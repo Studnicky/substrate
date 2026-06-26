@@ -5,8 +5,6 @@
 import type { ClientConfigType } from '../interfaces/ClientConfigType.js';
 import type { DispatcherConfigType } from '../interfaces/DispatcherConfigType.js';
 import type { QueryParamsType } from '../types/QueryParamsType.js';
-import type { RequestInterceptorType } from '../types/RequestInterceptorType.js';
-import type { ResponseInterceptorType } from '../types/ResponseInterceptorType.js';
 import type { FetchClient } from './FetchClient.js';
 
 /**
@@ -26,8 +24,6 @@ export class FetchClientBuilder {
   #name?: string;
   #params?: QueryParamsType;
   #requestIdGenerator?: () => string;
-  #requestInterceptor?: RequestInterceptorType | readonly RequestInterceptorType[];
-  #responseInterceptor?: ResponseInterceptorType | readonly ResponseInterceptorType[];
   #timeout?: number;
 
   private constructor(create: (options: ClientConfigType) => FetchClient) {
@@ -74,16 +70,6 @@ export class FetchClientBuilder {
     return this;
   }
 
-  withRequestInterceptor(value: RequestInterceptorType | readonly RequestInterceptorType[]): this {
-    this.#requestInterceptor = value;
-    return this;
-  }
-
-  withResponseInterceptor(value: ResponseInterceptorType | readonly ResponseInterceptorType[]): this {
-    this.#responseInterceptor = value;
-    return this;
-  }
-
   withTimeout(value: number): this {
     this.#timeout = value;
     return this;
@@ -115,12 +101,6 @@ export class FetchClientBuilder {
     }
     if (this.#requestIdGenerator !== undefined) {
       config.requestIdGenerator = this.#requestIdGenerator;
-    }
-    if (this.#requestInterceptor !== undefined) {
-      config.requestInterceptor = this.#requestInterceptor;
-    }
-    if (this.#responseInterceptor !== undefined) {
-      config.responseInterceptor = this.#responseInterceptor;
     }
     if (this.#timeout !== undefined) {
       config.timeout = this.#timeout;

@@ -129,12 +129,6 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
       throw new ConfigurationError(`referrerPolicy must be one of: ${validPolicies.join(', ')}`);
     }
   },
-  'requestInterceptor': () => {
-    // Interceptors are validated separately
-  },
-  'responseInterceptor': () => {
-    // Interceptors are validated separately
-  },
   'signal': (value: unknown) => {
     if (value !== undefined && value !== null && !(value instanceof AbortSignal)) {
       throw new ConfigurationError('signal must be an AbortSignal instance');

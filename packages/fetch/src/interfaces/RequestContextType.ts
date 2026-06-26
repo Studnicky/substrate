@@ -1,10 +1,10 @@
-import type { BaseFetchOptionsType } from './BaseFetchOptionsType.js';
+import type { FetchOptionsType } from './FetchOptionsType.js';
 import type { RequestMetadataType } from './RequestMetadataType.js';
 
 /**
- * Context passed to request interceptors
+ * Context passed to onRequest hook
  */
-export type RequestInterceptorContextType = {
+export type RequestContextType = {
   /**
    * Request metadata and tracking information
    */
@@ -13,7 +13,7 @@ export type RequestInterceptorContextType = {
   /**
    * Fetch options
    */
-  'options': BaseFetchOptionsType;
+  'options': FetchOptionsType;
 
   /**
    * Request URL

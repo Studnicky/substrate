@@ -6,9 +6,6 @@ import {
   after, before, describe, it
 } from 'node:test';
 
-import type { RequestInterceptorContextType } from '../../../src/interfaces/RequestInterceptorContextType.js';
-import type { ResponseInterceptorContextType } from '../../../src/interfaces/ResponseInterceptorContextType.js';
-
 import { FetchClient } from '../../../src/index.js';
 
 type HookEvent = { 'hook': string; 'args': unknown[] };
@@ -42,14 +39,6 @@ class HookedClient extends FetchClient {
 
   protected override onAbort(method: string, requestId: string, url: string): void {
     this.events.push({ 'hook': 'onAbort', 'args': [method, requestId, url] });
-  }
-
-  protected override onRequestIntercept(index: number, context: RequestInterceptorContextType): void {
-    this.events.push({ 'hook': 'onRequestIntercept', 'args': [index, context] });
-  }
-
-  protected override onResponseIntercept(index: number, context: ResponseInterceptorContextType): void {
-    this.events.push({ 'hook': 'onResponseIntercept', 'args': [index, context] });
   }
 
   protected override onDispatcherDestroy(): void {
@@ -201,57 +190,6 @@ void describe('FetchClient lifecycle hooks', () => {
     const requestErrors = client.eventsOf('onRequestError');
 
     assert.equal(requestErrors.length, 1);
-  });
-
-  void it('onRequestIntercept fires once per interceptor in order', async () => {
-    const interceptorA = async (ctx: RequestInterceptorContextType): Promise<RequestInterceptorContextType> => {
-      return { ...ctx, 'url': ctx.url };
-    };
-    const interceptorB = async (ctx: RequestInterceptorContextType): Promise<RequestInterceptorContextType> => {
-      return { ...ctx, 'url': ctx.url };
-    };
-
-    const client = HookedClient.create({
-      'baseURL': baseURL,
-      'requestInterceptor': [interceptorA, interceptorB]
-    });
-
-    // per-request interceptor
-    const perRequest = async (ctx: RequestInterceptorContextType): Promise<RequestInterceptorContextType> => {
-      return { ...ctx, 'url': ctx.url };
-    };
-
-    await client.get('/ok', { 'requestInterceptor': perRequest });
-
-    const intercepts = client.eventsOf('onRequestIntercept');
-
-    assert.equal(intercepts.length, 3);
-    const indices = intercepts.map((e) => { return (e.args as [number])[0]; });
-
-    assert.deepEqual(indices, [0, 1, 2]);
-  });
-
-  void it('onResponseIntercept fires once per response interceptor', async () => {
-    const interceptorA = async (ctx: ResponseInterceptorContextType): Promise<ResponseInterceptorContextType> => {
-      return ctx;
-    };
-    const interceptorB = async (ctx: ResponseInterceptorContextType): Promise<ResponseInterceptorContextType> => {
-      return ctx;
-    };
-
-    const client = HookedClient.create({
-      'baseURL': baseURL,
-      'responseInterceptor': [interceptorA, interceptorB]
-    });
-
-    await client.get('/ok');
-
-    const intercepts = client.eventsOf('onResponseIntercept');
-
-    assert.equal(intercepts.length, 2);
-    const indices = intercepts.map((e) => { return (e.args as [number])[0]; });
-
-    assert.deepEqual(indices, [0, 1]);
   });
 
   void it('onDispatcherDestroy fires on client.destroy() when dispatcher configured', async () => {

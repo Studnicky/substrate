@@ -216,9 +216,6 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
-      '@studnicky/pipeline':
-        specifier: workspace:*
-        version: link:../pipeline
       undici:
         specifier: ^8.5.0
         version: 8.5.0

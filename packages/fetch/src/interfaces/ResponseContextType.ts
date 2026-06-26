@@ -1,9 +1,9 @@
 import type { RequestMetadataType } from './RequestMetadataType.js';
 
 /**
- * Context passed to response interceptors
+ * Context passed to onResponse hook
  */
-export type ResponseInterceptorContextType = {
+export type ResponseContextType = {
   /**
    * Request metadata for correlation
    */

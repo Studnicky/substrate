@@ -46,6 +46,7 @@ export default [
         '@studnicky/no-export-alias': 'error',
         '@studnicky/no-freestanding-verb-noun': 'error',
         '@studnicky/no-prefer-existing-type': 'error',
+        '@studnicky/no-readonly-in-data-type': 'error',
         '@studnicky/no-suppression-comments': 'error',
         '@studnicky/no-this-alias': 'error',
         '@studnicky/no-trivial-shim': 'error',
