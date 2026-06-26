@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-06-26
+
 ### Added
 
 - `@studnicky/no-readonly-in-data-type` ESLint rule (autofixable, type-checker driven): forbids `readonly` modifiers baked into exported `type` alias data definitions. Detection is proven through the type system with no name matching — generic transformation types (mapped types like `DeepReadonlyType`, conditional types like `DeepMergeType`) resolve to types with no concrete readonly members and are never flagged, and a type that merely references a readonly type is left alone. The fix removes the `readonly` modifiers.

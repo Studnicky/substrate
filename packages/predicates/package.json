@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/predicates",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "JSON Schema primitive validation predicates: type guards, string, numeric, array, object, content",
   "type": "module",
   "sideEffects": false,

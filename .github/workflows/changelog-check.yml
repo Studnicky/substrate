@@ -10,7 +10,10 @@ jobs:
     name: Changelog entry required
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    # Release and hotfix PRs promote [Unreleased] into a versioned heading, so
+    # the section is intentionally empty on those branches. The publish workflow
+    # (on the v* tag) enforces that the versioned changelog heading exists.
+    if: ${{ github.actor != 'dependabot[bot]' && !startsWith(github.head_ref, 'release/') && !startsWith(github.head_ref, 'hotfix/') }}
     steps:
       - uses: actions/checkout@v7
 
