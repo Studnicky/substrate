@@ -103,7 +103,7 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
     const detail = count === 1 ? '1 validation error' : `${count} validation errors`;
     return {
       'detail': detail,
-      'errors': this.items,
+      'errors': [...this.items],
       'status': options?.status ?? 422,
       'title': options?.title ?? 'Validation failed',
       'type': options?.type ?? DEFAULT_PROBLEM_TYPE

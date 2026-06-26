@@ -18,14 +18,12 @@ export class HttpMethods {
    * Extracts only standard RequestInit properties from FetchOptionsType
    */
   private static toRequestInit(opts: FetchOptionsType, signal?: AbortSignal): object {
-    // Destructure to exclude custom properties (dispatcher, json, metadata, requestId, timeout, interceptors)
+    // Destructure to exclude custom properties (dispatcher, json, metadata, requestId, timeout)
     const {
       'dispatcher': _d,
       'json': _j,
       'metadata': _m,
       'requestId': _r,
-      'requestInterceptor': _ri,
-      'responseInterceptor': _ro,
       'signal': _s,
       'timeout': _t,
       ...standardProps

@@ -2,26 +2,114 @@
  * Fetch options type
  */
 
-import type { RequestInterceptorType } from '../types/RequestInterceptorType.js';
-import type { ResponseInterceptorType } from '../types/ResponseInterceptorType.js';
-import type { BaseFetchOptionsType } from './BaseFetchOptionsType.js';
-
 /**
- * Unified fetch options with optional timeout, abort controller, and interceptor support
- * Extends BaseFetchOptionsType with interceptor properties
+ * Unified fetch options with optional timeout, abort controller, and per-request configuration
  */
-export type FetchOptionsType = BaseFetchOptionsType & {
+export type FetchOptionsType = {
   /**
-   * Per-request interceptor(s) to modify request before sending
-   * Applied after client-level interceptors
-   * Can be a single function or an array of functions executed in order
+   * Request body (raw/pre-serialized)
+   * Use `json` instead to auto-serialize an object to JSON with Content-Type: application/json
    */
-  'requestInterceptor'?: readonly RequestInterceptorType[] | RequestInterceptorType;
+  'body'?: ArrayBuffer | null | ReadableStream | string | Uint8Array;
 
   /**
-   * Per-request interceptor(s) to modify response after receiving
-   * Applied after client-level interceptors
-   * Can be a single function or an array of functions executed in order
+   * Cache mode
    */
-  'responseInterceptor'?: readonly ResponseInterceptorType[] | ResponseInterceptorType;
+  'cache'?: 'default' | 'force-cache' | 'no-cache' | 'no-store' | 'only-if-cached' | 'reload';
+
+  /**
+   * Credentials mode
+   */
+  'credentials'?: 'include' | 'omit' | 'same-origin';
+
+  /**
+   * Custom undici dispatcher/agent for connection pooling
+   */
+  'dispatcher'?: unknown;
+
+  /**
+   * Request headers
+   */
+  'headers'?: Record<string, string>;
+
+  /**
+   * Subresource integrity value
+   */
+  'integrity'?: string;
+
+  /**
+   * Request body as a plain value — auto-serialized to JSON with Content-Type: application/json
+   * Use for POST/PUT/PATCH requests with a JSON payload
+   */
+  'json'?: unknown;
+
+  /**
+   * Keep-alive mode
+   */
+  'keepalive'?: boolean;
+
+  /**
+   * Per-request metadata for logging and tracking
+   *
+   * Merged with client-level metadata
+   * Accessible in hooks via metadata.metadata
+   *
+   * @example
+   * ```typescript
+   * await client.get('/users', {
+   *   metadata: {
+   *     operation: 'fetchUsers',
+   *     source: 'dashboard'
+   *   }
+   * });
+   * ```
+   */
+  'metadata'?: Record<string, unknown>;
+
+  /**
+   * HTTP method
+   */
+  'method'?: string;
+
+  /**
+   * Redirect mode
+   */
+  'redirect'?: 'error' | 'follow' | 'manual';
+
+  /**
+   * Referrer URL
+   */
+  'referrer'?: string;
+
+  /**
+   * Referrer policy
+   */
+  'referrerPolicy'?: '' | 'no-referrer' | 'no-referrer-when-downgrade' | 'origin' | 'origin-when-cross-origin' | 'same-origin' | 'strict-origin' | 'strict-origin-when-cross-origin' | 'unsafe-url';
+
+  /**
+   * Override auto-generated request ID
+   *
+   * If provided, this ID will be used instead of auto-generating one
+   * Useful for passing request IDs from upstream services
+   *
+   * @example
+   * ```typescript
+   * await client.get('/users', {
+   *   requestId: 'req_from_upstream_service_123'
+   * });
+   * ```
+   */
+  'requestId'?: string;
+
+  /**
+   * Optional AbortController signal for manual cancellation
+   * If timeout is provided without a signal, one will be created automatically
+   */
+  'signal'?: AbortSignal;
+
+  /**
+   * Optional request timeout in milliseconds
+   * If not provided, no timeout is enforced
+   */
+  'timeout'?: number;
 };

@@ -9,5 +9,5 @@ export type MemoryTransportOptionsType = {
    * Minimum log level this transport accepts. Records below this level
    * are silently ignored. Defaults to the Logger global floor (TRACE).
    */
-  readonly 'level'?: LogLevelStringType | LogLevelType;
+  'level'?: LogLevelStringType | LogLevelType;
 };

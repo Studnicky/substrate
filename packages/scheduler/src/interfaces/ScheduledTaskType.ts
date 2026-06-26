@@ -10,9 +10,9 @@
  */
 export type ScheduledTaskType = {
   /** Absolute epoch-ms at which this task was originally scheduled to fire. */
-  readonly 'atMs': number;
+  'atMs': number;
   /** Cancels this task; no-ops if already fired or already cancelled. */
-  readonly 'cancel': () => void;
+  'cancel': () => void;
   /** Unique opaque identifier for this task. */
-  readonly 'id': string;
+  'id': string;
 };

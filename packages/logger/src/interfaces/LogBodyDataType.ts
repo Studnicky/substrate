@@ -11,9 +11,9 @@ import type { LogStatusType } from '../types/LogStatusType.js';
  * The context field holds freeform application data as a JSON blob.
  */
 export type LogBodyDataType = {
-  readonly 'context': Record<string, unknown>;
-  readonly 'durationMs'?: number;
-  readonly 'event': string;
-  readonly 'message': string;
-  readonly 'status': LogStatusType;
+  'context': Record<string, unknown>;
+  'durationMs'?: number;
+  'event': string;
+  'message': string;
+  'status': LogStatusType;
 };

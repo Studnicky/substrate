@@ -3,8 +3,6 @@
  */
 
 import type { QueryParamsType } from '../types/QueryParamsType.js';
-import type { RequestInterceptorType } from '../types/RequestInterceptorType.js';
-import type { ResponseInterceptorType } from '../types/ResponseInterceptorType.js';
 import type { DispatcherConfigType } from './DispatcherConfigType.js';
 import type { FetchOptionsType } from './FetchOptionsType.js';
 
@@ -17,7 +15,7 @@ export type ClientConfigType = {
    * Default: true
    *
    * When enabled, each request gets a unique ID for correlation
-   * The ID is accessible in interceptors via metadata.requestId
+   * The ID is accessible in lifecycle hooks via metadata.requestId
    */
   'autoGenerateRequestId'?: boolean;
 
@@ -59,7 +57,7 @@ export type ClientConfigType = {
   /**
    * Default metadata for all requests
    *
-   * Key-value pairs that flow through request/response interceptors
+   * Key-value pairs that flow through the onRequest/onResponse lifecycle hooks
    * Useful for logging, tracking, and correlating requests
    *
    * @example
@@ -113,18 +111,6 @@ export type ClientConfigType = {
    * ```
    */
   'requestIdGenerator'?: () => string;
-
-  /**
-   * Request interceptor(s) to modify requests before sending
-   * Can be a single function or an array of functions executed in order
-   */
-  'requestInterceptor'?: readonly RequestInterceptorType[] | RequestInterceptorType;
-
-  /**
-   * Response interceptor(s) to modify responses after receiving
-   * Can be a single function or an array of functions executed in order
-   */
-  'responseInterceptor'?: readonly ResponseInterceptorType[] | ResponseInterceptorType;
 
   /**
    * Default timeout in milliseconds

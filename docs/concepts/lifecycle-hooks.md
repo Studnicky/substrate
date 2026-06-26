@@ -22,10 +22,13 @@ synchronously at the exact stage; a subclass overrides it to observe.
   hooks did not exist. Adding hooks is non-breaking.
 - **Synchronous and raw.** Hooks are called inline at the stage, after the
   relevant state change, so an override sees committed state.
-- **Observation only.** Overrides should not throw or block; they exist to log,
-  count, and trace — not to alter control flow.
-- **Subclass to observe.** Override only the hooks you care about. Everything you
-  don't override stays a no-op.
+- **Two hook kinds.** Most hooks are `void` observers — they exist to log, count,
+  and trace. Some hooks are **transform hooks**: they receive a context object and
+  return a (possibly modified) value to alter behavior. `@studnicky/fetch`'s
+  `onRequest(context)` and `onResponse(context)` are transform hooks — a subclass
+  overrides them to mutate the outgoing request or incoming response.
+- **Subclass to observe or override.** Override only the hooks you care about.
+  Everything you don't override stays a no-op.
 
 ## Using a hook
 
@@ -82,6 +85,7 @@ its arguments. This index is the at-a-glance map of where each stage lives.
 | [concurrency](/packages/concurrency#observability-hooks) | `onAcquire` `onAcquireWait` `onContended` `onRelease` `onReleaseDelegated` `onSend` `onReceive` `onEnqueue` `onDequeue` `onClose` `onPublishDropped` `onCoalesceStart` `onCoalesceJoin` `onCoalesceSettled` |
 | [context](/packages/context#observability-hooks) | `onInitialize` `onMissingContext` `onSet` `onGet` `onDelete` `onEnter` `onExit` `onBeforeExecute` `onAfterExecute` `onError` `onTerminate` `onTerminatedAccess` `onDispose` |
 | [event-bus](/packages/event-bus#observability-hooks) | `onPublish` `onSubscribe` `onUnsubscribe` `onDeliver` `onEnqueue` `onDequeue` `onDrop` `onOverflow` `onSlowConsumer` `onHandlerError` `onDispose` |
+| [fetch](/packages/fetch#observability-hooks) | `onRequest` _(transform)_ `onResponse` _(transform)_ `onRequestStart` `onResponseSuccess` `onResponseError` `onRequestError` `onTimeout` `onAbort` `onDispatcherDestroy` |
 | [file-lock](/packages/file-lock#observability-hooks) | `onAcquireStart` `onAcquireWait` `onContended` `onAcquire` `onRelease` `onStaleDetected` `onStaleBreak` `onTimeout` `onError` |
 | [fsm](/packages/fsm#observability-hooks) | `onTransition` `onEnterState` `onExitState` `onTransitionRejected` `onEffectStart` `onEffectSuccess` `onEffectError` `onStart` `onStop` `onEnqueue` `onRegister` `onUnregister` `onResolveMiss` |
 | [logger](/packages/logger#observability-hooks) | `onLog` `onDropped` `onChildCreate` `onTransportError` `onFieldSet` `onBuild` `onBuildError` |

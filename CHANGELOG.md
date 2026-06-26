@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-06-26
+
+### Added
+
+- `@studnicky/no-readonly-in-data-type` ESLint rule (autofixable, type-checker driven): forbids `readonly` modifiers baked into exported `type` alias data definitions. Detection is proven through the type system with no name matching — generic transformation types (mapped types like `DeepReadonlyType`, conditional types like `DeepMergeType`) resolve to types with no concrete readonly members and are never flagged, and a type that merely references a readonly type is left alone. The fix removes the `readonly` modifiers.
+
+### Changed
+
+- **Breaking:** Exported data `type` aliases across the toolkit no longer carry `readonly` modifiers. A `type` describes shape, not access policy; consumers declare immutability at the use site (`readonly`, `Readonly<T>`, `DeepReadonlyType<T>`). This includes `@studnicky/types` `JsonValueType` and the `*Type` option/result shapes across the primitives. `interface` contracts and all use-site `readonly` (parameters, class fields, `Readonly<T>` references) are unchanged.
+- **Breaking:** `@studnicky/fetch` replaces the request/response interceptor mechanism with protected override lifecycle hooks. Subclass `FetchClient` and override `onRequest(context)` / `onResponse(context)` to transform the outgoing request or incoming response. Removed: the `requestInterceptor`/`responseInterceptor` config fields and builder methods, `InterceptorManager`, and the `RequestInterceptorType`/`ResponseInterceptorType` exports; the context types are now `RequestContextType` / `ResponseContextType`. The package no longer depends on `@studnicky/pipeline`.
+- `@studnicky/interface-must-be-contract` is now type-checker driven and autofixable. It resolves each member's type through the checker and flags an interface only when every member is JSON-serializable — including generic type-parameter bodies such as `interface Box<T> { v: T }`. The fix rewrites a data-shape interface to a `type` alias, preserving `export`/`declare` modifiers, generics, and `extends` (as an intersection), and is skipped for declaration-merged or globally-augmented interfaces.
+
 ## [2.0.0] - 2026-06-25
 
 ### Changed

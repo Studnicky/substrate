@@ -7,7 +7,7 @@ description: '@studnicky ESLint plugins — configuration rules and V8 performan
 
 `@studnicky/eslint-config` ships two custom ESLint plugins:
 
-- **`@studnicky`** — 14 structural and semantic rules that enforce the substrate codebase doctrine.
+- **`@studnicky`** — 15 structural and semantic rules that enforce the substrate codebase doctrine.
 - **`@studnicky/v8`** — 16 V8 performance rules that flag patterns preventing V8 from using optimized code paths.
 
 Register both plugins in your flat config to enable the rules.
@@ -110,16 +110,17 @@ import { v8Plugin } from '@studnicky/eslint-config/v8';
 
 ## Configuration rules
 
-14 rules that enforce structural, semantic, and stylistic constraints.
+15 rules that enforce structural, semantic, and stylistic constraints.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|
 | [`@studnicky/entity-namespace`](/eslint/rules/entity-namespace) | No | `error` |
-| [`@studnicky/interface-must-be-contract`](/eslint/rules/interface-must-be-contract) | No | `error` |
+| [`@studnicky/interface-must-be-contract`](/eslint/rules/interface-must-be-contract) | Yes | `error` |
 | [`@studnicky/no-bind-apply-call`](/eslint/rules/no-bind-apply-call) | No | `error` |
 | [`@studnicky/no-export-alias`](/eslint/rules/no-export-alias) | No | `error` |
 | [`@studnicky/no-freestanding-verb-noun`](/eslint/rules/no-freestanding-verb-noun) | No | `error` |
 | [`@studnicky/no-prefer-existing-type`](/eslint/rules/no-prefer-existing-type) | No | `error` |
+| [`@studnicky/no-readonly-in-data-type`](/eslint/rules/no-readonly-in-data-type) | Yes | `error` |
 | [`@studnicky/no-suppression-comments`](/eslint/rules/no-suppression-comments) | Yes | `error` |
 | [`@studnicky/no-this-alias`](/eslint/rules/no-this-alias) | No | `error` |
 | [`@studnicky/no-trivial-shim`](/eslint/rules/no-trivial-shim) | Yes | `error` |

@@ -1,13 +1,14 @@
 /**
  * A recursively-defined JSON-safe value.
  *
- * All branches are readonly so that a `JsonValueType` can be assigned to a
- * `ReadonlyArray` or a `Readonly` object without widening.
+ * The type describes shape, not access policy, so no branch is pinned
+ * `readonly`. Consumers that need immutability declare it at the use site —
+ * `readonly`, `Readonly<T>`, or `DeepReadonlyType<T>`.
  */
 export type JsonValueType
   = | string
   | number
   | boolean
   | null
-  | readonly JsonValueType[]
-  | { readonly [k: string]: JsonValueType };
+  | JsonValueType[]
+  | { [k: string]: JsonValueType };

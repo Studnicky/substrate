@@ -6,6 +6,7 @@ export { noBindApplyCall } from './rules/noBindApplyCall.js';
 export { noExportAlias } from './rules/noExportAlias.js';
 export { noFreestandingVerbNoun } from './rules/noFreestandingVerbNoun.js';
 export { noPreferExistingType } from './rules/noPreferExistingType.js';
+export { noReadonlyInDataType } from './rules/noReadonlyInDataType.js';
 export { noSuppressionComments } from './rules/noSuppressionComments.js';
 export { noTrivialShim } from './rules/noTrivialShim.js';
 export { noTypeAliasing } from './rules/noTypeAliasing.js';

@@ -11,7 +11,7 @@
  */
 export type ClockProviderType = {
   /** Returns a monotonic timestamp in nanoseconds. */
-  readonly 'hrtime': () => bigint;
+  'hrtime': () => bigint;
   /** Returns the current time in milliseconds since the Unix epoch. */
-  readonly 'now': () => number;
+  'now': () => number;
 };

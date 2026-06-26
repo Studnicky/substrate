@@ -5,7 +5,7 @@ description: Shared ESLint flat config for @studnicky packages.
 
 # @studnicky/eslint-config
 
-Standard ESLint plugin for TypeScript projects. Ships two namespaced rule sets — `plugin` (14 `@studnicky` rules) and `v8Plugin` (16 `@studnicky/v8` rules) — plus individual rule modules.
+Standard ESLint plugin for TypeScript projects. Ships two namespaced rule sets — `plugin` (15 `@studnicky` rules) and `v8Plugin` (16 `@studnicky/v8` rules) — plus individual rule modules.
 
 ## Install
 
@@ -52,10 +52,10 @@ export default [
 
 ## Rule reference
 
-Full documentation for all 30 custom rules is in the **ESLint Plugins** section:
+Full documentation for all 31 custom rules is in the **ESLint Plugins** section:
 
 - [ESLint Plugins Overview](/eslint/) — install, factory usage, and rule tables
-- [Configuration rules](/eslint/) — 14 `@studnicky` structural and semantic rules
+- [Configuration rules](/eslint/) — 15 `@studnicky` structural and semantic rules
 - [V8 performance rules](/eslint/) — 16 `@studnicky/v8` optimization rules
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/eslint-config)

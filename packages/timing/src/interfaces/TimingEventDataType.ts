@@ -9,5 +9,5 @@ export type TimingEventDataType = {
    * The formatted event name.
    * Format: 'component.operation' or 'component.operation.status'
    */
-  readonly 'event': string;
+  'event': string;
 };

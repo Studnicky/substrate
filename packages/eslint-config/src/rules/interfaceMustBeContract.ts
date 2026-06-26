@@ -1,141 +1,323 @@
 import type { Rule } from 'eslint';
 
+import {
+  IndexKind,
+  type Program,
+  type Symbol,
+  SymbolFlags,
+  type Type,
+  type TypeChecker,
+  TypeFlags,
+  type TypeReference
+} from 'typescript';
+
 /**
  * interface-must-be-contract — interfaces express runtime contracts, not data.
  *
  * The law: a `type` is JSON-serializable and validatable (schema-derived); an
  * `interface` is a runtime contract that carries the members a type cannot —
- * functions, constructors, and references to class instances. An interface that
- * contains ONLY JSON-serializable property/index signatures (primitives, plain
- * object literals, arrays of those) is a data shape wearing the wrong keyword
- * and must be declared as a schema-derived `type XxxType` in an entity instead.
+ * functions, constructors, and references to class instances. An interface
+ * whose every member is JSON-serializable is a data shape wearing the wrong
+ * keyword and must be declared as a schema-derived `type XxxType` in an entity
+ * instead.
  *
- * A member is a "contract signal" — and therefore makes the interface a
- * legitimate contract — when it is a method/call/construct signature, OR a
- * property whose annotation contains a function type (`() => T`), a constructor
- * type (`new () => T`), or a named-type reference (`Clock`, `Logger`). Those are
- * exactly the members that are NOT serializable to JSON.
+ * Serializability is resolved through the TypeScript type checker, not syntax.
+ * An interface is a legitimate contract when it has a call/construct signature,
+ * or when any property or index type resolves to a non-serializable type: a
+ * function or constructor type, a class instance (a symbol bearing
+ * `SymbolFlags.Class`, which transitively covers `Date`, `Map`, `Set`,
+ * `Promise`, and the like, since their members carry methods), or `any` /
+ * `unknown`. A property whose annotation is a named reference is judged by what
+ * that name resolves to — a reference to a pure-data type is itself data; a
+ * reference to a class is a contract signal. Type parameters (`T`) are
+ * serializable placeholders, so `interface Box<T> { v: T }` is a data shape.
  */
-
-const CONTRACT_SIGNAL_TYPES = new Set([
-  // Constructor-call property shapes — factory members.
-  'TSConstructorType',
-  // Callable property shapes (e.g. `readonly fn: () => T`) — function members.
-  'TSFunctionType',
-  // Named type references (e.g. `Clock`, `Logger`) — class-instance properties.
-  'TSTypeReference'
-]);
-
-const METHOD_SIGNATURE_TYPES = new Set([
-  'TSCallSignatureDeclaration',
-  'TSConstructSignatureDeclaration',
-  'TSMethodSignature'
-]);
 
 const isObject = (value: unknown): value is Record<string, unknown> => {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
 };
 
-const hasMethodSignature = (members: readonly unknown[]): boolean => {
-  const membersLength = members.length;
-
-  for (let index = 0; index < membersLength; index++) {
-    const member: unknown = members[index];
-
-    if (!isObject(member)) { continue; }
-    const memberType: unknown = member.type;
-
-    if (typeof memberType === 'string' && METHOD_SIGNATURE_TYPES.has(memberType)) {
-      return true;
-    }
-  }
-
-  return false;
+type ParserServicesType = {
+  readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
+  readonly 'getTypeAtLocation': (node: unknown) => Type;
+  readonly 'program': Program;
 };
 
-/**
- * Walks an AST subtree looking for any node whose type is a contract signal.
- * Returns `true` as soon as one is found — such a node means the surrounding
- * property is non-serializable, so the interface is a contract, not data.
- */
-const containsContractSignal = (rawNode: unknown): boolean => {
-  if (!isObject(rawNode)) { return false; }
-  const nodeType: unknown = rawNode.type;
+type SourceCodeServicesAccessorType = {
+  readonly 'parserServices'?: ParserServicesType;
+};
 
-  if (typeof nodeType === 'string' && CONTRACT_SIGNAL_TYPES.has(nodeType)) {
+class ContextHelpers {
+  public static getServices(context: Rule.RuleContext): ParserServicesType | undefined {
+    const result = (context.sourceCode as unknown as SourceCodeServicesAccessorType).parserServices;
+    return result;
+  }
+}
+
+const isSerializable = (type: Type, checker: TypeChecker, visited: Set<Type>): boolean => {
+  if (visited.has(type)) { return true; }
+  visited.add(type);
+
+  const { flags } = type;
+
+  // Serializable primitives and type parameters
+  if (
+    (flags & TypeFlags.String) !== 0 ||
+    (flags & TypeFlags.Number) !== 0 ||
+    (flags & TypeFlags.Boolean) !== 0 ||
+    (flags & TypeFlags.BigInt) !== 0 ||
+    (flags & TypeFlags.StringLiteral) !== 0 ||
+    (flags & TypeFlags.NumberLiteral) !== 0 ||
+    (flags & TypeFlags.BooleanLiteral) !== 0 ||
+    (flags & TypeFlags.BigIntLiteral) !== 0 ||
+    (flags & TypeFlags.EnumLike) !== 0 ||
+    (flags & TypeFlags.Null) !== 0 ||
+    (flags & TypeFlags.Undefined) !== 0 ||
+    (flags & TypeFlags.TypeParameter) !== 0
+  ) {
     return true;
   }
-  const keys = Object.keys(rawNode);
-  const keysLength = keys.length;
 
-  for (let index = 0; index < keysLength; index++) {
-    const key = keys[index];
+  // Non-serializable
+  if (
+    (flags & TypeFlags.Any) !== 0 ||
+    (flags & TypeFlags.Unknown) !== 0 ||
+    (flags & TypeFlags.Void) !== 0 ||
+    (flags & TypeFlags.Never) !== 0 ||
+    (flags & TypeFlags.ESSymbol) !== 0 ||
+    (flags & TypeFlags.UniqueESSymbol) !== 0
+  ) {
+    return false;
+  }
 
-    if (key === undefined || key === 'parent' || key === 'loc' || key === 'range') {
-      continue;
+  // Union: serializable iff every constituent is serializable
+  if (type.isUnion()) {
+    const unionTypes = type.types;
+    const unionLength = unionTypes.length;
+    for (let i = 0; i < unionLength; i++) {
+      if (!isSerializable(unionTypes[i]!, checker, visited)) { return false; }
     }
-    const child: unknown = rawNode[key];
+    return true;
+  }
 
-    if (Array.isArray(child)) {
-      const childLength = child.length;
-
-      for (let childIndex = 0; childIndex < childLength; childIndex++) {
-        if (containsContractSignal(child[childIndex])) { return true; }
-      }
-    } else if (containsContractSignal(child)) {
-      return true;
+  // Intersection: serializable iff every constituent is serializable
+  if (type.isIntersection()) {
+    const intersectionTypes = type.types;
+    const intersectionLength = intersectionTypes.length;
+    for (let i = 0; i < intersectionLength; i++) {
+      if (!isSerializable(intersectionTypes[i]!, checker, visited)) { return false; }
     }
+    return true;
+  }
+
+  // Array / ReadonlyArray
+  if (checker.isArrayType(type)) {
+    const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
+    const typeArgsLength = typeArgs.length;
+    for (let i = 0; i < typeArgsLength; i++) {
+      if (!isSerializable(typeArgs[i]!, checker, visited)) { return false; }
+    }
+    return true;
+  }
+
+  // Tuple
+  if (checker.isTupleType(type)) {
+    const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
+    const typeArgsLength = typeArgs.length;
+    for (let i = 0; i < typeArgsLength; i++) {
+      if (!isSerializable(typeArgs[i]!, checker, visited)) { return false; }
+    }
+    return true;
+  }
+
+  // Object types (plain objects, interfaces, type literals, classes)
+  if ((flags & TypeFlags.Object) !== 0) {
+    if (type.getCallSignatures().length > 0) { return false; }
+    if (type.getConstructSignatures().length > 0) { return false; }
+
+    const symbol = type.getSymbol();
+    if (symbol !== undefined && (symbol.flags & SymbolFlags.Class) !== 0) { return false; }
+
+    const props = type.getProperties();
+    const propsLength = props.length;
+
+    for (let i = 0; i < propsLength; i++) {
+      const prop = props[i]!;
+      const decl = prop.valueDeclaration ?? prop.declarations?.[0];
+      if (decl === undefined) { return false; }
+      const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
+      if (!isSerializable(propType, checker, visited)) { return false; }
+    }
+
+    const stringIndexType = checker.getIndexTypeOfType(type, IndexKind.String);
+    if (stringIndexType !== undefined && !isSerializable(stringIndexType, checker, visited)) {
+      return false;
+    }
+
+    const numberIndexType = checker.getIndexTypeOfType(type, IndexKind.Number);
+    if (numberIndexType !== undefined && !isSerializable(numberIndexType, checker, visited)) {
+      return false;
+    }
+
+    return true;
   }
 
   return false;
 };
 
-/**
- * Returns `true` when the interface body is a pure JSON-serializable data shape:
- * no method/call/construct signatures, and no property annotation carrying a
- * contract signal. An empty interface (`{}`) is a pure data shape (empty record).
- */
-const isPureDataShape = (members: readonly unknown[]): boolean => {
-  if (hasMethodSignature(members)) { return false; }
-
-  const membersLength = members.length;
-
-  for (let index = 0; index < membersLength; index++) {
-    const member: unknown = members[index];
-
-    if (!isObject(member)) { continue; }
-    const memberType: unknown = member.type;
-
-    if (memberType !== 'TSPropertySignature' && memberType !== 'TSIndexSignature') {
-      continue;
-    }
-    if (containsContractSignal(member.typeAnnotation)) { return false; }
-  }
-
-  return true;
+type InterfaceNode = {
+  readonly 'body': { readonly 'body': readonly unknown[]; readonly 'range': [number, number] };
+  readonly 'extends': readonly { readonly 'range': [number, number] }[] | undefined;
+  readonly 'id': { readonly 'name': string; readonly 'range': [number, number] };
+  readonly 'parent': unknown;
+  readonly 'range': [number, number];
+  readonly 'typeParameters': { readonly 'range': [number, number] } | undefined;
 };
 
 export const interfaceMustBeContract: Rule.RuleModule = {
   'create': (context) => {
     const options = context.options[0] as { 'allow'?: string[] } | undefined;
     const allow = new Set(options?.allow ?? []);
+    const { sourceCode } = context;
+
+    const services = ContextHelpers.getServices(context);
+
+    if (services?.program === undefined) {
+      return {};
+    }
+
+    const checker = services.program.getTypeChecker();
+
+    // Declaration merging: a `type` alias cannot merge, so converting a merged
+    // interface would produce a duplicate-identifier TS error. Detect a merge
+    // via the scope variable's def count, with a top-level AST scan as fallback.
+    const isMerged = (node: Rule.Node, name: string): boolean => {
+      const vars = sourceCode.getDeclaredVariables(node);
+      const varsLength = vars.length;
+
+      for (let index = 0; index < varsLength; index++) {
+        const variable = vars[index];
+
+        if (variable !== undefined && variable.defs.length > 1) { return true; }
+      }
+      const programBody = (sourceCode.ast as unknown as { 'body': readonly unknown[] }).body;
+      const bodyLength = programBody.length;
+      let sameNameCount = 0;
+
+      for (let index = 0; index < bodyLength; index++) {
+        const bodyNode: unknown = programBody[index];
+
+        if (!isObject(bodyNode)) { continue; }
+        if (bodyNode.type === 'TSInterfaceDeclaration' && isObject(bodyNode.id) && bodyNode.id.name === name) {
+          sameNameCount++;
+        }
+      }
+
+      return sameNameCount > 1;
+    };
+
+    // Global/module augmentation: an interface inside `declare global { ... }`
+    // or `declare module '...' { ... }` cannot become a `type` alias.
+    const isAugmentation = (parent: unknown): boolean => {
+      let current = parent;
+
+      while (isObject(current)) {
+        if (current.type === 'TSModuleDeclaration') { return true; }
+        current = current.parent;
+      }
+
+      return false;
+    };
+
+    const fixInterface = (node: Rule.Node, rawNode: InterfaceNode): NonNullable<Rule.ReportDescriptor['fix']> => {
+      return (fixer): Rule.Fix[] | null => {
+        const fixes: Rule.Fix[] = [];
+
+        // Replace the `interface` keyword with `type`. Target the keyword token
+        // specifically — not the first token — so a leading `declare` modifier
+        // (`declare interface Foo`) is preserved, producing `declare type Foo`.
+        const interfaceToken = sourceCode.getFirstToken(node, {
+          'filter': (token) => { return token.value === 'interface'; }
+        });
+        if (interfaceToken === null) { return null; }
+        fixes.push(fixer.replaceText(interfaceToken, 'type'));
+
+        // The anchor after which ` =` is inserted (or the extends clause is
+        // replaced) — type parameters if present, otherwise the name.
+        const afterName = rawNode.typeParameters ?? rawNode.id;
+        const extendsClause = rawNode.extends;
+
+        if (extendsClause !== undefined && extendsClause.length > 0) {
+          // Replace the ` extends ... ` span with ` = `, dropping the extends
+          // clause and inserting the assignment token in one fix.
+          fixes.push(fixer.replaceTextRange([afterName.range[1], rawNode.body.range[0]], ' = '));
+
+          // Append ` & Heritage1 & Heritage2;` after the closing brace.
+          const source = sourceCode.getText();
+          const extendsLength = extendsClause.length;
+          let heritageText = '';
+
+          for (let index = 0; index < extendsLength; index++) {
+            const heritage = extendsClause[index];
+
+            if (heritage === undefined) { continue; }
+            heritageText = `${heritageText} & ${source.slice(heritage.range[0], heritage.range[1])}`;
+          }
+          fixes.push(fixer.insertTextAfterRange(rawNode.body.range, `${heritageText};`));
+          return fixes;
+        }
+
+        // No heritage: insert ` =` after the name/type params (the original
+        // space before `{` is preserved, producing `type Foo = {`), then append
+        // the terminating semicolon after the closing brace.
+        fixes.push(fixer.insertTextAfterRange(afterName.range, ' ='));
+        fixes.push(fixer.insertTextAfterRange(rawNode.body.range, ';'));
+        return fixes;
+      };
+    };
 
     return {
       'TSInterfaceDeclaration': (node: Rule.Node) => {
-        const rawNode = node as unknown as {
-          'body': { 'body': readonly unknown[] };
-          'id': { 'name': string };
-        };
+        const rawNode = node as unknown as InterfaceNode;
 
         if (allow.has(rawNode.id.name)) { return; }
 
-        if (isPureDataShape(rawNode.body.body)) {
-          context.report({
-            'data': { 'name': rawNode.id.name },
-            'messageId': 'dataShapeMustBeType',
-            'node': node
-          });
+        const symbol = services.getSymbolAtLocation(rawNode.id);
+        const interfaceType = symbol !== undefined
+          ? checker.getDeclaredTypeOfSymbol(symbol)
+          : services.getTypeAtLocation(node);
+
+        // Contract signals: call/construct signatures
+        if (interfaceType.getCallSignatures().length > 0) { return; }
+        if (interfaceType.getConstructSignatures().length > 0) { return; }
+
+        // Check all properties
+        const props = interfaceType.getProperties();
+        const propsLength = props.length;
+
+        for (let i = 0; i < propsLength; i++) {
+          const prop = props[i]!;
+          const decl = prop.valueDeclaration ?? prop.declarations?.[0];
+          if (decl === undefined) { return; }
+          const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
+          if (!isSerializable(propType, checker, new Set())) { return; }
         }
+
+        // Check index types
+        const stringIndexType = checker.getIndexTypeOfType(interfaceType, IndexKind.String);
+        if (stringIndexType !== undefined && !isSerializable(stringIndexType, checker, new Set())) { return; }
+
+        const numberIndexType = checker.getIndexTypeOfType(interfaceType, IndexKind.Number);
+        if (numberIndexType !== undefined && !isSerializable(numberIndexType, checker, new Set())) { return; }
+
+        const canFix = !isMerged(node, rawNode.id.name) && !isAugmentation(rawNode.parent);
+
+        context.report({
+          'data': { 'name': rawNode.id.name },
+          'fix': canFix ? fixInterface(node, rawNode) : null,
+          'messageId': 'dataShapeMustBeType',
+          'node': node
+        });
       }
     };
   },
@@ -144,9 +326,10 @@ export const interfaceMustBeContract: Rule.RuleModule = {
       'description':
         'Interfaces express runtime contracts (functions, constructors, class references). A pure JSON-serializable data shape must be a schema-derived `type XxxType`, not an `interface`.'
     },
+    'fixable': 'code',
     'messages': {
       'dataShapeMustBeType':
-        "Interface '{{name}}' contains only JSON-serializable property/index signatures and no contract signal (method, call, construct signature, function-valued property, or named-type reference). Data shapes must be declared as a schema-derived `type {{name}}Type` in an entity; `interface` is reserved for runtime contracts."
+        "Interface '{{name}}' resolves to a fully JSON-serializable data shape with no contract signal (no call/construct signature, and no member typed as a function, constructor, or class instance). Data shapes must be declared as a schema-derived `type {{name}}Type` in an entity; `interface` is reserved for runtime contracts."
     },
     'schema': [
       {
