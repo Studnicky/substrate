@@ -17,9 +17,7 @@ RuleTester.it = it;
 // Tests use @studnicky/eslint-config (this package itself, resolvable via workspace).
 //
 // Exported shapes used for testing:
-//   EslintConfigOptionsType = { readonly 'tsconfigRootDir'?: string }
-//     => 0 required fields, 1 optional field
-//   plugin = { readonly 'rules': Record<string, RuleModule> }
+//   plugin = { readonly 'rules': Record<string, Rule.RuleModule> }
 //     => 1 required field with complex value type
 //
 // Classification algorithm (type-only, no name matching):
@@ -44,21 +42,23 @@ ruleTester.run('no-prefer-existing-type', noPreferExistingType, {
   'invalid': [
     {
       'code': [
-        "import type { EslintConfigOptionsType } from '@studnicky/eslint-config';",
-        'type LocalOptsType = { tsconfigRootDir?: string };'
+        "import type { Rule } from 'eslint';",
+        "import { plugin } from '@studnicky/eslint-config';",
+        'type LocalPluginType = { rules: Record<string, Rule.RuleModule> };'
       ].join('\n'),
       'errors': [{ 'messageId': 'exactMatch' }],
       'name': 'exactMatch: local type is structurally identical to imported type',
-      'options': [{ 'exactMatch': 'error', 'minFields': 1 }]
+      'options': [{ 'exactMatch': 'error', 'excludePrefixes': ['@types/', 'eslint', 'node:'], 'minFields': 1 }]
     },
     {
       'code': [
-        "import type { EslintConfigOptionsType } from '@studnicky/eslint-config';",
-        'type LocalOptsType = { tsconfigRootDir?: string; extraField?: number };'
+        "import type { Rule } from 'eslint';",
+        "import { plugin } from '@studnicky/eslint-config';",
+        'type LocalPluginType = { rules: Record<string, Rule.RuleModule>; optionalExtra?: string };'
       ].join('\n'),
       'errors': [{ 'messageId': 'nearMatch' }],
       'name': 'nearMatch: local has same required fields as imported but different optional count',
-      'options': [{ 'minFields': 1, 'nearMatch': 'error' }]
+      'options': [{ 'excludePrefixes': ['@types/', 'eslint', 'node:'], 'minFields': 1, 'nearMatch': 'error' }]
     },
     {
       'code': [
@@ -77,7 +77,7 @@ ruleTester.run('no-prefer-existing-type', noPreferExistingType, {
     },
     {
       'code': [
-        "import type { EslintConfigOptionsType } from '@studnicky/eslint-config';",
+        "import { plugin } from '@studnicky/eslint-config';",
         'type FooType = { a: string; b: number };'
       ].join('\n'),
       'name': 'imports present but local type has unrelated fields — no match',
@@ -85,8 +85,8 @@ ruleTester.run('no-prefer-existing-type', noPreferExistingType, {
     },
     {
       'code': [
-        "import type { EslintConfigOptionsType } from '@studnicky/eslint-config';",
-        'type LocalOptsType = { tsconfigRootDir?: string };'
+        "import { plugin } from '@studnicky/eslint-config';",
+        'type LocalPluginType = { rules: Record<string, unknown> };'
       ].join('\n'),
       'name': 'below minFields threshold — rule does not fire',
       'options': [{ 'minFields': 2 }]
@@ -100,16 +100,17 @@ ruleTester.run('no-prefer-existing-type', noPreferExistingType, {
     },
     {
       'code': [
-        "import type { EslintConfigOptionsType } from '@studnicky/eslint-config';",
-        'type LocalOptsType = { tsconfigRootDir?: string };'
+        "import type { Rule } from 'eslint';",
+        "import { plugin } from '@studnicky/eslint-config';",
+        'type LocalPluginType = { rules: Record<string, Rule.RuleModule> };'
       ].join('\n'),
       'name': 'exactMatch severity set to off — rule does not fire',
-      'options': [{ 'exactMatch': 'off', 'minFields': 1 }]
+      'options': [{ 'exactMatch': 'off', 'excludePrefixes': ['@types/', 'eslint', 'node:'], 'minFields': 1 }]
     },
     {
       'code': [
-        "import type { EslintConfigOptionsType } from '@studnicky/eslint-config';",
-        'type LocalOptsType = { tsconfigRootDir?: string; extraRequired: number };'
+        "import { plugin } from '@studnicky/eslint-config';",
+        'type LocalPluginType = { rules: Record<string, unknown>; extraRequired: number };'
       ].join('\n'),
       'name': 'local type has more required fields than imported — imported does not cover local (off)',
       'options': [{ 'minFields': 1 }]

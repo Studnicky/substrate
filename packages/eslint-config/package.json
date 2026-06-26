@@ -72,9 +72,6 @@
     "typescript": ">=6.0.0",
     "typescript-eslint": ">=8.0.0"
   },
-  "dependencies": {
-    "@studnicky/config": "workspace:*"
-  },
   "devDependencies": {
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/eslint": "^9.6.1",
