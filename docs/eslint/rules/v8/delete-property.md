@@ -7,7 +7,7 @@ description: 'Disallows the delete operator on object properties.'
 
 `delete obj.prop` permanently transitions the object from fast (hidden-class) mode to dictionary mode. Once in dictionary mode, all subsequent property accesses on that object are slower, including accesses to properties that were never deleted.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

@@ -7,7 +7,7 @@ description: 'Interfaces express runtime contracts. Pure data shapes must be sch
 
 An `interface` must carry at least one contract signal: a method signature, call signature, construct signature, function-typed property, or named-type reference (such as a class instance). Interfaces that contain only JSON-serializable property or index signatures are data shapes and must be declared as schema-derived `type XxxType` in an entity file.
 
-**Fixable:** No · **Options:** `allow` (array of interface names to exempt) · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** `allow` (array of interface names to exempt) · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

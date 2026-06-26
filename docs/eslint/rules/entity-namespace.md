@@ -7,7 +7,7 @@ description: 'Entity files must export a namespace with Schema as const, type Ty
 
 Entity files (named `*Entity.ts` or inside an `entities/` directory) must export a single namespace whose members satisfy the schema-as-source-of-truth pattern: a `Schema` declared `as const`, a `type Type` derived via `FromSchema<typeof Schema>`, and a `validate` function that is either `SchemaValidator.compile<Type>(Schema)` or a hand-written `(candidate: unknown): candidate is Type` predicate.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

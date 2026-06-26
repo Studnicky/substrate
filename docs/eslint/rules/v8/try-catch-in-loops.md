@@ -7,7 +7,7 @@ description: 'Disallows try-catch blocks inside loop bodies.'
 
 Disallows `try-catch` blocks inside loop bodies. V8 cannot fully optimize functions containing `try-catch` in hot paths. Extract the `try-catch` to a wrapper function called from the loop, so the loop body remains in the fast path.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

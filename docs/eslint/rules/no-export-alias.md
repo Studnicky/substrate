@@ -7,7 +7,7 @@ description: 'Disallows aliased exports and re-exports outside index files.'
 
 Disallows renaming symbols at the export site (`export { foo as bar }`) and disallows re-export statements outside index files. Re-exports that forward the same name unchanged are only permitted in index files (`index.ts`, `index.mts`, etc.). The rule also forbids `export *` outside index files.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

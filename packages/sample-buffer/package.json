@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/sample-buffer",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "description": "Fixed-capacity circular buffer for numeric samples with percentile calculation",
   "type": "module",
   "sideEffects": false,
