@@ -1,4 +1,4 @@
 export type MemoryInfoType = {
-  readonly 'freeMb': number;
-  readonly 'totalMb': number;
+  'freeMb': number;
+  'totalMb': number;
 };

@@ -3,14 +3,14 @@
 import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
 
 export type BusQueueCreateOptionsType<T> = {
-  readonly 'handler': (item: T) => Promise<void>;
-  readonly 'onDequeue'?: (depth: number) => void;
-  readonly 'onDrop'?: () => void;
-  readonly 'onEnqueue'?: (depth: number) => void;
-  readonly 'onError'?: (err: unknown) => void;
-  readonly 'onHandlerError'?: (error: unknown) => void;
-  readonly 'onOverflow'?: (depth: number) => void;
-  readonly 'onSlowConsumer'?: (depth: number, highWaterMark: number) => void;
+  'handler': (item: T) => Promise<void>;
+  'onDequeue'?: (depth: number) => void;
+  'onDrop'?: () => void;
+  'onEnqueue'?: (depth: number) => void;
+  'onError'?: (err: unknown) => void;
+  'onHandlerError'?: (error: unknown) => void;
+  'onOverflow'?: (depth: number) => void;
+  'onSlowConsumer'?: (depth: number, highWaterMark: number) => void;
   /** Runtime AbortSignal — not JSON-serializable, omitted from schema. */
-  readonly 'signal'?: AbortSignal;
+  'signal'?: AbortSignal;
 } & BusQueueOptionsEntity.Type;

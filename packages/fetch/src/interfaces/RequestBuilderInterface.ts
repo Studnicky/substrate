@@ -3,8 +3,6 @@
  */
 
 import type { QueryValueType } from '../types/QueryValueType.js';
-import type { RequestInterceptorType } from '../types/RequestInterceptorType.js';
-import type { ResponseInterceptorType } from '../types/ResponseInterceptorType.js';
 
 /**
  * Interface for fluent request builder for chaining request configuration
@@ -24,8 +22,6 @@ export interface RequestBuilderInterface {
   put(): Promise<Response>;
   queryString(key: string, value: QueryValueType | QueryValueType[]): this;
   requestId(id: string): this;
-  requestInterceptor(interceptor: readonly RequestInterceptorType[] | RequestInterceptorType): this;
-  responseInterceptor(interceptor: readonly ResponseInterceptorType[] | ResponseInterceptorType): this;
   signal(signal: AbortSignal): this;
   timeout(ms: number): this;
 }

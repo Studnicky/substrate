@@ -1,17 +1,17 @@
 /**
  * @studnicky/fetch
- * HTTP fetch wrapper with timeout, interceptors, and configured clients
+ * HTTP fetch wrapper with timeout, lifecycle hooks, and configured clients
  *
  * Extends native fetch with:
  * - Built-in timeout support and abort controller management
- * - Request/response interceptors
+ * - Subclass-overridable onRequest/onResponse lifecycle hooks for request and response transformation
  * - Configured client instances with default settings
  * - Fluent request builder API
  * - Query string utilities
  *
  * Types are exported from subpath entry points:
  * - @studnicky/fetch/interfaces - All interface types
- * - @studnicky/fetch/types - Type aliases (QueryParamsType, QueryValueType, RequestInterceptorType, ResponseInterceptorType)
+ * - @studnicky/fetch/types - Type aliases (QueryParamsType, QueryValueType)
  * - @studnicky/fetch/errors - Error classes
  * - @studnicky/fetch/constants - Constants (DefaultDispatcherConfig)
  */
@@ -33,8 +33,6 @@ export {
 export { FetchClient } from './modules/FetchClient.js';
 export { FetchClientBuilder } from './modules/FetchClientBuilder.js';
 export { HttpMethods } from './modules/HttpMethods.js';
-export { InterceptorManager } from './modules/InterceptorManager.js';
-export { InterceptorManagerBuilder } from './modules/InterceptorManagerBuilder.js';
 export { RequestBuilder } from './modules/RequestBuilder.js';
 export { UndiciDispatcher } from './modules/UndiciDispatcher.js';
 export { UndiciDispatcherBuilder } from './modules/UndiciDispatcherBuilder.js';

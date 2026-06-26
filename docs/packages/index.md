@@ -55,7 +55,7 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 | Package | Description |
 |---------|-------------|
 | [@studnicky/event-bus](/packages/event-bus) | Publish/subscribe event bus with backpressure-aware queues |
-| [@studnicky/fetch](/packages/fetch) | Professional HTTP client with timeout, interceptors, and configured clients |
+| [@studnicky/fetch](/packages/fetch) | Professional HTTP client with timeout, override hooks, and configured clients |
 | [@studnicky/logger](/packages/logger) | Pluggable logging interface with Pino wrapper, child loggers, and structured builders |
 | [@studnicky/errors](/packages/errors) | Standardized error hierarchy with cause-chain serialization and error codes |
 | [@studnicky/resilience](/packages/resilience) | Circuit breaker, token bucket, and dead-letter queue primitives |

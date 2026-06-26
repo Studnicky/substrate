@@ -7,6 +7,7 @@ import { noBindApplyCall } from './rules/noBindApplyCall.js';
 import { noExportAlias } from './rules/noExportAlias.js';
 import { noFreestandingVerbNoun } from './rules/noFreestandingVerbNoun.js';
 import { noPreferExistingType } from './rules/noPreferExistingType.js';
+import { noReadonlyInDataType } from './rules/noReadonlyInDataType.js';
 import { noSuppressionComments } from './rules/noSuppressionComments.js';
 import { noTrivialShim } from './rules/noTrivialShim.js';
 import { noTypeAliasing } from './rules/noTypeAliasing.js';
@@ -23,6 +24,7 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'no-export-alias': noExportAlias,
     'no-freestanding-verb-noun': noFreestandingVerbNoun,
     'no-prefer-existing-type': noPreferExistingType,
+    'no-readonly-in-data-type': noReadonlyInDataType,
     'no-suppression-comments': noSuppressionComments,
     'no-this-alias': noThisAlias,
     'no-trivial-shim': noTrivialShim,

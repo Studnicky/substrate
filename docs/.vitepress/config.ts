@@ -87,7 +87,7 @@ const twitterHandle = seo.twitterHandle ?? '';
 const ESLINT_CONFIG_RULES = [
   'entity-namespace', 'interface-must-be-contract', 'no-bind-apply-call',
   'no-export-alias', 'no-freestanding-verb-noun', 'no-prefer-existing-type',
-  'no-suppression-comments', 'no-this-alias', 'no-trivial-shim',
+  'no-readonly-in-data-type', 'no-suppression-comments', 'no-this-alias', 'no-trivial-shim',
   'no-type-aliasing', 'prefer-collection-types', 'require-options-object',
   'single-export', 'type-alias-must-end-type'
 ] as const;

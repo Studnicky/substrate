@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/fetch'
-description: HTTP client with timeout, interceptors, and configured clients.
+description: HTTP client with timeout, override hooks, and configured clients.
 ---
 
 # @studnicky/fetch
 
-> HTTP client with timeout, interceptors, and configured clients for Node.js.
+> HTTP client with timeout, override hooks, and configured clients for Node.js.
 
 ## Install
 
@@ -13,21 +13,30 @@ description: HTTP client with timeout, interceptors, and configured clients.
 pnpm add @studnicky/fetch
 ```
 
-`@studnicky/fetch` runs in the browser and Node alike: every request goes through the runtime's native `fetch`, and the interceptor pipeline, timeout, request builder, and URL utilities work in both. The undici connection-pool dispatcher (socket pools, HTTP/1.1 keep-alive) is a **Node-only enhancement** — disabled by default and enabled with `dispatcher: { enabled: true }`. In the browser, native `fetch` handles connection management, so enabling the undici dispatcher there throws a clear error.
+`@studnicky/fetch` runs in the browser and Node alike: every request goes through the runtime's native `fetch`, and the override hook pipeline, timeout, request builder, and URL utilities work in both. The undici connection-pool dispatcher (socket pools, HTTP/1.1 keep-alive) is a **Node-only enhancement** — disabled by default and enabled with `dispatcher: { enabled: true }`. In the browser, native `fetch` handles connection management, so enabling the undici dispatcher there throws a clear error.
 
 ## Try it
 
-A real `GET` over native `fetch`, with a request/response interceptor pipeline and a timeout — press Run to watch it fetch live:
+A real `GET` over native `fetch`, with override hooks and a timeout — press Run to watch it fetch live:
 
-<RunnableExample src="packages/fetch/examples/browserFetch" title="Live GET over native fetch with interceptors" />
+<RunnableExample src="packages/fetch/examples/browserFetch" title="Live GET over native fetch with override hooks" />
 
 ## Usage
 
 <<< ../../packages/fetch/examples/01-client-config.ts#usage
 
-### Interceptors
+### Override hooks
 
-<<< ../../packages/fetch/examples/02-interceptors.ts#usage
+`FetchClient` exposes two protected lifecycle hooks that subclasses override to transform the outgoing request or incoming response:
+
+| Hook | Signature | Purpose |
+|------|-----------|---------|
+| `onRequest` | `(context: RequestContextType): Promise<RequestContextType>` | Mutate `context.url`, `context.options`, or `context.metadata` before the request is sent |
+| `onResponse` | `(context: ResponseContextType): Promise<ResponseContextType>` | Inspect or replace `context.response` after the raw response arrives |
+
+`RequestContextType` carries `url`, `options`, and `metadata`. `ResponseContextType` carries `response` and `request`. The base implementations return the context unchanged; un-subclassed instances behave as if the hooks are absent.
+
+<<< ../../packages/fetch/examples/02-override-hooks.ts#usage
 
 ### URL utilities
 
@@ -39,12 +48,12 @@ A real `GET` over native `fetch`, with a request/response interceptor pipeline a
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/fetch` | `FetchClient`, `HttpMethods`, `InterceptorManager`, `RequestBuilder`, `UndiciDispatcher`, `UrlUtils`, all error classes |
+| `@studnicky/fetch` | `FetchClient`, `HttpMethods`, `RequestBuilder`, `UndiciDispatcher`, `UrlUtils`, all error classes |
 | `@studnicky/fetch/constants` | `DefaultDispatcherConfig` |
 | `@studnicky/fetch/errors` | `HTTPError`, `TimeoutError`, `NetworkError`, `AbortError`, and more |
 | `@studnicky/fetch/interfaces` | All interface types |
 | `@studnicky/fetch/modules` | Module re-exports |
-| `@studnicky/fetch/types` | `QueryParamsType`, `RequestInterceptorType`, `ResponseInterceptorType` |
+| `@studnicky/fetch/types` | `QueryParamsType`, `RequestContextType`, `ResponseContextType` |
 
 ## Observability hooks
 
@@ -58,8 +67,6 @@ Override any protected hook to add logging, metrics, or tracing without modifyin
 | `onRequestError` | Network-level error (connect fail, etc.) | `error, method, requestId, url, durationMs` |
 | `onTimeout` | Request aborted by timeout | `method, requestId, url, timeoutMs` |
 | `onAbort` | Request aborted by caller | `method, requestId, url` |
-| `onRequestIntercept` | After each request interceptor stage | `index, context` |
-| `onResponseIntercept` | After each response interceptor stage | `index, context` |
 | `onDispatcherDestroy` | Dispatcher is about to be destroyed | _(none)_ |
 
 <<< ../../packages/fetch/examples/observedFetch.ts#usage
