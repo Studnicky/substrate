@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/event-bus",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Typed async pub/sub with per-subscriber backpressure via BusQueue",
   "type": "module",
   "sideEffects": false,
