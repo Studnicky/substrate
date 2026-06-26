@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-25
+
+### Changed
+
+- `@studnicky/eslint-config` is now a standard ESLint plugin rather than a config factory. Register the `plugin` and `v8Plugin` exports under the `@studnicky` and `@studnicky/v8` namespaces in your flat config and enable rules directly. **Breaking:** the `createEslintConfig` factory and the `EslintConfigOptionsType` type are removed, and the package no longer carries a runtime dependency on `@studnicky/config`.
+
 ## [1.3.0] - 2026-06-25
 
 ### Changed

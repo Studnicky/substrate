@@ -7,7 +7,7 @@ description: 'Disallows array spread assignments inside for loops.'
 
 Disallows array spread (`[...result, item]`) in assignment inside `for` loop bodies. Each spread creates a new array and copies all existing elements, producing O(n²) work. Accumulate with `.push()` instead.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

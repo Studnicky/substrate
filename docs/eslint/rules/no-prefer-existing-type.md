@@ -13,7 +13,7 @@ Detects locally declared object-literal `type` aliases whose shape is already pr
 
 The rule requires TypeScript type services. The default `minFields` threshold is `2` to avoid false positives on small shapes.
 
-**Fixable:** No · **Options:** `exactMatch`, `nearMatch`, `subsumedMatch`, `minFields`, `excludePrefixes` · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** `exactMatch`, `nearMatch`, `subsumedMatch`, `minFields`, `excludePrefixes` · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

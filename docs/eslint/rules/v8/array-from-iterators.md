@@ -7,7 +7,7 @@ description: 'Disallows Array.from on non-array iterators in hot paths.'
 
 Disallows `Array.from(iterable)` when the argument is not already an array. Converting iterators (Map, Set, generators) to arrays materializes the full collection in memory — iterate directly instead. When type services are available, the rule uses the TypeScript checker to confirm the argument type.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

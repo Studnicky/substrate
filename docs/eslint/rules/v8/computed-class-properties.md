@@ -7,7 +7,7 @@ description: 'Disallows computed property keys in class bodies.'
 
 Disallows computed property keys in class bodies (`class Foo { [key]() {} }`). Computed keys force a hidden-class transition on every instantiation because V8 cannot statically determine the property layout at parse time.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

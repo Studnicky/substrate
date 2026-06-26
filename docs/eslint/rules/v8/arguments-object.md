@@ -7,7 +7,7 @@ description: 'Disallows the arguments object in functions.'
 
 Disallows use of the `arguments` object inside functions. The `arguments` object prevents V8 from optimizing the function because it must handle the dynamic object allocation. Use rest parameters (`...args`) instead.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

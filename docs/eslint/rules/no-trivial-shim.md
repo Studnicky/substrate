@@ -7,7 +7,7 @@ description: 'Disallows wrapper functions that only forward or delegate a value 
 
 Disallows functions whose entire body is a single return (or expression body) of a trivially forwarded value: an identifier, a call expression, an awaited expression, or a chain. Functions that construct new objects (`new`, `{}`, `[]`), access `this` members, or return literals are not trivial and are allowed. The auto-fix inlines the return expression.
 
-**Fixable:** Yes (inlines the expression) · **Options:** `allowLiterals`, `allowMemberExpressions` · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** Yes (inlines the expression) · **Options:** `allowLiterals`, `allowMemberExpressions` · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

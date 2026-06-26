@@ -7,7 +7,7 @@ description: 'Disallows computed property keys in object literals.'
 
 Disallows computed property keys in object literals (`{ [key]: value }`). Computed keys produce a dictionary-mode object, bypassing V8's hidden-class fast paths. Use a `Map` for dynamic key-value associations or assign properties individually after object creation.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

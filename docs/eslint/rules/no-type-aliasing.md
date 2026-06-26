@@ -12,7 +12,7 @@ Disallows three aliasing patterns:
 - **Generic forwarding shims**: `type List<T> = Array<T>` where the type parameters are forwarded unchanged.
 - **Import aliases**: `import { Foo as Bar } from '...'` — use the canonical name `Foo`.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

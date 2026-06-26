@@ -7,7 +7,7 @@ description: 'Disallows block statement bodies in switch cases.'
 
 Disallows `switch` cases with a `BlockStatement` body (`case X: { ... }`). V8 switch dispatch expects simple calls or returns; block statement bodies inhibit the fast dispatch table and prevent V8 from generating optimal jump-table code.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

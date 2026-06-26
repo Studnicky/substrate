@@ -7,7 +7,7 @@ description: 'Requires functions with two or more optional parameters to collect
 
 When a function or method has two or more optional parameters, they must be collected into a single trailing options object. The threshold defaults to `minOptionals: 2` and is configurable. Applies to function declarations, function expressions, arrow functions, and TypeScript call, construct, and method signatures.
 
-**Fixable:** No · **Options:** `minOptionals` · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** `minOptionals` · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 

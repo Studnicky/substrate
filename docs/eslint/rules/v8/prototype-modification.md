@@ -7,7 +7,7 @@ description: 'Disallows assigning to .prototype after class definition.'
 
 Disallows assigning to `.prototype` (e.g. `Foo.prototype.bar = ...`). Mutating the prototype after construction invalidates every existing instance's hidden class and prevents inline-cache hits for any code that has already seen the type.
 
-**Fixable:** No · **Options:** No · **When enabled by `createEslintConfig()`:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 
