@@ -29,7 +29,5 @@ export { isErrorClassification } from './retry/validation/isErrorClassification.
 export { isRequestStats } from './retry/validation/isRequestStats.js';
 export { isRetryConfig } from './retry/validation/isRetryConfig.js';
 export { isRetryContext } from './retry/validation/isRetryContext.js';
-export { isRetryInterceptor } from './retry/validation/isRetryInterceptor.js';
 export type { BackoffStrategyType } from './types/BackoffStrategyType.js';
 export type { ErrorClassifierFunctionType } from './types/ErrorClassifierFunctionType.js';
-export type { RetryInterceptorType } from './types/RetryInterceptorType.js';

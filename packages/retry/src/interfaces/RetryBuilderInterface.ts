@@ -1,5 +1,4 @@
 import type { ErrorClassifierFunctionType } from '../types/ErrorClassifierFunctionType.js';
-import type { RetryInterceptorType } from '../types/RetryInterceptorType.js';
 import type { ErrorClassifierInterface } from './ErrorClassifierInterface.js';
 import type { RetryInterface } from './RetryInterface.js';
 
@@ -21,9 +20,4 @@ export interface RetryBuilderInterface<T extends RetryInterface = RetryInterface
    * Set maximum number of retry attempts
    */
   maxRetries(value: number): this;
-
-  /**
-   * Set retry interceptor for controlling delay and abort
-   */
-  retryInterceptor(value: RetryInterceptorType): this;
 }

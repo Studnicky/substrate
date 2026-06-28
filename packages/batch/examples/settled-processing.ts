@@ -3,11 +3,11 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import { batchConcurrent } from '../src/index.js';
+import { Batch } from '../src/index.js';
 
 type Item = { 'id': number; 'shouldFail': boolean };
 
-// Custom typed mapper — the extension seam for batchConcurrent.
+// Custom typed mapper — the extension seam for Batch.
 // Static method on the produced type is the canonical shape.
 class Result {
   constructor(
@@ -32,7 +32,7 @@ const items: Item[] = [
 
 const allSettled: PromiseSettledResult<Result>[] = [];
 
-for await (const batch of batchConcurrent.processSettled(items, Result.process, 2)) {
+for await (const batch of Batch.create<Result>(2).processSettled(items, Result.process)) {
   console.log('Batch settled results:');
   for (const result of batch) {
     if (result.status === 'fulfilled') {

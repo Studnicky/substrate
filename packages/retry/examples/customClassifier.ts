@@ -47,8 +47,7 @@ const failUntil = 2;
 const counter = new AttemptCounter();
 
 const retry = new DatabaseRetry({
-  'maxRetries': 3,
-  'retryInterceptor': () => {return { 'delayMs': 0 };}
+  'maxRetries': 3
 });
 
 const result = await retry.execute(() => {

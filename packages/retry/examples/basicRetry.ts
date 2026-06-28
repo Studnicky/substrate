@@ -23,7 +23,6 @@ const counter = new Counter();
 
 const retry = Retry.builder()
   .maxRetries(3)
-  .retryInterceptor(() => {return { 'delayMs': 0 };})
   .build();
 
 const result = await retry.execute(() => {

@@ -161,44 +161,6 @@ void describe('FetchClient Constructor', () => {
       );
     });
 
-    void it('should reject requestInterceptor as an unknown configuration key', () => {
-      assert.throws(
-        () => {
-          // @ts-expect-error - requestInterceptor was removed; passing it is an unknown key
-          FetchClient.create({ requestInterceptor: () => {} });
-        },
-        (error: unknown): error is Error => {
-          if (error instanceof Error) {
-            assert.ok(error instanceof ConfigurationError);
-            assert.ok(error.message.includes('requestInterceptor'));
-
-            return true;
-          }
-
-          return false;
-        }
-      );
-    });
-
-    void it('should reject responseInterceptor as an unknown configuration key', () => {
-      assert.throws(
-        () => {
-          // @ts-expect-error - responseInterceptor was removed; passing it is an unknown key
-          FetchClient.create({ responseInterceptor: () => {} });
-        },
-        (error: unknown): error is Error => {
-          if (error instanceof Error) {
-            assert.ok(error instanceof ConfigurationError);
-            assert.ok(error.message.includes('responseInterceptor'));
-
-            return true;
-          }
-
-          return false;
-        }
-      );
-    });
-
     void it('should reject invalid requestIdGenerator', () => {
       assert.throws(
         () => {

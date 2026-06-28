@@ -95,8 +95,7 @@ it('getStats().totalRetries counts retry attempts (not the initial attempt)', as
   let attempts = 0;
   const retry = Retry.create({
     errorClassifier: () => ({ retryable: true }),
-    maxRetries: 3,
-    retryInterceptor: () => ({ delayMs: 0 })
+    maxRetries: 3
   });
 
   try {

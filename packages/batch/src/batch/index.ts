@@ -1,1 +1,1 @@
-export { batchConcurrent } from './batchConcurrent.js';
+export { Batch } from './Batch.js';
