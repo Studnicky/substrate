@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/virtual-fs",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "In-memory synchronous filesystem primitive with injectable clock and zero node: imports",
   "type": "module",
   "sideEffects": false,
@@ -30,7 +30,13 @@
     "type-check": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
-  "keywords": ["virtual-fs", "filesystem", "in-memory", "testing", "browser-compatible"],
+  "keywords": [
+    "virtual-fs",
+    "filesystem",
+    "in-memory",
+    "testing",
+    "browser-compatible"
+  ],
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "repository": {
