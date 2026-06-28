@@ -1,5 +1,5 @@
 /**
- * batchConcurrent Unit Tests
+ * Batch Unit Tests
  *
  * Tests for batch concurrent async generator utility
  */
@@ -7,14 +7,14 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
-import { batchConcurrent } from '../../../src/batch/index.js';
+import { Batch } from '../../../src/batch/Batch.js';
 import {
   collectBatches, delay
 } from '../../helpers/index.js';
 
 const DEFAULT_MAX_CONCURRENT = 10;
 
-// ── batchConcurrent.process ──────────────────────────────────────────────────
+// ── Batch.process ────────────────────────────────────────────────────────────
 
 const processEmptyScenarios: Array<{ description: string; exec: () => Promise<void> }> = [
   {
@@ -22,7 +22,7 @@ const processEmptyScenarios: Array<{ description: string; exec: () => Promise<vo
     exec: async () => {
       const batches: number[][] = [];
 
-      for await (const batch of batchConcurrent.process([], async (item: number) => item * 2)) {
+      for await (const batch of Batch.create().process([], async (item: number) => item * 2)) {
         batches.push(batch);
       }
 
@@ -42,7 +42,7 @@ const processSingleBatchScenarios: Array<{ description: string; exec: () => Prom
       const items = [1, 2, 3];
       const batches: number[][] = [];
 
-      for await (const batch of batchConcurrent.process(items, async (item) => item * 2, 5)) {
+      for await (const batch of Batch.create(5).process(items, async (item) => item * 2)) {
         batches.push(batch);
       }
 
@@ -56,15 +56,14 @@ const processSingleBatchScenarios: Array<{ description: string; exec: () => Prom
       const items = [1, 2, 3, 4, 5];
       const executionOrder: number[] = [];
 
-      for await (const batch of batchConcurrent.process(
+      for await (const batch of Batch.create(5).process(
         items,
         async (item) => {
           executionOrder.push(item);
           await delay(10);
 
           return item * 2;
-        },
-        5
+        }
       )) {
         assert.deepStrictEqual(batch, [2, 4, 6, 8, 10]);
       }
@@ -85,14 +84,13 @@ const processMultiBatchScenarios: Array<{ description: string; exec: () => Promi
       const items = [1, 2, 3, 4, 5];
       const batches: number[][] = [];
 
-      for await (const batch of batchConcurrent.process(
+      for await (const batch of Batch.create(2).process(
         items,
         async (item) => {
           await delay(10);
 
           return item * 2;
-        },
-        2
+        }
       )) {
         batches.push(batch);
       }
@@ -116,7 +114,7 @@ const processOrderScenarios: Array<{ description: string; exec: () => Promise<vo
       const items = [1, 2, 3, 4];
       const delays = [40, 10, 30, 20];
 
-      const generator = batchConcurrent.process(
+      const generator = Batch.create(4).process(
         items,
         async (item) => {
           const index = items.indexOf(item);
@@ -124,8 +122,7 @@ const processOrderScenarios: Array<{ description: string; exec: () => Promise<vo
           await delay(delays[index]);
 
           return item * 10;
-        },
-        4
+        }
       );
       const allResults = await collectBatches(generator);
 
@@ -145,7 +142,7 @@ it('process uses defaultMaxConcurrent when not specified', async () => {
   let maxConcurrentObserved = 0;
   let currentConcurrent = 0;
 
-  for await (const batch of batchConcurrent.process(
+  for await (const batch of Batch.create().process(
     items,
     async (item) => {
       currentConcurrent++;
@@ -169,14 +166,13 @@ it('process waits for batch completion before yielding next', async () => {
   const batchTimestamps: number[] = [];
   const startTime = Date.now();
 
-  for await (const batch of batchConcurrent.process(
+  for await (const batch of Batch.create(2).process(
     items,
     async (item) => {
       await delay(50);
 
       return item;
-    },
-    2
+    }
   )) {
     assert.strictEqual(batch.length, 2);
     batchTimestamps.push(Date.now() - startTime);
@@ -199,7 +195,7 @@ it('process propagates errors from operation', async () => {
   const items = [1, 2, 3];
 
   const consumeGenerator = async (): Promise<void> => {
-    for await (const batch of batchConcurrent.process(
+    for await (const batch of Batch.create(2).process(
       items,
       async (item) => {
         if (item === 2) {
@@ -207,8 +203,7 @@ it('process propagates errors from operation', async () => {
         }
 
         return item;
-      },
-      2
+      }
     )) {
       assert.ok(Array.isArray(batch));
     }
@@ -223,7 +218,7 @@ it('process stops yielding on first error', async () => {
   const batchesReceived: number[][] = [];
 
   const consumeGenerator = async (): Promise<void> => {
-    for await (const batch of batchConcurrent.process(
+    for await (const batch of Batch.create(2).process(
       items,
       async (item) => {
         processed.push(item);
@@ -233,8 +228,7 @@ it('process stops yielding on first error', async () => {
         }
 
         return item;
-      },
-      2
+      }
     )) {
       batchesReceived.push(batch);
     }
@@ -251,10 +245,9 @@ const processTypeScenarios: Array<{ description: string; exec: () => Promise<voi
     description: 'process handles different input and output types',
     exec: async () => {
       const items = ['a', 'b', 'c'];
-      const generator = batchConcurrent.process(
+      const generator = Batch.create<number>(2).process(
         items,
-        async (item) => item.codePointAt(0) as number,
-        2
+        async (item) => item.codePointAt(0) as number
       );
       const results = await collectBatches(generator);
 
@@ -269,10 +262,9 @@ const processTypeScenarios: Array<{ description: string; exec: () => Promise<voi
         { id: 2, name: 'Bob' },
       ];
 
-      const generator = batchConcurrent.process(
+      const generator = Batch.create<{ id: number; name: string; processed: boolean }>(2).process(
         items,
-        async (item) => ({ ...item, processed: true }),
-        2
+        async (item) => ({ ...item, processed: true })
       );
       const results = await collectBatches(generator);
 
@@ -295,14 +287,13 @@ const processIncrementalScenarios: Array<{ description: string; exec: () => Prom
       const items = [1, 2, 3, 4, 5, 6];
       const processedBatches: number[][] = [];
 
-      for await (const batch of batchConcurrent.process(
+      for await (const batch of Batch.create(2).process(
         items,
         async (item) => {
           await delay(10);
 
           return item * 10;
-        },
-        2
+        }
       )) {
         processedBatches.push([...batch]);
       }
@@ -320,15 +311,14 @@ const processIncrementalScenarios: Array<{ description: string; exec: () => Prom
       const processed: number[] = [];
       let batchCount = 0;
 
-      for await (const batch of batchConcurrent.process(
+      for await (const batch of Batch.create(2).process(
         items,
         async (item) => {
           processed.push(item);
           await delay(10);
 
           return item;
-        },
-        2
+        }
       )) {
         assert.strictEqual(batch.length, 2);
         batchCount++;
@@ -351,12 +341,8 @@ const processErrorValidationScenarios: Array<{ description: string; exec: () => 
   {
     description: 'process throws BatchError for zero maxConcurrent',
     exec: async () => {
-      await assert.rejects(
-        async () => {
-          for await (const _ of batchConcurrent.process([1, 2, 3], async (item) => item, 0)) {
-            // should not yield
-          }
-        },
+      assert.throws(
+        () => { Batch.create(0); },
         /maxConcurrent must be a positive integer/u
       );
     },
@@ -364,12 +350,8 @@ const processErrorValidationScenarios: Array<{ description: string; exec: () => 
   {
     description: 'process throws BatchError for negative maxConcurrent',
     exec: async () => {
-      await assert.rejects(
-        async () => {
-          for await (const _ of batchConcurrent.process([1, 2, 3], async (item) => item, -1)) {
-            // should not yield
-          }
-        },
+      assert.throws(
+        () => { Batch.create(-1); },
         /maxConcurrent must be a positive integer/u
       );
     },
@@ -377,12 +359,8 @@ const processErrorValidationScenarios: Array<{ description: string; exec: () => 
   {
     description: 'process throws BatchError for non-integer maxConcurrent',
     exec: async () => {
-      await assert.rejects(
-        async () => {
-          for await (const _ of batchConcurrent.process([1, 2, 3], async (item) => item, 1.5)) {
-            // should not yield
-          }
-        },
+      assert.throws(
+        () => { Batch.create(1.5); },
         /maxConcurrent must be a positive integer/u
       );
     },
@@ -393,7 +371,7 @@ for (const { description, exec } of processErrorValidationScenarios) {
   it(description, exec);
 }
 
-// ── batchConcurrentSettled ───────────────────────────────────────────────────
+// ── Batch.processSettled ─────────────────────────────────────────────────────
 
 const settledEmptyScenarios: Array<{ description: string; exec: () => Promise<void> }> = [
   {
@@ -401,7 +379,7 @@ const settledEmptyScenarios: Array<{ description: string; exec: () => Promise<vo
     exec: async () => {
       const batches: Array<Array<PromiseSettledResult<number>>> = [];
 
-      for await (const batch of batchConcurrent.processSettled([], async (item: number) => item * 2)) {
+      for await (const batch of Batch.create().processSettled([], async (item: number) => item * 2)) {
         batches.push(batch);
       }
 
@@ -421,7 +399,7 @@ const settledSuccessScenarios: Array<{ description: string; exec: () => Promise<
       const items = [1, 2, 3];
       const batches: Array<Array<PromiseSettledResult<number>>> = [];
 
-      for await (const batch of batchConcurrent.processSettled(items, async (item) => item * 2, 5)) {
+      for await (const batch of Batch.create(5).processSettled(items, async (item) => item * 2)) {
         batches.push(batch);
       }
 
@@ -455,7 +433,7 @@ const settledPartialFailureScenarios: Array<{ description: string; exec: () => P
       const items = [1, 2, 3];
       const batches: Array<Array<PromiseSettledResult<number>>> = [];
 
-      for await (const batch of batchConcurrent.processSettled(
+      for await (const batch of Batch.create(3).processSettled(
         items,
         async (item) => {
           if (item === 2) {
@@ -463,8 +441,7 @@ const settledPartialFailureScenarios: Array<{ description: string; exec: () => P
           }
 
           return item * 10;
-        },
-        3
+        }
       )) {
         batches.push(batch);
       }
@@ -501,7 +478,7 @@ const settledPartialFailureScenarios: Array<{ description: string; exec: () => P
       const items = [1, 2, 3, 4, 5, 6];
       const batches: Array<Array<PromiseSettledResult<number>>> = [];
 
-      for await (const batch of batchConcurrent.processSettled(
+      for await (const batch of Batch.create(2).processSettled(
         items,
         async (item) => {
           if (item === 2 || item === 5) {
@@ -509,8 +486,7 @@ const settledPartialFailureScenarios: Array<{ description: string; exec: () => P
           }
 
           return item * 10;
-        },
-        2
+        }
       )) {
         batches.push(batch);
       }
@@ -558,12 +534,11 @@ const settledPartialFailureScenarios: Array<{ description: string; exec: () => P
       const items = [1, 2, 3];
       const batches: Array<Array<PromiseSettledResult<number>>> = [];
 
-      for await (const batch of batchConcurrent.processSettled(
+      for await (const batch of Batch.create(2).processSettled(
         items,
         async (item) => {
           throw new Error(`Item ${item} failed`);
-        },
-        2
+        }
       )) {
         batches.push(batch);
       }
@@ -591,7 +566,7 @@ const settledOrderScenarios: Array<{ description: string; exec: () => Promise<vo
       const delays = [40, 10, 30, 20];
       const batches: Array<Array<PromiseSettledResult<number>>> = [];
 
-      for await (const batch of batchConcurrent.processSettled(
+      for await (const batch of Batch.create(4).processSettled(
         items,
         async (item) => {
           const index = items.indexOf(item);
@@ -599,8 +574,7 @@ const settledOrderScenarios: Array<{ description: string; exec: () => Promise<vo
           await delay(delays[index]);
 
           return item * 10;
-        },
-        4
+        }
       )) {
         batches.push(batch);
       }
@@ -629,7 +603,7 @@ it('processSettled uses defaultMaxConcurrent when not specified', async () => {
   let maxConcurrentObserved = 0;
   let currentConcurrent = 0;
 
-  for await (const batch of batchConcurrent.processSettled(
+  for await (const batch of Batch.create().processSettled(
     items,
     async (item) => {
       currentConcurrent++;
@@ -655,10 +629,9 @@ const settledTypeScenarios: Array<{ description: string; exec: () => Promise<voi
       const items = ['a', 'b', 'c'];
       const batches: Array<Array<PromiseSettledResult<number>>> = [];
 
-      for await (const batch of batchConcurrent.processSettled(
+      for await (const batch of Batch.create<number>(2).processSettled(
         items,
-        async (item) => item.codePointAt(0) as number,
-        2
+        async (item) => item.codePointAt(0) as number
       )) {
         batches.push(batch);
       }

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { ErrorClassificationType, RetryConfigInterface } from '../src/index.js';
+import type { ErrorClassificationType, RetryConfigInterface, RetryContextType } from '../src/index.js';
 
 import { MaxRetriesExceededError, Retry } from '../src/index.js';
 
@@ -31,9 +31,9 @@ class TelemetryRetry extends Retry {
     console.log(`[retry] attempt ${attemptNumber} retryable error: ${error.message} (${classification.reason ?? 'no reason'})`);
   }
 
-  protected override onRetryScheduled(attemptNumber: number, delayMs: number): void {
-    console.log(`[retry] attempt ${attemptNumber} scheduled retry in ${delayMs}ms`);
-    this.scheduledEvents.push({ 'attemptNumber': attemptNumber, 'delayMs': delayMs });
+  protected override onRetryScheduled(context: RetryContextType): void {
+    console.log(`[retry] attempt ${context.attemptNumber} scheduled retry in ${context.delayMs}ms`);
+    this.scheduledEvents.push({ 'attemptNumber': context.attemptNumber, 'delayMs': context.delayMs });
   }
 
   protected override onGiveUp(
@@ -52,8 +52,7 @@ class TelemetryRetry extends Retry {
 
 const maxRetries = 2;
 const retry = new TelemetryRetry({
-  'maxRetries': maxRetries,
-  'retryInterceptor': () => {return { 'delayMs': 0 };}
+  'maxRetries': maxRetries
 });
 
 // Operation always fails — exercises scheduled and giveUp hooks

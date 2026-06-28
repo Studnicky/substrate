@@ -1,5 +1,4 @@
 import { ConfigValidation } from '@studnicky/config';
-import { Pipeline } from '@studnicky/pipeline';
 
 import type {
   ErrorClassificationType,
@@ -9,7 +8,6 @@ import type {
   RetryInterface
 } from '../interfaces/index.js';
 import type { RetryCallStateType } from '../types/RetryCallStateType.js';
-import type { RetryInterceptorType } from '../types/RetryInterceptorType.js';
 
 import {
   DEFAULT_MAX_RETRIES,
@@ -27,8 +25,7 @@ import {
 } from '../errors/index.js';
 import {
   errorClassifier,
-  maxRetries,
-  retryInterceptor
+  maxRetries
 } from './config/schemas/index.js';
 import { DefaultHttpErrorClassifier } from './core/DefaultHttpErrorClassifier.js';
 import { Delay } from './Delay.js';
@@ -92,11 +89,12 @@ class RetryCallFsm {
  * const result = await retry.execute(() => fetchData());
  * ```
  *
- * @example Adding observability via hooks
+ * @example Adding observability and backoff via hooks
  * ```typescript
  * class ObservedRetry extends Retry {
- *   protected override onRetryScheduled(attemptNumber: number, delayMs: number): void {
- *     this.logger.warn('retry.scheduled', { attemptNumber, delayMs });
+ *   protected override onRetryScheduled(context: RetryContextType): void {
+ *     context.delayMs = BackoffStrategy.exponential(context.attemptNumber, 100);
+ *     this.logger.warn('retry.scheduled', { attemptNumber: context.attemptNumber, delayMs: context.delayMs });
  *   }
  *   protected override onGiveUp(error: Error, attemptNumber: number, reason: string): void {
  *     this.logger.error('retry.giveUp', { reason, attemptNumber, error: error.message });
@@ -151,7 +149,6 @@ export class Retry implements RetryInterface {
   }
   private readonly classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
   private readonly defaultClassifier: DefaultHttpErrorClassifier;
-  private readonly pipeline: Pipeline<RetryContextType>;
 
   protected readonly maxRetries: number;
 
@@ -167,21 +164,6 @@ export class Retry implements RetryInterface {
 
     this.maxRetries = validated.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.defaultClassifier = DefaultHttpErrorClassifier.create();
-    this.pipeline = Pipeline.create<RetryContextType>();
-
-    let interceptors: RetryInterceptorType[];
-    if (validated.retryInterceptor === undefined) {
-      interceptors = [];
-    } else if (typeof validated.retryInterceptor === 'function') {
-      interceptors = [validated.retryInterceptor];
-    } else {
-      interceptors = [...validated.retryInterceptor];
-    }
-
-    const interceptorsLen = interceptors.length;
-    for (let i = 0; i < interceptorsLen; i += 1) {
-      this.pipeline.add(interceptors[i]!);
-    }
 
     if (validated.errorClassifier === undefined) {
       // Arrow function required for subclass polymorphism - classifyError may be overridden
@@ -228,8 +210,16 @@ export class Retry implements RetryInterface {
     _classification: ErrorClassificationType
   ): void {}
 
-  /** Fires once a retry delay is computed, before waiting. */
-  protected onRetryScheduled(_attemptNumber: number, _delayMs: number): void {}
+  /**
+   * Behavioral lifecycle hook fired before each scheduled retry. Default is a no-op,
+   * which leaves `context.delayMs` at 0 (immediate retry). Override to drive retry
+   * behavior:
+   *  - set `context.delayMs` (use a shipped BackoffStrategy, e.g.
+   *    `context.delayMs = BackoffStrategy.exponential(context.attemptNumber, 100)`)
+   *  - set `context.abort = true` to stop retrying immediately
+   *  - mutate `context.state` (may be async — e.g. `context.state.token = await refresh()`)
+   */
+  protected onRetryScheduled(_context: RetryContextType): void | Promise<void> {}
 
   /** Fires when retrying is abandoned. */
   protected onGiveUp(
@@ -370,16 +360,16 @@ export class Retry implements RetryInterface {
   }
 
   /**
-   * Handle interceptor abort.
+   * Handle lifecycle hook abort.
    */
-  private handleInterceptorAbort(callFsm: RetryCallFsm, attempt: number, error: Error): never {
+  private handleAbort(callFsm: RetryCallFsm, attempt: number, error: Error): never {
     this.stats.failedRequests++;
 
     callFsm.transition('aborted');
     this.onGiveUp(error, attempt, 'aborted');
 
     throw new MaxRetriesExceededError(
-      `Operation aborted by retry interceptor after ${attempt + INCREMENT_BY_ONE} attempts: ${String(error)}`,
+      `Operation aborted by retry lifecycle hook after ${attempt + INCREMENT_BY_ONE} attempts: ${String(error)}`,
       this.maxRetries,
       attempt + INCREMENT_BY_ONE,
       [error]
@@ -444,7 +434,7 @@ export class Retry implements RetryInterface {
    * Perform retry with delay.
    *
    * Transitions the FSM: attempting → waiting first, then checks budget
-   * (waiting → exhausted) and interceptor abort (waiting → aborted) before
+   * (waiting → exhausted) and lifecycle hook abort (waiting → aborted) before
    * sleeping and transitioning waiting → attempting for the next loop iteration.
    */
   private async performRetry(
@@ -479,15 +469,13 @@ export class Retry implements RetryInterface {
       'stats': Object.freeze({ ...this.stats })
     };
 
-    const result = await this.pipeline.run(context);
+    await this.onRetryScheduled(context);
 
-    if (result.abort === true) {
-      this.handleInterceptorAbort(callFsm, attempt, error);
+    if (context.abort === true) {
+      this.handleAbort(callFsm, attempt, error);
     }
 
-    this.onRetryScheduled(attempt, result.delayMs);
-
-    await Delay.for(result.delayMs);
+    await Delay.for(context.delayMs);
 
     callFsm.transition('attempting');
   }
@@ -506,8 +494,7 @@ export class Retry implements RetryInterface {
 
   private static readonly propertyValidators: Record<string, (val: unknown) => void> = {
     'errorClassifier': errorClassifier.validateErrorClassifier,
-    'maxRetries': maxRetries.validateMaxRetries,
-    'retryInterceptor': retryInterceptor.validateRetryInterceptor
+    'maxRetries': maxRetries.validateMaxRetries
   };
 
   static #validateConfig(config?: Partial<RetryConfigInterface>): Partial<RetryConfigInterface> {

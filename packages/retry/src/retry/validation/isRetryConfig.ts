@@ -8,7 +8,7 @@ import { Retry } from '../Retry.js';
  * Type guard for RetryConfigInterface.
  *
  * Validates both the JSON-serializable subset (maxRetries via schema) and the
- * runtime members (errorClassifier, retryInterceptor) by delegating to Retry.create,
+ * runtime members (errorClassifier) by delegating to Retry.create,
  * which runs the full validation pipeline.
  *
  * @param value - Value to check

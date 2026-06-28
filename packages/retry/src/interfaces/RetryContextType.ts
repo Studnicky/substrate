@@ -2,16 +2,15 @@ import type { ErrorClassificationType } from './ErrorClassificationType.js';
 import type { RequestStatsType } from './RequestStatsType.js';
 
 /**
- * Context provided to retry interceptors
+ * Context provided to the `onRetryScheduled` lifecycle hook.
  *
- * Contains all information about the current retry attempt. Interceptors
- * read this context to make decisions and write back `delayMs` and optionally
- * `abort` to control retry behavior. Multiple interceptors run in pipeline
- * order — each receives the context returned by the previous one.
+ * Contains all information about the current retry attempt. Override
+ * `onRetryScheduled` in a subclass to read this context and write back
+ * `delayMs` and optionally `abort` to control retry behavior.
  */
 export type RetryContextType<TState = Record<string, unknown>> = {
   /**
-   * Set by interceptors: if true, abort remaining retries immediately
+   * Set by the lifecycle hook: if true, abort remaining retries immediately
    * @default false
    */
   'abort'?: boolean;
@@ -27,7 +26,7 @@ export type RetryContextType<TState = Record<string, unknown>> = {
   'classification': ErrorClassificationType;
 
   /**
-   * Set by interceptors: milliseconds to delay before the next retry
+   * Set by the lifecycle hook: milliseconds to delay before the next retry
    * @default 0
    */
   'delayMs': number;
@@ -54,14 +53,14 @@ export type RetryContextType<TState = Record<string, unknown>> = {
    *
    * @example OAuth token refresh
    * ```typescript
-   * const retry = Retry.create({
-   *   retryInterceptor: async (ctx) => {
-   *     if (ctx.error.message.includes('token expired')) {
-   *       ctx.state.token = await refreshToken();
+   * class TokenRefreshRetry extends Retry {
+   *   protected override async onRetryScheduled(context: RetryContextType): Promise<void> {
+   *     if (context.error.message.includes('token expired')) {
+   *       context.state.token = await refreshToken();
    *     }
-   *     return { ...ctx, delayMs: 100 };
+   *     context.delayMs = 100;
    *   }
-   * });
+   * }
    * ```
    */
   'state': TState;

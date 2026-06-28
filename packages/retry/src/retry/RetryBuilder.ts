@@ -5,7 +5,6 @@ import type {
   RetryInterface
 } from '../interfaces/index.js';
 import type { ErrorClassifierFunctionType } from '../types/ErrorClassifierFunctionType.js';
-import type { RetryInterceptorType } from '../types/RetryInterceptorType.js';
 
 /**
  * Builder for creating Retry instances with fluent API
@@ -24,19 +23,6 @@ import type { RetryInterceptorType } from '../types/RetryInterceptorType.js';
  *   .errorClassifier(new DefaultHttpErrorClassifier())
  *   .build();
  * ```
- *
- * @example With retry interceptor
- * ```typescript
- * import { BackoffStrategy } from '@studnicky/retry';
- *
- * const retry = Retry.builder()
- *   .maxRetries(3)
- *   .retryInterceptor((ctx) => {
- *     console.log(`Retry ${ctx.attemptNumber}`);
- *     return { delayMs: BackoffStrategy.exponential(ctx.attemptNumber, 100) };
- *   })
- *   .build();
- * ```
  */
 export class RetryBuilder<T extends RetryInterface = RetryInterface> implements RetryBuilderInterface<T> {
   static create<T extends RetryInterface = RetryInterface>(
@@ -48,7 +34,6 @@ export class RetryBuilder<T extends RetryInterface = RetryInterface> implements 
   readonly #create: (options: Partial<RetryConfigInterface>) => T;
   #maxRetries?: number;
   #errorClassifier?: ErrorClassifierFunctionType | ErrorClassifierInterface;
-  #retryInterceptors?: RetryInterceptorType[];
 
   private constructor(create: (options: Partial<RetryConfigInterface>) => T) {
     this.#create = create;
@@ -71,28 +56,13 @@ export class RetryBuilder<T extends RetryInterface = RetryInterface> implements 
   }
 
   /**
-   * Add a retry interceptor to the pipeline
-   *
-   * Multiple calls append to the pipeline in registration order.
-   */
-  retryInterceptor(value: RetryInterceptorType): this {
-    if (this.#retryInterceptors === undefined) {
-      this.#retryInterceptors = [value];
-    } else {
-      this.#retryInterceptors.push(value);
-    }
-    return this;
-  }
-
-  /**
    * Build and return Retry instance
    * Config validation occurs in create()
    */
   build(): T {
     const config: Partial<RetryConfigInterface> = {
       ...(this.#maxRetries !== undefined ? { 'maxRetries': this.#maxRetries } : {}),
-      ...(this.#errorClassifier !== undefined ? { 'errorClassifier': this.#errorClassifier } : {}),
-      ...(this.#retryInterceptors !== undefined ? { 'retryInterceptor': this.#retryInterceptors } : {})
+      ...(this.#errorClassifier !== undefined ? { 'errorClassifier': this.#errorClassifier } : {})
     };
     return this.#create(config);
   }

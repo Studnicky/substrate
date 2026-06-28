@@ -15,7 +15,7 @@ import { it } from 'node:test';
 
 import type { RetryCallStateType } from '../../../src/types/RetryCallStateType.js';
 
-import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+import type { RetryConfigInterface, RetryContextType } from '../../../src/interfaces/index.js';
 
 import {
   DefaultHttpErrorClassifier,
@@ -58,6 +58,16 @@ class AlwaysNonRetryableClassifier {
   }
 }
 
+/**
+ * TrackingRetry subclass that signals abort via the onRetryScheduled lifecycle hook.
+ */
+class AbortingTrackingRetry extends TrackingRetry {
+  protected override onRetryScheduled(context: RetryContextType): void {
+    context.abort = true;
+    context.delayMs = 0;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Transition scenario runner
 // ---------------------------------------------------------------------------
@@ -86,8 +96,7 @@ const transitionScenarios: TransitionScenario[] = [
     description: 'attempting → waiting → attempting → succeeded on one retryable failure then success',
     build: () => new TrackingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
-      maxRetries: 3,
-      retryInterceptor: () => ({ delayMs: 0 })
+      maxRetries: 3
     }),
     execute: (() => {
       let callCount = 0;
@@ -116,11 +125,10 @@ const transitionScenarios: TransitionScenario[] = [
     expectReject: true
   },
   {
-    description: 'waiting → aborted via interceptor abort signal',
-    build: () => new TrackingRetry({
+    description: 'waiting → aborted via lifecycle hook abort signal',
+    build: () => new AbortingTrackingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
-      maxRetries: 3,
-      retryInterceptor: () => ({ abort: true, delayMs: 0 })
+      maxRetries: 3
     }),
     execute: (retry) => retry.execute(async () => { throw new Error('will be aborted'); }),
     expectedTransitions: [
@@ -156,8 +164,7 @@ for (const { description, build, execute, expectedTransitions, expectReject } of
 it('waiting → exhausted when budget is gone (maxRetries: 1)', async () => {
   const retry = new TrackingRetry({
     errorClassifier: DefaultHttpErrorClassifier.create(),
-    maxRetries: 1,
-    retryInterceptor: () => ({ delayMs: 0 })
+    maxRetries: 1
   });
 
   await rejects(

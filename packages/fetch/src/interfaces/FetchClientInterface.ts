@@ -7,7 +7,7 @@ import type { FetchOptionsType } from './FetchOptionsType.js';
 import type { RequestBuilderInterface } from './RequestBuilderInterface.js';
 
 /**
- * Interface for HTTP client with default configuration and interceptors
+ * Interface for HTTP client with default configuration and lifecycle hooks
  */
 export interface FetchClientInterface {
   delete(path: string, options?: FetchOptionsType): Promise<Response>;

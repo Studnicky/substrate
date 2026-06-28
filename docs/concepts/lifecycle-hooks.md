@@ -62,14 +62,6 @@ everywhere:
 
 Packages add domain-specific hooks beyond these where a stage has no general name.
 
-## Free-function primitives
-
-A primitive that is a plain function rather than a class cannot be subclassed.
-For these — currently [`@studnicky/batch`](/packages/batch) — the same stages are
-exposed as an optional `hooks` object on the options, with callback observers
-using the same event names. The callbacks are optional; omitting them costs
-nothing.
-
 ## Hook reference by package
 
 Each package's own page has a full table describing every hook, its trigger, and
@@ -79,6 +71,7 @@ its arguments. This index is the at-a-glance map of where each stage lives.
 
 | Package | Lifecycle hooks |
 |---------|-----------------|
+| [batch](/packages/batch#observability-hooks) | `onBatchStart` `onItemStart` `onItemSuccess` `onItemError` `onItemSettled` `onConcurrencySaturated` `onBatchComplete` |
 | [cache](/packages/cache#observability-hooks) | `onHit` `onMiss` `onSet` `onUpdate` `onEvict` `onExpire` `onDelete` `onClear` |
 | [circular-buffer](/packages/circular-buffer#observability-hooks) | `onPush` `onShift` `onOverflow` `onEvict` `onGrow` |
 | [clock](/packages/clock#observability-hooks) | `onNow` `onHrtime` `onAdvance` `onNowMs` |
@@ -92,14 +85,8 @@ its arguments. This index is the at-a-glance map of where each stage lives.
 | [mutex](/packages/mutex#observability-hooks) | `beforeAcquire` `afterAcquire` `onAcquireWait` `onContended` `onEnterKey` `beforeRelease` `onRelease` `afterRelease` `onQueueDrain` `onTimeout` |
 | [pipeline](/packages/pipeline#observability-hooks) | `onRunStart` `beforeStage` `onStageStart` `onStageSuccess` `afterStage` `onStageError` `onRunComplete` `onRunError` |
 | [resilience](/packages/resilience#observability-hooks) | `onSuccess` `onFailure` `onTrip` `onOpen` `onHalfOpen` `onClose` `onReject` `onTokenAcquired` `onTokenDepleted` `onRefill` `onWait` `onEnqueue` `onDequeue` `onOverflow` `onYield` `onDone` `onAbort` |
-| [retry](/packages/retry#observability-hooks) | `enterCall` `onAttempt` `classifyError` `onRetryableError` `onRetryScheduled` `onGiveUp` `onSuccess` |
+| [retry](/packages/retry#observability-hooks) | `enterCall` `onAttempt` `classifyError` `onRetryableError` `onRetryScheduled` _(transform)_ `onGiveUp` `onSuccess` |
 | [sample-buffer](/packages/sample-buffer#observability-hooks) | `onPush` `onOverflow` `onEvict` `onComputeStart` `onComputeComplete` `onPercentile` `onClear` |
 | [scheduler](/packages/scheduler#observability-hooks) | `onSchedule` `onFire` `onFireError` `onReschedule` `onCancel` `onCancelAll` `onAdvance` `onRunUntil` `onDrift` `onMiss` `onIdle` |
 | [throttle](/packages/throttle#observability-hooks) | `onEnter` `onAcquire` `onAcquireWait` `onContended` `onReject` `onRelease` `onWindowSlide` `onAdaptiveAdjust` `onDrainStart` `onDrainComplete` `onAbortStart` |
 | [timing](/packages/timing#observability-hooks) | `onInitialize` `onEvent` `onGetEvents` `onEvict` `onClear` |
-
-### Free-function primitives
-
-| Package | Options callbacks |
-|---------|-------------------|
-| [batch](/packages/batch#observability-hooks) | `onBatchStart` `onItemStart` `onItemSuccess` `onItemError` `onItemSettled` `onConcurrencySaturated` `onBatchComplete` |

@@ -31,10 +31,6 @@ const createScenarios: Array<{ description: string; build: () => Retry }> = [
   {
     description: 'creates retry with Retry.create({ errorClassifier, maxRetries })',
     build: () => Retry.create({ errorClassifier: DefaultHttpErrorClassifier.create(), maxRetries: 3 })
-  },
-  {
-    description: 'creates retry with Retry.create({ maxRetries, retryInterceptor })',
-    build: () => Retry.create({ maxRetries: 3, retryInterceptor: () => ({ delayMs: 100 }) })
   }
 ];
 
@@ -64,18 +60,6 @@ const builderScenarios: Array<{ description: string; build: () => Retry }> = [
   {
     description: 'builds with errorClassifier and maxRetries',
     build: () => Retry.builder().maxRetries(3).errorClassifier(DefaultHttpErrorClassifier.create()).build()
-  },
-  {
-    description: 'builds with retryInterceptor and maxRetries',
-    build: () => Retry.builder().maxRetries(3).retryInterceptor(() => ({ delayMs: 50 })).build()
-  },
-  {
-    description: 'chains all builder methods: maxRetries + errorClassifier + retryInterceptor',
-    build: () => Retry.builder()
-      .maxRetries(5)
-      .errorClassifier(DefaultHttpErrorClassifier.create())
-      .retryInterceptor(() => ({ delayMs: 100 }))
-      .build()
   }
 ];
 

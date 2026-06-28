@@ -82,7 +82,6 @@
     "@studnicky/config": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/pipeline": "workspace:*",
     "@studnicky/types": "workspace:*"
   },
   "peerDependencies": {

@@ -6,7 +6,7 @@
 export type RequestMetadataType = {
   /**
    * User-provided metadata for logging and tracking
-   * Key-value pairs that flow through interceptors
+   * Key-value pairs that flow through lifecycle hooks
    */
   'metadata': Record<string, unknown>;
 
