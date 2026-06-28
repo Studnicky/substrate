@@ -10,7 +10,7 @@
  * - attempting → failed      (non-retryable error)
  * - waiting   → attempting   (delay elapsed, next attempt begins)
  * - waiting   → exhausted    (max retries reached while waiting to retry)
- * - waiting   → aborted      (interceptor signalled abort)
+ * - waiting   → aborted      (lifecycle hook signalled abort)
  * - succeeded, failed, exhausted, aborted are terminals (no outbound edges)
  */
 export type RetryCallStateType =

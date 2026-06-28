@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import { batchConcurrent } from '../src/index.js';
+import { Batch } from '../src/index.js';
 
 class NumberItem {
   static double(n: number): Promise<number> {
@@ -17,7 +17,7 @@ const items = [1, 2, 3, 4, 5] as const;
 const allResults: number[] = [];
 let batchIndex = 0;
 
-for await (const batch of batchConcurrent.process(items, NumberItem.double, 2)) {
+for await (const batch of Batch.create<number>(2).process(items, NumberItem.double)) {
   console.log(`Batch ${batchIndex}:`, batch);
   allResults.push(...batch);
   batchIndex++;

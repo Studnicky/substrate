@@ -36,6 +36,5 @@ export const HTTP_UNAUTHORIZED = 401;
 
 export const RETRY_CONFIG_KEYS = new Set<string>([
   'errorClassifier',
-  'maxRetries',
-  'retryInterceptor'
+  'maxRetries'
 ]);

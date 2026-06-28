@@ -1,9 +1,11 @@
-/** observedBatch — trace batch progress via the hooks option. Run: npx tsx examples/observedBatch.ts */
+/** observedBatch — trace batch progress by subclassing Batch and overriding lifecycle hooks. Run: npx tsx examples/observedBatch.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
-import { batchConcurrent, type BatchHooksInterface, type BatchStatsType } from '../src/index.js';
+import type { BatchStatsType } from '../src/index.js';
+
+import { Batch } from '../src/index.js';
 
 // Items to process: ids 1–5. Item 3 always rejects to exercise error hooks.
 type Task = { 'id': number; 'label': string };
@@ -24,48 +26,55 @@ const capturedSettled: number[] = [];
 let capturedSaturations = 0;
 let capturedStats: BatchStatsType | undefined;
 
-const hooks: BatchHooksInterface<string> = {
-  'onBatchComplete': (stats) => {
+class ObservedBatch extends Batch<string> {
+  public constructor(maxConcurrent?: number) { super(maxConcurrent); }
+
+  protected override onBatchStart(total: number): void {
+    console.log(`[batch] start — ${total} items`);
+  }
+
+  protected override onBatchComplete(stats: BatchStatsType): void {
     console.log(`[batch] complete — total=${stats.total} succeeded=${stats.succeeded} failed=${stats.failed}`);
     capturedStats = stats;
-  },
-  'onBatchStart': (total) => {
-    console.log(`[batch] start — ${total} items`);
-  },
-  'onConcurrencySaturated': () => {
+  }
+
+  protected override onConcurrencySaturated(): void {
     console.log('[batch] concurrency saturated — all slots in use');
     capturedSaturations++;
-  },
-  'onItemError': (index, error) => {
+  }
+
+  protected override onItemError(index: number, error: unknown): void {
     const msg = error instanceof Error ? error.message : String(error);
     console.log(`[batch] item[${index}] error — ${msg}`);
     capturedErrors.push({ 'index': index, 'message': msg });
-  },
-  'onItemSettled': (index) => {
+  }
+
+  protected override onItemSettled(index: number): void {
     console.log(`[batch] item[${index}] settled`);
     capturedSettled.push(index);
-  },
-  'onItemStart': (index) => {
+  }
+
+  protected override onItemStart(index: number): void {
     console.log(`[batch] item[${index}] start`);
     capturedItemStarts.push(index);
-  },
-  'onItemSuccess': (index, result) => {
+  }
+
+  protected override onItemSuccess(index: number, result: string): void {
     console.log(`[batch] item[${index}] success → ${result}`);
     capturedSuccesses.push({ 'index': index, 'value': result });
   }
-};
+}
 
 const allSettled: PromiseSettledResult<string>[] = [];
 
-for await (const batchResults of batchConcurrent.processSettled(
+for await (const batchResults of new ObservedBatch(2).processSettled(
   tasks,
   (task) => {
     if (task.id === 3) {
       return Promise.reject(new Error(`task ${task.id} (${task.label}) failed`));
     }
     return Promise.resolve(`processed-${task.label}`);
-  },
-  { 'hooks': hooks, 'maxConcurrent': 2 }
+  }
 )) {
   allSettled.push(...batchResults);
 }

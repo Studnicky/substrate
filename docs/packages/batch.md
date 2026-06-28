@@ -17,19 +17,19 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-`batchConcurrent.process` is an async generator that yields results batch-by-batch, enabling incremental processing and backpressure handling. Pass any async operation and a concurrency limit:
+`Batch.create(maxConcurrent)` returns a batch processor. Its `process` method is an async generator that yields results batch-by-batch, enabling incremental processing and backpressure handling. Pass any async operation:
 
 <<< ../../packages/batch/examples/basic-processing.ts#usage
 
 ## Partial-failure support
 
-`batchConcurrent.processSettled` uses `Promise.allSettled` internally so a single rejection does not abort the batch or subsequent batches. Each yield produces a `PromiseSettledResult[]` covering both fulfilled values and rejection reasons:
+`processSettled` uses `Promise.allSettled` internally so a single rejection does not abort the batch or subsequent batches. Each yield produces a `PromiseSettledResult[]` covering both fulfilled values and rejection reasons:
 
 <<< ../../packages/batch/examples/settled-processing.ts#usage
 
 ## Observability hooks
 
-Pass a `hooks` object inside the options argument to receive callbacks at every observable stage of a run. All fields are optional; omitting `hooks` entirely is fully non-breaking.
+Subclass `Batch` and override its protected lifecycle hooks to observe each stage of a run. Every hook is a no-op by default, so an un-subclassed `Batch` does no observability:
 
 | Hook | When it fires | Args |
 |------|--------------|------|
@@ -43,19 +43,19 @@ Pass a `hooks` object inside the options argument to receive callbacks at every 
 
 <<< ../../packages/batch/examples/observedBatch.ts#usage
 
-`batch` never calls any logger or metrics library. The `hooks` option is the only observability seam — all callbacks are optional.
+`batch` never calls any logger or metrics library. Overriding the protected lifecycle hooks is the only observability seam.
 
 ## Subpath exports
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/batch` | `batchConcurrent` |
-| `@studnicky/batch/batch` | `batchConcurrent` (direct subpath) |
+| `@studnicky/batch` | `Batch` |
+| `@studnicky/batch/batch` | `Batch` (direct subpath) |
 | `@studnicky/batch/constants` | Default batch configuration constants |
 
 ## Try it
 
-`batchConcurrent` is a free-function primitive, not a class — its observability hooks are callback fields on the options object, not subclass overrides.
+`Batch` is a subclass-first primitive: configure concurrency through `Batch.create(maxConcurrent)` and add observability by overriding its protected lifecycle hooks.
 
 ### Usage
 
@@ -65,8 +65,8 @@ Run a batch of items with concurrency 2 and watch results arrive batch-by-batch.
 
 ### Hooks
 
-Every callback field fires in order — `onBatchStart`, then per-item `onItemStart`/`onItemSuccess` (or `onItemError`)/`onItemSettled`, then `onBatchComplete`. Item 3 rejects intentionally so `onItemError` is visible.
+Each overridden hook fires in order — `onBatchStart`, then per-item `onItemStart`/`onItemSuccess` (or `onItemError`)/`onItemSettled`, then `onBatchComplete`. Item 3 rejects intentionally so `onItemError` is visible.
 
-<RunnableExample src="packages/batch/examples/observedBatch" title="Batch hooks callbacks" />
+<RunnableExample src="packages/batch/examples/observedBatch" title="Batch lifecycle hooks" />
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/batch)
