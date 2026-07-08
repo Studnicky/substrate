@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/no-export-alias'
-description: 'Disallows aliased exports and re-exports outside index files.'
+description: 'Disallows aliased exports and any non-index re-export path.'
 ---
 
 # @studnicky/no-export-alias
 
-Disallows renaming symbols at the export site (`export { foo as bar }`) and disallows re-export statements outside index files. Re-exports that forward the same name unchanged are only permitted in index files (`index.ts`, `index.mts`, etc.). The rule also forbids `export *` outside index files.
+Disallows renaming symbols at the export site (`export { foo as bar }`) and disallows any non-index re-export path. Outside index files (`index.ts`, `index.mts`, etc.), the rule forbids direct re-exports (`export { Foo } from './foo.js'`), star re-exports (`export * from './foo.js'`), and forwarding an imported binding (`import { Foo } from './foo.js'; export { Foo };`). The same restriction applies to type-only imports and exports.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -27,6 +27,13 @@ export { MyClass } from './myClass.js';
 ```ts
 // ✗ userService.ts — star re-export outside an index file
 export * from './helpers.js';
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// ✗ userService.ts — import then export still re-exports
+import { MyClass } from './myClass.js';
+export { MyClass };
 ```
 
 ## ✓ Correct

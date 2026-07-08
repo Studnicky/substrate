@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/context",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Per-request async context isolation using AsyncLocalStorage",
   "type": "module",
   "sideEffects": false,

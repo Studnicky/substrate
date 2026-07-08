@@ -6,7 +6,7 @@ import {
   it
 } from 'node:test';
 
-import { LogLevel } from '../../src/constants/LogLevel.js';
+import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { Logger } from '../../src/modules/Logger.js';
 import { MemoryTransport } from '../../src/transports/MemoryTransport.js';
 
@@ -68,7 +68,7 @@ void describe('LogMetadataType', () => {
     void it('should merge metadata in nested children', () => {
       const memory = MemoryTransport.create();
       const logger = Logger.create({
-        'level': LogLevel.TRACE,
+        'level': LOG_LEVEL.TRACE,
         'transports': [memory]
       });
 
@@ -87,7 +87,7 @@ void describe('LogMetadataType', () => {
     void it('should support complex metadata structures', () => {
       const memory = MemoryTransport.create();
       const logger = Logger.create({
-        'level': LogLevel.TRACE,
+        'level': LOG_LEVEL.TRACE,
         'transports': [memory]
       });
       const metadata: LogMetadataType = {

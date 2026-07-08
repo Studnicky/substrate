@@ -61,9 +61,9 @@ import { v8Plugin } from '@studnicky/eslint-config/v8';
 | Rule | Purpose |
 |------|---------|
 | `@studnicky/no-bind-apply-call` | Disallows `.bind()`, `.apply()`, and `.call()` on functions |
-| `@studnicky/no-suppression-comments` | Disallows eslint-disable and @ts-ignore suppression comments |
+| `@studnicky/no-suppression-comments` | Disallows lint, type, and coverage suppression comments |
 | `@studnicky/no-trivial-shim` | Flags thin wrapper functions that add no behavior |
-| `@studnicky/single-export` | Enforces one named export per file |
+| `@studnicky/single-export` | Enforces one named export per regular file, with restricted-topology exemptions and SCREAMING_SNAKE_CASE constant modules |
 
 **`@studnicky/v8` namespace** (16 rules via `v8Plugin` from `@studnicky/eslint-config/v8`):
 

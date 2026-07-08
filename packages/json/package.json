@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/json",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "JSON/object value-tools: deep merge, clone, equal, freeze, path access, sort, patch, hash",
   "type": "module",
   "sideEffects": false,

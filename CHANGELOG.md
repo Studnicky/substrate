@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-07-08
+
+### Changed
+
+- `@studnicky/eslint-config` tightens the structural export rules. `@studnicky/no-export-alias` now forbids any non-index re-export path, including direct re-exports, star re-exports, and import-then-export forwarding for both value and type bindings. `@studnicky/single-export` now recognizes restricted topology both as directories and fractal filename suffixes, requires constant modules to export only `SCREAMING_SNAKE_CASE` symbols, and narrows enum exemptions to enum-and-constant-only files. `@studnicky/no-suppression-comments` now also rejects coverage suppression markers including `c8 ignore`, `c8-ignore`, and `istanbul ignore entirely`.
+- **Breaking:** `@studnicky/fetch` renames its exported constant objects to `DEFAULT_DISPATCHER_CONFIG`, `POOL_HEALTH`, and `VALIDATION_LIMITS`.
+- **Breaking:** `@studnicky/logger` renames its exported log-level constants to `LOG_LEVEL` and `LOG_LEVEL_MAP`.
+
 ## [4.0.0] - 2026-06-28
 
 ### Changed

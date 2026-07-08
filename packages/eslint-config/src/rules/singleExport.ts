@@ -9,6 +9,16 @@ const INDEX_FILES = new Set([
   'index.tsx'
 ]);
 
+const RESTRICTED_TOPOLOGY_NAMES = [
+  'constants',
+  'entities',
+  'errors',
+  'interfaces',
+  'types'
+] as const;
+
+type RestrictedTopologyName = (typeof RESTRICTED_TOPOLOGY_NAMES)[number];
+
 const WORD_REGEX = /[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+/gv;
 
 class CaseConverter {
@@ -328,20 +338,23 @@ class ExportNames {
   }
 }
 
-const isTypeKind = (kind: ExportKind): boolean => {
-  return kind === 'type' || kind === 'interface' || kind === 'type-reexport';
-};
+class RestrictedTopology {
+  public static get(fileName: string): RestrictedTopologyName | undefined {
+    const normalized = fileName.split(path.sep).join('/');
+    const base = CaseConverter.getFileBase(fileName);
 
-const isConstValueKind = (kind: ExportKind): boolean => {
-  return kind === 'const-value';
-};
+    for (const name of RESTRICTED_TOPOLOGY_NAMES) {
+      if (normalized.includes(`/${name}/`) || base === name || base.endsWith(`.${name}`)) {
+        return name;
+      }
+    }
 
-const isEnumKind = (kind: ExportKind): boolean => {
-  return kind === 'enum';
-};
+    return undefined;
+  }
+}
 
-const isErrorClassKind = (kind: ExportKind): boolean => {
-  return kind === 'error-class';
+const isEnumOrConstValueKind = (kind: ExportKind): boolean => {
+  return kind === 'const-value' || kind === 'enum';
 };
 
 export const singleExport: Rule.RuleModule = {
@@ -353,6 +366,8 @@ export const singleExport: Rule.RuleModule = {
     }
 
     const baseName = path.basename(fileName);
+    const restrictedTopology = RestrictedTopology.get(fileName);
+    const exemptPath = restrictedTopology !== undefined;
 
     if (INDEX_FILES.has(baseName)) {
       // Index files are exempt: multiple exports and export * are allowed.
@@ -421,23 +436,35 @@ export const singleExport: Rule.RuleModule = {
         return;
       }
 
-      // Content-based exemption: check if ALL exports are of the same exempt category.
-      if (exportKinds.length > 0) {
-        if (exportKinds.every(isTypeKind)) {
-          return;
-        }
+      if (restrictedTopology === 'constants') {
+        const invalidConstantNames = unique.filter((name) => {
+          return !/^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/u.test(name);
+        });
 
-        if (exportKinds.every(isConstValueKind)) {
-          return;
-        }
+        if (invalidConstantNames.length > 0) {
+          const reportNode = firstExportNode ?? node;
 
-        if (exportKinds.every(isEnumKind)) {
-          return;
-        }
+          context.report({
+            'data': {
+              'exports': invalidConstantNames.toSorted((left, right) => {
+                const result = left.localeCompare(right);
+                return result;
+              }).join(', ')
+            },
+            'messageId': 'constantsCase',
+            'node': reportNode
+          });
 
-        if (exportKinds.every(isErrorClassKind)) {
           return;
         }
+      }
+
+      if (exemptPath) {
+        return;
+      }
+
+      if (exportKinds.includes('enum') && exportKinds.every(isEnumOrConstValueKind)) {
+        return;
       }
 
       if (unique.length > 1) {
@@ -488,6 +515,8 @@ export const singleExport: Rule.RuleModule = {
       'recommended': false
     },
     'messages': {
+      'constantsCase':
+        'Constant modules must export SCREAMING_SNAKE_CASE symbols only (found: {{exports}}).',
       'defaultExport': 'Default exports are forbidden.',
       'exportAll':
         'Export all re-exports are forbidden in {{file}}; export a single symbol instead.',

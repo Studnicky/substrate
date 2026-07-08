@@ -4,7 +4,7 @@ import {
   it
 } from 'node:test';
 
-import { LogLevel } from '../../src/constants/LogLevel.js';
+import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { Logger } from '../../src/modules/Logger.js';
 import { NoOpTransport } from '../../src/transports/NoOpTransport.js';
 
@@ -22,7 +22,7 @@ void describe('NoOpTransport', () => {
   void describe('write', () => {
     void it('accepts records without throwing', () => {
       const transport = NoOpTransport.create();
-      const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
+      const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [transport] });
 
       assert.doesNotThrow(() => {
         logger.trace(TestFactory.body('trace message'));
@@ -41,7 +41,7 @@ void describe('NoOpTransport', () => {
       // Verify nothing leaked into an observing transport
       const secondTransport = { write: (r: unknown) => { output.push(r); } };
       const logger = Logger.create({
-        'level': LogLevel.TRACE,
+        'level': LOG_LEVEL.TRACE,
         'transports': [sideChannel, secondTransport]
       });
 

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/file-lock",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Atomic rename-based single-writer file lock for Node.js",
   "type": "module",
   "sideEffects": false,

@@ -13,13 +13,13 @@ import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherSt
 import type { UndiciDispatcherInterface } from '../interfaces/UndiciDispatcherInterface.js';
 
 import { validateDispatcher } from '../config/schemas/validateDispatcher.js';
-import { DefaultDispatcherConfig } from '../constants/DefaultDispatcherConfig.js';
+import { DEFAULT_DISPATCHER_CONFIG } from '../constants/DEFAULT_DISPATCHER_CONFIG.js';
 import {
   POOL_OVERLOAD_MULTIPLIER,
   POOL_OVERLOAD_THRESHOLD,
   POOL_PRESSURE_MULTIPLIER,
   POOL_PRESSURE_THRESHOLD
-} from '../constants/PoolHealth.js';
+} from '../constants/POOL_HEALTH.js';
 import { ConfigurationError } from '../errors/index.js';
 import { Delay } from './Delay.js';
 import { UndiciDispatcherBuilder } from './UndiciDispatcherBuilder.js';
@@ -333,28 +333,28 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
 
   private static mergeWithDefaults(config: DispatcherConfigType): MergedConfigType {
     const merged: MergedConfigType = {
-      'allowH2': config.allowH2 ?? DefaultDispatcherConfig.allowH2,
-      'autoSelectFamily': config.autoSelectFamily ?? DefaultDispatcherConfig.autoSelectFamily,
+      'allowH2': config.allowH2 ?? DEFAULT_DISPATCHER_CONFIG.allowH2,
+      'autoSelectFamily': config.autoSelectFamily ?? DEFAULT_DISPATCHER_CONFIG.autoSelectFamily,
       'autoSelectFamilyAttemptTimeout':
-        config.autoSelectFamilyAttemptTimeout ?? DefaultDispatcherConfig.autoSelectFamilyAttemptTimeout,
-      'bodyTimeout': config.bodyTimeout ?? DefaultDispatcherConfig.bodyTimeout,
+        config.autoSelectFamilyAttemptTimeout ?? DEFAULT_DISPATCHER_CONFIG.autoSelectFamilyAttemptTimeout,
+      'bodyTimeout': config.bodyTimeout ?? DEFAULT_DISPATCHER_CONFIG.bodyTimeout,
       'clientTtl': config.clientTtl,
-      'connections': config.connections === undefined ? DefaultDispatcherConfig.connections : config.connections,
-      'connectTimeout': config.connectTimeout ?? DefaultDispatcherConfig.connectTimeout,
+      'connections': config.connections === undefined ? DEFAULT_DISPATCHER_CONFIG.connections : config.connections,
+      'connectTimeout': config.connectTimeout ?? DEFAULT_DISPATCHER_CONFIG.connectTimeout,
       'enabled': config.enabled,
-      'headersTimeout': config.headersTimeout ?? DefaultDispatcherConfig.headersTimeout,
-      'keepAliveMaxTimeout': config.keepAliveMaxTimeout ?? DefaultDispatcherConfig.keepAliveMaxTimeout,
-      'keepAliveTimeout': config.keepAliveTimeout ?? DefaultDispatcherConfig.keepAliveTimeout,
+      'headersTimeout': config.headersTimeout ?? DEFAULT_DISPATCHER_CONFIG.headersTimeout,
+      'keepAliveMaxTimeout': config.keepAliveMaxTimeout ?? DEFAULT_DISPATCHER_CONFIG.keepAliveMaxTimeout,
+      'keepAliveTimeout': config.keepAliveTimeout ?? DEFAULT_DISPATCHER_CONFIG.keepAliveTimeout,
       'keepAliveTimeoutThreshold':
-        config.keepAliveTimeoutThreshold ?? DefaultDispatcherConfig.keepAliveTimeoutThreshold,
+        config.keepAliveTimeoutThreshold ?? DEFAULT_DISPATCHER_CONFIG.keepAliveTimeoutThreshold,
       'localAddress': config.localAddress,
-      'maxConcurrentStreams': config.maxConcurrentStreams ?? DefaultDispatcherConfig.maxConcurrentStreams,
-      'maxHeaderSize': config.maxHeaderSize ?? DefaultDispatcherConfig.maxHeaderSize,
+      'maxConcurrentStreams': config.maxConcurrentStreams ?? DEFAULT_DISPATCHER_CONFIG.maxConcurrentStreams,
+      'maxHeaderSize': config.maxHeaderSize ?? DEFAULT_DISPATCHER_CONFIG.maxHeaderSize,
       'maxOrigins': config.maxOrigins,
       'maxRequestsPerClient': config.maxRequestsPerClient,
-      'maxResponseSize': config.maxResponseSize ?? DefaultDispatcherConfig.maxResponseSize,
-      'pipelining': config.pipelining ?? DefaultDispatcherConfig.pipelining,
-      'strictContentLength': config.strictContentLength ?? DefaultDispatcherConfig.strictContentLength
+      'maxResponseSize': config.maxResponseSize ?? DEFAULT_DISPATCHER_CONFIG.maxResponseSize,
+      'pipelining': config.pipelining ?? DEFAULT_DISPATCHER_CONFIG.pipelining,
+      'strictContentLength': config.strictContentLength ?? DEFAULT_DISPATCHER_CONFIG.strictContentLength
     };
     return merged;
   }

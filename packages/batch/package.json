@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/batch",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Batch concurrent execution for processing items in controlled batches",
   "type": "module",
   "sideEffects": false,
