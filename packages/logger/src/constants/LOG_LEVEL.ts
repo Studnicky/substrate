@@ -8,7 +8,7 @@
  * - `ERROR` (4) - Error messages for error events
  * - `SILENT` (5) - No logging
  */
-export const LogLevel = {
+export const LOG_LEVEL = {
   /** Verbose debugging information */
   'DEBUG': 1,
   /** Error messages for error events */
