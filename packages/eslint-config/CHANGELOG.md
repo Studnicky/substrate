@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-07-08
+
+### Changed
+
+- **Breaking:** `@studnicky/no-export-alias` now forbids every non-index re-export path. Outside `index.*` files, the rule rejects `export { Foo } from './foo.js'`, `export * from './foo.js'`, and forwarding an imported binding such as `import { Foo } from './foo.js'; export { Foo };`. The same restriction now applies to type-only imports and exports.
+- **Breaking:** `@studnicky/single-export` now recognizes restricted topology both as directories (`constants/`, `entities/`, `errors/`, `interfaces/`, `types/`) and as fractal filename suffixes such as `client.constants.ts` and `request.types.ts`. Constant modules within that topology must export `SCREAMING_SNAKE_CASE` symbols only, and enum exemptions now apply only to files whose exports are limited to enums and const values.
+- `@studnicky/no-suppression-comments` now rejects coverage suppression markers including `c8 ignore`, `c8-ignore`, and `istanbul ignore entirely`, in addition to the existing lint and TypeScript suppression comments.
+
 ## [2.0.0] - 2026-06-25
 
 ### Removed (Breaking)

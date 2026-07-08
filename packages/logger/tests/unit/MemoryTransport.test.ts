@@ -4,7 +4,7 @@ import {
   it
 } from 'node:test';
 
-import { LogLevel } from '../../src/constants/LogLevel.js';
+import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../../src/errors/ConfigurationError.js';
 import { Logger } from '../../src/modules/Logger.js';
 import { MemoryTransport } from '../../src/transports/MemoryTransport.js';
@@ -42,7 +42,7 @@ void describe('MemoryTransport', () => {
 
     void it('captures records written via Logger', () => {
       const transport = MemoryTransport.create();
-      const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
+      const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [transport] });
 
       logger.info(TestFactory.body('hello'));
 
@@ -51,7 +51,7 @@ void describe('MemoryTransport', () => {
 
     void it('captures multiple records in order', () => {
       const transport = MemoryTransport.create();
-      const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
+      const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [transport] });
 
       logger.info(TestFactory.body('first'));
       logger.warn(TestFactory.body('second'));
@@ -67,7 +67,7 @@ void describe('MemoryTransport', () => {
 
     void it('returns readonly array (same reference reflects new writes)', () => {
       const transport = MemoryTransport.create();
-      const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
+      const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [transport] });
       const snapshot = transport.records();
 
       logger.info(TestFactory.body('msg'));
@@ -79,18 +79,18 @@ void describe('MemoryTransport', () => {
 
   void describe('level filtering', () => {
     const scenarios: Array<{ description: string; level: number; expectedCount: number }> = [
-      { description: 'TRACE floor captures all five', level: LogLevel.TRACE, expectedCount: 5 },
-      { description: 'DEBUG floor captures four', level: LogLevel.DEBUG, expectedCount: 4 },
-      { description: 'INFO floor captures three', level: LogLevel.INFO, expectedCount: 3 },
-      { description: 'WARN floor captures two', level: LogLevel.WARN, expectedCount: 2 },
-      { description: 'ERROR floor captures one', level: LogLevel.ERROR, expectedCount: 1 },
-      { description: 'SILENT floor captures none', level: LogLevel.SILENT, expectedCount: 0 }
+      { description: 'TRACE floor captures all five', level: LOG_LEVEL.TRACE, expectedCount: 5 },
+      { description: 'DEBUG floor captures four', level: LOG_LEVEL.DEBUG, expectedCount: 4 },
+      { description: 'INFO floor captures three', level: LOG_LEVEL.INFO, expectedCount: 3 },
+      { description: 'WARN floor captures two', level: LOG_LEVEL.WARN, expectedCount: 2 },
+      { description: 'ERROR floor captures one', level: LOG_LEVEL.ERROR, expectedCount: 1 },
+      { description: 'SILENT floor captures none', level: LOG_LEVEL.SILENT, expectedCount: 0 }
     ];
 
     for (const { description, level, expectedCount } of scenarios) {
       void it(description, () => {
         const transport = MemoryTransport.create({ level });
-        const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
+        const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [transport] });
 
         logger.trace(TestFactory.body('trace'));
         logger.debug(TestFactory.body('debug'));
@@ -106,7 +106,7 @@ void describe('MemoryTransport', () => {
   void describe('clear', () => {
     void it('empties the buffer', () => {
       const transport = MemoryTransport.create();
-      const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
+      const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [transport] });
 
       logger.info(TestFactory.body('msg'));
       transport.clear();
@@ -116,7 +116,7 @@ void describe('MemoryTransport', () => {
 
     void it('allows capturing new records after clear', () => {
       const transport = MemoryTransport.create();
-      const logger = Logger.create({ 'level': LogLevel.TRACE, 'transports': [transport] });
+      const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [transport] });
 
       logger.info(TestFactory.body('before'));
       transport.clear();

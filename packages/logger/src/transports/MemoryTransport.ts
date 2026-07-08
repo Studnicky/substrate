@@ -2,7 +2,7 @@ import type { LogRecordType } from '../types/LogRecordType.js';
 import type { MemoryTransportOptionsType } from './MemoryTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
-import { LogLevel } from '../constants/LogLevel.js';
+import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { parseLogLevel } from '../modules/parseLogLevel.js';
 import { MemoryTransportBuilder } from './MemoryTransportBuilder.js';
@@ -52,7 +52,7 @@ export class MemoryTransport implements TransportInterface {
     }
     this.#minLevel = options.level !== undefined
       ? parseLogLevel(options.level)
-      : LogLevel.TRACE;
+      : LOG_LEVEL.TRACE;
   }
 
   /**

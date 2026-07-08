@@ -7,7 +7,7 @@ import {
   describe, it
 } from 'node:test';
 
-import { DefaultDispatcherConfig } from '../../src/constants/DefaultDispatcherConfig.js';
+import { DEFAULT_DISPATCHER_CONFIG } from '../../src/constants/DEFAULT_DISPATCHER_CONFIG.js';
 import { FetchClient } from '../../src/modules/FetchClient.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
 
@@ -56,36 +56,36 @@ void describe('pool configuration validation and merging', () => {
 
   void describe('default values', () => {
     void it('should have documented timeout defaults', () => {
-      assert.strictEqual(DefaultDispatcherConfig.connectTimeout, 10_000, 'connectTimeout should be 10 seconds');
-      assert.strictEqual(DefaultDispatcherConfig.headersTimeout, 30_000, 'headersTimeout should be 30 seconds');
-      assert.strictEqual(DefaultDispatcherConfig.bodyTimeout, 30_000, 'bodyTimeout should be 30 seconds');
-      assert.strictEqual(DefaultDispatcherConfig.keepAliveTimeout, 4000, 'keepAliveTimeout should be 4 seconds');
-      assert.strictEqual(DefaultDispatcherConfig.keepAliveMaxTimeout, 600_000, 'keepAliveMaxTimeout should be 10 minutes');
-      assert.strictEqual(DefaultDispatcherConfig.keepAliveTimeoutThreshold, 1000, 'keepAliveTimeoutThreshold should be 1 second');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.connectTimeout, 10_000, 'connectTimeout should be 10 seconds');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.headersTimeout, 30_000, 'headersTimeout should be 30 seconds');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.bodyTimeout, 30_000, 'bodyTimeout should be 30 seconds');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.keepAliveTimeout, 4000, 'keepAliveTimeout should be 4 seconds');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.keepAliveMaxTimeout, 600_000, 'keepAliveMaxTimeout should be 10 minutes');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.keepAliveTimeoutThreshold, 1000, 'keepAliveTimeoutThreshold should be 1 second');
     });
 
     void it('should have documented connection defaults', () => {
-      assert.strictEqual(DefaultDispatcherConfig.connections, 10, 'connections should be 10');
-      assert.strictEqual(DefaultDispatcherConfig.pipelining, 1, 'pipelining should be 1');
-      assert.strictEqual(DefaultDispatcherConfig.enabled, false, 'enabled should be false by default');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.connections, 10, 'connections should be 10');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.pipelining, 1, 'pipelining should be 1');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.enabled, false, 'enabled should be false by default');
     });
 
     void it('should have documented size limit defaults', () => {
-      assert.strictEqual(DefaultDispatcherConfig.maxHeaderSize, 16_384, 'maxHeaderSize should be 16 KB');
-      assert.strictEqual(DefaultDispatcherConfig.maxResponseSize, -1, 'maxResponseSize should be unlimited');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.maxHeaderSize, 16_384, 'maxHeaderSize should be 16 KB');
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.maxResponseSize, -1, 'maxResponseSize should be unlimited');
     });
 
     void it('should have HTTP/2 disabled by default', () => {
-      assert.strictEqual(DefaultDispatcherConfig.allowH2, false);
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.allowH2, false);
     });
 
     void it('should have IPv6 autodetection disabled by default', () => {
-      assert.strictEqual(DefaultDispatcherConfig.autoSelectFamily, false);
-      assert.strictEqual(DefaultDispatcherConfig.autoSelectFamilyAttemptTimeout, 250);
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.autoSelectFamily, false);
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.autoSelectFamilyAttemptTimeout, 250);
     });
 
     void it('should have strict content length enabled by default', () => {
-      assert.strictEqual(DefaultDispatcherConfig.strictContentLength, true);
+      assert.strictEqual(DEFAULT_DISPATCHER_CONFIG.strictContentLength, true);
     });
   });
 

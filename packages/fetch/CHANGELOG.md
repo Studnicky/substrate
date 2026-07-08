@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-07-08
+
+### Changed
+
+- **Breaking:** exported constant objects now use `SCREAMING_SNAKE_CASE`. `DefaultDispatcherConfig`, `PoolHealth`, and `ValidationLimits` are renamed to `DEFAULT_DISPATCHER_CONFIG`, `POOL_HEALTH`, and `VALIDATION_LIMITS`.
+
 ### Changed
 
 - `FetchClient`, `InterceptorManager`, `UndiciDispatcher`, and `RequestBuilder` constructors are now non-public (`protected`). Use `FetchClient.create(config)`, `InterceptorManager.create()`, `UndiciDispatcher.create(config)`, and `RequestBuilder.create(client, path)` to construct instances.

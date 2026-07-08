@@ -13,10 +13,10 @@
  * - @studnicky/fetch/interfaces - All interface types
  * - @studnicky/fetch/types - Type aliases (QueryParamsType, QueryValueType)
  * - @studnicky/fetch/errors - Error classes
- * - @studnicky/fetch/constants - Constants (DefaultDispatcherConfig)
+ * - @studnicky/fetch/constants - Constants (DEFAULT_DISPATCHER_CONFIG)
  */
 
-export { DefaultDispatcherConfig } from './constants/DefaultDispatcherConfig.js';
+export { DEFAULT_DISPATCHER_CONFIG } from './constants/DEFAULT_DISPATCHER_CONFIG.js';
 export {
   AbortError,
   BodyTimeoutError,

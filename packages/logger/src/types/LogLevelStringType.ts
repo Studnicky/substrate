@@ -1,7 +1,7 @@
 /**
  * String representation of log levels
  *
- * Valid values correspond to the LogLevel enum:
+ * Valid values correspond to the LOG_LEVEL enum:
  * - `'trace'` - Most verbose, detailed tracing information
  * - `'debug'` - Verbose debugging information
  * - `'info'` - General informational messages
