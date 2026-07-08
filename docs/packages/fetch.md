@@ -49,7 +49,7 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 | Subpath | Contents |
 |---------|----------|
 | `@studnicky/fetch` | `FetchClient`, `HttpMethods`, `RequestBuilder`, `UndiciDispatcher`, `UrlUtils`, all error classes |
-| `@studnicky/fetch/constants` | `DefaultDispatcherConfig` |
+| `@studnicky/fetch/constants` | `DEFAULT_DISPATCHER_CONFIG` |
 | `@studnicky/fetch/errors` | `HTTPError`, `TimeoutError`, `NetworkError`, `AbortError`, and more |
 | `@studnicky/fetch/interfaces` | All interface types |
 | `@studnicky/fetch/modules` | Module re-exports |

@@ -7,94 +7,94 @@ import {
 } from 'node:test';
 
 
-import { LogLevel } from '../../src/constants/LogLevel.js';
+import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { parseLogLevel } from '../../src/modules/parseLogLevel.js';
 
 void describe('parseLogLevel utility', () => {
-  void describe('numeric LogLevel input', () => {
-    void it('should return TRACE for LogLevel.TRACE', () => {
-      const result = parseLogLevel(LogLevel.TRACE);
+  void describe('numeric LOG_LEVEL input', () => {
+    void it('should return TRACE for LOG_LEVEL.TRACE', () => {
+      const result = parseLogLevel(LOG_LEVEL.TRACE);
 
-      assert.strictEqual(result, LogLevel.TRACE);
+      assert.strictEqual(result, LOG_LEVEL.TRACE);
       assert.strictEqual(result, 0);
     });
 
-    void it('should return DEBUG for LogLevel.DEBUG', () => {
-      const result = parseLogLevel(LogLevel.DEBUG);
+    void it('should return DEBUG for LOG_LEVEL.DEBUG', () => {
+      const result = parseLogLevel(LOG_LEVEL.DEBUG);
 
-      assert.strictEqual(result, LogLevel.DEBUG);
+      assert.strictEqual(result, LOG_LEVEL.DEBUG);
       assert.strictEqual(result, 1);
     });
 
-    void it('should return INFO for LogLevel.INFO', () => {
-      const result = parseLogLevel(LogLevel.INFO);
+    void it('should return INFO for LOG_LEVEL.INFO', () => {
+      const result = parseLogLevel(LOG_LEVEL.INFO);
 
-      assert.strictEqual(result, LogLevel.INFO);
+      assert.strictEqual(result, LOG_LEVEL.INFO);
       assert.strictEqual(result, 2);
     });
 
-    void it('should return WARN for LogLevel.WARN', () => {
-      const result = parseLogLevel(LogLevel.WARN);
+    void it('should return WARN for LOG_LEVEL.WARN', () => {
+      const result = parseLogLevel(LOG_LEVEL.WARN);
 
-      assert.strictEqual(result, LogLevel.WARN);
+      assert.strictEqual(result, LOG_LEVEL.WARN);
       assert.strictEqual(result, 3);
     });
 
-    void it('should return ERROR for LogLevel.ERROR', () => {
-      const result = parseLogLevel(LogLevel.ERROR);
+    void it('should return ERROR for LOG_LEVEL.ERROR', () => {
+      const result = parseLogLevel(LOG_LEVEL.ERROR);
 
-      assert.strictEqual(result, LogLevel.ERROR);
+      assert.strictEqual(result, LOG_LEVEL.ERROR);
       assert.strictEqual(result, 4);
     });
 
-    void it('should return SILENT for LogLevel.SILENT', () => {
-      const result = parseLogLevel(LogLevel.SILENT);
+    void it('should return SILENT for LOG_LEVEL.SILENT', () => {
+      const result = parseLogLevel(LOG_LEVEL.SILENT);
 
-      assert.strictEqual(result, LogLevel.SILENT);
+      assert.strictEqual(result, LOG_LEVEL.SILENT);
       assert.strictEqual(result, 5);
     });
   });
 
   void describe('string LogLevelString input', () => {
-    void it('should parse "trace" to LogLevel.TRACE', () => {
+    void it('should parse "trace" to LOG_LEVEL.TRACE', () => {
       const result = parseLogLevel('trace');
 
-      assert.strictEqual(result, LogLevel.TRACE);
+      assert.strictEqual(result, LOG_LEVEL.TRACE);
       assert.strictEqual(result, 0);
     });
 
-    void it('should parse "debug" to LogLevel.DEBUG', () => {
+    void it('should parse "debug" to LOG_LEVEL.DEBUG', () => {
       const result = parseLogLevel('debug');
 
-      assert.strictEqual(result, LogLevel.DEBUG);
+      assert.strictEqual(result, LOG_LEVEL.DEBUG);
       assert.strictEqual(result, 1);
     });
 
-    void it('should parse "info" to LogLevel.INFO', () => {
+    void it('should parse "info" to LOG_LEVEL.INFO', () => {
       const result = parseLogLevel('info');
 
-      assert.strictEqual(result, LogLevel.INFO);
+      assert.strictEqual(result, LOG_LEVEL.INFO);
       assert.strictEqual(result, 2);
     });
 
-    void it('should parse "warn" to LogLevel.WARN', () => {
+    void it('should parse "warn" to LOG_LEVEL.WARN', () => {
       const result = parseLogLevel('warn');
 
-      assert.strictEqual(result, LogLevel.WARN);
+      assert.strictEqual(result, LOG_LEVEL.WARN);
       assert.strictEqual(result, 3);
     });
 
-    void it('should parse "error" to LogLevel.ERROR', () => {
+    void it('should parse "error" to LOG_LEVEL.ERROR', () => {
       const result = parseLogLevel('error');
 
-      assert.strictEqual(result, LogLevel.ERROR);
+      assert.strictEqual(result, LOG_LEVEL.ERROR);
       assert.strictEqual(result, 4);
     });
 
-    void it('should parse "silent" to LogLevel.SILENT', () => {
+    void it('should parse "silent" to LOG_LEVEL.SILENT', () => {
       const result = parseLogLevel('silent');
 
-      assert.strictEqual(result, LogLevel.SILENT);
+      assert.strictEqual(result, LOG_LEVEL.SILENT);
       assert.strictEqual(result, 5);
     });
   });
@@ -103,31 +103,31 @@ void describe('parseLogLevel utility', () => {
     void it('should return INFO for empty string', () => {
       const result = parseLogLevel('' as 'info');
 
-      assert.strictEqual(result, LogLevel.INFO);
+      assert.strictEqual(result, LOG_LEVEL.INFO);
     });
 
     void it('should return INFO for invalid string', () => {
       const result = parseLogLevel('invalid' as 'info');
 
-      assert.strictEqual(result, LogLevel.INFO);
+      assert.strictEqual(result, LOG_LEVEL.INFO);
     });
 
     void it('should return INFO for uppercase string', () => {
       const result = parseLogLevel('DEBUG' as 'debug');
 
-      assert.strictEqual(result, LogLevel.INFO);
+      assert.strictEqual(result, LOG_LEVEL.INFO);
     });
 
     void it('should return INFO for mixed case string', () => {
       const result = parseLogLevel('Info' as 'info');
 
-      assert.strictEqual(result, LogLevel.INFO);
+      assert.strictEqual(result, LOG_LEVEL.INFO);
     });
 
     void it('should return INFO for string with spaces', () => {
       const result = parseLogLevel(' info ' as 'info');
 
-      assert.strictEqual(result, LogLevel.INFO);
+      assert.strictEqual(result, LOG_LEVEL.INFO);
     });
   });
 
@@ -135,41 +135,41 @@ void describe('parseLogLevel utility', () => {
     void it('should handle numeric 0 as TRACE', () => {
       const result = parseLogLevel(0);
 
-      assert.strictEqual(result, LogLevel.TRACE);
+      assert.strictEqual(result, LOG_LEVEL.TRACE);
     });
 
     void it('should handle numeric 1 as DEBUG', () => {
       const result = parseLogLevel(1);
 
-      assert.strictEqual(result, LogLevel.DEBUG);
+      assert.strictEqual(result, LOG_LEVEL.DEBUG);
     });
 
     void it('should handle numeric 2 as INFO', () => {
       const result = parseLogLevel(2);
 
-      assert.strictEqual(result, LogLevel.INFO);
+      assert.strictEqual(result, LOG_LEVEL.INFO);
     });
 
     void it('should handle numeric 3 as WARN', () => {
       const result = parseLogLevel(3);
 
-      assert.strictEqual(result, LogLevel.WARN);
+      assert.strictEqual(result, LOG_LEVEL.WARN);
     });
 
     void it('should handle numeric 4 as ERROR', () => {
       const result = parseLogLevel(4);
 
-      assert.strictEqual(result, LogLevel.ERROR);
+      assert.strictEqual(result, LOG_LEVEL.ERROR);
     });
 
     void it('should handle numeric 5 as SILENT', () => {
       const result = parseLogLevel(5);
 
-      assert.strictEqual(result, LogLevel.SILENT);
+      assert.strictEqual(result, LOG_LEVEL.SILENT);
     });
   });
 
-  void describe('consistency with LogLevel enum', () => {
+  void describe('consistency with LOG_LEVEL enum', () => {
     void it('should maintain correct ordering', () => {
       assert.ok(parseLogLevel('trace') < parseLogLevel('debug'));
       assert.ok(parseLogLevel('debug') < parseLogLevel('info'));
@@ -179,21 +179,21 @@ void describe('parseLogLevel utility', () => {
     });
 
     void it('should match enum values exactly', () => {
-      assert.strictEqual(parseLogLevel('trace'), LogLevel.TRACE);
-      assert.strictEqual(parseLogLevel('debug'), LogLevel.DEBUG);
-      assert.strictEqual(parseLogLevel('info'), LogLevel.INFO);
-      assert.strictEqual(parseLogLevel('warn'), LogLevel.WARN);
-      assert.strictEqual(parseLogLevel('error'), LogLevel.ERROR);
-      assert.strictEqual(parseLogLevel('silent'), LogLevel.SILENT);
+      assert.strictEqual(parseLogLevel('trace'), LOG_LEVEL.TRACE);
+      assert.strictEqual(parseLogLevel('debug'), LOG_LEVEL.DEBUG);
+      assert.strictEqual(parseLogLevel('info'), LOG_LEVEL.INFO);
+      assert.strictEqual(parseLogLevel('warn'), LOG_LEVEL.WARN);
+      assert.strictEqual(parseLogLevel('error'), LOG_LEVEL.ERROR);
+      assert.strictEqual(parseLogLevel('silent'), LOG_LEVEL.SILENT);
     });
 
     void it('should be idempotent for numeric values', () => {
-      const trace = parseLogLevel(LogLevel.TRACE);
+      const trace = parseLogLevel(LOG_LEVEL.TRACE);
       const traceTwice = parseLogLevel(trace);
 
       assert.strictEqual(trace, traceTwice);
 
-      const info = parseLogLevel(LogLevel.INFO);
+      const info = parseLogLevel(LOG_LEVEL.INFO);
       const infoTwice = parseLogLevel(info);
 
       assert.strictEqual(info, infoTwice);
@@ -233,7 +233,7 @@ void describe('parseLogLevel utility', () => {
       for (const testCase of testCases) {
         const result = parseLogLevel(testCase as 'info');
 
-        assert.strictEqual(result, LogLevel.INFO);
+        assert.strictEqual(result, LOG_LEVEL.INFO);
       }
     });
   });
@@ -247,9 +247,9 @@ void describe('parseLogLevel utility', () => {
         parseLogLevel('warn'),
         parseLogLevel('error'),
         parseLogLevel('silent'),
-        parseLogLevel(LogLevel.TRACE),
-        parseLogLevel(LogLevel.DEBUG),
-        parseLogLevel(LogLevel.INFO)
+        parseLogLevel(LOG_LEVEL.TRACE),
+        parseLogLevel(LOG_LEVEL.DEBUG),
+        parseLogLevel(LOG_LEVEL.INFO)
       ];
 
       for (const result of results) {
@@ -257,14 +257,14 @@ void describe('parseLogLevel utility', () => {
       }
     });
 
-    void it('should return valid LogLevel enum values for valid inputs', () => {
+    void it('should return valid LOG_LEVEL enum values for valid inputs', () => {
       const validLevels = new Set([
-        LogLevel.DEBUG,
-        LogLevel.ERROR,
-        LogLevel.INFO,
-        LogLevel.SILENT,
-        LogLevel.TRACE,
-        LogLevel.WARN
+        LOG_LEVEL.DEBUG,
+        LOG_LEVEL.ERROR,
+        LOG_LEVEL.INFO,
+        LOG_LEVEL.SILENT,
+        LOG_LEVEL.TRACE,
+        LOG_LEVEL.WARN
       ]);
 
       const parsedLevels = [

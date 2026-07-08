@@ -5,7 +5,7 @@ description: 'Disallows all lint and type suppression comments.'
 
 # @studnicky/no-suppression-comments
 
-Disallows all lint and type suppression comments: `eslint-disable`, `eslint-disable-line`, `eslint-disable-next-line`, `eslint-enable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `tslint:disable`, `tslint:disable-line`, and `tslint:disable-next-line`. The auto-fix removes the entire comment line when the line is otherwise whitespace-only.
+Disallows all lint, type, and coverage suppression comments: `eslint-disable`, `eslint-disable-line`, `eslint-disable-next-line`, `eslint-enable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `tslint:disable`, `tslint:disable-line`, `tslint:disable-next-line`, `c8 ignore`, `c8-ignore`, and `istanbul ignore entirely`. The auto-fix removes the entire comment line when the line is otherwise whitespace-only.
 
 **Fixable:** Yes (removes the comment line) · **Options:** No · **Suggested severity:** `error`
 
@@ -21,6 +21,12 @@ console.log(x);
 ```ts
 // @ts-ignore
 const y = badlyTyped as string;
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// c8 ignore next
+export function hardToReachBranch() { /* ... */ }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->

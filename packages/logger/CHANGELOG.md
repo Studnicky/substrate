@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-07-08
+
+### Changed
+
+- **Breaking:** exported log-level constants now use `SCREAMING_SNAKE_CASE`. `LogLevel` and `LogLevelMap` are renamed to `LOG_LEVEL` and `LOG_LEVEL_MAP`.
+
 ### Changed
 
 - Logger, ConsoleTransport, MemoryTransport, FunctionTransport, and NoOpTransport constructors are non-public (protected). All instances are created through `Class.create(options)` or `Class.builder().build()`, both of which validate configuration in the single protected constructor.

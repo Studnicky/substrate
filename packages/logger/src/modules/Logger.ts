@@ -6,7 +6,7 @@ import type { LogLevelType } from '../types/LogLevelType.js';
 import type { LogMetadataType } from '../types/LogMetadataType.js';
 import type { LogRecordType } from '../types/LogRecordType.js';
 
-import { LogLevel } from '../constants/LogLevel.js';
+import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { configValidation } from './configValidation.js';
 import { LoggerBuilder } from './LoggerBuilder.js';
 import { parseLogLevel } from './parseLogLevel.js';
@@ -64,7 +64,7 @@ export class Logger implements LoggerInterface {
 
     this.#level = options.level !== undefined
       ? parseLogLevel(options.level)
-      : LogLevel.INFO;
+      : LOG_LEVEL.INFO;
     this.#metadata = options.metadata ?? {};
     this.#transports = options.transports ?? [];
   }
@@ -92,7 +92,7 @@ export class Logger implements LoggerInterface {
    * @param data - Structured log data from LogBody.build()
    */
   debug(data: LogDataType): void {
-    this.emit(LogLevel.DEBUG, data);
+    this.emit(LOG_LEVEL.DEBUG, data);
   }
 
   /**
@@ -101,7 +101,7 @@ export class Logger implements LoggerInterface {
    * @param data - Structured log data from LogBody.build() or LogFault.build()
    */
   error(data: LogDataType): void {
-    this.emit(LogLevel.ERROR, data);
+    this.emit(LOG_LEVEL.ERROR, data);
   }
 
   /**
@@ -110,7 +110,7 @@ export class Logger implements LoggerInterface {
    * @param data - Structured log data from LogBody.build()
    */
   info(data: LogDataType): void {
-    this.emit(LogLevel.INFO, data);
+    this.emit(LOG_LEVEL.INFO, data);
   }
 
   /**
@@ -119,7 +119,7 @@ export class Logger implements LoggerInterface {
    * @param data - Structured log data from LogBody.build()
    */
   trace(data: LogDataType): void {
-    this.emit(LogLevel.TRACE, data);
+    this.emit(LOG_LEVEL.TRACE, data);
   }
 
   /**
@@ -128,7 +128,7 @@ export class Logger implements LoggerInterface {
    * @param data - Structured log data from LogBody.build() or LogFault.build()
    */
   warn(data: LogDataType): void {
-    this.emit(LogLevel.WARN, data);
+    this.emit(LOG_LEVEL.WARN, data);
   }
 
   private emit(level: LogLevelType, data: LogDataType): void {

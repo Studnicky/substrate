@@ -2,18 +2,18 @@
  * Constants exports
  */
 
-export { DefaultDispatcherConfig } from './DefaultDispatcherConfig.js';
+export { DEFAULT_DISPATCHER_CONFIG } from './DEFAULT_DISPATCHER_CONFIG.js';
 export {
+  POOL_HEALTH,
   POOL_OVERLOAD_MULTIPLIER,
   POOL_OVERLOAD_THRESHOLD,
   POOL_PRESSURE_MULTIPLIER,
-  POOL_PRESSURE_THRESHOLD,
-  PoolHealth
-} from './PoolHealth.js';
+  POOL_PRESSURE_THRESHOLD
+} from './POOL_HEALTH.js';
 export {
   HTTP_STATUS_NOT_FOUND,
   HTTP_STATUS_OK,
   MAX_DISPATCHER_CONNECTIONS,
   MAX_PIPELINING,
-  ValidationLimits
-} from './ValidationLimits.js';
+  VALIDATION_LIMITS
+} from './VALIDATION_LIMITS.js';

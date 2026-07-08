@@ -90,6 +90,24 @@ ruleTester.run('no-suppression-comments', noSuppressionComments, {
       code: `// eslint-enable no-console\nconst x = 1;`,
       errors: [{ messageId: 'suppression' }],
       output: `const x = 1;`
+    },
+    {
+      name: 'forbids c8 ignore and removes comment line',
+      code: `// c8 ignore next\nconst x = 1;`,
+      errors: [{ messageId: 'suppression' }],
+      output: `const x = 1;`
+    },
+    {
+      name: 'forbids c8-ignore and removes comment line',
+      code: `// c8-ignore next\nconst x = 1;`,
+      errors: [{ messageId: 'suppression' }],
+      output: `const x = 1;`
+    },
+    {
+      name: 'forbids istanbul ignore entirely and removes comment line',
+      code: `/* istanbul ignore entirely */\nconst x = 1;`,
+      errors: [{ messageId: 'suppression' }],
+      output: `const x = 1;`
     }
   ]
 });

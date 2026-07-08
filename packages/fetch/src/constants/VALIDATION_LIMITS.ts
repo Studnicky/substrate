@@ -25,7 +25,7 @@ export const HTTP_STATUS_NOT_FOUND = 404;
 /**
  * Validation limit configuration constants
  */
-export const ValidationLimits = {
+export const VALIDATION_LIMITS = {
   'HTTP_STATUS_NOT_FOUND': HTTP_STATUS_NOT_FOUND,
   'HTTP_STATUS_OK': HTTP_STATUS_OK,
   'MAX_DISPATCHER_CONNECTIONS': MAX_DISPATCHER_CONNECTIONS,
