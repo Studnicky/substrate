@@ -2,7 +2,7 @@ import type { LogRecordType } from '../types/LogRecordType.js';
 import type { ConsoleTransportOptionsType } from './ConsoleTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
-import { LogLevel } from '../constants/LogLevel.js';
+import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { parseLogLevel } from '../modules/parseLogLevel.js';
 import { safeStringify } from '../modules/safeStringify.js';
@@ -18,11 +18,11 @@ type ConsoleFn = (message: string, record: LogRecordType) => void;
  * All other modules route output through this transport.
  */
 const consoleDispatch: Record<number, ConsoleFn> = {};
-consoleDispatch[LogLevel.TRACE] = (msg, rec) => { console.trace(msg, rec); };
-consoleDispatch[LogLevel.DEBUG] = (msg, rec) => { console.debug(msg, rec); };
-consoleDispatch[LogLevel.INFO]  = (msg, rec) => { console.info(msg, rec); };
-consoleDispatch[LogLevel.WARN]  = (msg, rec) => { console.warn(msg, rec); };
-consoleDispatch[LogLevel.ERROR] = (msg, rec) => { console.error(msg, rec); };
+consoleDispatch[LOG_LEVEL.TRACE] = (msg, rec) => { console.trace(msg, rec); };
+consoleDispatch[LOG_LEVEL.DEBUG] = (msg, rec) => { console.debug(msg, rec); };
+consoleDispatch[LOG_LEVEL.INFO]  = (msg, rec) => { console.info(msg, rec); };
+consoleDispatch[LOG_LEVEL.WARN]  = (msg, rec) => { console.warn(msg, rec); };
+consoleDispatch[LOG_LEVEL.ERROR] = (msg, rec) => { console.error(msg, rec); };
 
 /**
  * Transport that writes records to the console using the level-appropriate method.
@@ -64,7 +64,7 @@ export class ConsoleTransport implements TransportInterface {
     }
     this.#minLevel = options.level !== undefined
       ? parseLogLevel(options.level)
-      : LogLevel.TRACE;
+      : LOG_LEVEL.TRACE;
   }
 
   /**

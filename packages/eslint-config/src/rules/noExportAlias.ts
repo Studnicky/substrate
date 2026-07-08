@@ -31,6 +31,21 @@ export const noExportAlias: Rule.RuleModule = {
     const filename = context.filename;
 
     const inIndex = isIndexFile(filename);
+    const importedBindings = new Set<string>();
+
+    const onImportDeclaration = (node: Rule.Node): void => {
+      const rawNode = node as unknown as {
+        'specifiers': { 'local': unknown }[];
+      };
+
+      for (const specifier of rawNode.specifiers) {
+        const localName = AstHelpers.getIdentifierName(specifier.local);
+
+        if (localName !== undefined) {
+          importedBindings.add(localName);
+        }
+      }
+    };
 
     const onExportSpecifier = (node: Rule.Node): void => {
       const rawNode = node as unknown as {
@@ -64,36 +79,39 @@ export const noExportAlias: Rule.RuleModule = {
     };
 
     const onExportNamedDeclaration = (node: Rule.Node): void => {
-      if (inIndex) {
-        return;
-      }
-
       const rawNode = node as unknown as {
         'source': unknown;
         'specifiers': { 'exported': { 'name': string }; 'local': { 'name': string }; }[];
       };
 
-      if (rawNode.source === null || rawNode.source === undefined) {
-        return;
-      }
+      if (!inIndex) {
+        if (rawNode.source !== null && rawNode.source !== undefined) {
+          const hasAliasedSpecifier = rawNode.specifiers.some((specifier) => {
+            return AstHelpers.getIdentifierName(specifier.local) !== AstHelpers.getIdentifierName(specifier.exported);
+          });
 
-      const allSameNames = rawNode.specifiers.every((specifier) => {
-        return AstHelpers.getIdentifierName(specifier.local) === AstHelpers.getIdentifierName(specifier.exported);
-      });
+          if (!hasAliasedSpecifier) {
+            context.report({
+              'messageId': 'reExportOutsideIndex',
+              'node': node
+            });
+          }
 
-      const hasAliasedSpecifier = rawNode.specifiers.some((specifier) => {
-        return AstHelpers.getIdentifierName(specifier.local) !== AstHelpers.getIdentifierName(specifier.exported);
-      });
+          return;
+        }
 
-      if (hasAliasedSpecifier) {
-        return;
-      }
+        const exportsImportedBinding = rawNode.specifiers.some((specifier) => {
+          const localName = AstHelpers.getIdentifierName(specifier.local);
 
-      if (allSameNames || rawNode.specifiers.length === 0) {
-        context.report({
-          'messageId': 'reExportOutsideIndex',
-          'node': node
+          return localName !== undefined && importedBindings.has(localName);
         });
+
+        if (exportsImportedBinding) {
+          context.report({
+            'messageId': 'exportImportedBindingOutsideIndex',
+            'node': node
+          });
+        }
       }
     };
 
@@ -111,16 +129,19 @@ export const noExportAlias: Rule.RuleModule = {
     return {
       'ExportAllDeclaration': onExportAllDeclaration,
       'ExportNamedDeclaration': onExportNamedDeclaration,
-      'ExportSpecifier': onExportSpecifier
+      'ExportSpecifier': onExportSpecifier,
+      'ImportDeclaration': onImportDeclaration
     };
   },
   'meta': {
     'docs': {
-      'description': 'Disallow aliased exports and re-exports outside index files.',
+      'description': 'Disallow aliased exports and any non-index re-export path.',
       'recommended': false
     },
     'messages': {
       'exportAlias': "Export alias '{{exported}}' hides the canonical name '{{local}}'. Export as '{{local}}' or rename the symbol at its source.",
+      'exportImportedBindingOutsideIndex':
+        'Exporting an imported binding is only permitted in index files. Import and use the symbol directly instead of forwarding it.',
       'reExportOutsideIndex': 'Re-exports from external modules are only permitted in index files. Move this re-export to the package index or import and use the symbol directly.',
       'starReExportOutsideIndex': "'export *' re-exports are only permitted in index files."
     },

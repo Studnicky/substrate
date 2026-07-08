@@ -28,7 +28,7 @@
  * }
  * ```
  */
-export const DefaultDispatcherConfig = {
+export const DEFAULT_DISPATCHER_CONFIG = {
   'allowH2': false,
   'autoSelectFamily': false,
   'autoSelectFamilyAttemptTimeout': 250,

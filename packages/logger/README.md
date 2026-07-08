@@ -89,7 +89,7 @@ logger.warn(body);  // reaches both
 
 // Assert captured records in tests
 const records = memory.records();
-records[0]?.level;    // LogLevel.WARN
+records[0]?.level;    // LOG_LEVEL.WARN
 records[0]?.metadata; // { service: 'api' }
 records[0]?.data;     // LogBodyDataType
 memory.clear();
