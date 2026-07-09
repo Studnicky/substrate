@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/paginator",
-  "version": "1.0.0",
+  "version": "5.1.0",
   "description": "Cursor/page-list state tracker for paginated data sources",
   "type": "module",
   "sideEffects": false,

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/retry",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Generic async retry utility with extensible error classification",
   "type": "module",
   "sideEffects": false,

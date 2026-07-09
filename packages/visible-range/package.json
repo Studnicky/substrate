@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/visible-range",
-  "version": "1.0.0",
+  "version": "5.1.0",
   "description": "Pure index/offset arithmetic for computing the visible item range of a virtualized list",
   "type": "module",
   "sideEffects": false,

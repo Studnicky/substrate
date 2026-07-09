@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/eslint-config",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Shared ESLint flat config for @studnicky packages",
   "type": "module",
   "sideEffects": false,
