@@ -45,4 +45,17 @@ describe('WorkerPool hooks', () => {
     assert.deepEqual(seenTypes, ['log', 'progress', 'error']);
     assert.deepEqual(seenErrors, ['kaboom']);
   });
+
+  it('a throwing onMessage hook does not prevent the worker result from resolving', async () => {
+    class ThrowingMessagePool extends WorkerPool<ItemType, string> {
+      protected override onMessage(): void {
+        throw new Error('hook boom');
+      }
+    }
+
+    const pool = ThrowingMessagePool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH });
+    const results = await pool.run([{ 'value': 'x' }]);
+
+    assert.deepEqual(results, ['x']);
+  });
 });

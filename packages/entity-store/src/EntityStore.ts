@@ -80,7 +80,7 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   public upsertOne(entity: TEntity): void {
     const id = this.#selectId(entity);
     this.#entities.set(id, entity);
-    this.onUpsert(id, entity);
+    this.#invokeHook(() => { this.onUpsert(id, entity); });
   }
 
   /** Upserts every entity in array order. An empty array is a no-op. */
@@ -95,7 +95,7 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
     const existed = this.#entities.delete(id);
 
     if (existed) {
-      this.onRemove(id);
+      this.#invokeHook(() => { this.onRemove(id); });
     }
 
     return existed;
@@ -123,7 +123,7 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
       this.#entities.set(id, entity);
     }
 
-    this.onReplaceAll(this.#entities.size);
+    this.#invokeHook(() => { this.onReplaceAll(this.#entities.size); });
   }
 
   /** Returns every entity, sorted by `sortComparer` if configured, else in insertion order. */
@@ -147,5 +147,11 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   public getIds(): readonly TId[] {
     const result = Array.from(this.#entities.keys());
     return result;
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 }

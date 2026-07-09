@@ -79,3 +79,23 @@ it('idle key past keyIdleTtlMs is lazily expired and rebuilt fresh on next consu
 
   notStrictEqual(firstBucket, secondBucket);
 });
+
+it('a throwing onKeyEvicted hook does not replace the underlying eviction behavior', () => {
+  class ThrowingEvictedLimiter extends KeyedRateLimiter {
+    protected override onKeyEvicted(): void {
+      throw new Error('onKeyEvicted boom');
+    }
+  }
+
+  const limiter = ThrowingEvictedLimiter.create({
+    'burstSize': 1,
+    'maxKeys': 2,
+    'requestsPerSecond': 1
+  }) as ThrowingEvictedLimiter;
+
+  limiter.consume('user-a');
+  limiter.consume('user-b');
+  limiter.consume('user-c');
+
+  strictEqual(limiter.getCache().has('user-a'), false);
+});

@@ -55,8 +55,7 @@ for inspection or tooling.
 
 ## Observability hooks
 
-`Pipeline` exposes eight protected hooks for observing every stage of execution.
-The four **intercept hooks** (`onRunStart`, `beforeStage`, `afterStage`, `onRunComplete`) return `T` and can transform the context. The four **observer hooks** are void and fire at every stage boundary and error path.
+`Pipeline` exposes eight protected hooks for every stage of execution. The four **intercept hooks** (`onRunStart`, `beforeStage`, `afterStage`, `onRunComplete`) return `T`, stay in-band, and can transform the context or fail the run. The four **observer hooks** are void, fire at every stage boundary and error path, and are kept observational so they do not replace the stage result or canonical stage error.
 
 | Hook | When it fires | Args |
 |------|---------------|------|
@@ -71,6 +70,6 @@ The four **intercept hooks** (`onRunStart`, `beforeStage`, `afterStage`, `onRunC
 
 <<< ../../packages/pipeline/examples/observedPipeline.ts#usage
 
-The base class never calls any logger or metrics library. All hooks are no-ops by default.
+The base class never calls any logger or metrics library. Observer hooks are no-ops by default; intercept hooks are the behavioral seams.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/pipeline)

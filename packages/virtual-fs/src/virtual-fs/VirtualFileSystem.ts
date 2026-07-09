@@ -56,6 +56,12 @@ export class VirtualFileSystem implements FileSystemInterface {
   readonly #entries: Map<string, EntryType>;
   readonly #files: Map<string, string>;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   protected constructor(options: VirtualFileSystemOptionsType) {
     this.#clock = options.clock ?? DEFAULT_CLOCK;
     this.#entries = new Map<string, EntryType>();
@@ -121,14 +127,18 @@ export class VirtualFileSystem implements FileSystemInterface {
           if (!this.#entries.has(current)) {
             const entry: EntryType = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
             this.#entries.set(current, entry);
-            this.onCreate(current);
+            this.#invokeHook(() => {
+              this.onCreate(current);
+            });
           }
         }
       }
     } else {
       const entry: EntryType = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
       this.#entries.set(path, entry);
-      this.onCreate(path);
+      this.#invokeHook(() => {
+        this.onCreate(path);
+      });
     }
   }
 
@@ -172,7 +182,9 @@ export class VirtualFileSystem implements FileSystemInterface {
       }
     }
 
-    this.onRead(path);
+    this.#invokeHook(() => {
+      this.onRead(path);
+    });
     return result;
   }
 
@@ -181,7 +193,9 @@ export class VirtualFileSystem implements FileSystemInterface {
     if (content === undefined) {
       throw new VirtualFileSystemError(`ENOENT: no such file or directory, open '${path}'`);
     }
-    this.onRead(path);
+    this.#invokeHook(() => {
+      this.onRead(path);
+    });
     return content;
   }
 
@@ -200,7 +214,9 @@ export class VirtualFileSystem implements FileSystemInterface {
     this.#entries.set(newPath, { 'kind': kind, 'mtimeMs': mtimeMs });
     this.#entries.delete(oldPath);
 
-    this.onRename(oldPath, newPath);
+    this.#invokeHook(() => {
+      this.onRename(oldPath, newPath);
+    });
   }
 
   statSync(path: string): StatResultInterface {
@@ -223,7 +239,9 @@ export class VirtualFileSystem implements FileSystemInterface {
     }
     this.#files.delete(path);
     this.#entries.delete(path);
-    this.onDelete(path);
+    this.#invokeHook(() => {
+      this.onDelete(path);
+    });
   }
 
   writeFileSync(path: string, data: string, _encoding: 'utf8'): void {
@@ -234,9 +252,13 @@ export class VirtualFileSystem implements FileSystemInterface {
     this.#entries.set(path, { 'kind': 'file', 'mtimeMs': mtimeMs });
 
     if (isNew) {
-      this.onCreate(path);
+      this.#invokeHook(() => {
+        this.onCreate(path);
+      });
     } else {
-      this.onWrite(path);
+      this.#invokeHook(() => {
+        this.onWrite(path);
+      });
     }
   }
 }

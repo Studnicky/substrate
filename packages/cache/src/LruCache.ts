@@ -24,8 +24,8 @@ const noExpiry = 0;
  *
  * The base class performs NO observability of its own — it exposes protected
  * lifecycle hooks that a consumer overrides to add logging, timing, or metrics.
- * Overrides must not throw or block; hooks are called synchronously and
- * exceptions propagate to the caller.
+ * Overrides must not throw or block; hooks are called synchronously after the
+ * relevant state mutation.
  *
  * @example Adding observability via hooks
  * ```typescript
@@ -149,23 +149,23 @@ export class LruCache<K, V> {
     const entry = this.#entries.get(internalKey);
 
     if (entry === undefined) {
-      this.onMiss(key);
+      this.#invokeHook(() => { this.onMiss(key); });
       return undefined;
     }
 
     if (LruCache.isExpired(entry)) {
-      this.onExpire(key);
+      this.#invokeHook(() => { this.onExpire(key); });
       this.removeEntry(internalKey);
-      this.onMiss(key);
+      this.#invokeHook(() => { this.onMiss(key); });
       return undefined;
     }
 
     this.promoteToHead(internalKey);
 
     if (entry.staleAt !== noExpiry && Date.now() > entry.staleAt) {
-      this.onStale(key, entry.value);
+      this.#invokeHook(() => { this.onStale(key, entry.value); });
     } else {
-      this.onHit(key, entry.value);
+      this.#invokeHook(() => { this.onHit(key, entry.value); });
     }
 
     return entry.value;
@@ -198,7 +198,7 @@ export class LruCache<K, V> {
       existing.staleAt = staleAt;
       existing.value = value;
       this.promoteToHead(internalKey);
-      this.onUpdate(key);
+      this.#invokeHook(() => { this.onUpdate(key); });
       return;
     }
 
@@ -223,7 +223,7 @@ export class LruCache<K, V> {
 
     this.#nodes.set(internalKey, node);
     this.insertAtHead(node);
-    this.onSet(key);
+    this.#invokeHook(() => { this.onSet(key); });
   }
 
   /** Returns true if key exists and has not expired; lazily evicts expired entries. */
@@ -236,7 +236,7 @@ export class LruCache<K, V> {
     }
 
     if (LruCache.isExpired(entry)) {
-      this.onExpire(key);
+      this.#invokeHook(() => { this.onExpire(key); });
       this.removeEntry(internalKey);
       return false;
     }
@@ -250,7 +250,7 @@ export class LruCache<K, V> {
 
     if (existed) {
       this.removeEntry(internalKey);
-      this.onDelete(key);
+      this.#invokeHook(() => { this.onDelete(key); });
     }
 
     return existed;
@@ -275,7 +275,7 @@ export class LruCache<K, V> {
 
       if (predicate(originalKey, entry.value)) {
         this.removeEntry(internalKey);
-        this.onDelete(originalKey);
+        this.#invokeHook(() => { this.onDelete(originalKey); });
         removed += 1;
       }
     }
@@ -290,7 +290,7 @@ export class LruCache<K, V> {
     this.#nodes.clear();
     this.#head = undefined;
     this.#tail = undefined;
-    this.onClear(count);
+    this.#invokeHook(() => { this.onClear(count); });
   }
 
   private static isExpired<V>(entry: EntryType<V>): boolean {
@@ -375,7 +375,13 @@ export class LruCache<K, V> {
     }
 
     if (originalKey !== undefined) {
-      this.onEvict(originalKey, 'capacity');
+      this.#invokeHook(() => { this.onEvict(originalKey, 'capacity'); });
     }
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 }

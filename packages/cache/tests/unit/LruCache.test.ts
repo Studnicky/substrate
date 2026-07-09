@@ -563,3 +563,50 @@ it('deleteWhere on an empty cache returns 0', () => {
   const removed = cache.deleteWhere(() => { return true; });
   assert.equal(removed, 0);
 });
+
+it('a throwing onHit hook does not replace a successful get() result after promotion', () => {
+  class ThrowingHitCache extends LruCache<string, number> {
+    protected override onHit(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const cache = new ThrowingHitCache({ 'capacity': 2 });
+  cache.set('a', 1);
+  cache.set('b', 2);
+
+  assert.equal(cache.get('a'), 1);
+  cache.set('c', 3);
+  assert.equal(cache.get('a'), 1);
+  assert.equal(cache.get('b'), undefined);
+});
+
+it('a throwing onExpire hook does not replace lazy expiry removal', async () => {
+  class ThrowingExpireCache extends LruCache<string, number> {
+    protected override onExpire(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const cache = new ThrowingExpireCache({ 'capacity': 10 });
+  cache.set('a', 1, { 'ttlMs': 1 });
+  await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
+
+  assert.equal(cache.get('a'), undefined);
+  assert.equal(cache.has('a'), false);
+  assert.equal(cache.size, 0);
+});
+
+it('a throwing onUpdate hook does not replace the completed overwrite', () => {
+  class ThrowingUpdateCache extends LruCache<string, number> {
+    protected override onUpdate(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const cache = new ThrowingUpdateCache({ 'capacity': 2 });
+  cache.set('a', 1);
+  cache.set('a', 2);
+
+  assert.equal(cache.get('a'), 2);
+});

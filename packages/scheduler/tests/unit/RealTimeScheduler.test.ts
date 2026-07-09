@@ -369,5 +369,73 @@ describe('RealTimeScheduler', () => {
 
       assert.strictEqual(sched.idleCount, 1);
     });
+
+    it('a throwing onSchedule hook does not replace task registration', () => {
+      class ThrowingScheduleScheduler extends RealTimeScheduler {
+        public constructor() { super(); }
+        protected override onSchedule(): void {
+          throw new Error('onSchedule boom');
+        }
+      }
+
+      const sched = new ThrowingScheduleScheduler();
+      const task = sched.scheduleAt(Date.now() + FAR_FUTURE_DELAY_MS, () => { return; });
+
+      assert.ok(task.id.length > 0);
+      task.cancel();
+      sched.cancelAll();
+    });
+
+    it('a throwing onCancel hook does not replace cancellation', () => {
+      class ThrowingCancelScheduler extends RealTimeScheduler {
+        public constructor() { super(); }
+        protected override onCancel(): void {
+          throw new Error('onCancel boom');
+        }
+      }
+
+      const sched = new ThrowingCancelScheduler();
+      const task = sched.scheduleAt(Date.now() + FAR_FUTURE_DELAY_MS, () => { return; });
+
+      assert.doesNotThrow(() => {
+        task.cancel();
+      });
+      sched.cancelAll();
+    });
+
+    it('a throwing onFire hook does not replace task execution', async () => {
+      class ThrowingFireScheduler extends RealTimeScheduler {
+        public constructor() { super(); }
+        protected override onFire(): void {
+          throw new Error('onFire boom');
+        }
+      }
+
+      const sched = new ThrowingFireScheduler();
+      let fired = false;
+
+      sched.scheduleAt(Date.now() - 1, () => {
+        fired = true;
+      });
+      await setTimeoutPromise(FLUSH_DELAY_MS);
+
+      assert.strictEqual(fired, true);
+    });
+
+    it('a throwing onFireError hook does not replace swallowed task failure', async () => {
+      class ThrowingFireErrorScheduler extends RealTimeScheduler {
+        public constructor() { super(); }
+        protected override onFireError(): void {
+          throw new Error('onFireError boom');
+        }
+      }
+
+      const sched = new ThrowingFireErrorScheduler();
+      sched.scheduleAt(Date.now() - 1, () => { throw new Error('task boom'); });
+
+      await setTimeoutPromise(FLUSH_DELAY_MS);
+
+      assert.ok(true);
+    });
   });
 });

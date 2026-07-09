@@ -4,6 +4,7 @@
  *
  * @module
  */
+
 import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
 
@@ -41,6 +42,12 @@ export class VirtualClockProvider implements ClockProviderType {
       throw new ClockError('counter must be a VirtualTimeCounter instance');
     }
     this.#counter = counter;
+  }
+
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
   }
 
   private static isValidCounter(counter: unknown): counter is Readonly<VirtualTimeCounter> {
@@ -91,7 +98,9 @@ export class VirtualClockProvider implements ClockProviderType {
   public hrtime(): bigint {
     const result = BigInt(this.readVirtualMs()) * NS_PER_MS;
 
-    this.onHrtime(result);
+    this.#invokeHook(() => {
+      this.onHrtime(result);
+    });
     return result;
   }
 
@@ -100,7 +109,9 @@ export class VirtualClockProvider implements ClockProviderType {
     const ms = this.readVirtualMs();
     const result = ms >= 0 ? ms : 0;
 
-    this.onNow(result);
+    this.#invokeHook(() => {
+      this.onNow(result);
+    });
     return result;
   }
 }

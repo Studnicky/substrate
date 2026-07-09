@@ -7,7 +7,7 @@
 [![CI](https://github.com/Studnicky/substrate/actions/workflows/ci.yml/badge.svg)](https://github.com/Studnicky/substrate/actions/workflows/ci.yml)
 [![docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/)
 [![node](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](package.json)
-[![version](https://img.shields.io/badge/version-1.0.0-14b8a6)](CHANGELOG.md)
+[![release](https://img.shields.io/github/v/release/Studnicky/substrate?display_name=tag&color=14b8a6)](https://github.com/Studnicky/substrate/releases)
 
 **[Documentation](https://studnicky.github.io/substrate/)** · **[Releases](https://github.com/Studnicky/substrate/releases)**
 
@@ -15,8 +15,8 @@ A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, sc
 
 ## Architecture
 
-- **Subclass-first:** Every public API delegates to `protected` seams. Consumers `extend` the class and override those seams to alter behavior — no plugin registries, no option-bag escape hatches.
-- **No observability in bare classes:** Telemetry seams are `protected` no-op hooks (`onRetry`, `onThrottle`, `onAcquire`, etc.). Consumers add metrics and logging by overriding those hooks; the base implementation has zero dependency on any logger or metrics backend.
+- **Subclass-first:** Every public API delegates to documented `protected` seams. Some seams are passive observer hooks; some are in-band behavioral hooks that transform, classify, or intercept the operation itself.
+- **No observability in bare classes:** Telemetry seams are `protected` no-op hooks (`onRetry`, `onThrottle`, `onAcquire`, etc.). Consumers add metrics and logging by overriding those hooks; the base implementation has zero dependency on any logger or metrics backend. Observer hooks stay observational. Behavioral hooks remain in-band and are documented per package.
 - **No exported singletons:** Stateless utilities are pure-`static` classes; stateful classes are `new`-able with an explicit `transition()` FSM funnel that subclasses can intercept for state-change hooks.
 
 ## Packages

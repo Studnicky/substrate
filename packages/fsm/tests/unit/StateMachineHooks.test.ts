@@ -159,4 +159,32 @@ describe('StateMachine lifecycle hooks', () => {
     machine.transition({ 'variant': 'red' }, { 'type': 'advance' });
     assert.equal(machine.rejections.length, 0);
   });
+
+  it('a throwing transition hook does not replace the returned transition step', () => {
+    class ThrowingTransitionHookMachine extends TrafficMachine {
+      protected override onTransition(): void {
+        throw new Error('hook boom');
+      }
+    }
+
+    const machine = new ThrowingTransitionHookMachine();
+    const step = machine.transition({ 'variant': 'red' }, { 'type': 'advance' });
+
+    assert.deepEqual(step.state, { 'variant': 'green' });
+    assert.deepEqual(step.effects, []);
+  });
+
+  it('a throwing onTransitionRejected hook does not replace the reducer error', () => {
+    class ThrowingRejectedHookMachine extends ThrowingMachine {
+      protected override onTransitionRejected(): void {
+        throw new Error('hook boom');
+      }
+    }
+
+    const machine = new ThrowingRejectedHookMachine();
+    assert.throws(
+      () => machine.transition({ 'variant': 'red' }, { 'type': 'advance' }),
+      (err: unknown) => err instanceof ReducerThrewError
+    );
+  });
 });

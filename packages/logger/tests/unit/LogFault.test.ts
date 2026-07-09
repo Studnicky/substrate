@@ -217,3 +217,24 @@ void it('returns frozen object', () => {
 
   assert.strictEqual(Object.isFrozen(fault), true);
 });
+
+void it('a throwing onFieldSet hook does not replace fluent setters or build()', () => {
+  class ThrowingFieldSetFault extends LogFault {
+    constructor() { super(); }
+
+    protected override onFieldSet(): void {
+      throw new Error('onFieldSet boom');
+    }
+  }
+
+  const fault = new ThrowingFieldSetFault()
+    .component('graph')
+    .operation('query')
+    .status('failed')
+    .name('TimeoutError')
+    .message('Query exceeded timeout')
+    .context({})
+    .build();
+
+  assert.strictEqual(fault.event, 'graph.query');
+});

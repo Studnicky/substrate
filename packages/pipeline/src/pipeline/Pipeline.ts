@@ -90,6 +90,12 @@ export class Pipeline<T> implements PipelineInterface<T> {
 
   protected fns: PipelineFnType<T>[] = [];
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Readonly view of the registered transform functions.
    * Returns the live array reference as a readonly view — order reflects
@@ -229,7 +235,9 @@ export class Pipeline<T> implements PipelineInterface<T> {
       const output = await fn(input);
       return output;
     } catch (err: unknown) {
-      this.onStageError(index, err);
+      this.#invokeHook(() => {
+        this.onStageError(index, err);
+      });
       throw new PipelineError('Pipeline stage failed', err);
     }
   }
@@ -242,13 +250,19 @@ export class Pipeline<T> implements PipelineInterface<T> {
       for (let i = 0; i < fnsLen; i++) {
         const fn = this.fns[i]!;
         const input = this.beforeStage(current, i);
-        this.onStageStart(i, input);
+        this.#invokeHook(() => {
+          this.onStageStart(i, input);
+        });
         const output = await this.runStage(fn, input, i);
-        this.onStageSuccess(i, output);
+        this.#invokeHook(() => {
+          this.onStageSuccess(i, output);
+        });
         current = this.afterStage(output, i);
       }
     } catch (err: unknown) {
-      this.onRunError(err);
+      this.#invokeHook(() => {
+        this.onRunError(err);
+      });
       throw err;
     }
 

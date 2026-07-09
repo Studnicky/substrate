@@ -169,6 +169,32 @@ void describe('Logger', () => {
       // countingTransport must still fire even though throwingTransport threw
       assert.strictEqual(received.length, 1);
     });
+
+    void it('a throwing onTransportError hook does not prevent other transports from receiving records', () => {
+      const received: number[] = [];
+
+      class ThrowingTransportErrorLogger extends Logger {
+        protected override onTransportError(): void {
+          throw new Error('onTransportError boom');
+        }
+      }
+
+      const throwingTransport = FunctionTransport.create(() => {
+        throw new Error('transport failure');
+      });
+      const countingTransport = FunctionTransport.create(() => {
+        received.push(1);
+      });
+
+      const logger = ThrowingTransportErrorLogger.create({
+        'level': LOG_LEVEL.TRACE,
+        'transports': [throwingTransport, countingTransport]
+      });
+
+      logger.info(TestFactory.body('msg'));
+
+      assert.strictEqual(received.length, 1);
+    });
   });
 
   void describe('child metadata merging', () => {
@@ -245,6 +271,19 @@ void describe('Logger', () => {
 
       assert.strictEqual(memory.records().length, 2);
     });
+
+    void it('a throwing onChildCreate hook does not replace child()', () => {
+      class ThrowingChildLogger extends Logger {
+        protected override onChildCreate(): void {
+          throw new Error('onChildCreate boom');
+        }
+      }
+
+      const parent = ThrowingChildLogger.create({ 'level': LOG_LEVEL.TRACE });
+      const child = parent.child({ requestId: 'req-1' });
+
+      assert.ok(child instanceof Logger);
+    });
   });
 
   void describe('record shape', () => {
@@ -289,6 +328,24 @@ void describe('Logger', () => {
       assert.strictEqual(records[2]?.level, LOG_LEVEL.INFO);
       assert.strictEqual(records[3]?.level, LOG_LEVEL.WARN);
       assert.strictEqual(records[4]?.level, LOG_LEVEL.ERROR);
+    });
+
+    void it('a throwing onLog hook does not replace emission', () => {
+      class ThrowingLogLogger extends Logger {
+        protected override onLog(): void {
+          throw new Error('onLog boom');
+        }
+      }
+
+      const memory = MemoryTransport.create();
+      const logger = ThrowingLogLogger.create({
+        'level': LOG_LEVEL.TRACE,
+        'transports': [memory]
+      });
+
+      logger.info(TestFactory.body('msg'));
+
+      assert.strictEqual(memory.records().length, 1);
     });
   });
 
@@ -440,6 +497,25 @@ void describe('Logger', () => {
       assert.strictEqual(droppedLevels[1], LOG_LEVEL.DEBUG);
     });
 
+    void it('a throwing onDropped hook does not replace floor filtering', () => {
+      class ThrowingDroppedLogger extends Logger {
+        constructor() { super({ 'level': LOG_LEVEL.ERROR }); }
+
+        protected override onDropped(): void {
+          throw new Error('onDropped boom');
+        }
+      }
+
+      const memory = MemoryTransport.create();
+      const logger = ThrowingDroppedLogger.create({
+        'level': LOG_LEVEL.ERROR,
+        'transports': [memory]
+      });
+      logger.info(TestFactory.body('dropped'));
+
+      assert.strictEqual(memory.records().length, 0);
+    });
+
     void it('onChildCreate fires after child creation with the passed bindings', () => {
       const capturedBindings: LogMetadataType[] = [];
 
@@ -542,6 +618,27 @@ void describe('Logger', () => {
       logger.info(TestFactory.body('multi-error'));
 
       assert.strictEqual(errors.length, 2);
+    });
+
+    void it('a throwing onTransportError hook does not replace transport failure handling', () => {
+      class ThrowingTransportErrorLogger extends Logger {
+        constructor() {
+          const throwing = FunctionTransport.create(() => {
+            throw new Error('transport boom');
+          });
+          super({ 'level': LOG_LEVEL.TRACE, 'transports': [throwing] });
+        }
+
+        protected override onTransportError(): void {
+          throw new Error('onTransportError boom');
+        }
+      }
+
+      const logger = new ThrowingTransportErrorLogger();
+
+      assert.doesNotThrow(() => {
+        logger.info(TestFactory.body('boom'));
+      });
     });
   });
 });

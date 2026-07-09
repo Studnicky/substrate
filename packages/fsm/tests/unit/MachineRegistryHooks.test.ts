@@ -118,4 +118,62 @@ describe('MachineRegistry lifecycle hooks', () => {
 
     assert.deepEqual(order, ['register', 'miss', 'unregister']);
   });
+
+  it('a throwing onRegister hook does not replace a completed registration', () => {
+    class ThrowingRegisterRegistry extends MachineRegistry {
+      static override create(): ThrowingRegisterRegistry {
+        return new ThrowingRegisterRegistry();
+      }
+
+      protected override onRegister(): void {
+        throw new Error('register hook boom');
+      }
+    }
+
+    const throwingRegistry = ThrowingRegisterRegistry.create();
+    const interpreter = makeInterpreter();
+
+    assert.doesNotThrow(() => {
+      throwingRegistry.register('stable', interpreter);
+    });
+    assert.equal(throwingRegistry.get('stable'), interpreter);
+  });
+
+  it('a throwing onResolveMiss hook does not replace an undefined lookup', () => {
+    class ThrowingMissRegistry extends MachineRegistry {
+      static override create(): ThrowingMissRegistry {
+        return new ThrowingMissRegistry();
+      }
+
+      protected override onResolveMiss(): void {
+        throw new Error('miss hook boom');
+      }
+    }
+
+    const throwingRegistry = ThrowingMissRegistry.create();
+
+    assert.doesNotThrow(() => {
+      assert.equal(throwingRegistry.get('missing'), undefined);
+    });
+  });
+
+  it('a throwing onUnregister hook does not replace a completed deletion', () => {
+    class ThrowingUnregisterRegistry extends MachineRegistry {
+      static override create(): ThrowingUnregisterRegistry {
+        return new ThrowingUnregisterRegistry();
+      }
+
+      protected override onUnregister(): void {
+        throw new Error('unregister hook boom');
+      }
+    }
+
+    const throwingRegistry = ThrowingUnregisterRegistry.create();
+    throwingRegistry.register('gone', makeInterpreter());
+
+    assert.doesNotThrow(() => {
+      throwingRegistry.unregister('gone');
+    });
+    assert.equal(throwingRegistry.has('gone'), false);
+  });
 });

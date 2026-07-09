@@ -240,4 +240,22 @@ describe('EffectInterpreter lifecycle hooks', () => {
     await assert.rejects(() => interp.send({ 'type': 'activate' }));
     assert.equal(interp.successes, 0);
   });
+
+  it('a throwing transition hook does not replace a successful send() result', async () => {
+    class ThrowingHookInterpreter extends EffectInterpreter<DemoState, DemoEvent, DemoEffect> {
+      constructor() {
+        super({ 'handlers': {}, 'machine': new DemoMachine(), 'machineId': 'throwing-hook-test' });
+      }
+
+      protected override onTransition(): void {
+        throw new Error('hook boom');
+      }
+    }
+
+    const interp = new ThrowingHookInterpreter();
+    interp.start();
+    await interp.send({ 'type': 'activate' });
+
+    assert.deepEqual(interp.getState(), { 'variant': 'active' });
+  });
 });

@@ -375,6 +375,23 @@ it('hook: onAcquireStart fires before onAcquireWait which fires before onTimeout
   holder.release();
 });
 
+it('a throwing onAcquire hook does not orphan the renamed lock file or reject acquisition', async () => {
+  const path = FileLockTestHelpers.makePath('hook-throw-acquire.txt');
+  writeFileSync(path, 'data');
+
+  class ThrowingAcquireHookLock extends FileLock {
+    protected override onAcquire(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const lock = await ThrowingAcquireHookLock.create({ 'path': path });
+  ok(!existsSync(path), 'original path should still be absent while the lock is held');
+
+  lock.release();
+  ok(existsSync(path), 'release restores the original path even when onAcquire throws');
+});
+
 it('hook: Symbol.dispose triggers onRelease once', async () => {
   const path = FileLockTestHelpers.makePath('hook-dispose.txt');
   writeFileSync(path, 'dispose-hook');

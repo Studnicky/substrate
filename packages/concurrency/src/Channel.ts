@@ -42,20 +42,20 @@ export class Channel<T> {
         notify();
       }
     }
-    this.onClose();
+    this.#invokeHook(() => { this.onClose(); });
   }
 
   publish(key: string, item: T): void {
     if (this.#closed) {
-      this.onPublishDropped(key, item);
+      this.#invokeHook(() => { this.onPublishDropped(key, item); });
       return;
     }
     const ch = this.#getOrCreate(key);
     ch.buffer.push(item);
-    this.onEnqueue(key, item);
-    this.onSend(key, item);
+    this.#invokeHook(() => { this.onEnqueue(key, item); });
+    this.#invokeHook(() => { this.onSend(key, item); });
     if (this.#highWaterMark !== undefined && ch.buffer.length >= this.#highWaterMark) {
-      this.onOverflow(key, ch.buffer.length);
+      this.#invokeHook(() => { this.onOverflow(key, ch.buffer.length); });
     }
     if (ch.notify !== null) {
       const notify = ch.notify;
@@ -71,8 +71,8 @@ export class Channel<T> {
     while (true) {
       const item = ch.buffer.shift();
       if (item !== undefined) {
-        this.onDequeue(key, item);
-        this.onReceive(key, item);
+        this.#invokeHook(() => { this.onDequeue(key, item); });
+        this.#invokeHook(() => { this.onReceive(key, item); });
         yield item;
         continue;
       }
@@ -87,6 +87,12 @@ export class Channel<T> {
     const fresh: ChannelStateType<T> = { 'buffer': [], 'closed': false, 'notify': null };
     this.#channels.set(key, fresh);
     return fresh;
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 
   /**

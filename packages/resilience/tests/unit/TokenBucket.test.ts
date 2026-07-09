@@ -163,3 +163,52 @@ it('onTokenAcquired fires after waitForToken()', async () => {
   await bucket.waitForToken();
   ok(bucket.events.some((e) => { return e.type === 'acquired'; }));
 });
+
+class ThrowingAcquiredBucket extends TokenBucket {
+  protected override onTokenAcquired(): void {
+    throw new Error('onTokenAcquired boom');
+  }
+}
+
+class ThrowingDepletedBucket extends TokenBucket {
+  protected override onTokenDepleted(): void {
+    throw new Error('onTokenDepleted boom');
+  }
+}
+
+class ThrowingRefillBucket extends TokenBucket {
+  protected override onRefill(): void {
+    throw new Error('onRefill boom');
+  }
+}
+
+it('a throwing onTokenAcquired hook does not replace consume()', () => {
+  const bucket = ThrowingAcquiredBucket.create({ requestsPerSecond: 10, burstSize: 3, clock: frozenClock });
+  bucket.consume(2);
+
+  strictEqual(bucket.available, 1);
+});
+
+it('a throwing onTokenAcquired hook does not replace waitForToken()', async () => {
+  const bucket = ThrowingAcquiredBucket.create({ requestsPerSecond: 10, burstSize: 2, clock: frozenClock });
+  await bucket.waitForToken({ 'tokens': 2 });
+
+  strictEqual(bucket.available, 0);
+});
+
+it('a throwing onTokenDepleted hook does not replace TokenBucketExhaustedError', () => {
+  const bucket = ThrowingDepletedBucket.create({ requestsPerSecond: 10, burstSize: 1, clock: frozenClock });
+  bucket.consume();
+
+  throws(() => { bucket.consume(); }, TokenBucketExhaustedError);
+});
+
+it('a throwing onRefill hook does not replace the refilled token state', () => {
+  let time = 0;
+  const clock = (): number => time;
+  const bucket = ThrowingRefillBucket.create({ requestsPerSecond: 10, burstSize: 5, clock });
+  bucket.consume(5);
+
+  time = 500;
+  ok(bucket.available >= 4);
+});

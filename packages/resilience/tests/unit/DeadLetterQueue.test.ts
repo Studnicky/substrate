@@ -248,3 +248,75 @@ it('onAbort fires when abort() called', () => {
   dlq.abort();
   ok(dlq.events.some((e) => { return e.type === 'abort'; }));
 });
+
+class ThrowingEnqueueDlq<T> extends DeadLetterQueue<T> {
+  protected override onEnqueue(): void {
+    throw new Error('onEnqueue boom');
+  }
+}
+
+class ThrowingDequeueDlq<T> extends DeadLetterQueue<T> {
+  protected override onDequeue(): void {
+    throw new Error('onDequeue boom');
+  }
+}
+
+class ThrowingOverflowDlq<T> extends DeadLetterQueue<T> {
+  protected override onOverflow(): void {
+    throw new Error('onOverflow boom');
+  }
+}
+
+class ThrowingCloseDlq<T> extends DeadLetterQueue<T> {
+  protected override onClose(): void {
+    throw new Error('onClose boom');
+  }
+}
+
+class ThrowingAbortDlq<T> extends DeadLetterQueue<T> {
+  protected override onAbort(): void {
+    throw new Error('onAbort boom');
+  }
+}
+
+it('a throwing onEnqueue hook does not replace enqueue()', () => {
+  const dlq = new ThrowingEnqueueDlq<string>();
+  dlq.enqueue('payload', 'reason');
+
+  strictEqual(dlq.size, 1);
+});
+
+it('a throwing onDequeue hook does not replace drain()', async () => {
+  const dlq = new ThrowingDequeueDlq<string>();
+  dlq.enqueue('payload', 'reason');
+  dlq.close();
+
+  const entries: string[] = [];
+  for await (const entry of dlq.drain()) {
+    entries.push(entry.item);
+  }
+
+  deepStrictEqual(entries, ['payload']);
+  strictEqual(dlq.size, 0);
+});
+
+it('a throwing onOverflow hook does not replace DlqFullError', () => {
+  const dlq = new ThrowingOverflowDlq<string>({ capacity: 1 });
+  dlq.enqueue('first', 'reason');
+
+  throws(() => { dlq.enqueue('second', 'reason'); }, DlqFullError);
+});
+
+it('a throwing onClose hook does not replace close()', () => {
+  const dlq = new ThrowingCloseDlq<string>();
+  dlq.close();
+
+  strictEqual(dlq.closed, true);
+});
+
+it('a throwing onAbort hook does not replace abort()', () => {
+  const dlq = new ThrowingAbortDlq<string>();
+  dlq.abort();
+
+  throws(() => { dlq.enqueue('payload', 'reason'); }, DlqAbortedError);
+});

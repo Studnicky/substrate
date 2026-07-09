@@ -53,10 +53,10 @@ Subclass `Retry` and override `classifyError` to control which errors are retrya
 
 ## Observability hooks
 
-`onRetryScheduled(context)` is the behavioral hook fired before each scheduled retry. Override it to set `context.delayMs` (using a shipped `BackoffStrategy`), set `context.abort` to stop retrying, or mutate `context.state` across attempts (it may be async). The observation-only hooks — `onAttempt`, `onSuccess`, `onRetryableError`, `onGiveUp` — let you collect telemetry without coupling the retry core to any metrics library:
+`classifyError(error, attemptNumber)` and `onRetryScheduled(context)` are the in-band behavioral seams. Override them to define retryability and scheduling policy: `classifyError(...)` decides whether an error is retryable for your domain, and `onRetryScheduled(context)` can set `context.delayMs` (using a shipped `BackoffStrategy`), set `context.abort` to stop retrying, or mutate `context.state` across attempts (it may be async). The observation-only hooks — `onAttempt`, `onSuccess`, `onRetryableError`, `onGiveUp`, `enterCall` — let you collect telemetry without coupling the retry core to any metrics library:
 
 <<< ../../packages/retry/examples/observedRetry.ts#usage
 
-The base class never calls any logger or metrics library. All hooks are no-ops by default — by default `onRetryScheduled` leaves `delayMs` at 0, so retries fire immediately unless a backoff is applied.
+The base class never calls any logger or metrics library. Observer hooks are no-ops by default and stay observational; by default `onRetryScheduled` leaves `delayMs` at 0, so retries fire immediately unless a backoff is applied.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/retry)

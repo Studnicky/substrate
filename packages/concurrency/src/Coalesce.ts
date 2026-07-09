@@ -29,7 +29,7 @@ export class Coalesce<T> {
   async run(key: string, factory: () => Promise<T>): Promise<T> {
     const existing = this.#inFlight.get(key);
     if (existing !== undefined) {
-      this.onCoalesceJoin(key);
+      this.#invokeHook(() => { this.onCoalesceJoin(key); });
       return await this.#awaitWithTimeout(key, existing);
     }
 
@@ -39,10 +39,10 @@ export class Coalesce<T> {
       .catch((e: unknown) => { success = false; throw e; })
       .finally(() => {
         this.#inFlight.delete(key);
-        this.onCoalesceSettled(key, success);
+        this.#invokeHook(() => { this.onCoalesceSettled(key, success); });
       });
     this.#inFlight.set(key, started);
-    this.onCoalesceStart(key);
+    this.#invokeHook(() => { this.onCoalesceStart(key); });
     return await this.#awaitWithTimeout(key, started);
   }
 
@@ -62,7 +62,7 @@ export class Coalesce<T> {
       const timer = setTimeout(() => {
         if (settled) { return; }
         settled = true;
-        this.onTimeout(key, timeoutMs);
+        this.#invokeHook(() => { this.onTimeout(key, timeoutMs); });
         reject(new CoalesceTimeoutError(key, timeoutMs));
       }, timeoutMs);
       inFlight.then(
@@ -80,6 +80,12 @@ export class Coalesce<T> {
         }
       );
     });
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 
   isInflight(key: string): boolean {

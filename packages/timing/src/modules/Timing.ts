@@ -126,6 +126,12 @@ export class Timing implements TimingInterface {
   readonly #timingCache: Set<{ 'name': string;
     'timestamp': bigint }>;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Protected constructor. Use Timing.builder().build() to instantiate.
    * Validates configuration and initializes the timing tracker.
@@ -162,7 +168,9 @@ export class Timing implements TimingInterface {
         'timestamp': this.startTime
       });
 
-      this.onInitialize(this.startTime);
+      this.#invokeHook(() => {
+        this.onInitialize(this.startTime);
+      });
     } catch (error) {
       // Re-throw ConfigurationError as-is
       if (error instanceof ConfigurationError) {
@@ -186,7 +194,9 @@ export class Timing implements TimingInterface {
    * @returns this for method chaining
    */
   clear(): this {
-    this.onClear();
+    this.#invokeHook(() => {
+      this.onClear();
+    });
     this.#timingCache.clear();
 
     return this;
@@ -254,7 +264,9 @@ export class Timing implements TimingInterface {
       const firstEvent = this.#timingCache.values().next().value;
 
       if (firstEvent !== undefined) {
-        this.onEvict(firstEvent.name);
+        this.#invokeHook(() => {
+          this.onEvict(firstEvent.name);
+        });
         this.#timingCache.delete(firstEvent);
       }
     }
@@ -264,7 +276,9 @@ export class Timing implements TimingInterface {
       'timestamp': currentTime
     });
 
-    this.onEvent(data, currentTime);
+    this.#invokeHook(() => {
+      this.onEvent(data, currentTime);
+    });
   }
 
   /**
@@ -309,7 +323,9 @@ export class Timing implements TimingInterface {
    * ```
    */
   getEvents(): Record<string, number> {
-    this.onGetEvents(this.#timingCache.size);
+    this.#invokeHook(() => {
+      this.onGetEvents(this.#timingCache.size);
+    });
 
     const currentTime = this.readHrtime();
     const totalNs = currentTime - this.startTime;

@@ -36,26 +36,26 @@ export class Batch<TResult = unknown> {
     let succeeded = 0;
     let failed = 0;
 
-    this.onBatchStart(itemsLen);
+    this.#invokeHook(() => { this.onBatchStart(itemsLen); });
 
     for (let i = FIRST_ARRAY_INDEX; i < itemsLen; i += this.maxConcurrent) {
       const batch = items.slice(i, i + this.maxConcurrent);
-      if (batch.length === this.maxConcurrent) { this.onConcurrencySaturated(); }
+      if (batch.length === this.maxConcurrent) { this.#invokeHook(() => { this.onConcurrencySaturated(); }); }
       const batchOffset = i;
       const batchResults = await Promise.all(
         batch.map(async (item, batchIdx) => {
           const globalIndex = batchOffset + batchIdx;
-          this.onItemStart(globalIndex);
+          this.#invokeHook(() => { this.onItemStart(globalIndex); });
           try {
             const result = await operation(item);
             succeeded++;
-            this.onItemSuccess(globalIndex, result);
-            this.onItemSettled(globalIndex);
+            this.#invokeHook(() => { this.onItemSuccess(globalIndex, result); });
+            this.#invokeHook(() => { this.onItemSettled(globalIndex); });
             return result;
           } catch (error) {
             failed++;
-            this.onItemError(globalIndex, error);
-            this.onItemSettled(globalIndex);
+            this.#invokeHook(() => { this.onItemError(globalIndex, error); });
+            this.#invokeHook(() => { this.onItemSettled(globalIndex); });
             throw error;
           }
         })
@@ -64,7 +64,7 @@ export class Batch<TResult = unknown> {
     }
 
     const stats: BatchStatsType = { 'failed': failed, 'succeeded': succeeded, 'total': itemsLen };
-    this.onBatchComplete(stats);
+    this.#invokeHook(() => { this.onBatchComplete(stats); });
   }
 
   async *processSettled<T>(
@@ -77,26 +77,26 @@ export class Batch<TResult = unknown> {
     let succeeded = 0;
     let failed = 0;
 
-    this.onBatchStart(itemsLen);
+    this.#invokeHook(() => { this.onBatchStart(itemsLen); });
 
     for (let i = FIRST_ARRAY_INDEX; i < itemsLen; i += this.maxConcurrent) {
       const batch = items.slice(i, i + this.maxConcurrent);
-      if (batch.length === this.maxConcurrent) { this.onConcurrencySaturated(); }
+      if (batch.length === this.maxConcurrent) { this.#invokeHook(() => { this.onConcurrencySaturated(); }); }
       const batchOffset = i;
       const batchResults = await Promise.allSettled(
         batch.map(async (item, batchIdx) => {
           const globalIndex = batchOffset + batchIdx;
-          this.onItemStart(globalIndex);
+          this.#invokeHook(() => { this.onItemStart(globalIndex); });
           try {
             const result = await operation(item);
             succeeded++;
-            this.onItemSuccess(globalIndex, result);
-            this.onItemSettled(globalIndex);
+            this.#invokeHook(() => { this.onItemSuccess(globalIndex, result); });
+            this.#invokeHook(() => { this.onItemSettled(globalIndex); });
             return result;
           } catch (error) {
             failed++;
-            this.onItemError(globalIndex, error);
-            this.onItemSettled(globalIndex);
+            this.#invokeHook(() => { this.onItemError(globalIndex, error); });
+            this.#invokeHook(() => { this.onItemSettled(globalIndex); });
             throw error;
           }
         })
@@ -105,6 +105,12 @@ export class Batch<TResult = unknown> {
     }
 
     const stats: BatchStatsType = { 'failed': failed, 'succeeded': succeeded, 'total': itemsLen };
-    this.onBatchComplete(stats);
+    this.#invokeHook(() => { this.onBatchComplete(stats); });
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 }

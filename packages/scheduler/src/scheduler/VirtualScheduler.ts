@@ -62,6 +62,12 @@ export class VirtualScheduler implements SchedulerProviderType {
   readonly #heap: MinimumHeap;
   #idCounter: number;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Property write order: #cancelledIds, #counter, #idCounter, #heap.
    *
@@ -128,13 +134,17 @@ export class VirtualScheduler implements SchedulerProviderType {
     try {
       fireResult = task.fire();
     } catch (error: unknown) {
-      this.onFireError(task.id, error);
+      this.#invokeHook(() => {
+        this.onFireError(task.id, error);
+      });
       return false;
     }
 
     if (fireResult instanceof Promise) {
       fireResult.catch((error: unknown) => {
-        this.onFireError(task.id, error);
+        this.#invokeHook(() => {
+          this.onFireError(task.id, error);
+        });
       });
     }
 
@@ -188,8 +198,12 @@ export class VirtualScheduler implements SchedulerProviderType {
       this.#cancelledIds.add(task.id);
       task = this.#heap.removeMinimum();
     }
-    this.onCancelAll();
-    this.onIdle();
+    this.#invokeHook(() => {
+      this.onCancelAll();
+    });
+    this.#invokeHook(() => {
+      this.onIdle();
+    });
   }
 
   /**
@@ -206,11 +220,15 @@ export class VirtualScheduler implements SchedulerProviderType {
     };
 
     this.#heap.insert(pending);
-    this.onSchedule(id, atMs, 'timeout');
+    this.#invokeHook(() => {
+      this.onSchedule(id, atMs, 'timeout');
+    });
 
     return new VirtualTask(atMs, id, (taskId: string) => {
       this.#cancelledIds.add(taskId);
-      this.onCancel(taskId);
+      this.#invokeHook(() => {
+        this.onCancel(taskId);
+      });
     });
   }
 
@@ -230,11 +248,15 @@ export class VirtualScheduler implements SchedulerProviderType {
     };
 
     this.#heap.insert(pending);
-    this.onSchedule(id, atMs, 'interval');
+    this.#invokeHook(() => {
+      this.onSchedule(id, atMs, 'interval');
+    });
 
     return new VirtualTask(atMs, id, (taskId: string) => {
       this.#cancelledIds.add(taskId);
-      this.onCancel(taskId);
+      this.#invokeHook(() => {
+        this.onCancel(taskId);
+      });
     });
   }
 
@@ -243,7 +265,9 @@ export class VirtualScheduler implements SchedulerProviderType {
    * Interval tasks are rescheduled automatically after each fire.
    */
   public advance(deltaMs: number): void {
-    this.onAdvance(deltaMs);
+    this.#invokeHook(() => {
+      this.onAdvance(deltaMs);
+    });
     this.#counter.advance(deltaMs);
     this.runUntil(this.#counter.nowMs());
   }
@@ -253,7 +277,9 @@ export class VirtualScheduler implements SchedulerProviderType {
    * Interval tasks are rescheduled at `task.atMs + task.intervalMs`.
    */
   public runUntil(atMs: number): void {
-    this.onRunUntil(atMs);
+    this.#invokeHook(() => {
+      this.onRunUntil(atMs);
+    });
 
     for (;;) {
       const peekMs = this.#heap.peekAtMs();
@@ -268,7 +294,9 @@ export class VirtualScheduler implements SchedulerProviderType {
         continue;
       }
 
-      this.onFire(task.id);
+      this.#invokeHook(() => {
+        this.onFire(task.id);
+      });
       const succeeded = this.#invokeTask(task);
 
       if (succeeded && task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
@@ -282,12 +310,16 @@ export class VirtualScheduler implements SchedulerProviderType {
         };
 
         this.#heap.insert(rescheduled);
-        this.onReschedule(task.id, nextAtMs);
+        this.#invokeHook(() => {
+          this.onReschedule(task.id, nextAtMs);
+        });
       }
     }
 
     if (this.#heap.peekAtMs() === undefined) {
-      this.onIdle();
+      this.#invokeHook(() => {
+        this.onIdle();
+      });
     }
   }
 
@@ -307,10 +339,14 @@ export class VirtualScheduler implements SchedulerProviderType {
         continue;
       }
 
-      this.onFire(task.id);
+      this.#invokeHook(() => {
+        this.onFire(task.id);
+      });
       this.#invokeTask(task);
     }
 
-    this.onIdle();
+    this.#invokeHook(() => {
+      this.onIdle();
+    });
   }
 }
