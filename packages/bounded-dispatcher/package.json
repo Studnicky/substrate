@@ -1,0 +1,66 @@
+{
+  "name": "@studnicky/bounded-dispatcher",
+  "version": "1.0.0",
+  "description": "Bounded work dispatch pattern composing @studnicky/concurrency's Semaphore, /event-bus, and /scheduler",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist coverage test-reports",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/bounded-dispatcher"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "homepage": "https://studnicky.github.io/substrate/packages/bounded-dispatcher",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "keywords": [
+    "concurrency",
+    "semaphore",
+    "event-bus",
+    "scheduler",
+    "backpressure",
+    "pattern",
+    "typescript",
+    "nodejs"
+  ],
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "@studnicky/concurrency": "workspace:*",
+    "@studnicky/event-bus": "workspace:*",
+    "@studnicky/scheduler": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/clock": "workspace:*"
+  }
+}
