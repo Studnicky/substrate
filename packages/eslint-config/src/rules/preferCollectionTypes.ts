@@ -18,6 +18,8 @@ type ModuleScopeArrayEntryType = {
   readonly 'variable': Scope.Variable;
 };
 
+type ProgramExitNodeType = Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0];
+
 const isJsonObject = (value: unknown): value is Record<string, unknown> => {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 };
@@ -40,6 +42,11 @@ class AstHelpers {
   public static getBool(obj: Record<string, unknown>, key: string): boolean | undefined {
     const val = obj[key];
     return typeof val === 'boolean' ? val : undefined;
+  }
+
+  public static getNode(obj: Record<string, unknown>, key: string): Record<string, unknown> | undefined {
+    const val = obj[key];
+    return isJsonObject(val) ? val : undefined;
   }
 }
 
@@ -152,114 +159,137 @@ const isIncludesCalleeRef = (ref: Scope.Reference): boolean => {
   return true;
 };
 
-export const preferCollectionTypes: Rule.RuleModule = {
-  'create': (context) => {
-    const rawOptions = context.options[0] as Partial<OptionsType> | undefined;
-    const opts: OptionsType = {
+const onCallExpression = (node: Rule.Node, opts: OptionsType, context: Rule.RuleContext): void => {
+  // Pattern A: [a, b, c].includes(x) — inline array literal membership test
+  if (opts.checkArrayLiterals && isArrayLiteralIncludesCall(node)) {
+    context.report({ 'messageId': 'arrayLiteralIncludes', 'node': node });
+    return;
+  }
+
+  // Pattern D: arr.filter/some/every/find/findIndex(x => ['a','b'].includes(x))
+  if (opts.checkArrayLiterals) {
+    const detection = detectIterationWithArrayLiteralIncludes(node);
+    if (detection.found) {
+      context.report({
+        'data': { 'method': detection.method },
+        'messageId': 'includesInCallback',
+        'node': node
+      });
+    }
+  }
+};
+
+const onMemberExpression = (node: Rule.Node, opts: OptionsType, context: Rule.RuleContext): void => {
+  // Pattern B: Object.fromEntries(...)[key] — inline computed access on fromEntries result
+  if (!opts.checkFromEntries) { return; }
+  const raw = node as unknown as Record<string, unknown>;
+  if (AstHelpers.getBool(raw, 'computed') !== true) { return; }
+
+  const obj = AstHelpers.getNode(raw, 'object');
+  if (AstHelpers.getNodeType(obj) !== 'CallExpression' || obj === undefined) { return; }
+
+  const callee = AstHelpers.getNode(obj, 'callee');
+  if (AstHelpers.getNodeType(callee) !== 'MemberExpression' || callee === undefined) { return; }
+  if (AstHelpers.getBool(callee, 'computed') !== false) { return; }
+
+  const calleeObj = AstHelpers.getNode(callee, 'object');
+  const calleeProperty = AstHelpers.getNode(callee, 'property');
+  if (AstHelpers.getNodeType(calleeObj) !== 'Identifier' || calleeObj === undefined) { return; }
+  if (AstHelpers.getString(calleeObj, 'name') !== 'Object') { return; }
+  if (AstHelpers.getNodeType(calleeProperty) !== 'Identifier' || calleeProperty === undefined) { return; }
+  if (AstHelpers.getString(calleeProperty, 'name') !== 'fromEntries') { return; }
+
+  context.report({ 'messageId': 'fromEntriesWithBracket', 'node': node });
+};
+
+const onProgramExit = (_node: ProgramExitNodeType, opts: OptionsType, context: Rule.RuleContext, moduleScopeArrays: ModuleScopeArrayEntryType[]): void => {
+  if (!opts.checkModuleScopeArrays || moduleScopeArrays.length === 0) { return; }
+
+  const entriesLen = moduleScopeArrays.length;
+  for (let ei = 0; ei < entriesLen; ei += 1) {
+    const entry = moduleScopeArrays[ei]; if (entry === undefined) { continue; }
+    // references is fully populated at Program:exit
+    const readRefs = entry.variable.references.filter((ref: Scope.Reference) => { return !ref.isWrite(); });
+
+    if (readRefs.length === 0) {
+      // No reads — unused; skip (other rules handle unused vars)
+      continue;
+    }
+
+    const allRefsAreIncludes = readRefs.every((ref: Scope.Reference) => { const result = isIncludesCalleeRef(ref);
+      return result; });
+
+    if (allRefsAreIncludes) {
+      context.report({
+        'data': { 'name': entry.name },
+        'messageId': 'constantArrayForMembership',
+        'node': entry.node
+      });
+    }
+  }
+};
+
+const onVariableDeclarator = (node: Rule.Node, opts: OptionsType, context: Rule.RuleContext, moduleScopeArrays: ModuleScopeArrayEntryType[]): void => {
+  // Pattern C: const VALID = ['a', 'b'] at module scope, used only for .includes()
+  if (!opts.checkModuleScopeArrays) { return; }
+
+  const parent = node.parent as unknown as Record<string, unknown>;
+  if (AstHelpers.getNodeType(parent) !== 'VariableDeclaration') { return; }
+  if (AstHelpers.getString(parent, 'kind') !== 'const') { return; }
+
+  // Must be at Program (module scope) level
+  const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
+  if (AstHelpers.getNodeType(grandParent) !== 'Program') { return; }
+
+  // Init must be an array literal
+  const declaratorRaw = node as unknown as Record<string, unknown>;
+  if (AstHelpers.getNodeType(declaratorRaw.init) !== 'ArrayExpression') { return; }
+
+  // Binding must be a simple identifier
+  const id = declaratorRaw.id;
+  if (AstHelpers.getNodeType(id) !== 'Identifier') { return; }
+  const name = AstHelpers.getString(id as Record<string, unknown>, 'name');
+  if (name === undefined) { return; }
+
+  // getDeclaredVariables on the VariableDeclaration gives us the scope variable
+  // with full reference tracking populated by the end of the AST pass
+  const parentNode = node.parent;
+  if (parentNode === null) { return; }
+  const declared = context.sourceCode.getDeclaredVariables(parentNode);
+  const variable = declared.find((v: Scope.Variable) => { return v.name === name; });
+  if (variable === undefined) { return; }
+
+  moduleScopeArrays.push({ 'name': name, 'node': node, 'variable': variable });
+};
+
+class Options {
+  static build(rawOptions: Partial<OptionsType> | undefined): OptionsType {
+    return {
       'checkArrayLiterals': rawOptions?.checkArrayLiterals ?? DEFAULT_OPTIONS.checkArrayLiterals,
       'checkFromEntries': rawOptions?.checkFromEntries ?? DEFAULT_OPTIONS.checkFromEntries,
       'checkModuleScopeArrays': rawOptions?.checkModuleScopeArrays ?? DEFAULT_OPTIONS.checkModuleScopeArrays
     };
+  }
+}
+
+export const preferCollectionTypes: Rule.RuleModule = {
+  'create': (context) => {
+    const [firstOption] = (context.options as readonly unknown[]);
+    const rawOptions = firstOption as Partial<OptionsType> | undefined;
+    const opts = Options.build(rawOptions);
 
     const moduleScopeArrays: ModuleScopeArrayEntryType[] = [];
 
+    const callExpressionHandler = (node: Rule.Node): void => { onCallExpression(node, opts, context); };
+    const memberExpressionHandler = (node: Rule.Node): void => { onMemberExpression(node, opts, context); };
+    const programExitHandler = (node: ProgramExitNodeType): void => { onProgramExit(node, opts, context, moduleScopeArrays); };
+    const variableDeclaratorHandler = (node: Rule.Node): void => { onVariableDeclarator(node, opts, context, moduleScopeArrays); };
+
     return {
-      'CallExpression': (node) => {
-        // Pattern A: [a, b, c].includes(x) — inline array literal membership test
-        if (opts.checkArrayLiterals && isArrayLiteralIncludesCall(node)) {
-          context.report({ 'messageId': 'arrayLiteralIncludes', 'node': node });
-          return;
-        }
-
-        // Pattern D: arr.filter/some/every/find/findIndex(x => ['a','b'].includes(x))
-        if (opts.checkArrayLiterals) {
-          const detection = detectIterationWithArrayLiteralIncludes(node);
-          if (detection.found) {
-            context.report({
-              'data': { 'method': detection.method },
-              'messageId': 'includesInCallback',
-              'node': node
-            });
-          }
-        }
-      },
-
-      'MemberExpression': (node) => {
-        // Pattern B: Object.fromEntries(...)[key] — inline computed access on fromEntries result
-        if (!opts.checkFromEntries) { return; }
-        if (!node.computed) { return; }
-        const obj = node.object;
-        if (obj.type !== 'CallExpression') { return; }
-        const callee = obj.callee;
-        if (callee.type !== 'MemberExpression') { return; }
-        if (callee.computed) { return; }
-        const calleeObj = callee.object;
-        const calleeProperty = callee.property;
-        if (calleeObj.type !== 'Identifier') { return; }
-        if ((calleeObj as unknown as { readonly 'name': string }).name !== 'Object') { return; }
-        if (calleeProperty.type !== 'Identifier') { return; }
-        if ((calleeProperty as unknown as { readonly 'name': string }).name !== 'fromEntries') { return; }
-        context.report({ 'messageId': 'fromEntriesWithBracket', 'node': node });
-      },
-
-      'Program:exit': () => {
-        if (!opts.checkModuleScopeArrays || moduleScopeArrays.length === 0) { return; }
-
-        const entriesLen = moduleScopeArrays.length;
-        for (let ei = 0; ei < entriesLen; ei += 1) {
-          const entry = moduleScopeArrays[ei]; if (entry === undefined) { continue; }
-          // references is fully populated at Program:exit
-          const readRefs = entry.variable.references.filter((ref: Scope.Reference) => { return !ref.isWrite(); });
-
-          if (readRefs.length === 0) {
-            // No reads — unused; skip (other rules handle unused vars)
-            continue;
-          }
-
-          const allRefsAreIncludes = readRefs.every((ref: Scope.Reference) => { const result = isIncludesCalleeRef(ref);
-            return result; });
-
-          if (allRefsAreIncludes) {
-            context.report({
-              'data': { 'name': entry.name },
-              'messageId': 'constantArrayForMembership',
-              'node': entry.node
-            });
-          }
-        }
-      },
-
-      'VariableDeclarator': (node) => {
-        // Pattern C: const VALID = ['a', 'b'] at module scope, used only for .includes()
-        if (!opts.checkModuleScopeArrays) { return; }
-
-        const parent = node.parent as unknown as Record<string, unknown>;
-        if (AstHelpers.getNodeType(parent) !== 'VariableDeclaration') { return; }
-        if (AstHelpers.getString(parent, 'kind') !== 'const') { return; }
-
-        // Must be at Program (module scope) level
-        const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
-        if (AstHelpers.getNodeType(grandParent) !== 'Program') { return; }
-
-        // Init must be an array literal
-        const declaratorRaw = node as unknown as Record<string, unknown>;
-        if (AstHelpers.getNodeType(declaratorRaw.init) !== 'ArrayExpression') { return; }
-
-        // Binding must be a simple identifier
-        const id = declaratorRaw.id;
-        if (AstHelpers.getNodeType(id) !== 'Identifier') { return; }
-        const name = AstHelpers.getString(id as Record<string, unknown>, 'name');
-        if (name === undefined) { return; }
-
-        // getDeclaredVariables on the VariableDeclaration gives us the scope variable
-        // with full reference tracking populated by the end of the AST pass
-        const parentNode = node.parent;
-        const declared = context.sourceCode.getDeclaredVariables(parentNode);
-        const variable = declared.find((v: Scope.Variable) => { return v.name === name; });
-        if (variable === undefined) { return; }
-
-        moduleScopeArrays.push({ 'name': name, 'node': node, 'variable': variable });
-      }
+      'CallExpression': callExpressionHandler,
+      'MemberExpression': memberExpressionHandler,
+      'Program:exit': programExitHandler,
+      'VariableDeclarator': variableDeclaratorHandler
     };
   },
   'meta': {

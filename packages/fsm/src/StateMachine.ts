@@ -1,6 +1,8 @@
 import type { FsmStepType } from './FsmStepType.js';
 
+import { MachineTerminatedError } from './MachineTerminatedError.js';
 import { ReducerThrewError } from './ReducerThrewError.js';
+import { TransitionRejectedError } from './TransitionRejectedError.js';
 
 export abstract class StateMachine<
   TState extends { readonly 'variant': string },
@@ -14,6 +16,11 @@ export abstract class StateMachine<
   abstract reduce(state: TState, event: TEvent): FsmStepType<TState, TEffect>;
 
   transition(state: TState, event: TEvent): FsmStepType<TState, TEffect> {
+    if (this.isTerminated(state)) {
+      this.onTerminatedAccess(state, event);
+      throw new MachineTerminatedError({ 'eventType': event.type, 'stateVariant': state.variant });
+    }
+
     try {
       const step = this.reduce(state, event);
       const toVariant = step.state.variant;
@@ -25,7 +32,11 @@ export abstract class StateMachine<
       }
       return step;
     } catch (cause: unknown) {
-      this.onTransitionRejected(state, event, cause instanceof Error ? cause.message : String(cause));
+      const reason = cause instanceof Error ? cause.message : String(cause);
+      this.onTransitionRejected(state, event, reason);
+      if (cause instanceof TransitionRejectedError) {
+        throw cause;
+      }
       throw new ReducerThrewError({
         'cause': cause,
         'eventType': event.type,
@@ -49,8 +60,25 @@ export abstract class StateMachine<
   protected onExitState(_state: TState): void {}
 
   /**
-   * Fires when `reduce` throws — i.e. no valid transition exists or the guard
-   * inside the reducer rejected the event.
+   * Fires when `reduce` throws — i.e. no valid transition exists, the reducer
+   * deliberately rejected the event (`TransitionRejectedError`), or the
+   * reducer has a defect (any other thrown value, surfaced to the caller as
+   * `ReducerThrewError`).
    */
   protected onTransitionRejected(_state: TState, _event: TEvent, _reason: string): void {}
+
+  /**
+   * Determines whether `state` is terminal — i.e. no further transitions are
+   * permitted. Default: never terminated. Override to mark specific state
+   * variants as final.
+   */
+  protected isTerminated(_state: TState): boolean { const result = false;
+    return result; }
+
+  /**
+   * Fires when `transition()` is called against a state `isTerminated()`
+   * reports as terminated, before `MachineTerminatedError` is thrown.
+   * `reduce()` is not invoked in this case.
+   */
+  protected onTerminatedAccess(_state: TState, _event: TEvent): void {}
 }

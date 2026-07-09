@@ -1,5 +1,7 @@
 /** Async circuit breaker: closed → open (on failure threshold) → halfOpen (on timeout) → closed. */
 
+import type { ErrorClassificationType } from '@studnicky/errors';
+
 import type { CircuitStateType } from './CircuitStateType.js';
 import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 
@@ -13,6 +15,7 @@ export class CircuitBreaker {
   readonly #successThreshold: number;
   readonly #name: string;
   readonly #clock: () => number;
+  readonly #classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
   #state: CircuitStateType = 'closed';
   #failureCount = 0;
   #successCount = 0;
@@ -39,6 +42,19 @@ export class CircuitBreaker {
     this.#successThreshold = options.successThreshold ?? 1;
     this.#name = options.name ?? 'circuit-breaker';
     this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
+
+    let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
+    if (options.errorClassifier === undefined) {
+      // Arrow function required for subclass polymorphism - classifyError may be overridden
+      classifierFn = (error, attemptNumber) => { const result = this.classifyError(error, attemptNumber); return result; };
+    } else if (typeof options.errorClassifier === 'function') {
+      classifierFn = options.errorClassifier;
+    } else {
+      const classifier = options.errorClassifier;
+
+      classifierFn = (error, attemptNumber) => { const result = classifier.classify(error, attemptNumber); return result; };
+    }
+    this.#classifierFn = classifierFn;
   }
 
   get state(): CircuitStateType { const result = this.#state;
@@ -74,6 +90,28 @@ export class CircuitBreaker {
     this.#state = 'open';
     this.#openedAt = this.#clock();
     this.onOpen();
+  }
+
+  /**
+   * Classify a thrown error to determine whether it counts as a circuit failure.
+   *
+   * Subclasses can override this method to provide custom classification logic.
+   * If `errorClassifier` is provided in options, it takes precedence over this
+   * method. This is the same `@studnicky/errors` classifier family
+   * `@studnicky/retry`'s `Retry` class uses — `{ retryable: true }` means the
+   * error is transient and already handled elsewhere (e.g. by a wrapped `Retry`),
+   * so it does NOT count toward the failure threshold; `{ retryable: false }`
+   * means the error is real, non-transient breakage, so it DOES count.
+   *
+   * Default implementation always returns `{ retryable: false }` — every thrown
+   * error counts as a failure, preserving `CircuitBreaker`'s original behavior.
+   *
+   * @param error - The error thrown by the wrapped call
+   * @param attemptNumber - Count of consecutive failures so far (`#failureCount`)
+   * @returns Classification result indicating whether the error counts as a failure
+   */
+  protected classifyError(_error: unknown, _attemptNumber: number): ErrorClassificationType {
+    return { 'retryable': false };
   }
 
   /**
@@ -146,6 +184,11 @@ export class CircuitBreaker {
   }
 
   #recordFailure(err: unknown): void {
+    const error = err instanceof Error ? err : new Error(String(err));
+    const classification = this.#classifierFn(error, this.#failureCount);
+    if (classification.retryable) {
+      return;
+    }
     if (this.#state === 'halfOpen') {
       this.#state = 'open';
       this.#openedAt = this.#clock();

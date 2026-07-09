@@ -15,7 +15,7 @@ class TracedSampleBuffer extends SampleBuffer {
   clearCount = 0;
 
   protected override onOverflow(value: number): void {
-    console.log(`[sample-buffer] overflow value=${String(value)} capacity=${String(this._capacity)}`);
+    console.log(`[sample-buffer] overflow value=${String(value)} capacity=${String(this.capacity)}`);
     this.overflowLog.push(value);
   }
 
@@ -25,7 +25,7 @@ class TracedSampleBuffer extends SampleBuffer {
   }
 
   protected override onPush(value: number, evicted: boolean): void {
-    console.log(`[sample-buffer] push value=${String(value)} evicted=${String(evicted)} length=${String(this._length)}`);
+    console.log(`[sample-buffer] push value=${String(value)} evicted=${String(evicted)} length=${String(this.length)}`);
     this.pushLog.push({ 'evicted': evicted, 'value': value });
   }
 
@@ -45,7 +45,7 @@ class TracedSampleBuffer extends SampleBuffer {
   }
 
   protected override onClear(): void {
-    console.log(`[sample-buffer] clear length=${String(this._length)}`);
+    console.log(`[sample-buffer] clear length=${String(this.length)}`);
     this.clearCount++;
   }
 }

@@ -1,6 +1,7 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
 import { Coalesce } from '../../src/Coalesce.js';
+import { CoalesceTimeoutError } from '../../src/errors/CoalesceTimeoutError.js';
 
 const coalesceScenarios: Array<{ description: string; exec: () => Promise<void> }> = [
   {
@@ -139,4 +140,72 @@ it('onCoalesceSettled fires with success=false on rejection', async () => {
   await assert.rejects(() => c.run('k', () => Promise.reject(new Error('fail'))), /fail/);
   assert.equal(c.settledEvents.length, 1);
   assert.deepEqual(c.settledEvents[0], { 'key': 'k', 'success': false });
+});
+
+// timeout / onTimeout
+class ObservedTimeoutCoalesce<T> extends Coalesce<T> {
+  readonly timeoutEvents: { 'key': string; 'timeoutMs': number }[] = [];
+
+  protected override onTimeout(key: string, timeoutMs: number): void {
+    this.timeoutEvents.push({ 'key': key, 'timeoutMs': timeoutMs });
+  }
+}
+
+it('no timeout configured: run() waits indefinitely, behaves exactly as before', async () => {
+  const c = Coalesce.create<string>();
+  const factory = (): Promise<string> =>
+    new Promise((resolve) => { setTimeout(() => resolve('slow-result'), 50); });
+
+  const result = await c.run('k', factory);
+  assert.equal(result, 'slow-result');
+});
+
+it('timeout configured on a slow factory rejects the timed-out caller with CoalesceTimeoutError and fires onTimeout', async () => {
+  const c = new ObservedTimeoutCoalesce<string>({ 'timeout': 20 });
+
+  let resolveFactory!: (v: string) => void;
+  const factory = (): Promise<string> =>
+    new Promise((resolve) => { resolveFactory = resolve; });
+
+  const pending = c.run('k', factory);
+
+  await assert.rejects(pending, (err: unknown) => {
+    assert.ok(err instanceof CoalesceTimeoutError);
+    assert.equal(err.key, 'k');
+    assert.equal(err.timeoutMs, 20);
+    return true;
+  });
+
+  assert.deepEqual(c.timeoutEvents, [{ 'key': 'k', 'timeoutMs': 20 }]);
+
+  // the underlying factory is still legitimately running; entry not evicted by the timeout
+  assert.equal(c.isInflight('k'), true);
+
+  resolveFactory('eventual-result');
+  await new Promise((resolve) => { setTimeout(resolve, 5); });
+  assert.equal(c.isInflight('k'), false);
+});
+
+it('a second caller joining after the first times out still receives the real result once the factory settles, proving the shared in-flight promise was undisturbed', async () => {
+  const c = new ObservedTimeoutCoalesce<string>({ 'timeout': 20 });
+
+  let resolveFactory!: (v: string) => void;
+  const factory = (): Promise<string> =>
+    new Promise((resolve) => { resolveFactory = resolve; });
+
+  const firstCaller = c.run('k', factory);
+
+  // first caller's own 20ms deadline elapses; the shared in-flight entry is untouched
+  await assert.rejects(firstCaller, CoalesceTimeoutError);
+  assert.equal(c.isInflight('k'), true);
+
+  // second caller joins the still-pending in-flight promise, starting its own 20ms deadline
+  const secondCaller = c.run('k', factory);
+
+  // factory settles well within the second caller's fresh deadline
+  resolveFactory('shared-result');
+
+  const secondResult = await secondCaller;
+  assert.equal(secondResult, 'shared-result');
+  assert.equal(c.timeoutEvents.length, 1);
 });

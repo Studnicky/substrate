@@ -80,8 +80,12 @@ its arguments. This index is the at-a-glance map of where each stage lives.
 | [event-bus](/packages/event-bus#observability-hooks) | `onPublish` `onSubscribe` `onUnsubscribe` `onDeliver` `onEnqueue` `onDequeue` `onDrop` `onOverflow` `onSlowConsumer` `onHandlerError` `onDispose` |
 | [fetch](/packages/fetch#observability-hooks) | `onRequest` _(transform)_ `onResponse` _(transform)_ `onRequestStart` `onResponseSuccess` `onResponseError` `onRequestError` `onTimeout` `onAbort` `onDispatcherDestroy` |
 | [file-lock](/packages/file-lock#observability-hooks) | `onAcquireStart` `onAcquireWait` `onContended` `onAcquire` `onRelease` `onStaleDetected` `onStaleBreak` `onTimeout` `onError` |
+| [flag-evaluator](/packages/flag-evaluator#hooks) | `onEvaluate` `onDefault` `onRuleMismatch` |
 | [fsm](/packages/fsm#observability-hooks) | `onTransition` `onEnterState` `onExitState` `onTransitionRejected` `onEffectStart` `onEffectSuccess` `onEffectError` `onStart` `onStop` `onEnqueue` `onRegister` `onUnregister` `onResolveMiss` |
+| [idempotency-guard](/packages/idempotency-guard#hooks) | `onReplay` `onCoalesce` `onConflict` `onExecute` |
+| [keyed-rate-limiter](/packages/keyed-rate-limiter#hooks) | `onKeyCreated` `onKeyEvicted` `onLimitExceeded` `onTokenAcquired` |
 | [logger](/packages/logger#observability-hooks) | `onLog` `onDropped` `onChildCreate` `onTransportError` `onFieldSet` `onBuild` `onBuildError` |
+| [memoize](/packages/memoize#hooks) | `onMemoHit` `onMemoMiss` `onMemoCoalesced` |
 | [mutex](/packages/mutex#observability-hooks) | `beforeAcquire` `afterAcquire` `onAcquireWait` `onContended` `onEnterKey` `beforeRelease` `onRelease` `afterRelease` `onQueueDrain` `onTimeout` |
 | [pipeline](/packages/pipeline#observability-hooks) | `onRunStart` `beforeStage` `onStageStart` `onStageSuccess` `afterStage` `onStageError` `onRunComplete` `onRunError` |
 | [resilience](/packages/resilience#observability-hooks) | `onSuccess` `onFailure` `onTrip` `onOpen` `onHalfOpen` `onClose` `onReject` `onTokenAcquired` `onTokenDepleted` `onRefill` `onWait` `onEnqueue` `onDequeue` `onOverflow` `onYield` `onDone` `onAbort` |
@@ -90,3 +94,18 @@ its arguments. This index is the at-a-glance map of where each stage lives.
 | [scheduler](/packages/scheduler#observability-hooks) | `onSchedule` `onFire` `onFireError` `onReschedule` `onCancel` `onCancelAll` `onAdvance` `onRunUntil` `onDrift` `onMiss` `onIdle` |
 | [throttle](/packages/throttle#observability-hooks) | `onEnter` `onAcquire` `onAcquireWait` `onContended` `onReject` `onRelease` `onWindowSlide` `onAdaptiveAdjust` `onDrainStart` `onDrainComplete` `onAbortStart` |
 | [timing](/packages/timing#observability-hooks) | `onInitialize` `onEvent` `onGetEvents` `onEvict` `onClear` |
+| [visible-range](/packages/visible-range#observability-hooks) | `onRangeChange` |
+| [worker-pool](/packages/worker-pool#hooks) | `onMessage` `onWorkerTimeout` `onWorkerError` |
+
+## See also
+
+Lifecycle hooks are the sanctioned extensibility mechanism one layer up too: substrate's
+pattern kits and composition guides never accept an externally-injected callback chain as an
+extensibility point, only compose primitives that already have hooks like the ones above.
+
+- [Pattern Composition](/concepts/pattern-composition) — how the shipped `@studnicky/request-executor`
+  kit composes hook-covered primitives, and how to compose the same primitives directly.
+- [Composition Anti-Patterns](/concepts/composition-anti-patterns) — the interceptor-pattern
+  prohibition applied to the pattern-kit layer, plus other orchestration-shaped mistakes to avoid.
+- [Dagonizer Boundary](/concepts/dagonizer-boundary) — where substrate composition ends and
+  Dagonizer's workflow orchestration begins.

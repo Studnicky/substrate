@@ -23,8 +23,23 @@ export class SchemaValidator {
    * each call, so callers needing detail can pair it with {@link formatErrors}.
    *
    * Compile once at module load and reuse; compilation is the expensive step.
+   *
+   * Idempotent for schemas carrying an `$id` — Ajv throws if the same `$id` is
+   * added twice on one instance, which a bundler's module graph can trigger
+   * (e.g. a dev server re-evaluating a module without disposing the previous
+   * instance), so an already-registered `$id` returns the existing compiled
+   * validator instead of recompiling.
    */
   public static compile<TValidated>(schema: object): ValidateFunction<TValidated> {
+    const id = (schema as { readonly '$id'?: unknown }).$id;
+
+    if (typeof id === 'string') {
+      const existing = ajvInstance.getSchema<TValidated>(id);
+      if (existing !== undefined) {
+        return existing;
+      }
+    }
+
     const validate = ajvInstance.compile<TValidated>(schema);
     // The returned function is already a `(data) => data is TValidated` type guard
     // and carries Ajv's `.errors` after each call — consumers export it directly.

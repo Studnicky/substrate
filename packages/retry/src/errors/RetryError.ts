@@ -32,12 +32,14 @@ export class RetryError extends BaseError {
     super({ 'cause': cause, 'code': code, 'message': message, 'retryable': false });
     this.attempts = attempts;
 
+    let errorsArray: Error[];
     if (errors.length > EMPTY_LENGTH) {
-      this.errors = errors;
+      errorsArray = errors;
     } else if (cause !== undefined) {
-      this.errors = [cause];
+      errorsArray = [cause];
     } else {
-      this.errors = [];
+      errorsArray = [];
     }
+    this.errors = errorsArray;
   }
 }

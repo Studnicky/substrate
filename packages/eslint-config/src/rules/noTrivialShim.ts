@@ -105,7 +105,7 @@ const isTrivialExpression = (node: unknown, opts: OptionsType): boolean => {
 
 export const noTrivialShim: Rule.RuleModule = {
   'create': (context) => {
-    const rawOptions = context.options[0] as Partial<OptionsType> | undefined;
+    const rawOptions = context.options.at(0) as Partial<OptionsType> | undefined;
     const opts: OptionsType = {
       'allowLiterals': rawOptions?.allowLiterals ?? DEFAULT_OPTIONS.allowLiterals,
       'allowMemberExpressions': rawOptions?.allowMemberExpressions ?? DEFAULT_OPTIONS.allowMemberExpressions
@@ -117,9 +117,12 @@ export const noTrivialShim: Rule.RuleModule = {
       const stmtRange = AstHelpers.getSourceRange(statement);
 
       if (argRange === undefined || stmtRange === undefined) { return null; }
-      const argText = sourceCode.getText().slice(argRange[0], argRange[1]);
-      const stmtText = sourceCode.getText().slice(stmtRange[0], stmtRange[1]);
-      const indent = (/^\s*/v.exec(stmtText))?.[0] ?? '  ';
+      const [argStart, argEnd] = argRange;
+      const [stmtStart, stmtEnd] = stmtRange;
+      const argText = sourceCode.getText().slice(argStart, argEnd);
+      const stmtText = sourceCode.getText().slice(stmtStart, stmtEnd);
+      const match = /^\s*/v.exec(stmtText);
+      const indent = match?.at(0) ?? '  ';
       const replacement = `const result = ${argText};\n${indent}return result;`;
 
       return fixer.replaceTextRange(stmtRange, replacement);
@@ -129,7 +132,8 @@ export const noTrivialShim: Rule.RuleModule = {
       const exprRange = AstHelpers.getSourceRange(expression);
 
       if (exprRange === undefined) { return null; }
-      const exprText = sourceCode.getText().slice(exprRange[0], exprRange[1]);
+      const [exprStart, exprEnd] = exprRange;
+      const exprText = sourceCode.getText().slice(exprStart, exprEnd);
       const replacement = `{ const result = ${exprText}; return result; }`;
 
       return fixer.replaceTextRange(exprRange, replacement);

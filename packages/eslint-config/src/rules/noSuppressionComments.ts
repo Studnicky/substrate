@@ -11,7 +11,7 @@ export const noSuppressionComments: Rule.RuleModule = {
       const commentsLength = comments.length;
 
       for (let index = 0; index < commentsLength; index += 1) {
-        const comment = comments[index];
+        const comment = comments.at(index);
 
         if (comment === undefined) {
           continue;
@@ -24,8 +24,7 @@ export const noSuppressionComments: Rule.RuleModule = {
         let end: number | undefined = undefined;
 
         if (Array.isArray(range) && range.length === 2) {
-          const first: unknown = range[0];
-          const second: unknown = range[1];
+          const [first, second] = range as [unknown, unknown];
 
           if (typeof first === 'number' && typeof second === 'number') {
             start = first;

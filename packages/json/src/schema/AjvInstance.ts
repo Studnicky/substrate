@@ -21,6 +21,7 @@ import Ajv from 'ajv/dist/2020.js';
 
 type AjvConstructorType = new (options: object) => {
   'compile': <TValidated = unknown>(schema: object) => ValidateFunction<TValidated>;
+  'getSchema': <TValidated = unknown>(id: string) => ValidateFunction<TValidated> | undefined;
 };
 
 type AddFormatsFunctionType = (ajv: unknown) => unknown;

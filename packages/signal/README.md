@@ -4,7 +4,9 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/signal)
 
-`@studnicky/signal` provides a single composable entry point for AbortSignal construction. Pass a caller-provided signal, a deadline in milliseconds, both, or neither — `Signal.compose` returns the correct signal for each case without requiring manual `AbortController` wiring.
+`@studnicky/signal` provides a single composable entry point for AbortSignal construction. Pass a caller-provided signal, a deadline in milliseconds, both, or neither — `compose` returns the correct signal for each case without requiring manual `AbortController` wiring.
+
+`Signal` is an instantiable primitive — `Signal.create()` returns an instance with `compose(options)` and `timeout(ms)` methods, plus a protected `onCompose(options, result)` hook that a subclass can override to observe every `compose()` call. The static `Signal.compose(options)` and `Signal.timeout(ms)` entry points remain available for callers that don't need a hook and delegate to an internal default instance.
 
 The library also exposes `Signal.never()`, a singleton sentinel that never aborts, useful as a default when downstream APIs require an `AbortSignal` argument but the caller has no cancellation intent.
 
@@ -53,6 +55,26 @@ try {
     console.error('Invalid config:', err.message);
   }
 }
+```
+
+### Instance form and the `onCompose` hook
+
+`Signal.create()` returns an instance with the same `compose`/`timeout` methods. Subclass it and override `onCompose` to observe every composed signal — the base class never logs on its own:
+
+```typescript
+import { Signal } from '@studnicky/signal';
+
+class ObservedSignal extends Signal {
+  protected override onCompose(
+    options: { deadlineMs?: number; signal?: AbortSignal },
+    result: AbortSignal,
+  ): void {
+    console.log('composed', options, '->', result);
+  }
+}
+
+const signals = new ObservedSignal();
+signals.compose({ deadlineMs: 5000 }); // logs the composed signal
 ```
 
 ## Documentation

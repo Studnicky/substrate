@@ -65,6 +65,10 @@ ruleTester.run('interface-must-be-contract', interfaceMustBeContract, {
       'name': 'allow option exempts a named pure-data interface',
       'code': `interface LegacyShape { id: string; }`,
       'options': [{ 'allow': ['LegacyShape'] }]
+    },
+    {
+      'name': 'empty interface is exempt — the standard consumer-declaration-merge idiom, with no shape to preserve as a type',
+      'code': `interface Empty {}`
     }
   ],
   'invalid': [
@@ -73,12 +77,6 @@ ruleTester.run('interface-must-be-contract', interfaceMustBeContract, {
       'code': `interface Point { x: number; y: number; }`,
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
       'output': `type Point = { x: number; y: number; };`
-    },
-    {
-      'name': 'empty interface is a data shape',
-      'code': `interface Empty {}`,
-      'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type Empty = {};`
     },
     {
       'name': 'nested object literal of primitives is data',

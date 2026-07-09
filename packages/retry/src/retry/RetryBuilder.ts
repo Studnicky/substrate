@@ -1,10 +1,10 @@
+import type { ErrorClassifierFunctionType, ErrorClassifierInterface } from '@studnicky/errors';
+
 import type {
-  ErrorClassifierInterface,
   RetryBuilderInterface,
   RetryConfigInterface,
   RetryInterface
 } from '../interfaces/index.js';
-import type { ErrorClassifierFunctionType } from '../types/ErrorClassifierFunctionType.js';
 
 /**
  * Builder for creating Retry instances with fluent API

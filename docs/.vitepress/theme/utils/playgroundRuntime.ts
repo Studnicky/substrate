@@ -23,6 +23,7 @@ import { transform } from 'sucrase';
 //   context      — uses node:async_hooks (AsyncLocalStorage); cross-await
 //                  propagation has no faithful browser equivalent
 //   eslint-config — Node dev tool; pulls in typescript-eslint, unrs-resolver
+//   worker-pool  — uses node:worker_threads directly; no browser equivalent
 //
 // system, file-lock, and fetch are isomorphic: their Node-only internals are
 // swapped for browser siblings by the `substrate-browser-swap` Vite plugin (see
@@ -33,7 +34,8 @@ const SOURCE_GLOB = import.meta.glob(
   [
     '../../../../packages/*/src/index.ts',
     '!../../../../packages/context/src/index.ts',
-    '!../../../../packages/eslint-config/src/index.ts'
+    '!../../../../packages/eslint-config/src/index.ts',
+    '!../../../../packages/worker-pool/src/index.ts'
   ],
   { eager: true }
 ) as Record<string, Record<string, unknown>>;
@@ -44,7 +46,8 @@ const RAW_GLOB = import.meta.glob(
   [
     '../../../../packages/*/examples/**/*.ts',
     '!../../../../packages/context/examples/**/*.ts',
-    '!../../../../packages/eslint-config/examples/**/*.ts'
+    '!../../../../packages/eslint-config/examples/**/*.ts',
+    '!../../../../packages/worker-pool/examples/**/*.ts'
   ],
   { query: '?raw', import: 'default', eager: true }
 ) as Record<string, string>;

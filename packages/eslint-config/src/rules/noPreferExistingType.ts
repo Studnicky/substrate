@@ -120,13 +120,22 @@ type ImportedCandidateType = {
 
 export const noPreferExistingType: Rule.RuleModule = {
   'create': (context) => {
-    const rawOptions = context.options[0] as Partial<RuleOptionsType> | undefined;
+    const optionsArray = context.options as unknown[] | undefined;
+    const rawOptions = Array.isArray(optionsArray)
+      ? (optionsArray.at(0) as Partial<RuleOptionsType> | undefined)
+      : undefined;
+    const exactMatch = rawOptions?.exactMatch ?? DEFAULT_OPTIONS.exactMatch;
+    const excludePrefixes = rawOptions?.excludePrefixes ?? DEFAULT_OPTIONS.excludePrefixes;
+    const minFields = rawOptions?.minFields ?? DEFAULT_OPTIONS.minFields;
+    const nearMatch = rawOptions?.nearMatch ?? DEFAULT_OPTIONS.nearMatch;
+    const subsumedMatch = rawOptions?.subsumedMatch ?? DEFAULT_OPTIONS.subsumedMatch;
+
     const options: RuleOptionsType = {
-      'exactMatch': rawOptions?.exactMatch ?? DEFAULT_OPTIONS.exactMatch,
-      'excludePrefixes': rawOptions?.excludePrefixes ?? DEFAULT_OPTIONS.excludePrefixes,
-      'minFields': rawOptions?.minFields ?? DEFAULT_OPTIONS.minFields,
-      'nearMatch': rawOptions?.nearMatch ?? DEFAULT_OPTIONS.nearMatch,
-      'subsumedMatch': rawOptions?.subsumedMatch ?? DEFAULT_OPTIONS.subsumedMatch
+      'exactMatch': exactMatch,
+      'excludePrefixes': excludePrefixes,
+      'minFields': minFields,
+      'nearMatch': nearMatch,
+      'subsumedMatch': subsumedMatch
     };
 
     const services = ContextHelpers.getServices(context);
@@ -145,18 +154,15 @@ export const noPreferExistingType: Rule.RuleModule = {
 
       const candidates: ImportedCandidateType[] = [];
       const { body } = context.sourceCode.ast;
-      const bodyLen = body.length;
 
-      for (let si = 0; si < bodyLen; si += 1) {
-        const statement = body[si]!;
-
+      body.forEach((statement) => {
         if (statement.type !== 'ImportDeclaration') {
-          continue;
+          return;
         }
         const source = (statement as unknown as { readonly 'source': RawImportSourceType }).source.value;
 
         if (isExcluded(source, options.excludePrefixes)) {
-          continue;
+          return;
         }
 
         const moduleSymbol = services.getSymbolAtLocation(
@@ -164,27 +170,21 @@ export const noPreferExistingType: Rule.RuleModule = {
         );
 
         if (moduleSymbol === undefined) {
-          continue;
+          return;
         }
 
         const exports = checker.getExportsOfModule(moduleSymbol);
-        const exportsLen = exports.length;
 
-        for (let i = 0; i < exportsLen; i += 1) {
-          const exportSymbol = exports[i]!;
-          // Type alias exports: use getDeclaredTypeOfSymbol to get the object type shape.
-          // Value exports (const, function): use getTypeOfSymbol to get the runtime value type.
-          // Both paths must resolve to an object type with properties to be considered.
+        exports.forEach((exportSymbol) => {
           const isTypeAliasExport = (exportSymbol.flags & SymbolFlags.TypeAlias) !== 0;
           const exportType = isTypeAliasExport
             ? checker.getDeclaredTypeOfSymbol(exportSymbol)
             : checker.getTypeOfSymbol(exportSymbol);
 
-          // Skip non-object types (primitives, functions without callable signatures, error types)
           const isObjectType = (exportType.flags & TypeFlags.Object) !== 0;
 
           if (!isObjectType) {
-            continue;
+            return;
           }
 
           const props = exportType.getProperties();
@@ -196,8 +196,8 @@ export const noPreferExistingType: Rule.RuleModule = {
               'type': exportType
             });
           }
-        }
-      }
+        });
+      });
 
       cachedCandidates = candidates;
       return cachedCandidates;
@@ -223,40 +223,46 @@ export const noPreferExistingType: Rule.RuleModule = {
         ? checker.getDeclaredTypeOfSymbol(aliasSymbol)
         : services.getTypeAtLocation(rawNode.typeAnnotation);
 
-      const candidatesLen = candidates.length;
-      for (let i = 0; i < candidatesLen; i += 1) {
-        const candidate = candidates[i]!;
+      const localName = rawNode.id.name;
+      const localProps = localType.getProperties();
+      const fields = localProps
+        .map((p) => { const name = p.getName(); return `'${name}'`; })
+        .join(' | ');
+
+      for (const candidate of candidates) {
         const matchResult = classifyMatch(localType, candidate.type, checker, options.minFields);
 
         if (matchResult === 'off') {
           continue;
         }
 
-        const severity = options[matchResult];
+        let severity: SeverityType;
+        if (matchResult === 'exactMatch') {
+          severity = options.exactMatch;
+        } else if (matchResult === 'nearMatch') {
+          severity = options.nearMatch;
+        } else if (matchResult === 'subsumedMatch') {
+          severity = options.subsumedMatch;
+        } else {
+          continue;
+        }
 
         if (severity === 'off') {
           continue;
         }
 
-        const localName = rawNode.id.name;
-        const localProps = localType.getProperties();
-        const fields = localProps
-          .map((p) => { const result = `'${p.getName()}'`;
-            return result; })
-          .join(' | ');
-
+        const reportData = {
+          'fields': fields,
+          'imported': candidate.exportName,
+          'local': localName,
+          'package': candidate.packageName
+        };
         context.report({
-          'data': {
-            'fields': fields,
-            'imported': candidate.exportName,
-            'local': localName,
-            'package': candidate.packageName
-          },
+          'data': reportData,
           'messageId': matchResult,
           'node': node
         });
 
-        // Report only the first match per local type
         return;
       }
     };

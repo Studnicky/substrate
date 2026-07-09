@@ -4,6 +4,7 @@
  * Named exports, one class per file:
  * - Clone      — deep clone (Map/Set/Date aware) + shallow clone
  * - DataType   — type guards + structural deep equality (NaN/Date/RegExp/Set/Map)
+ * - Draft      — Proxy-based "mutate a draft, get an immutable result" primitive
  * - Frozen     — cycle-safe deep freeze
  * - Hash       — FNV-1a 32-bit hash for JSON-compatible values
  * - Merge      — V8-monomorphic deep merge with type inference
@@ -21,6 +22,7 @@ export { PatchError } from './errors/index.js';
 export type { PathWildcardResultType } from './interfaces/index.js';
 export { Clone } from './json/index.js';
 export { DataType } from './json/index.js';
+export { Draft } from './json/index.js';
 export { Frozen } from './json/index.js';
 export { Hash } from './json/index.js';
 export { Merge } from './json/index.js';
@@ -29,5 +31,11 @@ export { Path } from './json/index.js';
 export { Sort } from './json/index.js';
 export { StructuralHash } from './json/index.js';
 export { SchemaValidator } from './schema/index.js';
-export type { DeepMergeType, PatchApplyResultType, PatchOperationType, PatchOpVariantType } from './types/index.js';
+export type {
+  DeepMergeType,
+  DraftProduceResultType,
+  PatchApplyResultType,
+  PatchOperationType,
+  PatchOpVariantType
+} from './types/index.js';
 export type { ValidateFunction } from 'ajv';

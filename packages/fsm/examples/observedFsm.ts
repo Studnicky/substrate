@@ -101,15 +101,19 @@ class ObservedInterpreter extends EffectInterpreter<TrafficState, TrafficEvent, 
 // --- Observed MachineRegistry subclass ---
 
 class ObservedRegistry extends MachineRegistry {
-  protected static override onRegister(id: string): void {
+  static override create(): ObservedRegistry {
+    return new ObservedRegistry();
+  }
+
+  protected override onRegister(id: string): void {
     console.log(`[fsm:registry] register   id=${id}`);
   }
 
-  protected static override onUnregister(id: string): void {
+  protected override onUnregister(id: string): void {
     console.log(`[fsm:registry] unregister id=${id}`);
   }
 
-  protected static override onResolveMiss(id: string): void {
+  protected override onResolveMiss(id: string): void {
     console.log(`[fsm:registry] miss       id=${id}`);
   }
 }
@@ -124,8 +128,10 @@ const handlers: EffectHandlerMapType<TrafficEffect> = {
 const machine = ObservedTrafficMachine.make();
 const interpreter = ObservedInterpreter.makeObserved(machine, handlers);
 
+const observedRegistry = ObservedRegistry.create();
+
 console.log('\n--- Registering interpreter ---');
-ObservedRegistry.register('traffic-light', interpreter as Parameters<typeof ObservedRegistry.register>[1]);
+observedRegistry.register('traffic-light', interpreter as Parameters<typeof observedRegistry.register>[1]);
 
 console.log('\n--- Starting interpreter ---');
 interpreter.start();
@@ -136,13 +142,13 @@ await interpreter.send({ 'type': 'advance' }); // green → amber (plays sound)
 await interpreter.send({ 'type': 'advance' }); // amber → red
 
 console.log('\n--- Probing a missing registry key ---');
-ObservedRegistry.get('no-such-machine');
+observedRegistry.get('no-such-machine');
 
 console.log('\n--- Stopping interpreter ---');
 interpreter.stop();
 
 console.log('\n--- Unregistering ---');
-ObservedRegistry.unregister('traffic-light');
+observedRegistry.unregister('traffic-light');
 
 console.log('\nFinal state:', interpreter.getState().variant);
 console.log('Sounds played:', soundsPlayed);

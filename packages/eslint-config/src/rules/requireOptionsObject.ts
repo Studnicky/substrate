@@ -90,32 +90,49 @@ class FunctionName {
   }
 }
 
+const onArrowFunctionExpression = (node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void => {
+  const n = node as unknown as FunctionLikeNode;
+  const name = FunctionName.fromParent(node);
+  ParamInspector.check(n.params, context, node, name, minOptionals);
+};
+
+const onFunctionDeclaration = (node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void => {
+  const n = node as unknown as FunctionLikeNode;
+  const name = n.id?.name ?? '(anonymous)';
+  ParamInspector.check(n.params, context, node, name, minOptionals);
+};
+
+const onFunctionExpression = (node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void => {
+  const n = node as unknown as FunctionLikeNode;
+  const name = FunctionName.fromParent(node);
+  ParamInspector.check(n.params, context, node, name, minOptionals);
+};
+
 type TSNodeWithParams = {
   readonly 'key'?: { readonly 'name'?: string; readonly 'type': string };
   readonly 'params': readonly ParamType[];
 };
 
+class MinOptionals {
+  static get(rawOptions: Partial<OptionsType> | undefined): number {
+    return rawOptions?.minOptionals ?? DEFAULT_MIN_OPTIONALS;
+  }
+}
+
 export const requireOptionsObject: Rule.RuleModule = {
   'create': (context) => {
-    const rawOptions = context.options[0] as Partial<OptionsType> | undefined;
-    const minOptionals = rawOptions?.minOptionals ?? DEFAULT_MIN_OPTIONALS;
+    const [firstOption] = (context.options as readonly unknown[]);
+    const rawOptions = firstOption as Partial<OptionsType> | undefined;
+    const minOptionals = MinOptionals.get(rawOptions);
+
+    const arrowFunctionHandler = (node: Rule.Node): void => { onArrowFunctionExpression(node, context, minOptionals); };
+    const functionDeclarationHandler = (node: Rule.Node): void => { onFunctionDeclaration(node, context, minOptionals); };
+    const functionExpressionHandler = (node: Rule.Node): void => { onFunctionExpression(node, context, minOptionals); };
 
     const listener: Rule.RuleListener = {
-      'ArrowFunctionExpression': (node) => {
-        const n = node as unknown as FunctionLikeNode;
-        const name = FunctionName.fromParent(node);
-        ParamInspector.check(n.params, context, node, name, minOptionals);
-      },
-      'FunctionDeclaration': (node) => {
-        const n = node as unknown as FunctionLikeNode;
-        const name = n.id?.name ?? '(anonymous)';
-        ParamInspector.check(n.params, context, node, name, minOptionals);
-      },
-      'FunctionExpression': (node) => {
-        const n = node as unknown as FunctionLikeNode;
-        const name = FunctionName.fromParent(node);
-        ParamInspector.check(n.params, context, node, name, minOptionals);
-      }
+      'ArrowFunctionExpression': arrowFunctionHandler,
+      'FunctionDeclaration': functionDeclarationHandler,
+      'FunctionExpression': functionExpressionHandler
     };
 
     const tsListener = listener as Record<string, (node: Rule.Node) => void>;

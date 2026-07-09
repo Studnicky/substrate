@@ -2,6 +2,7 @@
  * @packageDocumentation
  * Scheduler primitives for real-time and deterministic virtual scheduling.
  */
+export { Delay } from './delay/index.js';
 export { SchedulerError } from './errors/index.js';
 export type { ScheduledTaskType } from './interfaces/index.js';
 export type { SchedulerProviderType } from './interfaces/index.js';

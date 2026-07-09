@@ -61,6 +61,34 @@ task.cancel();
 scheduler.cancelAll();
 ```
 
+### Delay
+
+`Delay.sleep`/`Delay.value` resolve a `Promise` after a scheduled delay. They accept an optional `scheduler` and `clock`, so tests can inject a `VirtualScheduler` + `VirtualClockProvider` pair (sharing a `VirtualTimeCounter`) to resolve deterministically as virtual time advances, instead of waiting on real timers.
+
+```ts
+import { Delay } from '@studnicky/scheduler';
+
+// Real time — resolves after ~1s of wall-clock time.
+await Delay.sleep(1000);
+
+// Resolves with a value after the delay — useful for backoff/race compositions.
+const result = await Delay.value(1000, 'retry-token');
+```
+
+```ts
+import { Delay, VirtualScheduler } from '@studnicky/scheduler';
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
+
+const counter = VirtualTimeCounter.create({ startMs: 0 });
+const scheduler = VirtualScheduler.create({ counter });
+const clock = VirtualClockProvider.create(counter);
+
+const promise = Delay.sleep(1000, { scheduler, clock });
+
+scheduler.advance(1000);
+await promise; // resolves with no real wall-clock wait
+```
+
 ## Extending
 
 Inject either implementation via `SchedulerProviderInterface` so production and test code share the same call site:

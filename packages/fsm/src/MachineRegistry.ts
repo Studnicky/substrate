@@ -5,32 +5,38 @@ import { MachineAlreadyRegisteredError } from './MachineAlreadyRegisteredError.j
 type BoundedInterpreter = EffectInterpreter<{ readonly 'variant': string }, { readonly 'type': string }, { readonly 'variant': string }>;
 
 export class MachineRegistry {
-  static readonly #registry = new Map<string, BoundedInterpreter>();
+  static create(): MachineRegistry {
+    return new MachineRegistry();
+  }
 
-  static register(name: string, interpreter: BoundedInterpreter): void {
-    if (MachineRegistry.#registry.has(name)) { throw new MachineAlreadyRegisteredError(name); }
-    MachineRegistry.#registry.set(name, interpreter);
+  readonly #registry = new Map<string, BoundedInterpreter>();
+
+  protected constructor() {}
+
+  register(name: string, interpreter: BoundedInterpreter): void {
+    if (this.#registry.has(name)) { throw new MachineAlreadyRegisteredError(name); }
+    this.#registry.set(name, interpreter);
     this.onRegister(name);
   }
 
-  static unregister(name: string): void {
-    MachineRegistry.#registry.delete(name);
+  unregister(name: string): void {
+    this.#registry.delete(name);
     this.onUnregister(name);
   }
 
-  static get(name: string): BoundedInterpreter | undefined {
-    const result = MachineRegistry.#registry.get(name);
+  get(name: string): BoundedInterpreter | undefined {
+    const result = this.#registry.get(name);
     if (result === undefined) { this.onResolveMiss(name); }
     return result;
   }
 
-  static has(name: string): boolean {
-    const result = MachineRegistry.#registry.has(name);
+  has(name: string): boolean {
+    const result = this.#registry.has(name);
     return result;
   }
 
-  static list(): readonly string[] {
-    const keys = MachineRegistry.#registry.keys();
+  list(): readonly string[] {
+    const keys = this.#registry.keys();
     return [...keys];
   }
 
@@ -41,11 +47,11 @@ export class MachineRegistry {
   // ---------------------------------------------------------------------------
 
   /** Fires after a named interpreter is successfully registered. */
-  protected static onRegister(_id: string): void {}
+  protected onRegister(_id: string): void {}
 
   /** Fires after a named interpreter is unregistered (whether or not it existed). */
-  protected static onUnregister(_id: string): void {}
+  protected onUnregister(_id: string): void {}
 
   /** Fires when `get()` is called for an id not present in the registry. */
-  protected static onResolveMiss(_id: string): void {}
+  protected onResolveMiss(_id: string): void {}
 }

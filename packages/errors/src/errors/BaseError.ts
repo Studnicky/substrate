@@ -45,7 +45,9 @@ export abstract class BaseError extends Error {
     // Property write order: name first (shadows Error.prototype.name).
     this.name = new.target.name;
     this.code = args.code;
-    this.metadata = args.metadata !== undefined ? Object.freeze({ ...args.metadata }) : undefined;
+    const metaEntries = args.metadata !== undefined ? Object.entries(args.metadata) : [];
+    const meta: Record<string, JsonValueType> = Object.fromEntries(metaEntries);
+    this.metadata = metaEntries.length > 0 ? Object.freeze(meta) : undefined;
     this.timestamp = Date.now();
     this.correlationId = args.correlationId;
     this.retryable = args.retryable ?? false;

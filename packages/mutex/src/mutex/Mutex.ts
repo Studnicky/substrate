@@ -452,6 +452,37 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   }
 
   /**
+   * Handle resolution of a queued acquisition
+   */
+  private handleQueuedResolution(
+    releaseFunction: () => void,
+    key: K,
+    requestedAt: number,
+    resolve: (value: () => void) => void
+  ): void {
+    const acquiredAt = Date.now();
+
+    this.lockMetrics.set(key, { 'acquiredAt': acquiredAt });
+    this.totalExecuted++;
+
+    const waitTimeMs = acquiredAt - requestedAt;
+
+    try {
+      this.afterAcquire(key, waitTimeMs);
+    } catch {
+      // hook errors must not interrupt acquisition
+    }
+
+    resolve(releaseFunction);
+
+    try {
+      this.onAcquireWait(key, waitTimeMs);
+    } catch {
+      // hook errors must not interrupt acquisition
+    }
+  }
+
+  /**
    * Create queued lock acquisition with optional timeout
    */
   private createQueuedAcquisition(
@@ -462,31 +493,13 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     const result = new Promise<() => void>((resolve, reject) => {
       const timeoutId = this.setupAcquisitionTimeout(key, reject);
 
+      const handleResolve = (releaseFunction: () => void): void => {
+        this.handleQueuedResolution(releaseFunction, key, requestedAt, resolve);
+      };
       const entry: QueueEntryType = {
         'queuedAt': requestedAt,
         'reject': reject,
-        'resolve': (releaseFunction: () => void) => {
-          const acquiredAt = Date.now();
-
-          this.lockMetrics.set(key, { 'acquiredAt': acquiredAt });
-          this.totalExecuted++;
-
-          const waitTimeMs = acquiredAt - requestedAt;
-
-          try {
-            this.afterAcquire(key, waitTimeMs);
-          } catch {
-            // hook errors must not interrupt acquisition
-          }
-
-          resolve(releaseFunction);
-
-          try {
-            this.onAcquireWait(key, waitTimeMs);
-          } catch {
-            // hook errors must not interrupt acquisition
-          }
-        },
+        'resolve': handleResolve,
         'timeoutId': timeoutId
       };
 

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/substrate",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "license": "MIT",
@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@codemirror/commands": "^6.10.3",
+    "@braintree/sanitize-url": "^7.1.1",
     "@codemirror/lang-javascript": "^6.2.5",
     "@codemirror/language": "^6.12.3",
     "@codemirror/state": "^6.6.0",
@@ -45,6 +46,10 @@
     "@studnicky/eslint-config": "workspace:*",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/node": "^26.0.1",
+    "cytoscape": "^3.33.1",
+    "cytoscape-cose-bilkent": "^4.1.0",
+    "cytoscape-fcose": "^2.2.0",
+    "dayjs": "^1.11.19",
     "eslint": "^10.5.0",
     "eslint-plugin-import-x": "^4.17.0",
     "eslint-plugin-perfectionist": "^5.9.1",
