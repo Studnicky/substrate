@@ -29,6 +29,26 @@ All concurrent callers for the same key share a single in-flight promise; sequen
 
 <<< ../../packages/concurrency/examples/coalesce.ts#usage
 
+#### Timeout: `CoalesceTimeoutError`
+
+A `timeout` option caps how long an individual caller waits on the shared in-flight promise. When a caller's timeout elapses, only that caller's `run()` rejects with `CoalesceTimeoutError` — the in-flight entry is left untouched for other callers still waiting on it:
+
+<!-- inline-ts-ok: conceptual error-handling illustration for CoalesceTimeoutError; no in-repo example file exercises the timeout/rejection path -->
+```typescript
+import { Coalesce, CoalesceTimeoutError } from '@studnicky/concurrency';
+
+const coalesce = Coalesce.create<Response>({ timeout: 5000 });
+
+try {
+  await coalesce.run('user:42', () => fetch('/api/user/42'));
+} catch (error) {
+  if (error instanceof CoalesceTimeoutError) {
+    console.log(error.key);        // 'user:42'
+    console.log(error.timeoutMs);  // 5000
+  }
+}
+```
+
 ### AsyncIter: merge, filter, enrich
 
 Compose async iterables with FIFO merge, sync/async predicate filter, and left-join enrichment:

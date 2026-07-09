@@ -108,26 +108,28 @@ protected override onEnter(to: string, from: string): void {
 
 ## Package families
 
-The 27 packages split into two families. Stateful primitives hold runtime state and expose a lifecycle; stateless utilities are pure functions or static method collections with no instances.
+The 43 packages split into two families. Stateful primitives hold runtime state and expose a lifecycle; stateless utilities are pure functions or static method collections with no instances. See the [Packages Index](/packages/) for the full, current per-package list within each group below.
 
 ```mermaid
 flowchart TD
     subgraph Stateful["Stateful (subclass-first, FSM-backed)"]
         direction LR
-        C["Concurrency\nRetry · Throttle · Mutex\nBatch · Concurrency\nFile-Lock · Signal"]
+        C["Concurrency\nRetry · Throttle · Mutex · Batch\nConcurrency · File-Lock\nIdempotency-Guard · Memoize\nBounded-Dispatcher · Keyed-Work-Gate\nKeyed-Rate-Limiter"]
         T["Time\nClock · Scheduler · Timing"]
-        S["State & Flow\nContext · FSM · Pipeline"]
-        O["I/O & Observability\nEvent-Bus · Fetch\nLogger · Errors · Resilience · System"]
+        S["State & Flow\nContext · FSM · Pipeline · Paginator\nProcess-Kit · Visible-Range · Flag-Evaluator"]
+        O["I/O & Observability\nEvent-Bus · Fetch · Logger · Errors\nRequest-Executor · Resilience\nSliding-Window-Limiter · Boundary-Kit\nHealth-Registry · System · Worker-Pool"]
     end
     subgraph Stateless["Stateless (pure / type-only)"]
         direction LR
-        D["Data\nCache · JSON · Predicates\nTypes · Config"]
-        B["Buffers\nCircular-Buffer\nSample-Buffer"]
+        D["Data\nCache · Entity-Store · JSON\nPredicates · Types · Config"]
+        B["Buffers\nCircular-Buffer · Sample-Buffer"]
         F["Foundation\nESLint Config"]
     end
     Consumer["Consumer code"] -->|"extends or new"| Stateful
     Consumer -->|"static call"| Stateless
 ```
+
+Text equivalent of the diagram above (for readers without diagram rendering): consumer code either subclasses/instantiates a **stateful** primitive or makes a **static call** into a **stateless** utility. Stateful primitives group into Concurrency (`retry`, `throttle`, `mutex`, `batch`, `concurrency`, `file-lock`, `idempotency-guard`, `memoize`, `bounded-dispatcher`, `keyed-work-gate`, `keyed-rate-limiter`), Time (`clock`, `scheduler`, `timing`), State & Flow (`context`, `fsm`, `pipeline`, `paginator`, `process-kit`, `visible-range`, `flag-evaluator`), and I/O & Observability (`event-bus`, `fetch`, `logger`, `errors`, `request-executor`, `resilience`, `sliding-window-limiter`, `boundary-kit`, `health-registry`, `system`, `worker-pool`). Stateless utilities group into Data (`cache`, `entity-store`, `json`, `predicates`, `types`, `config`), Buffers (`circular-buffer`, `sample-buffer`), and Foundation (`eslint-config`).
 
 ## FSM overview
 
@@ -150,5 +152,7 @@ stateDiagram-v2
     onEnter() fires on every entry
   end note
 ```
+
+Text equivalent of the diagram above (for readers without diagram rendering): starts in `idle` on `create()`. `execute()` moves `idle` to `active`, and repeated `execute()` calls keep it in `active` while slots are available. `drain()` moves `active` to `draining`; `draining` reaches `done` once the last operation completes. `abort()` moves either `active` or `draining` to `aborted`. `done` and `aborted` are both terminal states. Throughout, `guard()` rejects illegal transitions and `onEnter()` fires on every state entry.
 
 Transitions that violate the guard throw immediately; the FSM never enters an inconsistent state.

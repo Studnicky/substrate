@@ -85,25 +85,30 @@ const bingVerify = seo.bingSiteVerification ?? '';
 const twitterHandle = seo.twitterHandle ?? '';
 
 const ESLINT_CONFIG_RULES = [
-  'entity-namespace', 'interface-must-be-contract', 'no-bind-apply-call',
-  'no-export-alias', 'no-freestanding-verb-noun', 'no-prefer-existing-type',
-  'no-readonly-in-data-type', 'no-suppression-comments', 'no-this-alias', 'no-trivial-shim',
-  'no-type-aliasing', 'prefer-collection-types', 'require-options-object',
-  'single-export', 'type-alias-must-end-type'
+  'all-types-are-entities', 'constants-folder-required', 'entity-namespace',
+  'interface-must-be-contract', 'interface-suffix', 'interfaces-compose-named-types',
+  'no-bind-apply-call', 'no-export-alias', 'no-freestanding-verb-noun', 'no-prefer-existing-type',
+  'no-project-internal-acronyms', 'no-readonly-in-data-type', 'no-suppression-comments',
+  'no-this-alias', 'no-trivial-shim', 'no-type-aliasing', 'no-underscore-private',
+  'prefer-collection-types', 'require-options-object',
+  'single-export', 'type-alias-must-end-type', 'types-derived-from-schema'
 ] as const;
 
 const ESLINT_V8_RULES = [
-  'arguments-object', 'array-from-iterators', 'computed-class-properties',
-  'computed-object-properties', 'define-property', 'delete-property',
-  'eval-function', 'for-in-loops', 'for-of-arrays', 'no-concat-in-loops',
-  'no-spread-in-loops', 'prototype-modification', 'regexp-in-loops',
-  'switch-statements', 'try-catch-in-loops', 'with-statement'
+  'arguments-object', 'array-from-iterators', 'array-from-map-callback', 'computed-class-properties',
+  'computed-object-properties', 'conditional-property-assignment', 'define-property', 'delete-property',
+  'dynamic-property-access', 'eval-function', 'for-in-loops', 'for-of-arrays',
+  'inline-arrow-functions', 'inline-functions', 'max-switch-cases', 'memoize-array-length',
+  'no-concat-in-loops', 'no-spread-in-loops', 'object-spread', 'prototype-modification',
+  'regexp-in-loops', 'switch-statements', 'try-catch-in-loops', 'with-statement'
 ] as const;
 
 const STATEFUL = [
-  'batch', 'cache', 'circular-buffer', 'clock', 'concurrency', 'context',
-  'event-bus', 'file-lock', 'fsm', 'logger', 'mutex', 'pipeline', 'resilience',
-  'retry', 'sample-buffer', 'scheduler', 'throttle', 'timing', 'virtual-fs'
+  'batch', 'boundary-kit', 'bounded-dispatcher', 'cache', 'circular-buffer', 'clock', 'concurrency', 'context',
+  'entity-store', 'event-bus', 'file-lock', 'flag-evaluator', 'fsm', 'health-registry', 'idempotency-guard',
+  'keyed-rate-limiter', 'keyed-work-gate', 'logger', 'memoize', 'mutex', 'paginator', 'pipeline', 'process-kit',
+  'request-executor', 'resilience', 'retry', 'sample-buffer', 'scheduler',
+  'sliding-window-limiter', 'throttle', 'timing', 'virtual-fs', 'visible-range', 'worker-pool'
 ] as const;
 
 const STATELESS = [
@@ -218,6 +223,9 @@ export default withMermaid(defineConfig({
     nav: [
       { text: 'Guide', link: '/getting-started' },
       { text: 'Lifecycle Hooks', link: '/concepts/lifecycle-hooks' },
+      { text: 'Pattern Composition', link: '/concepts/pattern-composition' },
+      { text: 'Anti-Patterns', link: '/concepts/composition-anti-patterns' },
+      { text: 'Dagonizer Boundary', link: '/concepts/dagonizer-boundary' },
       { text: 'Packages', link: '/packages/' },
       { text: 'GitHub', link: SITE_REPO }
     ],
@@ -239,7 +247,10 @@ export default withMermaid(defineConfig({
         {
           text: 'Concepts',
           items: [
-            { text: 'Lifecycle Hooks', link: '/concepts/lifecycle-hooks' }
+            { text: 'Lifecycle Hooks', link: '/concepts/lifecycle-hooks' },
+            { text: 'Pattern Composition', link: '/concepts/pattern-composition' },
+            { text: 'Composition Anti-Patterns', link: '/concepts/composition-anti-patterns' },
+            { text: 'Dagonizer Boundary', link: '/concepts/dagonizer-boundary' }
           ]
         },
         {
@@ -303,7 +314,7 @@ export default withMermaid(defineConfig({
 
   transformPageData(pageData) {
     const canonical = `${SITE_URL}${pageData.relativePath.replace(/\.md$/, '')}`;
-    const title = pageData.title ?? SITE_TITLE;
+    const title = pageData.title === '' || pageData.title === undefined ? SITE_TITLE : pageData.title;
     const description = pageData.frontmatter['description'] as string | undefined ?? SITE_DESCRIPTION;
 
     (pageData.frontmatter['head'] as HeadConfig[] | undefined) ??= [];
