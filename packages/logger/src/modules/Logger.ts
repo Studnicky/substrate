@@ -56,6 +56,12 @@ export class Logger implements LoggerInterface {
   readonly #metadata: LogMetadataType;
   readonly #transports: readonly TransportInterface[];
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   protected constructor(options: LoggerOptionsInterface = {}) {
     configValidation.assertPlainObject(options.metadata, 'metadata');
     if (options.transports !== undefined && !Array.isArray(options.transports)) {
@@ -82,7 +88,9 @@ export class Logger implements LoggerInterface {
       'metadata': { ...this.#metadata, ...metadata },
       'transports': this.#transports
     });
-    this.onChildCreate(metadata);
+    this.#invokeHook(() => {
+      this.onChildCreate(metadata);
+    });
     return result;
   }
 
@@ -133,7 +141,9 @@ export class Logger implements LoggerInterface {
 
   private emit(level: LogLevelType, data: LogDataType): void {
     if (level < this.#level) {
-      this.onDropped(level);
+      this.#invokeHook(() => {
+        this.onDropped(level);
+      });
       return;
     }
 
@@ -144,7 +154,9 @@ export class Logger implements LoggerInterface {
       'time': Date.now()
     };
 
-    this.onLog(level, record);
+    this.#invokeHook(() => {
+      this.onLog(level, record);
+    });
 
     const count = this.#transports.length;
 
@@ -160,7 +172,9 @@ export class Logger implements LoggerInterface {
       transport.write(record);
     } catch (error) {
       // One failing transport must not prevent others from receiving the record.
-      this.onTransportError(transport, record, error);
+      this.#invokeHook(() => {
+        this.onTransportError(transport, record, error);
+      });
     }
   }
 

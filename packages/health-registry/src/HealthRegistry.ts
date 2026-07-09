@@ -62,7 +62,7 @@ export class HealthRegistry {
       ...(options?.timeoutMs !== undefined ? { 'timeoutMs': options.timeoutMs } : {})
     };
     this.#registry.set(name, entry);
-    this.onCheckRegistered(name);
+    this.#invokeHook(() => { this.onCheckRegistered(name); });
   }
 
   /** Removes a named check. No-op if the name was never registered. */
@@ -102,7 +102,7 @@ export class HealthRegistry {
     });
 
     const overall = HealthRegistry.#aggregate(results);
-    this.onAggregate(overall, results);
+    this.#invokeHook(() => { this.onAggregate(overall, results); });
 
     return { 'results': results, 'status': overall };
   }
@@ -131,7 +131,7 @@ export class HealthRegistry {
       result = { 'metadata': { 'error': error }, 'status': 'unhealthy' };
     }
 
-    this.onCheckResult(name, result.status, result.metadata);
+    this.#invokeHook(() => { this.onCheckResult(name, result.status, result.metadata); });
     return result;
   }
 
@@ -145,13 +145,19 @@ export class HealthRegistry {
 
     const timeoutPromise = new Promise<HealthCheckResultType>((resolve) => {
       signal.addEventListener('abort', () => {
-        this.onCheckTimeout(name, timeoutMs);
+        this.#invokeHook(() => { this.onCheckTimeout(name, timeoutMs); });
         resolve({ 'metadata': { 'reason': 'timeout', 'timeoutMs': timeoutMs }, 'status': 'unhealthy' });
       }, { 'once': true });
     });
 
     const result = await Promise.race([checkPromise, timeoutPromise]);
     return result;
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 
   // ---------------------------------------------------------------------------

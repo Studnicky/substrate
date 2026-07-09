@@ -6,6 +6,7 @@
  *
  * @module
  */
+
 import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
 
 import { ClockError } from '../errors/ClockError.js';
@@ -44,6 +45,12 @@ export class Clock {
     this.#provider = provider;
     this.#lastHrtime = HRTIME_ZERO;
     this.#lastNow = 0;
+  }
+
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
   }
 
   private static isValidProvider(provider: unknown): provider is ClockProviderType {
@@ -101,7 +108,9 @@ export class Clock {
       this.#lastHrtime = candidate;
     }
 
-    this.onHrtime(this.#lastHrtime);
+    this.#invokeHook(() => {
+      this.onHrtime(this.#lastHrtime);
+    });
     return this.#lastHrtime;
   }
 
@@ -116,7 +125,9 @@ export class Clock {
       this.#lastNow = candidate;
     }
 
-    this.onNow(this.#lastNow);
+    this.#invokeHook(() => {
+      this.onNow(this.#lastNow);
+    });
     return this.#lastNow;
   }
 }

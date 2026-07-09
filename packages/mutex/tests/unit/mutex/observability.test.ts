@@ -414,6 +414,24 @@ class QueueDrainTrackingMutex extends Mutex<string> {
   }
 }
 
+class ThrowingReleaseHookMutex extends Mutex<string> {
+  protected override onRelease(): void {
+    throw new Error('Hook error');
+  }
+}
+
+class ThrowingQueueDrainMutex extends Mutex<string> {
+  protected override onQueueDrain(): void {
+    throw new Error('Hook error');
+  }
+}
+
+class ThrowingTimeoutHookMutex extends Mutex<string> {
+  protected override onTimeout(): void {
+    throw new Error('Hook error');
+  }
+}
+
 it('onQueueDrain fires when last waiter dequeues normally', async () => {
   const mutex = new QueueDrainTrackingMutex();
   const release1 = await mutex.acquire('key1');
@@ -461,4 +479,40 @@ it('onQueueDrain does NOT fire when there is still a waiter in queue', async () 
   await pending3.then((r) => { r(); });
 
   strictEqual(mutex.queueDrainEvents.length, 1);
+});
+
+it('does not replace lock release when onRelease throws', async () => {
+  const mutex = new ThrowingReleaseHookMutex();
+  const release = await mutex.acquire('key1');
+
+  release();
+
+  ok(!mutex.isLocked('key1'));
+});
+
+it('does not replace normal queue handoff when onQueueDrain throws', async () => {
+  const mutex = new ThrowingQueueDrainMutex();
+  const release1 = await mutex.acquire('key1');
+  const pending2 = mutex.acquire('key1');
+
+  release1();
+  const release2 = await pending2;
+
+  release2();
+  ok(!mutex.isLocked('key1'));
+});
+
+it('does not replace LockTimeoutError when onTimeout throws', async () => {
+  const mutex = new ThrowingTimeoutHookMutex({ 'timeout': 30 });
+  const release1 = await mutex.acquire('key1');
+
+  try {
+    await mutex.acquire('key1');
+    throw new Error('Expected timeout error');
+  } catch (error) {
+    ok(error instanceof Error);
+    strictEqual(error.constructor.name, 'LockTimeoutError');
+  }
+
+  release1();
 });

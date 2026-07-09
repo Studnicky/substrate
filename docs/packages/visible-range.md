@@ -70,7 +70,7 @@ It carries a fixed `code` of `'visibleRange.invalidConfig'` and `retryable: fals
 
 ## Observability hooks
 
-Subclass `VisibleRange` and override the protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Overrides must not throw or block.
+Subclass `VisibleRange` and override the protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Hooks should stay fast and non-blocking; observer-hook failures are contained so range computation still wins.
 
 | Hook | When it fires | Args |
 |------|--------------|------|

@@ -137,6 +137,12 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private readonly queues: Map<K, QueueEntryType[]>;
   private totalExecuted = INITIAL_COUNTER;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Constructor validates and initializes Mutex
    *
@@ -329,7 +335,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     }
 
     this.#keyStates.set(key, to);
-    this.onEnterKey(key, to, from);
+    this.#invokeHook(() => {
+      this.onEnterKey(key, to, from);
+    });
   }
 
   /**
@@ -408,7 +416,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     for (const [key, keyState] of this.#keyStates) {
       if (keyState !== 'unlocked') {
         this.#keyStates.set(key, 'unlocked');
-        this.onEnterKey(key, 'unlocked', keyState);
+        this.#invokeHook(() => {
+          this.onEnterKey(key, 'unlocked', keyState);
+        });
       }
     }
 
@@ -475,11 +485,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     resolve(releaseFunction);
 
-    try {
+    this.#invokeHook(() => {
       this.onAcquireWait(key, waitTimeMs);
-    } catch {
-      // hook errors must not interrupt acquisition
-    }
+    });
   }
 
   /**
@@ -638,7 +646,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
         if (timeoutQueue.length === EMPTY_LENGTH) {
           this.queues.delete(key);
-          this.onQueueDrain(key);
+          this.#invokeHook(() => {
+            this.onQueueDrain(key);
+          });
           // FSM: the last waiter timed out; holder still holds the lock but queue is
           // now empty — transition queued → locked to reflect the unchallenged holder.
           const currentState = this.#keyStates.get(key) ?? 'unlocked';
@@ -650,11 +660,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       }
     }
 
-    try {
+    this.#invokeHook(() => {
       this.onTimeout(key, this.config.timeout);
-    } catch {
-      // hook errors must not interrupt timeout handling
-    }
+    });
 
     reject(new LockTimeoutError(key, this.config.timeout));
   }
@@ -748,7 +756,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     if (queue.length === EMPTY_LENGTH) {
       this.queues.delete(key);
-      this.onQueueDrain(key);
+      this.#invokeHook(() => {
+        this.onQueueDrain(key);
+      });
     }
   }
 
@@ -795,11 +805,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private release(key: K): void {
     this.recordLockReleaseMetrics(key);
 
-    try {
+    this.#invokeHook(() => {
       this.onRelease(key);
-    } catch {
-      // hook errors must not interrupt release
-    }
+    });
 
     const queue = this.queues.get(key);
 

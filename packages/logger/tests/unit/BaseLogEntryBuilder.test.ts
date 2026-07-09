@@ -173,6 +173,47 @@ void describe('BaseLogEntryBuilder onBuild (LogFault)', () => {
 
     assert.strictEqual(builder.builtResults.length, 0);
   });
+
+  void it('a throwing onBuild hook does not replace a successful body build', () => {
+    class ThrowingBuildLogBody extends LogBody {
+      constructor() { super(); }
+
+      protected override onBuild(): void {
+        throw new Error('onBuild boom');
+      }
+    }
+
+    const result = new ThrowingBuildLogBody()
+      .component('cache')
+      .operation('get')
+      .status('success')
+      .message('ok')
+      .context({})
+      .build();
+
+    assert.strictEqual(result.event, 'cache.get');
+  });
+
+  void it('a throwing onBuild hook does not replace a successful fault build', () => {
+    class ThrowingBuildLogFault extends LogFault {
+      constructor() { super(); }
+
+      protected override onBuild(): void {
+        throw new Error('onBuild boom');
+      }
+    }
+
+    const result = new ThrowingBuildLogFault()
+      .component('api')
+      .operation('request')
+      .status('failed')
+      .name('NetworkError')
+      .message('boom')
+      .context({})
+      .build();
+
+    assert.strictEqual(result.event, 'api.request');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -290,5 +331,24 @@ void describe('BaseLogEntryBuilder onBuildError (LogFault)', () => {
     builder.component('c').operation('q').status('failed').name('Err').message('m').context({}).build();
 
     assert.strictEqual(builder.buildErrors.length, 0);
+  });
+
+  void it('a throwing onBuildError hook does not replace LogBuildError', () => {
+    class ThrowingBuildErrorLogBody extends LogBody {
+      constructor() { super(); }
+
+      protected override onBuildError(): void {
+        throw new Error('onBuildError boom');
+      }
+    }
+
+    assert.throws(() => {
+      new ThrowingBuildErrorLogBody()
+        .operation('query')
+        .status('success')
+        .message('m')
+        .context({})
+        .build();
+    }, LogBuildError);
   });
 });

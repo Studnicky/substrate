@@ -161,3 +161,72 @@ it('subclass static create() returns subclass instance', () => {
   assert.ok(fs instanceof FullTraceFs);
   assert.ok(fs instanceof VirtualFileSystem);
 });
+
+it('a throwing onCreate hook does not replace a completed write', () => {
+  class ThrowingCreateFs extends VirtualFileSystem {
+    override onCreate(): void {
+      throw new Error('onCreate boom');
+    }
+  }
+
+  const fs = ThrowingCreateFs.create();
+  fs.writeFileSync('/created.txt', 'hello', 'utf8');
+
+  assert.equal(fs.readFileSync('/created.txt', 'utf8'), 'hello');
+});
+
+it('a throwing onWrite hook does not replace an overwrite', () => {
+  class ThrowingWriteFs extends VirtualFileSystem {
+    override onWrite(): void {
+      throw new Error('onWrite boom');
+    }
+  }
+
+  const fs = ThrowingWriteFs.create();
+  fs.writeFileSync('/file.txt', 'first', 'utf8');
+  fs.writeFileSync('/file.txt', 'second', 'utf8');
+
+  assert.equal(fs.readFileSync('/file.txt', 'utf8'), 'second');
+});
+
+it('a throwing onRead hook does not replace a successful read', () => {
+  class ThrowingReadFs extends VirtualFileSystem {
+    override onRead(): void {
+      throw new Error('onRead boom');
+    }
+  }
+
+  const fs = ThrowingReadFs.create();
+  fs.writeFileSync('/read.txt', 'content', 'utf8');
+
+  assert.equal(fs.readFileSync('/read.txt', 'utf8'), 'content');
+});
+
+it('a throwing onRename hook does not replace a completed rename', () => {
+  class ThrowingRenameFs extends VirtualFileSystem {
+    override onRename(): void {
+      throw new Error('onRename boom');
+    }
+  }
+
+  const fs = ThrowingRenameFs.create();
+  fs.writeFileSync('/old.txt', 'content', 'utf8');
+  fs.renameSync('/old.txt', '/new.txt');
+
+  assert.equal(fs.existsSync('/old.txt'), false);
+  assert.equal(fs.readFileSync('/new.txt', 'utf8'), 'content');
+});
+
+it('a throwing onDelete hook does not replace an unlink', () => {
+  class ThrowingDeleteFs extends VirtualFileSystem {
+    override onDelete(): void {
+      throw new Error('onDelete boom');
+    }
+  }
+
+  const fs = ThrowingDeleteFs.create();
+  fs.writeFileSync('/gone.txt', 'content', 'utf8');
+  fs.unlinkSync('/gone.txt');
+
+  assert.equal(fs.existsSync('/gone.txt'), false);
+});

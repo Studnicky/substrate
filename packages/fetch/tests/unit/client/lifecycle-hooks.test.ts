@@ -204,4 +204,101 @@ void describe('FetchClient lifecycle hooks', () => {
 
     assert.equal(destroys.length, 1);
   });
+
+  void it('a throwing onRequestStart hook does not replace a successful response', async () => {
+    class ThrowingStartClient extends FetchClient {
+      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingStartClient {
+        return new this(config);
+      }
+
+      protected override onRequestStart(): void {
+        throw new Error('onRequestStart boom');
+      }
+    }
+
+    const client = ThrowingStartClient.create({ 'baseURL': baseURL });
+    const response = await client.get('/ok');
+
+    assert.equal(response.status, 200);
+  });
+
+  void it('a throwing onResponseSuccess hook does not replace a successful response', async () => {
+    class ThrowingSuccessClient extends FetchClient {
+      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingSuccessClient {
+        return new this(config);
+      }
+
+      protected override onResponseSuccess(): void {
+        throw new Error('onResponseSuccess boom');
+      }
+    }
+
+    const client = ThrowingSuccessClient.create({ 'baseURL': baseURL });
+    const response = await client.get('/ok');
+
+    assert.equal(response.status, 200);
+  });
+
+  void it('a throwing onTimeout hook does not replace the timeout error', async () => {
+    class ThrowingTimeoutClient extends FetchClient {
+      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingTimeoutClient {
+        return new this(config);
+      }
+
+      protected override onTimeout(): void {
+        throw new Error('onTimeout boom');
+      }
+    }
+
+    const client = ThrowingTimeoutClient.create({ 'baseURL': baseURL, 'timeout': 1 });
+
+    await assert.rejects(
+      () => client.get('/delay'),
+      (error: unknown) => {
+        return error instanceof Error && error.name.endsWith('TimeoutError');
+      }
+    );
+  });
+
+  void it('a throwing onRequestError hook does not replace the original request error', async () => {
+    class ThrowingRequestErrorClient extends FetchClient {
+      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingRequestErrorClient {
+        return new this(config);
+      }
+
+      protected override onRequestError(): void {
+        throw new Error('onRequestError boom');
+      }
+    }
+
+    const client = ThrowingRequestErrorClient.create({ 'baseURL': baseURL, 'timeout': 1 });
+
+    await assert.rejects(
+      () => client.get('/delay'),
+      (error: unknown) => {
+        return error instanceof Error && error.name.endsWith('TimeoutError');
+      }
+    );
+  });
+
+  void it('a throwing onDispatcherDestroy hook does not replace dispatcher shutdown', async () => {
+    class ThrowingDestroyClient extends FetchClient {
+      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingDestroyClient {
+        return new this(config);
+      }
+
+      protected override onDispatcherDestroy(): void {
+        throw new Error('onDispatcherDestroy boom');
+      }
+    }
+
+    const client = ThrowingDestroyClient.create({
+      'baseURL': baseURL,
+      'dispatcher': { 'connections': 2, 'enabled': true }
+    });
+
+    await assert.doesNotReject(async () => {
+      await client.destroy();
+    });
+  });
 });

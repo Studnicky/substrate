@@ -37,7 +37,7 @@ The builder seeds `/data/hello.txt`, writes a second file, renames it, reads the
 
 ## Observability hooks
 
-Subclass `VirtualFileSystem` and override any protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Overrides must not throw or block.
+Subclass `VirtualFileSystem` and override any protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Hooks should stay fast and non-blocking; observer-hook failures are contained so the filesystem operation still wins.
 
 | Hook | When it fires | Args |
 |------|--------------|------|

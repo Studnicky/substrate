@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/fetch",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "Professional HTTP client with timeout, interceptors, and configured clients for Node.js",
   "type": "module",
   "sideEffects": false,

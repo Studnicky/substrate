@@ -220,3 +220,61 @@ it('builder throws SlidingWindowLimiterConfigError when required fields are miss
   throws(() => { SlidingWindowLimiter.builder().withLimit(1).withAlgorithm('log').build(); }, SlidingWindowLimiterConfigError);
   throws(() => { SlidingWindowLimiter.builder().withLimit(1).withWindowMs(100).build(); }, SlidingWindowLimiterConfigError);
 });
+
+class ThrowingAllowLimiter extends SlidingWindowLimiter {
+  protected override onAllow(): void {
+    throw new Error('onAllow boom');
+  }
+}
+
+class ThrowingRejectLimiter extends SlidingWindowLimiter {
+  protected override onReject(): void {
+    throw new Error('onReject boom');
+  }
+}
+
+class ThrowingWindowRollLimiter extends SlidingWindowLimiter {
+  protected override onWindowRoll(): void {
+    throw new Error('onWindowRoll boom');
+  }
+}
+
+for (const algorithm of ALGORITHMS) {
+  it(`[${algorithm}] a throwing onAllow hook does not replace a successful consume()`, () => {
+    const time = 0;
+    const clock = (): number => time;
+    const limiter = ThrowingAllowLimiter.create({ limit: 1, windowMs: 100, algorithm, clock });
+
+    limiter.consume();
+  });
+
+  it(`[${algorithm}] a throwing onReject hook does not replace SlidingWindowExhaustedError`, () => {
+    const time = 0;
+    const clock = (): number => time;
+    const limiter = ThrowingRejectLimiter.create({ limit: 1, windowMs: 100, algorithm, clock });
+    limiter.consume();
+
+    throws(() => { limiter.consume(); }, SlidingWindowExhaustedError);
+  });
+}
+
+it('[log] a throwing onWindowRoll hook does not replace rollover admission', () => {
+  let time = 0;
+  const clock = (): number => time;
+  const limiter = ThrowingWindowRollLimiter.create({ limit: 1, windowMs: 100, algorithm: 'log', clock });
+  limiter.consume();
+
+  time = 101;
+  limiter.consume();
+});
+
+it('[counter] a throwing onWindowRoll hook does not replace rollover admission', () => {
+  let time = 0;
+  const clock = (): number => time;
+  const limiter = ThrowingWindowRollLimiter.create({ limit: 4, windowMs: 100, algorithm: 'counter', clock });
+  limiter.consume();
+  limiter.consume();
+
+  time = 150;
+  limiter.consume();
+});

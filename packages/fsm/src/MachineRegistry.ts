@@ -13,20 +13,34 @@ export class MachineRegistry {
 
   protected constructor() {}
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   register(name: string, interpreter: BoundedInterpreter): void {
     if (this.#registry.has(name)) { throw new MachineAlreadyRegisteredError(name); }
     this.#registry.set(name, interpreter);
-    this.onRegister(name);
+    this.#invokeHook(() => {
+      this.onRegister(name);
+    });
   }
 
   unregister(name: string): void {
     this.#registry.delete(name);
-    this.onUnregister(name);
+    this.#invokeHook(() => {
+      this.onUnregister(name);
+    });
   }
 
   get(name: string): BoundedInterpreter | undefined {
     const result = this.#registry.get(name);
-    if (result === undefined) { this.onResolveMiss(name); }
+    if (result === undefined) {
+      this.#invokeHook(() => {
+        this.onResolveMiss(name);
+      });
+    }
     return result;
   }
 

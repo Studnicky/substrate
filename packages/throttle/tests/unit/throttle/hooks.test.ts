@@ -453,3 +453,62 @@ void it('onAdaptiveAdjust fires when adaptive concurrency changes the limit', as
     ok(prev !== next, 'previousLimit and newLimit differ');
   }
 });
+
+void it('a throwing onAcquire hook does not replace a successful execute() result', async () => {
+  class ThrowingAcquireThrottle extends Throttle {
+    protected override onAcquire(): void {
+      throw new Error('onAcquire boom');
+    }
+  }
+
+  const t = new ThrowingAcquireThrottle({ 'concurrencyLimit': 1 });
+  const result = await t.execute(async () => 'ok');
+
+  strictEqual(result, 'ok');
+});
+
+void it('a throwing onReject hook does not replace the original operation error', async () => {
+  class ThrowingRejectThrottle extends Throttle {
+    protected override onReject(): void {
+      throw new Error('onReject boom');
+    }
+  }
+
+  const t = new ThrowingRejectThrottle({ 'concurrencyLimit': 1 });
+
+  await t.execute(async () => {
+    throw new Error('boom');
+  }).then(
+    () => { throw new Error('expected rejection'); },
+    (error) => {
+      ok(error instanceof Error);
+      strictEqual(error.message, 'boom');
+    }
+  );
+});
+
+void it('a throwing onDrainStart hook does not replace drain()', async () => {
+  class ThrowingDrainThrottle extends Throttle {
+    protected override onDrainStart(): void {
+      throw new Error('onDrainStart boom');
+    }
+  }
+
+  const t = new ThrowingDrainThrottle({ 'concurrencyLimit': 1 });
+  await t.drain();
+
+  ok(true);
+});
+
+void it('a throwing onAbortStart hook does not replace abort()', async () => {
+  class ThrowingAbortThrottle extends Throttle {
+    protected override onAbortStart(): void {
+      throw new Error('onAbortStart boom');
+    }
+  }
+
+  const t = new ThrowingAbortThrottle({ 'concurrencyLimit': 1 });
+  const result = await t.abort();
+
+  strictEqual(result.cancelled, 0);
+});
