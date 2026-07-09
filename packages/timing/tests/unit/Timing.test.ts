@@ -701,17 +701,17 @@ void it('onClear hook is called when clear() is invoked', () => {
   assert.strictEqual(traced.clearCount, 1);
 });
 
-void it('_maxEvents and _startTime are accessible from subclass', () => {
+void it('maxEvents and startTime are accessible from subclass', () => {
   const traced = new TracedTiming({ maxEvents: 42 });
 
-  assert.strictEqual(traced._maxEvents, 42);
-  assert.strictEqual(typeof traced._startTime, 'bigint');
+  assert.strictEqual(traced.maxEvents, 42);
+  assert.strictEqual(typeof traced.startTime, 'bigint');
 });
 
-void it('_maxEvents defaults to DEFAULT_MAX_EVENTS when not specified', () => {
+void it('maxEvents defaults to DEFAULT_MAX_EVENTS when not specified', () => {
   const traced = new TracedTiming({});
 
-  assert.strictEqual(traced._maxEvents, DEFAULT_MAX_EVENTS);
+  assert.strictEqual(traced.maxEvents, DEFAULT_MAX_EVENTS);
 });
 
 void it('convertTime is accessible from subclass and converts correctly', () => {

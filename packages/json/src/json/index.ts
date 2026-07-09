@@ -1,5 +1,6 @@
 export { Clone } from './Clone.js';
 export { DataType } from './DataType.js';
+export { Draft } from './Draft.js';
 export { Frozen } from './Frozen.js';
 export { Hash } from './Hash.js';
 export { Merge } from './Merge.js';

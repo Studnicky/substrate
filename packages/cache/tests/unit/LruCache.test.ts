@@ -162,7 +162,7 @@ it('LRU promotion on access: promotes accessed entry; evicts the un-accessed one
 it('TTL expiry: get() returns undefined after entry TTL expires', async () => {
   const cache = LruCache.create<string, number>({ capacity: 10 });
 
-  cache.set('k', 99, 1); // 1 ms TTL
+  cache.set('k', 99, { ttlMs: 1 }); // 1 ms TTL
 
   await new Promise<void>((resolve) => {
     setTimeout(resolve, 5);
@@ -183,7 +183,7 @@ it('per-entry TTL overrides global TTL: per-entry ttlMs takes precedence over th
   // Global TTL is 10 s, but we override this entry with 1 ms
   const cache = LruCache.create<string, string>({ capacity: 10, ttlMs: 10_000 });
 
-  cache.set('short', 'expires-fast', 1);
+  cache.set('short', 'expires-fast', { ttlMs: 1 });
   cache.set('long', 'stays');
 
   await new Promise<void>((resolve) => {
@@ -267,6 +267,7 @@ it('setMany: existing key in batch is updated and promoted to MRU', () => {
 
 type HookEventType =
   | { 'event': 'hit'; 'key': string; 'value': number }
+  | { 'event': 'stale'; 'key': string; 'value': number }
   | { 'event': 'miss'; 'key': string }
   | { 'event': 'set'; 'key': string }
   | { 'event': 'update'; 'key': string }
@@ -280,6 +281,10 @@ class RecordingCache extends LruCache<string, number> {
 
   protected override onHit(key: string, value: number): void {
     this.log.push({ 'event': 'hit', 'key': key, 'value': value });
+  }
+
+  protected override onStale(key: string, value: number): void {
+    this.log.push({ 'event': 'stale', 'key': key, 'value': value });
   }
 
   protected override onMiss(key: string): void {
@@ -410,7 +415,7 @@ const hookScenarios: Array<{ description: string; exec: () => void | Promise<voi
     description: 'onExpire and onMiss both fire (in that order) when get() hits an expired entry',
     exec: async () => {
       const cache = new RecordingCache({ 'capacity': 10 });
-      cache.set('x', 7, 1); // 1 ms TTL
+      cache.set('x', 7, { ttlMs: 1 }); // 1 ms TTL
       cache.log.length = 0;
       await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
       const result = cache.get('x');
@@ -424,7 +429,7 @@ const hookScenarios: Array<{ description: string; exec: () => void | Promise<voi
     description: 'onExpire fires when has() encounters an expired entry',
     exec: async () => {
       const cache = new RecordingCache({ 'capacity': 10 });
-      cache.set('y', 9, 1); // 1 ms TTL
+      cache.set('y', 9, { ttlMs: 1 }); // 1 ms TTL
       cache.log.length = 0;
       await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
       const present = cache.has('y');
@@ -465,3 +470,96 @@ const hookScenarios: Array<{ description: string; exec: () => void | Promise<voi
 for (const { description, exec } of hookScenarios) {
   it(description, exec);
 }
+
+// ---------------------------------------------------------------------------
+// staleMs — soft staleness marker
+// ---------------------------------------------------------------------------
+
+it('no staleMs configured: get() always fires onHit, never onStale', () => {
+  const cache = new RecordingCache({ 'capacity': 10 });
+  cache.set('a', 1);
+  cache.log.length = 0;
+  cache.get('a');
+  assert.equal(cache.log.length, 1);
+  assert.deepEqual(cache.log[0], { 'event': 'hit', 'key': 'a', 'value': 1 });
+});
+
+it('staleMs shorter than ttlMs: fires onStale (not onHit) once past the stale mark but before hard expiry, and still returns the value', async () => {
+  const cache = new RecordingCache({ 'capacity': 10, 'staleMs': 1, 'ttlMs': 10_000 });
+  cache.set('a', 1);
+  cache.log.length = 0;
+
+  await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
+
+  const result = cache.get('a');
+  assert.equal(result, 1, 'entry is still live and servable past staleMs');
+  assert.equal(cache.log.length, 1);
+  assert.deepEqual(cache.log[0], { 'event': 'stale', 'key': 'a', 'value': 1 });
+});
+
+it('per-call staleMs override behaves like per-call ttlMs precedence', async () => {
+  const cache = new RecordingCache({ 'capacity': 10 });
+  cache.set('a', 1, { staleMs: 1 }); // no ttl, 1ms staleMs
+  cache.log.length = 0;
+
+  await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
+
+  const result = cache.get('a');
+  assert.equal(result, 1);
+  assert.deepEqual(cache.log[0], { 'event': 'stale', 'key': 'a', 'value': 1 });
+});
+
+it('once hard-expired, entry misses even if also stale (expire takes precedence over stale)', async () => {
+  const cache = new RecordingCache({ 'capacity': 10, 'staleMs': 1, 'ttlMs': 2 });
+  cache.set('a', 1);
+  cache.log.length = 0;
+
+  await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+
+  const result = cache.get('a');
+  assert.equal(result, undefined);
+  assert.deepEqual(cache.log[0], { 'event': 'expire', 'key': 'a' });
+  assert.deepEqual(cache.log[1], { 'event': 'miss', 'key': 'a' });
+});
+
+// ---------------------------------------------------------------------------
+// deleteWhere — bulk/predicate invalidation
+// ---------------------------------------------------------------------------
+
+it('deleteWhere removes only matching entries and returns the correct count', () => {
+  const cache = new RecordingCache({ 'capacity': 10 });
+  cache.set('a', 1);
+  cache.set('b', 2);
+  cache.set('c', 3);
+  cache.log.length = 0;
+
+  const removed = cache.deleteWhere((_key, value) => { return value % 2 === 1; });
+
+  assert.equal(removed, 2, 'a (1) and c (3) match');
+  assert.equal(cache.has('a'), false);
+  assert.equal(cache.has('b'), true);
+  assert.equal(cache.has('c'), false);
+  assert.equal(cache.size, 1);
+
+  const deleteEvents = cache.log.filter((e) => { return e.event === 'delete'; });
+  assert.equal(deleteEvents.length, 2);
+});
+
+it('deleteWhere is a no-op returning 0 when nothing matches', () => {
+  const cache = new RecordingCache({ 'capacity': 10 });
+  cache.set('a', 1);
+  cache.set('b', 2);
+  cache.log.length = 0;
+
+  const removed = cache.deleteWhere(() => { return false; });
+
+  assert.equal(removed, 0);
+  assert.equal(cache.size, 2);
+  assert.equal(cache.log.length, 0);
+});
+
+it('deleteWhere on an empty cache returns 0', () => {
+  const cache = LruCache.create<string, number>({ capacity: 10 });
+  const removed = cache.deleteWhere(() => { return true; });
+  assert.equal(removed, 0);
+});

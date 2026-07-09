@@ -85,69 +85,69 @@ class ObservedScope extends ContextScope {
     };
     // `this` is not yet available before super(), but we can use a temporary key
     // via a module-level slot that the hooks pick up:
-    ObservedScope._pending = pending;
+    ObservedScope.pending = pending;
     super(options);
     // After super(), `this` is available — move from slot to WeakMap
-    scopeEvents.set(this, ObservedScope._pending);
-    ObservedScope._pending = undefined;
+    scopeEvents.set(this, ObservedScope.pending);
+    ObservedScope.pending = undefined;
   }
 
   // Module-level slot bridging pre-super() → post-super()
-  private static _pending: ReturnType<typeof scopeEvents.get> | undefined;
+  private static pending: ReturnType<typeof scopeEvents.get> | undefined;
 
-  private get _e(): NonNullable<ReturnType<typeof scopeEvents.get>> {
+  private get e(): NonNullable<ReturnType<typeof scopeEvents.get>> {
     // During super() hooks, WeakMap entry not yet set — read from slot
-    return scopeEvents.get(this) ?? ObservedScope._pending!;
+    return scopeEvents.get(this) ?? ObservedScope.pending!;
   }
 
-  get exitEvents(): { 'from': string; 'to': string }[] { return this._e.exitEvents; }
-  get enterEvents(): { 'from': string; 'to': string }[] { return this._e.enterEvents; }
-  get beforeExecuteCount(): number[] { return this._e.beforeExecuteCount; }
-  get afterExecuteCount(): number[] { return this._e.afterExecuteCount; }
-  get errorEvents(): unknown[] { return this._e.errorEvents; }
-  get disposeEvents(): string[] { return this._e.disposeEvents; }
-  get terminateSnapshots(): Record<string, unknown>[] { return this._e.terminateSnapshots; }
-  get terminatedAccessCount(): number[] { return this._e.terminatedAccessCount; }
+  get exitEvents(): { 'from': string; 'to': string }[] { return this.e.exitEvents; }
+  get enterEvents(): { 'from': string; 'to': string }[] { return this.e.enterEvents; }
+  get beforeExecuteCount(): number[] { return this.e.beforeExecuteCount; }
+  get afterExecuteCount(): number[] { return this.e.afterExecuteCount; }
+  get errorEvents(): unknown[] { return this.e.errorEvents; }
+  get disposeEvents(): string[] { return this.e.disposeEvents; }
+  get terminateSnapshots(): Record<string, unknown>[] { return this.e.terminateSnapshots; }
+  get terminatedAccessCount(): number[] { return this.e.terminatedAccessCount; }
 
   protected override onExit(from: string, to: string): void {
     console.log(`[scope] onExit from=${from} to=${to}`);
-    this._e.exitEvents.push({ 'from': from, 'to': to });
+    this.e.exitEvents.push({ 'from': from, 'to': to });
   }
 
   protected override onEnter(to: string, from: string): void {
     console.log(`[scope] onEnter state=${to} from=${from}`);
-    this._e.enterEvents.push({ 'from': from, 'to': to });
+    this.e.enterEvents.push({ 'from': from, 'to': to });
   }
 
   protected override onBeforeExecute(): void {
     console.log('[scope] onBeforeExecute');
-    this._e.beforeExecuteCount.push(1);
+    this.e.beforeExecuteCount.push(1);
   }
 
   protected override onAfterExecute(): void {
     console.log('[scope] onAfterExecute');
-    this._e.afterExecuteCount.push(1);
+    this.e.afterExecuteCount.push(1);
   }
 
   protected override onError(error: unknown): void {
     console.log(`[scope] onError error=${String(error)}`);
-    this._e.errorEvents.push(error);
+    this.e.errorEvents.push(error);
   }
 
   protected override onDispose(): void {
     console.log('[scope] onDispose');
-    this._e.disposeEvents.push('dispose');
+    this.e.disposeEvents.push('dispose');
   }
 
   protected override onTerminate(snapshot: Record<string, unknown>): Record<string, unknown> {
     console.log(`[scope] onTerminate keys=${Object.keys(snapshot).sort().join(',')}`);
-    this._e.terminateSnapshots.push(snapshot);
+    this.e.terminateSnapshots.push(snapshot);
     return { ...snapshot, '_observedAt': Date.now() };
   }
 
   protected override onTerminatedAccess(): void {
     console.log('[scope] onTerminatedAccess');
-    this._e.terminatedAccessCount.push(1);
+    this.e.terminatedAccessCount.push(1);
   }
 }
 

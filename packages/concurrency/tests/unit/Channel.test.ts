@@ -164,3 +164,42 @@ it('onClose fires once on close()', () => {
   ch.close();
   assert.equal(ch.closeCount, 1);
 });
+
+// highWaterMark / onOverflow
+class OverflowChannel<T> extends Channel<T> {
+  readonly overflowEvents: { 'key': string; 'depth': number }[] = [];
+
+  protected override onOverflow(key: string, depth: number): void {
+    this.overflowEvents.push({ 'key': key, 'depth': depth });
+  }
+}
+
+it('no highWaterMark configured: onOverflow never fires, buffer grows unbounded', async () => {
+  const ch = new OverflowChannel<number>();
+
+  for (let i = 0; i < 50; i += 1) { ch.publish('k', i); }
+
+  assert.equal(ch.overflowEvents.length, 0);
+
+  const items = await collectN(ch.subscribe('k'), 50);
+  assert.equal(items.length, 50);
+  assert.deepEqual(items, Array.from({ 'length': 50 }, (_v, i) => i));
+});
+
+it('highWaterMark configured: onOverflow fires at configured depth without dropping items', async () => {
+  const ch = OverflowChannel.create<number>({ 'highWaterMark': 3 }) as OverflowChannel<number>;
+
+  ch.publish('k', 1);
+  assert.equal(ch.overflowEvents.length, 0);
+  ch.publish('k', 2);
+  assert.equal(ch.overflowEvents.length, 0);
+  ch.publish('k', 3);
+  assert.equal(ch.overflowEvents.length, 1);
+  assert.deepEqual(ch.overflowEvents[0], { 'key': 'k', 'depth': 3 });
+  ch.publish('k', 4);
+  assert.equal(ch.overflowEvents.length, 2);
+  assert.deepEqual(ch.overflowEvents[1], { 'key': 'k', 'depth': 4 });
+
+  const items = await collectN(ch.subscribe('k'), 4);
+  assert.deepEqual(items, [1, 2, 3, 4]);
+});

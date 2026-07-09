@@ -149,7 +149,7 @@ it('onPush is called at end of push (length is updated when hook fires)', () => 
 
   class CheckLength extends SampleBuffer {
     override onPush(_value: number, _evicted: boolean): void {
-      lengthAtHook = this._length;
+      lengthAtHook = this.count;
     }
   }
 
@@ -203,7 +203,7 @@ it('onClear is called before state is reset (length is still non-zero in hook)',
 
   class CheckClear extends SampleBuffer {
     override onClear(): void {
-      lengthAtHook = this._length;
+      lengthAtHook = this.count;
     }
   }
 
@@ -383,14 +383,14 @@ it('onComputeStart fires again after cache is invalidated by push', () => {
 
 // ── Protected field access ────────────────────────────────────────────────────
 
-it('subclass can read _length, _capacity, _head, _samples, _sortedCache', () => {
+it('subclass can read count, capacity, head, sortedCache', () => {
   class InspectBuffer extends SampleBuffer {
     inspect(): { capacity: number; head: number; length: number; cacheNull: boolean } {
       return {
-        cacheNull: this._sortedCache === null,
-        capacity: this._capacity,
-        head: this._head,
-        length: this._length,
+        cacheNull: this.sortedCache === null,
+        capacity: this.capacity,
+        head: this.head,
+        length: this.count,
       };
     }
   }

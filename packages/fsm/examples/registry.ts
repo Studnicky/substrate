@@ -28,22 +28,24 @@ class Toggle extends StateMachine<ToggleState, ToggleEvent> {
 const interpreter: EffectInterpreter<ToggleState, ToggleEvent> = EffectInterpreter.create({ 'machine': Toggle.make(), 'machineId': 'toggle-a' });
 interpreter.start();
 
-// Registry is empty before registration
-assert.equal(MachineRegistry.has('toggle-a'), false);
-assert.deepEqual(MachineRegistry.list(), []);
+const registry = MachineRegistry.create();
 
-MachineRegistry.register('toggle-a', interpreter);
-assert.equal(MachineRegistry.has('toggle-a'), true);
-assert.deepEqual(MachineRegistry.list(), ['toggle-a']);
+// Registry is empty before registration
+assert.equal(registry.has('toggle-a'), false);
+assert.deepEqual(registry.list(), []);
+
+registry.register('toggle-a', interpreter);
+assert.equal(registry.has('toggle-a'), true);
+assert.deepEqual(registry.list(), ['toggle-a']);
 
 // Duplicate registration throws MachineAlreadyRegisteredError
 assert.throws(
-  () => { MachineRegistry.register('toggle-a', interpreter); },
+  () => { registry.register('toggle-a', interpreter); },
   MachineAlreadyRegisteredError
 );
 
 // Retrieve and drive the machine through the registry
-const found = MachineRegistry.get('toggle-a');
+const found = registry.get('toggle-a');
 assert.ok(found !== undefined);
 
 await found.send({ 'type': 'toggle' });
@@ -53,14 +55,14 @@ await found.send({ 'type': 'toggle' });
 assert.equal(interpreter.getState().variant, 'off');
 
 // Unknown name returns undefined
-assert.equal(MachineRegistry.get('unknown'), undefined);
+assert.equal(registry.get('unknown'), undefined);
 
-MachineRegistry.unregister('toggle-a');
-assert.equal(MachineRegistry.has('toggle-a'), false);
+registry.unregister('toggle-a');
+assert.equal(registry.has('toggle-a'), false);
 
 interpreter.stop();
 
-console.log('Registry state:', MachineRegistry.list());
+console.log('Registry state:', registry.list());
 // #endregion usage
 
 console.log('registry: all assertions passed');

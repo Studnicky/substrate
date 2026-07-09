@@ -5,6 +5,8 @@
  * - never() singleton sentinel
  * - compose() with various option combinations
  * - timeout() thin wrapper
+ * - instance methods via Signal.create()
+ * - onCompose observer hook via subclassing
  */
 
 import assert from 'node:assert/strict';
@@ -12,6 +14,16 @@ import { it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
 import { Signal } from '../../src/Signal.js';
+
+type ComposeOptions = { 'deadlineMs'?: number; 'signal'?: AbortSignal };
+
+class RecordingSignal extends Signal {
+  public calls: Array<{ options: ComposeOptions; result: AbortSignal }> = [];
+
+  protected override onCompose(options: ComposeOptions, result: AbortSignal): void {
+    this.calls.push({ options, result });
+  }
+}
 
 const neverScenarios: Array<{ description: string; exec: () => void }> = [
   {
@@ -98,4 +110,72 @@ it('returns an AbortSignal that fires after the given ms', async () => {
   assert.equal(sig.aborted, false, 'Should not be aborted immediately');
   await delay(80);
   assert.equal(sig.aborted, true, 'Should be aborted after timeout');
+});
+
+const instanceScenarios: Array<{ description: string; exec: () => void }> = [
+  {
+    description: 'instance compose with empty options',
+    exec: () => {
+      const s = Signal.create();
+      const sig = s.compose({});
+      assert.ok(sig instanceof AbortSignal, 'Should be an AbortSignal');
+      assert.equal(sig, Signal.never(), 'Should fall back to the never-aborting sentinel');
+    },
+  },
+  {
+    description: 'instance compose with provided signal',
+    exec: () => {
+      const s = Signal.create();
+      const controller = new AbortController();
+      const sig = s.compose({ signal: controller.signal });
+      assert.equal(sig, controller.signal, 'Should return the exact provided signal');
+    },
+  },
+  {
+    description: 'instance timeout returns AbortSignal',
+    exec: () => {
+      const s = Signal.create();
+      const sig = s.timeout(5000);
+      assert.ok(sig instanceof AbortSignal, 'Should be an AbortSignal');
+    },
+  },
+];
+
+for (const { description, exec } of instanceScenarios) {
+  it(description, exec);
+}
+
+const onComposeScenarios: Array<{ description: string; options: ComposeOptions }> = [
+  {
+    description: 'fires with signal-only options',
+    options: { signal: new AbortController().signal },
+  },
+  {
+    description: 'fires with deadline-only options',
+    options: { deadlineMs: 1000 },
+  },
+  {
+    description: 'fires with empty options (never fallback)',
+    options: {},
+  },
+];
+
+for (const { description, options } of onComposeScenarios) {
+  it(`onCompose hook: ${description}`, () => {
+    const s = new RecordingSignal();
+    const result = s.compose(options);
+
+    assert.equal(s.calls.length, 1, 'onCompose should fire exactly once per compose() call');
+    assert.equal(s.calls[0]?.options, options, 'onCompose should receive the exact options object');
+    assert.equal(s.calls[0]?.result, result, 'onCompose should receive the returned AbortSignal');
+    assert.ok(s.calls[0]?.result instanceof AbortSignal, 'result should be an AbortSignal');
+  });
+}
+
+it('onCompose does not fire for static Signal.compose (default instance is internal)', () => {
+  // Static Signal.compose delegates to an internal default instance, not a
+  // subclass, so overriding onCompose on a subclass has no effect on the
+  // static entry point — this documents that boundary.
+  const sig = Signal.compose({ deadlineMs: 25 });
+  assert.ok(sig instanceof AbortSignal, 'Should be an AbortSignal');
 });

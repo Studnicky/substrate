@@ -78,11 +78,11 @@ export class SampleBuffer implements SampleBufferInterface {
     // Domain invariant: capacity must be a positive integer (schema enforces minimum:1 and type:integer)
   }
 
-  protected _length = INITIAL_BUFFER_COUNT;
-  protected _capacity: number;
-  protected _head = INITIAL_BUFFER_HEAD;
-  protected _samples: number[];
-  protected _sortedCache: null | number[] = null;
+  protected count = INITIAL_BUFFER_COUNT;
+  protected capacity: number;
+  protected head = INITIAL_BUFFER_HEAD;
+  #samples: number[];
+  protected sortedCache: null | number[] = null;
 
   /**
    * Create a new sample buffer
@@ -91,8 +91,8 @@ export class SampleBuffer implements SampleBufferInterface {
    */
   protected constructor(options: SampleBufferOptionsEntity.Type) {
     SampleBuffer.#validate(options);
-    this._capacity = options.capacity;
-    this._samples = Array.from<number>({ 'length': options.capacity });
+    this.capacity = options.capacity;
+    this.#samples = Array.from<number>({ 'length': options.capacity });
   }
 
   /**
@@ -101,9 +101,9 @@ export class SampleBuffer implements SampleBufferInterface {
    */
   clear(): void {
     this.onClear();
-    this._length = INITIAL_BUFFER_COUNT;
-    this._head = INITIAL_BUFFER_HEAD;
-    this._sortedCache = null;
+    this.count = INITIAL_BUFFER_COUNT;
+    this.head = INITIAL_BUFFER_HEAD;
+    this.sortedCache = null;
   }
 
   /**
@@ -112,22 +112,26 @@ export class SampleBuffer implements SampleBufferInterface {
    * customize the sort or sample extraction.
    */
   protected buildSortedSamples(): number[] {
-    this.onComputeStart(this._length);
+    this.onComputeStart(this.count);
 
-    const result: number[] = Array.from<number>({ 'length': this._length });
+    const length = this.count;
+    const capacity = this.capacity;
+    const head = this.head;
+    const samples = this.#samples;
+    const result: number[] = Array.from<number>({ 'length': length });
 
-    for (let i = FIRST_ARRAY_INDEX; i < this._length; i++) {
-      const index = this._length < this._capacity
+    for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
+      const index = length < capacity
         ? i
-        : (this._head + i) % this._capacity;
+        : (head + i) % capacity;
 
-      result[i] = this._samples[index]!;
+      result[i] = samples[index]!;
     }
 
     result.sort((left, right) => {
       return left - right;
     });
-    this.onComputeComplete(this._length, result);
+    this.onComputeComplete(length, result);
     return result;
   }
 
@@ -135,17 +139,17 @@ export class SampleBuffer implements SampleBufferInterface {
    * Whether the buffer has reached capacity
    */
   get isFull(): boolean {
-    return this._length === this._capacity;
+    return this.count === this.capacity;
   }
 
   /**
    * Number of samples in the buffer
    *
-   * Getter required: _length is mutated internally but exposed read-only
+   * Getter required: count is mutated internally but exposed read-only
    */
   get length(): number {
-    // Ensure non-negative (defensive - _length should never be negative)
-    const result = Math.max(this._length, EMPTY_LENGTH);
+    // Ensure non-negative (defensive - count should never be negative)
+    const result = Math.max(this.count, EMPTY_LENGTH);
     return result;
   }
 
@@ -228,13 +232,13 @@ export class SampleBuffer implements SampleBufferInterface {
    * @returns Percentile value or undefined if buffer is empty
    */
   percentile(pct: number): number | undefined {
-    if (this._length === EMPTY_LENGTH) {
+    if (this.count === EMPTY_LENGTH) {
       return undefined;
     }
 
-    this._sortedCache ??= this.buildSortedSamples();
+    this.sortedCache ??= this.buildSortedSamples();
 
-    const sorted = this._sortedCache;
+    const sorted = this.sortedCache;
 
     let result: number;
 
@@ -280,20 +284,20 @@ export class SampleBuffer implements SampleBufferInterface {
    */
   push(value: number): void {
     // Invalidate sorted cache
-    this._sortedCache = null;
+    this.sortedCache = null;
 
-    if (this._length < this._capacity) {
+    if (this.count < this.capacity) {
       // Buffer not full - append
-      this._samples[this._length] = value;
-      this._length++;
+      this.#samples[this.count] = value;
+      this.count++;
       this.onPush(value, false);
     } else {
       // Buffer full - overwrite oldest (at head position)
       this.onOverflow(value);
-      const oldValue = this._samples[this._head]!;
+      const oldValue = this.#samples[this.head]!;
       this.onEvict(oldValue);
-      this._samples[this._head] = value;
-      this._head = (this._head + INCREMENT_BY_ONE) % this._capacity;
+      this.#samples[this.head] = value;
+      this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
       this.onPush(value, true);
     }
   }

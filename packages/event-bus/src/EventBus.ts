@@ -1,5 +1,6 @@
 /** Typed multi-topic pub/sub; per-subscriber BusQueue isolates errors and backpressure. */
 
+import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
 import type { EventHandlerType } from './EventHandlerType.js';
 import type { UnsubscribeType } from './UnsubscribeType.js';
 
@@ -9,21 +10,24 @@ import { EventBusBuilder } from './EventBusBuilder.js';
 export class EventBus<TTopicMap extends Record<string, unknown>> {
   readonly #store = new Map<string, Map<EventHandlerType<unknown>, BusQueue<unknown>>>();
   readonly #busController = new AbortController();
+  readonly #config: BusQueueOptionsEntity.Type;
 
   static builder<TTopicMap extends Record<string, unknown>>(): EventBusBuilder<TTopicMap> {
-    const result = EventBusBuilder.create<TTopicMap>(() => {
-      const instance = EventBus.create<TTopicMap>();
+    const result = EventBusBuilder.create<TTopicMap>((config) => {
+      const instance = EventBus.create<TTopicMap>(config);
       return instance;
     });
     return result;
   }
 
-  static create<TTopicMap extends Record<string, unknown>>(): EventBus<TTopicMap> {
-    const result = new this<TTopicMap>();
+  static create<TTopicMap extends Record<string, unknown>>(config?: BusQueueOptionsEntity.Type): EventBus<TTopicMap> {
+    const result = new this<TTopicMap>(config);
     return result;
   }
 
-  protected constructor() {}
+  protected constructor(config?: BusQueueOptionsEntity.Type) {
+    this.#config = config ?? {};
+  }
 
   #getTopicMap<K extends keyof TTopicMap>(topic: K): Map<EventHandlerType<TTopicMap[K]>, BusQueue<TTopicMap[K]>> {
     const key = String(topic);
@@ -33,6 +37,42 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
       this.#store.set(key, topicMap);
     }
     return topicMap as Map<EventHandlerType<TTopicMap[K]>, BusQueue<TTopicMap[K]>>;
+  }
+
+  #createQueueConfig<K extends keyof TTopicMap>(
+    topic: K,
+    handler: EventHandlerType<TTopicMap[K]>,
+    queueController: AbortController
+  ): {
+    'handler': (payload: TTopicMap[K]) => Promise<void>;
+    'onDequeue': (depth: number) => void;
+    'onDrop': () => void;
+    'onEnqueue': (depth: number) => void;
+    'onHandlerError': (err: unknown) => void;
+    'onOverflow': (depth: number) => void;
+    'onSlowConsumer': (depth: number, hwm: number) => void;
+  } {
+    const queueHandler = async (payload: TTopicMap[K]): Promise<void> => {
+      await handler(payload, queueController.signal);
+      this.onDeliver(topic, payload);
+    };
+
+    const queueDequeue = (_depth: number): void => { this.onDequeue(topic); };
+    const queueDrop = (): void => { this.onDrop(topic); };
+    const queueEnqueue = (_depth: number): void => { this.onEnqueue(topic); };
+    const queueHandlerError = (err: unknown): void => { this.onHandlerError(topic, err); };
+    const queueOverflow = (depth: number): void => { this.onOverflow(topic, depth); };
+    const queueSlowConsumer = (depth: number, _hwm: number): void => { this.onSlowConsumer(topic, depth); };
+
+    return {
+      'handler': queueHandler,
+      'onDequeue': queueDequeue,
+      'onDrop': queueDrop,
+      'onEnqueue': queueEnqueue,
+      'onHandlerError': queueHandlerError,
+      'onOverflow': queueOverflow,
+      'onSlowConsumer': queueSlowConsumer
+    };
   }
 
   subscribe<K extends keyof TTopicMap>(
@@ -60,17 +100,10 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
       }
     }
 
+    const callbackConfig = this.#createQueueConfig(topic, handler, queueController);
     const queue = BusQueue.create<TTopicMap[K]>({
-      'handler': async (payload) => {
-        await handler(payload, queueController.signal);
-        this.onDeliver(topic, payload);
-      },
-      'onDequeue': (_depth) => { this.onDequeue(topic); },
-      'onDrop': () => { this.onDrop(topic); },
-      'onEnqueue': (_depth) => { this.onEnqueue(topic); },
-      'onHandlerError': (err) => { this.onHandlerError(topic, err); },
-      'onOverflow': (depth) => { this.onOverflow(topic, depth); },
-      'onSlowConsumer': (depth, _hwm) => { this.onSlowConsumer(topic, depth); },
+      ...callbackConfig,
+      ...(this.#config.highWaterMark !== undefined ? { 'highWaterMark': this.#config.highWaterMark } : {}),
       'signal': queueController.signal
     });
     topicMap.set(handler, queue);

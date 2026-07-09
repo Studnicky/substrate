@@ -11,7 +11,7 @@ interface EffectInterpreterCreateOptionsInterface<
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
-  readonly 'handlers'?: EffectHandlerMapType<TEffect> | undefined;
+  readonly 'handlers'?: EffectHandlerMapType<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;
   readonly 'machineId'?: string | undefined;
 }
@@ -21,7 +21,7 @@ interface EffectInterpreterConstructorOptionsInterface<
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
-  readonly 'handlers'?: EffectHandlerMapType<TEffect> | undefined;
+  readonly 'handlers'?: EffectHandlerMapType<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect>;
   readonly 'machineId'?: string | undefined;
 }
@@ -62,7 +62,7 @@ export class EffectInterpreter<
   }
 
   readonly #machine: StateMachine<TState, TEvent, TEffect>;
-  readonly #handlers: EffectHandlerMapType<TEffect>;
+  readonly #handlers: EffectHandlerMapType<TEffect, TEvent>;
   readonly #machineId: string;
   readonly #observers = new Set<(state: TState) => void>();
   readonly #mailbox: TEvent[] = [];
@@ -145,35 +145,42 @@ export class EffectInterpreter<
 
   async #drain(): Promise<void> {
     this.#draining = true;
-    while (this.#mailbox.length > 0) {
-      const event = this.#mailbox.shift();
-      if (event === undefined) { break; }
-      const currentState = this.#currentState;
-      if (currentState === undefined) { break; }
-      const step = this.#machine.transition(currentState, event);
-      const prevState = currentState;
-      this.#currentState = step.state;
-      if (prevState.variant !== step.state.variant) {
-        this.onExitState(prevState);
-        this.onTransition(prevState, step.state, event);
-        this.onEnterState(step.state);
-      }
-      this.#notifyObservers();
-      for (const effect of step.effects) {
-        const variantKey = effect.variant as keyof EffectHandlerMapType<TEffect>;
-        const handler = this.#handlers[variantKey];
-        if (handler !== undefined) {
-          await this.#invokeHandler(effect, handler as (e: TEffect) => Promise<void> | void);
+    try {
+      while (this.#mailbox.length > 0) {
+        const event = this.#mailbox.shift();
+        if (event === undefined) { break; }
+        const currentState = this.#currentState;
+        if (currentState === undefined) { break; }
+        const step = this.#machine.transition(currentState, event);
+        const prevState = currentState;
+        this.#currentState = step.state;
+        if (prevState.variant !== step.state.variant) {
+          this.onExitState(prevState);
+          this.onTransition(prevState, step.state, event);
+          this.onEnterState(step.state);
+        }
+        this.#notifyObservers();
+        for (const effect of step.effects) {
+          const variantKey = effect.variant as keyof EffectHandlerMapType<TEffect, TEvent>;
+          const handler = this.#handlers[variantKey];
+          if (handler !== undefined) {
+            await this.#invokeHandler(effect, handler as (e: TEffect, dispatch: (event: TEvent) => void) => Promise<void> | void);
+          }
         }
       }
+    } finally {
+      this.#draining = false;
     }
-    this.#draining = false;
   }
 
-  async #invokeHandler(effect: TEffect, handler: (e: TEffect) => Promise<void> | void): Promise<void> {
+  async #invokeHandler(effect: TEffect, handler: (e: TEffect, dispatch: (event: TEvent) => void) => Promise<void> | void): Promise<void> {
     this.onEffectStart(effect);
+    const dispatch = (event: TEvent): void => {
+      this.onEnqueue(event);
+      this.#mailbox.unshift(event);
+    };
     try {
-      await handler(effect);
+      await handler(effect, dispatch);
       this.onEffectSuccess(effect);
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));

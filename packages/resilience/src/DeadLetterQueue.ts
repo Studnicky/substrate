@@ -38,10 +38,12 @@ export class DeadLetterQueue<T> {
     this.#capacity = capacity;
     this.#clock = options?.clock ?? (() => { const result = Date.now(); return result; });
     const signal = options?.signal;
+    let aborted = false;
     if (signal !== undefined) {
-      if (signal.aborted) { this.#aborted = true; }
+      if (signal.aborted) { aborted = true; }
       else { signal.addEventListener('abort', () => { this.#abort(); }, { 'once': true }); }
     }
+    this.#aborted = aborted;
   }
 
   get size(): number { const result = this.#entries.length;

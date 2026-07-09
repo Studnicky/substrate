@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/fsm",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Pure reducer FSM with async effect interpreter and actor registry",
   "type": "module",
   "sideEffects": false,
@@ -63,6 +63,12 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
+    "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/errors": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/clock": "workspace:*",
+    "@studnicky/scheduler": "workspace:*",
+    "@studnicky/signal": "workspace:*"
   }
 }

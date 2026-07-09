@@ -1,4 +1,5 @@
 import { ConfigValidation } from '@studnicky/config';
+import { DefaultHttpErrorClassifier } from '@studnicky/errors';
 
 import type {
   ErrorClassificationType,
@@ -24,10 +25,11 @@ import {
   NonRetryableError
 } from '../errors/index.js';
 import {
+  backoffStrategy,
   errorClassifier,
+  maxElapsedMs,
   maxRetries
 } from './config/schemas/index.js';
-import { DefaultHttpErrorClassifier } from './core/DefaultHttpErrorClassifier.js';
 import { Delay } from './Delay.js';
 import { RetryBuilder } from './RetryBuilder.js';
 
@@ -77,13 +79,14 @@ class RetryCallFsm {
  * a consumer overrides to add logging/timing/metrics. Can be instantiated directly
  * with an errorClassifier in config, or extended with a custom classifyError().
  *
- * @example Direct instantiation with config classifier
+ * @example Direct instantiation with config classifier and backoff
  * ```typescript
  * import { Retry, DefaultHttpErrorClassifier, BackoffStrategy } from '@studnicky/retry';
  *
  * const retry = Retry.create({
  *   maxRetries: 3,
- *   errorClassifier: DefaultHttpErrorClassifier.create()
+ *   errorClassifier: DefaultHttpErrorClassifier.create(),
+ *   backoffStrategy: { strategy: BackoffStrategy.exponential, baseDelayMs: 100 }
  * });
  *
  * const result = await retry.execute(() => fetchData());
@@ -149,8 +152,10 @@ export class Retry implements RetryInterface {
   }
   private readonly classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
   private readonly defaultClassifier: DefaultHttpErrorClassifier;
+  private readonly backoffStrategy: RetryConfigInterface['backoffStrategy'];
 
   protected readonly maxRetries: number;
+  protected readonly maxElapsedMs: number | undefined;
 
   protected stats: RequestStatsType = {
     'failedRequests': INITIAL_COUNTER,
@@ -163,18 +168,22 @@ export class Retry implements RetryInterface {
     const validated = Retry.#validateConfig(config);
 
     this.maxRetries = validated.maxRetries ?? DEFAULT_MAX_RETRIES;
+    this.maxElapsedMs = validated.maxElapsedMs;
     this.defaultClassifier = DefaultHttpErrorClassifier.create();
+    this.backoffStrategy = validated.backoffStrategy;
 
+    let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
     if (validated.errorClassifier === undefined) {
       // Arrow function required for subclass polymorphism - classifyError may be overridden
-      this.classifierFn = (error, attemptNumber) => { const result = this.classifyError(error, attemptNumber); return result; };
+      classifierFn = (error, attemptNumber) => { const result = this.classifyError(error, attemptNumber); return result; };
     } else if (typeof validated.errorClassifier === 'function') {
-      this.classifierFn = validated.errorClassifier;
+      classifierFn = validated.errorClassifier;
     } else {
       const classifier = validated.errorClassifier;
 
-      this.classifierFn = (error, attemptNumber) => { const result = classifier.classify(error, attemptNumber); return result; };
+      classifierFn = (error, attemptNumber) => { const result = classifier.classify(error, attemptNumber); return result; };
     }
+    this.classifierFn = classifierFn;
   }
 
   /**
@@ -211,15 +220,26 @@ export class Retry implements RetryInterface {
   ): void {}
 
   /**
-   * Behavioral lifecycle hook fired before each scheduled retry. Default is a no-op,
-   * which leaves `context.delayMs` at 0 (immediate retry). Override to drive retry
-   * behavior:
+   * Behavioral lifecycle hook fired before each scheduled retry.
+   *
+   * If `backoffStrategy` was supplied in config, the default body computes
+   * `context.delayMs = backoffStrategy.strategy(context.attemptNumber, backoffStrategy.baseDelayMs)`.
+   * If no `backoffStrategy` was supplied, `context.delayMs` stays at 0 (immediate retry).
+   * If `backoffStrategy` is provided in config, it takes precedence over this method —
+   * a subclass overriding this method entirely replaces the default body, so the
+   * config-based backoff never runs for that instance.
+   *
+   * Override to drive retry behavior directly:
    *  - set `context.delayMs` (use a shipped BackoffStrategy, e.g.
    *    `context.delayMs = BackoffStrategy.exponential(context.attemptNumber, 100)`)
    *  - set `context.abort = true` to stop retrying immediately
    *  - mutate `context.state` (may be async — e.g. `context.state.token = await refresh()`)
    */
-  protected onRetryScheduled(_context: RetryContextType): void | Promise<void> {}
+  protected onRetryScheduled(context: RetryContextType): void | Promise<void> {
+    if (this.backoffStrategy !== undefined) {
+      context.delayMs = this.backoffStrategy.strategy(context.attemptNumber, this.backoffStrategy.baseDelayMs);
+    }
+  }
 
   /** Fires when retrying is abandoned. */
   protected onGiveUp(
@@ -454,6 +474,12 @@ export class Retry implements RetryInterface {
       this.handleMaxRetriesExceeded(callFsm, attempt, error, errors);
     }
 
+    // Time ceiling: same exhaustion path as attempt-count exhaustion — whichever
+    // budget (attempts or elapsed time) is hit first wins.
+    if (this.maxElapsedMs !== undefined && Date.now() - startTime >= this.maxElapsedMs) {
+      this.handleMaxRetriesExceeded(callFsm, attempt, error, errors);
+    }
+
     // Only count a retry when the budget allows another attempt.
     this.stats.totalRetries++;
 
@@ -493,7 +519,9 @@ export class Retry implements RetryInterface {
   }
 
   private static readonly propertyValidators: Record<string, (val: unknown) => void> = {
+    'backoffStrategy': backoffStrategy.validateBackoffStrategy,
     'errorClassifier': errorClassifier.validateErrorClassifier,
+    'maxElapsedMs': maxElapsedMs.validateMaxElapsedMs,
     'maxRetries': maxRetries.validateMaxRetries
   };
 

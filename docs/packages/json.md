@@ -37,15 +37,53 @@ Convert JSON Pointers to JS access notation, read values via proto-safe dot-path
 
 <<< ../../packages/json/examples/path-sort-hash.ts#usage
 
+## SchemaValidator
+
+Compile a JSON Schema 2020-12 document into a reusable type-guard predicate, backed by Ajv (`strict: true`, `allErrors: true`, `ajv-formats` registered). Declare a single schema as the source of truth and derive both the compile-time type and the runtime guard from it, so there is no second, hand-written validator to drift out of sync:
+
+<!-- inline-ts-ok: conceptual usage snippet; no transcludable example file exists for SchemaValidator -->
+```ts
+import { SchemaValidator } from '@studnicky/json';
+
+const schema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    count: { type: 'number' },
+  },
+  required: ['id', 'count'],
+  additionalProperties: false,
+} as const;
+
+interface RecordType {
+  id: string;
+  count: number;
+}
+
+// Compile once at module load and reuse — compilation is the expensive step.
+const isRecord = SchemaValidator.compile<RecordType>(schema);
+
+if (isRecord(payload)) {
+  payload.count; // narrowed to RecordType
+} else {
+  // isRecord.errors carries Ajv's ErrorObject[] after every call
+  SchemaValidator.formatErrors(isRecord.errors);
+  // "(root): must have required property 'count'"
+}
+```
+
+`SchemaValidator.compile` returns Ajv's `ValidateFunction<TValidated>` directly — it already narrows `unknown` to `TValidated` and exposes `.errors`. `SchemaValidator.formatErrors` renders that array into one human-readable line, falling back to `'invalid payload'` when there are no errors. Override the `protected static formatError` step in a subclass to customise per-error wording.
+
 ## Subpath exports
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/json` | `Clone`, `DataType`, `Frozen`, `Hash`, `Merge`, `Patch`, `Path`, `Sort`, `StructuralHash`, `PatchError` |
+| `@studnicky/json` | `Clone`, `DataType`, `Frozen`, `Hash`, `Merge`, `Patch`, `Path`, `Sort`, `StructuralHash`, `SchemaValidator`, `PatchError` |
 | `@studnicky/json/json` | All utility classes |
 | `@studnicky/json/types` | `DeepMergeType`, `PatchApplyResultType`, `PatchOperationType`, `PatchOpVariantType` |
 | `@studnicky/json/errors` | `PatchError` |
 | `@studnicky/json/interfaces` | `PathWildcardResultType` |
+| `@studnicky/json/schema` | `SchemaValidator` |
 
 ## Extending
 

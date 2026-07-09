@@ -36,6 +36,11 @@ for await (const msg of channel.subscribe('events')) {
 }
 // received === ['hello', 'world']
 
+// Channel — observing a slow consumer via highWaterMark
+const bounded = Channel.create<string>({ highWaterMark: 100 });
+// override onOverflow(key, depth) in a subclass to observe a per-key buffer
+// growing past 100 items; publish() still accepts every item — nothing is dropped
+
 // Semaphore — bound concurrency
 const sem = Semaphore.create({ permits: 2 });
 const result = await sem.withPermit(async () => {
@@ -51,6 +56,12 @@ const [a, b] = await Promise.all([
   coalesce.run('user:42', () => fetch('/api/user/42')), // shares the first fetch
 ]);
 // factory called once; both callers receive the same resolved value
+
+// Coalesce — capping how long a caller waits on a stuck factory
+const bounded = Coalesce.create<Response>({ timeout: 5000 });
+// each caller races its own 5s timeout against the shared in-flight promise;
+// a caller whose timeout elapses rejects with CoalesceTimeoutError without
+// evicting the entry or affecting other callers still waiting on it
 
 // AsyncIter — composable async iterables
 async function* nums(start: number, end: number): AsyncGenerator<number> {

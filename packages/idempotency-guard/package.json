@@ -1,0 +1,63 @@
+{
+  "name": "@studnicky/idempotency-guard",
+  "version": "5.1.0",
+  "description": "Idempotency key guard composing cache, concurrency, and json: dedupes concurrent calls, replays cached results within a TTL window, rejects key reuse with a different payload",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist coverage test-reports",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/idempotency-guard"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "homepage": "https://studnicky.github.io/substrate/packages/idempotency-guard",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "keywords": [
+    "idempotency",
+    "idempotency-key",
+    "coalesce",
+    "cache",
+    "dedupe",
+    "typescript",
+    "nodejs"
+  ],
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "@studnicky/cache": "workspace:*",
+    "@studnicky/concurrency": "workspace:*",
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*"
+  }
+}

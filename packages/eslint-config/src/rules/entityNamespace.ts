@@ -245,9 +245,7 @@ const scanNamespaceBody = (bodyNode: unknown): NamespaceMembersType => {
   const { body } = bodyNode;
   if (!Array.isArray(body)) { return result; }
 
-  const bodyLen = body.length;
-  for (let i = 0; i < bodyLen; i += 1) {
-    const stmt: unknown = body[i];
+  for (const stmt of body) {
     if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') { continue; }
     const decl = AstHelpers.getDeclaration(stmt);
     const declType = AstHelpers.getNodeType(decl);
@@ -256,9 +254,7 @@ const scanNamespaceBody = (bodyNode: unknown): NamespaceMembersType => {
       if (!isJsonObject(decl)) { continue; }
       const { declarations } = decl;
       if (!Array.isArray(declarations)) { continue; }
-      const declsLen = declarations.length;
-      for (let di = 0; di < declsLen; di += 1) {
-        const d: unknown = declarations[di];
+      for (const d of declarations) {
         if (!isJsonObject(d) || !isJsonObject(d.id)) { continue; }
         const { name } = d.id;
         if (name === 'Schema') {
@@ -286,6 +282,48 @@ const scanNamespaceBody = (bodyNode: unknown): NamespaceMembersType => {
   return result;
 };
 
+class ProgramExitListener {
+  static create(context: Rule.RuleContext, expectedName: string): Rule.RuleListener['Program:exit'] {
+    return (program) => {
+      const body = Array.isArray(program.body) ? program.body : [];
+
+      const namespaceExports = (body as unknown[]).filter((stmt) => {
+        if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') { return false; }
+        return AstHelpers.getNodeType(AstHelpers.getDeclaration(stmt)) === 'TSModuleDeclaration';
+      });
+
+      if (namespaceExports.length === 0) {
+        context.report({ 'messageId': 'noNamespace', 'node': program });
+        return;
+      }
+
+      for (const exportStmt of namespaceExports) {
+        const decl = AstHelpers.getDeclaration(exportStmt);
+        if (!isJsonObject(decl)) { continue; }
+
+        const nsName = AstHelpers.getIdName(decl);
+        if (nsName !== expectedName) {
+          context.report({
+            'data': { 'expected': expectedName, 'found': nsName ?? '(unknown)' },
+            'messageId': 'namespaceMismatch',
+            'node': exportStmt as Rule.Node
+          });
+        }
+
+        const members = scanNamespaceBody(decl.body);
+        const reportNode = exportStmt as Rule.Node;
+
+        if (!members.hasSchema) { context.report({ 'messageId': 'missingSchema', 'node': reportNode }); }
+        else if (!members.hasSchemaAsConst) { context.report({ 'messageId': 'schemaNotConst', 'node': reportNode }); }
+        if (!members.hasType) { context.report({ 'messageId': 'missingType', 'node': reportNode }); }
+        else if (!members.hasTypeFromSchema) { context.report({ 'messageId': 'typeNotFromSchema', 'node': reportNode }); }
+        if (!members.hasValidate) { context.report({ 'messageId': 'missingValidate', 'node': reportNode }); }
+        else if (!members.hasValidateTypeGuard) { context.report({ 'messageId': 'validateNotTypeGuard', 'node': reportNode }); }
+      }
+    };
+  }
+}
+
 export const entityNamespace: Rule.RuleModule = {
   'create': (context) => {
     const { filename } = context;
@@ -295,45 +333,7 @@ export const entityNamespace: Rule.RuleModule = {
     const expectedName = AstHelpers.getEntityBaseName(filename);
 
     return {
-      'Program:exit': (program) => {
-        const body = Array.isArray(program.body) ? program.body : [];
-
-        const namespaceExports = (body as unknown[]).filter((stmt) => {
-          if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') { return false; }
-          return AstHelpers.getNodeType(AstHelpers.getDeclaration(stmt)) === 'TSModuleDeclaration';
-        });
-
-        if (namespaceExports.length === 0) {
-          context.report({ 'messageId': 'noNamespace', 'node': program });
-          return;
-        }
-
-        const exportsLen = namespaceExports.length;
-        for (let ei = 0; ei < exportsLen; ei += 1) {
-          const exportStmt = namespaceExports[ei];
-          const decl = AstHelpers.getDeclaration(exportStmt);
-          if (!isJsonObject(decl)) { continue; }
-
-          const nsName = AstHelpers.getIdName(decl);
-          if (nsName !== expectedName) {
-            context.report({
-              'data': { 'expected': expectedName, 'found': nsName ?? '(unknown)' },
-              'messageId': 'namespaceMismatch',
-              'node': exportStmt as Rule.Node
-            });
-          }
-
-          const members = scanNamespaceBody(decl.body);
-          const reportNode = exportStmt as Rule.Node;
-
-          if (!members.hasSchema) { context.report({ 'messageId': 'missingSchema', 'node': reportNode }); }
-          else if (!members.hasSchemaAsConst) { context.report({ 'messageId': 'schemaNotConst', 'node': reportNode }); }
-          if (!members.hasType) { context.report({ 'messageId': 'missingType', 'node': reportNode }); }
-          else if (!members.hasTypeFromSchema) { context.report({ 'messageId': 'typeNotFromSchema', 'node': reportNode }); }
-          if (!members.hasValidate) { context.report({ 'messageId': 'missingValidate', 'node': reportNode }); }
-          else if (!members.hasValidateTypeGuard) { context.report({ 'messageId': 'validateNotTypeGuard', 'node': reportNode }); }
-        }
-      }
+      'Program:exit': ProgramExitListener.create(context, expectedName)
     };
   },
   'meta': {

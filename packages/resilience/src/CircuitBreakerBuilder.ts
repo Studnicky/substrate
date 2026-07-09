@@ -1,5 +1,7 @@
 /** Fluent builder for CircuitBreaker. */
 
+import type { ErrorClassifierFunctionType, ErrorClassifierInterface } from '@studnicky/errors';
+
 import type { CircuitBreaker } from './CircuitBreaker.js';
 import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 
@@ -10,6 +12,7 @@ export class CircuitBreakerBuilder {
   #successThreshold?: number;
   #name?: string;
   #clock?: () => number;
+  #errorClassifier?: ErrorClassifierFunctionType | ErrorClassifierInterface;
 
   static create(create: (options: CircuitBreakerOptionsInterface) => CircuitBreaker): CircuitBreakerBuilder {
     return new CircuitBreakerBuilder(create);
@@ -44,13 +47,19 @@ export class CircuitBreakerBuilder {
     return this;
   }
 
+  withErrorClassifier(value: ErrorClassifierFunctionType | ErrorClassifierInterface): this {
+    this.#errorClassifier = value;
+    return this;
+  }
+
   build(): CircuitBreaker {
     const options: CircuitBreakerOptionsInterface = {
       'failureThreshold': this.#failureThreshold ?? 1,
       'resetTimeoutMs': this.#resetTimeoutMs ?? 0,
       ...(this.#successThreshold !== undefined ? { 'successThreshold': this.#successThreshold } : {}),
       ...(this.#name !== undefined ? { 'name': this.#name } : {}),
-      ...(this.#clock !== undefined ? { 'clock': this.#clock } : {})
+      ...(this.#clock !== undefined ? { 'clock': this.#clock } : {}),
+      ...(this.#errorClassifier !== undefined ? { 'errorClassifier': this.#errorClassifier } : {})
     };
     return this.#create(options);
   }

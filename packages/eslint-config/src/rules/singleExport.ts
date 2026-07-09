@@ -483,7 +483,7 @@ export const singleExport: Rule.RuleModule = {
 
         return;
       }
-      const exportName = unique[0] ?? '';
+      const [exportName = ''] = unique;
 
       if (!matchesFilename(exportName, fileName)) {
         const reportNode = firstExportNode ?? node;

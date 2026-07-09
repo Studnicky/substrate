@@ -13,6 +13,8 @@ import { deepStrictEqual, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { EventBus } from '../../src/EventBus.js';
+import { EventBusBuilder } from '../../src/EventBusBuilder.js';
+import type { BusQueueOptionsEntity } from '../../src/entities/BusQueueOptionsEntity.js';
 
 interface TestTopics {
   ping: string;
@@ -338,4 +340,153 @@ void it('hooks fire in correct order: subscribe → publish → enqueue → dequ
 
   deepStrictEqual(order, ['subscribe', 'publish', 'enqueue', 'dequeue', 'deliver']);
   await bus.close();
+});
+
+// ── highWaterMark configuration ─────────────────────────────────────────────
+
+interface HwmTopics {
+  'x': string;
+}
+
+class OverflowObservedBus extends EventBus<HwmTopics> {
+  static override create(config?: BusQueueOptionsEntity.Type): OverflowObservedBus {
+    return new OverflowObservedBus(config);
+  }
+
+  readonly overflowDepths: number[] = [];
+
+  protected override onOverflow<K extends keyof HwmTopics>(_topic: K, depth: number): void {
+    this.overflowDepths.push(depth);
+  }
+}
+
+void it('EventBus.create() with no config defaults subscriber queues to highWaterMark 256 (no overflow well below it)', async () => {
+  const bus = OverflowObservedBus.create();
+
+  let resolveBlock!: () => void;
+  const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
+  let first = true;
+
+  bus.subscribe('x', async (_payload) => {
+    if (first) {
+      first = false;
+      await blockFirst;
+    }
+  });
+
+  // Publish well below the default highWaterMark of 256 without awaiting each call.
+  const pending: Promise<void>[] = [];
+  for (let i = 0; i < 10; i += 1) {
+    pending.push(bus.publish('x', `item-${i}`));
+  }
+
+  await Promise.resolve();
+  await Promise.resolve();
+
+  strictEqual(bus.overflowDepths.length, 0, 'no overflow should occur at depth 10 against default hwm 256');
+
+  resolveBlock();
+  await Promise.all(pending);
+  await bus.drain();
+  await bus.close();
+});
+
+void it('EventBus.create({ highWaterMark: 3 }) forwards the value to subscriber queues (overflow at depth 3)', async () => {
+  const bus = OverflowObservedBus.create({ 'highWaterMark': 3 });
+
+  let resolveBlock!: () => void;
+  const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
+  let first = true;
+
+  bus.subscribe('x', async (_payload) => {
+    if (first) {
+      first = false;
+      await blockFirst;
+    }
+  });
+
+  const p1 = bus.publish('x', '1');
+  const p2 = bus.publish('x', '2');
+  const p3 = bus.publish('x', '3');
+
+  await Promise.resolve();
+  await Promise.resolve();
+
+  strictEqual(bus.overflowDepths.length >= 1, true, 'onOverflow should fire once queue depth reaches configured hwm 3');
+
+  resolveBlock();
+  await Promise.all([p1, p2, p3]);
+  await bus.drain();
+  await bus.close();
+});
+
+void it('the same publish depth (3) does NOT overflow the default-configured bus, proving the value is actually forwarded', async () => {
+  const bus = OverflowObservedBus.create();
+
+  let resolveBlock!: () => void;
+  const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
+  let first = true;
+
+  bus.subscribe('x', async (_payload) => {
+    if (first) {
+      first = false;
+      await blockFirst;
+    }
+  });
+
+  const p1 = bus.publish('x', '1');
+  const p2 = bus.publish('x', '2');
+  const p3 = bus.publish('x', '3');
+
+  await Promise.resolve();
+  await Promise.resolve();
+
+  strictEqual(bus.overflowDepths.length, 0, 'default hwm 256 should not overflow at depth 3');
+
+  resolveBlock();
+  await Promise.all([p1, p2, p3]);
+  await bus.drain();
+  await bus.close();
+});
+
+void it('EventBus.builder().withHighWaterMark(N).build() produces a bus whose subscriber queues honor N', async () => {
+  class BuilderOverflowBus extends EventBus<HwmTopics> {
+    static override create(config?: BusQueueOptionsEntity.Type): BuilderOverflowBus {
+      return new BuilderOverflowBus(config);
+    }
+
+    readonly overflowDepths: number[] = [];
+    protected override onOverflow<K extends keyof HwmTopics>(_topic: K, depth: number): void {
+      this.overflowDepths.push(depth);
+    }
+  }
+
+  const result = EventBusBuilder.create<HwmTopics>((config) => BuilderOverflowBus.create(config))
+    .withHighWaterMark(3)
+    .build() as BuilderOverflowBus;
+
+  let resolveBlock!: () => void;
+  const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
+  let first = true;
+
+  result.subscribe('x', async (_payload) => {
+    if (first) {
+      first = false;
+      await blockFirst;
+    }
+  });
+
+  const p1 = result.publish('x', '1');
+  const p2 = result.publish('x', '2');
+  const p3 = result.publish('x', '3');
+
+  await Promise.resolve();
+  await Promise.resolve();
+
+  strictEqual(result.overflowDepths.length >= 1, true, 'onOverflow should fire once queue depth reaches builder-configured hwm 3');
+
+  resolveBlock();
+  await Promise.all([p1, p2, p3]);
+  await result.drain();
+  await result.close();
 });

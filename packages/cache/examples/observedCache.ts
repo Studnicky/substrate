@@ -77,7 +77,7 @@ cache.clear();            // onClear(2)
 // TTL expiry scenario
 const ttlCache = new TracingCache({ 'capacity': 10 });
 ttlCache.events.length = 0;
-ttlCache.set('ttl-key', 7, 1); // 1 ms TTL
+ttlCache.set('ttl-key', 7, { 'ttlMs': 1 }); // 1 ms TTL
 await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
 ttlCache.get('ttl-key'); // onExpire then onMiss
 // #endregion usage

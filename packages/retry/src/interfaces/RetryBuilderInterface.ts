@@ -1,5 +1,5 @@
-import type { ErrorClassifierFunctionType } from '../types/ErrorClassifierFunctionType.js';
-import type { ErrorClassifierInterface } from './ErrorClassifierInterface.js';
+import type { ErrorClassifierFunctionType, ErrorClassifierInterface } from '@studnicky/errors';
+
 import type { RetryInterface } from './RetryInterface.js';
 
 /**
