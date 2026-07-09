@@ -332,6 +332,15 @@ export const interfaceMustBeContract: Rule.RuleModule = {
       if (interfaceType.getCallSignatures().length > 0) { return; }
       if (interfaceType.getConstructSignatures().length > 0) { return; }
 
+      // Empty interfaces are the standard consumer-declaration-merge idiom
+      // (`interface Foo {}`, meant for a downstream `declare module` to merge
+      // members into later). A rewrite to `type Foo = {}` is never an
+      // improvement (there is no shape to preserve) and would permanently
+      // remove the interface's ability to be merged into by any consumer —
+      // exactly the kind of destructive autofix a "pure JSON data shape"
+      // check must never produce for a declaration with no members to judge.
+      if (rawNode.body.body.length === 0) { return; }
+
       // Check all properties
       const props = interfaceType.getProperties();
 
