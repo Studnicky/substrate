@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- 15 new packages: `@studnicky/boundary-kit`, `@studnicky/bounded-dispatcher`, `@studnicky/entity-store`, `@studnicky/flag-evaluator`, `@studnicky/health-registry`, `@studnicky/idempotency-guard`, `@studnicky/keyed-rate-limiter`, `@studnicky/keyed-work-gate`, `@studnicky/memoize`, `@studnicky/paginator`, `@studnicky/process-kit`, `@studnicky/request-executor`, `@studnicky/sliding-window-limiter`, `@studnicky/visible-range`, and `@studnicky/worker-pool`. See each package's own README for its API.
+- `ClampedConfig` soft-correction clamping utility in `@studnicky/config`, mirroring `ConfigValidation`'s static hook idiom.
+- `Delay.sleep()`/`Delay.value()` in `@studnicky/scheduler` — virtual-time-aware delay helpers composing `Clock` and `Scheduler`.
+- `InterpreterHistory` in `@studnicky/fsm` — a bounded recorder of an `EffectInterpreter`'s own transitions, composing `CircularBuffer`.
+- 15 new custom ESLint rules (31 → 46 total): `all-types-are-entities`, `constants-folder-required`, `interface-suffix`, `interfaces-compose-named-types`, `no-project-internal-acronyms`, `no-underscore-private`, `types-derived-from-schema`, `v8/array-from-map-callback`, `v8/conditional-property-assignment`, `v8/dynamic-property-access`, `v8/inline-arrow-functions`, `v8/inline-functions`, `v8/max-switch-cases`, `v8/memoize-array-length`, `v8/object-spread`.
+- Documentation pages for all 15 new packages and all 15 new ESLint rules, plus homepage cards for both.
+
+### Fixed
+
+- `SchemaValidator.compile()` is now idempotent for a schema `$id` already registered on the shared Ajv instance, instead of throwing on re-registration.
+- Several shipped classes that delegate a composed primitive's lifecycle hook to their own same-named hook (`KeyedRateLimiter`, `IdempotencyGuard`, `Memoize`, `Paginator`) now correctly chain through `super.<hook>()` before their own logic, so the composition remains sound if the base hook ever gains real behavior or a consumer subclasses further.
+- Rewrote the Pattern Composition guide, which described Boundary Kit, Coordination Kit, and Process Kit as "documentation-only, no package exists" — all three now ship as real packages.
+- Mermaid diagrams on the architecture page previously rendered as empty, contentless elements for any reader or crawler without JavaScript; both now carry a text-equivalent fallback.
+- Corrected three new packages that were versioned to match the existing lockstep release version instead of their own first release.
+
 ## [5.0.0] - 2026-07-08
 
 ### Changed
