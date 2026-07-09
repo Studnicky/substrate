@@ -5,7 +5,20 @@
  */
 
 export type { BaseErrorArgumentsType } from './BaseErrorArgumentsType.js';
+export type { ErrorClassificationType } from './ErrorClassificationType.js';
+export type { ErrorClassifierInterface } from './ErrorClassifierInterface.js';
 export type { ErrorCodeDescriptorType } from './ErrorCodeDescriptorType.js';
+export type {
+  ErrorWithAddressType,
+  ErrorWithCodeType,
+  ErrorWithErrnoType,
+  ErrorWithHostnameType,
+  ErrorWithPortType,
+  ErrorWithRetryAfterType,
+  ErrorWithStatusCodeType,
+  ErrorWithStatusType,
+  ErrorWithSyscallType
+} from './ErrorShapesType.js';
 export type {
   ModuleErrorCreateOptionsType
 } from './ModuleErrorCreateOptionsType.js';

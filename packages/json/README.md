@@ -21,7 +21,7 @@ pnpm add @studnicky/json
 ## Usage
 
 ```ts
-import { Clone, DataType, Frozen, Hash, Merge, Patch, Path, Sort, StructuralHash } from '@studnicky/json';
+import { Clone, DataType, Draft, Frozen, Hash, Merge, Patch, Path, Sort, StructuralHash } from '@studnicky/json';
 
 // --- Merge ---
 const base = { a: 1, b: { x: 10, y: 20 } };
@@ -83,7 +83,67 @@ patch.apply(doc);
 
 // Or use static factories:
 Patch.replace('/status', 'published').apply(doc);
+
+// --- Draft (mutate a draft, get an immutable result) ---
+const base = { status: 'draft', tags: ['a'], untouched: { value: 1 } };
+
+const next = Draft.produce(base, (draft) => {
+  draft.status = 'published';
+  draft.tags.push('b');
+});
+// next.status === 'published', next !== base, base untouched
+// next.untouched === base.untouched (structural sharing — untouched branches keep the same reference)
+
+// producePatch also returns the RFC-6902 patch that produced the result,
+// reusing this package's own Patch operation shape:
+const { next: n2, patch } = Draft.producePatch({ count: 0 }, (draft) => {
+  draft.count = 1;
+});
+// patch === [{ op: 'replace', path: '/count', value: 1 }]
+Patch.create(patch).apply({ count: 0 }); // === n2
+
+// A no-op recipe returns base itself (reference identity):
+Draft.produce(base, () => {}) === base; // true
 ```
+
+## SchemaValidator
+
+Compiles a JSON Schema 2020-12 document into a reusable type-guard predicate, backed by Ajv (`strict: true`, `allErrors: true`, `ajv-formats` registered). Entities declare a single schema and derive both their compile-time type (via `FromSchema` or a hand-written interface) and their runtime guard from it — no second, hand-written validator to drift out of sync.
+
+```ts
+import { SchemaValidator } from '@studnicky/json';
+
+const schema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    count: { type: 'number' },
+  },
+  required: ['id', 'count'],
+  additionalProperties: false,
+} as const;
+
+interface RecordType {
+  id: string;
+  count: number;
+}
+
+// Compile once at module load and reuse — compilation is the expensive step.
+const isRecord = SchemaValidator.compile<RecordType>(schema);
+
+function handle(payload: unknown): void {
+  if (isRecord(payload)) {
+    payload.count; // narrowed to RecordType
+    return;
+  }
+
+  // isRecord.errors carries Ajv's ErrorObject[] after every call
+  console.error(SchemaValidator.formatErrors(isRecord.errors));
+  // "(root): must have required property 'count'"
+}
+```
+
+`SchemaValidator.compile` returns Ajv's `ValidateFunction<TValidated>` directly — it already narrows `unknown` to `TValidated` and exposes `.errors`. `SchemaValidator.formatErrors` renders that array into one human-readable line (falling back to `'invalid payload'` when there are no errors); override the `protected static formatError` step in a subclass to customise per-error wording.
 
 ## Extending
 

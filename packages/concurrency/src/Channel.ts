@@ -1,5 +1,7 @@
 /** String-keyed fan-in async generator inbox; one active subscriber per key. */
 
+import type { ChannelOptionsType } from './ChannelOptionsType.js';
+
 import { ChannelBuilder } from './ChannelBuilder.js';
 
 type ChannelStateType<T> = {
@@ -10,23 +12,24 @@ type ChannelStateType<T> = {
 
 export class Channel<T> {
   static builder<T>(): ChannelBuilder<T> {
-    const result = ChannelBuilder.create<T>(() => {
-      const channel = Channel.create<T>();
+    const result = ChannelBuilder.create<T>((options) => {
+      const channel = Channel.create<T>(options);
       return channel;
     });
     return result;
   }
 
-  static create<T>(): Channel<T> {
-    const result = new (this as unknown as new () => Channel<T>)();
+  static create<T>(options?: ChannelOptionsType): Channel<T> {
+    const result = new (this as unknown as new (options?: ChannelOptionsType) => Channel<T>)(options);
     return result;
   }
 
   #closed = false;
   readonly #channels = new Map<string, ChannelStateType<T>>();
+  readonly #highWaterMark: number | undefined;
 
-  protected constructor() {
-    // no-op
+  protected constructor(options?: ChannelOptionsType) {
+    this.#highWaterMark = options?.highWaterMark;
   }
 
   close(): void {
@@ -51,6 +54,9 @@ export class Channel<T> {
     ch.buffer.push(item);
     this.onEnqueue(key, item);
     this.onSend(key, item);
+    if (this.#highWaterMark !== undefined && ch.buffer.length >= this.#highWaterMark) {
+      this.onOverflow(key, ch.buffer.length);
+    }
     if (ch.notify !== null) {
       const notify = ch.notify;
       ch.notify = null;
@@ -118,4 +124,13 @@ export class Channel<T> {
    * Overrides must not throw or block.
    */
   protected onClose(): void {}
+
+  /**
+   * Fires in publish() when a highWaterMark is configured and the per-key buffer
+   * depth is at or above it, after the item has already landed in the buffer.
+   * Purely observational — the item is never dropped or rejected; the channel
+   * keeps consuming. Never fires when highWaterMark is left unconfigured.
+   * Overrides must not throw or block.
+   */
+  protected onOverflow(_key: string, _depth: number): void {}
 }

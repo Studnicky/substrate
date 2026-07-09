@@ -1,13 +1,13 @@
 import type {
   ErrorClassificationType,
   ErrorClassifierInterface
-} from '../../interfaces/index.js';
+} from '../interfaces/index.js';
 
 import {
   EARLY_RETRY_THRESHOLD,
   HTTP_REQUEST_TIMEOUT,
   HTTP_TOO_MANY_REQUESTS
-} from '../../constants/index.js';
+} from '../constants/index.js';
 import { errorTypeGuards } from '../validation/errorTypeGuards.js';
 import { DefaultHttpErrorClassifierBuilder } from './DefaultHttpErrorClassifierBuilder.js';
 import { ErrorClassifier } from './ErrorClassifier.js';

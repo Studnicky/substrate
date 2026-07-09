@@ -1,6 +1,6 @@
-import { Guard } from '@studnicky/config';
+import { Guard } from '@studnicky/types';
 
-import type { ErrorClassificationType } from '../../interfaces/ErrorClassificationType.js';
+import type { ErrorClassificationType } from '../interfaces/ErrorClassificationType.js';
 
 /**
  * Type guard for ErrorClassificationType

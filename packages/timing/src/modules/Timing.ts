@@ -113,17 +113,17 @@ export class Timing implements TimingInterface {
     return new this(options);
   }
 
-  protected readonly _maxEvents: number;
-  protected readonly _precisions: {
+  protected readonly maxEvents: number;
+  readonly #precisions: {
     'h': number;
     'm': number;
     'ms': number;
     'ns': number;
     's': number;
   };
-  protected readonly _startTime: bigint;
+  protected readonly startTime: bigint;
 
-  protected readonly _timingCache: Set<{ 'name': string;
+  readonly #timingCache: Set<{ 'name': string;
     'timestamp': bigint }>;
 
   /**
@@ -144,10 +144,10 @@ export class Timing implements TimingInterface {
 
       const maxEvents = options.maxEvents ?? DEFAULT_MAX_EVENTS;
 
-      this._timingCache = new Set();
-      this._maxEvents = maxEvents;
+      this.#timingCache = new Set();
+      this.maxEvents = maxEvents;
 
-      this._precisions = {
+      this.#precisions = {
         'h': options.precision?.h ?? DEFAULT_DECIMAL_PRECISION.h,
         'm': options.precision?.m ?? DEFAULT_DECIMAL_PRECISION.m,
         'ms': options.precision?.ms ?? DEFAULT_DECIMAL_PRECISION.ms,
@@ -155,14 +155,14 @@ export class Timing implements TimingInterface {
         's': options.precision?.s ?? DEFAULT_DECIMAL_PRECISION.s
       };
 
-      this._startTime = this.readHrtime();
+      this.startTime = this.readHrtime();
 
-      this._timingCache.add({
+      this.#timingCache.add({
         'name': 'initialize',
-        'timestamp': this._startTime
+        'timestamp': this.startTime
       });
 
-      this.onInitialize(this._startTime);
+      this.onInitialize(this.startTime);
     } catch (error) {
       // Re-throw ConfigurationError as-is
       if (error instanceof ConfigurationError) {
@@ -187,7 +187,7 @@ export class Timing implements TimingInterface {
    */
   clear(): this {
     this.onClear();
-    this._timingCache.clear();
+    this.#timingCache.clear();
 
     return this;
   }
@@ -207,7 +207,7 @@ export class Timing implements TimingInterface {
 
     const rawValue = Number(ns) / NS_PER_UNIT[unit];
 
-    const precision = this._precisions[unit];
+    const precision = this.#precisions[unit];
     const factor = Math.pow(10, precision);
 
     return Math.round(rawValue * factor) / factor;
@@ -250,16 +250,16 @@ export class Timing implements TimingInterface {
   event(data: TimingEventDataType): void {
     const currentTime = this.readHrtime();
 
-    if (this._timingCache.size >= this._maxEvents) {
-      const firstEvent = this._timingCache.values().next().value;
+    if (this.#timingCache.size >= this.maxEvents) {
+      const firstEvent = this.#timingCache.values().next().value;
 
       if (firstEvent !== undefined) {
         this.onEvict(firstEvent.name);
-        this._timingCache.delete(firstEvent);
+        this.#timingCache.delete(firstEvent);
       }
     }
 
-    this._timingCache.add({
+    this.#timingCache.add({
       'name': data.event,
       'timestamp': currentTime
     });
@@ -309,16 +309,16 @@ export class Timing implements TimingInterface {
    * ```
    */
   getEvents(): Record<string, number> {
-    this.onGetEvents(this._timingCache.size);
+    this.onGetEvents(this.#timingCache.size);
 
     const currentTime = this.readHrtime();
-    const totalNs = currentTime - this._startTime;
+    const totalNs = currentTime - this.startTime;
     const durationMs = this.convertTime(totalNs, 'ms');
 
     const events: Record<string, number> = {};
 
-    for (const event of this._timingCache) {
-      const elapsedNs = event.timestamp - this._startTime;
+    for (const event of this.#timingCache) {
+      const elapsedNs = event.timestamp - this.startTime;
 
       events[event.name] = this.convertTime(elapsedNs, 'ms');
     }

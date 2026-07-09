@@ -69,11 +69,11 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
     return new this(options);
   }
 
-  protected _length = INITIAL_BUFFER_COUNT;
-  protected _head = INITIAL_BUFFER_HEAD;
-  protected _items: (T | undefined)[];
-  protected _tail = INITIAL_BUFFER_TAIL;
-  protected _capacity: number;
+  protected count = INITIAL_BUFFER_COUNT;
+  protected head = INITIAL_BUFFER_HEAD;
+  protected items: (T | undefined)[];
+  protected tail = INITIAL_BUFFER_TAIL;
+  protected capacity: number;
 
   readonly #overflow: 'grow' | 'overwrite';
 
@@ -91,8 +91,8 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
       throw new CircularBufferError('capacity must be a positive integer');
     }
 
-    this._capacity = capacity;
-    this._items = Array.from<T | undefined>({ 'length': capacity });
+    this.capacity = capacity;
+    this.items = Array.from<T | undefined>({ 'length': capacity });
     this.#overflow = options.overflow ?? 'overwrite';
   }
 
@@ -102,18 +102,22 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * Fire point: `onGrow` is called at the end after the resize completes.
    */
   protected grow(): void {
-    const oldCapacity = this._capacity;
-    const newCapacity = this._capacity * BUFFER_GROWTH_FACTOR;
+    const oldCapacity = this.capacity;
+    const newCapacity = this.capacity * BUFFER_GROWTH_FACTOR;
     const newItems = Array.from<T | undefined>({ 'length': newCapacity });
+    const length = this.count;
+    const capacity = this.capacity;
+    const head = this.head;
+    const items = this.items;
 
-    for (let i = FIRST_ARRAY_INDEX; i < this._length; i++) {
-      newItems[i] = this._items[(this._head + i) % this._capacity];
+    for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
+      newItems[i] = items[(head + i) % capacity];
     }
 
-    this._items = newItems;
-    this._head = INITIAL_BUFFER_HEAD;
-    this._tail = this._length;
-    this._capacity = newCapacity;
+    this.items = newItems;
+    this.head = INITIAL_BUFFER_HEAD;
+    this.tail = length;
+    this.capacity = newCapacity;
 
     this.onGrow(oldCapacity, newCapacity);
   }
@@ -121,11 +125,11 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   /**
    * Get the number of items in the buffer
    *
-   * Getter required: _length is mutated internally but exposed read-only
+   * Getter required: count is mutated internally but exposed read-only
    */
   get length(): number {
-    // Ensure non-negative (defensive - _length should never be negative)
-    const result = Math.max(this._length, EMPTY_LENGTH);
+    // Ensure non-negative (defensive - count should never be negative)
+    const result = Math.max(this.count, EMPTY_LENGTH);
     return result;
   }
 
@@ -197,27 +201,27 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * @param item - Item to add
    */
   push(item: T): void {
-    if (this._length === this._capacity) {
+    if (this.count === this.capacity) {
       if (this.#overflow === 'grow') {
         this.grow();
       } else {
         // overwrite: evict oldest, advance head, keep length at capacity
         this.onOverflow(item);
-        const evicted = this._items[this._head];
+        const evicted = this.items[this.head];
         if (evicted !== undefined) {
           this.onEvict(evicted);
         }
-        this._items[this._tail] = item;
-        this._tail = (this._tail + INCREMENT_BY_ONE) % this._capacity;
-        this._head = (this._head + INCREMENT_BY_ONE) % this._capacity;
+        this.items[this.tail] = item;
+        this.tail = (this.tail + INCREMENT_BY_ONE) % this.capacity;
+        this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
         this.onPush(item);
         return;
       }
     }
 
-    this._items[this._tail] = item;
-    this._tail = (this._tail + INCREMENT_BY_ONE) % this._capacity;
-    this._length++;
+    this.items[this.tail] = item;
+    this.tail = (this.tail + INCREMENT_BY_ONE) % this.capacity;
+    this.count++;
 
     this.onPush(item);
   }
@@ -229,15 +233,15 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * @returns First item or undefined if buffer is empty
    */
   shift(): T | undefined {
-    if (this._length === EMPTY_LENGTH) {
+    if (this.count === EMPTY_LENGTH) {
       return undefined;
     }
 
-    const item = this._items[this._head];
+    const item = this.items[this.head];
 
-    this._items[this._head] = undefined;
-    this._head = (this._head + INCREMENT_BY_ONE) % this._capacity;
-    this._length--;
+    this.items[this.head] = undefined;
+    this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
+    this.count--;
 
     if (item !== undefined) {
       this.onShift(item);

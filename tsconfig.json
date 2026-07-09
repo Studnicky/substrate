@@ -7,6 +7,9 @@
       "path": "packages/cache"
     },
     {
+      "path": "packages/entity-store"
+    },
+    {
       "path": "packages/eslint-config"
     },
     {
@@ -19,7 +22,16 @@
       "path": "packages/fsm"
     },
     {
+      "path": "packages/health-registry"
+    },
+    {
+      "path": "packages/idempotency-guard"
+    },
+    {
       "path": "packages/predicates"
+    },
+    {
+      "path": "packages/request-executor"
     },
     {
       "path": "packages/resilience"
@@ -29,6 +41,12 @@
     },
     {
       "path": "packages/batch"
+    },
+    {
+      "path": "packages/boundary-kit"
+    },
+    {
+      "path": "packages/bounded-dispatcher"
     },
     {
       "path": "packages/circular-buffer"
@@ -55,13 +73,28 @@
       "path": "packages/json"
     },
     {
+      "path": "packages/keyed-rate-limiter"
+    },
+    {
+      "path": "packages/keyed-work-gate"
+    },
+    {
       "path": "packages/logger"
+    },
+    {
+      "path": "packages/memoize"
     },
     {
       "path": "packages/mutex"
     },
     {
+      "path": "packages/paginator"
+    },
+    {
       "path": "packages/pipeline"
+    },
+    {
+      "path": "packages/process-kit"
     },
     {
       "path": "packages/retry"
@@ -86,6 +119,18 @@
     },
     {
       "path": "packages/virtual-fs"
+    },
+    {
+      "path": "packages/visible-range"
+    },
+    {
+      "path": "packages/flag-evaluator"
+    },
+    {
+      "path": "packages/sliding-window-limiter"
+    },
+    {
+      "path": "packages/worker-pool"
     }
   ],
   "files": []

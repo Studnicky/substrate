@@ -12,29 +12,34 @@ export const NO_DELAY_MS = 0;
 export const EXPONENTIAL_BASE = 2;
 export const JITTER_BASE = 0.5;
 export const LINEAR_INCREMENT = 1;
-export const EARLY_RETRY_THRESHOLD = 2;
 
-// HTTP status codes used by matchers
-export const HTTP_BAD_GATEWAY = 502;
-export const HTTP_CLIENT_ERROR_END = 499;
-export const HTTP_CLIENT_ERROR_START = 400;
-export const HTTP_FORBIDDEN = 403;
-export const HTTP_GATEWAY_TIMEOUT = 504;
-export const HTTP_INFORMATIONAL_END = 199;
-export const HTTP_INFORMATIONAL_START = 100;
-export const HTTP_INTERNAL_SERVER_ERROR = 500;
-export const HTTP_REDIRECT_END = 399;
-export const HTTP_REDIRECT_START = 300;
-export const HTTP_REQUEST_TIMEOUT = 408;
-export const HTTP_SERVER_ERROR_END = 599;
-export const HTTP_SERVER_ERROR_START = 500;
-export const HTTP_SERVICE_UNAVAILABLE = 503;
-export const HTTP_SUCCESS_END = 299;
-export const HTTP_SUCCESS_START = 200;
-export const HTTP_TOO_MANY_REQUESTS = 429;
-export const HTTP_UNAUTHORIZED = 401;
+// Error-classification constants, promoted to @studnicky/errors. Re-exported
+// here to keep the @studnicky/retry/constants subpath complete.
+export {
+  EARLY_RETRY_THRESHOLD,
+  HTTP_BAD_GATEWAY,
+  HTTP_CLIENT_ERROR_END,
+  HTTP_CLIENT_ERROR_START,
+  HTTP_FORBIDDEN,
+  HTTP_GATEWAY_TIMEOUT,
+  HTTP_INFORMATIONAL_END,
+  HTTP_INFORMATIONAL_START,
+  HTTP_INTERNAL_SERVER_ERROR,
+  HTTP_REDIRECT_END,
+  HTTP_REDIRECT_START,
+  HTTP_REQUEST_TIMEOUT,
+  HTTP_SERVER_ERROR_END,
+  HTTP_SERVER_ERROR_START,
+  HTTP_SERVICE_UNAVAILABLE,
+  HTTP_SUCCESS_END,
+  HTTP_SUCCESS_START,
+  HTTP_TOO_MANY_REQUESTS,
+  HTTP_UNAUTHORIZED
+} from '@studnicky/errors';
 
 export const RETRY_CONFIG_KEYS = new Set<string>([
+  'backoffStrategy',
   'errorClassifier',
+  'maxElapsedMs',
   'maxRetries'
 ]);

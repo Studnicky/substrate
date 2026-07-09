@@ -1,6 +1,9 @@
 export * from './backoff/index.js';
-export * from './core/DefaultHttpErrorClassifier.js';
-export * from './core/DefaultHttpErrorClassifierBuilder.js';
-export * from './core/ErrorClassifier.js';
+
 export * from './Retry.js';
 export * from './RetryBuilder.js';
+export {
+  DefaultHttpErrorClassifier,
+  DefaultHttpErrorClassifierBuilder,
+  ErrorClassifier
+} from '@studnicky/errors';

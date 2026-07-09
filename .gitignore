@@ -13,3 +13,4 @@ docs/.vitepress/cache
 *.csv
 npm-audit-report.json
 plans/
+.orchestration/

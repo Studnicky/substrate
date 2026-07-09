@@ -6,6 +6,8 @@ import { LruCacheBuilder } from './LruCacheBuilder.js';
 type EntryType<V> = {
   /** Expiry timestamp (ms since epoch) or `0` (no expiry sentinel). */
   'expiresAt': number;
+  /** Staleness timestamp (ms since epoch) or `0` (no staleness configured sentinel). */
+  'staleAt': number;
   'value': V;
 };
 
@@ -39,6 +41,7 @@ const noExpiry = 0;
  */
 export class LruCache<K, V> {
   readonly #capacity: number;
+  readonly #defaultStaleMs: number | undefined;
   readonly #defaultTtlMs: number | undefined;
   readonly #entries: Map<string, EntryType<V>>;
   /** Maps internal (prefixed) string key → original caller key, for use in hooks. */
@@ -68,6 +71,7 @@ export class LruCache<K, V> {
     }
 
     this.#capacity = options.capacity;
+    this.#defaultStaleMs = options.staleMs;
     this.#defaultTtlMs = options.ttlMs;
     this.#entries = new Map();
     this.#keyMap = new Map();
@@ -85,6 +89,14 @@ export class LruCache<K, V> {
 
   /** Fires when `get()` finds a live, non-expired entry. */
   protected onHit(_key: K, _value: V): void {}
+
+  /**
+   * Fires when `get()` finds a live entry that has passed its `staleMs`
+   * threshold but has NOT hit its hard `ttlMs` expiry. The entry is still
+   * promoted to MRU and its value returned, same as a hit — this fires
+   * INSTEAD of `onHit`, never alongside it.
+   */
+  protected onStale(_key: K, _value: V): void {}
 
   /**
    * Fires when `get()` returns undefined — either because the key is absent or
@@ -149,7 +161,12 @@ export class LruCache<K, V> {
     }
 
     this.promoteToHead(internalKey);
-    this.onHit(key, entry.value);
+
+    if (entry.staleAt !== noExpiry && Date.now() > entry.staleAt) {
+      this.onStale(key, entry.value);
+    } else {
+      this.onHit(key, entry.value);
+    }
 
     return entry.value;
   }
@@ -161,20 +178,24 @@ export class LruCache<K, V> {
    */
   public setMany(entries: readonly (readonly [K, V])[], ttlMs?: number): void {
     for (const [key, value] of entries) {
-      this.set(key, value, ttlMs);
+      const opts = ttlMs !== undefined ? { 'ttlMs': ttlMs } : undefined;
+      this.set(key, value, opts);
     }
   }
 
   /** Stores value; promotes existing key to MRU or evicts LRU tail if at capacity. */
-  public set(key: K, value: V, ttlMs?: number): void {
+  public set(key: K, value: V, opts?: { 'staleMs'?: number; 'ttlMs'?: number }): void {
     const internalKey = this.buildInternalKey(key);
-    const effectiveTtl = ttlMs ?? this.#defaultTtlMs;
+    const effectiveTtl = opts?.ttlMs ?? this.#defaultTtlMs;
     const expiresAt = effectiveTtl !== undefined ? Date.now() + effectiveTtl : noExpiry;
+    const effectiveStale = opts?.staleMs ?? this.#defaultStaleMs;
+    const staleAt = effectiveStale !== undefined ? Date.now() + effectiveStale : noExpiry;
 
     const existing = this.#entries.get(internalKey);
 
     if (existing !== undefined) {
       existing.expiresAt = expiresAt;
+      existing.staleAt = staleAt;
       existing.value = value;
       this.promoteToHead(internalKey);
       this.onUpdate(key);
@@ -187,6 +208,7 @@ export class LruCache<K, V> {
 
     const entry: EntryType<V> = {
       'expiresAt': expiresAt,
+      'staleAt': staleAt,
       'value': value
     };
 
@@ -232,6 +254,33 @@ export class LruCache<K, V> {
     }
 
     return existed;
+  }
+
+  /**
+   * Removes every entry for which `predicate(key, value)` returns `true`,
+   * using the same internal removal path as `delete()` and firing `onDelete`
+   * for each one removed. Mirrors `delete()`'s own expiry handling: entries
+   * are evaluated and removed regardless of TTL expiry (lazy eviction still
+   * happens independently via `get()`/`has()`). Returns the count removed.
+   */
+  public deleteWhere(predicate: (key: K, value: V) => boolean): number {
+    let removed = 0;
+
+    for (const [internalKey, entry] of this.#entries) {
+      const originalKey = this.#keyMap.get(internalKey);
+
+      if (originalKey === undefined) {
+        continue;
+      }
+
+      if (predicate(originalKey, entry.value)) {
+        this.removeEntry(internalKey);
+        this.onDelete(originalKey);
+        removed += 1;
+      }
+    }
+
+    return removed;
   }
 
   public clear(): void {

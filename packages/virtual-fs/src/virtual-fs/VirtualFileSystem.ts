@@ -21,6 +21,24 @@ const DEFAULT_CLOCK: ClockProviderType = {
   }
 };
 
+class StatResult implements StatResultInterface {
+  readonly mtimeMs: number;
+  private readonly kind: EntryKindType;
+
+  constructor(kind: EntryKindType, mtimeMs: number) {
+    this.kind = kind;
+    this.mtimeMs = mtimeMs;
+  }
+
+  isDirectory(): boolean {
+    return this.kind === 'directory';
+  }
+
+  isFile(): boolean {
+    return this.kind === 'file';
+  }
+}
+
 export class VirtualFileSystem implements FileSystemInterface {
   static builder(): VirtualFileSystemBuilder {
     const result = VirtualFileSystemBuilder.create((options) => {
@@ -196,11 +214,7 @@ export class VirtualFileSystem implements FileSystemInterface {
     const kind: EntryKindType = entry !== undefined ? entry.kind : 'file';
     const mtimeMs: number = entry !== undefined ? entry.mtimeMs : this.#clock.now();
 
-    return {
-      'isDirectory': () => { return kind === 'directory'; },
-      'isFile': () => { return kind === 'file'; },
-      'mtimeMs': mtimeMs
-    };
+    return new StatResult(kind, mtimeMs);
   }
 
   unlinkSync(path: string): void {

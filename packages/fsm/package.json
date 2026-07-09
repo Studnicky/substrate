@@ -63,6 +63,12 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
+    "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/errors": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/clock": "workspace:*",
+    "@studnicky/scheduler": "workspace:*",
+    "@studnicky/signal": "workspace:*"
   }
 }

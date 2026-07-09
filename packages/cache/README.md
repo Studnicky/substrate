@@ -8,6 +8,8 @@ A lightweight, generic LRU (Least Recently Used) cache with optional time-to-liv
 
 Each entry can carry its own TTL, overriding the cache-level default. This makes the cache suitable for mixed workloads where some data expires quickly and other data is long-lived.
 
+Entries can also carry an optional `staleMs` threshold, shorter than `ttlMs`: once past it, `get()` still serves the (still-live) value but fires `onStale` instead of `onHit`, so a subclass can flag aging data without evicting it early. `deleteWhere(predicate)` removes every entry matching a `(key, value) => boolean` predicate in one call, firing `onDelete` for each removal.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -78,6 +80,37 @@ store.set('a', true);
 store.set('b', true);
 store.clear();
 store.size;           // 0
+
+// 7. staleMs — soft staleness marker, shorter than ttlMs
+// The entry stays live and servable past staleMs (still promoted to MRU on read),
+// but get() fires onStale instead of onHit so a subclass can flag it as aging.
+class ObservedCache extends LruCache<string, string> {
+  protected override onHit(key: string, value: string): void {
+    console.log(`hit key=${key} value=${value}`);
+  }
+  protected override onStale(key: string, value: string): void {
+    console.log(`stale key=${key} value=${value}`);
+  }
+}
+
+const staleCache = ObservedCache.create<string, string>({ capacity: 50, staleMs: 1_000, ttlMs: 10_000 });
+staleCache.set('page', 'v1');
+// Before 1s: get('page') fires onHit
+// After 1s but before 10s: get('page') still returns 'v1', fires onStale instead of onHit
+// After 10s: get('page') returns undefined (hard expiry — onExpire + onMiss, as usual)
+
+// Per-entry staleMs override (ttlMs, staleMs) — mirrors the per-entry TTL override
+staleCache.set('short-stale', 'v1', 10_000, 500); // 10s ttl, 500ms stale threshold
+
+// 8. deleteWhere — bulk/predicate invalidation
+// Removes every entry for which the predicate returns true, firing onDelete for each.
+const tagged = LruCache.create<string, { tag: string }>({ capacity: 100 });
+tagged.set('a', { tag: 'stale-group' });
+tagged.set('b', { tag: 'keep' });
+tagged.set('c', { tag: 'stale-group' });
+
+const removedCount = tagged.deleteWhere((_key, value) => { return value.tag === 'stale-group'; });
+// removedCount === 2; tagged.has('a') === false; tagged.has('b') === true
 ```
 
 ## License

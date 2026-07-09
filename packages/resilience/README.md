@@ -49,6 +49,28 @@ breaker.reset();    // force-close
 breaker.forceOpen(); // force-open for testing
 ```
 
+By default every thrown error counts toward `failureThreshold`. To only count real, non-transient errors — e.g. skip errors already being retried by a wrapped `Retry` — supply an `errorClassifier`. This is the same classifier family (`ErrorClassificationType`, `ErrorClassifierFunctionType`, `ErrorClassifierInterface`) that `@studnicky/retry`'s `Retry` class uses, from `@studnicky/errors` — not a resilience-specific concept. A classification of `{ retryable: true }` means the error is transient and already handled elsewhere, so it does NOT count toward the threshold; `{ retryable: false }` means real breakage, so it DOES count:
+
+```typescript
+import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+
+const breaker = CircuitBreaker.create({
+  failureThreshold: 5,
+  resetTimeoutMs: 10_000,
+  errorClassifier: DefaultHttpErrorClassifier.create(),
+});
+```
+
+For classification logic that can't be expressed as config, extend `CircuitBreaker` and override the protected `classifyError(error, attemptNumber)` method (bypassed when `errorClassifier` is supplied in options):
+
+```typescript
+class MyBreaker extends CircuitBreaker {
+  protected override classifyError(error: unknown): ErrorClassificationType {
+    return { retryable: error instanceof TransientError };
+  }
+}
+```
+
 ### TokenBucket
 
 Token bucket rate limiter. `consume` throws immediately when exhausted; `waitForToken` blocks until tokens refill.

@@ -1,4 +1,5 @@
-import type { ErrorClassificationType } from './ErrorClassificationType.js';
+import type { ErrorClassificationType } from '@studnicky/errors';
+
 import type { RequestStatsType } from './RequestStatsType.js';
 
 /**

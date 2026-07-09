@@ -1,4 +1,4 @@
-import { describe, it, afterEach } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { StateMachine } from '../../src/StateMachine.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
@@ -23,22 +23,22 @@ class Fixture {
 }
 
 describe('MachineRegistry', () => {
-  afterEach(() => {
-    for (const name of MachineRegistry.list()) {
-      MachineRegistry.unregister(name);
-    }
+  let registry: MachineRegistry;
+
+  beforeEach(() => {
+    registry = MachineRegistry.create();
   });
 
   it('register() and get() round-trip', () => {
     const interp = Fixture.interpreter();
-    MachineRegistry.register('test', interp);
-    assert.equal(MachineRegistry.get('test'), interp);
+    registry.register('test', interp);
+    assert.equal(registry.get('test'), interp);
   });
 
   it('register() twice throws MachineAlreadyRegisteredError', () => {
-    MachineRegistry.register('dupe', Fixture.interpreter());
+    registry.register('dupe', Fixture.interpreter());
     assert.throws(
-      () => MachineRegistry.register('dupe', Fixture.interpreter()),
+      () => registry.register('dupe', Fixture.interpreter()),
       (err: unknown) => {
         assert.ok(err instanceof MachineAlreadyRegisteredError);
         return true;
@@ -47,20 +47,20 @@ describe('MachineRegistry', () => {
   });
 
   it('unregister() removes the entry', () => {
-    MachineRegistry.register('gone', Fixture.interpreter());
-    MachineRegistry.unregister('gone');
-    assert.equal(MachineRegistry.get('gone'), undefined);
+    registry.register('gone', Fixture.interpreter());
+    registry.unregister('gone');
+    assert.equal(registry.get('gone'), undefined);
   });
 
   const hasScenarios: Array<{
     description: string;
-    setup: () => void;
+    setup: (r: MachineRegistry) => void;
     name: string;
     expected: boolean;
   }> = [
     {
       description: 'has() returns true when registered',
-      setup: () => { MachineRegistry.register('present', Fixture.interpreter()); },
+      setup: (r) => { r.register('present', Fixture.interpreter()); },
       name: 'present',
       expected: true,
     },
@@ -73,17 +73,25 @@ describe('MachineRegistry', () => {
   ];
   for (const { description, setup, name, expected } of hasScenarios) {
     it(description, () => {
-      setup();
-      assert.equal(MachineRegistry.has(name), expected);
+      setup(registry);
+      assert.equal(registry.has(name), expected);
     });
   }
 
   it('list() returns all registered names', () => {
-    MachineRegistry.register('a', Fixture.interpreter());
-    MachineRegistry.register('b', Fixture.interpreter());
-    const names = MachineRegistry.list();
+    registry.register('a', Fixture.interpreter());
+    registry.register('b', Fixture.interpreter());
+    const names = registry.list();
     assert.ok(names.includes('a'));
     assert.ok(names.includes('b'));
     assert.equal(names.length, 2);
+  });
+
+  it('two instances do not share state', () => {
+    const other = MachineRegistry.create();
+    registry.register('isolated', Fixture.interpreter());
+    assert.equal(registry.has('isolated'), true);
+    assert.equal(other.has('isolated'), false);
+    assert.deepEqual(other.list(), []);
   });
 });

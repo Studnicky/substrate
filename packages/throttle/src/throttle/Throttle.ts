@@ -188,9 +188,10 @@ export class Throttle implements ThrottleInterface {
     this.config = Throttle.validateConfig(config);
     this.queue = CircularBuffer.create({ 'capacity': DEFAULT_BUFFER_CAPACITY, 'overflow': 'grow' });
 
-    if (this.config.adaptive?.enabled === true) {
-      this.latencyBuffer = SampleBuffer.create({ 'capacity': this.config.adaptive.sampleWindow });
-    }
+    const buffer: SampleBuffer | undefined = this.config.adaptive?.enabled === true
+      ? SampleBuffer.create({ 'capacity': this.config.adaptive.sampleWindow })
+      : undefined;
+    (this as Record<string, unknown>).latencyBuffer = buffer;
   }
 
   // ── FSM ─────────────────────────────────────────────────────────────────────
@@ -438,9 +439,10 @@ export class Throttle implements ThrottleInterface {
           return;
         }
 
+        const resolveOperation = (): void => { resolveExecute(undefined); };
         const operation: ActiveOperationType = {
           'completed': false,
-          'resolve': (): void => { resolveExecute(undefined); }
+          'resolve': resolveOperation
         };
 
         this.activeOperations.add(operation);

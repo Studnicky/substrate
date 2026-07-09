@@ -71,5 +71,8 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/concurrency": "workspace:*"
   }
 }

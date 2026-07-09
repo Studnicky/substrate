@@ -234,7 +234,7 @@ it('onPush is called after push (length is already incremented)', () => {
 
   class LengthCheckBuffer extends CircularBuffer<number> {
     override onPush(_item: number): void {
-      lengthAtHook = this._length;
+      lengthAtHook = this.count;
     }
   }
 
@@ -320,14 +320,14 @@ it('grow mode: buffer produces correct FIFO order with all hooks active', () => 
   assert.deepStrictEqual(result, values);
 });
 
-it('subclass can read _length, _head, _tail, _capacity, _items', () => {
+it('subclass can read count, head, tail, capacity, items', () => {
   class InspectBuffer<T> extends CircularBuffer<T> {
     inspect(): { length: number; head: number; tail: number; capacity: number } {
       return {
-        capacity: this._capacity,
-        head: this._head,
-        length: this._length,
-        tail: this._tail,
+        capacity: this.capacity,
+        head: this.head,
+        length: this.count,
+        tail: this.tail,
       };
     }
   }

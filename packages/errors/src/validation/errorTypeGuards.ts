@@ -8,7 +8,7 @@
  *
  * @example
  * ```typescript
- * import { isErrorWithStatus, isErrorWithRetryAfter } from '@studnicky/retry';
+ * import { isErrorWithStatus, isErrorWithRetryAfter } from '@studnicky/errors';
  *
  * class MyClassifier extends ErrorClassifier {
  *   classify(error: Error): ErrorClassificationType {
@@ -34,7 +34,7 @@ import type {
   ErrorWithStatusCodeType,
   ErrorWithStatusType,
   ErrorWithSyscallType
-} from '../../interfaces/index.js';
+} from '../interfaces/index.js';
 
 /**
  * Check if value is an error or error-like object using Node.js 24's Error.isError()

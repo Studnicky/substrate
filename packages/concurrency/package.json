@@ -70,5 +70,9 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/event-bus": "workspace:*",
+    "@studnicky/scheduler": "workspace:*"
   }
 }

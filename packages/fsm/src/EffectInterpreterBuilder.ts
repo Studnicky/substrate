@@ -7,7 +7,7 @@ interface EffectInterpreterBuilderCreateOptionsInterface<
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
-  readonly 'handlers'?: EffectHandlerMapType<TEffect> | undefined;
+  readonly 'handlers'?: EffectHandlerMapType<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;
   readonly 'machineId'?: string | undefined;
 }
@@ -29,7 +29,7 @@ export class EffectInterpreterBuilder<
   }
 
   readonly #create: (options: EffectInterpreterBuilderCreateOptionsInterface<TState, TEvent, TEffect>) => EffectInterpreter<TState, TEvent, TEffect>;
-  #handlers: EffectHandlerMapType<TEffect> | undefined;
+  #handlers: EffectHandlerMapType<TEffect, TEvent> | undefined;
   #machine: StateMachine<TState, TEvent, TEffect> | undefined;
   #machineId: string | undefined;
 
@@ -39,7 +39,7 @@ export class EffectInterpreterBuilder<
     this.#create = create;
   }
 
-  withHandlers(handlers: EffectHandlerMapType<TEffect>): this {
+  withHandlers(handlers: EffectHandlerMapType<TEffect, TEvent>): this {
     this.#handlers = handlers;
     return this;
   }

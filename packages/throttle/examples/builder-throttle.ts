@@ -13,12 +13,14 @@ const throttle = Throttle.builder()
 console.log('throttle built via builder:', throttle);
 
 // Submit 6 operations through the throttle; each awaits a tick then returns its index.
-const promises: Promise<number | undefined>[] = Array.from({ 'length': 6 }, (_, i) =>
-{ const result = throttle.execute<number>(async () => {
-  await setTimeout(1);
-  return i;
-}); return result; }
-);
+const promises: Promise<number | undefined>[] = [];
+for (let i = 0; i < 6; i += 1) {
+  const result = throttle.execute<number>(async () => {
+    await setTimeout(1);
+    return i;
+  });
+  promises.push(result);
+}
 
 const results = await Promise.all(promises);
 

@@ -54,13 +54,15 @@ export class BusQueue<T> {
     this.#onSlowConsumerCb = options.onSlowConsumer;
     this.#onHandlerErrorCb = options.onHandlerError;
     const signal = options.signal;
+    let aborted = false;
     if (signal !== undefined) {
       if (signal.aborted) {
-        this.#aborted = true;
+        aborted = true;
       } else {
         signal.addEventListener('abort', () => { this.#handleAbort(); }, { 'once': true });
       }
     }
+    this.#aborted = aborted;
   }
 
   get size(): number {

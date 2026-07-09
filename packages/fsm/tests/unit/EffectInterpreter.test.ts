@@ -90,4 +90,46 @@ describe('EffectInterpreter', () => {
     await Promise.all([p1, p2]);
     assert.deepEqual(interp.getState(), { variant: 'idle' });
   });
+
+  it('effect handler dispatch() causes the dispatched event to be processed within the same send() call', async () => {
+    const interp = EffectInterpreter.create({
+      machine: new DemoMachine(),
+      handlers: {
+        log: (_effect, dispatch) => { dispatch({ type: 'deactivate' }); },
+      },
+      machineId: 'test-8',
+    });
+    interp.start();
+    await interp.send({ type: 'activate' });
+    // 'activate' (idle -> active, effect dispatches 'deactivate') then 'deactivate' (active -> idle)
+    // both resolve before send() returns.
+    assert.deepEqual(interp.getState(), { variant: 'idle' });
+  });
+
+  it('a rejected transition does not permanently wedge the interpreter — a later send() still drains', async () => {
+    class RejectingMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
+      getInitialState(): DemoState { return { variant: 'idle' }; }
+      reduce(state: DemoState, event: DemoEvent): FsmStepType<DemoState, DemoEffect> {
+        if (event.type === 'deactivate') { throw new Error('deliberately rejected'); }
+        if (state.variant === 'idle' && event.type === 'activate') {
+          return { state: { variant: 'active' }, effects: [] };
+        }
+        return { state, effects: [] };
+      }
+    }
+
+    const interp = EffectInterpreter.create({
+      machine: new RejectingMachine(),
+      handlers: {},
+      machineId: 'test-9',
+    });
+    interp.start();
+
+    await assert.rejects(() => interp.send({ type: 'deactivate' }));
+
+    // Before the fix, #draining stayed stuck true after the throw above, so this
+    // send() would silently no-op — the mailbox would fill but never drain.
+    await interp.send({ type: 'activate' });
+    assert.deepEqual(interp.getState(), { variant: 'active' });
+  });
 });

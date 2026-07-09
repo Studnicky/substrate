@@ -7,6 +7,7 @@ export namespace LruCacheOptionsEntity {
     'properties': {
       'capacity': { 'minimum': 1, 'type': 'integer' },
       'prefix': { 'type': 'string' },
+      'staleMs': { 'minimum': 0, 'type': 'number' },
       'ttlMs': { 'minimum': 0, 'type': 'number' }
     },
     'required': ['capacity'],

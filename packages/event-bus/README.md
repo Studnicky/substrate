@@ -34,6 +34,9 @@ type AppEvents = {
 
 const bus = EventBus.create<AppEvents>();
 
+// Optionally forward a bus-wide highWaterMark to every subscriber's BusQueue:
+// const bus = EventBus.create<AppEvents>({ highWaterMark: 500 });
+
 bus.subscribe('user:created', async (payload, signal) => {
   // signal aborts when this subscriber is unsubscribed or the bus is closed.
   // Pass it to fetch() or check signal.aborted to cancel async work early.

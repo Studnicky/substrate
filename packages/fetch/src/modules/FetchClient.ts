@@ -111,9 +111,10 @@ export class FetchClient implements FetchClientInterface {
 
     this.config = validated;
 
-    if (validated.dispatcher?.enabled === true) {
-      this.dispatcher = UndiciDispatcher.create(validated.dispatcher);
-    }
+    const dispatcher = validated.dispatcher?.enabled === true
+      ? UndiciDispatcher.create(validated.dispatcher)
+      : undefined;
+    this.dispatcher = dispatcher;
   }
 
   /**

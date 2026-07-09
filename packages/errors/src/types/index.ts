@@ -6,6 +6,7 @@
  * @packageDocumentation
  */
 
+export type { ErrorClassifierFunctionType } from './ErrorClassifierFunctionType.js';
 export type { ErrorScenarioType } from './ErrorScenarioType.js';
 export type { ValidationAggregateViewType } from './ValidationAggregateViewType.js';
 export type { ValidationProblemDetailsType } from './ValidationProblemDetailsType.js';

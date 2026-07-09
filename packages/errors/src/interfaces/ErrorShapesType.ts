@@ -1,5 +1,5 @@
 /**
- * Error shape types for common error properties used in retry classification.
+ * Error shape types for common error properties used in error classification.
  */
 
 /**

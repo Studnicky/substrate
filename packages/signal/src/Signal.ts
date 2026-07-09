@@ -4,8 +4,13 @@ import { SignalError } from './errors/SignalError.js';
 
 export class Signal {
   static #never: AbortSignal | null = null;
+  static #default: Signal | null = null;
 
-  private constructor() {}
+  protected constructor() {}
+
+  static create(): Signal {
+    return new Signal();
+  }
 
   static never(): AbortSignal {
     if (Signal.#never === null) {
@@ -15,6 +20,23 @@ export class Signal {
   }
 
   static compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): AbortSignal {
+    const result = Signal.#defaultInstance().compose(options);
+    return result;
+  }
+
+  static timeout(ms: number): AbortSignal {
+    const result = Signal.#defaultInstance().timeout(ms);
+    return result;
+  }
+
+  static #defaultInstance(): Signal {
+    if (Signal.#default === null) {
+      Signal.#default = Signal.create();
+    }
+    return Signal.#default;
+  }
+
+  compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): AbortSignal {
     const callerSignal  = options.signal;
     const deadlineMs    = options.deadlineMs;
 
@@ -24,17 +46,27 @@ export class Signal {
 
     const timeoutSignal = deadlineMs !== undefined ? AbortSignal.timeout(deadlineMs) : undefined;
 
+    let result: AbortSignal;
     if (callerSignal !== undefined && timeoutSignal !== undefined) {
-      return AbortSignal.any([callerSignal, timeoutSignal]);
+      result = AbortSignal.any([callerSignal, timeoutSignal]);
+    } else if (callerSignal !== undefined) {
+      result = callerSignal;
+    } else if (timeoutSignal !== undefined) {
+      result = timeoutSignal;
+    } else {
+      // When neither supplied, return the never-aborting sentinel
+      result = Signal.never();
     }
-    if (callerSignal !== undefined) {return callerSignal;}
-    if (timeoutSignal !== undefined) {return timeoutSignal;}
-    // When neither supplied, return the never-aborting sentinel
-    return Signal.never();
+
+    this.onCompose(options, result);
+    return result;
   }
 
-  static timeout(ms: number): AbortSignal {
+  timeout(ms: number): AbortSignal {
     const result = AbortSignal.timeout(ms);
     return result;
   }
+
+  /** Fires synchronously after `compose()` computes its result, right before returning it. No-op by default. */
+  protected onCompose(_options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }, _result: AbortSignal): void {}
 }

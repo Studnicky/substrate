@@ -8,6 +8,11 @@ export namespace RetryConfigEntity {
     'additionalProperties': false,
     'description': 'Configuration for request retry behavior',
     'properties': {
+      'maxElapsedMs': {
+        'description': 'Maximum total elapsed time across all attempts (ms)',
+        'minimum': 0,
+        'type': 'integer'
+      },
       'maxRetries': {
         'description': 'Maximum number of retry attempts',
         'minimum': 0,
