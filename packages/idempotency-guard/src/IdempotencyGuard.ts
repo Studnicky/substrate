@@ -81,22 +81,14 @@ export class IdempotencyGuard {
 
       protected override onCoalesceStart(key: string): void {
         super.onCoalesceStart(key);
-        this.guard.#notifyCoalesceStart(key);
+        this.guard.onExecute(key);
       }
 
       protected override onCoalesceJoin(key: string): void {
         super.onCoalesceJoin(key);
-        this.guard.#notifyCoalesceJoin(key);
+        this.guard.onCoalesce(key);
       }
     })(this);
-  }
-
-  #notifyCoalesceStart(key: string): void {
-    this.onExecute(key);
-  }
-
-  #notifyCoalesceJoin(key: string): void {
-    this.onCoalesce(key);
   }
 
   /**

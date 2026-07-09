@@ -89,8 +89,7 @@ class Job {
     'getScheduledTask': () => ScheduledTaskType | undefined;
     'interpreter': EffectInterpreter<JobState, JobEvent, JobEffect>;
   } {
-    let scheduledTask: ScheduledTaskType | undefined;
-    const scheduledTaskRef = { 'current': scheduledTask };
+    const scheduledTaskRef: { 'current': ScheduledTaskType | undefined } = { 'current': undefined };
     const interpreterRef = { 'current': null as unknown as EffectInterpreter<JobState, JobEvent, JobEffect> };
 
     const requestAckFn = (_effect: JobEffect, dispatch: (event: JobEvent) => void): void => {

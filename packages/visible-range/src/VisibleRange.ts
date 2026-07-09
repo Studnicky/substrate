@@ -166,7 +166,7 @@ export class VisibleRange {
     }
 
     const { count, estimateSize } = this.config;
-    const offsets = new Array<number>(count + 1);
+    const offsets = Array.from<number>({ 'length': count + 1 });
 
     offsets[0] = 0;
     for (let i = 0; i < count; i++) {

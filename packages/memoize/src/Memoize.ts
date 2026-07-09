@@ -87,13 +87,13 @@ export class Memoize<TArgs extends unknown[], TResult> {
       protected override onCoalesceStart(key: string): void {
         super.onCoalesceStart(key);
         const memo = memoRefBox.current!;
-        memo.#notifyMemoMiss(key, memo.#pendingArgs!);
+        memo.onMemoMiss(key, memo.pendingArgs!);
       }
 
       protected override onCoalesceJoin(key: string): void {
         super.onCoalesceJoin(key);
         const memo = memoRefBox.current!;
-        memo.#notifyMemoCoalesced(key, memo.#pendingArgs!);
+        memo.onMemoCoalesced(key, memo.pendingArgs!);
       }
     })();
 
@@ -130,14 +130,14 @@ export class Memoize<TArgs extends unknown[], TResult> {
    * synchronously (before its first `await`), so this is always current when
    * a hook reads it.
    */
-  #pendingArgs: TArgs | undefined;
+  protected pendingArgs: TArgs | undefined;
 
   protected constructor(deps: MemoizeDepsType<TArgs, TResult>) {
     this.#cache = deps.cache;
     this.#coalesce = deps.coalesce;
     this.#fn = deps.fn;
     this.#keyFn = deps.keyFn;
-    this.#pendingArgs = undefined;
+    this.pendingArgs = undefined;
   }
 
   /**
@@ -157,7 +157,7 @@ export class Memoize<TArgs extends unknown[], TResult> {
       return value;
     }
 
-    this.#pendingArgs = args;
+    this.pendingArgs = args;
 
     const result = await this.#coalesce.run(key, () => {
       const value = this.#fn(...args);
@@ -204,12 +204,4 @@ export class Memoize<TArgs extends unknown[], TResult> {
 
   /** Fires when a caller joins an in-flight invocation for `key` already running. */
   protected onMemoCoalesced(_key: string, _args: TArgs): void {}
-
-  #notifyMemoMiss(key: string, args: TArgs): void {
-    this.onMemoMiss(key, args);
-  }
-
-  #notifyMemoCoalesced(key: string, args: TArgs): void {
-    this.onMemoCoalesced(key, args);
-  }
 }

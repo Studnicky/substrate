@@ -24,9 +24,9 @@ export class EventBusBuilder<TTopicMap extends Record<string, unknown>> {
   }
 
   build(): EventBus<TTopicMap> {
-    const config: BusQueueOptionsEntity.Type = {
-      ...(this.#highWaterMark !== undefined ? { 'highWaterMark': this.#highWaterMark } : {})
-    };
+    const config: BusQueueOptionsEntity.Type = this.#highWaterMark !== undefined
+      ? { 'highWaterMark': this.#highWaterMark }
+      : {};
     const result = this.#create(config);
     return result;
   }

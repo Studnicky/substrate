@@ -29,7 +29,7 @@ for (const { description, config } of invalidConfigs) {
 
 for (const algorithm of ALGORITHMS) {
   it(`[${algorithm}] requests within limit succeed`, () => {
-    let time = 0;
+    const time = 0;
     const clock = (): number => time;
     const limiter = SlidingWindowLimiter.create({ limit: 3, windowMs: 100, algorithm, clock });
     limiter.consume();
@@ -39,7 +39,7 @@ for (const algorithm of ALGORITHMS) {
   });
 
   it(`[${algorithm}] the (limit+1)th request within windowMs throws SlidingWindowExhaustedError`, () => {
-    let time = 0;
+    const time = 0;
     const clock = (): number => time;
     const limiter = SlidingWindowLimiter.create({ limit: 3, windowMs: 100, algorithm, clock });
     limiter.consume();
@@ -65,7 +65,7 @@ for (const algorithm of ALGORITHMS) {
   });
 
   it(`[${algorithm}] waitForToken rejects when AbortSignal is aborted`, async () => {
-    let time = 0;
+    const time = 0;
     const clock = (): number => time;
     const limiter = SlidingWindowLimiter.create({ limit: 1, windowMs: 1000, algorithm, clock });
     limiter.consume(); // exhaust
@@ -153,7 +153,7 @@ class ObservedLimiter extends SlidingWindowLimiter {
 
 for (const algorithm of ALGORITHMS) {
   it(`[${algorithm}] onAllow fires after a successful consume()`, () => {
-    let time = 0;
+    const time = 0;
     const clock = (): number => time;
     const limiter = new ObservedLimiter({ limit: 2, windowMs: 100, algorithm, clock });
     limiter.consume();
@@ -161,7 +161,7 @@ for (const algorithm of ALGORITHMS) {
   });
 
   it(`[${algorithm}] onReject fires before throw when limit exceeded`, () => {
-    let time = 0;
+    const time = 0;
     const clock = (): number => time;
     const limiter = new ObservedLimiter({ limit: 1, windowMs: 100, algorithm, clock });
     limiter.consume();
@@ -203,7 +203,7 @@ it('consume(tokens?) and waitForToken(options?) accept the token-bucket-shaped s
 // --- Builder ---
 
 it('builder constructs an equivalent limiter to create()', () => {
-  let time = 0;
+  const time = 0;
   const clock = (): number => time;
   const limiter = SlidingWindowLimiter.builder()
     .withLimit(1)

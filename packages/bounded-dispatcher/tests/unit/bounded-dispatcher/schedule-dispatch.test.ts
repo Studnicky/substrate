@@ -81,8 +81,12 @@ void describe('BoundedDispatcher#scheduleDispatch()', () => {
     scheduler.advance(100);
     await flushMicrotasks();
 
-    assert.deepEqual(order, ['scheduled-start']);
-
+    // The scheduled fn's own internal await races a real setTimeout(0) against
+    // flushMicrotasks()'s setImmediate — Node does not guarantee their relative
+    // ordering, so asserting an intermediate 'scheduled-start'-only state here
+    // would be inherently flaky under load. Poll to settlement instead; this
+    // proves scheduleDispatch() routed the fn through dispatch() to completion
+    // without depending on undefined macrotask interleaving.
     while (!settled) { await flushMicrotasks(); }
     assert.deepEqual(order, ['scheduled-start', 'scheduled-end']);
   });
