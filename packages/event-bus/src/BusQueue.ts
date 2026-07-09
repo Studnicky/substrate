@@ -71,16 +71,20 @@ export class BusQueue<T> {
   }
 
   async enqueue(item: T): Promise<void> {
-    if (this.#aborted) { this.onDrop(); if (this.#onDropCb !== undefined) { this.#onDropCb(); } return; }
+    if (this.#aborted) {
+      this.#invokeHook(() => { this.onDrop(); });
+      if (this.#onDropCb !== undefined) { this.#invokeHook(() => { this.#onDropCb?.(); }); }
+      return;
+    }
     this.#queue.push(item);
-    this.onEnqueue(this.#queue.length);
-    if (this.#onEnqueueCb !== undefined) { this.#onEnqueueCb(this.#queue.length); }
+    this.#invokeHook(() => { this.onEnqueue(this.#queue.length); });
+    if (this.#onEnqueueCb !== undefined) { this.#invokeHook(() => { this.#onEnqueueCb?.(this.#queue.length); }); }
     this.#scheduleLoop();
     if (this.#queue.length < this.#hwm) { return; }
-    this.onOverflow(this.#queue.length);
-    if (this.#onOverflowCb !== undefined) { this.#onOverflowCb(this.#queue.length); }
-    this.onSlowConsumer(this.#queue.length, this.#hwm);
-    if (this.#onSlowConsumerCb !== undefined) { this.#onSlowConsumerCb(this.#queue.length, this.#hwm); }
+    this.#invokeHook(() => { this.onOverflow(this.#queue.length); });
+    if (this.#onOverflowCb !== undefined) { this.#invokeHook(() => { this.#onOverflowCb?.(this.#queue.length); }); }
+    this.#invokeHook(() => { this.onSlowConsumer(this.#queue.length, this.#hwm); });
+    if (this.#onSlowConsumerCb !== undefined) { this.#invokeHook(() => { this.#onSlowConsumerCb?.(this.#queue.length, this.#hwm); }); }
     await new Promise<void>((resolve) => {
       this.#backpressureWaiters.push({ 'resolve': resolve });
     });
@@ -103,35 +107,48 @@ export class BusQueue<T> {
 
   #scheduleLoop(): void {
     if (this.#draining) { return; }
-    queueMicrotask(() => { void this.#runDrainLoop(); });
+    queueMicrotask(() => {
+      void this.#runDrainLoop().catch((error: unknown) => {
+        if (this.#onError !== undefined) { this.#invokeHook(() => { this.#onError?.(error); }); }
+      });
+    });
   }
 
   async #tryHandleItem(item: T): Promise<void> {
     try {
       await this.#handler(item);
     } catch (err: unknown) {
-      if (this.#onError !== undefined) { this.#onError(err); }
-      this.onHandlerError(err);
-      if (this.#onHandlerErrorCb !== undefined) { this.#onHandlerErrorCb(err); }
+      if (this.#onError !== undefined) { this.#invokeHook(() => { this.#onError?.(err); }); }
+      this.#invokeHook(() => { this.onHandlerError(err); });
+      if (this.#onHandlerErrorCb !== undefined) { this.#invokeHook(() => { this.#onHandlerErrorCb?.(err); }); }
     }
   }
 
   async #runDrainLoop(): Promise<void> {
     this.#draining = true;
-    while (this.#queue.length > 0 && !this.#aborted) {
-      const item = this.#queue.shift();
-      if (item === undefined) { break; }
-      const waiter = this.#backpressureWaiters.shift();
-      if (waiter !== undefined) { waiter.resolve(); }
-      this.onDequeue(this.#queue.length);
-      if (this.#onDequeueCb !== undefined) { this.#onDequeueCb(this.#queue.length); }
-      await this.#tryHandleItem(item);
+    try {
+      while (this.#queue.length > 0 && !this.#aborted) {
+        const item = this.#queue.shift();
+        if (item === undefined) { break; }
+        const waiter = this.#backpressureWaiters.shift();
+        if (waiter !== undefined) { waiter.resolve(); }
+        this.#invokeHook(() => { this.onDequeue(this.#queue.length); });
+        if (this.#onDequeueCb !== undefined) { this.#invokeHook(() => { this.#onDequeueCb?.(this.#queue.length); }); }
+        await this.#tryHandleItem(item);
+      }
+    } finally {
+      this.#draining = false;
+      if (this.#queue.length === 0 || this.#aborted) {
+        for (const w of this.#drainWaiters) { w.resolve(); }
+        this.#drainWaiters.length = 0;
+      }
     }
-    this.#draining = false;
-    if (this.#queue.length === 0 || this.#aborted) {
-      for (const w of this.#drainWaiters) { w.resolve(); }
-      this.#drainWaiters.length = 0;
-    }
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 
   /** Fires when an item is added to the queue (after push). */

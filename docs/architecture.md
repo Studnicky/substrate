@@ -9,7 +9,7 @@ Every Substrate class is designed around three principles. Together they ensure 
 
 ## 1. Subclass-first seams
 
-Public methods delegate to protected lifecycle hooks with no-op defaults. The hook pattern is:
+Public methods delegate to documented protected seams with no-op defaults where observation is needed. A typical passive hook pattern is:
 
 ```
 public method(args) {
@@ -37,11 +37,11 @@ class MeteredThrottle extends Throttle {
 }
 ```
 
-The seam is explicit: the base class documents every hook in JSDoc. There are no magic interception points; every extension site is a named method.
+The seam is explicit: the base class documents every hook in JSDoc. There are no magic interception points; every extension site is a named method. Some seams are passive observer hooks; others are in-band behavioral hooks that transform, classify, or intercept the operation itself.
 
 ## 2. No observability in bare classes
 
-The base class never calls a logger, never emits a metric, never references an external service. Protected hooks are no-ops; the consumer overrides them to add whatever observability their system uses.
+The base class never calls a logger, never emits a metric, never references an external service. Passive observer hooks are no-ops; the consumer overrides them to add whatever observability their system uses.
 
 This means you can instantiate any class directly in a test without mocking an injected logger:
 
@@ -66,6 +66,8 @@ class AppRetry extends Retry {
   }
 }
 ```
+
+Substrate does not impose one global hook-error policy across every seam. Observer hooks exist to observe committed work and are documented as such. Behavioral hooks stay in-band and may intentionally alter or fail the operation. The contract is per hook, not global.
 
 ## 3. No exported singletons
 

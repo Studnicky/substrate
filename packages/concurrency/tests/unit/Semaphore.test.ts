@@ -171,3 +171,44 @@ it('onReleaseDelegated fires when queued waiter gets the permit', async () => {
   assert.equal(sem.releaseDelegatedEvents.length, 1);
   assert.equal(sem.releaseEvents.length, 0);
 });
+
+it('a throwing onAcquire hook does not leak a permit or reject acquire()', async () => {
+  class ThrowingAcquireSemaphore extends Semaphore {
+    protected override onAcquire(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const sem = ThrowingAcquireSemaphore.create({ 'permits': 1 });
+  const release = await sem.acquire();
+
+  assert.equal(sem.available, 0);
+  release();
+  assert.equal(sem.available, 1);
+});
+
+it('a throwing onContended hook does not strand a queued waiter', async () => {
+  class ThrowingContendedSemaphore extends Semaphore {
+    protected override onContended(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const sem = ThrowingContendedSemaphore.create({ 'permits': 1 });
+  const releaseFirst = await sem.acquire();
+
+  let acquiredSecond = false;
+  const pendingSecond = sem.acquire().then((releaseSecond) => {
+    acquiredSecond = true;
+    return releaseSecond;
+  });
+
+  await Promise.resolve();
+  assert.equal(acquiredSecond, false);
+
+  releaseFirst();
+  const releaseSecond = await pendingSecond;
+  assert.equal(acquiredSecond, true);
+  releaseSecond();
+  assert.equal(sem.available, 1);
+});

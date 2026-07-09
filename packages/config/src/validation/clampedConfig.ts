@@ -13,6 +13,12 @@
 import type { ClampEventType, ClampRuleType } from '../types/index.js';
 
 export class ClampedConfig {
+  protected static invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Extension seam — called by `apply` for every field that gets clamped.
    * Subclasses may `static override` to observe or log clamp events instead.
@@ -53,7 +59,9 @@ export class ClampedConfig {
       }
       const clamped = Math.min(Math.max(raw, rule.min), rule.max);
       (result as Record<string, unknown>)[field] = clamped;
-      this.onClamp({ 'clamped': clamped, 'field': field, 'raw': raw, 'reason': rule.reason });
+      this.invokeHook(() => {
+        this.onClamp({ 'clamped': clamped, 'field': field, 'raw': raw, 'reason': rule.reason });
+      });
     }
 
     return result;

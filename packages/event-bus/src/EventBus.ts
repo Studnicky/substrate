@@ -54,15 +54,15 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
   } {
     const queueHandler = async (payload: TTopicMap[K]): Promise<void> => {
       await handler(payload, queueController.signal);
-      this.onDeliver(topic, payload);
+      this.#invokeHook(() => { this.onDeliver(topic, payload); });
     };
 
-    const queueDequeue = (_depth: number): void => { this.onDequeue(topic); };
-    const queueDrop = (): void => { this.onDrop(topic); };
-    const queueEnqueue = (_depth: number): void => { this.onEnqueue(topic); };
-    const queueHandlerError = (err: unknown): void => { this.onHandlerError(topic, err); };
-    const queueOverflow = (depth: number): void => { this.onOverflow(topic, depth); };
-    const queueSlowConsumer = (depth: number, _hwm: number): void => { this.onSlowConsumer(topic, depth); };
+    const queueDequeue = (_depth: number): void => { this.#invokeHook(() => { this.onDequeue(topic); }); };
+    const queueDrop = (): void => { this.#invokeHook(() => { this.onDrop(topic); }); };
+    const queueEnqueue = (_depth: number): void => { this.#invokeHook(() => { this.onEnqueue(topic); }); };
+    const queueHandlerError = (err: unknown): void => { this.#invokeHook(() => { this.onHandlerError(topic, err); }); };
+    const queueOverflow = (depth: number): void => { this.#invokeHook(() => { this.onOverflow(topic, depth); }); };
+    const queueSlowConsumer = (depth: number, _hwm: number): void => { this.#invokeHook(() => { this.onSlowConsumer(topic, depth); }); };
 
     return {
       'handler': queueHandler,
@@ -107,7 +107,7 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
       'signal': queueController.signal
     });
     topicMap.set(handler, queue);
-    this.onSubscribe(topic);
+    this.#invokeHook(() => { this.onSubscribe(topic); });
 
     let unsubscribed = false;
     return (): void => {
@@ -116,14 +116,14 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
       this.#store.get(String(topic))?.delete(handler as EventHandlerType<unknown>);
       queueController.abort();
       this.#busController.signal.removeEventListener('abort', stopQueue);
-      this.onUnsubscribe(topic);
+      this.#invokeHook(() => { this.onUnsubscribe(topic); });
     };
   }
 
   async publish<K extends keyof TTopicMap>(topic: K, payload: TTopicMap[K]): Promise<void> {
     const topicMap = this.#store.get(String(topic));
     if (topicMap === undefined || topicMap.size === 0) { return; }
-    this.onPublish(topic, payload);
+    this.#invokeHook(() => { this.onPublish(topic, payload); });
     await Promise.all([...topicMap.values()].map((q) => { const result = q.enqueue(payload); return result; }));
   }
 
@@ -136,9 +136,15 @@ export class EventBus<TTopicMap extends Record<string, unknown>> {
   }
 
   async close(): Promise<void> {
-    this.onDispose();
+    this.#invokeHook(() => { this.onDispose(); });
     this.#busController.abort();
     await this.drain();
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 
   /** Fires when publish() is called for a topic (once per publish, before fan-out). */

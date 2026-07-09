@@ -53,6 +53,12 @@ export class SlidingWindowLimiter {
   #currentWindowCount = 0;
   #previousWindowCount = 0;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   static builder(): SlidingWindowLimiterBuilder {
     const factory = (options: SlidingWindowLimiterOptionsInterface): SlidingWindowLimiter => {
       const result = SlidingWindowLimiter.create(options);
@@ -150,15 +156,23 @@ export class SlidingWindowLimiter {
       pruned = true;
       oldest = timestamps.peek();
     }
-    if (pruned) { this.onWindowRoll(); }
+    if (pruned) {
+      this.#invokeHook(() => {
+        this.onWindowRoll();
+      });
+    }
 
     if (timestamps.length >= this.#limit) {
-      this.onReject(timestamps.length);
+      this.#invokeHook(() => {
+        this.onReject(timestamps.length);
+      });
       throw new SlidingWindowExhaustedError();
     }
 
     timestamps.push(now);
-    this.onAllow(timestamps.length);
+    this.#invokeHook(() => {
+      this.onAllow(timestamps.length);
+    });
   }
 
   #consumeCounter(now: number): void {
@@ -167,13 +181,17 @@ export class SlidingWindowLimiter {
     const estimateBefore = (this.#previousWindowCount * (1 - elapsedFraction)) + this.#currentWindowCount;
 
     if (estimateBefore + 1 > this.#limit) {
-      this.onReject(estimateBefore);
+      this.#invokeHook(() => {
+        this.onReject(estimateBefore);
+      });
       throw new SlidingWindowExhaustedError();
     }
 
     this.#currentWindowCount += 1;
     const estimateAfter = (this.#previousWindowCount * (1 - elapsedFraction)) + this.#currentWindowCount;
-    this.onAllow(estimateAfter);
+    this.#invokeHook(() => {
+      this.onAllow(estimateAfter);
+    });
   }
 
   #rollCounterWindow(now: number): void {
@@ -183,7 +201,9 @@ export class SlidingWindowLimiter {
     this.#previousWindowCount = windowIndex - this.#currentWindowIndex === 1 ? this.#currentWindowCount : 0;
     this.#currentWindowCount = 0;
     this.#currentWindowIndex = windowIndex;
-    this.onWindowRoll();
+    this.#invokeHook(() => {
+      this.onWindowRoll();
+    });
   }
 
   #elapsedFraction(now: number): number {

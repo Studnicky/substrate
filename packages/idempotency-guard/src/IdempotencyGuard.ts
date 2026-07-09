@@ -68,6 +68,12 @@ export class IdempotencyGuard {
   readonly #cache: LruCache<string, IdempotencyGuardEntryType>;
   readonly #coalesce: Coalesce<unknown>;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   protected constructor(options: IdempotencyGuardOptionsType) {
     this.#cache = LruCache.create<string, IdempotencyGuardEntryType>({
       'capacity': options.capacity,
@@ -81,12 +87,16 @@ export class IdempotencyGuard {
 
       protected override onCoalesceStart(key: string): void {
         super.onCoalesceStart(key);
-        this.guard.onExecute(key);
+        try {
+          this.guard.onExecute(key);
+        } catch {}
       }
 
       protected override onCoalesceJoin(key: string): void {
         super.onCoalesceJoin(key);
-        this.guard.onCoalesce(key);
+        try {
+          this.guard.onCoalesce(key);
+        } catch {}
       }
     })(this);
   }
@@ -108,11 +118,15 @@ export class IdempotencyGuard {
 
     if (cached !== undefined) {
       if (cached.fingerprint === fingerprint) {
-        this.onReplay(key);
+        this.#invokeHook(() => {
+          this.onReplay(key);
+        });
         return cached.result as TResult;
       }
 
-      this.onConflict(key);
+      this.#invokeHook(() => {
+        this.onConflict(key);
+      });
       throw new IdempotencyConflictError(key);
     }
 

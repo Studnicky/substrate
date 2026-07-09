@@ -10,6 +10,12 @@ import { LogBuildError } from '../errors/LogBuildError.js';
 export abstract class BaseLogEntryBuilder {
   protected constructor() {}
 
+  protected invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   protected componentName: string | undefined;
   protected contextCalled = false;
   protected readonly contextData: Record<string, unknown> = {};
@@ -29,7 +35,9 @@ export abstract class BaseLogEntryBuilder {
    */
   component(name: string): this {
     this.componentName = name;
-    this.onFieldSet('component', name);
+    this.invokeHook(() => {
+      this.onFieldSet('component', name);
+    });
 
     return this;
   }
@@ -42,7 +50,9 @@ export abstract class BaseLogEntryBuilder {
   context(data: Record<string, unknown>): this {
     this.contextCalled = true;
     Object.assign(this.contextData, data);
-    this.onFieldSet('context', data);
+    this.invokeHook(() => {
+      this.onFieldSet('context', data);
+    });
 
     return this;
   }
@@ -52,7 +62,9 @@ export abstract class BaseLogEntryBuilder {
    */
   duration(ms: number): this {
     this.durationMs = ms;
-    this.onFieldSet('duration', ms);
+    this.invokeHook(() => {
+      this.onFieldSet('duration', ms);
+    });
 
     return this;
   }
@@ -63,7 +75,9 @@ export abstract class BaseLogEntryBuilder {
    */
   operation(name: string): this {
     this.operationName = name;
-    this.onFieldSet('operation', name);
+    this.invokeHook(() => {
+      this.onFieldSet('operation', name);
+    });
 
     return this;
   }
@@ -74,7 +88,9 @@ export abstract class BaseLogEntryBuilder {
    */
   status(status: LogStatusType): this {
     this.statusValue = status;
-    this.onFieldSet('status', status);
+    this.invokeHook(() => {
+      this.onFieldSet('status', status);
+    });
 
     return this;
   }
@@ -107,22 +123,30 @@ export abstract class BaseLogEntryBuilder {
    */
   protected validateRequiredFields(): void {
     if (this.componentName === undefined) {
-      this.onBuildError('component');
+      this.invokeHook(() => {
+        this.onBuildError('component');
+      });
       throw new LogBuildError(`${this.constructor.name}: component is required`);
     }
 
     if (this.operationName === undefined) {
-      this.onBuildError('operation');
+      this.invokeHook(() => {
+        this.onBuildError('operation');
+      });
       throw new LogBuildError(`${this.constructor.name}: operation is required`);
     }
 
     if (this.statusValue === undefined) {
-      this.onBuildError('status');
+      this.invokeHook(() => {
+        this.onBuildError('status');
+      });
       throw new LogBuildError(`${this.constructor.name}: status is required`);
     }
 
     if (!this.contextCalled) {
-      this.onBuildError('context');
+      this.invokeHook(() => {
+        this.onBuildError('context');
+      });
       throw new LogBuildError(`${this.constructor.name}: context is required (use empty object {} if no context needed)`);
     }
   }

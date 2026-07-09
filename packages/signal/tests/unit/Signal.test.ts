@@ -179,3 +179,20 @@ it('onCompose does not fire for static Signal.compose (default instance is inter
   const sig = Signal.compose({ deadlineMs: 25 });
   assert.ok(sig instanceof AbortSignal, 'Should be an AbortSignal');
 });
+
+it('a throwing onCompose hook does not replace compose()', () => {
+  class ThrowingSignal extends Signal {
+    static build(): ThrowingSignal {
+      return new ThrowingSignal();
+    }
+
+    protected override onCompose(): void {
+      throw new Error('onCompose boom');
+    }
+  }
+
+  const controller = new AbortController();
+  const signal = ThrowingSignal.build().compose({ 'signal': controller.signal });
+
+  assert.equal(signal, controller.signal);
+});

@@ -166,6 +166,12 @@ export class Throttle implements ThrottleInterface {
 
   private totalExecuted = INITIAL_COUNTER;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Create a new Throttle instance
    *
@@ -212,7 +218,9 @@ export class Throttle implements ThrottleInterface {
     }
 
     this.#state = to;
-    this.onEnter(to, from);
+    this.#invokeHook(() => {
+      this.onEnter(to, from);
+    });
   }
 
   /**
@@ -302,7 +310,9 @@ export class Throttle implements ThrottleInterface {
 
     const cancelledCount = this.activeOperations.size + this.queue.length;
 
-    this.onAbortStart(cancelledCount);
+    this.#invokeHook(() => {
+      this.onAbortStart(cancelledCount);
+    });
     this.cancelActiveOperations();
     this.drainQueue();
     this.notifyObservers();
@@ -324,19 +334,25 @@ export class Throttle implements ThrottleInterface {
         this.transition('active');
       }
       this.activeCount++;
-      this.onAcquire(this.activeCount, this.queue.length);
+      this.#invokeHook(() => {
+        this.onAcquire(this.activeCount, this.queue.length);
+      });
 
       return Promise.resolve();
     }
 
-    this.onContended(this.activeCount, this.queue.length);
+    this.#invokeHook(() => {
+      this.onContended(this.activeCount, this.queue.length);
+    });
 
     return new Promise<void>((resolve, reject) => {
       this.queue.push({
         'reject': reject,
         'resolve': resolve
       });
-      this.onAcquireWait(this.queue.length);
+      this.#invokeHook(() => {
+        this.onAcquireWait(this.queue.length);
+      });
     });
   }
 
@@ -397,7 +413,9 @@ export class Throttle implements ThrottleInterface {
     }
 
     this.transition('draining');
-    this.onDrainStart(this.activeCount, this.queue.length);
+    this.#invokeHook(() => {
+      this.onDrainStart(this.activeCount, this.queue.length);
+    });
 
     return await this.waitForCompletion();
   }
@@ -534,7 +552,9 @@ export class Throttle implements ThrottleInterface {
 
     operation.completed = true;
     this.activeOperations.delete(operation);
-    this.onReject(error);
+    this.#invokeHook(() => {
+      this.onReject(error);
+    });
     this.releaseSlot();
     rejectExecute(error);
   }
@@ -564,7 +584,9 @@ export class Throttle implements ThrottleInterface {
     }
 
     this.releaseSlot();
-    this.onRelease(this.activeCount, this.totalExecuted);
+    this.#invokeHook(() => {
+      this.onRelease(this.activeCount, this.totalExecuted);
+    });
     resolveExecute(result);
   }
 
@@ -622,7 +644,9 @@ export class Throttle implements ThrottleInterface {
    */
   private notifyObservers(): void {
     if (this.#state === 'draining') {
-      this.onDrainComplete(this.totalExecuted);
+      this.#invokeHook(() => {
+        this.onDrainComplete(this.totalExecuted);
+      });
       this.transition('idle');
     } else if (this.#state === 'active') {
       this.transition('idle');
@@ -710,7 +734,9 @@ export class Throttle implements ThrottleInterface {
 
       if (pendingTask !== undefined) {
         this.activeCount++;
-        this.onWindowSlide(this.activeCount, this.queue.length);
+        this.#invokeHook(() => {
+          this.onWindowSlide(this.activeCount, this.queue.length);
+        });
         pendingTask.resolve();
         count++;
       }
@@ -730,12 +756,18 @@ export class Throttle implements ThrottleInterface {
       const pendingTask = this.queue.shift();
 
       if (pendingTask !== undefined) {
-        this.onWindowSlide(this.activeCount, this.queue.length);
+        this.#invokeHook(() => {
+          this.onWindowSlide(this.activeCount, this.queue.length);
+        });
         pendingTask.resolve();
-        this.onRelease(this.activeCount, this.totalExecuted);
+        this.#invokeHook(() => {
+          this.onRelease(this.activeCount, this.totalExecuted);
+        });
       }
     } else if (this.activeCount === INITIAL_COUNTER) {
-      this.onRelease(this.activeCount, this.totalExecuted);
+      this.#invokeHook(() => {
+        this.onRelease(this.activeCount, this.totalExecuted);
+      });
       this.notifyObservers();
     }
   }
@@ -753,7 +785,9 @@ export class Throttle implements ThrottleInterface {
       ? Math.min(previousLimit + adaptive.stepSize, adaptive.maxConcurrency)
       : Math.max(previousLimit - adaptive.stepSize, adaptive.minConcurrency);
 
-    this.onAdaptiveAdjust(previousLimit, newLimit);
+    this.#invokeHook(() => {
+      this.onAdaptiveAdjust(previousLimit, newLimit);
+    });
 
     return newLimit;
   }

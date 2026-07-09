@@ -13,6 +13,12 @@ export class TokenBucket {
   #tokens: number;
   #lastRefill: number;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   static builder(): TokenBucketBuilder {
     const factory = (options: TokenBucketOptionsInterface): TokenBucket => {
       const result = TokenBucket.create(options);
@@ -45,11 +51,15 @@ export class TokenBucket {
   consume(tokens = 1): void {
     this.#refill();
     if (this.#tokens < tokens) {
-      this.onTokenDepleted();
+      this.#invokeHook(() => {
+        this.onTokenDepleted();
+      });
       throw new TokenBucketExhaustedError();
     }
     this.#tokens -= tokens;
-    this.onTokenAcquired(tokens);
+    this.#invokeHook(() => {
+      this.onTokenAcquired(tokens);
+    });
   }
 
   /** Wait until tokens are available, then consume. */
@@ -60,7 +70,9 @@ export class TokenBucket {
       this.#refill();
       if (this.#tokens >= tokens) {
         this.#tokens -= tokens;
-        this.onTokenAcquired(tokens);
+        this.#invokeHook(() => {
+          this.onTokenAcquired(tokens);
+        });
         return;
       }
       const waitMs = Math.ceil((tokens - this.#tokens) / this.#requestsPerSecond * 1000);
@@ -97,6 +109,10 @@ export class TokenBucket {
     this.#tokens = Math.min(this.#burstSize, this.#tokens + newTokens);
     this.#lastRefill = now;
     const added = this.#tokens - prev;
-    if (added > 0) { this.onRefill(added); }
+    if (added > 0) {
+      this.#invokeHook(() => {
+        this.onRefill(added);
+      });
+    }
   }
 }

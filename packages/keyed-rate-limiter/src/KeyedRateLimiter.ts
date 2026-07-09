@@ -85,7 +85,9 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
         protected override onTokenAcquired(count: number): void {
           super.onTokenAcquired(count);
           if (limiterRef.current !== undefined) {
-            limiterRef.current.onTokenAcquired(key, count);
+            try {
+              limiterRef.current.onTokenAcquired(key, count);
+            } catch {}
           }
         }
       })({
@@ -131,21 +133,27 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
       protected override onEvict(key: string, _reason: 'capacity'): void {
         super.onEvict(key, _reason);
         if (limiterRef.current !== undefined) {
-          limiterRef.current.onKeyEvicted(key);
+          try {
+            limiterRef.current.onKeyEvicted(key);
+          } catch {}
         }
       }
 
       protected override onExpire(key: string): void {
         super.onExpire(key);
         if (limiterRef.current !== undefined) {
-          limiterRef.current.onKeyEvicted(key);
+          try {
+            limiterRef.current.onKeyEvicted(key);
+          } catch {}
         }
       }
 
       protected override onDelete(key: string): void {
         super.onDelete(key);
         if (limiterRef.current !== undefined) {
-          limiterRef.current.onKeyEvicted(key);
+          try {
+            limiterRef.current.onKeyEvicted(key);
+          } catch {}
         }
       }
     })({
@@ -182,6 +190,12 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
     this.#cache = deps.cache;
   }
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Consumes `tokens` from `key`'s strategy, lazily creating it on first use.
    *
@@ -196,7 +210,9 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
     try {
       strategy.consume(tokens);
     } catch (error) {
-      this.onLimitExceeded(key);
+      this.#invokeHook(() => {
+        this.onLimitExceeded(key);
+      });
       throw error;
     }
   }
@@ -260,7 +276,9 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
 
     const strategy = this.#factory(key);
     this.#cache.set(key, strategy);
-    this.onKeyCreated(key);
+    this.#invokeHook(() => {
+      this.onKeyCreated(key);
+    });
     return strategy;
   }
 }

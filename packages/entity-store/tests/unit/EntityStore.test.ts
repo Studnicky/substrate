@@ -291,3 +291,48 @@ it('a subclass overriding all three hooks observes every event', () => {
     ['upsert', 'upsert', 'remove', 'replaceAll']
   );
 });
+
+it('a throwing onUpsert hook does not replace the completed store mutation', () => {
+  class ThrowingUpsertStore extends EntityStore<UserType, string> {
+    protected override onUpsert(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const store = new ThrowingUpsertStore({ 'selectId': selectId });
+  store.upsertOne({ 'id': 'a', 'name': 'Alice' });
+
+  assert.equal(store.size, 1);
+  assert.deepEqual(store.getById('a'), { 'id': 'a', 'name': 'Alice' });
+});
+
+it('a throwing onRemove hook does not replace the completed removal', () => {
+  class ThrowingRemoveStore extends EntityStore<UserType, string> {
+    protected override onRemove(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const store = new ThrowingRemoveStore({ 'selectId': selectId });
+  store.upsertOne({ 'id': 'a', 'name': 'Alice' });
+
+  assert.equal(store.removeOne('a'), true);
+  assert.equal(store.size, 0);
+  assert.equal(store.getById('a'), undefined);
+});
+
+it('a throwing onReplaceAll hook does not replace the completed collection swap', () => {
+  class ThrowingReplaceAllStore extends EntityStore<UserType, string> {
+    protected override onReplaceAll(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const store = new ThrowingReplaceAllStore({ 'selectId': selectId });
+  store.upsertOne({ 'id': 'a', 'name': 'Alice' });
+  store.setAll([{ 'id': 'b', 'name': 'Bob' }]);
+
+  assert.equal(store.size, 1);
+  assert.equal(store.getById('a'), undefined);
+  assert.deepEqual(store.getById('b'), { 'id': 'b', 'name': 'Bob' });
+});

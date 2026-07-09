@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/types",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "Shared zero-runtime utility types and type-guard helpers for @studnicky/substrate",
   "type": "module",
   "sideEffects": false,

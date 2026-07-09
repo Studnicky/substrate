@@ -21,6 +21,12 @@ export class CircuitBreaker {
   #successCount = 0;
   #openedAt = 0;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   static builder(): CircuitBreakerBuilder {
     const factory = (options: CircuitBreakerOptionsInterface): CircuitBreaker => {
       const result = CircuitBreaker.create(options);
@@ -63,7 +69,9 @@ export class CircuitBreaker {
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     this.#checkHalfOpen();
     if (this.#state === 'open') {
-      this.onReject();
+      this.#invokeHook(() => {
+        this.onReject();
+      });
       throw new CircuitBreakerOpenError(this.#name);
     }
     try {
@@ -81,7 +89,9 @@ export class CircuitBreaker {
     this.#failureCount = 0;
     this.#successCount = 0;
     this.#openedAt = 0;
-    this.onClose();
+    this.#invokeHook(() => {
+      this.onClose();
+    });
   }
 
   forceClosed(): void { this.reset(); }
@@ -89,7 +99,9 @@ export class CircuitBreaker {
   forceOpen(): void {
     this.#state = 'open';
     this.#openedAt = this.#clock();
-    this.onOpen();
+    this.#invokeHook(() => {
+      this.onOpen();
+    });
   }
 
   /**
@@ -160,7 +172,9 @@ export class CircuitBreaker {
     if (this.#state === 'open' && this.#clock() - this.#openedAt >= this.#resetTimeoutMs) {
       this.#state = 'halfOpen';
       this.#successCount = 0;
-      this.onHalfOpen();
+      this.#invokeHook(() => {
+        this.onHalfOpen();
+      });
     }
   }
 
@@ -172,14 +186,22 @@ export class CircuitBreaker {
         this.#failureCount = 0;
         this.#successCount = 0;
         this.#openedAt = 0;
-        this.onSuccess();
-        this.onClose();
+        this.#invokeHook(() => {
+          this.onSuccess();
+        });
+        this.#invokeHook(() => {
+          this.onClose();
+        });
       } else {
-        this.onSuccess();
+        this.#invokeHook(() => {
+          this.onSuccess();
+        });
       }
     } else {
       this.#failureCount = 0;
-      this.onSuccess();
+      this.#invokeHook(() => {
+        this.onSuccess();
+      });
     }
   }
 
@@ -192,19 +214,31 @@ export class CircuitBreaker {
     if (this.#state === 'halfOpen') {
       this.#state = 'open';
       this.#openedAt = this.#clock();
-      this.onFailure(err);
-      this.onOpen();
+      this.#invokeHook(() => {
+        this.onFailure(err);
+      });
+      this.#invokeHook(() => {
+        this.onOpen();
+      });
       return;
     }
     this.#failureCount += 1;
     if (this.#failureCount >= this.#failureThreshold) {
       this.#state = 'open';
       this.#openedAt = this.#clock();
-      this.onFailure(err);
-      this.onTrip();
-      this.onOpen();
+      this.#invokeHook(() => {
+        this.onFailure(err);
+      });
+      this.#invokeHook(() => {
+        this.onTrip();
+      });
+      this.#invokeHook(() => {
+        this.onOpen();
+      });
     } else {
-      this.onFailure(err);
+      this.#invokeHook(() => {
+        this.onFailure(err);
+      });
     }
   }
 }

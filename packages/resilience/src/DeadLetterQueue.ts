@@ -17,6 +17,12 @@ export class DeadLetterQueue<T> {
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   static builder<T>(): DeadLetterQueueBuilder<T> {
     const factory = (options: DeadLetterQueueOptionsInterface): DeadLetterQueue<T> => {
       const result = DeadLetterQueue.create<T>(options);
@@ -56,19 +62,25 @@ export class DeadLetterQueue<T> {
     if (this.#aborted) { throw new DlqAbortedError(); }
     if (this.#closed) { throw new DlqClosedError(); }
     if (this.#entries.length >= this.#capacity) {
-      this.onOverflow();
+      this.#invokeHook(() => {
+        this.onOverflow();
+      });
       throw new DlqFullError();
     }
     this.#entries.push({ 'enqueuedAtMs': this.#clock(), 'error': error, 'id': crypto.randomUUID(), 'item': item, 'reason': reason });
     if (this.#notifyDrain !== null) { const n = this.#notifyDrain; this.#notifyDrain = null; n(); }
-    this.onEnqueue(item);
+    this.#invokeHook(() => {
+      this.onEnqueue(item);
+    });
   }
 
   async *drain(): AsyncGenerator<DlqEntryType<T>> {
     while (true) {
       const entry = this.#entries.shift();
       if (entry !== undefined) {
-        this.onDequeue(entry.item);
+        this.#invokeHook(() => {
+          this.onDequeue(entry.item);
+        });
         yield entry;
         continue;
       }
@@ -80,7 +92,9 @@ export class DeadLetterQueue<T> {
   close(): void {
     this.#closed = true;
     if (this.#notifyDrain !== null) { const n = this.#notifyDrain; this.#notifyDrain = null; n(); }
-    this.onClose();
+    this.#invokeHook(() => {
+      this.onClose();
+    });
   }
 
   abort(): void { this.#abort(); }
@@ -118,6 +132,8 @@ export class DeadLetterQueue<T> {
   #abort(): void {
     this.#aborted = true;
     if (this.#notifyDrain !== null) { const n = this.#notifyDrain; this.#notifyDrain = null; n(); }
-    this.onAbort();
+    this.#invokeHook(() => {
+      this.onAbort();
+    });
   }
 }

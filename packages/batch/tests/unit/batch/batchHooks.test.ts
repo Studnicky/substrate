@@ -310,3 +310,29 @@ it('processSettled hooks: onBatchComplete fires even when all items fail', async
   assert.strictEqual(rec.batchCompleteArgs.length, 1);
   assert.deepStrictEqual(rec.batchCompleteArgs[0], { 'failed': 3, 'succeeded': 0, 'total': 3 });
 });
+
+it('a throwing success hook does not replace yielded process() results', async () => {
+  class ThrowingSuccessBatch extends Batch<number> {
+    public constructor() { super(); }
+    protected override onItemSuccess(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const batch = new ThrowingSuccessBatch();
+  const results = await collectBatches(batch.process([1, 2, 3], async (n) => n * 2));
+  assert.deepStrictEqual(results, [2, 4, 6]);
+});
+
+it('a throwing completion hook does not replace processSettled() completion stats or settled output', async () => {
+  class ThrowingCompleteBatch extends Batch<number> {
+    public constructor() { super(); }
+    protected override onBatchComplete(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const batch = new ThrowingCompleteBatch();
+  const results = await collectBatches(batch.processSettled([1, 2], async (n) => n));
+  assert.deepStrictEqual(results.map((result) => (result as PromiseFulfilledResult<number>).value), [1, 2]);
+});

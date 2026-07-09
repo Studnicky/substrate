@@ -412,4 +412,60 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
     assert.strictEqual(pipeline.stageStartEvents.length, 0);
     assert.strictEqual(pipeline.stageSuccessEvents.length, 0);
   });
+
+  void it('a throwing onStageStart hook does not replace a successful run result', async () => {
+    class ThrowingStartPipeline extends Pipeline<number> {
+      protected override onStageStart(): void {
+        throw new Error('onStageStart boom');
+      }
+    }
+
+    const pipeline = ThrowingStartPipeline.create();
+    pipeline.add((n) => n + 1);
+
+    const result = await pipeline.run(1);
+
+    assert.strictEqual(result, 2);
+  });
+
+  void it('a throwing onStageSuccess hook does not replace a successful run result', async () => {
+    class ThrowingSuccessPipeline extends Pipeline<number> {
+      protected override onStageSuccess(): void {
+        throw new Error('onStageSuccess boom');
+      }
+    }
+
+    const pipeline = ThrowingSuccessPipeline.create();
+    pipeline.add((n) => n + 1);
+
+    const result = await pipeline.run(1);
+
+    assert.strictEqual(result, 2);
+  });
+
+  void it('a throwing onStageError hook does not replace the wrapped PipelineError', async () => {
+    class ThrowingStageErrorPipeline extends Pipeline<number> {
+      protected override onStageError(): void {
+        throw new Error('onStageError boom');
+      }
+    }
+
+    const pipeline = ThrowingStageErrorPipeline.create();
+    pipeline.add(() => { throw new Error('stage failed'); });
+
+    await assert.rejects(() => pipeline.run(1), PipelineError);
+  });
+
+  void it('a throwing onRunError hook does not replace the wrapped PipelineError', async () => {
+    class ThrowingRunErrorPipeline extends Pipeline<number> {
+      protected override onRunError(): void {
+        throw new Error('onRunError boom');
+      }
+    }
+
+    const pipeline = ThrowingRunErrorPipeline.create();
+    pipeline.add(() => { throw new Error('stage failed'); });
+
+    await assert.rejects(() => pipeline.run(1), PipelineError);
+  });
 });

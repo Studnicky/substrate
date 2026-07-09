@@ -329,6 +329,42 @@ class ComputeAudit extends SampleBuffer {
   }
 }
 
+class ThrowingPushBuffer extends SampleBuffer {
+  override onPush(): void {
+    throw new Error('onPush boom');
+  }
+}
+
+class ThrowingOverflowBuffer extends SampleBuffer {
+  override onOverflow(): void {
+    throw new Error('onOverflow boom');
+  }
+}
+
+class ThrowingEvictBuffer extends SampleBuffer {
+  override onEvict(): void {
+    throw new Error('onEvict boom');
+  }
+}
+
+class ThrowingClearBuffer extends SampleBuffer {
+  override onClear(): void {
+    throw new Error('onClear boom');
+  }
+}
+
+class ThrowingPercentileBuffer extends SampleBuffer {
+  override onPercentile(): void {
+    throw new Error('onPercentile boom');
+  }
+}
+
+class ThrowingComputeBuffer extends SampleBuffer {
+  override onComputeStart(): void {
+    throw new Error('onComputeStart boom');
+  }
+}
+
 it('onComputeStart is not called when buffer is empty', () => {
   const buf = ComputeAudit.create({ 'capacity': 5 });
   buf.percentile(50);
@@ -404,4 +440,62 @@ it('subclass can read count, capacity, head, sortedCache', () => {
   assert.equal(state.capacity, 4);
   assert.equal(state.head, 0);
   assert.equal(state.cacheNull, true); // invalidated by push
+});
+
+it('a throwing onPush hook does not replace a completed append', () => {
+  const buf = ThrowingPushBuffer.create({ 'capacity': 3 });
+  buf.push(10);
+
+  assert.equal(buf.length, 1);
+  assert.equal(buf.percentile(50), 10);
+});
+
+it('a throwing onOverflow hook does not replace a completed overwrite', () => {
+  const buf = ThrowingOverflowBuffer.create({ 'capacity': 2 });
+  buf.push(10);
+  buf.push(20);
+  buf.push(30);
+
+  assert.equal(buf.length, 2);
+  assert.equal(buf.percentile(0), 20);
+  assert.equal(buf.percentile(100), 30);
+});
+
+it('a throwing onEvict hook does not replace a completed overwrite', () => {
+  const buf = ThrowingEvictBuffer.create({ 'capacity': 2 });
+  buf.push(10);
+  buf.push(20);
+  buf.push(30);
+
+  assert.equal(buf.length, 2);
+  assert.equal(buf.percentile(0), 20);
+  assert.equal(buf.percentile(100), 30);
+});
+
+it('a throwing onClear hook does not replace clear()', () => {
+  const buf = ThrowingClearBuffer.create({ 'capacity': 3 });
+  buf.push(1);
+  buf.push(2);
+  buf.clear();
+
+  assert.equal(buf.length, 0);
+  assert.equal(buf.percentile(50), undefined);
+});
+
+it('a throwing onPercentile hook does not replace the computed percentile result', () => {
+  const buf = ThrowingPercentileBuffer.create({ 'capacity': 3 });
+  buf.push(10);
+  buf.push(20);
+  buf.push(30);
+
+  assert.equal(buf.percentile(50), 20);
+});
+
+it('a throwing onComputeStart hook does not replace percentile computation', () => {
+  const buf = ThrowingComputeBuffer.create({ 'capacity': 3 });
+  buf.push(30);
+  buf.push(10);
+  buf.push(20);
+
+  assert.equal(buf.percentile(50), 20);
 });

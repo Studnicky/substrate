@@ -341,3 +341,49 @@ it('classifyError subclass override is bypassed when a config errorClassifier is
   await rejects(() => cb.execute(failTransient));
   strictEqual(cb.state, 'open');
 });
+
+it('a throwing onSuccess hook does not replace a successful execute() result', async () => {
+  class ThrowingSuccessBreaker extends CircuitBreaker {
+    protected override onSuccess(): void {
+      throw new Error('onSuccess boom');
+    }
+  }
+
+  const cb = new ThrowingSuccessBreaker({ failureThreshold: 2, resetTimeoutMs: 100 });
+  const result = await cb.execute(succeed);
+
+  strictEqual(result, 'ok');
+  strictEqual(cb.state, 'closed');
+});
+
+it('a throwing onReject hook does not replace CircuitBreakerOpenError', async () => {
+  class ThrowingRejectBreaker extends CircuitBreaker {
+    protected override onReject(): void {
+      throw new Error('onReject boom');
+    }
+  }
+
+  const cb = new ThrowingRejectBreaker({ failureThreshold: 1, resetTimeoutMs: 10_000 });
+  await rejects(() => cb.execute(fail));
+
+  await rejects(
+    () => cb.execute(succeed),
+    (error: unknown) => error instanceof CircuitBreakerOpenError
+  );
+});
+
+it('a throwing onTrip hook does not replace the original failure or the open transition', async () => {
+  class ThrowingTripBreaker extends CircuitBreaker {
+    protected override onTrip(): void {
+      throw new Error('onTrip boom');
+    }
+  }
+
+  const cb = new ThrowingTripBreaker({ failureThreshold: 1, resetTimeoutMs: 100 });
+
+  await rejects(
+    () => cb.execute(fail),
+    (error: unknown) => error instanceof Error && error.message === 'failure'
+  );
+  strictEqual(cb.state, 'open');
+});

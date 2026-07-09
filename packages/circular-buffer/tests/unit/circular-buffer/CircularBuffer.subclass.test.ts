@@ -83,6 +83,36 @@ class FullTraceBuffer<T> extends CircularBuffer<T> {
   }
 }
 
+class ThrowingPushBuffer<T> extends CircularBuffer<T> {
+  override onPush(): void {
+    throw new Error('onPush boom');
+  }
+}
+
+class ThrowingOverflowBuffer<T> extends CircularBuffer<T> {
+  override onOverflow(): void {
+    throw new Error('onOverflow boom');
+  }
+}
+
+class ThrowingEvictBuffer<T> extends CircularBuffer<T> {
+  override onEvict(): void {
+    throw new Error('onEvict boom');
+  }
+}
+
+class ThrowingGrowBuffer<T> extends CircularBuffer<T> {
+  override onGrow(): void {
+    throw new Error('onGrow boom');
+  }
+}
+
+class ThrowingShiftBuffer<T> extends CircularBuffer<T> {
+  override onShift(): void {
+    throw new Error('onShift boom');
+  }
+}
+
 // ── onEvict scenarios ─────────────────────────────────────────────────────────
 
 it('onEvict is called with the evicted item when overwrite triggers', () => {
@@ -318,6 +348,54 @@ it('grow mode: buffer produces correct FIFO order with all hooks active', () => 
   }
 
   assert.deepStrictEqual(result, values);
+});
+
+it('a throwing onPush hook does not replace a completed push', () => {
+  const buf = ThrowingPushBuffer.create<number>({ 'capacity': 4 });
+  buf.push(42);
+
+  assert.strictEqual(buf.length, 1);
+  assert.strictEqual(buf.shift(), 42);
+});
+
+it('a throwing onOverflow hook does not replace overwrite behavior', () => {
+  const buf = ThrowingOverflowBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+
+  assert.strictEqual(buf.length, 2);
+  assert.strictEqual(buf.shift(), 2);
+  assert.strictEqual(buf.shift(), 3);
+});
+
+it('a throwing onEvict hook does not replace overwrite behavior', () => {
+  const buf = ThrowingEvictBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+
+  assert.strictEqual(buf.length, 2);
+  assert.strictEqual(buf.shift(), 2);
+  assert.strictEqual(buf.shift(), 3);
+});
+
+it('a throwing onGrow hook does not replace growth and insertion', () => {
+  const buf = ThrowingGrowBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+
+  assert.strictEqual(buf.length, 3);
+  assert.deepStrictEqual([buf.shift(), buf.shift(), buf.shift()], [1, 2, 3]);
+});
+
+it('a throwing onShift hook does not replace item removal', () => {
+  const buf = ThrowingShiftBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+
+  assert.strictEqual(buf.shift(), 1);
+  assert.strictEqual(buf.length, 0);
 });
 
 it('subclass can read count, head, tail, capacity, items', () => {

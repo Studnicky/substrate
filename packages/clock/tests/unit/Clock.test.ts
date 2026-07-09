@@ -506,6 +506,76 @@ void describe('Clock', () => {
       assert.equal(provider.hrtimeEvents[0], BigInt(START_MS_A) * NS_PER_MS);
     });
 
+    void it('RealTimeClockProvider swallows a throwing onNow hook and still returns the computed value', () => {
+      class ThrowingRealNowProvider extends RealTimeClockProvider {
+        public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+
+        protected override readRawMs(): number { return FIXED_MS; }
+
+        protected override onNow(): void {
+          throw new Error('provider onNow boom');
+        }
+      }
+
+      const provider = new ThrowingRealNowProvider({ offsetMs: 25 });
+
+      assert.doesNotThrow(() => {
+        assert.equal(provider.now(), FIXED_MS + 25);
+      });
+    });
+
+    void it('RealTimeClockProvider swallows a throwing onHrtime hook and still returns the computed value', () => {
+      class ThrowingRealHrtimeProvider extends RealTimeClockProvider {
+        public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+
+        protected override readRawHrtimeMs(): number { return FIXED_MS; }
+
+        protected override onHrtime(): void {
+          throw new Error('provider onHrtime boom');
+        }
+      }
+
+      const provider = new ThrowingRealHrtimeProvider({ offsetMs: 0 });
+
+      assert.doesNotThrow(() => {
+        assert.equal(provider.hrtime(), BigInt(FIXED_MS) * NS_PER_MS);
+      });
+    });
+
+    void it('VirtualClockProvider swallows a throwing onNow hook and still returns the virtual time', () => {
+      class ThrowingVirtualNowProvider extends VirtualClockProvider {
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+
+        protected override onNow(): void {
+          throw new Error('virtual provider onNow boom');
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const provider = new ThrowingVirtualNowProvider(counter);
+
+      assert.doesNotThrow(() => {
+        assert.equal(provider.now(), START_MS_A);
+      });
+    });
+
+    void it('VirtualClockProvider swallows a throwing onHrtime hook and still returns the virtual ns value', () => {
+      class ThrowingVirtualHrtimeProvider extends VirtualClockProvider {
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+
+        protected override onHrtime(): void {
+          throw new Error('virtual provider onHrtime boom');
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const provider = new ThrowingVirtualHrtimeProvider(counter);
+
+      assert.doesNotThrow(() => {
+        assert.equal(provider.hrtime(), BigInt(START_MS_A) * NS_PER_MS);
+      });
+    });
+
     // -----------------------------------------------------------------------
     // VirtualTimeCounter hooks: onAdvance / onNowMs
     // -----------------------------------------------------------------------
@@ -577,6 +647,78 @@ void describe('Clock', () => {
       assert.equal(counter.nowMsEvents.length, 2, 'onNowMs fires on both calls');
       assert.equal(counter.nowMsEvents[0], START_MS_A);
       assert.equal(counter.nowMsEvents[1], START_MS_A + ADVANCE_50);
+    });
+
+    void it('Clock swallows a throwing onNow hook and still returns the computed value', () => {
+      class ThrowingNowClock extends Clock {
+        public constructor(provider: ClockProviderType) { super(provider); }
+
+        protected override onNow(): void {
+          throw new Error('onNow boom');
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const clock = new ThrowingNowClock(VirtualClockProvider.create(counter));
+
+      assert.doesNotThrow(() => {
+        assert.equal(clock.now(), START_MS_A);
+      });
+      counter.advance(ADVANCE_50);
+      assert.equal(clock.now(), START_MS_A + ADVANCE_50);
+    });
+
+    void it('Clock swallows a throwing onHrtime hook and still preserves monotonic state', () => {
+      class ThrowingHrtimeClock extends Clock {
+        public constructor(provider: ClockProviderType) { super(provider); }
+
+        protected override onHrtime(): void {
+          throw new Error('onHrtime boom');
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ startMs: START_MS_A });
+      const clock = new ThrowingHrtimeClock(VirtualClockProvider.create(counter));
+
+      const first = clock.hrtime();
+      counter.advance(ADVANCE_50);
+      const second = clock.hrtime();
+
+      assert.equal(first, BigInt(START_MS_A) * NS_PER_MS);
+      assert.equal(second, BigInt(START_MS_A + ADVANCE_50) * NS_PER_MS);
+    });
+
+    void it('VirtualTimeCounter swallows a throwing onAdvance hook and still advances time', () => {
+      class ThrowingAdvanceCounter extends VirtualTimeCounter {
+        public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+
+        protected override onAdvance(): void {
+          throw new Error('onAdvance boom');
+        }
+      }
+
+      const counter = new ThrowingAdvanceCounter({ startMs: START_MS_A });
+
+      assert.doesNotThrow(() => {
+        counter.advance(ADVANCE_50);
+      });
+      assert.equal(counter.nowMs(), START_MS_A + ADVANCE_50);
+    });
+
+    void it('VirtualTimeCounter swallows a throwing onNowMs hook and still returns the current value', () => {
+      class ThrowingNowMsCounter extends VirtualTimeCounter {
+        public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+
+        protected override onNowMs(): void {
+          throw new Error('onNowMs boom');
+        }
+      }
+
+      const counter = new ThrowingNowMsCounter({ startMs: START_MS_A });
+
+      assert.doesNotThrow(() => {
+        assert.equal(counter.nowMs(), START_MS_A);
+      });
     });
   });
 

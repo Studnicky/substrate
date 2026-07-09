@@ -120,4 +120,42 @@ describe('HealthRegistry lifecycle hooks', () => {
 
     assert.deepEqual(order, ['registered', 'result', 'aggregate']);
   });
+
+  it('a throwing onCheckResult hook does not replace evaluate() output', async () => {
+    class ThrowingResultRegistry extends HealthRegistry {
+      static override create(): ThrowingResultRegistry {
+        return new ThrowingResultRegistry();
+      }
+
+      protected override onCheckResult(): void {
+        throw new Error('hook boom');
+      }
+    }
+
+    const throwing = ThrowingResultRegistry.create();
+    throwing.register('a', async () => ({ 'status': 'healthy' as const }));
+
+    const evaluation = await throwing.evaluate();
+    assert.equal(evaluation.status, 'healthy');
+    assert.equal(evaluation.results.get('a')?.status, 'healthy');
+  });
+
+  it('a throwing onAggregate hook does not replace the aggregated evaluation result', async () => {
+    class ThrowingAggregateRegistry extends HealthRegistry {
+      static override create(): ThrowingAggregateRegistry {
+        return new ThrowingAggregateRegistry();
+      }
+
+      protected override onAggregate(): void {
+        throw new Error('hook boom');
+      }
+    }
+
+    const throwing = ThrowingAggregateRegistry.create();
+    throwing.register('a', async () => ({ 'status': 'degraded' as const }));
+
+    const evaluation = await throwing.evaluate();
+    assert.equal(evaluation.status, 'degraded');
+    assert.equal(evaluation.results.get('a')?.status, 'degraded');
+  });
 });

@@ -47,13 +47,13 @@ export class Semaphore {
     if (this.#available > 0) {
       const permitsBefore = this.#available;
       this.#available -= 1;
-      this.onAcquire(permitsBefore);
+      this.#invokeHook(() => { this.onAcquire(permitsBefore); });
       return this.#buildRelease();
     }
-    this.onAcquireWait();
+    this.#invokeHook(() => { this.onAcquireWait(); });
     return await new Promise<() => void>((resolve) => {
       this.#queue.push(() => { resolve(this.#buildRelease()); });
-      this.onContended(this.#queue.length);
+      this.#invokeHook(() => { this.onContended(this.#queue.length); });
     });
   }
 
@@ -75,11 +75,17 @@ export class Semaphore {
     const next = this.#queue.shift();
     if (next !== undefined) {
       next();
-      this.onReleaseDelegated();
+      this.#invokeHook(() => { this.onReleaseDelegated(); });
       return;
     }
     this.#available += 1;
-    this.onRelease(this.#available);
+    this.#invokeHook(() => { this.onRelease(this.#available); });
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 
   /**

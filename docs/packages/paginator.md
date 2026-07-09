@@ -21,7 +21,7 @@ pnpm add @studnicky/paginator
 
 ## Observability hooks
 
-Subclass `Paginator` and override any protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Overrides must not throw or block.
+Subclass `Paginator` and override any protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Hooks should stay fast and non-blocking; observer-hook failures are contained so pagination state still wins.
 
 | Hook | When it fires | Args |
 |------|--------------|------|

@@ -15,6 +15,12 @@ export class DeadLetterQueueRetryGenerator<T> {
   readonly #dlq: DeadLetterQueue<T>;
   readonly #intervalMs: number;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   static builder<T>(): DeadLetterQueueRetryGeneratorBuilder<T> {
     const factory = (options: RetryGeneratorOptions<T>): DeadLetterQueueRetryGenerator<T> => {
       const result = DeadLetterQueueRetryGenerator.create<T>(options);
@@ -39,12 +45,18 @@ export class DeadLetterQueueRetryGenerator<T> {
   async *generate(): AsyncGenerator<DlqEntryType<T>> {
     const drainIterator = this.#dlq.drain();
     for await (const entry of drainIterator) {
-      this.onYield(entry);
+      this.#invokeHook(() => {
+        this.onYield(entry);
+      });
       yield entry;
-      this.onWait(this.#intervalMs);
+      this.#invokeHook(() => {
+        this.onWait(this.#intervalMs);
+      });
       await new Promise<void>((resolve) => { setTimeout(resolve, this.#intervalMs); });
     }
-    this.onDone();
+    this.#invokeHook(() => {
+      this.onDone();
+    });
   }
 
   /**
