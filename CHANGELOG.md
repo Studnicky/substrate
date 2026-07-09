@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [5.1.0] - 2026-07-09
+
+### Added
+
 - 15 new packages: `@studnicky/boundary-kit`, `@studnicky/bounded-dispatcher`, `@studnicky/entity-store`, `@studnicky/flag-evaluator`, `@studnicky/health-registry`, `@studnicky/idempotency-guard`, `@studnicky/keyed-rate-limiter`, `@studnicky/keyed-work-gate`, `@studnicky/memoize`, `@studnicky/paginator`, `@studnicky/process-kit`, `@studnicky/request-executor`, `@studnicky/sliding-window-limiter`, `@studnicky/visible-range`, and `@studnicky/worker-pool`. See each package's own README for its API.
 - `ClampedConfig` soft-correction clamping utility in `@studnicky/config`, mirroring `ConfigValidation`'s static hook idiom.
 - `Delay.sleep()`/`Delay.value()` in `@studnicky/scheduler` — virtual-time-aware delay helpers composing `Clock` and `Scheduler`.
@@ -106,3 +114,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `@studnicky/system` is included in the root TypeScript build graph, so its `dist` output is produced and published from a clean build.
+
+[5.1.0]: https://github.com/Studnicky/substrate/compare/v5.0.0...v5.1.0
