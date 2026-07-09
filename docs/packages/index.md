@@ -1,6 +1,6 @@
 ---
 title: Packages
-description: All 39 packages in the @studnicky/substrate monorepo.
+description: Workspace packages in the @studnicky/substrate monorepo.
 ---
 
 # Packages

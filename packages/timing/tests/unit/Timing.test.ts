@@ -439,6 +439,83 @@ void it('includes events added after previous call', () => {
   assert.ok(events2['CacheService.get'] !== undefined);
 });
 
+class ThrowingInitializeTiming extends Timing {
+  protected override onInitialize(): void {
+    throw new Error('onInitialize boom');
+  }
+}
+
+class ThrowingClearTiming extends Timing {
+  protected override onClear(): void {
+    throw new Error('onClear boom');
+  }
+}
+
+class ThrowingEvictTiming extends Timing {
+  protected override onEvict(): void {
+    throw new Error('onEvict boom');
+  }
+}
+
+class ThrowingEventTiming extends Timing {
+  protected override onEvent(): void {
+    throw new Error('onEvent boom');
+  }
+}
+
+class ThrowingGetEventsTiming extends Timing {
+  protected override onGetEvents(): void {
+    throw new Error('onGetEvents boom');
+  }
+}
+
+void it('a throwing onInitialize hook does not replace construction', () => {
+  const timer = ThrowingInitializeTiming.create();
+  const events = timer.getEvents();
+
+  assert.ok(events.initialize !== undefined);
+});
+
+void it('a throwing onClear hook does not replace clear()', () => {
+  const timer = ThrowingClearTiming.create();
+  timer.event(TimingEvent.create().component('GraphAdapter')
+    .operation('query')
+    .build());
+
+  timer.clear();
+
+  const events = timer.getEvents();
+  assert.ok(events.initialize === undefined);
+});
+
+void it('a throwing onEvict hook does not replace eviction', () => {
+  const timer = ThrowingEvictTiming.create({ 'maxEvents': 1 });
+  timer.event(TimingEvent.create().component('GraphAdapter')
+    .operation('query')
+    .build());
+
+  const events = timer.getEvents();
+  assert.ok(events['GraphAdapter.query'] !== undefined);
+  assert.ok(events.initialize === undefined);
+});
+
+void it('a throwing onEvent hook does not replace event recording', () => {
+  const timer = ThrowingEventTiming.create();
+  timer.event(TimingEvent.create().component('GraphAdapter')
+    .operation('query')
+    .build());
+
+  const events = timer.getEvents();
+  assert.ok(events['GraphAdapter.query'] !== undefined);
+});
+
+void it('a throwing onGetEvents hook does not replace event snapshot reads', () => {
+  const timer = ThrowingGetEventsTiming.create();
+  const events = timer.getEvents();
+
+  assert.ok(typeof events.durationMs === 'number');
+});
+
 void it('returns JSON-serializable object', () => {
   const timer = Timing.builder().build();
 

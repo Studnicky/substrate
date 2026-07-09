@@ -141,3 +141,23 @@ for (const status of validStatuses) {
     assert.strictEqual(body.status, status);
   });
 }
+
+void it('a throwing onFieldSet hook does not replace fluent setters or build()', () => {
+  class ThrowingFieldSetBody extends LogBody {
+    constructor() { super(); }
+
+    protected override onFieldSet(): void {
+      throw new Error('onFieldSet boom');
+    }
+  }
+
+  const body = new ThrowingFieldSetBody()
+    .component('graph')
+    .operation('query')
+    .status('success')
+    .message('Query executed')
+    .context({})
+    .build();
+
+  assert.strictEqual(body.event, 'graph.query');
+});

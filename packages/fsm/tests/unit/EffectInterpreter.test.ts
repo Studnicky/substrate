@@ -132,4 +132,15 @@ describe('EffectInterpreter', () => {
     await interp.send({ type: 'activate' });
     assert.deepEqual(interp.getState(), { variant: 'active' });
   });
+
+  it('a throwing observer does not replace a successful send() result or block state advancement', async () => {
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-10' });
+    interp.subscribe((_state) => {
+      throw new Error('observer boom');
+    });
+    interp.start();
+
+    await interp.send({ type: 'activate' });
+    assert.deepEqual(interp.getState(), { variant: 'active' });
+  });
 });

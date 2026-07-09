@@ -48,7 +48,7 @@ const result = await retry.execute(async () => {
 
 ## Extending a primitive
 
-Every class exposes protected lifecycle hooks. Subclass to add observability without touching the base class:
+Every class exposes documented protected seams. Most are observer hooks for tracing and metrics; some packages also expose behavioral hooks that intentionally transform or redirect control flow. Subclass to add observability without touching the base class:
 
 <!-- inline-ts-ok: consumer-facing subclass illustration using the published @studnicky/retry import; demonstrates the extension pattern, not an in-repo runnable example -->
 ```typescript
@@ -72,9 +72,9 @@ class InstrumentedRetry extends Retry {
 const retry = new InstrumentedRetry({ maxRetries: 3 });
 ```
 
-The base `Retry` class never logs; the hooks are no-ops by default. Override only what you need.
+The base `Retry` class never logs; the observer hooks are no-ops by default. Override only what you need, and check each package page for which hooks are observational versus behavioral.
 
 ## Next steps
 
 - [Architecture](/architecture): the three design principles in depth
-- [Packages](/packages/): all 27 packages with API examples
+- [Packages](/packages/): the full workspace package index with API examples

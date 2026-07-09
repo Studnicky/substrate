@@ -8,6 +8,12 @@ export class Signal {
 
   protected constructor() {}
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   static create(): Signal {
     return new Signal();
   }
@@ -58,7 +64,9 @@ export class Signal {
       result = Signal.never();
     }
 
-    this.onCompose(options, result);
+    this.#invokeHook(() => {
+      this.onCompose(options, result);
+    });
     return result;
   }
 

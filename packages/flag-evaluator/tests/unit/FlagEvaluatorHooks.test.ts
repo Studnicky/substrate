@@ -95,4 +95,60 @@ describe('FlagEvaluator lifecycle hooks', () => {
 
     assert.deepEqual(evaluator.evaluateCalls[0]!.context, context);
   });
+
+  it('a throwing onDefault hook does not replace the fallback false result', () => {
+    class ThrowingDefaultEvaluator extends FlagEvaluator {
+      static override create(): ThrowingDefaultEvaluator {
+        return new ThrowingDefaultEvaluator();
+      }
+
+      protected override onDefault(): void {
+        throw new Error('onDefault boom');
+      }
+    }
+
+    const throwingEvaluator = ThrowingDefaultEvaluator.create();
+
+    assert.doesNotThrow(() => {
+      assert.equal(throwingEvaluator.evaluate('missing', { 'targetingKey': 'user-1' }), false);
+    });
+  });
+
+  it('a throwing onRuleMismatch hook does not replace the computed false rollout decision', () => {
+    class ThrowingMismatchEvaluator extends FlagEvaluator {
+      static override create(): ThrowingMismatchEvaluator {
+        return new ThrowingMismatchEvaluator();
+      }
+
+      protected override onRuleMismatch(): void {
+        throw new Error('onRuleMismatch boom');
+      }
+    }
+
+    const throwingEvaluator = ThrowingMismatchEvaluator.create();
+    throwingEvaluator.register('zero-rollout', { 'defaultValue': false, 'enabled': true, 'rolloutPercent': 0 });
+
+    assert.doesNotThrow(() => {
+      assert.equal(throwingEvaluator.evaluate('zero-rollout', { 'targetingKey': 'user-1' }), false);
+    });
+  });
+
+  it('a throwing onEvaluate hook does not replace a completed evaluation result', () => {
+    class ThrowingEvaluateEvaluator extends FlagEvaluator {
+      static override create(): ThrowingEvaluateEvaluator {
+        return new ThrowingEvaluateEvaluator();
+      }
+
+      protected override onEvaluate(): void {
+        throw new Error('onEvaluate boom');
+      }
+    }
+
+    const throwingEvaluator = ThrowingEvaluateEvaluator.create();
+    throwingEvaluator.register('enabled-flag', { 'defaultValue': false, 'enabled': true });
+
+    assert.doesNotThrow(() => {
+      assert.equal(throwingEvaluator.evaluate('enabled-flag', { 'targetingKey': 'user-1' }), true);
+    });
+  });
 });

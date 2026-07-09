@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/memoize",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "Pure function memoization composing cache and concurrency: LRU+TTL result caching keyed by a caller-supplied key derivation, with in-flight call dedup",
   "type": "module",
   "sideEffects": false,

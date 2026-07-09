@@ -249,3 +249,56 @@ void it('protected onEnqueue hook fires via subclass override', async () => {
 
   deepStrictEqual(depths, [1, 2]);
 });
+
+void it('a throwing dequeue hook does not interrupt current or later queue work', async () => {
+  const errors: unknown[] = [];
+  const processed: number[] = [];
+
+  class ThrowingOnDequeueQueue extends BusQueue<number> {
+    static override create(options: BusQueueCreateOptionsType<number>): ThrowingOnDequeueQueue {
+      return new ThrowingOnDequeueQueue(options);
+    }
+
+    #thrown = false;
+
+    protected override onDequeue(_depth: number): void {
+      if (this.#thrown) { return; }
+      this.#thrown = true;
+      throw new Error('dequeue hook boom');
+    }
+  }
+
+  const queue = ThrowingOnDequeueQueue.create<number>({
+    'handler': async (item) => { processed.push(item); },
+    'onError': (error) => { errors.push(error); },
+  });
+
+  void queue.enqueue(1);
+  await Promise.resolve();
+
+  await queue.enqueue(2);
+  await queue.drain();
+
+  deepStrictEqual(processed, [1, 2]);
+  strictEqual(queue.size, 0);
+  strictEqual(errors.length, 0);
+});
+
+void it('a throwing enqueue hook does not replace enqueue() or later delivery', async () => {
+  const processed: number[] = [];
+
+  class ThrowingEnqueueQueue extends BusQueue<number> {
+    protected override onEnqueue(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const queue = ThrowingEnqueueQueue.create({
+    'handler': async (item) => { processed.push(item); },
+  });
+
+  await queue.enqueue(1);
+  await queue.drain();
+
+  deepStrictEqual(processed, [1]);
+});

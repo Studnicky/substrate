@@ -66,7 +66,9 @@ class RetryCallFsm {
     }
 
     this.#state = to;
-    this.#enter(to, from);
+    try {
+      this.#enter(to, from);
+    } catch {}
   }
 }
 
@@ -163,6 +165,12 @@ export class Retry implements RetryInterface {
     'totalRequests': INITIAL_COUNTER,
     'totalRetries': INITIAL_COUNTER
   };
+
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
 
   protected constructor(config: Partial<RetryConfigInterface> = {}) {
     const validated = Retry.#validateConfig(config);
@@ -312,7 +320,9 @@ export class Retry implements RetryInterface {
     const state: Record<string, unknown> = {};
 
     for (let attempt = INITIAL_COUNTER; attempt <= this.maxRetries; attempt++) {
-      this.onAttempt(attempt);
+      this.#invokeHook(() => {
+        this.onAttempt(attempt);
+      });
 
       const outcome = await this.tryAttempt(fn);
 
@@ -353,7 +363,9 @@ export class Retry implements RetryInterface {
       this.handleNonRetryableError(callFsm, attempt, error, classification);
     }
 
-    this.onRetryableError(attempt, error, classification);
+    this.#invokeHook(() => {
+      this.onRetryableError(attempt, error, classification);
+    });
 
     // performRetry transitions FSM: attempting → waiting, then checks budget,
     // then (if budget remains) sleeps and transitions waiting → attempting.
@@ -369,7 +381,9 @@ export class Retry implements RetryInterface {
 
     const finalError = errors.at(LAST_ARRAY_INDEX) ?? new Error('Unknown error occurred during retry');
 
-    this.onGiveUp(finalError, this.maxRetries, 'exhausted');
+    this.#invokeHook(() => {
+      this.onGiveUp(finalError, this.maxRetries, 'exhausted');
+    });
 
     throw new MaxRetriesExceededError(
       `Operation failed after ${this.maxRetries + INCREMENT_BY_ONE} attempts: ${String(finalError)}`,
@@ -386,7 +400,9 @@ export class Retry implements RetryInterface {
     this.stats.failedRequests++;
 
     callFsm.transition('aborted');
-    this.onGiveUp(error, attempt, 'aborted');
+    this.#invokeHook(() => {
+      this.onGiveUp(error, attempt, 'aborted');
+    });
 
     throw new MaxRetriesExceededError(
       `Operation aborted by retry lifecycle hook after ${attempt + INCREMENT_BY_ONE} attempts: ${String(error)}`,
@@ -408,7 +424,9 @@ export class Retry implements RetryInterface {
     this.stats.failedRequests++;
 
     callFsm.transition('exhausted');
-    this.onGiveUp(error, attempt, 'exhausted');
+    this.#invokeHook(() => {
+      this.onGiveUp(error, attempt, 'exhausted');
+    });
 
     throw new MaxRetriesExceededError(
       `Operation failed after ${attempt + INCREMENT_BY_ONE} attempts: ${String(error)}`,
@@ -430,7 +448,9 @@ export class Retry implements RetryInterface {
     this.stats.failedRequests++;
 
     callFsm.transition('failed');
-    this.onGiveUp(error, attempt, 'nonRetryable');
+    this.#invokeHook(() => {
+      this.onGiveUp(error, attempt, 'nonRetryable');
+    });
 
     throw new NonRetryableError(
       `Operation failed with non-retryable error: ${String(error)}`,
@@ -447,7 +467,9 @@ export class Retry implements RetryInterface {
     this.stats.successfulRequests++;
 
     callFsm.transition('succeeded');
-    this.onSuccess(attempt, Date.now() - startTime);
+    this.#invokeHook(() => {
+      this.onSuccess(attempt, Date.now() - startTime);
+    });
   }
 
   /**

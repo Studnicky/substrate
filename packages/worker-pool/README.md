@@ -66,7 +66,7 @@ Each call to `run()` spawns a fresh `Worker` per item and terminates it once tha
 
 ## Hooks
 
-`WorkerPool` has no observability of its own by default — override these protected hooks in a subclass to add logging/tracing/metrics. Overrides must not throw or block.
+`WorkerPool` has no observability of its own by default — override these protected hooks in a subclass to add logging/tracing/metrics. Hooks should stay fast and non-blocking; observer-hook failures are contained so worker execution still resolves or rejects through the canonical task outcome.
 
 | Hook | Fires |
 |------|-------|

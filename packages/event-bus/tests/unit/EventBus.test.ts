@@ -490,3 +490,49 @@ void it('EventBus.builder().withHighWaterMark(N).build() produces a bus whose su
   await result.drain();
   await result.close();
 });
+
+void it('a throwing onPublish hook does not replace publish() or prevent delivery', async () => {
+  const received: string[] = [];
+
+  class ThrowingPublishBus extends EventBus<TestTopics> {
+    static override create(): ThrowingPublishBus {
+      return new ThrowingPublishBus();
+    }
+
+    protected override onPublish(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const bus = ThrowingPublishBus.create();
+  bus.subscribe('ping', async (payload) => { received.push(payload); });
+
+  await bus.publish('ping', 'hello');
+  await bus.drain();
+
+  deepStrictEqual(received, ['hello']);
+  await bus.close();
+});
+
+void it('a throwing onDeliver hook does not replace successful delivery', async () => {
+  const received: string[] = [];
+
+  class ThrowingDeliverBus extends EventBus<TestTopics> {
+    static override create(): ThrowingDeliverBus {
+      return new ThrowingDeliverBus();
+    }
+
+    protected override onDeliver(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const bus = ThrowingDeliverBus.create();
+  bus.subscribe('ping', async (payload) => { received.push(payload); });
+
+  await bus.publish('ping', 'hello');
+  await bus.drain();
+
+  deepStrictEqual(received, ['hello']);
+  await bus.close();
+});

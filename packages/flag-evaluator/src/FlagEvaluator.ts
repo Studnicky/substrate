@@ -40,6 +40,12 @@ export class FlagEvaluator {
 
   protected constructor() {}
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /** Registers (or replaces) a named flag definition. */
   register(name: string, definition: FlagDefinitionType): void {
     this.#registry.set(name, definition);
@@ -75,15 +81,21 @@ export class FlagEvaluator {
     const definition = this.#registry.get(name);
 
     if (definition === undefined) {
-      this.onDefault(name);
+      this.#invokeHook(() => {
+        this.onDefault(name);
+      });
       const result = false;
-      this.onEvaluate(name, context, result);
+      this.#invokeHook(() => {
+        this.onEvaluate(name, context, result);
+      });
       return result;
     }
 
     if (!definition.enabled) {
       const result = definition.defaultValue;
-      this.onEvaluate(name, context, result);
+      this.#invokeHook(() => {
+        this.onEvaluate(name, context, result);
+      });
       return result;
     }
 
@@ -92,10 +104,14 @@ export class FlagEvaluator {
     const result = bucket < rolloutPercent;
 
     if (!result) {
-      this.onRuleMismatch(name, context);
+      this.#invokeHook(() => {
+        this.onRuleMismatch(name, context);
+      });
     }
 
-    this.onEvaluate(name, context, result);
+    this.#invokeHook(() => {
+      this.onEvaluate(name, context, result);
+    });
     return result;
   }
 

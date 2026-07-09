@@ -36,3 +36,21 @@ it('fires onMemoMiss then onMemoHit with key and args', async () => {
     'hit:order-1:3:["order-1",3]'
   ]);
 });
+
+it('a throwing onMemoHit hook does not replace a cached return value', async () => {
+  class ThrowingHitMemoize extends Memoize<[string], string> {
+    protected override onMemoHit(): void {
+      throw new Error('onMemoHit boom');
+    }
+  }
+
+  const memo = ThrowingHitMemoize.create(
+    (id: string) => `value:${id}`,
+    { 'keyFn': (id: string) => id, 'capacity': 10 }
+  ) as ThrowingHitMemoize;
+
+  await memo.call('a');
+  const value = await memo.call('a');
+
+  deepStrictEqual(value, 'value:a');
+});

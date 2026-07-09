@@ -121,6 +121,11 @@ export class Memoize<TArgs extends unknown[], TResult> {
   readonly #coalesce: Coalesce<TResult>;
   readonly #fn: (...args: TArgs) => TResult | Promise<TResult>;
   readonly #keyFn: (...args: TArgs) => string;
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
   /**
    * Arguments for the call currently entering the composed `Coalesce`,
    * readable from its delegated `onCoalesceStart`/`onCoalesceJoin` hooks so
@@ -153,7 +158,9 @@ export class Memoize<TArgs extends unknown[], TResult> {
 
     if (this.#cache.has(key)) {
       const value = this.#cache.get(key) as TResult;
-      this.onMemoHit(key, args);
+      this.#invokeHook(() => {
+        this.onMemoHit(key, args);
+      });
       return value;
     }
 

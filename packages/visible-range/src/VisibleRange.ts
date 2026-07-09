@@ -80,6 +80,12 @@ export class VisibleRange {
   /** Cumulative offset array, index `i` = sum of sizes of items `[0, i)`. `null` when stale. */
   private offsets: number[] | null = null;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   protected constructor(config: ResolvedConfigType) {
     this.config = config;
   }
@@ -125,7 +131,9 @@ export class VisibleRange {
 
     if (this.lastRange?.start !== range.start || this.lastRange.end !== range.end) {
       this.lastRange = range;
-      this.onRangeChange(range);
+      this.#invokeHook(() => {
+        this.onRangeChange(range);
+      });
     }
     return range;
   }

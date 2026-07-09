@@ -59,7 +59,7 @@ These are two distinct outcomes, both returning a boolean, for different reasons
 
 ## Hooks
 
-`FlagEvaluator` has no observability of its own by default — override these protected hooks in a subclass to add logging/tracing/metrics. Overrides must not throw or block.
+`FlagEvaluator` has no observability of its own by default — override these protected hooks in a subclass to add logging/tracing/metrics. Hooks should stay fast and non-blocking; observer-hook failures are contained so flag resolution still returns its canonical decision.
 
 | Hook | Fires |
 |------|-------|

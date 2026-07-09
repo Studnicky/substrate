@@ -57,3 +57,17 @@ it('fires again when the scroll offset moves the range', () => {
   strictEqual(range.changes.length, 2);
   deepStrictEqual(range.changes[1], second);
 });
+
+it('a throwing onRangeChange hook does not replace getRange()', () => {
+  class ThrowingVisibleRange extends VisibleRange {
+    protected override onRangeChange(): void {
+      throw new Error('onRangeChange boom');
+    }
+  }
+
+  const range = ThrowingVisibleRange.create({ 'count': 1000, 'itemSize': 50 });
+  range.setScrollOffset(0);
+  range.setViewportSize(100);
+
+  deepStrictEqual(range.getRange(), { 'end': 2, 'start': 0 });
+});
