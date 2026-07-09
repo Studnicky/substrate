@@ -27,7 +27,7 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 
 ### Override hooks
 
-`FetchClient` exposes two protected lifecycle hooks that subclasses override to transform the outgoing request or incoming response:
+`FetchClient` exposes two protected lifecycle hooks that subclasses override to transform the outgoing request or incoming response. These two hooks are in-band behavioral seams: they can mutate the request/response flow directly, and if they throw, the request fails through the normal error path.
 
 | Hook | Signature | Purpose |
 |------|-----------|---------|
@@ -57,7 +57,7 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 
 ## Observability hooks
 
-Override any protected hook to add logging, metrics, or tracing without modifying core behavior.
+Override any protected observer hook to add logging, metrics, or tracing without modifying core behavior. These hooks are observational; they do not replace the request result or the canonical request error path.
 
 | Hook | When it fires | Args |
 |------|--------------|------|
@@ -71,6 +71,6 @@ Override any protected hook to add logging, metrics, or tracing without modifyin
 
 <<< ../../packages/fetch/examples/observedFetch.ts#usage
 
-The base class never calls any logger or metrics library. All hooks are no-ops by default.
+The base class never calls any logger or metrics library. Observer hooks are no-ops by default; `onRequest` and `onResponse` are the in-band transform seams.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/fetch)

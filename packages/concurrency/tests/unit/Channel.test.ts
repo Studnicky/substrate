@@ -203,3 +203,31 @@ it('highWaterMark configured: onOverflow fires at configured depth without dropp
   const items = await collectN(ch.subscribe('k'), 4);
   assert.deepEqual(items, [1, 2, 3, 4]);
 });
+
+it('a throwing onSend hook does not replace a successful publish or lose the buffered item', async () => {
+  class ThrowingSendChannel<T> extends Channel<T> {
+    protected override onSend(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const ch = ThrowingSendChannel.create<number>();
+  ch.publish('k', 1);
+
+  const items = await collectN(ch.subscribe('k'), 1);
+  assert.deepEqual(items, [1]);
+});
+
+it('a throwing onReceive hook does not break subscription delivery after dequeue', async () => {
+  class ThrowingReceiveChannel<T> extends Channel<T> {
+    protected override onReceive(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const ch = ThrowingReceiveChannel.create<number>();
+  ch.publish('k', 1);
+
+  const items = await collectN(ch.subscribe('k'), 1);
+  assert.deepEqual(items, [1]);
+});

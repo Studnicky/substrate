@@ -122,7 +122,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
       const onTimeoutAbort = (): void => {
         settle(() => {
-          this.onWorkerTimeout(index);
+          this.#invokeHook(() => { this.onWorkerTimeout(index); });
           void worker.terminate();
           reject(new Error(`WorkerPool: task at index ${String(index)} exceeded its timeout`));
         });
@@ -143,7 +143,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       timeoutSignal?.addEventListener('abort', onTimeoutAbort, { 'once': true });
 
       worker.on('message', (envelope: WorkerEnvelopeType<TMessage, TResult>) => {
-        this.onMessage(envelope, index);
+        this.#invokeHook(() => { this.onMessage(envelope, index); });
 
         if (envelope.type === 'result') {
           settle(() => {
@@ -156,7 +156,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         if (envelope.type === 'error') {
           settle(() => {
             const error = new Error(envelope.error);
-            this.onWorkerError(error, index);
+            this.#invokeHook(() => { this.onWorkerError(error, index); });
             void worker.terminate();
             reject(error);
           });
@@ -165,7 +165,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
       worker.on('error', (error: Error) => {
         settle(() => {
-          this.onWorkerError(error, index);
+          this.#invokeHook(() => { this.onWorkerError(error, index); });
           reject(error);
         });
       });
@@ -178,6 +178,12 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
       worker.postMessage(item);
     });
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 
   // ---------------------------------------------------------------------------

@@ -876,5 +876,64 @@ void describe('Context', () => {
       scope.terminate();
       strictEqual(events.length, 0);
     });
+
+    void it('a throwing onInitialize hook does not replace initialize()', () => {
+      class ThrowingInitializeContext extends Context {
+        protected override onInitialize(): void {
+          throw new Error('onInitialize boom');
+        }
+      }
+
+      const context = ThrowingInitializeContext.create({ 'name': 'throwing-init' });
+      const scope = context.initialize({ 'seed': 1 });
+
+      scope.execute(() => {
+        strictEqual(context.get<number>('seed'), 1);
+      });
+    });
+
+    void it('a throwing onSet hook does not replace set()', () => {
+      class ThrowingSetContext extends Context {
+        protected override onSet(): void {
+          throw new Error('onSet boom');
+        }
+      }
+
+      const context = ThrowingSetContext.create({ 'name': 'throwing-set' });
+      const scope = context.initialize();
+      scope.execute(() => {
+        context.set('key', 'value');
+        strictEqual(context.get<string>('key'), 'value');
+      });
+    });
+
+    void it('a throwing onGet hook does not replace get()', () => {
+      class ThrowingGetContext extends Context {
+        protected override onGet(): void {
+          throw new Error('onGet boom');
+        }
+      }
+
+      const context = ThrowingGetContext.create({ 'name': 'throwing-get' });
+      const scope = context.initialize({ 'key': 'value' });
+      scope.execute(() => {
+        strictEqual(context.get<string>('key'), 'value');
+      });
+    });
+
+    void it('a throwing onDelete hook does not replace delete()', () => {
+      class ThrowingDeleteContext extends Context {
+        protected override onDelete(): void {
+          throw new Error('onDelete boom');
+        }
+      }
+
+      const context = ThrowingDeleteContext.create({ 'name': 'throwing-delete' });
+      const scope = context.initialize({ 'key': 'value' });
+      scope.execute(() => {
+        strictEqual(context.delete('key'), true);
+        strictEqual(context.has('key'), false);
+      });
+    });
   });
 });

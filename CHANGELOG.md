@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [5.1.1] - 2026-07-09
+
+### Changed
+
+- Documentation now distinguishes passive observer hooks from in-band behavioral hooks, removes stale package-count/version drift, and aligns the GitHub Pages package pages plus affected package READMEs with the shipped hook semantics.
+
+### Fixed
+
+- `@studnicky/fsm` `EffectInterpreter#drain()` now always clears its internal draining flag, so a throwing observer or effect-path hook no longer wedges subsequent `send()` calls into silent no-ops.
+- Passive observer hooks across the shipped primitives no longer replace committed results, committed state transitions, or canonical domain errors when those hooks throw; the affected packages now keep the real operation outcome authoritative and are covered by regression tests.
+
 ## [5.1.0] - 2026-07-09
 
 ### Added
@@ -116,3 +127,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `@studnicky/system` is included in the root TypeScript build graph, so its `dist` output is produced and published from a clean build.
 
 [5.1.0]: https://github.com/Studnicky/substrate/compare/v5.0.0...v5.1.0
+[5.1.1]: https://github.com/Studnicky/substrate/compare/v5.1.0...v5.1.1

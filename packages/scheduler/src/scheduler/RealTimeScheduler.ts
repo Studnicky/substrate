@@ -5,6 +5,7 @@
  *
  * @module
  */
+
 import type { ScheduledTaskType } from '../interfaces/ScheduledTaskType.js';
 import type { SchedulerProviderType } from '../interfaces/SchedulerProviderType.js';
 
@@ -62,6 +63,12 @@ export class RealTimeScheduler implements SchedulerProviderType {
   /** Map from task ID to active timer. */
   readonly #timers: Map<string, ActiveTimerType>;
   #idCounter: number;
+
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
 
   /**
    * Property write order: #timers, #idCounter.
@@ -166,8 +173,12 @@ export class RealTimeScheduler implements SchedulerProviderType {
       this.clearTimer(timer.handle, timer.variant);
     }
     this.#timers.clear();
-    this.onCancelAll();
-    this.onIdle();
+    this.#invokeHook(() => {
+      this.onCancelAll();
+    });
+    this.#invokeHook(() => {
+      this.onIdle();
+    });
   }
 
   /**
@@ -182,18 +193,24 @@ export class RealTimeScheduler implements SchedulerProviderType {
     const timers = this.#timers;
 
     if (rawDelayMs < 0) {
-      this.onMiss(id, atMs, scheduleNowMs);
+      this.#invokeHook(() => {
+        this.onMiss(id, atMs, scheduleNowMs);
+      });
     }
 
     const handle = this.createTimeout(() => {
       timers.delete(id);
-      this.onFire(id);
+      this.#invokeHook(() => {
+        this.onFire(id);
+      });
 
       const fireNowMs = Date.now();
       const drift = fireNowMs - atMs;
 
       if (drift > 0) {
-        this.onDrift(id, atMs, fireNowMs, drift);
+        this.#invokeHook(() => {
+          this.onDrift(id, atMs, fireNowMs, drift);
+        });
       }
 
       let result: Promise<void> | void;
@@ -201,13 +218,17 @@ export class RealTimeScheduler implements SchedulerProviderType {
       try {
         result = fire();
       } catch (error: unknown) {
-        this.onFireError(id, error);
+        this.#invokeHook(() => {
+          this.onFireError(id, error);
+        });
         return;
       }
 
       if (result instanceof Promise) {
         result.catch((error: unknown) => {
-          this.onFireError(id, error);
+          this.#invokeHook(() => {
+            this.onFireError(id, error);
+          });
         });
       }
     }, delayMs);
@@ -228,10 +249,14 @@ export class RealTimeScheduler implements SchedulerProviderType {
       }
       this.clearTimer(timer.handle, timer.variant);
       timers.delete(taskId);
-      this.onCancel(taskId);
+      this.#invokeHook(() => {
+        this.onCancel(taskId);
+      });
     });
 
-    this.onSchedule(id, atMs, 'timeout');
+    this.#invokeHook(() => {
+      this.onSchedule(id, atMs, 'timeout');
+    });
 
     return task;
   }
@@ -245,19 +270,25 @@ export class RealTimeScheduler implements SchedulerProviderType {
     const timers = this.#timers;
 
     const handle = this.createInterval(() => {
-      this.onFire(id);
+      this.#invokeHook(() => {
+        this.onFire(id);
+      });
       let result: Promise<void> | void;
 
       try {
         result = fire();
       } catch (error: unknown) {
-        this.onFireError(id, error);
+        this.#invokeHook(() => {
+          this.onFireError(id, error);
+        });
         return;
       }
 
       if (result instanceof Promise) {
         result.catch((error: unknown) => {
-          this.onFireError(id, error);
+          this.#invokeHook(() => {
+            this.onFireError(id, error);
+          });
         });
       }
     }, intervalMs);
@@ -278,10 +309,14 @@ export class RealTimeScheduler implements SchedulerProviderType {
       }
       this.clearTimer(timer.handle, timer.variant);
       timers.delete(taskId);
-      this.onCancel(taskId);
+      this.#invokeHook(() => {
+        this.onCancel(taskId);
+      });
     });
 
-    this.onSchedule(id, atMs, 'interval');
+    this.#invokeHook(() => {
+      this.onSchedule(id, atMs, 'interval');
+    });
 
     return task;
   }

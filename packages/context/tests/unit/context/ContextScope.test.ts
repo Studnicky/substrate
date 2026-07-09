@@ -806,6 +806,80 @@ void describe('ContextScope Lifecycle', () => {
       strictEqual(errCount.length, 1);
       scope.terminate();
     });
+
+    void it('a throwing onBeforeExecute hook does not replace a successful execute() result', () => {
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onBeforeExecute(): void {
+          throw new Error('onBeforeExecute boom');
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+
+      strictEqual(scope.execute(() => 42), 42);
+      scope.terminate();
+    });
+
+    void it('a throwing onAfterExecute hook does not replace a successful execute() result', () => {
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onAfterExecute(): void {
+          throw new Error('onAfterExecute boom');
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+
+      strictEqual(scope.execute(() => 42), 42);
+      scope.terminate();
+    });
+
+    void it('a throwing onTerminatedAccess hook does not replace ContextError', () => {
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onTerminatedAccess(): void {
+          throw new Error('onTerminatedAccess boom');
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+      scope.terminate();
+
+      throws(
+        () => scope.execute(() => 42),
+        { message: 'test scope has been terminated' }
+      );
+    });
+
+    void it('a throwing onDispose hook does not replace terminate() snapshot', () => {
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onDispose(): void {
+          throw new Error('onDispose boom');
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'initial': { 'requestId': 'abc' }, 'name': 'test', 'storage': als });
+
+      deepStrictEqual(scope.terminate(), { 'requestId': 'abc' });
+    });
   });
 
   void describe('real-world usage patterns', () => {

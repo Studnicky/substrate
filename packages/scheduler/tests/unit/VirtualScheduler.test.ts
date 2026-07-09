@@ -785,5 +785,77 @@ describe('VirtualScheduler', () => {
       // Heap still has the task at 150 — must NOT idle
       assert.strictEqual(sched.idleCount, 0);
     });
+
+    it('a throwing onSchedule hook does not replace task registration', () => {
+      class ThrowingScheduleScheduler extends VirtualScheduler {
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onSchedule(): void {
+          throw new Error('onSchedule boom');
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new ThrowingScheduleScheduler(counter);
+      const task = sched.scheduleAt(TASK_OFFSET_50, () => { return; });
+
+      assert.ok(task.id.length > 0);
+    });
+
+    it('a throwing onFire hook does not replace due task execution', () => {
+      class ThrowingFireScheduler extends VirtualScheduler {
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onFire(): void {
+          throw new Error('onFire boom');
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new ThrowingFireScheduler(counter);
+      let fired = false;
+
+      sched.scheduleAt(TASK_OFFSET_50, () => {
+        fired = true;
+      });
+      sched.advance(ADVANCE_PASS);
+
+      assert.strictEqual(fired, true);
+    });
+
+    it('a throwing onReschedule hook does not stop interval rescheduling', () => {
+      class ThrowingRescheduleScheduler extends VirtualScheduler {
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onReschedule(): void {
+          throw new Error('onReschedule boom');
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new ThrowingRescheduleScheduler(counter);
+      let count = 0;
+
+      sched.scheduleEvery(INTERVAL_100, () => {
+        count++;
+      });
+      sched.advance(ADVANCE_MULTI);
+
+      assert.strictEqual(count, EXPECTED_FIRES_3);
+    });
+
+    it('a throwing onFireError hook does not replace swallowed task failure', () => {
+      class ThrowingFireErrorScheduler extends VirtualScheduler {
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onFireError(): void {
+          throw new Error('onFireError boom');
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new ThrowingFireErrorScheduler(counter);
+
+      sched.scheduleAt(TASK_OFFSET_50, () => { throw new Error('task boom'); });
+      sched.runAll();
+
+      assert.ok(true);
+    });
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/keyed-work-gate",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "Keyed single-flight and serialized work gate composing @studnicky/mutex and @studnicky/concurrency's Coalesce",
   "type": "module",
   "sideEffects": false,

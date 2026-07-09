@@ -5,7 +5,7 @@
  * observes the right events at the right times.
  */
 
-import { deepStrictEqual } from 'node:assert/strict';
+import { deepStrictEqual, rejects, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { IdempotencyConflictError, IdempotencyGuard } from '../../../src/index.js';
@@ -84,4 +84,87 @@ it('fires onCoalesce for a follower that joins an in-flight leader (which fired 
 
   deepStrictEqual(guard.executed, ['order-9']);
   deepStrictEqual(guard.coalesced, ['order-9']);
+});
+
+it('a throwing onReplay hook does not replace the cached result', async () => {
+  class ThrowingReplayGuard extends IdempotencyGuard {
+    static tracked(): ThrowingReplayGuard {
+      return new ThrowingReplayGuard({ 'capacity': 10, 'ttlMs': 60_000 });
+    }
+
+    protected override onReplay(): void {
+      throw new Error('onReplay boom');
+    }
+  }
+
+  const guard = ThrowingReplayGuard.tracked();
+
+  await guard.run('order-10', { 'amount': 500 }, async () => 'ok');
+  const result = await guard.run('order-10', { 'amount': 500 }, async () => 'wrong');
+
+  strictEqual(result, 'ok');
+});
+
+it('a throwing onConflict hook does not replace IdempotencyConflictError', async () => {
+  class ThrowingConflictGuard extends IdempotencyGuard {
+    static tracked(): ThrowingConflictGuard {
+      return new ThrowingConflictGuard({ 'capacity': 10, 'ttlMs': 60_000 });
+    }
+
+    protected override onConflict(): void {
+      throw new Error('onConflict boom');
+    }
+  }
+
+  const guard = ThrowingConflictGuard.tracked();
+
+  await guard.run('order-11', { 'amount': 500 }, async () => 'ok');
+
+  await rejects(
+    () => guard.run('order-11', { 'amount': 999 }, async () => 'wrong'),
+    IdempotencyConflictError
+  );
+});
+
+it('a throwing onExecute hook does not replace the leader result', async () => {
+  class ThrowingExecuteGuard extends IdempotencyGuard {
+    static tracked(): ThrowingExecuteGuard {
+      return new ThrowingExecuteGuard({ 'capacity': 10, 'ttlMs': 60_000 });
+    }
+
+    protected override onExecute(): void {
+      throw new Error('onExecute boom');
+    }
+  }
+
+  const guard = ThrowingExecuteGuard.tracked();
+  const result = await guard.run('order-12', { 'amount': 500 }, async () => 'ok');
+
+  strictEqual(result, 'ok');
+});
+
+it('a throwing onCoalesce hook does not replace the shared follower result', async () => {
+  class ThrowingCoalesceGuard extends IdempotencyGuard {
+    static tracked(): ThrowingCoalesceGuard {
+      return new ThrowingCoalesceGuard({ 'capacity': 10, 'ttlMs': 60_000 });
+    }
+
+    protected override onCoalesce(): void {
+      throw new Error('onCoalesce boom');
+    }
+  }
+
+  const guard = ThrowingCoalesceGuard.tracked();
+  let resolveFactory: (value: string) => void = () => {};
+  const pending = new Promise<string>((resolve) => { resolveFactory = resolve; });
+
+  const factory = async (): Promise<string> => pending;
+  const leader = guard.run('order-13', { 'amount': 500 }, factory);
+  const follower = guard.run('order-13', { 'amount': 500 }, factory);
+
+  resolveFactory('shared');
+  const [leaderResult, followerResult] = await Promise.all([leader, follower]);
+
+  strictEqual(leaderResult, 'shared');
+  strictEqual(followerResult, 'shared');
 });

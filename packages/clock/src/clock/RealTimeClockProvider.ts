@@ -4,6 +4,7 @@
  *
  * @module
  */
+
 import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
 
 import { RealTimeClockProviderOptionsEntity } from '../entities/RealTimeClockProviderOptionsEntity.js';
@@ -48,6 +49,12 @@ export class RealTimeClockProvider implements ClockProviderType {
       throw new ClockError('offsetMs must be a finite number');
     }
     this.#offsetMs = resolved;
+  }
+
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
   }
 
   /**
@@ -99,7 +106,9 @@ export class RealTimeClockProvider implements ClockProviderType {
     const ms = this.readRawHrtimeMs() + this.offsetMs;
     const result = BigInt(Math.round(ms * Number(NS_PER_MS)));
 
-    this.onHrtime(result);
+    this.#invokeHook(() => {
+      this.onHrtime(result);
+    });
     return result;
   }
 
@@ -107,7 +116,9 @@ export class RealTimeClockProvider implements ClockProviderType {
   public now(): number {
     const result = this.readRawMs() + this.offsetMs;
 
-    this.onNow(result);
+    this.#invokeHook(() => {
+      this.onNow(result);
+    });
     return result;
   }
 }

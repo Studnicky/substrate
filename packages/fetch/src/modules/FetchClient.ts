@@ -117,6 +117,12 @@ export class FetchClient implements FetchClientInterface {
     this.dispatcher = dispatcher;
   }
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Builds full URL from base URL and path
    */
@@ -221,7 +227,9 @@ export class FetchClient implements FetchClientInterface {
    */
   async destroy(options?: DestroyOptionsType): Promise<void> {
     if (this.dispatcher !== undefined) {
-      this.onDispatcherDestroy();
+      this.#invokeHook(() => {
+        this.onDispatcherDestroy();
+      });
       await this.dispatcher.destroy(options);
     }
   }
@@ -241,9 +249,13 @@ export class FetchClient implements FetchClientInterface {
       const duration = Date.now() - startTime;
 
       if (response.ok) {
-        this.onResponseSuccess(method, requestId, response.status, duration);
+        this.#invokeHook(() => {
+          this.onResponseSuccess(method, requestId, response.status, duration);
+        });
       } else {
-        this.onResponseError(method, requestId, response.status, duration);
+        this.#invokeHook(() => {
+          this.onResponseError(method, requestId, response.status, duration);
+        });
       }
 
       return response;
@@ -251,14 +263,22 @@ export class FetchClient implements FetchClientInterface {
       const duration = Date.now() - startTime;
 
       if (error instanceof TimeoutError) {
-        this.onTimeout(method, requestId, requestContext.url, error.timeoutMs);
-        this.onRequestError(error, method, requestId, requestContext.url, duration);
+        this.#invokeHook(() => {
+          this.onTimeout(method, requestId, requestContext.url, error.timeoutMs);
+        });
+        this.#invokeHook(() => {
+          this.onRequestError(error, method, requestId, requestContext.url, duration);
+        });
         throw error;
       }
 
       if (error instanceof AbortError) {
-        this.onAbort(method, requestId, requestContext.url);
-        this.onRequestError(error, method, requestId, requestContext.url, duration);
+        this.#invokeHook(() => {
+          this.onAbort(method, requestId, requestContext.url);
+        });
+        this.#invokeHook(() => {
+          this.onRequestError(error, method, requestId, requestContext.url, duration);
+        });
         throw error;
       }
 
@@ -270,7 +290,9 @@ export class FetchClient implements FetchClientInterface {
         }
       }
 
-      this.onRequestError(error, method, requestId, requestContext.url, duration);
+      this.#invokeHook(() => {
+        this.onRequestError(error, method, requestId, requestContext.url, duration);
+      });
       throw error;
     }
   }
@@ -300,7 +322,9 @@ export class FetchClient implements FetchClientInterface {
     const metadata = this.createRequestMetadata(path, method, options);
     const url = this.buildFullUrl(path);
 
-    this.onRequestStart(method, path, metadata.requestId, url);
+    this.#invokeHook(() => {
+      this.onRequestStart(method, path, metadata.requestId, url);
+    });
 
     const requestContext = await this.onRequest({
       'metadata': metadata,
@@ -356,13 +380,15 @@ export class FetchClient implements FetchClientInterface {
 
     const stats = this.dispatcher.getAgent().stats[origin] as SocketDispatcherStatsType | undefined;
 
-    this.onRequestError(
-      new Error(`Connection pool exhaustion: ${errorCode}`),
-      method,
-      requestId,
-      url,
-      duration
-    );
+    this.#invokeHook(() => {
+      this.onRequestError(
+        new Error(`Connection pool exhaustion: ${errorCode}`),
+        method,
+        requestId,
+        url,
+        duration
+      );
+    });
 
     return new SocketExhaustionError(url, stats);
   }

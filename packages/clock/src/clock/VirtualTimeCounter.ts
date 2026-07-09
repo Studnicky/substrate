@@ -5,6 +5,7 @@
  *
  * @module
  */
+
 import { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
 import { ClockError } from '../errors/ClockError.js';
 import { VirtualTimeCounterBuilder } from './VirtualTimeCounterBuilder.js';
@@ -44,6 +45,12 @@ export class VirtualTimeCounter {
     this.#nowMs = resolved;
   }
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   // ---------------------------------------------------------------------------
   // Lifecycle hooks — no-op by default. Override to add logging/tracing/metrics.
   // Overrides must not throw or block.
@@ -70,13 +77,17 @@ export class VirtualTimeCounter {
       return;
     }
     this.#nowMs = this.#nowMs + deltaMs;
-    this.onAdvance(deltaMs, this.#nowMs);
+    this.#invokeHook(() => {
+      this.onAdvance(deltaMs, this.#nowMs);
+    });
   }
 
   /** Returns the current virtual epoch-ms (always non-negative). */
   public nowMs(): number {
     const result = this.#nowMs;
-    this.onNowMs(result);
+    this.#invokeHook(() => {
+      this.onNowMs(result);
+    });
     return result;
   }
 }

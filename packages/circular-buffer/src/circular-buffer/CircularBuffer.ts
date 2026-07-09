@@ -77,6 +77,12 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
 
   readonly #overflow: 'grow' | 'overwrite';
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Create a new circular buffer.
    *
@@ -119,7 +125,9 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
     this.tail = length;
     this.capacity = newCapacity;
 
-    this.onGrow(oldCapacity, newCapacity);
+    this.#invokeHook(() => {
+      this.onGrow(oldCapacity, newCapacity);
+    });
   }
 
   /**
@@ -206,15 +214,21 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
         this.grow();
       } else {
         // overwrite: evict oldest, advance head, keep length at capacity
-        this.onOverflow(item);
+        this.#invokeHook(() => {
+          this.onOverflow(item);
+        });
         const evicted = this.items[this.head];
         if (evicted !== undefined) {
-          this.onEvict(evicted);
+          this.#invokeHook(() => {
+            this.onEvict(evicted);
+          });
         }
         this.items[this.tail] = item;
         this.tail = (this.tail + INCREMENT_BY_ONE) % this.capacity;
         this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
-        this.onPush(item);
+        this.#invokeHook(() => {
+          this.onPush(item);
+        });
         return;
       }
     }
@@ -223,7 +237,9 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
     this.tail = (this.tail + INCREMENT_BY_ONE) % this.capacity;
     this.count++;
 
-    this.onPush(item);
+    this.#invokeHook(() => {
+      this.onPush(item);
+    });
   }
 
   /**
@@ -244,7 +260,9 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
     this.count--;
 
     if (item !== undefined) {
-      this.onShift(item);
+      this.#invokeHook(() => {
+        this.onShift(item);
+      });
     }
 
     return item;

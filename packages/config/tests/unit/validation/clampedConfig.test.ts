@@ -161,5 +161,22 @@ void describe('ClampedConfig', () => {
 
       assert.doesNotThrow(() => ClampedConfig.apply(config, rules));
     });
+
+    void it('a throwing onClamp hook does not replace the clamped result', () => {
+      class ThrowingClampedConfig extends ClampedConfig {
+        protected static override onClamp(): void {
+          throw new Error('onClamp boom');
+        }
+      }
+
+      const config = { timeoutMs: 10 };
+      const rules: Readonly<Record<string, ClampRuleType>> = {
+        timeoutMs: { min: 100, max: 5000, reason: 'timeout too low' },
+      };
+
+      const result = ThrowingClampedConfig.apply(config, rules);
+
+      assert.strictEqual(result.timeoutMs, 100);
+    });
   });
 });

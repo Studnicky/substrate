@@ -55,7 +55,7 @@ A check that rejects, and a check that exceeds its `timeoutMs`, are both folded 
 
 ## Hooks
 
-`HealthRegistry` has no observability of its own by default — override these protected hooks in a subclass to add logging/tracing/metrics. Overrides must not throw or block.
+`HealthRegistry` has no observability of its own by default — override these protected hooks in a subclass to add logging/tracing/metrics. Hooks should stay fast and non-blocking; observer-hook failures are contained so health evaluation still returns its canonical aggregate result.
 
 | Hook | Fires |
 |------|-------|

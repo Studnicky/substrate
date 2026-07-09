@@ -22,11 +22,17 @@ synchronously at the exact stage; a subclass overrides it to observe.
   hooks did not exist. Adding hooks is non-breaking.
 - **Synchronous and raw.** Hooks are called inline at the stage, after the
   relevant state change, so an override sees committed state.
-- **Two hook kinds.** Most hooks are `void` observers — they exist to log, count,
+- **Three hook kinds.** Most hooks are `void` observers — they exist to log, count,
   and trace. Some hooks are **transform hooks**: they receive a context object and
-  return a (possibly modified) value to alter behavior. `@studnicky/fetch`'s
-  `onRequest(context)` and `onResponse(context)` are transform hooks — a subclass
-  overrides them to mutate the outgoing request or incoming response.
+  return a (possibly modified) value to alter behavior. Others are **behavioral
+  policy hooks**: they classify, schedule, or otherwise participate directly in
+  control flow. `@studnicky/fetch`'s `onRequest(context)` / `onResponse(context)`
+  are transform hooks; `@studnicky/retry`'s `classifyError(...)` is a behavioral
+  hook.
+- **Observer hooks are observational.** They are not the primary result of the
+  operation. Many classes contain observer-hook failures so committed state,
+  canonical results, or canonical domain errors still win. Behavioral hooks stay
+  in-band and may intentionally redirect or fail the operation.
 - **Subclass to observe or override.** Override only the hooks you care about.
   Everything you don't override stays a no-op.
 
@@ -87,9 +93,9 @@ its arguments. This index is the at-a-glance map of where each stage lives.
 | [logger](/packages/logger#observability-hooks) | `onLog` `onDropped` `onChildCreate` `onTransportError` `onFieldSet` `onBuild` `onBuildError` |
 | [memoize](/packages/memoize#hooks) | `onMemoHit` `onMemoMiss` `onMemoCoalesced` |
 | [mutex](/packages/mutex#observability-hooks) | `beforeAcquire` `afterAcquire` `onAcquireWait` `onContended` `onEnterKey` `beforeRelease` `onRelease` `afterRelease` `onQueueDrain` `onTimeout` |
-| [pipeline](/packages/pipeline#observability-hooks) | `onRunStart` `beforeStage` `onStageStart` `onStageSuccess` `afterStage` `onStageError` `onRunComplete` `onRunError` |
+| [pipeline](/packages/pipeline#observability-hooks) | `onRunStart` _(transform)_ `beforeStage` _(transform)_ `onStageStart` `onStageSuccess` `afterStage` _(transform)_ `onStageError` `onRunComplete` _(transform)_ `onRunError` |
 | [resilience](/packages/resilience#observability-hooks) | `onSuccess` `onFailure` `onTrip` `onOpen` `onHalfOpen` `onClose` `onReject` `onTokenAcquired` `onTokenDepleted` `onRefill` `onWait` `onEnqueue` `onDequeue` `onOverflow` `onYield` `onDone` `onAbort` |
-| [retry](/packages/retry#observability-hooks) | `enterCall` `onAttempt` `classifyError` `onRetryableError` `onRetryScheduled` _(transform)_ `onGiveUp` `onSuccess` |
+| [retry](/packages/retry#observability-hooks) | `enterCall` `onAttempt` `classifyError` _(behavioral)_ `onRetryableError` `onRetryScheduled` _(behavioral)_ `onGiveUp` `onSuccess` |
 | [sample-buffer](/packages/sample-buffer#observability-hooks) | `onPush` `onOverflow` `onEvict` `onComputeStart` `onComputeComplete` `onPercentile` `onClear` |
 | [scheduler](/packages/scheduler#observability-hooks) | `onSchedule` `onFire` `onFireError` `onReschedule` `onCancel` `onCancelAll` `onAdvance` `onRunUntil` `onDrift` `onMiss` `onIdle` |
 | [throttle](/packages/throttle#observability-hooks) | `onEnter` `onAcquire` `onAcquireWait` `onContended` `onReject` `onRelease` `onWindowSlide` `onAdaptiveAdjust` `onDrainStart` `onDrainComplete` `onAbortStart` |

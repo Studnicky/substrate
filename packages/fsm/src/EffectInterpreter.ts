@@ -81,13 +81,13 @@ export class EffectInterpreter<
     this.#currentState = this.#machine.getInitialState();
     this.#running = true;
     this.#notifyObservers();
-    this.onStart(this.#currentState);
+    this.#invokeHook(() => { this.onStart(this.#currentState!); });
   }
 
   stop(): void {
     const state = this.#currentState;
     this.#running = false;
-    this.onStop(state);
+    this.#invokeHook(() => { this.onStop(state); });
   }
 
   getState(): TState {
@@ -101,7 +101,7 @@ export class EffectInterpreter<
     if (!this.#running) {
       throw new InterpreterNotRunningError(`EffectInterpreter '${this.#machineId}' not running — call start() first`);
     }
-    this.onEnqueue(event);
+    this.#invokeHook(() => { this.onEnqueue(event); });
     this.#mailbox.push(event);
     if (!this.#draining) { await this.#drain(); }
   }
@@ -155,9 +155,9 @@ export class EffectInterpreter<
         const prevState = currentState;
         this.#currentState = step.state;
         if (prevState.variant !== step.state.variant) {
-          this.onExitState(prevState);
-          this.onTransition(prevState, step.state, event);
-          this.onEnterState(step.state);
+          this.#invokeHook(() => { this.onExitState(prevState); });
+          this.#invokeHook(() => { this.onTransition(prevState, step.state, event); });
+          this.#invokeHook(() => { this.onEnterState(step.state); });
         }
         this.#notifyObservers();
         for (const effect of step.effects) {
@@ -174,17 +174,17 @@ export class EffectInterpreter<
   }
 
   async #invokeHandler(effect: TEffect, handler: (e: TEffect, dispatch: (event: TEvent) => void) => Promise<void> | void): Promise<void> {
-    this.onEffectStart(effect);
+    this.#invokeHook(() => { this.onEffectStart(effect); });
     const dispatch = (event: TEvent): void => {
-      this.onEnqueue(event);
+      this.#invokeHook(() => { this.onEnqueue(event); });
       this.#mailbox.unshift(event);
     };
     try {
       await handler(effect, dispatch);
-      this.onEffectSuccess(effect);
+      this.#invokeHook(() => { this.onEffectSuccess(effect); });
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
-      this.onEffectError(effect, error);
+      this.#invokeHook(() => { this.onEffectError(effect, error); });
       throw error;
     }
   }
@@ -192,6 +192,14 @@ export class EffectInterpreter<
   #notifyObservers(): void {
     const state = this.#currentState;
     if (state === undefined) { return; }
-    for (const observer of this.#observers) { observer(state); }
+    for (const observer of this.#observers) {
+      this.#invokeHook(() => { observer(state); });
+    }
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 }

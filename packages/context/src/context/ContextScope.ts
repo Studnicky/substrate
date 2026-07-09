@@ -106,6 +106,12 @@ export class ContextScope implements ContextScopeInterface {
   readonly #store: Map<string, unknown>;
   #state: ContextScopeState = 'created';
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * The name of this scope, used in error messages.
    */
@@ -140,9 +146,13 @@ export class ContextScope implements ContextScopeInterface {
       throw new ContextError(`Illegal state transition: ${from} → ${to}`);
     }
 
-    this.onExit(from, to);
+    this.#invokeHook(() => {
+      this.onExit(from, to);
+    });
     this.#state = to;
-    this.onEnter(to, from);
+    this.#invokeHook(() => {
+      this.onEnter(to, from);
+    });
   }
 
   /**
@@ -247,19 +257,27 @@ export class ContextScope implements ContextScopeInterface {
    */
   execute<TResult>(fn: () => TResult): TResult {
     if (this.#state === 'terminated') {
-      this.onTerminatedAccess();
+      this.#invokeHook(() => {
+        this.onTerminatedAccess();
+      });
       throw new ContextError(`${this.name} scope has been terminated`);
     }
 
-    this.onBeforeExecute();
+    this.#invokeHook(() => {
+      this.onBeforeExecute();
+    });
     let result: TResult;
     try {
       result = this.#storage.run(this.#store, fn);
     } catch (error) {
-      this.onError(error);
+      this.#invokeHook(() => {
+        this.onError(error);
+      });
       throw error;
     }
-    this.onAfterExecute();
+    this.#invokeHook(() => {
+      this.onAfterExecute();
+    });
 
     return result;
   }
@@ -283,7 +301,9 @@ export class ContextScope implements ContextScopeInterface {
     const snapshot = Object.fromEntries(this.#store);
 
     this.#store.clear();
-    this.onDispose();
+    this.#invokeHook(() => {
+      this.onDispose();
+    });
 
     return this.onTerminate(snapshot);
   }

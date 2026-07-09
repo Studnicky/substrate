@@ -6,7 +6,7 @@
  * (`create()`) path.
  */
 
-import { deepStrictEqual, throws } from 'node:assert/strict';
+import { deepStrictEqual, doesNotThrow, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { TokenBucketExhaustedError } from '@studnicky/resilience';
@@ -66,4 +66,59 @@ it('fires onLimitExceeded (not onTokenAcquired) right before consume() throws', 
 
   deepStrictEqual(limiter.exceeded, ['user-a']);
   deepStrictEqual(limiter.acquired, [{ 'count': 1, 'key': 'user-a' }]);
+});
+
+it('a throwing onKeyCreated hook does not replace a successful consume()', () => {
+  class ThrowingCreatedLimiter extends KeyedRateLimiter {
+    protected override onKeyCreated(): void {
+      throw new Error('onKeyCreated boom');
+    }
+  }
+
+  const limiter = ThrowingCreatedLimiter.create({
+    'burstSize': 1,
+    'requestsPerSecond': 1,
+    'clock': () => 0
+  }) as ThrowingCreatedLimiter;
+
+  doesNotThrow(() => {
+    limiter.consume('user-a');
+  });
+});
+
+it('a throwing onTokenAcquired hook does not replace a successful consume()', () => {
+  class ThrowingAcquiredLimiter extends KeyedRateLimiter {
+    protected override onTokenAcquired(): void {
+      throw new Error('onTokenAcquired boom');
+    }
+  }
+
+  const limiter = ThrowingAcquiredLimiter.create({
+    'burstSize': 1,
+    'requestsPerSecond': 1,
+    'clock': () => 0
+  }) as ThrowingAcquiredLimiter;
+
+  limiter.consume('user-a');
+  strictEqual(limiter.getCache().has('user-a'), true);
+});
+
+it('a throwing onLimitExceeded hook does not replace the underlying exhaustion error', () => {
+  class ThrowingExceededLimiter extends KeyedRateLimiter {
+    protected override onLimitExceeded(): void {
+      throw new Error('onLimitExceeded boom');
+    }
+  }
+
+  const limiter = ThrowingExceededLimiter.create({
+    'burstSize': 1,
+    'requestsPerSecond': 1,
+    'clock': () => 0
+  }) as ThrowingExceededLimiter;
+
+  limiter.consume('user-a');
+
+  throws(() => {
+    limiter.consume('user-a');
+  }, TokenBucketExhaustedError);
 });

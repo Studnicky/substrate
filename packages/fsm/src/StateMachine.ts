@@ -17,7 +17,7 @@ export abstract class StateMachine<
 
   transition(state: TState, event: TEvent): FsmStepType<TState, TEffect> {
     if (this.isTerminated(state)) {
-      this.onTerminatedAccess(state, event);
+      this.#invokeHook(() => { this.onTerminatedAccess(state, event); });
       throw new MachineTerminatedError({ 'eventType': event.type, 'stateVariant': state.variant });
     }
 
@@ -26,14 +26,14 @@ export abstract class StateMachine<
       const toVariant = step.state.variant;
       const fromVariant = state.variant;
       if (fromVariant !== toVariant) {
-        this.onExitState(state);
-        this.onTransition(state, step.state, event);
-        this.onEnterState(step.state);
+        this.#invokeHook(() => { this.onExitState(state); });
+        this.#invokeHook(() => { this.onTransition(state, step.state, event); });
+        this.#invokeHook(() => { this.onEnterState(step.state); });
       }
       return step;
     } catch (cause: unknown) {
       const reason = cause instanceof Error ? cause.message : String(cause);
-      this.onTransitionRejected(state, event, reason);
+      this.#invokeHook(() => { this.onTransitionRejected(state, event, reason); });
       if (cause instanceof TransitionRejectedError) {
         throw cause;
       }
@@ -43,6 +43,12 @@ export abstract class StateMachine<
         'stateVariant': state.variant
       });
     }
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 
   // ---------------------------------------------------------------------------

@@ -46,7 +46,7 @@ The hooks demo subclasses `Mutex` and overrides eight protected lifecycle method
 
 ## Observability hooks
 
-Subclass `Mutex` and override any protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Overrides must not throw or block — hook errors that would propagate are caught by the base class.
+Subclass `Mutex` and override any protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Hooks should stay fast and non-blocking; observer-hook failures are contained by the base class so lock acquisition and release semantics still win.
 
 | Hook | When it fires | Args |
 |------|--------------|------|

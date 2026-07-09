@@ -77,6 +77,12 @@ export class Context implements ContextInterface {
 
   readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * The name of this context (from config).
    */
@@ -177,7 +183,9 @@ export class Context implements ContextInterface {
    */
   delete(key: string): boolean {
     const result = this.getStore().delete(key);
-    this.onDelete(key, result);
+    this.#invokeHook(() => {
+      this.onDelete(key, result);
+    });
     return result;
   }
 
@@ -198,7 +206,9 @@ export class Context implements ContextInterface {
     }
 
     const value = store.get(key) as T;
-    this.onGet(key, value);
+    this.#invokeHook(() => {
+      this.onGet(key, value);
+    });
     return value;
   }
 
@@ -236,7 +246,9 @@ export class Context implements ContextInterface {
       : { 'name': this.name, 'storage': this.#storage };
     const scope = ContextScope.create(options);
 
-    this.onInitialize(initial, scope);
+    this.#invokeHook(() => {
+      this.onInitialize(initial, scope);
+    });
 
     return scope;
   }
@@ -271,7 +283,9 @@ export class Context implements ContextInterface {
    */
   set<T>(key: string, value: T): void {
     this.getStore().set(key, value);
-    this.onSet(key, value);
+    this.#invokeHook(() => {
+      this.onSet(key, value);
+    });
   }
 
   /**

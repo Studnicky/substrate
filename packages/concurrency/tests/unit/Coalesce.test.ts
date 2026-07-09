@@ -209,3 +209,38 @@ it('a second caller joining after the first times out still receives the real re
   assert.equal(secondResult, 'shared-result');
   assert.equal(c.timeoutEvents.length, 1);
 });
+
+it('a throwing onCoalesceStart hook does not replace the leader result or clear the in-flight entry early', async () => {
+  class ThrowingStartCoalesce<T> extends Coalesce<T> {
+    protected override onCoalesceStart(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const c = new ThrowingStartCoalesce<string>();
+  let calls = 0;
+  const factory = async (): Promise<string> => {
+    calls += 1;
+    return 'ok';
+  };
+
+  const result = await c.run('k', factory);
+  assert.equal(result, 'ok');
+  assert.equal(calls, 1);
+  assert.equal(c.isInflight('k'), false);
+});
+
+it('a throwing onCoalesceSettled hook does not replace the factory outcome', async () => {
+  class ThrowingSettledCoalesce<T> extends Coalesce<T> {
+    protected override onCoalesceSettled(): void {
+      throw new Error('hook boom');
+    }
+  }
+
+  const resolved = new ThrowingSettledCoalesce<string>();
+  assert.equal(await resolved.run('resolve', async () => 'value'), 'value');
+
+  const rejected = new ThrowingSettledCoalesce<string>();
+  await assert.rejects(() => rejected.run('reject', async () => { throw new Error('factory-error'); }), /factory-error/);
+  assert.equal(rejected.isInflight('reject'), false);
+});

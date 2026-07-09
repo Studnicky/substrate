@@ -110,14 +110,14 @@ export class FileLock {
     const deadline = Date.now() + timeoutMs;
     let attempt = 0;
 
-    this.onAcquireStart(path);
+    this.#invokeHook(() => { this.onAcquireStart(path); });
 
     // Pre-flight: if the file has never been created (neither the target path nor any
     // lock variant exists), bail immediately rather than waiting the full timeout.
     // When a holder has the file, they renamed it to a `.lock.<pid>` path, so `path`
     // is absent but the file still exists as a lock — polling makes sense.
     if (!this.#fs.existsSync(path) && !this.#anyLockExists(path)) {
-      this.onTimeout(path);
+      this.#invokeHook(() => { this.onTimeout(path); });
       return await Promise.reject(new FileLockTimeoutError(path, timeoutMs));
     }
 
@@ -125,11 +125,11 @@ export class FileLock {
       const poll = (): void => {
         try {
           this.#fs.renameSync(path, lockPath);
-          this.onAcquire(path);
+          this.#invokeHook(() => { this.onAcquire(path); });
           resolve();
         } catch (error: unknown) {
           if (Date.now() >= deadline) {
-            this.onTimeout(path);
+            this.#invokeHook(() => { this.onTimeout(path); });
             reject(new FileLockTimeoutError(path, timeoutMs));
             return;
           }
@@ -137,13 +137,13 @@ export class FileLock {
           // Rename failed — another holder has the file (it was renamed to a lock path,
           // making our source ENOENT) or a transient filesystem error.
           if (error instanceof Error) {
-            this.onContended(path);
+            this.#invokeHook(() => { this.onContended(path); });
           } else {
-            this.onError(path, new Error(String(error)));
+            this.#invokeHook(() => { this.onError(path, new Error(String(error))); });
           }
 
           attempt += 1;
-          this.onAcquireWait(path, attempt);
+          this.#invokeHook(() => { this.onAcquireWait(path, attempt); });
           setTimeout(poll, pollMs);
         }
       };
@@ -185,7 +185,13 @@ export class FileLock {
     if (this.#released) { return; }
     this.#released = true;
     this.#fs.renameSync(this.#lockPath, this.#originalPath);
-    this.onRelease(this.#originalPath);
+    this.#invokeHook(() => { this.onRelease(this.#originalPath); });
+  }
+
+  #invokeHook(hook: () => void): void {
+    try {
+      hook();
+    } catch {}
   }
 
   [Symbol.dispose](): void {

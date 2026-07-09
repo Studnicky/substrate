@@ -84,6 +84,12 @@ export class SampleBuffer implements SampleBufferInterface {
   #samples: number[];
   protected sortedCache: null | number[] = null;
 
+  #invokeHook(invoke: () => void): void {
+    try {
+      invoke();
+    } catch {}
+  }
+
   /**
    * Create a new sample buffer
    *
@@ -100,7 +106,9 @@ export class SampleBuffer implements SampleBufferInterface {
    * Fire point: `onClear` is called at the start, before state is reset.
    */
   clear(): void {
-    this.onClear();
+    this.#invokeHook(() => {
+      this.onClear();
+    });
     this.count = INITIAL_BUFFER_COUNT;
     this.head = INITIAL_BUFFER_HEAD;
     this.sortedCache = null;
@@ -112,7 +120,9 @@ export class SampleBuffer implements SampleBufferInterface {
    * customize the sort or sample extraction.
    */
   protected buildSortedSamples(): number[] {
-    this.onComputeStart(this.count);
+    this.#invokeHook(() => {
+      this.onComputeStart(this.count);
+    });
 
     const length = this.count;
     const capacity = this.capacity;
@@ -131,7 +141,9 @@ export class SampleBuffer implements SampleBufferInterface {
     result.sort((left, right) => {
       return left - right;
     });
-    this.onComputeComplete(length, result);
+    this.#invokeHook(() => {
+      this.onComputeComplete(length, result);
+    });
     return result;
   }
 
@@ -245,12 +257,16 @@ export class SampleBuffer implements SampleBufferInterface {
     // Handle edge cases
     if (pct <= EMPTY_LENGTH) {
       result = sorted[FIRST_ARRAY_INDEX]!;
-      this.onPercentile(pct, result);
+      this.#invokeHook(() => {
+        this.onPercentile(pct, result);
+      });
       return result;
     }
     if (pct >= PERCENTILE_MAX) {
       result = sorted.at(LAST_ARRAY_INDEX)!;
-      this.onPercentile(pct, result);
+      this.#invokeHook(() => {
+        this.onPercentile(pct, result);
+      });
       return result;
     }
 
@@ -261,7 +277,9 @@ export class SampleBuffer implements SampleBufferInterface {
 
     if (lowerIndex === upperIndex) {
       result = sorted[lowerIndex]!;
-      this.onPercentile(pct, result);
+      this.#invokeHook(() => {
+        this.onPercentile(pct, result);
+      });
       return result;
     }
 
@@ -270,7 +288,9 @@ export class SampleBuffer implements SampleBufferInterface {
     const upperValue = sorted[upperIndex]!;
 
     result = lowerValue + fraction * (upperValue - lowerValue);
-    this.onPercentile(pct, result);
+    this.#invokeHook(() => {
+      this.onPercentile(pct, result);
+    });
     return result;
   }
 
@@ -290,15 +310,23 @@ export class SampleBuffer implements SampleBufferInterface {
       // Buffer not full - append
       this.#samples[this.count] = value;
       this.count++;
-      this.onPush(value, false);
+      this.#invokeHook(() => {
+        this.onPush(value, false);
+      });
     } else {
       // Buffer full - overwrite oldest (at head position)
-      this.onOverflow(value);
+      this.#invokeHook(() => {
+        this.onOverflow(value);
+      });
       const oldValue = this.#samples[this.head]!;
-      this.onEvict(oldValue);
+      this.#invokeHook(() => {
+        this.onEvict(oldValue);
+      });
       this.#samples[this.head] = value;
       this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
-      this.onPush(value, true);
+      this.#invokeHook(() => {
+        this.onPush(value, true);
+      });
     }
   }
 }
