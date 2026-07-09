@@ -37,6 +37,13 @@ const isObject = (value: unknown): value is Record<string, unknown> => {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
 };
 
+// `Array.isArray` narrows to `any[]` per its lib.es5.d.ts signature; this
+// guard reasserts the narrowed type as `unknown[]` so callers stay type-safe.
+const isUnknownArray = (value: unknown): value is unknown[] => {
+  if (!Array.isArray(value)) { return false; }
+  return true;
+};
+
 type ParserServicesType = {
   readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
   readonly 'getTypeAtLocation': (node: unknown) => Type;
@@ -174,10 +181,69 @@ type InterfaceNode = {
   readonly 'typeParameters': { readonly 'range': [number, number] } | undefined;
 };
 
+class OptionsAllow {
+  static get(options: unknown[]): string[] {
+    const first = options[0];
+    if (first !== null && first !== undefined && typeof first === 'object') {
+      const obj = first as Record<string, unknown>;
+      const allow = obj.allow;
+      if (Array.isArray(allow)) {
+        return allow;
+      }
+    }
+    return [];
+  }
+}
+
+class InterfaceMerged {
+  static check(sourceCode: Rule.RuleContext['sourceCode'], node: Rule.Node, name: string): boolean {
+    const vars = sourceCode.getDeclaredVariables(node);
+    const varsLength = vars.length;
+
+    for (let index = 0; index < varsLength; index++) {
+      const variable = vars[index];
+
+      if (variable !== null && variable !== undefined) {
+        const varAny = variable as unknown as Record<string, unknown>;
+        const defs = varAny.defs;
+        if (Array.isArray(defs) && defs.length > 1) {
+          return true;
+        }
+      }
+    }
+    const program = sourceCode.ast;
+    if (!isObject(program)) { return false; }
+
+    const programObj = program as Record<string, unknown>;
+    const body = programObj.body;
+    if (!isUnknownArray(body)) { return false; }
+
+    const bodyLength = body.length;
+    let sameNameCount = 0;
+
+    for (let index = 0; index < bodyLength; index++) {
+      const bodyNode = body[index];
+
+      if (!isObject(bodyNode)) { continue; }
+      const nodeType = bodyNode.type;
+      if (nodeType === 'TSInterfaceDeclaration') {
+        const nodeId = bodyNode.id;
+        if (isObject(nodeId)) {
+          const nodeName = nodeId.name;
+          if (nodeName === name) {
+            sameNameCount++;
+          }
+        }
+      }
+    }
+
+    return sameNameCount > 1;
+  }
+}
+
 export const interfaceMustBeContract: Rule.RuleModule = {
   'create': (context) => {
-    const options = context.options[0] as { 'allow'?: string[] } | undefined;
-    const allow = new Set(options?.allow ?? []);
+    const allow = new Set(OptionsAllow.get(context.options));
     const { sourceCode } = context;
 
     const services = ContextHelpers.getServices(context);
@@ -187,34 +253,6 @@ export const interfaceMustBeContract: Rule.RuleModule = {
     }
 
     const checker = services.program.getTypeChecker();
-
-    // Declaration merging: a `type` alias cannot merge, so converting a merged
-    // interface would produce a duplicate-identifier TS error. Detect a merge
-    // via the scope variable's def count, with a top-level AST scan as fallback.
-    const isMerged = (node: Rule.Node, name: string): boolean => {
-      const vars = sourceCode.getDeclaredVariables(node);
-      const varsLength = vars.length;
-
-      for (let index = 0; index < varsLength; index++) {
-        const variable = vars[index];
-
-        if (variable !== undefined && variable.defs.length > 1) { return true; }
-      }
-      const programBody = (sourceCode.ast as unknown as { 'body': readonly unknown[] }).body;
-      const bodyLength = programBody.length;
-      let sameNameCount = 0;
-
-      for (let index = 0; index < bodyLength; index++) {
-        const bodyNode: unknown = programBody[index];
-
-        if (!isObject(bodyNode)) { continue; }
-        if (bodyNode.type === 'TSInterfaceDeclaration' && isObject(bodyNode.id) && bodyNode.id.name === name) {
-          sameNameCount++;
-        }
-      }
-
-      return sameNameCount > 1;
-    };
 
     // Global/module augmentation: an interface inside `declare global { ... }`
     // or `declare module '...' { ... }` cannot become a `type` alias.
@@ -229,6 +267,9 @@ export const interfaceMustBeContract: Rule.RuleModule = {
       return false;
     };
 
+    const isInterfaceKeyword = (token: unknown): boolean => {
+      return isObject(token) && token.value === 'interface';
+    };
     const fixInterface = (node: Rule.Node, rawNode: InterfaceNode): NonNullable<Rule.ReportDescriptor['fix']> => {
       return (fixer): Rule.Fix[] | null => {
         const fixes: Rule.Fix[] = [];
@@ -237,7 +278,7 @@ export const interfaceMustBeContract: Rule.RuleModule = {
         // specifically — not the first token — so a leading `declare` modifier
         // (`declare interface Foo`) is preserved, producing `declare type Foo`.
         const interfaceToken = sourceCode.getFirstToken(node, {
-          'filter': (token) => { return token.value === 'interface'; }
+          'filter': isInterfaceKeyword
         });
         if (interfaceToken === null) { return null; }
         fixes.push(fixer.replaceText(interfaceToken, 'type'));
@@ -250,19 +291,19 @@ export const interfaceMustBeContract: Rule.RuleModule = {
         if (extendsClause !== undefined && extendsClause.length > 0) {
           // Replace the ` extends ... ` span with ` = `, dropping the extends
           // clause and inserting the assignment token in one fix.
-          fixes.push(fixer.replaceTextRange([afterName.range[1], rawNode.body.range[0]], ' = '));
+          const [_afterNameStart, afterNameEnd] = afterName.range;
+          const [bodyStart, _bodyEnd] = rawNode.body.range;
+          fixes.push(fixer.replaceTextRange([afterNameEnd, bodyStart], ' = '));
 
           // Append ` & Heritage1 & Heritage2;` after the closing brace.
           const source = sourceCode.getText();
-          const extendsLength = extendsClause.length;
           let heritageText = '';
 
-          for (let index = 0; index < extendsLength; index++) {
-            const heritage = extendsClause[index];
-
-            if (heritage === undefined) { continue; }
-            heritageText = `${heritageText} & ${source.slice(heritage.range[0], heritage.range[1])}`;
-          }
+          extendsClause.forEach((heritage) => {
+            if (heritage === undefined) { return; }
+            const [heritageStart, heritageEnd] = heritage.range;
+            heritageText = `${heritageText} & ${source.slice(heritageStart, heritageEnd)}`;
+          });
           fixes.push(fixer.insertTextAfterRange(rawNode.body.range, `${heritageText};`));
           return fixes;
         }
@@ -276,49 +317,55 @@ export const interfaceMustBeContract: Rule.RuleModule = {
       };
     };
 
-    return {
-      'TSInterfaceDeclaration': (node: Rule.Node) => {
-        const rawNode = node as unknown as InterfaceNode;
+    const visitTSInterfaceDeclaration = (node: Rule.Node) => {
+      const rawNode = node as unknown as InterfaceNode;
+      const nodeId = rawNode.id;
 
-        if (allow.has(rawNode.id.name)) { return; }
+      if (allow.has(nodeId.name)) { return; }
 
-        const symbol = services.getSymbolAtLocation(rawNode.id);
-        const interfaceType = symbol !== undefined
-          ? checker.getDeclaredTypeOfSymbol(symbol)
-          : services.getTypeAtLocation(node);
+      const symbolAtId = services.getSymbolAtLocation(nodeId);
+      const interfaceType = symbolAtId !== undefined && symbolAtId !== null
+        ? checker.getDeclaredTypeOfSymbol(symbolAtId)
+        : services.getTypeAtLocation(node);
 
-        // Contract signals: call/construct signatures
-        if (interfaceType.getCallSignatures().length > 0) { return; }
-        if (interfaceType.getConstructSignatures().length > 0) { return; }
+      // Contract signals: call/construct signatures
+      if (interfaceType.getCallSignatures().length > 0) { return; }
+      if (interfaceType.getConstructSignatures().length > 0) { return; }
 
-        // Check all properties
-        const props = interfaceType.getProperties();
-        const propsLength = props.length;
+      // Check all properties
+      const props = interfaceType.getProperties();
 
-        for (let i = 0; i < propsLength; i++) {
-          const prop = props[i]!;
-          const decl = prop.valueDeclaration ?? prop.declarations?.[0];
-          if (decl === undefined) { return; }
-          const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
-          if (!isSerializable(propType, checker, new Set())) { return; }
-        }
-
-        // Check index types
-        const stringIndexType = checker.getIndexTypeOfType(interfaceType, IndexKind.String);
-        if (stringIndexType !== undefined && !isSerializable(stringIndexType, checker, new Set())) { return; }
-
-        const numberIndexType = checker.getIndexTypeOfType(interfaceType, IndexKind.Number);
-        if (numberIndexType !== undefined && !isSerializable(numberIndexType, checker, new Set())) { return; }
-
-        const canFix = !isMerged(node, rawNode.id.name) && !isAugmentation(rawNode.parent);
-
-        context.report({
-          'data': { 'name': rawNode.id.name },
-          'fix': canFix ? fixInterface(node, rawNode) : null,
-          'messageId': 'dataShapeMustBeType',
-          'node': node
-        });
+      for (const prop of props) {
+        const decl = prop.valueDeclaration ?? prop.declarations?.at(0);
+        if (decl === undefined) { return; }
+        const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
+        if (!isSerializable(propType, checker, new Set())) { return; }
       }
+
+      // Check index types
+      const stringIndexType = checker.getIndexTypeOfType(interfaceType, IndexKind.String);
+      if (stringIndexType !== undefined && !isSerializable(stringIndexType, checker, new Set())) { return; }
+
+      const numberIndexType = checker.getIndexTypeOfType(interfaceType, IndexKind.Number);
+      if (numberIndexType !== undefined && !isSerializable(numberIndexType, checker, new Set())) { return; }
+
+      const interfaceName = nodeId.name;
+      const nodeParent = rawNode.parent;
+      // Declaration merging: a `type` alias cannot merge, so converting a merged
+      // interface would produce a duplicate-identifier TS error. Detect a merge
+      // via the scope variable's def count, with a top-level AST scan as fallback.
+      const canFix = !InterfaceMerged.check(sourceCode, node, interfaceName) && !isAugmentation(nodeParent);
+
+      context.report({
+        'data': { 'name': interfaceName },
+        'fix': canFix ? fixInterface(node, rawNode) : null,
+        'messageId': 'dataShapeMustBeType',
+        'node': node
+      });
+    };
+
+    return {
+      'TSInterfaceDeclaration': visitTSInterfaceDeclaration
     };
   },
   'meta': {
@@ -329,7 +376,7 @@ export const interfaceMustBeContract: Rule.RuleModule = {
     'fixable': 'code',
     'messages': {
       'dataShapeMustBeType':
-        "Interface '{{name}}' resolves to a fully JSON-serializable data shape with no contract signal (no call/construct signature, and no member typed as a function, constructor, or class instance). Data shapes must be declared as a schema-derived `type {{name}}Type` in an entity; `interface` is reserved for runtime contracts."
+        "Interface '{{name}}' resolves to a fully JSON-serializable data shape with no contract signal (no call/construct signature, and no member typed as a function, constructor, or class instance). Data shapes must be declared as a schema-derived `type {{name}}Type` in an entity; `interface` is reserved for runtime contracts. The autofix only performs the mechanical interface-to-type rewrite — it does not (and cannot) move the result into an entity namespace for you. If `all-types-are-entities` is enabled, expect that rule to immediately flag the autofixed type alias; finishing the move into an entity is a required manual step, not a bug in either rule."
     },
     'schema': [
       {

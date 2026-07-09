@@ -180,6 +180,25 @@ const collectOffenders = (node: unknown, result: Rule.Node[]): void => {
   }
 };
 
+class ReadonlyTokenFilter {
+  public static matches(t: unknown): boolean {
+    if (t === null || typeof t !== 'object') { return false; }
+    const tokenValue = (t as Record<string, unknown>).value;
+    return tokenValue === 'readonly';
+  }
+}
+
+class ReadonlyRemoveFix {
+  public static make(startPos: number, nextStart: number): (fixer: Rule.RuleFixer) => Rule.Fix | null {
+    return (fixer: Rule.RuleFixer) => {
+      const start = startPos;
+      const end = nextStart;
+      const fix = fixer.removeRange([start, end]);
+      return fix;
+    };
+  }
+}
+
 export const noReadonlyInDataType: Rule.RuleModule = {
   'create': (context) => {
     const { sourceCode } = context;
@@ -191,54 +210,72 @@ export const noReadonlyInDataType: Rule.RuleModule = {
 
     const checker = services.program.getTypeChecker();
 
-    return {
-      'TSTypeAliasDeclaration': (node: Rule.Node) => {
-        const rawNode = node as unknown as AliasNodeType;
+    const onTSTypeAliasDeclaration = (node: Rule.Node): void => {
+      const rawNode = node as unknown as AliasNodeType;
 
-        if (rawNode.parent.type !== 'ExportNamedDeclaration') { return; }
+      if (rawNode.parent.type !== 'ExportNamedDeclaration') { return; }
 
-        const symbol = services.getSymbolAtLocation(rawNode.id);
-        if (symbol === undefined) { return; }
+      const symbol = services.getSymbolAtLocation(rawNode.id);
+      if (symbol === undefined) { return; }
 
-        const type = checker.getDeclaredTypeOfSymbol(symbol);
+      const type = checker.getDeclaredTypeOfSymbol(symbol);
 
-        if (!bakesReadonly(checker, type, new Set())) { return; }
+      if (!bakesReadonly(checker, type, new Set())) { return; }
 
-        const offenders: Rule.Node[] = [];
-        collectOffenders(node, offenders);
+      const offenders: Rule.Node[] = [];
+      collectOffenders(node, offenders);
 
-        const name = rawNode.id.name;
-        const offendersLength = offenders.length;
+      const name = rawNode.id.name;
 
-        for (let i = 0; i < offendersLength; i++) {
-          const offender = offenders[i];
-          if (offender === undefined) { continue; }
+      const reportOffender = (offender: Rule.Node): void => {
+        const readonlyToken = sourceCode.getFirstToken(offender, {
+          'filter': ReadonlyTokenFilter.matches
+        });
+        if (readonlyToken === null) { return; }
 
-          context.report({
-            'data': { 'name': name },
-            'fix': (fixer) => {
-              const readonlyToken = sourceCode.getFirstToken(offender, {
-                'filter': (t) => { return t.value === 'readonly'; }
-              });
-              if (readonlyToken === null) { return null; }
+        const nextToken = sourceCode.getTokenAfter(readonlyToken);
+        if (nextToken === null) { return; }
 
-              const nextToken = sourceCode.getTokenAfter(readonlyToken);
-              if (nextToken === null) { return null; }
-
-              // For `+readonly` in TSMappedType, also absorb the leading `+` token.
-              const prevToken = sourceCode.getTokenBefore(readonlyToken);
-              const startPos = (prevToken !== null && prevToken.value === '+')
-                ? prevToken.range[0]
-                : readonlyToken.range[0];
-
-              const range: [number, number] = [startPos, nextToken.range[0]];
-              return fixer.removeRange(range);
-            },
-            'messageId': 'noReadonly',
-            'node': offender
-          });
+        const prevToken = sourceCode.getTokenBefore(readonlyToken);
+        let startPos = 0;
+        if (prevToken !== null) {
+          const prevObj = prevToken as unknown as Record<string, unknown>;
+          const pv = prevObj.value;
+          if (pv === '+') {
+            const pRange = prevObj.range as [number, number] | undefined;
+            const [pStart] = pRange ?? [0];
+            if (pStart !== undefined && pStart !== 0) {
+              startPos = pStart;
+            }
+          }
         }
-      }
+        if (startPos === 0) {
+          const rtObj = readonlyToken as unknown as Record<string, unknown>;
+          const rtRange = rtObj.range as [number, number] | undefined;
+          const [rtStart] = rtRange ?? [0];
+          if (rtStart !== undefined) {
+            startPos = rtStart;
+          }
+        }
+
+        const ntObj = nextToken as unknown as Record<string, unknown>;
+        const ntRange = ntObj.range as [number, number] | undefined;
+        const [ntStart] = ntRange ?? [0];
+        const nextStart = ntStart ?? 0;
+
+        context.report({
+          'data': { 'name': name },
+          'fix': ReadonlyRemoveFix.make(startPos, nextStart),
+          'messageId': 'noReadonly',
+          'node': offender
+        });
+      };
+
+      offenders.forEach(reportOffender);
+    };
+
+    return {
+      'TSTypeAliasDeclaration': onTSTypeAliasDeclaration
     };
   },
   'meta': {

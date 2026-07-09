@@ -67,7 +67,10 @@ const isFunctionInit = (init: unknown): boolean => {
 
 export const noFreestandingVerbNoun: Rule.RuleModule = {
   'create': (context) => {
-    const rawOptions = context.options[0] as Partial<OptionsType> | undefined;
+    const options = context.options as unknown[] | undefined;
+    const rawOptions = Array.isArray(options)
+      ? (options.at(0) as Partial<OptionsType> | undefined)
+      : undefined;
     const prefixSet = PrefixHelpers.buildPrefixSet(rawOptions ?? {});
 
     const report = (node: Rule.Node, name: string): void => {
@@ -90,15 +93,14 @@ export const noFreestandingVerbNoun: Rule.RuleModule = {
 
     const onVariableDeclaration: NonNullable<Rule.RuleListener['VariableDeclaration']> = (node) => {
       if (!isModuleScope(node)) { return; }
-      const declaratorsLen = node.declarations.length;
-      for (let i = 0; i < declaratorsLen; i += 1) {
-        const declarator = node.declarations[i]!;
-        if (declarator.id.type !== 'Identifier') { continue; }
+      const { declarations } = node;
+      declarations.forEach((declarator) => {
+        if (declarator.id.type !== 'Identifier') { return; }
         const name = declarator.id.name;
-        if (!isVerbNounName(name, prefixSet)) { continue; }
-        if (!isFunctionInit(declarator.init)) { continue; }
+        if (!isVerbNounName(name, prefixSet)) { return; }
+        if (!isFunctionInit(declarator.init)) { return; }
         report(declarator as unknown as Rule.Node, name);
-      }
+      });
     };
 
     return {

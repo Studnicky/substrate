@@ -18,19 +18,24 @@ const PRIMITIVE_TYPES = new Set([
   'TSVoidKeyword'
 ]);
 
-const PRIMITIVE_DISPLAY: Record<string, string> = {
-  'TSAnyKeyword': 'any',
-  'TSBigIntKeyword': 'bigint',
-  'TSBooleanKeyword': 'boolean',
-  'TSNeverKeyword': 'never',
-  'TSNullKeyword': 'null',
-  'TSNumberKeyword': 'number',
-  'TSStringKeyword': 'string',
-  'TSSymbolKeyword': 'symbol',
-  'TSUndefinedKeyword': 'undefined',
-  'TSUnknownKeyword': 'unknown',
-  'TSVoidKeyword': 'void'
-};
+class PrimitiveDisplay {
+  public static get(type: string): string {
+    switch (type) {
+      case 'TSAnyKeyword': return 'any';
+      case 'TSBigIntKeyword': return 'bigint';
+      case 'TSBooleanKeyword': return 'boolean';
+      case 'TSNeverKeyword': return 'never';
+      case 'TSNullKeyword': return 'null';
+      case 'TSNumberKeyword': return 'number';
+      case 'TSStringKeyword': return 'string';
+      case 'TSSymbolKeyword': return 'symbol';
+      case 'TSUndefinedKeyword': return 'undefined';
+      case 'TSUnknownKeyword': return 'unknown';
+      case 'TSVoidKeyword': return 'void';
+      default: return type;
+    }
+  }
+}
 
 class AstHelpers {
   public static getNodeType(node: unknown): string | undefined {
@@ -154,7 +159,8 @@ const isGenericForwardingShim = (
     return undefined;
   }
 
-  for (let i = 0; i < leftNames.length; i += 1) {
+  const len = leftNames.length;
+  for (let i = 0; i < len; i += 1) {
     if (leftNames[i] !== rightNames[i]) {
       return undefined;
     }
@@ -202,7 +208,7 @@ export const noTypeAliasing: Rule.RuleModule = {
       }
 
       if (PRIMITIVE_TYPES.has(annotationType)) {
-        const display = PRIMITIVE_DISPLAY[annotationType] ?? annotationType;
+        const display = PrimitiveDisplay.get(annotationType);
 
         context.report({
           'data': { 'name': rawNode.id.name, 'rhs': display },

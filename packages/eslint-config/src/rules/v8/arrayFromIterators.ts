@@ -43,6 +43,13 @@ const isArrayFromCall = (node: unknown): boolean => {
   return true;
 };
 
+class FirstArg {
+  static get(args: readonly unknown[]): unknown {
+    const [first] = args;
+    return first;
+  }
+}
+
 export const arrayFromIterators: Rule.RuleModule = {
   'create': (context) => {
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
@@ -51,7 +58,7 @@ export const arrayFromIterators: Rule.RuleModule = {
       const rawNode = node as unknown as Record<string, unknown>;
       const args = rawNode.arguments;
       if (!Array.isArray(args) || args.length === 0) { return; }
-      const firstArg: unknown = args[0];
+      const firstArg = FirstArg.get(args as readonly unknown[]);
 
       const servicesUnknown: unknown = context.sourceCode.parserServices;
 
