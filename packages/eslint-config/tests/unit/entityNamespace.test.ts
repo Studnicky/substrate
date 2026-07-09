@@ -62,6 +62,14 @@ ruleTester.run('entity-namespace', entityNamespace, {
           export const validate = SchemaValidator.compile<Type>(Schema);
         }
       `
+    },
+    {
+      name: 'index.ts barrel under entities/ is exempt from namespace checks',
+      filename: '/project/src/entities/index.ts',
+      code: `
+        export * from './FooEntity.js';
+        export * from './BarEntity.js';
+      `
     }
   ],
   invalid: [

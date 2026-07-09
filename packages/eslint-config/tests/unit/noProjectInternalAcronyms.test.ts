@@ -59,6 +59,16 @@ ruleTester.run('no-project-internal-acronyms', noProjectInternalAcronyms, {
     {
       'code': 'const list = Array.from([1, 2, 3]); void list;',
       'name': 'external member expression property Array.from — no report'
+    },
+    // Barrel re-export — the original declaration site already reports this
+    // identifier; the re-export must not produce a duplicate.
+    {
+      'code': "export { cfg } from './config.js';",
+      'name': 're-exported cfg through a barrel — no duplicate report'
+    },
+    {
+      'code': "export { cfg as config } from './config.js';",
+      'name': 're-exported and renamed cfg through a barrel — no duplicate report'
     }
   ],
   'invalid': [

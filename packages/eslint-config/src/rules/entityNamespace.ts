@@ -5,7 +5,15 @@ import path from 'node:path';
 const ENTITY_FILE_REGEX = /Entity\.[cm]?[tj]sx?$/v;
 const ENTITY_DIR_REGEX = /\/entities\//v;
 
+const INDEX_FILES = new Set([
+  'index.cts',
+  'index.mts',
+  'index.ts',
+  'index.tsx'
+]);
+
 const isEntityFile = (filename: string): boolean => {
+  if (INDEX_FILES.has(path.basename(filename))) { return false; }
   const normalized = filename.split(path.sep).join('/');
   return ENTITY_FILE_REGEX.test(normalized) || ENTITY_DIR_REGEX.test(normalized);
 };

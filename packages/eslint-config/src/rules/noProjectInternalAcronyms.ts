@@ -277,7 +277,8 @@ class NoProjectInternalAcronyms {
       const parentType: unknown = parent.type;
 
       if (
-        parentType === 'FunctionDeclaration'
+        parentType === 'ExportSpecifier'
+        || parentType === 'FunctionDeclaration'
         || parentType === 'MethodDefinition'
         || parentType === 'Property'
         || parentType === 'PropertyDefinition'
