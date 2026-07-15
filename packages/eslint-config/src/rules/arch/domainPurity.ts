@@ -6,6 +6,7 @@ import { layerOptionsSchema } from '../layers/layerOptionsSchema.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
 
 type DomainPurityOptionsType = LayerOptionsType & {
+  'domainLayerName'?: string;
   'forbiddenCalls'?: string[];
   'forbiddenImports'?: string[];
 };
@@ -14,6 +15,10 @@ const domainPuritySchema = {
   'additionalProperties': false,
   'properties': {
     ...layerOptionsSchema.properties,
+    'domainLayerName': {
+      'description': 'Name of the layer treated as the pure-data domain layer, e.g. "domain" or "entities". Defaults to "domain".',
+      'type': 'string'
+    },
     'forbiddenCalls': {
       'description': 'Dotted call expressions forbidden in domain-layer files, e.g. ["Date.now", "Math.random"].',
       'items': { 'type': 'string' },
@@ -91,7 +96,7 @@ export const domainPurity: Rule.RuleModule = {
     if (options === undefined) { return {}; }
 
     const filename = context.physicalFilename;
-    const domainLayerFile = LayerResolver.layerForPath(filename, options) === 'domain';
+    const domainLayerFile = LayerResolver.layerForPath(filename, options) === (options.domainLayerName ?? 'domain');
 
     if (!domainLayerFile) { return {}; }
 

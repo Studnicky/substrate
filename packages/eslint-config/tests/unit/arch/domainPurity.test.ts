@@ -47,6 +47,19 @@ ruleTester.run('domain-purity', domainPurity, {
       'filename': '/repo/src/domain/user/User.ts',
       'name': 'domain-layer file importing a submodule of a forbidden root — flagged via prefix match',
       'options': baseOptions
+    },
+    {
+      'code': "import axios from 'axios';",
+      'errors': [{ 'messageId': 'impureImport' }],
+      'filename': '/repo/src/entities/user/User.ts',
+      'name': 'entities-layer file with domainLayerName configured — flagged as configurable domain layer name',
+      'options': [{
+        'domainLayerName': 'entities',
+        'forbiddenCalls': ['Date.now', 'Math.random'],
+        'forbiddenImports': ['fs', 'axios', 'node:fs'],
+        'layers': ['entities', 'ports', 'application', 'adapters', 'infrastructure'],
+        'sourceRoot': 'src'
+      }]
     }
   ],
   'valid': [
@@ -67,6 +80,17 @@ ruleTester.run('domain-purity', domainPurity, {
       'filename': '/repo/src/domain/user/User.ts',
       'name': 'domain-layer file calling something not in forbiddenCalls — not flagged',
       'options': baseOptions
+    },
+    {
+      'code': "import axios from 'axios';",
+      'filename': '/repo/src/entities/user/User.ts',
+      'name': 'entities-layer file without domainLayerName configured — not flagged, defaults to "domain" for backward compatibility',
+      'options': [{
+        'forbiddenCalls': ['Date.now', 'Math.random'],
+        'forbiddenImports': ['fs', 'axios', 'node:fs'],
+        'layers': ['entities', 'ports', 'application', 'adapters', 'infrastructure'],
+        'sourceRoot': 'src'
+      }]
     }
   ]
 });

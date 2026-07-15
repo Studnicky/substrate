@@ -6,6 +6,7 @@ import { layerOptionsSchema } from '../layers/layerOptionsSchema.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
 
 type AdapterOnlyImportOptionsType = LayerOptionsType & {
+  'adapterLayerName'?: string;
   'adapterOnlyImports'?: string[];
 };
 
@@ -13,6 +14,10 @@ const adapterOnlyImportSchema = {
   ...layerOptionsSchema,
   'properties': {
     ...layerOptionsSchema.properties,
+    'adapterLayerName': {
+      'description': 'Name of the layer treated as the adapters layer for exemption purposes. Defaults to "adapters".',
+      'type': 'string'
+    },
     'adapterOnlyImports': {
       'description': 'Package names/roots restricted to the adapters layer, e.g. ["express", "pg", "axios"].',
       'items': { 'type': 'string' },
@@ -60,7 +65,8 @@ export const adapterOnlyImport: Rule.RuleModule = {
     const filename = context.physicalFilename;
     const sourceLayer = LayerResolver.layerForPath(filename, options);
 
-    if (sourceLayer === undefined || sourceLayer === 'adapters') { return {}; }
+    const adapterLayerName = options.adapterLayerName ?? 'adapters';
+    if (sourceLayer === undefined || sourceLayer === adapterLayerName) { return {}; }
 
     const adapterOnlyImports = options.adapterOnlyImports;
     if (adapterOnlyImports === undefined) { return {}; }
