@@ -4,6 +4,7 @@ import { allTypesAreEntities } from './rules/allTypesAreEntities.js';
 import { noThisAlias } from './rules/arch/noThisAlias.js';
 import { constantsFolderRequired } from './rules/constantsFolderRequired.js';
 import { entityNamespace } from './rules/entityNamespace.js';
+import { folderDeclarationShape } from './rules/folderDeclarationShape.js';
 import { interfaceMustBeContract } from './rules/interfaceMustBeContract.js';
 import { interfacesComposeNamedTypes } from './rules/interfacesComposeNamedTypes.js';
 import { interfaceSuffix } from './rules/interfaceSuffix.js';
@@ -28,6 +29,7 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'all-types-are-entities': allTypesAreEntities,
     'constants-folder-required': constantsFolderRequired,
     'entity-namespace': entityNamespace,
+    'folder-declaration-shape': folderDeclarationShape,
     'interface-must-be-contract': interfaceMustBeContract,
     'interface-suffix': interfaceSuffix,
     'interfaces-compose-named-types': interfacesComposeNamedTypes,
