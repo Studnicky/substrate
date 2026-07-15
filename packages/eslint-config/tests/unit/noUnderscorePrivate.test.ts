@@ -44,6 +44,18 @@ ruleTester.run('no-underscore-private', noUnderscorePrivate, {
     {
       'code': 'class Foo { constructor(private bar: string) {} }',
       'name': 'parameter property without underscore — not reported'
+    },
+    {
+      'code': 'class A {\n  // external-contract: mirrors AI agent framework hook payload field\n  _meta = 1;\n}',
+      'filename': '/repo/src/adapters/hookHandler.ts',
+      'name': 'underscore-prefixed field in adapters layer with directive comment — not reported',
+      'options': [{ 'layers': ['domain', 'ports', 'adapters'], 'sourceRoot': 'src' }]
+    },
+    {
+      'code': 'class Foo {\n  constructor(\n    // external-contract: mirrors AI agent framework hook payload field\n    private _meta: string\n  ) {}\n}',
+      'filename': '/repo/src/adapters/hookHandler.ts',
+      'name': 'underscore-prefixed constructor parameter property in adapters layer with directive comment — not reported',
+      'options': [{ 'layers': ['domain', 'ports', 'adapters'], 'sourceRoot': 'src' }]
     }
   ],
   'invalid': [
@@ -81,6 +93,25 @@ ruleTester.run('no-underscore-private', noUnderscorePrivate, {
       'code': 'class Foo { constructor(readonly _bar: string) {} }',
       'errors': [{ 'messageId': 'forbidden' }],
       'name': 'underscore-prefixed constructor parameter property with `readonly` — forbidden'
+    },
+    {
+      'code': 'class A { _meta = 1; }',
+      'errors': [{ 'messageId': 'forbidden' }],
+      'filename': '/repo/src/adapters/hookHandler.ts',
+      'name': 'underscore-prefixed field in adapters layer WITHOUT directive comment — still forbidden',
+      'options': [{ 'layers': ['domain', 'ports', 'adapters'], 'sourceRoot': 'src' }]
+    },
+    {
+      'code': 'class A {\n  // external-contract: mirrors AI agent framework hook payload field\n  _meta = 1;\n}',
+      'errors': [{ 'messageId': 'forbidden' }],
+      'filename': '/repo/src/domain/entity.ts',
+      'name': 'underscore-prefixed field with directive comment outside adapters/ports layer — still forbidden',
+      'options': [{ 'layers': ['domain', 'ports', 'adapters'], 'sourceRoot': 'src' }]
+    },
+    {
+      'code': 'class A {\n  // external-contract: mirrors AI agent framework hook payload field\n  _meta = 1;\n}',
+      'errors': [{ 'messageId': 'forbidden' }],
+      'name': 'underscore-prefixed field with directive comment but no layer options passed — still forbidden'
     }
   ]
 });
