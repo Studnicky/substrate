@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `@studnicky/eslint-config`: new `folder-declaration-shape` rule enforces that `interfaces/` folders hold `interface` declarations (runtime contracts) and `types/` folders hold `type` alias declarations (data shapes).
+- `@studnicky/eslint-config`: new hexagonal-architecture layer-boundary rule category for consuming applications — `layer-import-boundary` (enforces a configurable layer allow-matrix on imports), `domain-purity` (forbids impure imports/calls inside a configurable domain layer), and `adapter-only-import` (restricts concrete third-party dependencies to a configurable adapters layer). `no-underscore-private` gains an optional, layer-scoped `// external-contract: <reason>` directive-comment exemption for intake/hook-body fields whose underscore-prefixed names are dictated by a fixed external contract.
 
 ### Changed
 

@@ -1,6 +1,9 @@
 import type { Rule } from 'eslint';
 
 import { allTypesAreEntities } from './rules/allTypesAreEntities.js';
+import { adapterOnlyImport } from './rules/arch/adapterOnlyImport.js';
+import { domainPurity } from './rules/arch/domainPurity.js';
+import { layerImportBoundary } from './rules/arch/layerImportBoundary.js';
 import { noThisAlias } from './rules/arch/noThisAlias.js';
 import { constantsFolderRequired } from './rules/constantsFolderRequired.js';
 import { entityNamespace } from './rules/entityNamespace.js';
@@ -26,13 +29,16 @@ import { typesDerivedFromSchema } from './rules/typesDerivedFromSchema.js';
 
 export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
   'rules': {
+    'adapter-only-import': adapterOnlyImport,
     'all-types-are-entities': allTypesAreEntities,
     'constants-folder-required': constantsFolderRequired,
+    'domain-purity': domainPurity,
     'entity-namespace': entityNamespace,
     'folder-declaration-shape': folderDeclarationShape,
     'interface-must-be-contract': interfaceMustBeContract,
     'interface-suffix': interfaceSuffix,
     'interfaces-compose-named-types': interfacesComposeNamedTypes,
+    'layer-import-boundary': layerImportBoundary,
     'no-bind-apply-call': noBindApplyCall,
     'no-export-alias': noExportAlias,
     'no-freestanding-verb-noun': noFreestandingVerbNoun,
