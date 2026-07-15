@@ -1,5 +1,5 @@
-import type { TimingEventDataType } from '../interfaces/TimingEventDataType.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
+import type { TimingEventDataType } from '../types/TimingEventDataType.js';
 
 import { NoOpTimingBuilder } from './NoOpTimingBuilder.js';
 

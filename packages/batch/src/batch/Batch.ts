@@ -1,4 +1,4 @@
-import type { BatchStatsType } from '../interfaces/BatchStatsType.js';
+import type { BatchStatsType } from '../types/BatchStatsType.js';
 
 import { DEFAULT_BATCH_MAX_CONCURRENT, EMPTY_LENGTH, FIRST_ARRAY_INDEX } from '../constants/index.js';
 import { BatchError } from '../errors/index.js';

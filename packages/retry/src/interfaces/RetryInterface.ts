@@ -1,4 +1,4 @@
-import type { RequestStatsType } from './RequestStatsType.js';
+import type { RequestStatsType } from '../types/RequestStatsType.js';
 
 /**
  * Executes async operations with configurable retry logic, error classification, and backoff strategies.

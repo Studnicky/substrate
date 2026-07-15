@@ -6,7 +6,7 @@
  *
  * @module
  */
-import type { ErrorCodeDescriptorType } from '../interfaces/ErrorCodeDescriptorType.js';
+import type { ErrorCodeDescriptorType } from '../types/ErrorCodeDescriptorType.js';
 
 // Module-level singleton map.
 const registry = new Map<string, ErrorCodeDescriptorType>();

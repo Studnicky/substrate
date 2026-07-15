@@ -2,11 +2,11 @@
 
 import assert from 'node:assert/strict';
 
-// #region usage
-import type { LogBodyDataType } from '../src/interfaces/LogBodyDataType.js';
-import type { LogFaultDataType } from '../src/interfaces/LogFaultDataType.js';
 import type { LoggerOptionsInterface } from '../src/interfaces/LoggerOptionsInterface.js';
 import type { TransportInterface } from '../src/transports/TransportInterface.js';
+// #region usage
+import type { LogBodyDataType } from '../src/types/LogBodyDataType.js';
+import type { LogFaultDataType } from '../src/types/LogFaultDataType.js';
 import type { LogLevelType } from '../src/types/LogLevelType.js';
 import type { LogMetadataType } from '../src/types/LogMetadataType.js';
 import type { LogRecordType } from '../src/types/LogRecordType.js';

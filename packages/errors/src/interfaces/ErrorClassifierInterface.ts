@@ -1,4 +1,4 @@
-import type { ErrorClassificationType } from './ErrorClassificationType.js';
+import type { ErrorClassificationType } from '../types/ErrorClassificationType.js';
 
 /**
  * Interface for error classifiers

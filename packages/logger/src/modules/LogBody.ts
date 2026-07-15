@@ -24,8 +24,8 @@
  * ```
  */
 
-import type { LogBodyDataType } from '../interfaces/LogBodyDataType.js';
 import type { LogBodyInterface } from '../interfaces/LogBodyInterface.js';
+import type { LogBodyDataType } from '../types/LogBodyDataType.js';
 
 import { LogBuildError } from '../errors/LogBuildError.js';
 import { BaseLogEntryBuilder } from './BaseLogEntryBuilder.js';

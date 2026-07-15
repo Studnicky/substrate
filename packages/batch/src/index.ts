@@ -8,4 +8,4 @@
 
 export { Batch } from './batch/index.js';
 export { BatchError } from './errors/index.js';
-export type { BatchStatsType } from './interfaces/index.js';
+export type { BatchStatsType } from './types/index.js';

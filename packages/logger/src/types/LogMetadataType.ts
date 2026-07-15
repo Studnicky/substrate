@@ -1,7 +1,7 @@
-import type { CoreLogFieldsType } from '../interfaces/CoreLogFieldsType.js';
-import type { CorrelationFieldsType } from '../interfaces/CorrelationFieldsType.js';
-import type { ErrorFieldsType } from '../interfaces/ErrorFieldsType.js';
-import type { TimingFieldsType } from '../interfaces/TimingFieldsType.js';
+import type { CoreLogFieldsType } from './CoreLogFieldsType.js';
+import type { CorrelationFieldsType } from './CorrelationFieldsType.js';
+import type { ErrorFieldsType } from './ErrorFieldsType.js';
+import type { TimingFieldsType } from './TimingFieldsType.js';
 
 /**
  * Metadata object attached to log entries

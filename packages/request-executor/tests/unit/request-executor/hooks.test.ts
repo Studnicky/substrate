@@ -9,7 +9,7 @@ import { deepEqual, equal } from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { after, before, it } from 'node:test';
 
-import type { RequestContextType, ResponseContextType } from '@studnicky/fetch/interfaces';
+import type { RequestContextType, ResponseContextType } from '@studnicky/fetch/types';
 import type { ErrorClassificationType, RetryConfigInterface, RetryContextType } from '@studnicky/retry';
 
 import { FetchClient } from '@studnicky/fetch';

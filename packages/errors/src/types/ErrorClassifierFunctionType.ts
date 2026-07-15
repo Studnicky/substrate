@@ -1,4 +1,4 @@
-import type { ErrorClassificationType } from '../interfaces/ErrorClassificationType.js';
+import type { ErrorClassificationType } from './ErrorClassificationType.js';
 
 /**
  * Function that classifies errors to determine retry behavior and categorization.

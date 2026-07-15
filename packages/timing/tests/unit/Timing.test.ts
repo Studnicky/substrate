@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { DEFAULT_MAX_EVENTS, TIMING_STATUS } from '../../src/constants/index.js';
-import type { TimingEventDataType } from '../../src/interfaces/TimingEventDataType.js';
+import type { TimingEventDataType } from '../../src/types/TimingEventDataType.js';
 import type { TimingOptionsEntity } from '../../src/entities/TimingOptionsEntity.js';
 import { Timing } from '../../src/modules/Timing.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';

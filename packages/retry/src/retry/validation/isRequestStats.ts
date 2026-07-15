@@ -1,6 +1,6 @@
 import { Guard } from '@studnicky/config';
 
-import type { RequestStatsType } from '../../interfaces/RequestStatsType.js';
+import type { RequestStatsType } from '../../types/RequestStatsType.js';
 
 /**
  * Type guard for RequestStatsType

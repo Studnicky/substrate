@@ -11,9 +11,9 @@
  */
 import type { VirtualTimeCounter } from '@studnicky/clock';
 
-import type { PendingTaskType } from '../interfaces/PendingTaskType.js';
-import type { ScheduledTaskType } from '../interfaces/ScheduledTaskType.js';
-import type { SchedulerProviderType } from '../interfaces/SchedulerProviderType.js';
+import type { PendingTaskType } from '../types/PendingTaskType.js';
+import type { ScheduledTaskType } from '../types/ScheduledTaskType.js';
+import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
 
 import { SchedulerError } from '../errors/index.js';
 import { MinimumHeap } from './MinimumHeap.js';

@@ -1,5 +1,5 @@
+import type { TimingEventDataType } from '../types/TimingEventDataType.js';
 import type { TimingStatusValueType } from '../types/TimingStatusValueType.js';
-import type { TimingEventDataType } from './TimingEventDataType.js';
 
 /**
  * Interface for the TimingEvent builder.

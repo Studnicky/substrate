@@ -5,8 +5,8 @@
  */
 import type { JsonValueType } from '@studnicky/types';
 
-import type { ValidationErrorArgumentsType } from '../interfaces/ValidationErrorArgumentsType.js';
-import type { ValidationViolationDetailType } from '../interfaces/ValidationViolationType.js';
+import type { ValidationErrorArgumentsType } from '../types/ValidationErrorArgumentsType.js';
+import type { ValidationViolationDetailType } from '../types/ValidationViolationDetailType.js';
 
 import { BaseError } from './BaseError.js';
 import { ErrorCodeRegistry } from './ErrorCodeRegistry.js';

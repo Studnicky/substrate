@@ -9,7 +9,7 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
-import type { BatchStatsType } from '../../../src/interfaces/index.js';
+import type { BatchStatsType } from '../../../src/types/index.js';
 import { Batch } from '../../../src/batch/Batch.js';
 import { collectBatches } from '../../helpers/index.js';
 

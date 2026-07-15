@@ -3,7 +3,7 @@
  * These enable filtering, correlation, and CloudWatch indexing.
  */
 
-import type { LogStatusType } from '../types/LogStatusType.js';
+import type { LogStatusType } from './LogStatusType.js';
 
 /**
  * Core log fields type for normalized logging.

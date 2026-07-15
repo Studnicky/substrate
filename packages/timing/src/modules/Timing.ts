@@ -1,8 +1,8 @@
 import { ConfigurationError } from '@studnicky/config';
 
 import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
-import type { TimingEventDataType } from '../interfaces/TimingEventDataType.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
+import type { TimingEventDataType } from '../types/TimingEventDataType.js';
 
 import { DEFAULT_DECIMAL_PRECISION, DEFAULT_MAX_EVENTS, NS_PER_UNIT } from '../constants/index.js';
 import { TimingValidator } from '../validation/TimingValidator.js';

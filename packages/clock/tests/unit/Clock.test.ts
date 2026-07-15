@@ -15,7 +15,7 @@ import { VirtualClockProvider } from '../../src/clock/VirtualClockProvider.js';
 import { VirtualTimeCounter } from '../../src/clock/VirtualTimeCounter.js';
 import type { Scenario } from '../helpers/Scenario.js';
 import { ScenarioRunner } from '../helpers/runScenarios.js';
-import type { ClockProviderType } from '../../src/interfaces/ClockProviderType.js';
+import type { ClockProviderType } from '../../src/types/ClockProviderType.js';
 
 // ---------------------------------------------------------------------------
 // Named constants

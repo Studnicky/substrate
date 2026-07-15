@@ -2,7 +2,7 @@
  * HTTP method utilities as static class methods
  */
 
-import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
 
 import {
   AbortError,

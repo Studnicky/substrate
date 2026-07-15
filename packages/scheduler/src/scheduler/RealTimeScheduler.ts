@@ -6,8 +6,8 @@
  * @module
  */
 
-import type { ScheduledTaskType } from '../interfaces/ScheduledTaskType.js';
-import type { SchedulerProviderType } from '../interfaces/SchedulerProviderType.js';
+import type { ScheduledTaskType } from '../types/ScheduledTaskType.js';
+import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
 
 import { RealTimeSchedulerBuilder } from './RealTimeSchedulerBuilder.js';
 

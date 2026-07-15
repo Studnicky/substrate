@@ -2,8 +2,8 @@
  * Fluent interface for LogBody builder.
  */
 
+import type { LogBodyDataType } from '../types/LogBodyDataType.js';
 import type { LogStatusType } from '../types/LogStatusType.js';
-import type { LogBodyDataType } from './LogBodyDataType.js';
 
 /**
  * Builder interface for creating normalized log entries.

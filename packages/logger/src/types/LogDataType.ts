@@ -1,5 +1,5 @@
-import type { LogBodyDataType } from '../interfaces/LogBodyDataType.js';
-import type { LogFaultDataType } from '../interfaces/LogFaultDataType.js';
+import type { LogBodyDataType } from './LogBodyDataType.js';
+import type { LogFaultDataType } from './LogFaultDataType.js';
 
 /**
  * Structured log data type accepted by logger methods.

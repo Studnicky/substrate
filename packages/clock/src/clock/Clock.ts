@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
+import type { ClockProviderType } from '../types/ClockProviderType.js';
 
 import { ClockError } from '../errors/ClockError.js';
 import { ClockBuilder } from './ClockBuilder.js';

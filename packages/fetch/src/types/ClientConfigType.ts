@@ -2,9 +2,9 @@
  * FetchClient configuration types
  */
 
-import type { QueryParamsType } from '../types/QueryParamsType.js';
 import type { DispatcherConfigType } from './DispatcherConfigType.js';
 import type { FetchOptionsType } from './FetchOptionsType.js';
+import type { QueryParamsType } from './QueryParamsType.js';
 
 /**
  * Client configuration options

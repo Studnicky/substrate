@@ -2,7 +2,7 @@
  * Tests for UndiciDispatcher health monitoring
  */
 
-import type { DispatcherHealthType } from '../../src/interfaces/DispatcherHealthType.js';
+import type { DispatcherHealthType } from '../../src/types/DispatcherHealthType.js';
 
 import assert from 'node:assert/strict';
 import {

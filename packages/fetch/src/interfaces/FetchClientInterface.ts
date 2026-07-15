@@ -2,8 +2,8 @@
  * FetchClient interface types
  */
 
-import type { DestroyOptionsType } from './DestroyOptionsType.js';
-import type { FetchOptionsType } from './FetchOptionsType.js';
+import type { DestroyOptionsType } from '../types/DestroyOptionsType.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
 import type { RequestBuilderInterface } from './RequestBuilderInterface.js';
 
 /**

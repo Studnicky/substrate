@@ -4,8 +4,8 @@ import {
   it
 } from 'node:test';
 
-import type { LogBodyDataType } from '../../src/interfaces/LogBodyDataType.js';
-import type { LogFaultDataType } from '../../src/interfaces/LogFaultDataType.js';
+import type { LogBodyDataType } from '../../src/types/LogBodyDataType.js';
+import type { LogFaultDataType } from '../../src/types/LogFaultDataType.js';
 
 import { LogBuildError } from '../../src/errors/LogBuildError.js';
 import { LogBody } from '../../src/modules/LogBody.js';

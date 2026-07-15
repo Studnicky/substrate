@@ -3,7 +3,7 @@
  *
  * @module
  */
-import type { ValidationViolationDetailType } from './ValidationViolationType.js';
+import type { ValidationViolationDetailType } from './ValidationViolationDetailType.js';
 
 /** Construction arguments for `ValidationError`. */
 export type ValidationErrorArgumentsType = Pick<ValidationViolationDetailType, 'message' | 'path'> & {

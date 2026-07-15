@@ -6,7 +6,7 @@
  * `setViewportSize()`.
  */
 
-import type { VisibleRangeConfigInterface } from './types/VisibleRangeConfigInterface.js';
+import type { VisibleRangeConfigInterface } from './interfaces/VisibleRangeConfigInterface.js';
 import type { VisibleRangeType } from './types/VisibleRangeType.js';
 
 import { VisibleRangeError } from './errors/index.js';

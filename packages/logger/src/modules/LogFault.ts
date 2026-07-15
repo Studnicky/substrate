@@ -36,8 +36,8 @@
  * ```
  */
 
-import type { LogFaultDataType } from '../interfaces/LogFaultDataType.js';
 import type { LogFaultInterface } from '../interfaces/LogFaultInterface.js';
+import type { LogFaultDataType } from '../types/LogFaultDataType.js';
 
 import { LogBuildError } from '../errors/LogBuildError.js';
 import { BaseLogEntryBuilder } from './BaseLogEntryBuilder.js';

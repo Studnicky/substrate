@@ -1,7 +1,7 @@
 import { Guard } from '@studnicky/config';
 import { isErrorClassification } from '@studnicky/errors';
 
-import type { RetryContextType } from '../../interfaces/RetryContextType.js';
+import type { RetryContextType } from '../../types/RetryContextType.js';
 
 import { EMPTY_LENGTH } from '../../constants/index.js';
 import { isRequestStats } from './isRequestStats.js';

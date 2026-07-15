@@ -4,11 +4,11 @@ import { SampleBuffer } from '@studnicky/sample-buffer';
 
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
 import type { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
+import type { ThrottleInterface } from '../interfaces/index.js';
 import type {
   AbortResultType,
-  ThrottleInterface,
   ThrottleStatsType
-} from '../interfaces/index.js';
+} from '../types/index.js';
 import type { ThrottleStateType } from '../types/ThrottleStateType.js';
 
 import {

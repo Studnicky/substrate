@@ -2,7 +2,7 @@
  * Fluent builder for UndiciDispatcher
  */
 
-import type { DispatcherConfigType } from '../interfaces/DispatcherConfigType.js';
+import type { DispatcherConfigType } from '../types/DispatcherConfigType.js';
 import type { UndiciDispatcher } from './UndiciDispatcher.js';
 
 /**

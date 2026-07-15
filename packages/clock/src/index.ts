@@ -14,4 +14,4 @@ export { VirtualTimeCounterBuilder } from './clock/index.js';
 export { RealTimeClockProviderOptionsEntity } from './entities/RealTimeClockProviderOptionsEntity.js';
 export { VirtualTimeCounterOptionsEntity } from './entities/VirtualTimeCounterOptionsEntity.js';
 export { ClockError } from './errors/index.js';
-export type { ClockProviderType } from './interfaces/index.js';
+export type { ClockProviderType } from './types/index.js';

@@ -3,8 +3,8 @@
  * Provides static methods for creating test log bodies and faults.
  */
 
-import type { LogBodyDataType } from '../../src/interfaces/LogBodyDataType.js';
-import type { LogFaultDataType } from '../../src/interfaces/LogFaultDataType.js';
+import type { LogBodyDataType } from '../../src/types/LogBodyDataType.js';
+import type { LogFaultDataType } from '../../src/types/LogFaultDataType.js';
 
 import { LOG_STATUS } from '../../src/builders/index.js';
 import { LogBody } from '../../src/modules/LogBody.js';

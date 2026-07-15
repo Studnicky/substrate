@@ -1,19 +1,22 @@
 /**
- * Log body data structure.
- * Represents the complete log entry ready for output.
+ * Log fault data structure.
+ * Represents the complete error entry ready for output.
  */
 
-import type { LogStatusType } from '../types/LogStatusType.js';
+import type { LogStatusType } from './LogStatusType.js';
 
 /**
- * Data structure for a normalized log entry.
+ * Data structure for a normalized error log entry.
  * Root-level fields are indexed by CloudWatch for queries and tables.
  * The context field holds freeform application data as a JSON blob.
  */
-export type LogBodyDataType = {
+export type LogFaultDataType = {
+  'cause'?: string;
   'context': Record<string, unknown>;
   'durationMs'?: number;
   'event': string;
   'message': string;
+  'name': string;
+  'stack'?: string;
   'status': LogStatusType;
 };

@@ -9,7 +9,7 @@
  */
 import { type ClockProviderType, RealTimeClockProvider } from '@studnicky/clock';
 
-import type { SchedulerProviderType } from '../interfaces/SchedulerProviderType.js';
+import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
 
 import { RealTimeScheduler } from '../scheduler/RealTimeScheduler.js';
 
