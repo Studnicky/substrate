@@ -152,30 +152,33 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
 /**
  * Validates options object
  * Validates known Fetch API options, allows unknown options
- *
- * @param val - Fetch options configuration to validate
- * @throws ConfigurationError if validation fails
  */
-export function validateOptions(val: unknown): void {
-  if (val === undefined || val === null) {
-    return;
-  }
-
-  if (typeof val !== 'object' || Array.isArray(val)) {
-    throw new ConfigurationError('options must be an object');
-  }
-
-  const optionsObj = val as Record<string, unknown>;
-
-  for (const [
-    key,
-    value
-  ] of Object.entries(optionsObj)) {
-    const validator = optionValidators[key];
-
-    if (validator !== undefined) {
-      validator(value, key);
+export class ValidateOptions {
+  /**
+   * @param val - Fetch options configuration to validate
+   * @throws ConfigurationError if validation fails
+   */
+  public static validate(val: unknown): void {
+    if (val === undefined || val === null) {
+      return;
     }
-    // Unknown options are allowed (custom options)
+
+    if (typeof val !== 'object' || Array.isArray(val)) {
+      throw new ConfigurationError('options must be an object');
+    }
+
+    const optionsObj = val as Record<string, unknown>;
+
+    for (const [
+      key,
+      value
+    ] of Object.entries(optionsObj)) {
+      const validator = optionValidators[key];
+
+      if (validator !== undefined) {
+        validator(value, key);
+      }
+      // Unknown options are allowed (custom options)
+    }
   }
 }

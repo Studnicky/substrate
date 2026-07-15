@@ -36,6 +36,14 @@ ruleTester.run('no-underscore-private', noUnderscorePrivate, {
     {
       'code': 'class A { ["_bar"] = 1; }',
       'name': 'computed key — not reported (cannot statically prove the name)'
+    },
+    {
+      'code': 'class Foo { constructor(_bar: string) {} }',
+      'name': 'constructor parameter without accessibility/readonly — not a field declaration, not reported'
+    },
+    {
+      'code': 'class Foo { constructor(private bar: string) {} }',
+      'name': 'parameter property without underscore — not reported'
     }
   ],
   'invalid': [
@@ -63,6 +71,16 @@ ruleTester.run('no-underscore-private', noUnderscorePrivate, {
       'code': 'class A { private _bar = 1; }',
       'errors': [{ 'messageId': 'forbidden' }],
       'name': 'underscore-prefixed field even with an explicit `private` modifier — forbidden'
+    },
+    {
+      'code': 'class Foo { constructor(private _bar: string) {} }',
+      'errors': [{ 'messageId': 'forbidden' }],
+      'name': 'underscore-prefixed constructor parameter property with `private` — forbidden'
+    },
+    {
+      'code': 'class Foo { constructor(readonly _bar: string) {} }',
+      'errors': [{ 'messageId': 'forbidden' }],
+      'name': 'underscore-prefixed constructor parameter property with `readonly` — forbidden'
     }
   ]
 });

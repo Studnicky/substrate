@@ -63,6 +63,10 @@ ruleTester.run('no-readonly-in-data-type', noReadonlyInDataType, {
       'code': 'type PrivateType = { readonly a: number };'
     },
     {
+      'name': 'readonly type alias declared separately with no export statement at all — not locally exported',
+      'code': 'type Foo = { readonly x: string };'
+    },
+    {
       'name': 'interface with readonly members — rule only targets TSTypeAliasDeclaration',
       'code': 'interface ContractI { readonly a: number; }'
     }
@@ -115,6 +119,12 @@ ruleTester.run('no-readonly-in-data-type', noReadonlyInDataType, {
       'code': 'export type MultiType = { readonly a: number; readonly b: string };',
       'errors': [{ 'messageId': 'noReadonly' }, { 'messageId': 'noReadonly' }],
       'output': 'export type MultiType = { a: number; b: string };'
+    },
+    {
+      'name': 'readonly type alias re-exported via separate export type {} specifier list — parent is Program, not ExportNamedDeclaration',
+      'code': 'type Foo = { readonly x: string };\nexport type { Foo };',
+      'errors': [{ 'messageId': 'noReadonly' }],
+      'output': 'type Foo = { x: string };\nexport type { Foo };'
     }
   ]
 });

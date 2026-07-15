@@ -9,7 +9,7 @@ import type { LogRecordType } from '../types/LogRecordType.js';
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { configValidation } from './configValidation.js';
 import { LoggerBuilder } from './LoggerBuilder.js';
-import { parseLogLevel } from './parseLogLevel.js';
+import { ParseLogLevel } from './parseLogLevel.js';
 
 /**
  * Core logger with pluggable transport architecture.
@@ -69,7 +69,7 @@ export class Logger implements LoggerInterface {
     }
 
     this.#level = options.level !== undefined
-      ? parseLogLevel(options.level)
+      ? ParseLogLevel.parse(options.level)
       : LOG_LEVEL.INFO;
     this.#metadata = options.metadata ?? {};
     this.#transports = options.transports ?? [];

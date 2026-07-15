@@ -4,7 +4,7 @@ import type { TransportInterface } from './TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
-import { parseLogLevel } from '../modules/parseLogLevel.js';
+import { ParseLogLevel } from '../modules/parseLogLevel.js';
 import { safeStringify } from '../modules/safeStringify.js';
 import { ConsoleTransportBuilder } from './ConsoleTransportBuilder.js';
 
@@ -63,7 +63,7 @@ export class ConsoleTransport implements TransportInterface {
       throw new ConfigurationError('level must be a string or number');
     }
     this.#minLevel = options.level !== undefined
-      ? parseLogLevel(options.level)
+      ? ParseLogLevel.parse(options.level)
       : LOG_LEVEL.TRACE;
   }
 

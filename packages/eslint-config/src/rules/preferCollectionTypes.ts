@@ -63,6 +63,48 @@ const isIncludesCall = (node: unknown): boolean => {
   return AstHelpers.getString(property, 'name') === 'includes';
 };
 
+// Returns true if node is: SomeExpr.indexOf(...)
+const isIndexOfCall = (node: unknown): boolean => {
+  if (AstHelpers.getNodeType(node) !== 'CallExpression') { return false; }
+  if (!isJsonObject(node)) { return false; }
+  const callee = node.callee;
+  if (!isJsonObject(callee)) { return false; }
+  if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
+  if (AstHelpers.getBool(callee, 'computed') !== false) { return false; }
+  const property = callee.property;
+  if (!isJsonObject(property)) { return false; }
+  return AstHelpers.getString(property, 'name') === 'indexOf';
+};
+
+// Returns true if node is a numeric literal matching `value`, handling negative
+// literals which parse as UnaryExpression{operator:'-', argument: Literal}
+const isNumericLiteral = (node: unknown, value: number): boolean => {
+  if (!isJsonObject(node)) { return false; }
+  if (value < 0) {
+    if (AstHelpers.getNodeType(node) !== 'UnaryExpression') { return false; }
+    if (AstHelpers.getString(node, 'operator') !== '-') { return false; }
+    const argument = node.argument;
+    if (!isJsonObject(argument)) { return false; }
+    return AstHelpers.getNodeType(argument) === 'Literal' && argument.value === Math.abs(value);
+  }
+  return AstHelpers.getNodeType(node) === 'Literal' && node.value === value;
+};
+
+class MembershipIndexOfCall {
+  // Returns the indexOf CallExpression node if `node` is a BinaryExpression testing
+  // its result for membership: x.indexOf(y) !== -1 | x.indexOf(y) > -1 | x.indexOf(y) < 0
+  public static get(node: unknown): unknown {
+    if (AstHelpers.getNodeType(node) !== 'BinaryExpression') { return undefined; }
+    if (!isJsonObject(node)) { return undefined; }
+    const operator = AstHelpers.getString(node, 'operator');
+    const left = node.left;
+    const right = node.right;
+    if ((operator === '!==' || operator === '>') && isIndexOfCall(left) && isNumericLiteral(right, -1)) { return left; }
+    if (operator === '<' && isIndexOfCall(left) && isNumericLiteral(right, 0)) { return left; }
+    return undefined;
+  }
+}
+
 // Returns true if node is: ArrayExpression.includes(...)
 const isArrayLiteralIncludesCall = (node: unknown): boolean => {
   if (!isIncludesCall(node)) { return false; }
@@ -73,13 +115,26 @@ const isArrayLiteralIncludesCall = (node: unknown): boolean => {
   return AstHelpers.getNodeType(obj) === 'ArrayExpression';
 };
 
+// Returns true if node is: ArrayExpression.indexOf(...) used in a membership comparison
+// (!== -1 / > -1 / < 0)
+const isArrayLiteralIndexOfMembershipCall = (node: unknown): boolean => {
+  if (!isIndexOfCall(node)) { return false; }
+  if (!isJsonObject(node)) { return false; }
+  const callee = node.callee;
+  if (!isJsonObject(callee)) { return false; }
+  const obj = callee.object;
+  if (AstHelpers.getNodeType(obj) !== 'ArrayExpression') { return false; }
+  const parent = (node as unknown as { readonly 'parent'?: unknown }).parent;
+  return MembershipIndexOfCall.get(parent) === node;
+};
+
 // Recursively walks callback body to find any ArrayExpression.includes(...) call.
 // Skips parent/loc/range/start/end to avoid circular reference stack overflows.
 const callbackContainsArrayLiteralIncludes = (callbackNode: unknown): boolean => {
   if (!isJsonObject(callbackNode)) { return false; }
   if (AstHelpers.getNodeType(callbackNode) === undefined) { return false; }
 
-  if (isArrayLiteralIncludesCall(callbackNode)) { return true; }
+  if (isArrayLiteralIncludesCall(callbackNode) || isArrayLiteralIndexOfMembershipCall(callbackNode)) { return true; }
 
   const keys = Object.keys(callbackNode);
   const keysLen = keys.length;
@@ -159,9 +214,31 @@ const isIncludesCalleeRef = (ref: Scope.Reference): boolean => {
   return true;
 };
 
+// Returns true if this scope reference is: ident.indexOf(...) used in a membership comparison
+const isIndexOfCalleeMembershipRef = (ref: Scope.Reference): boolean => {
+  const id = ref.identifier;
+  const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
+  if (!isJsonObject(parent)) { return false; }
+  if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
+  if (AstHelpers.getBool(parent, 'computed') !== false) { return false; }
+  const prop = parent.property;
+  if (!isJsonObject(prop)) { return false; }
+  if (AstHelpers.getString(prop, 'name') !== 'indexOf') { return false; }
+
+  if (parent.object !== (id as unknown)) { return false; }
+
+  const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
+  if (!isJsonObject(grandParent)) { return false; }
+  if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
+  if (grandParent.callee !== (parent as unknown)) { return false; }
+
+  const greatGrandParent = (grandParent as unknown as { readonly 'parent'?: unknown }).parent;
+  return MembershipIndexOfCall.get(greatGrandParent) === (grandParent as unknown);
+};
+
 const onCallExpression = (node: Rule.Node, opts: OptionsType, context: Rule.RuleContext): void => {
   // Pattern A: [a, b, c].includes(x) — inline array literal membership test
-  if (opts.checkArrayLiterals && isArrayLiteralIncludesCall(node)) {
+  if (opts.checkArrayLiterals && (isArrayLiteralIncludesCall(node) || isArrayLiteralIndexOfMembershipCall(node))) {
     context.report({ 'messageId': 'arrayLiteralIncludes', 'node': node });
     return;
   }
@@ -216,8 +293,9 @@ const onProgramExit = (_node: ProgramExitNodeType, opts: OptionsType, context: R
       continue;
     }
 
-    const allRefsAreIncludes = readRefs.every((ref: Scope.Reference) => { const result = isIncludesCalleeRef(ref);
-      return result; });
+    const allRefsAreIncludes = readRefs.every((ref: Scope.Reference) => {
+      return isIncludesCalleeRef(ref) || isIndexOfCalleeMembershipRef(ref);
+    });
 
     if (allRefsAreIncludes) {
       context.report({

@@ -22,6 +22,14 @@ import {
  * merely REFERENCE a readonly type are not flagged; recursion stops at named
  * type references (any type whose `aliasSymbol` is defined).
  *
+ * A type alias is treated as exported both when it is declared inline
+ * (`export type Foo = ...`) and when it is declared separately and re-exported
+ * via a same-file, non-re-exporting `export` specifier list
+ * (`type Foo = ...; export type { Foo };` or `export { type Foo };`). Names
+ * re-exported from another module (`export { Foo } from './other'`) do not
+ * count — that specifier list has a `source` and cannot refer to a local
+ * declaration in this file.
+ *
  * The rule no-ops silently when no TypeScript program is available (projectService
  * not configured). There are no schema options.
  */
@@ -29,6 +37,15 @@ import {
 type AliasNodeType = {
   readonly 'id': object & { readonly 'name': string };
   readonly 'parent': { readonly 'type': string };
+};
+
+type ExportSpecifierType = {
+  readonly 'local': { readonly 'name': string };
+};
+
+type ExportNamedDeclarationNodeType = {
+  readonly 'source'?: unknown;
+  readonly 'specifiers'?: readonly ExportSpecifierType[];
 };
 
 type ParserServicesType = {
@@ -210,10 +227,24 @@ export const noReadonlyInDataType: Rule.RuleModule = {
 
     const checker = services.program.getTypeChecker();
 
-    const onTSTypeAliasDeclaration = (node: Rule.Node): void => {
-      const rawNode = node as unknown as AliasNodeType;
+    /** Local names re-exported by a same-file, non-re-exporting `export { ... }` specifier list. */
+    const locallyExportedNames = new Set<string>();
+    /** Type aliases declared at `Program` scope, deferred until every export specifier is seen. */
+    const pendingAliasNodes: Rule.Node[] = [];
 
-      if (rawNode.parent.type !== 'ExportNamedDeclaration') { return; }
+    const onExportNamedDeclaration = (node: Rule.Node): void => {
+      const rawNode = node as unknown as ExportNamedDeclarationNodeType;
+
+      if (rawNode.source !== null && rawNode.source !== undefined) { return; }
+
+      const specifiers = rawNode.specifiers ?? [];
+      specifiers.forEach((specifier) => {
+        locallyExportedNames.add(specifier.local.name);
+      });
+    };
+
+    const checkAlias = (node: Rule.Node): void => {
+      const rawNode = node as unknown as AliasNodeType;
 
       const symbol = services.getSymbolAtLocation(rawNode.id);
       if (symbol === undefined) { return; }
@@ -274,7 +305,31 @@ export const noReadonlyInDataType: Rule.RuleModule = {
       offenders.forEach(reportOffender);
     };
 
+    const onTSTypeAliasDeclaration = (node: Rule.Node): void => {
+      const rawNode = node as unknown as AliasNodeType;
+
+      if (rawNode.parent.type === 'ExportNamedDeclaration') {
+        checkAlias(node);
+        return;
+      }
+
+      if (rawNode.parent.type === 'Program') {
+        pendingAliasNodes.push(node);
+      }
+    };
+
+    const onProgramExit = (): void => {
+      pendingAliasNodes.forEach((node) => {
+        const rawNode = node as unknown as AliasNodeType;
+        if (locallyExportedNames.has(rawNode.id.name)) {
+          checkAlias(node);
+        }
+      });
+    };
+
     return {
+      'ExportNamedDeclaration': onExportNamedDeclaration,
+      'Program:exit': onProgramExit,
       'TSTypeAliasDeclaration': onTSTypeAliasDeclaration
     };
   },

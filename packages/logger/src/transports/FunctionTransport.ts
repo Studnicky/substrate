@@ -4,7 +4,7 @@ import type { TransportInterface } from './TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
-import { parseLogLevel } from '../modules/parseLogLevel.js';
+import { ParseLogLevel } from '../modules/parseLogLevel.js';
 import { FunctionTransportBuilder } from './FunctionTransportBuilder.js';
 
 /**
@@ -60,7 +60,7 @@ export class FunctionTransport implements TransportInterface {
     }
     this.#sink = sink;
     this.#minLevel = options.level !== undefined
-      ? parseLogLevel(options.level)
+      ? ParseLogLevel.parse(options.level)
       : LOG_LEVEL.TRACE;
   }
 

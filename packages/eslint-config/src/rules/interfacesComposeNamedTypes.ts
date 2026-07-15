@@ -119,7 +119,9 @@ export const interfacesComposeNamedTypes: Rule.RuleModule = {
       });
     };
 
-    return { 'TSInterfaceDeclaration TSTypeLiteral': onTSInterfaceDeclarationTSTypeLiteral };
+    return {
+      'TSInterfaceDeclaration TSTypeLiteral, TSInterfaceDeclaration TSMappedType': onTSInterfaceDeclarationTSTypeLiteral
+    };
   },
   'meta': {
     'docs': {

@@ -111,6 +111,16 @@ const invalidScenarios: InvalidScenarioType[] = [
     name: 'const arrow with format prefix',
     code: `const formatDate = (d) => d.toISOString();`,
     errors: [{ messageId: 'verbNoun' }]
+  },
+  {
+    name: 'exported FunctionDeclaration with make prefix',
+    code: `export function makeUser() {}`,
+    errors: [{ messageId: 'verbNoun' }]
+  },
+  {
+    name: 'exported const arrow with make prefix',
+    code: `export const makeUser = () => {};`,
+    errors: [{ messageId: 'verbNoun' }]
   }
 ];
 

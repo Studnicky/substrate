@@ -2,13 +2,13 @@
  * Configuration validation schemas
  */
 
-export { validateAutoGenerateRequestId } from './validateAutoGenerateRequestId.js';
+export { ValidateAutoGenerateRequestId } from './validateAutoGenerateRequestId.js';
 export { validateDispatcher } from './validateDispatcher.js';
-export { validateHeaders } from './validateHeaders.js';
-export { validateMetadata } from './validateMetadata.js';
-export { validateName } from './validateName.js';
-export { validateOptions } from './validateOptions.js';
-export { validateParams } from './validateParams.js';
-export { validateRequestIdGenerator } from './validateRequestIdGenerator.js';
-export { validateTimeout } from './validateTimeout.js';
-export { validateURL } from './validateURL.js';
+export { ValidateHeaders } from './validateHeaders.js';
+export { ValidateMetadata } from './validateMetadata.js';
+export { ValidateName } from './validateName.js';
+export { ValidateOptions } from './validateOptions.js';
+export { ValidateParams } from './validateParams.js';
+export { ValidateRequestIdGenerator } from './validateRequestIdGenerator.js';
+export { ValidateTimeout } from './validateTimeout.js';
+export { ValidateURL } from './validateURL.js';

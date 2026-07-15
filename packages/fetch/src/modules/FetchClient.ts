@@ -14,16 +14,16 @@ import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherSt
 import type { ValidatorFnType } from '../types/ValidatorFnType.js';
 
 import {
-  validateAutoGenerateRequestId,
+  ValidateAutoGenerateRequestId,
   validateDispatcher,
-  validateHeaders,
-  validateMetadata,
-  validateName,
-  validateOptions,
-  validateParams,
-  validateRequestIdGenerator,
-  validateTimeout,
-  validateURL
+  ValidateHeaders,
+  ValidateMetadata,
+  ValidateName,
+  ValidateOptions,
+  ValidateParams,
+  ValidateRequestIdGenerator,
+  ValidateTimeout,
+  ValidateURL
 } from '../config/schemas/index.js';
 import {
   AbortError,
@@ -760,16 +760,16 @@ export class FetchClient implements FetchClientInterface {
   }
 
   private static readonly CONFIG_VALIDATORS: Record<string, ValidatorFnType> = {
-    'autoGenerateRequestId': validateAutoGenerateRequestId,
-    'baseURL': validateURL,
+    'autoGenerateRequestId': ValidateAutoGenerateRequestId.validate,
+    'baseURL': ValidateURL.validate,
     'dispatcher': validateDispatcher,
-    'headers': validateHeaders,
-    'metadata': validateMetadata,
-    'name': validateName,
-    'options': validateOptions,
-    'params': validateParams,
-    'requestIdGenerator': validateRequestIdGenerator,
-    'timeout': validateTimeout
+    'headers': ValidateHeaders.validate,
+    'metadata': ValidateMetadata.validate,
+    'name': ValidateName.validate,
+    'options': ValidateOptions.validate,
+    'params': ValidateParams.validate,
+    'requestIdGenerator': ValidateRequestIdGenerator.validate,
+    'timeout': ValidateTimeout.validate
   };
 
   private static validateConfig(config: ClientConfigType): ClientConfigType {

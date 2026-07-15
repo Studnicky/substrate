@@ -4,19 +4,21 @@
 
 import { ConfigurationError } from '../../errors/index.js';
 
-/**
- * Validates metadata object
- * Metadata can contain any key-value pairs
- *
- * @param val - Metadata configuration to validate
- * @throws ConfigurationError if validation fails
- */
-export function validateMetadata(val: unknown): void {
-  if (val === undefined || val === null) {
-    return;
-  }
+export class ValidateMetadata {
+  /**
+   * Validates metadata object
+   * Metadata can contain any key-value pairs
+   *
+   * @param val - Metadata configuration to validate
+   * @throws ConfigurationError if validation fails
+   */
+  public static validate(val: unknown): void {
+    if (val === undefined || val === null) {
+      return;
+    }
 
-  if (typeof val !== 'object' || Array.isArray(val)) {
-    throw new ConfigurationError('metadata must be an object');
+    if (typeof val !== 'object' || Array.isArray(val)) {
+      throw new ConfigurationError('metadata must be an object');
+    }
   }
 }
