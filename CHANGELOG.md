@@ -9,9 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `@studnicky/eslint-config`: new `folder-declaration-shape` rule enforces that `interfaces/` folders hold `interface` declarations (runtime contracts) and `types/` folders hold `type` alias declarations (data shapes).
+
 ### Changed
 
 ### Fixed
+
+- Relocated 40 `type`/`interface` declarations across 11 packages (`batch`, `clock`, `errors`, `fetch`, `json`, `logger`, `retry`, `scheduler`, `throttle`, `timing`, `visible-range`) to the folder matching their actual declaration form, per the new `folder-declaration-shape` rule.
+- `@studnicky/request-executor` now imports `ClientConfigType`/`RequestContextType`/`ResponseContextType` from `@studnicky/fetch/types` instead of the now-stale `@studnicky/fetch/interfaces` subpath.
 
 ## [5.1.1] - 2026-07-09
 
