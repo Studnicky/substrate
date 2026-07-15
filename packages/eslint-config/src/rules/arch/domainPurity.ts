@@ -34,15 +34,18 @@ const domainPuritySchema = {
   'type': 'object'
 } as const;
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);};
+class AstNode {
+  public static isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+  }
+}
 
 class ImportSourceValue {
   public static get(node: unknown): string | undefined {
-    if (!isObject(node)) { return undefined; }
+    if (!AstNode.isObject(node)) { return undefined; }
 
     const source: unknown = node.source;
-    if (!isObject(source)) { return undefined; }
+    if (!AstNode.isObject(source)) { return undefined; }
 
     const value: unknown = source.value;
     return typeof value === 'string' ? value : undefined;
@@ -60,10 +63,10 @@ class ForbiddenSpecifierMatch {
 
 class CalleeDottedName {
   public static get(node: unknown): string | undefined {
-    if (!isObject(node)) { return undefined; }
+    if (!AstNode.isObject(node)) { return undefined; }
 
     const callee: unknown = node.callee;
-    if (!isObject(callee)) { return undefined; }
+    if (!AstNode.isObject(callee)) { return undefined; }
 
     const calleeType = callee.type;
 
@@ -75,7 +78,7 @@ class CalleeDottedName {
     if (calleeType === 'MemberExpression') {
       const object: unknown = callee.object;
       const property: unknown = callee.property;
-      if (!isObject(object) || !isObject(property)) { return undefined; }
+      if (!AstNode.isObject(object) || !AstNode.isObject(property)) { return undefined; }
       if (object.type !== 'Identifier' || property.type !== 'Identifier') { return undefined; }
 
       const objectName = object.name;

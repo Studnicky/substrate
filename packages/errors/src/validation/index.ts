@@ -1,2 +1,2 @@
 export { errorTypeGuards } from './errorTypeGuards.js';
-export { isErrorClassification } from './isErrorClassification.js';
+export { ErrorClassificationGuard } from './isErrorClassification.js';

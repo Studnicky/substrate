@@ -12,68 +12,76 @@ const EXEMPT_PATH_PATTERNS = [
   /eslint\.config\.mjs$/v
 ];
 
-const isExemptPath = (filename: string): boolean => {
-  if (filename === '<input>' || filename.length === 0) { return true; }
-  const normalized = filename.split(path.sep).join('/');
-  return EXEMPT_PATH_PATTERNS.some((pattern) => { const result = pattern.test(normalized); return result; });
-};
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);};
+class PathGuards {
+  static isExemptPath(filename: string): boolean {
+    if (filename === '<input>' || filename.length === 0) { return true; }
+    const normalized = filename.split(path.sep).join('/');
+    return EXEMPT_PATH_PATTERNS.some((pattern) => { const result = pattern.test(normalized); return result; });
+  }
+}
 
 type CommentToken = { readonly 'type': string; readonly 'value': string };
 
-const commentsContainDirective = (comments: readonly CommentToken[]): boolean => {
-  for (const comment of comments) {
-    if (comment?.type === 'Line' && DIRECTIVE_PATTERN.test(comment.value)) { return true; }
-  }
-  return false;
-};
-
 type SourceCodeLike = { 'getCommentsBefore': (node: unknown) => readonly CommentToken[] };
 
-const isSourceCodeLike = (value: unknown): value is SourceCodeLike =>
-{return isObject(value) && typeof value.getCommentsBefore === 'function';};
-
-const hasExemptionComment = (rawNode: unknown, rawSourceCode: unknown): boolean => {
-  if (!isSourceCodeLike(rawSourceCode)) { return false; }
-  if (commentsContainDirective(rawSourceCode.getCommentsBefore(rawNode))) { return true; }
-  if (!isObject(rawNode)) { return false; }
-  const parent: unknown = rawNode.parent;
-  if (isObject(parent) && parent.type === 'ExportNamedDeclaration') {
-    return commentsContainDirective(rawSourceCode.getCommentsBefore(parent));
+class TypeGuards {
+  static isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
   }
-  return false;
-};
 
-const isInsideNamespace = (rawNode: unknown): boolean => {
-  let current: unknown = isObject(rawNode) ? rawNode.parent : undefined;
-  while (isObject(current)) {
-    const nodeType: unknown = current.type;
-    if (nodeType === 'TSModuleDeclaration') { return true; }
-    if (nodeType === 'Program') { return false; }
-    current = current.parent;
+  static isSourceCodeLike(value: unknown): value is SourceCodeLike {
+    return TypeGuards.isObject(value) && typeof value.getCommentsBefore === 'function';
   }
-  return false;
-};
+}
+
+class CommentGuards {
+  static containsDirective(comments: readonly CommentToken[]): boolean {
+    for (const comment of comments) {
+      if (comment?.type === 'Line' && DIRECTIVE_PATTERN.test(comment.value)) { return true; }
+    }
+    return false;
+  }
+
+  static hasExemption(rawNode: unknown, rawSourceCode: unknown): boolean {
+    if (!TypeGuards.isSourceCodeLike(rawSourceCode)) { return false; }
+    if (CommentGuards.containsDirective(rawSourceCode.getCommentsBefore(rawNode))) { return true; }
+    if (!TypeGuards.isObject(rawNode)) { return false; }
+    const parent: unknown = rawNode.parent;
+    if (TypeGuards.isObject(parent) && parent.type === 'ExportNamedDeclaration') {
+      return CommentGuards.containsDirective(rawSourceCode.getCommentsBefore(parent));
+    }
+    return false;
+  }
+}
 
 class NodeName {
   static get(rawNode: unknown): string {
-    if (!isObject(rawNode)) { return ''; }
+    if (!TypeGuards.isObject(rawNode)) { return ''; }
     const idNode: unknown = rawNode.id;
-    if (!isObject(idNode) || typeof idNode.name !== 'string') { return ''; }
+    if (!TypeGuards.isObject(idNode) || typeof idNode.name !== 'string') { return ''; }
     return idNode.name;
+  }
+
+  static isInsideNamespace(rawNode: unknown): boolean {
+    let current: unknown = TypeGuards.isObject(rawNode) ? rawNode.parent : undefined;
+    while (TypeGuards.isObject(current)) {
+      const nodeType: unknown = current.type;
+      if (nodeType === 'TSModuleDeclaration') { return true; }
+      if (nodeType === 'Program') { return false; }
+      current = current.parent;
+    }
+    return false;
   }
 }
 
 export const allTypesAreEntities: Rule.RuleModule = {
   'create': (context) => {
     const filename = context.filename;
-    if (isExemptPath(filename)) { return {}; }
+    if (PathGuards.isExemptPath(filename)) { return {}; }
 
     const onTSTypeAliasDeclaration = (node: Rule.Node): void => {
-      if (isInsideNamespace(node)) { return; }
-      if (hasExemptionComment(node, context.sourceCode)) { return; }
+      if (NodeName.isInsideNamespace(node)) { return; }
+      if (CommentGuards.hasExemption(node, context.sourceCode)) { return; }
 
       context.report({
         'data': { 'name': NodeName.get(node) },

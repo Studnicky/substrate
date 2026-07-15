@@ -16,20 +16,22 @@ let maxConcurrent = 0;
 let inFlight = 0;
 const completions: number[] = [];
 
-const task = (id: number): Promise<void> => {
-  const result = sem.withPermit(async () => {
-    inFlight += 1;
-    maxConcurrent = Math.max(maxConcurrent, inFlight);
-    // Yield to the microtask queue so tasks interleave
-    await Promise.resolve();
-    inFlight -= 1;
-    completions.push(id);
-  });
-  return result;
-};
+class Task {
+  static async run(id: number): Promise<void> {
+    const result = sem.withPermit(async () => {
+      inFlight += 1;
+      maxConcurrent = Math.max(maxConcurrent, inFlight);
+      // Yield to the microtask queue so tasks interleave
+      await Promise.resolve();
+      inFlight -= 1;
+      completions.push(id);
+    });
+    return await result;
+  }
+}
 
 // 4 concurrent tasks against a 2-permit semaphore — max concurrent stays at or below 2
-await Promise.all([task(1), task(2), task(3), task(4)]);
+await Promise.all([Task.run(1), Task.run(2), Task.run(3), Task.run(4)]);
 console.log('Max concurrent (≤2):', maxConcurrent);
 console.log('Completions:', completions);
 

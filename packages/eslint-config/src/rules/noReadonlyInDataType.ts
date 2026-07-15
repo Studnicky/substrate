@@ -64,138 +64,140 @@ class ContextHelpers {
   }
 }
 
-/**
- * Controls recursion depth — descend into the alias's own inline shapes but stop
- * at named references. A named reference (aliasSymbol defined) means the shape
- * lives in another alias; we never cross that boundary to avoid false positives
- * on types that merely COMPOSE with a readonly type.
- */
-const isInlineStructural = (checker: TypeChecker, t: Type): boolean => {
-  if (t.aliasSymbol !== undefined) { return false; }
-  if (checker.isArrayType(t) || checker.isTupleType(t)) { return true; }
-  if (t.isUnionOrIntersection()) { return true; }
-  const s = t.getSymbol();
-  return s?.getName() === '__type';
-};
-
-/**
- * Returns true when `type` provably bakes `readonly` into its own inline
- * data structure. Does NOT cross named type alias boundaries (isInlineStructural
- * gates all recursion). The visited Set prevents cycles on self-recursive types.
- */
-const bakesReadonly = (checker: TypeChecker, type: Type, visited: Set<Type>): boolean => {
-  if (visited.has(type)) { return false; }
-  visited.add(type);
-
-  if (type.isUnionOrIntersection()) {
-    const unionTypes = type.types;
-    const len = unionTypes.length;
-    for (let i = 0; i < len; i++) {
-      if (bakesReadonly(checker, unionTypes[i]!, visited)) { return true; }
-    }
-    return false;
+class ReadonlyDetection {
+  /**
+   * Controls recursion depth — descend into the alias's own inline shapes but stop
+   * at named references. A named reference (aliasSymbol defined) means the shape
+   * lives in another alias; we never cross that boundary to avoid false positives
+   * on types that merely COMPOSE with a readonly type.
+   */
+  public static isInlineStructural(checker: TypeChecker, t: Type): boolean {
+    if (t.aliasSymbol !== undefined) { return false; }
+    if (checker.isArrayType(t) || checker.isTupleType(t)) { return true; }
+    if (t.isUnionOrIntersection()) { return true; }
+    const s = t.getSymbol();
+    return s?.getName() === '__type';
   }
 
-  if (checker.isArrayType(type)) {
+  /**
+   * Returns true when `type` provably bakes `readonly` into its own inline
+   * data structure. Does NOT cross named type alias boundaries (isInlineStructural
+   * gates all recursion). The visited Set prevents cycles on self-recursive types.
+   */
+  public static bakesReadonly(checker: TypeChecker, type: Type, visited: Set<Type>): boolean {
+    if (visited.has(type)) { return false; }
+    visited.add(type);
+
+    if (type.isUnionOrIntersection()) {
+      const unionTypes = type.types;
+      const len = unionTypes.length;
+      for (let i = 0; i < len; i++) {
+        if (ReadonlyDetection.bakesReadonly(checker, unionTypes[i]!, visited)) { return true; }
+      }
+      return false;
+    }
+
+    if (checker.isArrayType(type)) {
+      const indexInfos = checker.getIndexInfosOfType(type);
+      const iiLen = indexInfos.length;
+      for (let i = 0; i < iiLen; i++) {
+        if (indexInfos[i]!.isReadonly) { return true; }
+      }
+      const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
+      const taLen = typeArgs.length;
+      for (let i = 0; i < taLen; i++) {
+        const a = typeArgs[i]!;
+        if (ReadonlyDetection.isInlineStructural(checker, a) && ReadonlyDetection.bakesReadonly(checker, a, visited)) { return true; }
+      }
+      return false;
+    }
+
+    if (checker.isTupleType(type)) {
+      const tupleTarget = type as unknown as { readonly 'target': { readonly 'readonly': boolean } };
+      if (tupleTarget.target.readonly) { return true; }
+      const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
+      const taLen = typeArgs.length;
+      for (let i = 0; i < taLen; i++) {
+        const a = typeArgs[i]!;
+        if (ReadonlyDetection.isInlineStructural(checker, a) && ReadonlyDetection.bakesReadonly(checker, a, visited)) { return true; }
+      }
+      return false;
+    }
+
+    // Non-array, non-tuple type: check index infos for readonly index signatures.
     const indexInfos = checker.getIndexInfosOfType(type);
     const iiLen = indexInfos.length;
     for (let i = 0; i < iiLen; i++) {
       if (indexInfos[i]!.isReadonly) { return true; }
     }
-    const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
-    const taLen = typeArgs.length;
-    for (let i = 0; i < taLen; i++) {
-      const a = typeArgs[i]!;
-      if (isInlineStructural(checker, a) && bakesReadonly(checker, a, visited)) { return true; }
-    }
-    return false;
-  }
 
-  if (checker.isTupleType(type)) {
-    const tupleTarget = type as unknown as { readonly 'target': { readonly 'readonly': boolean } };
-    if (tupleTarget.target.readonly) { return true; }
-    const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
-    const taLen = typeArgs.length;
-    for (let i = 0; i < taLen; i++) {
-      const a = typeArgs[i]!;
-      if (isInlineStructural(checker, a) && bakesReadonly(checker, a, visited)) { return true; }
-    }
-    return false;
-  }
-
-  // Non-array, non-tuple type: check index infos for readonly index signatures.
-  const indexInfos = checker.getIndexInfosOfType(type);
-  const iiLen = indexInfos.length;
-  for (let i = 0; i < iiLen; i++) {
-    if (indexInfos[i]!.isReadonly) { return true; }
-  }
-
-  // Check each property for a readonly modifier or a readonly inline type.
-  const props = type.getProperties();
-  const propsLen = props.length;
-  for (let i = 0; i < propsLen; i++) {
-    const p = props[i]!;
-    if (p.valueDeclaration !== undefined) {
-      if ((getCombinedModifierFlags(p.valueDeclaration) & ModifierFlags.Readonly) !== 0) {
-        return true;
+    // Check each property for a readonly modifier or a readonly inline type.
+    const props = type.getProperties();
+    const propsLen = props.length;
+    for (let i = 0; i < propsLen; i++) {
+      const p = props[i]!;
+      if (p.valueDeclaration !== undefined) {
+        if ((getCombinedModifierFlags(p.valueDeclaration) & ModifierFlags.Readonly) !== 0) {
+          return true;
+        }
+        const pt = checker.getTypeOfSymbolAtLocation(p, p.valueDeclaration);
+        if (ReadonlyDetection.isInlineStructural(checker, pt) && ReadonlyDetection.bakesReadonly(checker, pt, visited)) { return true; }
       }
-      const pt = checker.getTypeOfSymbolAtLocation(p, p.valueDeclaration);
-      if (isInlineStructural(checker, pt) && bakesReadonly(checker, pt, visited)) { return true; }
+    }
+
+    return false;
+  }
+
+  public static isReadonlyOffender(obj: Record<string, unknown>): boolean {
+    const nodeType = obj.type;
+    const readonlyProp = obj.readonly;
+    const operatorProp = obj.operator;
+
+    if (nodeType === 'TSPropertySignature') { return readonlyProp === true; }
+    if (nodeType === 'TSIndexSignature') { return readonlyProp === true; }
+    if (nodeType === 'TSTypeOperator') { return operatorProp === 'readonly'; }
+    if (nodeType === 'TSMappedType') { return readonlyProp === true || readonlyProp === '+'; }
+
+    return false;
+  }
+
+  /**
+   * Collects every AST node bearing a `readonly` modifier within the alias
+   * declaration. Skips `checkType` and `extendsType` of `TSConditionalType` nodes
+   * because those positions hold structural type guards (e.g. `A extends readonly
+   * unknown[]`) whose `readonly` must not be removed — it constrains the narrowing,
+   * not the alias's own data shape.
+   */
+  public static collectOffenders(node: unknown, result: Rule.Node[]): void {
+    if (node === null || node === undefined || typeof node !== 'object') { return; }
+
+    if (Array.isArray(node)) {
+      const len = node.length;
+      for (let i = 0; i < len; i++) {
+        ReadonlyDetection.collectOffenders(node[i], result);
+      }
+      return;
+    }
+
+    const obj = node as Record<string, unknown>;
+
+    if (ReadonlyDetection.isReadonlyOffender(obj)) {
+      result.push(node as unknown as Rule.Node);
+    }
+
+    const isTSConditionalType = obj.type === 'TSConditionalType';
+    const keys = Object.keys(obj);
+    const keysLen = keys.length;
+
+    for (let i = 0; i < keysLen; i++) {
+      const key = keys[i];
+      if (key === undefined) { continue; }
+      if (key === 'parent' || key === 'loc' || key === 'range') { continue; }
+      if (isTSConditionalType && (key === 'checkType' || key === 'extendsType')) { continue; }
+      ReadonlyDetection.collectOffenders(obj[key], result);
     }
   }
-
-  return false;
-};
-
-const isReadonlyOffender = (obj: Record<string, unknown>): boolean => {
-  const nodeType = obj.type;
-  const readonlyProp = obj.readonly;
-  const operatorProp = obj.operator;
-
-  if (nodeType === 'TSPropertySignature') { return readonlyProp === true; }
-  if (nodeType === 'TSIndexSignature') { return readonlyProp === true; }
-  if (nodeType === 'TSTypeOperator') { return operatorProp === 'readonly'; }
-  if (nodeType === 'TSMappedType') { return readonlyProp === true || readonlyProp === '+'; }
-
-  return false;
-};
-
-/**
- * Collects every AST node bearing a `readonly` modifier within the alias
- * declaration. Skips `checkType` and `extendsType` of `TSConditionalType` nodes
- * because those positions hold structural type guards (e.g. `A extends readonly
- * unknown[]`) whose `readonly` must not be removed — it constrains the narrowing,
- * not the alias's own data shape.
- */
-const collectOffenders = (node: unknown, result: Rule.Node[]): void => {
-  if (node === null || node === undefined || typeof node !== 'object') { return; }
-
-  if (Array.isArray(node)) {
-    const len = node.length;
-    for (let i = 0; i < len; i++) {
-      collectOffenders(node[i], result);
-    }
-    return;
-  }
-
-  const obj = node as Record<string, unknown>;
-
-  if (isReadonlyOffender(obj)) {
-    result.push(node as unknown as Rule.Node);
-  }
-
-  const isTSConditionalType = obj.type === 'TSConditionalType';
-  const keys = Object.keys(obj);
-  const keysLen = keys.length;
-
-  for (let i = 0; i < keysLen; i++) {
-    const key = keys[i];
-    if (key === undefined) { continue; }
-    if (key === 'parent' || key === 'loc' || key === 'range') { continue; }
-    if (isTSConditionalType && (key === 'checkType' || key === 'extendsType')) { continue; }
-    collectOffenders(obj[key], result);
-  }
-};
+}
 
 class ReadonlyTokenFilter {
   public static matches(t: unknown): boolean {
@@ -251,10 +253,10 @@ export const noReadonlyInDataType: Rule.RuleModule = {
 
       const type = checker.getDeclaredTypeOfSymbol(symbol);
 
-      if (!bakesReadonly(checker, type, new Set())) { return; }
+      if (!ReadonlyDetection.bakesReadonly(checker, type, new Set())) { return; }
 
       const offenders: Rule.Node[] = [];
-      collectOffenders(node, offenders);
+      ReadonlyDetection.collectOffenders(node, offenders);
 
       const name = rawNode.id.name;
 

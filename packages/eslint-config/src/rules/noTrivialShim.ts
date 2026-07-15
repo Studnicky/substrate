@@ -1,12 +1,14 @@
 import type { Rule } from 'eslint';
 
-const isJsonObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-};
+import { TrivialExpression } from './shared/TrivialExpression.js';
 
 class AstHelpers {
+  public static isJsonObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+  }
+
   public static getNodeType(node: unknown): string | undefined {
-    if (!isJsonObject(node)) {
+    if (!AstHelpers.isJsonObject(node)) {
       return undefined;
     }
     const type = node.type;
@@ -14,16 +16,8 @@ class AstHelpers {
     return typeof type === 'string' ? type : undefined;
   }
 
-  public static getExpression(node: unknown): unknown {
-    if (!isJsonObject(node)) {
-      return undefined;
-    }
-
-    return node.expression;
-  }
-
   public static getSourceRange(node: unknown): [number, number] | undefined {
-    if (!isJsonObject(node)) { return undefined; }
+    if (!AstHelpers.isJsonObject(node)) { return undefined; }
     const range = node.range;
 
     if (!Array.isArray(range) || range.length < 2) { return undefined; }
@@ -37,22 +31,6 @@ class AstHelpers {
   }
 }
 
-const isThisRootedAccess = (node: unknown): boolean => {
-  if (!isJsonObject(node)) { return false; }
-  const t = AstHelpers.getNodeType(node);
-  if (t === 'ThisExpression') { return true; }
-  if (t === 'MemberExpression') { return isThisRootedAccess(node.object); }
-
-  return false;
-};
-
-const isThisMemberExpression = (node: unknown): boolean => {
-  if (!isJsonObject(node)) { return false; }
-  if (node.type !== 'MemberExpression') { return false; }
-
-  return isThisRootedAccess(node.object);
-};
-
 type OptionsType = {
   readonly 'allowLiterals': boolean;
   readonly 'allowMemberExpressions': boolean;
@@ -61,46 +39,6 @@ type OptionsType = {
 const DEFAULT_OPTIONS: OptionsType = {
   'allowLiterals': false,
   'allowMemberExpressions': false
-};
-
-const isTrivialExpression = (node: unknown, opts: OptionsType): boolean => {
-  const type = AstHelpers.getNodeType(node);
-
-  if (type === undefined) { return false; }
-
-  // Factories and constructors — creating new value, not forwarding one. Never a shim.
-  if (
-    type === 'ObjectExpression'
-    || type === 'ArrayExpression'
-    || type === 'NewExpression'
-  ) { return false; }
-
-  // Accessor pattern: `return this.x` inside a method body. Not a shim — it exposes a field.
-  if (type === 'MemberExpression') {
-    if (isThisMemberExpression(node)) { return false; }
-
-    return !opts.allowMemberExpressions;
-  }
-
-  // Constant literals — inline at call site rather than wrapping.
-  if (type === 'Literal' || type === 'TemplateLiteral') {
-    return !opts.allowLiterals;
-  }
-
-  // Pure pass-through: forwarding an identifier, delegating a call, or chaining.
-  if (
-    type === 'Identifier'
-    || type === 'CallExpression'
-    || type === 'AwaitExpression'
-    || type === 'ChainExpression'
-  ) { return true; }
-
-  // Strip TS wrappers and recurse.
-  if (type === 'TSAsExpression' || type === 'TSNonNullExpression' || type === 'TSSatisfiesExpression') {
-    return isTrivialExpression(AstHelpers.getExpression(node), opts);
-  }
-
-  return false;
 };
 
 export const noTrivialShim: Rule.RuleModule = {
@@ -148,7 +86,7 @@ export const noTrivialShim: Rule.RuleModule = {
 
       if (type === undefined) { return; }
       if (type === 'ThisExpression') { return; }
-      if (!isTrivialExpression(expression, opts)) { return; }
+      if (!TrivialExpression.isTrivial(expression, opts)) { return; }
 
       context.report({ 'fix': fixFn ?? null, 'messageId': 'trivial', 'node': node });
     };
@@ -159,7 +97,7 @@ export const noTrivialShim: Rule.RuleModule = {
 
       if (statement === undefined) { return; }
       if (AstHelpers.getNodeType(statement) !== 'ReturnStatement') { return; }
-      const argument = isJsonObject(statement) ? statement.argument : undefined;
+      const argument = AstHelpers.isJsonObject(statement) ? statement.argument : undefined;
 
       reportIfTrivial(node, argument, (fixer) => { const result = fixBlockBody(fixer, statement, argument); return result; });
     };
@@ -182,7 +120,7 @@ export const noTrivialShim: Rule.RuleModule = {
 
     const onMethodDefinition: NonNullable<Rule.RuleListener['MethodDefinition']> = (node) => {
       const rawBody: unknown = node.value.body;
-      const bodyContainer = isJsonObject(rawBody) ? rawBody : null;
+      const bodyContainer = AstHelpers.isJsonObject(rawBody) ? rawBody : null;
       const bodyNodes = bodyContainer?.body;
       const body: readonly unknown[] | undefined = Array.isArray(bodyNodes) ? bodyNodes : undefined;
 

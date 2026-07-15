@@ -1,17 +1,20 @@
 import type { Rule } from 'eslint';
 
-import { isRebuiltInFunctionScope } from './isRebuiltInFunctionScope.js';
+import { FunctionScope } from './functionScope.js';
 
 const EXEMPT_KEYS: ReadonlySet<string> = new Set(['transform', 'transformAsync']);
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object';};
+class AstHelpers {
+  static isNonNullObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object';
+  }
+}
 
 class PropertyKeyName {
   static get(property: unknown): string | undefined {
-    if (!isNonNullObject(property)) { return undefined; }
+    if (!AstHelpers.isNonNullObject(property)) { return undefined; }
     const key: unknown = property.key;
-    if (!isNonNullObject(key) || key.type !== 'Identifier') { return undefined; }
+    if (!AstHelpers.isNonNullObject(key) || key.type !== 'Identifier') { return undefined; }
     return typeof key.name === 'string' ? key.name : undefined;
   }
 }
@@ -22,7 +25,7 @@ export const inlineFunctions: Rule.RuleModule = {
       const rawNode = node as unknown as Record<string, unknown>;
       const value: unknown = rawNode.value;
 
-      if (!isNonNullObject(value) || value.type !== 'FunctionExpression') { return; }
+      if (!AstHelpers.isNonNullObject(value) || value.type !== 'FunctionExpression') { return; }
 
       const parent = node.parent;
       if (parent.type !== 'ObjectExpression') { return; }
@@ -33,7 +36,7 @@ export const inlineFunctions: Rule.RuleModule = {
       // A map built once at module scope or a `static` class field never
       // re-allocates its function values — only a rebuilt-per-call map pays
       // repeated allocation cost.
-      if (!isRebuiltInFunctionScope(parent)) { return; }
+      if (!FunctionScope.isRebuiltInFunctionScope(parent)) { return; }
 
       context.report({ 'messageId': 'forbidden', 'node': node });
     };

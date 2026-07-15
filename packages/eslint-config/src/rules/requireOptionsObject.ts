@@ -90,23 +90,25 @@ class FunctionName {
   }
 }
 
-const onArrowFunctionExpression = (node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void => {
-  const n = node as unknown as FunctionLikeNode;
-  const name = FunctionName.fromParent(node);
-  ParamInspector.check(n.params, context, node, name, minOptionals);
-};
+class RuleHandlers {
+  public static onArrowFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+    const n = node as unknown as FunctionLikeNode;
+    const name = FunctionName.fromParent(node);
+    ParamInspector.check(n.params, context, node, name, minOptionals);
+  }
 
-const onFunctionDeclaration = (node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void => {
-  const n = node as unknown as FunctionLikeNode;
-  const name = n.id?.name ?? '(anonymous)';
-  ParamInspector.check(n.params, context, node, name, minOptionals);
-};
+  public static onFunctionDeclaration(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+    const n = node as unknown as FunctionLikeNode;
+    const name = n.id?.name ?? '(anonymous)';
+    ParamInspector.check(n.params, context, node, name, minOptionals);
+  }
 
-const onFunctionExpression = (node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void => {
-  const n = node as unknown as FunctionLikeNode;
-  const name = FunctionName.fromParent(node);
-  ParamInspector.check(n.params, context, node, name, minOptionals);
-};
+  public static onFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+    const n = node as unknown as FunctionLikeNode;
+    const name = FunctionName.fromParent(node);
+    ParamInspector.check(n.params, context, node, name, minOptionals);
+  }
+}
 
 type TSNodeWithParams = {
   readonly 'key'?: { readonly 'name'?: string; readonly 'type': string };
@@ -125,9 +127,9 @@ export const requireOptionsObject: Rule.RuleModule = {
     const rawOptions = firstOption as Partial<OptionsType> | undefined;
     const minOptionals = MinOptionals.get(rawOptions);
 
-    const arrowFunctionHandler = (node: Rule.Node): void => { onArrowFunctionExpression(node, context, minOptionals); };
-    const functionDeclarationHandler = (node: Rule.Node): void => { onFunctionDeclaration(node, context, minOptionals); };
-    const functionExpressionHandler = (node: Rule.Node): void => { onFunctionExpression(node, context, minOptionals); };
+    const arrowFunctionHandler = (node: Rule.Node): void => { RuleHandlers.onArrowFunctionExpression(node, context, minOptionals); };
+    const functionDeclarationHandler = (node: Rule.Node): void => { RuleHandlers.onFunctionDeclaration(node, context, minOptionals); };
+    const functionExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onFunctionExpression(node, context, minOptionals); };
 
     const listener: Rule.RuleListener = {
       'ArrowFunctionExpression': arrowFunctionHandler,

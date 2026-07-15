@@ -64,13 +64,15 @@ class Shared {
 }
 const pending = new Promise<string>((resolve) => { Shared.resolve = resolve; });
 let factoryCalls = 0;
-const sharedFactory = async (): Promise<string> => {
-  factoryCalls += 1;
-  return await pending;
-};
+class SharedFactory {
+  static async create(): Promise<string> {
+    factoryCalls += 1;
+    return await pending;
+  }
+}
 
-const callA = guard.run('order-99', { 'region': 'us' }, sharedFactory);
-const callB = guard.run('order-99', { 'region': 'us' }, sharedFactory);
+const callA = guard.run('order-99', { 'region': 'us' }, SharedFactory.create);
+const callB = guard.run('order-99', { 'region': 'us' }, SharedFactory.create);
 Shared.resolve('shared-result');
 const [resultA, resultB] = await Promise.all([callA, callB]);
 

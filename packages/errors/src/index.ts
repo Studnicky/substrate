@@ -75,4 +75,4 @@ export type {
   ValidationViolationType
 } from './types/index.js';
 export { errorTypeGuards } from './validation/errorTypeGuards.js';
-export { isErrorClassification } from './validation/isErrorClassification.js';
+export { ErrorClassificationGuard } from './validation/isErrorClassification.js';

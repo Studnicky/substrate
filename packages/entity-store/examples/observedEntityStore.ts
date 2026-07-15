@@ -10,9 +10,11 @@ type TaskType = {
   'title': string;
 };
 
-function selectTaskId(task: TaskType): string {
-  const { id } = task;
-  return id;
+class TaskSelector {
+  static selectId(task: TaskType): string {
+    const { id } = task;
+    return id;
+  }
 }
 
 class TelemetryStore extends EntityStore<TaskType> {
@@ -21,7 +23,7 @@ class TelemetryStore extends EntityStore<TaskType> {
   readonly replaceAllEvents: { 'count': number }[] = [];
 
   static tracked(): TelemetryStore {
-    return new TelemetryStore({ 'selectId': selectTaskId });
+    return new TelemetryStore({ 'selectId': TaskSelector.selectId });
   }
 
   protected override onUpsert(id: string, entity: TaskType): void {

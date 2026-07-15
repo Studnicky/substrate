@@ -37,194 +37,204 @@ import type {
 } from '../types/index.js';
 
 /**
- * Check if value is an error or error-like object using Node.js 24's Error.isError()
- * Falls back to object check for error-like objects that aren't true Error instances
+ * Check if value is an error or error-like object
  */
-function isErrorOrObjectLike(value: unknown): value is Record<string, unknown> {
-  if (Error.isError(value)) {
-    return true;
+class ErrorLikeGuard {
+  /**
+   * Check if value is an error or error-like object using Node.js 24's Error.isError()
+   * Falls back to object check for error-like objects that aren't true Error instances
+   */
+  public static isErrorOrObjectLike(value: unknown): value is Record<string, unknown> {
+    if (Error.isError(value)) {
+      return true;
+    }
+
+    return typeof value === 'object' && value !== null;
+  }
+}
+
+/**
+ * Type guards for common error properties
+ */
+class ErrorPropertyGuards {
+  /**
+   * Type guard: Check if error has status property (number)
+   *
+   * @example
+   * ```typescript
+   * if (isErrorWithStatus(error)) {
+   *   console.log(error.status); // type-safe access
+   * }
+   * ```
+   */
+  public static isErrorWithStatus(error: unknown): error is ErrorWithStatusType {
+    return (
+      ErrorLikeGuard.isErrorOrObjectLike(error)
+      && 'status' in error
+      && typeof error.status === 'number'
+    );
   }
 
-  return typeof value === 'object' && value !== null;
-}
+  /**
+   * Type guard: Check if error has statusCode property (number)
+   *
+   * @example
+   * ```typescript
+   * if (isErrorWithStatusCode(error)) {
+   *   console.log(error.statusCode); // type-safe access
+   * }
+   * ```
+   */
+  public static isErrorWithStatusCode(error: unknown): error is ErrorWithStatusCodeType {
+    return (
+      ErrorLikeGuard.isErrorOrObjectLike(error)
+      && 'statusCode' in error
+      && typeof error.statusCode === 'number'
+    );
+  }
 
-/**
- * Type guard: Check if error has status property (number)
- *
- * @example
- * ```typescript
- * if (isErrorWithStatus(error)) {
- *   console.log(error.status); // type-safe access
- * }
- * ```
- */
-function isErrorWithStatus(error: unknown): error is ErrorWithStatusType {
-  return (
-    isErrorOrObjectLike(error)
-    && 'status' in error
-    && typeof error.status === 'number'
-  );
-}
+  /**
+   * Type guard: Check if error has code property (string)
+   *
+   * @example
+   * ```typescript
+   * if (isErrorWithCode(error)) {
+   *   if (error.code === 'ECONNREFUSED') {
+   *     // handle connection refused
+   *   }
+   * }
+   * ```
+   */
+  public static isErrorWithCode(error: unknown): error is ErrorWithCodeType {
+    return (
+      ErrorLikeGuard.isErrorOrObjectLike(error)
+      && 'code' in error
+      && typeof error.code === 'string'
+    );
+  }
 
-/**
- * Type guard: Check if error has statusCode property (number)
- *
- * @example
- * ```typescript
- * if (isErrorWithStatusCode(error)) {
- *   console.log(error.statusCode); // type-safe access
- * }
- * ```
- */
-function isErrorWithStatusCode(error: unknown): error is ErrorWithStatusCodeType {
-  return (
-    isErrorOrObjectLike(error)
-    && 'statusCode' in error
-    && typeof error.statusCode === 'number'
-  );
-}
+  /**
+   * Type guard: Check if error has retryAfter property (number)
+   *
+   * @example
+   * ```typescript
+   * if (isErrorWithRetryAfter(error)) {
+   *   return this.retryable('Rate limited', error.retryAfter * 1000);
+   * }
+   * ```
+   */
+  public static isErrorWithRetryAfter(error: unknown): error is ErrorWithRetryAfterType {
+    return (
+      ErrorLikeGuard.isErrorOrObjectLike(error)
+      && 'retryAfter' in error
+      && typeof error.retryAfter === 'number'
+    );
+  }
 
-/**
- * Type guard: Check if error has code property (string)
- *
- * @example
- * ```typescript
- * if (isErrorWithCode(error)) {
- *   if (error.code === 'ECONNREFUSED') {
- *     // handle connection refused
- *   }
- * }
- * ```
- */
-function isErrorWithCode(error: unknown): error is ErrorWithCodeType {
-  return (
-    isErrorOrObjectLike(error)
-    && 'code' in error
-    && typeof error.code === 'string'
-  );
-}
+  /**
+   * Type guard: Check if error has errno property (number)
+   *
+   * @example
+   * ```typescript
+   * if (isErrorWithErrno(error)) {
+   *   console.log(error.errno); // type-safe access
+   * }
+   * ```
+   */
+  public static isErrorWithErrno(error: unknown): error is ErrorWithErrnoType {
+    return (
+      ErrorLikeGuard.isErrorOrObjectLike(error)
+      && 'errno' in error
+      && typeof error.errno === 'number'
+    );
+  }
 
-/**
- * Type guard: Check if error has retryAfter property (number)
- *
- * @example
- * ```typescript
- * if (isErrorWithRetryAfter(error)) {
- *   return this.retryable('Rate limited', error.retryAfter * 1000);
- * }
- * ```
- */
-function isErrorWithRetryAfter(error: unknown): error is ErrorWithRetryAfterType {
-  return (
-    isErrorOrObjectLike(error)
-    && 'retryAfter' in error
-    && typeof error.retryAfter === 'number'
-  );
-}
+  /**
+   * Type guard: Check if error has syscall property (string)
+   *
+   * @example
+   * ```typescript
+   * if (isErrorWithSyscall(error)) {
+   *   console.log(error.syscall); // type-safe access
+   * }
+   * ```
+   */
+  public static isErrorWithSyscall(error: unknown): error is ErrorWithSyscallType {
+    return (
+      ErrorLikeGuard.isErrorOrObjectLike(error)
+      && 'syscall' in error
+      && typeof error.syscall === 'string'
+    );
+  }
 
-/**
- * Type guard: Check if error has errno property (number)
- *
- * @example
- * ```typescript
- * if (isErrorWithErrno(error)) {
- *   console.log(error.errno); // type-safe access
- * }
- * ```
- */
-function isErrorWithErrno(error: unknown): error is ErrorWithErrnoType {
-  return (
-    isErrorOrObjectLike(error)
-    && 'errno' in error
-    && typeof error.errno === 'number'
-  );
-}
+  /**
+   * Type guard: Check if error has hostname property (string)
+   *
+   * @example
+   * ```typescript
+   * if (isErrorWithHostname(error)) {
+   *   console.log(error.hostname); // type-safe access
+   * }
+   * ```
+   */
+  public static isErrorWithHostname(error: unknown): error is ErrorWithHostnameType {
+    return (
+      ErrorLikeGuard.isErrorOrObjectLike(error)
+      && 'hostname' in error
+      && typeof error.hostname === 'string'
+    );
+  }
 
-/**
- * Type guard: Check if error has syscall property (string)
- *
- * @example
- * ```typescript
- * if (isErrorWithSyscall(error)) {
- *   console.log(error.syscall); // type-safe access
- * }
- * ```
- */
-function isErrorWithSyscall(error: unknown): error is ErrorWithSyscallType {
-  return (
-    isErrorOrObjectLike(error)
-    && 'syscall' in error
-    && typeof error.syscall === 'string'
-  );
-}
+  /**
+   * Type guard: Check if error has port property (number)
+   *
+   * @example
+   * ```typescript
+   * if (isErrorWithPort(error)) {
+   *   console.log(error.port); // type-safe access
+   * }
+   * ```
+   */
+  public static isErrorWithPort(error: unknown): error is ErrorWithPortType {
+    return (
+      ErrorLikeGuard.isErrorOrObjectLike(error)
+      && 'port' in error
+      && typeof error.port === 'number'
+    );
+  }
 
-/**
- * Type guard: Check if error has hostname property (string)
- *
- * @example
- * ```typescript
- * if (isErrorWithHostname(error)) {
- *   console.log(error.hostname); // type-safe access
- * }
- * ```
- */
-function isErrorWithHostname(error: unknown): error is ErrorWithHostnameType {
-  return (
-    isErrorOrObjectLike(error)
-    && 'hostname' in error
-    && typeof error.hostname === 'string'
-  );
-}
-
-/**
- * Type guard: Check if error has port property (number)
- *
- * @example
- * ```typescript
- * if (isErrorWithPort(error)) {
- *   console.log(error.port); // type-safe access
- * }
- * ```
- */
-function isErrorWithPort(error: unknown): error is ErrorWithPortType {
-  return (
-    isErrorOrObjectLike(error)
-    && 'port' in error
-    && typeof error.port === 'number'
-  );
-}
-
-/**
- * Type guard: Check if error has address property (string)
- *
- * @example
- * ```typescript
- * if (isErrorWithAddress(error)) {
- *   console.log(error.address); // type-safe access
- * }
- * ```
- */
-function isErrorWithAddress(error: unknown): error is ErrorWithAddressType {
-  return (
-    isErrorOrObjectLike(error)
-    && 'address' in error
-    && typeof error.address === 'string'
-  );
+  /**
+   * Type guard: Check if error has address property (string)
+   *
+   * @example
+   * ```typescript
+   * if (isErrorWithAddress(error)) {
+   *   console.log(error.address); // type-safe access
+   * }
+   * ```
+   */
+  public static isErrorWithAddress(error: unknown): error is ErrorWithAddressType {
+    return (
+      ErrorLikeGuard.isErrorOrObjectLike(error)
+      && 'address' in error
+      && typeof error.address === 'string'
+    );
+  }
 }
 
 /**
  * Aggregated export matching filename
  */
 const errorTypeGuards = {
-  'isErrorWithAddress': isErrorWithAddress,
-  'isErrorWithCode': isErrorWithCode,
-  'isErrorWithErrno': isErrorWithErrno,
-  'isErrorWithHostname': isErrorWithHostname,
-  'isErrorWithPort': isErrorWithPort,
-  'isErrorWithRetryAfter': isErrorWithRetryAfter,
-  'isErrorWithStatus': isErrorWithStatus,
-  'isErrorWithStatusCode': isErrorWithStatusCode,
-  'isErrorWithSyscall': isErrorWithSyscall
+  'isErrorWithAddress': ErrorPropertyGuards.isErrorWithAddress,
+  'isErrorWithCode': ErrorPropertyGuards.isErrorWithCode,
+  'isErrorWithErrno': ErrorPropertyGuards.isErrorWithErrno,
+  'isErrorWithHostname': ErrorPropertyGuards.isErrorWithHostname,
+  'isErrorWithPort': ErrorPropertyGuards.isErrorWithPort,
+  'isErrorWithRetryAfter': ErrorPropertyGuards.isErrorWithRetryAfter,
+  'isErrorWithStatus': ErrorPropertyGuards.isErrorWithStatus,
+  'isErrorWithStatusCode': ErrorPropertyGuards.isErrorWithStatusCode,
+  'isErrorWithSyscall': ErrorPropertyGuards.isErrorWithSyscall
 };
 
 export { errorTypeGuards };

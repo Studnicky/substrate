@@ -6,17 +6,20 @@ type ParserServicesType = {
   readonly 'program'?: ts.Program;
 };
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object';};
+class AstHelpers {
+  public static hasTypeServices(value: unknown): value is Required<ParserServicesType> {
+    if (!AstHelpers.isNonNullObject(value)) { return false; }
+    if (!('program' in value) || !AstHelpers.isNonNullObject(value.program)) { return false; }
 
-const hasTypeServices = (value: unknown): value is Required<ParserServicesType> => {
-  if (!isNonNullObject(value)) { return false; }
-  if (!('program' in value) || !isNonNullObject(value.program)) { return false; }
+    return typeof value.program.getTypeChecker === 'function'
+      && 'esTreeNodeToTSNodeMap' in value
+      && value.esTreeNodeToTSNodeMap instanceof Map;
+  }
 
-  return typeof value.program.getTypeChecker === 'function'
-    && 'esTreeNodeToTSNodeMap' in value
-    && value.esTreeNodeToTSNodeMap instanceof Map;
-};
+  public static isNonNullObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object';
+  }
+}
 
 export const forOfArrays: Rule.RuleModule = {
   'create': (context) => {
@@ -24,7 +27,7 @@ export const forOfArrays: Rule.RuleModule = {
       const { right } = node;
       const servicesUnknown: unknown = context.sourceCode.parserServices;
 
-      if (hasTypeServices(servicesUnknown)) {
+      if (AstHelpers.hasTypeServices(servicesUnknown)) {
         // Type-checker is authoritative — no name heuristics, no guessing.
         const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(right);
         if (tsNode === undefined) { return; }

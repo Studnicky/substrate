@@ -26,55 +26,57 @@ type CheckerWithAssignable = TypeChecker & {
   readonly 'isTypeAssignableTo': (a: Type, b: Type) => boolean;
 };
 
-const isTypeAssignable = (checker: TypeChecker, a: Type, b: Type): boolean => {
-  const result = (checker as unknown as CheckerWithAssignable).isTypeAssignableTo(a, b);
-  return result;
-};
-
-const isOptionalSymbol = (symbol: Symbol): boolean => {
-  return (symbol.flags & SymbolFlags.Optional) !== 0;
-};
-
-const classifyMatch = (
-  localType: Type,
-  importedType: Type,
-  checker: TypeChecker,
-  minFields: number
-): MatchResultType => {
-  const localProps = localType.getProperties();
-
-  if (localProps.length < minFields) {
-    return 'off';
+class TypeMatching {
+  public static isTypeAssignable(checker: TypeChecker, a: Type, b: Type): boolean {
+    const result = (checker as unknown as CheckerWithAssignable).isTypeAssignableTo(a, b);
+    return result;
   }
 
-  // Gate 1: does imported fully cover local?
-  // imported assignable to local = imported satisfies local's required shape
-  const importedCoversLocal = isTypeAssignable(checker, importedType, localType);
-
-  if (!importedCoversLocal) {
-    return 'off';
+  public static isOptionalSymbol(symbol: Symbol): boolean {
+    return (symbol.flags & SymbolFlags.Optional) !== 0;
   }
 
-  // Gate 2: mutual coverage (bidirectional)?
-  const localCoversImported = isTypeAssignable(checker, localType, importedType);
+  public static classifyMatch(
+    localType: Type,
+    importedType: Type,
+    checker: TypeChecker,
+    minFields: number
+  ): MatchResultType {
+    const localProps = localType.getProperties();
 
-  if (!localCoversImported) {
-    return 'subsumedMatch';
+    if (localProps.length < minFields) {
+      return 'off';
+    }
+
+    // Gate 1: does imported fully cover local?
+    // imported assignable to local = imported satisfies local's required shape
+    const importedCoversLocal = TypeMatching.isTypeAssignable(checker, importedType, localType);
+
+    if (!importedCoversLocal) {
+      return 'off';
+    }
+
+    // Gate 2: mutual coverage (bidirectional)?
+    const localCoversImported = TypeMatching.isTypeAssignable(checker, localType, importedType);
+
+    if (!localCoversImported) {
+      return 'subsumedMatch';
+    }
+
+    // Gate 3: both cover each other — distinguish exact vs near by property counts
+    const importedProps = importedType.getProperties();
+    const localReqCount = localProps.filter((p) => { return !TypeMatching.isOptionalSymbol(p); }).length;
+    const importedReqCount = importedProps.filter((p) => { return !TypeMatching.isOptionalSymbol(p); }).length;
+    const localOptCount = localProps.length - localReqCount;
+    const importedOptCount = importedProps.length - importedReqCount;
+
+    if (localReqCount === importedReqCount && localOptCount === importedOptCount) {
+      return 'exactMatch';
+    }
+
+    return 'nearMatch';
   }
-
-  // Gate 3: both cover each other — distinguish exact vs near by property counts
-  const importedProps = importedType.getProperties();
-  const localReqCount = localProps.filter((p) => { return !isOptionalSymbol(p); }).length;
-  const importedReqCount = importedProps.filter((p) => { return !isOptionalSymbol(p); }).length;
-  const localOptCount = localProps.length - localReqCount;
-  const importedOptCount = importedProps.length - importedReqCount;
-
-  if (localReqCount === importedReqCount && localOptCount === importedOptCount) {
-    return 'exactMatch';
-  }
-
-  return 'nearMatch';
-};
+}
 
 type ParserServicesType = {
   readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
@@ -112,11 +114,13 @@ type RawTSInterfaceDeclarationType = {
   };
 };
 
-const isExcluded = (source: string, excludePrefixes: readonly string[]): boolean => {
-  const result = excludePrefixes.some((prefix) => { const result = source.startsWith(prefix);
-    return result; });
-  return result;
-};
+class ImportFiltering {
+  public static isExcluded(source: string, excludePrefixes: readonly string[]): boolean {
+    const result = excludePrefixes.some((prefix) => { const result = source.startsWith(prefix);
+      return result; });
+    return result;
+  }
+}
 
 type ImportedCandidateType = {
   readonly 'exportName': string;
@@ -167,7 +171,7 @@ export const noPreferExistingType: Rule.RuleModule = {
         }
         const source = (statement as unknown as { readonly 'source': RawImportSourceType }).source.value;
 
-        if (isExcluded(source, options.excludePrefixes)) {
+        if (ImportFiltering.isExcluded(source, options.excludePrefixes)) {
           return;
         }
 
@@ -222,7 +226,7 @@ export const noPreferExistingType: Rule.RuleModule = {
         .join(' | ');
 
       for (const candidate of candidates) {
-        const matchResult = classifyMatch(localType, candidate.type, checker, options.minFields);
+        const matchResult = TypeMatching.classifyMatch(localType, candidate.type, checker, options.minFields);
 
         if (matchResult === 'off') {
           continue;

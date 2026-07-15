@@ -1,9 +1,5 @@
 import type { Rule } from 'eslint';
 
-const isJsonObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-};
-
 const PRIMITIVE_TYPES = new Set([
   'TSAnyKeyword',
   'TSBigIntKeyword',
@@ -38,8 +34,12 @@ class PrimitiveDisplay {
 }
 
 class AstHelpers {
+  public static isJsonObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+  }
+
   public static getNodeType(node: unknown): string | undefined {
-    if (!isJsonObject(node)) {
+    if (!AstHelpers.isJsonObject(node)) {
       return undefined;
     }
     const type = node.type;
@@ -48,7 +48,7 @@ class AstHelpers {
   }
 
   public static getIdentifierName(node: unknown): string | undefined {
-    if (!isJsonObject(node)) {
+    if (!AstHelpers.isJsonObject(node)) {
       return undefined;
     }
     const name = node.name;
@@ -57,7 +57,7 @@ class AstHelpers {
   }
 
   public static getTypeArgNames(typeArguments: unknown): readonly string[] | undefined {
-    if (!isJsonObject(typeArguments)) {
+    if (!AstHelpers.isJsonObject(typeArguments)) {
       return undefined;
     }
     const params = typeArguments.params;
@@ -72,7 +72,7 @@ class AstHelpers {
     for (let i = 0; i < paramsLen; i += 1) {
       const arg: unknown = params[i];
 
-      if (!isJsonObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') {
+      if (!AstHelpers.isJsonObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') {
         return undefined;
       }
       const typeName = arg.typeName;
@@ -88,7 +88,7 @@ class AstHelpers {
   }
 
   public static getTypeParamNames(typeParameters: unknown): readonly string[] {
-    if (!isJsonObject(typeParameters)) {
+    if (!AstHelpers.isJsonObject(typeParameters)) {
       return [];
     }
     const params = typeParameters.params;
@@ -104,7 +104,7 @@ class AstHelpers {
       const param: unknown = params[i];
       // TSTypeParameter nodes have a `name` Identifier child, not a bare string.
       // e.g. { type: 'TSTypeParameter', name: { type: 'Identifier', name: 'T' } }
-      const nameNode = isJsonObject(param) ? param.name : undefined;
+      const nameNode = AstHelpers.isJsonObject(param) ? param.name : undefined;
       const name = AstHelpers.getIdentifierName(nameNode);
 
       if (name === undefined) {
@@ -117,63 +117,65 @@ class AstHelpers {
   }
 }
 
-const hasTypeParameters = (node: unknown): boolean => {
-  if (!isJsonObject(node)) {
-    return false;
-  }
-  // node may be a TSTypeParameterDeclaration / TSTypeParameterInstantiation
-  // (which carries .params directly) or a type alias / reference node that
-  // carries .typeParameters / .typeArguments pointing to such a wrapper.
-  let wrapper: Record<string, unknown> | undefined;
-  if (Array.isArray(node.params)) {
-    wrapper = node;
-  } else if (isJsonObject(node.typeParameters)) {
-    wrapper = node.typeParameters;
-  } else if (isJsonObject(node.typeArguments)) {
-    wrapper = node.typeArguments;
-  }
+class GenericAliasAnalysis {
+  public static hasTypeParameters(node: unknown): boolean {
+    if (!AstHelpers.isJsonObject(node)) {
+      return false;
+    }
+    // node may be a TSTypeParameterDeclaration / TSTypeParameterInstantiation
+    // (which carries .params directly) or a type alias / reference node that
+    // carries .typeParameters / .typeArguments pointing to such a wrapper.
+    let wrapper: Record<string, unknown> | undefined;
+    if (Array.isArray(node.params)) {
+      wrapper = node;
+    } else if (AstHelpers.isJsonObject(node.typeParameters)) {
+      wrapper = node.typeParameters;
+    } else if (AstHelpers.isJsonObject(node.typeArguments)) {
+      wrapper = node.typeArguments;
+    }
 
-  if (!isJsonObject(wrapper)) {
-    return false;
-  }
-  const paramsBody = wrapper.params;
+    if (!AstHelpers.isJsonObject(wrapper)) {
+      return false;
+    }
+    const paramsBody = wrapper.params;
 
-  if (!Array.isArray(paramsBody)) {
-    return false;
-  }
+    if (!Array.isArray(paramsBody)) {
+      return false;
+    }
 
-  return paramsBody.length > 0;
-};
-
-const isGenericForwardingShim = (
-  leftNames: readonly string[],
-  annotation: unknown
-): { 'params': string; 'rhsName': string; } | undefined => {
-  if (!isJsonObject(annotation) || AstHelpers.getNodeType(annotation) !== 'TSTypeReference') {
-    return undefined;
-  }
-  const rhsTypeArgs = annotation.typeArguments ?? annotation.typeParameters;
-  const rightNames = AstHelpers.getTypeArgNames(rhsTypeArgs);
-
-  if (rightNames?.length !== leftNames.length) {
-    return undefined;
+    return paramsBody.length > 0;
   }
 
-  const len = leftNames.length;
-  for (let i = 0; i < len; i += 1) {
-    if (leftNames[i] !== rightNames[i]) {
+  public static isGenericForwardingShim(
+    leftNames: readonly string[],
+    annotation: unknown
+  ): { 'params': string; 'rhsName': string; } | undefined {
+    if (!AstHelpers.isJsonObject(annotation) || AstHelpers.getNodeType(annotation) !== 'TSTypeReference') {
       return undefined;
     }
-  }
-  const typeName = annotation.typeName;
-  const rhsName = AstHelpers.getIdentifierName(typeName);
+    const rhsTypeArgs = annotation.typeArguments ?? annotation.typeParameters;
+    const rightNames = AstHelpers.getTypeArgNames(rhsTypeArgs);
 
-  if (rhsName === undefined) {
-    return undefined;
-  }
+    if (rightNames?.length !== leftNames.length) {
+      return undefined;
+    }
 
-  return { 'params': leftNames.join(', '), 'rhsName': rhsName };
-};
+    const len = leftNames.length;
+    for (let i = 0; i < len; i += 1) {
+      if (leftNames[i] !== rightNames[i]) {
+        return undefined;
+      }
+    }
+    const typeName = annotation.typeName;
+    const rhsName = AstHelpers.getIdentifierName(typeName);
+
+    if (rhsName === undefined) {
+      return undefined;
+    }
+
+    return { 'params': leftNames.join(', '), 'rhsName': rhsName };
+  }
+}
 
 export const noTypeAliasing: Rule.RuleModule = {
   'create': (context) => {
@@ -187,7 +189,7 @@ export const noTypeAliasing: Rule.RuleModule = {
       const leftParamNames = AstHelpers.getTypeParamNames(rawNode.typeParameters);
 
       if (leftParamNames.length > 0) {
-        const forwarding = isGenericForwardingShim(leftParamNames, rawNode.typeAnnotation);
+        const forwarding = GenericAliasAnalysis.isGenericForwardingShim(leftParamNames, rawNode.typeAnnotation);
 
         if (forwarding !== undefined) {
           context.report({
@@ -220,10 +222,10 @@ export const noTypeAliasing: Rule.RuleModule = {
       }
 
       if (annotationType === 'TSTypeReference') {
-        if (hasTypeParameters(annotation)) {
+        if (GenericAliasAnalysis.hasTypeParameters(annotation)) {
           return;
         }
-        const typeName = isJsonObject(annotation) ? annotation.typeName : undefined;
+        const typeName = AstHelpers.isJsonObject(annotation) ? annotation.typeName : undefined;
         const rhsName = AstHelpers.getIdentifierName(typeName);
 
         if (rhsName === undefined) {

@@ -26,23 +26,27 @@ const EXEMPT_PATH_PATTERNS = [
   /eslint\.config\.mjs$/v
 ];
 
-const isExemptPath = (filename: string): boolean => {
-  if (filename === '<input>' || filename.length === 0) { return true; }
+class PathGuards {
+  static isExemptPath(filename: string): boolean {
+    if (filename === '<input>' || filename.length === 0) { return true; }
 
-  const normalized = filename.split(path.sep).join('/');
+    const normalized = filename.split(path.sep).join('/');
 
-  return EXEMPT_PATH_PATTERNS.some((pattern) => { const result = pattern.test(normalized);
-    return result; });
-};
+    return EXEMPT_PATH_PATTERNS.some((pattern) => { const result = pattern.test(normalized);
+      return result; });
+  }
 
-const isUnderFolder = (filename: string, folder: string): boolean => {
-  const normalized = filename.split(path.sep).join('/');
-  return normalized.split('/').includes(folder);
-};
+  static isUnderFolder(filename: string, folder: string): boolean {
+    const normalized = filename.split(path.sep).join('/');
+    return normalized.split('/').includes(folder);
+  }
+}
 
-const isObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-};
+class TypeGuards {
+  static isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+  }
+}
 
 type TopLevelDeclarationNodeType = {
   readonly 'id'?: { readonly 'name': string };
@@ -52,14 +56,14 @@ type TopLevelDeclarationNodeType = {
 class TopLevelScope {
   public static isTopLevel(rawNode: TopLevelDeclarationNodeType): boolean {
     const { parent } = rawNode;
-    if (!isObject(parent)) { return false; }
+    if (!TypeGuards.isObject(parent)) { return false; }
 
     const parentType = parent.type;
     if (parentType === 'Program') { return true; }
     if (parentType !== 'ExportNamedDeclaration') { return false; }
 
     const grandparent = parent.parent;
-    return isObject(grandparent) && grandparent.type === 'Program';
+    return TypeGuards.isObject(grandparent) && grandparent.type === 'Program';
   }
 }
 
@@ -67,10 +71,10 @@ export const folderDeclarationShape: Rule.RuleModule = {
   'create': (context) => {
     const { filename } = context;
 
-    if (isExemptPath(filename)) { return {}; }
+    if (PathGuards.isExemptPath(filename)) { return {}; }
 
-    const underInterfacesFolder = isUnderFolder(filename, 'interfaces');
-    const underTypesFolder = isUnderFolder(filename, 'types');
+    const underInterfacesFolder = PathGuards.isUnderFolder(filename, 'interfaces');
+    const underTypesFolder = PathGuards.isUnderFolder(filename, 'types');
 
     if (!underInterfacesFolder && !underTypesFolder) { return {}; }
 

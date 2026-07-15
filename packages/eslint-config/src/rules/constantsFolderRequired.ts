@@ -18,17 +18,22 @@ const EXEMPT_PATH_PATTERNS = [
   /\/index\.ts$/v
 ];
 
-const isExemptPath = (filename: string): boolean => {
-  if (filename === '<input>' || filename.length === 0) { return true; }
+class PathGuards {
+  static isExemptPath(filename: string): boolean {
+    if (filename === '<input>' || filename.length === 0) { return true; }
 
-  const normalized = filename.split(path.sep).join('/');
+    const normalized = filename.split(path.sep).join('/');
 
-  return EXEMPT_PATH_PATTERNS.some((pattern) => { const result = pattern.test(normalized);
-    return result; });
-};
+    return EXEMPT_PATH_PATTERNS.some((pattern) => { const result = pattern.test(normalized);
+      return result; });
+  }
+}
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);};
+class TypeGuards {
+  static isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+  }
+}
 
 const FUNCTION_LIKE_INIT_TYPES = new Set([
   'ArrowFunctionExpression',
@@ -36,69 +41,69 @@ const FUNCTION_LIKE_INIT_TYPES = new Set([
   'FunctionExpression'
 ]);
 
-const collectPatternNames = (patternNode: unknown, names: string[]): void => {
-  if (!isObject(patternNode)) { return; }
-
-  const nodeType: unknown = patternNode.type;
-
-  if (nodeType === 'Identifier') {
-    const name: unknown = patternNode.name;
-    if (typeof name === 'string') { names.push(name); }
-    return;
-  }
-
-  if (nodeType === 'AssignmentPattern') {
-    collectPatternNames(patternNode.left, names);
-    return;
-  }
-
-  if (nodeType === 'RestElement') {
-    collectPatternNames(patternNode.argument, names);
-    return;
-  }
-
-  if (nodeType === 'ObjectPattern') {
-    const properties: unknown = patternNode.properties;
-    if (!Array.isArray(properties)) { return; }
-
-    for (const property of properties) {
-      if (!isObject(property)) { continue; }
-
-      if (property.type === 'RestElement') {
-        collectPatternNames(property.argument, names);
-        continue;
-      }
-
-      collectPatternNames(property.value, names);
-    }
-    return;
-  }
-
-  if (nodeType === 'ArrayPattern') {
-    const elements: unknown = patternNode.elements;
-    if (!Array.isArray(elements)) { return; }
-
-    for (const element of elements) {
-      if (element === null) { continue; }
-      collectPatternNames(element, names);
-    }
-  }
-};
-
 class DeclaratorName {
+  static collectPatternNames(patternNode: unknown, names: string[]): void {
+    if (!TypeGuards.isObject(patternNode)) { return; }
+
+    const nodeType: unknown = patternNode.type;
+
+    if (nodeType === 'Identifier') {
+      const name: unknown = patternNode.name;
+      if (typeof name === 'string') { names.push(name); }
+      return;
+    }
+
+    if (nodeType === 'AssignmentPattern') {
+      DeclaratorName.collectPatternNames(patternNode.left, names);
+      return;
+    }
+
+    if (nodeType === 'RestElement') {
+      DeclaratorName.collectPatternNames(patternNode.argument, names);
+      return;
+    }
+
+    if (nodeType === 'ObjectPattern') {
+      const properties: unknown = patternNode.properties;
+      if (!Array.isArray(properties)) { return; }
+
+      for (const property of properties) {
+        if (!TypeGuards.isObject(property)) { continue; }
+
+        if (property.type === 'RestElement') {
+          DeclaratorName.collectPatternNames(property.argument, names);
+          continue;
+        }
+
+        DeclaratorName.collectPatternNames(property.value, names);
+      }
+      return;
+    }
+
+    if (nodeType === 'ArrayPattern') {
+      const elements: unknown = patternNode.elements;
+      if (!Array.isArray(elements)) { return; }
+
+      for (const element of elements) {
+        if (element === null) { continue; }
+        DeclaratorName.collectPatternNames(element, names);
+      }
+    }
+  }
+
   static getAll(declarator: unknown): string[] {
-    if (!isObject(declarator)) { return []; }
+    if (!TypeGuards.isObject(declarator)) { return []; }
 
     const names: string[] = [];
-    collectPatternNames(declarator.id, names);
+    DeclaratorName.collectPatternNames(declarator.id, names);
     return names;
   }
 
   static isFunctionLikeInit(declarator: unknown): boolean {
-    if (!isObject(declarator)) { return false; }
+    if (!TypeGuards.isObject(declarator)) { return false; }
 
     const initNode: unknown = declarator.init;
-    if (!isObject(initNode)) { return false; }
+    if (!TypeGuards.isObject(initNode)) { return false; }
 
     const initType: unknown = initNode.type;
     return typeof initType === 'string' && FUNCTION_LIKE_INIT_TYPES.has(initType);
@@ -109,11 +114,11 @@ export const constantsFolderRequired: Rule.RuleModule = {
   'create': (context) => {
     const filename = context.physicalFilename;
 
-    if (isExemptPath(filename)) { return {}; }
+    if (PathGuards.isExemptPath(filename)) { return {}; }
 
     const onProgramExit: NonNullable<Rule.RuleListener['Program:exit']> = (node) => {
       const nodeAsUnknown: unknown = node;
-      if (!isObject(nodeAsUnknown)) { return; }
+      if (!TypeGuards.isObject(nodeAsUnknown)) { return; }
 
       const programBody: unknown = nodeAsUnknown.body;
       if (!Array.isArray(programBody)) { return; }
@@ -121,7 +126,7 @@ export const constantsFolderRequired: Rule.RuleModule = {
       const constNames: string[] = [];
 
       for (const statement of programBody) {
-        if (!isObject(statement)) { continue; }
+        if (!TypeGuards.isObject(statement)) { continue; }
 
         const statementType: unknown = statement.type;
         let variableDeclaration: unknown = undefined;
@@ -131,12 +136,12 @@ export const constantsFolderRequired: Rule.RuleModule = {
         } else if (statementType === 'ExportNamedDeclaration') {
           const decl: unknown = statement.declaration;
 
-          if (isObject(decl) && decl.type === 'VariableDeclaration') {
+          if (TypeGuards.isObject(decl) && decl.type === 'VariableDeclaration') {
             variableDeclaration = decl;
           }
         }
 
-        if (!isObject(variableDeclaration)) { continue; }
+        if (!TypeGuards.isObject(variableDeclaration)) { continue; }
         if (variableDeclaration.kind !== 'const') { continue; }
 
         const declarations: unknown = variableDeclaration.declarations;

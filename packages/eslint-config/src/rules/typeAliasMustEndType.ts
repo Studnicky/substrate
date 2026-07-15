@@ -20,20 +20,22 @@ type ProgramExportNodeType = JSSyntaxElement & {
  * either at the declaration level (`export type { Foo }`) or the specifier
  * level (`export { type Foo }`).
  */
-const isReexportedAsType = (context: Rule.RuleContext, name: string): boolean => {
-  const program = context.sourceCode.ast as unknown as { 'body': ProgramExportNodeType[] };
+class ReexportDetection {
+  public static isReexportedAsType(context: Rule.RuleContext, name: string): boolean {
+    const program = context.sourceCode.ast as unknown as { 'body': ProgramExportNodeType[] };
 
-  return program.body.some((statement) => {
-    if (statement.type !== 'ExportNamedDeclaration') { return false; }
-    if (statement.declaration !== null && statement.declaration !== undefined) { return false; }
-    if (statement.source !== null && statement.source !== undefined) { return false; }
+    return program.body.some((statement) => {
+      if (statement.type !== 'ExportNamedDeclaration') { return false; }
+      if (statement.declaration !== null && statement.declaration !== undefined) { return false; }
+      if (statement.source !== null && statement.source !== undefined) { return false; }
 
-    return (statement.specifiers ?? []).some((specifier) => {
-      if (specifier.local.name !== name) { return false; }
-      return statement.exportKind === 'type' || specifier.exportKind === 'type';
+      return (statement.specifiers ?? []).some((specifier) => {
+        if (specifier.local.name !== name) { return false; }
+        return statement.exportKind === 'type' || specifier.exportKind === 'type';
+      });
     });
-  });
-};
+  }
+}
 
 export const typeAliasMustEndType: Rule.RuleModule = {
   'create': (context) => {
@@ -45,7 +47,7 @@ export const typeAliasMustEndType: Rule.RuleModule = {
 
       const isInlineExport = rawNode.parent.type === 'ExportNamedDeclaration';
       const isSeparateReexport =
-        rawNode.parent.type === 'Program' && isReexportedAsType(context, rawNode.id.name);
+        rawNode.parent.type === 'Program' && ReexportDetection.isReexportedAsType(context, rawNode.id.name);
 
       if (!isInlineExport && !isSeparateReexport) { return; }
       if (rawNode.id.name.endsWith('Type')) { return; }

@@ -1,20 +1,22 @@
 import type { Rule } from 'eslint';
 
-const isThisExpression = (node: unknown): boolean => {
-  if (node === null || node === undefined) {
-    return false;
-  }
-  if (typeof node !== 'object') {
-    return false;
-  }
+class ThisExpressionNode {
+  public static is(node: unknown): boolean {
+    if (node === null || node === undefined) {
+      return false;
+    }
+    if (typeof node !== 'object') {
+      return false;
+    }
 
-  return Reflect.get(node, 'type') === 'ThisExpression';
-};
+    return Reflect.get(node, 'type') === 'ThisExpression';
+  }
+}
 
 export const noThisAlias: Rule.RuleModule = {
   'create': (context) => {
     const onAssignmentExpression: NonNullable<Rule.RuleListener['AssignmentExpression']> = (node) => {
-      if (isThisExpression(node.right)) {
+      if (ThisExpressionNode.is(node.right)) {
         context.report({
           'messageId': 'alias',
           'node': node
@@ -23,7 +25,7 @@ export const noThisAlias: Rule.RuleModule = {
     };
 
     const onVariableDeclarator: NonNullable<Rule.RuleListener['VariableDeclarator']> = (node) => {
-      if (isThisExpression(node.init)) {
+      if (ThisExpressionNode.is(node.init)) {
         context.report({
           'messageId': 'alias',
           'node': node

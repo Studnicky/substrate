@@ -7,10 +7,12 @@ import { CircuitBreaker, CircuitBreakerOpenError } from '../src/index.js';
 
 // Deterministic clock so tests are instant with no real waits.
 let now = 0;
-const clock = (): number => { const result = now; return result; };
+class Clock {
+  static now(): number { const result = now; return result; }
+}
 
 const breaker = CircuitBreaker.create({
-  'clock': clock,
+  'clock': Clock.now,
   'failureThreshold': 3,
   'name': 'test-service',
   'resetTimeoutMs': 1_000,
@@ -22,9 +24,11 @@ await breaker.execute(() => { const result = Promise.resolve('ok'); return resul
 console.log('State after success:', breaker.state);
 
 // --- Trip the breaker: 3 consecutive failures ---
-const fail = (): Promise<never> => { throw new Error('boom'); };
+class Fail {
+  static boom(): Promise<never> { throw new Error('boom'); }
+}
 for (let i = 0; i < 3; i++) {
-  await breaker.execute(fail).catch(() => { /* expected */ });
+  await breaker.execute(Fail.boom).catch(() => { /* expected */ });
 }
 console.log('State after 3 failures:', breaker.state);
 

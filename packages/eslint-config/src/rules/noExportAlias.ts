@@ -9,10 +9,12 @@ const INDEX_BASES = new Set([
   'index.ts'
 ]);
 
-const isIndexFile = (filename: string): boolean => {
-  const result = INDEX_BASES.has(path.basename(filename));
-  return result;
-};
+class PathGuards {
+  static isIndexFile(filename: string): boolean {
+    const result = INDEX_BASES.has(path.basename(filename));
+    return result;
+  }
+}
 
 class AstHelpers {
   public static getIdentifierName(node: unknown): string | undefined {
@@ -30,7 +32,7 @@ export const noExportAlias: Rule.RuleModule = {
   'create': (context) => {
     const filename = context.filename;
 
-    const inIndex = isIndexFile(filename);
+    const inIndex = PathGuards.isIndexFile(filename);
     const importedBindings = new Set<string>();
 
     const onImportDeclaration = (node: Rule.Node): void => {

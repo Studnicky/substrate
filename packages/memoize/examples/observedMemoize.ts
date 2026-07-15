@@ -61,8 +61,19 @@ memo.invalidate('order-42');
 const third = await memo.call('order-42');
 
 // Concurrent calls with the same (new) key share one invocation via Coalesce
-let sharedCompletion: (value: { 'chargeId': string }) => void = () => {};
-const pending = new Promise<{ 'chargeId': string }>((resolve) => { sharedCompletion = resolve; });
+class SharedChargeResolver {
+  private static resolveFn: (value: { 'chargeId': string }) => void = () => {};
+
+  static capture(resolve: (value: { 'chargeId': string }) => void): void {
+    SharedChargeResolver.resolveFn = resolve;
+  }
+
+  static resolve(value: { 'chargeId': string }): void {
+    SharedChargeResolver.resolveFn(value);
+  }
+}
+
+const pending = new Promise<{ 'chargeId': string }>((resolve) => { SharedChargeResolver.capture(resolve); });
 let sharedCalls = 0;
 const sharedMemo = TelemetryMemoize.tracked(async () => {
   sharedCalls += 1;
@@ -71,7 +82,7 @@ const sharedMemo = TelemetryMemoize.tracked(async () => {
 
 const callA = sharedMemo.call('order-99');
 const callB = sharedMemo.call('order-99');
-sharedCompletion({ 'chargeId': 'ch_shared' });
+SharedChargeResolver.resolve({ 'chargeId': 'ch_shared' });
 const [resultA, resultB] = await Promise.all([callA, callB]);
 
 console.log('Events:', memo.events, sharedMemo.events);
@@ -85,8 +96,8 @@ assert.equal(sharedCalls, 1);
 assert.equal(resultA.chargeId, 'ch_shared');
 assert.equal(resultB.chargeId, 'ch_shared');
 
-assert.deepEqual(memo.events, ['miss:order-42', 'hit:order-42', 'miss:order-42']);
-assert.deepEqual(sharedMemo.events, ['miss:order-99', 'coalesced:order-99']);
+assert.deepEqual(memo.events, ['miss:charge:order-42', 'hit:charge:order-42', 'miss:charge:order-42']);
+assert.deepEqual(sharedMemo.events, ['miss:charge:order-99', 'coalesced:charge:order-99']);
 
 // getCache()/getCoalesce() expose the exact composed instances (Layer
 // Transparency Rule) — advanced consumers can subclass or introspect them
