@@ -106,6 +106,12 @@ type RawTSTypeAliasDeclarationType = {
   };
 };
 
+type RawTSInterfaceDeclarationType = {
+  readonly 'id': object & {
+    readonly 'name': string;
+  };
+};
+
 const isExcluded = (source: string, excludePrefixes: readonly string[]): boolean => {
   const result = excludePrefixes.some((prefix) => { const result = source.startsWith(prefix);
     return result; });
@@ -203,27 +209,13 @@ export const noPreferExistingType: Rule.RuleModule = {
       return cachedCandidates;
     };
 
-    const onTSTypeAliasDeclaration = (node: Rule.Node): void => {
-      const rawNode = node as unknown as RawTSTypeAliasDeclarationType;
-
-      if (rawNode.typeAnnotation.type !== 'TSTypeLiteral') {
-        return;
-      }
-
+    const checkLocalTypeAgainstCandidates = (node: Rule.Node, localName: string, localType: Type): void => {
       const candidates = getCandidates();
 
       if (candidates.length === 0) {
         return;
       }
 
-      // Get the declared symbol for the type alias id, then the declared type
-      // This handles the TSTypeAliasDeclaration correctly via the checker API
-      const aliasSymbol = services.getSymbolAtLocation(rawNode.id);
-      const localType = aliasSymbol !== undefined
-        ? checker.getDeclaredTypeOfSymbol(aliasSymbol)
-        : services.getTypeAtLocation(rawNode.typeAnnotation);
-
-      const localName = rawNode.id.name;
       const localProps = localType.getProperties();
       const fields = localProps
         .map((p) => { const name = p.getName(); return `'${name}'`; })
@@ -267,7 +259,38 @@ export const noPreferExistingType: Rule.RuleModule = {
       }
     };
 
+    const onTSTypeAliasDeclaration = (node: Rule.Node): void => {
+      const rawNode = node as unknown as RawTSTypeAliasDeclarationType;
+
+      if (rawNode.typeAnnotation.type !== 'TSTypeLiteral') {
+        return;
+      }
+
+      // Get the declared symbol for the type alias id, then the declared type
+      // This handles the TSTypeAliasDeclaration correctly via the checker API
+      const aliasSymbol = services.getSymbolAtLocation(rawNode.id);
+      const localType = aliasSymbol !== undefined
+        ? checker.getDeclaredTypeOfSymbol(aliasSymbol)
+        : services.getTypeAtLocation(rawNode.typeAnnotation);
+
+      checkLocalTypeAgainstCandidates(node, rawNode.id.name, localType);
+    };
+
+    const onTSInterfaceDeclaration = (node: Rule.Node): void => {
+      const rawNode = node as unknown as RawTSInterfaceDeclarationType;
+
+      // An interface's member list (node.body.body) is structurally equivalent to a
+      // TSTypeLiteral's members for shape-comparison purposes.
+      const interfaceSymbol = services.getSymbolAtLocation(rawNode.id);
+      const localType = interfaceSymbol !== undefined
+        ? checker.getDeclaredTypeOfSymbol(interfaceSymbol)
+        : services.getTypeAtLocation(node);
+
+      checkLocalTypeAgainstCandidates(node, rawNode.id.name, localType);
+    };
+
     return {
+      'TSInterfaceDeclaration': onTSInterfaceDeclaration,
       'TSTypeAliasDeclaration': onTSTypeAliasDeclaration
     };
   },

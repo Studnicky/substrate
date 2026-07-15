@@ -96,7 +96,7 @@ const isTrivialExpression = (node: unknown, opts: OptionsType): boolean => {
   ) { return true; }
 
   // Strip TS wrappers and recurse.
-  if (type === 'TSAsExpression' || type === 'TSNonNullExpression') {
+  if (type === 'TSAsExpression' || type === 'TSNonNullExpression' || type === 'TSSatisfiesExpression') {
     return isTrivialExpression(AstHelpers.getExpression(node), opts);
   }
 

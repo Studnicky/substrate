@@ -68,6 +68,16 @@ ruleTester.run('no-prefer-existing-type', noPreferExistingType, {
       'errors': [{ 'messageId': 'subsumedMatch' }],
       'name': 'subsumedMatch: local type covered by imported but not the reverse due to narrower value types',
       'options': [{ 'minFields': 1, 'subsumedMatch': 'error' }]
+    },
+    {
+      'code': [
+        "import type { Rule } from 'eslint';",
+        "import { plugin } from '@studnicky/eslint-config';",
+        'interface LocalPluginType { rules: Record<string, Rule.RuleModule> }'
+      ].join('\n'),
+      'errors': [{ 'messageId': 'exactMatch' }],
+      'name': 'exactMatch: local interface is structurally identical to imported type',
+      'options': [{ 'exactMatch': 'error', 'excludePrefixes': ['@types/', 'eslint', 'node:'], 'minFields': 1 }]
     }
   ],
   'valid': [
@@ -114,6 +124,14 @@ ruleTester.run('no-prefer-existing-type', noPreferExistingType, {
       ].join('\n'),
       'name': 'local type has more required fields than imported — imported does not cover local (off)',
       'options': [{ 'minFields': 1 }]
+    },
+    {
+      'code': [
+        "import { plugin } from '@studnicky/eslint-config';",
+        'interface FooType { a: string; b: number }'
+      ].join('\n'),
+      'name': 'interface with unrelated fields — no match',
+      'options': [{ 'minFields': 2 }]
     }
   ]
 });

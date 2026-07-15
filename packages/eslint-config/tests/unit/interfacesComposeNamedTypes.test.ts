@@ -52,6 +52,11 @@ ruleTester.run('interfaces-compose-named-types', interfacesComposeNamedTypes, {
       'code': 'interface Foo { [key: string]: { a: number }; }',
       'errors': [{ 'messageId': 'inlineObjectInInterface' }],
       'name': 'index signature with inline object value type — flagged'
+    },
+    {
+      'code': "type Keys = 'a' | 'b'; interface Foo { bar: { [K in Keys]: string }; }",
+      'errors': [{ 'messageId': 'inlineObjectInInterface' }],
+      'name': 'interface with inline mapped type property — flagged'
     }
   ]
 });

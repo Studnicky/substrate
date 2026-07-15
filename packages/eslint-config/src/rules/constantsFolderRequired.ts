@@ -30,15 +30,78 @@ const isExemptPath = (filename: string): boolean => {
 const isObject = (value: unknown): value is Record<string, unknown> =>
 {return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);};
 
+const FUNCTION_LIKE_INIT_TYPES = new Set([
+  'ArrowFunctionExpression',
+  'ClassExpression',
+  'FunctionExpression'
+]);
+
+const collectPatternNames = (patternNode: unknown, names: string[]): void => {
+  if (!isObject(patternNode)) { return; }
+
+  const nodeType: unknown = patternNode.type;
+
+  if (nodeType === 'Identifier') {
+    const name: unknown = patternNode.name;
+    if (typeof name === 'string') { names.push(name); }
+    return;
+  }
+
+  if (nodeType === 'AssignmentPattern') {
+    collectPatternNames(patternNode.left, names);
+    return;
+  }
+
+  if (nodeType === 'RestElement') {
+    collectPatternNames(patternNode.argument, names);
+    return;
+  }
+
+  if (nodeType === 'ObjectPattern') {
+    const properties: unknown = patternNode.properties;
+    if (!Array.isArray(properties)) { return; }
+
+    for (const property of properties) {
+      if (!isObject(property)) { continue; }
+
+      if (property.type === 'RestElement') {
+        collectPatternNames(property.argument, names);
+        continue;
+      }
+
+      collectPatternNames(property.value, names);
+    }
+    return;
+  }
+
+  if (nodeType === 'ArrayPattern') {
+    const elements: unknown = patternNode.elements;
+    if (!Array.isArray(elements)) { return; }
+
+    for (const element of elements) {
+      if (element === null) { continue; }
+      collectPatternNames(element, names);
+    }
+  }
+};
+
 class DeclaratorName {
-  static get(declarator: unknown): string | undefined {
-    if (!isObject(declarator)) { return undefined; }
+  static getAll(declarator: unknown): string[] {
+    if (!isObject(declarator)) { return []; }
 
-    const idNode: unknown = declarator.id;
-    if (!isObject(idNode)) { return undefined; }
+    const names: string[] = [];
+    collectPatternNames(declarator.id, names);
+    return names;
+  }
 
-    const name: unknown = idNode.name;
-    return typeof name === 'string' ? name : undefined;
+  static isFunctionLikeInit(declarator: unknown): boolean {
+    if (!isObject(declarator)) { return false; }
+
+    const initNode: unknown = declarator.init;
+    if (!isObject(initNode)) { return false; }
+
+    const initType: unknown = initNode.type;
+    return typeof initType === 'string' && FUNCTION_LIKE_INIT_TYPES.has(initType);
   }
 }
 
@@ -80,10 +143,14 @@ export const constantsFolderRequired: Rule.RuleModule = {
         if (!Array.isArray(declarations)) { continue; }
 
         for (const declarator of declarations) {
-          const declaratorName = DeclaratorName.get(declarator);
+          if (DeclaratorName.isFunctionLikeInit(declarator)) { continue; }
 
-          if (declaratorName !== undefined && !EXEMPT_CONST_NAMES.has(declaratorName)) {
-            constNames.push(declaratorName);
+          const declaratorNames = DeclaratorName.getAll(declarator);
+
+          for (const declaratorName of declaratorNames) {
+            if (!EXEMPT_CONST_NAMES.has(declaratorName)) {
+              constNames.push(declaratorName);
+            }
           }
         }
       }

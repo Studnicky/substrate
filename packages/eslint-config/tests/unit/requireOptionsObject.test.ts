@@ -58,6 +58,10 @@ const validScenarios = [
   {
     name: 'destructured with default — never flag',
     code: `function foo(name: string, { a, b } = { a: '', b: 0 }) {}`
+  },
+  {
+    name: 'TSFunctionType with 0 or 1 optional params — fine',
+    code: `type Handler = (a: string, b?: number) => void;`
   }
 ];
 
@@ -91,6 +95,16 @@ const invalidScenarios: InvalidScenarioType[] = [
   {
     name: '3 all-optional params — flag',
     code: `function foo(a?: string, b?: number, c?: boolean) {}`,
+    errors: [{ messageId: 'requireOptionsObject' }]
+  },
+  {
+    name: 'standalone TSFunctionType alias with 2+ optionals — flag',
+    code: `type Handler = (a?: string, b?: string, c?: string) => void;`,
+    errors: [{ messageId: 'requireOptionsObject' }]
+  },
+  {
+    name: 'interface property signature typed as function with 2+ optionals — flag',
+    code: `interface Foo { onEvent?: (a?: string, b?: string) => void; }`,
     errors: [{ messageId: 'requireOptionsObject' }]
   }
 ];

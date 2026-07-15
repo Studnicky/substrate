@@ -120,6 +120,12 @@ const invalidScenarios: InvalidScenarioType[] = [
     code: `const api = { get: (x: number) => x };`,
     errors: [{ messageId: 'trivial' }, { messageId: 'trivial' }],
     output: `const api = { get: (x: number) => { const result = x; return result; } };`
+  },
+  {
+    name: 'trivial arrow: expression body returning identifier wrapped in satisfies',
+    code: `const forward = (x: number) => x satisfies number;`,
+    errors: [{ messageId: 'trivial' }],
+    output: `const forward = (x: number) => { const result = x satisfies number; return result; };`
   }
 ];
 

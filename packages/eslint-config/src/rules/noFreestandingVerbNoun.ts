@@ -56,7 +56,11 @@ class PrefixHelpers {
 
 const isModuleScope = (node: Rule.Node): boolean => {
   const parent = node.parent;
-  return parent?.type === 'Program';
+  if (parent?.type === 'Program') { return true; }
+  if (parent?.type === 'ExportNamedDeclaration' || parent?.type === 'ExportDefaultDeclaration') {
+    return parent.parent?.type === 'Program';
+  }
+  return false;
 };
 
 const isFunctionInit = (init: unknown): boolean => {

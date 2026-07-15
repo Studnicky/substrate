@@ -150,6 +150,10 @@ export const requireOptionsObject: Rule.RuleModule = {
       const name = n.key?.type === 'Identifier' ? (n.key.name ?? '(anonymous)') : '(anonymous)';
       ParamInspector.check(n.params, context, node, name, minOptionals);
     };
+    tsListener.TSFunctionType = (node) => {
+      const n = node as unknown as TSNodeWithParams;
+      ParamInspector.check(n.params, context, node, '(anonymous)', minOptionals);
+    };
 
     return listener;
   },

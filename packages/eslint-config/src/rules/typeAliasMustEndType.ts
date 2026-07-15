@@ -1,4 +1,39 @@
-import type { Rule } from 'eslint';
+import type { JSSyntaxElement, Rule } from 'eslint';
+
+type ExportSpecifierNodeType = {
+  readonly 'exportKind'?: string;
+  readonly 'local': { readonly 'name': string };
+};
+
+type ProgramExportNodeType = JSSyntaxElement & {
+  readonly 'declaration'?: unknown;
+  readonly 'exportKind'?: string;
+  readonly 'source'?: unknown;
+  readonly 'specifiers'?: ExportSpecifierNodeType[];
+};
+
+/**
+ * Detects the separate re-export form: `type Foo = {...}; export type { Foo };`
+ * (or `export { type Foo };`). The declaration's own parent is `Program`, not
+ * `ExportNamedDeclaration`, so this walks the Program body for a same-file
+ * export specifier list (no `source`) naming the alias, exported as a type
+ * either at the declaration level (`export type { Foo }`) or the specifier
+ * level (`export { type Foo }`).
+ */
+const isReexportedAsType = (context: Rule.RuleContext, name: string): boolean => {
+  const program = context.sourceCode.ast as unknown as { 'body': ProgramExportNodeType[] };
+
+  return program.body.some((statement) => {
+    if (statement.type !== 'ExportNamedDeclaration') { return false; }
+    if (statement.declaration !== null && statement.declaration !== undefined) { return false; }
+    if (statement.source !== null && statement.source !== undefined) { return false; }
+
+    return (statement.specifiers ?? []).some((specifier) => {
+      if (specifier.local.name !== name) { return false; }
+      return statement.exportKind === 'type' || specifier.exportKind === 'type';
+    });
+  });
+};
 
 export const typeAliasMustEndType: Rule.RuleModule = {
   'create': (context) => {
@@ -8,7 +43,11 @@ export const typeAliasMustEndType: Rule.RuleModule = {
         'parent': { 'type': string };
       };
 
-      if (rawNode.parent.type !== 'ExportNamedDeclaration') { return; }
+      const isInlineExport = rawNode.parent.type === 'ExportNamedDeclaration';
+      const isSeparateReexport =
+        rawNode.parent.type === 'Program' && isReexportedAsType(context, rawNode.id.name);
+
+      if (!isInlineExport && !isSeparateReexport) { return; }
       if (rawNode.id.name.endsWith('Type')) { return; }
 
       context.report({

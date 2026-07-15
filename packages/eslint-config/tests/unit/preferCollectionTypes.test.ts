@@ -66,6 +66,16 @@ const invalidScenarios: InvalidScenarioType[] = [
     errors: [{ messageId: 'arrayLiteralIncludes' }]
   },
   {
+    name: 'Pattern A — inline array literal with .indexOf() !== -1',
+    code: `const found = ['a', 'b', 'c'].indexOf(x) !== -1;`,
+    errors: [{ messageId: 'arrayLiteralIncludes' }]
+  },
+  {
+    name: 'Pattern A — inline array literal with .indexOf() > -1',
+    code: `const found = ['a', 'b', 'c'].indexOf(x) > -1;`,
+    errors: [{ messageId: 'arrayLiteralIncludes' }]
+  },
+  {
     name: 'Pattern A — inline array literal with .includes() in condition',
     code: `if (['x', 'y', 'z'].includes(val)) { return true; }`,
     errors: [{ messageId: 'arrayLiteralIncludes' }]
