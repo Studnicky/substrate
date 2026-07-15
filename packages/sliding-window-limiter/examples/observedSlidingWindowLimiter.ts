@@ -29,11 +29,13 @@ class TracedLimiter extends SlidingWindowLimiter {
 
 // A deterministic (virtual) clock — no real timers, fully reproducible.
 let time = 0;
-const clock = (): number => { const result = time; return result; };
+class Clock {
+  static now(): number { const result = time; return result; }
+}
 
 // --- Scenario 1: 'log' algorithm — exact timestamp pruning ---
 console.log('\n--- log algorithm ---');
-const logLimiter = new TracedLimiter({ 'algorithm': 'log', 'clock': clock, 'limit': 2, 'windowMs': 100 });
+const logLimiter = new TracedLimiter({ 'algorithm': 'log', 'clock': Clock.now, 'limit': 2, 'windowMs': 100 });
 logLimiter.consume(); // t=0, admitted (1/2)
 logLimiter.consume(); // t=0, admitted (2/2)
 try {
@@ -49,7 +51,7 @@ logLimiter.consume(); // succeeds — stale entries pruned first
 // --- Scenario 2: 'counter' algorithm — blended fixed-window estimate ---
 console.log('\n--- counter algorithm ---');
 time = 0;
-const counterLimiter = new TracedLimiter({ 'algorithm': 'counter', 'clock': clock, 'limit': 2, 'windowMs': 100 });
+const counterLimiter = new TracedLimiter({ 'algorithm': 'counter', 'clock': Clock.now, 'limit': 2, 'windowMs': 100 });
 counterLimiter.consume(); // window 0, admitted (1/2)
 counterLimiter.consume(); // window 0, admitted (2/2)
 try {

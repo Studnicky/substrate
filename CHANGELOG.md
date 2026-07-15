@@ -14,10 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `@studnicky/eslint-config`: `no-freestanding-verb-noun` no longer detects violations by matching a hardcoded list of English verb-prefix names; it now uses real structural (and optionally type-aware) AST analysis via a configurable `mode: 'any' | 'structural' | 'typed'` option (default `'structural'`). `single-export`'s error-class detection now resolves the superclass through the TypeScript type checker instead of checking whether its name ends in `"Error"`.
+
 ### Fixed
 
 - Relocated 40 `type`/`interface` declarations across 11 packages (`batch`, `clock`, `errors`, `fetch`, `json`, `logger`, `retry`, `scheduler`, `throttle`, `timing`, `visible-range`) to the folder matching their actual declaration form, per the new `folder-declaration-shape` rule.
 - `@studnicky/request-executor` now imports `ClientConfigType`/`RequestContextType`/`ResponseContextType` from `@studnicky/fetch/types` instead of the now-stale `@studnicky/fetch/interfaces` subpath.
+- Converted 60 freestanding module-scope functions across `@studnicky/eslint-config`'s own rule source, `errors`, `retry`, `throttle`, `config`, `logger`, and 13 demo example scripts to static class methods, closing the real violations `no-freestanding-verb-noun`'s naming-heuristic previously missed.
 
 ## [5.1.1] - 2026-07-09
 

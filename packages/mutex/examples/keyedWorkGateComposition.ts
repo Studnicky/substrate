@@ -42,15 +42,17 @@ class Serialized {
 // --- Scenario A: concurrent single-flight callers on the same key share one execution. ---
 
 let factoryCallCount = 0;
-const sharedFactory = async (): Promise<string> => {
-  factoryCallCount += 1;
-  await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
-  return 'resolved-once';
-};
+class SharedResultFactory {
+  static async create(): Promise<string> {
+    factoryCallCount += 1;
+    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+    return 'resolved-once';
+  }
+}
 
 const [singleFlightA, singleFlightB] = await Promise.all([
-  SingleFlight.run('resource-1', sharedFactory),
-  SingleFlight.run('resource-1', sharedFactory)
+  SingleFlight.run('resource-1', SharedResultFactory.create),
+  SingleFlight.run('resource-1', SharedResultFactory.create)
 ]);
 
 console.log('Single-flight results:', singleFlightA, singleFlightB, 'factory calls:', factoryCallCount);
@@ -77,14 +79,16 @@ assert.deepEqual(serializedOrder, [0, 1, 2], 'every runSerialized call must actu
 // shared in-flight promise — a slow (not stuck-forever) factory still resolves for whoever
 // keeps waiting. ---
 
-const slowFactory = async (): Promise<string> => {
-  await new Promise<void>((resolve) => { setTimeout(resolve, 250); });
-  return 'eventually-resolved';
-};
+class SlowResultFactory {
+  static async create(): Promise<string> {
+    await new Promise<void>((resolve) => { setTimeout(resolve, 250); });
+    return 'eventually-resolved';
+  }
+}
 
 let coalesceTimedOut = false;
 const [timeoutOutcome, patientOutcome] = await Promise.allSettled([
-  SingleFlight.run('resource-3', slowFactory),
+  SingleFlight.run('resource-3', SlowResultFactory.create),
   (async (): Promise<string> => {
     // A second caller joining the same in-flight promise, with no timeout ceiling of its
     // own on this call path, still receives the eventual result.

@@ -17,9 +17,9 @@ export { BackoffStrategy } from './retry/backoff/index.js';
 export { Retry } from './retry/Retry.js';
 export { RetryBuilder } from './retry/RetryBuilder.js';
 
-export { isRequestStats } from './retry/validation/isRequestStats.js';
-export { isRetryConfig } from './retry/validation/isRetryConfig.js';
-export { isRetryContext } from './retry/validation/isRetryContext.js';
+export { RequestStatsGuard } from './retry/validation/RequestStatsGuard.js';
+export { RetryConfigGuard } from './retry/validation/RetryConfigGuard.js';
+export { RetryContextGuard } from './retry/validation/RetryContextGuard.js';
 export type { BackoffStrategyType } from './types/BackoffStrategyType.js';
 export type { RequestStatsType } from './types/RequestStatsType.js';
 export type { RetryContextType } from './types/RetryContextType.js';
@@ -30,9 +30,9 @@ export type { RetryContextType } from './types/RetryContextType.js';
 export {
   DefaultHttpErrorClassifier,
   DefaultHttpErrorClassifierBuilder,
+  ErrorClassificationGuard,
   ErrorClassifier,
   errorTypeGuards,
-  isErrorClassification,
   matchers
 } from '@studnicky/errors';
 export type {

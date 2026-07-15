@@ -1,11 +1,14 @@
 import type { Rule } from 'eslint';
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);};
+class TypeGuards {
+  static isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+  }
+}
 
 class NodeType {
   static get(rawNode: unknown): string {
-    if (!isObject(rawNode)) { return ''; }
+    if (!TypeGuards.isObject(rawNode)) { return ''; }
 
     const nodeType: unknown = rawNode.type;
     return typeof nodeType === 'string' ? nodeType : '';
@@ -14,10 +17,10 @@ class NodeType {
 
 class Member {
   static getName(member: unknown): string {
-    if (!isObject(member)) { return '<unnamed>'; }
+    if (!TypeGuards.isObject(member)) { return '<unnamed>'; }
 
     const key: unknown = member.key;
-    if (!isObject(key)) { return '<unnamed>'; }
+    if (!TypeGuards.isObject(key)) { return '<unnamed>'; }
 
     if (key.type === 'Identifier') {
       const name: unknown = key.name;
@@ -35,30 +38,30 @@ class Member {
 
 class Parent {
   static get(rawNode: unknown): unknown {
-    return isObject(rawNode) ? rawNode.parent : undefined;
+    return TypeGuards.isObject(rawNode) ? rawNode.parent : undefined;
+  }
+
+  static hasTypeParameterAncestor(rawNode: unknown): boolean {
+    let current: unknown = Parent.get(rawNode);
+
+    while (TypeGuards.isObject(current)) {
+      const nodeType = NodeType.get(current);
+
+      if (nodeType === 'TSTypeParameter') { return true; }
+      if (nodeType === 'TSInterfaceDeclaration') { break; }
+
+      current = Parent.get(current);
+    }
+
+    return false;
   }
 }
-
-const hasTypeParameterAncestor = (rawNode: unknown): boolean => {
-  let current: unknown = Parent.get(rawNode);
-
-  while (isObject(current)) {
-    const nodeType = NodeType.get(current);
-
-    if (nodeType === 'TSTypeParameter') { return true; }
-    if (nodeType === 'TSInterfaceDeclaration') { break; }
-
-    current = Parent.get(current);
-  }
-
-  return false;
-};
 
 class OwningMember {
   static find(rawNode: unknown): unknown {
     let current: unknown = Parent.get(rawNode);
 
-    while (isObject(current)) {
+    while (TypeGuards.isObject(current)) {
       const nodeType = NodeType.get(current);
 
       if (
@@ -82,12 +85,12 @@ class InterfaceName {
   static get(rawNode: unknown): string {
     let current: unknown = Parent.get(rawNode);
 
-    while (isObject(current)) {
+    while (TypeGuards.isObject(current)) {
       const nodeType = NodeType.get(current);
 
       if (nodeType === 'TSInterfaceDeclaration') {
         const idNode: unknown = current.id;
-        if (!isObject(idNode)) { return '<unnamed>'; }
+        if (!TypeGuards.isObject(idNode)) { return '<unnamed>'; }
 
         const name: unknown = idNode.name;
         return typeof name === 'string' ? name : '<unnamed>';
@@ -103,7 +106,7 @@ class InterfaceName {
 export const interfacesComposeNamedTypes: Rule.RuleModule = {
   'create': (context) => {
     const onTSInterfaceDeclarationTSTypeLiteral = (node: Rule.Node): void => {
-      if (hasTypeParameterAncestor(node)) { return; }
+      if (Parent.hasTypeParameterAncestor(node)) { return; }
 
       const interfaceName = InterfaceName.get(node);
       const owningMember = OwningMember.find(node);

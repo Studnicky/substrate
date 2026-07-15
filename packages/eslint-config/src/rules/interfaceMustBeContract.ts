@@ -33,16 +33,18 @@ import {
  * serializable placeholders, so `interface Box<T> { v: T }` is a data shape.
  */
 
-const isObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-};
+class TypeGuards {
+  static isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+  }
 
-// `Array.isArray` narrows to `any[]` per its lib.es5.d.ts signature; this
-// guard reasserts the narrowed type as `unknown[]` so callers stay type-safe.
-const isUnknownArray = (value: unknown): value is unknown[] => {
-  if (!Array.isArray(value)) { return false; }
-  return true;
-};
+  // `Array.isArray` narrows to `any[]` per its lib.es5.d.ts signature; this
+  // guard reasserts the narrowed type as `unknown[]` so callers stay type-safe.
+  static isUnknownArray(value: unknown): value is unknown[] {
+    if (!Array.isArray(value)) { return false; }
+    return true;
+  }
+}
 
 type ParserServicesType = {
   readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
@@ -61,116 +63,118 @@ class ContextHelpers {
   }
 }
 
-const isSerializable = (type: Type, checker: TypeChecker, visited: Set<Type>): boolean => {
-  if (visited.has(type)) { return true; }
-  visited.add(type);
+class SerializationGuards {
+  static isSerializable(type: Type, checker: TypeChecker, visited: Set<Type>): boolean {
+    if (visited.has(type)) { return true; }
+    visited.add(type);
 
-  const { flags } = type;
+    const { flags } = type;
 
-  // Serializable primitives and type parameters
-  if (
-    (flags & TypeFlags.String) !== 0 ||
-    (flags & TypeFlags.Number) !== 0 ||
-    (flags & TypeFlags.Boolean) !== 0 ||
-    (flags & TypeFlags.BigInt) !== 0 ||
-    (flags & TypeFlags.StringLiteral) !== 0 ||
-    (flags & TypeFlags.NumberLiteral) !== 0 ||
-    (flags & TypeFlags.BooleanLiteral) !== 0 ||
-    (flags & TypeFlags.BigIntLiteral) !== 0 ||
-    (flags & TypeFlags.EnumLike) !== 0 ||
-    (flags & TypeFlags.Null) !== 0 ||
-    (flags & TypeFlags.Undefined) !== 0 ||
-    (flags & TypeFlags.TypeParameter) !== 0
-  ) {
-    return true;
-  }
+    // Serializable primitives and type parameters
+    if (
+      (flags & TypeFlags.String) !== 0 ||
+      (flags & TypeFlags.Number) !== 0 ||
+      (flags & TypeFlags.Boolean) !== 0 ||
+      (flags & TypeFlags.BigInt) !== 0 ||
+      (flags & TypeFlags.StringLiteral) !== 0 ||
+      (flags & TypeFlags.NumberLiteral) !== 0 ||
+      (flags & TypeFlags.BooleanLiteral) !== 0 ||
+      (flags & TypeFlags.BigIntLiteral) !== 0 ||
+      (flags & TypeFlags.EnumLike) !== 0 ||
+      (flags & TypeFlags.Null) !== 0 ||
+      (flags & TypeFlags.Undefined) !== 0 ||
+      (flags & TypeFlags.TypeParameter) !== 0
+    ) {
+      return true;
+    }
 
-  // Non-serializable
-  if (
-    (flags & TypeFlags.Any) !== 0 ||
-    (flags & TypeFlags.Unknown) !== 0 ||
-    (flags & TypeFlags.Void) !== 0 ||
-    (flags & TypeFlags.Never) !== 0 ||
-    (flags & TypeFlags.ESSymbol) !== 0 ||
-    (flags & TypeFlags.UniqueESSymbol) !== 0
-  ) {
+    // Non-serializable
+    if (
+      (flags & TypeFlags.Any) !== 0 ||
+      (flags & TypeFlags.Unknown) !== 0 ||
+      (flags & TypeFlags.Void) !== 0 ||
+      (flags & TypeFlags.Never) !== 0 ||
+      (flags & TypeFlags.ESSymbol) !== 0 ||
+      (flags & TypeFlags.UniqueESSymbol) !== 0
+    ) {
+      return false;
+    }
+
+    // Union: serializable iff every constituent is serializable
+    if (type.isUnion()) {
+      const unionTypes = type.types;
+      const unionLength = unionTypes.length;
+      for (let i = 0; i < unionLength; i++) {
+        if (!SerializationGuards.isSerializable(unionTypes[i]!, checker, visited)) { return false; }
+      }
+      return true;
+    }
+
+    // Intersection: serializable iff every constituent is serializable
+    if (type.isIntersection()) {
+      const intersectionTypes = type.types;
+      const intersectionLength = intersectionTypes.length;
+      for (let i = 0; i < intersectionLength; i++) {
+        if (!SerializationGuards.isSerializable(intersectionTypes[i]!, checker, visited)) { return false; }
+      }
+      return true;
+    }
+
+    // Array / ReadonlyArray
+    if (checker.isArrayType(type)) {
+      const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
+      const typeArgsLength = typeArgs.length;
+      for (let i = 0; i < typeArgsLength; i++) {
+        if (!SerializationGuards.isSerializable(typeArgs[i]!, checker, visited)) { return false; }
+      }
+      return true;
+    }
+
+    // Tuple
+    if (checker.isTupleType(type)) {
+      const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
+      const typeArgsLength = typeArgs.length;
+      for (let i = 0; i < typeArgsLength; i++) {
+        if (!SerializationGuards.isSerializable(typeArgs[i]!, checker, visited)) { return false; }
+      }
+      return true;
+    }
+
+    // Object types (plain objects, interfaces, type literals, classes)
+    if ((flags & TypeFlags.Object) !== 0) {
+      if (type.getCallSignatures().length > 0) { return false; }
+      if (type.getConstructSignatures().length > 0) { return false; }
+
+      const symbol = type.getSymbol();
+      if (symbol !== undefined && (symbol.flags & SymbolFlags.Class) !== 0) { return false; }
+
+      const props = type.getProperties();
+      const propsLength = props.length;
+
+      for (let i = 0; i < propsLength; i++) {
+        const prop = props[i]!;
+        const decl = prop.valueDeclaration ?? prop.declarations?.[0];
+        if (decl === undefined) { return false; }
+        const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
+        if (!SerializationGuards.isSerializable(propType, checker, visited)) { return false; }
+      }
+
+      const stringIndexType = checker.getIndexTypeOfType(type, IndexKind.String);
+      if (stringIndexType !== undefined && !SerializationGuards.isSerializable(stringIndexType, checker, visited)) {
+        return false;
+      }
+
+      const numberIndexType = checker.getIndexTypeOfType(type, IndexKind.Number);
+      if (numberIndexType !== undefined && !SerializationGuards.isSerializable(numberIndexType, checker, visited)) {
+        return false;
+      }
+
+      return true;
+    }
+
     return false;
   }
-
-  // Union: serializable iff every constituent is serializable
-  if (type.isUnion()) {
-    const unionTypes = type.types;
-    const unionLength = unionTypes.length;
-    for (let i = 0; i < unionLength; i++) {
-      if (!isSerializable(unionTypes[i]!, checker, visited)) { return false; }
-    }
-    return true;
-  }
-
-  // Intersection: serializable iff every constituent is serializable
-  if (type.isIntersection()) {
-    const intersectionTypes = type.types;
-    const intersectionLength = intersectionTypes.length;
-    for (let i = 0; i < intersectionLength; i++) {
-      if (!isSerializable(intersectionTypes[i]!, checker, visited)) { return false; }
-    }
-    return true;
-  }
-
-  // Array / ReadonlyArray
-  if (checker.isArrayType(type)) {
-    const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
-    const typeArgsLength = typeArgs.length;
-    for (let i = 0; i < typeArgsLength; i++) {
-      if (!isSerializable(typeArgs[i]!, checker, visited)) { return false; }
-    }
-    return true;
-  }
-
-  // Tuple
-  if (checker.isTupleType(type)) {
-    const typeArgs = checker.getTypeArguments(type as unknown as TypeReference);
-    const typeArgsLength = typeArgs.length;
-    for (let i = 0; i < typeArgsLength; i++) {
-      if (!isSerializable(typeArgs[i]!, checker, visited)) { return false; }
-    }
-    return true;
-  }
-
-  // Object types (plain objects, interfaces, type literals, classes)
-  if ((flags & TypeFlags.Object) !== 0) {
-    if (type.getCallSignatures().length > 0) { return false; }
-    if (type.getConstructSignatures().length > 0) { return false; }
-
-    const symbol = type.getSymbol();
-    if (symbol !== undefined && (symbol.flags & SymbolFlags.Class) !== 0) { return false; }
-
-    const props = type.getProperties();
-    const propsLength = props.length;
-
-    for (let i = 0; i < propsLength; i++) {
-      const prop = props[i]!;
-      const decl = prop.valueDeclaration ?? prop.declarations?.[0];
-      if (decl === undefined) { return false; }
-      const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
-      if (!isSerializable(propType, checker, visited)) { return false; }
-    }
-
-    const stringIndexType = checker.getIndexTypeOfType(type, IndexKind.String);
-    if (stringIndexType !== undefined && !isSerializable(stringIndexType, checker, visited)) {
-      return false;
-    }
-
-    const numberIndexType = checker.getIndexTypeOfType(type, IndexKind.Number);
-    if (numberIndexType !== undefined && !isSerializable(numberIndexType, checker, visited)) {
-      return false;
-    }
-
-    return true;
-  }
-
-  return false;
-};
+}
 
 type InterfaceNode = {
   readonly 'body': { readonly 'body': readonly unknown[]; readonly 'range': [number, number] };
@@ -212,11 +216,11 @@ class InterfaceMerged {
       }
     }
     const program = sourceCode.ast;
-    if (!isObject(program)) { return false; }
+    if (!TypeGuards.isObject(program)) { return false; }
 
     const programObj = program as Record<string, unknown>;
     const body = programObj.body;
-    if (!isUnknownArray(body)) { return false; }
+    if (!TypeGuards.isUnknownArray(body)) { return false; }
 
     const bodyLength = body.length;
     let sameNameCount = 0;
@@ -224,11 +228,11 @@ class InterfaceMerged {
     for (let index = 0; index < bodyLength; index++) {
       const bodyNode = body[index];
 
-      if (!isObject(bodyNode)) { continue; }
+      if (!TypeGuards.isObject(bodyNode)) { continue; }
       const nodeType = bodyNode.type;
       if (nodeType === 'TSInterfaceDeclaration') {
         const nodeId = bodyNode.id;
-        if (isObject(nodeId)) {
+        if (TypeGuards.isObject(nodeId)) {
           const nodeName = nodeId.name;
           if (nodeName === name) {
             sameNameCount++;
@@ -259,7 +263,7 @@ export const interfaceMustBeContract: Rule.RuleModule = {
     const isAugmentation = (parent: unknown): boolean => {
       let current = parent;
 
-      while (isObject(current)) {
+      while (TypeGuards.isObject(current)) {
         if (current.type === 'TSModuleDeclaration') { return true; }
         current = current.parent;
       }
@@ -268,7 +272,7 @@ export const interfaceMustBeContract: Rule.RuleModule = {
     };
 
     const isInterfaceKeyword = (token: unknown): boolean => {
-      return isObject(token) && token.value === 'interface';
+      return TypeGuards.isObject(token) && token.value === 'interface';
     };
     const fixInterface = (node: Rule.Node, rawNode: InterfaceNode): NonNullable<Rule.ReportDescriptor['fix']> => {
       return (fixer): Rule.Fix[] | null => {
@@ -348,15 +352,15 @@ export const interfaceMustBeContract: Rule.RuleModule = {
         const decl = prop.valueDeclaration ?? prop.declarations?.at(0);
         if (decl === undefined) { return; }
         const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
-        if (!isSerializable(propType, checker, new Set())) { return; }
+        if (!SerializationGuards.isSerializable(propType, checker, new Set())) { return; }
       }
 
       // Check index types
       const stringIndexType = checker.getIndexTypeOfType(interfaceType, IndexKind.String);
-      if (stringIndexType !== undefined && !isSerializable(stringIndexType, checker, new Set())) { return; }
+      if (stringIndexType !== undefined && !SerializationGuards.isSerializable(stringIndexType, checker, new Set())) { return; }
 
       const numberIndexType = checker.getIndexTypeOfType(interfaceType, IndexKind.Number);
-      if (numberIndexType !== undefined && !isSerializable(numberIndexType, checker, new Set())) { return; }
+      if (numberIndexType !== undefined && !SerializationGuards.isSerializable(numberIndexType, checker, new Set())) { return; }
 
       const interfaceName = nodeId.name;
       const nodeParent = rawNode.parent;

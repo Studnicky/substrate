@@ -125,17 +125,19 @@ class Job {
 
 // Cancellation composed via the now-instantiable Signal: an AbortSignal drives a 'cancel'
 // event into the interpreter and cancels any still-pending scheduled advance.
-const wireCancellation = (
-  interpreter: EffectInterpreter<JobState, JobEvent, JobEffect>,
-  getScheduledTask: () => ScheduledTaskType | undefined,
-  abortSignal: AbortSignal
-): void => {
-  abortSignal.addEventListener('abort', () => {
-    const pending = getScheduledTask();
-    if (pending !== undefined) { pending.cancel(); }
-    void interpreter.send({ 'type': 'cancel' });
-  }, { 'once': true });
-};
+class CancellationWiring {
+  static wire(
+    interpreter: EffectInterpreter<JobState, JobEvent, JobEffect>,
+    getScheduledTask: () => ScheduledTaskType | undefined,
+    abortSignal: AbortSignal
+  ): void {
+    abortSignal.addEventListener('abort', () => {
+      const pending = getScheduledTask();
+      if (pending !== undefined) { pending.cancel(); }
+      void interpreter.send({ 'type': 'cancel' });
+    }, { 'once': true });
+  }
+}
 // #endregion usage
 
 // --- Scenario A: start -> same-cycle self-advance to 'acknowledged' -> scheduled advance
@@ -160,7 +162,7 @@ console.log('Job A final state:', jobA.interpreter.getState().variant);
 const jobB = Job.make();
 const controllerB = new AbortController();
 const composedSignalB = signalSource.compose({ 'signal': controllerB.signal });
-wireCancellation(jobB.interpreter, jobB.getScheduledTask, composedSignalB);
+CancellationWiring.wire(jobB.interpreter, jobB.getScheduledTask, composedSignalB);
 
 jobB.interpreter.start();
 await jobB.interpreter.send({ 'type': 'start' });

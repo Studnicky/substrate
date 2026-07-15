@@ -5,7 +5,7 @@ import type { TransportInterface } from './TransportInterface.js';
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { ParseLogLevel } from '../modules/parseLogLevel.js';
-import { safeStringify } from '../modules/safeStringify.js';
+import { SafeStringify } from '../modules/safeStringify.js';
 import { ConsoleTransportBuilder } from './ConsoleTransportBuilder.js';
 
 type ConsoleFn = (message: string, record: LogRecordType) => void;
@@ -78,7 +78,7 @@ export class ConsoleTransport implements TransportInterface {
     }
 
     const metaStr = Object.keys(record.metadata).length > 0
-      ? `${safeStringify(record.metadata)} `
+      ? `${SafeStringify.stringify(record.metadata)} `
       : '';
 
     const message = `${metaStr}${record.data.message}`;

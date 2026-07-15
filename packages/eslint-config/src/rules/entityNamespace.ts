@@ -12,15 +12,19 @@ const INDEX_FILES = new Set([
   'index.tsx'
 ]);
 
-const isEntityFile = (filename: string): boolean => {
-  if (INDEX_FILES.has(path.basename(filename))) { return false; }
-  const normalized = filename.split(path.sep).join('/');
-  return ENTITY_FILE_REGEX.test(normalized) || ENTITY_DIR_REGEX.test(normalized);
-};
+class PathGuards {
+  static isEntityFile(filename: string): boolean {
+    if (INDEX_FILES.has(path.basename(filename))) { return false; }
+    const normalized = filename.split(path.sep).join('/');
+    return ENTITY_FILE_REGEX.test(normalized) || ENTITY_DIR_REGEX.test(normalized);
+  }
+}
 
-const isJsonObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
+class TypeGuards {
+  static isJsonObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+}
 
 class AstHelpers {
   public static getEntityBaseName(filename: string): string {
@@ -29,21 +33,21 @@ class AstHelpers {
   }
 
   public static getNodeType(node: unknown): string | undefined {
-    if (!isJsonObject(node)) { return undefined; }
+    if (!TypeGuards.isJsonObject(node)) { return undefined; }
     const { type } = node;
     return typeof type === 'string' ? type : undefined;
   }
 
   public static getIdName(node: unknown): string | undefined {
-    if (!isJsonObject(node)) { return undefined; }
+    if (!TypeGuards.isJsonObject(node)) { return undefined; }
     const { id } = node;
-    if (!isJsonObject(id)) { return undefined; }
+    if (!TypeGuards.isJsonObject(id)) { return undefined; }
     const { name } = id;
     return typeof name === 'string' ? name : undefined;
   }
 
   public static getDeclaration(node: unknown): unknown {
-    if (!isJsonObject(node)) { return undefined; }
+    if (!TypeGuards.isJsonObject(node)) { return undefined; }
     return node.declaration;
   }
 }
@@ -57,238 +61,242 @@ type NamespaceMembersType = {
   'hasValidateTypeGuard': boolean;
 };
 
-const isConstTypeAnnotation = (typeAnnotation: unknown): boolean => {
-  if (!isJsonObject(typeAnnotation)) { return false; }
-  // @typescript-eslint/parser represents `as const` as either:
-  //   TSTypeOperator { operator: 'const' }  (some versions)
-  //   TSTypeReference { typeName: { name: 'const' } }  (other versions / this runtime)
-  if (AstHelpers.getNodeType(typeAnnotation) === 'TSTypeOperator') {
-    return (typeAnnotation).operator === 'const';
-  }
-  if (AstHelpers.getNodeType(typeAnnotation) === 'TSTypeReference') {
-    const { typeName } = typeAnnotation;
-    return isJsonObject(typeName) && (typeName).name === 'const';
-  }
-  return false;
-};
-
-const isSchemaAsConst = (declarator: unknown): boolean => {
-  if (!isJsonObject(declarator)) { return false; }
-  const { init } = declarator;
-  if (!isJsonObject(init)) { return false; }
-  const initType = AstHelpers.getNodeType(init);
-  // Plain: `{ ... } as const`
-  if (initType === 'TSAsExpression') {
-    return isConstTypeAnnotation(init.typeAnnotation);
-  }
-  // `{ ... } as const satisfies T` — TypeScript processes as (literal as const) satisfies T
-  // so the outer node is TSSatisfiesExpression wrapping a TSAsExpression
-  if (initType === 'TSSatisfiesExpression') {
-    const { expression } = init;
-    if (!isJsonObject(expression) || AstHelpers.getNodeType(expression) !== 'TSAsExpression') { return false; }
-    return isConstTypeAnnotation(expression.typeAnnotation);
-  }
-  return false;
-};
-
-const isFromSchemaRef = (typeAnnotation: unknown): boolean => {
-  if (!isJsonObject(typeAnnotation) || AstHelpers.getNodeType(typeAnnotation) !== 'TSTypeReference') { return false; }
-  const { typeName } = typeAnnotation;
-  if (!isJsonObject(typeName)) { return false; }
-  // Handle both plain Identifier and qualified name (e.g. Ns.FromSchema)
-  const fromSchemaName =
-    typeName.name === 'FromSchema' ||
-    (isJsonObject(typeName.right) && (typeName.right).name === 'FromSchema');
-  if (!fromSchemaName) { return false; }
-  // Check type arguments/parameters contains exactly one TSTypeQuery for `typeof Schema`
-  let typeParams: Record<string, unknown> | undefined;
-  if (isJsonObject(typeAnnotation.typeParameters)) {
-    typeParams = typeAnnotation.typeParameters;
-  } else if (isJsonObject(typeAnnotation.typeArguments)) {
-    typeParams = typeAnnotation.typeArguments;
-  }
-  if (!isJsonObject(typeParams)) { return false; }
-  const { params } = typeParams;
-  if (!Array.isArray(params) || params.length !== 1) { return false; }
-  const arg: unknown = params[0];
-  if (!isJsonObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeQuery') { return false; }
-  const { exprName } = arg;
-  if (!isJsonObject(exprName)) { return false; }
-  return (exprName).name === 'Schema';
-};
-
-const isTypeFromSchema = (decl: unknown): boolean => {
-  if (!isJsonObject(decl)) { return false; }
-  const { typeAnnotation } = decl;
-  if (!isJsonObject(typeAnnotation)) { return false; }
-  // Plain: `type Type = FromSchema<typeof Schema>`
-  if (isFromSchemaRef(typeAnnotation)) { return true; }
-  // Intersection: `type Type = FromSchema<typeof Schema> & { ... }`
-  // Accept when the first member of the intersection is FromSchema<typeof Schema>
-  if (AstHelpers.getNodeType(typeAnnotation) === 'TSIntersectionType') {
-    const { types } = typeAnnotation;
-    if (!Array.isArray(types) || types.length < 2) { return false; }
-    return isFromSchemaRef(types[0]);
-  }
-  return false;
-};
-
-// Recognises `SchemaValidator.compile<Type>(Schema)` — the schema-derived
-// validator form. The compiled Ajv `ValidateFunction<Type>` is itself a
-// `(candidate: unknown) => candidate is Type` predicate, so a `const validate`
-// bound to it is a valid type guard with zero hand-written constraint logic.
-const isSchemaValidatorCompile = (init: unknown): boolean => {
-  if (!isJsonObject(init) || AstHelpers.getNodeType(init) !== 'CallExpression') { return false; }
-  const { callee } = init;
-  if (!isJsonObject(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
-  const { object, property } = callee;
-  if (!isJsonObject(object) || (object).name !== 'SchemaValidator') { return false; }
-  if (!isJsonObject(property) || (property).name !== 'compile') { return false; }
-  // Require an explicit `<Type>` argument so the guard narrows to the entity Type.
-  let typeParams: unknown = init.typeArguments;
-  if (!isJsonObject(typeParams)) { typeParams = init.typeParameters; }
-  if (!isJsonObject(typeParams)) { return false; }
-  const { params } = typeParams;
-  if (!Array.isArray(params) || params.length !== 1) { return false; }
-  const arg: unknown = params[0];
-  if (!isJsonObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') { return false; }
-  const { typeName } = arg;
-  return isJsonObject(typeName) && (typeName).name === 'Type';
-};
-
-const isValidateTypeGuard = (decl: unknown): boolean => {
-  if (!isJsonObject(decl)) { return false; }
-  const declType = AstHelpers.getNodeType(decl);
-
-  // `export const validate = SchemaValidator.compile<Type>(Schema)` — the
-  // schema-as-source-of-truth form. No explicit predicate annotation needed.
-  if (declType === 'VariableDeclaration') {
-    const { declarations } = decl;
-    if (Array.isArray(declarations) && declarations.length > 0 && isJsonObject(declarations[0])) {
-      const firstDeclarator = declarations[0];
-      if (isSchemaValidatorCompile(firstDeclarator.init)) { return true; }
+class SchemaMemberGuards {
+  static isConstTypeAnnotation(typeAnnotation: unknown): boolean {
+    if (!TypeGuards.isJsonObject(typeAnnotation)) { return false; }
+    // @typescript-eslint/parser represents `as const` as either:
+    //   TSTypeOperator { operator: 'const' }  (some versions)
+    //   TSTypeReference { typeName: { name: 'const' } }  (other versions / this runtime)
+    if (AstHelpers.getNodeType(typeAnnotation) === 'TSTypeOperator') {
+      return (typeAnnotation).operator === 'const';
     }
+    if (AstHelpers.getNodeType(typeAnnotation) === 'TSTypeReference') {
+      const { typeName } = typeAnnotation;
+      return TypeGuards.isJsonObject(typeName) && (typeName).name === 'const';
+    }
+    return false;
   }
 
-  let returnType: unknown;
-  let firstParamName: string | undefined;
-
-  if (declType === 'FunctionDeclaration') {
-    returnType = decl.returnType;
-    const { params } = decl;
-    if (Array.isArray(params) && params.length > 0 && isJsonObject(params[0])) {
-      const p = params[0];
-      if (isJsonObject(p.name)) {
-        firstParamName = (p.name).name as string | undefined;
-      } else {
-        firstParamName = p.name as string | undefined;
-      }
-    }
-  } else if (declType === 'VariableDeclaration') {
-    // const validate = (...): candidate is Type => { ... }
-    const { declarations } = decl;
-    if (!Array.isArray(declarations) || declarations.length === 0) { return false; }
-    const declarator: unknown = declarations[0];
-    if (!isJsonObject(declarator)) { return false; }
+  static isSchemaAsConst(declarator: unknown): boolean {
+    if (!TypeGuards.isJsonObject(declarator)) { return false; }
     const { init } = declarator;
-    if (!isJsonObject(init)) { return false; }
+    if (!TypeGuards.isJsonObject(init)) { return false; }
     const initType = AstHelpers.getNodeType(init);
-    // ArrowFunctionExpression or FunctionExpression
-    if (initType !== 'ArrowFunctionExpression' && initType !== 'FunctionExpression') { return false; }
-    returnType = init.returnType;
-    const { params } = init;
-    if (Array.isArray(params) && params.length > 0 && isJsonObject(params[0])) {
-      const p = params[0];
-      if (isJsonObject(p.name)) {
-        firstParamName = (p.name).name as string | undefined;
-      } else {
-        firstParamName = p.name as string | undefined;
-      }
+    // Plain: `{ ... } as const`
+    if (initType === 'TSAsExpression') {
+      return SchemaMemberGuards.isConstTypeAnnotation(init.typeAnnotation);
     }
-  } else {
+    // `{ ... } as const satisfies T` — TypeScript processes as (literal as const) satisfies T
+    // so the outer node is TSSatisfiesExpression wrapping a TSAsExpression
+    if (initType === 'TSSatisfiesExpression') {
+      const { expression } = init;
+      if (!TypeGuards.isJsonObject(expression) || AstHelpers.getNodeType(expression) !== 'TSAsExpression') { return false; }
+      return SchemaMemberGuards.isConstTypeAnnotation(expression.typeAnnotation);
+    }
     return false;
   }
 
-  // returnType may be wrapped in a TSTypeAnnotation node
-  let predicateNode: unknown = returnType;
-  if (isJsonObject(predicateNode) && AstHelpers.getNodeType(predicateNode) === 'TSTypeAnnotation') {
-    predicateNode = (predicateNode).typeAnnotation;
+  static isFromSchemaRef(typeAnnotation: unknown): boolean {
+    if (!TypeGuards.isJsonObject(typeAnnotation) || AstHelpers.getNodeType(typeAnnotation) !== 'TSTypeReference') { return false; }
+    const { typeName } = typeAnnotation;
+    if (!TypeGuards.isJsonObject(typeName)) { return false; }
+    // Handle both plain Identifier and qualified name (e.g. Ns.FromSchema)
+    const fromSchemaName =
+      typeName.name === 'FromSchema' ||
+      (TypeGuards.isJsonObject(typeName.right) && (typeName.right).name === 'FromSchema');
+    if (!fromSchemaName) { return false; }
+    // Check type arguments/parameters contains exactly one TSTypeQuery for `typeof Schema`
+    let typeParams: Record<string, unknown> | undefined;
+    if (TypeGuards.isJsonObject(typeAnnotation.typeParameters)) {
+      typeParams = typeAnnotation.typeParameters;
+    } else if (TypeGuards.isJsonObject(typeAnnotation.typeArguments)) {
+      typeParams = typeAnnotation.typeArguments;
+    }
+    if (!TypeGuards.isJsonObject(typeParams)) { return false; }
+    const { params } = typeParams;
+    if (!Array.isArray(params) || params.length !== 1) { return false; }
+    const arg: unknown = params[0];
+    if (!TypeGuards.isJsonObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeQuery') { return false; }
+    const { exprName } = arg;
+    if (!TypeGuards.isJsonObject(exprName)) { return false; }
+    return (exprName).name === 'Schema';
   }
-  if (!isJsonObject(predicateNode) || AstHelpers.getNodeType(predicateNode) !== 'TSTypePredicate') { return false; }
-  const predicate = predicateNode;
 
-  // parameterName must match firstParamName
-  if (isJsonObject(predicate.parameterName)) {
-    const pName = (predicate.parameterName).name;
-    if (pName !== firstParamName) { return false; }
-  } else {
+  static isTypeFromSchema(decl: unknown): boolean {
+    if (!TypeGuards.isJsonObject(decl)) { return false; }
+    const { typeAnnotation } = decl;
+    if (!TypeGuards.isJsonObject(typeAnnotation)) { return false; }
+    // Plain: `type Type = FromSchema<typeof Schema>`
+    if (SchemaMemberGuards.isFromSchemaRef(typeAnnotation)) { return true; }
+    // Intersection: `type Type = FromSchema<typeof Schema> & { ... }`
+    // Accept when the first member of the intersection is FromSchema<typeof Schema>
+    if (AstHelpers.getNodeType(typeAnnotation) === 'TSIntersectionType') {
+      const { types } = typeAnnotation;
+      if (!Array.isArray(types) || types.length < 2) { return false; }
+      return SchemaMemberGuards.isFromSchemaRef(types[0]);
+    }
     return false;
   }
 
-  // typeAnnotation of predicate must reference Type
-  const predTypeAnnotation = predicate.typeAnnotation;
-  if (!isJsonObject(predTypeAnnotation)) { return false; }
-  // May be wrapped in TSTypeAnnotation
-  let refNode: unknown = predTypeAnnotation;
-  if (AstHelpers.getNodeType(refNode) === 'TSTypeAnnotation') {
-    refNode = (refNode as Record<string, unknown>).typeAnnotation;
+  // Recognises `SchemaValidator.compile<Type>(Schema)` — the schema-derived
+  // validator form. The compiled Ajv `ValidateFunction<Type>` is itself a
+  // `(candidate: unknown) => candidate is Type` predicate, so a `const validate`
+  // bound to it is a valid type guard with zero hand-written constraint logic.
+  static isSchemaValidatorCompile(init: unknown): boolean {
+    if (!TypeGuards.isJsonObject(init) || AstHelpers.getNodeType(init) !== 'CallExpression') { return false; }
+    const { callee } = init;
+    if (!TypeGuards.isJsonObject(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
+    const { object, property } = callee;
+    if (!TypeGuards.isJsonObject(object) || (object).name !== 'SchemaValidator') { return false; }
+    if (!TypeGuards.isJsonObject(property) || (property).name !== 'compile') { return false; }
+    // Require an explicit `<Type>` argument so the guard narrows to the entity Type.
+    let typeParams: unknown = init.typeArguments;
+    if (!TypeGuards.isJsonObject(typeParams)) { typeParams = init.typeParameters; }
+    if (!TypeGuards.isJsonObject(typeParams)) { return false; }
+    const { params } = typeParams;
+    if (!Array.isArray(params) || params.length !== 1) { return false; }
+    const arg: unknown = params[0];
+    if (!TypeGuards.isJsonObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') { return false; }
+    const { typeName } = arg;
+    return TypeGuards.isJsonObject(typeName) && (typeName).name === 'Type';
   }
-  if (!isJsonObject(refNode) || AstHelpers.getNodeType(refNode) !== 'TSTypeReference') { return false; }
-  const { typeName } = refNode;
-  if (!isJsonObject(typeName)) { return false; }
-  return (typeName).name === 'Type';
-};
 
-const scanNamespaceBody = (bodyNode: unknown): NamespaceMembersType => {
-  const result: NamespaceMembersType = {
-    'hasSchema': false,
-    'hasSchemaAsConst': false,
-    'hasType': false,
-    'hasTypeFromSchema': false,
-    'hasValidate': false,
-    'hasValidateTypeGuard': false
-  };
-
-  if (!isJsonObject(bodyNode)) { return result; }
-  const { body } = bodyNode;
-  if (!Array.isArray(body)) { return result; }
-
-  for (const stmt of body) {
-    if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') { continue; }
-    const decl = AstHelpers.getDeclaration(stmt);
+  static isValidateTypeGuard(decl: unknown): boolean {
+    if (!TypeGuards.isJsonObject(decl)) { return false; }
     const declType = AstHelpers.getNodeType(decl);
 
+    // `export const validate = SchemaValidator.compile<Type>(Schema)` — the
+    // schema-as-source-of-truth form. No explicit predicate annotation needed.
     if (declType === 'VariableDeclaration') {
-      if (!isJsonObject(decl)) { continue; }
       const { declarations } = decl;
-      if (!Array.isArray(declarations)) { continue; }
-      for (const d of declarations) {
-        if (!isJsonObject(d) || !isJsonObject(d.id)) { continue; }
-        const { name } = d.id;
-        if (name === 'Schema') {
-          result.hasSchema = true;
-          result.hasSchemaAsConst = isSchemaAsConst(d);
-        }
-        if (name === 'validate') {
-          result.hasValidate = true;
-          result.hasValidateTypeGuard = isValidateTypeGuard(decl);
-        }
-      }
-    } else if (declType === 'TSTypeAliasDeclaration') {
-      if (AstHelpers.getIdName(decl) === 'Type') {
-        result.hasType = true;
-        result.hasTypeFromSchema = isTypeFromSchema(decl);
-      }
-    } else if (declType === 'FunctionDeclaration') {
-      if (AstHelpers.getIdName(decl) === 'validate') {
-        result.hasValidate = true;
-        result.hasValidateTypeGuard = isValidateTypeGuard(decl);
+      if (Array.isArray(declarations) && declarations.length > 0 && TypeGuards.isJsonObject(declarations[0])) {
+        const firstDeclarator = declarations[0];
+        if (SchemaMemberGuards.isSchemaValidatorCompile(firstDeclarator.init)) { return true; }
       }
     }
-  }
 
-  return result;
-};
+    let returnType: unknown;
+    let firstParamName: string | undefined;
+
+    if (declType === 'FunctionDeclaration') {
+      returnType = decl.returnType;
+      const { params } = decl;
+      if (Array.isArray(params) && params.length > 0 && TypeGuards.isJsonObject(params[0])) {
+        const p = params[0];
+        if (TypeGuards.isJsonObject(p.name)) {
+          firstParamName = (p.name).name as string | undefined;
+        } else {
+          firstParamName = p.name as string | undefined;
+        }
+      }
+    } else if (declType === 'VariableDeclaration') {
+      // const validate = (...): candidate is Type => { ... }
+      const { declarations } = decl;
+      if (!Array.isArray(declarations) || declarations.length === 0) { return false; }
+      const declarator: unknown = declarations[0];
+      if (!TypeGuards.isJsonObject(declarator)) { return false; }
+      const { init } = declarator;
+      if (!TypeGuards.isJsonObject(init)) { return false; }
+      const initType = AstHelpers.getNodeType(init);
+      // ArrowFunctionExpression or FunctionExpression
+      if (initType !== 'ArrowFunctionExpression' && initType !== 'FunctionExpression') { return false; }
+      returnType = init.returnType;
+      const { params } = init;
+      if (Array.isArray(params) && params.length > 0 && TypeGuards.isJsonObject(params[0])) {
+        const p = params[0];
+        if (TypeGuards.isJsonObject(p.name)) {
+          firstParamName = (p.name).name as string | undefined;
+        } else {
+          firstParamName = p.name as string | undefined;
+        }
+      }
+    } else {
+      return false;
+    }
+
+    // returnType may be wrapped in a TSTypeAnnotation node
+    let predicateNode: unknown = returnType;
+    if (TypeGuards.isJsonObject(predicateNode) && AstHelpers.getNodeType(predicateNode) === 'TSTypeAnnotation') {
+      predicateNode = (predicateNode).typeAnnotation;
+    }
+    if (!TypeGuards.isJsonObject(predicateNode) || AstHelpers.getNodeType(predicateNode) !== 'TSTypePredicate') { return false; }
+    const predicate = predicateNode;
+
+    // parameterName must match firstParamName
+    if (TypeGuards.isJsonObject(predicate.parameterName)) {
+      const pName = (predicate.parameterName).name;
+      if (pName !== firstParamName) { return false; }
+    } else {
+      return false;
+    }
+
+    // typeAnnotation of predicate must reference Type
+    const predTypeAnnotation = predicate.typeAnnotation;
+    if (!TypeGuards.isJsonObject(predTypeAnnotation)) { return false; }
+    // May be wrapped in TSTypeAnnotation
+    let refNode: unknown = predTypeAnnotation;
+    if (AstHelpers.getNodeType(refNode) === 'TSTypeAnnotation') {
+      refNode = (refNode as Record<string, unknown>).typeAnnotation;
+    }
+    if (!TypeGuards.isJsonObject(refNode) || AstHelpers.getNodeType(refNode) !== 'TSTypeReference') { return false; }
+    const { typeName } = refNode;
+    if (!TypeGuards.isJsonObject(typeName)) { return false; }
+    return (typeName).name === 'Type';
+  }
+}
+
+class NamespaceScanner {
+  static scanBody(bodyNode: unknown): NamespaceMembersType {
+    const result: NamespaceMembersType = {
+      'hasSchema': false,
+      'hasSchemaAsConst': false,
+      'hasType': false,
+      'hasTypeFromSchema': false,
+      'hasValidate': false,
+      'hasValidateTypeGuard': false
+    };
+
+    if (!TypeGuards.isJsonObject(bodyNode)) { return result; }
+    const { body } = bodyNode;
+    if (!Array.isArray(body)) { return result; }
+
+    for (const stmt of body) {
+      if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') { continue; }
+      const decl = AstHelpers.getDeclaration(stmt);
+      const declType = AstHelpers.getNodeType(decl);
+
+      if (declType === 'VariableDeclaration') {
+        if (!TypeGuards.isJsonObject(decl)) { continue; }
+        const { declarations } = decl;
+        if (!Array.isArray(declarations)) { continue; }
+        for (const d of declarations) {
+          if (!TypeGuards.isJsonObject(d) || !TypeGuards.isJsonObject(d.id)) { continue; }
+          const { name } = d.id;
+          if (name === 'Schema') {
+            result.hasSchema = true;
+            result.hasSchemaAsConst = SchemaMemberGuards.isSchemaAsConst(d);
+          }
+          if (name === 'validate') {
+            result.hasValidate = true;
+            result.hasValidateTypeGuard = SchemaMemberGuards.isValidateTypeGuard(decl);
+          }
+        }
+      } else if (declType === 'TSTypeAliasDeclaration') {
+        if (AstHelpers.getIdName(decl) === 'Type') {
+          result.hasType = true;
+          result.hasTypeFromSchema = SchemaMemberGuards.isTypeFromSchema(decl);
+        }
+      } else if (declType === 'FunctionDeclaration') {
+        if (AstHelpers.getIdName(decl) === 'validate') {
+          result.hasValidate = true;
+          result.hasValidateTypeGuard = SchemaMemberGuards.isValidateTypeGuard(decl);
+        }
+      }
+    }
+
+    return result;
+  }
+}
 
 class ProgramExitListener {
   static create(context: Rule.RuleContext, expectedName: string): Rule.RuleListener['Program:exit'] {
@@ -307,7 +315,7 @@ class ProgramExitListener {
 
       for (const exportStmt of namespaceExports) {
         const decl = AstHelpers.getDeclaration(exportStmt);
-        if (!isJsonObject(decl)) { continue; }
+        if (!TypeGuards.isJsonObject(decl)) { continue; }
 
         const nsName = AstHelpers.getIdName(decl);
         if (nsName !== expectedName) {
@@ -318,7 +326,7 @@ class ProgramExitListener {
           });
         }
 
-        const members = scanNamespaceBody(decl.body);
+        const members = NamespaceScanner.scanBody(decl.body);
         const reportNode = exportStmt as Rule.Node;
 
         if (!members.hasSchema) { context.report({ 'messageId': 'missingSchema', 'node': reportNode }); }
@@ -336,7 +344,7 @@ export const entityNamespace: Rule.RuleModule = {
   'create': (context) => {
     const { filename } = context;
 
-    if (filename === '<input>' || !isEntityFile(filename)) { return {}; }
+    if (filename === '<input>' || !PathGuards.isEntityFile(filename)) { return {}; }
 
     const expectedName = AstHelpers.getEntityBaseName(filename);
 

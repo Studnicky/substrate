@@ -14,9 +14,9 @@ export type { ThrottleBuilderInterface } from './interfaces/ThrottleBuilderInter
 export type { ThrottleInterface } from './interfaces/ThrottleInterface.js';
 export { Throttle } from './throttle/Throttle.js';
 export { ThrottleBuilder } from './throttle/ThrottleBuilder.js';
-export { isThrottle } from './throttle/validation/isThrottle.js';
-export { isThrottleConfig } from './throttle/validation/isThrottleConfig.js';
-export { isThrottleStats } from './throttle/validation/isThrottleStats.js';
+export { ThrottleConfigValidator } from './throttle/validation/ThrottleConfigValidator.js';
+export { ThrottleStatsValidator } from './throttle/validation/ThrottleStatsValidator.js';
+export { ThrottleValidator } from './throttle/validation/ThrottleValidator.js';
 export type { AbortResultType } from './types/AbortResultType.js';
 export type { AdaptiveStatsType } from './types/AdaptiveStatsType.js';
 export type { ThrottleStatsType } from './types/ThrottleStatsType.js';

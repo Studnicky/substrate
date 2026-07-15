@@ -8,4 +8,4 @@ export { LoggerBuilder } from './LoggerBuilder.js';
 export { LogMetadata } from './LogMetadata.js';
 export { LogStatus } from './LogStatus.js';
 export { ParseLogLevel } from './parseLogLevel.js';
-export { safeStringify } from './safeStringify.js';
+export { SafeStringify } from './safeStringify.js';

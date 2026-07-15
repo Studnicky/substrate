@@ -6,34 +6,39 @@ type ParserServicesType = {
   readonly 'program'?: ts.Program;
 };
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object';};
-
-const hasTypeServices = (value: unknown): value is Required<ParserServicesType> => {
-  if (!isNonNullObject(value)) { return false; }
-  if (!('program' in value) || !isNonNullObject(value.program)) { return false; }
-  if (typeof value.program.getTypeChecker !== 'function') { return false; }
-  if (!('esTreeNodeToTSNodeMap' in value) || !isNonNullObject(value.esTreeNodeToTSNodeMap)) { return false; }
-
-  // Duck-type the Map: avoid cross-realm instanceof failures when the Map is from a different module instance.
-  return typeof value.esTreeNodeToTSNodeMap.get === 'function';
-};
-
-const isBannedPropertyName = (node: unknown): boolean => {
-  if (node === null || node === undefined) { return false; }
-  if (typeof node !== 'object') { return false; }
-
-  if (Reflect.get(node, 'type') === 'Identifier') {
-    const name: unknown = Reflect.get(node, 'name');
-    return name === 'bind' || name === 'call' || name === 'apply';
-  }
-  if (Reflect.get(node, 'type') === 'Literal') {
-    const value: unknown = Reflect.get(node, 'value');
-    return value === 'bind' || value === 'call' || value === 'apply';
+class TypeGuards {
+  static isNonNullObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object';
   }
 
-  return false;
-};
+  static hasTypeServices(value: unknown): value is Required<ParserServicesType> {
+    if (!TypeGuards.isNonNullObject(value)) { return false; }
+    if (!('program' in value) || !TypeGuards.isNonNullObject(value.program)) { return false; }
+    if (typeof value.program.getTypeChecker !== 'function') { return false; }
+    if (!('esTreeNodeToTSNodeMap' in value) || !TypeGuards.isNonNullObject(value.esTreeNodeToTSNodeMap)) { return false; }
+
+    // Duck-type the Map: avoid cross-realm instanceof failures when the Map is from a different module instance.
+    return typeof value.esTreeNodeToTSNodeMap.get === 'function';
+  }
+}
+
+class BannedProperty {
+  static isMatch(node: unknown): boolean {
+    if (node === null || node === undefined) { return false; }
+    if (typeof node !== 'object') { return false; }
+
+    if (Reflect.get(node, 'type') === 'Identifier') {
+      const name: unknown = Reflect.get(node, 'name');
+      return name === 'bind' || name === 'call' || name === 'apply';
+    }
+    if (Reflect.get(node, 'type') === 'Literal') {
+      const value: unknown = Reflect.get(node, 'value');
+      return value === 'bind' || value === 'call' || value === 'apply';
+    }
+
+    return false;
+  }
+}
 
 export const noBindApplyCall: Rule.RuleModule = {
   'create': (context) => {
@@ -41,12 +46,12 @@ export const noBindApplyCall: Rule.RuleModule = {
       const { callee } = node;
 
       if (callee.type !== 'MemberExpression') { return; }
-      if (!isBannedPropertyName(callee.property)) { return; }
+      if (!BannedProperty.isMatch(callee.property)) { return; }
 
       // Property name matches — now prove the receiver is a callable Function via the type checker.
       // Without that proof we do not report: "if we cannot prove it, we do not enforce it."
       const servicesUnknown: unknown = context.sourceCode.parserServices;
-      if (!hasTypeServices(servicesUnknown)) { return; }
+      if (!TypeGuards.hasTypeServices(servicesUnknown)) { return; }
 
       const { object } = callee;
       const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(object);

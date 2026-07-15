@@ -36,9 +36,11 @@ const events: string[] = [];
 
 // Scenario: breaker trips open → half-open → closes; rejected calls go to DLQ
 let time = 0;
-const clock = (): number => { const result = time; return result; };
+class Clock {
+  static now(): number { const result = time; return result; }
+}
 
-const cb = new TracedBreaker({ 'clock': clock, 'failureThreshold': 2, 'resetTimeoutMs': 100, 'successThreshold': 1 });
+const cb = new TracedBreaker({ 'clock': Clock.now, 'failureThreshold': 2, 'resetTimeoutMs': 100, 'successThreshold': 1 });
 const dlq = new TracedDlq<string>({ 'capacity': 10 });
 
 // Trip the breaker open with 2 failures

@@ -12,8 +12,11 @@ import type { Rule } from 'eslint';
  */
 const MAX_SWITCH_CASES = 20;
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object';};
+class AstHelpers {
+  public static isNonNullObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object';
+  }
+}
 
 export const maxSwitchCases: Rule.RuleModule = {
   'create': (context) => {
@@ -24,7 +27,7 @@ export const maxSwitchCases: Rule.RuleModule = {
       if (!Array.isArray(cases)) { return; }
 
       const nonDefaultCount = cases.filter((c: unknown) => {
-        return isNonNullObject(c) && c.test !== null;
+        return AstHelpers.isNonNullObject(c) && c.test !== null;
       }).length;
 
       if (nonDefaultCount < MAX_SWITCH_CASES) { return; }

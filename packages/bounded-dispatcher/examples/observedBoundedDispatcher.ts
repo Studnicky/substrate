@@ -48,18 +48,20 @@ const dispatcher = ReportingBoundedDispatcher.tracked(2);
 let concurrentCount = 0;
 let maxConcurrentObserved = 0;
 
-const trackedTask = (label: string): Promise<string> => {
-  const result = dispatcher.dispatch(async () => {
-    concurrentCount += 1;
-    maxConcurrentObserved = Math.max(maxConcurrentObserved, concurrentCount);
-    await new Promise<void>((resolve) => { setTimeout(resolve, 20); });
-    concurrentCount -= 1;
-    return `done-${label}`;
-  });
-  return result;
-};
+class TrackedTask {
+  static run(label: string): Promise<string> {
+    const result = dispatcher.dispatch(async () => {
+      concurrentCount += 1;
+      maxConcurrentObserved = Math.max(maxConcurrentObserved, concurrentCount);
+      await new Promise<void>((resolve) => { setTimeout(resolve, 20); });
+      concurrentCount -= 1;
+      return `done-${label}`;
+    });
+    return result;
+  }
+}
 
-const boundedResults = await Promise.all(['a', 'b', 'c', 'd', 'e'].map((label) => { const result = trackedTask(label); return result; }));
+const boundedResults = await Promise.all(['a', 'b', 'c', 'd', 'e'].map((label) => { const result = TrackedTask.run(label); return result; }));
 
 console.log('Bounded dispatch results:', boundedResults, 'max concurrent observed:', maxConcurrentObserved);
 assert.deepEqual(boundedResults, ['done-a', 'done-b', 'done-c', 'done-d', 'done-e']);

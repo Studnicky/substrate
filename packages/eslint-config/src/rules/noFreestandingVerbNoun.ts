@@ -1,73 +1,83 @@
 import type { Rule } from 'eslint';
+import type { Program, Symbol, Type } from 'typescript';
 
-const DEFAULT_VERB_PREFIXES: ReadonlySet<string> = new Set([
-  'apply', 'build', 'calculate', 'check', 'clear', 'close', 'compose',
-  'compute', 'convert', 'create', 'decode', 'deserialize', 'disable',
-  'dispatch', 'enable', 'encode', 'escape', 'execute', 'extract',
-  'fetch', 'filter', 'find', 'format', 'from', 'gen', 'generate',
-  'get', 'handle', 'init', 'initialize', 'load', 'make', 'map',
-  'merge', 'normalize', 'open', 'parse', 'process', 'reduce', 'reject',
-  'reset', 'resolve', 'run', 'sanitize', 'save', 'serialize', 'set',
-  'split', 'start', 'stop', 'to', 'transform', 'update', 'validate',
-  'wrap'
-]);
+import { TrivialExpression } from './shared/TrivialExpression.js';
+
+type ModeType = 'any' | 'structural' | 'typed';
 
 type OptionsType = {
-  readonly 'additionalPrefixes': string[];
-  readonly 'ignorePrefixes': string[];
+  readonly 'mode': ModeType;
 };
 
-const isVerbNounName = (name: string, verbPrefixes: ReadonlySet<string>): boolean => {
-  const prefixes = [...verbPrefixes];
-  const prefixesLen = prefixes.length;
-  for (let i = 0; i < prefixesLen; i += 1) {
-    const prefix = prefixes[i]!;
-    if (name.length > prefix.length && name.startsWith(prefix)) {
-      const next = name[prefix.length];
-      if (next !== undefined && next >= 'A' && next <= 'Z') { return true; }
-    }
-  }
-  return false;
+const DEFAULT_MODE: ModeType = 'structural';
+
+const TRIVIAL_OPTS = { 'allowLiterals': false, 'allowMemberExpressions': false };
+
+type ParserServicesType = {
+  readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
+  readonly 'getTypeAtLocation': (node: unknown) => Type;
+  readonly 'program': Program;
 };
 
-class PrefixHelpers {
-  public static buildPrefixSet(options: Partial<OptionsType>): ReadonlySet<string> {
-    const ignoreSet = new Set(options.ignorePrefixes ?? []);
-    const base = [...DEFAULT_VERB_PREFIXES].filter((p) => {return !ignoreSet.has(p);});
-    const additional = options.additionalPrefixes ?? [];
-    return new Set([...base, ...additional]);
-  }
+type SourceCodeServicesAccessorType = {
+  readonly 'parserServices'?: ParserServicesType;
+};
 
-  public static extractVerbNoun(name: string, verbPrefixes: ReadonlySet<string>): { readonly 'noun': string; readonly 'verb': string } | undefined {
-    const prefixes = [...verbPrefixes];
-    const prefixesLen = prefixes.length;
-    for (let i = 0; i < prefixesLen; i += 1) {
-      const prefix = prefixes[i]!;
-      if (name.length > prefix.length && name.startsWith(prefix)) {
-        const next = name[prefix.length];
-        if (next !== undefined && next >= 'A' && next <= 'Z') {
-          return { 'noun': name.slice(prefix.length), 'verb': prefix };
-        }
-      }
-    }
-    return undefined;
+class ContextHelpers {
+  public static getServices(context: Rule.RuleContext): ParserServicesType | undefined {
+    const result = (context.sourceCode as unknown as SourceCodeServicesAccessorType).parserServices;
+    return result;
   }
 }
 
-const isModuleScope = (node: Rule.Node): boolean => {
-  const parent = node.parent;
-  if (parent?.type === 'Program') { return true; }
-  if (parent?.type === 'ExportNamedDeclaration' || parent?.type === 'ExportDefaultDeclaration') {
-    return parent.parent?.type === 'Program';
-  }
-  return false;
+type FunctionLikeNodeType = {
+  readonly 'body': { readonly 'body'?: readonly unknown[]; readonly 'type': string };
 };
 
-const isFunctionInit = (init: unknown): boolean => {
-  if (init === null || init === undefined || typeof init !== 'object') { return false; }
-  const t = (init as { 'type'?: unknown }).type;
-  return t === 'ArrowFunctionExpression' || t === 'FunctionExpression';
-};
+class AstHelpers {
+  public static isModuleScope(node: Rule.Node): boolean {
+    const parent = node.parent;
+    if (parent?.type === 'Program') { return true; }
+    if (parent?.type === 'ExportNamedDeclaration' || parent?.type === 'ExportDefaultDeclaration') {
+      return parent.parent?.type === 'Program';
+    }
+    return false;
+  }
+
+  public static isFunctionInit(init: unknown): boolean {
+    if (init === null || init === undefined || typeof init !== 'object') { return false; }
+    const t = (init as { 'type'?: unknown }).type;
+    return t === 'ArrowFunctionExpression' || t === 'FunctionExpression';
+  }
+
+  public static isNamedType(type: Type): boolean {
+    if (type.aliasSymbol !== undefined) { return true; }
+    const symbol = type.getSymbol();
+    if (symbol === undefined) { return false; }
+    const name = symbol.getName();
+    return name !== '__type' && name !== '__function';
+  }
+
+  /** Structural-mode trivia check: block body with a single trivial ReturnStatement, or a trivial expression-bodied arrow. */
+  public static isBlockBodyTrivial(body: readonly unknown[]): boolean {
+    if (body.length !== 1) { return false; }
+    const [statement] = body;
+    if (statement === undefined || typeof statement !== 'object') { return false; }
+    const statementType = (statement as { 'type'?: unknown }).type;
+    if (statementType !== 'ReturnStatement') { return false; }
+    const argument = (statement as { 'argument'?: unknown }).argument;
+    return TrivialExpression.isTrivial(argument, TRIVIAL_OPTS);
+  }
+
+  public static isStructurallyExempt(node: Rule.Node): boolean {
+    const rawNode = node as unknown as FunctionLikeNodeType;
+    const { body } = rawNode;
+    if (body.type === 'BlockStatement') {
+      return AstHelpers.isBlockBodyTrivial(body.body ?? []);
+    }
+    return TrivialExpression.isTrivial(body, TRIVIAL_OPTS);
+  }
+}
 
 export const noFreestandingVerbNoun: Rule.RuleModule = {
   'create': (context) => {
@@ -75,34 +85,52 @@ export const noFreestandingVerbNoun: Rule.RuleModule = {
     const rawOptions = Array.isArray(options)
       ? (options.at(0) as Partial<OptionsType> | undefined)
       : undefined;
-    const prefixSet = PrefixHelpers.buildPrefixSet(rawOptions ?? {});
+    const mode: ModeType = rawOptions?.mode ?? DEFAULT_MODE;
+
+    const services = mode === 'typed' ? ContextHelpers.getServices(context) : undefined;
+    const checker = services?.program !== undefined ? services.program.getTypeChecker() : undefined;
+
+    if (mode === 'typed' && checker === undefined) {
+      return {};
+    }
 
     const report = (node: Rule.Node, name: string): void => {
-      const parts = PrefixHelpers.extractVerbNoun(name, prefixSet);
-      if (parts === undefined) { return; }
       context.report({
-        'data': { 'name': name, 'noun': parts.noun, 'verb': parts.verb },
-        'messageId': 'verbNoun',
+        'data': { 'name': name },
+        'messageId': 'freestandingFunction',
         'node': node
       });
     };
 
+    const shouldReport = (node: Rule.Node): boolean => {
+      if (mode === 'any') { return true; }
+      if (mode === 'structural') { return !AstHelpers.isStructurallyExempt(node); }
+      // 'typed'
+      if (services === undefined || checker === undefined) { return false; }
+      const type = services.getTypeAtLocation(node);
+      const signature = type.getCallSignatures().at(0);
+      const returnType = signature?.getReturnType();
+      if (returnType === undefined) { return false; }
+      return AstHelpers.isNamedType(returnType);
+    };
+
     const onFunctionDeclaration: NonNullable<Rule.RuleListener['FunctionDeclaration']> = (node) => {
-      if (!isModuleScope(node)) { return; }
+      if (!AstHelpers.isModuleScope(node)) { return; }
       const name = node.id?.name;
       if (name === undefined) { return; }
-      if (!isVerbNounName(name, prefixSet)) { return; }
+      if (!shouldReport(node)) { return; }
       report(node, name);
     };
 
     const onVariableDeclaration: NonNullable<Rule.RuleListener['VariableDeclaration']> = (node) => {
-      if (!isModuleScope(node)) { return; }
+      if (!AstHelpers.isModuleScope(node)) { return; }
       const { declarations } = node;
       declarations.forEach((declarator) => {
         if (declarator.id.type !== 'Identifier') { return; }
         const name = declarator.id.name;
-        if (!isVerbNounName(name, prefixSet)) { return; }
-        if (!isFunctionInit(declarator.init)) { return; }
+        if (!AstHelpers.isFunctionInit(declarator.init)) { return; }
+        const initNode = declarator.init as unknown as Rule.Node;
+        if (!shouldReport(initNode)) { return; }
         report(declarator as unknown as Rule.Node, name);
       });
     };
@@ -114,27 +142,21 @@ export const noFreestandingVerbNoun: Rule.RuleModule = {
   },
   'meta': {
     'docs': {
-      'description': 'Disallow freestanding verbNoun functions at module scope. Convert to static class methods.',
+      'description': 'Disallow freestanding functions at module scope. Convert to static class methods.',
       'recommended': false
     },
     'messages': {
-      'verbNoun': "Freestanding '{{name}}' is forbidden. Convert to a static method: `class {{noun}} { static {{verb}}(...) {} }` where '{{noun}}' is the type being produced."
+      'freestandingFunction': "Freestanding function '{{name}}' at module scope is forbidden. Convert it to a static method on a class."
     },
     'schema': [
       {
         'additionalProperties': false,
         'properties': {
-          'additionalPrefixes': {
-            'default': [],
-            'description': 'Extra verb prefixes to add to the default set.',
-            'items': { 'type': 'string' },
-            'type': 'array'
-          },
-          'ignorePrefixes': {
-            'default': [],
-            'description': 'Verb prefixes to remove from the default set.',
-            'items': { 'type': 'string' },
-            'type': 'array'
+          'mode': {
+            'default': 'structural',
+            'description': 'Detection mode: "any" flags every module-scope function; "structural" exempts trivial pass-through bodies (already covered by no-trivial-shim); "typed" flags only functions whose return type is a named type/interface (requires type-aware parser services).',
+            'enum': ['any', 'structural', 'typed'],
+            'type': 'string'
           }
         },
         'type': 'object'

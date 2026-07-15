@@ -120,27 +120,31 @@ class AdaptiveConfigValidator {
   }
 }
 
-/**
- * Type guard that checks if value is a valid ThrottleConfigType
- *
- * Validates that the value is an object with valid optional concurrencyLimit
- * and adaptive configuration fields.
- *
- * @param value - Value to check
- * @returns True if value is a valid ThrottleConfigType
- */
-export function isThrottleConfig(value: unknown): value is ThrottleConfigType {
-  if (!Guard.isObject(value)) {
-    return false;
-  }
+class ThrottleConfigValidator {
+  /**
+   * Type guard that checks if value is a valid ThrottleConfigType
+   *
+   * Validates that the value is an object with valid optional concurrencyLimit
+   * and adaptive configuration fields.
+   *
+   * @param value - Value to check
+   * @returns True if value is a valid ThrottleConfigType
+   */
+  public static isThrottleConfig(value: unknown): value is ThrottleConfigType {
+    if (!Guard.isObject(value)) {
+      return false;
+    }
 
-  if (value.concurrencyLimit !== undefined && !Guard.isPositiveInteger(value.concurrencyLimit)) {
-    return false;
-  }
+    if (value.concurrencyLimit !== undefined && !Guard.isPositiveInteger(value.concurrencyLimit)) {
+      return false;
+    }
 
-  if (value.adaptive !== undefined && !AdaptiveConfigValidator.isAdaptiveConfig(value.adaptive)) {
-    return false;
-  }
+    if (value.adaptive !== undefined && !AdaptiveConfigValidator.isAdaptiveConfig(value.adaptive)) {
+      return false;
+    }
 
-  return true;
+    return true;
+  }
 }
+
+export { ThrottleConfigValidator };

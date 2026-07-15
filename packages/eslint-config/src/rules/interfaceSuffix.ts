@@ -1,14 +1,14 @@
 import type { Rule } from 'eslint';
 
-const isObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-};
-
 class NodeName {
+  static isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+  }
+
   static get(rawNode: unknown): string {
-    if (!isObject(rawNode)) { return ''; }
+    if (!NodeName.isObject(rawNode)) { return ''; }
     const idNode: unknown = rawNode.id;
-    if (!isObject(idNode)) { return ''; }
+    if (!NodeName.isObject(idNode)) { return ''; }
     const name: unknown = idNode.name;
     return typeof name === 'string' ? name : '';
   }
