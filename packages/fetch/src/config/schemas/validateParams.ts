@@ -4,37 +4,39 @@
 
 import { ConfigurationError } from '../../errors/index.js';
 
-/**
- * Validates params object
- * All param values must be string, number, boolean, or arrays of these types
- *
- * @param val - Query parameters configuration to validate
- * @throws ConfigurationError if validation fails
- */
-export function validateParams(val: unknown): void {
-  if (val === undefined || val === null) {
-    return;
-  }
+export class ValidateParams {
+  /**
+   * Validates params object
+   * All param values must be string, number, boolean, or arrays of these types
+   *
+   * @param val - Query parameters configuration to validate
+   * @throws ConfigurationError if validation fails
+   */
+  public static validate(val: unknown): void {
+    if (val === undefined || val === null) {
+      return;
+    }
 
-  if (typeof val !== 'object' || Array.isArray(val)) {
-    throw new ConfigurationError('params must be an object');
-  }
+    if (typeof val !== 'object' || Array.isArray(val)) {
+      throw new ConfigurationError('params must be an object');
+    }
 
-  const paramsObj = val as Record<string, unknown>;
+    const paramsObj = val as Record<string, unknown>;
 
-  for (const [
-    key,
-    value
-  ] of Object.entries(paramsObj)) {
-    if (value !== null && value !== undefined) {
-      const valueType = typeof value;
-      const isValidType = valueType === 'string' || valueType === 'number' || valueType === 'boolean';
-      const isValidArray = Array.isArray(value) && value.every((item) => {
-        return typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean';
-      });
+    for (const [
+      key,
+      value
+    ] of Object.entries(paramsObj)) {
+      if (value !== null && value !== undefined) {
+        const valueType = typeof value;
+        const isValidType = valueType === 'string' || valueType === 'number' || valueType === 'boolean';
+        const isValidArray = Array.isArray(value) && value.every((item) => {
+          return typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean';
+        });
 
-      if (!isValidType && !isValidArray) {
-        throw new ConfigurationError(`param value for "${key}" must be string, number, boolean, or array of these types`);
+        if (!isValidType && !isValidArray) {
+          throw new ConfigurationError(`param value for "${key}" must be string, number, boolean, or array of these types`);
+        }
       }
     }
   }

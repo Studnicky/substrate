@@ -58,7 +58,7 @@ export { LogBody } from './modules/LogBody.js';
 export { LogFault } from './modules/LogFault.js';
 export { Logger } from './modules/Logger.js';
 export { LoggerBuilder } from './modules/LoggerBuilder.js';
-export { parseLogLevel } from './modules/parseLogLevel.js';
+export { ParseLogLevel } from './modules/parseLogLevel.js';
 export { safeStringify } from './modules/safeStringify.js';
 export { ConsoleTransport } from './transports/ConsoleTransport.js';
 export { ConsoleTransportBuilder } from './transports/ConsoleTransportBuilder.js';

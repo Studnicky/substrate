@@ -4,29 +4,31 @@
 
 import { ConfigurationError } from '../../errors/index.js';
 
-/**
- * Validates URL configuration
- * Must be a valid, non-empty URL string
- *
- * @param val - URL value to validate
- * @throws ConfigurationError if validation fails
- */
-export function validateURL(val: unknown): void {
-  if (val === undefined || val === null) {
-    return;
-  }
+export class ValidateURL {
+  /**
+   * Validates URL configuration
+   * Must be a valid, non-empty URL string
+   *
+   * @param val - URL value to validate
+   * @throws ConfigurationError if validation fails
+   */
+  public static validate(val: unknown): void {
+    if (val === undefined || val === null) {
+      return;
+    }
 
-  if (typeof val !== 'string') {
-    throw new ConfigurationError('baseURL must be a string');
-  }
+    if (typeof val !== 'string') {
+      throw new ConfigurationError('baseURL must be a string');
+    }
 
-  if (val === '') {
-    throw new ConfigurationError('baseURL must not be empty');
-  }
+    if (val === '') {
+      throw new ConfigurationError('baseURL must not be empty');
+    }
 
-  try {
-    new URL(val);
-  } catch {
-    throw new ConfigurationError('baseURL must be a valid URL');
+    try {
+      new URL(val);
+    } catch {
+      throw new ConfigurationError('baseURL must be a valid URL');
+    }
   }
 }
