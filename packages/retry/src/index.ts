@@ -10,10 +10,8 @@ export {
   NonRetryableError,
   RetryError
 } from './errors/index.js';
-export type { RequestStatsType } from './interfaces/RequestStatsType.js';
 export type { RetryBuilderInterface } from './interfaces/RetryBuilderInterface.js';
 export type { RetryConfigInterface } from './interfaces/RetryConfigInterface.js';
-export type { RetryContextType } from './interfaces/RetryContextType.js';
 export type { RetryInterface } from './interfaces/RetryInterface.js';
 export { BackoffStrategy } from './retry/backoff/index.js';
 export { Retry } from './retry/Retry.js';
@@ -23,6 +21,8 @@ export { isRequestStats } from './retry/validation/isRequestStats.js';
 export { isRetryConfig } from './retry/validation/isRetryConfig.js';
 export { isRetryContext } from './retry/validation/isRetryContext.js';
 export type { BackoffStrategyType } from './types/BackoffStrategyType.js';
+export type { RequestStatsType } from './types/RequestStatsType.js';
+export type { RetryContextType } from './types/RetryContextType.js';
 
 // Error classification, promoted to @studnicky/errors (the single, shared
 // classifier concept used by every consumer). Re-exported here so existing

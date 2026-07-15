@@ -1,5 +1,5 @@
-import type { LogBodyDataType } from '../interfaces/LogBodyDataType.js';
-import type { LogFaultDataType } from '../interfaces/LogFaultDataType.js';
+import type { LogBodyDataType } from '../types/LogBodyDataType.js';
+import type { LogFaultDataType } from '../types/LogFaultDataType.js';
 import type { LogStatusType } from '../types/LogStatusType.js';
 
 import { LogBuildError } from '../errors/LogBuildError.js';

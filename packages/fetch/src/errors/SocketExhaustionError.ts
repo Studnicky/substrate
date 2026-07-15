@@ -1,4 +1,4 @@
-import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherStatsType.js';
+import type { SocketDispatcherStatsType } from '../types/SocketDispatcherStatsType.js';
 
 import { FetchBaseError } from './FetchBaseError.js';
 

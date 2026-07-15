@@ -1,7 +1,7 @@
 import type { Agent } from 'undici';
 
-import type { DestroyOptionsType } from './DestroyOptionsType.js';
-import type { DispatcherHealthType } from './DispatcherHealthType.js';
+import type { DestroyOptionsType } from '../types/DestroyOptionsType.js';
+import type { DispatcherHealthType } from '../types/DispatcherHealthType.js';
 
 /**
  * Interface for undici dispatcher

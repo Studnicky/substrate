@@ -37,11 +37,11 @@
  * }
  * ```
  */
+import type { ModuleErrorInterface } from '../interfaces/index.js';
 import type {
   ModuleErrorCreateOptionsType,
-  ModuleErrorInterface,
   ModuleErrorOptionsType
-} from '../interfaces/index.js';
+} from '../types/index.js';
 
 import { ErrorDefaults } from '../constants/index.js';
 import { BaseError } from './BaseError.js';

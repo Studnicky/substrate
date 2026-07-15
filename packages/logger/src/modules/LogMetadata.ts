@@ -1,12 +1,12 @@
-import type { CoreLogFieldsType } from '../interfaces/CoreLogFieldsType.js';
-import type { CorrelationFieldsType } from '../interfaces/CorrelationFieldsType.js';
-import type { ErrorFieldsType } from '../interfaces/ErrorFieldsType.js';
-import type { TimingFieldsType } from '../interfaces/TimingFieldsType.js';
+import type { CoreLogFieldsType } from '../types/CoreLogFieldsType.js';
+import type { CorrelationFieldsType } from '../types/CorrelationFieldsType.js';
+import type { ErrorFieldsType } from '../types/ErrorFieldsType.js';
 import type {
   CorrelationMetadataType,
   ErrorMetadataType,
   TimingMetadataType
 } from '../types/LogMetadataType.js';
+import type { TimingFieldsType } from '../types/TimingFieldsType.js';
 
 /**
  * Type guards for narrowing log metadata shapes.

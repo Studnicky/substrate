@@ -2,15 +2,15 @@
  * Configured HTTP client with subclass-overridable lifecycle hooks and a fluent request builder
  */
 
-import type { ClientConfigType } from '../interfaces/ClientConfigType.js';
-import type { DestroyOptionsType } from '../interfaces/DestroyOptionsType.js';
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
-import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
 import type { RequestBuilderInterface } from '../interfaces/RequestBuilderInterface.js';
-import type { RequestContextType } from '../interfaces/RequestContextType.js';
-import type { RequestMetadataType } from '../interfaces/RequestMetadataType.js';
-import type { ResponseContextType } from '../interfaces/ResponseContextType.js';
-import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherStatsType.js';
+import type { ClientConfigType } from '../types/ClientConfigType.js';
+import type { DestroyOptionsType } from '../types/DestroyOptionsType.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
+import type { RequestContextType } from '../types/RequestContextType.js';
+import type { RequestMetadataType } from '../types/RequestMetadataType.js';
+import type { ResponseContextType } from '../types/ResponseContextType.js';
+import type { SocketDispatcherStatsType } from '../types/SocketDispatcherStatsType.js';
 import type { ValidatorFnType } from '../types/ValidatorFnType.js';
 
 import {

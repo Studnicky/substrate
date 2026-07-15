@@ -2,7 +2,7 @@
  * Reusable client configuration fixtures for tests
  */
 
-import type { ClientConfigType } from '../../src/interfaces/ClientConfigType.js';
+import type { ClientConfigType } from '../../src/types/ClientConfigType.js';
 
 export const basicClientConfig = {
   baseURL: 'https://api.example.com',

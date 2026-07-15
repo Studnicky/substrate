@@ -1,4 +1,4 @@
-import type { ErrorScenarioType } from '../types/index.js';
+import type { ErrorScenarioType } from './index.js';
 
 /**
  * Options for creating a ModuleError with scenario defaults

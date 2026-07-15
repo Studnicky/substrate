@@ -6,11 +6,11 @@
 
 import { Agent } from 'undici';
 
-import type { DestroyOptionsType } from '../interfaces/DestroyOptionsType.js';
-import type { DispatcherConfigType } from '../interfaces/DispatcherConfigType.js';
-import type { DispatcherHealthType } from '../interfaces/DispatcherHealthType.js';
-import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherStatsType.js';
 import type { UndiciDispatcherInterface } from '../interfaces/UndiciDispatcherInterface.js';
+import type { DestroyOptionsType } from '../types/DestroyOptionsType.js';
+import type { DispatcherConfigType } from '../types/DispatcherConfigType.js';
+import type { DispatcherHealthType } from '../types/DispatcherHealthType.js';
+import type { SocketDispatcherStatsType } from '../types/SocketDispatcherStatsType.js';
 
 import { validateDispatcher } from '../config/schemas/validateDispatcher.js';
 import { DEFAULT_DISPATCHER_CONFIG } from '../constants/DEFAULT_DISPATCHER_CONFIG.js';

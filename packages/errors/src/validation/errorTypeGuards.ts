@@ -34,7 +34,7 @@ import type {
   ErrorWithStatusCodeType,
   ErrorWithStatusType,
   ErrorWithSyscallType
-} from '../interfaces/index.js';
+} from '../types/index.js';
 
 /**
  * Check if value is an error or error-like object using Node.js 24's Error.isError()

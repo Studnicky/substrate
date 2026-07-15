@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type { TimingOptionsEntity } from '../src/index.js';
-import type { TimingEventDataType } from '../src/interfaces/index.js';
+import type { TimingEventDataType } from '../src/types/index.js';
 
 import { Timing, TimingEvent } from '../src/index.js';
 

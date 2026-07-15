@@ -7,10 +7,10 @@
 
 import type { Agent } from 'undici';
 
-import type { DestroyOptionsType } from '../../interfaces/DestroyOptionsType.js';
-import type { DispatcherConfigType } from '../../interfaces/DispatcherConfigType.js';
-import type { DispatcherHealthType } from '../../interfaces/DispatcherHealthType.js';
 import type { UndiciDispatcherInterface } from '../../interfaces/UndiciDispatcherInterface.js';
+import type { DestroyOptionsType } from '../../types/DestroyOptionsType.js';
+import type { DispatcherConfigType } from '../../types/DispatcherConfigType.js';
+import type { DispatcherHealthType } from '../../types/DispatcherHealthType.js';
 
 import { ConfigurationError } from '../../errors/index.js';
 import { UndiciDispatcherBuilder } from '../UndiciDispatcherBuilder.js';

@@ -1,6 +1,6 @@
 import { Guard } from '@studnicky/config';
 
-import type { ThrottleStatsType } from '../../interfaces/ThrottleStatsType.js';
+import type { ThrottleStatsType } from '../../types/ThrottleStatsType.js';
 
 /**
  * Type guard that checks if value is a valid ThrottleStatsType

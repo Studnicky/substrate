@@ -6,6 +6,7 @@
  */
 
 export { VisibleRangeError } from './errors/index.js';
-export type { VisibleRangeConfigInterface, VisibleRangeType } from './types/index.js';
+export type { VisibleRangeConfigInterface } from './interfaces/index.js';
+export type { VisibleRangeType } from './types/index.js';
 export { VisibleRange } from './VisibleRange.js';
 export { VisibleRangeBuilder } from './VisibleRangeBuilder.js';

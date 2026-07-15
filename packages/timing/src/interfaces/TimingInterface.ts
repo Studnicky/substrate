@@ -1,4 +1,4 @@
-import type { TimingEventDataType } from './TimingEventDataType.js';
+import type { TimingEventDataType } from '../types/TimingEventDataType.js';
 
 /**
  * Interface defining the public API of a Timing instance.

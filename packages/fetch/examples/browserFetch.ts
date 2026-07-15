@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { RequestContextType } from '../src/interfaces/RequestContextType.js';
-import type { ResponseContextType } from '../src/interfaces/ResponseContextType.js';
+import type { RequestContextType } from '../src/types/RequestContextType.js';
+import type { ResponseContextType } from '../src/types/ResponseContextType.js';
 
 import { FetchClient } from '../src/index.js';
 

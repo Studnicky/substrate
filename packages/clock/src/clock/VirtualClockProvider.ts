@@ -5,7 +5,7 @@
  * @module
  */
 
-import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
+import type { ClockProviderType } from '../types/ClockProviderType.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
 
 import { ClockError } from '../errors/ClockError.js';

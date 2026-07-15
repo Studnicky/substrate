@@ -2,8 +2,8 @@
  * Fluent builder for FetchClient
  */
 
-import type { ClientConfigType } from '../interfaces/ClientConfigType.js';
-import type { DispatcherConfigType } from '../interfaces/DispatcherConfigType.js';
+import type { ClientConfigType } from '../types/ClientConfigType.js';
+import type { DispatcherConfigType } from '../types/DispatcherConfigType.js';
 import type { QueryParamsType } from '../types/QueryParamsType.js';
 import type { FetchClient } from './FetchClient.js';
 

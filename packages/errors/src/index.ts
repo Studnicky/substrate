@@ -46,10 +46,15 @@ export {
   ValidationErrorsBuilder
 } from './errors/index.js';
 export type {
+  ErrorClassifierInterface,
+  ModuleErrorInterface
+} from './interfaces/index.js';
+export type {
   BaseErrorArgumentsType,
   ErrorClassificationType,
-  ErrorClassifierInterface,
+  ErrorClassifierFunctionType,
   ErrorCodeDescriptorType,
+  ErrorScenarioType,
   ErrorWithAddressType,
   ErrorWithCodeType,
   ErrorWithErrnoType,
@@ -60,18 +65,13 @@ export type {
   ErrorWithStatusType,
   ErrorWithSyscallType,
   ModuleErrorCreateOptionsType,
-  ModuleErrorInterface,
   ModuleErrorOptionsType,
   SerializedErrorType,
-  ValidationErrorArgumentsType,
-  ValidationViolationDetailType
-} from './interfaces/index.js';
-export type {
-  ErrorClassifierFunctionType,
-  ErrorScenarioType,
   ValidationAggregateViewType,
+  ValidationErrorArgumentsType,
   ValidationProblemDetailsType,
   ValidationReportOptionsType,
+  ValidationViolationDetailType,
   ValidationViolationType
 } from './types/index.js';
 export { errorTypeGuards } from './validation/errorTypeGuards.js';

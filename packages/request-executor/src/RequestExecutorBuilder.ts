@@ -4,7 +4,7 @@
 
 import type { Context } from '@studnicky/context';
 import type { FetchClient } from '@studnicky/fetch';
-import type { ClientConfigType } from '@studnicky/fetch/interfaces';
+import type { ClientConfigType } from '@studnicky/fetch/types';
 import type { Retry, RetryConfigInterface } from '@studnicky/retry';
 import type { Signal } from '@studnicky/signal';
 import type { Timing } from '@studnicky/timing';

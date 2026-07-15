@@ -8,7 +8,7 @@
  *      to the concrete subclass and that cause-chain helpers + toJSON work correctly.
  */
 
-import type { ModuleErrorOptionsType } from '../../src/interfaces/index.js';
+import type { ModuleErrorOptionsType } from '../../src/types/index.js';
 
 import {
   deepStrictEqual,

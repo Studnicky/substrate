@@ -1,8 +1,6 @@
 import type { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
-import type { AbortResultType } from './AbortResultType.js';
-import type { ThrottleStatsType } from './ThrottleStatsType.js';
-
-type ThrottleConfigType = ThrottleConfigEntity.Type;
+import type { AbortResultType } from '../types/AbortResultType.js';
+import type { ThrottleStatsType } from '../types/ThrottleStatsType.js';
 
 /**
  * Contract for throttle implementations that limit concurrent async operations.
@@ -51,5 +49,5 @@ export interface ThrottleInterface {
    * Update throttle configuration
    * Changes take effect for new operations
    */
-  updateConfig(config: Partial<ThrottleConfigType>): void;
+  updateConfig(config: Partial<ThrottleConfigEntity.Type>): void;
 }

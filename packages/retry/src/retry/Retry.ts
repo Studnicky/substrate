@@ -1,14 +1,8 @@
 import { ConfigValidation } from '@studnicky/config';
 import { DefaultHttpErrorClassifier } from '@studnicky/errors';
 
-import type {
-  ErrorClassificationType,
-  RequestStatsType,
-  RetryConfigInterface,
-  RetryContextType,
-  RetryInterface
-} from '../interfaces/index.js';
-import type { RetryCallStateType } from '../types/RetryCallStateType.js';
+import type { ErrorClassificationType, RetryConfigInterface, RetryInterface } from '../interfaces/index.js';
+import type { RequestStatsType, RetryCallStateType, RetryContextType } from '../types/index.js';
 
 import {
   DEFAULT_MAX_RETRIES,

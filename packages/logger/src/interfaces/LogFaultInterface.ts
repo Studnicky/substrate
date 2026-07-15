@@ -2,8 +2,8 @@
  * Fluent interface for LogFault builder.
  */
 
+import type { LogFaultDataType } from '../types/LogFaultDataType.js';
 import type { LogStatusType } from '../types/LogStatusType.js';
-import type { LogFaultDataType } from './LogFaultDataType.js';
 
 /**
  * Builder interface for creating normalized error log entries.

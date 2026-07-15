@@ -13,7 +13,8 @@ import {
 } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import type { RetryConfigInterface, RetryContextType } from '../../../src/interfaces/index.js';
+import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+import type { RetryContextType } from '../../../src/types/index.js';
 
 import {
   BackoffStrategy,

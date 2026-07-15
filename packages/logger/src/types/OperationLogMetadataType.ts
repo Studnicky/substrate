@@ -3,9 +3,9 @@
  * Use for individual operation logs within a request.
  */
 
-import type { ErrorFieldsType } from '../interfaces/ErrorFieldsType.js';
-import type { TimingFieldsType } from '../interfaces/TimingFieldsType.js';
+import type { ErrorFieldsType } from './ErrorFieldsType.js';
 import type { RequestLogMetadataType } from './RequestLogMetadataType.js';
+import type { TimingFieldsType } from './TimingFieldsType.js';
 
 
 /**

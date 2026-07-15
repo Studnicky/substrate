@@ -1,7 +1,5 @@
-import type {
-  ErrorClassificationType,
-  ErrorClassifierInterface
-} from '../interfaces/index.js';
+import type { ErrorClassifierInterface } from '../interfaces/index.js';
+import type { ErrorClassificationType } from '../types/index.js';
 
 import { matchers } from './matchers.js';
 

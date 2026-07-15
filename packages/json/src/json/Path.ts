@@ -8,8 +8,7 @@
  * property deny-list.
  */
 
-import type { PathWildcardResultType } from '../interfaces/index.js';
-import type { PathGetOptionsType } from '../types/index.js';
+import type { PathGetOptionsType, PathWildcardResultType } from '../types/index.js';
 
 /** Prototype-pollution safe property deny-list. */
 const DANGEROUS_PROPERTIES = new Set([

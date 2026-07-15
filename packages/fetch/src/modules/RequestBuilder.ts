@@ -3,8 +3,8 @@
  */
 
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
-import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
 import type { RequestBuilderInterface } from '../interfaces/RequestBuilderInterface.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
 import type { QueryParamsType } from '../types/QueryParamsType.js';
 import type { QueryValueType } from '../types/QueryValueType.js';
 
