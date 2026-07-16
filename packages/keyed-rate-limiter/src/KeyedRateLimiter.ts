@@ -14,6 +14,8 @@ import type { KeyedRateLimiterStrategyConfigType } from './types/KeyedRateLimite
 
 import { KeyedRateLimiterBuilder } from './KeyedRateLimiterBuilder.js';
 
+// json-schema-uninexpressible: generic over TStrategy, 'cache' is an LruCache class instance, and
+// 'factory' is a function type — none of these have a JSON Schema representation.
 type KeyedRateLimiterDepsType<TStrategy extends RateLimiterStrategyType> = {
   'cache': LruCache<string, TStrategy>;
   'factory': (key: string) => TStrategy;

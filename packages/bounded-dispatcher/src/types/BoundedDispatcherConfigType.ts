@@ -14,6 +14,7 @@ import type { BoundedDispatcherComposedTopicMapType } from './BoundedDispatcherT
  * the config shape passed straight to that primitive's own `create()`. `permits` is
  * shorthand for `Semaphore.create({ permits })`.
  */
+// json-schema-uninexpressible: accepts pre-built class instances (EventBus, SchedulerProviderType) alongside config shorthand, plus a generic TTopicMap type parameter — not a serializable data shape
 export type BoundedDispatcherConfigType<TTopicMap extends Record<string, unknown>> = {
   /**
    * A pre-built `EventBus` instance, or `BusQueueOptionsEntity.Type` config passed to

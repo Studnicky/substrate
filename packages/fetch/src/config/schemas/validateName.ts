@@ -5,22 +5,27 @@
 import { ConfigurationError } from '../../errors/index.js';
 
 /**
- * Validates name configuration
- * Must be a non-empty string
- *
- * @param val - Name value to validate
- * @throws ConfigurationError if validation fails
+ * Name validation
  */
-export function validateName(val: unknown): void {
-  if (val === undefined || val === null) {
-    return;
-  }
+export class ValidateName {
+  /**
+   * Validates name configuration
+   * Must be a non-empty string
+   *
+   * @param val - Name value to validate
+   * @throws ConfigurationError if validation fails
+   */
+  public static validate(val: unknown): void {
+    if (val === undefined || val === null) {
+      return;
+    }
 
-  if (typeof val !== 'string') {
-    throw new ConfigurationError('name must be a string');
-  }
+    if (typeof val !== 'string') {
+      throw new ConfigurationError('name must be a string');
+    }
 
-  if (val === '') {
-    throw new ConfigurationError('name must not be empty');
+    if (val === '') {
+      throw new ConfigurationError('name must not be empty');
+    }
   }
 }

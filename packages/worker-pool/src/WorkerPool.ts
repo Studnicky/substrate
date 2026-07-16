@@ -10,6 +10,7 @@ import type { WorkerPoolConfigType } from './types/WorkerPoolConfigType.js';
 
 import { WorkerPoolBuilder } from './WorkerPoolBuilder.js';
 
+// json-schema-uninexpressible: 'signal' is a live Signal class instance — not a serializable data shape
 type WorkerPoolDepsType = {
   'concurrency': number;
   'signal': Signal;
@@ -17,6 +18,7 @@ type WorkerPoolDepsType = {
   'workerPath': string;
 };
 
+// json-schema-uninexpressible: 'item' is a generic TMessage type parameter — the payload shape is caller-defined, not a fixed domain shape
 type IndexedItemType<TMessage> = {
   'index': number;
   'item': TMessage;

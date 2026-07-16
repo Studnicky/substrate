@@ -3,7 +3,7 @@ import { it } from 'node:test';
 
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { LOG_LEVEL_MAP } from '../../src/constants/LOG_LEVEL_MAP.js';
-import { parseLogLevel } from '../../src/index.js';
+import { ParseLogLevel } from '../../src/index.js';
 
 const levelValueScenarios: Array<{ level: LOG_LEVEL; expected: number }> = [
   { expected: 0, level: LOG_LEVEL.TRACE },
@@ -65,7 +65,7 @@ const numericPassthroughScenarios: Array<{ input: LOG_LEVEL; expected: LOG_LEVEL
 
 for (const { input, expected } of numericPassthroughScenarios) {
   void it(`parseLogLevel passes through numeric LOG_LEVEL.${LOG_LEVEL[input]}`, () => {
-    assert.strictEqual(parseLogLevel(input), expected);
+    assert.strictEqual(ParseLogLevel.parse(input), expected);
   });
 }
 
@@ -80,7 +80,7 @@ const stringParseScenarios: Array<{ input: string; expected: LOG_LEVEL }> = [
 
 for (const { input, expected } of stringParseScenarios) {
   void it(`parseLogLevel parses string '${input}'`, () => {
-    assert.strictEqual(parseLogLevel(input as 'info'), expected);
+    assert.strictEqual(ParseLogLevel.parse(input as 'info'), expected);
   });
 }
 
@@ -92,6 +92,6 @@ const invalidStringScenarios: Array<{ input: string }> = [
 
 for (const { input } of invalidStringScenarios) {
   void it(`parseLogLevel falls back to INFO for invalid string '${input}'`, () => {
-    assert.strictEqual(parseLogLevel(input as 'info'), LOG_LEVEL.INFO);
+    assert.strictEqual(ParseLogLevel.parse(input as 'info'), LOG_LEVEL.INFO);
   });
 }

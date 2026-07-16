@@ -5,14 +5,11 @@ import { DataType } from '@studnicky/json';
 import type { CoerceToBooleanResultType } from './CoerceToBooleanResultType.js';
 import type { CoerceToNumberResultType } from './CoerceToNumberResultType.js';
 
-/** Scaling factor applied to `Number.EPSILON` when testing `multipleOf`. */
-const multipleOfEpsilonFactor = 10;
-
-/** Content encodings actively validated at runtime. */
-const supportedContentEncodings: ReadonlySet<string> = new Set(['base64', 'base64url']);
-
-/** Content media types actively validated at runtime. */
-const supportedContentMediaTypes: ReadonlySet<string> = new Set(['application/json']);
+import {
+  MULTIPLE_OF_EPSILON_FACTOR,
+  SUPPORTED_CONTENT_ENCODINGS,
+  SUPPORTED_CONTENT_MEDIA_TYPES
+} from './constants/index.js';
 
 export class Predicates {
   private static readonly coercionHandlers = new Map<string, (value: unknown) => unknown>([
@@ -278,7 +275,7 @@ export class Predicates {
     }
     const quotient = value / divisor;
 
-    return Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * multipleOfEpsilonFactor;
+    return Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * MULTIPLE_OF_EPSILON_FACTOR;
   }
 
   static satisfiesMinimum(value: number, minimum: number): boolean {
@@ -348,7 +345,7 @@ export class Predicates {
 
   /** Only base64/base64url are actively checked; unknown encodings return true per spec. */
   static satisfiesContentEncoding(value: string, encoding: string): boolean {
-    if (!supportedContentEncodings.has(encoding)) {
+    if (!SUPPORTED_CONTENT_ENCODINGS.has(encoding)) {
       return true;
     }
 
@@ -357,13 +354,13 @@ export class Predicates {
 
   /** Only application/json is actively checked; unknown media types return true per spec. */
   static satisfiesContentMediaType(value: string, mediaType: string, encoding?: string): boolean {
-    if (!supportedContentMediaTypes.has(mediaType)) {
+    if (!SUPPORTED_CONTENT_MEDIA_TYPES.has(mediaType)) {
       return true;
     }
 
     let content = value;
 
-    if (encoding !== undefined && supportedContentEncodings.has(encoding)) {
+    if (encoding !== undefined && SUPPORTED_CONTENT_ENCODINGS.has(encoding)) {
       const decoded = Predicates.#decodeBase64Safe(value, encoding === 'base64url');
 
       if (decoded === null) {

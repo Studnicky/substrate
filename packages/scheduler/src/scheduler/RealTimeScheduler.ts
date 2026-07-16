@@ -6,11 +6,13 @@
  * @module
  */
 
-import type { ScheduledTaskType } from '../interfaces/ScheduledTaskType.js';
-import type { SchedulerProviderType } from '../interfaces/SchedulerProviderType.js';
+import type { ScheduledTaskType } from '../types/ScheduledTaskType.js';
+import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
 
 import { RealTimeSchedulerBuilder } from './RealTimeSchedulerBuilder.js';
 
+// json-schema-uninexpressible: 'handle' is a ReturnType<typeof setTimeout> — an opaque Node.js runtime
+// timer handle object, not a JSON-serializable data shape.
 /** Internal record kept per active timer. */
 type ActiveTimerType = {
   readonly 'handle': ReturnType<typeof setTimeout>;

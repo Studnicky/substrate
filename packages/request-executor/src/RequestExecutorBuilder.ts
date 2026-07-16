@@ -4,7 +4,7 @@
 
 import type { Context } from '@studnicky/context';
 import type { FetchClient } from '@studnicky/fetch';
-import type { ClientConfigType } from '@studnicky/fetch/interfaces';
+import type { ClientConfigType } from '@studnicky/fetch/types';
 import type { Retry, RetryConfigInterface } from '@studnicky/retry';
 import type { Signal } from '@studnicky/signal';
 import type { Timing } from '@studnicky/timing';
@@ -31,7 +31,7 @@ export class RequestExecutorBuilder {
 
   readonly #create: (config: RequestExecutorConfigType) => RequestExecutor;
   #fetchClient?: ClientConfigType | FetchClient;
-  #retry?: Partial<RetryConfigInterface> | Retry;
+  #retry?: RetryConfigInterface | Retry;
   #signal?: Signal;
   #timing?: Timing;
   #context?: Context;
@@ -83,7 +83,7 @@ export class RequestExecutorBuilder {
   /**
    * Set the composed Retry instance or config
    */
-  retry(value: Partial<RetryConfigInterface> | Retry): this {
+  retry(value: RetryConfigInterface | Retry): this {
     this.#retry = value;
     return this;
   }

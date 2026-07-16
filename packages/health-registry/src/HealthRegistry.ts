@@ -2,12 +2,15 @@
 
 import { Signal } from '@studnicky/signal';
 
-import type { HealthCheckOptionsType } from './types/HealthCheckOptionsType.js';
+import type { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
 import type { HealthCheckResultType } from './types/HealthCheckResultType.js';
 import type { HealthCheckType } from './types/HealthCheckType.js';
 import type { HealthEvaluationType } from './types/HealthEvaluationType.js';
 import type { HealthStatusType } from './types/HealthStatusType.js';
 
+type HealthCheckOptionsType = HealthCheckOptionsEntity.Type;
+
+// json-schema-uninexpressible: 'check' is a function type (HealthCheckType), not representable in JSON Schema
 type HealthCheckEntryType = {
   readonly 'check': HealthCheckType;
   readonly 'timeoutMs'?: number;

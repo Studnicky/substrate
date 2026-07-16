@@ -1,7 +1,7 @@
 import { ConfigurationError } from '@studnicky/config';
 
+import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
-import type { TimingEventDataType } from '../interfaces/TimingEventDataType.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
 import { DEFAULT_DECIMAL_PRECISION, DEFAULT_MAX_EVENTS, NS_PER_UNIT } from '../constants/index.js';
@@ -224,7 +224,7 @@ export class Timing implements TimingInterface {
   }
 
   /**
-   * Records an event using TimingEventDataType.
+   * Records an event using TimingEventDataEntity.Type.
    * Multiple events with the same name can be recorded.
    * If maxEvents is exceeded, the oldest event is evicted.
    *
@@ -257,7 +257,7 @@ export class Timing implements TimingInterface {
    *   .build());
    * ```
    */
-  event(data: TimingEventDataType): void {
+  event(data: TimingEventDataEntity.Type): void {
     const currentTime = this.readHrtime();
 
     if (this.#timingCache.size >= this.maxEvents) {
@@ -357,7 +357,7 @@ export class Timing implements TimingInterface {
    * @param _data - The event data that was recorded
    * @param _timestamp - The hrtime timestamp at which the event was recorded
    */
-  protected onEvent(_data: TimingEventDataType, _timestamp: bigint): void { return; }
+  protected onEvent(_data: TimingEventDataEntity.Type, _timestamp: bigint): void { return; }
 
   /**
    * Lifecycle hook called before an event is evicted from the cache.

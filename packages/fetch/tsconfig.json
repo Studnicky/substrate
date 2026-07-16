@@ -17,10 +17,16 @@
       "path": "../errors"
     },
     {
+      "path": "../json"
+    },
+    {
       "path": "../pipeline"
     },
     {
       "path": "../timing"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

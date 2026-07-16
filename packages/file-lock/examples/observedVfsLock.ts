@@ -4,16 +4,13 @@
 import { VirtualFileSystem } from '@studnicky/virtual-fs';
 import assert from 'node:assert/strict';
 
-import { FileLock } from '../src/index.js';
+import type { LockEventEntity } from './entities/LockEventEntity.js';
 
-type LockEventType = {
-  readonly 'extra'?: string;
-  readonly 'hook': string;
-  readonly 'path': string;
-};
+import { FileLock } from '../src/index.js';
+import { VfsLockFixtures } from './fixtures/VfsLockFixtures.js';
 
 class TracedFileLock extends FileLock {
-  readonly events: LockEventType[] = [];
+  readonly events: LockEventEntity.Type[] = [];
 
   protected override onAcquire(p: string): void {
     this.events.push({ 'hook': 'onAcquire', 'path': p });
@@ -36,45 +33,53 @@ class TracedFileLock extends FileLock {
   }
 }
 
-const vfs = VirtualFileSystem.builder()
-  .seed('/shared/state.json', '{"version":0}')
-  .build();
+class VfsLockScenario {
+  static async run(): Promise<{ readonly 'holder': TracedFileLock; readonly 'waiter': TracedFileLock }> {
+    const vfs = VirtualFileSystem.builder()
+      .seed('/shared/state.json', '{"version":0}')
+      .build();
 
-// Ensure the parent directory entry exists so FileLock can readdirSync it
-// when checking for existing lock files during contention detection.
-vfs.mkdirSync('/shared', { 'recursive': true });
+    // Ensure the parent directory entry exists so FileLock can readdirSync it
+    // when checking for existing lock files during contention detection.
+    vfs.mkdirSync('/shared', { 'recursive': true });
 
-const lockPath = '/shared/state.json';
+    const lockPath = VfsLockFixtures.LOCK_PATH;
 
-// Holder acquires first — TracedFileLock.create uses `new this(...)` so the
-// result is a genuine TracedFileLock instance with observable hooks.
-const holder = await TracedFileLock.create({
-  'fileSystem': vfs,
-  'path': lockPath,
-  'pollMs': 5,
-  'timeoutMs': 500
-}) as TracedFileLock;
+    // Holder acquires first — TracedFileLock.create uses `new this(...)` so the
+    // result is a genuine TracedFileLock instance with observable hooks.
+    const holder = await TracedFileLock.create({
+      'fileSystem': vfs,
+      'path': lockPath,
+      'pollMs': 5,
+      'timeoutMs': 500
+    }) as TracedFileLock;
 
-console.log('holder acquired — scheduling release in 20ms');
-setTimeout(() => { holder.release(); }, 20);
+    console.log('holder acquired — scheduling release in 20ms');
+    setTimeout(() => { holder.release(); }, 20);
 
-// Waiter acquires second — will see contention until holder releases.
-const waiter = await TracedFileLock.create({
-  'fileSystem': vfs,
-  'path': lockPath,
-  'pollMs': 5,
-  'timeoutMs': 500
-}) as TracedFileLock;
+    // Waiter acquires second — will see contention until holder releases.
+    const waiter = await TracedFileLock.create({
+      'fileSystem': vfs,
+      'path': lockPath,
+      'pollMs': 5,
+      'timeoutMs': 500
+    }) as TracedFileLock;
 
-console.log('waiter acquired after holder released');
-waiter.release();
+    console.log('waiter acquired after holder released');
+    waiter.release();
+
+    return { 'holder': holder, 'waiter': waiter };
+  }
+}
+
+const results = await VfsLockScenario.run();
 // #endregion usage
 
 // Assertions
-const holderAcquires = holder.events.filter((e) => { return e.hook === 'onAcquire'; });
-const holderReleases = holder.events.filter((e) => { return e.hook === 'onRelease'; });
-const waiterContentions = waiter.events.filter((e) => { return e.hook === 'onContended'; });
-const waiterAcquires = waiter.events.filter((e) => { return e.hook === 'onAcquire'; });
+const holderAcquires = results.holder.events.filter((e) => { return e.hook === 'onAcquire'; });
+const holderReleases = results.holder.events.filter((e) => { return e.hook === 'onRelease'; });
+const waiterContentions = results.waiter.events.filter((e) => { return e.hook === 'onContended'; });
+const waiterAcquires = results.waiter.events.filter((e) => { return e.hook === 'onAcquire'; });
 
 assert.equal(holderAcquires.length, 1, 'holder: onAcquire fires once');
 assert.equal(holderReleases.length, 1, 'holder: onRelease fires once');

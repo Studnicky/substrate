@@ -4,7 +4,7 @@
 
 // EventComponent type
 export type { EventComponentType } from './EventComponentType.js';
-// Log data type
+// Log data types
 export type { LogDataType } from './LogDataType.js';
 
 // Core types

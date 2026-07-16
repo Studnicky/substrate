@@ -15,6 +15,7 @@ import type { RequestExecutorExecuteOptionsType } from './types/RequestExecutorE
 
 import { RequestExecutorBuilder } from './RequestExecutorBuilder.js';
 
+// json-schema-uninexpressible: composes live class instances (Context, FetchClient, Retry, Signal, Timing) — not a serializable data shape
 type RequestExecutorDepsType = {
   'context'?: Context | undefined;
   'deadlineMs'?: number | undefined;

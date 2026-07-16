@@ -8,9 +8,11 @@ import type { RateLimiterStrategyType } from '../src/index.js';
 
 import { KeyedRateLimiter } from '../src/index.js';
 
-function fixedClock(): number {
-  const timestamp = 0;
-  return timestamp;
+class FixedClock {
+  static now(): number {
+    const timestamp = 0;
+    return timestamp;
+  }
 }
 
 class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
@@ -23,7 +25,7 @@ class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
     // through `TelemetryKeyedRateLimiter` actually constructs one.
     const result = TelemetryKeyedRateLimiter.create({
       'burstSize': 2,
-      'clock': fixedClock,
+      'clock': FixedClock.now,
       'maxKeys': 2,
       'requestsPerSecond': 1
     }) as TelemetryKeyedRateLimiter;

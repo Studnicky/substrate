@@ -3,20 +3,21 @@
  * Generic async operation throttle with sliding window concurrency control
  */
 
+export { AbortResultEntity } from './entities/AbortResultEntity.js';
 export { AdaptiveConfigEntity } from './entities/AdaptiveConfigEntity.js';
+export { AdaptiveStatsEntity } from './entities/AdaptiveStatsEntity.js';
+export { LatencyStatsEntity } from './entities/LatencyStatsEntity.js';
 export { ThrottleConfigEntity } from './entities/ThrottleConfigEntity.js';
+export { ThrottleStatsEntity } from './entities/ThrottleStatsEntity.js';
 export {
   ConfigurationError,
   ThrottleAbortedError,
   ThrottleDrainingError
 } from './errors/index.js';
-export type { AbortResultType } from './interfaces/AbortResultType.js';
-export type { AdaptiveStatsType } from './interfaces/AdaptiveStatsType.js';
 export type { ThrottleBuilderInterface } from './interfaces/ThrottleBuilderInterface.js';
 export type { ThrottleInterface } from './interfaces/ThrottleInterface.js';
-export type { ThrottleStatsType } from './interfaces/ThrottleStatsType.js';
 export { Throttle } from './throttle/Throttle.js';
 export { ThrottleBuilder } from './throttle/ThrottleBuilder.js';
-export { isThrottle } from './throttle/validation/isThrottle.js';
-export { isThrottleConfig } from './throttle/validation/isThrottleConfig.js';
-export { isThrottleStats } from './throttle/validation/isThrottleStats.js';
+export { ThrottleConfigValidator } from './throttle/validation/ThrottleConfigValidator.js';
+export { ThrottleStatsValidator } from './throttle/validation/ThrottleStatsValidator.js';
+export { ThrottleValidator } from './throttle/validation/ThrottleValidator.js';

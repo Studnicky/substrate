@@ -25,6 +25,7 @@ const DEFAULT_CIRCUIT_BREAKER_OPTIONS = {
   'resetTimeoutMs': 30_000
 } as const;
 
+// json-schema-uninexpressible: fields are live class instances (CircuitBreaker, Retry, Throttle) carrying behavior/methods, not plain JSON-serializable data
 type BoundaryKitDepsType = {
   'circuitBreaker': CircuitBreaker;
   'retry': Retry;

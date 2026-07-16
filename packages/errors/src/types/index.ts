@@ -6,9 +6,14 @@
  * @packageDocumentation
  */
 
+export type { BaseErrorArgumentsType } from './BaseErrorArgumentsType.js';
 export type { ErrorClassifierFunctionType } from './ErrorClassifierFunctionType.js';
 export type { ErrorScenarioType } from './ErrorScenarioType.js';
-export type { ValidationAggregateViewType } from './ValidationAggregateViewType.js';
-export type { ValidationProblemDetailsType } from './ValidationProblemDetailsType.js';
-export type { ValidationReportOptionsType } from './ValidationReportOptionsType.js';
-export type { ValidationViolationType } from './ValidationViolationType.js';
+export type {
+  ModuleErrorCreateOptionsType
+} from './ModuleErrorCreateOptionsType.js';
+export type {
+  ModuleErrorOptionsType
+} from './ModuleErrorOptionsType.js';
+export type { SerializedErrorType } from './SerializedErrorType.js';
+export type { ValidationErrorArgumentsType } from './ValidationErrorArgumentsType.js';

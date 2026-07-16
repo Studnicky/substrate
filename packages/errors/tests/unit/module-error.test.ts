@@ -9,7 +9,7 @@
  * - Stack traces
  */
 
-import type { ModuleErrorOptionsType } from '../../src/interfaces/index.js';
+import type { ModuleErrorOptionsType } from '../../src/types/index.js';
 
 import {
   deepStrictEqual,

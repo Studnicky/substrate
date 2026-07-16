@@ -1,5 +1,5 @@
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
-import type { MutexStatsType } from '../types/MutexStatsType.js';
+import type { MutexStatsEntity } from '../entities/MutexStatsEntity.js';
 
 /**
  * Disposable lock handle for use with `await using` syntax (Node.js 24+)
@@ -36,7 +36,7 @@ export interface MutexInterface<K extends PropertyKey = string> {
   clear(): void;
   completeQueue(): Promise<void>;
   getConfig(): Readonly<MutexConfigEntity.Type>;
-  getStats(): MutexStatsType;
+  getStats(): MutexStatsEntity.Type;
   isComplete(): boolean;
   isLocked(key: K): boolean;
   queueSize(key: K): number;

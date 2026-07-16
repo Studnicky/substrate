@@ -3,6 +3,7 @@ import type { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js'
 import { CacheConfigError } from './errors/index.js';
 import { LruCacheBuilder } from './LruCacheBuilder.js';
 
+// json-schema-uninexpressible: generic type parameter V (value type is caller-supplied, unbounded)
 type EntryType<V> = {
   /** Expiry timestamp (ms since epoch) or `0` (no expiry sentinel). */
   'expiresAt': number;
@@ -11,6 +12,7 @@ type EntryType<V> = {
   'value': V;
 };
 
+// json-schema-uninexpressible: generic type parameter K plus self-referential doubly-linked-list pointers (next/prev), not a plain data shape
 type NodeType<K> = {
   'key': K;
   'next': NodeType<K> | undefined;

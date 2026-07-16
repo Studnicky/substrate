@@ -18,8 +18,13 @@ import assert from 'node:assert/strict';
 
 import { Semaphore } from '../src/index.js';
 
+// json-schema-uninexpressible: 'error' is typed `unknown` — TypeScript types caught values as
+// `unknown` by design (a `catch` clause may receive any thrown value, not just an Error), which
+// JSON Schema cannot model. 'result' is 'string' because every dispatched task in this demo
+// returns a string; the generic Dispatcher.dispatch<T> is constrained to T extends string to
+// match, rather than widening the published event payload to 'unknown' for convenience.
 type DispatchTopicMapType = {
-  'dispatch.completed': { 'key': string; 'result': unknown };
+  'dispatch.completed': { 'key': string; 'result': string };
   'dispatch.failed': { 'error': unknown; 'key': string; };
   'dispatch.started': { 'key': string };
 };
@@ -32,88 +37,107 @@ const semaphore = Semaphore.create({ 'permits': 2 });
 const bus = EventBus.create<DispatchTopicMapType>({ 'highWaterMark': 4 });
 const scheduler = RealTimeScheduler.create();
 
-const dispatch = async <T>(key: string, fn: () => Promise<T>): Promise<T> => {
-  const release = await semaphore.acquire();
-  try {
-    await bus.publish('dispatch.started', { 'key': key });
-    const result = await fn();
-    await bus.publish('dispatch.completed', { 'key': key, 'result': result });
-    return result;
-  } catch (error) {
-    await bus.publish('dispatch.failed', { 'error': error, 'key': key });
-    throw error;
-  } finally {
-    release();
+class Dispatcher {
+  static async dispatch<T extends string>(key: string, fn: () => Promise<T>): Promise<T> {
+    const release = await semaphore.acquire();
+    try {
+      await bus.publish('dispatch.started', { 'key': key });
+      const result = await fn();
+      await bus.publish('dispatch.completed', { 'key': key, 'result': result });
+      return result;
+    } catch (error) {
+      await bus.publish('dispatch.failed', { 'error': error, 'key': key });
+      throw error;
+    } finally {
+      release();
+    }
   }
-};
 
-const scheduleDispatch = <T>(atMs: number, key: string, fn: () => Promise<T>): ScheduledTaskType => {
-  const task = scheduler.scheduleAt(atMs, () => { void dispatch(key, fn); });
-  return task;
-};
+  static scheduleDispatch<T extends string>(atMs: number, key: string, fn: () => Promise<T>): ScheduledTaskType {
+    const task = scheduler.scheduleAt(atMs, () => { void Dispatcher.dispatch(key, fn); });
+    return task;
+  }
+}
 // #endregion usage
 
-// --- Scenario A: bounded concurrency — permits=2 means at most 2 of 5 dispatched tasks
-// run at once, the rest queue on the semaphore. ---
+class TrackedTask {
+  static concurrentCount = 0;
+  static maxConcurrentObserved = 0;
 
-let concurrentCount = 0;
-let maxConcurrentObserved = 0;
+  static run(key: string): Promise<string> {
+    const result = Dispatcher.dispatch(key, async () => {
+      TrackedTask.concurrentCount += 1;
+      TrackedTask.maxConcurrentObserved = Math.max(TrackedTask.maxConcurrentObserved, TrackedTask.concurrentCount);
+      await new Promise<void>((resolve) => { setTimeout(resolve, 20); });
+      TrackedTask.concurrentCount -= 1;
+      return `done-${key}`;
+    });
+    return result;
+  }
+}
 
-const trackedTask = (key: string): Promise<string> => {
-  const result = dispatch(key, async () => {
-    concurrentCount += 1;
-    maxConcurrentObserved = Math.max(maxConcurrentObserved, concurrentCount);
-    await new Promise<void>((resolve) => { setTimeout(resolve, 20); });
-    concurrentCount -= 1;
-    return `done-${key}`;
-  });
-  return result;
-};
+class BoundedDispatcherScenarios {
+  static async runBoundedConcurrency(): Promise<void> {
+    // --- Scenario A: bounded concurrency — permits=2 means at most 2 of 5 dispatched tasks
+    // run at once, the rest queue on the semaphore. ---
+    const boundedResults = await Promise.all(
+      ['a', 'b', 'c', 'd', 'e'].map((key) => { const result = TrackedTask.run(key); return result; })
+    );
 
-const boundedResults = await Promise.all(
-  ['a', 'b', 'c', 'd', 'e'].map((key) => { const result = trackedTask(key); return result; })
-);
+    console.log(
+      'Bounded dispatch results:', boundedResults,
+      'max concurrent observed:', TrackedTask.maxConcurrentObserved
+    );
+    assert.deepEqual(boundedResults, ['done-a', 'done-b', 'done-c', 'done-d', 'done-e']);
+    assert.ok(
+      TrackedTask.maxConcurrentObserved <= 2,
+      `expected at most 2 concurrent tasks, observed ${TrackedTask.maxConcurrentObserved}`
+    );
+  }
 
-console.log('Bounded dispatch results:', boundedResults, 'max concurrent observed:', maxConcurrentObserved);
-assert.deepEqual(boundedResults, ['done-a', 'done-b', 'done-c', 'done-d', 'done-e']);
-assert.ok(maxConcurrentObserved <= 2, `expected at most 2 concurrent tasks, observed ${maxConcurrentObserved}`);
+  static async runLifecycleEvents(): Promise<void> {
+    // --- Scenario B: lifecycle events land on the bus for every dispatched task, independent
+    // of the caller awaiting dispatch() directly. ---
+    const startedEvents: string[] = [];
+    const completedEvents: string[] = [];
+    const failedEvents: string[] = [];
 
-// --- Scenario B: lifecycle events land on the bus for every dispatched task, independent of
-// the caller awaiting dispatch() directly. ---
+    bus.subscribe('dispatch.started', (payload) => { startedEvents.push(payload.key); });
+    bus.subscribe('dispatch.completed', (payload) => { completedEvents.push(payload.key); });
+    bus.subscribe('dispatch.failed', (payload) => { failedEvents.push(payload.key); });
 
-const startedEvents: string[] = [];
-const completedEvents: string[] = [];
-const failedEvents: string[] = [];
+    await Dispatcher.dispatch('ok-task', () => { const result = 'fine'; return result; });
+    await Dispatcher.dispatch('bad-task', () => { throw new Error('boom'); }).catch(() => { /* expected */ });
+    await bus.drain();
 
-bus.subscribe('dispatch.started', (payload) => { startedEvents.push(payload.key); });
-bus.subscribe('dispatch.completed', (payload) => { completedEvents.push(payload.key); });
-bus.subscribe('dispatch.failed', (payload) => { failedEvents.push(payload.key); });
+    console.log('Lifecycle events — started:', startedEvents, 'completed:', completedEvents, 'failed:', failedEvents);
+    assert.deepEqual(startedEvents, ['ok-task', 'bad-task']);
+    assert.deepEqual(completedEvents, ['ok-task']);
+    assert.deepEqual(failedEvents, ['bad-task']);
+  }
 
-await dispatch('ok-task', () => { const result = 'fine'; return result; });
-await dispatch('bad-task', () => { throw new Error('boom'); }).catch(() => { /* expected */ });
-await bus.drain();
+  static async runScheduledDispatch(): Promise<void> {
+    // --- Scenario C: scheduleDispatch delays a dispatch through the scheduler instead of
+    // running it immediately. ---
+    const scheduledCompletedAt: number[] = [];
+    const scheduleStartedAt = Date.now();
 
-console.log('Lifecycle events — started:', startedEvents, 'completed:', completedEvents, 'failed:', failedEvents);
-assert.deepEqual(startedEvents, ['ok-task', 'bad-task']);
-assert.deepEqual(completedEvents, ['ok-task']);
-assert.deepEqual(failedEvents, ['bad-task']);
+    await new Promise<void>((resolve) => {
+      Dispatcher.scheduleDispatch(Date.now() + 30, 'scheduled-task', () => {
+        scheduledCompletedAt.push(Date.now() - scheduleStartedAt);
+        resolve();
+        return 'scheduled-done';
+      });
+    });
 
-// --- Scenario C: scheduleDispatch delays a dispatch through the scheduler instead of
-// running it immediately. ---
+    console.log('Scheduled dispatch fired after ms:', scheduledCompletedAt[0]);
+    assert.ok(scheduledCompletedAt[0]! >= 25, 'scheduled dispatch must not fire before its scheduled delay');
+  }
+}
 
-const scheduledCompletedAt: number[] = [];
-const scheduleStartedAt = Date.now();
-
-await new Promise<void>((resolve) => {
-  scheduleDispatch(Date.now() + 30, 'scheduled-task', () => {
-    scheduledCompletedAt.push(Date.now() - scheduleStartedAt);
-    resolve();
-    return 'scheduled-done';
-  });
-});
-
-console.log('Scheduled dispatch fired after ms:', scheduledCompletedAt[0]);
-assert.ok(scheduledCompletedAt[0]! >= 25, 'scheduled dispatch must not fire before its scheduled delay');
+await BoundedDispatcherScenarios.runBoundedConcurrency();
+await BoundedDispatcherScenarios.runLifecycleEvents();
+await BoundedDispatcherScenarios.runScheduledDispatch();
 
 await bus.close();
 

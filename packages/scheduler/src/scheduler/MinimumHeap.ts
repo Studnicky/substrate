@@ -1,4 +1,4 @@
-import type { PendingTaskType } from '../interfaces/PendingTaskType.js';
+import type { PendingTaskType } from '../types/PendingTaskType.js';
 
 import { MinimumHeapBuilder } from './MinimumHeapBuilder.js';
 

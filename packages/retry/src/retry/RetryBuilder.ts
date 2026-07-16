@@ -26,16 +26,16 @@ import type {
  */
 export class RetryBuilder<T extends RetryInterface = RetryInterface> implements RetryBuilderInterface<T> {
   static create<T extends RetryInterface = RetryInterface>(
-    create: (options: Partial<RetryConfigInterface>) => T
+    create: (options: RetryConfigInterface) => T
   ): RetryBuilder<T> {
     return new RetryBuilder<T>(create);
   }
 
-  readonly #create: (options: Partial<RetryConfigInterface>) => T;
+  readonly #create: (options: RetryConfigInterface) => T;
   #maxRetries?: number;
   #errorClassifier?: ErrorClassifierFunctionType | ErrorClassifierInterface;
 
-  private constructor(create: (options: Partial<RetryConfigInterface>) => T) {
+  private constructor(create: (options: RetryConfigInterface) => T) {
     this.#create = create;
   }
 
@@ -60,7 +60,7 @@ export class RetryBuilder<T extends RetryInterface = RetryInterface> implements 
    * Config validation occurs in create()
    */
   build(): T {
-    const config: Partial<RetryConfigInterface> = {
+    const config: RetryConfigInterface = {
       ...(this.#maxRetries !== undefined ? { 'maxRetries': this.#maxRetries } : {}),
       ...(this.#errorClassifier !== undefined ? { 'errorClassifier': this.#errorClassifier } : {})
     };

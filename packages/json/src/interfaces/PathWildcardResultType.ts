@@ -1,6 +1,0 @@
-/** Wildcard sentinel returned when `[*]` is encountered in a path expression. */
-export type PathWildcardResultType = {
-  'array': unknown[];
-  'isWildcard': true;
-  'remainingPath': string[];
-};

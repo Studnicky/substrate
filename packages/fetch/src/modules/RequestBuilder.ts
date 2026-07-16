@@ -3,8 +3,9 @@
  */
 
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
-import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
 import type { RequestBuilderInterface } from '../interfaces/RequestBuilderInterface.js';
+import type { BodyRequestOptionsType } from '../types/BodyRequestOptionsType.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
 import type { QueryParamsType } from '../types/QueryParamsType.js';
 import type { QueryValueType } from '../types/QueryValueType.js';
 
@@ -181,8 +182,8 @@ export class RequestBuilder implements RequestBuilderInterface {
   /**
    * Builds options for body-bearing methods, merging fetchOptions with the stored request body
    */
-  private buildBodyOptions(): Omit<FetchOptionsType, 'body'> & { 'body'?: unknown } {
-    const opts: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown } = this.buildOptions();
+  private buildBodyOptions(): BodyRequestOptionsType {
+    const opts: BodyRequestOptionsType = this.buildOptions();
     opts.body = this.requestBody;
     return opts;
   }

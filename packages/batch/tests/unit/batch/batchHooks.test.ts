@@ -9,7 +9,7 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
-import type { BatchStatsType } from '../../../src/interfaces/index.js';
+import type { BatchStatsEntity } from '../../../src/entities/BatchStatsEntity.js';
 import { Batch } from '../../../src/batch/Batch.js';
 import { collectBatches } from '../../helpers/index.js';
 
@@ -24,7 +24,7 @@ class RecordingBatch<TResult = unknown> extends Batch<TResult> {
   public itemErrorArgs: Array<[number, unknown]> = [];
   public itemSettledArgs: number[] = [];
   public concurrencySaturatedCount = 0;
-  public batchCompleteArgs: BatchStatsType[] = [];
+  public batchCompleteArgs: BatchStatsEntity.Type[] = [];
 
   protected override onBatchStart(total: number): void { this.batchStartArgs.push(total); }
   protected override onConcurrencySaturated(): void { this.concurrencySaturatedCount++; }
@@ -32,7 +32,7 @@ class RecordingBatch<TResult = unknown> extends Batch<TResult> {
   protected override onItemSuccess(index: number, result: TResult): void { this.itemSuccessArgs.push([index, result]); }
   protected override onItemError(index: number, error: unknown): void { this.itemErrorArgs.push([index, error]); }
   protected override onItemSettled(index: number): void { this.itemSettledArgs.push(index); }
-  protected override onBatchComplete(stats: BatchStatsType): void { this.batchCompleteArgs.push(stats); }
+  protected override onBatchComplete(stats: BatchStatsEntity.Type): void { this.batchCompleteArgs.push(stats); }
 }
 
 // ── process() hooks ───────────────────────────────────────────────────────────

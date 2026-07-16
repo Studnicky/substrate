@@ -1,9 +1,17 @@
 import type { Rule, Scope } from 'eslint';
 
+// json-schema-uninexpressible: ESLint rule-options shape validated at runtime by this rule's own meta.schema, not this package's entity/data layer
 type OptionsType = {
   readonly 'checkArrayLiterals': boolean;
   readonly 'checkFromEntries': boolean;
   readonly 'checkModuleScopeArrays': boolean;
+};
+
+// json-schema-uninexpressible: raw pre-default rule-options shape read directly off context.options before defaults are applied
+type RawOptionsType = {
+  readonly 'checkArrayLiterals'?: boolean;
+  readonly 'checkFromEntries'?: boolean;
+  readonly 'checkModuleScopeArrays'?: boolean;
 };
 
 const DEFAULT_OPTIONS: OptionsType = {
@@ -18,18 +26,27 @@ type ModuleScopeArrayEntryType = {
   readonly 'variable': Scope.Variable;
 };
 
-type ProgramExitNodeType = Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0];
-
-const isJsonObject = (value: unknown): value is Record<string, unknown> => {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+// Tracks a `.filter/.some/.every/.find/.findIndex(fn)` call whose function-argument
+// subtree is currently being traversed by ESLint's own visitor, so that a nested
+// ArrayLiteral.includes()/indexOf() match encountered by the ordinary CallExpression
+// listener can be attributed back to this outer call without a second manual walk.
+type IterationStackEntryType = {
+  'found': boolean;
+  readonly 'method': string;
+  readonly 'outerNode': Rule.Node;
+  readonly 'pendingArgs': Set<unknown>;
+  'reported': boolean;
 };
 
-// Skipping parent, range, loc, start, end prevents circular ref stack overflows
-const AST_SKIP_KEYS: ReadonlySet<string> = new Set(['end', 'loc', 'parent', 'range', 'start']);
+type ProgramExitNodeType = Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0];
 
 class AstHelpers {
+  public static isJsonObject(value: unknown): value is Record<string, unknown> {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  }
+
   public static getNodeType(node: unknown): string | undefined {
-    if (!isJsonObject(node)) { return undefined; }
+    if (!AstHelpers.isJsonObject(node)) { return undefined; }
     const type = node.type;
     return typeof type === 'string' ? type : undefined;
   }
@@ -46,224 +63,354 @@ class AstHelpers {
 
   public static getNode(obj: Record<string, unknown>, key: string): Record<string, unknown> | undefined {
     const val = obj[key];
-    return isJsonObject(val) ? val : undefined;
+    return AstHelpers.isJsonObject(val) ? val : undefined;
   }
 }
 
-// Returns true if node is: SomeExpr.includes(...)
-const isIncludesCall = (node: unknown): boolean => {
-  if (AstHelpers.getNodeType(node) !== 'CallExpression') { return false; }
-  if (!isJsonObject(node)) { return false; }
-  const callee = node.callee;
-  if (!isJsonObject(callee)) { return false; }
-  if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
-  if (AstHelpers.getBool(callee, 'computed') !== false) { return false; }
-  const property = callee.property;
-  if (!isJsonObject(property)) { return false; }
-  return AstHelpers.getString(property, 'name') === 'includes';
-};
-
-// Returns true if node is: ArrayExpression.includes(...)
-const isArrayLiteralIncludesCall = (node: unknown): boolean => {
-  if (!isIncludesCall(node)) { return false; }
-  if (!isJsonObject(node)) { return false; }
-  const callee = node.callee;
-  if (!isJsonObject(callee)) { return false; }
-  const obj = callee.object;
-  return AstHelpers.getNodeType(obj) === 'ArrayExpression';
-};
-
-// Recursively walks callback body to find any ArrayExpression.includes(...) call.
-// Skips parent/loc/range/start/end to avoid circular reference stack overflows.
-const callbackContainsArrayLiteralIncludes = (callbackNode: unknown): boolean => {
-  if (!isJsonObject(callbackNode)) { return false; }
-  if (AstHelpers.getNodeType(callbackNode) === undefined) { return false; }
-
-  if (isArrayLiteralIncludesCall(callbackNode)) { return true; }
-
-  const keys = Object.keys(callbackNode);
-  const keysLen = keys.length;
-  for (let ki = 0; ki < keysLen; ki += 1) {
-    const key = keys[ki];
-    if (key === undefined || AST_SKIP_KEYS.has(key)) { continue; }
-    const child = callbackNode[key];
-    if (Array.isArray(child)) {
-      const childLen = child.length;
-      for (let ci = 0; ci < childLen; ci += 1) {
-        if (callbackContainsArrayLiteralIncludes(child[ci])) { return true; }
-      }
-    } else if (isJsonObject(child)) {
-      if (callbackContainsArrayLiteralIncludes(child)) { return true; }
-    }
+class MembershipCallDetection {
+  // Returns true if node is: SomeExpr.includes(...)
+  public static isIncludesCall(node: unknown): boolean {
+    if (AstHelpers.getNodeType(node) !== 'CallExpression') { return false; }
+    if (!AstHelpers.isJsonObject(node)) { return false; }
+    const callee = node.callee;
+    if (!AstHelpers.isJsonObject(callee)) { return false; }
+    if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
+    if (AstHelpers.getBool(callee, 'computed') !== false) { return false; }
+    const property = callee.property;
+    if (!AstHelpers.isJsonObject(property)) { return false; }
+    return AstHelpers.getString(property, 'name') === 'includes';
   }
 
-  return false;
-};
+  // Returns true if node is: SomeExpr.indexOf(...)
+  public static isIndexOfCall(node: unknown): boolean {
+    if (AstHelpers.getNodeType(node) !== 'CallExpression') { return false; }
+    if (!AstHelpers.isJsonObject(node)) { return false; }
+    const callee = node.callee;
+    if (!AstHelpers.isJsonObject(callee)) { return false; }
+    if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
+    if (AstHelpers.getBool(callee, 'computed') !== false) { return false; }
+    const property = callee.property;
+    if (!AstHelpers.isJsonObject(property)) { return false; }
+    return AstHelpers.getString(property, 'name') === 'indexOf';
+  }
+
+  // Returns true if node is a numeric literal matching `value`, handling negative
+  // literals which parse as UnaryExpression{operator:'-', argument: Literal}
+  public static isNumericLiteral(node: unknown, value: number): boolean {
+    if (!AstHelpers.isJsonObject(node)) { return false; }
+    if (value < 0) {
+      if (AstHelpers.getNodeType(node) !== 'UnaryExpression') { return false; }
+      if (AstHelpers.getString(node, 'operator') !== '-') { return false; }
+      const argument = node.argument;
+      if (!AstHelpers.isJsonObject(argument)) { return false; }
+      return AstHelpers.getNodeType(argument) === 'Literal' && argument.value === Math.abs(value);
+    }
+    return AstHelpers.getNodeType(node) === 'Literal' && node.value === value;
+  }
+
+  // Returns true if node is: ArrayExpression.includes(...)
+  public static isArrayLiteralIncludesCall(node: unknown): boolean {
+    if (!MembershipCallDetection.isIncludesCall(node)) { return false; }
+    if (!AstHelpers.isJsonObject(node)) { return false; }
+    const callee = node.callee;
+    if (!AstHelpers.isJsonObject(callee)) { return false; }
+    const obj = callee.object;
+    return AstHelpers.getNodeType(obj) === 'ArrayExpression';
+  }
+
+  // Returns true if node is: ArrayExpression.indexOf(...) used in a membership comparison
+  // (!== -1 / > -1 / < 0)
+  public static isArrayLiteralIndexOfMembershipCall(node: unknown): boolean {
+    if (!MembershipCallDetection.isIndexOfCall(node)) { return false; }
+    if (!AstHelpers.isJsonObject(node)) { return false; }
+    const callee = node.callee;
+    if (!AstHelpers.isJsonObject(callee)) { return false; }
+    const obj = callee.object;
+    if (AstHelpers.getNodeType(obj) !== 'ArrayExpression') { return false; }
+    const parent = (node as unknown as { readonly 'parent'?: unknown }).parent;
+    return MembershipIndexOfCall.get(parent) === node;
+  }
+
+}
+
+class MembershipIndexOfCall {
+  // Returns the indexOf CallExpression node if `node` is a BinaryExpression testing
+  // its result for membership: x.indexOf(y) !== -1 | x.indexOf(y) > -1 | x.indexOf(y) < 0
+  public static get(node: unknown): unknown {
+    if (AstHelpers.getNodeType(node) !== 'BinaryExpression') { return undefined; }
+    if (!AstHelpers.isJsonObject(node)) { return undefined; }
+    const operator = AstHelpers.getString(node, 'operator');
+    const left = node.left;
+    const right = node.right;
+    if (
+      (operator === '!==' || operator === '>')
+      && MembershipCallDetection.isIndexOfCall(left)
+      && MembershipCallDetection.isNumericLiteral(right, -1)
+    ) { return left; }
+    if (
+      operator === '<'
+      && MembershipCallDetection.isIndexOfCall(left)
+      && MembershipCallDetection.isNumericLiteral(right, 0)
+    ) { return left; }
+    return undefined;
+  }
+}
 
 const ITERATION_METHODS: ReadonlySet<string> = new Set(['every', 'filter', 'find', 'findIndex', 'some']);
 
-// Returns { found: true, method } if this is arr.method(cb) where cb contains ArrayLiteral.includes()
-const detectIterationWithArrayLiteralIncludes = (node: Rule.Node): { readonly 'found': boolean; readonly 'method': string } => {
-  const raw = node as unknown as Record<string, unknown>;
-  if (AstHelpers.getNodeType(raw) !== 'CallExpression') { return { 'found': false, 'method': '' }; }
+// Rides ESLint's own single AST traversal instead of running a second manual walk:
+// pushes a marker when an outer `.filter/.some/.every/.find/.findIndex(fn)` call is
+// entered, and pops it (reporting once, on the outer node) when the function
+// argument's own subtree has been fully visited via its `:exit` listener. Nested
+// qualifying calls stay correctly attributed because ESLint's traversal is a proper
+// DFS: an inner call's stack entry is always pushed after, and popped before, its
+// enclosing call's entry — giving genuine LIFO ordering with no extra subtree scans.
+class IterationCallbackTracker {
+  // If `node` is arr.method(fn) for a tracked iteration method with at least one
+  // function-typed argument, pushes a stack entry so nested matches (found via the
+  // rule's ordinary CallExpression listener) can be attributed back to this call.
+  public static pushIfQualifying(node: Rule.Node, stack: IterationStackEntryType[]): void {
+    const raw = node as unknown as Record<string, unknown>;
+    if (AstHelpers.getNodeType(raw) !== 'CallExpression') { return; }
 
-  const callee = raw.callee;
-  if (!isJsonObject(callee)) { return { 'found': false, 'method': '' }; }
-  if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return { 'found': false, 'method': '' }; }
-  if (AstHelpers.getBool(callee, 'computed') !== false) { return { 'found': false, 'method': '' }; }
+    const callee = raw.callee;
+    if (!AstHelpers.isJsonObject(callee)) { return; }
+    if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return; }
+    if (AstHelpers.getBool(callee, 'computed') !== false) { return; }
 
-  const property = callee.property;
-  if (!isJsonObject(property)) { return { 'found': false, 'method': '' }; }
-  const methodName = AstHelpers.getString(property, 'name');
-  if (methodName === undefined || !ITERATION_METHODS.has(methodName)) { return { 'found': false, 'method': '' }; }
+    const property = callee.property;
+    if (!AstHelpers.isJsonObject(property)) { return; }
+    const methodName = AstHelpers.getString(property, 'name');
+    if (methodName === undefined || !ITERATION_METHODS.has(methodName)) { return; }
 
-  const args = raw.arguments;
-  if (!Array.isArray(args) || args.length === 0) { return { 'found': false, 'method': methodName }; }
+    const args = raw.arguments;
+    if (!Array.isArray(args) || args.length === 0) { return; }
 
-  const argsLen = args.length;
-  for (let ai = 0; ai < argsLen; ai += 1) {
-    const arg: unknown = args[ai];
-    const argType = AstHelpers.getNodeType(arg);
-    if (argType === 'ArrowFunctionExpression' || argType === 'FunctionExpression') {
-      if (!isJsonObject(arg)) { continue; }
-      const body = arg.body;
-      if (callbackContainsArrayLiteralIncludes(body)) {
-        return { 'found': true, 'method': methodName };
+    const pendingArgs = new Set<unknown>();
+    const argsLen = args.length;
+    for (let ai = 0; ai < argsLen; ai += 1) {
+      const arg: unknown = args[ai];
+      const argType = AstHelpers.getNodeType(arg);
+      if (argType === 'ArrowFunctionExpression' || argType === 'FunctionExpression') {
+        pendingArgs.add(arg);
+      }
+    }
+
+    if (pendingArgs.size === 0) { return; }
+
+    stack.push({ 'found': false, 'method': methodName, 'outerNode': node, 'pendingArgs': pendingArgs, 'reported': false });
+  }
+
+  // Marks every currently-active outer call as containing a match — mirrors the old
+  // manual walk's behavior of finding matches at any depth beneath the callback body,
+  // including inside further-nested qualifying calls.
+  public static markActiveFound(stack: IterationStackEntryType[]): void {
+    const stackLen = stack.length;
+    for (let si = 0; si < stackLen; si += 1) {
+      const entry = stack[si];
+      if (entry !== undefined) { entry.found = true; }
+    }
+  }
+
+  // Called from the function argument's `:exit` listener. Pops the entry once all of
+  // its function-typed arguments have finished traversal, reporting once if a match
+  // was found anywhere beneath it.
+  public static onFunctionArgumentExit(node: unknown, stack: IterationStackEntryType[], context: Rule.RuleContext): void {
+    const top = stack.at(-1);
+    if (top === undefined) { return; }
+    if (!top.pendingArgs.has(node)) { return; }
+
+    top.pendingArgs.delete(node);
+    if (top.pendingArgs.size > 0) { return; }
+
+    stack.pop();
+    if (top.found && !top.reported) {
+      top.reported = true;
+      context.report({
+        'data': { 'method': top.method },
+        'messageId': 'includesInCallback',
+        'node': top.outerNode
+      });
+    }
+  }
+}
+
+class ScopeReferenceDetection {
+  // Returns true if this scope reference is: ident.includes(...) as a call callee
+  public static isIncludesCalleeRef(ref: Scope.Reference): boolean {
+    const id = ref.identifier;
+    const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
+    if (!AstHelpers.isJsonObject(parent)) { return false; }
+    if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
+    if (AstHelpers.getBool(parent, 'computed') !== false) { return false; }
+    const prop = parent.property;
+    if (!AstHelpers.isJsonObject(prop)) { return false; }
+    if (AstHelpers.getString(prop, 'name') !== 'includes') { return false; }
+
+    // Identifier must be the object (left side), not an argument
+    if (parent.object !== (id as unknown)) { return false; }
+
+    // MemberExpression must be the callee of a CallExpression
+    const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
+    if (!AstHelpers.isJsonObject(grandParent)) { return false; }
+    if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
+    if (grandParent.callee !== (parent as unknown)) { return false; }
+
+    return true;
+  }
+
+  // Returns true if this scope reference is: ident.indexOf(...) used in a membership comparison
+  public static isIndexOfCalleeMembershipRef(ref: Scope.Reference): boolean {
+    const id = ref.identifier;
+    const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
+    if (!AstHelpers.isJsonObject(parent)) { return false; }
+    if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
+    if (AstHelpers.getBool(parent, 'computed') !== false) { return false; }
+    const prop = parent.property;
+    if (!AstHelpers.isJsonObject(prop)) { return false; }
+    if (AstHelpers.getString(prop, 'name') !== 'indexOf') { return false; }
+
+    if (parent.object !== (id as unknown)) { return false; }
+
+    const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
+    if (!AstHelpers.isJsonObject(grandParent)) { return false; }
+    if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
+    if (grandParent.callee !== (parent as unknown)) { return false; }
+
+    const greatGrandParent = (grandParent as unknown as { readonly 'parent'?: unknown }).parent;
+    return MembershipIndexOfCall.get(greatGrandParent) === (grandParent as unknown);
+  }
+}
+
+class RuleHandlers {
+  public static onCallExpression(
+    node: Rule.Node,
+    opts: OptionsType,
+    context: Rule.RuleContext,
+    iterationStack: IterationStackEntryType[]
+  ): void {
+    if (!opts.checkArrayLiterals) { return; }
+
+    // Pattern A: [a, b, c].includes(x) — inline array literal membership test
+    if (
+      MembershipCallDetection.isArrayLiteralIncludesCall(node)
+      || MembershipCallDetection.isArrayLiteralIndexOfMembershipCall(node)
+    ) {
+      // Attribute this match to every currently-open .filter/.some/.every/.find/
+      // .findIndex(fn) call so Pattern D can report once their callback exits.
+      IterationCallbackTracker.markActiveFound(iterationStack);
+      context.report({ 'messageId': 'arrayLiteralIncludes', 'node': node });
+      return;
+    }
+
+    // Pattern D: arr.filter/some/every/find/findIndex(x => ['a','b'].includes(x))
+    // Marks the call as a candidate; the actual match is discovered by this same
+    // listener firing again (via ESLint's normal traversal) on the nested
+    // ArrayLiteral.includes()/indexOf() call above, then reported at :exit.
+    IterationCallbackTracker.pushIfQualifying(node, iterationStack);
+  }
+
+  public static onIterationCallbackExit(node: unknown, context: Rule.RuleContext, iterationStack: IterationStackEntryType[]): void {
+    IterationCallbackTracker.onFunctionArgumentExit(node, iterationStack, context);
+  }
+
+  public static onMemberExpression(node: Rule.Node, opts: OptionsType, context: Rule.RuleContext): void {
+    // Pattern B: Object.fromEntries(...)[key] — inline computed access on fromEntries result
+    if (!opts.checkFromEntries) { return; }
+    const raw = node as unknown as Record<string, unknown>;
+    if (AstHelpers.getBool(raw, 'computed') !== true) { return; }
+
+    const obj = AstHelpers.getNode(raw, 'object');
+    if (AstHelpers.getNodeType(obj) !== 'CallExpression' || obj === undefined) { return; }
+
+    const callee = AstHelpers.getNode(obj, 'callee');
+    if (AstHelpers.getNodeType(callee) !== 'MemberExpression' || callee === undefined) { return; }
+    if (AstHelpers.getBool(callee, 'computed') !== false) { return; }
+
+    const calleeObj = AstHelpers.getNode(callee, 'object');
+    const calleeProperty = AstHelpers.getNode(callee, 'property');
+    if (AstHelpers.getNodeType(calleeObj) !== 'Identifier' || calleeObj === undefined) { return; }
+    if (AstHelpers.getString(calleeObj, 'name') !== 'Object') { return; }
+    if (AstHelpers.getNodeType(calleeProperty) !== 'Identifier' || calleeProperty === undefined) { return; }
+    if (AstHelpers.getString(calleeProperty, 'name') !== 'fromEntries') { return; }
+
+    context.report({ 'messageId': 'fromEntriesWithBracket', 'node': node });
+  }
+
+  public static onProgramExit(
+    _node: ProgramExitNodeType,
+    opts: OptionsType,
+    context: Rule.RuleContext,
+    moduleScopeArrays: ModuleScopeArrayEntryType[]
+  ): void {
+    if (!opts.checkModuleScopeArrays || moduleScopeArrays.length === 0) { return; }
+
+    const entriesLen = moduleScopeArrays.length;
+    for (let ei = 0; ei < entriesLen; ei += 1) {
+      const entry = moduleScopeArrays[ei]; if (entry === undefined) { continue; }
+      // references is fully populated at Program:exit
+      const readRefs = entry.variable.references.filter((ref: Scope.Reference) => { return !ref.isWrite(); });
+
+      if (readRefs.length === 0) {
+        // No reads — unused; skip (other rules handle unused vars)
+        continue;
+      }
+
+      const allRefsAreIncludes = readRefs.every((ref: Scope.Reference) => {
+        return ScopeReferenceDetection.isIncludesCalleeRef(ref) || ScopeReferenceDetection.isIndexOfCalleeMembershipRef(ref);
+      });
+
+      if (allRefsAreIncludes) {
+        context.report({
+          'data': { 'name': entry.name },
+          'messageId': 'constantArrayForMembership',
+          'node': entry.node
+        });
       }
     }
   }
 
-  return { 'found': false, 'method': methodName };
-};
+  public static onVariableDeclarator(
+    node: Rule.Node,
+    opts: OptionsType,
+    context: Rule.RuleContext,
+    moduleScopeArrays: ModuleScopeArrayEntryType[]
+  ): void {
+    // Pattern C: const VALID = ['a', 'b'] at module scope, used only for .includes()
+    if (!opts.checkModuleScopeArrays) { return; }
 
-// Returns true if this scope reference is: ident.includes(...) as a call callee
-const isIncludesCalleeRef = (ref: Scope.Reference): boolean => {
-  const id = ref.identifier;
-  const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
-  if (!isJsonObject(parent)) { return false; }
-  if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
-  if (AstHelpers.getBool(parent, 'computed') !== false) { return false; }
-  const prop = parent.property;
-  if (!isJsonObject(prop)) { return false; }
-  if (AstHelpers.getString(prop, 'name') !== 'includes') { return false; }
+    const parent = node.parent as unknown as Record<string, unknown>;
+    if (AstHelpers.getNodeType(parent) !== 'VariableDeclaration') { return; }
+    if (AstHelpers.getString(parent, 'kind') !== 'const') { return; }
 
-  // Identifier must be the object (left side), not an argument
-  if (parent.object !== (id as unknown)) { return false; }
+    // Must be at Program (module scope) level
+    const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
+    if (AstHelpers.getNodeType(grandParent) !== 'Program') { return; }
 
-  // MemberExpression must be the callee of a CallExpression
-  const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
-  if (!isJsonObject(grandParent)) { return false; }
-  if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
-  if (grandParent.callee !== (parent as unknown)) { return false; }
+    // Init must be an array literal
+    const declaratorRaw = node as unknown as Record<string, unknown>;
+    if (AstHelpers.getNodeType(declaratorRaw.init) !== 'ArrayExpression') { return; }
 
-  return true;
-};
+    // Binding must be a simple identifier
+    const id = declaratorRaw.id;
+    if (AstHelpers.getNodeType(id) !== 'Identifier') { return; }
+    const name = AstHelpers.getString(id as Record<string, unknown>, 'name');
+    if (name === undefined) { return; }
 
-const onCallExpression = (node: Rule.Node, opts: OptionsType, context: Rule.RuleContext): void => {
-  // Pattern A: [a, b, c].includes(x) — inline array literal membership test
-  if (opts.checkArrayLiterals && isArrayLiteralIncludesCall(node)) {
-    context.report({ 'messageId': 'arrayLiteralIncludes', 'node': node });
-    return;
+    // getDeclaredVariables on the VariableDeclaration gives us the scope variable
+    // with full reference tracking populated by the end of the AST pass
+    const parentNode = node.parent;
+    if (parentNode === null) { return; }
+    const declared = context.sourceCode.getDeclaredVariables(parentNode);
+    const variable = declared.find((v: Scope.Variable) => { return v.name === name; });
+    if (variable === undefined) { return; }
+
+    moduleScopeArrays.push({ 'name': name, 'node': node, 'variable': variable });
   }
-
-  // Pattern D: arr.filter/some/every/find/findIndex(x => ['a','b'].includes(x))
-  if (opts.checkArrayLiterals) {
-    const detection = detectIterationWithArrayLiteralIncludes(node);
-    if (detection.found) {
-      context.report({
-        'data': { 'method': detection.method },
-        'messageId': 'includesInCallback',
-        'node': node
-      });
-    }
-  }
-};
-
-const onMemberExpression = (node: Rule.Node, opts: OptionsType, context: Rule.RuleContext): void => {
-  // Pattern B: Object.fromEntries(...)[key] — inline computed access on fromEntries result
-  if (!opts.checkFromEntries) { return; }
-  const raw = node as unknown as Record<string, unknown>;
-  if (AstHelpers.getBool(raw, 'computed') !== true) { return; }
-
-  const obj = AstHelpers.getNode(raw, 'object');
-  if (AstHelpers.getNodeType(obj) !== 'CallExpression' || obj === undefined) { return; }
-
-  const callee = AstHelpers.getNode(obj, 'callee');
-  if (AstHelpers.getNodeType(callee) !== 'MemberExpression' || callee === undefined) { return; }
-  if (AstHelpers.getBool(callee, 'computed') !== false) { return; }
-
-  const calleeObj = AstHelpers.getNode(callee, 'object');
-  const calleeProperty = AstHelpers.getNode(callee, 'property');
-  if (AstHelpers.getNodeType(calleeObj) !== 'Identifier' || calleeObj === undefined) { return; }
-  if (AstHelpers.getString(calleeObj, 'name') !== 'Object') { return; }
-  if (AstHelpers.getNodeType(calleeProperty) !== 'Identifier' || calleeProperty === undefined) { return; }
-  if (AstHelpers.getString(calleeProperty, 'name') !== 'fromEntries') { return; }
-
-  context.report({ 'messageId': 'fromEntriesWithBracket', 'node': node });
-};
-
-const onProgramExit = (_node: ProgramExitNodeType, opts: OptionsType, context: Rule.RuleContext, moduleScopeArrays: ModuleScopeArrayEntryType[]): void => {
-  if (!opts.checkModuleScopeArrays || moduleScopeArrays.length === 0) { return; }
-
-  const entriesLen = moduleScopeArrays.length;
-  for (let ei = 0; ei < entriesLen; ei += 1) {
-    const entry = moduleScopeArrays[ei]; if (entry === undefined) { continue; }
-    // references is fully populated at Program:exit
-    const readRefs = entry.variable.references.filter((ref: Scope.Reference) => { return !ref.isWrite(); });
-
-    if (readRefs.length === 0) {
-      // No reads — unused; skip (other rules handle unused vars)
-      continue;
-    }
-
-    const allRefsAreIncludes = readRefs.every((ref: Scope.Reference) => { const result = isIncludesCalleeRef(ref);
-      return result; });
-
-    if (allRefsAreIncludes) {
-      context.report({
-        'data': { 'name': entry.name },
-        'messageId': 'constantArrayForMembership',
-        'node': entry.node
-      });
-    }
-  }
-};
-
-const onVariableDeclarator = (node: Rule.Node, opts: OptionsType, context: Rule.RuleContext, moduleScopeArrays: ModuleScopeArrayEntryType[]): void => {
-  // Pattern C: const VALID = ['a', 'b'] at module scope, used only for .includes()
-  if (!opts.checkModuleScopeArrays) { return; }
-
-  const parent = node.parent as unknown as Record<string, unknown>;
-  if (AstHelpers.getNodeType(parent) !== 'VariableDeclaration') { return; }
-  if (AstHelpers.getString(parent, 'kind') !== 'const') { return; }
-
-  // Must be at Program (module scope) level
-  const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
-  if (AstHelpers.getNodeType(grandParent) !== 'Program') { return; }
-
-  // Init must be an array literal
-  const declaratorRaw = node as unknown as Record<string, unknown>;
-  if (AstHelpers.getNodeType(declaratorRaw.init) !== 'ArrayExpression') { return; }
-
-  // Binding must be a simple identifier
-  const id = declaratorRaw.id;
-  if (AstHelpers.getNodeType(id) !== 'Identifier') { return; }
-  const name = AstHelpers.getString(id as Record<string, unknown>, 'name');
-  if (name === undefined) { return; }
-
-  // getDeclaredVariables on the VariableDeclaration gives us the scope variable
-  // with full reference tracking populated by the end of the AST pass
-  const parentNode = node.parent;
-  if (parentNode === null) { return; }
-  const declared = context.sourceCode.getDeclaredVariables(parentNode);
-  const variable = declared.find((v: Scope.Variable) => { return v.name === name; });
-  if (variable === undefined) { return; }
-
-  moduleScopeArrays.push({ 'name': name, 'node': node, 'variable': variable });
-};
+}
 
 class Options {
-  static build(rawOptions: Partial<OptionsType> | undefined): OptionsType {
+  static build(rawOptions: RawOptionsType | undefined): OptionsType {
     return {
       'checkArrayLiterals': rawOptions?.checkArrayLiterals ?? DEFAULT_OPTIONS.checkArrayLiterals,
       'checkFromEntries': rawOptions?.checkFromEntries ?? DEFAULT_OPTIONS.checkFromEntries,
@@ -275,18 +422,22 @@ class Options {
 export const preferCollectionTypes: Rule.RuleModule = {
   'create': (context) => {
     const [firstOption] = (context.options as readonly unknown[]);
-    const rawOptions = firstOption as Partial<OptionsType> | undefined;
+    const rawOptions = firstOption as RawOptionsType | undefined;
     const opts = Options.build(rawOptions);
 
     const moduleScopeArrays: ModuleScopeArrayEntryType[] = [];
+    const iterationStack: IterationStackEntryType[] = [];
 
-    const callExpressionHandler = (node: Rule.Node): void => { onCallExpression(node, opts, context); };
-    const memberExpressionHandler = (node: Rule.Node): void => { onMemberExpression(node, opts, context); };
-    const programExitHandler = (node: ProgramExitNodeType): void => { onProgramExit(node, opts, context, moduleScopeArrays); };
-    const variableDeclaratorHandler = (node: Rule.Node): void => { onVariableDeclarator(node, opts, context, moduleScopeArrays); };
+    const callExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onCallExpression(node, opts, context, iterationStack); };
+    const memberExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onMemberExpression(node, opts, context); };
+    const programExitHandler = (node: ProgramExitNodeType): void => { RuleHandlers.onProgramExit(node, opts, context, moduleScopeArrays); };
+    const variableDeclaratorHandler = (node: Rule.Node): void => { RuleHandlers.onVariableDeclarator(node, opts, context, moduleScopeArrays); };
+    const iterationCallbackExitHandler = (node: unknown): void => { RuleHandlers.onIterationCallbackExit(node, context, iterationStack); };
 
     return {
+      'ArrowFunctionExpression:exit': iterationCallbackExitHandler,
       'CallExpression': callExpressionHandler,
+      'FunctionExpression:exit': iterationCallbackExitHandler,
       'MemberExpression': memberExpressionHandler,
       'Program:exit': programExitHandler,
       'VariableDeclarator': variableDeclaratorHandler

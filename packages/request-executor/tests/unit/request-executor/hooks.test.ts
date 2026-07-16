@@ -9,11 +9,11 @@ import { deepEqual, equal } from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { after, before, it } from 'node:test';
 
-import type { RequestContextType, ResponseContextType } from '@studnicky/fetch/interfaces';
-import type { ErrorClassificationType, RetryConfigInterface, RetryContextType } from '@studnicky/retry';
+import type { RequestContextType, ResponseContextType } from '@studnicky/fetch/types';
+import type { RetryConfigInterface, RetryContextType } from '@studnicky/retry';
 
 import { FetchClient } from '@studnicky/fetch';
-import { Retry } from '@studnicky/retry';
+import { ErrorClassificationEntity, Retry } from '@studnicky/retry';
 
 import { RequestExecutor } from '../../../src/index.js';
 
@@ -83,7 +83,7 @@ class TrackingRetry extends Retry {
     super(config ?? {});
   }
 
-  protected override classifyError(_error: Error, _attemptNumber: number): ErrorClassificationType {
+  protected override classifyError(_error: Error, _attemptNumber: number): ErrorClassificationEntity.Type {
     return { 'retryable': true };
   }
 

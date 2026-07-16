@@ -1,18 +1,12 @@
+import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
+import type { NavigatorCompatEntity } from '../../entities/NavigatorCompatEntity.js';
 import type { SystemProviderInterface } from '../../interfaces/SystemProviderInterface.js';
-import type { GpuInfoType } from '../../types/GpuInfoType.js';
 
 import { GpuDetector } from '../../modules/browser/GpuDetector.js';
 
-type NavigatorCompat = {
-  'deviceMemory'?: number;
-  'hardwareConcurrency'?: number;
-  'userAgent'?: string;
-  'userAgentData'?: { 'platform'?: string };
-};
-
 export class SystemProvider implements SystemProviderInterface {
   arch(): string {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompat }).navigator;
+    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
     const raw = nav?.userAgentData?.platform ?? nav?.userAgent ?? '';
     const lower = raw.toLowerCase();
 
@@ -30,7 +24,7 @@ export class SystemProvider implements SystemProviderInterface {
     return result;
   }
 
-  detectGpu(): GpuInfoType | null {
+  detectGpu(): GpuInfoEntity.Type | null {
     const result = GpuDetector.detect();
     return result;
   }
@@ -41,13 +35,13 @@ export class SystemProvider implements SystemProviderInterface {
   }
 
   logicalCpuCount(): number {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompat }).navigator;
+    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
     const result = nav?.hardwareConcurrency ?? 1;
     return result;
   }
 
   platform(): string {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompat }).navigator;
+    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
     const raw = nav?.userAgentData?.platform ?? nav?.userAgent ?? '';
     const lower = raw.toLowerCase();
 
@@ -71,13 +65,13 @@ export class SystemProvider implements SystemProviderInterface {
   }
 
   runtimeVersion(): string {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompat }).navigator;
+    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
     const result = nav?.userAgent ?? 'unknown';
     return result;
   }
 
   totalMb(): number {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompat }).navigator;
+    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
     const gb = nav?.deviceMemory;
 
     if (gb === undefined) {

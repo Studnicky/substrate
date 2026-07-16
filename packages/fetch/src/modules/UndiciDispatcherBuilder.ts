@@ -2,18 +2,18 @@
  * Fluent builder for UndiciDispatcher
  */
 
-import type { DispatcherConfigType } from '../interfaces/DispatcherConfigType.js';
+import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
 import type { UndiciDispatcher } from './UndiciDispatcher.js';
 
 /**
  * Fluent builder for constructing UndiciDispatcher instances
  */
 export class UndiciDispatcherBuilder {
-  static create(create: (options: DispatcherConfigType) => UndiciDispatcher): UndiciDispatcherBuilder {
+  static create(create: (options: DispatcherConfigEntity.Type) => UndiciDispatcher): UndiciDispatcherBuilder {
     return new UndiciDispatcherBuilder(create);
   }
 
-  readonly #create: (options: DispatcherConfigType) => UndiciDispatcher;
+  readonly #create: (options: DispatcherConfigEntity.Type) => UndiciDispatcher;
   #allowH2?: boolean;
   #bodyTimeout?: number;
   #connections?: null | number;
@@ -25,7 +25,7 @@ export class UndiciDispatcherBuilder {
   #maxResponseSize?: number;
   #pipelining?: number;
 
-  private constructor(create: (options: DispatcherConfigType) => UndiciDispatcher) {
+  private constructor(create: (options: DispatcherConfigEntity.Type) => UndiciDispatcher) {
     this.#create = create;
   }
 
@@ -80,7 +80,7 @@ export class UndiciDispatcherBuilder {
   }
 
   build(): UndiciDispatcher {
-    const config: DispatcherConfigType = {};
+    const config: DispatcherConfigEntity.Type = {};
 
     if (this.#allowH2 !== undefined) {
       config.allowH2 = this.#allowH2;

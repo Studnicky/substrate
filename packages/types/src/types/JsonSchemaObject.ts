@@ -7,6 +7,7 @@ import type { JsonSchemaTypeNameType } from './JsonSchemaTypeName.js';
  * All keyword fields are optional; only the keywords applicable to the
  * schema's type need be present.
  */
+// json-schema-uninexpressible: this IS the JSON Schema keyword-object type itself, part of the schema-typing infrastructure (FromSchema/JsonSchemaObjectType) — it cannot be derived from a JSON Schema it defines the shape of
 export type JsonSchemaObjectType = {
   '$anchor'?: string;
   '$comment'?: string;

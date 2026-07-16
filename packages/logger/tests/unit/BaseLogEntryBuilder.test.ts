@@ -4,8 +4,8 @@ import {
   it
 } from 'node:test';
 
-import type { LogBodyDataType } from '../../src/interfaces/LogBodyDataType.js';
-import type { LogFaultDataType } from '../../src/interfaces/LogFaultDataType.js';
+import type { LogBodyDataEntity } from '../../src/entities/LogBodyDataEntity.js';
+import type { LogFaultDataEntity } from '../../src/entities/LogFaultDataEntity.js';
 
 import { LogBuildError } from '../../src/errors/LogBuildError.js';
 import { LogBody } from '../../src/modules/LogBody.js';
@@ -18,10 +18,10 @@ import { LogFault } from '../../src/modules/LogFault.js';
 class ObservedLogBody extends LogBody {
   constructor() { super(); }
 
-  readonly builtResults: Array<LogBodyDataType | LogFaultDataType> = [];
+  readonly builtResults: Array<LogBodyDataEntity.Type | LogFaultDataEntity.Type> = [];
   readonly buildErrors: string[] = [];
 
-  protected override onBuild(result: LogBodyDataType | LogFaultDataType): void {
+  protected override onBuild(result: LogBodyDataEntity.Type | LogFaultDataEntity.Type): void {
     this.builtResults.push(result);
   }
 
@@ -33,10 +33,10 @@ class ObservedLogBody extends LogBody {
 class ObservedLogFault extends LogFault {
   constructor() { super(); }
 
-  readonly builtResults: Array<LogBodyDataType | LogFaultDataType> = [];
+  readonly builtResults: Array<LogBodyDataEntity.Type | LogFaultDataEntity.Type> = [];
   readonly buildErrors: string[] = [];
 
-  protected override onBuild(result: LogBodyDataType | LogFaultDataType): void {
+  protected override onBuild(result: LogBodyDataEntity.Type | LogFaultDataEntity.Type): void {
     this.builtResults.push(result);
   }
 
@@ -91,7 +91,7 @@ void describe('BaseLogEntryBuilder onBuild (LogBody)', () => {
       .duration(100)
       .build();
 
-    const captured = builder.builtResults[0] as LogBodyDataType;
+    const captured = builder.builtResults[0] as LogBodyDataEntity.Type;
 
     assert.strictEqual(captured.event, 'graph.query');
     assert.strictEqual(captured.message, 'Done');
@@ -149,7 +149,7 @@ void describe('BaseLogEntryBuilder onBuild (LogFault)', () => {
       .context({ 'query': 'SELECT...' })
       .build();
 
-    const captured = builder.builtResults[0] as LogFaultDataType;
+    const captured = builder.builtResults[0] as LogFaultDataEntity.Type;
 
     assert.strictEqual(captured.event, 'api.request');
     assert.strictEqual(captured.name, 'TimeoutError');

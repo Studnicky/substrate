@@ -2,28 +2,29 @@
  * Configured HTTP client with subclass-overridable lifecycle hooks and a fluent request builder
  */
 
-import type { ClientConfigType } from '../interfaces/ClientConfigType.js';
-import type { DestroyOptionsType } from '../interfaces/DestroyOptionsType.js';
+import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
+import type { RequestMetadataEntity } from '../entities/RequestMetadataEntity.js';
+import type { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
-import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
 import type { RequestBuilderInterface } from '../interfaces/RequestBuilderInterface.js';
-import type { RequestContextType } from '../interfaces/RequestContextType.js';
-import type { RequestMetadataType } from '../interfaces/RequestMetadataType.js';
-import type { ResponseContextType } from '../interfaces/ResponseContextType.js';
-import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherStatsType.js';
+import type { BodyRequestOptionsType } from '../types/BodyRequestOptionsType.js';
+import type { ClientConfigType } from '../types/ClientConfigType.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
+import type { RequestContextType } from '../types/RequestContextType.js';
+import type { ResponseContextType } from '../types/ResponseContextType.js';
 import type { ValidatorFnType } from '../types/ValidatorFnType.js';
 
 import {
-  validateAutoGenerateRequestId,
+  ValidateAutoGenerateRequestId,
   validateDispatcher,
-  validateHeaders,
-  validateMetadata,
-  validateName,
-  validateOptions,
-  validateParams,
-  validateRequestIdGenerator,
-  validateTimeout,
-  validateURL
+  ValidateHeaders,
+  ValidateMetadata,
+  ValidateName,
+  ValidateOptions,
+  ValidateParams,
+  ValidateRequestIdGenerator,
+  ValidateTimeout,
+  ValidateURL
 } from '../config/schemas/index.js';
 import {
   AbortError,
@@ -157,7 +158,7 @@ export class FetchClient implements FetchClientInterface {
     path: string,
     method: string,
     options: FetchOptionsType
-  ): RequestMetadataType {
+  ): RequestMetadataEntity.Type {
     const autoGenerateRequestId = this.config.autoGenerateRequestId ?? true;
     let requestId = options.requestId ?? '';
 
@@ -225,7 +226,7 @@ export class FetchClient implements FetchClientInterface {
    * await client.destroy({ timeout: 5000 });
    * ```
    */
-  async destroy(options?: DestroyOptionsType): Promise<void> {
+  async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
     if (this.dispatcher !== undefined) {
       this.#invokeHook(() => {
         this.onDispatcherDestroy();
@@ -378,7 +379,7 @@ export class FetchClient implements FetchClientInterface {
       return undefined;
     }
 
-    const stats = this.dispatcher.getAgent().stats[origin] as SocketDispatcherStatsType | undefined;
+    const stats = this.dispatcher.getAgent().stats[origin] as SocketDispatcherStatsEntity.Type | undefined;
 
     this.#invokeHook(() => {
       this.onRequestError(
@@ -587,7 +588,7 @@ export class FetchClient implements FetchClientInterface {
    * @param options - Request options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    * @returns Response promise
    */
-  async patch(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+  async patch(path: string, options?: BodyRequestOptionsType): Promise<Response> {
     const result = this.fetch(path, this.prepareBodyRequest('PATCH', options));
     return await result;
   }
@@ -599,7 +600,7 @@ export class FetchClient implements FetchClientInterface {
    * @param options - Request options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    * @returns Response promise
    */
-  async post(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+  async post(path: string, options?: BodyRequestOptionsType): Promise<Response> {
     const result = this.fetch(path, this.prepareBodyRequest('POST', options));
     return await result;
   }
@@ -610,7 +611,7 @@ export class FetchClient implements FetchClientInterface {
    */
   private prepareBodyRequest(
     method: 'PATCH' | 'POST' | 'PUT',
-    options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }
+    options?: BodyRequestOptionsType
   ): FetchOptionsType {
     const { body, ...restOptions } = options ?? {};
     const serializedBody = this.serializeBody(body);
@@ -637,7 +638,7 @@ export class FetchClient implements FetchClientInterface {
    * @param options - Request options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    * @returns Response promise
    */
-  async put(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+  async put(path: string, options?: BodyRequestOptionsType): Promise<Response> {
     const result = this.fetch(path, this.prepareBodyRequest('PUT', options));
     return await result;
   }
@@ -760,16 +761,16 @@ export class FetchClient implements FetchClientInterface {
   }
 
   private static readonly CONFIG_VALIDATORS: Record<string, ValidatorFnType> = {
-    'autoGenerateRequestId': validateAutoGenerateRequestId,
-    'baseURL': validateURL,
+    'autoGenerateRequestId': ValidateAutoGenerateRequestId.validate,
+    'baseURL': ValidateURL.validate,
     'dispatcher': validateDispatcher,
-    'headers': validateHeaders,
-    'metadata': validateMetadata,
-    'name': validateName,
-    'options': validateOptions,
-    'params': validateParams,
-    'requestIdGenerator': validateRequestIdGenerator,
-    'timeout': validateTimeout
+    'headers': ValidateHeaders.validate,
+    'metadata': ValidateMetadata.validate,
+    'name': ValidateName.validate,
+    'options': ValidateOptions.validate,
+    'params': ValidateParams.validate,
+    'requestIdGenerator': ValidateRequestIdGenerator.validate,
+    'timeout': ValidateTimeout.validate
   };
 
   private static validateConfig(config: ClientConfigType): ClientConfigType {

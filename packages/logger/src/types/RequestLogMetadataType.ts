@@ -3,8 +3,8 @@
  * Inherited by all logs within a request context.
  */
 
-import type { CoreLogFieldsType } from '../interfaces/CoreLogFieldsType.js';
-import type { CorrelationFieldsType } from '../interfaces/CorrelationFieldsType.js';
+import type { CoreLogFieldsEntity } from '../entities/CoreLogFieldsEntity.js';
+import type { CorrelationFieldsEntity } from '../entities/CorrelationFieldsEntity.js';
 
 /**
  * Request-scoped log metadata type.
@@ -12,6 +12,6 @@ import type { CorrelationFieldsType } from '../interfaces/CorrelationFieldsType.
  * Allows additional contextual data for the request.
  */
 export type RequestLogMetadataType
-  = CoreLogFieldsType
-  & Partial<CorrelationFieldsType>
+  = CoreLogFieldsEntity.Type
+  & Partial<CorrelationFieldsEntity.Type>
   & Record<string, unknown>;

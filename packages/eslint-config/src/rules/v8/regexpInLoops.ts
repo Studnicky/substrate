@@ -1,65 +1,45 @@
 import type { Rule } from 'eslint';
 
-const LOOP_TYPES = new Set([
-  'DoWhileStatement',
-  'ForInStatement',
-  'ForOfStatement',
-  'ForStatement',
-  'WhileStatement'
-]);
+import { FunctionScope } from './functionScope.js';
 
-const isJsonObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-};
+class AstHelpers {
+  public static hasRegExpCallee(node: Rule.Node): boolean {
+    if (node.type !== 'NewExpression' && node.type !== 'CallExpression') {
+      return false;
+    }
 
-const hasRegExpCallee = (node: Rule.Node): boolean => {
-  if (node.type !== 'NewExpression' && node.type !== 'CallExpression') {
-    return false;
+    const raw: unknown = node;
+
+    if (!AstHelpers.isJsonObject(raw)) {
+      return false;
+    }
+
+    const callee = raw.callee;
+
+    if (!AstHelpers.isJsonObject(callee)) {
+      return false;
+    }
+
+    return callee.type === 'Identifier' && callee.name === 'RegExp';
   }
 
-  const raw: unknown = node;
-
-  if (!isJsonObject(raw)) {
-    return false;
+  public static isJsonObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
   }
-
-  const callee = raw.callee;
-
-  if (!isJsonObject(callee)) {
-    return false;
-  }
-
-  return callee.type === 'Identifier' && callee.name === 'RegExp';
-};
+}
 
 export const regexpInLoops: Rule.RuleModule = {
   'create': (context) => {
     const onExpression = (node: Rule.Node): void => {
-      if (!hasRegExpCallee(node)) {
+      if (!AstHelpers.hasRegExpCallee(node)) {
         return;
       }
 
-      let parent: Rule.Node | null = node.parent;
-
-      while (parent !== null) {
-        if (LOOP_TYPES.has(parent.type)) {
-          context.report({
-            'messageId': 'regexpInLoop',
-            'node': node
-          });
-
-          return;
-        }
-
-        if (
-          parent.type === 'FunctionDeclaration'
-          || parent.type === 'FunctionExpression'
-          || parent.type === 'ArrowFunctionExpression'
-        ) {
-          return;
-        }
-
-        parent = parent.parent;
+      if (FunctionScope.isInsideLoop(node)) {
+        context.report({
+          'messageId': 'regexpInLoop',
+          'node': node
+        });
       }
     };
 

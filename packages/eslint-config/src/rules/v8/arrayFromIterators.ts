@@ -6,42 +6,45 @@ type ParserServicesType = {
   readonly 'program'?: ts.Program;
 };
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object';};
+class AstHelpers {
+  public static hasTypeServices(value: unknown): value is Required<ParserServicesType> {
+    if (!AstHelpers.isNonNullObject(value)) { return false; }
+    if (!('program' in value) || !AstHelpers.isNonNullObject(value.program)) { return false; }
 
-const hasTypeServices = (value: unknown): value is Required<ParserServicesType> => {
-  if (!isNonNullObject(value)) { return false; }
-  if (!('program' in value) || !isNonNullObject(value.program)) { return false; }
+    return typeof value.program.getTypeChecker === 'function'
+      && 'esTreeNodeToTSNodeMap' in value
+      && value.esTreeNodeToTSNodeMap instanceof Map;
+  }
 
-  return typeof value.program.getTypeChecker === 'function'
-    && 'esTreeNodeToTSNodeMap' in value
-    && value.esTreeNodeToTSNodeMap instanceof Map;
-};
+  public static isArrayFromCall(node: unknown): boolean {
+    if (!AstHelpers.isNonNullObject(node)) { return false; }
+    if (node.type !== 'CallExpression') { return false; }
+    const callee = node.callee;
+    if (!AstHelpers.isNonNullObject(callee)) { return false; }
+    if (callee.type !== 'MemberExpression') { return false; }
+    const obj = callee.object;
+    if (!AstHelpers.isNonNullObject(obj) || obj.type !== 'Identifier' || obj.name !== 'Array') { return false; }
+    const prop = callee.property;
+    if (!AstHelpers.isNonNullObject(prop) || prop.type !== 'Identifier' || prop.name !== 'from') { return false; }
+    return true;
+  }
 
-// Returns true only for the two zero-ambiguity structurally-certain constructors:
-// new Map(...) and new Set(...)
-const isMapOrSetConstruction = (node: unknown): boolean => {
-  if (!isNonNullObject(node)) { return false; }
-  if (node.type !== 'NewExpression') { return false; }
-  const callee = node.callee;
-  if (!isNonNullObject(callee)) { return false; }
-  if (callee.type !== 'Identifier') { return false; }
-  const name = callee.name;
-  return name === 'Map' || name === 'Set';
-};
+  // Returns true only for the two zero-ambiguity structurally-certain constructors:
+  // new Map(...) and new Set(...)
+  public static isMapOrSetConstruction(node: unknown): boolean {
+    if (!AstHelpers.isNonNullObject(node)) { return false; }
+    if (node.type !== 'NewExpression') { return false; }
+    const callee = node.callee;
+    if (!AstHelpers.isNonNullObject(callee)) { return false; }
+    if (callee.type !== 'Identifier') { return false; }
+    const name = callee.name;
+    return name === 'Map' || name === 'Set';
+  }
 
-const isArrayFromCall = (node: unknown): boolean => {
-  if (!isNonNullObject(node)) { return false; }
-  if (node.type !== 'CallExpression') { return false; }
-  const callee = node.callee;
-  if (!isNonNullObject(callee)) { return false; }
-  if (callee.type !== 'MemberExpression') { return false; }
-  const obj = callee.object;
-  if (!isNonNullObject(obj) || obj.type !== 'Identifier' || obj.name !== 'Array') { return false; }
-  const prop = callee.property;
-  if (!isNonNullObject(prop) || prop.type !== 'Identifier' || prop.name !== 'from') { return false; }
-  return true;
-};
+  public static isNonNullObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && value !== undefined && typeof value === 'object';
+  }
+}
 
 class FirstArg {
   static get(args: readonly unknown[]): unknown {
@@ -53,7 +56,7 @@ class FirstArg {
 export const arrayFromIterators: Rule.RuleModule = {
   'create': (context) => {
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-      if (!isArrayFromCall(node)) { return; }
+      if (!AstHelpers.isArrayFromCall(node)) { return; }
 
       const rawNode = node as unknown as Record<string, unknown>;
       const args = rawNode.arguments;
@@ -62,7 +65,7 @@ export const arrayFromIterators: Rule.RuleModule = {
 
       const servicesUnknown: unknown = context.sourceCode.parserServices;
 
-      if (hasTypeServices(servicesUnknown)) {
+      if (AstHelpers.hasTypeServices(servicesUnknown)) {
         // Type-checker path: flag when the first argument's return type is iterable but not an array.
         const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(firstArg);
         if (tsNode === undefined) { return; }
@@ -82,7 +85,7 @@ export const arrayFromIterators: Rule.RuleModule = {
 
       // No type services: only flag structurally-certain cases — new Map(...) or new Set(...).
       // Any other expression (identifiers, arbitrary calls) could be an array — do not guess.
-      if (isMapOrSetConstruction(firstArg)) {
+      if (AstHelpers.isMapOrSetConstruction(firstArg)) {
         context.report({ 'messageId': 'forbidden', 'node': node });
       }
     };

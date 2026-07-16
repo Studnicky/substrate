@@ -4,7 +4,7 @@
  */
 
 export { ConfigurationError } from './errors/index.js';
-export { ensureError } from './errors/index.js';
+export { ErrorGuard } from './errors/index.js';
 export { ConfigValidation } from './validation/index.js';
-export { ClampedConfig, type ClampEventType, type ClampRuleType } from './validation/index.js';
+export { ClampedConfig, ClampEventEntity, ClampRuleEntity } from './validation/index.js';
 export { Guard } from '@studnicky/types';

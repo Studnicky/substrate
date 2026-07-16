@@ -1,5 +1,5 @@
 import type { FetchClient } from '../modules/FetchClient.js';
-import type { ClientConfigType } from './ClientConfigType.js';
+import type { ClientConfigType } from '../types/ClientConfigType.js';
 
 /**
  * Static methods interface for FetchClient

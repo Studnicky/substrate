@@ -8,19 +8,15 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import type { SchedulerLogEntryEntity } from '../src/entities/SchedulerLogEntryEntity.js';
 import type { SchedulerProviderType } from '../src/index.js';
 
 import { VirtualTimeCounter } from '../../clock/src/index.js';
 import { VirtualScheduler } from '../src/index.js';
 
-type SchedulerLogEntryType = {
-  readonly 'event': 'schedule' | 'fire';
-  readonly 'id': string;
-};
-
 /** VirtualScheduler subclass that appends lifecycle events to a log array. */
 class LoggingScheduler extends VirtualScheduler {
-  public readonly log: SchedulerLogEntryType[] = [];
+  public readonly log: SchedulerLogEntryEntity.Type[] = [];
 
   public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
 

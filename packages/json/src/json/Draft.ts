@@ -26,8 +26,10 @@
 import type { DraftProduceResultType } from '../types/DraftProduceResultType.js';
 import type { PatchOperationType } from '../types/PatchOperationType.js';
 
+import { SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { DataType } from './DataType.js';
 
+// json-schema-uninexpressible: self-referential Map<PropertyKey, DraftNodeType> bookkeeping with unknown fields and a Record|unknown[]|undefined union — not JSON Schema representable
 /** Internal per-node draft bookkeeping — copy-on-write shadow plus memoized children. */
 type DraftNodeType = {
   'base': unknown;
@@ -202,7 +204,7 @@ export class Draft {
 
   /** Escape a JSON Pointer path segment (RFC-6901 `~0`/`~1`). */
   protected static escapeSegment(segment: string): string {
-    const result = segment.replace(/~/gu, '~0').replace(/\//gu, '~1');
+    const result = segment.replace(TILDE_PATTERN, '~0').replace(SLASH_PATTERN, '~1');
     return result;
   }
 

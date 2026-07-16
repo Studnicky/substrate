@@ -66,6 +66,16 @@ const invalidScenarios: InvalidScenarioType[] = [
     errors: [{ messageId: 'arrayLiteralIncludes' }]
   },
   {
+    name: 'Pattern A — inline array literal with .indexOf() !== -1',
+    code: `const found = ['a', 'b', 'c'].indexOf(x) !== -1;`,
+    errors: [{ messageId: 'arrayLiteralIncludes' }]
+  },
+  {
+    name: 'Pattern A — inline array literal with .indexOf() > -1',
+    code: `const found = ['a', 'b', 'c'].indexOf(x) > -1;`,
+    errors: [{ messageId: 'arrayLiteralIncludes' }]
+  },
+  {
     name: 'Pattern A — inline array literal with .includes() in condition',
     code: `if (['x', 'y', 'z'].includes(val)) { return true; }`,
     errors: [{ messageId: 'arrayLiteralIncludes' }]
@@ -119,6 +129,15 @@ const invalidScenarios: InvalidScenarioType[] = [
     name: 'Pattern D — .find() callback contains inline array .includes()',
     code: `const item = arr.find(x => ['alpha', 'beta'].includes(x));`,
     errors: [
+      { messageId: 'includesInCallback' },
+      { messageId: 'arrayLiteralIncludes' }
+    ]
+  },
+  {
+    name: 'Pattern D — nested iteration calls both flagged from one inline match (stack-based tracker regression guard)',
+    code: `const result = arr.filter(x => arr2.some(y => ['a', 'b'].includes(y)));`,
+    errors: [
+      { messageId: 'includesInCallback' },
       { messageId: 'includesInCallback' },
       { messageId: 'arrayLiteralIncludes' }
     ]

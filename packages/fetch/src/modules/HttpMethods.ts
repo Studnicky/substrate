@@ -2,7 +2,8 @@
  * HTTP method utilities as static class methods
  */
 
-import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
+import type { BodyRequestOptionsType } from '../types/BodyRequestOptionsType.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
 
 import {
   AbortError,
@@ -177,7 +178,7 @@ export class HttpMethods {
    * @param url - Request URL
    * @param opts - Fetch options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    */
-  static async patch(url: string, opts?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+  static async patch(url: string, opts?: BodyRequestOptionsType): Promise<Response> {
     const { body, ...restOpts } = opts ?? {};
     const fetchOptions: FetchOptionsType = { ...restOpts, 'method': 'PATCH' };
 
@@ -200,7 +201,7 @@ export class HttpMethods {
    * @param url - Request URL
    * @param opts - Fetch options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    */
-  static async post(url: string, opts?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+  static async post(url: string, opts?: BodyRequestOptionsType): Promise<Response> {
     const { body, ...restOpts } = opts ?? {};
     const fetchOptions: FetchOptionsType = { ...restOpts, 'method': 'POST' };
 
@@ -223,7 +224,7 @@ export class HttpMethods {
    * @param url - Request URL
    * @param opts - Fetch options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    */
-  static async put(url: string, opts?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
+  static async put(url: string, opts?: BodyRequestOptionsType): Promise<Response> {
     const { body, ...restOpts } = opts ?? {};
     const fetchOptions: FetchOptionsType = { ...restOpts, 'method': 'PUT' };
 

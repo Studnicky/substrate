@@ -4,16 +4,13 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import { Draft, Patch } from '../src/index.js';
+import { DraftFixture } from './fixtures/DraftFixture.js';
 
 // ---------------------------------------------------------------------------
 // Draft.produce — mutate a draft, get back a new value with structural sharing
 // ---------------------------------------------------------------------------
 
-const base = {
-  'meta': { 'label': 'draft' },
-  'tags': ['alpha'],
-  'untouched': { 'value': 1 }
-};
+const base = DraftFixture.Base;
 
 const next = Draft.produce(base, (draft) => {
   draft.meta.label = 'published';
@@ -29,7 +26,7 @@ console.log('untouched branch same reference?', next.untouched === base.untouche
 // Draft.producePatch — same mechanics, plus the RFC-6902 patch that produced it
 // ---------------------------------------------------------------------------
 
-const doc = { 'count': 0, 'status': 'draft' };
+const doc = DraftFixture.Doc;
 
 const { 'next': patchedNext, patch } = Draft.producePatch(doc, (draft) => {
   draft.count = 1;

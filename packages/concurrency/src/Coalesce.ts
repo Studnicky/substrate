@@ -1,6 +1,6 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
-import type { CoalesceOptionsType } from './CoalesceOptionsType.js';
+import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
 
 import { CoalesceBuilder } from './CoalesceBuilder.js';
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
@@ -14,15 +14,15 @@ export class Coalesce<T> {
     return result;
   }
 
-  static create<T>(options?: CoalesceOptionsType): Coalesce<T> {
-    const result = new (this as unknown as new (options?: CoalesceOptionsType) => Coalesce<T>)(options);
+  static create<T>(options?: CoalesceOptionsEntity.Type): Coalesce<T> {
+    const result = new (this as unknown as new (options?: CoalesceOptionsEntity.Type) => Coalesce<T>)(options);
     return result;
   }
 
   readonly #inFlight = new Map<string, Promise<T>>();
   readonly #timeout: number | undefined;
 
-  protected constructor(options?: CoalesceOptionsType) {
+  protected constructor(options?: CoalesceOptionsEntity.Type) {
     this.#timeout = options?.timeout;
   }
 

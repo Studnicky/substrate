@@ -2,29 +2,28 @@
 
 import assert from 'node:assert/strict';
 
+import type { TaskEntity } from './entities/TaskEntity.js';
+
 // #region usage
 import { EntityStore } from '../src/index.js';
 
-type TaskType = {
-  'id': string;
-  'title': string;
-};
-
-function selectTaskId(task: TaskType): string {
-  const { id } = task;
-  return id;
+class TaskSelector {
+  static selectId(task: TaskEntity.Type): string {
+    const { id } = task;
+    return id;
+  }
 }
 
-class TelemetryStore extends EntityStore<TaskType> {
+class TelemetryStore extends EntityStore<TaskEntity.Type> {
   readonly upsertEvents: { 'id': string; 'title': string }[] = [];
   readonly removeEvents: { 'id': string }[] = [];
   readonly replaceAllEvents: { 'count': number }[] = [];
 
   static tracked(): TelemetryStore {
-    return new TelemetryStore({ 'selectId': selectTaskId });
+    return new TelemetryStore({ 'selectId': TaskSelector.selectId });
   }
 
-  protected override onUpsert(id: string, entity: TaskType): void {
+  protected override onUpsert(id: string, entity: TaskEntity.Type): void {
     console.log(`[entity-store] upsert id=${id} title=${entity.title}`);
     this.upsertEvents.push({ 'id': id, 'title': entity.title });
   }

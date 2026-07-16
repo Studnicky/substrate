@@ -1,16 +1,16 @@
 import type { Channel } from './Channel.js';
-import type { ChannelOptionsType } from './ChannelOptionsType.js';
+import type { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
 
 export class ChannelBuilder<T> {
-  static create<T>(create: (options?: ChannelOptionsType) => Channel<T>): ChannelBuilder<T> {
+  static create<T>(create: (options?: ChannelOptionsEntity.Type) => Channel<T>): ChannelBuilder<T> {
     const result = new ChannelBuilder(create);
     return result;
   }
 
-  readonly #create: (options?: ChannelOptionsType) => Channel<T>;
+  readonly #create: (options?: ChannelOptionsEntity.Type) => Channel<T>;
   #highWaterMark: number | undefined;
 
-  private constructor(create: (options?: ChannelOptionsType) => Channel<T>) {
+  private constructor(create: (options?: ChannelOptionsEntity.Type) => Channel<T>) {
     this.#create = create;
   }
 
@@ -20,7 +20,7 @@ export class ChannelBuilder<T> {
   }
 
   build(): Channel<T> {
-    const options: ChannelOptionsType = this.#highWaterMark === undefined
+    const options: ChannelOptionsEntity.Type = this.#highWaterMark === undefined
       ? {}
       : { 'highWaterMark': this.#highWaterMark };
     const result = this.#create(options);

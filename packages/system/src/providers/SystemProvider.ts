@@ -1,7 +1,7 @@
 import os from 'node:os';
 
+import type { GpuInfoEntity } from '../entities/GpuInfoEntity.js';
 import type { SystemProviderInterface } from '../interfaces/SystemProviderInterface.js';
-import type { GpuInfoType } from '../types/GpuInfoType.js';
 
 import { GpuDetector } from '../modules/GpuDetector.js';
 
@@ -18,7 +18,7 @@ export class SystemProvider implements SystemProviderInterface {
     return result;
   }
 
-  detectGpu(): GpuInfoType | null {
+  detectGpu(): GpuInfoEntity.Type | null {
     const result = GpuDetector.detect();
     return result;
   }

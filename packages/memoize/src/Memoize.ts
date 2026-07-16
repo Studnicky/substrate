@@ -9,6 +9,7 @@ import type { MemoizeOptionsType } from './types/MemoizeOptionsType.js';
 
 import { MemoizeBuilder } from './MemoizeBuilder.js';
 
+// json-schema-uninexpressible: generic type parameters (TArgs, TResult), live class instances (LruCache, Coalesce), and function-type fields (fn, keyFn) — none are plain JSON-serializable data
 type MemoizeDepsType<TArgs extends unknown[], TResult> = {
   'cache': LruCache<string, TResult>;
   'coalesce': Coalesce<TResult>;

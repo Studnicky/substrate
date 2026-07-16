@@ -1,10 +1,10 @@
-import type { LogRecordType } from '../types/LogRecordType.js';
+import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { MemoryTransportOptionsType } from './MemoryTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
-import { parseLogLevel } from '../modules/parseLogLevel.js';
+import { ParseLogLevel } from '../modules/parseLogLevel.js';
 import { MemoryTransportBuilder } from './MemoryTransportBuilder.js';
 
 /**
@@ -41,7 +41,7 @@ export class MemoryTransport implements TransportInterface {
     return result;
   }
 
-  readonly #buffer: LogRecordType[] = [];
+  readonly #buffer: LogRecordEntity.Type[] = [];
   readonly #minLevel: number;
 
   protected constructor(options: MemoryTransportOptionsType = {}) {
@@ -51,7 +51,7 @@ export class MemoryTransport implements TransportInterface {
       throw new ConfigurationError('level must be a string or number');
     }
     this.#minLevel = options.level !== undefined
-      ? parseLogLevel(options.level)
+      ? ParseLogLevel.parse(options.level)
       : LOG_LEVEL.TRACE;
   }
 
@@ -65,7 +65,7 @@ export class MemoryTransport implements TransportInterface {
   /**
    * Returns a readonly snapshot of all captured records.
    */
-  records(): readonly LogRecordType[] {
+  records(): readonly LogRecordEntity.Type[] {
     return this.#buffer;
   }
 
@@ -74,7 +74,7 @@ export class MemoryTransport implements TransportInterface {
    *
    * @param record - Assembled log record from the Logger core
    */
-  write(record: LogRecordType): void {
+  write(record: LogRecordEntity.Type): void {
     if (record.level < this.#minLevel) {
       return;
     }
