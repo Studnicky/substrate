@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-07-16
+
 ### Added
 
 - New `folder-content-shape` rule enforces that `interfaces/` folders hold `interface` declarations, `types/` folders hold `type` alias declarations, and other folders keep data constants (regex, enums, frozen collections) grouped under a `constants/` folder (or `fixtures/` for test/example data). Regex literals are zero-tolerance — a single inline regex is flagged, unlike the 2+ threshold for other constants. Merges the former `folder-declaration-shape`, `constants-folder-required`, and `entity-namespace` rules.
