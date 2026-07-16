@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-07-16
+
 ### Added
 
 - `@studnicky/eslint-config`: new `folder-content-shape` rule enforces that `interfaces/` folders hold `interface` declarations (runtime contracts), `types/` folders hold `type` alias declarations (data shapes), and other folders keep data constants (regex, enums, frozen collections — not runtime functions) grouped under a `constants/` folder (or `fixtures/` for test/example data). Merges the former `folder-declaration-shape`, `constants-folder-required`, and `entity-namespace` rules. Regex literals (`/pattern/flags` syntax, or `new RegExp('pattern', ...)` with an inlined string pattern) are zero-tolerance — a single inline regex is flagged, unlike the 2+ threshold for other constants, since a regex pattern is a data constant exactly like an enum value and must never be declared inline.
@@ -144,3 +146,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [5.1.0]: https://github.com/Studnicky/substrate/compare/v5.0.0...v5.1.0
 [5.1.1]: https://github.com/Studnicky/substrate/compare/v5.1.0...v5.1.1
+[6.0.0]: https://github.com/Studnicky/substrate/compare/v5.1.1...v6.0.0
