@@ -3,6 +3,7 @@ import type { FileSystemInterface } from '@studnicky/virtual-fs';
 import type { FileLockCreateOptionsType } from './FileLockCreateOptionsType.js';
 import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
 
+import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from './constants/FileLockDefaults.js';
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockConfigError } from './errors/FileLockConfigError.js';
 import { FileLockBuilder } from './FileLockBuilder.js';
@@ -11,9 +12,7 @@ import { LockPathHelpers } from './LockPathHelpers.js';
 import { NodeFileSystem } from './NodeFileSystem.js';
 import { NodeOwnerToken } from './NodeOwnerToken.js';
 
-const DEFAULT_POLL_MS = 50;
-const DEFAULT_TIMEOUT_MS = 5000;
-
+// json-schema-uninexpressible: `fs` is a FileSystemInterface — a behavioral interface of methods (existsSync, readFileSync, etc.), not plain data
 type FileLockInternalOptions = {
   readonly 'fs': FileSystemInterface;
   readonly 'lockPath': string;
@@ -85,7 +84,16 @@ export class FileLock {
    * Alias for `FileLock.create({ path, ...options })`.
    * Uses `this.create()` so subclasses retain their prototype through this alias.
    */
-  static async acquire(path: string, options?: Omit<FileLockCreateOptionsType, 'path'>): Promise<FileLock> {
+  // json-schema-uninexpressible: `fileSystem`/`ownerToken` are behavioral interfaces (methods like existsSync, get), not plain data
+  static async acquire(
+    path: string,
+    options?: {
+      'fileSystem'?: FileSystemInterface;
+      'ownerToken'?: OwnerTokenInterface;
+      'pollMs'?: number;
+      'timeoutMs'?: number;
+    }
+  ): Promise<FileLock> {
     const result = await this.create({ 'path': path, ...options });
     return result;
   }

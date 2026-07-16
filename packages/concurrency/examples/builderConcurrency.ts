@@ -5,54 +5,63 @@ import assert from 'node:assert/strict';
 // #region usage
 import { Channel, Semaphore } from '../src/index.js';
 
-// --- Semaphore via builder ---
-const sem = Semaphore.builder()
-  .withPermits(2)
-  .build();
-
-console.log('Semaphore built. Permits:', sem.permits, 'Available:', sem.available);
-
-let maxConcurrent = 0;
-let inFlight = 0;
-const completions: number[] = [];
-
 class Task {
-  static async run(id: number): Promise<void> {
+  static readonly completions: number[] = [];
+  static maxConcurrent = 0;
+  static #inFlight = 0;
+
+  static async run(id: number, sem: Semaphore): Promise<void> {
     const result = sem.withPermit(async () => {
-      inFlight += 1;
-      maxConcurrent = Math.max(maxConcurrent, inFlight);
+      Task.#inFlight += 1;
+      Task.maxConcurrent = Math.max(Task.maxConcurrent, Task.#inFlight);
       // Yield to the microtask queue so tasks interleave
       await Promise.resolve();
-      inFlight -= 1;
-      completions.push(id);
+      Task.#inFlight -= 1;
+      Task.completions.push(id);
     });
     return await result;
   }
 }
 
-// 4 concurrent tasks against a 2-permit semaphore — max concurrent stays at or below 2
-await Promise.all([Task.run(1), Task.run(2), Task.run(3), Task.run(4)]);
-console.log('Max concurrent (≤2):', maxConcurrent);
-console.log('Completions:', completions);
+class BuilderConcurrencyDemo {
+  static async runSemaphore(): Promise<void> {
+    // --- Semaphore via builder ---
+    const sem = Semaphore.builder()
+      .withPermits(2)
+      .build();
 
-// --- Channel via builder ---
-const channel = Channel.builder<string>().build();
+    console.log('Semaphore built. Permits:', sem.permits, 'Available:', sem.available);
 
-console.log('\nChannel built. Publishing items...');
-channel.publish('notifications', 'signup');
-channel.publish('notifications', 'payment');
-channel.publish('notifications', 'logout');
-channel.close();
+    // 4 concurrent tasks against a 2-permit semaphore — max concurrent stays at or below 2
+    await Promise.all([Task.run(1, sem), Task.run(2, sem), Task.run(3, sem), Task.run(4, sem)]);
+    console.log('Max concurrent (≤2):', Task.maxConcurrent);
+    console.log('Completions:', Task.completions);
 
-const received: string[] = [];
-for await (const item of channel.subscribe('notifications')) {
-  received.push(item);
+    assert.ok(Task.maxConcurrent <= 2, `maxConcurrent ${Task.maxConcurrent} exceeded permits`);
+    assert.equal(Task.completions.length, 4, 'All 4 tasks completed');
+  }
+
+  static async runChannel(): Promise<void> {
+    // --- Channel via builder ---
+    const channel = Channel.builder<string>().build();
+
+    console.log('\nChannel built. Publishing items...');
+    channel.publish('notifications', 'signup');
+    channel.publish('notifications', 'payment');
+    channel.publish('notifications', 'logout');
+    channel.close();
+
+    const received: string[] = [];
+    for await (const item of channel.subscribe('notifications')) {
+      received.push(item);
+    }
+    console.log('Channel received:', received);
+    assert.deepEqual(received, ['signup', 'payment', 'logout'], 'Channel delivered all items in order');
+  }
 }
-console.log('Channel received:', received);
 // #endregion usage
 
-assert.ok(maxConcurrent <= 2, `maxConcurrent ${maxConcurrent} exceeded permits`);
-assert.equal(completions.length, 4, 'All 4 tasks completed');
-assert.deepEqual(received, ['signup', 'payment', 'logout'], 'Channel delivered all items in order');
+await BuilderConcurrencyDemo.runSemaphore();
+await BuilderConcurrencyDemo.runChannel();
 
 console.log('builderConcurrency: all assertions passed');

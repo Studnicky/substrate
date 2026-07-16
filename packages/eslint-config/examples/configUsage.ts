@@ -11,7 +11,7 @@ const config = {
     '@studnicky/v8': v8Plugin
   },
   'rules': {
-    '@studnicky/type-alias-must-end-type': 'error'
+    '@studnicky/type-alias-invariants': 'error'
   }
 };
 
@@ -23,7 +23,7 @@ console.log(`@studnicky/v8 plugin rules: ${v8PluginRuleCount}`);
 console.log(`Config plugins registered: ${Object.keys(config.plugins).join(', ')}`);
 // #endregion usage
 
-assert.ok('type-alias-must-end-type' in plugin.rules, 'plugin.rules must contain type-alias-must-end-type');
+assert.ok('type-alias-invariants' in plugin.rules, 'plugin.rules must contain type-alias-invariants');
 assert.ok(pluginRuleCount > 0, 'plugin.rules must be non-empty');
 assert.ok(v8PluginRuleCount > 0, 'v8Plugin.rules must be non-empty');
 

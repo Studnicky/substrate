@@ -31,13 +31,11 @@ import { Signal } from '@studnicky/signal';
 
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 
+import { COUNTER_POLL_DIVISOR, MIN_RETRY_DELAY_MS } from './constants/index.js';
 import { SlidingWindowLimiterConfigError } from './errors/SlidingWindowLimiterConfigError.js';
 import { SlidingWindowExhaustedError } from './SlidingWindowExhaustedError.js';
 import { SlidingWindowLimiterBuilder } from './SlidingWindowLimiterBuilder.js';
 import { TimestampLog } from './TimestampLog.js';
-
-const MIN_RETRY_DELAY_MS = 1;
-const COUNTER_POLL_DIVISOR = 10;
 
 export class SlidingWindowLimiter {
   readonly #limit: number;

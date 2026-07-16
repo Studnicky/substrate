@@ -28,13 +28,14 @@
  * ```
  */
 
+import type { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
+import type { MutexStatsEntity } from '../entities/MutexStatsEntity.js';
 import type {
   MutexInterface,
   MutexLockInterface
 } from '../interfaces/index.js';
 import type { MutexKeyStateType } from '../types/MutexKeyStateType.js';
-import type { MutexStatsType } from '../types/MutexStatsType.js';
 
 import {
   EMPTY_LENGTH,
@@ -51,6 +52,7 @@ import {
 import { configInternal } from './configInternal.js';
 import { MutexBuilder } from './MutexBuilder.js';
 
+// json-schema-uninexpressible: reject/resolve are callback function fields, not JSON-representable
 type QueueEntryType = {
   'queuedAt': number;
   'reject': (error: Error) => void;
@@ -58,10 +60,7 @@ type QueueEntryType = {
   'timeoutId': ReturnType<typeof setTimeout> | undefined;
 };
 
-type LockMetricsType = {
-  'acquiredAt': number;
-};
-
+// json-schema-uninexpressible: promise is a Promise instance, not a JSON-representable value
 type InFlightOperationType = {
   'promise': Promise<unknown>;
   'waitersCount': number;
@@ -131,7 +130,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private coalescedCount = INITIAL_COUNTER;
   private readonly config: MutexConfigEntity.Type;
   private readonly inFlightOperations: Map<K, InFlightOperationType>;
-  private readonly lockMetrics: Map<K, LockMetricsType>;
+  private readonly lockMetrics: Map<K, LockMetricsEntity.Type>;
   private readonly locks: Set<K>;
   private readonly observers: (() => void)[] = [];
   private readonly queues: Map<K, QueueEntryType[]>;
@@ -599,8 +598,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * console.log(`Total executed: ${stats.totalExecuted}`);
    * ```
    */
-  getStats(): MutexStatsType {
-    const stats: MutexStatsType = {
+  getStats(): MutexStatsEntity.Type {
+    const stats: MutexStatsEntity.Type = {
       'activeLocksCount': this.locks.size,
       'coalescedCount': this.coalescedCount,
       'maxQueueSize': this.config.maxQueueSize,

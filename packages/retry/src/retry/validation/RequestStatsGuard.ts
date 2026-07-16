@@ -1,16 +1,16 @@
 import { Guard } from '@studnicky/config';
 
-import type { RequestStatsType } from '../../types/RequestStatsType.js';
+import type { RequestStatsEntity } from '../../entities/RequestStatsEntity.js';
 
 /**
- * Type guard for RequestStatsType
+ * Type guard for RequestStatsEntity.Type
  */
 class RequestStatsGuard {
   /**
-   * Validates RequestStatsType structure and types.
+   * Validates RequestStatsEntity.Type structure and types.
    *
    * @param value - Value to check
-   * @returns True if value is a valid RequestStatsType
+   * @returns True if value is a valid RequestStatsEntity.Type
    *
    * @example
    * ```typescript
@@ -20,7 +20,7 @@ class RequestStatsGuard {
    * }
    * ```
    */
-  public static isRequestStats(value: unknown): value is RequestStatsType {
+  public static isRequestStats(value: unknown): value is RequestStatsEntity.Type {
     if (!Guard.isObject(value)) {
       return false;
     }

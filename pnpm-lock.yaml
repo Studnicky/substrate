@@ -98,6 +98,12 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/boundary-kit:
     dependencies:
@@ -190,6 +196,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
@@ -206,7 +215,14 @@ importers:
         specifier: workspace:*
         version: link:../types
 
-  packages/entity-store: {}
+  packages/entity-store:
+    dependencies:
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/errors:
     dependencies:
@@ -216,6 +232,9 @@ importers:
 
   packages/eslint-config:
     dependencies:
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       '@typescript-eslint/eslint-plugin':
         specifier: '>=8.0.0'
         version: 8.62.0(@typescript-eslint/parser@8.62.0(eslint@10.5.0)(typescript@6.0.3))(eslint@10.5.0)(typescript@6.0.3)
@@ -271,6 +290,12 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       undici:
         specifier: ^8.5.0
         version: 8.5.0
@@ -299,6 +324,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/fsm:
     dependencies:
@@ -308,6 +336,12 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       '@studnicky/clock':
         specifier: workspace:*
@@ -321,9 +355,15 @@ importers:
 
   packages/health-registry:
     dependencies:
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/idempotency-guard:
     dependencies:
@@ -339,6 +379,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/json:
     dependencies:
@@ -424,12 +467,24 @@ importers:
       '@studnicky/fsm':
         specifier: workspace:*
         version: link:../fsm
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/pipeline:
     dependencies:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/predicates:
     dependencies:
@@ -525,6 +580,12 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/signal:
     dependencies:
@@ -550,7 +611,14 @@ importers:
         specifier: workspace:*
         version: link:../types
 
-  packages/system: {}
+  packages/system:
+    dependencies:
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/throttle:
     dependencies:
@@ -609,24 +677,42 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/visible-range:
     dependencies:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/worker-pool:
     dependencies:
       '@studnicky/batch':
         specifier: workspace:*
         version: link:../batch
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
       '@studnicky/system':
         specifier: workspace:*
         version: link:../system
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
 packages:
 

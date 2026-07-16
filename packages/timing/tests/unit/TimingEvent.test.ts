@@ -36,7 +36,7 @@ void it('sets status and returns this for chaining', () => {
   assert.strictEqual(result, builder);
 });
 
-void it('returns TimingEventDataType with component.operation format', () => {
+void it('returns TimingEventDataEntity.Type data with component.operation format', () => {
   const data = TimingEvent.create()
     .component('GraphAdapter')
     .operation('query')
@@ -45,7 +45,7 @@ void it('returns TimingEventDataType with component.operation format', () => {
   assert.strictEqual(data.event, 'GraphAdapter.query');
 });
 
-void it('returns TimingEventDataType with component.operation.status format', () => {
+void it('returns TimingEventDataEntity.Type with component.operation.status format', () => {
   const data = TimingEvent.create()
     .component('DatabaseAdapter')
     .operation('connect')

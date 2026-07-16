@@ -1,8 +1,9 @@
 import { ConfigValidation } from '@studnicky/config';
-import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+import { DefaultHttpErrorClassifier, type ErrorClassificationEntity } from '@studnicky/errors';
 
-import type { ErrorClassificationType, RetryConfigInterface, RetryInterface } from '../interfaces/index.js';
-import type { RequestStatsType, RetryCallStateType, RetryContextType } from '../types/index.js';
+import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
+import type { RetryConfigInterface, RetryInterface } from '../interfaces/index.js';
+import type { RetryCallStateType, RetryContextType } from '../types/index.js';
 
 import {
   DEFAULT_MAX_RETRIES,
@@ -104,7 +105,7 @@ class RetryCallFsm {
  * @example Extension of classification
  * ```typescript
  * class FusekiRetry extends Retry {
- *   protected classifyError(error: Error): ErrorClassificationType {
+ *   protected classifyError(error: Error): ErrorClassificationEntity.Type {
  *     const msg = error.message.toLowerCase();
  *     if (msg.includes('transaction abort') || msg.includes('503')) {
  *       return { retryable: true, reason: 'Transient Fuseki error' };
@@ -129,7 +130,7 @@ export class Retry implements RetryInterface {
    * @returns New builder instance for configuring retry behavior
    */
   static builder(): RetryBuilder<Retry> {
-    const factory = (options: Partial<RetryConfigInterface>): Retry => {
+    const factory = (options: RetryConfigInterface): Retry => {
       const result = Retry.create(options);
       return result;
     };
@@ -142,18 +143,18 @@ export class Retry implements RetryInterface {
    * @param config - Optional partial configuration for retry behavior
    * @returns New Retry instance
    */
-  static create(config?: Partial<RetryConfigInterface>): Retry {
+  static create(config?: RetryConfigInterface): Retry {
     const result = new this(config);
     return result;
   }
-  private readonly classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
+  private readonly classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
   private readonly defaultClassifier: DefaultHttpErrorClassifier;
   private readonly backoffStrategy: RetryConfigInterface['backoffStrategy'];
 
   protected readonly maxRetries: number;
   protected readonly maxElapsedMs: number | undefined;
 
-  protected stats: RequestStatsType = {
+  protected stats: RequestStatsEntity.Type = {
     'failedRequests': INITIAL_COUNTER,
     'successfulRequests': INITIAL_COUNTER,
     'totalRequests': INITIAL_COUNTER,
@@ -166,7 +167,7 @@ export class Retry implements RetryInterface {
     } catch {}
   }
 
-  protected constructor(config: Partial<RetryConfigInterface> = {}) {
+  protected constructor(config: RetryConfigInterface = {}) {
     const validated = Retry.#validateConfig(config);
 
     this.maxRetries = validated.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -174,7 +175,7 @@ export class Retry implements RetryInterface {
     this.defaultClassifier = DefaultHttpErrorClassifier.create();
     this.backoffStrategy = validated.backoffStrategy;
 
-    let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
+    let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
     if (validated.errorClassifier === undefined) {
       // Arrow function required for subclass polymorphism - classifyError may be overridden
       classifierFn = (error, attemptNumber) => { const result = this.classifyError(error, attemptNumber); return result; };
@@ -198,7 +199,7 @@ export class Retry implements RetryInterface {
    * @param attemptNumber - Current attempt number (0-indexed)
    * @returns Classification result indicating whether to retry
    */
-  protected classifyError(error: Error, attemptNumber: number): ErrorClassificationType {
+  protected classifyError(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
     const result = this.defaultClassifier.classify(error, attemptNumber);
     return result;
   }
@@ -218,7 +219,7 @@ export class Retry implements RetryInterface {
   protected onRetryableError(
     _attemptNumber: number,
     _error: Error,
-    _classification: ErrorClassificationType
+    _classification: ErrorClassificationEntity.Type
   ): void {}
 
   /**
@@ -335,7 +336,7 @@ export class Retry implements RetryInterface {
   /**
    * Get current request statistics.
    */
-  getStats(): RequestStatsType {
+  getStats(): RequestStatsEntity.Type {
     const result = Object.freeze({ ...this.stats });
     return result;
   }
@@ -437,7 +438,7 @@ export class Retry implements RetryInterface {
     callFsm: RetryCallFsm,
     attempt: number,
     error: Error,
-    classification: ErrorClassificationType
+    classification: ErrorClassificationEntity.Type
   ): never {
     this.stats.failedRequests++;
 
@@ -477,7 +478,7 @@ export class Retry implements RetryInterface {
     callFsm: RetryCallFsm,
     attempt: number,
     error: Error,
-    classification: ErrorClassificationType,
+    classification: ErrorClassificationEntity.Type,
     errors: Error[],
     startTime: number,
     state: Record<string, unknown>
@@ -541,7 +542,7 @@ export class Retry implements RetryInterface {
     'maxRetries': maxRetries.validateMaxRetries
   };
 
-  static #validateConfig(config?: Partial<RetryConfigInterface>): Partial<RetryConfigInterface> {
+  static #validateConfig(config?: RetryConfigInterface): RetryConfigInterface {
     try {
       const userConfig = config ?? {};
       const configObj = userConfig as Record<string, unknown>;

@@ -28,8 +28,8 @@ export class BoundaryKitBuilder {
 
   readonly #create: (config: BoundaryKitConfigType) => BoundaryKit;
   #circuitBreaker?: CircuitBreaker | CircuitBreakerOptionsInterface;
-  #retry?: Partial<RetryConfigInterface> | Retry;
-  #throttle?: Partial<ThrottleConfigEntity.Type> | Throttle;
+  #retry?: RetryConfigInterface | Retry;
+  #throttle?: ThrottleConfigEntity.Type | Throttle;
 
   private constructor(create: (config: BoundaryKitConfigType) => BoundaryKit) {
     this.#create = create;
@@ -58,7 +58,7 @@ export class BoundaryKitBuilder {
   /**
    * Set the composed Retry instance or config
    */
-  retry(value: Partial<RetryConfigInterface> | Retry): this {
+  retry(value: RetryConfigInterface | Retry): this {
     this.#retry = value;
     return this;
   }
@@ -66,7 +66,7 @@ export class BoundaryKitBuilder {
   /**
    * Set the composed Throttle instance or config
    */
-  throttle(value: Partial<ThrottleConfigEntity.Type> | Throttle): this {
+  throttle(value: ThrottleConfigEntity.Type | Throttle): this {
     this.#throttle = value;
     return this;
   }

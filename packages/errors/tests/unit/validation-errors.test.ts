@@ -13,10 +13,10 @@ import {
 } from 'node:test';
 
 import { ValidationErrors } from '../../src/errors/ValidationErrors.js';
-import type { ValidationViolationType } from '../../src/types/ValidationViolationType.js';
+import type { ValidationViolationEntity } from '../../src/entities/ValidationViolationEntity.js';
 
 class TestViolation {
-  public static of(path: string, keyword: string, message: string): ValidationViolationType {
+  public static of(path: string, keyword: string, message: string): ValidationViolationEntity.Type {
     return { keyword, message, path };
   }
 }
@@ -169,7 +169,7 @@ void describe('ValidationErrors', () => {
         TestViolation.of('/c', 'type', 'wrong type')
       ];
       const errs = ValidationErrors.of(violations);
-      const collected: ValidationViolationType[] = [];
+      const collected: ValidationViolationEntity.Type[] = [];
       for (const v of errs) {
         collected.push(v);
       }

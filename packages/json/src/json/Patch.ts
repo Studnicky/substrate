@@ -14,6 +14,7 @@
 
 import type { PatchOperationType, PatchOpVariantType } from '../types/index.js';
 
+import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { PatchError } from '../errors/PatchError.js';
 
 const VALID_OPS = new Set<PatchOpVariantType>(['add', 'copy', 'move', 'remove', 'replace', 'test']);
@@ -179,7 +180,7 @@ export class Patch {
     }
 
     return path.slice(1).split('/').map((part) =>
-    { const result = part.replace(/~1/gu, '/').replace(/~0/gu, '~'); return result; }
+    { const result = part.replace(ESCAPED_SLASH_PATTERN, '/').replace(ESCAPED_TILDE_PATTERN, '~'); return result; }
     );
   }
 

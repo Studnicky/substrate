@@ -16,6 +16,7 @@ import type { Throttle, ThrottleConfigEntity } from '@studnicky/throttle';
  * `circuitBreaker` key resolves against `BoundaryKit`'s own defaults, not the bare
  * primitive's.
  */
+// json-schema-uninexpressible: fields are unions with live class instances (CircuitBreaker, Retry, Throttle), not plain JSON-serializable data
 export type BoundaryKitConfigType = {
   /**
    * A pre-built `CircuitBreaker` instance, or config passed to `CircuitBreaker.create()`.
@@ -26,10 +27,10 @@ export type BoundaryKitConfigType = {
   /**
    * A pre-built `Retry` instance, or config passed to `Retry.create()`.
    */
-  'retry'?: Partial<RetryConfigInterface> | Retry;
+  'retry'?: RetryConfigInterface | Retry;
 
   /**
    * A pre-built `Throttle` instance, or config passed to `Throttle.create()`.
    */
-  'throttle'?: Partial<ThrottleConfigEntity.Type> | Throttle;
+  'throttle'?: ThrottleConfigEntity.Type | Throttle;
 };

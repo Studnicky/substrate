@@ -1,16 +1,16 @@
 import { Guard } from '@studnicky/types';
 
-import type { ErrorClassificationType } from '../types/ErrorClassificationType.js';
+import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
 
 /**
- * Type guard for ErrorClassificationType
+ * Type guard for ErrorClassificationEntity.Type
  */
 class ErrorClassificationGuard {
   /**
-   * Validates ErrorClassificationType structure and types.
+   * Validates ErrorClassificationEntity.Type structure and types.
    *
    * @param value - Value to check
-   * @returns True if value is a valid ErrorClassificationType
+   * @returns True if value is a valid ErrorClassificationEntity.Type
    *
    * @example
    * ```typescript
@@ -21,7 +21,7 @@ class ErrorClassificationGuard {
    * }
    * ```
    */
-  public static isErrorClassification(value: unknown): value is ErrorClassificationType {
+  public static isErrorClassification(value: unknown): value is ErrorClassificationEntity.Type {
     if (!Guard.isObject(value)) {
       return false;
     }

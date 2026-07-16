@@ -1,4 +1,4 @@
-import type { SocketDispatcherStatsType } from '../types/SocketDispatcherStatsType.js';
+import type { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
 
 import { FetchBaseError } from './FetchBaseError.js';
 
@@ -30,7 +30,7 @@ export class SocketExhaustionError extends FetchBaseError {
    * Complete dispatcher statistics at the time of error (undefined if unavailable)
    * Always present for V8 optimization
    */
-  readonly dispatcherStats: SocketDispatcherStatsType | undefined;
+  readonly dispatcherStats: SocketDispatcherStatsEntity.Type | undefined;
 
   /**
    * Number of free connections available (0 if stats unavailable)
@@ -63,7 +63,7 @@ export class SocketExhaustionError extends FetchBaseError {
 
   constructor(
     url: string,
-    dispatcherStats?: SocketDispatcherStatsType
+    dispatcherStats?: SocketDispatcherStatsEntity.Type
   ) {
     const statsInfo = dispatcherStats !== undefined
       ? ` (connected: ${dispatcherStats.connected}, free: ${dispatcherStats.free}, pending: ${dispatcherStats.pending}, queued: ${dispatcherStats.queued})`

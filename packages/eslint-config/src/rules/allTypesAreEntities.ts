@@ -20,8 +20,10 @@ class PathGuards {
   }
 }
 
+// json-schema-uninexpressible: internal narrowing helper mirroring the shape of ESLint's own Comment token; never serialized or runtime-validated by this package
 type CommentToken = { readonly 'type': string; readonly 'value': string };
 
+// json-schema-uninexpressible: contains a function-typed member ('getCommentsBefore'), which JSON Schema cannot express
 type SourceCodeLike = { 'getCommentsBefore': (node: unknown) => readonly CommentToken[] };
 
 class TypeGuards {

@@ -1,6 +1,6 @@
 /** Async circuit breaker: closed → open (on failure threshold) → halfOpen (on timeout) → closed. */
 
-import type { ErrorClassificationType } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors';
 
 import type { CircuitStateType } from './CircuitStateType.js';
 import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
@@ -15,7 +15,7 @@ export class CircuitBreaker {
   readonly #successThreshold: number;
   readonly #name: string;
   readonly #clock: () => number;
-  readonly #classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
+  readonly #classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
   #state: CircuitStateType = 'closed';
   #failureCount = 0;
   #successCount = 0;
@@ -49,7 +49,7 @@ export class CircuitBreaker {
     this.#name = options.name ?? 'circuit-breaker';
     this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
 
-    let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
+    let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
     if (options.errorClassifier === undefined) {
       // Arrow function required for subclass polymorphism - classifyError may be overridden
       classifierFn = (error, attemptNumber) => { const result = this.classifyError(error, attemptNumber); return result; };
@@ -122,7 +122,7 @@ export class CircuitBreaker {
    * @param attemptNumber - Count of consecutive failures so far (`#failureCount`)
    * @returns Classification result indicating whether the error counts as a failure
    */
-  protected classifyError(_error: unknown, _attemptNumber: number): ErrorClassificationType {
+  protected classifyError(_error: unknown, _attemptNumber: number): ErrorClassificationEntity.Type {
     return { 'retryable': false };
   }
 

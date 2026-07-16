@@ -1,27 +1,33 @@
 import type { JSSyntaxElement, Rule } from 'eslint';
 
+// json-schema-uninexpressible: ESLint rule-options shape validated at runtime by this rule's own meta.schema, not this package's entity/data layer
 type OptionsType = {
-  readonly 'minOptionals': number;
+  readonly 'minOptionals'?: number;
 };
 
 const DEFAULT_MIN_OPTIONALS = 2;
 
+// json-schema-uninexpressible: raw parser AST-node narrowing shape for a single AST node kind, used only to cast/narrow untyped param nodes; never serialized
 type AssignmentPatternNode = {
   readonly 'left': { readonly 'type': string };
   readonly 'type': 'AssignmentPattern';
 };
 
+// json-schema-uninexpressible: raw parser AST-node narrowing shape for a single AST node kind, used only to cast/narrow untyped param nodes; never serialized
 type IdentifierNode = {
   readonly 'optional'?: boolean;
   readonly 'type': 'Identifier';
   readonly 'typeAnnotation'?: { readonly 'typeAnnotation': { readonly 'type': string } } | null;
 };
 
+// json-schema-uninexpressible: raw parser AST-node narrowing shape for a single AST node kind, used only to cast/narrow untyped param nodes; never serialized
 type ObjectPatternNode = { readonly 'type': 'ObjectPattern' };
+// json-schema-uninexpressible: raw parser AST-node narrowing shape for a single AST node kind, used only to cast/narrow untyped param nodes; never serialized
 type RestElementNode = { readonly 'type': 'RestElement' };
 
 type ParamType = AssignmentPatternNode | IdentifierNode | ObjectPatternNode | RestElementNode | { readonly 'type': string };
 
+// json-schema-uninexpressible: raw parser AST-node narrowing shape used only to cast/narrow an untyped function-like node's params; never serialized
 type FunctionLikeNode = {
   readonly 'id'?: { readonly 'name': string } | null;
   readonly 'params': readonly ParamType[];
@@ -110,13 +116,14 @@ class RuleHandlers {
   }
 }
 
+// json-schema-uninexpressible: raw parser AST-node narrowing shape used only to cast/narrow an untyped node's params; never serialized
 type TSNodeWithParams = {
   readonly 'key'?: { readonly 'name'?: string; readonly 'type': string };
   readonly 'params': readonly ParamType[];
 };
 
 class MinOptionals {
-  static get(rawOptions: Partial<OptionsType> | undefined): number {
+  static get(rawOptions: OptionsType | undefined): number {
     return rawOptions?.minOptionals ?? DEFAULT_MIN_OPTIONALS;
   }
 }
@@ -124,7 +131,7 @@ class MinOptionals {
 export const requireOptionsObject: Rule.RuleModule = {
   'create': (context) => {
     const [firstOption] = (context.options as readonly unknown[]);
-    const rawOptions = firstOption as Partial<OptionsType> | undefined;
+    const rawOptions = firstOption as OptionsType | undefined;
     const minOptionals = MinOptionals.get(rawOptions);
 
     const arrowFunctionHandler = (node: Rule.Node): void => { RuleHandlers.onArrowFunctionExpression(node, context, minOptionals); };
@@ -165,7 +172,7 @@ export const requireOptionsObject: Rule.RuleModule = {
       'recommended': false
     },
     'messages': {
-      'requireOptionsObject': "Callable '{{name}}' has {{count}} optional parameters. Collect them into a single trailing options object: '{{name}}(required, opts?: { optA?, optB? })'."
+      'requireOptionsObject': "Callable '{{name}}' has {{count}} optional parameters. Collect them into a single trailing options object: '{{name}}(required, options?: { fieldA?, fieldB? })'."
     },
     'schema': [
       {

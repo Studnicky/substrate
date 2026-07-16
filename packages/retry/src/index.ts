@@ -3,6 +3,7 @@
  * Generic async retry utility with extensible error classification
  */
 
+export { RequestStatsEntity } from './entities/RequestStatsEntity.js';
 export { RetryConfigEntity } from './entities/RetryConfigEntity.js';
 export {
   ConfigurationError,
@@ -21,7 +22,6 @@ export { RequestStatsGuard } from './retry/validation/RequestStatsGuard.js';
 export { RetryConfigGuard } from './retry/validation/RetryConfigGuard.js';
 export { RetryContextGuard } from './retry/validation/RetryContextGuard.js';
 export type { BackoffStrategyType } from './types/BackoffStrategyType.js';
-export type { RequestStatsType } from './types/RequestStatsType.js';
 export type { RetryContextType } from './types/RetryContextType.js';
 
 // Error classification, promoted to @studnicky/errors (the single, shared
@@ -30,13 +30,13 @@ export type { RetryContextType } from './types/RetryContextType.js';
 export {
   DefaultHttpErrorClassifier,
   DefaultHttpErrorClassifierBuilder,
+  ErrorClassificationEntity,
   ErrorClassificationGuard,
   ErrorClassifier,
   errorTypeGuards,
   matchers
 } from '@studnicky/errors';
 export type {
-  ErrorClassificationType,
   ErrorClassifierFunctionType,
   ErrorClassifierInterface
 } from '@studnicky/errors';

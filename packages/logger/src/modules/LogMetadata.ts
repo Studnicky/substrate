@@ -1,12 +1,12 @@
-import type { CoreLogFieldsType } from '../types/CoreLogFieldsType.js';
-import type { CorrelationFieldsType } from '../types/CorrelationFieldsType.js';
-import type { ErrorFieldsType } from '../types/ErrorFieldsType.js';
+import type { CoreLogFieldsEntity } from '../entities/CoreLogFieldsEntity.js';
+import type { CorrelationFieldsEntity } from '../entities/CorrelationFieldsEntity.js';
+import type { ErrorFieldsEntity } from '../entities/ErrorFieldsEntity.js';
+import type { TimingFieldsEntity } from '../entities/TimingFieldsEntity.js';
 import type {
   CorrelationMetadataType,
   ErrorMetadataType,
   TimingMetadataType
 } from '../types/LogMetadataType.js';
-import type { TimingFieldsType } from '../types/TimingFieldsType.js';
 
 /**
  * Type guards for narrowing log metadata shapes.
@@ -18,9 +18,9 @@ export class LogMetadata {
    * @param metadata - The metadata to check
    * @returns True if metadata has requestId
    */
-  public static hasCorrelation(metadata: CoreLogFieldsType): metadata is CorrelationMetadataType {
+  public static hasCorrelation(metadata: CoreLogFieldsEntity.Type): metadata is CorrelationMetadataType {
     return 'requestId' in metadata
-      && typeof (metadata as CorrelationFieldsType).requestId === 'string';
+      && typeof (metadata as CorrelationFieldsEntity.Type).requestId === 'string';
   }
 
   /**
@@ -29,9 +29,9 @@ export class LogMetadata {
    * @param metadata - The metadata to check
    * @returns True if metadata has durationMs
    */
-  public static hasTiming(metadata: CoreLogFieldsType): metadata is TimingMetadataType {
+  public static hasTiming(metadata: CoreLogFieldsEntity.Type): metadata is TimingMetadataType {
     return 'durationMs' in metadata
-      && typeof (metadata as TimingFieldsType).durationMs === 'number';
+      && typeof (metadata as TimingFieldsEntity.Type).durationMs === 'number';
   }
 
   /**
@@ -40,8 +40,8 @@ export class LogMetadata {
    * @param metadata - The metadata to check
    * @returns True if metadata has error
    */
-  public static hasError(metadata: CoreLogFieldsType): metadata is ErrorMetadataType {
+  public static hasError(metadata: CoreLogFieldsEntity.Type): metadata is ErrorMetadataType {
     return 'error' in metadata
-      && typeof (metadata as ErrorFieldsType).error === 'string';
+      && typeof (metadata as ErrorFieldsEntity.Type).error === 'string';
   }
 }

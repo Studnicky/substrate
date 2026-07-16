@@ -5,8 +5,8 @@
  */
 import type { JsonValueType } from '@studnicky/types';
 
+import type { ValidationViolationDetailEntity } from '../entities/ValidationViolationDetailEntity.js';
 import type { ValidationErrorArgumentsType } from '../types/ValidationErrorArgumentsType.js';
-import type { ValidationViolationDetailType } from '../types/ValidationViolationDetailType.js';
 
 import { BaseError } from './BaseError.js';
 import { ErrorCodeRegistry } from './ErrorCodeRegistry.js';
@@ -36,7 +36,7 @@ export class ValidationError extends BaseError {
   }
 
   /** Structured list of validation violations. */
-  public readonly violations: readonly Readonly<ValidationViolationDetailType>[] | undefined;
+  public readonly violations: readonly Readonly<ValidationViolationDetailEntity.Type>[] | undefined;
 
   protected constructor(args: Readonly<ValidationErrorArgumentsType>) {
     const metadata: Record<string, JsonValueType> = { 'path': args.path };

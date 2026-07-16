@@ -1,6 +1,6 @@
-import type { ErrorClassificationType } from './ErrorClassificationType.js';
+import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
 
 /**
  * Function that classifies errors to determine retry behavior and categorization.
  */
-export type ErrorClassifierFunctionType = (error: Error, attemptNumber: number) => ErrorClassificationType;
+export type ErrorClassifierFunctionType = (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;

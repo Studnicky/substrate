@@ -6,18 +6,16 @@
  * `setViewportSize()`.
  */
 
+import type { VisibleRangeEntity } from './entities/VisibleRangeEntity.js';
 import type { VisibleRangeConfigInterface } from './interfaces/VisibleRangeConfigInterface.js';
-import type { VisibleRangeType } from './types/VisibleRangeType.js';
 
+import { DEFAULT_OVERSCAN, INITIAL_OFFSET } from './constants/index.js';
 import { VisibleRangeError } from './errors/index.js';
 import { VisibleRangeBuilder } from './VisibleRangeBuilder.js';
 
 type ResolvedConfigType =
   | { readonly 'count': number; readonly 'itemSize': number; readonly 'mode': 'fixed'; readonly 'overscan': number }
   | { readonly 'count': number; readonly 'estimateSize': (index: number) => number; readonly 'mode': 'variable'; readonly 'overscan': number };
-
-const DEFAULT_OVERSCAN = 0;
-const INITIAL_OFFSET = 0;
 
 /**
  * Computes the inclusive `[start, end]` index range of items currently
@@ -73,7 +71,7 @@ export class VisibleRange {
   private readonly config: ResolvedConfigType;
   private scrollOffset = INITIAL_OFFSET;
   private viewportSize = INITIAL_OFFSET;
-  private lastRange: VisibleRangeType | undefined;
+  private lastRange: VisibleRangeEntity.Type | undefined;
 
   /** Per-index measured-size corrections (variable mode only). */
   private readonly measuredSizes = new Map<number, number>();
@@ -126,7 +124,7 @@ export class VisibleRange {
    * Fire point: `onRangeChange` fires after computing, only when the
    * result differs from the previously computed range.
    */
-  getRange(): VisibleRangeType {
+  getRange(): VisibleRangeEntity.Type {
     const range = this.config.mode === 'fixed' ? this.computeFixedRange(this.config) : this.computeVariableRange(this.config);
 
     if (this.lastRange?.start !== range.start || this.lastRange.end !== range.end) {
@@ -138,7 +136,7 @@ export class VisibleRange {
     return range;
   }
 
-  private computeFixedRange(config: { readonly 'count': number; readonly 'itemSize': number; readonly 'overscan': number }): VisibleRangeType {
+  private computeFixedRange(config: { readonly 'count': number; readonly 'itemSize': number; readonly 'overscan': number }): VisibleRangeEntity.Type {
     const { count, itemSize, overscan } = config;
 
     const start = Math.max(0, Math.floor(this.scrollOffset / itemSize) - overscan);
@@ -147,7 +145,7 @@ export class VisibleRange {
     return { 'end': end, 'start': start };
   }
 
-  private computeVariableRange(config: { readonly 'count': number; readonly 'overscan': number }): VisibleRangeType {
+  private computeVariableRange(config: { readonly 'count': number; readonly 'overscan': number }): VisibleRangeEntity.Type {
     const { count, overscan } = config;
 
     if (count === 0) {
@@ -211,7 +209,7 @@ export class VisibleRange {
    * always fires (there is no prior range to compare against).
    * No-op default — override to observe range changes.
    */
-  protected onRangeChange(_range: VisibleRangeType): void {
+  protected onRangeChange(_range: VisibleRangeEntity.Type): void {
     // no-op
   }
 }

@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ClampedConfig } from '../../../src/validation/clampedConfig.js';
-import type { ClampEventType, ClampRuleType } from '../../../src/types/index.js';
+import type { ClampEventEntity } from '../../../src/entities/ClampEventEntity.js';
+import type { ClampRuleEntity } from '../../../src/entities/ClampRuleEntity.js';
 
 void describe('ClampedConfig', () => {
   void describe('apply', () => {
     void it('clamps a field below min up to min', () => {
       const config = { timeoutMs: 10 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout too low' },
       };
 
@@ -19,7 +20,7 @@ void describe('ClampedConfig', () => {
 
     void it('clamps a field above max down to max', () => {
       const config = { timeoutMs: 999999 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout too high' },
       };
 
@@ -30,7 +31,7 @@ void describe('ClampedConfig', () => {
 
     void it('leaves an in-range field untouched', () => {
       const config = { timeoutMs: 2000 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout out of range' },
       };
 
@@ -41,7 +42,7 @@ void describe('ClampedConfig', () => {
 
     void it('leaves a field not present in rules untouched', () => {
       const config = { timeoutMs: 2000, unruled: -99999 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout out of range' },
       };
 
@@ -52,7 +53,7 @@ void describe('ClampedConfig', () => {
 
     void it('leaves a non-numeric field untouched even if the key is ruled', () => {
       const config = { timeoutMs: 'not-a-number' as unknown as number };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout out of range' },
       };
 
@@ -63,7 +64,7 @@ void describe('ClampedConfig', () => {
 
     void it('leaves a field absent from config untouched (rule with no matching key)', () => {
       const config = { other: 1 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout out of range' },
       };
 
@@ -74,7 +75,7 @@ void describe('ClampedConfig', () => {
 
     void it('returns a new object, not the same reference as the input', () => {
       const config = { timeoutMs: 10 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout too low' },
       };
 
@@ -87,15 +88,15 @@ void describe('ClampedConfig', () => {
 
   void describe('onClamp hook', () => {
     void it('fires with raw/clamped/reason when a field is clamped', () => {
-      const events: ClampEventType[] = [];
+      const events: ClampEventEntity.Type[] = [];
       class ObservingClampedConfig extends ClampedConfig {
-        protected static override onClamp(event: ClampEventType): void {
+        protected static override onClamp(event: ClampEventEntity.Type): void {
           events.push(event);
         }
       }
 
       const config = { timeoutMs: 10 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout too low' },
       };
 
@@ -111,15 +112,15 @@ void describe('ClampedConfig', () => {
     });
 
     void it('does not fire for a field left in range', () => {
-      const events: ClampEventType[] = [];
+      const events: ClampEventEntity.Type[] = [];
       class ObservingClampedConfig extends ClampedConfig {
-        protected static override onClamp(event: ClampEventType): void {
+        protected static override onClamp(event: ClampEventEntity.Type): void {
           events.push(event);
         }
       }
 
       const config = { timeoutMs: 2000 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout out of range' },
       };
 
@@ -129,15 +130,15 @@ void describe('ClampedConfig', () => {
     });
 
     void it('observes every clamp event across multiple fields', () => {
-      const events: ClampEventType[] = [];
+      const events: ClampEventEntity.Type[] = [];
       class ObservingClampedConfig extends ClampedConfig {
-        protected static override onClamp(event: ClampEventType): void {
+        protected static override onClamp(event: ClampEventEntity.Type): void {
           events.push(event);
         }
       }
 
       const config = { timeoutMs: 10, retries: 999, concurrency: 4 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout too low' },
         retries: { min: 0, max: 10, reason: 'retries too high' },
         concurrency: { min: 1, max: 8, reason: 'concurrency out of range' },
@@ -155,7 +156,7 @@ void describe('ClampedConfig', () => {
 
     void it('default ClampedConfig has a no-op onClamp (does not throw)', () => {
       const config = { timeoutMs: 10 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout too low' },
       };
 
@@ -170,7 +171,7 @@ void describe('ClampedConfig', () => {
       }
 
       const config = { timeoutMs: 10 };
-      const rules: Readonly<Record<string, ClampRuleType>> = {
+      const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout too low' },
       };
 

@@ -10,6 +10,8 @@ import type { ScheduledTaskType } from './ScheduledTaskType.js';
  * Supplies scheduling primitives.
  * Implement to provide deterministic scheduling in tests.
  */
+// json-schema-uninexpressible: every member is a function type — a behavioral provider contract,
+// not a JSON-serializable data shape.
 export type SchedulerProviderType = {
   /** Cancels all tasks registered with this provider. */
   'cancelAll': () => void;

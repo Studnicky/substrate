@@ -2,14 +2,14 @@
  * Fluent interface for LogFault builder.
  */
 
-import type { LogFaultDataType } from '../types/LogFaultDataType.js';
+import type { LogFaultDataEntity } from '../entities/LogFaultDataEntity.js';
 import type { LogStatusType } from '../types/LogStatusType.js';
 
 /**
  * Builder interface for creating normalized error log entries.
  */
 export interface LogFaultInterface {
-  build(): LogFaultDataType;
+  build(): LogFaultDataEntity.Type;
   cause(cause: Error | string): LogFaultInterface;
   component(name: string): LogFaultInterface;
   context(data: Record<string, unknown>): LogFaultInterface;

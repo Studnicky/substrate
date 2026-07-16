@@ -2,13 +2,14 @@
  * FetchClient configuration types
  */
 
-import type { DispatcherConfigType } from './DispatcherConfigType.js';
+import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
 import type { FetchOptionsType } from './FetchOptionsType.js';
 import type { QueryParamsType } from './QueryParamsType.js';
 
 /**
  * Client configuration options
  */
+// json-schema-uninexpressible: requestIdGenerator is a function type (() => string), which JSON Schema cannot express.
 export type ClientConfigType = {
   /**
    * Automatically generate request IDs for tracking
@@ -47,7 +48,7 @@ export type ClientConfigType = {
    * { dispatcher: { enabled: true, connections: 20 } }
    * ```
    */
-  'dispatcher'?: DispatcherConfigType;
+  'dispatcher'?: DispatcherConfigEntity.Type;
 
   /**
    * Default headers for all requests

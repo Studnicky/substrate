@@ -36,8 +36,8 @@
  * ```
  */
 
+import type { LogFaultDataEntity } from '../entities/LogFaultDataEntity.js';
 import type { LogFaultInterface } from '../interfaces/LogFaultInterface.js';
-import type { LogFaultDataType } from '../types/LogFaultDataType.js';
 
 import { LogBuildError } from '../errors/LogBuildError.js';
 import { BaseLogEntryBuilder } from './BaseLogEntryBuilder.js';
@@ -77,7 +77,7 @@ export class LogFault extends BaseLogEntryBuilder implements LogFaultInterface {
    * @returns Immutable fault data
    * @throws LogBuildError if required fields are missing
    */
-  build(): LogFaultDataType {
+  build(): LogFaultDataEntity.Type {
     this.validateRequiredFields();
 
     if (this.faultName === undefined) {
@@ -105,7 +105,7 @@ export class LogFault extends BaseLogEntryBuilder implements LogFaultInterface {
       throw new LogBuildError('LogFault: status is required');
     }
 
-    const result: LogFaultDataType = {
+    const result: LogFaultDataEntity.Type = {
       'context': Object.freeze({ ...this.contextData }),
       'event': event,
       'message': this.faultMessage,

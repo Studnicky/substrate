@@ -8,6 +8,7 @@ import type { BoundedDispatcherEventType } from './BoundedDispatcherEventType.js
  * The `'dispatch'` lifecycle topic every `BoundedDispatcher`-composed `EventBus` carries,
  * merged onto a caller-supplied `TTopicMap` via `BoundedDispatcherComposedTopicMapType`.
  */
+// json-schema-uninexpressible: wraps BoundedDispatcherEventType, whose 'error' phase carries an 'unknown'-typed payload — JSON Schema cannot express 'unknown'
 export type BoundedDispatcherTopicMapType = {
   'dispatch': BoundedDispatcherEventType;
 };

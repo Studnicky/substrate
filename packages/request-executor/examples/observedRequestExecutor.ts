@@ -95,10 +95,8 @@ if (address === null || typeof address !== 'object') {
   throw new Error('failed to determine server address');
 }
 
-const serverUrl = `http://localhost:${address.port}`;
-
 // #region usage
-const fetchClient = TelemetryFetchClient.create({ 'baseURL': serverUrl });
+const fetchClient = TelemetryFetchClient.create({ 'baseURL': `http://localhost:${address.port}` });
 const retry = new TelemetryRetry({ 'maxRetries': 3 });
 
 const executor = ReportingRequestExecutor.tracked(fetchClient, retry);

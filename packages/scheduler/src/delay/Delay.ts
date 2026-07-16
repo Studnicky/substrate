@@ -13,6 +13,8 @@ import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
 
 import { RealTimeScheduler } from '../scheduler/RealTimeScheduler.js';
 
+// json-schema-uninexpressible: both fields reference provider interfaces whose members are function
+// types (ClockProviderType/SchedulerProviderType), not JSON-serializable data.
 /** Options for `Delay.sleep` and `Delay.value`. */
 type DelayOptionsType = {
   /** Clock used to compute the absolute fire time. Default: `RealTimeClockProvider`. */

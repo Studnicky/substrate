@@ -15,6 +15,7 @@ import type { Signal } from '@studnicky/signal';
  * `onTransitionRejected`, `isTerminated`, `onTerminatedAccess`) it wants to observe.
  * Every other field is optional and defaulted internally.
  */
+// json-schema-uninexpressible: generic type parameters (TState, TEvent, TEffect), a function-map field (handlers: EffectHandlerMapType), and live class instances (StateMachine, Signal), not plain data
 export type ProcessKitConfigType<
   TState extends { readonly 'variant': string },
   TEvent extends { readonly 'type': string },

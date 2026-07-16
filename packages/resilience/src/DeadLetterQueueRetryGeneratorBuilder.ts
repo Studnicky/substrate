@@ -5,6 +5,7 @@ import type { DeadLetterQueueRetryGenerator } from './DeadLetterQueueRetryGenera
 
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
+// json-schema-uninexpressible: 'dlq' is a live DeadLetterQueue<T> class instance and T is a generic type parameter — not a serializable data shape
 type RetryGeneratorOptions<T> = {
   readonly 'dlq': DeadLetterQueue<T>;
   readonly 'intervalMs': number;

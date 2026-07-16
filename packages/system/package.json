@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/system",
-  "version": "5.1.1",
+  "version": "6.0.0",
   "description": "Hardware and platform information for runtime decisions about worker pool sizes and hardware-accelerated code paths",
   "type": "module",
   "sideEffects": false,
@@ -57,5 +57,9 @@
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

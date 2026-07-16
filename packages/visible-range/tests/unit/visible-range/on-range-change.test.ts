@@ -10,14 +10,14 @@
 import { deepStrictEqual, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import type { VisibleRangeType } from '../../../src/index.js';
+import type { VisibleRangeEntity } from '../../../src/index.js';
 
 import { VisibleRange } from '../../../src/index.js';
 
 class TrackingVisibleRange extends VisibleRange {
-  readonly changes: VisibleRangeType[] = [];
+  readonly changes: VisibleRangeEntity.Type[] = [];
 
-  protected override onRangeChange(range: VisibleRangeType): void {
+  protected override onRangeChange(range: VisibleRangeEntity.Type): void {
     this.changes.push(range);
   }
 }

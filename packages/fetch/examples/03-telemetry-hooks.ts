@@ -3,21 +3,12 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import type { RequestEventEntity } from '../src/entities/RequestEventEntity.js';
+import type { ResponseEventEntity } from '../src/entities/ResponseEventEntity.js';
+
 import { FetchClient } from '../src/index.js';
 
-type RequestEventType = {
-  'method': string;
-  'requestId': string;
-  'url': string;
-};
-
-type ResponseEventType = {
-  'durationMs': number;
-  'method': string;
-  'requestId': string;
-  'statusCode': number;
-};
-
+// json-schema-uninexpressible: 'error' is typed unknown (the caught value from a request failure), which JSON Schema cannot express.
 type ErrorEventType = {
   'durationMs': number;
   'error': unknown;
@@ -32,8 +23,8 @@ class TelemetryClient extends FetchClient {
     return new this(config);
   }
 
-  public readonly requestEvents: RequestEventType[] = [];
-  public readonly responseEvents: ResponseEventType[] = [];
+  public readonly requestEvents: RequestEventEntity.Type[] = [];
+  public readonly responseEvents: ResponseEventEntity.Type[] = [];
   public readonly errorEvents: ErrorEventType[] = [];
 
   protected override onRequestStart(method: string, _path: string, requestId: string, url: string): void {

@@ -1,6 +1,0 @@
-/** Compact rollup of deduplicated paths and keywords with a total error count. */
-export type ValidationAggregateViewType = {
-  'count': number;
-  'keywords': string[];
-  'paths': string[];
-};

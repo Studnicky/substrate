@@ -16,6 +16,7 @@ import type { Timing } from '@studnicky/timing';
  * a config shape that is passed to the primitive's own `create()`. `signal`, `timing`,
  * and `context` accept instances only — they have no config-object shorthand.
  */
+// json-schema-uninexpressible: accepts pre-built class instances (Context, FetchClient, Retry, Signal, Timing) and a RetryConfigInterface — not a serializable data shape
 export type RequestExecutorConfigType = {
   /**
    * A pre-built `Context` instance. No default — request execution only runs inside a
@@ -36,7 +37,7 @@ export type RequestExecutorConfigType = {
   /**
    * A pre-built `Retry` instance, or config passed to `Retry.create()`.
    */
-  'retry'?: Partial<RetryConfigInterface> | Retry;
+  'retry'?: RetryConfigInterface | Retry;
 
   /**
    * A pre-built `Signal` instance. Defaults to `Signal.create()`.

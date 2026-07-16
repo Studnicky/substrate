@@ -2,8 +2,8 @@
  * Fluent builder for FetchClient
  */
 
+import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
 import type { ClientConfigType } from '../types/ClientConfigType.js';
-import type { DispatcherConfigType } from '../types/DispatcherConfigType.js';
 import type { QueryParamsType } from '../types/QueryParamsType.js';
 import type { FetchClient } from './FetchClient.js';
 
@@ -18,7 +18,7 @@ export class FetchClientBuilder {
   readonly #create: (options: ClientConfigType) => FetchClient;
   #autoGenerateRequestId?: boolean;
   #baseURL?: string;
-  #dispatcher?: DispatcherConfigType;
+  #dispatcher?: DispatcherConfigEntity.Type;
   #headers?: Record<string, string>;
   #metadata?: Record<string, unknown>;
   #name?: string;
@@ -40,7 +40,7 @@ export class FetchClientBuilder {
     return this;
   }
 
-  withDispatcher(value: DispatcherConfigType): this {
+  withDispatcher(value: DispatcherConfigEntity.Type): this {
     this.#dispatcher = value;
     return this;
   }

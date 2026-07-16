@@ -1,4 +1,4 @@
-import type { BatchStatsType } from '../types/BatchStatsType.js';
+import type { BatchStatsEntity } from '../entities/BatchStatsEntity.js';
 
 import { DEFAULT_BATCH_MAX_CONCURRENT, EMPTY_LENGTH, FIRST_ARRAY_INDEX } from '../constants/index.js';
 import { BatchError } from '../errors/index.js';
@@ -24,7 +24,7 @@ export class Batch<TResult = unknown> {
   protected onItemSuccess(_index: number, _result: TResult): void {}
   protected onItemError(_index: number, _error: unknown): void {}
   protected onItemSettled(_index: number): void {}
-  protected onBatchComplete(_stats: BatchStatsType): void {}
+  protected onBatchComplete(_stats: BatchStatsEntity.Type): void {}
 
   async *process<T>(
     items: readonly T[],
@@ -63,7 +63,7 @@ export class Batch<TResult = unknown> {
       yield batchResults;
     }
 
-    const stats: BatchStatsType = { 'failed': failed, 'succeeded': succeeded, 'total': itemsLen };
+    const stats: BatchStatsEntity.Type = { 'failed': failed, 'succeeded': succeeded, 'total': itemsLen };
     this.#invokeHook(() => { this.onBatchComplete(stats); });
   }
 
@@ -104,7 +104,7 @@ export class Batch<TResult = unknown> {
       yield batchResults;
     }
 
-    const stats: BatchStatsType = { 'failed': failed, 'succeeded': succeeded, 'total': itemsLen };
+    const stats: BatchStatsEntity.Type = { 'failed': failed, 'succeeded': succeeded, 'total': itemsLen };
     this.#invokeHook(() => { this.onBatchComplete(stats); });
   }
 

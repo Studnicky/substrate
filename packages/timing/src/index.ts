@@ -33,6 +33,9 @@
 /** Standard timing status constants */
 export { TIMING_STATUS } from './constants/index.js';
 
+/** Timing event data entity with schema and validation */
+export { TimingEventDataEntity } from './entities/TimingEventDataEntity.js';
+
 /** Timing options entity with schema and validation */
 export { TimingOptionsEntity } from './entities/TimingOptionsEntity.js';
 

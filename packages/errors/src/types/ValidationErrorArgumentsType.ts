@@ -3,12 +3,12 @@
  *
  * @module
  */
-import type { ValidationViolationDetailType } from './ValidationViolationDetailType.js';
+import type { ValidationViolationDetailEntity } from '../entities/ValidationViolationDetailEntity.js';
 
 /** Construction arguments for `ValidationError`. */
-export type ValidationErrorArgumentsType = Pick<ValidationViolationDetailType, 'message' | 'path'> & {
+export type ValidationErrorArgumentsType = Pick<ValidationViolationDetailEntity.Type, 'message' | 'path'> & {
   /** Optional correlation ID for distributed tracing. */
   'correlationId'?: string | undefined;
   /** Structured violation list (Ajv-style or custom). */
-  'violations'?: Readonly<ValidationViolationDetailType>[] | undefined;
+  'violations'?: Readonly<ValidationViolationDetailEntity.Type>[] | undefined;
 };

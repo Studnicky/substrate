@@ -3,16 +3,16 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import type { AcquireWaitEventEntity } from '../src/entities/AcquireWaitEventEntity.js';
+import type { QueueDrainEventEntity } from '../src/entities/QueueDrainEventEntity.js';
+import type { ReleaseEventEntity } from '../src/entities/ReleaseEventEntity.js';
+
 import { Mutex } from '../src/index.js';
 
-type AcquireWaitEventType = { 'key': string; 'waitTimeMs': number };
-type ReleaseEventType = { 'key': string };
-type QueueDrainEventType = { 'key': string };
-
 class TracingMutex extends Mutex<string> {
-  readonly acquireWaitEvents: AcquireWaitEventType[] = [];
-  readonly queueDrainEvents: QueueDrainEventType[] = [];
-  readonly releaseEvents: ReleaseEventType[] = [];
+  readonly acquireWaitEvents: AcquireWaitEventEntity.Type[] = [];
+  readonly queueDrainEvents: QueueDrainEventEntity.Type[] = [];
+  readonly releaseEvents: ReleaseEventEntity.Type[] = [];
 
   protected override beforeAcquire(key: string): void {
     console.log(`[mutex] beforeAcquire key=${key}`);
@@ -54,30 +54,37 @@ class TracingMutex extends Mutex<string> {
   }
 }
 
+// Runs the contention scenario end-to-end so the module ends up with a single
+// top-level `mutex` binding instead of one per intermediate step.
+class MutexDemoRunner {
+  static async run(mutex: TracingMutex): Promise<void> {
+    // Caller 1 grabs the lock
+    const release1 = await mutex.acquire('account-42');
+
+    // Caller 2 enqueues (runs concurrently, not awaited yet)
+    const pending2 = mutex.acquire('account-42');
+
+    // Simulate holder doing work
+    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+
+    // Release — hands lock to caller 2
+    release1();
+
+    // Caller 2 now gets the lock
+    const release2 = await pending2;
+
+    release2();
+
+    // Caller 3 — different key, immediate acquisition, no contention
+    const accountBalances: number[] = [];
+    await mutex.runExclusive('account-99', () => {
+      accountBalances.push(42);
+    });
+  }
+}
+
 const mutex = TracingMutex.create<string>();
-
-// Caller 1 grabs the lock
-const release1 = await mutex.acquire('account-42');
-
-// Caller 2 enqueues (runs concurrently, not awaited yet)
-const pending2 = mutex.acquire('account-42');
-
-// Simulate holder doing work
-await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
-
-// Release — hands lock to caller 2
-release1();
-
-// Caller 2 now gets the lock
-const release2 = await pending2;
-
-release2();
-
-// Caller 3 — different key, immediate acquisition, no contention
-const accountBalances: number[] = [];
-await mutex.runExclusive('account-99', () => {
-  accountBalances.push(42);
-});
+await MutexDemoRunner.run(mutex);
 // #endregion usage
 
 assert.strictEqual(mutex.acquireWaitEvents.length, 1, `Expected 1 acquireWait event, got ${mutex.acquireWaitEvents.length}`);

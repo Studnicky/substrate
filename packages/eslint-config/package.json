@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/eslint-config",
-  "version": "5.1.1",
+  "version": "6.0.0",
   "description": "Shared ESLint flat config for @studnicky packages",
   "type": "module",
   "sideEffects": false,
@@ -59,6 +59,9 @@
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "@studnicky/types": "workspace:*"
   },
   "peerDependencies": {
     "@stylistic/eslint-plugin": ">=5.0.0",

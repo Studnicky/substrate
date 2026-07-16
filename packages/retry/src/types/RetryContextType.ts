@@ -1,6 +1,6 @@
-import type { ErrorClassificationType } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors';
 
-import type { RequestStatsType } from './RequestStatsType.js';
+import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 
 /**
  * Context provided to the `onRetryScheduled` lifecycle hook.
@@ -9,6 +9,7 @@ import type { RequestStatsType } from './RequestStatsType.js';
  * `onRetryScheduled` in a subclass to read this context and write back
  * `delayMs` and optionally `abort` to control retry behavior.
  */
+// json-schema-uninexpressible: 'state' is a generic TState type parameter and 'error' is an Error class instance — neither is JSON-Schema-expressible
 export type RetryContextType<TState = Record<string, unknown>> = {
   /**
    * Set by the lifecycle hook: if true, abort remaining retries immediately
@@ -24,7 +25,7 @@ export type RetryContextType<TState = Record<string, unknown>> = {
   /**
    * Classification result from the error classifier
    */
-  'classification': ErrorClassificationType;
+  'classification': ErrorClassificationEntity.Type;
 
   /**
    * Set by the lifecycle hook: milliseconds to delay before the next retry
@@ -69,5 +70,5 @@ export type RetryContextType<TState = Record<string, unknown>> = {
   /**
    * Current request statistics
    */
-  'stats': Readonly<RequestStatsType>;
+  'stats': Readonly<RequestStatsEntity.Type>;
 };

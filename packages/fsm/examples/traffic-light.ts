@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type { EffectHandlerMapType, FsmStepType } from '../src/index.js';
+import type { TrafficEffectEntity } from './entities/TrafficEffectEntity.js';
+import type { TrafficEventEntity } from './entities/TrafficEventEntity.js';
 
 import { EffectInterpreter, StateMachine } from '../src/index.js';
 
@@ -12,9 +14,9 @@ type TrafficState =
   | { readonly 'variant': 'green' }
   | { readonly 'variant': 'amber' };
 
-type TrafficEvent = { readonly 'type': 'advance' };
+type TrafficEvent = TrafficEventEntity.Type;
 
-type TrafficEffect = { readonly 'tone': string; readonly 'variant': 'playSound'; };
+type TrafficEffect = TrafficEffectEntity.Type;
 
 class TrafficLight extends StateMachine<TrafficState, TrafficEvent, TrafficEffect> {
   static make(): TrafficLight { return new TrafficLight(); }
@@ -33,36 +35,42 @@ class TrafficLight extends StateMachine<TrafficState, TrafficEvent, TrafficEffec
   }
 }
 
-const soundsPlayed: string[] = [];
+class TrafficLightDemo {
+  static readonly soundsPlayed: string[] = [];
+  static readonly history: string[] = [];
 
-const handlers: EffectHandlerMapType<TrafficEffect> = {
-  'playSound': (effect) => {
-    soundsPlayed.push(effect.tone);
+  static readonly handlers: EffectHandlerMapType<TrafficEffect> = {
+    'playSound': (effect) => { TrafficLightDemo.soundsPlayed.push(effect.tone); }
+  };
+
+  static async run(): Promise<{ readonly 'finalVariant': TrafficState['variant']; readonly 'history': string[]; readonly 'soundsPlayed': string[] }> {
+    const machine: TrafficLight = TrafficLight.make();
+    const interpreter: EffectInterpreter<TrafficState, TrafficEvent, TrafficEffect> = EffectInterpreter.create({ 'handlers': TrafficLightDemo.handlers, 'machine': machine, 'machineId': 'test-light' });
+
+    const unsubscribe = interpreter.subscribe((state) => { TrafficLightDemo.history.push(state.variant); });
+
+    interpreter.start();
+
+    await interpreter.send({ 'type': 'advance' });
+    await interpreter.send({ 'type': 'advance' });
+    await interpreter.send({ 'type': 'advance' });
+
+    console.log('State after 3 advances:', interpreter.getState().variant);
+    console.log('Sound history:', TrafficLightDemo.soundsPlayed);
+    console.log('State history:', TrafficLightDemo.history);
+
+    unsubscribe();
+    interpreter.stop();
+
+    return { 'finalVariant': interpreter.getState().variant, 'history': TrafficLightDemo.history, 'soundsPlayed': TrafficLightDemo.soundsPlayed };
   }
-};
+}
 
-const machine: TrafficLight = TrafficLight.make();
-const interpreter: EffectInterpreter<TrafficState, TrafficEvent, TrafficEffect> = EffectInterpreter.create({ 'handlers': handlers, 'machine': machine, 'machineId': 'test-light' });
-
-const history: string[] = [];
-const unsubscribe = interpreter.subscribe((state) => { history.push(state.variant); });
-
-interpreter.start();
-
-await interpreter.send({ 'type': 'advance' });
-await interpreter.send({ 'type': 'advance' });
-await interpreter.send({ 'type': 'advance' });
-
-console.log('State after 3 advances:', interpreter.getState().variant);
-console.log('Sound history:', soundsPlayed);
-console.log('State history:', history);
-
-unsubscribe();
-interpreter.stop();
+const results = await TrafficLightDemo.run();
 // #endregion usage
 
-assert.equal(interpreter.getState().variant, 'red');
-assert.deepEqual(soundsPlayed, ['chime']);
-assert.deepEqual(history, ['red', 'green', 'amber', 'red']);
+assert.equal(results.finalVariant, 'red');
+assert.deepEqual(results.soundsPlayed, ['chime']);
+assert.deepEqual(results.history, ['red', 'green', 'amber', 'red']);
 
 console.log('traffic-light: all assertions passed');

@@ -2,16 +2,13 @@
 
 import assert from 'node:assert/strict';
 
+import type { HookEventEntity } from './entities/HookEventEntity.js';
+
 // #region usage
 import { VirtualFileSystem } from '../src/index.js';
 
-type HookEventType = {
-  readonly 'hook': string;
-  readonly 'path': string;
-};
-
 class TracingVfs extends VirtualFileSystem {
-  readonly events: HookEventType[] = [];
+  readonly events: HookEventEntity.Type[] = [];
 
   protected override onCreate(path: string): void {
     this.events.push({ 'hook': 'onCreate', 'path': path });

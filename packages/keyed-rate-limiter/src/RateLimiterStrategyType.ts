@@ -9,6 +9,8 @@
  * second wrapper class.
  */
 // #region shape
+// json-schema-uninexpressible: a purely structural method-signature seam (consume/waitForToken are
+// function types) — this is a behavioral contract, not a JSON-serializable data shape.
 export type RateLimiterStrategyType = {
   /** Throws when insufficient capacity is available for `tokens`. */
   consume(tokens?: number): void;

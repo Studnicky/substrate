@@ -1,9 +1,10 @@
 /** String-keyed fan-in async generator inbox; one active subscriber per key. */
 
-import type { ChannelOptionsType } from './ChannelOptionsType.js';
+import type { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
 
 import { ChannelBuilder } from './ChannelBuilder.js';
 
+// json-schema-uninexpressible: 'notify' is a function type and T is a generic type parameter — not a serializable data shape
 type ChannelStateType<T> = {
   readonly 'buffer': T[];
   'closed': boolean;
@@ -19,8 +20,8 @@ export class Channel<T> {
     return result;
   }
 
-  static create<T>(options?: ChannelOptionsType): Channel<T> {
-    const result = new (this as unknown as new (options?: ChannelOptionsType) => Channel<T>)(options);
+  static create<T>(options?: ChannelOptionsEntity.Type): Channel<T> {
+    const result = new (this as unknown as new (options?: ChannelOptionsEntity.Type) => Channel<T>)(options);
     return result;
   }
 
@@ -28,7 +29,7 @@ export class Channel<T> {
   readonly #channels = new Map<string, ChannelStateType<T>>();
   readonly #highWaterMark: number | undefined;
 
-  protected constructor(options?: ChannelOptionsType) {
+  protected constructor(options?: ChannelOptionsEntity.Type) {
     this.#highWaterMark = options?.highWaterMark;
   }
 

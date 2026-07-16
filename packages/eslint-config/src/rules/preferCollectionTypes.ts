@@ -1,9 +1,17 @@
 import type { Rule, Scope } from 'eslint';
 
+// json-schema-uninexpressible: ESLint rule-options shape validated at runtime by this rule's own meta.schema, not this package's entity/data layer
 type OptionsType = {
   readonly 'checkArrayLiterals': boolean;
   readonly 'checkFromEntries': boolean;
   readonly 'checkModuleScopeArrays': boolean;
+};
+
+// json-schema-uninexpressible: raw pre-default rule-options shape read directly off context.options before defaults are applied
+type RawOptionsType = {
+  readonly 'checkArrayLiterals'?: boolean;
+  readonly 'checkFromEntries'?: boolean;
+  readonly 'checkModuleScopeArrays'?: boolean;
 };
 
 const DEFAULT_OPTIONS: OptionsType = {
@@ -18,10 +26,19 @@ type ModuleScopeArrayEntryType = {
   readonly 'variable': Scope.Variable;
 };
 
-type ProgramExitNodeType = Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0];
+// Tracks a `.filter/.some/.every/.find/.findIndex(fn)` call whose function-argument
+// subtree is currently being traversed by ESLint's own visitor, so that a nested
+// ArrayLiteral.includes()/indexOf() match encountered by the ordinary CallExpression
+// listener can be attributed back to this outer call without a second manual walk.
+type IterationStackEntryType = {
+  'found': boolean;
+  readonly 'method': string;
+  readonly 'outerNode': Rule.Node;
+  readonly 'pendingArgs': Set<unknown>;
+  'reported': boolean;
+};
 
-// Skipping parent, range, loc, start, end prevents circular ref stack overflows
-const AST_SKIP_KEYS: ReadonlySet<string> = new Set(['end', 'loc', 'parent', 'range', 'start']);
+type ProgramExitNodeType = Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0];
 
 class AstHelpers {
   public static isJsonObject(value: unknown): value is Record<string, unknown> {
@@ -114,69 +131,6 @@ class MembershipCallDetection {
     return MembershipIndexOfCall.get(parent) === node;
   }
 
-  // Recursively walks callback body to find any ArrayExpression.includes(...) call.
-  // Skips parent/loc/range/start/end to avoid circular reference stack overflows.
-  public static callbackContainsArrayLiteralIncludes(callbackNode: unknown): boolean {
-    if (!AstHelpers.isJsonObject(callbackNode)) { return false; }
-    if (AstHelpers.getNodeType(callbackNode) === undefined) { return false; }
-
-    if (
-      MembershipCallDetection.isArrayLiteralIncludesCall(callbackNode)
-      || MembershipCallDetection.isArrayLiteralIndexOfMembershipCall(callbackNode)
-    ) { return true; }
-
-    const keys = Object.keys(callbackNode);
-    const keysLen = keys.length;
-    for (let ki = 0; ki < keysLen; ki += 1) {
-      const key = keys[ki];
-      if (key === undefined || AST_SKIP_KEYS.has(key)) { continue; }
-      const child = callbackNode[key];
-      if (Array.isArray(child)) {
-        const childLen = child.length;
-        for (let ci = 0; ci < childLen; ci += 1) {
-          if (MembershipCallDetection.callbackContainsArrayLiteralIncludes(child[ci])) { return true; }
-        }
-      } else if (AstHelpers.isJsonObject(child)) {
-        if (MembershipCallDetection.callbackContainsArrayLiteralIncludes(child)) { return true; }
-      }
-    }
-
-    return false;
-  }
-
-  // Returns { found: true, method } if this is arr.method(cb) where cb contains ArrayLiteral.includes()
-  public static detectIterationWithArrayLiteralIncludes(node: Rule.Node): { readonly 'found': boolean; readonly 'method': string } {
-    const raw = node as unknown as Record<string, unknown>;
-    if (AstHelpers.getNodeType(raw) !== 'CallExpression') { return { 'found': false, 'method': '' }; }
-
-    const callee = raw.callee;
-    if (!AstHelpers.isJsonObject(callee)) { return { 'found': false, 'method': '' }; }
-    if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return { 'found': false, 'method': '' }; }
-    if (AstHelpers.getBool(callee, 'computed') !== false) { return { 'found': false, 'method': '' }; }
-
-    const property = callee.property;
-    if (!AstHelpers.isJsonObject(property)) { return { 'found': false, 'method': '' }; }
-    const methodName = AstHelpers.getString(property, 'name');
-    if (methodName === undefined || !ITERATION_METHODS.has(methodName)) { return { 'found': false, 'method': '' }; }
-
-    const args = raw.arguments;
-    if (!Array.isArray(args) || args.length === 0) { return { 'found': false, 'method': methodName }; }
-
-    const argsLen = args.length;
-    for (let ai = 0; ai < argsLen; ai += 1) {
-      const arg: unknown = args[ai];
-      const argType = AstHelpers.getNodeType(arg);
-      if (argType === 'ArrowFunctionExpression' || argType === 'FunctionExpression') {
-        if (!AstHelpers.isJsonObject(arg)) { continue; }
-        const body = arg.body;
-        if (MembershipCallDetection.callbackContainsArrayLiteralIncludes(body)) {
-          return { 'found': true, 'method': methodName };
-        }
-      }
-    }
-
-    return { 'found': false, 'method': methodName };
-  }
 }
 
 class MembershipIndexOfCall {
@@ -203,6 +157,83 @@ class MembershipIndexOfCall {
 }
 
 const ITERATION_METHODS: ReadonlySet<string> = new Set(['every', 'filter', 'find', 'findIndex', 'some']);
+
+// Rides ESLint's own single AST traversal instead of running a second manual walk:
+// pushes a marker when an outer `.filter/.some/.every/.find/.findIndex(fn)` call is
+// entered, and pops it (reporting once, on the outer node) when the function
+// argument's own subtree has been fully visited via its `:exit` listener. Nested
+// qualifying calls stay correctly attributed because ESLint's traversal is a proper
+// DFS: an inner call's stack entry is always pushed after, and popped before, its
+// enclosing call's entry — giving genuine LIFO ordering with no extra subtree scans.
+class IterationCallbackTracker {
+  // If `node` is arr.method(fn) for a tracked iteration method with at least one
+  // function-typed argument, pushes a stack entry so nested matches (found via the
+  // rule's ordinary CallExpression listener) can be attributed back to this call.
+  public static pushIfQualifying(node: Rule.Node, stack: IterationStackEntryType[]): void {
+    const raw = node as unknown as Record<string, unknown>;
+    if (AstHelpers.getNodeType(raw) !== 'CallExpression') { return; }
+
+    const callee = raw.callee;
+    if (!AstHelpers.isJsonObject(callee)) { return; }
+    if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return; }
+    if (AstHelpers.getBool(callee, 'computed') !== false) { return; }
+
+    const property = callee.property;
+    if (!AstHelpers.isJsonObject(property)) { return; }
+    const methodName = AstHelpers.getString(property, 'name');
+    if (methodName === undefined || !ITERATION_METHODS.has(methodName)) { return; }
+
+    const args = raw.arguments;
+    if (!Array.isArray(args) || args.length === 0) { return; }
+
+    const pendingArgs = new Set<unknown>();
+    const argsLen = args.length;
+    for (let ai = 0; ai < argsLen; ai += 1) {
+      const arg: unknown = args[ai];
+      const argType = AstHelpers.getNodeType(arg);
+      if (argType === 'ArrowFunctionExpression' || argType === 'FunctionExpression') {
+        pendingArgs.add(arg);
+      }
+    }
+
+    if (pendingArgs.size === 0) { return; }
+
+    stack.push({ 'found': false, 'method': methodName, 'outerNode': node, 'pendingArgs': pendingArgs, 'reported': false });
+  }
+
+  // Marks every currently-active outer call as containing a match — mirrors the old
+  // manual walk's behavior of finding matches at any depth beneath the callback body,
+  // including inside further-nested qualifying calls.
+  public static markActiveFound(stack: IterationStackEntryType[]): void {
+    const stackLen = stack.length;
+    for (let si = 0; si < stackLen; si += 1) {
+      const entry = stack[si];
+      if (entry !== undefined) { entry.found = true; }
+    }
+  }
+
+  // Called from the function argument's `:exit` listener. Pops the entry once all of
+  // its function-typed arguments have finished traversal, reporting once if a match
+  // was found anywhere beneath it.
+  public static onFunctionArgumentExit(node: unknown, stack: IterationStackEntryType[], context: Rule.RuleContext): void {
+    const top = stack.at(-1);
+    if (top === undefined) { return; }
+    if (!top.pendingArgs.has(node)) { return; }
+
+    top.pendingArgs.delete(node);
+    if (top.pendingArgs.size > 0) { return; }
+
+    stack.pop();
+    if (top.found && !top.reported) {
+      top.reported = true;
+      context.report({
+        'data': { 'method': top.method },
+        'messageId': 'includesInCallback',
+        'node': top.outerNode
+      });
+    }
+  }
+}
 
 class ScopeReferenceDetection {
   // Returns true if this scope reference is: ident.includes(...) as a call callee
@@ -252,30 +283,35 @@ class ScopeReferenceDetection {
 }
 
 class RuleHandlers {
-  public static onCallExpression(node: Rule.Node, opts: OptionsType, context: Rule.RuleContext): void {
+  public static onCallExpression(
+    node: Rule.Node,
+    opts: OptionsType,
+    context: Rule.RuleContext,
+    iterationStack: IterationStackEntryType[]
+  ): void {
+    if (!opts.checkArrayLiterals) { return; }
+
     // Pattern A: [a, b, c].includes(x) — inline array literal membership test
     if (
-      opts.checkArrayLiterals
-      && (
-        MembershipCallDetection.isArrayLiteralIncludesCall(node)
-        || MembershipCallDetection.isArrayLiteralIndexOfMembershipCall(node)
-      )
+      MembershipCallDetection.isArrayLiteralIncludesCall(node)
+      || MembershipCallDetection.isArrayLiteralIndexOfMembershipCall(node)
     ) {
+      // Attribute this match to every currently-open .filter/.some/.every/.find/
+      // .findIndex(fn) call so Pattern D can report once their callback exits.
+      IterationCallbackTracker.markActiveFound(iterationStack);
       context.report({ 'messageId': 'arrayLiteralIncludes', 'node': node });
       return;
     }
 
     // Pattern D: arr.filter/some/every/find/findIndex(x => ['a','b'].includes(x))
-    if (opts.checkArrayLiterals) {
-      const detection = MembershipCallDetection.detectIterationWithArrayLiteralIncludes(node);
-      if (detection.found) {
-        context.report({
-          'data': { 'method': detection.method },
-          'messageId': 'includesInCallback',
-          'node': node
-        });
-      }
-    }
+    // Marks the call as a candidate; the actual match is discovered by this same
+    // listener firing again (via ESLint's normal traversal) on the nested
+    // ArrayLiteral.includes()/indexOf() call above, then reported at :exit.
+    IterationCallbackTracker.pushIfQualifying(node, iterationStack);
+  }
+
+  public static onIterationCallbackExit(node: unknown, context: Rule.RuleContext, iterationStack: IterationStackEntryType[]): void {
+    IterationCallbackTracker.onFunctionArgumentExit(node, iterationStack, context);
   }
 
   public static onMemberExpression(node: Rule.Node, opts: OptionsType, context: Rule.RuleContext): void {
@@ -374,7 +410,7 @@ class RuleHandlers {
 }
 
 class Options {
-  static build(rawOptions: Partial<OptionsType> | undefined): OptionsType {
+  static build(rawOptions: RawOptionsType | undefined): OptionsType {
     return {
       'checkArrayLiterals': rawOptions?.checkArrayLiterals ?? DEFAULT_OPTIONS.checkArrayLiterals,
       'checkFromEntries': rawOptions?.checkFromEntries ?? DEFAULT_OPTIONS.checkFromEntries,
@@ -386,18 +422,22 @@ class Options {
 export const preferCollectionTypes: Rule.RuleModule = {
   'create': (context) => {
     const [firstOption] = (context.options as readonly unknown[]);
-    const rawOptions = firstOption as Partial<OptionsType> | undefined;
+    const rawOptions = firstOption as RawOptionsType | undefined;
     const opts = Options.build(rawOptions);
 
     const moduleScopeArrays: ModuleScopeArrayEntryType[] = [];
+    const iterationStack: IterationStackEntryType[] = [];
 
-    const callExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onCallExpression(node, opts, context); };
+    const callExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onCallExpression(node, opts, context, iterationStack); };
     const memberExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onMemberExpression(node, opts, context); };
     const programExitHandler = (node: ProgramExitNodeType): void => { RuleHandlers.onProgramExit(node, opts, context, moduleScopeArrays); };
     const variableDeclaratorHandler = (node: Rule.Node): void => { RuleHandlers.onVariableDeclarator(node, opts, context, moduleScopeArrays); };
+    const iterationCallbackExitHandler = (node: unknown): void => { RuleHandlers.onIterationCallbackExit(node, context, iterationStack); };
 
     return {
+      'ArrowFunctionExpression:exit': iterationCallbackExitHandler,
       'CallExpression': callExpressionHandler,
+      'FunctionExpression:exit': iterationCallbackExitHandler,
       'MemberExpression': memberExpressionHandler,
       'Program:exit': programExitHandler,
       'VariableDeclarator': variableDeclaratorHandler

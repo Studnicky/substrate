@@ -10,7 +10,7 @@ import { Logger } from '../../src/modules/Logger.js';
 import type { TransportInterface } from '../../src/transports/TransportInterface.js';
 import type { LogLevelType } from '../../src/types/LogLevelType.js';
 import type { LogMetadataType } from '../../src/types/LogMetadataType.js';
-import type { LogRecordType } from '../../src/types/LogRecordType.js';
+import type { LogRecordEntity } from '../../src/entities/LogRecordEntity.js';
 import { FunctionTransport } from '../../src/transports/FunctionTransport.js';
 import { MemoryTransport } from '../../src/transports/MemoryTransport.js';
 import { NoOpTransport } from '../../src/transports/NoOpTransport.js';
@@ -399,12 +399,12 @@ void describe('Logger', () => {
   void describe('lifecycle hooks', () => {
     void it('onLog fires after record assembly and before transport fan-out', () => {
       const loggedLevels: LogLevelType[] = [];
-      const loggedRecords: LogRecordType[] = [];
+      const loggedRecords: LogRecordEntity.Type[] = [];
 
       class ObservedLogger extends Logger {
         constructor() { super({ 'level': LOG_LEVEL.TRACE }); }
 
-        protected override onLog(level: LogLevelType, record: LogRecordType): void {
+        protected override onLog(level: LogLevelType, record: LogRecordEntity.Type): void {
           loggedLevels.push(level);
           loggedRecords.push(record);
         }
@@ -420,12 +420,12 @@ void describe('Logger', () => {
     });
 
     void it('onLog receives the assembled record with correct fields', () => {
-      const captured: LogRecordType[] = [];
+      const captured: LogRecordEntity.Type[] = [];
 
       class ObservedLogger extends Logger {
         constructor() { super({ 'level': LOG_LEVEL.TRACE, 'metadata': { 'service': 'test' } }); }
 
-        protected override onLog(_level: LogLevelType, record: LogRecordType): void {
+        protected override onLog(_level: LogLevelType, record: LogRecordEntity.Type): void {
           captured.push(record);
         }
       }
@@ -564,7 +564,7 @@ void describe('Logger', () => {
           super({ 'level': LOG_LEVEL.TRACE, 'transports': [throwingTransport] });
         }
 
-        protected override onTransportError(transport: TransportInterface, _record: LogRecordType, error: unknown): void {
+        protected override onTransportError(transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
           capturedTransports.push(transport);
           errors.push(error);
         }
@@ -588,7 +588,7 @@ void describe('Logger', () => {
           super({ 'level': LOG_LEVEL.TRACE, 'transports': [memory] });
         }
 
-        protected override onTransportError(_transport: TransportInterface, _record: LogRecordType, error: unknown): void {
+        protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
           errors.push(error);
         }
       }
@@ -609,7 +609,7 @@ void describe('Logger', () => {
           super({ 'level': LOG_LEVEL.TRACE, 'transports': [throwing1, throwing2] });
         }
 
-        protected override onTransportError(_transport: TransportInterface, _record: LogRecordType, error: unknown): void {
+        protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
           errors.push(error);
         }
       }

@@ -1,5 +1,6 @@
 import type { ClockProviderType } from '@studnicky/clock';
 
+import type { EntryEntity } from '../entities/EntryEntity.js';
 import type { FileSystemInterface } from '../interfaces/FileSystemInterface.js';
 import type { StatResultInterface } from '../interfaces/StatResultInterface.js';
 import type { VirtualFileSystemOptionsType } from '../types/VirtualFileSystemOptionsType.js';
@@ -7,11 +8,7 @@ import type { VirtualFileSystemOptionsType } from '../types/VirtualFileSystemOpt
 import { VirtualFileSystemError } from '../errors/VirtualFileSystemError.js';
 import { VirtualFileSystemBuilder } from './VirtualFileSystemBuilder.js';
 
-type EntryKindType = 'directory' | 'file';
-type EntryType = {
-  readonly 'kind': EntryKindType;
-  readonly 'mtimeMs': number;
-};
+type EntryKindType = EntryEntity.Type['kind'];
 
 const DEFAULT_CLOCK: ClockProviderType = {
   'hrtime': () => { return BigInt(Date.now()) * 1_000_000n; },
@@ -53,7 +50,7 @@ export class VirtualFileSystem implements FileSystemInterface {
   }
 
   readonly #clock: ClockProviderType;
-  readonly #entries: Map<string, EntryType>;
+  readonly #entries: Map<string, EntryEntity.Type>;
   readonly #files: Map<string, string>;
 
   #invokeHook(invoke: () => void): void {
@@ -64,7 +61,7 @@ export class VirtualFileSystem implements FileSystemInterface {
 
   protected constructor(options: VirtualFileSystemOptionsType) {
     this.#clock = options.clock ?? DEFAULT_CLOCK;
-    this.#entries = new Map<string, EntryType>();
+    this.#entries = new Map<string, EntryEntity.Type>();
     this.#files = new Map<string, string>();
 
     // Seed root directory
@@ -125,7 +122,7 @@ export class VirtualFileSystem implements FileSystemInterface {
         if (seg !== undefined) {
           current = `${current}/${seg}`;
           if (!this.#entries.has(current)) {
-            const entry: EntryType = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
+            const entry: EntryEntity.Type = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
             this.#entries.set(current, entry);
             this.#invokeHook(() => {
               this.onCreate(current);
@@ -134,7 +131,7 @@ export class VirtualFileSystem implements FileSystemInterface {
         }
       }
     } else {
-      const entry: EntryType = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
+      const entry: EntryEntity.Type = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
       this.#entries.set(path, entry);
       this.#invokeHook(() => {
         this.onCreate(path);

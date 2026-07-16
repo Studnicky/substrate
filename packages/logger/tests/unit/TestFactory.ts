@@ -3,8 +3,8 @@
  * Provides static methods for creating test log bodies and faults.
  */
 
-import type { LogBodyDataType } from '../../src/types/LogBodyDataType.js';
-import type { LogFaultDataType } from '../../src/types/LogFaultDataType.js';
+import type { LogBodyDataEntity } from '../../src/entities/LogBodyDataEntity.js';
+import type { LogFaultDataEntity } from '../../src/entities/LogFaultDataEntity.js';
 
 import { LOG_STATUS } from '../../src/builders/index.js';
 import { LogBody } from '../../src/modules/LogBody.js';
@@ -17,7 +17,7 @@ export class TestFactory {
   /**
    * Creates a test log body with minimal required fields.
    */
-  static body(message: string, context?: Record<string, unknown>): LogBodyDataType {
+  static body(message: string, context?: Record<string, unknown>): LogBodyDataEntity.Type {
     return LogBody.create()
       .component('TestFactory')
       .operation('body')
@@ -35,7 +35,7 @@ export class TestFactory {
     operation: string,
     message: string,
     context?: Record<string, unknown>
-  ): LogBodyDataType {
+  ): LogBodyDataEntity.Type {
     return LogBody.create()
       .component(component)
       .operation(operation)
@@ -48,7 +48,7 @@ export class TestFactory {
   /**
    * Creates a test log fault from an error.
    */
-  static fault(error: Error, context?: Record<string, unknown>): LogFaultDataType {
+  static fault(error: Error, context?: Record<string, unknown>): LogFaultDataEntity.Type {
     return LogFault.create()
       .component('TestFactory')
       .operation('fault')
