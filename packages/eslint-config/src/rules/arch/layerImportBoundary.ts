@@ -28,11 +28,11 @@ export const layerImportBoundary: Rule.RuleModule = {
     if (options === undefined) { return {}; }
 
     const filename = context.physicalFilename;
+    const sourceLayer = LayerResolver.layerForPath(filename, options);
+
+    if (sourceLayer === undefined) { return {}; }
 
     const onImportDeclaration: NonNullable<Rule.RuleListener['ImportDeclaration']> = (node) => {
-      const sourceLayer = LayerResolver.layerForPath(filename, options);
-      if (sourceLayer === undefined) { return; }
-
       const specifier = ImportSourceValue.get(node);
       if (specifier === undefined) { return; }
 

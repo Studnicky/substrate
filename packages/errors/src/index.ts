@@ -36,6 +36,22 @@ export {
   HTTP_UNAUTHORIZED,
   HttpStatus
 } from './constants/index.js';
+export { ErrorClassificationEntity } from './entities/ErrorClassificationEntity.js';
+export { ErrorCodeDescriptorEntity } from './entities/ErrorCodeDescriptorEntity.js';
+export { ErrorWithAddressEntity } from './entities/ErrorWithAddressEntity.js';
+export { ErrorWithCodeEntity } from './entities/ErrorWithCodeEntity.js';
+export { ErrorWithErrnoEntity } from './entities/ErrorWithErrnoEntity.js';
+export { ErrorWithHostnameEntity } from './entities/ErrorWithHostnameEntity.js';
+export { ErrorWithPortEntity } from './entities/ErrorWithPortEntity.js';
+export { ErrorWithRetryAfterEntity } from './entities/ErrorWithRetryAfterEntity.js';
+export { ErrorWithStatusCodeEntity } from './entities/ErrorWithStatusCodeEntity.js';
+export { ErrorWithStatusEntity } from './entities/ErrorWithStatusEntity.js';
+export { ErrorWithSyscallEntity } from './entities/ErrorWithSyscallEntity.js';
+export { ValidationAggregateViewEntity } from './entities/ValidationAggregateViewEntity.js';
+export { ValidationProblemDetailsEntity } from './entities/ValidationProblemDetailsEntity.js';
+export { ValidationReportOptionsEntity } from './entities/ValidationReportOptionsEntity.js';
+export { ValidationViolationDetailEntity } from './entities/ValidationViolationDetailEntity.js';
+export { ValidationViolationEntity } from './entities/ValidationViolationEntity.js';
 export {
   BaseError,
   CliExitError,
@@ -51,28 +67,12 @@ export type {
 } from './interfaces/index.js';
 export type {
   BaseErrorArgumentsType,
-  ErrorClassificationType,
   ErrorClassifierFunctionType,
-  ErrorCodeDescriptorType,
   ErrorScenarioType,
-  ErrorWithAddressType,
-  ErrorWithCodeType,
-  ErrorWithErrnoType,
-  ErrorWithHostnameType,
-  ErrorWithPortType,
-  ErrorWithRetryAfterType,
-  ErrorWithStatusCodeType,
-  ErrorWithStatusType,
-  ErrorWithSyscallType,
   ModuleErrorCreateOptionsType,
   ModuleErrorOptionsType,
   SerializedErrorType,
-  ValidationAggregateViewType,
-  ValidationErrorArgumentsType,
-  ValidationProblemDetailsType,
-  ValidationReportOptionsType,
-  ValidationViolationDetailType,
-  ValidationViolationType
+  ValidationErrorArgumentsType
 } from './types/index.js';
 export { errorTypeGuards } from './validation/errorTypeGuards.js';
 export { ErrorClassificationGuard } from './validation/isErrorClassification.js';

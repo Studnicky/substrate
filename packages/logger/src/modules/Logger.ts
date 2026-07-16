@@ -1,10 +1,10 @@
+import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { LoggerInterface } from '../interfaces/LoggerInterface.js';
 import type { LoggerOptionsInterface } from '../interfaces/LoggerOptionsInterface.js';
 import type { TransportInterface } from '../transports/TransportInterface.js';
 import type { LogDataType } from '../types/LogDataType.js';
 import type { LogLevelType } from '../types/LogLevelType.js';
 import type { LogMetadataType } from '../types/LogMetadataType.js';
-import type { LogRecordType } from '../types/LogRecordType.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { configValidation } from './configValidation.js';
@@ -147,7 +147,7 @@ export class Logger implements LoggerInterface {
       return;
     }
 
-    const record: LogRecordType = {
+    const record: LogRecordEntity.Type = {
       'data': data,
       'level': level,
       'metadata': this.#metadata,
@@ -167,7 +167,7 @@ export class Logger implements LoggerInterface {
     }
   }
 
-  private writeToTransport(transport: TransportInterface, record: LogRecordType): void {
+  private writeToTransport(transport: TransportInterface, record: LogRecordEntity.Type): void {
     try {
       transport.write(record);
     } catch (error) {
@@ -183,7 +183,7 @@ export class Logger implements LoggerInterface {
    * Override in subclasses to observe every emitted record.
    * Default implementation is a no-op.
    */
-  protected onLog(_level: LogLevelType, _record: LogRecordType): void {}
+  protected onLog(_level: LogLevelType, _record: LogRecordEntity.Type): void {}
 
   /**
    * Hook called when a record is below the logger's level floor and is discarded.
@@ -204,5 +204,5 @@ export class Logger implements LoggerInterface {
    * Override in subclasses to observe transport errors.
    * Default implementation is a no-op.
    */
-  protected onTransportError(_transport: TransportInterface, _record: LogRecordType, _error: unknown): void {}
+  protected onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, _error: unknown): void {}
 }

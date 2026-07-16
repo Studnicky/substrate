@@ -2,6 +2,10 @@
 
 import assert from 'node:assert/strict';
 
+import type { EnrichedEntity } from './entities/EnrichedEntity.js';
+import type { EnrichmentEntity } from './entities/EnrichmentEntity.js';
+import type { ItemEntity } from './entities/ItemEntity.js';
+
 // #region usage
 import { AsyncIter } from '../src/index.js';
 
@@ -95,20 +99,16 @@ class AsyncIterDemo {
   }
 
   static async runEnrich(): Promise<void> {
-    type Item = { 'id': number };
-    type Enrichment = { 'label': string };
-    type Enriched = { 'id': number; 'label': string };
-
-    const items = AsyncSources.itemsOf<Item>([{ 'id': 1 }, { 'id': 2 }, { 'id': 3 }]);
+    const items = AsyncSources.itemsOf<ItemEntity.Type>([{ 'id': 1 }, { 'id': 2 }, { 'id': 3 }]);
 
     // Only even ids get enrichment; odd ids pass through unchanged
-    const enriched = AsyncIter.enrich<Item, Enrichment, Enriched>(
+    const enriched = AsyncIter.enrich<ItemEntity.Type, EnrichmentEntity.Type, EnrichedEntity.Type>(
       items,
       (item) => { const result = Promise.resolve(item.id % 2 === 0 ? { 'label': `even-${item.id}` } : null); return result; },
       (item, enrichment) => { return { 'id': item.id, 'label': enrichment.label }; }
     );
 
-    const results: (Item | Enriched)[] = [];
+    const results: (ItemEntity.Type | EnrichedEntity.Type)[] = [];
     for await (const item of enriched) {
       results.push(item);
     }

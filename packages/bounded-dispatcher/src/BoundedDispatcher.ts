@@ -11,6 +11,7 @@ import type { BoundedDispatcherComposedTopicMapType } from './types/BoundedDispa
 
 import { BoundedDispatcherBuilder } from './BoundedDispatcherBuilder.js';
 
+// json-schema-uninexpressible: composes live class instances (EventBus, SchedulerProviderType, Semaphore) and a generic TTopicMap type parameter — not a serializable data shape
 type BoundedDispatcherDepsType<TTopicMap extends Record<string, unknown>> = {
   'bus': EventBus<BoundedDispatcherComposedTopicMapType<TTopicMap>>;
   'scheduler': SchedulerProviderType;

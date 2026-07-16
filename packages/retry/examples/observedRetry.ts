@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { ErrorClassificationType, RetryConfigInterface, RetryContextType } from '../src/index.js';
+import type { ErrorClassificationEntity, RetryConfigInterface , RetryContextType} from '../src/index.js';
 
 import { MaxRetriesExceededError, Retry } from '../src/index.js';
 
@@ -15,7 +15,7 @@ class TelemetryRetry extends Retry {
   readonly scheduledEvents: { 'attemptNumber': number; 'delayMs': number }[] = [];
   readonly giveUpEvents: { 'attemptNumber': number; 'reason': string }[] = [];
 
-  protected override classifyError(_error: Error): ErrorClassificationType {
+  protected override classifyError(_error: Error): ErrorClassificationEntity.Type {
     return { 'reason': 'always retryable', 'retryable': true };
   }
 
@@ -26,7 +26,7 @@ class TelemetryRetry extends Retry {
   protected override onRetryableError(
     attemptNumber: number,
     error: Error,
-    classification: ErrorClassificationType
+    classification: ErrorClassificationEntity.Type
   ): void {
     console.log(`[retry] attempt ${attemptNumber} retryable error: ${error.message} (${classification.reason ?? 'no reason'})`);
   }

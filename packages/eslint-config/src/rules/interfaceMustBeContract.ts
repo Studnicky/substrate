@@ -52,6 +52,7 @@ type ParserServicesType = {
   readonly 'program': Program;
 };
 
+// json-schema-uninexpressible: wraps 'ParserServicesType', which itself references externally-defined 'typescript' package types (Program/Symbol/Type) one level of local-alias indirection removed — not a domain shape we own
 type SourceCodeServicesAccessorType = {
   readonly 'parserServices'?: ParserServicesType;
 };
@@ -176,6 +177,7 @@ class SerializationGuards {
   }
 }
 
+// json-schema-uninexpressible: raw ESLint/TSESTree AST-node narrowing shape with an 'unknown'-typed 'parent' field (arbitrary mutually-recursive AST node), which JSON Schema cannot express
 type InterfaceNode = {
   readonly 'body': { readonly 'body': readonly unknown[]; readonly 'range': [number, number] };
   readonly 'extends': readonly { readonly 'range': [number, number] }[] | undefined;
@@ -199,6 +201,49 @@ class OptionsAllow {
   }
 }
 
+/**
+ * Top-level `TSInterfaceDeclaration` name counts, scanned once per file and cached —
+ * `InterfaceMerged.check` is called once per flagged interface, and re-scanning the
+ * whole `Program` body per interface would make this O(violations × body length)
+ * instead of O(body length). Mirrors `ReexportedTypeNames` in `typeAliasInvariants.ts`.
+ */
+class InterfaceNameCounts {
+  private static readonly cache = new WeakMap<object, ReadonlyMap<string, number>>();
+
+  public static collect(program: unknown): ReadonlyMap<string, number> {
+    if (!TypeGuards.isObject(program)) { return new Map(); }
+
+    const cached = InterfaceNameCounts.cache.get(program);
+    if (cached !== undefined) { return cached; }
+
+    const counts = new Map<string, number>();
+    const body = program.body;
+
+    if (TypeGuards.isUnknownArray(body)) {
+      const bodyLength = body.length;
+
+      for (let index = 0; index < bodyLength; index++) {
+        const bodyNode = body[index];
+
+        if (!TypeGuards.isObject(bodyNode)) { continue; }
+        const nodeType = bodyNode.type;
+        if (nodeType === 'TSInterfaceDeclaration') {
+          const nodeId = bodyNode.id;
+          if (TypeGuards.isObject(nodeId)) {
+            const nodeName = nodeId.name;
+            if (typeof nodeName === 'string') {
+              counts.set(nodeName, (counts.get(nodeName) ?? 0) + 1);
+            }
+          }
+        }
+      }
+    }
+
+    InterfaceNameCounts.cache.set(program, counts);
+    return counts;
+  }
+}
+
 class InterfaceMerged {
   static check(sourceCode: Rule.RuleContext['sourceCode'], node: Rule.Node, name: string): boolean {
     const vars = sourceCode.getDeclaredVariables(node);
@@ -215,33 +260,9 @@ class InterfaceMerged {
         }
       }
     }
-    const program = sourceCode.ast;
-    if (!TypeGuards.isObject(program)) { return false; }
 
-    const programObj = program as Record<string, unknown>;
-    const body = programObj.body;
-    if (!TypeGuards.isUnknownArray(body)) { return false; }
-
-    const bodyLength = body.length;
-    let sameNameCount = 0;
-
-    for (let index = 0; index < bodyLength; index++) {
-      const bodyNode = body[index];
-
-      if (!TypeGuards.isObject(bodyNode)) { continue; }
-      const nodeType = bodyNode.type;
-      if (nodeType === 'TSInterfaceDeclaration') {
-        const nodeId = bodyNode.id;
-        if (TypeGuards.isObject(nodeId)) {
-          const nodeName = nodeId.name;
-          if (nodeName === name) {
-            sameNameCount++;
-          }
-        }
-      }
-    }
-
-    return sameNameCount > 1;
+    const counts = InterfaceNameCounts.collect(sourceCode.ast);
+    return (counts.get(name) ?? 0) > 1;
   }
 }
 

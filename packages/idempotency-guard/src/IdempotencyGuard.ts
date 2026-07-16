@@ -6,8 +6,8 @@ import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
 import { Hash } from '@studnicky/json';
 
+import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
 import type { IdempotencyGuardEntryType } from './types/IdempotencyGuardEntryType.js';
-import type { IdempotencyGuardOptionsType } from './types/IdempotencyGuardOptionsType.js';
 
 import { IdempotencyConflictError } from './errors/index.js';
 import { IdempotencyGuardBuilder } from './IdempotencyGuardBuilder.js';
@@ -53,7 +53,7 @@ export class IdempotencyGuard {
    * @param options - `{ capacity, ttlMs }` for the composed `LruCache`
    * @returns New IdempotencyGuard instance
    */
-  static create(options: IdempotencyGuardOptionsType): IdempotencyGuard {
+  static create(options: IdempotencyGuardOptionsEntity.Type): IdempotencyGuard {
     return new this(options);
   }
 
@@ -74,7 +74,7 @@ export class IdempotencyGuard {
     } catch {}
   }
 
-  protected constructor(options: IdempotencyGuardOptionsType) {
+  protected constructor(options: IdempotencyGuardOptionsEntity.Type) {
     this.#cache = LruCache.create<string, IdempotencyGuardEntryType>({
       'capacity': options.capacity,
       'ttlMs': options.ttlMs

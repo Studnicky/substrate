@@ -2,7 +2,7 @@
  * CircuitBreaker Unit Tests
  */
 
-import type { ErrorClassificationType } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors';
 
 import { deepStrictEqual, ok, rejects, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
@@ -279,7 +279,7 @@ it('default classification: every thrown error still counts toward the threshold
 });
 
 it('errorClassifier config: retryable:true errors do not count toward the threshold', async () => {
-  const classifier = (error: Error): ErrorClassificationType => ({ 'retryable': error instanceof TransientError });
+  const classifier = (error: Error): ErrorClassificationEntity.Type => ({ 'retryable': error instanceof TransientError });
   const cb = CircuitBreaker.create({ failureThreshold: 2, resetTimeoutMs: 100, errorClassifier: classifier });
 
   // TransientError classified retryable:true — should never count, never trip.
@@ -290,7 +290,7 @@ it('errorClassifier config: retryable:true errors do not count toward the thresh
 });
 
 it('errorClassifier config: retryable:false errors do count toward the threshold', async () => {
-  const classifier = (error: Error): ErrorClassificationType => ({ 'retryable': error instanceof TransientError });
+  const classifier = (error: Error): ErrorClassificationEntity.Type => ({ 'retryable': error instanceof TransientError });
   const cb = CircuitBreaker.create({ failureThreshold: 2, resetTimeoutMs: 100, errorClassifier: classifier });
 
   await rejects(() => cb.execute(failReal));
@@ -300,7 +300,7 @@ it('errorClassifier config: retryable:false errors do count toward the threshold
 });
 
 it('errorClassifier config: the thrown error itself is unchanged even when not counted', async () => {
-  const classifier = (): ErrorClassificationType => ({ 'retryable': true });
+  const classifier = (): ErrorClassificationEntity.Type => ({ 'retryable': true });
   const cb = CircuitBreaker.create({ failureThreshold: 1, resetTimeoutMs: 100, errorClassifier: classifier });
 
   await rejects(
@@ -311,8 +311,8 @@ it('errorClassifier config: the thrown error itself is unchanged even when not c
 });
 
 class ClassifyingBreaker extends CircuitBreaker {
-  protected override classifyError(error: unknown): ErrorClassificationType {
-    const result: ErrorClassificationType = { 'retryable': error instanceof TransientError };
+  protected override classifyError(error: unknown): ErrorClassificationEntity.Type {
+    const result: ErrorClassificationEntity.Type = { 'retryable': error instanceof TransientError };
     return result;
   }
 }
@@ -335,7 +335,7 @@ it('classifyError subclass override works when no config classifier is supplied'
 it('classifyError subclass override is bypassed when a config errorClassifier is supplied', async () => {
   // Config classifier treats every error as retryable:false (i.e. always counts),
   // which is the opposite of ClassifyingBreaker's own classifyError() for TransientError.
-  const classifier = (): ErrorClassificationType => ({ 'retryable': false });
+  const classifier = (): ErrorClassificationEntity.Type => ({ 'retryable': false });
   const cb = new ClassifyingBreaker({ failureThreshold: 1, resetTimeoutMs: 100, errorClassifier: classifier });
 
   await rejects(() => cb.execute(failTransient));

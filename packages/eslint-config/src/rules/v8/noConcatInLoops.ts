@@ -1,7 +1,0 @@
-import { SelectorRule } from './SelectorRule.js';
-
-export const noConcatInLoops = SelectorRule.create(
-  'v8Optimization/noConcatInLoops',
-  'ForStatement CallExpression[callee.property.name="concat"]',
-  'Avoid concat() in loops. It creates new arrays each iteration.'
-);

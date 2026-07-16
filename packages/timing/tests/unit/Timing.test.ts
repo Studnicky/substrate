@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { DEFAULT_MAX_EVENTS, TIMING_STATUS } from '../../src/constants/index.js';
-import type { TimingEventDataType } from '../../src/types/TimingEventDataType.js';
+import type { TimingEventDataEntity } from '../../src/entities/TimingEventDataEntity.js';
 import type { TimingOptionsEntity } from '../../src/entities/TimingOptionsEntity.js';
 import { Timing } from '../../src/modules/Timing.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
@@ -31,7 +31,7 @@ class TracedTiming extends Timing {
   public eventCount = 0;
   public evictCount = 0;
   public clearCount = 0;
-  public lastEventData: TimingEventDataType | undefined = undefined;
+  public lastEventData: TimingEventDataEntity.Type | undefined = undefined;
   // initCount and lastInitStartTime are written from onInitialize which fires
   // inside super() before class field initializers run. Use `declare` so
   // TypeScript knows the type but emits no own-property initializer that
@@ -50,7 +50,7 @@ class TracedTiming extends Timing {
     return super.readHrtime();
   }
 
-  protected override onEvent(data: TimingEventDataType, _timestamp: bigint): void {
+  protected override onEvent(data: TimingEventDataEntity.Type, _timestamp: bigint): void {
     this.eventCount++;
     this.lastEventData = data;
   }

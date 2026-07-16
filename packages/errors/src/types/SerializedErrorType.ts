@@ -8,6 +8,7 @@
  */
 import type { JsonValueType } from '@studnicky/types';
 
+// json-schema-uninexpressible: self-referential recursive type ('cause' references SerializedErrorType itself) with no established recursive-$ref entity convention in this codebase
 /**
  * Recursive type for a serialized error node.
  * The `cause` field references itself to represent a cause chain.

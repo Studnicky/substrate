@@ -2,8 +2,8 @@
 
 import { Hash } from '@studnicky/json';
 
+import type { FlagDefinitionEntity } from './entities/FlagDefinitionEntity.js';
 import type { FlagContextType } from './types/FlagContextType.js';
-import type { FlagDefinitionType } from './types/FlagDefinitionType.js';
 
 const BUCKET_SPACE = 100;
 
@@ -36,7 +36,7 @@ export class FlagEvaluator {
     return new FlagEvaluator();
   }
 
-  readonly #registry = new Map<string, FlagDefinitionType>();
+  readonly #registry = new Map<string, FlagDefinitionEntity.Type>();
 
   protected constructor() {}
 
@@ -47,7 +47,7 @@ export class FlagEvaluator {
   }
 
   /** Registers (or replaces) a named flag definition. */
-  register(name: string, definition: FlagDefinitionType): void {
+  register(name: string, definition: FlagDefinitionEntity.Type): void {
     this.#registry.set(name, definition);
   }
 

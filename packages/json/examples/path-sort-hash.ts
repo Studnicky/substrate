@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import { Hash, Path, Sort, StructuralHash } from '../src/index.js';
+import { PathSortHashFixture } from './fixtures/PathSortHashFixture.js';
 
 // ---------------------------------------------------------------------------
 // Path.toAccess — JSON Pointer → JS access notation
@@ -18,10 +19,7 @@ console.log('Path.toAccess(/):', JSON.stringify(Path.toAccess('/')));
 // Path.get — proto-safe dot-path read
 // ---------------------------------------------------------------------------
 
-const doc = {
-  'items': [{ 'name': 'alpha' }, { 'name': 'beta' }],
-  'user': { 'address': { 'city': 'Melbourne' } }
-};
+const doc = PathSortHashFixture.Doc;
 
 console.log('Path.get user.address.city:', Path.get(doc, 'user.address.city'));
 console.log('Path.get items[0].name:', Path.get(doc, 'items[0].name'));
@@ -53,8 +51,8 @@ console.log('h1:', h1, 'h2:', h2, 'equal:', h1 === h2);
 // StructuralHash.of — strips annotation-only keys before hashing
 // ---------------------------------------------------------------------------
 
-const schemaWithMeta = { '$id': '#myField', 'description': 'A description', 'title': 'My Field', 'type': 'string' };
-const schemaBare = { 'type': 'string' };
+const schemaWithMeta = PathSortHashFixture.SchemaWithMeta;
+const schemaBare = PathSortHashFixture.SchemaBare;
 
 console.log('StructuralHash with meta:', StructuralHash.of(schemaWithMeta));
 console.log('StructuralHash bare:', StructuralHash.of(schemaBare));

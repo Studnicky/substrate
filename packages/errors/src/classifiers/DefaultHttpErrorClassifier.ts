@@ -1,5 +1,5 @@
+import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
 import type { ErrorClassifierInterface } from '../interfaces/index.js';
-import type { ErrorClassificationType } from '../types/index.js';
 
 import {
   EARLY_RETRY_THRESHOLD,
@@ -64,7 +64,7 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
    * // result.reason === 'Gateway error (503)'
    * ```
    */
-  classify(error: Error, attemptNumber: number): ErrorClassificationType {
+  classify(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
     const {
       HTTP_MATCHERS, NETWORK_MATCHERS
     } = ErrorClassifier;

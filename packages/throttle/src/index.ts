@@ -3,8 +3,12 @@
  * Generic async operation throttle with sliding window concurrency control
  */
 
+export { AbortResultEntity } from './entities/AbortResultEntity.js';
 export { AdaptiveConfigEntity } from './entities/AdaptiveConfigEntity.js';
+export { AdaptiveStatsEntity } from './entities/AdaptiveStatsEntity.js';
+export { LatencyStatsEntity } from './entities/LatencyStatsEntity.js';
 export { ThrottleConfigEntity } from './entities/ThrottleConfigEntity.js';
+export { ThrottleStatsEntity } from './entities/ThrottleStatsEntity.js';
 export {
   ConfigurationError,
   ThrottleAbortedError,
@@ -17,6 +21,3 @@ export { ThrottleBuilder } from './throttle/ThrottleBuilder.js';
 export { ThrottleConfigValidator } from './throttle/validation/ThrottleConfigValidator.js';
 export { ThrottleStatsValidator } from './throttle/validation/ThrottleStatsValidator.js';
 export { ThrottleValidator } from './throttle/validation/ThrottleValidator.js';
-export type { AbortResultType } from './types/AbortResultType.js';
-export type { AdaptiveStatsType } from './types/AdaptiveStatsType.js';
-export type { ThrottleStatsType } from './types/ThrottleStatsType.js';

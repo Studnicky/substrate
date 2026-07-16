@@ -11,7 +11,7 @@
  * import { isErrorWithStatus, isErrorWithRetryAfter } from '@studnicky/errors';
  *
  * class MyClassifier extends ErrorClassifier {
- *   classify(error: Error): ErrorClassificationType {
+ *   classify(error: Error): ErrorClassificationEntity.Type {
  *     if (isErrorWithStatus(error) && error.status === 429) {
  *       if (isErrorWithRetryAfter(error)) {
  *         return this.retryable('Rate limited', error.retryAfter * 1000);
@@ -24,17 +24,15 @@
  * ```
  */
 
-import type {
-  ErrorWithAddressType,
-  ErrorWithCodeType,
-  ErrorWithErrnoType,
-  ErrorWithHostnameType,
-  ErrorWithPortType,
-  ErrorWithRetryAfterType,
-  ErrorWithStatusCodeType,
-  ErrorWithStatusType,
-  ErrorWithSyscallType
-} from '../types/index.js';
+import type { ErrorWithAddressEntity } from '../entities/ErrorWithAddressEntity.js';
+import type { ErrorWithCodeEntity } from '../entities/ErrorWithCodeEntity.js';
+import type { ErrorWithErrnoEntity } from '../entities/ErrorWithErrnoEntity.js';
+import type { ErrorWithHostnameEntity } from '../entities/ErrorWithHostnameEntity.js';
+import type { ErrorWithPortEntity } from '../entities/ErrorWithPortEntity.js';
+import type { ErrorWithRetryAfterEntity } from '../entities/ErrorWithRetryAfterEntity.js';
+import type { ErrorWithStatusCodeEntity } from '../entities/ErrorWithStatusCodeEntity.js';
+import type { ErrorWithStatusEntity } from '../entities/ErrorWithStatusEntity.js';
+import type { ErrorWithSyscallEntity } from '../entities/ErrorWithSyscallEntity.js';
 
 /**
  * Check if value is an error or error-like object
@@ -67,7 +65,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithStatus(error: unknown): error is ErrorWithStatusType {
+  public static isErrorWithStatus(error: unknown): error is ErrorWithStatusEntity.Type {
     return (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'status' in error
@@ -85,7 +83,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithStatusCode(error: unknown): error is ErrorWithStatusCodeType {
+  public static isErrorWithStatusCode(error: unknown): error is ErrorWithStatusCodeEntity.Type {
     return (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'statusCode' in error
@@ -105,7 +103,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithCode(error: unknown): error is ErrorWithCodeType {
+  public static isErrorWithCode(error: unknown): error is ErrorWithCodeEntity.Type {
     return (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'code' in error
@@ -123,7 +121,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithRetryAfter(error: unknown): error is ErrorWithRetryAfterType {
+  public static isErrorWithRetryAfter(error: unknown): error is ErrorWithRetryAfterEntity.Type {
     return (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'retryAfter' in error
@@ -141,7 +139,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithErrno(error: unknown): error is ErrorWithErrnoType {
+  public static isErrorWithErrno(error: unknown): error is ErrorWithErrnoEntity.Type {
     return (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'errno' in error
@@ -159,7 +157,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithSyscall(error: unknown): error is ErrorWithSyscallType {
+  public static isErrorWithSyscall(error: unknown): error is ErrorWithSyscallEntity.Type {
     return (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'syscall' in error
@@ -177,7 +175,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithHostname(error: unknown): error is ErrorWithHostnameType {
+  public static isErrorWithHostname(error: unknown): error is ErrorWithHostnameEntity.Type {
     return (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'hostname' in error
@@ -195,7 +193,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithPort(error: unknown): error is ErrorWithPortType {
+  public static isErrorWithPort(error: unknown): error is ErrorWithPortEntity.Type {
     return (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'port' in error
@@ -213,7 +211,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithAddress(error: unknown): error is ErrorWithAddressType {
+  public static isErrorWithAddress(error: unknown): error is ErrorWithAddressEntity.Type {
     return (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'address' in error

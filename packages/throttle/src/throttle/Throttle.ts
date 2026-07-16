@@ -2,13 +2,11 @@ import { CircularBuffer } from '@studnicky/circular-buffer';
 import { ConfigValidation } from '@studnicky/config';
 import { SampleBuffer } from '@studnicky/sample-buffer';
 
+import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
 import type { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
+import type { ThrottleStatsEntity } from '../entities/ThrottleStatsEntity.js';
 import type { ThrottleInterface } from '../interfaces/index.js';
-import type {
-  AbortResultType,
-  ThrottleStatsType
-} from '../types/index.js';
 import type { ThrottleStateType } from '../types/ThrottleStateType.js';
 
 import {
@@ -46,6 +44,8 @@ type AdaptiveConfig = NonNullable<ValidatedThrottleConfigType['adaptive']>;
 /**
  * Tracks an active operation for detach-and-abandon abort support
  */
+// json-schema-uninexpressible: 'resolve' is a function type (the Promise executor's resolve callback),
+// not representable in JSON Schema.
 type ActiveOperationType = {
   /**
    * Whether the operation has completed (naturally or via abort)
@@ -287,7 +287,7 @@ export class Throttle implements ThrottleInterface {
    * }
    * ```
    */
-  async abort(options?: { 'timeout'?: number }): Promise<AbortResultType> {
+  async abort(options?: { 'timeout'?: number }): Promise<AbortResultEntity.Type> {
     const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
     if (this.#state === 'aborted') {
       return {
@@ -494,8 +494,8 @@ export class Throttle implements ThrottleInterface {
    * console.log(`Queued: ${stats.queuedCount}`);
    * ```
    */
-  getStats(): ThrottleStatsType {
-    const stats: ThrottleStatsType = {
+  getStats(): ThrottleStatsEntity.Type {
+    const stats: ThrottleStatsEntity.Type = {
       'activeCount': this.activeCount,
       'concurrencyLimit': this.config.concurrencyLimit,
       'isAborted': this.#state === 'aborted',
@@ -505,10 +505,14 @@ export class Throttle implements ThrottleInterface {
     };
 
     if (this.latencyBuffer !== undefined) {
+      const p50 = this.latencyBuffer.percentile(PERCENTILE_P50);
+      const p95 = this.latencyBuffer.percentile(PERCENTILE_P95);
+      const p99 = this.latencyBuffer.percentile(PERCENTILE_P99);
+
       stats.latency = {
-        'p50': this.latencyBuffer.percentile(PERCENTILE_P50),
-        'p95': this.latencyBuffer.percentile(PERCENTILE_P95),
-        'p99': this.latencyBuffer.percentile(PERCENTILE_P99),
+        ...(p50 !== undefined ? { 'p50': p50 } : {}),
+        ...(p95 !== undefined ? { 'p95': p95 } : {}),
+        ...(p99 !== undefined ? { 'p99': p99 } : {}),
         'sampleCount': this.latencyBuffer.length
       };
     }

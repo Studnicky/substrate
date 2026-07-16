@@ -1,10 +1,10 @@
 export { AsyncIter } from './AsyncIter.js';
 export { Channel } from './Channel.js';
 export { ChannelBuilder } from './ChannelBuilder.js';
-export type { ChannelOptionsType } from './ChannelOptionsType.js';
 export { Coalesce } from './Coalesce.js';
 export { CoalesceBuilder } from './CoalesceBuilder.js';
-export type { CoalesceOptionsType } from './CoalesceOptionsType.js';
+export { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
+export { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
 export { SemaphoreOptionsEntity } from './entities/SemaphoreOptionsEntity.js';
 export { CoalesceTimeoutError } from './errors/index.js';
 export { ConcurrencyError } from './errors/index.js';

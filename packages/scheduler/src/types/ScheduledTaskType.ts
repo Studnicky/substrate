@@ -8,6 +8,7 @@
 /**
  * A cancellable task handle returned by a `SchedulerProviderType`.
  */
+// json-schema-uninexpressible: 'cancel' is a function type, not representable in JSON Schema.
 export type ScheduledTaskType = {
   /** Absolute epoch-ms at which this task was originally scheduled to fire. */
   'atMs': number;

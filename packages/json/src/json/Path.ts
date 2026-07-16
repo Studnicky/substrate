@@ -8,25 +8,10 @@
  * property deny-list.
  */
 
-import type { PathGetOptionsType, PathWildcardResultType } from '../types/index.js';
+import type { PathGetOptionsEntity } from '../entities/PathGetOptionsEntity.js';
+import type { PathWildcardResultType } from '../types/index.js';
 
-/** Prototype-pollution safe property deny-list. */
-const DANGEROUS_PROPERTIES = new Set([
-  '__defineGetter__',
-  '__defineSetter__',
-  '__lookupGetter__',
-  '__lookupSetter__',
-  '__proto__',
-  'constructor',
-  'hasOwnProperty',
-  'isPrototypeOf',
-  'propertyIsEnumerable',
-  'prototype',
-  'toString',
-  'valueOf'
-]);
-
-const VALID_IDENTIFIER = /^[$_a-zA-Z][$_a-zA-Z0-9]*$/u;
+import { BRACKET_QUOTED_KEY_PATTERN, DANGEROUS_PROPERTIES, NUMERIC_SEGMENT_PATTERN, VALID_IDENTIFIER } from '../constants/PathConstants.js';
 
 export class Path {
   // ---------------------------------------------------------------------------
@@ -84,7 +69,7 @@ export class Path {
     for (let i = 0; i < segmentsLen; i++) {
       const segment = segments[i]!;
 
-      if (/^\d+$/u.test(segment)) {
+      if (NUMERIC_SEGMENT_PATTERN.test(segment)) {
         result += `[${segment}]`;
       } else if (VALID_IDENTIFIER.test(segment)) {
         result += result === '' ? segment : `.${segment}`;
@@ -112,7 +97,7 @@ export class Path {
   public static get(
     obj: unknown,
     path: string,
-    options?: PathGetOptionsType
+    options?: PathGetOptionsEntity.Type
   ): unknown {
     if (path === '') {
       return obj;
@@ -120,15 +105,15 @@ export class Path {
 
     // Bracket-quoted key syntax: ["special.key"]
     if (path.startsWith('[') && path.includes('"]')) {
-      const matches = path.match(/\["(?:[^"]+)"\]/gu);
+      const matches = [...path.matchAll(BRACKET_QUOTED_KEY_PATTERN)];
 
-      if (matches !== null) {
+      if (matches.length > 0) {
         let current: unknown = obj;
 
         const matchesLen = matches.length;
         for (let j = 0; j < matchesLen; j++) {
           const match = matches[j]!;
-          const key = match.slice(2, -2);
+          const key = match[0].slice(2, -2);
 
           if (current === null || current === undefined) {
             return undefined;

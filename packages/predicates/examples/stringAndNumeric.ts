@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import { Predicates } from '../src/index.js';
+import { WORD_PATTERN } from './fixtures/StringAndNumericFixtures.js';
 
 // #region string
 // codePointLength counts Unicode scalar values, not UTF-16 code units
@@ -18,8 +19,8 @@ console.log('satisfiesMaxLength hello 5:', Predicates.satisfiesMaxLength('hello'
 console.log('satisfiesMaxLength hello 4:', Predicates.satisfiesMaxLength('hello', 4));  // false
 
 // satisfiesPattern accepts a pre-compiled RegExp
-console.log('satisfiesPattern abc123:', Predicates.satisfiesPattern('abc123', /^\w+$/u));  // true
-console.log('satisfiesPattern abc 123:', Predicates.satisfiesPattern('abc 123', /^\w+$/u)); // false
+console.log('satisfiesPattern abc123:', Predicates.satisfiesPattern('abc123', WORD_PATTERN));  // true
+console.log('satisfiesPattern abc 123:', Predicates.satisfiesPattern('abc 123', WORD_PATTERN)); // false
 // #endregion string
 
 // #region numeric
@@ -64,8 +65,8 @@ assert.equal(Predicates.satisfiesMaxLength('hello', 5), true);
 assert.equal(Predicates.satisfiesMaxLength('hello', 4), false);
 assert.equal(Predicates.satisfiesMaxLength('👋', 1), true);
 
-assert.equal(Predicates.satisfiesPattern('abc123', /^\w+$/u), true);
-assert.equal(Predicates.satisfiesPattern('abc 123', /^\w+$/u), false);
+assert.equal(Predicates.satisfiesPattern('abc123', WORD_PATTERN), true);
+assert.equal(Predicates.satisfiesPattern('abc 123', WORD_PATTERN), false);
 
 assert.equal(Predicates.checkMinimum(5, 5, false), true);
 assert.equal(Predicates.checkMinimum(5, 5, true), false);

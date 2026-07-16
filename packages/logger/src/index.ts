@@ -52,7 +52,17 @@
  * ```
  */
 
+export { ConsoleTransportOptionsEntity } from './entities/ConsoleTransportOptionsEntity.js';
+export { CoreLogFieldsEntity } from './entities/CoreLogFieldsEntity.js';
+export { CorrelationFieldsEntity } from './entities/CorrelationFieldsEntity.js';
+export { ErrorFieldsEntity } from './entities/ErrorFieldsEntity.js';
+export { FunctionTransportOptionsEntity } from './entities/FunctionTransportOptionsEntity.js';
+export { LogBodyDataEntity } from './entities/LogBodyDataEntity.js';
+export { LogFaultDataEntity } from './entities/LogFaultDataEntity.js';
 export { LoggerOptionsEntity } from './entities/LoggerOptionsEntity.js';
+export { LogRecordEntity } from './entities/LogRecordEntity.js';
+export { MemoryTransportOptionsEntity } from './entities/MemoryTransportOptionsEntity.js';
+export { TimingFieldsEntity } from './entities/TimingFieldsEntity.js';
 export type { LoggerOptionsInterface } from './interfaces/LoggerOptionsInterface.js';
 export { LogBody } from './modules/LogBody.js';
 export { LogFault } from './modules/LogFault.js';
@@ -72,4 +82,3 @@ export type { MemoryTransportOptionsType } from './transports/MemoryTransportOpt
 export { NoOpTransport } from './transports/NoOpTransport.js';
 export { NoOpTransportBuilder } from './transports/NoOpTransportBuilder.js';
 export type { TransportInterface } from './transports/TransportInterface.js';
-export type { LogRecordType } from './types/LogRecordType.js';

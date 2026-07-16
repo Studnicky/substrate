@@ -2,14 +2,14 @@
 
 import assert from 'node:assert/strict';
 
+// #region usage
+import type { LogBodyDataEntity } from '../src/entities/LogBodyDataEntity.js';
+import type { LogFaultDataEntity } from '../src/entities/LogFaultDataEntity.js';
+import type { LogRecordEntity } from '../src/entities/LogRecordEntity.js';
 import type { LoggerOptionsInterface } from '../src/interfaces/LoggerOptionsInterface.js';
 import type { TransportInterface } from '../src/transports/TransportInterface.js';
-// #region usage
-import type { LogBodyDataType } from '../src/types/LogBodyDataType.js';
-import type { LogFaultDataType } from '../src/types/LogFaultDataType.js';
 import type { LogLevelType } from '../src/types/LogLevelType.js';
 import type { LogMetadataType } from '../src/types/LogMetadataType.js';
-import type { LogRecordType } from '../src/types/LogRecordType.js';
 
 import { LogBody } from '../src/modules/LogBody.js';
 import { Logger } from '../src/modules/Logger.js';
@@ -32,7 +32,7 @@ class ObservedLogger extends Logger {
 
   readonly events: LogEvent[] = [];
 
-  protected override onLog(level: LogLevelType, record: LogRecordType): void {
+  protected override onLog(level: LogLevelType, record: LogRecordEntity.Type): void {
     console.log(`[logger] onLog level=${level} msg=${String(record.data.message)}`);
     this.events.push({ 'kind': 'log', 'level': level, 'message': String(record.data.message) });
   }
@@ -47,7 +47,7 @@ class ObservedLogger extends Logger {
     this.events.push({ 'bindings': bindings, 'kind': 'childCreate' });
   }
 
-  protected override onTransportError(_transport: TransportInterface, _record: LogRecordType, error: unknown): void {
+  protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
     console.log(`[logger] onTransportError error=${String(error instanceof Error ? error.message : error)}`);
     this.events.push({ 'error': error, 'kind': 'transportError' });
   }
@@ -59,14 +59,14 @@ class ObservedLogger extends Logger {
 
 type BuilderEvent =
   | { 'field': string; 'kind': 'buildError' }
-  | { 'kind': 'build'; 'result': LogBodyDataType | LogFaultDataType };
+  | { 'kind': 'build'; 'result': LogBodyDataEntity.Type | LogFaultDataEntity.Type };
 
 class ObservedLogBody extends LogBody {
   constructor() { super(); }
 
   readonly builderEvents: BuilderEvent[] = [];
 
-  protected override onBuild(result: LogBodyDataType | LogFaultDataType): void {
+  protected override onBuild(result: LogBodyDataEntity.Type | LogFaultDataEntity.Type): void {
     console.log(`[logger] onBuild event=${result.event}`);
     this.builderEvents.push({ 'kind': 'build', 'result': result });
   }
@@ -147,39 +147,47 @@ console.log('Builder error events:', JSON.stringify(errorBuilder.builderEvents))
 // #endregion usage
 
 // Verify onLog fired for the info call
-const logEvents = logger.events.filter((e) => { return e.kind === 'log'; });
-assert.strictEqual(logEvents.length, 1);
-const [firstLog] = logEvents;
-assert.ok(firstLog?.kind === 'log');
-assert.strictEqual(firstLog.message, 'Hello from observed logger');
+{
+  const logEvents = logger.events.filter((e) => { return e.kind === 'log'; });
+  assert.strictEqual(logEvents.length, 1);
+  const [firstLog] = logEvents;
+  assert.ok(firstLog?.kind === 'log');
+  assert.strictEqual(firstLog.message, 'Hello from observed logger');
+}
 
 // Verify onDropped fired for the debug call
 const droppedEvents = logger.events.filter((e) => { return e.kind === 'dropped'; });
 assert.strictEqual(droppedEvents.length, 1);
 
 // Verify onChildCreate fired
-const childEvents = logger.events.filter((e) => { return e.kind === 'childCreate'; });
-assert.strictEqual(childEvents.length, 1);
-const [firstChild] = childEvents;
-assert.ok(firstChild?.kind === 'childCreate');
-assert.deepStrictEqual(firstChild.bindings, { 'requestId': 'req-abc' });
+{
+  const childEvents = logger.events.filter((e) => { return e.kind === 'childCreate'; });
+  assert.strictEqual(childEvents.length, 1);
+  const [firstChild] = childEvents;
+  assert.ok(firstChild?.kind === 'childCreate');
+  assert.deepStrictEqual(firstChild.bindings, { 'requestId': 'req-abc' });
+}
 
 // Verify onTransportError fired (throwing transport)
-const transportErrorEvents = logger.events.filter((e) => { return e.kind === 'transportError'; });
-assert.strictEqual(transportErrorEvents.length, 1);
-const [firstTransportError] = transportErrorEvents;
-assert.ok(firstTransportError?.kind === 'transportError');
-assert.ok(firstTransportError.error instanceof Error);
+{
+  const transportErrorEvents = logger.events.filter((e) => { return e.kind === 'transportError'; });
+  assert.strictEqual(transportErrorEvents.length, 1);
+  const [firstTransportError] = transportErrorEvents;
+  assert.ok(firstTransportError?.kind === 'transportError');
+  assert.ok(firstTransportError.error instanceof Error);
+}
 
 // Verify onBuild fired
 assert.strictEqual(observedBuilder.builderEvents.filter((e) => { return e.kind === 'build'; }).length, 1);
 
 // Verify onBuildError fired
-const buildErrorEvents = errorBuilder.builderEvents.filter((e) => { return e.kind === 'buildError'; });
-assert.strictEqual(buildErrorEvents.length, 1);
-const [firstBuildError] = buildErrorEvents;
-assert.ok(firstBuildError?.kind === 'buildError');
-assert.strictEqual(firstBuildError.field, 'component');
+{
+  const buildErrorEvents = errorBuilder.builderEvents.filter((e) => { return e.kind === 'buildError'; });
+  assert.strictEqual(buildErrorEvents.length, 1);
+  const [firstBuildError] = buildErrorEvents;
+  assert.ok(firstBuildError?.kind === 'buildError');
+  assert.strictEqual(firstBuildError.field, 'component');
+}
 
 // child is exercised: its info method is invoked to confirm the child is a usable Logger
 child.info(infoBody);

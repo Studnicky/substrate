@@ -1,5 +1,5 @@
-import type { LogBodyDataType } from '../types/LogBodyDataType.js';
-import type { LogFaultDataType } from '../types/LogFaultDataType.js';
+import type { LogBodyDataEntity } from '../entities/LogBodyDataEntity.js';
+import type { LogFaultDataEntity } from '../entities/LogFaultDataEntity.js';
 import type { LogStatusType } from '../types/LogStatusType.js';
 
 import { LogBuildError } from '../errors/LogBuildError.js';
@@ -27,7 +27,7 @@ export abstract class BaseLogEntryBuilder {
    * Build and return the final log entry data.
    * Subclasses must implement with a narrowed return type.
    */
-  abstract build(): LogBodyDataType | LogFaultDataType;
+  abstract build(): LogBodyDataEntity.Type | LogFaultDataEntity.Type;
 
   /**
    * Set the component name (e.g., 'graph', 'cache', 'api').
@@ -107,7 +107,7 @@ export abstract class BaseLogEntryBuilder {
    * Override in subclasses to observe completed build results.
    * Default implementation is a no-op.
    */
-  protected onBuild(_result: LogBodyDataType | LogFaultDataType): void {}
+  protected onBuild(_result: LogBodyDataEntity.Type | LogFaultDataEntity.Type): void {}
 
   /**
    * Hook called when a required field is missing and `build()` is about to throw.

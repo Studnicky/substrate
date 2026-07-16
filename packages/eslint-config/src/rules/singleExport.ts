@@ -202,6 +202,7 @@ type ParserServicesType = {
   readonly 'program': Program;
 };
 
+// json-schema-uninexpressible: wraps 'ParserServicesType', which itself references externally-defined 'typescript' package types (Program/Symbol/Type) one level of local-alias indirection removed — not a domain shape we own
 type SourceCodeServicesAccessorType = {
   readonly 'parserServices'?: ParserServicesType;
 };
@@ -435,7 +436,7 @@ export const singleExport: Rule.RuleModule = {
 
     const services = ContextHelpers.getServices(context);
     const exportKinds: ExportKind[] = [];
-    let exportNames: string[] = [];
+    const exportNames: string[] = [];
     let reportedDefault = false;
     let firstExportNode: Rule.Node | undefined = undefined;
     let sawExportAll = false;
@@ -462,7 +463,7 @@ export const singleExport: Rule.RuleModule = {
       }
       firstExportNode ??= node;
       exportKinds.push(ExportClassifier.classify(node, services));
-      exportNames = exportNames.concat(ExportNames.extract(node));
+      exportNames.push(...ExportNames.extract(node));
     };
 
     const onProgramExit: NonNullable<Rule.RuleListener['Program:exit']> = (node) => {

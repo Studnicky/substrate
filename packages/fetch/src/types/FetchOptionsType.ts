@@ -5,6 +5,7 @@
 /**
  * Unified fetch options with optional timeout, abort controller, and per-request configuration
  */
+// json-schema-uninexpressible: body/dispatcher/json/signal carry unknown, ArrayBuffer, ReadableStream, and AbortSignal values that JSON Schema cannot express.
 export type FetchOptionsType = {
   /**
    * Request body (raw/pre-serialized)

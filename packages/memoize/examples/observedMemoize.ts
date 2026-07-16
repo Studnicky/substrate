@@ -48,18 +48,6 @@ class Charge {
   }
 }
 
-const memo = TelemetryMemoize.tracked(Charge.fetch);
-
-// New key -> onMemoMiss, fn runs
-const first = await memo.call('order-42');
-
-// Same key -> onMemoHit, fn does NOT run
-const second = await memo.call('order-42');
-
-// invalidate() forces the next matching call to re-invoke fn
-memo.invalidate('order-42');
-const third = await memo.call('order-42');
-
 // Concurrent calls with the same (new) key share one invocation via Coalesce
 class SharedChargeResolver {
   private static resolveFn: (value: { 'chargeId': string }) => void = () => {};
@@ -73,36 +61,67 @@ class SharedChargeResolver {
   }
 }
 
-const pending = new Promise<{ 'chargeId': string }>((resolve) => { SharedChargeResolver.capture(resolve); });
-let sharedCalls = 0;
-const sharedMemo = TelemetryMemoize.tracked(async () => {
-  sharedCalls += 1;
-  return await pending;
-});
+// Runs the full demo sequence and returns every value the assertions below need,
+// so the module ends up with a single top-level binding rather than one per step.
+class MemoizeDemoRunner {
+  static async run(): Promise<{
+    'first': { 'chargeId': string };
+    'memo': TelemetryMemoize;
+    'resultA': { 'chargeId': string };
+    'resultB': { 'chargeId': string };
+    'second': { 'chargeId': string };
+    'sharedCalls': number;
+    'sharedMemo': TelemetryMemoize;
+    'third': { 'chargeId': string };
+  }> {
+    const memo = TelemetryMemoize.tracked(Charge.fetch);
 
-const callA = sharedMemo.call('order-99');
-const callB = sharedMemo.call('order-99');
-SharedChargeResolver.resolve({ 'chargeId': 'ch_shared' });
-const [resultA, resultB] = await Promise.all([callA, callB]);
+    // New key -> onMemoMiss, fn runs
+    const first = await memo.call('order-42');
 
-console.log('Events:', memo.events, sharedMemo.events);
+    // Same key -> onMemoHit, fn does NOT run
+    const second = await memo.call('order-42');
+
+    // invalidate() forces the next matching call to re-invoke fn
+    memo.invalidate('order-42');
+    const third = await memo.call('order-42');
+
+    const pending = new Promise<{ 'chargeId': string }>((resolve) => { SharedChargeResolver.capture(resolve); });
+    let sharedCalls = 0;
+    const sharedMemo = TelemetryMemoize.tracked(async () => {
+      sharedCalls += 1;
+      return await pending;
+    });
+
+    const callA = sharedMemo.call('order-99');
+    const callB = sharedMemo.call('order-99');
+    SharedChargeResolver.resolve({ 'chargeId': 'ch_shared' });
+    const [resultA, resultB] = await Promise.all([callA, callB]);
+
+    console.log('Events:', memo.events, sharedMemo.events);
+
+    return { 'first': first, 'memo': memo, 'resultA': resultA, 'resultB': resultB, 'second': second, 'sharedCalls': sharedCalls, 'sharedMemo': sharedMemo, 'third': third };
+  }
+}
+
+const demo = await MemoizeDemoRunner.run();
 // #endregion usage
 
-assert.equal(first.chargeId, 'ch_order-42');
-assert.equal(second.chargeId, 'ch_order-42');
-assert.equal(third.chargeId, 'ch_order-42');
+assert.equal(demo.first.chargeId, 'ch_order-42');
+assert.equal(demo.second.chargeId, 'ch_order-42');
+assert.equal(demo.third.chargeId, 'ch_order-42');
 assert.equal(fetchCalls, 2);
-assert.equal(sharedCalls, 1);
-assert.equal(resultA.chargeId, 'ch_shared');
-assert.equal(resultB.chargeId, 'ch_shared');
+assert.equal(demo.sharedCalls, 1);
+assert.equal(demo.resultA.chargeId, 'ch_shared');
+assert.equal(demo.resultB.chargeId, 'ch_shared');
 
-assert.deepEqual(memo.events, ['miss:charge:order-42', 'hit:charge:order-42', 'miss:charge:order-42']);
-assert.deepEqual(sharedMemo.events, ['miss:charge:order-99', 'coalesced:charge:order-99']);
+assert.deepEqual(demo.memo.events, ['miss:charge:order-42', 'hit:charge:order-42', 'miss:charge:order-42']);
+assert.deepEqual(demo.sharedMemo.events, ['miss:charge:order-99', 'coalesced:charge:order-99']);
 
 // getCache()/getCoalesce() expose the exact composed instances (Layer
 // Transparency Rule) — advanced consumers can subclass or introspect them
 // directly without subclassing Memoize.
-assert.equal(memo.getCache().size, 1);
-assert.equal(sharedMemo.getCoalesce().isInflight('order-99'), false);
+assert.equal(demo.memo.getCache().size, 1);
+assert.equal(demo.sharedMemo.getCoalesce().isInflight('order-99'), false);
 
 console.log('observedMemoize: all assertions passed');

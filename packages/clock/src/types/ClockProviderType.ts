@@ -9,6 +9,7 @@
  * Supplies wall-clock and monotonic time to the `Clock` class.
  * Implement this type to inject deterministic time in tests.
  */
+// json-schema-uninexpressible: fields are function types (hrtime, now), not plain JSON-serializable data
 export type ClockProviderType = {
   /** Returns a monotonic timestamp in nanoseconds. */
   'hrtime': () => bigint;

@@ -4,17 +4,16 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type { WorkerEnvelopeType } from '../src/index.js';
+import type { ItemEntity } from './entities/ItemEntity.js';
 
 import { WorkerPool } from '../src/index.js';
 
-type ItemType = { 'n': number };
-
-class TelemetryWorkerPool extends WorkerPool<ItemType, number> {
+class TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {
   readonly logs: string[] = [];
   readonly progressEvents: number[] = [];
   readonly errors: { 'index': number; 'message': string }[] = [];
 
-  protected override onMessage(envelope: WorkerEnvelopeType<ItemType, number>, index: number): void {
+  protected override onMessage(envelope: WorkerEnvelopeType<ItemEntity.Type, number>, index: number): void {
     if (envelope.type === 'log') {
       console.log(`[worker ${String(index)}] ${envelope.message}`);
       this.logs.push(envelope.message);

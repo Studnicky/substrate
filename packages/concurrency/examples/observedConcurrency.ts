@@ -161,26 +161,38 @@ class ObservedConcurrencyDemo {
 }
 // #endregion usage
 
-const sem = await ObservedConcurrencyDemo.runSemaphore();
-assert.equal(sem.acquireEvents.length, 1, 'acquireEvents: one immediate grant');
-assert.equal(sem.acquireWaitEvents.length, 1, 'acquireWaitEvents: one waiter');
-assert.equal(sem.contendedEvents.length, 1, 'contendedEvents: one contention');
-assert.equal(sem.releaseDelegatedEvents.length, 1, 'releaseDelegatedEvents: one delegation');
-assert.equal(sem.releaseEvents.length, 1, 'releaseEvents: one pool return');
+class ObservedConcurrencyAssertions {
+  static async runSemaphore(): Promise<void> {
+    const sem = await ObservedConcurrencyDemo.runSemaphore();
+    assert.equal(sem.acquireEvents.length, 1, 'acquireEvents: one immediate grant');
+    assert.equal(sem.acquireWaitEvents.length, 1, 'acquireWaitEvents: one waiter');
+    assert.equal(sem.contendedEvents.length, 1, 'contendedEvents: one contention');
+    assert.equal(sem.releaseDelegatedEvents.length, 1, 'releaseDelegatedEvents: one delegation');
+    assert.equal(sem.releaseEvents.length, 1, 'releaseEvents: one pool return');
+  }
 
-const ch = await ObservedConcurrencyDemo.runChannel();
-assert.equal(ch.sendEvents.length, 2, 'sendEvents: 2 items sent');
-assert.equal(ch.enqueueEvents.length, 2, 'enqueueEvents: 2 items enqueued');
-assert.equal(ch.receiveEvents.length, 2, 'receiveEvents: 2 items received');
-assert.equal(ch.dequeueEvents.length, 2, 'dequeueEvents: 2 items dequeued');
-assert.equal(ch.closeCount, 1, 'closeCount: 1 close');
+  static async runChannel(): Promise<void> {
+    const ch = await ObservedConcurrencyDemo.runChannel();
+    assert.equal(ch.sendEvents.length, 2, 'sendEvents: 2 items sent');
+    assert.equal(ch.enqueueEvents.length, 2, 'enqueueEvents: 2 items enqueued');
+    assert.equal(ch.receiveEvents.length, 2, 'receiveEvents: 2 items received');
+    assert.equal(ch.dequeueEvents.length, 2, 'dequeueEvents: 2 items dequeued');
+    assert.equal(ch.closeCount, 1, 'closeCount: 1 close');
+  }
 
-const coalesce = await ObservedConcurrencyDemo.runCoalesce();
-assert.equal(coalesce.startEvents.length, 2, 'startEvents: 2 leaders (one batch, one sequential)');
-assert.equal(coalesce.joinEvents.length, 2, 'joinEvents: 2 joiners in concurrent batch');
-assert.ok(
-  coalesce.settledEvents.every((e) => { return e.success === true; }),
-  'all settled with success=true'
-);
+  static async runCoalesce(): Promise<void> {
+    const coalesce = await ObservedConcurrencyDemo.runCoalesce();
+    assert.equal(coalesce.startEvents.length, 2, 'startEvents: 2 leaders (one batch, one sequential)');
+    assert.equal(coalesce.joinEvents.length, 2, 'joinEvents: 2 joiners in concurrent batch');
+    assert.ok(
+      coalesce.settledEvents.every((e) => { return e.success === true; }),
+      'all settled with success=true'
+    );
+  }
+}
+
+await ObservedConcurrencyAssertions.runSemaphore();
+await ObservedConcurrencyAssertions.runChannel();
+await ObservedConcurrencyAssertions.runCoalesce();
 
 console.log('observedConcurrency: all assertions passed');

@@ -1,4 +1,4 @@
-import type { LogRecordType } from '../types/LogRecordType.js';
+import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { MemoryTransportOptionsType } from './MemoryTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
@@ -41,7 +41,7 @@ export class MemoryTransport implements TransportInterface {
     return result;
   }
 
-  readonly #buffer: LogRecordType[] = [];
+  readonly #buffer: LogRecordEntity.Type[] = [];
   readonly #minLevel: number;
 
   protected constructor(options: MemoryTransportOptionsType = {}) {
@@ -65,7 +65,7 @@ export class MemoryTransport implements TransportInterface {
   /**
    * Returns a readonly snapshot of all captured records.
    */
-  records(): readonly LogRecordType[] {
+  records(): readonly LogRecordEntity.Type[] {
     return this.#buffer;
   }
 
@@ -74,7 +74,7 @@ export class MemoryTransport implements TransportInterface {
    *
    * @param record - Assembled log record from the Logger core
    */
-  write(record: LogRecordType): void {
+  write(record: LogRecordEntity.Type): void {
     if (record.level < this.#minLevel) {
       return;
     }

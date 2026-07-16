@@ -2,8 +2,8 @@
  * Fluent builder for IdempotencyGuard instances
  */
 
+import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
 import type { IdempotencyGuard } from './IdempotencyGuard.js';
-import type { IdempotencyGuardOptionsType } from './types/IdempotencyGuardOptionsType.js';
 
 import { IdempotencyGuardConfigError } from './errors/index.js';
 
@@ -19,15 +19,15 @@ import { IdempotencyGuardConfigError } from './errors/index.js';
  * ```
  */
 export class IdempotencyGuardBuilder {
-  static create(create: (options: IdempotencyGuardOptionsType) => IdempotencyGuard): IdempotencyGuardBuilder {
+  static create(create: (options: IdempotencyGuardOptionsEntity.Type) => IdempotencyGuard): IdempotencyGuardBuilder {
     return new IdempotencyGuardBuilder(create);
   }
 
-  readonly #create: (options: IdempotencyGuardOptionsType) => IdempotencyGuard;
+  readonly #create: (options: IdempotencyGuardOptionsEntity.Type) => IdempotencyGuard;
   #capacity?: number;
   #ttlMs?: number;
 
-  private constructor(create: (options: IdempotencyGuardOptionsType) => IdempotencyGuard) {
+  private constructor(create: (options: IdempotencyGuardOptionsEntity.Type) => IdempotencyGuard) {
     this.#create = create;
   }
 
@@ -50,7 +50,7 @@ export class IdempotencyGuardBuilder {
     if (this.#ttlMs === undefined) {
       throw new IdempotencyGuardConfigError('ttlMs is required');
     }
-    const options: IdempotencyGuardOptionsType = {
+    const options: IdempotencyGuardOptionsEntity.Type = {
       'capacity': this.#capacity,
       'ttlMs': this.#ttlMs
     };

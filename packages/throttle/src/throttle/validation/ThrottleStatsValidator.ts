@@ -1,17 +1,17 @@
 import { Guard } from '@studnicky/config';
 
-import type { ThrottleStatsType } from '../../types/ThrottleStatsType.js';
+import type { ThrottleStatsEntity } from '../../entities/ThrottleStatsEntity.js';
 
 class ThrottleStatsValidator {
   /**
-   * Type guard that checks if value is a valid ThrottleStatsType
+   * Type guard that checks if value is a valid ThrottleStatsEntity.Type
    *
    * Validates that the value contains all required stats fields with correct types.
    *
    * @param value - Value to check
-   * @returns True if value is a valid ThrottleStatsType
+   * @returns True if value is a valid ThrottleStatsEntity.Type
    */
-  public static isThrottleStats(value: unknown): value is ThrottleStatsType {
+  public static isThrottleStats(value: unknown): value is ThrottleStatsEntity.Type {
     if (!Guard.isObject(value)) {
       return false;
     }

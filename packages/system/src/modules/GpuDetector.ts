@@ -1,13 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 
-import type { GpuInfoType } from '../types/GpuInfoType.js';
+import type { GpuInfoEntity } from '../entities/GpuInfoEntity.js';
 
-const EXEC_TIMEOUT_MS = 3000;
-const BYTES_PER_MB = 1024 * 1024;
+import { BYTES_PER_MB, EXEC_TIMEOUT_MS, VRAM_STRING_PATTERN } from '../constants/index.js';
 
 export class GpuDetector {
-  static detect(): GpuInfoType | null {
+  static detect(): GpuInfoEntity.Type | null {
     const platform = os.platform();
 
     if (platform === 'darwin') {
@@ -21,7 +20,7 @@ export class GpuDetector {
     return null;
   }
 
-  static #detectMetal(): GpuInfoType | null {
+  static #detectMetal(): GpuInfoEntity.Type | null {
     try {
       const raw = execFileSync('system_profiler', ['SPDisplaysDataType', '-json'], {
         'timeout': EXEC_TIMEOUT_MS
@@ -46,7 +45,7 @@ export class GpuDetector {
     }
   }
 
-  static #detectLinux(): GpuInfoType | null {
+  static #detectLinux(): GpuInfoEntity.Type | null {
     const nvidia = GpuDetector.#detectNvidia();
     if (nvidia !== null) {
       return nvidia;
@@ -55,7 +54,7 @@ export class GpuDetector {
     return GpuDetector.#detectAmd();
   }
 
-  static #detectNvidia(): GpuInfoType | null {
+  static #detectNvidia(): GpuInfoEntity.Type | null {
     try {
       const raw = execFileSync(
         'nvidia-smi',
@@ -87,7 +86,7 @@ export class GpuDetector {
     }
   }
 
-  static #detectAmd(): GpuInfoType | null {
+  static #detectAmd(): GpuInfoEntity.Type | null {
     try {
       const raw = execFileSync('rocm-smi', ['--showmeminfo', 'vram', '--json'], {
         'timeout': EXEC_TIMEOUT_MS
@@ -122,7 +121,7 @@ export class GpuDetector {
       return null;
     }
 
-    const match = /(\d+(?:\.\d+)?)\s*(GB|MB)/i.exec(vramStr);
+    const match = VRAM_STRING_PATTERN.exec(vramStr);
     if (match === null) {
       return null;
     }

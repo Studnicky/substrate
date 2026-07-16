@@ -5,6 +5,7 @@
  */
 import type { JsonValueType } from '@studnicky/types';
 
+// json-schema-uninexpressible: 'cause' is typed 'unknown' to accept any thrown value (native Error, BaseError, or primitive), which JSON Schema cannot express
 /** Construction parameters for `BaseError` subclasses. */
 export type BaseErrorArgumentsType = {
   /** Underlying cause (native `Error`, `BaseError`, or any primitive). */

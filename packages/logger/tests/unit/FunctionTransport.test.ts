@@ -8,7 +8,7 @@ import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../../src/errors/ConfigurationError.js';
 import { Logger } from '../../src/modules/Logger.js';
 import { FunctionTransport } from '../../src/transports/FunctionTransport.js';
-import type { LogRecordType } from '../../src/types/LogRecordType.js';
+import type { LogRecordEntity } from '../../src/entities/LogRecordEntity.js';
 
 import { TestFactory } from './TestFactory.js';
 
@@ -28,7 +28,7 @@ void describe('FunctionTransport', () => {
 
     void it('throws ConfigurationError when sink is not a function', () => {
       assert.throws(
-        () => FunctionTransport.create('not-a-function' as unknown as (r: LogRecordType) => void),
+        () => FunctionTransport.create('not-a-function' as unknown as (r: LogRecordEntity.Type) => void),
         ConfigurationError
       );
     });
@@ -43,7 +43,7 @@ void describe('FunctionTransport', () => {
 
   void describe('bridging', () => {
     void it('calls the sink with the assembled record', () => {
-      const captured: LogRecordType[] = [];
+      const captured: LogRecordEntity.Type[] = [];
       const transport = FunctionTransport.create((record) => {
         captured.push(record);
       });

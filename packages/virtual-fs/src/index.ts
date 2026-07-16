@@ -4,6 +4,7 @@
  *
  * @module
  */
+export { EntryEntity } from './entities/EntryEntity.js';
 export { VirtualFileSystemError } from './errors/index.js';
 export type { FileSystemInterface } from './interfaces/index.js';
 export type { StatResultInterface } from './interfaces/index.js';

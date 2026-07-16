@@ -10,7 +10,8 @@
  * default hook is a no-op.
  */
 
-import type { ClampEventType, ClampRuleType } from '../types/index.js';
+import type { ClampEventEntity } from '../entities/ClampEventEntity.js';
+import type { ClampRuleEntity } from '../entities/ClampRuleEntity.js';
 
 export class ClampedConfig {
   protected static invokeHook(invoke: () => void): void {
@@ -27,7 +28,7 @@ export class ClampedConfig {
    * computed but before it is written into the returned object. Default is a
    * no-op; no dependency on any logging package.
    */
-  protected static onClamp(_event: ClampEventType): void {
+  protected static onClamp(_event: ClampEventEntity.Type): void {
     // no-op default — subclasses override to observe clamp events
   }
 
@@ -42,7 +43,7 @@ export class ClampedConfig {
    */
   public static apply<T extends Record<string, unknown>>(
     config: T,
-    rules: Readonly<Record<string, ClampRuleType>>
+    rules: Readonly<Record<string, ClampRuleEntity.Type>>
   ): T {
     const result = { ...config };
 

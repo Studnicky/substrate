@@ -1,12 +1,6 @@
 import type { Rule } from 'eslint';
 
-const LOOP_TYPES = new Set([
-  'DoWhileStatement',
-  'ForInStatement',
-  'ForOfStatement',
-  'ForStatement',
-  'WhileStatement'
-]);
+import { FunctionScope } from './functionScope.js';
 
 class AstHelpers {
   public static hasRegExpCallee(node: Rule.Node): boolean {
@@ -41,27 +35,11 @@ export const regexpInLoops: Rule.RuleModule = {
         return;
       }
 
-      let parent: Rule.Node | null = node.parent;
-
-      while (parent !== null) {
-        if (LOOP_TYPES.has(parent.type)) {
-          context.report({
-            'messageId': 'regexpInLoop',
-            'node': node
-          });
-
-          return;
-        }
-
-        if (
-          parent.type === 'FunctionDeclaration'
-          || parent.type === 'FunctionExpression'
-          || parent.type === 'ArrowFunctionExpression'
-        ) {
-          return;
-        }
-
-        parent = parent.parent;
+      if (FunctionScope.isInsideLoop(node)) {
+        context.report({
+          'messageId': 'regexpInLoop',
+          'node': node
+        });
       }
     };
 

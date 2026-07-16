@@ -1,9 +1,0 @@
-/** Overrides applied when generating an RFC 7807 Problem Details payload. */
-export type ValidationReportOptionsType = {
-  /** HTTP status code (defaults to `422`). */
-  'status'?: number;
-  /** Human-readable title (defaults to `'Validation failed'`). */
-  'title'?: string;
-  /** Problem type URI (defaults to `'https://problems.studnicky.dev/validation'`). */
-  'type'?: string;
-};

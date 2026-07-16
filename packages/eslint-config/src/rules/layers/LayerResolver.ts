@@ -11,9 +11,16 @@ const DEFAULT_STATIC_ALLOWED_IMPORTS: Record<string, readonly string[]> = {
   'ports': ['domain', 'ports']
 };
 
+const PATH_SEPARATOR_PATTERN = /[\\/]+/u;
+const normalizeCache = new Map<string, readonly string[]>();
+
 class PathSegments {
   public static normalize(rawPath: string): readonly string[] {
-    const result = rawPath.split(/[\\/]+/u).filter((segment) => { return segment.length > 0; });
+    const cached = normalizeCache.get(rawPath);
+    if (cached !== undefined) { return cached; }
+
+    const result = rawPath.split(PATH_SEPARATOR_PATTERN).filter((segment) => { return segment.length > 0; });
+    normalizeCache.set(rawPath, result);
     return result;
   }
 }

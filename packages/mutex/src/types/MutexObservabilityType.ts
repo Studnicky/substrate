@@ -1,6 +1,7 @@
 /**
  * Observability hooks for tracking lock events and metrics
  */
+// json-schema-uninexpressible: all fields are callback functions and K is a generic type parameter
 export type MutexObservabilityType<K> = {
   /**
    * Called when a request joins an in-flight operation (coalescing)

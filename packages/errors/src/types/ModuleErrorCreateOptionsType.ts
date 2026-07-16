@@ -1,5 +1,6 @@
 import type { ErrorScenarioType } from './index.js';
 
+// json-schema-uninexpressible: 'cause' is a native Error class instance and 'context' is Record<string, unknown> — neither is JSON-Schema-expressible
 /**
  * Options for creating a ModuleError with scenario defaults
  */

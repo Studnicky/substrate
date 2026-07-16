@@ -4,17 +4,12 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type { PaginatorEventType, PaginatorStateType } from '../src/index.js';
+import type { TransitionRecordEntity } from './entities/TransitionRecordEntity.js';
 
 import { Paginator } from '../src/index.js';
 
-type TransitionRecord = {
-  'event': string;
-  'from': string;
-  'to': string;
-};
-
 class TelemetryPaginator<TPage, TCursor> extends Paginator<TPage, TCursor> {
-  readonly transitions: TransitionRecord[] = [];
+  readonly transitions: TransitionRecordEntity.Type[] = [];
 
   static tracked<TPage, TCursor>(): TelemetryPaginator<TPage, TCursor> {
     return new TelemetryPaginator<TPage, TCursor>();

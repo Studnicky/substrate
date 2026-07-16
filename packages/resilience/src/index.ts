@@ -7,7 +7,6 @@ export { DeadLetterQueue } from './DeadLetterQueue.js';
 export { DeadLetterQueueBuilder } from './DeadLetterQueueBuilder.js';
 export { DeadLetterQueueRetryGenerator } from './DeadLetterQueueRetryGenerator.js';
 export { DeadLetterQueueRetryGeneratorBuilder } from './DeadLetterQueueRetryGeneratorBuilder.js';
-export type { DeadLetterQueueRetryGeneratorOptionsType } from './DeadLetterQueueRetryGeneratorOptionsType.js';
 export { DlqAbortedError } from './DlqAbortedError.js';
 export { DlqClosedError } from './DlqClosedError.js';
 export type { DlqEntryType } from './DlqEntryType.js';
@@ -15,6 +14,7 @@ export { DlqFullError } from './DlqFullError.js';
 
 export { CircuitBreakerOptionsEntity } from './entities/CircuitBreakerOptionsEntity.js';
 export { DeadLetterQueueOptionsEntity } from './entities/DeadLetterQueueOptionsEntity.js';
+export { DeadLetterQueueRetryGeneratorOptionsEntity } from './entities/DeadLetterQueueRetryGeneratorOptionsEntity.js';
 export { TokenBucketOptionsEntity } from './entities/TokenBucketOptionsEntity.js';
 
 export { ResilienceConfigError } from './errors/ResilienceConfigError.js';

@@ -4,13 +4,14 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import { Clone, Merge } from '../src/index.js';
+import { MergeCloneFixture } from './fixtures/MergeCloneFixture.js';
 
 // ---------------------------------------------------------------------------
 // Merge.deep — nested objects
 // ---------------------------------------------------------------------------
 
-const base = { 'a': 1, 'b': { 'x': 10, 'y': 20 }, 'tags': ['alpha'] };
-const overlay = { 'b': { 'y': 99, 'z': 3 }, 'c': 'new', 'tags': ['beta'] };
+const base = MergeCloneFixture.Base;
+const overlay = MergeCloneFixture.Overlay;
 
 const merged = Merge.deep(base, overlay);
 
@@ -21,7 +22,7 @@ console.log('merged.tags:', (merged as { 'tags': string[] }).tags);
 // Clone.deep — structural equality, no shared references
 // ---------------------------------------------------------------------------
 
-const original = { 'created': new Date(0), 'items': [1, 2, 3], 'nested': { 'value': 42 } };
+const original = MergeCloneFixture.Original;
 const copy = Clone.deep(original);
 
 console.log('copy.created:', copy.created);

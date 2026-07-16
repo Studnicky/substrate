@@ -2,7 +2,8 @@
  * FetchClient interface types
  */
 
-import type { DestroyOptionsType } from '../types/DestroyOptionsType.js';
+import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
+import type { BodyRequestOptionsType } from '../types/BodyRequestOptionsType.js';
 import type { FetchOptionsType } from '../types/FetchOptionsType.js';
 import type { RequestBuilderInterface } from './RequestBuilderInterface.js';
 
@@ -11,12 +12,12 @@ import type { RequestBuilderInterface } from './RequestBuilderInterface.js';
  */
 export interface FetchClientInterface {
   delete(path: string, options?: FetchOptionsType): Promise<Response>;
-  destroy(options?: DestroyOptionsType): Promise<void>;
+  destroy(options?: DestroyOptionsEntity.Type): Promise<void>;
   get(path: string, options?: FetchOptionsType): Promise<Response>;
   head(path: string, options?: FetchOptionsType): Promise<Response>;
   options(path: string, options?: FetchOptionsType): Promise<Response>;
-  patch(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response>;
-  post(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response>;
-  put(path: string, options?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response>;
+  patch(path: string, options?: BodyRequestOptionsType): Promise<Response>;
+  post(path: string, options?: BodyRequestOptionsType): Promise<Response>;
+  put(path: string, options?: BodyRequestOptionsType): Promise<Response>;
   request(path: string): RequestBuilderInterface;
 }

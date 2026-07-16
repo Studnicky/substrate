@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type { EffectHandlerMapType, FsmStepType } from '../src/index.js';
+import type { TrafficEffectEntity } from './entities/TrafficEffectEntity.js';
+import type { TrafficEventEntity } from './entities/TrafficEventEntity.js';
 
 import { EffectInterpreter, MachineRegistry, StateMachine } from '../src/index.js';
 
@@ -14,9 +16,9 @@ type TrafficState =
   | { readonly 'variant': 'green' }
   | { readonly 'variant': 'red' };
 
-type TrafficEvent = { readonly 'type': 'advance' };
+type TrafficEvent = TrafficEventEntity.Type;
 
-type TrafficEffect = { readonly 'tone': string; readonly 'variant': 'playSound' };
+type TrafficEffect = TrafficEffectEntity.Type;
 
 // --- Observed StateMachine subclass ---
 

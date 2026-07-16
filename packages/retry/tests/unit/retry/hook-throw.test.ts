@@ -4,7 +4,8 @@ import {
 } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import type { ErrorClassificationType, RetryConfigInterface } from '../../../src/interfaces/index.js';
+import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+import type { ErrorClassificationEntity } from '@studnicky/errors';
 import type { RetryCallStateType } from '../../../src/types/RetryCallStateType.js';
 
 import { Retry } from '../../../src/retry/index.js';
@@ -14,13 +15,13 @@ import {
 } from '../../../src/errors/index.js';
 
 class RetryableClassifier {
-  classify(_error: Error, _attemptNumber: number): ErrorClassificationType {
+  classify(_error: Error, _attemptNumber: number): ErrorClassificationEntity.Type {
     return { 'retryable': true };
   }
 }
 
 class NonRetryableClassifier {
-  classify(_error: Error, _attemptNumber: number): ErrorClassificationType {
+  classify(_error: Error, _attemptNumber: number): ErrorClassificationEntity.Type {
     return { 'reason': 'fatal', 'retryable': false };
   }
 }

@@ -1,4 +1,4 @@
-import type { LogRecordType } from '../types/LogRecordType.js';
+import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { ConsoleTransportOptionsType } from './ConsoleTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
@@ -8,7 +8,7 @@ import { ParseLogLevel } from '../modules/parseLogLevel.js';
 import { SafeStringify } from '../modules/safeStringify.js';
 import { ConsoleTransportBuilder } from './ConsoleTransportBuilder.js';
 
-type ConsoleFn = (message: string, record: LogRecordType) => void;
+type ConsoleFn = (message: string, record: LogRecordEntity.Type) => void;
 
 /**
  * Dispatch map from numeric log level to the corresponding console method.
@@ -72,7 +72,7 @@ export class ConsoleTransport implements TransportInterface {
    *
    * @param record - Assembled log record from the Logger core
    */
-  write(record: LogRecordType): void {
+  write(record: LogRecordEntity.Type): void {
     if (record.level < this.#minLevel) {
       return;
     }

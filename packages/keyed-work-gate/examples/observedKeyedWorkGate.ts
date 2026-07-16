@@ -89,20 +89,20 @@ const gate = ReportingKeyedWorkGate.tracked(mutex, coalesce);
 
 // Three concurrent callers for the same key collapse into one execution via
 // runSingleFlight — the leader still acquires the mutex before running.
-const [profileA, profileB, profileC] = await Promise.all([
+const profiles = await Promise.all([
   gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }),
   gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }),
   gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; })
 ]);
 
-console.log('Single-flight results:', profileA, profileB, profileC);
+console.log('Single-flight results:', profiles[0], profiles[1], profiles[2]);
 console.log('Report:', gate.report());
 // #endregion usage
 
 assert.ok(gate instanceof ReportingKeyedWorkGate);
 assert.equal(fetchCount, 1, 'the coalesced group only invoked fetchUserProfile once');
-assert.deepEqual(profileA, profileB);
-assert.deepEqual(profileB, profileC);
+assert.deepEqual(profiles[0], profiles[1]);
+assert.deepEqual(profiles[1], profiles[2]);
 
 const report = gate.report();
 
@@ -116,11 +116,11 @@ let serializedRuns = 0;
 await Promise.all([
   gate.runSerialized('user-42', async () => {
     serializedRuns += 1;
-    await delay(5);
+    await setTimeout(5);
   }),
   gate.runSerialized('user-42', async () => {
     serializedRuns += 1;
-    await delay(5);
+    await setTimeout(5);
   })
 ]);
 

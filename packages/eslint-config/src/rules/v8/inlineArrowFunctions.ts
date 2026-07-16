@@ -53,7 +53,7 @@ export const inlineArrowFunctions: Rule.RuleModule = {
       'description': 'Disallow inline multi-statement arrow functions in a dispatch map that is rebuilt on every call. Pre-built (module-scope or `static`) maps are exempt.',
       'recommended': false
     },
-    'messages': { 'forbidden': 'v8Optimization/inlineArrowFunctions: Inline multi-statement arrow function in a dispatch map rebuilt on every call. Extract to a named function, or hoist the map to module/static scope so it is built once.' },
+    'messages': { 'forbidden': 'v8Optimization/inlineArrowFunctions: Inline multi-statement arrow function in a dispatch map rebuilt on every call. Extract to a static class method, or hoist the map to module/static scope so it is built once.' },
     'schema': [],
     'type': 'problem'
   }

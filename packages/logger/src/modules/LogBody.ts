@@ -24,8 +24,8 @@
  * ```
  */
 
+import type { LogBodyDataEntity } from '../entities/LogBodyDataEntity.js';
 import type { LogBodyInterface } from '../interfaces/LogBodyInterface.js';
-import type { LogBodyDataType } from '../types/LogBodyDataType.js';
 
 import { LogBuildError } from '../errors/LogBuildError.js';
 import { BaseLogEntryBuilder } from './BaseLogEntryBuilder.js';
@@ -60,7 +60,7 @@ export class LogBody extends BaseLogEntryBuilder implements LogBodyInterface {
    * @returns Immutable log body data with event as 'component.operation'
    * @throws LogBuildError if required fields are missing
    */
-  build(): LogBodyDataType {
+  build(): LogBodyDataEntity.Type {
     this.validateRequiredFields();
 
     if (this.messageValue === undefined) {
@@ -81,7 +81,7 @@ export class LogBody extends BaseLogEntryBuilder implements LogBodyInterface {
       throw new LogBuildError('LogBody: status is required');
     }
 
-    const result: LogBodyDataType = {
+    const result: LogBodyDataEntity.Type = {
       'context': Object.freeze({ ...this.contextData }),
       'event': event,
       'message': this.messageValue,
