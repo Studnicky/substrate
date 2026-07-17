@@ -3,6 +3,8 @@
  *
  * @module
  */
+import { DomainErrorArgs } from '@studnicky/errors';
+
 import { ConcurrencyError } from './ConcurrencyError.js';
 
 /**
@@ -12,16 +14,16 @@ import { ConcurrencyError } from './ConcurrencyError.js';
  * waiting on it.
  */
 export class CoalesceTimeoutError extends ConcurrencyError {
-  public readonly key: string;
-  public readonly timeoutMs: number;
+  public readonly key!: string;
+  public readonly timeoutMs!: number;
 
   public constructor(key: string, timeoutMs: number) {
-    super({
+    const fields = { 'key': key, 'timeoutMs': timeoutMs };
+    super(DomainErrorArgs.build(fields, {
       'code': 'concurrency.coalesceTimeout',
-      'message': `Coalesce.run() timed out for key "${key}" after ${timeoutMs}ms.`,
+      'message': (f) => { const result = `Coalesce.run() timed out for key "${f.key}" after ${f.timeoutMs}ms.`; return result; },
       'retryable': true
-    });
-    this.key = key;
-    this.timeoutMs = timeoutMs;
+    }));
+    Object.assign(this, fields);
   }
 }

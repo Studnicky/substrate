@@ -2,6 +2,9 @@ import type { Rule } from 'eslint';
 
 import { type Program, type Symbol, SyntaxKind, type Type, type TypeChecker } from 'typescript';
 
+import { AstHelpers } from './shared/astHelpers.js';
+import { ObjectGuard } from './shared/ObjectGuard.js';
+
 /**
  * whole-canonical-types — canonical data shapes (named `type`/`interface` declarations
  * this codebase owns, most often entity `.Type`s) must be consumed whole. `Partial<X>`,
@@ -28,24 +31,6 @@ type SourceCodeServicesAccessorType = {
   readonly 'parserServices'?: ParserServicesType;
 };
 
-class AstHelpers {
-  public static isJsonObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
-
-  public static getNodeType(node: unknown): string | undefined {
-    if (!AstHelpers.isJsonObject(node)) { return undefined; }
-    const type = node.type;
-    return typeof type === 'string' ? type : undefined;
-  }
-
-  public static getIdentifierName(node: unknown): string | undefined {
-    if (!AstHelpers.isJsonObject(node)) { return undefined; }
-    const name = node.name;
-    return typeof name === 'string' ? name : undefined;
-  }
-}
-
 class ContextHelpers {
   public static getServices(context: Rule.RuleContext): ParserServicesType | undefined {
     const result = (context.sourceCode as unknown as SourceCodeServicesAccessorType).parserServices;
@@ -63,7 +48,7 @@ class SubsettingUtilityMatch {
 
   public static getFirstTypeArgument(node: Record<string, unknown>): unknown {
     const wrapper = node.typeArguments ?? node.typeParameters;
-    if (!AstHelpers.isJsonObject(wrapper)) { return undefined; }
+    if (!ObjectGuard.isObject(wrapper)) { return undefined; }
     const params = wrapper.params;
     if (!Array.isArray(params)) { return undefined; }
     return params[0];
@@ -72,7 +57,7 @@ class SubsettingUtilityMatch {
 
 class CanonicalTypeResolution {
   public static isCanonicalOwnedType(typeArgNode: unknown, services: ParserServicesType): boolean {
-    if (!AstHelpers.isJsonObject(typeArgNode)) { return false; }
+    if (!ObjectGuard.isObject(typeArgNode)) { return false; }
     if (AstHelpers.getNodeType(typeArgNode) !== 'TSTypeReference') { return false; }
 
     const type = services.getTypeAtLocation(typeArgNode);

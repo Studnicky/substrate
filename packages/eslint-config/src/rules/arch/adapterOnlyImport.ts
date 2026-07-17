@@ -4,6 +4,7 @@ import type { LayerOptionsType } from '../../types/LayerOptionsType.js';
 
 import { layerOptionsSchema } from '../layers/layerOptionsSchema.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
+import { ImportSourceValue } from '../shared/importSourceValue.js';
 
 type AdapterOnlyImportOptionsType = LayerOptionsType & {
   'adapterLayerName'?: string;
@@ -25,22 +26,6 @@ const adapterOnlyImportSchema = {
     }
   }
 };
-
-class ImportSourceValue {
-  public static get(node: unknown): string | undefined {
-    if (!ImportSourceValue.isObject(node)) { return undefined; }
-
-    const source: unknown = node.source;
-    if (!ImportSourceValue.isObject(source)) { return undefined; }
-
-    const value: unknown = source.value;
-    return typeof value === 'string' ? value : undefined;
-  }
-
-  public static isObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
-}
 
 class AdapterOnlyMatch {
   public static find(specifier: string, adapterOnlyImports: readonly string[]): string | undefined {

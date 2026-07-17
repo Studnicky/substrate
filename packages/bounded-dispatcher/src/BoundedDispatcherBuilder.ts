@@ -5,6 +5,8 @@
 import type { BusQueueOptionsEntity, EventBus } from '@studnicky/event-bus';
 import type { SchedulerProviderType } from '@studnicky/scheduler';
 
+import { PickDefined } from '@studnicky/types';
+
 import type { BoundedDispatcher } from './BoundedDispatcher.js';
 import type { BoundedDispatcherConfigType } from './types/BoundedDispatcherConfigType.js';
 import type { BoundedDispatcherComposedTopicMapType } from './types/BoundedDispatcherTopicMapType.js';
@@ -47,11 +49,11 @@ export class BoundedDispatcherBuilder<TTopicMap extends Record<string, unknown> 
    * Build and return the BoundedDispatcher instance
    */
   build(): BoundedDispatcher<TTopicMap> {
-    const config: BoundedDispatcherConfigType<TTopicMap> = {
-      ...(this.#bus !== undefined ? { 'bus': this.#bus } : {}),
-      ...(this.#permits !== undefined ? { 'permits': this.#permits } : {}),
-      ...(this.#scheduler !== undefined ? { 'scheduler': this.#scheduler } : {})
-    };
+    const config: BoundedDispatcherConfigType<TTopicMap> = PickDefined.from({
+      'bus': this.#bus,
+      'permits': this.#permits,
+      'scheduler': this.#scheduler
+    });
     return this.#create(config);
   }
 

@@ -59,6 +59,7 @@
     "@studnicky/fetch": "workspace:*",
     "@studnicky/retry": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/timing": "workspace:*"
+    "@studnicky/timing": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

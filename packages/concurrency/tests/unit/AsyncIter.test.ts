@@ -54,6 +54,14 @@ const mergeScenarios: Array<{ description: string; exec: () => Promise<void> }> 
       );
     },
   },
+  {
+    description: 'FIFO order survives the CircularBuffer swap for a single source under high volume',
+    exec: async () => {
+      const total = 500;
+      const items = await collect(AsyncIter.merge(fromArray(Array.from({ 'length': total }, (_v, i) => i))));
+      assert.deepEqual(items, Array.from({ 'length': total }, (_v, i) => i));
+    },
+  },
 ];
 for (const { description, exec } of mergeScenarios) {
   it(description, exec);

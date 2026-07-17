@@ -132,7 +132,7 @@ kitA.stop();
 
 const kitB = Kit.make();
 const controllerB = new AbortController();
-const composedSignalB = signalSource.compose({ 'signal': controllerB.signal });
+const composedSignalB = await signalSource.compose({ 'signal': controllerB.signal });
 CancellationWiring.wireCancellation(kitB, composedSignalB);
 
 kitB.start();

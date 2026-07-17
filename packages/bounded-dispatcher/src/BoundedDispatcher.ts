@@ -92,19 +92,23 @@ export class BoundedDispatcher<TTopicMap extends Record<string, unknown> = Recor
    * (`start` before `fn` runs, then `success` or `error`) onto the composed `EventBus`. The
    * permit is released once `fn` settles, regardless of outcome.
    *
+   * The `'dispatch'` publishes are best-effort observability: they are not awaited while the
+   * permit is held, so a slow or backpressured `'dispatch'` subscriber cannot stall the permit
+   * hold beyond `fn`'s own execution time, and cannot throttle the configured concurrency bound.
+   *
    * @param fn - The work to run while holding a permit
    * @returns The result of `fn`
    */
   async dispatch<T>(fn: () => Promise<T> | T): Promise<T> {
     const result = await this.#semaphore.withPermit(async () => {
-      await this.#bus.publish('dispatch', { 'phase': 'start' });
+      void this.#bus.publish('dispatch', { 'phase': 'start' }).catch(() => {});
 
       try {
         const value = await fn();
-        await this.#bus.publish('dispatch', { 'phase': 'success', 'result': value });
+        void this.#bus.publish('dispatch', { 'phase': 'success', 'result': value }).catch(() => {});
         return value;
       } catch (error: unknown) {
-        await this.#bus.publish('dispatch', { 'error': error, 'phase': 'error' });
+        void this.#bus.publish('dispatch', { 'error': error, 'phase': 'error' }).catch(() => {});
         throw error;
       }
     });

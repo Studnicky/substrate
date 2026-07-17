@@ -1,49 +1,51 @@
 /** observedFileLock — subclass with console.log trace on every lifecycle hook. Run: npx tsx examples/observedFileLock.ts */
 
+// #region usage
+import { EventRecorder } from '@studnicky/errors/observers';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-// #region usage
 import { FileLock, FileLockTimeoutError } from '../src/index.js';
 
 class TracedFileLock extends FileLock {
-  readonly events: { 'extra'?: string; 'hook': string; 'path': string }[] = [];
+  readonly #recorder = new EventRecorder<{ 'extra'?: string; 'hook': string; 'path': string }>();
+
+  get events(): { 'extra'?: string; 'hook': string; 'path': string }[] { return this.#recorder.events; }
 
   protected override onAcquireStart(p: string): void {
-    this.events.push({ 'hook': 'onAcquireStart', 'path': p });
-    console.log(`[file-lock] acquireStart path=${p}`);
+    this.#recorder.record({ 'hook': 'onAcquireStart', 'path': p }, `[file-lock] acquireStart path=${p}`);
   }
 
   protected override onAcquireWait(p: string, attempt: number): void {
-    this.events.push({ 'extra': String(attempt), 'hook': 'onAcquireWait', 'path': p });
-    console.log(`[file-lock] acquireWait path=${p} attempt=${String(attempt)}`);
+    this.#recorder.record(
+      { 'extra': String(attempt), 'hook': 'onAcquireWait', 'path': p },
+      `[file-lock] acquireWait path=${p} attempt=${String(attempt)}`
+    );
   }
 
   protected override onContended(p: string): void {
-    this.events.push({ 'hook': 'onContended', 'path': p });
-    console.log(`[file-lock] contended path=${p}`);
+    this.#recorder.record({ 'hook': 'onContended', 'path': p }, `[file-lock] contended path=${p}`);
   }
 
   protected override onAcquire(p: string): void {
-    this.events.push({ 'hook': 'onAcquire', 'path': p });
-    console.log(`[file-lock] acquired path=${p}`);
+    this.#recorder.record({ 'hook': 'onAcquire', 'path': p }, `[file-lock] acquired path=${p}`);
   }
 
   protected override onRelease(p: string): void {
-    this.events.push({ 'hook': 'onRelease', 'path': p });
-    console.log(`[file-lock] released path=${p}`);
+    this.#recorder.record({ 'hook': 'onRelease', 'path': p }, `[file-lock] released path=${p}`);
   }
 
   protected override onTimeout(p: string): void {
-    this.events.push({ 'hook': 'onTimeout', 'path': p });
-    console.log(`[file-lock] timeout path=${p}`);
+    this.#recorder.record({ 'hook': 'onTimeout', 'path': p }, `[file-lock] timeout path=${p}`);
   }
 
   protected override onError(p: string, error: Error): void {
-    this.events.push({ 'extra': error.message, 'hook': 'onError', 'path': p });
-    console.log(`[file-lock] error path=${p} message=${error.message}`);
+    this.#recorder.record(
+      { 'extra': error.message, 'hook': 'onError', 'path': p },
+      `[file-lock] error path=${p} message=${error.message}`
+    );
   }
 }
 

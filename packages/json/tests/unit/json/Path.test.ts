@@ -60,5 +60,42 @@ void describe('Path', () => {
       assert.strictEqual(sentinel.isWildcard, true);
       assert.deepStrictEqual(sentinel.array, obj.items);
     });
+
+    void describe('bracket-quoted key safety', () => {
+      const bracketDangerousScenarios: Array<{ description: string; path: string }> = [
+        { description: 'rejects bracket-quoted __proto__', path: '["__proto__"]["polluted"]' },
+        { description: 'rejects bracket-quoted constructor', path: '["constructor"]["prototype"]' },
+        { description: 'rejects bracket-quoted prototype', path: '["prototype"]' },
+      ];
+      for (const { description, path } of bracketDangerousScenarios) {
+        void it(description, () => {
+          const target: Record<string, unknown> = {};
+          assert.strictEqual(Path.get(target, path), undefined);
+        });
+      }
+
+      void it('still resolves a safe bracket-quoted key', () => {
+        const target = { 'special.key': { nested: 'value' } };
+
+        assert.strictEqual(Path.get(target, '["special.key"]["nested"]'), 'value');
+      });
+    });
+
+    void describe('non-numeric bracket array index', () => {
+      const invalidIndexScenarios: Array<{ description: string; path: string }> = [
+        { description: 'returns undefined for a non-numeric index', path: 'user.tags[oops]' },
+        { description: 'returns undefined for a fractional index', path: 'user.tags[1.5]' },
+        { description: 'returns undefined for a negative index', path: 'user.tags[-1]' },
+      ];
+      for (const { description, path } of invalidIndexScenarios) {
+        void it(description, () => {
+          assert.strictEqual(Path.get(obj, path), undefined);
+        });
+      }
+
+      void it('still resolves a valid numeric index', () => {
+        assert.strictEqual(Path.get(obj, 'user.tags[0]'), 'admin');
+      });
+    });
   });
 });

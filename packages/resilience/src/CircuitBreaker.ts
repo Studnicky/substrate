@@ -2,12 +2,35 @@
 
 import type { ErrorClassificationEntity } from '@studnicky/errors';
 
+import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+
 import type { CircuitStateType } from './CircuitStateType.js';
 import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 
 import { CircuitBreakerBuilder } from './CircuitBreakerBuilder.js';
 import { CircuitBreakerOpenError } from './CircuitBreakerOpenError.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
+
+/**
+ * Delegates `CircuitBreaker`'s hook-invocation failures back to the owning
+ * breaker's own `hookErrors` array. Hoisted to module scope so V8 compiles
+ * this class once rather than per `CircuitBreaker` instantiation.
+ */
+class CircuitBreakerHookDelegate extends HookInvoker {
+  constructor(private readonly recordFailure: (error: HookInvocationError) => void) {
+    super();
+  }
+
+  /**
+   * A broken hook must not disrupt circuit state transitions: record the
+   * failure and hand back the sentinel `invoke` expects instead of letting
+   * `HookInvoker`'s default (throwing) behavior propagate.
+   */
+  protected override onHookError<T>(hookName: string, cause: unknown): T {
+    this.recordFailure(new HookInvocationError(hookName, cause));
+    return undefined as T;
+  }
+}
 
 export class CircuitBreaker {
   readonly #failureThreshold: number;
@@ -21,11 +44,14 @@ export class CircuitBreaker {
   #successCount = 0;
   #openedAt = 0;
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  /**
+   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
+   * instead of propagating out of the circuit breaker's state machine.
+   */
+  protected readonly hookErrors: HookInvocationError[] = [];
+
+  /** Invokes lifecycle hooks, recording failures into `hookErrors` instead of throwing. */
+  protected readonly hooks: HookInvoker;
 
   static builder(): CircuitBreakerBuilder {
     const factory = (options: CircuitBreakerOptionsInterface): CircuitBreaker => {
@@ -41,6 +67,7 @@ export class CircuitBreaker {
   }
 
   protected constructor(options: CircuitBreakerOptionsInterface) {
+    this.hooks = new CircuitBreakerHookDelegate((error) => { this.hookErrors.push(error); });
     if (options.failureThreshold < 1) {throw new ResilienceConfigError('failureThreshold must be >= 1');}
     if (options.resetTimeoutMs < 0) {throw new ResilienceConfigError('resetTimeoutMs must be >= 0');}
     this.#failureThreshold = options.failureThreshold;
@@ -69,8 +96,9 @@ export class CircuitBreaker {
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     this.#checkHalfOpen();
     if (this.#state === 'open') {
-      this.#invokeHook(() => {
-        this.onReject();
+      this.hooks.invoke('onReject', () => {
+        const result = this.onReject();
+        return result;
       });
       throw new CircuitBreakerOpenError(this.#name);
     }
@@ -89,8 +117,9 @@ export class CircuitBreaker {
     this.#failureCount = 0;
     this.#successCount = 0;
     this.#openedAt = 0;
-    this.#invokeHook(() => {
-      this.onClose();
+    this.hooks.invoke('onClose', () => {
+      const result = this.onClose();
+      return result;
     });
   }
 
@@ -99,8 +128,9 @@ export class CircuitBreaker {
   forceOpen(): void {
     this.#state = 'open';
     this.#openedAt = this.#clock();
-    this.#invokeHook(() => {
-      this.onOpen();
+    this.hooks.invoke('onOpen', () => {
+      const result = this.onOpen();
+      return result;
     });
   }
 
@@ -172,8 +202,9 @@ export class CircuitBreaker {
     if (this.#state === 'open' && this.#clock() - this.#openedAt >= this.#resetTimeoutMs) {
       this.#state = 'halfOpen';
       this.#successCount = 0;
-      this.#invokeHook(() => {
-        this.onHalfOpen();
+      this.hooks.invoke('onHalfOpen', () => {
+        const result = this.onHalfOpen();
+        return result;
       });
     }
   }
@@ -186,21 +217,25 @@ export class CircuitBreaker {
         this.#failureCount = 0;
         this.#successCount = 0;
         this.#openedAt = 0;
-        this.#invokeHook(() => {
-          this.onSuccess();
+        this.hooks.invoke('onSuccess', () => {
+          const result = this.onSuccess();
+          return result;
         });
-        this.#invokeHook(() => {
-          this.onClose();
+        this.hooks.invoke('onClose', () => {
+          const result = this.onClose();
+          return result;
         });
       } else {
-        this.#invokeHook(() => {
-          this.onSuccess();
+        this.hooks.invoke('onSuccess', () => {
+          const result = this.onSuccess();
+          return result;
         });
       }
     } else {
       this.#failureCount = 0;
-      this.#invokeHook(() => {
-        this.onSuccess();
+      this.hooks.invoke('onSuccess', () => {
+        const result = this.onSuccess();
+        return result;
       });
     }
   }
@@ -214,11 +249,13 @@ export class CircuitBreaker {
     if (this.#state === 'halfOpen') {
       this.#state = 'open';
       this.#openedAt = this.#clock();
-      this.#invokeHook(() => {
-        this.onFailure(err);
+      this.hooks.invoke('onFailure', () => {
+        const result = this.onFailure(err);
+        return result;
       });
-      this.#invokeHook(() => {
-        this.onOpen();
+      this.hooks.invoke('onOpen', () => {
+        const result = this.onOpen();
+        return result;
       });
       return;
     }
@@ -226,18 +263,22 @@ export class CircuitBreaker {
     if (this.#failureCount >= this.#failureThreshold) {
       this.#state = 'open';
       this.#openedAt = this.#clock();
-      this.#invokeHook(() => {
-        this.onFailure(err);
+      this.hooks.invoke('onFailure', () => {
+        const result = this.onFailure(err);
+        return result;
       });
-      this.#invokeHook(() => {
-        this.onTrip();
+      this.hooks.invoke('onTrip', () => {
+        const result = this.onTrip();
+        return result;
       });
-      this.#invokeHook(() => {
-        this.onOpen();
+      this.hooks.invoke('onOpen', () => {
+        const result = this.onOpen();
+        return result;
       });
     } else {
-      this.#invokeHook(() => {
-        this.onFailure(err);
+      this.hooks.invoke('onFailure', () => {
+        const result = this.onFailure(err);
+        return result;
       });
     }
   }

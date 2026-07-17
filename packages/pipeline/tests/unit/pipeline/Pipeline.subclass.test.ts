@@ -8,6 +8,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
 import { PipelineError } from '../../../src/errors/PipelineError.js';
 
@@ -413,7 +415,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
     assert.strictEqual(pipeline.stageSuccessEvents.length, 0);
   });
 
-  void it('a throwing onStageStart hook does not replace a successful run result', async () => {
+  void it('a throwing onStageStart hook propagates as a HookInvocationError', async () => {
     class ThrowingStartPipeline extends Pipeline<number> {
       protected override onStageStart(): void {
         throw new Error('onStageStart boom');
@@ -423,12 +425,10 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
     const pipeline = ThrowingStartPipeline.create();
     pipeline.add((n) => n + 1);
 
-    const result = await pipeline.run(1);
-
-    assert.strictEqual(result, 2);
+    await assert.rejects(() => pipeline.run(1), HookInvocationError);
   });
 
-  void it('a throwing onStageSuccess hook does not replace a successful run result', async () => {
+  void it('a throwing onStageSuccess hook propagates as a HookInvocationError', async () => {
     class ThrowingSuccessPipeline extends Pipeline<number> {
       protected override onStageSuccess(): void {
         throw new Error('onStageSuccess boom');
@@ -438,12 +438,10 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
     const pipeline = ThrowingSuccessPipeline.create();
     pipeline.add((n) => n + 1);
 
-    const result = await pipeline.run(1);
-
-    assert.strictEqual(result, 2);
+    await assert.rejects(() => pipeline.run(1), HookInvocationError);
   });
 
-  void it('a throwing onStageError hook does not replace the wrapped PipelineError', async () => {
+  void it('a throwing onStageError hook propagates as a HookInvocationError, not the wrapped PipelineError', async () => {
     class ThrowingStageErrorPipeline extends Pipeline<number> {
       protected override onStageError(): void {
         throw new Error('onStageError boom');
@@ -453,10 +451,10 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
     const pipeline = ThrowingStageErrorPipeline.create();
     pipeline.add(() => { throw new Error('stage failed'); });
 
-    await assert.rejects(() => pipeline.run(1), PipelineError);
+    await assert.rejects(() => pipeline.run(1), HookInvocationError);
   });
 
-  void it('a throwing onRunError hook does not replace the wrapped PipelineError', async () => {
+  void it('a throwing onRunError hook propagates as a HookInvocationError, not the wrapped PipelineError', async () => {
     class ThrowingRunErrorPipeline extends Pipeline<number> {
       protected override onRunError(): void {
         throw new Error('onRunError boom');
@@ -466,6 +464,74 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
     const pipeline = ThrowingRunErrorPipeline.create();
     pipeline.add(() => { throw new Error('stage failed'); });
 
-    await assert.rejects(() => pipeline.run(1), PipelineError);
+    await assert.rejects(() => pipeline.run(1), HookInvocationError);
+  });
+
+  void it('a throw from beforeStage does not trigger onRunError', async () => {
+    const rawError = new Error('beforeStage boom');
+
+    class ThrowingBeforeStagePipeline extends ObservingPipeline<number> {
+      protected override beforeStage(): number {
+        throw rawError;
+      }
+    }
+
+    const pipeline = ThrowingBeforeStagePipeline.create();
+    pipeline.add((n) => n + 1);
+
+    await assert.rejects(() => { return pipeline.run(0); }, (err: unknown) => { return err === rawError; });
+
+    assert.strictEqual(pipeline.runErrorEvents.length, 0);
+  });
+
+  void it('a throw from afterStage does not trigger onRunError', async () => {
+    const rawError = new Error('afterStage boom');
+
+    class ThrowingAfterStagePipeline extends ObservingPipeline<number> {
+      protected override afterStage(): number {
+        throw rawError;
+      }
+    }
+
+    const pipeline = ThrowingAfterStagePipeline.create();
+    pipeline.add((n) => n + 1);
+
+    await assert.rejects(() => { return pipeline.run(0); }, (err: unknown) => { return err === rawError; });
+
+    assert.strictEqual(pipeline.runErrorEvents.length, 0);
+  });
+
+  void it('a throw from onRunStart does not trigger onRunError', async () => {
+    const rawError = new Error('onRunStart boom');
+
+    class ThrowingRunStartPipeline extends ObservingPipeline<number> {
+      protected override onRunStart(): number {
+        throw rawError;
+      }
+    }
+
+    const pipeline = ThrowingRunStartPipeline.create();
+    pipeline.add((n) => n + 1);
+
+    await assert.rejects(() => { return pipeline.run(0); }, (err: unknown) => { return err === rawError; });
+
+    assert.strictEqual(pipeline.runErrorEvents.length, 0);
+  });
+
+  void it('a throw from onRunComplete does not trigger onRunError', async () => {
+    const rawError = new Error('onRunComplete boom');
+
+    class ThrowingRunCompletePipeline extends ObservingPipeline<number> {
+      protected override onRunComplete(): number {
+        throw rawError;
+      }
+    }
+
+    const pipeline = ThrowingRunCompletePipeline.create();
+    pipeline.add((n) => n + 1);
+
+    await assert.rejects(() => { return pipeline.run(0); }, (err: unknown) => { return err === rawError; });
+
+    assert.strictEqual(pipeline.runErrorEvents.length, 0);
   });
 });

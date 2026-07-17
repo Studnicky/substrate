@@ -5,8 +5,7 @@ import {
 
 import {
   FetchClient,
-  HttpMethods,
-  NetworkError
+  HttpMethods
 } from '../../../src/index.js';
 import {
   startTestServer, stopTestServer
@@ -181,7 +180,7 @@ void describe('URL Error Scenarios', () => {
           await fetchWithTimeout('http://user:pass@localhost:9999/api');
         },
         (error: Error) => {
-          assert.ok(error instanceof NetworkError || error.name.includes('Error'));
+          assert.ok(error.name.includes('Error'));
 
           return true;
         }
@@ -194,7 +193,7 @@ void describe('URL Error Scenarios', () => {
           await fetchWithTimeout('http://user@localhost:9999/api');
         },
         (error: Error) => {
-          assert.ok(error instanceof NetworkError || error.name.includes('Error'));
+          assert.ok(error.name.includes('Error'));
 
           return true;
         }
@@ -207,7 +206,7 @@ void describe('URL Error Scenarios', () => {
           await fetchWithTimeout('http://user%40email.com:pass%40123@localhost:9999/api');
         },
         (error: Error) => {
-          assert.ok(error instanceof NetworkError || error.name.includes('Error'));
+          assert.ok(error.name.includes('Error'));
 
           return true;
         }
@@ -280,7 +279,7 @@ void describe('URL Error Scenarios', () => {
           await fetchWithTimeout('http://[::1]:9999/api');
         },
         (error: Error) => {
-          assert.ok(error instanceof NetworkError || error.name.includes('Error'));
+          assert.ok(error.name.includes('Error'));
 
           return true;
         }
@@ -293,7 +292,7 @@ void describe('URL Error Scenarios', () => {
           await fetchWithTimeout('http://[2001:db8::1]:9999/api');
         },
         (error: Error) => {
-          assert.ok(error instanceof NetworkError || error.name.includes('Error'));
+          assert.ok(error.name.includes('Error'));
 
           return true;
         }
@@ -386,7 +385,7 @@ void describe('URL Error Scenarios', () => {
           await fetchWithTimeout('https://this-domain-definitely-does-not-exist-12345.com', { timeout: 5000 });
         },
         (error: Error) => {
-          assert.ok(error instanceof NetworkError || error.name.includes('Error'));
+          assert.ok(error.name.includes('Error'));
 
           return true;
         }
@@ -399,7 +398,7 @@ void describe('URL Error Scenarios', () => {
           await fetchWithTimeout('http://127.0.0.1:1', { timeout: 5000 });
         },
         (error: Error) => {
-          assert.ok(error instanceof NetworkError || error.name.includes('Error'));
+          assert.ok(error.name.includes('Error'));
 
           return true;
         }
@@ -412,7 +411,7 @@ void describe('URL Error Scenarios', () => {
           await fetchWithTimeout('http://192.0.2.1:9999', { timeout: 2000 });
         },
         (error: Error) => {
-          assert.ok(error instanceof NetworkError || error.name.includes('Error'));
+          assert.ok(error.name.includes('Error'));
 
           return true;
         }

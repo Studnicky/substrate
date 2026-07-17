@@ -13,6 +13,7 @@ export class LruCacheBuilder<K = unknown, V = unknown> {
   readonly #create: (options: LruCacheOptionsEntity.Type) => LruCache<K, V>;
   #capacity?: number;
   #ttlMs?: number;
+  #staleMs?: number;
   #prefix?: string;
 
   private constructor(create: (options: LruCacheOptionsEntity.Type) => LruCache<K, V>) {
@@ -29,6 +30,11 @@ export class LruCacheBuilder<K = unknown, V = unknown> {
     return this;
   }
 
+  withStaleMs(value: number): this {
+    this.#staleMs = value;
+    return this;
+  }
+
   withPrefix(value: string): this {
     this.#prefix = value;
     return this;
@@ -41,6 +47,7 @@ export class LruCacheBuilder<K = unknown, V = unknown> {
     const options: LruCacheOptionsEntity.Type = {
       'capacity': this.#capacity,
       ...(this.#ttlMs !== undefined && { 'ttlMs': this.#ttlMs }),
+      ...(this.#staleMs !== undefined && { 'staleMs': this.#staleMs }),
       ...(this.#prefix !== undefined && { 'prefix': this.#prefix })
     };
     return this.#create(options);

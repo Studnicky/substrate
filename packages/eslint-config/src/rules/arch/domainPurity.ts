@@ -4,6 +4,8 @@ import type { LayerOptionsType } from '../../types/LayerOptionsType.js';
 
 import { layerOptionsSchema } from '../layers/layerOptionsSchema.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
+import { ImportSourceValue } from '../shared/importSourceValue.js';
+import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 type DomainPurityOptionsType = LayerOptionsType & {
   'domainLayerName'?: string;
@@ -34,24 +36,6 @@ const domainPuritySchema = {
   'type': 'object'
 } as const;
 
-class AstNode {
-  public static isObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
-}
-
-class ImportSourceValue {
-  public static get(node: unknown): string | undefined {
-    if (!AstNode.isObject(node)) { return undefined; }
-
-    const source: unknown = node.source;
-    if (!AstNode.isObject(source)) { return undefined; }
-
-    const value: unknown = source.value;
-    return typeof value === 'string' ? value : undefined;
-  }
-}
-
 class ForbiddenSpecifierMatch {
   public static test(specifier: string, forbidden: readonly string[]): boolean {
     const result = forbidden.some((entry) => {
@@ -63,10 +47,10 @@ class ForbiddenSpecifierMatch {
 
 class CalleeDottedName {
   public static get(node: unknown): string | undefined {
-    if (!AstNode.isObject(node)) { return undefined; }
+    if (!ObjectGuard.isObject(node)) { return undefined; }
 
     const callee: unknown = node.callee;
-    if (!AstNode.isObject(callee)) { return undefined; }
+    if (!ObjectGuard.isObject(callee)) { return undefined; }
 
     const calleeType = callee.type;
 
@@ -78,7 +62,7 @@ class CalleeDottedName {
     if (calleeType === 'MemberExpression') {
       const object: unknown = callee.object;
       const property: unknown = callee.property;
-      if (!AstNode.isObject(object) || !AstNode.isObject(property)) { return undefined; }
+      if (!ObjectGuard.isObject(object) || !ObjectGuard.isObject(property)) { return undefined; }
       if (object.type !== 'Identifier' || property.type !== 'Identifier') { return undefined; }
 
       const objectName = object.name;

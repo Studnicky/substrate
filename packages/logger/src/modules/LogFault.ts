@@ -39,7 +39,6 @@
 import type { LogFaultDataEntity } from '../entities/LogFaultDataEntity.js';
 import type { LogFaultInterface } from '../interfaces/LogFaultInterface.js';
 
-import { LogBuildError } from '../errors/LogBuildError.js';
 import { BaseLogEntryBuilder } from './BaseLogEntryBuilder.js';
 
 /**
@@ -80,44 +79,25 @@ export class LogFault extends BaseLogEntryBuilder implements LogFaultInterface {
   build(): LogFaultDataEntity.Type {
     this.validateRequiredFields();
 
-    if (this.faultName === undefined) {
-      this.invokeHook(() => {
-        this.onBuildError('name');
-      });
-      throw new LogBuildError('LogFault: name is required');
-    }
-
-    if (this.faultMessage === undefined) {
-      this.invokeHook(() => {
-        this.onBuildError('message');
-      });
-      throw new LogBuildError('LogFault: message is required');
-    }
-
+    const name = this.requireField(this.faultName, 'name');
+    const message = this.requireField(this.faultMessage, 'message');
+    const status = this.requireField(this.statusValue, 'status');
     const event = `${this.componentName}.${this.operationName}`;
-
-    // validateRequiredFields() throws if statusValue is undefined; this guard
-    // narrows the type for the compiler without a non-null assertion.
-    if (this.statusValue === undefined) {
-      this.invokeHook(() => {
-        this.onBuildError('status');
-      });
-      throw new LogBuildError('LogFault: status is required');
-    }
 
     const result: LogFaultDataEntity.Type = {
       'context': Object.freeze({ ...this.contextData }),
       'event': event,
-      'message': this.faultMessage,
-      'name': this.faultName,
-      'status': this.statusValue,
+      'message': message,
+      'name': name,
+      'status': status,
       ...(this.causeValue !== undefined && { 'cause': this.causeValue }),
       ...(this.durationMs !== undefined && { 'durationMs': this.durationMs }),
       ...(this.stackValue !== undefined && { 'stack': this.stackValue })
     };
 
-    this.invokeHook(() => {
-      this.onBuild(result);
+    this.hooks.invoke('onBuild', () => {
+      const hookResult = this.onBuild(result);
+      return hookResult;
     });
     return Object.freeze(result);
   }

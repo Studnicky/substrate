@@ -27,8 +27,11 @@ export class JsonValue {
     if (value === null) {
       return null;
     }
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    if (typeof value === 'string' || typeof value === 'boolean') {
       return value;
+    }
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
     }
     if (Array.isArray(value)) {
       return value.map(JsonValue.from);

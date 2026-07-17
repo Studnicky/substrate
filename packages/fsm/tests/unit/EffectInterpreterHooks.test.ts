@@ -258,4 +258,37 @@ describe('EffectInterpreter lifecycle hooks', () => {
 
     assert.deepEqual(interp.getState(), { 'variant': 'active' });
   });
+
+  it('an async-overridden onStart hook that rejects is routed through onHookError without an unhandled rejection, because invoke() actually receives its return value', async () => {
+    class AsyncRejectingStartInterpreter extends EffectInterpreter<DemoState, DemoEvent, DemoEffect> {
+      constructor() {
+        super({ 'handlers': {}, 'machine': new DemoMachine(), 'machineId': 'async-start-test' });
+      }
+
+      protected override async onStart(_state: DemoState): Promise<void> {
+        await Promise.resolve();
+        throw new Error('async onStart boom');
+      }
+    }
+
+    const rejectionEvents: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      const interp = new AsyncRejectingStartInterpreter();
+
+      // start() never awaits invoke()'s return — this call is synchronous.
+      interp.start();
+      assert.deepEqual(interp.getState(), { 'variant': 'idle' });
+
+      await new Promise((resolve) => { setImmediate(resolve); });
+      await new Promise((resolve) => { setImmediate(resolve); });
+
+      assert.equal(rejectionEvents.length, 0);
+      assert.equal(interp.hookErrorCount, 1);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  });
 });

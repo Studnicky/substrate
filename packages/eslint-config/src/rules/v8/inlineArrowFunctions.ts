@@ -1,25 +1,12 @@
 import type { Rule } from 'eslint';
 
+import { ObjectGuard } from '../shared/ObjectGuard.js';
+import { PropertyKeyName } from '../shared/propertyKeyName.js';
 import { FunctionScope } from './functionScope.js';
 
 const EXEMPT_KEYS: ReadonlySet<string> = new Set([
-  'callback', 'execute', 'handler', 'process', 'transform', 'transformAsync', 'validate'
+  'callback', 'execute', 'handler', 'message', 'process', 'transform', 'transformAsync', 'validate'
 ]);
-
-class AstHelpers {
-  static isNonNullObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object';
-  }
-}
-
-class PropertyKeyName {
-  static get(property: unknown): string | undefined {
-    if (!AstHelpers.isNonNullObject(property)) { return undefined; }
-    const key: unknown = property.key;
-    if (!AstHelpers.isNonNullObject(key) || key.type !== 'Identifier') { return undefined; }
-    return typeof key.name === 'string' ? key.name : undefined;
-  }
-}
 
 export const inlineArrowFunctions: Rule.RuleModule = {
   'create': (context) => {
@@ -27,7 +14,7 @@ export const inlineArrowFunctions: Rule.RuleModule = {
       const rawNode = node as unknown as Record<string, unknown>;
       const body: unknown = rawNode.body;
 
-      if (!AstHelpers.isNonNullObject(body) || body.type !== 'BlockStatement') { return; }
+      if (!ObjectGuard.isObject(body) || body.type !== 'BlockStatement') { return; }
 
       const parent = node.parent;
       if (parent.type !== 'Property') { return; }

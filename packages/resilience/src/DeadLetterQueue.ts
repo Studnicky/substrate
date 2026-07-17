@@ -1,5 +1,7 @@
 /** Bounded FIFO DLQ with async-generator drain; enqueue() throws on capacity/closed/aborted. */
 
+import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+
 import type { DlqEntryType } from './DlqEntryType.js';
 import type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
 
@@ -9,6 +11,28 @@ import { DlqClosedError } from './DlqClosedError.js';
 import { DlqFullError } from './DlqFullError.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
+/**
+ * Delegates `DeadLetterQueue`'s hook-invocation failures back to the owning
+ * queue's own `hookErrors` array. Hoisted to module scope so V8 compiles this
+ * class once rather than per `DeadLetterQueue` instantiation.
+ */
+class DeadLetterQueueHookDelegate extends HookInvoker {
+  constructor(private readonly recordFailure: (error: HookInvocationError) => void) {
+    super();
+  }
+
+  /**
+   * A broken hook must not disrupt the queue's enqueue/drain/close/abort
+   * behavior: record the failure and hand back the sentinel `invoke`
+   * expects instead of letting `HookInvoker`'s default (throwing) behavior
+   * propagate.
+   */
+  protected override onHookError<TResult>(hookName: string, cause: unknown): TResult {
+    this.recordFailure(new HookInvocationError(hookName, cause));
+    return undefined as TResult;
+  }
+}
+
 export class DeadLetterQueue<T> {
   readonly #capacity: number;
   readonly #clock: () => number;
@@ -17,11 +41,14 @@ export class DeadLetterQueue<T> {
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  /**
+   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
+   * instead of propagating out of the queue's enqueue/drain/close/abort paths.
+   */
+  protected readonly hookErrors: HookInvocationError[] = [];
+
+  /** Invokes lifecycle hooks, recording failures into `hookErrors` instead of throwing. */
+  protected readonly hooks: HookInvoker;
 
   static builder<T>(): DeadLetterQueueBuilder<T> {
     const factory = (options: DeadLetterQueueOptionsInterface): DeadLetterQueue<T> => {
@@ -37,6 +64,7 @@ export class DeadLetterQueue<T> {
   }
 
   protected constructor(options?: DeadLetterQueueOptionsInterface) {
+    this.hooks = new DeadLetterQueueHookDelegate((error) => { this.hookErrors.push(error); });
     const capacity = options?.capacity ?? Infinity;
     if (capacity !== undefined && (capacity <= 0 || Number.isNaN(capacity))) {
       throw new ResilienceConfigError('capacity must be > 0');
@@ -62,38 +90,43 @@ export class DeadLetterQueue<T> {
     if (this.#aborted) { throw new DlqAbortedError(); }
     if (this.#closed) { throw new DlqClosedError(); }
     if (this.#entries.length >= this.#capacity) {
-      this.#invokeHook(() => {
-        this.onOverflow();
+      this.hooks.invoke('onOverflow', () => {
+        const result = this.onOverflow();
+        return result;
       });
       throw new DlqFullError();
     }
     this.#entries.push({ 'enqueuedAtMs': this.#clock(), 'error': error, 'id': crypto.randomUUID(), 'item': item, 'reason': reason });
-    if (this.#notifyDrain !== null) { const n = this.#notifyDrain; this.#notifyDrain = null; n(); }
-    this.#invokeHook(() => {
-      this.onEnqueue(item);
+    this.wakeDrainWaiters();
+    this.hooks.invoke('onEnqueue', () => {
+      const result = this.onEnqueue(item);
+      return result;
     });
   }
 
+  /** Single-consumer by default — a second concurrent drain() call replaces the previously registered waiter. Override `registerDrainWaiter`/`wakeDrainWaiters` for consumer-side fan-out. */
   async *drain(): AsyncGenerator<DlqEntryType<T>> {
     while (true) {
       const entry = this.#entries.shift();
       if (entry !== undefined) {
-        this.#invokeHook(() => {
-          this.onDequeue(entry.item);
+        this.hooks.invoke('onDequeue', () => {
+          const result = this.onDequeue(entry.item);
+          return result;
         });
         yield entry;
         continue;
       }
       if (this.#closed || this.#aborted) { return; }
-      await new Promise<void>((resolve) => { this.#notifyDrain = resolve; });
+      await new Promise<void>((resolve) => { this.registerDrainWaiter(resolve); });
     }
   }
 
   close(): void {
     this.#closed = true;
-    if (this.#notifyDrain !== null) { const n = this.#notifyDrain; this.#notifyDrain = null; n(); }
-    this.#invokeHook(() => {
-      this.onClose();
+    this.wakeDrainWaiters();
+    this.hooks.invoke('onClose', () => {
+      const result = this.onClose();
+      return result;
     });
   }
 
@@ -129,11 +162,32 @@ export class DeadLetterQueue<T> {
    */
   protected onAbort(): void {}
 
+  /**
+   * Registers the notify callback for a waiting `drain()` consumer.
+   * Default: single-slot overwrite — a second concurrent `drain()` call
+   * replaces the previously registered waiter, matching the queue's
+   * single-consumer design. Override alongside `wakeDrainWaiters` (e.g. to
+   * maintain your own waiter collection) to build consumer-side fan-out.
+   */
+  protected registerDrainWaiter(notify: () => void): void {
+    this.#notifyDrain = notify;
+  }
+
+  /**
+   * Wakes the waiter registered via `registerDrainWaiter`, if any.
+   * Override alongside `registerDrainWaiter` to wake multiple waiters for
+   * custom fan-out.
+   */
+  protected wakeDrainWaiters(): void {
+    if (this.#notifyDrain !== null) { const n = this.#notifyDrain; this.#notifyDrain = null; n(); }
+  }
+
   #abort(): void {
     this.#aborted = true;
-    if (this.#notifyDrain !== null) { const n = this.#notifyDrain; this.#notifyDrain = null; n(); }
-    this.#invokeHook(() => {
-      this.onAbort();
+    this.wakeDrainWaiters();
+    this.hooks.invoke('onAbort', () => {
+      const result = this.onAbort();
+      return result;
     });
   }
 }

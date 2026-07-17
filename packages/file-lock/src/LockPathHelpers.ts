@@ -1,7 +1,8 @@
 export class LockPathHelpers {
   static dirname(path: string): string {
     const idx = path.lastIndexOf('/');
-    if (idx <= 0) { return '/'; }
+    if (idx === -1) { return '.'; }
+    if (idx === 0) { return '/'; }
     const result = path.slice(0, idx);
     return result;
   }

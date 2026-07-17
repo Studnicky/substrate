@@ -52,9 +52,10 @@ class AsyncIterDemo {
     assert.equal(results.length, 6);
     const expected = [1, 2, 3, 10, 11, 12];
     const expectedLen = expected.length;
+    const resultsSet = new Set(results);
 
     for (let i = 0; i < expectedLen; i += 1) {
-      assert.ok(results.includes(expected[i]!), `Missing value ${expected[i]}`);
+      assert.ok(resultsSet.has(expected[i]!), `Missing value ${expected[i]}`);
     }
     // Within each source, relative order is preserved
     assert.ok(results.indexOf(1) < results.indexOf(2));

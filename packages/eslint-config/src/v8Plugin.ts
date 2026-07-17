@@ -4,7 +4,10 @@ import { argumentsObject } from './rules/v8/argumentsObject.js';
 import { arrayConcatOutsideLoops } from './rules/v8/arrayConcatOutsideLoops.js';
 import { arrayFromIterators } from './rules/v8/arrayFromIterators.js';
 import { arrayFromMapCallback } from './rules/v8/arrayFromMapCallback.js';
+import { arrayScanOutsideLoops } from './rules/v8/arrayScanOutsideLoops.js';
+import { arraySpliceOutsideLoops } from './rules/v8/arraySpliceOutsideLoops.js';
 import { arraySpreadOutsideLoops } from './rules/v8/arraySpreadOutsideLoops.js';
+import { chainedArrayIteration } from './rules/v8/chainedArrayIteration.js';
 import { computedClassProperties } from './rules/v8/computedClassProperties.js';
 import { computedObjectProperties } from './rules/v8/computedObjectProperties.js';
 import { conditionalPropertyAssignment } from './rules/v8/conditionalPropertyAssignment.js';
@@ -31,7 +34,10 @@ export const v8Plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'array-concat-outside-loops': arrayConcatOutsideLoops,
     'array-from-iterators': arrayFromIterators,
     'array-from-map-callback': arrayFromMapCallback,
+    'array-scan-outside-loops': arrayScanOutsideLoops,
+    'array-splice-outside-loops': arraySpliceOutsideLoops,
     'array-spread-outside-loops': arraySpreadOutsideLoops,
+    'chained-array-iteration': chainedArrayIteration,
     'computed-class-properties': computedClassProperties,
     'computed-object-properties': computedObjectProperties,
     'conditional-property-assignment': conditionalPropertyAssignment,

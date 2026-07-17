@@ -22,7 +22,7 @@ import {
   it
 } from 'node:test';
 
-import { ErrorDefaults } from '../../src/constants/index.js';
+import { CAUSE_CHAIN_DEPTH_LIMIT, CAUSE_DEPTH_SENTINEL, ErrorDefaults } from '../../src/constants/index.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
 
 // Test error subclasses
@@ -314,6 +314,21 @@ void describe('ModuleError', () => {
       ok(chain[9], 'Chain should have element at index 9');
       strictEqual(chain[9].message, 'Root');
     });
+
+    void it('does not hang on a circular cause chain', () => {
+      const a = ModuleError.create('a', { scenario: 'INTERNAL' });
+      const b = ModuleError.create('b', {
+        cause: a,
+        scenario: 'INTERNAL'
+      });
+      // Force a cycle: a -> b -> a. `cause` is readonly at the type level
+      // only; mutate the runtime property to simulate a mutated cause graph.
+      (a as unknown as { 'cause': Error }).cause = b;
+
+      const chain = b.getCauseChain();
+
+      ok(chain.length <= CAUSE_CHAIN_DEPTH_LIMIT, 'Chain should be bounded despite the cycle');
+    });
   });
 
   void describe('findCauseOfType()', () => {
@@ -381,6 +396,19 @@ void describe('ModuleError', () => {
       ok(found instanceof NetworkError);
       strictEqual(found, network);
     });
+
+    void it('does not hang on a circular cause chain', () => {
+      const a = ModuleError.create('a', { scenario: 'INTERNAL' });
+      const b = ModuleError.create('b', {
+        cause: a,
+        scenario: 'INTERNAL'
+      });
+      (a as unknown as { 'cause': Error }).cause = b;
+
+      const found = b.findCauseOfType(TestError);
+
+      strictEqual(found, undefined);
+    });
   });
 
   void describe('hasCauseOfType()', () => {
@@ -426,6 +454,17 @@ void describe('ModuleError', () => {
       });
 
       ok(top.hasCauseOfType(TestError), 'Should find TestError deep in chain');
+    });
+
+    void it('does not hang on a circular cause chain', () => {
+      const a = ModuleError.create('a', { scenario: 'INTERNAL' });
+      const b = ModuleError.create('b', {
+        cause: a,
+        scenario: 'INTERNAL'
+      });
+      (a as unknown as { 'cause': Error }).cause = b;
+
+      strictEqual(b.hasCauseOfType(TestError), false);
     });
   });
 
@@ -518,6 +557,32 @@ void describe('ModuleError', () => {
       const rootJson = middleJson.cause as Record<string, unknown>;
 
       strictEqual(rootJson.message, 'Root');
+    });
+
+    void it('uses sentinel string when ModuleError chain exceeds depth limit instead of stack overflowing', () => {
+      let current = ModuleError.create('depth-0', { scenario: 'INTERNAL' });
+      for (let i = 1; i <= CAUSE_CHAIN_DEPTH_LIMIT + 1; i++) {
+        current = ModuleError.create(`depth-${i}`, {
+          cause: current,
+          scenario: 'INTERNAL'
+        });
+      }
+
+      const json = current.toJSON();
+
+      // Walk the serialized chain to find the sentinel — must not throw
+      // (stack overflow) and must terminate before the chain's true depth.
+      let node: unknown = json;
+      let found = false;
+      while (node !== null && node !== undefined) {
+        const rec = node as { cause: unknown };
+        if (typeof rec.cause === 'string' && rec.cause === CAUSE_DEPTH_SENTINEL) {
+          found = true;
+          break;
+        }
+        node = rec.cause;
+      }
+      ok(found, 'Should find cause depth sentinel in serialized ModuleError chain');
     });
 
     void it('produces JSON-safe output', () => {

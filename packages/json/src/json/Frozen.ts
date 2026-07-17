@@ -1,3 +1,6 @@
+import { FrozenMutationError } from '../errors/FrozenMutationError.js';
+import { FROZEN_MAP_MUTATORS, FROZEN_SET_MUTATORS } from './constants/FrozenConstants.js';
+
 /**
  * Frozen — cycle-safe recursive deep freeze.
  *
@@ -12,6 +15,28 @@ export class Frozen {
   // ---------------------------------------------------------------------------
   // Protected steps — override in subclasses to customise freezing
   // ---------------------------------------------------------------------------
+
+  /** Build the `get` trap for a mutation-guarded Map/Set `Proxy`, bound to `target` and `mutators`. */
+  protected static createMutationGetTrap<T extends object>(target: T, mutators: ReadonlySet<PropertyKey>): (source: T, prop: PropertyKey) => unknown {
+    return (source, prop) => {
+      const value: unknown = Reflect.get(source, prop, source);
+
+      if (mutators.has(prop)) {
+        return (): never => {
+          throw new FrozenMutationError(`Cannot call "${String(prop)}" on a frozen ${target.constructor.name}`, String(prop));
+        };
+      }
+
+      return typeof value === 'function' ? value.bind(source) : value;
+    };
+  }
+
+  /** Wrap a Map/Set in a `Proxy` that throws `FrozenMutationError` on mutating method calls. */
+  protected static guardMutations<T extends object>(target: T, mutators: ReadonlySet<PropertyKey>): T {
+    return new Proxy(target, {
+      'get': this.createMutationGetTrap(target, mutators)
+    });
+  }
 
   /**
    * Recurse into and freeze a single value.
@@ -29,6 +54,24 @@ export class Frozen {
     }
 
     seen.add(obj);
+
+    if (obj instanceof Map) {
+      Object.freeze(obj);
+      for (const v of obj.values()) {
+        this.freezeValue(v, seen);
+      }
+
+      return this.guardMutations(obj, FROZEN_MAP_MUTATORS) as unknown as T;
+    }
+
+    if (obj instanceof Set) {
+      Object.freeze(obj);
+      for (const v of obj.values()) {
+        this.freezeValue(v, seen);
+      }
+
+      return this.guardMutations(obj, FROZEN_SET_MUTATORS) as unknown as T;
+    }
 
     if (this.shouldFreeze(obj)) {
       Object.freeze(obj);

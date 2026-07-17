@@ -2,6 +2,8 @@
  * DeadLetterQueue Unit Tests
  */
 
+import type { HookInvocationError } from '@studnicky/errors';
+
 import { deepStrictEqual, ok, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
 
@@ -10,6 +12,9 @@ import { DlqAbortedError } from '../../src/DlqAbortedError.js';
 import { DlqClosedError } from '../../src/DlqClosedError.js';
 import { DlqFullError } from '../../src/DlqFullError.js';
 import type { DeadLetterQueueOptionsInterface } from '../../src/interfaces/DeadLetterQueueOptionsInterface.js';
+
+/** Waits one macrotask tick so a suspended drain() generator has registered its waiter. */
+const tick = async (): Promise<void> => new Promise((resolve) => { setImmediate(resolve); });
 
 it('enqueue adds an entry and increments size', () => {
   const dlq = DeadLetterQueue.create<string>();
@@ -189,6 +194,73 @@ it('drain entry has correct fields', async () => {
   ok(entry.id.length > 0);
 });
 
+it('a second concurrent drain() call replaces the previously registered waiter (default single-consumer behavior)', async () => {
+  const dlq = DeadLetterQueue.create<string>();
+
+  const collectedA: string[] = [];
+  const collectedB: string[] = [];
+  void (async () => {
+    for await (const e of dlq.drain()) { collectedA.push(e.item); }
+  })();
+
+  await tick();
+
+  const drainB = (async () => {
+    for await (const e of dlq.drain()) { collectedB.push(e.item); }
+  })();
+
+  await tick();
+
+  dlq.enqueue('x', 'r');
+  dlq.close();
+
+  await drainB;
+
+  // The second drain() registered its own waiter over drainA's, so only
+  // drainB observes the wake-up — drainA's generator is left permanently
+  // suspended, which is the documented default (single-consumer) behavior.
+  deepStrictEqual(collectedA, []);
+  deepStrictEqual(collectedB, ['x']);
+});
+
+class FanOutDeadLetterQueue<T> extends DeadLetterQueue<T> {
+  readonly #waiters: (() => void)[] = [];
+
+  constructor(options?: DeadLetterQueueOptionsInterface) { super(options); }
+
+  protected override registerDrainWaiter(notify: () => void): void {
+    this.#waiters.push(notify);
+  }
+
+  protected override wakeDrainWaiters(): void {
+    const waiters = this.#waiters.splice(0, this.#waiters.length);
+    for (const wake of waiters) { wake(); }
+  }
+}
+
+it('overriding registerDrainWaiter/wakeDrainWaiters implements consumer-side fan-out', async () => {
+  const dlq = new FanOutDeadLetterQueue<string>();
+
+  const collectedA: string[] = [];
+  const collectedB: string[] = [];
+  const drainA = (async () => {
+    for await (const e of dlq.drain()) { collectedA.push(e.item); }
+  })();
+  const drainB = (async () => {
+    for await (const e of dlq.drain()) { collectedB.push(e.item); }
+  })();
+
+  await tick();
+
+  dlq.enqueue('x', 'r');
+  dlq.enqueue('y', 'r');
+  dlq.close();
+
+  await Promise.all([drainA, drainB]);
+  const combined = [...collectedA, ...collectedB].sort();
+  deepStrictEqual(combined, ['x', 'y']);
+});
+
 it('drain aborts when signal fires', async () => {
   const controller = new AbortController();
   const dlq = DeadLetterQueue.create<string>({ signal: controller.signal });
@@ -319,4 +391,33 @@ it('a throwing onAbort hook does not replace abort()', () => {
   dlq.abort();
 
   throws(() => { dlq.enqueue('payload', 'reason'); }, DlqAbortedError);
+});
+
+it('an async-overridden onEnqueue hook that rejects is routed to hookErrors without producing an unhandled rejection', async () => {
+  class AsyncRejectingEnqueueDlq<T> extends DeadLetterQueue<T> {
+    get recordedHookErrors(): HookInvocationError[] { const result = this.hookErrors;
+      return result; }
+
+    protected override async onEnqueue(_item: T): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onEnqueue boom');
+    }
+  }
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const dlq = new AsyncRejectingEnqueueDlq<string>();
+    dlq.enqueue('msg', 'reason');
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(rejectionEvents.length, 0);
+    strictEqual(dlq.recordedHookErrors.length, 1);
+    strictEqual(dlq.recordedHookErrors[0]?.hookName, 'onEnqueue');
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });

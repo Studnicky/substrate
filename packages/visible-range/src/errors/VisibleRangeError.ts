@@ -1,6 +1,6 @@
 import type { JsonValueType } from '@studnicky/types';
 
-import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
+import { BaseError, DomainErrorArgs } from '@studnicky/errors';
 
 /** Optional construction arguments for {@link VisibleRangeError} (all `BaseErrorArgumentsType` members except `code`/`message`, which this class supplies itself). */
 type VisibleRangeErrorArgsType = {
@@ -20,13 +20,14 @@ type VisibleRangeErrorArgsType = {
 /** Thrown when a {@link VisibleRangeConfigInterface} is invalid or ambiguous. */
 export class VisibleRangeError extends BaseError {
   public constructor(message: string, args?: VisibleRangeErrorArgsType) {
-    const obj: Record<string, unknown> = {};
-    obj.cause = args?.cause;
-    obj.code = 'visibleRange.invalidConfig';
-    obj.correlationId = args?.correlationId;
-    obj.message = message;
-    obj.metadata = args?.metadata;
-    obj.retryable = false;
-    super(obj as BaseErrorArgumentsType);
+    const fields = { 'message': message };
+    super(DomainErrorArgs.build(fields, {
+      'cause': args?.cause,
+      'code': 'visibleRange.invalidConfig',
+      'correlationId': args?.correlationId,
+      'message': (f) => { const result = f.message; return result; },
+      'metadata': args?.metadata,
+      'retryable': false
+    }));
   }
 }

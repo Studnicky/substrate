@@ -173,19 +173,21 @@ export class Draft {
 
   /** Recursively resolve a node to its finalized (structurally-shared) value. */
   protected static finalize<T>(node: DraftNodeType): T {
-    if (node.copy === undefined) {
-      let anyChildDirty = false;
+    const childEntries: [PropertyKey, DraftNodeType, boolean][] = [];
+    let anyChildDirty = false;
 
-      for (const child of node.children.values()) {
-        if (this.isDirty(child)) {
-          anyChildDirty = true;
-          break;
-        }
-      }
+    for (const [key, childNode] of node.children.entries()) {
+      const dirty = this.isDirty(childNode);
 
-      if (!anyChildDirty) {
-        return node.base as T;
+      childEntries.push([key, childNode, dirty]);
+
+      if (dirty) {
+        anyChildDirty = true;
       }
+    }
+
+    if (node.copy === undefined && !anyChildDirty) {
+      return node.base as T;
     }
 
     const source = (node.copy ?? node.base) as Record<PropertyKey, unknown> | unknown[];
@@ -193,8 +195,8 @@ export class Draft {
       ? [...(source as unknown[])]
       : { ...(source as Record<PropertyKey, unknown>) };
 
-    for (const [key, childNode] of node.children.entries()) {
-      if (this.isDirty(childNode)) {
+    for (const [key, childNode, dirty] of childEntries) {
+      if (dirty) {
         (result as Record<PropertyKey, unknown>)[key as string] = this.finalize(childNode);
       }
     }

@@ -8,6 +8,8 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { HookInvocationError, ReentrantHookInvocationError } from '@studnicky/errors';
+
 import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 
 // ── Test subclasses ───────────────────────────────────────────────────────────
@@ -350,52 +352,140 @@ it('grow mode: buffer produces correct FIFO order with all hooks active', () => 
   assert.deepStrictEqual(result, values);
 });
 
-it('a throwing onPush hook does not replace a completed push', () => {
+it('a throwing onPush hook surfaces a HookInvocationError after the push has already been committed', () => {
   const buf = ThrowingPushBuffer.create<number>({ 'capacity': 4 });
-  buf.push(42);
+  let caught: unknown;
+  try {
+    buf.push(42);
+  } catch (error) {
+    caught = error;
+  }
 
+  assert.ok(caught instanceof HookInvocationError);
+  assert.strictEqual((caught as HookInvocationError).hookName, 'onPush');
+  // onPush fires after the item is already written — the push is not undone.
   assert.strictEqual(buf.length, 1);
   assert.strictEqual(buf.shift(), 42);
 });
 
-it('a throwing onOverflow hook does not replace overwrite behavior', () => {
+it('a throwing onOverflow hook surfaces a HookInvocationError after eviction and insertion are already committed', () => {
   const buf = ThrowingOverflowBuffer.create<number>({ 'capacity': 2 });
   buf.push(1);
   buf.push(2);
-  buf.push(3);
 
+  let caught: unknown;
+  try {
+    buf.push(3);
+  } catch (error) {
+    caught = error;
+  }
+
+  assert.ok(caught instanceof HookInvocationError);
+  assert.strictEqual((caught as HookInvocationError).hookName, 'onOverflow');
+  // onOverflow fires after head/tail/items are fully committed — item 3 has
+  // already replaced evicted item 1.
   assert.strictEqual(buf.length, 2);
   assert.strictEqual(buf.shift(), 2);
   assert.strictEqual(buf.shift(), 3);
 });
 
-it('a throwing onEvict hook does not replace overwrite behavior', () => {
+it('a throwing onEvict hook surfaces a HookInvocationError after the slot has already been overwritten', () => {
   const buf = ThrowingEvictBuffer.create<number>({ 'capacity': 2 });
   buf.push(1);
   buf.push(2);
-  buf.push(3);
 
+  let caught: unknown;
+  try {
+    buf.push(3);
+  } catch (error) {
+    caught = error;
+  }
+
+  assert.ok(caught instanceof HookInvocationError);
+  assert.strictEqual((caught as HookInvocationError).hookName, 'onEvict');
+  // onEvict fires after head advances and the slot is overwritten — item 3
+  // has already replaced evicted item 1.
   assert.strictEqual(buf.length, 2);
   assert.strictEqual(buf.shift(), 2);
   assert.strictEqual(buf.shift(), 3);
 });
 
-it('a throwing onGrow hook does not replace growth and insertion', () => {
+it('a throwing onGrow hook surfaces a HookInvocationError after the resize completes; the triggering push never lands', () => {
   const buf = ThrowingGrowBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
   buf.push(1);
   buf.push(2);
-  buf.push(3);
 
-  assert.strictEqual(buf.length, 3);
-  assert.deepStrictEqual([buf.shift(), buf.shift(), buf.shift()], [1, 2, 3]);
+  let caught: unknown;
+  try {
+    buf.push(3);
+  } catch (error) {
+    caught = error;
+  }
+
+  assert.ok(caught instanceof HookInvocationError);
+  assert.strictEqual((caught as HookInvocationError).hookName, 'onGrow');
+  // grow() itself completes (capacity doubled) before onGrow fires; the item
+  // that triggered the grow is never appended once the hook throws.
+  assert.strictEqual(buf.length, 2);
+  assert.deepStrictEqual([buf.shift(), buf.shift()], [1, 2]);
 });
 
-it('a throwing onShift hook does not replace item removal', () => {
+it('a throwing onShift hook surfaces a HookInvocationError after the item has already been removed', () => {
   const buf = ThrowingShiftBuffer.create<number>({ 'capacity': 2 });
   buf.push(1);
 
-  assert.strictEqual(buf.shift(), 1);
+  let caught: unknown;
+  try {
+    buf.shift();
+  } catch (error) {
+    caught = error;
+  }
+
+  assert.ok(caught instanceof HookInvocationError);
+  assert.strictEqual((caught as HookInvocationError).hookName, 'onShift');
+  // Removal already happened internally before onShift fires.
   assert.strictEqual(buf.length, 0);
+});
+
+// ── Regression: async hook override must route through HookInvoker safely ────
+// (fixes call sites like `this.hooks.invoke('onPush', () => { this.onPush(item); })`
+// that discarded the hook's return value in a block-bodied arrow, defeating
+// HookInvoker's async-detection — a rejecting async override would otherwise
+// produce an unhandled promise rejection instead of routing through onHookError.)
+
+class AsyncRejectingPushBuffer<T> extends CircularBuffer<T> {
+  override async onPush(_item: T): Promise<void> {
+    await Promise.resolve();
+    throw new Error('async onPush boom');
+  }
+}
+
+it('an async-overridden onPush hook that rejects routes through onHookError without producing an unhandled rejection', async () => {
+  const buf = AsyncRejectingPushBuffer.create<number>({ 'capacity': 4 });
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    // push() itself stays synchronous and returns void — the async hook
+    // override's eventual rejection must not surface here nor escape as an
+    // unhandled rejection.
+    buf.push(1);
+
+    // push() already committed the item before the hook fired.
+    assert.strictEqual(buf.length, 1);
+
+    // Give the microtask queue a couple of turns to let the hook's rejection
+    // route through HookInvoker's default onHookError (which rethrows as a
+    // HookInvocationError inside the pending promise HookInvoker tracks
+    // internally — never surfaced as a process-level unhandled rejection).
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    assert.strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });
 
 it('subclass can read count, head, tail, capacity, items', () => {
@@ -469,4 +559,192 @@ it('onOverflow fires on every overwrite push (multiple overflows)', () => {
   buf.push(4); // overflow
   buf.push(5); // overflow
   assert.deepStrictEqual(buf.overflowLog, [3, 4, 5]);
+});
+
+// ── Regression: hooks must fire when the item's VALUE is undefined ───────────
+// (occupancy is tracked via count/capacity, not by checking the dequeued value)
+
+it('onEvict fires with undefined when the evicted slot holds an item whose value is undefined', () => {
+  const buf = EvictLogBuffer.create<number | undefined>({ 'capacity': 2 });
+  buf.push(undefined);
+  buf.push(2);
+  buf.push(3); // evicts the undefined-valued item
+  assert.deepStrictEqual(buf.evictLog, [undefined]);
+});
+
+it('onShift fires with undefined when the shifted item holds a value of undefined', () => {
+  const buf = ShiftLogBuffer.create<number | undefined>({ 'capacity': 4 });
+  buf.push(undefined);
+  const returned = buf.shift();
+
+  assert.strictEqual(returned, undefined);
+  assert.deepStrictEqual(buf.shiftLog, [undefined]);
+});
+
+// ── Regression: reentrancy guard on overwrite eviction ────────────────────────
+// (a hook override that reentrantly calls push()/unshift()/shift() on the
+// same instance is rejected by CircularBuffer's own #dispatching guard at
+// entry — before it can mutate head/tail/items — so the ring never observes
+// a double eviction. This is stronger than relying solely on HookInvoker's
+// `detectReentrancy` option, which only trips once the reentrant call
+// reaches its own `hooks.invoke`, by which point it would already have
+// mutated shared state.)
+
+class ReentrantOverflowBuffer<T> extends CircularBuffer<T> {
+  reentrantError: unknown;
+  #reentering = false;
+
+  override onOverflow(item: T): void {
+    if (this.#reentering) return;
+    this.#reentering = true;
+    try {
+      this.push(item);
+    } catch (error) {
+      this.reentrantError = error;
+    } finally {
+      this.#reentering = false;
+    }
+  }
+}
+
+it('a reentrant push() from within onOverflow throws ReentrantHookInvocationError and leaves the buffer uncorrupted', () => {
+  const buf = ReentrantOverflowBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+
+  buf.push(3); // overflow: onOverflow reentrantly calls push(3) again on the same instance
+
+  assert.ok(buf.reentrantError instanceof ReentrantHookInvocationError);
+  // The outer push(3) call itself completes normally — the reentrant call's
+  // own failure is caught inside the onOverflow override and does not
+  // propagate out of the outer push(). Because the reentrant call is
+  // rejected before it can mutate anything, the ring reflects exactly one
+  // eviction: the oldest item (1) is gone, replaced by 3, leaving [2, 3] in
+  // FIFO order — not a double-evicted or duplicated ring.
+  assert.strictEqual(buf.length, 2);
+  const contents: number[] = [];
+  while (buf.length > 0) {
+    const value = buf.shift();
+    if (value !== undefined) contents.push(value);
+  }
+  assert.deepStrictEqual(contents, [2, 3]);
+});
+
+class ReentrantEvictBuffer<T> extends CircularBuffer<T> {
+  reentrantError: unknown;
+  #reentering = false;
+
+  override onEvict(_item: T): void {
+    if (this.#reentering) return;
+    this.#reentering = true;
+    try {
+      // Reentrant call happens with a distinct item so it's identifiable if
+      // it (incorrectly) lands.
+      this.push(999 as unknown as T);
+    } catch (error) {
+      this.reentrantError = error;
+    } finally {
+      this.#reentering = false;
+    }
+  }
+}
+
+it('a reentrant push() from within onEvict throws ReentrantHookInvocationError and leaves the buffer uncorrupted', () => {
+  const buf = ReentrantEvictBuffer.create<number>({ 'capacity': 2 });
+  buf.push(1);
+  buf.push(2);
+
+  buf.push(3); // overflow: onEvict reentrantly calls push(999) again on the same instance
+
+  assert.ok(buf.reentrantError instanceof ReentrantHookInvocationError);
+  // The reentrant push(999) never lands — it is rejected before mutating
+  // anything, so 999 never appears in the buffer. The ring reflects exactly
+  // one eviction: [2, 3] in FIFO order.
+  assert.strictEqual(buf.length, 2);
+  const contents: number[] = [];
+  while (buf.length > 0) {
+    const value = buf.shift();
+    if (value !== undefined) contents.push(value);
+  }
+  assert.deepStrictEqual(contents, [2, 3]);
+});
+
+class ReentrantShiftBuffer<T> extends CircularBuffer<T> {
+  reentrantError: unknown;
+  #reentering = false;
+
+  override onShift(_item: T): void {
+    if (this.#reentering) return;
+    this.#reentering = true;
+    try {
+      this.shift();
+    } catch (error) {
+      this.reentrantError = error;
+    } finally {
+      this.#reentering = false;
+    }
+  }
+}
+
+it('a reentrant shift() from within onShift throws ReentrantHookInvocationError and does not double-remove', () => {
+  const buf = ReentrantShiftBuffer.create<number>({ 'capacity': 4 });
+  buf.push(1);
+  buf.push(2);
+
+  const first = buf.shift(); // onShift reentrantly calls shift() again on the same instance
+
+  assert.strictEqual(first, 1);
+  assert.ok(buf.reentrantError instanceof ReentrantHookInvocationError);
+  // The reentrant shift() is rejected before it can remove anything, so item
+  // 2 is still there — a corrupted guard would have removed it too.
+  assert.strictEqual(buf.length, 1);
+  assert.strictEqual(buf.shift(), 2);
+});
+
+class ReentrantGrowBuffer<T> extends CircularBuffer<T> {
+  reentrantError: unknown;
+  readonly growLog: Array<{ oldCapacity: number; newCapacity: number }> = [];
+  #reentering = false;
+
+  override onGrow(oldCapacity: number, newCapacity: number): void {
+    this.growLog.push({ oldCapacity, newCapacity });
+    if (this.#reentering) return;
+    this.#reentering = true;
+    try {
+      this.growPublicly();
+    } catch (error) {
+      this.reentrantError = error;
+    } finally {
+      this.#reentering = false;
+    }
+  }
+
+  growPublicly(): void {
+    this.grow();
+  }
+}
+
+it('a reentrant grow() from within onGrow throws ReentrantHookInvocationError and does not double-resize', () => {
+  const buf = ReentrantGrowBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
+  buf.push(1);
+  buf.push(2);
+
+  buf.push(3); // triggers grow(); onGrow reentrantly calls grow() again on the same instance
+
+  assert.ok(buf.reentrantError instanceof ReentrantHookInvocationError);
+  assert.deepStrictEqual([buf.shift(), buf.shift(), buf.shift()], [1, 2, 3]);
+
+  // Capacity doubled exactly once (2 -> 4), not twice (2 -> 8): filling the
+  // buffer back up to exactly 4 items must trigger the NEXT grow from an
+  // oldCapacity of 4, not 8, proving the reentrant grow() call never landed.
+  buf.push(10);
+  buf.push(11);
+  buf.push(12);
+  buf.push(13); // capacity 4 exactly full, no grow yet
+  assert.deepStrictEqual(buf.growLog.map((entry) => entry.oldCapacity), [2]);
+  buf.push(14); // exceeds capacity 4 -> triggers the next grow
+  assert.deepStrictEqual(
+    buf.growLog.map((entry) => entry.oldCapacity),
+    [2, 4]
+  );
 });

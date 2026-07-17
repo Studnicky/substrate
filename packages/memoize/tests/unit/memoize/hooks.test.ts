@@ -54,3 +54,50 @@ it('a throwing onMemoHit hook does not replace a cached return value', async () 
 
   deepStrictEqual(value, 'value:a');
 });
+
+it(
+  'a throwing onMemoMiss hook does not hang the triggering call or a subsequent call for the same key',
+  { 'timeout': 5000 },
+  async () => {
+    class ThrowingMissMemoize extends Memoize<[string], string> {
+      protected override onMemoMiss(): void {
+        throw new Error('onMemoMiss boom');
+      }
+    }
+
+    const memo = ThrowingMissMemoize.create(
+      (id: string) => `value:${id}`,
+      { 'keyFn': (id: string) => id, 'capacity': 10 }
+    ) as ThrowingMissMemoize;
+
+    const first = await memo.call('a');
+    deepStrictEqual(first, 'value:a');
+
+    const second = await memo.call('a');
+    deepStrictEqual(second, 'value:a');
+  }
+);
+
+it(
+  'an async onMemoMiss hook whose returned promise rejects does not hang the triggering call or a subsequent call',
+  { 'timeout': 5000 },
+  async () => {
+    class RejectingMissMemoize extends Memoize<[string], string> {
+      protected override async onMemoMiss(): Promise<void> {
+        await Promise.resolve();
+        throw new Error('onMemoMiss async boom');
+      }
+    }
+
+    const memo = RejectingMissMemoize.create(
+      (id: string) => `value:${id}`,
+      { 'keyFn': (id: string) => id, 'capacity': 10 }
+    ) as RejectingMissMemoize;
+
+    const first = await memo.call('a');
+    deepStrictEqual(first, 'value:a');
+
+    const second = await memo.call('a');
+    deepStrictEqual(second, 'value:a');
+  }
+);

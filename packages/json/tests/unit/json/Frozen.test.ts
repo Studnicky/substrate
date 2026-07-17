@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { describe, it } from 'node:test';
 
+import { FrozenMutationError } from '../../../src/errors/FrozenMutationError.js';
 import { Frozen } from '../../../src/json/Frozen.js';
 
 void describe('Frozen', () => {
@@ -50,5 +51,38 @@ void describe('Frozen', () => {
     for (const { description, input, expected } of primitivePassthroughScenarios) {
       void it(description, () => { assert.strictEqual(Frozen.deepFreeze(input), expected); });
     }
+
+    void it('prevents mutation of a frozen Map while reads still work', () => {
+      const map = new Map([['a', 1]]);
+      const frozen = Frozen.deepFreeze(map);
+
+      assert.throws(() => frozen.set('b', 2), FrozenMutationError);
+      assert.throws(() => frozen.delete('a'), FrozenMutationError);
+      assert.throws(() => frozen.clear(), FrozenMutationError);
+
+      assert.strictEqual(frozen.get('a'), 1);
+      assert.strictEqual(frozen.size, 1);
+      assert.deepStrictEqual([...frozen.entries()], [['a', 1]]);
+    });
+
+    void it('prevents mutation of a frozen Set while reads still work', () => {
+      const set = new Set(['a']);
+      const frozen = Frozen.deepFreeze(set);
+
+      assert.throws(() => frozen.add('b'), FrozenMutationError);
+      assert.throws(() => frozen.delete('a'), FrozenMutationError);
+      assert.throws(() => frozen.clear(), FrozenMutationError);
+
+      assert.ok(frozen.has('a'));
+      assert.strictEqual(frozen.size, 1);
+      assert.deepStrictEqual([...frozen.values()], ['a']);
+    });
+
+    void it('deeply freezes values reachable from a Map', () => {
+      const map = new Map([['a', { nested: 1 }]]);
+      const frozen = Frozen.deepFreeze(map);
+
+      assert.ok(Object.isFrozen(frozen.get('a')));
+    });
   });
 });

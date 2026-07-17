@@ -1,23 +1,12 @@
 import type { Rule } from 'eslint';
 
+import { AstHelpers } from './shared/astHelpers.js';
+import { ObjectGuard } from './shared/ObjectGuard.js';
 import { TrivialExpression } from './shared/TrivialExpression.js';
 
-class AstHelpers {
-  public static isJsonObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
-
-  public static getNodeType(node: unknown): string | undefined {
-    if (!AstHelpers.isJsonObject(node)) {
-      return undefined;
-    }
-    const type = node.type;
-
-    return typeof type === 'string' ? type : undefined;
-  }
-
+class SourceRangeAccess {
   public static getSourceRange(node: unknown): [number, number] | undefined {
-    if (!AstHelpers.isJsonObject(node)) { return undefined; }
+    if (!ObjectGuard.isObject(node)) { return undefined; }
     const range = node.range;
 
     if (!Array.isArray(range) || range.length < 2) { return undefined; }
@@ -60,8 +49,8 @@ export const inlineTrivialLogic: Rule.RuleModule = {
     const { sourceCode } = context;
 
     const fixBlockBody = (fixer: Rule.RuleFixer, statement: unknown, argument: unknown): Rule.Fix | null => {
-      const argRange = AstHelpers.getSourceRange(argument);
-      const stmtRange = AstHelpers.getSourceRange(statement);
+      const argRange = SourceRangeAccess.getSourceRange(argument);
+      const stmtRange = SourceRangeAccess.getSourceRange(statement);
 
       if (argRange === undefined || stmtRange === undefined) { return null; }
       const [argStart, argEnd] = argRange;
@@ -76,7 +65,7 @@ export const inlineTrivialLogic: Rule.RuleModule = {
     };
 
     const fixExpressionBody = (fixer: Rule.RuleFixer, _node: Rule.Node, expression: unknown): Rule.Fix | null => {
-      const exprRange = AstHelpers.getSourceRange(expression);
+      const exprRange = SourceRangeAccess.getSourceRange(expression);
 
       if (exprRange === undefined) { return null; }
       const [exprStart, exprEnd] = exprRange;
@@ -106,7 +95,7 @@ export const inlineTrivialLogic: Rule.RuleModule = {
 
       if (statement === undefined) { return; }
       if (AstHelpers.getNodeType(statement) !== 'ReturnStatement') { return; }
-      const argument = AstHelpers.isJsonObject(statement) ? statement.argument : undefined;
+      const argument = ObjectGuard.isObject(statement) ? statement.argument : undefined;
 
       reportIfTrivial(node, argument, (fixer) => { const result = fixBlockBody(fixer, statement, argument); return result; });
     };
@@ -129,7 +118,7 @@ export const inlineTrivialLogic: Rule.RuleModule = {
 
     const onMethodDefinition: NonNullable<Rule.RuleListener['MethodDefinition']> = (node) => {
       const rawBody: unknown = node.value.body;
-      const bodyContainer = AstHelpers.isJsonObject(rawBody) ? rawBody : null;
+      const bodyContainer = ObjectGuard.isObject(rawBody) ? rawBody : null;
       const bodyNodes = bodyContainer?.body;
       const body: readonly unknown[] | undefined = Array.isArray(bodyNodes) ? bodyNodes : undefined;
 
