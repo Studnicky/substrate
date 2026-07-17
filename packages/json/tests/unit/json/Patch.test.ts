@@ -39,6 +39,19 @@ void describe('Patch', () => {
         PatchError
       );
     });
+
+    void it('throws PatchError when a nested path does not exist (single-traversal semantics preserved)', () => {
+      const target: Record<string, unknown> = { a: {} };
+
+      assert.throws(
+        () => Patch.replace('/a/missing', 1).apply(target),
+        PatchError
+      );
+      assert.throws(
+        () => Patch.replace('/missing/deeper', 1).apply(target),
+        PatchError
+      );
+    });
   });
 
   void describe('Patch.remove', () => {
@@ -48,6 +61,13 @@ void describe('Patch', () => {
 
       assert.ok(!('a' in target));
       assert.strictEqual(target['b'], 2);
+    });
+
+    void it('throws PatchError for a non-numeric array index and does not mutate the array', () => {
+      const target: Record<string, unknown> = { items: [1, 2, 3] };
+
+      assert.throws(() => Patch.remove('/items/bar').apply(target), PatchError);
+      assert.deepStrictEqual(target['items'], [1, 2, 3]);
     });
   });
 
@@ -90,6 +110,24 @@ void describe('Patch', () => {
         }
       });
     }
+
+    void it('succeeds when object value is structurally equal but not reference-equal', () => {
+      const target: Record<string, unknown> = { user: { name: 'a' } };
+
+      assert.doesNotThrow(() => Patch.test('/user', { name: 'a' }).apply(target));
+    });
+
+    void it('succeeds when array value is structurally equal but not reference-equal', () => {
+      const target: Record<string, unknown> = { tags: [1, 2, 3] };
+
+      assert.doesNotThrow(() => Patch.test('/tags', [1, 2, 3]).apply(target));
+    });
+
+    void it('throws PatchError when object value differs structurally', () => {
+      const target: Record<string, unknown> = { user: { name: 'a' } };
+
+      assert.throws(() => Patch.test('/user', { name: 'b' }).apply(target), PatchError);
+    });
   });
 
   void describe('Patch.combine', () => {

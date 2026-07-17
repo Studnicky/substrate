@@ -3,6 +3,8 @@
  *
  * @module
  */
+import { PickDefined } from '@studnicky/types';
+
 import type { RealTimeClockProviderOptionsEntity } from '../entities/RealTimeClockProviderOptionsEntity.js';
 import type { RealTimeClockProvider } from './RealTimeClockProvider.js';
 
@@ -27,9 +29,9 @@ export class RealTimeClockProviderBuilder {
   }
 
   build(): RealTimeClockProvider {
-    const options: RealTimeClockProviderOptionsEntity.Type = {
-      ...(this.#offsetMs !== undefined && { 'offsetMs': this.#offsetMs })
-    };
+    const options: RealTimeClockProviderOptionsEntity.Type = PickDefined.from({
+      'offsetMs': this.#offsetMs
+    });
     const result = this.#create(options);
     return result;
   }

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { LogFault } from '../../src/index.js';
 
 void it('creates a new builder instance', () => {
@@ -218,7 +220,7 @@ void it('returns frozen object', () => {
   assert.strictEqual(Object.isFrozen(fault), true);
 });
 
-void it('a throwing onFieldSet hook does not replace fluent setters or build()', () => {
+void it('a throwing onFieldSet hook surfaces as HookInvocationError', () => {
   class ThrowingFieldSetFault extends LogFault {
     constructor() { super(); }
 
@@ -227,14 +229,7 @@ void it('a throwing onFieldSet hook does not replace fluent setters or build()',
     }
   }
 
-  const fault = new ThrowingFieldSetFault()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .name('TimeoutError')
-    .message('Query exceeded timeout')
-    .context({})
-    .build();
-
-  assert.strictEqual(fault.event, 'graph.query');
+  assert.throws(() => {
+    new ThrowingFieldSetFault().component('graph');
+  }, HookInvocationError);
 });

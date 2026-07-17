@@ -81,16 +81,18 @@ jobs:
 
           echo "All workspace packages confirmed at version ${EXPECTED_VERSION}."
 
-      # CHANGELOG GATE — assert CHANGELOG.md contains a heading for the release version
-      - name: Changelog gate
+      # CHANGESET GATE — assert every changeset was consumed by `changeset version`
+      # before this tag was cut. A leftover .changeset/*.md means someone tagged
+      # without versioning first, so the release's changelog/version would be stale.
+      - name: Changeset gate
         run: |
           set -euo pipefail
-          VERSION=$(node -p "require('./package.json').version")
-          if ! grep -qE "^## \[?${VERSION}\]?" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md does not contain an entry for version ${VERSION}"
+          PENDING=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
+          if [ "$PENDING" -ne 0 ]; then
+            echo "::error::${PENDING} unconsumed changeset(s) remain in .changeset/ — run 'pnpm changeset:version' and commit the result before tagging."
             exit 1
           fi
-          echo "CHANGELOG.md entry for ${VERSION} confirmed."
+          echo "No unconsumed changesets — version was cut via changeset version."
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -172,16 +174,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
       - name: Extract changelog notes
-        run: |
-          set -euo pipefail
-          VERSION="${{ needs.publish.outputs.version }}"
-          NOTES=$(awk "/^## \[?${VERSION}\]?/{f=1;next} /^## \[/{f=0} f" CHANGELOG.md \
-            | sed '/^$/N;/^\n$/d')
-          if [[ -z "$NOTES" ]]; then
-            NOTES="Release v${VERSION}"
-          fi
-          echo "$NOTES" > release_notes.md
+        run: node scripts/extract-release-notes.mjs > release_notes.md
 
       - name: Create GitHub Release
         env:

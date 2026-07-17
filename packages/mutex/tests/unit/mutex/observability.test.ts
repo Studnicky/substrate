@@ -13,6 +13,8 @@ import {
   setTimeout as delay
 } from 'node:timers/promises';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { Mutex } from '../../../src/mutex/index.js';
 
 // ---------------------------------------------------------------------------
@@ -56,6 +58,16 @@ class AfterReleaseTrackingMutex extends Mutex<string> {
 
   protected override afterRelease(key: string): void {
     this.afterReleaseEvents.push(key);
+  }
+}
+
+class HookErrorRecordingMutex extends Mutex<string> {
+  protected override beforeAcquire(_key: string): void {
+    throw new Error('beforeAcquire boom');
+  }
+
+  getHookErrors(): readonly HookInvocationError[] {
+    return this.hookErrors;
   }
 }
 
@@ -267,6 +279,26 @@ it('does not break mutex functionality if afterAcquire and beforeRelease throw',
   release();
 
   ok(!mutex.isLocked('key1'));
+});
+
+it('records a HookInvocationError via the consolidated HookInvoking mechanism when beforeAcquire throws, without interrupting acquisition', async () => {
+  const mutex = new HookErrorRecordingMutex();
+  const release = await mutex.acquire('key1');
+
+  ok(mutex.isLocked('key1'));
+
+  const errors = mutex.getHookErrors();
+
+  strictEqual(errors.length, 1);
+  const err = errors[0];
+
+  ok(err !== undefined, 'Expected a recorded hook error');
+  ok(err instanceof HookInvocationError);
+  strictEqual(err.hookName, 'beforeAcquire');
+  ok(err.cause instanceof Error);
+  strictEqual((err.cause as Error).message, 'beforeAcquire boom');
+
+  release();
 });
 
 it('continues processing queue if afterAcquire throws', async () => {

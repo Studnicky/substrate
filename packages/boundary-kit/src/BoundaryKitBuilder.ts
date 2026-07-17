@@ -6,6 +6,8 @@ import type { CircuitBreaker, CircuitBreakerOptionsInterface } from '@studnicky/
 import type { Retry, RetryConfigInterface } from '@studnicky/retry';
 import type { Throttle, ThrottleConfigEntity } from '@studnicky/throttle';
 
+import { PickDefined } from '@studnicky/types';
+
 import type { BoundaryKit } from './BoundaryKit.js';
 import type { BoundaryKitConfigType } from './types/BoundaryKitConfigType.js';
 
@@ -39,11 +41,11 @@ export class BoundaryKitBuilder {
    * Build and return the BoundaryKit instance
    */
   build(): BoundaryKit {
-    const config: BoundaryKitConfigType = {
-      ...(this.#throttle !== undefined ? { 'throttle': this.#throttle } : {}),
-      ...(this.#circuitBreaker !== undefined ? { 'circuitBreaker': this.#circuitBreaker } : {}),
-      ...(this.#retry !== undefined ? { 'retry': this.#retry } : {})
-    };
+    const config: BoundaryKitConfigType = PickDefined.from({
+      'circuitBreaker': this.#circuitBreaker,
+      'retry': this.#retry,
+      'throttle': this.#throttle
+    });
     return this.#create(config);
   }
 

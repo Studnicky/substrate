@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { HookInvocationError, HookTimeoutError } from '@studnicky/errors';
+
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
 
 void describe('Pipeline', () => {
@@ -183,6 +185,147 @@ void describe('Pipeline', () => {
       // Only n * 2 remains
       const result = await pipeline.run(5);
       assert.strictEqual(result, 10);
+    });
+
+    void it('a throwing lifecycle hook rejects run() with a HookInvocationError instead of being swallowed', async () => {
+      class ThrowingHookPipeline extends Pipeline<number> {
+        protected override onStageStart(): void {
+          throw new Error('onStageStart boom');
+        }
+      }
+
+      const pipeline = ThrowingHookPipeline.create();
+      pipeline.add((n) => n + 1);
+
+      await assert.rejects(
+        () => { return pipeline.run(0); },
+        (err: unknown) => {
+          assert.ok(err instanceof HookInvocationError);
+          assert.strictEqual(err.hookName, 'onStageStart');
+          return true;
+        }
+      );
+    });
+
+    void it('removing the second of two stages added with the same fn reference leaves the first running', async () => {
+      const pipeline = Pipeline.create<number>();
+      const inc = (n: number) => n + 1;
+      const removeA = pipeline.add(inc);
+      const removeB = pipeline.add(inc);
+
+      assert.strictEqual(pipeline.stages.length, 2);
+
+      removeB();
+
+      assert.strictEqual(pipeline.stages.length, 1);
+      // The first `inc` stage still runs.
+      const result = await pipeline.run(0);
+      assert.strictEqual(result, 1);
+
+      void removeA;
+    });
+
+    void it('removing the first of two stages added with the same fn reference leaves the second running', async () => {
+      const pipeline = Pipeline.create<number>();
+      const inc = (n: number) => n + 1;
+      const removeA = pipeline.add(inc);
+      const removeB = pipeline.add(inc);
+
+      removeA();
+
+      assert.strictEqual(pipeline.stages.length, 1);
+      const result = await pipeline.run(0);
+      assert.strictEqual(result, 1);
+
+      void removeB;
+    });
+
+    void it('a stage that removes itself mid-run does not skip the following stage', async () => {
+      const pipeline = Pipeline.create<number>();
+      const calls: string[] = [];
+      const removeSelf: () => void = pipeline.add((n) => {
+        calls.push('self');
+        removeSelf();
+        return n + 1;
+      });
+      pipeline.add((n) => {
+        calls.push('next');
+        return n + 10;
+      });
+
+      const result = await pipeline.run(0);
+
+      // Both stages ran exactly once, in order, and the self-removing
+      // stage is gone from the pipeline afterward.
+      assert.deepStrictEqual(calls, ['self', 'next']);
+      assert.strictEqual(result, 11);
+      assert.strictEqual(pipeline.stages.length, 1);
+    });
+
+    void it('a stage that removes itself mid-run is not re-executed on the next run() call', async () => {
+      const pipeline = Pipeline.create<number>();
+      let selfRunCount = 0;
+      const removeSelf: () => void = pipeline.add((n) => {
+        selfRunCount++;
+        removeSelf();
+        return n;
+      });
+      pipeline.add((n) => n + 1);
+
+      await pipeline.run(0);
+      const secondResult = await pipeline.run(0);
+
+      assert.strictEqual(selfRunCount, 1);
+      assert.strictEqual(secondResult, 1);
+    });
+
+    void it('with hookTimeoutMs set, a hook that resolves before the timeout behaves identically to today', async () => {
+      class ResolvingHookPipeline extends Pipeline<number> {
+        protected override onStageSuccess(): Promise<void> {
+          return Promise.resolve();
+        }
+      }
+
+      const pipeline = ResolvingHookPipeline.create({ 'hookTimeoutMs': 200 });
+      pipeline.add((n) => n + 1);
+
+      const result = await pipeline.run(0);
+      assert.strictEqual(result, 1);
+    });
+
+    void it('with hookTimeoutMs set, a hook that never settles rejects run() with a HookInvocationError whose cause is a HookTimeoutError', async () => {
+      class HangingHookPipeline extends Pipeline<number> {
+        protected override onStageStart(): Promise<void> {
+          return new Promise<void>(() => { /* never settles */ });
+        }
+      }
+
+      const pipeline = HangingHookPipeline.create({ 'hookTimeoutMs': 25 });
+      pipeline.add((n) => n + 1);
+
+      await assert.rejects(
+        () => { return pipeline.run(0); },
+        (err: unknown) => {
+          assert.ok(err instanceof HookInvocationError);
+          assert.strictEqual(err.hookName, 'onStageStart');
+          assert.ok(err.cause instanceof HookTimeoutError);
+          return true;
+        }
+      );
+    });
+
+    void it('with hookTimeoutMs unset, a hook that resolves normally succeeds exactly as before', async () => {
+      class ResolvingHookPipeline extends Pipeline<number> {
+        protected override onStageSuccess(): Promise<void> {
+          return Promise.resolve();
+        }
+      }
+
+      const pipeline = ResolvingHookPipeline.create();
+      pipeline.add((n) => n + 1);
+
+      const result = await pipeline.run(0);
+      assert.strictEqual(result, 1);
     });
   });
 });

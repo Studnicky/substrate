@@ -1,6 +1,6 @@
 import type { JsonValueType } from '@studnicky/types';
 
-import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
+import { BaseError, DomainErrorArgs } from '@studnicky/errors';
 
 /** Optional construction arguments for {@link SampleBufferError} (all `BaseErrorArgumentsType` members except `code`/`message`, which this class supplies itself). */
 type SampleBufferErrorArgsType = {
@@ -20,13 +20,14 @@ type SampleBufferErrorArgsType = {
 /** Thrown when sample buffer configuration is invalid. */
 export class SampleBufferError extends BaseError {
   public constructor(message: string, args?: SampleBufferErrorArgsType) {
-    const obj: Record<string, unknown> = {};
-    obj.cause = args?.cause;
-    obj.code = 'sampleBuffer.invalidConfig';
-    obj.correlationId = args?.correlationId;
-    obj.message = message;
-    obj.metadata = args?.metadata;
-    obj.retryable = false;
-    super(obj as BaseErrorArgumentsType);
+    const fields = { 'message': message };
+    super(DomainErrorArgs.build(fields, {
+      'cause': args?.cause,
+      'code': 'sampleBuffer.invalidConfig',
+      'correlationId': args?.correlationId,
+      'message': (f) => { const result = f.message; return result; },
+      'metadata': args?.metadata,
+      'retryable': false
+    }));
   }
 }

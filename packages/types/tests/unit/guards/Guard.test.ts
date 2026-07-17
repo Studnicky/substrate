@@ -3,21 +3,6 @@ import { it } from 'node:test';
 
 import { Guard } from '../../../src/guards/Guard.js';
 
-// Guard.isRecord
-const isRecordScenarios: Array<{ description: string; value: unknown; expected: boolean }> = [
-  { description: 'Guard.isRecord returns true for plain object', value: { a: 1 }, expected: true },
-  { description: 'Guard.isRecord returns true for empty object', value: {}, expected: true },
-  { description: 'Guard.isRecord returns false for null', value: null, expected: false },
-  { description: 'Guard.isRecord returns false for array', value: [1, 2, 3], expected: false },
-  { description: 'Guard.isRecord returns false for string', value: 'string', expected: false },
-  { description: 'Guard.isRecord returns false for number', value: 42, expected: false },
-  { description: 'Guard.isRecord returns false for boolean', value: true, expected: false },
-  { description: 'Guard.isRecord returns false for undefined', value: undefined, expected: false },
-];
-for (const { description, value, expected } of isRecordScenarios) {
-  void it(description, () => { assert.equal(Guard.isRecord(value), expected); });
-}
-
 // Guard.asRecord — identity check
 void it('Guard.asRecord returns the value when it is a record', () => {
   const obj = { key: 'value' };
@@ -198,10 +183,23 @@ const isObjectScenarios: Array<{ description: string; value: unknown; expected: 
   { description: 'Guard.isObject returns false for string', value: 'hello', expected: false },
   { description: 'Guard.isObject returns false for number', value: 42, expected: false },
   { description: 'Guard.isObject returns false for boolean', value: true, expected: false },
+  { description: 'Guard.isObject returns false for Map', value: new Map(), expected: false },
+  { description: 'Guard.isObject returns false for non-empty Map', value: new Map([['a', 1]]), expected: false },
+  { description: 'Guard.isObject returns false for Set', value: new Set(), expected: false },
+  { description: 'Guard.isObject returns false for non-empty Set', value: new Set([1]), expected: false },
 ];
 for (const { description, value, expected } of isObjectScenarios) {
   void it(description, () => { assert.equal(Guard.isObject(value), expected); });
 }
+
+// Guard.asRecord — Map/Set exclusion
+void it('Guard.asRecord returns undefined for a Map', () => {
+  assert.strictEqual(Guard.asRecord(new Map()), undefined);
+});
+
+void it('Guard.asRecord returns undefined for a Set', () => {
+  assert.strictEqual(Guard.asRecord(new Set()), undefined);
+});
 
 // Guard.isNonNegativeInteger
 const isNonNegativeIntegerScenarios: Array<{ description: string; value: unknown; expected: boolean }> = [

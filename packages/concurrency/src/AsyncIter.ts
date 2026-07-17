@@ -1,5 +1,7 @@
 /** Static utilities for async iterables: merge, filter, enrich. */
 
+import { CircularBuffer } from '@studnicky/circular-buffer';
+
 export class AsyncIter {
   /** FIFO merge of N async iterables in arrival order. */
   static async *merge<T>(...sources: AsyncIterable<T>[]): AsyncGenerator<T> {
@@ -7,7 +9,7 @@ export class AsyncIter {
 
     type QueueEntry = { 'value': T; 'variant': 'value'; } | { 'variant': 'done' } | { 'error': unknown; 'variant': 'error'; };
 
-    const queue: QueueEntry[] = [];
+    const queue = CircularBuffer.create<QueueEntry>({ 'overflow': 'grow' });
     let notify: (() => void) | null = null;
 
     function enqueue(entry: QueueEntry): void {

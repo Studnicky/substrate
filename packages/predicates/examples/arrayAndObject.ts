@@ -6,16 +6,16 @@ import assert from 'node:assert/strict';
 import { Predicates } from '../src/index.js';
 
 // #region array
-// checkMinItems / checkMaxItems test array length
-console.log('checkMinItems [1,2,3] 3:', Predicates.checkMinItems([1, 2, 3], 3));  // true
-console.log('checkMinItems [1,2] 3:', Predicates.checkMinItems([1, 2], 3));        // false
-console.log('checkMaxItems [1,2] 3:', Predicates.checkMaxItems([1, 2], 3));        // true
-console.log('checkMaxItems [1,2,3,4] 3:', Predicates.checkMaxItems([1, 2, 3, 4], 3)); // false
+// satisfiesMinItems / satisfiesMaxItems test array length
+console.log('satisfiesMinItems [1,2,3] 3:', Predicates.satisfiesMinItems([1, 2, 3], 3));  // true
+console.log('satisfiesMinItems [1,2] 3:', Predicates.satisfiesMinItems([1, 2], 3));        // false
+console.log('satisfiesMaxItems [1,2] 3:', Predicates.satisfiesMaxItems([1, 2], 3));        // true
+console.log('satisfiesMaxItems [1,2,3,4] 3:', Predicates.satisfiesMaxItems([1, 2, 3, 4], 3)); // false
 
-// checkUniqueItems uses deep equality for each pair
-console.log('checkUniqueItems [1,2,3]:', Predicates.checkUniqueItems([1, 2, 3]));        // true
-console.log('checkUniqueItems [1,2,1]:', Predicates.checkUniqueItems([1, 2, 1]));        // false
-console.log('checkUniqueItems [{a:1},{a:1}]:', Predicates.checkUniqueItems([{ 'a': 1 }, { 'a': 1 }])); // false
+// satisfiesUniqueItems uses deep equality for each pair
+console.log('satisfiesUniqueItems [1,2,3]:', Predicates.satisfiesUniqueItems([1, 2, 3]));        // true
+console.log('satisfiesUniqueItems [1,2,1]:', Predicates.satisfiesUniqueItems([1, 2, 1]));        // false
+console.log('satisfiesUniqueItems [{a:1},{a:1}]:', Predicates.satisfiesUniqueItems([{ 'a': 1 }, { 'a': 1 }])); // false
 
 // satisfiesContains validates minContains/maxContains bounds against a pre-counted match total
 console.log('satisfiesContains 2 1 3:', Predicates.satisfiesContains(2, 1, 3));              // true
@@ -24,9 +24,9 @@ console.log('satisfiesContains 1 undef undef:', Predicates.satisfiesContains(1, 
 // #endregion array
 
 // #region object
-// checkRequired verifies all listed keys exist in the object
-console.log('checkRequired {a,b} [a,b]:', Predicates.checkRequired({ 'a': 1, 'b': 2 }, ['a', 'b'])); // true
-console.log('checkRequired {a} [a,b]:', Predicates.checkRequired({ 'a': 1 }, ['a', 'b']));            // false
+// hasAllRequiredProperties verifies all listed keys exist in the object
+console.log('hasAllRequiredProperties {a,b} [a,b]:', Predicates.hasAllRequiredProperties({ 'a': 1, 'b': 2 }, ['a', 'b'])); // true
+console.log('hasAllRequiredProperties {a} [a,b]:', Predicates.hasAllRequiredProperties({ 'a': 1 }, ['a', 'b']));            // false
 
 // hasNoAdditionalProperties checks that every key belongs to the allowed set
 console.log('hasNoAdditionalProperties {a} Set[a,b]:', Predicates.hasNoAdditionalProperties({ 'a': 1 }, new Set(['a', 'b']))); // true
@@ -62,24 +62,24 @@ console.log('satisfiesContentMediaType text/plain:', Predicates.satisfiesContent
 // #endregion content
 // #endregion usage
 
-assert.equal(Predicates.checkMinItems([1, 2, 3], 3), true);
-assert.equal(Predicates.checkMinItems([1, 2], 3), false);
-assert.equal(Predicates.checkMaxItems([1, 2], 3), true);
-assert.equal(Predicates.checkMaxItems([1, 2, 3, 4], 3), false);
+assert.equal(Predicates.satisfiesMinItems([1, 2, 3], 3), true);
+assert.equal(Predicates.satisfiesMinItems([1, 2], 3), false);
+assert.equal(Predicates.satisfiesMaxItems([1, 2], 3), true);
+assert.equal(Predicates.satisfiesMaxItems([1, 2, 3, 4], 3), false);
 
-assert.equal(Predicates.checkUniqueItems([1, 2, 3]), true);
-assert.equal(Predicates.checkUniqueItems([1, 2, 1]), false);
-assert.equal(Predicates.checkUniqueItems([{ 'a': 1 }, { 'a': 2 }]), true);
-assert.equal(Predicates.checkUniqueItems([{ 'a': 1 }, { 'a': 1 }]), false);
+assert.equal(Predicates.satisfiesUniqueItems([1, 2, 3]), true);
+assert.equal(Predicates.satisfiesUniqueItems([1, 2, 1]), false);
+assert.equal(Predicates.satisfiesUniqueItems([{ 'a': 1 }, { 'a': 2 }]), true);
+assert.equal(Predicates.satisfiesUniqueItems([{ 'a': 1 }, { 'a': 1 }]), false);
 
 assert.equal(Predicates.satisfiesContains(2, 1, 3), true);
 assert.equal(Predicates.satisfiesContains(0, 1, 3), false);
 assert.equal(Predicates.satisfiesContains(4, 1, 3), false);
 assert.equal(Predicates.satisfiesContains(1, undefined, undefined), true);
 
-assert.equal(Predicates.checkRequired({ 'a': 1, 'b': 2 }, ['a', 'b']), true);
-assert.equal(Predicates.checkRequired({ 'a': 1 }, ['a', 'b']), false);
-assert.equal(Predicates.checkRequired({}, []), true);
+assert.equal(Predicates.hasAllRequiredProperties({ 'a': 1, 'b': 2 }, ['a', 'b']), true);
+assert.equal(Predicates.hasAllRequiredProperties({ 'a': 1 }, ['a', 'b']), false);
+assert.equal(Predicates.hasAllRequiredProperties({}, []), true);
 
 assert.equal(Predicates.hasNoAdditionalProperties({ 'a': 1 }, new Set(['a', 'b'])), true);
 assert.equal(Predicates.hasNoAdditionalProperties({ 'a': 1, 'c': 3 }, new Set(['a', 'b'])), false);

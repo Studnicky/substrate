@@ -1,6 +1,6 @@
 import type { JsonValueType } from '@studnicky/types';
 
-import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
+import { BaseError, DomainErrorArgs } from '@studnicky/errors';
 
 /** Optional construction arguments for {@link BatchError} (all `BaseErrorArgumentsType` members except `code`/`message`, which this class supplies itself). */
 type BatchErrorArgsType = {
@@ -20,13 +20,14 @@ type BatchErrorArgsType = {
 /** Thrown when batch configuration is invalid. */
 export class BatchError extends BaseError {
   public constructor(message: string, args?: BatchErrorArgsType) {
-    const obj: Record<string, unknown> = {};
-    obj.cause = args?.cause;
-    obj.code = 'batch.invalidConfig';
-    obj.correlationId = args?.correlationId;
-    obj.message = message;
-    obj.metadata = args?.metadata;
-    obj.retryable = false;
-    super(obj as BaseErrorArgumentsType);
+    const fields = { 'message': message };
+    super(DomainErrorArgs.build(fields, {
+      'cause': args?.cause,
+      'code': 'batch.invalidConfig',
+      'correlationId': args?.correlationId,
+      'message': (f) => { const result = f.message; return result; },
+      'metadata': args?.metadata,
+      'retryable': false
+    }));
   }
 }

@@ -6,6 +6,8 @@
  * `setViewportSize()`.
  */
 
+import { HookInvoker } from '@studnicky/errors';
+
 import type { VisibleRangeEntity } from './entities/VisibleRangeEntity.js';
 import type { VisibleRangeConfigInterface } from './interfaces/VisibleRangeConfigInterface.js';
 
@@ -63,10 +65,15 @@ export class VisibleRange {
     const overscan = config.overscan ?? DEFAULT_OVERSCAN;
 
     if (hasItemSize) {
+      if (config.itemSize <= 0) {
+        throw new VisibleRangeError(`\`itemSize\` must be a positive number, received ${config.itemSize}`);
+      }
       return { 'count': config.count, 'itemSize': config.itemSize, 'mode': 'fixed', 'overscan': overscan };
     }
     return { 'count': config.count, 'estimateSize': config.estimateSize as (index: number) => number, 'mode': 'variable', 'overscan': overscan };
   }
+
+  protected readonly hooks: HookInvoker = new HookInvoker();
 
   private readonly config: ResolvedConfigType;
   private scrollOffset = INITIAL_OFFSET;
@@ -75,14 +82,10 @@ export class VisibleRange {
 
   /** Per-index measured-size corrections (variable mode only). */
   private readonly measuredSizes = new Map<number, number>();
-  /** Cumulative offset array, index `i` = sum of sizes of items `[0, i)`. `null` when stale. */
-  private offsets: number[] | null = null;
-
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  /** Cumulative offset array, index `i` = sum of sizes of items `[0, i)`. `null` when never built. Backed by a `Float64Array` for packed, unboxed numeric storage. */
+  private offsets: Float64Array | null = null;
+  /** Earliest index whose downstream cumulative offsets are stale. `null` when the array (if built) is fully up to date. */
+  private dirtyFrom: number | null = null;
 
   protected constructor(config: ResolvedConfigType) {
     this.config = config;
@@ -114,7 +117,9 @@ export class VisibleRange {
       return;
     }
     this.measuredSizes.set(index, size);
-    this.offsets = null;
+    if (this.offsets !== null) {
+      this.dirtyFrom = this.dirtyFrom === null ? index : Math.min(this.dirtyFrom, index);
+    }
   }
 
   /**
@@ -129,9 +134,7 @@ export class VisibleRange {
 
     if (this.lastRange?.start !== range.start || this.lastRange.end !== range.end) {
       this.lastRange = range;
-      this.#invokeHook(() => {
-        this.onRangeChange(range);
-      });
+      this.hooks.invoke('onRangeChange', () => { const result = this.onRangeChange(range); return result; });
     }
     return range;
   }
@@ -162,30 +165,43 @@ export class VisibleRange {
     return { 'end': end, 'start': start };
   }
 
-  /** Builds (or returns the cached) cumulative offset array. `offsets[i]` is the start offset of item `i`; `offsets[count]` is the total size. */
-  private ensureOffsets(): number[] {
-    if (this.offsets !== null) {
-      return this.offsets;
-    }
+  /**
+   * Builds (or incrementally repairs, or returns the cached) cumulative
+   * offset array. `offsets[i]` is the start offset of item `i`;
+   * `offsets[count]` is the total size.
+   *
+   * When a prior `measureItem()` invalidated only a suffix of the array
+   * (tracked via `dirtyFrom`), only that suffix is recomputed — the
+   * prefix `offsets[0..dirtyFrom]` is unaffected because item `i`'s
+   * offset depends only on the sizes of items `[0, i)`.
+   */
+  private ensureOffsets(): Float64Array {
     if (this.config.mode !== 'variable') {
       throw new VisibleRangeError('ensureOffsets() called outside variable mode');
     }
+    if (this.offsets !== null && this.dirtyFrom === null) {
+      return this.offsets;
+    }
 
     const { count, estimateSize } = this.config;
-    const offsets = Array.from<number>({ 'length': count + 1 });
+    const offsets = this.offsets ?? new Float64Array(count + 1);
+    const startIndex = this.offsets === null ? 0 : this.dirtyFrom!;
 
-    offsets[0] = 0;
-    for (let i = 0; i < count; i++) {
+    if (this.offsets === null) {
+      offsets[0] = 0;
+    }
+    for (let i = startIndex; i < count; i++) {
       const size = this.measuredSizes.get(i) ?? estimateSize(i);
       offsets[i + 1] = offsets[i]! + size;
     }
 
     this.offsets = offsets;
+    this.dirtyFrom = null;
     return offsets;
   }
 
   /** Binary search for the item index whose `[offsets[i], offsets[i+1])` span contains `target`. */
-  private indexAtOffset(offsets: number[], target: number): number {
+  private indexAtOffset(offsets: Float64Array, target: number): number {
     const count = this.config.count;
 
     let lo = 0;

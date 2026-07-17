@@ -1,23 +1,10 @@
 import type { Rule } from 'eslint';
 
+import { ObjectGuard } from '../shared/ObjectGuard.js';
+import { PropertyKeyName } from '../shared/propertyKeyName.js';
 import { FunctionScope } from './functionScope.js';
 
 const EXEMPT_KEYS: ReadonlySet<string> = new Set(['transform', 'transformAsync']);
-
-class AstHelpers {
-  static isNonNullObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object';
-  }
-}
-
-class PropertyKeyName {
-  static get(property: unknown): string | undefined {
-    if (!AstHelpers.isNonNullObject(property)) { return undefined; }
-    const key: unknown = property.key;
-    if (!AstHelpers.isNonNullObject(key) || key.type !== 'Identifier') { return undefined; }
-    return typeof key.name === 'string' ? key.name : undefined;
-  }
-}
 
 export const inlineFunctions: Rule.RuleModule = {
   'create': (context) => {
@@ -25,7 +12,7 @@ export const inlineFunctions: Rule.RuleModule = {
       const rawNode = node as unknown as Record<string, unknown>;
       const value: unknown = rawNode.value;
 
-      if (!AstHelpers.isNonNullObject(value) || value.type !== 'FunctionExpression') { return; }
+      if (!ObjectGuard.isObject(value) || value.type !== 'FunctionExpression') { return; }
 
       const parent = node.parent;
       if (parent.type !== 'ObjectExpression') { return; }

@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { StateMachine } from '../../src/StateMachine.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
+import { MailboxCapacityExceededError } from '../../src/errors/MailboxCapacityExceededError.js';
 import type { FsmStepType } from '../../src/FsmStepType.js';
 
 type DemoState = { readonly variant: 'idle' } | { readonly variant: 'active' };
@@ -142,5 +143,113 @@ describe('EffectInterpreter', () => {
 
     await interp.send({ type: 'activate' });
     assert.deepEqual(interp.getState(), { variant: 'active' });
+  });
+
+  it('stop() while an async effect handler is in-flight prevents further queued events from being processed once it resolves', async () => {
+    let releaseHandler!: () => void;
+    const handlerGate = new Promise<void>((resolve) => { releaseHandler = resolve; });
+
+    const interp = EffectInterpreter.create({
+      machine: new DemoMachine(),
+      handlers: {
+        log: async () => { await handlerGate; },
+      },
+      machineId: 'test-11',
+    });
+    interp.start();
+
+    // 'activate' transitions immediately, then suspends on its async effect handler.
+    const activatePromise = interp.send({ type: 'activate' });
+    // Queued while the drain loop is suspended inside the 'activate' effect handler.
+    const deactivatePromise = interp.send({ type: 'deactivate' });
+
+    // Let the mailbox pushes and drain kickoff settle, then stop mid-handler.
+    await Promise.resolve();
+    interp.stop();
+
+    releaseHandler();
+
+    // The already in-flight 'activate' event completes — it transitioned before stop() was called.
+    await activatePromise;
+    // The still-queued 'deactivate' event must never be processed once stop() has taken effect.
+    await assert.rejects(() => deactivatePromise, /stopped before all queued events could be drained/);
+
+    assert.deepEqual(interp.getState(), { variant: 'active' });
+  });
+
+  it('send() while another drain is in-flight resolves only after its own event transitions, even when the in-flight drain errors', async () => {
+    class RejectingMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
+      getInitialState(): DemoState { return { variant: 'idle' }; }
+      reduce(state: DemoState, event: DemoEvent): FsmStepType<DemoState, DemoEffect> {
+        if (event.type === 'deactivate') { throw new Error('deliberately rejected'); }
+        if (state.variant === 'idle' && event.type === 'activate') {
+          return { state: { variant: 'active' }, effects: [] };
+        }
+        return { state, effects: [] };
+      }
+    }
+
+    const interp = EffectInterpreter.create({
+      machine: new RejectingMachine(),
+      handlers: {},
+      machineId: 'test-12',
+    });
+    interp.start();
+
+    // Fired synchronously, back-to-back, with no await between them: the first send()
+    // kicks off #drain() (which throws on 'deactivate'); the second send() is enqueued
+    // while that drain is already running, and must not resolve until ITS OWN event
+    // ('activate') is actually dequeued and transitioned — not merely because "a drain"
+    // happened to be in flight.
+    const rejectingSend = interp.send({ type: 'deactivate' });
+    const queuedSend = interp.send({ type: 'activate' });
+
+    await assert.rejects(() => rejectingSend);
+    await queuedSend;
+
+    assert.deepEqual(interp.getState(), { variant: 'active' });
+  });
+
+  it('create throws FsmConfigError for a non-positive mailboxCapacity', () => {
+    assert.throws(
+      () => EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-13', mailboxCapacity: 0 }),
+      { message: 'mailboxCapacity must be a positive integer' }
+    );
+  });
+
+  it('create throws FsmConfigError for a non-integer mailboxCapacity', () => {
+    assert.throws(
+      () => EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-14', mailboxCapacity: 1.5 }),
+      { message: 'mailboxCapacity must be a positive integer' }
+    );
+  });
+
+  it('mailboxCapacity bounds the mailbox: overflow rejects the evicted send() with MailboxCapacityExceededError, without disturbing surrounding entries', async () => {
+    const interp = EffectInterpreter.create({
+      machine: new DemoMachine(),
+      handlers: {},
+      machineId: 'test-15',
+      mailboxCapacity: 2,
+    });
+    interp.start();
+
+    // Fired synchronously, back-to-back, with no await between them. The first send()'s
+    // event is dequeued synchronously by the kicked-off drain before the next send() call
+    // runs (the drain then suspends at its first internal await), so the mailbox only ever
+    // holds the entries from sends 2-4 — capacity 2 means the 4th send's push evicts the
+    // still-queued 2nd send.
+    const sends = [
+      interp.send({ type: 'activate' }),
+      interp.send({ type: 'deactivate' }),
+      interp.send({ type: 'activate' }),
+      interp.send({ type: 'deactivate' }),
+    ];
+
+    await assert.rejects(() => sends[1], MailboxCapacityExceededError);
+    await sends[0];
+    await sends[2];
+    await sends[3];
+
+    assert.deepEqual(interp.getState(), { variant: 'idle' });
   });
 });

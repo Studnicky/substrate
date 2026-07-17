@@ -81,7 +81,7 @@ its arguments. This index is the at-a-glance map of where each stage lives.
 | [cache](/packages/cache#observability-hooks) | `onHit` `onMiss` `onSet` `onUpdate` `onEvict` `onExpire` `onDelete` `onClear` |
 | [circular-buffer](/packages/circular-buffer#observability-hooks) | `onPush` `onShift` `onOverflow` `onEvict` `onGrow` |
 | [clock](/packages/clock#observability-hooks) | `onNow` `onHrtime` `onAdvance` `onNowMs` |
-| [concurrency](/packages/concurrency#observability-hooks) | `onAcquire` `onAcquireWait` `onContended` `onRelease` `onReleaseDelegated` `onSend` `onReceive` `onEnqueue` `onDequeue` `onClose` `onPublishDropped` `onCoalesceStart` `onCoalesceJoin` `onCoalesceSettled` |
+| [concurrency](/packages/concurrency#observability-hooks) | `onAcquire` `onAcquireWait` `onContended` `onRelease` `onReleaseDelegated` `onEnqueue` `onDequeue` `onClose` `onPublishDropped` `onCoalesceStart` `onCoalesceJoin` `onCoalesceSettled` |
 | [context](/packages/context#observability-hooks) | `onInitialize` `onMissingContext` `onSet` `onGet` `onDelete` `onEnter` `onExit` `onBeforeExecute` `onAfterExecute` `onError` `onTerminate` `onTerminatedAccess` `onDispose` |
 | [event-bus](/packages/event-bus#observability-hooks) | `onPublish` `onSubscribe` `onUnsubscribe` `onDeliver` `onEnqueue` `onDequeue` `onDrop` `onOverflow` `onSlowConsumer` `onHandlerError` `onDispose` |
 | [fetch](/packages/fetch#observability-hooks) | `onRequest` _(transform)_ `onResponse` _(transform)_ `onRequestStart` `onResponseSuccess` `onResponseError` `onRequestError` `onTimeout` `onAbort` `onDispatcherDestroy` |

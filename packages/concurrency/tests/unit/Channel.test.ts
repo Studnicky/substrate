@@ -1,6 +1,8 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
+import { HookInvocationError } from '@studnicky/errors';
 import { Channel } from '../../src/Channel.js';
+import { ChannelError } from '../../src/errors/ChannelError.js';
 
 async function collectN<T>(gen: AsyncGenerator<T>, n: number): Promise<T[]> {
   const items: T[] = [];
@@ -102,21 +104,13 @@ for (const { description, exec } of channelScenarios) {
 
 // Hook observation tests
 class ObservedChannel<T> extends Channel<T> {
-  readonly sendEvents: { 'key': string; 'item': T }[] = [];
-  readonly receiveEvents: { 'key': string; 'item': T }[] = [];
   readonly enqueueEvents: { 'key': string; 'item': T }[] = [];
   readonly dequeueEvents: { 'key': string; 'item': T }[] = [];
   readonly droppedEvents: { 'key': string; 'item': T }[] = [];
   closeCount = 0;
 
-  protected override onSend(key: string, item: T): void {
-    this.sendEvents.push({ 'key': key, 'item': item });
-  }
   protected override onEnqueue(key: string, item: T): void {
     this.enqueueEvents.push({ 'key': key, 'item': item });
-  }
-  protected override onReceive(key: string, item: T): void {
-    this.receiveEvents.push({ 'key': key, 'item': item });
   }
   protected override onDequeue(key: string, item: T): void {
     this.dequeueEvents.push({ 'key': key, 'item': item });
@@ -129,39 +123,37 @@ class ObservedChannel<T> extends Channel<T> {
   }
 }
 
-it('onSend and onEnqueue fire for each publish when open', () => {
+it('onEnqueue fires for each publish when open', async () => {
   const ch = new ObservedChannel<string>();
-  ch.publish('k', 'a');
-  ch.publish('k', 'b');
-  assert.equal(ch.sendEvents.length, 2);
+  await ch.publish('k', 'a');
+  await ch.publish('k', 'b');
   assert.equal(ch.enqueueEvents.length, 2);
-  assert.deepEqual(ch.sendEvents[0], { 'key': 'k', 'item': 'a' });
+  assert.deepEqual(ch.enqueueEvents[0], { 'key': 'k', 'item': 'a' });
   assert.deepEqual(ch.enqueueEvents[1], { 'key': 'k', 'item': 'b' });
 });
 
-it('onReceive and onDequeue fire for each consumed item', async () => {
+it('onDequeue fires for each consumed item', async () => {
   const ch = new ObservedChannel<number>();
   ch.publish('ev', 1);
   ch.publish('ev', 2);
   await collectN(ch.subscribe('ev'), 2);
-  assert.equal(ch.receiveEvents.length, 2);
   assert.equal(ch.dequeueEvents.length, 2);
-  assert.deepEqual(ch.receiveEvents[0], { 'key': 'ev', 'item': 1 });
+  assert.deepEqual(ch.dequeueEvents[0], { 'key': 'ev', 'item': 1 });
   assert.deepEqual(ch.dequeueEvents[1], { 'key': 'ev', 'item': 2 });
 });
 
-it('onPublishDropped fires when publishing to closed channel', () => {
+it('onPublishDropped fires when publishing to closed channel', async () => {
   const ch = new ObservedChannel<string>();
-  ch.close();
-  ch.publish('x', 'dropped');
+  await ch.close();
+  await ch.publish('x', 'dropped');
   assert.equal(ch.droppedEvents.length, 1);
   assert.deepEqual(ch.droppedEvents[0], { 'key': 'x', 'item': 'dropped' });
 });
 
-it('onClose fires once on close()', () => {
+it('onClose fires once on close()', async () => {
   const ch = new ObservedChannel<string>();
   assert.equal(ch.closeCount, 0);
-  ch.close();
+  await ch.close();
   assert.equal(ch.closeCount, 1);
 });
 
@@ -189,14 +181,14 @@ it('no highWaterMark configured: onOverflow never fires, buffer grows unbounded'
 it('highWaterMark configured: onOverflow fires at configured depth without dropping items', async () => {
   const ch = OverflowChannel.create<number>({ 'highWaterMark': 3 }) as OverflowChannel<number>;
 
-  ch.publish('k', 1);
+  await ch.publish('k', 1);
   assert.equal(ch.overflowEvents.length, 0);
-  ch.publish('k', 2);
+  await ch.publish('k', 2);
   assert.equal(ch.overflowEvents.length, 0);
-  ch.publish('k', 3);
+  await ch.publish('k', 3);
   assert.equal(ch.overflowEvents.length, 1);
   assert.deepEqual(ch.overflowEvents[0], { 'key': 'k', 'depth': 3 });
-  ch.publish('k', 4);
+  await ch.publish('k', 4);
   assert.equal(ch.overflowEvents.length, 2);
   assert.deepEqual(ch.overflowEvents[1], { 'key': 'k', 'depth': 4 });
 
@@ -204,30 +196,125 @@ it('highWaterMark configured: onOverflow fires at configured depth without dropp
   assert.deepEqual(items, [1, 2, 3, 4]);
 });
 
-it('a throwing onSend hook does not replace a successful publish or lose the buffered item', async () => {
-  class ThrowingSendChannel<T> extends Channel<T> {
-    protected override onSend(): void {
+it('a throwing onEnqueue hook rejects publish() with HookInvocationError but the item still lands in the buffer', async () => {
+  class ThrowingEnqueueChannel<T> extends Channel<T> {
+    protected override onEnqueue(): void {
       throw new Error('hook boom');
     }
   }
 
-  const ch = ThrowingSendChannel.create<number>();
-  ch.publish('k', 1);
+  const ch = ThrowingEnqueueChannel.create<number>();
+  await assert.rejects(() => ch.publish('k', 1), HookInvocationError);
 
   const items = await collectN(ch.subscribe('k'), 1);
   assert.deepEqual(items, [1]);
 });
 
-it('a throwing onReceive hook does not break subscription delivery after dequeue', async () => {
-  class ThrowingReceiveChannel<T> extends Channel<T> {
-    protected override onReceive(): void {
+it('a throwing onDequeue hook rejects subscribe() with HookInvocationError after the item is dequeued', async () => {
+  class ThrowingDequeueChannel<T> extends Channel<T> {
+    protected override onDequeue(): void {
       throw new Error('hook boom');
     }
   }
 
-  const ch = ThrowingReceiveChannel.create<number>();
-  ch.publish('k', 1);
+  const ch = ThrowingDequeueChannel.create<number>();
+  await ch.publish('k', 1);
 
-  const items = await collectN(ch.subscribe('k'), 1);
-  assert.deepEqual(items, [1]);
+  await assert.rejects(() => collectN(ch.subscribe('k'), 1), HookInvocationError);
+});
+
+it('an async-overridden onEnqueue hook that rejects is routed safely through HookInvoker without an unhandled rejection', async () => {
+  class AsyncRejectingEnqueueChannel<T> extends Channel<T> {
+    protected override async onEnqueue(): Promise<void> {
+      await new Promise((resolve) => { setImmediate(resolve); });
+      throw new Error('async hook boom');
+    }
+  }
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const ch = AsyncRejectingEnqueueChannel.create<number>();
+    await assert.rejects(() => ch.publish('k', 1), HookInvocationError);
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    assert.equal(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+it('FIFO order survives the CircularBuffer swap under high volume', async () => {
+  const ch = Channel.create<number>();
+  const total = 500;
+
+  for (let i = 0; i < total; i += 1) { await ch.publish('fifo', i); }
+
+  const items = await collectN(ch.subscribe('fifo'), total);
+  assert.deepEqual(items, Array.from({ 'length': total }, (_v, i) => i));
+});
+
+// Per-key eviction
+class InspectableChannel<T> extends Channel<T> {
+  get size(): number {
+    const result = this.channelCount;
+    return result;
+  }
+}
+
+it('per-key entries do not grow unboundedly for many distinct keys each used once', async () => {
+  const ch = new InspectableChannel<number>();
+  const total = 200;
+
+  for (let i = 0; i < total; i += 1) { await ch.publish(`key-${i}`, i); }
+  assert.equal(ch.size, total);
+
+  await ch.close();
+
+  for (let i = 0; i < total; i += 1) {
+    const items = await collectN(ch.subscribe(`key-${i}`), 1);
+    assert.deepEqual(items, [i]);
+  }
+
+  assert.equal(ch.size, 0);
+});
+
+it('a closed, fully-drained key is evicted even when the subscriber breaks out of iteration', async () => {
+  const ch = new InspectableChannel<number>();
+
+  await ch.publish('k', 1);
+  await ch.close();
+
+  const gen = ch.subscribe('k');
+  const first = await gen.next();
+  assert.deepEqual(first, { 'done': false, 'value': 1 });
+  const second = await gen.next();
+  assert.equal(second.done, true);
+
+  assert.equal(ch.size, 0);
+});
+
+it('an open channel keeps its per-key entry after the subscriber stops iterating early', async () => {
+  const ch = new InspectableChannel<number>();
+
+  await ch.publish('k', 1);
+  await ch.publish('k', 2);
+
+  const gen = ch.subscribe('k');
+  await gen.next();
+  await gen.return(undefined);
+
+  assert.equal(ch.size, 1);
+});
+
+// Concurrent subscriber guard
+it('a second concurrent subscribe() for the same key throws instead of hanging', async () => {
+  const ch = Channel.create<number>();
+
+  const first = ch.subscribe('dup');
+  first.next(); // starts the first subscriber; it parks on ch.notify since 'dup' has nothing buffered — left pending on purpose
+
+  await assert.rejects(() => ch.subscribe('dup').next(), ChannelError);
 });

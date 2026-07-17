@@ -4,13 +4,8 @@ import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js'
 
 export type BusQueueCreateOptionsType<T> = {
   'handler': (item: T) => Promise<void>;
-  'onDequeue'?: (depth: number) => void;
-  'onDrop'?: () => void;
-  'onEnqueue'?: (depth: number) => void;
+  /** Drain-loop-level catch-all for uncaught handler errors — distinct from the per-event lifecycle hooks below, which are overridden on a subclass instead of passed as callbacks. */
   'onError'?: (err: unknown) => void;
-  'onHandlerError'?: (error: unknown) => void;
-  'onOverflow'?: (depth: number) => void;
-  'onSlowConsumer'?: (depth: number, highWaterMark: number) => void;
   /** Runtime AbortSignal — not JSON-serializable, omitted from schema. */
   'signal'?: AbortSignal;
 } & BusQueueOptionsEntity.Type;

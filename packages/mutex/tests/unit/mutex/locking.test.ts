@@ -15,6 +15,7 @@ import {
   setTimeout as delay
 } from 'node:timers/promises';
 
+import { LockTimeoutError } from '../../../src/errors/index.js';
 import { Mutex } from '../../../src/mutex/index.js';
 
 // --- acquire() and release() ---
@@ -139,4 +140,23 @@ it('handles multiple sequential operations', async () => {
   await mutex.runExclusive('key1', async () => { results.push('third'); });
 
   deepStrictEqual(results, ['first', 'second', 'third']);
+});
+
+it('rejects every queued acquisition with its own LockTimeoutError when a burst of them times out together', async () => {
+  const mutex = Mutex.create({ timeout: 40 });
+  const key = 'contended-key';
+
+  // Hold the lock indefinitely (never released within this test) so every
+  // subsequent acquire() queues on `key` and times out via the same burst.
+  await mutex.acquire(key);
+
+  const queuedCount = 8;
+  const acquisitions = Array.from({ length: queuedCount }, () => mutex.acquire(key));
+
+  for (const acquisition of acquisitions) {
+    await rejects(acquisition, LockTimeoutError);
+  }
+
+  strictEqual(mutex.queueSize(key), 0, 'queue should be fully drained after the timeout burst');
+  ok(!mutex.isComplete(), 'holder still holds the lock, so the mutex is not complete');
 });

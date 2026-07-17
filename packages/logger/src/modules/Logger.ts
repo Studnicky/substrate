@@ -1,7 +1,10 @@
+import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { LoggerInterface } from '../interfaces/LoggerInterface.js';
 import type { LoggerOptionsInterface } from '../interfaces/LoggerOptionsInterface.js';
 import type { TransportInterface } from '../transports/TransportInterface.js';
+import type { HookErrorEntryType } from '../types/HookErrorEntryType.js';
 import type { LogDataType } from '../types/LogDataType.js';
 import type { LogLevelType } from '../types/LogLevelType.js';
 import type { LogMetadataType } from '../types/LogMetadataType.js';
@@ -55,12 +58,8 @@ export class Logger implements LoggerInterface {
   readonly #level: LogLevelType;
   readonly #metadata: LogMetadataType;
   readonly #transports: readonly TransportInterface[];
-
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  readonly #hookErrors: HookErrorEntryType[] = [];
+  protected readonly hooks: HookInvoker = new HookInvoker();
 
   protected constructor(options: LoggerOptionsInterface = {}) {
     configValidation.assertPlainObject(options.metadata, 'metadata');
@@ -88,9 +87,22 @@ export class Logger implements LoggerInterface {
       'metadata': { ...this.#metadata, ...metadata },
       'transports': this.#transports
     });
-    this.#invokeHook(() => {
-      this.onChildCreate(metadata);
+    this.hooks.invoke('onChildCreate', () => {
+      const result = this.onChildCreate(metadata);
+      return result;
     });
+    return result;
+  }
+
+  /** Count of hook failures recorded when `onTransportError` itself throws. */
+  public get hookErrorCount(): number {
+    const result = this.#hookErrors.length;
+    return result;
+  }
+
+  /** Returns a defensive copy of hook failures recorded when `onTransportError` itself throws. */
+  public getHookErrors(): readonly HookErrorEntryType[] {
+    const result = [...this.#hookErrors];
     return result;
   }
 
@@ -141,8 +153,9 @@ export class Logger implements LoggerInterface {
 
   private emit(level: LogLevelType, data: LogDataType): void {
     if (level < this.#level) {
-      this.#invokeHook(() => {
-        this.onDropped(level);
+      this.hooks.invoke('onDropped', () => {
+        const result = this.onDropped(level);
+        return result;
       });
       return;
     }
@@ -154,8 +167,9 @@ export class Logger implements LoggerInterface {
       'time': Date.now()
     };
 
-    this.#invokeHook(() => {
-      this.onLog(level, record);
+    this.hooks.invoke('onLog', () => {
+      const result = this.onLog(level, record);
+      return result;
     });
 
     const count = this.#transports.length;
@@ -172,9 +186,20 @@ export class Logger implements LoggerInterface {
       transport.write(record);
     } catch (error) {
       // One failing transport must not prevent others from receiving the record.
-      this.#invokeHook(() => {
-        this.onTransportError(transport, record, error);
-      });
+      // A broken `onTransportError` override itself must not abort the fan-out
+      // either — its failure is recorded here instead of propagating; see
+      // `hookErrorCount`/`getHookErrors()`.
+      try {
+        this.hooks.invoke('onTransportError', () => {
+          const result = this.onTransportError(transport, record, error);
+          return result;
+        });
+      } catch (hookError) {
+        this.#hookErrors.push({
+          'cause': hookError instanceof HookInvocationError ? hookError.cause : hookError,
+          'hookName': 'onTransportError'
+        });
+      }
     }
   }
 
@@ -202,6 +227,8 @@ export class Logger implements LoggerInterface {
   /**
    * Hook called when a transport's `write()` throws.
    * Override in subclasses to observe transport errors.
+   * A throwing override does not abort fan-out to remaining transports; the
+   * failure is recorded and available via `hookErrorCount`/`getHookErrors()`.
    * Default implementation is a no-op.
    */
   protected onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, _error: unknown): void {}

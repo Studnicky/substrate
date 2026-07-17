@@ -107,6 +107,21 @@ try {
 }
 ```
 
+## Hook failures
+
+A hook override that throws or rejects does not abort acquisition or release — the failure is recorded instead of propagating, backed internally by `@studnicky/errors`'s `HookInvoker`. Inspect recorded failures via `hookErrorCount`/`getHookErrors()`:
+
+```typescript
+class FaultyLock extends FileLock {
+  protected override onAcquire(): void {
+    throw new Error('boom');
+  }
+}
+
+const lock = await FaultyLock.create({ path: '/tmp/queue.json' });
+lock.hookErrorCount; // 1
+```
+
 ## License
 
 MIT

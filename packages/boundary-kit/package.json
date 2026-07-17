@@ -59,6 +59,7 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/resilience": "workspace:*",
     "@studnicky/retry": "workspace:*",
-    "@studnicky/throttle": "workspace:*"
+    "@studnicky/throttle": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

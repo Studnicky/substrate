@@ -122,3 +122,44 @@ it('a throwing onLimitExceeded hook does not replace the underlying exhaustion e
     limiter.consume('user-a');
   }, TokenBucketExhaustedError);
 });
+
+// ---------------------------------------------------------------------------
+// Regression: `this.hooks.invoke('onX', () => { this.onX(...); })` call sites
+// (and the cross-instance `limiter.hooks.invoke(...)` sites used by the
+// delegating TokenBucket/LruCache) must return the hook's own result so
+// HookInvoker can detect an async override and route its eventual rejection
+// through onHookError, rather than discarding it and letting it become an
+// unhandled rejection.
+// ---------------------------------------------------------------------------
+
+it('an async-overridden onKeyCreated that rejects is swallowed by onHookError and never surfaces as an unhandled rejection', async () => {
+  class AsyncRejectingCreatedLimiter extends KeyedRateLimiter {
+    protected override async onKeyCreated(): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onKeyCreated boom');
+    }
+  }
+
+  const limiter = AsyncRejectingCreatedLimiter.create({
+    'burstSize': 1,
+    'requestsPerSecond': 1,
+    'clock': () => 0
+  }) as AsyncRejectingCreatedLimiter;
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    doesNotThrow(() => {
+      limiter.consume('user-a');
+    });
+    strictEqual(limiter.getCache().has('user-a'), true);
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});

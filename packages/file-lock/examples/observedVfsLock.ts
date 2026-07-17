@@ -1,5 +1,6 @@
 /** observedVfsLock — lifecycle hooks demo: two locks over a shared VirtualFileSystem so one contends. Run: npx tsx examples/observedVfsLock.ts */
 
+import { EventRecorder } from '@studnicky/errors/observers';
 // #region usage
 import { VirtualFileSystem } from '@studnicky/virtual-fs';
 import assert from 'node:assert/strict';
@@ -10,26 +11,24 @@ import { FileLock } from '../src/index.js';
 import { VfsLockFixtures } from './fixtures/VfsLockFixtures.js';
 
 class TracedFileLock extends FileLock {
-  readonly events: LockEventEntity.Type[] = [];
+  readonly #recorder = new EventRecorder<LockEventEntity.Type>();
+
+  get events(): LockEventEntity.Type[] { return this.#recorder.events; }
 
   protected override onAcquire(p: string): void {
-    this.events.push({ 'hook': 'onAcquire', 'path': p });
-    console.log(`[file-lock] acquired path=${p}`);
+    this.#recorder.record({ 'hook': 'onAcquire', 'path': p }, `[file-lock] acquired path=${p}`);
   }
 
   protected override onAcquireStart(p: string): void {
-    this.events.push({ 'hook': 'onAcquireStart', 'path': p });
-    console.log(`[file-lock] acquireStart path=${p}`);
+    this.#recorder.record({ 'hook': 'onAcquireStart', 'path': p }, `[file-lock] acquireStart path=${p}`);
   }
 
   protected override onContended(p: string): void {
-    this.events.push({ 'hook': 'onContended', 'path': p });
-    console.log(`[file-lock] contended path=${p}`);
+    this.#recorder.record({ 'hook': 'onContended', 'path': p }, `[file-lock] contended path=${p}`);
   }
 
   protected override onRelease(p: string): void {
-    this.events.push({ 'hook': 'onRelease', 'path': p });
-    console.log(`[file-lock] released path=${p}`);
+    this.#recorder.record({ 'hook': 'onRelease', 'path': p }, `[file-lock] released path=${p}`);
   }
 }
 

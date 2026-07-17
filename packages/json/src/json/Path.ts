@@ -115,6 +115,10 @@ export class Path {
           const match = matches[j]!;
           const key = match[0].slice(2, -2);
 
+          if (!this.isSafeProperty(key)) {
+            return undefined;
+          }
+
           if (current === null || current === undefined) {
             return undefined;
           }
@@ -170,7 +174,11 @@ export class Path {
           } satisfies PathWildcardResultType;
         }
 
-        const idx = Number(arrayIndex) | 0;
+        if (!NUMERIC_SEGMENT_PATTERN.test(arrayIndex)) {
+          return undefined;
+        }
+
+        const idx = Number(arrayIndex);
 
         current = arrayValue[idx];
       } else {

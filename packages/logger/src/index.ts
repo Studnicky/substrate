@@ -69,6 +69,7 @@ export { LogFault } from './modules/LogFault.js';
 export { Logger } from './modules/Logger.js';
 export { LoggerBuilder } from './modules/LoggerBuilder.js';
 export { ParseLogLevel } from './modules/parseLogLevel.js';
+export { ResolveMinLevel } from './modules/ResolveMinLevel.js';
 export { SafeStringify } from './modules/safeStringify.js';
 export { ConsoleTransport } from './transports/ConsoleTransport.js';
 export { ConsoleTransportBuilder } from './transports/ConsoleTransportBuilder.js';

@@ -1,5 +1,7 @@
 /** Fluent builder for SlidingWindowLimiter. */
 
+import { PickDefined } from '@studnicky/types';
+
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 import type { SlidingWindowLimiter } from './SlidingWindowLimiter.js';
 
@@ -50,12 +52,12 @@ export class SlidingWindowLimiterBuilder {
     if (this.#algorithm === undefined) {
       throw new SlidingWindowLimiterConfigError('algorithm is required');
     }
-    const options: SlidingWindowLimiterOptionsInterface = {
+    const options: SlidingWindowLimiterOptionsInterface = PickDefined.from({
       'algorithm': this.#algorithm,
+      'clock': this.#clock,
       'limit': this.#limit,
-      'windowMs': this.#windowMs,
-      ...(this.#clock !== undefined ? { 'clock': this.#clock } : {})
-    };
+      'windowMs': this.#windowMs
+    });
     return this.#create(options);
   }
 }

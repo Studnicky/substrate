@@ -13,7 +13,7 @@ import { Paginator } from '../../../src/index.js';
 it('accumulates a single page', () => {
   const paginator = Paginator.create<string, number>();
 
-  paginator.next('page-1', 2);
+  paginator.next('page-1', { 'cursor': 2, 'exhausted': false });
 
   deepStrictEqual(paginator.pages, ['page-1']);
   strictEqual(paginator.hasNext(), true);
@@ -22,10 +22,23 @@ it('accumulates a single page', () => {
 it('accumulates multiple pages in order', () => {
   const paginator = Paginator.create<string, number>();
 
-  paginator.next('page-1', 2);
-  paginator.next('page-2', 3);
-  paginator.next('page-3', 4);
+  paginator.next('page-1', { 'cursor': 2, 'exhausted': false });
+  paginator.next('page-2', { 'cursor': 3, 'exhausted': false });
+  paginator.next('page-3', { 'cursor': 4, 'exhausted': false });
 
   deepStrictEqual(paginator.pages, ['page-1', 'page-2', 'page-3']);
   strictEqual(paginator.hasNext(), true);
+});
+
+it('accumulates many pages in receipt order without dropping or reordering entries', () => {
+  const paginator = Paginator.create<string, number>();
+
+  const pageCount = 25;
+
+  for (let index = 0; index < pageCount; index += 1) {
+    paginator.next(`page-${index}`, { 'cursor': index, 'exhausted': false });
+  }
+
+  deepStrictEqual(paginator.pages, Array.from({ 'length': pageCount }, (_, index) => `page-${index}`));
+  strictEqual(paginator.pages.length, pageCount);
 });
