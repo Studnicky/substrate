@@ -1,5 +1,16 @@
 # Changelog
 
+## 7.0.1
+
+### Patch Changes
+
+- @studnicky/config@7.0.1
+- @studnicky/errors@7.0.1
+- @studnicky/json@7.0.1
+- @studnicky/logger@7.0.1
+- @studnicky/timing@7.0.1
+- @studnicky/types@7.0.1
+
 ## 7.0.0
 
 ### Minor Changes

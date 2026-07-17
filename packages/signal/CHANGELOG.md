@@ -1,5 +1,11 @@
 # Changelog
 
+## 7.0.1
+
+### Patch Changes
+
+- @studnicky/errors@7.0.1
+
 ## 7.0.0
 
 ### Patch Changes

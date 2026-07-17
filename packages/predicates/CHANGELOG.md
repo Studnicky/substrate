@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.0.1
+
+### Patch Changes
+
+- @studnicky/cache@7.0.1
+- @studnicky/json@7.0.1
+
 ## 7.0.0
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Changelog
 
+## 7.0.1
+
+### Patch Changes
+
+- @studnicky/types@7.0.1
+
 ## 7.0.0
 
 ### Minor Changes
