@@ -95,7 +95,8 @@ const ESLINT_CONFIG_RULES = [
 
 const ESLINT_V8_RULES = [
   'arguments-object', 'array-concat-outside-loops', 'array-from-iterators', 'array-from-map-callback',
-  'array-spread-outside-loops', 'computed-class-properties', 'computed-object-properties',
+  'array-scan-outside-loops', 'array-splice-outside-loops', 'array-spread-outside-loops',
+  'chained-array-iteration', 'computed-class-properties', 'computed-object-properties',
   'conditional-property-assignment', 'define-property', 'delete-property', 'dynamic-property-access',
   'eval-function', 'for-in-loops', 'for-of-arrays', 'inline-arrow-functions', 'inline-functions',
   'max-switch-cases', 'memoize-array-length', 'object-spread', 'prototype-modification',

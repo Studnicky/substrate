@@ -18,4 +18,10 @@ export interface CircularBufferInterface<T> {
    * @returns First item or undefined if buffer is empty
    */
   shift(): T | undefined;
+
+  /**
+   * Add an item to the front of the buffer
+   * @param item - Item to add
+   */
+  unshift(item: T): void;
 }

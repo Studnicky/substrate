@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/request-executor",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "description": "One-shot request execution pattern composing @studnicky/fetch, /retry, /signal, /timing, and /context",
   "type": "module",
   "sideEffects": false,
@@ -59,6 +59,7 @@
     "@studnicky/fetch": "workspace:*",
     "@studnicky/retry": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/timing": "workspace:*"
+    "@studnicky/timing": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

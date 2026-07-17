@@ -1,25 +1,6 @@
 import type { Rule } from 'eslint';
-import type ts from 'typescript';
 
-type ParserServicesType = {
-  readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
-  readonly 'program'?: ts.Program;
-};
-
-class AstHelpers {
-  public static hasTypeServices(value: unknown): value is Required<ParserServicesType> {
-    if (!AstHelpers.isNonNullObject(value)) { return false; }
-    if (!('program' in value) || !AstHelpers.isNonNullObject(value.program)) { return false; }
-
-    return typeof value.program.getTypeChecker === 'function'
-      && 'esTreeNodeToTSNodeMap' in value
-      && value.esTreeNodeToTSNodeMap instanceof Map;
-  }
-
-  public static isNonNullObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object';
-  }
-}
+import { AstHelpers } from '../shared/astHelpers.js';
 
 export const forOfArrays: Rule.RuleModule = {
   'create': (context) => {

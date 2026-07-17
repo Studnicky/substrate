@@ -9,6 +9,8 @@
  * All methods are monomorphic and use consistent object shapes so V8 can
  * inline-cache them without deoptimisation.
  */
+import { Guard } from './Guard.js';
+
 export class Empty {
   // ── Producers ────────────────────────────────────────────────────────────
 
@@ -50,12 +52,13 @@ export class Empty {
    * Returns `true` when `value` is a plain object with no own enumerable
    * keys. Returns `false` for `null`, arrays, Maps, Sets, and any other
    * non-plain-object value.
+   *
+   * Delegates the plain-object shape check to `Guard.isObject` — the
+   * canonical predicate for the package — and adds only the emptiness check
+   * on top, so the Map/Set exclusion lives in exactly one place.
    */
   public static isObject(value: unknown): boolean {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-      return false;
-    }
-    if (value instanceof Map || value instanceof Set) {
+    if (!Guard.isObject(value)) {
       return false;
     }
     return Object.keys(value).length === 0;

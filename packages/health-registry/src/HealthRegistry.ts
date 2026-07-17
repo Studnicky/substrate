@@ -1,20 +1,37 @@
 /** Named async health-check registry with worst-status-wins aggregation */
 
-import { Signal } from '@studnicky/signal';
+import { HookInvoker } from '@studnicky/errors';
 
 import type { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
 import type { HealthCheckResultType } from './types/HealthCheckResultType.js';
 import type { HealthCheckType } from './types/HealthCheckType.js';
 import type { HealthEvaluationType } from './types/HealthEvaluationType.js';
 import type { HealthStatusType } from './types/HealthStatusType.js';
+import type { HookErrorEntryType } from './types/HookErrorEntryType.js';
 
 type HealthCheckOptionsType = HealthCheckOptionsEntity.Type;
 
 // json-schema-uninexpressible: 'check' is a function type (HealthCheckType), not representable in JSON Schema
 type HealthCheckEntryType = {
   readonly 'check': HealthCheckType;
-  readonly 'timeoutMs'?: number;
+  readonly 'timeoutMs': number | undefined;
 };
+
+/**
+ * Delegates hook-error handling back to the owning `HealthRegistry`'s
+ * `#hookErrors`. Hoisted to module scope so V8 compiles this class once
+ * rather than per `HealthRegistry` instantiation.
+ */
+class HealthRegistryHookInvoker extends HookInvoker {
+  constructor(private readonly onFailure: (hookName: string, cause: unknown) => void) {
+    super();
+  }
+
+  protected override onHookError<T>(hookName: string, cause: unknown): T {
+    this.onFailure(hookName, cause);
+    return undefined as T;
+  }
+}
 
 /**
  * Registers named async health checks and aggregates them into one overall status.
@@ -29,6 +46,11 @@ type HealthCheckEntryType = {
  * `HealthRegistry` owns only the registry-and-aggregate logic — no HTTP endpoint wiring, no
  * Kubernetes liveness/readiness distinction. Wire `evaluate()` into a route or probe in the
  * consuming application.
+ *
+ * This class performs NO observability of its own — it exposes protected lifecycle hooks
+ * that a consumer overrides to add logging, timing, or metrics. A hook that throws or rejects
+ * does not corrupt the registry or abort the caller: the failure is recorded (see
+ * `hookErrorCount`/`getHookErrors()`) instead of propagating.
  *
  * @example
  * ```typescript
@@ -48,9 +70,26 @@ export class HealthRegistry {
   }
 
   readonly #registry = new Map<string, HealthCheckEntryType>();
-  readonly #signal = Signal.create();
+  readonly #hookErrors: HookErrorEntryType[] = [];
+  protected readonly hooks: HookInvoker;
 
-  protected constructor() {}
+  protected constructor() {
+    this.hooks = new HealthRegistryHookInvoker((hookName, cause) => {
+      this.#hookErrors.push({ 'cause': cause, 'hookName': hookName });
+    });
+  }
+
+  /** Count of hook failures recorded by `onHookError` since construction. */
+  get hookErrorCount(): number {
+    const result = this.#hookErrors.length;
+    return result;
+  }
+
+  /** Returns a defensive copy of every hook failure recorded since construction. */
+  getHookErrors(): readonly HookErrorEntryType[] {
+    const result = [...this.#hookErrors];
+    return result;
+  }
 
   /**
    * Registers a named check function, replacing any existing check under the same name.
@@ -62,10 +101,13 @@ export class HealthRegistry {
   register(name: string, check: HealthCheckType, options?: HealthCheckOptionsType): void {
     const entry: HealthCheckEntryType = {
       'check': check,
-      ...(options?.timeoutMs !== undefined ? { 'timeoutMs': options.timeoutMs } : {})
+      'timeoutMs': options?.timeoutMs
     };
     this.#registry.set(name, entry);
-    this.#invokeHook(() => { this.onCheckRegistered(name); });
+    this.hooks.invoke('onCheckRegistered', () => {
+      const result = this.onCheckRegistered(name);
+      return result;
+    });
   }
 
   /** Removes a named check. No-op if the name was never registered. */
@@ -105,7 +147,10 @@ export class HealthRegistry {
     });
 
     const overall = HealthRegistry.#aggregate(results);
-    this.#invokeHook(() => { this.onAggregate(overall, results); });
+    this.hooks.invoke('onAggregate', () => {
+      const result = this.onAggregate(overall, results);
+      return result;
+    });
 
     return { 'results': results, 'status': overall };
   }
@@ -134,39 +179,42 @@ export class HealthRegistry {
       result = { 'metadata': { 'error': error }, 'status': 'unhealthy' };
     }
 
-    this.#invokeHook(() => { this.onCheckResult(name, result.status, result.metadata); });
+    this.hooks.invoke('onCheckResult', () => {
+      const hookResult = this.onCheckResult(name, result.status, result.metadata);
+      return hookResult;
+    });
     return result;
   }
 
   async #runWithTimeout(name: string, check: HealthCheckType, timeoutMs: number): Promise<HealthCheckResultType> {
-    const signal = this.#signal.timeout(timeoutMs);
-
     const checkPromise = check();
     // A check that loses the race may still reject later; swallow so it never
     // surfaces as an unhandled rejection once the timeout branch has already settled.
     checkPromise.catch(() => {});
 
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<HealthCheckResultType>((resolve) => {
-      signal.addEventListener('abort', () => {
-        this.#invokeHook(() => { this.onCheckTimeout(name, timeoutMs); });
+      timer = setTimeout(() => {
+        this.hooks.invoke('onCheckTimeout', () => {
+          const result = this.onCheckTimeout(name, timeoutMs);
+          return result;
+        });
         resolve({ 'metadata': { 'reason': 'timeout', 'timeoutMs': timeoutMs }, 'status': 'unhealthy' });
-      }, { 'once': true });
+      }, timeoutMs);
     });
 
-    const result = await Promise.race([checkPromise, timeoutPromise]);
-    return result;
-  }
-
-  #invokeHook(hook: () => void): void {
     try {
-      hook();
-    } catch {}
+      const result = await Promise.race([checkPromise, timeoutPromise]);
+      return result;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Lifecycle hooks — no-op by default. The bare class does NO observability;
-  // override in a subclass to add logging/tracing/metrics.
-  // Overrides must not throw or block.
+  // override in a subclass to add logging/tracing/metrics. A throwing override
+  // is recorded via `onHookError` rather than propagated; see class doc comment.
   // ---------------------------------------------------------------------------
 
   /** Fires after a check is registered (or replaces an existing registration under the same name). */

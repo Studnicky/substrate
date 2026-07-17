@@ -1,38 +1,36 @@
 /** observedVirtualFs — lifecycle hooks demo: subclass and override onCreate/onWrite/onRead/onRename/onDelete. Run: npx tsx examples/observedVirtualFs.ts */
 
+// #region usage
+import { EventRecorder } from '@studnicky/errors/observers';
 import assert from 'node:assert/strict';
 
 import type { HookEventEntity } from './entities/HookEventEntity.js';
 
-// #region usage
 import { VirtualFileSystem } from '../src/index.js';
 
 class TracingVfs extends VirtualFileSystem {
-  readonly events: HookEventEntity.Type[] = [];
+  readonly #recorder = new EventRecorder<HookEventEntity.Type>();
+
+  get events(): HookEventEntity.Type[] { return this.#recorder.events; }
 
   protected override onCreate(path: string): void {
-    this.events.push({ 'hook': 'onCreate', 'path': path });
-    console.log(`[virtual-fs] onCreate path=${path}`);
+    this.#recorder.record({ 'hook': 'onCreate', 'path': path }, `[virtual-fs] onCreate path=${path}`);
   }
 
   protected override onDelete(path: string): void {
-    this.events.push({ 'hook': 'onDelete', 'path': path });
-    console.log(`[virtual-fs] onDelete path=${path}`);
+    this.#recorder.record({ 'hook': 'onDelete', 'path': path }, `[virtual-fs] onDelete path=${path}`);
   }
 
   protected override onRead(path: string): void {
-    this.events.push({ 'hook': 'onRead', 'path': path });
-    console.log(`[virtual-fs] onRead path=${path}`);
+    this.#recorder.record({ 'hook': 'onRead', 'path': path }, `[virtual-fs] onRead path=${path}`);
   }
 
   protected override onRename(oldPath: string, newPath: string): void {
-    this.events.push({ 'hook': 'onRename', 'path': oldPath });
-    console.log(`[virtual-fs] onRename from=${oldPath} to=${newPath}`);
+    this.#recorder.record({ 'hook': 'onRename', 'path': oldPath }, `[virtual-fs] onRename from=${oldPath} to=${newPath}`);
   }
 
   protected override onWrite(path: string): void {
-    this.events.push({ 'hook': 'onWrite', 'path': path });
-    console.log(`[virtual-fs] onWrite path=${path}`);
+    this.#recorder.record({ 'hook': 'onWrite', 'path': path }, `[virtual-fs] onWrite path=${path}`);
   }
 }
 

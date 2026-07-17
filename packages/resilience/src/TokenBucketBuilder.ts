@@ -1,5 +1,7 @@
 /** Fluent builder for TokenBucket. */
 
+import { PickDefined } from '@studnicky/types';
+
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 import type { TokenBucket } from './TokenBucket.js';
 
@@ -41,11 +43,11 @@ export class TokenBucketBuilder {
     if (this.#burstSize === undefined) {
       throw new ResilienceConfigError('burstSize is required');
     }
-    const options: TokenBucketOptionsInterface = {
+    const options: TokenBucketOptionsInterface = PickDefined.from({
       'burstSize': this.#burstSize,
-      'requestsPerSecond': this.#requestsPerSecond,
-      ...(this.#clock !== undefined ? { 'clock': this.#clock } : {})
-    };
+      'clock': this.#clock,
+      'requestsPerSecond': this.#requestsPerSecond
+    });
     return this.#create(options);
   }
 }

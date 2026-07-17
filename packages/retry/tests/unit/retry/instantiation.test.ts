@@ -60,6 +60,16 @@ const builderScenarios: Array<{ description: string; build: () => Retry }> = [
   {
     description: 'builds with errorClassifier and maxRetries',
     build: () => Retry.builder().maxRetries(3).errorClassifier(DefaultHttpErrorClassifier.create()).build()
+  },
+  {
+    description: 'builds with custom maxElapsedMs(5000)',
+    build: () => Retry.builder().maxElapsedMs(5000).build()
+  },
+  {
+    description: 'builds with backoffStrategy',
+    build: () => Retry.builder()
+      .backoffStrategy({ baseDelayMs: 100, strategy: (attempt, base) => base * (attempt + 1) })
+      .build()
   }
 ];
 
@@ -78,6 +88,37 @@ it('builder.maxRetries() returns builder instance for chaining', () => {
   const result = builder.maxRetries(5);
 
   strictEqual(result, builder, 'maxRetries should return this');
+});
+
+it('builder.backoffStrategy() returns builder instance for chaining', () => {
+  const builder = Retry.builder();
+  const result = builder.backoffStrategy({ baseDelayMs: 10, strategy: () => 0 });
+
+  strictEqual(result, builder, 'backoffStrategy should return this');
+});
+
+// ---------------------------------------------------------------------------
+// Builder-configured maxRetries and backoffStrategy drive real retry behavior
+// ---------------------------------------------------------------------------
+
+it('builder-configured maxRetries and backoffStrategy drive actual retry behavior', async () => {
+  const retry = Retry.builder()
+    .maxRetries(10)
+    .errorClassifier(() => ({ retryable: true }))
+    .backoffStrategy({ baseDelayMs: 5, strategy: () => 1 })
+    .build();
+
+  let attempts = 0;
+
+  const result = await retry.execute(async () => {
+    attempts++;
+    if (attempts <= 3) {throw new Error('transient failure');}
+    return 'recovered';
+  });
+
+  strictEqual(result, 'recovered');
+  strictEqual(attempts, 4);
+  strictEqual(retry.getStats().totalRetries, 3);
 });
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,27 @@
+import { HookInvoker } from '@studnicky/errors';
+
 import type { EntityStoreOptionsType } from './types/EntityStoreOptionsType.js';
+import type { HookErrorEntryType } from './types/HookErrorEntryType.js';
 
 import { EntityStoreBuilder } from './EntityStoreBuilder.js';
+
+/**
+ * Records a hook failure back into the owning `EntityStore`'s `#hookErrors`
+ * instead of `HookInvoker`'s default (throwing) behavior: a broken observer
+ * hook must never be able to abort or revert an entity mutation that already
+ * completed. Hoisted to module scope so V8 compiles this class once rather
+ * than per `EntityStore` instantiation.
+ */
+class EntityStoreHookInvoker extends HookInvoker {
+  constructor(private readonly onError: (hookName: string, cause: unknown) => void) {
+    super();
+  }
+
+  protected override onHookError<T>(hookName: string, cause: unknown): T {
+    this.onError(hookName, cause);
+    return undefined as T;
+  }
+}
 
 /**
  * Normalized, ID-indexed entity collection — the RTK `createEntityAdapter` shape
@@ -13,8 +34,10 @@ import { EntityStoreBuilder } from './EntityStoreBuilder.js';
  *
  * The base class performs NO observability of its own — it exposes protected
  * lifecycle hooks that a consumer overrides to add logging, timing, or metrics.
- * Overrides must not throw or block; hooks are called synchronously after the
- * relevant state mutation.
+ * A hook that throws or rejects does not corrupt the store or abort the
+ * caller: the failure is recorded (see `hookErrorCount`/`getHookErrors()`)
+ * instead of propagating. Hooks still run inside an awaited path, so an
+ * override should not perform long blocking work.
  *
  * @example Adding observability via hooks
  * ```typescript
@@ -32,6 +55,9 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   readonly #entities: Map<TId, TEntity>;
   readonly #selectId: (entity: TEntity) => TId;
   readonly #sortComparer: ((a: TEntity, b: TEntity) => number) | undefined;
+  readonly #hookErrors: HookErrorEntryType[] = [];
+  protected readonly hooks: HookInvoker;
+  #cachedSorted: TEntity[] | undefined;
 
   static create<TEntity, TId extends PropertyKey = string>(
     options: EntityStoreOptionsType<TEntity, TId>
@@ -53,12 +79,15 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
     this.#entities = new Map();
     this.#selectId = deps.selectId;
     this.#sortComparer = deps.sortComparer;
+    this.hooks = new EntityStoreHookInvoker((hookName, cause) => {
+      this.#hookErrors.push({ 'cause': cause, 'hookName': hookName });
+    });
   }
 
   // ---------------------------------------------------------------------------
   // Lifecycle hooks — no-op by default. The bare class does NO observability;
-  // override these to add logging, timing, or metrics. Overrides must not throw
-  // or block; hooks fire synchronously after the relevant state mutation.
+  // override these to add logging, timing, or metrics. A throwing override is
+  // recorded via `onHookError` rather than propagated; see class doc comment.
   // ---------------------------------------------------------------------------
 
   /** Fires once per entity from `upsertOne`/`upsertMany`, after the entity is stored. */
@@ -76,37 +105,57 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
     return result;
   }
 
+  /** Count of hook failures recorded by `onHookError` since construction. */
+  public get hookErrorCount(): number {
+    const result = this.#hookErrors.length;
+    return result;
+  }
+
+  /** Returns a defensive copy of every hook failure recorded since construction. */
+  public getHookErrors(): readonly HookErrorEntryType[] {
+    const result = [...this.#hookErrors];
+    return result;
+  }
+
   /** Derives the id via `selectId`; inserts a new entity or overwrites an existing one. */
-  public upsertOne(entity: TEntity): void {
+  public async upsertOne(entity: TEntity): Promise<void> {
     const id = this.#selectId(entity);
     this.#entities.set(id, entity);
-    this.#invokeHook(() => { this.onUpsert(id, entity); });
+    this.#cachedSorted = undefined;
+    await Promise.resolve(this.hooks.invoke('onUpsert', () => {
+      const result = this.onUpsert(id, entity);
+      return result;
+    }));
   }
 
   /** Upserts every entity in array order. An empty array is a no-op. */
-  public upsertMany(entities: readonly TEntity[]): void {
+  public async upsertMany(entities: readonly TEntity[]): Promise<void> {
     for (const entity of entities) {
-      this.upsertOne(entity);
+      await this.upsertOne(entity);
     }
   }
 
   /** Removes the entity for `id`; returns whether it existed. */
-  public removeOne(id: TId): boolean {
+  public async removeOne(id: TId): Promise<boolean> {
     const existed = this.#entities.delete(id);
 
     if (existed) {
-      this.#invokeHook(() => { this.onRemove(id); });
+      this.#cachedSorted = undefined;
+      await Promise.resolve(this.hooks.invoke('onRemove', () => {
+        const result = this.onRemove(id);
+        return result;
+      }));
     }
 
     return existed;
   }
 
   /** Removes each id in `ids`; returns the count actually removed. */
-  public removeMany(ids: readonly TId[]): number {
+  public async removeMany(ids: readonly TId[]): Promise<number> {
     let removed = 0;
 
     for (const id of ids) {
-      if (this.removeOne(id)) {
+      if (await this.removeOne(id)) {
         removed += 1;
       }
     }
@@ -115,7 +164,7 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   }
 
   /** Replaces the entire collection with `entities`, deriving ids via `selectId`. */
-  public setAll(entities: readonly TEntity[]): void {
+  public async setAll(entities: readonly TEntity[]): Promise<void> {
     this.#entities.clear();
 
     for (const entity of entities) {
@@ -123,18 +172,27 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
       this.#entities.set(id, entity);
     }
 
-    this.#invokeHook(() => { this.onReplaceAll(this.#entities.size); });
+    this.#cachedSorted = undefined;
+    await Promise.resolve(this.hooks.invoke('onReplaceAll', () => {
+      const result = this.onReplaceAll(this.#entities.size);
+      return result;
+    }));
   }
 
   /** Returns every entity, sorted by `sortComparer` if configured, else in insertion order. */
   public getAll(): readonly TEntity[] {
-    const result = Array.from(this.#entities.values());
-
-    if (this.#sortComparer !== undefined) {
-      result.sort(this.#sortComparer);
+    if (this.#sortComparer === undefined) {
+      const result = Array.from(this.#entities.values());
+      return result;
     }
 
-    return result;
+    if (this.#cachedSorted === undefined) {
+      const sorted = Array.from(this.#entities.values());
+      sorted.sort(this.#sortComparer);
+      this.#cachedSorted = sorted;
+    }
+
+    return this.#cachedSorted;
   }
 
   /** Returns the entity for `id`, or `undefined` if absent. */
@@ -147,11 +205,5 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   public getIds(): readonly TId[] {
     const result = Array.from(this.#entities.keys());
     return result;
-  }
-
-  #invokeHook(hook: () => void): void {
-    try {
-      hook();
-    } catch {}
   }
 }

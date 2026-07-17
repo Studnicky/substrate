@@ -14,6 +14,10 @@ import {
   type TypeReference
 } from 'typescript';
 
+import { AstHelpers } from './shared/astHelpers.js';
+import { DeclarationIdName } from './shared/declarationIdName.js';
+import { ExemptionComment } from './shared/exemptionComment.js';
+import { ObjectGuard } from './shared/ObjectGuard.js';
 
 /**
  * type-alias-invariants — merges five independent type-alias/interface checks into
@@ -120,28 +124,6 @@ class OptionsResolution {
       'noPreferExisting': OptionsResolution.resolveNoPreferExisting(raw?.noPreferExisting),
       'noReadonly': raw?.noReadonly ?? true
     };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Shared AST helpers
-// ---------------------------------------------------------------------------
-
-class AstHelpers {
-  public static isJsonObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
-
-  public static getNodeType(node: unknown): string | undefined {
-    if (!AstHelpers.isJsonObject(node)) { return undefined; }
-    const type = node.type;
-    return typeof type === 'string' ? type : undefined;
-  }
-
-  public static getIdentifierName(node: unknown): string | undefined {
-    if (!AstHelpers.isJsonObject(node)) { return undefined; }
-    const name = node.name;
-    return typeof name === 'string' ? name : undefined;
   }
 }
 
@@ -504,7 +486,7 @@ class PrimitiveDisplay {
 
 class AliasingAstHelpers {
   public static getTypeArgNames(typeArguments: unknown): readonly string[] | undefined {
-    if (!AstHelpers.isJsonObject(typeArguments)) { return undefined; }
+    if (!ObjectGuard.isObject(typeArguments)) { return undefined; }
     const params = typeArguments.params;
 
     if (!Array.isArray(params)) { return undefined; }
@@ -515,7 +497,7 @@ class AliasingAstHelpers {
     for (let i = 0; i < paramsLen; i += 1) {
       const arg: unknown = params[i];
 
-      if (!AstHelpers.isJsonObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') {
+      if (!ObjectGuard.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') {
         return undefined;
       }
       const typeName = arg.typeName;
@@ -529,7 +511,7 @@ class AliasingAstHelpers {
   }
 
   public static getTypeParamNames(typeParameters: unknown): readonly string[] {
-    if (!AstHelpers.isJsonObject(typeParameters)) { return []; }
+    if (!ObjectGuard.isObject(typeParameters)) { return []; }
     const params = typeParameters.params;
 
     if (!Array.isArray(params)) { return []; }
@@ -539,7 +521,7 @@ class AliasingAstHelpers {
 
     for (let i = 0; i < paramsLen; i += 1) {
       const param: unknown = params[i];
-      const nameNode = AstHelpers.isJsonObject(param) ? param.name : undefined;
+      const nameNode = ObjectGuard.isObject(param) ? param.name : undefined;
       const name = AstHelpers.getIdentifierName(nameNode);
 
       if (name === undefined) { return []; }
@@ -552,17 +534,17 @@ class AliasingAstHelpers {
 
 class GenericAliasAnalysis {
   public static hasTypeParameters(node: unknown): boolean {
-    if (!AstHelpers.isJsonObject(node)) { return false; }
+    if (!ObjectGuard.isObject(node)) { return false; }
     let wrapper: Record<string, unknown> | undefined;
     if (Array.isArray(node.params)) {
       wrapper = node;
-    } else if (AstHelpers.isJsonObject(node.typeParameters)) {
+    } else if (ObjectGuard.isObject(node.typeParameters)) {
       wrapper = node.typeParameters;
-    } else if (AstHelpers.isJsonObject(node.typeArguments)) {
+    } else if (ObjectGuard.isObject(node.typeArguments)) {
       wrapper = node.typeArguments;
     }
 
-    if (!AstHelpers.isJsonObject(wrapper)) { return false; }
+    if (!ObjectGuard.isObject(wrapper)) { return false; }
     const paramsBody = wrapper.params;
 
     if (!Array.isArray(paramsBody)) { return false; }
@@ -574,7 +556,7 @@ class GenericAliasAnalysis {
     leftNames: readonly string[],
     annotation: unknown
   ): { 'params': string; 'rhsName': string; } | undefined {
-    if (!AstHelpers.isJsonObject(annotation) || AstHelpers.getNodeType(annotation) !== 'TSTypeReference') {
+    if (!ObjectGuard.isObject(annotation) || AstHelpers.getNodeType(annotation) !== 'TSTypeReference') {
       return undefined;
     }
     const rhsTypeArgs = annotation.typeArguments ?? annotation.typeParameters;
@@ -645,7 +627,7 @@ class AliasingCheck {
 
     if (annotationType === 'TSTypeReference') {
       if (GenericAliasAnalysis.hasTypeParameters(annotation)) { return false; }
-      const typeName = AstHelpers.isJsonObject(annotation) ? annotation.typeName : undefined;
+      const typeName = ObjectGuard.isObject(annotation) ? annotation.typeName : undefined;
       const rhsName = AstHelpers.getIdentifierName(typeName);
 
       if (rhsName === undefined) { return false; }
@@ -694,80 +676,46 @@ class FilePathCheck {
   }
 }
 
-// json-schema-uninexpressible: ad-hoc narrowed view into an ESLint `Comment` AST token's shape — the real
-// authority for this shape is ESLint's SourceCode API, not a domain shape this package owns or defines
-type CommentToken = { readonly 'type': string; readonly 'value': string };
-
-// json-schema-uninexpressible: 'getCommentsBefore' is function-typed — function types have no JSON Schema
-// equivalent
-type SourceCodeLike = { 'getCommentsBefore': (node: unknown) => readonly CommentToken[] };
-
-class ExemptionComment {
-  public static commentsContainDirective(comments: readonly CommentToken[]): boolean {
-    const length = comments.length;
-    for (let index = 0; index < length; index++) {
-      const comment = comments[index];
-      if (comment?.type === 'Line' && DIRECTIVE_PATTERN.test(comment.value)) { return true; }
-    }
-    return false;
-  }
-
-  public static isSourceCodeLike(value: unknown): value is SourceCodeLike {
-    return AstHelpers.isJsonObject(value) && typeof value.getCommentsBefore === 'function';
-  }
-
-  public static has(rawNode: unknown, rawSourceCode: unknown): boolean {
-    if (!ExemptionComment.isSourceCodeLike(rawSourceCode)) { return false; }
-    if (ExemptionComment.commentsContainDirective(rawSourceCode.getCommentsBefore(rawNode))) { return true; }
-    if (!AstHelpers.isJsonObject(rawNode)) { return false; }
-    const parent: unknown = rawNode.parent;
-    if (AstHelpers.isJsonObject(parent) && parent.type === 'ExportNamedDeclaration') {
-      return ExemptionComment.commentsContainDirective(rawSourceCode.getCommentsBefore(parent));
-    }
-    return false;
-  }
-}
-
 class TypeAnnotationAnalysis {
   public static isFromSchemaReference(typeAnnotation: unknown): boolean {
-    if (!AstHelpers.isJsonObject(typeAnnotation)) { return false; }
+    if (!ObjectGuard.isObject(typeAnnotation)) { return false; }
     if (typeAnnotation.type !== 'TSTypeReference') { return false; }
     const typeName: unknown = typeAnnotation.typeName;
-    if (!AstHelpers.isJsonObject(typeName)) { return false; }
+    if (!ObjectGuard.isObject(typeName)) { return false; }
     return typeName.name === 'FromSchema';
   }
 
   public static isBrandedIntersection(typeAnnotation: unknown): boolean {
-    if (!AstHelpers.isJsonObject(typeAnnotation)) { return false; }
+    if (!ObjectGuard.isObject(typeAnnotation)) { return false; }
     if (typeAnnotation.type !== 'TSIntersectionType') { return false; }
     const types: unknown = typeAnnotation.types;
     if (!Array.isArray(types)) { return false; }
 
     return types.some((member: unknown) => {
-      if (!AstHelpers.isJsonObject(member)) { return false; }
+      if (!ObjectGuard.isObject(member)) { return false; }
       if (member.type !== 'TSTypeLiteral') { return false; }
       const members: unknown = member.members;
       if (!Array.isArray(members)) { return false; }
 
       return members.some((prop: unknown) => {
-        if (!AstHelpers.isJsonObject(prop)) { return false; }
+        if (!ObjectGuard.isObject(prop)) { return false; }
         if (prop.type !== 'TSPropertySignature') { return false; }
         const typeAnnotationNode: unknown = prop.typeAnnotation;
-        if (!AstHelpers.isJsonObject(typeAnnotationNode)) { return false; }
+        if (!ObjectGuard.isObject(typeAnnotationNode)) { return false; }
         const innerType: unknown = typeAnnotationNode.typeAnnotation;
-        if (!AstHelpers.isJsonObject(innerType)) { return false; }
+        if (!ObjectGuard.isObject(innerType)) { return false; }
         const innerTypeAnnotation: unknown = innerType.typeAnnotation;
 
         return innerType.type === 'TSTypeOperator'
           && innerType.operator === 'unique'
-          && AstHelpers.isJsonObject(innerTypeAnnotation)
+          && ObjectGuard.isObject(innerTypeAnnotation)
           && innerTypeAnnotation.type === 'TSSymbolKeyword';
       });
     });
   }
 
   public static isExemptAnnotationType(typeAnnotation: unknown): boolean {
-    if (!AstHelpers.isJsonObject(typeAnnotation)) { return false; }
+    if (!ObjectGuard.isObject(typeAnnotation)) { return false; }
     const annotationType: unknown = typeAnnotation.type;
 
     if (
@@ -783,7 +731,7 @@ class TypeAnnotationAnalysis {
       if (!Array.isArray(types)) { return false; }
 
       const allNamed = types.every((member: unknown) => {
-        if (!AstHelpers.isJsonObject(member)) { return false; }
+        if (!ObjectGuard.isObject(member)) { return false; }
         return member.type === 'TSTypeReference';
       });
 
@@ -794,16 +742,6 @@ class TypeAnnotationAnalysis {
     if (TypeAnnotationAnalysis.isFromSchemaReference(typeAnnotation)) { return true; }
 
     return false;
-  }
-}
-
-class DerivedFromSchemaNodeName {
-  public static get(rawNode: unknown): string {
-    if (!AstHelpers.isJsonObject(rawNode)) { return ''; }
-    const idNode: unknown = rawNode.id;
-    if (!AstHelpers.isJsonObject(idNode)) { return ''; }
-    const name: unknown = idNode.name;
-    return typeof name === 'string' ? name : '';
   }
 }
 
@@ -828,12 +766,12 @@ class ExternalTypeReference {
     if (!Array.isArray(members)) { return false; }
 
     return members.some((member: unknown) => {
-      if (!AstHelpers.isJsonObject(member)) { return false; }
+      if (!ObjectGuard.isObject(member)) { return false; }
       if (member.type !== 'TSPropertySignature') { return false; }
       const memberTypeAnnotation: unknown = member.typeAnnotation;
-      if (!AstHelpers.isJsonObject(memberTypeAnnotation)) { return false; }
+      if (!ObjectGuard.isObject(memberTypeAnnotation)) { return false; }
       const innerType: unknown = memberTypeAnnotation.typeAnnotation;
-      if (!AstHelpers.isJsonObject(innerType)) { return false; }
+      if (!ObjectGuard.isObject(innerType)) { return false; }
 
       return ExternalTypeReference.isDeclaredExternally(innerType, services);
     });
@@ -868,17 +806,17 @@ class DerivedFromSchemaCheck {
     const { sourceCode } = context;
 
     const nodeAsUnknown: unknown = node;
-    if (!AstHelpers.isJsonObject(nodeAsUnknown)) { return; }
+    if (!ObjectGuard.isObject(nodeAsUnknown)) { return; }
     const typeAnnotation: unknown = nodeAsUnknown.typeAnnotation;
-    if (!AstHelpers.isJsonObject(typeAnnotation) || typeAnnotation.type !== 'TSTypeLiteral') { return; }
+    if (!ObjectGuard.isObject(typeAnnotation) || typeAnnotation.type !== 'TSTypeLiteral') { return; }
 
     if (filename !== '<input>' && FilePathCheck.isInEntitiesFile(filename)) { return; }
     if (TypeAnnotationAnalysis.isExemptAnnotationType(typeAnnotation)) { return; }
     if (ExternalTypeReference.referencesExternalType(typeAnnotation, services, checker)) { return; }
-    if (ExemptionComment.has(node, sourceCode)) { return; }
+    if (ExemptionComment.hasWithExportFallback(node, sourceCode, DIRECTIVE_PATTERN)) { return; }
 
     context.report({
-      'data': { 'name': DerivedFromSchemaNodeName.get(node) },
+      'data': { 'name': DeclarationIdName.get(node) },
       'messageId': 'derivedFromSchema',
       'node': node
     });

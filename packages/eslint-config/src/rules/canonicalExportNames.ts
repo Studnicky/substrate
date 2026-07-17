@@ -2,6 +2,8 @@ import type { Rule } from 'eslint';
 
 import path from 'node:path';
 
+import { AstHelpers } from './shared/astHelpers.js';
+
 const INDEX_BASES = new Set([
   'index.js',
   'index.mjs',
@@ -13,18 +15,6 @@ class PathGuards {
   static isIndexFile(filename: string): boolean {
     const result = INDEX_BASES.has(path.basename(filename));
     return result;
-  }
-}
-
-class AstHelpers {
-  public static getIdentifierName(node: unknown): string | undefined {
-    if (node === null || node === undefined || typeof node !== 'object' || Array.isArray(node)) {
-      return undefined;
-    }
-    const obj = node as Record<string, unknown>;
-    const name = obj.name;
-
-    return typeof name === 'string' ? name : undefined;
   }
 }
 
@@ -53,23 +43,12 @@ export const canonicalExportNames: Rule.RuleModule = {
       const rawNode = node as unknown as {
         'exported': { 'name': string; 'type': string; };
         'local': { 'name': string; 'type': string; };
-        'parent': { 'source': unknown; 'type': string; };
       };
 
       const localName = rawNode.local.name;
       const exportedName = rawNode.exported.name;
 
       if (localName === exportedName) {
-        return;
-      }
-
-      if (rawNode.parent.type === 'ExportNamedDeclaration' && rawNode.parent.source !== null) {
-        context.report({
-          'data': { 'exported': exportedName, 'local': localName },
-          'messageId': 'exportAlias',
-          'node': node
-        });
-
         return;
       }
 

@@ -16,6 +16,8 @@
  * }
  * ```
  */
+import { DomainErrorArgs } from '@studnicky/errors';
+
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class HeadersTimeoutError extends FetchBaseError {
@@ -30,7 +32,13 @@ export class HeadersTimeoutError extends FetchBaseError {
   readonly url: string;
 
   constructor(url: string, cause?: Error) {
-    super({ 'cause': cause, 'code': 'fetch.headersTimeout', 'message': `Headers timeout for ${url}`, 'retryable': true });
+    const fields = { 'url': url };
+    super(DomainErrorArgs.build(fields, {
+      'cause': cause,
+      'code': 'fetch.headersTimeout',
+      'message': (f) => { const result = `Headers timeout for ${f.url}`; return result; },
+      'retryable': true
+    }));
     this.undiciCode = 'UND_ERR_HEADERS_TIMEOUT';
     this.url = url;
   }

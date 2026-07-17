@@ -2,6 +2,8 @@
  * Fluent builder for UndiciDispatcher
  */
 
+import { PickDefined } from '@studnicky/types';
+
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
 import type { UndiciDispatcher } from './UndiciDispatcher.js';
 
@@ -15,15 +17,24 @@ export class UndiciDispatcherBuilder {
 
   readonly #create: (options: DispatcherConfigEntity.Type) => UndiciDispatcher;
   #allowH2?: boolean;
+  #autoSelectFamily?: boolean;
+  #autoSelectFamilyAttemptTimeout?: number;
   #bodyTimeout?: number;
+  #clientTtl?: number;
   #connections?: null | number;
   #connectTimeout?: number;
   #headersTimeout?: number;
+  #keepAliveMaxTimeout?: number;
   #keepAliveTimeout?: number;
+  #keepAliveTimeoutThreshold?: number;
   #localAddress?: string;
   #maxConcurrentStreams?: number;
+  #maxHeaderSize?: number;
+  #maxOrigins?: number;
+  #maxRequestsPerClient?: number;
   #maxResponseSize?: number;
   #pipelining?: number;
+  #strictContentLength?: boolean;
 
   private constructor(create: (options: DispatcherConfigEntity.Type) => UndiciDispatcher) {
     this.#create = create;
@@ -34,8 +45,23 @@ export class UndiciDispatcherBuilder {
     return this;
   }
 
+  withAutoSelectFamily(value: boolean): this {
+    this.#autoSelectFamily = value;
+    return this;
+  }
+
+  withAutoSelectFamilyAttemptTimeout(value: number): this {
+    this.#autoSelectFamilyAttemptTimeout = value;
+    return this;
+  }
+
   withBodyTimeout(value: number): this {
     this.#bodyTimeout = value;
+    return this;
+  }
+
+  withClientTtl(value: number): this {
+    this.#clientTtl = value;
     return this;
   }
 
@@ -54,8 +80,18 @@ export class UndiciDispatcherBuilder {
     return this;
   }
 
+  withKeepAliveMaxTimeout(value: number): this {
+    this.#keepAliveMaxTimeout = value;
+    return this;
+  }
+
   withKeepAliveTimeout(value: number): this {
     this.#keepAliveTimeout = value;
+    return this;
+  }
+
+  withKeepAliveTimeoutThreshold(value: number): this {
+    this.#keepAliveTimeoutThreshold = value;
     return this;
   }
 
@@ -69,6 +105,21 @@ export class UndiciDispatcherBuilder {
     return this;
   }
 
+  withMaxHeaderSize(value: number): this {
+    this.#maxHeaderSize = value;
+    return this;
+  }
+
+  withMaxOrigins(value: number): this {
+    this.#maxOrigins = value;
+    return this;
+  }
+
+  withMaxRequestsPerClient(value: number): this {
+    this.#maxRequestsPerClient = value;
+    return this;
+  }
+
   withMaxResponseSize(value: number): this {
     this.#maxResponseSize = value;
     return this;
@@ -79,39 +130,33 @@ export class UndiciDispatcherBuilder {
     return this;
   }
 
-  build(): UndiciDispatcher {
-    const config: DispatcherConfigEntity.Type = {};
+  withStrictContentLength(value: boolean): this {
+    this.#strictContentLength = value;
+    return this;
+  }
 
-    if (this.#allowH2 !== undefined) {
-      config.allowH2 = this.#allowH2;
-    }
-    if (this.#bodyTimeout !== undefined) {
-      config.bodyTimeout = this.#bodyTimeout;
-    }
-    if (this.#connections !== undefined) {
-      config.connections = this.#connections;
-    }
-    if (this.#connectTimeout !== undefined) {
-      config.connectTimeout = this.#connectTimeout;
-    }
-    if (this.#headersTimeout !== undefined) {
-      config.headersTimeout = this.#headersTimeout;
-    }
-    if (this.#keepAliveTimeout !== undefined) {
-      config.keepAliveTimeout = this.#keepAliveTimeout;
-    }
-    if (this.#localAddress !== undefined) {
-      config.localAddress = this.#localAddress;
-    }
-    if (this.#maxConcurrentStreams !== undefined) {
-      config.maxConcurrentStreams = this.#maxConcurrentStreams;
-    }
-    if (this.#maxResponseSize !== undefined) {
-      config.maxResponseSize = this.#maxResponseSize;
-    }
-    if (this.#pipelining !== undefined) {
-      config.pipelining = this.#pipelining;
-    }
+  build(): UndiciDispatcher {
+    const config: DispatcherConfigEntity.Type = PickDefined.from({
+      'allowH2': this.#allowH2,
+      'autoSelectFamily': this.#autoSelectFamily,
+      'autoSelectFamilyAttemptTimeout': this.#autoSelectFamilyAttemptTimeout,
+      'bodyTimeout': this.#bodyTimeout,
+      'clientTtl': this.#clientTtl,
+      'connections': this.#connections,
+      'connectTimeout': this.#connectTimeout,
+      'headersTimeout': this.#headersTimeout,
+      'keepAliveMaxTimeout': this.#keepAliveMaxTimeout,
+      'keepAliveTimeout': this.#keepAliveTimeout,
+      'keepAliveTimeoutThreshold': this.#keepAliveTimeoutThreshold,
+      'localAddress': this.#localAddress,
+      'maxConcurrentStreams': this.#maxConcurrentStreams,
+      'maxHeaderSize': this.#maxHeaderSize,
+      'maxOrigins': this.#maxOrigins,
+      'maxRequestsPerClient': this.#maxRequestsPerClient,
+      'maxResponseSize': this.#maxResponseSize,
+      'pipelining': this.#pipelining,
+      'strictContentLength': this.#strictContentLength
+    });
 
     return this.#create(config);
   }

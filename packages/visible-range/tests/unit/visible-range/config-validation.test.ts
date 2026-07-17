@@ -22,3 +22,15 @@ it('throws a VisibleRangeError when both itemSize and estimateSize are supplied'
     VisibleRange.create({ 'count': 100, 'itemSize': 40, 'estimateSize': () => 40 });
   }, VisibleRangeError);
 });
+
+it('throws a VisibleRangeError when itemSize is zero', () => {
+  throws(() => {
+    VisibleRange.create({ 'count': 100, 'itemSize': 0 });
+  }, VisibleRangeError);
+});
+
+it('throws a VisibleRangeError when itemSize is negative', () => {
+  throws(() => {
+    VisibleRange.create({ 'count': 100, 'itemSize': -5 });
+  }, VisibleRangeError);
+});

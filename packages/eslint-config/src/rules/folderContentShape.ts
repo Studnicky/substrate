@@ -2,6 +2,9 @@ import type { Rule } from 'eslint';
 
 import path from 'node:path';
 
+import { AstHelpers } from './shared/astHelpers.js';
+import { ObjectGuard } from './shared/ObjectGuard.js';
+
 /**
  * folder-content-shape — folder location signals what a file's top-level
  * declarations must look like.
@@ -89,12 +92,6 @@ const TS_WRAPPER_EXPRESSION_TYPES = new Set([
   'TSTypeAssertion'
 ]);
 
-class TypeGuards {
-  static isObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
-}
-
 class FolderCategory {
   static isEmptyFilename(filename: string): boolean {
     return filename === '<input>' || filename.length === 0;
@@ -116,9 +113,17 @@ class FolderCategory {
       return result; });
   }
 
+  // Strips a leading `.../packages/<pkg-name>/` prefix before checking segment
+  // membership, so a package's own name (e.g. `@studnicky/types`) never counts
+  // as a `types/`/`interfaces/` convention-folder signal on its own — only a
+  // real subfolder within the package does.
   static isUnderFolder(filename: string, folder: string): boolean {
     const normalized = filename.split(path.sep).join('/');
-    return normalized.split('/').includes(folder);
+    const segments = normalized.split('/');
+    const packagesIndex = segments.indexOf('packages');
+    const relevantSegments = packagesIndex === -1 ? segments : segments.slice(packagesIndex + 2);
+
+    return relevantSegments.includes(folder);
   }
 
   static isEntityFile(filename: string): boolean {
@@ -140,20 +145,20 @@ type TopLevelDeclarationNodeType = {
 class TopLevelScope {
   public static isTopLevel(rawNode: TopLevelDeclarationNodeType): boolean {
     const { parent } = rawNode;
-    if (!TypeGuards.isObject(parent)) { return false; }
+    if (!ObjectGuard.isObject(parent)) { return false; }
 
     const parentType = parent.type;
     if (parentType === 'Program') { return true; }
     if (parentType !== 'ExportNamedDeclaration') { return false; }
 
     const grandparent = parent.parent;
-    return TypeGuards.isObject(grandparent) && grandparent.type === 'Program';
+    return ObjectGuard.isObject(grandparent) && grandparent.type === 'Program';
   }
 }
 
 class DeclaratorName {
   static collectPatternNames(patternNode: unknown, names: string[]): void {
-    if (!TypeGuards.isObject(patternNode)) { return; }
+    if (!ObjectGuard.isObject(patternNode)) { return; }
 
     const nodeType: unknown = patternNode.type;
 
@@ -178,7 +183,7 @@ class DeclaratorName {
       if (!Array.isArray(properties)) { return; }
 
       for (const property of properties) {
-        if (!TypeGuards.isObject(property)) { continue; }
+        if (!ObjectGuard.isObject(property)) { continue; }
 
         if (property.type === 'RestElement') {
           DeclaratorName.collectPatternNames(property.argument, names);
@@ -202,7 +207,7 @@ class DeclaratorName {
   }
 
   static getAll(declarator: unknown): string[] {
-    if (!TypeGuards.isObject(declarator)) { return []; }
+    if (!ObjectGuard.isObject(declarator)) { return []; }
 
     const names: string[] = [];
     DeclaratorName.collectPatternNames(declarator.id, names);
@@ -215,7 +220,7 @@ class DeclaratorName {
   static unwrapTsExpression(node: unknown): unknown {
     let current = node;
 
-    while (TypeGuards.isObject(current) && typeof current.type === 'string' && TS_WRAPPER_EXPRESSION_TYPES.has(current.type)) {
+    while (ObjectGuard.isObject(current) && typeof current.type === 'string' && TS_WRAPPER_EXPRESSION_TYPES.has(current.type)) {
       current = current.expression;
     }
 
@@ -229,7 +234,7 @@ class DeclaratorName {
   // `(Mod as ...).default ?? (Mod as ...)` CJS/ESM interop pattern).
   static isFunctionOrReferenceValue(node: unknown): boolean {
     const unwrapped = DeclaratorName.unwrapTsExpression(node);
-    if (!TypeGuards.isObject(unwrapped)) { return false; }
+    if (!ObjectGuard.isObject(unwrapped)) { return false; }
 
     const nodeType: unknown = unwrapped.type;
     if (typeof nodeType !== 'string') { return false; }
@@ -249,13 +254,13 @@ class DeclaratorName {
   // function- or reference-valued. An object literal with zero such
   // properties is pure data and still counts as a data constant.
   static isFunctionValuedObjectExpression(node: unknown): boolean {
-    if (!TypeGuards.isObject(node)) { return false; }
+    if (!ObjectGuard.isObject(node)) { return false; }
 
     const properties: unknown = node.properties;
     if (!Array.isArray(properties)) { return false; }
 
     return properties.some((property) => {
-      if (!TypeGuards.isObject(property) || property.type !== 'Property') { return false; }
+      if (!ObjectGuard.isObject(property) || property.type !== 'Property') { return false; }
       return DeclaratorName.isFunctionOrReferenceValue(property.value);
     });
   }
@@ -265,16 +270,16 @@ class DeclaratorName {
   // forms and remain data constants. Any other `new` expression (e.g.
   // `new AjvClass(...)`) constructs a stateful instance, not data.
   static isBuiltinCollectionConstructor(calleeNode: unknown): boolean {
-    if (!TypeGuards.isObject(calleeNode) || calleeNode.type !== 'Identifier') { return false; }
+    if (!ObjectGuard.isObject(calleeNode) || calleeNode.type !== 'Identifier') { return false; }
     const { name } = calleeNode;
     return typeof name === 'string' && BUILTIN_COLLECTION_CONSTRUCTOR_NAMES.has(name);
   }
 
   static isNonDataConstantInit(declarator: unknown): boolean {
-    if (!TypeGuards.isObject(declarator)) { return false; }
+    if (!ObjectGuard.isObject(declarator)) { return false; }
 
     const initNode: unknown = declarator.init;
-    if (!TypeGuards.isObject(initNode)) { return false; }
+    if (!ObjectGuard.isObject(initNode)) { return false; }
 
     if (DeclaratorName.isFunctionOrReferenceValue(initNode)) { return true; }
 
@@ -293,28 +298,22 @@ class DeclaratorName {
   }
 }
 
-class AstHelpers {
+class FolderShapeHelpers {
   public static getEntityBaseName(filename: string): string {
     const result = path.basename(filename).replace(/\.[cm]?[tj]sx?$/v, '');
     return result;
   }
 
-  public static getNodeType(node: unknown): string | undefined {
-    if (!TypeGuards.isObject(node)) { return undefined; }
-    const { type } = node;
-    return typeof type === 'string' ? type : undefined;
-  }
-
   public static getIdName(node: unknown): string | undefined {
-    if (!TypeGuards.isObject(node)) { return undefined; }
+    if (!ObjectGuard.isObject(node)) { return undefined; }
     const { id } = node;
-    if (!TypeGuards.isObject(id)) { return undefined; }
+    if (!ObjectGuard.isObject(id)) { return undefined; }
     const { name } = id;
     return typeof name === 'string' ? name : undefined;
   }
 
   public static getDeclaration(node: unknown): unknown {
-    if (!TypeGuards.isObject(node)) { return undefined; }
+    if (!ObjectGuard.isObject(node)) { return undefined; }
     return node.declaration;
   }
 }
@@ -335,7 +334,7 @@ type NamespaceMembersType = {
 
 class SchemaMemberGuards {
   static isConstTypeAnnotation(typeAnnotation: unknown): boolean {
-    if (!TypeGuards.isObject(typeAnnotation)) { return false; }
+    if (!ObjectGuard.isObject(typeAnnotation)) { return false; }
     // @typescript-eslint/parser represents `as const` as either:
     //   TSTypeOperator { operator: 'const' }  (some versions)
     //   TSTypeReference { typeName: { name: 'const' } }  (other versions / this runtime)
@@ -344,15 +343,15 @@ class SchemaMemberGuards {
     }
     if (AstHelpers.getNodeType(typeAnnotation) === 'TSTypeReference') {
       const { typeName } = typeAnnotation;
-      return TypeGuards.isObject(typeName) && (typeName).name === 'const';
+      return ObjectGuard.isObject(typeName) && (typeName).name === 'const';
     }
     return false;
   }
 
   static isSchemaAsConst(declarator: unknown): boolean {
-    if (!TypeGuards.isObject(declarator)) { return false; }
+    if (!ObjectGuard.isObject(declarator)) { return false; }
     const { init } = declarator;
-    if (!TypeGuards.isObject(init)) { return false; }
+    if (!ObjectGuard.isObject(init)) { return false; }
     const initType = AstHelpers.getNodeType(init);
     // Plain: `{ ... } as const`
     if (initType === 'TSAsExpression') {
@@ -362,42 +361,42 @@ class SchemaMemberGuards {
     // so the outer node is TSSatisfiesExpression wrapping a TSAsExpression
     if (initType === 'TSSatisfiesExpression') {
       const { expression } = init;
-      if (!TypeGuards.isObject(expression) || AstHelpers.getNodeType(expression) !== 'TSAsExpression') { return false; }
+      if (!ObjectGuard.isObject(expression) || AstHelpers.getNodeType(expression) !== 'TSAsExpression') { return false; }
       return SchemaMemberGuards.isConstTypeAnnotation(expression.typeAnnotation);
     }
     return false;
   }
 
   static isFromSchemaRef(typeAnnotation: unknown): boolean {
-    if (!TypeGuards.isObject(typeAnnotation) || AstHelpers.getNodeType(typeAnnotation) !== 'TSTypeReference') { return false; }
+    if (!ObjectGuard.isObject(typeAnnotation) || AstHelpers.getNodeType(typeAnnotation) !== 'TSTypeReference') { return false; }
     const { typeName } = typeAnnotation;
-    if (!TypeGuards.isObject(typeName)) { return false; }
+    if (!ObjectGuard.isObject(typeName)) { return false; }
     // Handle both plain Identifier and qualified name (e.g. Ns.FromSchema)
     const fromSchemaName =
       typeName.name === 'FromSchema' ||
-      (TypeGuards.isObject(typeName.right) && (typeName.right).name === 'FromSchema');
+      (ObjectGuard.isObject(typeName.right) && (typeName.right).name === 'FromSchema');
     if (!fromSchemaName) { return false; }
     // Check type arguments/parameters contains exactly one TSTypeQuery for `typeof Schema`
     let typeParams: Record<string, unknown> | undefined;
-    if (TypeGuards.isObject(typeAnnotation.typeParameters)) {
+    if (ObjectGuard.isObject(typeAnnotation.typeParameters)) {
       typeParams = typeAnnotation.typeParameters;
-    } else if (TypeGuards.isObject(typeAnnotation.typeArguments)) {
+    } else if (ObjectGuard.isObject(typeAnnotation.typeArguments)) {
       typeParams = typeAnnotation.typeArguments;
     }
-    if (!TypeGuards.isObject(typeParams)) { return false; }
+    if (!ObjectGuard.isObject(typeParams)) { return false; }
     const { params } = typeParams;
     if (!Array.isArray(params) || params.length !== 1) { return false; }
     const arg: unknown = params[0];
-    if (!TypeGuards.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeQuery') { return false; }
+    if (!ObjectGuard.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeQuery') { return false; }
     const { exprName } = arg;
-    if (!TypeGuards.isObject(exprName)) { return false; }
+    if (!ObjectGuard.isObject(exprName)) { return false; }
     return (exprName).name === 'Schema';
   }
 
   static isTypeFromSchema(decl: unknown): boolean {
-    if (!TypeGuards.isObject(decl)) { return false; }
+    if (!ObjectGuard.isObject(decl)) { return false; }
     const { typeAnnotation } = decl;
-    if (!TypeGuards.isObject(typeAnnotation)) { return false; }
+    if (!ObjectGuard.isObject(typeAnnotation)) { return false; }
     // Plain: `type Type = FromSchema<typeof Schema>`
     if (SchemaMemberGuards.isFromSchemaRef(typeAnnotation)) { return true; }
     // Intersection: `type Type = FromSchema<typeof Schema> & { ... }`
@@ -415,33 +414,33 @@ class SchemaMemberGuards {
   // `(candidate: unknown) => candidate is Type` predicate, so a `const validate`
   // bound to it is a valid type guard with zero hand-written constraint logic.
   static isSchemaValidatorCompile(init: unknown): boolean {
-    if (!TypeGuards.isObject(init) || AstHelpers.getNodeType(init) !== 'CallExpression') { return false; }
+    if (!ObjectGuard.isObject(init) || AstHelpers.getNodeType(init) !== 'CallExpression') { return false; }
     const { callee } = init;
-    if (!TypeGuards.isObject(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
+    if (!ObjectGuard.isObject(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
     const { object, property } = callee;
-    if (!TypeGuards.isObject(object) || (object).name !== 'SchemaValidator') { return false; }
-    if (!TypeGuards.isObject(property) || (property).name !== 'compile') { return false; }
+    if (!ObjectGuard.isObject(object) || (object).name !== 'SchemaValidator') { return false; }
+    if (!ObjectGuard.isObject(property) || (property).name !== 'compile') { return false; }
     // Require an explicit `<Type>` argument so the guard narrows to the entity Type.
     let typeParams: unknown = init.typeArguments;
-    if (!TypeGuards.isObject(typeParams)) { typeParams = init.typeParameters; }
-    if (!TypeGuards.isObject(typeParams)) { return false; }
+    if (!ObjectGuard.isObject(typeParams)) { typeParams = init.typeParameters; }
+    if (!ObjectGuard.isObject(typeParams)) { return false; }
     const { params } = typeParams;
     if (!Array.isArray(params) || params.length !== 1) { return false; }
     const arg: unknown = params[0];
-    if (!TypeGuards.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') { return false; }
+    if (!ObjectGuard.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') { return false; }
     const { typeName } = arg;
-    return TypeGuards.isObject(typeName) && (typeName).name === 'Type';
+    return ObjectGuard.isObject(typeName) && (typeName).name === 'Type';
   }
 
   static isValidateTypeGuard(decl: unknown): boolean {
-    if (!TypeGuards.isObject(decl)) { return false; }
+    if (!ObjectGuard.isObject(decl)) { return false; }
     const declType = AstHelpers.getNodeType(decl);
 
     // `export const validate = SchemaValidator.compile<Type>(Schema)` — the
     // schema-as-source-of-truth form. No explicit predicate annotation needed.
     if (declType === 'VariableDeclaration') {
       const { declarations } = decl;
-      if (Array.isArray(declarations) && declarations.length > 0 && TypeGuards.isObject(declarations[0])) {
+      if (Array.isArray(declarations) && declarations.length > 0 && ObjectGuard.isObject(declarations[0])) {
         const firstDeclarator = declarations[0];
         if (SchemaMemberGuards.isSchemaValidatorCompile(firstDeclarator.init)) { return true; }
       }
@@ -453,9 +452,9 @@ class SchemaMemberGuards {
     if (declType === 'FunctionDeclaration') {
       returnType = decl.returnType;
       const { params } = decl;
-      if (Array.isArray(params) && params.length > 0 && TypeGuards.isObject(params[0])) {
+      if (Array.isArray(params) && params.length > 0 && ObjectGuard.isObject(params[0])) {
         const p = params[0];
-        if (TypeGuards.isObject(p.name)) {
+        if (ObjectGuard.isObject(p.name)) {
           firstParamName = (p.name).name as string | undefined;
         } else {
           firstParamName = p.name as string | undefined;
@@ -466,17 +465,17 @@ class SchemaMemberGuards {
       const { declarations } = decl;
       if (!Array.isArray(declarations) || declarations.length === 0) { return false; }
       const declarator: unknown = declarations[0];
-      if (!TypeGuards.isObject(declarator)) { return false; }
+      if (!ObjectGuard.isObject(declarator)) { return false; }
       const { init } = declarator;
-      if (!TypeGuards.isObject(init)) { return false; }
+      if (!ObjectGuard.isObject(init)) { return false; }
       const initType = AstHelpers.getNodeType(init);
       // ArrowFunctionExpression or FunctionExpression
       if (initType !== 'ArrowFunctionExpression' && initType !== 'FunctionExpression') { return false; }
       returnType = init.returnType;
       const { params } = init;
-      if (Array.isArray(params) && params.length > 0 && TypeGuards.isObject(params[0])) {
+      if (Array.isArray(params) && params.length > 0 && ObjectGuard.isObject(params[0])) {
         const p = params[0];
-        if (TypeGuards.isObject(p.name)) {
+        if (ObjectGuard.isObject(p.name)) {
           firstParamName = (p.name).name as string | undefined;
         } else {
           firstParamName = p.name as string | undefined;
@@ -488,14 +487,14 @@ class SchemaMemberGuards {
 
     // returnType may be wrapped in a TSTypeAnnotation node
     let predicateNode: unknown = returnType;
-    if (TypeGuards.isObject(predicateNode) && AstHelpers.getNodeType(predicateNode) === 'TSTypeAnnotation') {
+    if (ObjectGuard.isObject(predicateNode) && AstHelpers.getNodeType(predicateNode) === 'TSTypeAnnotation') {
       predicateNode = (predicateNode).typeAnnotation;
     }
-    if (!TypeGuards.isObject(predicateNode) || AstHelpers.getNodeType(predicateNode) !== 'TSTypePredicate') { return false; }
+    if (!ObjectGuard.isObject(predicateNode) || AstHelpers.getNodeType(predicateNode) !== 'TSTypePredicate') { return false; }
     const predicate = predicateNode;
 
     // parameterName must match firstParamName
-    if (TypeGuards.isObject(predicate.parameterName)) {
+    if (ObjectGuard.isObject(predicate.parameterName)) {
       const pName = (predicate.parameterName).name;
       if (pName !== firstParamName) { return false; }
     } else {
@@ -504,15 +503,15 @@ class SchemaMemberGuards {
 
     // typeAnnotation of predicate must reference Type
     const predTypeAnnotation = predicate.typeAnnotation;
-    if (!TypeGuards.isObject(predTypeAnnotation)) { return false; }
+    if (!ObjectGuard.isObject(predTypeAnnotation)) { return false; }
     // May be wrapped in TSTypeAnnotation
     let refNode: unknown = predTypeAnnotation;
     if (AstHelpers.getNodeType(refNode) === 'TSTypeAnnotation') {
       refNode = (refNode as Record<string, unknown>).typeAnnotation;
     }
-    if (!TypeGuards.isObject(refNode) || AstHelpers.getNodeType(refNode) !== 'TSTypeReference') { return false; }
+    if (!ObjectGuard.isObject(refNode) || AstHelpers.getNodeType(refNode) !== 'TSTypeReference') { return false; }
     const { typeName } = refNode;
-    if (!TypeGuards.isObject(typeName)) { return false; }
+    if (!ObjectGuard.isObject(typeName)) { return false; }
     return (typeName).name === 'Type';
   }
 }
@@ -528,21 +527,21 @@ class NamespaceScanner {
       'hasValidateTypeGuard': false
     };
 
-    if (!TypeGuards.isObject(bodyNode)) { return result; }
+    if (!ObjectGuard.isObject(bodyNode)) { return result; }
     const { body } = bodyNode;
     if (!Array.isArray(body)) { return result; }
 
     for (const stmt of body) {
       if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') { continue; }
-      const decl = AstHelpers.getDeclaration(stmt);
+      const decl = FolderShapeHelpers.getDeclaration(stmt);
       const declType = AstHelpers.getNodeType(decl);
 
       if (declType === 'VariableDeclaration') {
-        if (!TypeGuards.isObject(decl)) { continue; }
+        if (!ObjectGuard.isObject(decl)) { continue; }
         const { declarations } = decl;
         if (!Array.isArray(declarations)) { continue; }
         for (const d of declarations) {
-          if (!TypeGuards.isObject(d) || !TypeGuards.isObject(d.id)) { continue; }
+          if (!ObjectGuard.isObject(d) || !ObjectGuard.isObject(d.id)) { continue; }
           const { name } = d.id;
           if (name === 'Schema') {
             result.hasSchema = true;
@@ -554,12 +553,12 @@ class NamespaceScanner {
           }
         }
       } else if (declType === 'TSTypeAliasDeclaration') {
-        if (AstHelpers.getIdName(decl) === 'Type') {
+        if (FolderShapeHelpers.getIdName(decl) === 'Type') {
           result.hasType = true;
           result.hasTypeFromSchema = SchemaMemberGuards.isTypeFromSchema(decl);
         }
       } else if (declType === 'FunctionDeclaration') {
-        if (AstHelpers.getIdName(decl) === 'validate') {
+        if (FolderShapeHelpers.getIdName(decl) === 'validate') {
           result.hasValidate = true;
           result.hasValidateTypeGuard = SchemaMemberGuards.isValidateTypeGuard(decl);
         }
@@ -578,7 +577,7 @@ class EntityNamespaceCheck {
 
     const namespaceExports = body.filter((stmt) => {
       if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') { return false; }
-      return AstHelpers.getNodeType(AstHelpers.getDeclaration(stmt)) === 'TSModuleDeclaration';
+      return AstHelpers.getNodeType(FolderShapeHelpers.getDeclaration(stmt)) === 'TSModuleDeclaration';
     });
 
     if (namespaceExports.length === 0) {
@@ -587,10 +586,10 @@ class EntityNamespaceCheck {
     }
 
     for (const exportStmt of namespaceExports) {
-      const decl = AstHelpers.getDeclaration(exportStmt);
-      if (!TypeGuards.isObject(decl)) { continue; }
+      const decl = FolderShapeHelpers.getDeclaration(exportStmt);
+      if (!ObjectGuard.isObject(decl)) { continue; }
 
-      const nsName = AstHelpers.getIdName(decl);
+      const nsName = FolderShapeHelpers.getIdName(decl);
       if (nsName !== expectedName) {
         context.report({
           'data': { 'expected': expectedName, 'found': nsName ?? '(unknown)' },
@@ -623,7 +622,7 @@ class EntityNamespaceCheck {
 class RegexLiteralCheck {
   static isRegexLiteral(node: Rule.Node): boolean {
     const rawNode = node as unknown as Record<string, unknown>;
-    return rawNode.type === 'Literal' && TypeGuards.isObject(rawNode.regex);
+    return rawNode.type === 'Literal' && ObjectGuard.isObject(rawNode.regex);
   }
 
   static isInlineRegExpConstruction(node: Rule.Node): boolean {
@@ -631,13 +630,13 @@ class RegexLiteralCheck {
     if (rawNode.type !== 'NewExpression') { return false; }
 
     const callee: unknown = rawNode.callee;
-    if (!TypeGuards.isObject(callee) || callee.type !== 'Identifier' || callee.name !== 'RegExp') { return false; }
+    if (!ObjectGuard.isObject(callee) || callee.type !== 'Identifier' || callee.name !== 'RegExp') { return false; }
 
     const args: unknown = rawNode.arguments;
     if (!Array.isArray(args) || args.length === 0) { return false; }
 
     const firstArg: unknown = args[0];
-    return TypeGuards.isObject(firstArg) && firstArg.type === 'Literal' && typeof firstArg.value === 'string';
+    return ObjectGuard.isObject(firstArg) && firstArg.type === 'Literal' && typeof firstArg.value === 'string';
   }
 
   static run(context: Rule.RuleContext, node: Rule.Node): void {
@@ -656,7 +655,7 @@ class ConstantsCountCheck {
     const constNames: string[] = [];
 
     for (const statement of programBody) {
-      if (!TypeGuards.isObject(statement)) { continue; }
+      if (!ObjectGuard.isObject(statement)) { continue; }
 
       const statementType: unknown = statement.type;
       let variableDeclaration: unknown = undefined;
@@ -666,12 +665,12 @@ class ConstantsCountCheck {
       } else if (statementType === 'ExportNamedDeclaration') {
         const decl: unknown = statement.declaration;
 
-        if (TypeGuards.isObject(decl) && decl.type === 'VariableDeclaration') {
+        if (ObjectGuard.isObject(decl) && decl.type === 'VariableDeclaration') {
           variableDeclaration = decl;
         }
       }
 
-      if (!TypeGuards.isObject(variableDeclaration)) { continue; }
+      if (!ObjectGuard.isObject(variableDeclaration)) { continue; }
       if (variableDeclaration.kind !== 'const') { continue; }
 
       const declarations: unknown = variableDeclaration.declarations;
@@ -713,7 +712,7 @@ type FileCategoryType =
 class FileCategoryResolver {
   static resolve(filename: string): FileCategoryType {
     if (!FolderCategory.isEmptyFilename(filename) && FolderCategory.isEntityFile(filename)) {
-      return { 'expectedName': AstHelpers.getEntityBaseName(filename), 'kind': 'entity' };
+      return { 'expectedName': FolderShapeHelpers.getEntityBaseName(filename), 'kind': 'entity' };
     }
 
     if (!FolderCategory.isDeclarationExemptPath(filename)) {

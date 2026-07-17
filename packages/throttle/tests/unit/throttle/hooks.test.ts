@@ -9,10 +9,13 @@
 
 import {
   ok,
+  rejects,
   strictEqual
 } from 'node:assert/strict';
 import { it } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
+
+import { HookInvocationError } from '@studnicky/errors';
 
 import { Throttle } from '../../../src/throttle/index.js';
 import type { ThrottleStateType } from '../../../src/types/ThrottleStateType.js';
@@ -454,61 +457,329 @@ void it('onAdaptiveAdjust fires when adaptive concurrency changes the limit', as
   }
 });
 
-void it('a throwing onAcquire hook does not replace a successful execute() result', async () => {
+void it('a throwing onAcquire hook surfaces a HookInvocationError instead of the successful execute() result', async () => {
+  const boom = new Error('onAcquire boom');
+
   class ThrowingAcquireThrottle extends Throttle {
     protected override onAcquire(): void {
-      throw new Error('onAcquire boom');
+      throw boom;
     }
   }
 
   const t = new ThrowingAcquireThrottle({ 'concurrencyLimit': 1 });
-  const result = await t.execute(async () => 'ok');
 
-  strictEqual(result, 'ok');
+  await rejects(
+    t.execute(async () => 'ok'),
+    (error: unknown) => {
+      ok(error instanceof HookInvocationError);
+      strictEqual(error.hookName, 'onAcquire');
+      strictEqual(error.cause, boom);
+
+      return true;
+    }
+  );
+
+  // The slot is rolled back, not leaked, when the hook fails.
+  strictEqual(t.getStats().activeCount, 0);
 });
 
-void it('a throwing onReject hook does not replace the original operation error', async () => {
+void it('a throwing onReject hook surfaces a HookInvocationError instead of the original operation error', async () => {
+  const boom = new Error('onReject boom');
+
   class ThrowingRejectThrottle extends Throttle {
     protected override onReject(): void {
-      throw new Error('onReject boom');
+      throw boom;
     }
   }
 
   const t = new ThrowingRejectThrottle({ 'concurrencyLimit': 1 });
 
-  await t.execute(async () => {
-    throw new Error('boom');
-  }).then(
-    () => { throw new Error('expected rejection'); },
-    (error) => {
-      ok(error instanceof Error);
-      strictEqual(error.message, 'boom');
+  await rejects(
+    t.execute(async () => { throw new Error('boom'); }),
+    (error: unknown) => {
+      ok(error instanceof HookInvocationError);
+      strictEqual(error.hookName, 'onReject');
+      strictEqual(error.cause, boom);
+
+      return true;
     }
   );
 });
 
-void it('a throwing onDrainStart hook does not replace drain()', async () => {
+void it('a throwing onDrainStart hook surfaces a HookInvocationError from drain()', async () => {
+  const boom = new Error('onDrainStart boom');
+
   class ThrowingDrainThrottle extends Throttle {
     protected override onDrainStart(): void {
-      throw new Error('onDrainStart boom');
+      throw boom;
     }
   }
 
   const t = new ThrowingDrainThrottle({ 'concurrencyLimit': 1 });
-  await t.drain();
 
-  ok(true);
+  await rejects(
+    t.drain(),
+    (error: unknown) => {
+      ok(error instanceof HookInvocationError);
+      strictEqual(error.hookName, 'onDrainStart');
+      strictEqual(error.cause, boom);
+
+      return true;
+    }
+  );
 });
 
-void it('a throwing onAbortStart hook does not replace abort()', async () => {
+void it('a throwing onAbortStart hook surfaces a HookInvocationError from abort()', async () => {
+  const boom = new Error('onAbortStart boom');
+
   class ThrowingAbortThrottle extends Throttle {
     protected override onAbortStart(): void {
-      throw new Error('onAbortStart boom');
+      throw boom;
     }
   }
 
   const t = new ThrowingAbortThrottle({ 'concurrencyLimit': 1 });
-  const result = await t.abort();
 
-  strictEqual(result.cancelled, 0);
+  await rejects(
+    t.abort(),
+    (error: unknown) => {
+      ok(error instanceof HookInvocationError);
+      strictEqual(error.hookName, 'onAbortStart');
+      strictEqual(error.cause, boom);
+
+      return true;
+    }
+  );
+});
+
+void it('a throwing onAbortStart hook still cancels a queued caller (execute() settles, does not hang)', async () => {
+  const boom = new Error('onAbortStart boom');
+
+  class ThrowingAbortThrottle extends Throttle {
+    protected override onAbortStart(): void {
+      throw boom;
+    }
+  }
+
+  let unblock!: () => void;
+  const blocker = new Promise<void>((resolve) => { unblock = resolve; });
+
+  const t = new ThrowingAbortThrottle({ 'concurrencyLimit': 1 });
+  const first = t.execute(async () => { await blocker; return 'a'; });
+  await Promise.resolve();
+  const second = t.execute(async () => { return 'b'; });
+
+  const abortResult = t.abort().catch((error: unknown) => { return { 'errored': true, error }; });
+  const timeout = setTimeout(2000).then(() => { return 'TIMEOUT'; });
+
+  const secondOutcome = await Promise.race([second, timeout]);
+  ok(secondOutcome !== 'TIMEOUT', 'the queued caller must settle, not hang, even though onAbortStart threw');
+
+  const abortOutcome = await abortResult;
+  ok(typeof abortOutcome === 'object' && abortOutcome !== null && 'errored' in abortOutcome, 'abort() still surfaces the hook failure');
+  ok(
+    (abortOutcome as { 'error': unknown }).error instanceof HookInvocationError,
+    'abort() rejects with a HookInvocationError'
+  );
+  strictEqual((abortOutcome as { 'error': HookInvocationError }).error.hookName, 'onAbortStart');
+
+  unblock();
+  await first.catch(() => {/* discarded on abort */});
+});
+
+void it('a throwing onRelease hook still unblocks a pending drain() call (drain settles, does not hang)', async () => {
+  const boom = new Error('onRelease boom');
+
+  class ThrowingReleaseThrottle extends Throttle {
+    protected override onRelease(): void {
+      throw boom;
+    }
+  }
+
+  const t = new ThrowingReleaseThrottle({ 'concurrencyLimit': 1 });
+  const op = t.execute(async () => 'done').catch((error: unknown) => { return { 'errored': true, error }; });
+  await Promise.resolve();
+
+  const drainPromise = t.drain().catch((error: unknown) => { return { 'errored': true, error }; });
+  const timeout = setTimeout(2000).then(() => { return 'TIMEOUT'; });
+
+  const drainOutcome = await Promise.race([drainPromise, timeout]);
+  ok(drainOutcome !== 'TIMEOUT', 'drain() must settle, not hang, even though onRelease threw');
+
+  const opOutcome = await op;
+  ok(typeof opOutcome === 'object' && opOutcome !== null && 'errored' in opOutcome, 'the operation itself still surfaces the hook failure');
+  ok((opOutcome as { 'error': unknown }).error instanceof HookInvocationError);
+  strictEqual((opOutcome as { 'error': HookInvocationError }).error.hookName, 'onRelease');
+});
+
+void it('a throwing onDrainComplete hook still transitions the FSM out of draining and unblocks other drain() waiters', async () => {
+  const boom = new Error('onDrainComplete boom');
+
+  class ThrowingDrainCompleteThrottle extends Throttle {
+    protected override onDrainComplete(): void {
+      throw boom;
+    }
+  }
+
+  let unblock!: () => void;
+  const blocker = new Promise<void>((resolve) => { unblock = resolve; });
+
+  const t = new ThrowingDrainCompleteThrottle({ 'concurrencyLimit': 1 });
+  const op = t.execute(async () => { await blocker; return 'done'; })
+    .catch((error: unknown) => { return { 'errored': true, error }; });
+  await Promise.resolve();
+
+  // drain() transitions to 'draining'; the operation is still in flight, so
+  // both drain() callers register as waiters via waitForCompletion().
+  const drainA = t.drain().catch((error: unknown) => { return { 'errored': true, error }; });
+  const drainB = t.drain().catch((error: unknown) => { return { 'errored': true, error }; });
+  await Promise.resolve();
+
+  unblock();
+
+  const timeout = setTimeout(2000).then(() => { return 'TIMEOUT'; });
+
+  const [outcomeA, outcomeB] = await Promise.race([
+    Promise.all([drainA, drainB]),
+    timeout.then((marker) => { return [marker, marker]; }),
+  ]);
+
+  ok(outcomeA !== 'TIMEOUT' && outcomeB !== 'TIMEOUT', 'both drain() waiters must settle, not hang, even though onDrainComplete threw');
+  strictEqual(t.getStats().isDraining, false, 'the FSM transitions out of draining even though onDrainComplete threw');
+
+  await op;
+});
+
+void it('a throwing onEnter hook on the draining→idle transition still unblocks pending drain() waiters', async () => {
+  const boom = new Error('onEnter boom');
+
+  class ThrowingIdleEnterThrottle extends Throttle {
+    protected override onEnter(to: ThrottleStateType, from: ThrottleStateType): void {
+      if (to === 'idle' && from === 'draining') {
+        throw boom;
+      }
+    }
+  }
+
+  let unblock!: () => void;
+  const blocker = new Promise<void>((resolve) => { unblock = resolve; });
+
+  const t = new ThrowingIdleEnterThrottle({ 'concurrencyLimit': 1 });
+  const op = t.execute(async () => { await blocker; return 'done'; })
+    .catch((error: unknown) => { return { 'errored': true, error }; });
+  await Promise.resolve();
+
+  const drainA = t.drain().catch((error: unknown) => { return { 'errored': true, error }; });
+  const drainB = t.drain().catch((error: unknown) => { return { 'errored': true, error }; });
+  await Promise.resolve();
+
+  unblock();
+
+  const timeout = setTimeout(2000).then(() => { return 'TIMEOUT'; });
+
+  const [outcomeA, outcomeB] = await Promise.race([
+    Promise.all([drainA, drainB]),
+    timeout.then((marker) => { return [marker, marker]; }),
+  ]);
+
+  ok(outcomeA !== 'TIMEOUT' && outcomeB !== 'TIMEOUT', 'both drain() waiters must settle, not hang, even though onEnter threw on the draining→idle transition');
+  strictEqual(t.getStats().isDraining, false, 'the FSM state is idle (transition() sets #state before onEnter runs)');
+
+  await op;
+});
+
+void it('an async onAcquire override that rejects is routed through onHookError instead of becoming an unhandled rejection', async () => {
+  const boom = new Error('onAcquire async boom');
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  class AsyncRejectingAcquireThrottle extends Throttle {
+    protected override async onAcquire(): Promise<void> {
+      await Promise.resolve();
+      throw boom;
+    }
+  }
+
+  const t = new AsyncRejectingAcquireThrottle({ 'concurrencyLimit': 1 });
+
+  try {
+    await rejects(
+      t.execute(async () => 'ok'),
+      (error: unknown) => {
+        ok(error instanceof HookInvocationError);
+        strictEqual(error.hookName, 'onAcquire');
+        strictEqual(error.cause, boom);
+
+        return true;
+      }
+    );
+
+    // The slot is rolled back, not leaked, when the async hook rejects.
+    strictEqual(t.getStats().activeCount, 0);
+
+    await setTimeout(0);
+    strictEqual(rejectionEvents.length, 0, 'the rejection must be routed through invoke(), never left unhandled');
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+void it('an async onDrainStart override that rejects is routed through invoke() instead of becoming an unhandled rejection', async () => {
+  const boom = new Error('onDrainStart async boom');
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  class AsyncRejectingDrainStartThrottle extends Throttle {
+    protected override async onDrainStart(): Promise<void> {
+      await Promise.resolve();
+      throw boom;
+    }
+  }
+
+  const t = new AsyncRejectingDrainStartThrottle({ 'concurrencyLimit': 1 });
+
+  try {
+    await rejects(
+      t.drain(),
+      (error: unknown) => {
+        ok(error instanceof HookInvocationError);
+        strictEqual(error.hookName, 'onDrainStart');
+        strictEqual(error.cause, boom);
+
+        return true;
+      }
+    );
+
+    await setTimeout(0);
+    strictEqual(rejectionEvents.length, 0, 'the rejection must be routed through invoke(), never left unhandled');
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+// ── HookInvocationError regression ───────────────────────────────────────────
+
+void it('a throwing lifecycle hook produces a HookInvocationError carrying the hook name and original cause', async () => {
+  const cause = new Error('onEnter boom');
+
+  class ThrowingEnterThrottle extends Throttle {
+    protected override onEnter(): void {
+      throw cause;
+    }
+  }
+
+  const t = new ThrowingEnterThrottle({ 'concurrencyLimit': 1 });
+
+  await rejects(
+    t.execute(async () => 'ok'),
+    (error: unknown) => {
+      ok(error instanceof HookInvocationError, 'error is a HookInvocationError');
+      strictEqual(error.hookName, 'onEnter', 'hookName identifies the failing hook');
+      strictEqual(error.cause, cause, 'cause is the original thrown error');
+
+      return true;
+    }
+  );
 });

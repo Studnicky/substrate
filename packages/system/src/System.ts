@@ -16,13 +16,8 @@ export class System {
   }
 
   static get cpu(): CpuInfoEntity.Type {
-    const logicalCount = PROVIDER.logicalCpuCount();
-    const model = PROVIDER.cpuModel();
     const arch = PROVIDER.arch();
-    const hasHyperthreading = arch !== 'arm64';
-    const physicalCount = hasHyperthreading
-      ? Math.max(1, Math.round(logicalCount / 2))
-      : logicalCount;
+    const { logicalCount, model, physicalCount } = PROVIDER.cpuInfo();
 
     return {
       'arch': arch,
@@ -41,10 +36,9 @@ export class System {
 
   static get platform(): PlatformInfoEntity.Type {
     const platformStr = PROVIDER.platform();
-    const arch = PROVIDER.arch();
 
     return {
-      'isAppleSilicon': platformStr === 'darwin' && arch === 'arm64',
+      'isAppleSilicon': System.#isAppleSilicon(platformStr),
       'nodeVersion': PROVIDER.runtimeVersion(),
       'os': platformStr
     };
@@ -73,6 +67,10 @@ export class System {
 
   static get isAppleSilicon(): boolean {
     const platformStr = PROVIDER.platform();
+    return System.#isAppleSilicon(platformStr);
+  }
+
+  static #isAppleSilicon(platformStr: string): boolean {
     const arch = PROVIDER.arch();
     return platformStr === 'darwin' && arch === 'arm64';
   }

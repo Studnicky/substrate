@@ -6,6 +6,7 @@ import type { LruCacheOptionsEntity } from '@studnicky/cache';
 import type { TokenBucketOptionsInterface } from '@studnicky/resilience';
 
 import { LruCache } from '@studnicky/cache';
+import { HookInvoker } from '@studnicky/errors';
 import { TokenBucket } from '@studnicky/resilience';
 
 import type { RateLimiterStrategyType } from './RateLimiterStrategyType.js';
@@ -25,6 +26,80 @@ type KeyedRateLimiterDepsType<TStrategy extends RateLimiterStrategyType> = {
 const DEFAULT_MAX_KEYS = 10_000;
 
 /**
+ * `TokenBucket` subclass used by `KeyedRateLimiter.create()`'s default factory
+ * to delegate `onTokenAcquired` back to the owning `KeyedRateLimiter` for a
+ * given `key`, via an `onAcquired` callback rather than holding a reference to
+ * the `KeyedRateLimiter` instance itself — `onTokenAcquired` is `protected` on
+ * `KeyedRateLimiter`, so a module-scope class cannot call it directly on an
+ * instance it merely holds a reference to.
+ */
+class KeyDelegatingTokenBucket extends TokenBucket {
+  readonly #key: string;
+  readonly #onAcquired: (key: string, count: number) => void;
+
+  // Explicit public constructor — a class extending a protected-constructor
+  // base inherits "protected" implicitly unless it declares its own, same as
+  // `@studnicky/idempotency-guard`'s anonymous `Coalesce` subclass.
+  constructor(options: TokenBucketOptionsInterface, key: string, onAcquired: (key: string, count: number) => void) {
+    super(options);
+    this.#key = key;
+    this.#onAcquired = onAcquired;
+  }
+
+  protected override onTokenAcquired(count: number): void {
+    super.onTokenAcquired(count);
+    this.#onAcquired(this.#key, count);
+  }
+}
+
+/**
+ * `LruCache` subclass used by `KeyedRateLimiter.createWithStrategy()` to
+ * delegate its own `onEvict`/`onExpire`/`onDelete` hooks to the owning
+ * `KeyedRateLimiter`'s `onKeyEvicted` hook, via an `onKeyEvicted` callback
+ * rather than holding a reference to the `KeyedRateLimiter` instance itself —
+ * `onKeyEvicted` is `protected` on `KeyedRateLimiter`, so a module-scope class
+ * cannot call it directly on an instance it merely holds a reference to.
+ */
+class KeyEvictionDelegatingCache<TStrategy extends RateLimiterStrategyType> extends LruCache<string, TStrategy> {
+  readonly #onKeyEvicted: (key: string) => void;
+
+  // Explicit public constructor — see the same note on `KeyDelegatingTokenBucket` above.
+  constructor(options: LruCacheOptionsEntity.Type, onKeyEvicted: (key: string) => void) {
+    super(options);
+    this.#onKeyEvicted = onKeyEvicted;
+  }
+
+  protected override onEvict(key: string, _reason: 'capacity'): void {
+    super.onEvict(key, _reason);
+    this.#onKeyEvicted(key);
+  }
+
+  protected override onExpire(key: string): void {
+    super.onExpire(key);
+    this.#onKeyEvicted(key);
+  }
+
+  protected override onDelete(key: string): void {
+    super.onDelete(key);
+    this.#onKeyEvicted(key);
+  }
+}
+
+/**
+ * Swallows a hook failure instead of letting `HookInvoker`'s default
+ * (throwing) behavior propagate: a broken observer hook (`onKeyCreated`/
+ * `onLimitExceeded`) must never replace a successful `consume()` or the
+ * underlying exhaustion error it was reporting on — the same contract the
+ * old bespoke `safeInvoke` swallow provided.
+ */
+class KeyedRateLimiterHookInvoker extends HookInvoker {
+  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
+    const result = undefined as T;
+    return result;
+  }
+}
+
+/**
  * Rate-limits operations independently per string key (per user ID, per IP,
  * per API token, ...) by lazily creating one strategy instance per key and
  * evicting idle keys via a composed `@studnicky/cache` `LruCache`.
@@ -38,11 +113,11 @@ const DEFAULT_MAX_KEYS = 10_000;
  * object matching `RateLimiterStrategyType` — no second wrapper class needed.
  *
  * Composes the internal `LruCache` rather than exposing it unmodified: the
- * cache is built as an anonymous subclass that delegates its own
+ * cache is a `KeyEvictionDelegatingCache` that delegates its own
  * `onEvict`/`onExpire`/`onDelete` hooks to `KeyedRateLimiter`'s own
- * `onKeyEvicted` hook, the same delegation technique `@studnicky/paginator`'s
- * `Paginator` and `@studnicky/idempotency-guard`'s `IdempotencyGuard` use for
- * their own internally-composed instances.
+ * `onKeyEvicted` hook via a callback, the same delegation technique
+ * `@studnicky/paginator`'s `Paginator` and `@studnicky/idempotency-guard`'s
+ * `IdempotencyGuard` use for their own internally-composed instances.
  *
  * @example Default TokenBucket-per-key
  * ```typescript
@@ -68,35 +143,34 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
    * @returns New `KeyedRateLimiter<TokenBucket>` instance
    */
   static create(config: KeyedRateLimiterCreateConfigType): KeyedRateLimiter<TokenBucket> {
-    // Built as an anonymous TokenBucket subclass (rather than plain
+    // Built as a `KeyDelegatingTokenBucket` (rather than plain
     // `TokenBucket.create()`) so its own `onTokenAcquired` hook can delegate
-    // to `KeyedRateLimiter#onTokenAcquired(key, count)` — the same
-    // instance-delegation technique used for the composed `LruCache` below,
-    // applied here because this is the one path where the strategy type
-    // (`TokenBucket`) and its hook surface are both known at construction
-    // time. `createWithStrategy()` cannot make this same guarantee for an
-    // arbitrary caller-supplied strategy — see `onTokenAcquired`'s doc comment.
+    // to `KeyedRateLimiter#onTokenAcquired(key, count)` via the `onAcquired`
+    // callback — the same callback-delegation technique used for the
+    // composed `LruCache` below, applied here because this is the one path
+    // where the strategy type (`TokenBucket`) and its hook surface are both
+    // known at construction time. `createWithStrategy()` cannot make this
+    // same guarantee for an arbitrary caller-supplied strategy — see
+    // `onTokenAcquired`'s doc comment.
     const limiterRef: { 'current': KeyedRateLimiter<TokenBucket> | undefined } = { 'current': undefined };
     const factory = (key: string): TokenBucket => {
-      const result = new (class extends TokenBucket {
-        // Explicit public constructor — a class extending a protected-constructor
-        // base inherits "protected" implicitly unless it declares its own,
-        // same as `@studnicky/idempotency-guard`'s anonymous `Coalesce` subclass.
-        constructor(options: TokenBucketOptionsInterface) { super(options); }
-
-        protected override onTokenAcquired(count: number): void {
-          super.onTokenAcquired(count);
-          if (limiterRef.current !== undefined) {
-            try {
-              limiterRef.current.onTokenAcquired(key, count);
-            } catch {}
+      const result = new KeyDelegatingTokenBucket(
+        {
+          'burstSize': config.burstSize,
+          'requestsPerSecond': config.requestsPerSecond,
+          ...(config.clock !== undefined ? { 'clock': config.clock } : {})
+        },
+        key,
+        (acquiredKey, count) => {
+          const limiter = limiterRef.current;
+          if (limiter !== undefined) {
+            limiter.hooks.invoke('onTokenAcquired', () => {
+              const result = limiter.onTokenAcquired(acquiredKey, count);
+              return result;
+            });
           }
         }
-      })({
-        'burstSize': config.burstSize,
-        'requestsPerSecond': config.requestsPerSecond,
-        ...(config.clock !== undefined ? { 'clock': config.clock } : {})
-      });
+      );
       return result;
     };
 
@@ -127,41 +201,21 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
   ): KeyedRateLimiter<TStrategy> {
     const limiterRef: { 'current': KeyedRateLimiter<TStrategy> | undefined } = { 'current': undefined };
 
-    const cache = new (class extends LruCache<string, TStrategy> {
-      // Explicit public constructor — see the same note on the anonymous
-      // `TokenBucket` subclass in `create()` above.
-      constructor(options: LruCacheOptionsEntity.Type) { super(options); }
-
-      protected override onEvict(key: string, _reason: 'capacity'): void {
-        super.onEvict(key, _reason);
-        if (limiterRef.current !== undefined) {
-          try {
-            limiterRef.current.onKeyEvicted(key);
-          } catch {}
+    const cache = new KeyEvictionDelegatingCache<TStrategy>(
+      {
+        'capacity': config.maxKeys ?? DEFAULT_MAX_KEYS,
+        ...(config.keyIdleTtlMs !== undefined ? { 'ttlMs': config.keyIdleTtlMs } : {})
+      },
+      (key) => {
+        const limiter = limiterRef.current;
+        if (limiter !== undefined) {
+          limiter.hooks.invoke('onKeyEvicted', () => {
+            const result = limiter.onKeyEvicted(key);
+            return result;
+          });
         }
       }
-
-      protected override onExpire(key: string): void {
-        super.onExpire(key);
-        if (limiterRef.current !== undefined) {
-          try {
-            limiterRef.current.onKeyEvicted(key);
-          } catch {}
-        }
-      }
-
-      protected override onDelete(key: string): void {
-        super.onDelete(key);
-        if (limiterRef.current !== undefined) {
-          try {
-            limiterRef.current.onKeyEvicted(key);
-          } catch {}
-        }
-      }
-    })({
-      'capacity': config.maxKeys ?? DEFAULT_MAX_KEYS,
-      ...(config.keyIdleTtlMs !== undefined ? { 'ttlMs': config.keyIdleTtlMs } : {})
-    });
+    );
 
     // `new this(...)` (not `new KeyedRateLimiter(...)`) so a subclass calling
     // its own inherited `createWithStrategy()`/`create()` gets back an
@@ -187,15 +241,19 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
   readonly #cache: LruCache<string, TStrategy>;
   readonly #factory: (key: string) => TStrategy;
 
+  /**
+   * Composed hook invoker — `protected` (not private `#`) so the delegate
+   * classes above (`KeyDelegatingTokenBucket`, `KeyEvictionDelegatingCache`)
+   * can invoke a hook on a captured, DIFFERENT `KeyedRateLimiter` instance
+   * via `limiter.hooks.invoke(...)`. TypeScript permits `protected` member
+   * access on another instance of the same class from within that class's
+   * own code, which is exactly this cross-instance pattern.
+   */
+  protected readonly hooks: HookInvoker = new KeyedRateLimiterHookInvoker();
+
   protected constructor(deps: KeyedRateLimiterDepsType<TStrategy>) {
     this.#factory = deps.factory;
     this.#cache = deps.cache;
-  }
-
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
   }
 
   /**
@@ -212,8 +270,9 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
     try {
       strategy.consume(tokens);
     } catch (error) {
-      this.#invokeHook(() => {
-        this.onLimitExceeded(key);
+      this.hooks.invoke('onLimitExceeded', () => {
+        const result = this.onLimitExceeded(key);
+        return result;
       });
       throw error;
     }
@@ -278,8 +337,9 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenB
 
     const strategy = this.#factory(key);
     this.#cache.set(key, strategy);
-    this.#invokeHook(() => {
-      this.onKeyCreated(key);
+    this.hooks.invoke('onKeyCreated', () => {
+      const result = this.onKeyCreated(key);
+      return result;
     });
     return strategy;
   }

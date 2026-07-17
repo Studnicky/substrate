@@ -37,7 +37,7 @@ export namespace ValidationViolationDetailEntity {
     if (record === undefined) { return false; }
     if (typeof record.message !== 'string') { return false; }
     if (typeof record.path !== 'string') { return false; }
-    if (record.details !== undefined && !Guard.isRecord(record.details)) { return false; }
+    if (record.details !== undefined && !Guard.isObject(record.details)) { return false; }
     return true;
   }
 }

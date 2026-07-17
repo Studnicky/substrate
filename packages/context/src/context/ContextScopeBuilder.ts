@@ -93,9 +93,7 @@ export class ContextScopeBuilder {
       throw new ContextConfigError('ContextScope storage is required');
     }
 
-    const options: ContextScopeOptionsInterface = this.#initial !== undefined
-      ? { 'initial': this.#initial, 'name': this.#name, 'storage': this.#storage }
-      : { 'name': this.#name, 'storage': this.#storage };
+    const options: ContextScopeOptionsInterface = { 'initial': this.#initial, 'name': this.#name, 'storage': this.#storage };
 
     return this.#create(options);
   }

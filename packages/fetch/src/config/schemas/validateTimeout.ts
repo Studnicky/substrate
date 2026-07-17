@@ -2,9 +2,9 @@
  * Timeout validation schema
  */
 
-import { ConfigurationError } from '../../errors/index.js';
+import { FetchConfigValidation } from './FetchConfigValidation.js';
 
-export class ValidateTimeout {
+export class ValidateTimeout extends FetchConfigValidation {
   /**
    * Validates timeout configuration
    * Must be a non-negative finite number in milliseconds
@@ -13,20 +13,10 @@ export class ValidateTimeout {
    * @throws ConfigurationError if validation fails
    */
   public static validate(val: unknown): void {
-    if (val === undefined || val === null) {
-      return;
+    if (val !== undefined && val !== null && typeof val !== 'number') {
+      this.onValidationError('timeout must be a number');
     }
-
-    if (typeof val !== 'number') {
-      throw new ConfigurationError('timeout must be a number');
-    }
-
-    if (val <= 0) {
-      throw new ConfigurationError('timeout must be positive');
-    }
-
-    if (!Number.isFinite(val)) {
-      throw new ConfigurationError('timeout must be finite');
-    }
+    this.assertPositive(val, 'timeout');
+    this.assertFinite(val, 'timeout');
   }
 }

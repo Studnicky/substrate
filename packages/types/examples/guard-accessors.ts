@@ -3,19 +3,18 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { JsonSchemaObjectType, JsonValueType } from '../src/index.js';
-
 import { Empty, Guard } from '../src/index.js';
+import { GuardAccessorsFixtures } from './fixtures/GuardAccessorsFixtures.js';
 
-// ── Guard.isRecord ──────────────────────────────────────────────────────────
+// ── Guard.isObject ───────────────────────────────────────────────────────────
 
-const plainObj = Guard.isRecord({ 'a': 1 });
-const arrIsRecord = Guard.isRecord([1, 2, 3]);
-const nullIsRecord = Guard.isRecord(null);
+const plainObj = Guard.isObject({ 'a': 1 });
+const arrIsRecord = Guard.isObject([1, 2, 3]);
+const nullIsRecord = Guard.isObject(null);
 
-console.log('Guard.isRecord({ a: 1 }):', plainObj);
-console.log('Guard.isRecord([1,2,3]):', arrIsRecord);
-console.log('Guard.isRecord(null):', nullIsRecord);
+console.log('Guard.isObject({ a: 1 }):', plainObj);
+console.log('Guard.isObject([1,2,3]):', arrIsRecord);
+console.log('Guard.isObject(null):', nullIsRecord);
 
 // ── Guard.asRecord ──────────────────────────────────────────────────────────
 
@@ -37,8 +36,7 @@ console.log('Guard.asStringOrNull(null):', strOrNull);
 
 // ── Guard.asRecordArray ─────────────────────────────────────────────────────
 
-const mixed: unknown = [{ 'id': 1 }, 'skip', { 'id': 2 }, null];
-const records = Guard.asRecordArray(mixed);
+const records = Guard.asRecordArray(GuardAccessorsFixtures.mixed);
 
 console.log('Guard.asRecordArray([{id:1},"skip",{id:2},null]):', records);
 
@@ -54,8 +52,8 @@ console.log('Guard.isPositiveInteger(0):', Guard.isPositiveInteger(0));
 // ── Static-override subclass ────────────────────────────────────────────────
 
 class StrictGuard extends Guard {
-  public static override isRecord(value: unknown): value is Record<string, unknown> {
-    return super.isRecord(value) && !Array.isArray(value);
+  public static override isObject(value: unknown): value is Record<string, unknown> {
+    return super.isObject(value) && !Array.isArray(value);
   }
 }
 
@@ -90,8 +88,8 @@ console.log('Empty.isSet(new Set()):', Empty.isSet(new Set()));
 // ── Type-level witnesses ────────────────────────────────────────────────────
 // Values typed as JsonSchemaObjectType / JsonValueType prove the utility at compile time.
 
-const schema: JsonSchemaObjectType = { 'type': 'string' };
-const value: JsonValueType = { 'nested': [1, 'two', null] };
+const schema = GuardAccessorsFixtures.schema;
+const value = GuardAccessorsFixtures.value;
 
 console.log('schema.type:', schema.type);
 console.log('value:', JSON.stringify(value));
@@ -101,7 +99,7 @@ console.log('value:', JSON.stringify(value));
 assert.equal(plainObj, true, 'plain object is a record');
 assert.equal(arrIsRecord, false, 'array is not a record');
 assert.equal(nullIsRecord, false, 'null is not a record');
-assert.equal(Guard.isRecord('hello'), false, 'string is not a record');
+assert.equal(Guard.isObject('hello'), false, 'string is not a record');
 
 assert.ok(rec !== undefined, 'asRecord returns the object');
 assert.equal(rec?.name, 'Ada');
@@ -133,17 +131,14 @@ assert.equal(Guard.isBoolean(true), true);
 assert.equal(Guard.isBoolean(1), false);
 assert.equal(Guard.isFunction(JSON.stringify), true);
 assert.equal(Guard.isFunction('fn'), false);
-assert.equal(Guard.isObject({ 'a': 1 }), true);
-assert.equal(Guard.isObject(null), false);
-assert.equal(Guard.isObject([]), false, 'array is not an object');
 assert.equal(Guard.isNonNegativeInteger(0), true);
 assert.equal(Guard.isNonNegativeInteger(5), true);
 assert.equal(Guard.isNonNegativeInteger(-1), false);
 assert.equal(Guard.isPositiveInteger(1), true);
 assert.equal(Guard.isPositiveInteger(0), false);
 
-assert.equal(StrictGuard.isRecord({ 'x': 1 }), true, 'StrictGuard accepts plain objects');
-assert.equal(StrictGuard.isRecord([]), false, 'StrictGuard rejects arrays');
+assert.equal(StrictGuard.isObject({ 'x': 1 }), true, 'StrictGuard accepts plain objects');
+assert.equal(StrictGuard.isObject([]), false, 'StrictGuard rejects arrays');
 assert.ok(strictRec !== undefined);
 assert.equal(strictRec?.host, 'localhost');
 assert.ok(strictArr !== undefined);

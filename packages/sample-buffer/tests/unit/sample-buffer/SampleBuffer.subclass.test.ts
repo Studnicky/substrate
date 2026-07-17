@@ -8,6 +8,8 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { SampleBuffer } from '../../../src/sample-buffer/SampleBuffer.js';
 
 // ── Test subclasses ──────────────────────────────────────────────────────────
@@ -442,60 +444,135 @@ it('subclass can read count, capacity, head, sortedCache', () => {
   assert.equal(state.cacheNull, true); // invalidated by push
 });
 
-it('a throwing onPush hook does not replace a completed append', () => {
-  const buf = ThrowingPushBuffer.create({ 'capacity': 3 });
-  buf.push(10);
+// A hook that throws now surfaces a `HookInvocationError` from the method
+// that fired it, instead of being silently swallowed.
 
+it('a throwing onPush hook raises HookInvocationError but the append already completed', () => {
+  const buf = ThrowingPushBuffer.create({ 'capacity': 3 });
+
+  assert.throws(() => {
+    buf.push(10);
+  }, HookInvocationError);
+
+  // onPush fires after the append — the mutation is already committed.
   assert.equal(buf.length, 1);
   assert.equal(buf.percentile(50), 10);
 });
 
-it('a throwing onOverflow hook does not replace a completed overwrite', () => {
+it('a throwing onOverflow hook raises HookInvocationError and prevents the overwrite', () => {
   const buf = ThrowingOverflowBuffer.create({ 'capacity': 2 });
   buf.push(10);
   buf.push(20);
-  buf.push(30);
 
+  assert.throws(() => {
+    buf.push(30);
+  }, HookInvocationError);
+
+  // onOverflow fires before eviction — the overwrite never happens.
   assert.equal(buf.length, 2);
-  assert.equal(buf.percentile(0), 20);
-  assert.equal(buf.percentile(100), 30);
+  assert.equal(buf.percentile(0), 10);
+  assert.equal(buf.percentile(100), 20);
 });
 
-it('a throwing onEvict hook does not replace a completed overwrite', () => {
+it('a throwing onEvict hook raises HookInvocationError and prevents the overwrite', () => {
   const buf = ThrowingEvictBuffer.create({ 'capacity': 2 });
   buf.push(10);
   buf.push(20);
-  buf.push(30);
 
+  assert.throws(() => {
+    buf.push(30);
+  }, HookInvocationError);
+
+  // onEvict fires before the slot is overwritten — the overwrite never happens.
   assert.equal(buf.length, 2);
-  assert.equal(buf.percentile(0), 20);
-  assert.equal(buf.percentile(100), 30);
+  assert.equal(buf.percentile(0), 10);
+  assert.equal(buf.percentile(100), 20);
 });
 
-it('a throwing onClear hook does not replace clear()', () => {
+it('a throwing onClear hook raises HookInvocationError and prevents the reset', () => {
   const buf = ThrowingClearBuffer.create({ 'capacity': 3 });
   buf.push(1);
   buf.push(2);
-  buf.clear();
 
-  assert.equal(buf.length, 0);
-  assert.equal(buf.percentile(50), undefined);
+  assert.throws(() => {
+    buf.clear();
+  }, HookInvocationError);
+
+  // onClear fires before state is reset — the reset never happens.
+  assert.equal(buf.length, 2);
+  assert.equal(buf.percentile(50), 1.5);
 });
 
-it('a throwing onPercentile hook does not replace the computed percentile result', () => {
+it('a throwing onPercentile hook raises HookInvocationError instead of returning the computed result', () => {
   const buf = ThrowingPercentileBuffer.create({ 'capacity': 3 });
   buf.push(10);
   buf.push(20);
   buf.push(30);
 
-  assert.equal(buf.percentile(50), 20);
+  assert.throws(() => {
+    buf.percentile(50);
+  }, HookInvocationError);
 });
 
-it('a throwing onComputeStart hook does not replace percentile computation', () => {
+it('a throwing onComputeStart hook raises HookInvocationError instead of computing the percentile', () => {
   const buf = ThrowingComputeBuffer.create({ 'capacity': 3 });
   buf.push(30);
   buf.push(10);
   buf.push(20);
 
-  assert.equal(buf.percentile(50), 20);
+  assert.throws(() => {
+    buf.percentile(50);
+  }, HookInvocationError);
+});
+
+it('HookInvocationError carries the failing hook name and original cause', () => {
+  const buf = ThrowingPushBuffer.create({ 'capacity': 3 });
+
+  try {
+    buf.push(10);
+    assert.fail('expected push() to throw');
+  } catch (error) {
+    assert.ok(error instanceof HookInvocationError);
+    assert.equal(error.hookName, 'onPush');
+    assert.ok(error.cause instanceof Error);
+    assert.equal((error.cause as Error).message, 'onPush boom');
+  }
+});
+
+// ── Async hook override safety net ───────────────────────────────────────────
+//
+// HookInvoker.invoke() only detects an asynchronous override (and routes its
+// eventual rejection through onHookError) when the call site's fn() actually
+// returns the hook's own return value. Every `this.hooks.invoke(...)` call
+// site inside SampleBuffer must forward that return value — this test proves
+// it for onPush (fire-and-forget from push(), which itself returns void),
+// with the default onHookError disposition (synchronous rethrow) left intact.
+
+class AsyncRejectingPushBuffer extends SampleBuffer {
+  override async onPush(_value: number, _evicted: boolean): Promise<void> {
+    await Promise.resolve();
+    throw new Error('async onPush failure');
+  }
+}
+
+it('an async-rejecting onPush override is routed safely with no unhandled rejection, even though push() never awaits the hook', async () => {
+  const buf = AsyncRejectingPushBuffer.create({ 'capacity': 3 });
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => {
+    rejectionEvents.push(reason);
+  };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    buf.push(10);
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    assert.equal(rejectionEvents.length, 0);
+    // The synchronous append already completed before the async hook settles.
+    assert.equal(buf.length, 1);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });

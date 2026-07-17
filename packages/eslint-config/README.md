@@ -112,7 +112,7 @@ export default [
 | `@studnicky/type-alias-invariants` | Merged type-alias invariants: exported aliases must end in `Type`, must not bake in `readonly`, must not be naked re-aliases, must derive data shapes from JSON Schema, and must not duplicate an imported package shape |
 | `@studnicky/whole-canonical-types` | Disallow deriving `Partial`/`Pick`/`Omit` subset views from canonical, codebase-owned named types/interfaces — define an explicit type instead |
 
-**`@studnicky/v8` namespace** (24 rules via `v8Plugin` from `@studnicky/eslint-config/v8`):
+**`@studnicky/v8` namespace** (27 rules via `v8Plugin` from `@studnicky/eslint-config/v8`):
 
 | Rule | Purpose |
 |------|---------|
@@ -120,7 +120,10 @@ export default [
 | `@studnicky/v8/array-concat-outside-loops` | Avoid `.concat()` in loops — creates new arrays each iteration |
 | `@studnicky/v8/array-from-iterators` | Avoid `Array.from` on iterators in hot paths |
 | `@studnicky/v8/array-from-map-callback` | `Array.from(iterable, mapFn)` is measurably slower than a manual index-fill loop; prefer `new Array(n)` with an index-assignment loop |
+| `@studnicky/v8/array-scan-outside-loops` | Avoid `find`/`filter`/`indexOf`/`includes`/`some`/`every` in loops — hoist into a Map/Set or compute once |
+| `@studnicky/v8/array-splice-outside-loops` | Avoid `.splice()` in loops — each call is O(n), making the loop O(n²) |
 | `@studnicky/v8/array-spread-outside-loops` | Never use array spread in loops — creates O(n²) work |
+| `@studnicky/v8/chained-array-iteration` | Disallow chaining `.map()`/`.filter()` — allocates an intermediate array and iterates twice; use `.reduce()` |
 | `@studnicky/v8/computed-class-properties` | Computed properties in classes break hidden classes |
 | `@studnicky/v8/computed-object-properties` | Computed properties in object literals break hidden classes |
 | `@studnicky/v8/conditional-property-assignment` | Conditional property assignment in a constructor breaks hidden classes; assign every property unconditionally |

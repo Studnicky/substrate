@@ -16,22 +16,29 @@
  * }
  * ```
  */
+import { DomainErrorArgs } from '@studnicky/errors';
+
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class SocketError extends FetchBaseError {
   /**
    * Undici error code
    */
-  readonly undiciCode: 'UND_ERR_SOCKET';
+  readonly undiciCode!: 'UND_ERR_SOCKET';
 
   /**
    * The URL that was being requested
    */
-  readonly url: string;
+  readonly url!: string;
 
   constructor(url: string, cause?: Error) {
-    super({ 'cause': cause, 'code': 'fetch.socketError', 'message': `Socket error for ${url}`, 'retryable': true });
-    this.undiciCode = 'UND_ERR_SOCKET';
-    this.url = url;
+    const fields = { 'undiciCode': 'UND_ERR_SOCKET' as const, 'url': url };
+    super(DomainErrorArgs.build(fields, {
+      'cause': cause,
+      'code': 'fetch.socketError',
+      'message': (f) => { const result = `Socket error for ${f.url}`; return result; },
+      'retryable': true
+    }));
+    Object.assign(this, fields);
   }
 }

@@ -57,7 +57,7 @@ class TrackingPaginator extends Paginator<string, number> {
 it('records idle -> hasMore on the first page with a cursor', () => {
   const paginator = TrackingPaginator.tracked();
 
-  paginator.next('page-1', 2);
+  paginator.next('page-1', { 'cursor': 2, 'exhausted': false });
 
   deepStrictEqual(paginator.transitions[0], { 'event': 'pageReceived', 'from': 'idle', 'to': 'hasMore' });
   deepStrictEqual(paginator.exits, ['idle']);
@@ -67,8 +67,8 @@ it('records idle -> hasMore on the first page with a cursor', () => {
 it('does not fire onTransition/onEnterState/onExitState for hasMore -> hasMore', () => {
   const paginator = TrackingPaginator.tracked();
 
-  paginator.next('page-1', 2);
-  paginator.next('page-2', 3);
+  paginator.next('page-1', { 'cursor': 2, 'exhausted': false });
+  paginator.next('page-2', { 'cursor': 3, 'exhausted': false });
 
   strictEqual(paginator.transitions.length, 1);
   strictEqual(paginator.enters.length, 1);
@@ -78,8 +78,8 @@ it('does not fire onTransition/onEnterState/onExitState for hasMore -> hasMore',
 it('records hasMore -> exhausted when nextCursor is undefined', () => {
   const paginator = TrackingPaginator.tracked();
 
-  paginator.next('page-1', 2);
-  paginator.next('page-2', undefined);
+  paginator.next('page-1', { 'cursor': 2, 'exhausted': false });
+  paginator.next('page-2', { 'exhausted': true });
 
   const last = paginator.transitions.at(-1);
 
@@ -89,7 +89,7 @@ it('records hasMore -> exhausted when nextCursor is undefined', () => {
 it('records exhausted -> idle on reset', () => {
   const paginator = TrackingPaginator.tracked();
 
-  paginator.next('page-1', undefined);
+  paginator.next('page-1', { 'exhausted': true });
   paginator.reset();
 
   const last = paginator.transitions.at(-1);
@@ -100,9 +100,9 @@ it('records exhausted -> idle on reset', () => {
 it('fires onTransitionRejected when next() is called after exhaustion', () => {
   const paginator = TrackingPaginator.tracked();
 
-  paginator.next('page-1', undefined);
+  paginator.next('page-1', { 'exhausted': true });
 
-  throws(() => { paginator.next('page-2', undefined); });
+  throws(() => { paginator.next('page-2', { 'exhausted': true }); });
 
   strictEqual(paginator.rejections.length, 1);
   strictEqual(paginator.rejections[0]?.state, 'exhausted');

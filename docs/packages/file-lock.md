@@ -68,6 +68,8 @@ const lock = await FileLock.create({
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
+A hook override that throws or rejects does not abort acquisition or release — the failure is recorded instead of propagating; inspect it via `hookErrorCount` (a running total) and `getHookErrors()` (a defensive copy of every recorded `{ hookName, cause }` entry), backed internally by `@studnicky/errors`'s `HookInvoker`.
+
 ## Try it in the browser
 
 By default, `FileLock` performs all filesystem operations through the real Node.js `fs` module (atomic rename on disk). These demos inject an in-memory `@studnicky/virtual-fs` `VirtualFileSystem` so the exact same lock semantics — atomic rename-based acquisition, contention polling, release — run entirely in the browser.
@@ -106,6 +108,8 @@ Two `FileLock` instances share the same `VirtualFileSystem` path. The holder acq
 | `write` | `(content: string) => void` | Writes content to the locked file |
 | `release` | `() => void` | Releases the lock; safe to call multiple times |
 | `[Symbol.dispose]` | `() => void` | Calls `release`; enables `using` syntax |
+| `hookErrorCount` | `get hookErrorCount(): number` | Count of hook failures recorded since construction |
+| `getHookErrors` | `() => readonly { hookName: string; cause: unknown }[]` | Defensive copy of every hook failure recorded since construction |
 
 ### `FileLockBuilder`
 

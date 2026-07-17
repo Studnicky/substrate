@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import os from 'node:os';
-import { it } from 'node:test';
+import { it, mock } from 'node:test';
 
 import { System } from '../../src/System.js';
 
@@ -67,10 +67,33 @@ const cpuFieldScenarios: Array<{ description: string; check: () => void }> = [
       assert.ok(physicalCount <= logicalCount, 'physicalCount <= logicalCount');
     },
   },
+  {
+    description:
+      'cpu.physicalCount equals logicalCount regardless of arch (no unreliable hyperthreading halving)',
+    check: () => {
+      const { logicalCount, physicalCount } = System.cpu;
+      assert.equal(
+        physicalCount,
+        logicalCount,
+        'physicalCount must not be halved by an arch-based hyperthreading guess',
+      );
+    },
+  },
 ];
 for (const { description, check } of cpuFieldScenarios) {
   it(description, check);
 }
+
+it('cpu getter enumerates os.cpus() exactly once per access', () => {
+  const spy = mock.method(os, 'cpus');
+
+  try {
+    void System.cpu;
+    assert.equal(spy.mock.callCount(), 1, 'os.cpus() should be called exactly once per cpu access');
+  } finally {
+    spy.mock.restore();
+  }
+});
 
 // memory property field scenarios
 const memoryFieldScenarios: Array<{ description: string; check: () => void }> = [
@@ -127,6 +150,10 @@ for (const { description, check } of platformFieldScenarios) {
 it('isAppleSilicon returns correct value for the current platform', () => {
   const expected = os.platform() === 'darwin' && os.arch() === 'arm64';
   assert.equal(System.isAppleSilicon, expected);
+});
+
+it('isAppleSilicon and platform.isAppleSilicon agree (shared detection logic)', () => {
+  assert.equal(System.isAppleSilicon, System.platform.isAppleSilicon);
 });
 
 // snapshot()

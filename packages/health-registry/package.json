@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/health-registry",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "description": "Named async health-check registry with worst-status-wins aggregation",
   "type": "module",
   "sideEffects": false,
@@ -53,8 +53,8 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*"
   }
 }

@@ -22,6 +22,8 @@ import {
 } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { Context, ContextScope } from '../../../src/context/index.js';
 import type { ContextScopeOptionsInterface } from '../../../src/context/index.js';
 
@@ -757,6 +759,76 @@ void describe('ContextScope Lifecycle', () => {
       scope.terminate();
     });
 
+    void it('onError fires (not onAfterExecute) when an async fn rejects', async () => {
+      const afterCount: number[] = [];
+      const errors: unknown[] = [];
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onAfterExecute(): void {
+          afterCount.push(1);
+        }
+
+        protected override onError(error: unknown): void {
+          errors.push(error);
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+      const err = new Error('async boom');
+
+      await scope.execute(async () => {
+        await setTimeout(5);
+        throw err;
+      }).catch(() => {
+        // Rejection propagates to the caller as expected; hooks are asserted below.
+      });
+
+      strictEqual(afterCount.length, 0);
+      strictEqual(errors.length, 1);
+      strictEqual(errors[0], err);
+      scope.terminate();
+    });
+
+    void it('onAfterExecute fires only after an async fn resolves, not before', async () => {
+      const afterCount: number[] = [];
+      const errors: unknown[] = [];
+      class TracedScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): TracedScope {
+          return new TracedScope(options);
+        }
+
+        protected override onAfterExecute(): void {
+          afterCount.push(1);
+        }
+
+        protected override onError(error: unknown): void {
+          errors.push(error);
+        }
+      }
+
+      const als = new AsyncLocalStorage<Map<string, unknown>>();
+      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+
+      const pending = scope.execute(async () => {
+        await setTimeout(5);
+        return 'done';
+      });
+
+      // Hook has not fired yet — the promise has not resolved.
+      strictEqual(afterCount.length, 0);
+
+      const result = await pending;
+
+      strictEqual(result, 'done');
+      strictEqual(afterCount.length, 1);
+      strictEqual(errors.length, 0);
+      scope.terminate();
+    });
+
     void it('onDispose fires after store clear, before onTerminate', () => {
       const log: string[] = [];
       class TracedScope extends ContextScope {
@@ -807,7 +879,7 @@ void describe('ContextScope Lifecycle', () => {
       scope.terminate();
     });
 
-    void it('a throwing onBeforeExecute hook does not replace a successful execute() result', () => {
+    void it('a throwing onBeforeExecute hook surfaces a HookInvocationError before fn runs', () => {
       class TracedScope extends ContextScope {
         static override create(options: ContextScopeOptionsInterface): TracedScope {
           return new TracedScope(options);
@@ -820,12 +892,20 @@ void describe('ContextScope Lifecycle', () => {
 
       const als = new AsyncLocalStorage<Map<string, unknown>>();
       const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+      let caught: unknown;
 
-      strictEqual(scope.execute(() => 42), 42);
+      try {
+        scope.execute(() => 42);
+      } catch (error) {
+        caught = error;
+      }
+
+      ok(caught instanceof HookInvocationError);
+      strictEqual((caught as HookInvocationError).hookName, 'onBeforeExecute');
       scope.terminate();
     });
 
-    void it('a throwing onAfterExecute hook does not replace a successful execute() result', () => {
+    void it('a throwing onAfterExecute hook surfaces a HookInvocationError after fn has already run', () => {
       class TracedScope extends ContextScope {
         static override create(options: ContextScopeOptionsInterface): TracedScope {
           return new TracedScope(options);
@@ -838,12 +918,20 @@ void describe('ContextScope Lifecycle', () => {
 
       const als = new AsyncLocalStorage<Map<string, unknown>>();
       const scope = TracedScope.create({ 'name': 'test', 'storage': als });
+      let caught: unknown;
 
-      strictEqual(scope.execute(() => 42), 42);
+      try {
+        scope.execute(() => 42);
+      } catch (error) {
+        caught = error;
+      }
+
+      ok(caught instanceof HookInvocationError);
+      strictEqual((caught as HookInvocationError).hookName, 'onAfterExecute');
       scope.terminate();
     });
 
-    void it('a throwing onTerminatedAccess hook does not replace ContextError', () => {
+    void it('a throwing onTerminatedAccess hook surfaces a HookInvocationError instead of ContextError', () => {
       class TracedScope extends ContextScope {
         static override create(options: ContextScopeOptionsInterface): TracedScope {
           return new TracedScope(options);
@@ -857,14 +945,19 @@ void describe('ContextScope Lifecycle', () => {
       const als = new AsyncLocalStorage<Map<string, unknown>>();
       const scope = TracedScope.create({ 'name': 'test', 'storage': als });
       scope.terminate();
+      let caught: unknown;
 
-      throws(
-        () => scope.execute(() => 42),
-        { message: 'test scope has been terminated' }
-      );
+      try {
+        scope.execute(() => 42);
+      } catch (error) {
+        caught = error;
+      }
+
+      ok(caught instanceof HookInvocationError);
+      strictEqual((caught as HookInvocationError).hookName, 'onTerminatedAccess');
     });
 
-    void it('a throwing onDispose hook does not replace terminate() snapshot', () => {
+    void it('a throwing onDispose hook surfaces a HookInvocationError instead of the terminate() snapshot', () => {
       class TracedScope extends ContextScope {
         static override create(options: ContextScopeOptionsInterface): TracedScope {
           return new TracedScope(options);
@@ -877,8 +970,16 @@ void describe('ContextScope Lifecycle', () => {
 
       const als = new AsyncLocalStorage<Map<string, unknown>>();
       const scope = TracedScope.create({ 'initial': { 'requestId': 'abc' }, 'name': 'test', 'storage': als });
+      let caught: unknown;
 
-      deepStrictEqual(scope.terminate(), { 'requestId': 'abc' });
+      try {
+        scope.terminate();
+      } catch (error) {
+        caught = error;
+      }
+
+      ok(caught instanceof HookInvocationError);
+      strictEqual((caught as HookInvocationError).hookName, 'onDispose');
     });
   });
 
@@ -1018,6 +1119,44 @@ void describe('ContextScope Lifecycle', () => {
         'op3'
       ]);
       ok(typeof final.completedAt === 'number');
+    });
+  });
+
+  void describe('async hook safety (HookInvoker regression)', () => {
+    void it('an async onBeforeExecute override that rejects is routed through onHookError, not left as an unhandled rejection', async () => {
+      class AsyncRejectingScope extends ContextScope {
+        static override create(options: ContextScopeOptionsInterface): AsyncRejectingScope {
+          return new AsyncRejectingScope(options);
+        }
+
+        protected override async onBeforeExecute(): Promise<void> {
+          await setTimeout(5);
+          throw new Error('onBeforeExecute boom');
+        }
+      }
+
+      const unhandled: unknown[] = [];
+      const onUnhandledRejection = (reason: unknown): void => { unhandled.push(reason); };
+      process.on('unhandledRejection', onUnhandledRejection);
+
+      try {
+        const als = new AsyncLocalStorage<Map<string, unknown>>();
+        const scope = AsyncRejectingScope.create({ 'name': 'async-before-execute', 'storage': als });
+
+        // `hooks.invoke` for onBeforeExecute is fired without being awaited by
+        // `execute()` itself — this call must not throw synchronously and must
+        // not leak an unhandled rejection once the override's promise settles.
+        scope.execute(() => 'ok');
+
+        // Give the rejected hook promise time to settle and, if the fix
+        // regressed, time for the unhandled rejection to surface.
+        await setTimeout(20);
+
+        strictEqual(unhandled.length, 0);
+        scope.terminate();
+      } finally {
+        process.off('unhandledRejection', onUnhandledRejection);
+      }
     });
   });
 });

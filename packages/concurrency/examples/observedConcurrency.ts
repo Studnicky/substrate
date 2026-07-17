@@ -42,8 +42,6 @@ class ObservedChannel<T> extends Channel<T> {
   readonly dequeueEvents: { 'item': T; 'key': string }[] = [];
   readonly droppedEvents: { 'item': T; 'key': string }[] = [];
   readonly enqueueEvents: { 'item': T; 'key': string }[] = [];
-  readonly receiveEvents: { 'item': T; 'key': string }[] = [];
-  readonly sendEvents: { 'item': T; 'key': string }[] = [];
   closeCount = 0;
 
   constructor() { super(); }
@@ -59,14 +57,6 @@ class ObservedChannel<T> extends Channel<T> {
   protected override onPublishDropped(key: string, item: T): void {
     this.droppedEvents.push({ 'item': item, 'key': key });
     console.log(`[concurrency:channel] publishDropped key=${key} item=${JSON.stringify(item)}`);
-  }
-  protected override onReceive(key: string, item: T): void {
-    this.receiveEvents.push({ 'item': item, 'key': key });
-    console.log(`[concurrency:channel] receive key=${key} item=${JSON.stringify(item)}`);
-  }
-  protected override onSend(key: string, item: T): void {
-    this.sendEvents.push({ 'item': item, 'key': key });
-    console.log(`[concurrency:channel] send key=${key} item=${JSON.stringify(item)}`);
   }
   protected override onClose(): void {
     this.closeCount += 1;
@@ -109,21 +99,21 @@ class ObservedConcurrencyDemo {
     await Promise.resolve();
 
     // Release first permit: delegates to queued waiter
-    r1();
+    await r1();
 
     // Wait for the second acquire to resolve
     const r2 = await pendingR2;
 
     // Release the second permit: returns to pool
-    r2();
+    await r2();
     return sem;
   }
 
   static async runChannel(): Promise<ObservedChannel<string>> {
     console.log('\n=== Channel ===');
     const ch: ObservedChannel<string> = new ObservedChannel<string>();
-    ch.publish('events', 'hello');
-    ch.publish('events', 'world');
+    await ch.publish('events', 'hello');
+    await ch.publish('events', 'world');
 
     const collected: string[] = [];
     const gen: AsyncGenerator<string> = ch.subscribe('events');
@@ -132,7 +122,7 @@ class ObservedConcurrencyDemo {
       if (collected.length >= 2) { break; }
     }
 
-    ch.close();
+    await ch.close();
     console.log('Channel received:', collected);
     return ch;
   }
@@ -173,9 +163,7 @@ class ObservedConcurrencyAssertions {
 
   static async runChannel(): Promise<void> {
     const ch = await ObservedConcurrencyDemo.runChannel();
-    assert.equal(ch.sendEvents.length, 2, 'sendEvents: 2 items sent');
     assert.equal(ch.enqueueEvents.length, 2, 'enqueueEvents: 2 items enqueued');
-    assert.equal(ch.receiveEvents.length, 2, 'receiveEvents: 2 items received');
     assert.equal(ch.dequeueEvents.length, 2, 'dequeueEvents: 2 items dequeued');
     assert.equal(ch.closeCount, 1, 'closeCount: 1 close');
   }

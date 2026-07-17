@@ -53,6 +53,21 @@ export class Hash {
     if (typeof value === 'string') {
       return `s:${this.toHex32(this.fnv1a32(value))}`;
     }
+    if (value instanceof Date) {
+      return `date:${value.getTime()}`;
+    }
+    if (value instanceof Map) {
+      const parts = [...value.entries()].map(
+        ([k, v]: [unknown, unknown]) => { const result = `${this.hashValue(k)}=${this.hashValue(v)}`; return result; }
+      ).sort();
+
+      return `map{${parts.join(',')}}`;
+    }
+    if (value instanceof Set) {
+      const parts = [...value.values()].map((v: unknown) => { const result = this.hashValue(v); return result; }).sort();
+
+      return `set{${parts.join(',')}}`;
+    }
     if (Array.isArray(value)) {
       const parts = value.map((item: unknown) => { const result = this.hashValue(item); return result; });
 

@@ -56,6 +56,17 @@ export type ClientConfigType = {
   'headers'?: Record<string, string>;
 
   /**
+   * Timeout in milliseconds for lifecycle hook invocations (onRequestStart,
+   * onResponseSuccess, onResponseError, onRequestError, onTimeout, onAbort,
+   * onDispatcherDestroy)
+   *
+   * When unset, a hook may take arbitrarily long, matching prior behavior.
+   * When set, a hook that never settles within this window fails with a
+   * HookInvocationError whose cause is a HookTimeoutError.
+   */
+  'hookTimeoutMs'?: number;
+
+  /**
    * Default metadata for all requests
    *
    * Key-value pairs that flow through the onRequest/onResponse lifecycle hooks

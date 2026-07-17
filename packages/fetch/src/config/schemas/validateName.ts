@@ -2,12 +2,12 @@
  * Name validation schema
  */
 
-import { ConfigurationError } from '../../errors/index.js';
+import { FetchConfigValidation } from './FetchConfigValidation.js';
 
 /**
  * Name validation
  */
-export class ValidateName {
+export class ValidateName extends FetchConfigValidation {
   /**
    * Validates name configuration
    * Must be a non-empty string
@@ -16,16 +16,9 @@ export class ValidateName {
    * @throws ConfigurationError if validation fails
    */
   public static validate(val: unknown): void {
-    if (val === undefined || val === null) {
-      return;
-    }
-
-    if (typeof val !== 'string') {
-      throw new ConfigurationError('name must be a string');
-    }
-
+    this.assertString(val, 'name');
     if (val === '') {
-      throw new ConfigurationError('name must not be empty');
+      this.onValidationError('name must not be empty');
     }
   }
 }
