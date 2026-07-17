@@ -37,4 +37,24 @@ void describe('Default Query Params Feature', () => {
     assert.ok(Array.isArray(data));
     assert.ok(data.length <= 5);
   });
+
+  void it('should apply default query params when no baseURL is configured', async () => {
+    const client = FetchClient.create({
+      params: {
+        _limit: '5',
+        _page: '1'
+      }
+    });
+
+    const response = await client.get(`${testUrl}/echo`);
+
+    assert.strictEqual(response.status, 200);
+
+    const data = await response.json() as { query: Record<string, string> };
+
+    assert.deepStrictEqual(data.query, {
+      '_limit': '5',
+      '_page': '1'
+    });
+  });
 });

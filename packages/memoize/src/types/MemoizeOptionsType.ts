@@ -1,4 +1,5 @@
 /** Construction options for {@link Memoize}. */
+// json-schema-uninexpressible: generic type parameter TArgs and function-type field (keyFn), not plain JSON-serializable data
 export type MemoizeOptionsType<TArgs extends unknown[]> = {
   /** Maximum number of distinct derived keys retained at once (composed `LruCache` capacity). */
   'capacity': number;

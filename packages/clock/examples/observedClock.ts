@@ -51,75 +51,81 @@ class TracedClock extends Clock {
   }
 }
 
-// Capture events for assertion
-const advanceEvents: { 'deltaMs': number; 'nowMs': number }[] = [];
-const nowMsEvents: number[] = [];
-const providerNowEvents: number[] = [];
-const clockNowEvents: number[] = [];
-const clockHrtimeEvents: bigint[] = [];
+class ObservedClockExample {
+  static run(): void {
+    // Capture events for assertion
+    const advanceEvents: { 'deltaMs': number; 'nowMs': number }[] = [];
+    const nowMsEvents: number[] = [];
+    const providerNowEvents: number[] = [];
+    const clockNowEvents: number[] = [];
+    const clockHrtimeEvents: bigint[] = [];
 
-class RecordingCounter extends TracedCounter {
-  protected override onAdvance(deltaMs: number, nowMs: number): void {
-    super.onAdvance(deltaMs, nowMs);
-    advanceEvents.push({ 'deltaMs': deltaMs, 'nowMs': nowMs });
-  }
+    class RecordingCounter extends TracedCounter {
+      protected override onAdvance(deltaMs: number, nowMs: number): void {
+        super.onAdvance(deltaMs, nowMs);
+        advanceEvents.push({ 'deltaMs': deltaMs, 'nowMs': nowMs });
+      }
 
-  protected override onNowMs(value: number): void {
-    super.onNowMs(value);
-    nowMsEvents.push(value);
+      protected override onNowMs(value: number): void {
+        super.onNowMs(value);
+        nowMsEvents.push(value);
+      }
+    }
+
+    class RecordingProvider extends TracedVirtualProvider {
+      protected override onNow(timestamp: number): void {
+        super.onNow(timestamp);
+        providerNowEvents.push(timestamp);
+      }
+    }
+
+    class RecordingClock extends TracedClock {
+      protected override onNow(timestamp: number): void {
+        super.onNow(timestamp);
+        clockNowEvents.push(timestamp);
+      }
+
+      protected override onHrtime(value: bigint): void {
+        super.onHrtime(value);
+        clockHrtimeEvents.push(value);
+      }
+    }
+
+    console.log('--- scenario: advance then read ---');
+
+    const counter = new RecordingCounter({ 'startMs': 1000 });
+    const provider = new RecordingProvider(counter);
+    const clock = new RecordingClock(provider);
+
+    const t0 = clock.now();
+    counter.advance(500);
+    const t1 = clock.now();
+    counter.advance(250);
+    const t2 = clock.now();
+    const h0 = clock.hrtime();
+
+    console.log(`\nReturned values: t0=${t0} t1=${t1} t2=${t2} h0=${h0}n`);
+
+    // Assertions
+    assert.equal(clockNowEvents.length, 3, 'clock.onNow fires 3 times');
+    assert.equal(clockNowEvents[0], 1000, 'first now is 1000');
+    assert.equal(clockNowEvents[1], 1500, 'second now is 1500 after +500');
+    assert.equal(clockNowEvents[2], 1750, 'third now is 1750 after +250');
+
+    assert.equal(clockHrtimeEvents.length, 1, 'clock.onHrtime fires once');
+    assert.equal(clockHrtimeEvents[0], 1750n * 1_000_000n, 'hrtime matches final nowMs in ns');
+
+    assert.equal(advanceEvents.length, 2, 'counter.onAdvance fires twice');
+    assert.equal(advanceEvents[0]!.deltaMs, 500);
+    assert.equal(advanceEvents[0]!.nowMs, 1500);
+    assert.equal(advanceEvents[1]!.deltaMs, 250);
+    assert.equal(advanceEvents[1]!.nowMs, 1750);
+
+    assert.equal(providerNowEvents.length, 3, 'provider.onNow fires 3 times');
+
+    console.log('\nobservedClock: all assertions passed');
   }
 }
 
-class RecordingProvider extends TracedVirtualProvider {
-  protected override onNow(timestamp: number): void {
-    super.onNow(timestamp);
-    providerNowEvents.push(timestamp);
-  }
-}
-
-class RecordingClock extends TracedClock {
-  protected override onNow(timestamp: number): void {
-    super.onNow(timestamp);
-    clockNowEvents.push(timestamp);
-  }
-
-  protected override onHrtime(value: bigint): void {
-    super.onHrtime(value);
-    clockHrtimeEvents.push(value);
-  }
-}
-
-console.log('--- scenario: advance then read ---');
-
-const counter = new RecordingCounter({ 'startMs': 1000 });
-const provider = new RecordingProvider(counter);
-const clock = new RecordingClock(provider);
-
-const t0 = clock.now();
-counter.advance(500);
-const t1 = clock.now();
-counter.advance(250);
-const t2 = clock.now();
-const h0 = clock.hrtime();
-
-console.log(`\nReturned values: t0=${t0} t1=${t1} t2=${t2} h0=${h0}n`);
+ObservedClockExample.run();
 // #endregion usage
-
-// Assertions
-assert.equal(clockNowEvents.length, 3, 'clock.onNow fires 3 times');
-assert.equal(clockNowEvents[0], 1000, 'first now is 1000');
-assert.equal(clockNowEvents[1], 1500, 'second now is 1500 after +500');
-assert.equal(clockNowEvents[2], 1750, 'third now is 1750 after +250');
-
-assert.equal(clockHrtimeEvents.length, 1, 'clock.onHrtime fires once');
-assert.equal(clockHrtimeEvents[0], 1750n * 1_000_000n, 'hrtime matches final nowMs in ns');
-
-assert.equal(advanceEvents.length, 2, 'counter.onAdvance fires twice');
-assert.equal(advanceEvents[0]!.deltaMs, 500);
-assert.equal(advanceEvents[0]!.nowMs, 1500);
-assert.equal(advanceEvents[1]!.deltaMs, 250);
-assert.equal(advanceEvents[1]!.nowMs, 1750);
-
-assert.equal(providerNowEvents.length, 3, 'provider.onNow fires 3 times');
-
-console.log('\nobservedClock: all assertions passed');

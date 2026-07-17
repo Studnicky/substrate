@@ -17,22 +17,29 @@
  * }
  * ```
  */
+import { DomainErrorArgs } from '@studnicky/errors';
+
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class ConnectTimeoutError extends FetchBaseError {
   /**
    * Undici error code
    */
-  readonly undiciCode: 'UND_ERR_CONNECT_TIMEOUT';
+  readonly undiciCode!: 'UND_ERR_CONNECT_TIMEOUT';
 
   /**
    * The URL that was being requested
    */
-  readonly url: string;
+  readonly url!: string;
 
   constructor(url: string, cause?: Error) {
-    super({ 'cause': cause, 'code': 'fetch.connectTimeout', 'message': `Connection timeout for ${url}`, 'retryable': true });
-    this.undiciCode = 'UND_ERR_CONNECT_TIMEOUT';
-    this.url = url;
+    const fields = { 'undiciCode': 'UND_ERR_CONNECT_TIMEOUT' as const, 'url': url };
+    super(DomainErrorArgs.build(fields, {
+      'cause': cause,
+      'code': 'fetch.connectTimeout',
+      'message': (f) => { const result = `Connection timeout for ${f.url}`; return result; },
+      'retryable': true
+    }));
+    Object.assign(this, fields);
   }
 }

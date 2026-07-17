@@ -29,7 +29,7 @@ class Directly {
     fn: (client: FetchClient, abortSignal: AbortSignal) => Promise<T>,
     options: { 'deadlineMs'?: number } = {}
   ): Promise<T> {
-    const composedSignal = signal.compose(
+    const composedSignal = await signal.compose(
       options.deadlineMs !== undefined ? { 'deadlineMs': options.deadlineMs } : {}
     );
 
@@ -95,10 +95,8 @@ if (address === null || typeof address !== 'object') {
   throw new Error('failed to determine server address');
 }
 
-const serverUrl = `http://localhost:${address.port}`;
-
 // #region usage
-const fetchClient = FetchClient.create({ 'baseURL': serverUrl });
+const fetchClient = FetchClient.create({ 'baseURL': `http://localhost:${address.port}` });
 const retry = Retry.create({ 'maxRetries': 3 });
 const signal = Signal.create();
 const timing = Timing.create();

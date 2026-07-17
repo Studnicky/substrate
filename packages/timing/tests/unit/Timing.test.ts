@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { DEFAULT_MAX_EVENTS, TIMING_STATUS } from '../../src/constants/index.js';
-import type { TimingEventDataType } from '../../src/interfaces/TimingEventDataType.js';
+import type { TimingEventDataEntity } from '../../src/entities/TimingEventDataEntity.js';
 import type { TimingOptionsEntity } from '../../src/entities/TimingOptionsEntity.js';
 import { Timing } from '../../src/modules/Timing.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
@@ -31,7 +33,7 @@ class TracedTiming extends Timing {
   public eventCount = 0;
   public evictCount = 0;
   public clearCount = 0;
-  public lastEventData: TimingEventDataType | undefined = undefined;
+  public lastEventData: TimingEventDataEntity.Type | undefined = undefined;
   // initCount and lastInitStartTime are written from onInitialize which fires
   // inside super() before class field initializers run. Use `declare` so
   // TypeScript knows the type but emits no own-property initializer that
@@ -50,7 +52,7 @@ class TracedTiming extends Timing {
     return super.readHrtime();
   }
 
-  protected override onEvent(data: TimingEventDataType, _timestamp: bigint): void {
+  protected override onEvent(data: TimingEventDataEntity.Type, _timestamp: bigint): void {
     this.eventCount++;
     this.lastEventData = data;
   }
@@ -353,10 +355,15 @@ void it('maintains most recent events across various limits', () => {
   }
 });
 
-void it('defaults to no limit when maxEvents not specified', () => {
-  const timer = Timing.builder().build();
+void it('evicts oldest events once the default maxEvents is exceeded', () => {
+  assert.ok(Number.isFinite(DEFAULT_MAX_EVENTS));
+  assert.ok(DEFAULT_MAX_EVENTS <= 10_000);
 
-  for (let i = 0; i < 1000; i++) {
+  const timer = Timing.builder().build();
+  const overflowMargin = 5;
+  const totalEvents = DEFAULT_MAX_EVENTS + overflowMargin;
+
+  for (let i = 0; i < totalEvents; i++) {
     timer.event(TimingEvent.create().component('TestService')
       .operation(`event-${i}`)
       .build());
@@ -367,11 +374,10 @@ void it('defaults to no limit when maxEvents not specified', () => {
     return k !== 'durationMs';
   });
 
-  // 1000 events + initialize
-  assert.strictEqual(eventKeys.length, 1001);
-  assert.ok(events.initialize !== undefined);
-  assert.ok(events['TestService.event-0'] !== undefined);
-  assert.ok(events['TestService.event-999'] !== undefined);
+  assert.ok(eventKeys.length <= DEFAULT_MAX_EVENTS);
+  assert.ok(events.initialize === undefined, 'initialize should be evicted');
+  assert.ok(events['TestService.event-0'] === undefined, 'oldest events should be evicted');
+  assert.ok(events[`TestService.event-${totalEvents - 1}`] !== undefined, 'most recent event should remain');
 });
 
 void it('returns events with only initialize event initially', () => {
@@ -469,51 +475,94 @@ class ThrowingGetEventsTiming extends Timing {
   }
 }
 
-void it('a throwing onInitialize hook does not replace construction', () => {
-  const timer = ThrowingInitializeTiming.create();
-  const events = timer.getEvents();
-
-  assert.ok(events.initialize !== undefined);
+void it('a throwing onInitialize hook throws a HookInvocationError from construction', () => {
+  assert.throws(() => {
+    ThrowingInitializeTiming.create();
+  }, HookInvocationError);
 });
 
-void it('a throwing onClear hook does not replace clear()', () => {
+void it('a throwing onClear hook throws a HookInvocationError from clear()', () => {
   const timer = ThrowingClearTiming.create();
   timer.event(TimingEvent.create().component('GraphAdapter')
     .operation('query')
     .build());
 
-  timer.clear();
-
-  const events = timer.getEvents();
-  assert.ok(events.initialize === undefined);
+  assert.throws(() => {
+    timer.clear();
+  }, HookInvocationError);
 });
 
-void it('a throwing onEvict hook does not replace eviction', () => {
+void it('a throwing onEvict hook throws a HookInvocationError from event()', () => {
   const timer = ThrowingEvictTiming.create({ 'maxEvents': 1 });
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
 
-  const events = timer.getEvents();
-  assert.ok(events['GraphAdapter.query'] !== undefined);
-  assert.ok(events.initialize === undefined);
+  assert.throws(() => {
+    timer.event(TimingEvent.create().component('GraphAdapter')
+      .operation('query')
+      .build());
+  }, HookInvocationError);
 });
 
-void it('a throwing onEvent hook does not replace event recording', () => {
+void it('a throwing onEvent hook throws a HookInvocationError from event()', () => {
   const timer = ThrowingEventTiming.create();
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
 
-  const events = timer.getEvents();
-  assert.ok(events['GraphAdapter.query'] !== undefined);
+  assert.throws(() => {
+    timer.event(TimingEvent.create().component('GraphAdapter')
+      .operation('query')
+      .build());
+  }, HookInvocationError);
 });
 
-void it('a throwing onGetEvents hook does not replace event snapshot reads', () => {
+void it('a throwing onGetEvents hook throws a HookInvocationError from getEvents()', () => {
   const timer = ThrowingGetEventsTiming.create();
-  const events = timer.getEvents();
 
-  assert.ok(typeof events.durationMs === 'number');
+  assert.throws(() => {
+    timer.getEvents();
+  }, HookInvocationError);
+});
+
+void it('a throwing onEvent hook produces an error that is specifically a HookInvocationError instance', () => {
+  const timer = ThrowingEventTiming.create();
+  let caught: unknown;
+
+  try {
+    timer.event(TimingEvent.create().component('GraphAdapter')
+      .operation('query')
+      .build());
+  } catch (error) {
+    caught = error;
+  }
+
+  assert.ok(caught instanceof HookInvocationError);
+});
+
+class AsyncRejectingEventTiming extends Timing {
+  protected override async onEvent(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('async onEvent boom');
+  }
+}
+
+void it('routes a rejection from an async onEvent override to a HookInvocationError without an unhandled rejection', async () => {
+  const timer = AsyncRejectingEventTiming.create();
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    // event() itself does not surface the hook's returned promise — the
+    // regression under test is that HookInvoker still guards the eventual
+    // rejection internally so the process never sees an unhandled rejection.
+    timer.event(TimingEvent.create().component('GraphAdapter')
+      .operation('query')
+      .build());
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    assert.deepEqual(rejectionEvents, []);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });
 
 void it('returns JSON-serializable object', () => {

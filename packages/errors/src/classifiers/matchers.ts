@@ -7,32 +7,31 @@
 
 import {
   EMPTY_LENGTH,
-  HTTP_BAD_GATEWAY,
   HTTP_CLIENT_ERROR_END,
   HTTP_CLIENT_ERROR_START,
-  HTTP_FORBIDDEN,
-  HTTP_GATEWAY_TIMEOUT,
   HTTP_INFORMATIONAL_END,
   HTTP_INFORMATIONAL_START,
-  HTTP_INTERNAL_SERVER_ERROR,
   HTTP_REDIRECT_END,
   HTTP_REDIRECT_START,
   HTTP_REQUEST_TIMEOUT,
   HTTP_SERVER_ERROR_END,
   HTTP_SERVER_ERROR_START,
-  HTTP_SERVICE_UNAVAILABLE,
   HTTP_SUCCESS_END,
   HTTP_SUCCESS_START,
-  HTTP_TOO_MANY_REQUESTS,
-  HTTP_UNAUTHORIZED
+  HttpStatus
 } from '../constants/index.js';
 
 /**
- * Type guard matcher - ensures value is of specific type
+ * Type guard matcher factory
  */
-const isType = <T>(type: string): ((value: unknown) => value is T) => {
-  return (value: unknown): value is T => {return typeof value === type;};
-};
+class TypeGuardFactory {
+  /**
+   * Type guard matcher - ensures value is of specific type
+   */
+  public static isType<T>(type: string): (value: unknown) => value is T {
+    return (value: unknown): value is T => {return typeof value === type;};
+  }
+}
 
 /**
  * Number matchers
@@ -273,7 +272,7 @@ const HttpMatchers = {
   /**
    * Authentication errors
    */
-  'isAuthError': NumberMatchers.oneOf(HTTP_UNAUTHORIZED, HTTP_FORBIDDEN),
+  'isAuthError': NumberMatchers.oneOf(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN),
 
   /**
    * 4xx Client error responses
@@ -283,7 +282,7 @@ const HttpMatchers = {
   /**
    * Gateway errors
    */
-  'isGatewayError': NumberMatchers.oneOf(HTTP_BAD_GATEWAY, HTTP_SERVICE_UNAVAILABLE, HTTP_GATEWAY_TIMEOUT),
+  'isGatewayError': NumberMatchers.oneOf(HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT),
 
   /**
    * 1xx Informational responses
@@ -294,7 +293,7 @@ const HttpMatchers = {
    * Rate limiting
    */
   'isRateLimited': (status: number): boolean => {
-    return status === HTTP_TOO_MANY_REQUESTS;
+    return status === HttpStatus.TOO_MANY_REQUESTS;
   },
 
   /**
@@ -307,11 +306,11 @@ const HttpMatchers = {
    */
   'isRetryable': NumberMatchers.oneOf(
     HTTP_REQUEST_TIMEOUT,
-    HTTP_TOO_MANY_REQUESTS,
-    HTTP_INTERNAL_SERVER_ERROR,
-    HTTP_BAD_GATEWAY,
-    HTTP_SERVICE_UNAVAILABLE,
-    HTTP_GATEWAY_TIMEOUT
+    HttpStatus.TOO_MANY_REQUESTS,
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    HttpStatus.BAD_GATEWAY,
+    HttpStatus.SERVICE_UNAVAILABLE,
+    HttpStatus.GATEWAY_TIMEOUT
   ),
 
   /**
@@ -471,58 +470,59 @@ const InstanceMatchers = {
 /**
  * Prototype checking matchers
  */
+class ProtoMatcherFactory {
+  public static hasAllMethods(...methodNames: string[]) {
+    return (value: unknown): boolean => {
+      if (value === null || value === undefined) { return false; }
 
-const protoHasAllMethods = (...methodNames: string[]) => {
-  return (value: unknown): boolean => {
-    if (value === null || value === undefined) { return false; }
-
-    return methodNames.every((name) => {return typeof (value as Record<string, unknown>)[name] === 'function';});
-  };
-};
-
-const protoHasAnyMethod = (...methodNames: string[]) => {
-  return (value: unknown): boolean => {
-    if (value === null || value === undefined) { return false; }
-
-    return methodNames.some((name) => {return typeof (value as Record<string, unknown>)[name] === 'function';});
-  };
-};
-
-const protoHasMethod = (methodName: string) => {
-  return (value: unknown): boolean => {
-    if (value === null || value === undefined) { return false; }
-
-    return typeof (value as Record<string, unknown>)[methodName] === 'function';
-  };
-};
-
-const protoHasProperty = (propertyName: string) => {
-  return (value: unknown): boolean => {
-    if (value === null || value === undefined) { return false; }
-
-    return typeof value === 'object' && propertyName in value;
-  };
-};
-
-const protoIsAsyncIterable = (value: unknown): boolean => {
-  if (value === null || value === undefined) {
-    return false;
+      return methodNames.every((name) => {return typeof (value as Record<string, unknown>)[name] === 'function';});
+    };
   }
 
-  return typeof (value as Record<symbol, unknown>)[Symbol.asyncIterator] === 'function';
-};
+  public static hasAnyMethod(...methodNames: string[]) {
+    return (value: unknown): boolean => {
+      if (value === null || value === undefined) { return false; }
 
-const protoIsCallable = (value: unknown): value is (...args: unknown[]) => unknown => {
-  return typeof value === 'function';
-};
-
-const protoIsIterable = (value: unknown): boolean => {
-  if (value === null || value === undefined) {
-    return false;
+      return methodNames.some((name) => {return typeof (value as Record<string, unknown>)[name] === 'function';});
+    };
   }
 
-  return typeof (value as Record<symbol, unknown>)[Symbol.iterator] === 'function';
-};
+  public static hasMethod(methodName: string) {
+    return (value: unknown): boolean => {
+      if (value === null || value === undefined) { return false; }
+
+      return typeof (value as Record<string, unknown>)[methodName] === 'function';
+    };
+  }
+
+  public static hasProperty(propertyName: string) {
+    return (value: unknown): boolean => {
+      if (value === null || value === undefined) { return false; }
+
+      return typeof value === 'object' && propertyName in value;
+    };
+  }
+
+  public static isAsyncIterable(value: unknown): boolean {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    return typeof (value as Record<symbol, unknown>)[Symbol.asyncIterator] === 'function';
+  }
+
+  public static isCallable(value: unknown): value is (...args: unknown[]) => unknown {
+    return typeof value === 'function';
+  }
+
+  public static isIterable(value: unknown): boolean {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    return typeof (value as Record<symbol, unknown>)[Symbol.iterator] === 'function';
+  }
+}
 
 const ProtoMatchers = {
   /**
@@ -533,7 +533,7 @@ const ProtoMatchers = {
    * hasProperty(error, 'stream', prototype.hasAllMethods('read', 'write', 'pipe'))
    * ```
    */
-  'hasAllMethods': protoHasAllMethods,
+  'hasAllMethods': ProtoMatcherFactory.hasAllMethods,
 
   /**
    * Check if value's prototype has any of the specified methods
@@ -543,7 +543,7 @@ const ProtoMatchers = {
    * hasProperty(error, 'stream', prototype.hasAnyMethod('read', 'pipe'))
    * ```
    */
-  'hasAnyMethod': protoHasAnyMethod,
+  'hasAnyMethod': ProtoMatcherFactory.hasAnyMethod,
 
   /**
    * Check if value's prototype has a specific method
@@ -554,7 +554,7 @@ const ProtoMatchers = {
    * hasProperty(error, 'stream', prototype.hasMethod('pipe'))
    * ```
    */
-  'hasMethod': protoHasMethod,
+  'hasMethod': ProtoMatcherFactory.hasMethod,
 
   /**
    * Check if value has a specific property (not just method)
@@ -564,7 +564,7 @@ const ProtoMatchers = {
    * hasProperty(error, 'metadata', prototype.hasProperty('requestId'))
    * ```
    */
-  'hasProperty': protoHasProperty,
+  'hasProperty': ProtoMatcherFactory.hasProperty,
 
   /**
    * Check if value is async iterable (has Symbol.asyncIterator)
@@ -574,7 +574,7 @@ const ProtoMatchers = {
    * hasProperty(error, 'stream', prototype.isAsyncIterable)
    * ```
    */
-  'isAsyncIterable': protoIsAsyncIterable,
+  'isAsyncIterable': ProtoMatcherFactory.isAsyncIterable,
 
   /**
    * Check if value is callable (is a function)
@@ -584,7 +584,7 @@ const ProtoMatchers = {
    * hasProperty(error, 'retry', prototype.isCallable)
    * ```
    */
-  'isCallable': protoIsCallable,
+  'isCallable': ProtoMatcherFactory.isCallable,
 
   /**
    * Check if value is iterable (has Symbol.iterator)
@@ -594,7 +594,7 @@ const ProtoMatchers = {
    * hasProperty(error, 'items', prototype.isIterable)
    * ```
    */
-  'isIterable': protoIsIterable
+  'isIterable': ProtoMatcherFactory.isIterable
 };
 
 /**
@@ -606,7 +606,7 @@ const matchers = {
   'database': DatabaseMatchers,
   'http': HttpMatchers,
   'instance': InstanceMatchers,
-  'isType': isType,
+  'isType': TypeGuardFactory.isType,
   'logic': LogicMatchers,
   'network': NetworkMatchers,
   'number': NumberMatchers,

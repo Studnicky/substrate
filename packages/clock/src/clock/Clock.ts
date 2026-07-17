@@ -7,7 +7,9 @@
  * @module
  */
 
-import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
+import { HookInvoker } from '@studnicky/errors';
+
+import type { ClockProviderType } from '../types/ClockProviderType.js';
 
 import { ClockError } from '../errors/ClockError.js';
 import { ClockBuilder } from './ClockBuilder.js';
@@ -35,6 +37,8 @@ export class Clock {
   #lastHrtime: bigint;
   #lastNow: number;
 
+  protected readonly hooks: HookInvoker = new HookInvoker();
+
   /**
    * Property write order: #provider, #lastHrtime, #lastNow.
    */
@@ -45,12 +49,6 @@ export class Clock {
     this.#provider = provider;
     this.#lastHrtime = HRTIME_ZERO;
     this.#lastNow = 0;
-  }
-
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
   }
 
   private static isValidProvider(provider: unknown): provider is ClockProviderType {
@@ -87,13 +85,15 @@ export class Clock {
 
   /**
    * Fires after each `now()` call, with the monotonically-clamped epoch-ms
-   * value that was returned to the caller.
+   * value that was returned to the caller. A throwing override surfaces as a
+   * `HookInvocationError` from `now()`.
    */
   protected onNow(_timestamp: number): void {}
 
   /**
    * Fires after each `hrtime()` call, with the monotonically-clamped
-   * nanosecond bigint value that was returned to the caller.
+   * nanosecond bigint value that was returned to the caller. A throwing
+   * override surfaces as a `HookInvocationError` from `hrtime()`.
    */
   protected onHrtime(_value: bigint): void {}
 
@@ -108,8 +108,9 @@ export class Clock {
       this.#lastHrtime = candidate;
     }
 
-    this.#invokeHook(() => {
-      this.onHrtime(this.#lastHrtime);
+    this.hooks.invoke('onHrtime', () => {
+      const result = this.onHrtime(this.#lastHrtime);
+      return result;
     });
     return this.#lastHrtime;
   }
@@ -125,8 +126,9 @@ export class Clock {
       this.#lastNow = candidate;
     }
 
-    this.#invokeHook(() => {
-      this.onNow(this.#lastNow);
+    this.hooks.invoke('onNow', () => {
+      const result = this.onNow(this.#lastNow);
+      return result;
     });
     return this.#lastNow;
   }

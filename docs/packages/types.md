@@ -56,11 +56,23 @@ const safe = JsonValue.from(raw); // JsonValueType, never a lie
 
 Use the `Type`-suffixed exports (`JsonObjectType`, `JsonValueType`) to annotate a value you already trust. Use `JsonObject`/`JsonValue` to actually narrow or coerce a value you don't yet trust.
 
+## Assembling options objects (`PickDefined`)
+
+`PickDefined.from` strips `undefined`-valued keys from a record, narrowing each remaining value's type away from `undefined`. It's built for builders that assemble an options object from a mix of required and optional fields, replacing a manual spread-ternary chain with one call:
+
+<<< ../../packages/types/examples/pickDefined.ts#usage
+
+## Try it (`PickDefined`)
+
+<RunnableExample src="packages/types/examples/pickDefined" title="Assembling a builder's options object with PickDefined" />
+
+The output shows a builder that populates required fields with defaults and an optional `clock` field only when it was set — `PickDefined.from` drops the unset optional keys instead of carrying them through as `undefined`.
+
 ## Subpath exports
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/types` | All types + `Guard` + `Empty` + `JsonObject` + `JsonValue` |
+| `@studnicky/types` | All types + `Guard` + `Empty` + `JsonObject` + `JsonValue` + `PickDefined` |
 | `@studnicky/types/types` | `JsonValueType`, `JsonObjectType`, `DeepReadonlyType`, `DeepMergeType`, `JsonSchemaType`, `JsonSchemaObjectType`, `JsonSchemaTypeNameType` |
 | `@studnicky/types/guards` | `Guard`, `Empty`, `JsonObject`, `JsonValue` |
 

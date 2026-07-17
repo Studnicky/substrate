@@ -10,6 +10,7 @@ import type { KeyedWorkGateConfigType } from './types/KeyedWorkGateConfigType.js
 
 import { KeyedWorkGateBuilder } from './KeyedWorkGateBuilder.js';
 
+// json-schema-uninexpressible: generic type parameter K, and fields are live class instances (Coalesce, Mutex) carrying behavior, not plain data
 type KeyedWorkGateDepsType<K extends PropertyKey> = {
   'coalesce': Coalesce<unknown>;
   'mutex': Mutex<K>;

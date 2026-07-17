@@ -1,4 +1,4 @@
-import type { RequestStatsType } from './RequestStatsType.js';
+import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 
 /**
  * Executes async operations with configurable retry logic, error classification, and backoff strategies.
@@ -12,7 +12,7 @@ export interface RetryInterface {
   /**
    * Get current request statistics
    */
-  getStats(): RequestStatsType;
+  getStats(): RequestStatsEntity.Type;
 
   /**
    * Reset statistics counters

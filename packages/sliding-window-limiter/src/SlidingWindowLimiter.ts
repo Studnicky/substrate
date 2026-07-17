@@ -27,17 +27,36 @@
  * of what is passed, is treated as exactly one admitted request.
  */
 
-import { Signal } from '@studnicky/signal';
+import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { SchemaValidator } from '@studnicky/json';
+import { RaceTimeout, Signal } from '@studnicky/signal';
 
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 
+import { COUNTER_POLL_DIVISOR, MIN_RETRY_DELAY_MS } from './constants/index.js';
+import { SlidingWindowLimiterOptionsEntity } from './entities/SlidingWindowLimiterOptionsEntity.js';
 import { SlidingWindowLimiterConfigError } from './errors/SlidingWindowLimiterConfigError.js';
 import { SlidingWindowExhaustedError } from './SlidingWindowExhaustedError.js';
 import { SlidingWindowLimiterBuilder } from './SlidingWindowLimiterBuilder.js';
 import { TimestampLog } from './TimestampLog.js';
 
-const MIN_RETRY_DELAY_MS = 1;
-const COUNTER_POLL_DIVISOR = 10;
+/**
+ * Composed `HookInvoker` for `SlidingWindowLimiter` — records a hook failure
+ * into the owning `SlidingWindowLimiter`'s `hookErrors` array via a
+ * constructor callback instead of throwing. Hoisted to module scope so V8
+ * compiles this class once rather than per `SlidingWindowLimiter`
+ * instantiation.
+ */
+class SlidingWindowLimiterHookInvoker extends HookInvoker {
+  constructor(private readonly recordFailure: (error: HookInvocationError) => void) {
+    super();
+  }
+
+  protected override onHookError<T>(hookName: string, cause: unknown): T {
+    this.recordFailure(new HookInvocationError(hookName, cause));
+    return undefined as T;
+  }
+}
 
 export class SlidingWindowLimiter {
   readonly #limit: number;
@@ -53,11 +72,25 @@ export class SlidingWindowLimiter {
   #currentWindowCount = 0;
   #previousWindowCount = 0;
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  /**
+   * Hook failures recorded by `onHookError` instead of propagated, since
+   * construction. `onAllow`/`onReject`/`onWindowRoll` are fire-and-forget
+   * notifications that must never affect an admission decision already
+   * made — a consumer's broken hook override must not turn a successful
+   * `consume()` into a thrown error, nor replace the specific
+   * `SlidingWindowExhaustedError` a rejection throws with an unrelated hook
+   * failure.
+   */
+  protected readonly hookErrors: HookInvocationError[] = [];
+
+  /**
+   * `HookInvoker`'s default `onHookError` throws a `HookInvocationError`,
+   * which would leak through `consume()` in exactly the cases described by
+   * `hookErrors` above, so `SlidingWindowLimiterHookInvoker` overrides it to
+   * record the failure instead of throwing (mirroring the pattern `Batch`
+   * and `EntityStore` use for their own fire-and-forget hooks).
+   */
+  protected readonly hooks: HookInvoker;
 
   static builder(): SlidingWindowLimiterBuilder {
     const factory = (options: SlidingWindowLimiterOptionsInterface): SlidingWindowLimiter => {
@@ -73,8 +106,16 @@ export class SlidingWindowLimiter {
   }
 
   protected constructor(options: SlidingWindowLimiterOptionsInterface) {
-    if (options.limit < 1) { throw new SlidingWindowLimiterConfigError('limit must be >= 1'); }
-    if (options.windowMs <= 0) { throw new SlidingWindowLimiterConfigError('windowMs must be > 0'); }
+    this.hooks = new SlidingWindowLimiterHookInvoker((error) => { this.hookErrors.push(error); });
+    const schemaOptions: SlidingWindowLimiterOptionsEntity.Type = {
+      'algorithm': options.algorithm,
+      'limit': options.limit,
+      'windowMs': options.windowMs
+    };
+    if (!SlidingWindowLimiterOptionsEntity.validate(schemaOptions)) {
+      const messages = SchemaValidator.formatErrors(SlidingWindowLimiterOptionsEntity.validate.errors);
+      throw new SlidingWindowLimiterConfigError(messages);
+    }
 
     this.#limit = options.limit;
     this.#windowMs = options.windowMs;
@@ -101,7 +142,7 @@ export class SlidingWindowLimiter {
 
   /** Wait until `consume()` would succeed, then consume. */
   async waitForToken(options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}): Promise<void> {
-    const signal = Signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
+    const signal = await Signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
     const tryConsume = (tokens?: number): boolean => {
       try {
         this.consume(tokens);
@@ -116,11 +157,8 @@ export class SlidingWindowLimiter {
         return;
       }
       const waitMs = this.#nextRetryDelayMs();
-      await new Promise<void>((resolve, reject) => {
-        if (signal.aborted) { reject(signal.reason); return; }
-        const timer = setTimeout(resolve, waitMs);
-        signal.addEventListener('abort', () => { clearTimeout(timer); reject(signal.reason); }, { 'once': true });
-      });
+      const outcome = await RaceTimeout.wait(waitMs, signal);
+      if (outcome === 'aborted') { throw signal.reason; }
     }
   }
 
@@ -157,21 +195,24 @@ export class SlidingWindowLimiter {
       oldest = timestamps.peek();
     }
     if (pruned) {
-      this.#invokeHook(() => {
-        this.onWindowRoll();
+      this.hooks.invoke('onWindowRoll', () => {
+        const result = this.onWindowRoll();
+        return result;
       });
     }
 
     if (timestamps.length >= this.#limit) {
-      this.#invokeHook(() => {
-        this.onReject(timestamps.length);
+      this.hooks.invoke('onReject', () => {
+        const result = this.onReject(timestamps.length);
+        return result;
       });
       throw new SlidingWindowExhaustedError();
     }
 
     timestamps.push(now);
-    this.#invokeHook(() => {
-      this.onAllow(timestamps.length);
+    this.hooks.invoke('onAllow', () => {
+      const result = this.onAllow(timestamps.length);
+      return result;
     });
   }
 
@@ -181,16 +222,18 @@ export class SlidingWindowLimiter {
     const estimateBefore = (this.#previousWindowCount * (1 - elapsedFraction)) + this.#currentWindowCount;
 
     if (estimateBefore + 1 > this.#limit) {
-      this.#invokeHook(() => {
-        this.onReject(estimateBefore);
+      this.hooks.invoke('onReject', () => {
+        const result = this.onReject(estimateBefore);
+        return result;
       });
       throw new SlidingWindowExhaustedError();
     }
 
     this.#currentWindowCount += 1;
     const estimateAfter = (this.#previousWindowCount * (1 - elapsedFraction)) + this.#currentWindowCount;
-    this.#invokeHook(() => {
-      this.onAllow(estimateAfter);
+    this.hooks.invoke('onAllow', () => {
+      const result = this.onAllow(estimateAfter);
+      return result;
     });
   }
 
@@ -201,8 +244,9 @@ export class SlidingWindowLimiter {
     this.#previousWindowCount = windowIndex - this.#currentWindowIndex === 1 ? this.#currentWindowCount : 0;
     this.#currentWindowCount = 0;
     this.#currentWindowIndex = windowIndex;
-    this.#invokeHook(() => {
-      this.onWindowRoll();
+    this.hooks.invoke('onWindowRoll', () => {
+      const result = this.onWindowRoll();
+      return result;
     });
   }
 
@@ -215,8 +259,17 @@ export class SlidingWindowLimiter {
   #nextRetryDelayMs(): number {
     const now = this.#clock();
     if (this.#algorithm === 'log') {
-      const oldest = this.#timestamps?.peek();
-      if (oldest === undefined) { return this.#windowMs; }
+      const timestamps = this.#timestamps;
+      if (timestamps === undefined) { throw new SlidingWindowLimiterConfigError('internal: timestamps not initialized for log algorithm'); }
+
+      // `#nextRetryDelayMs` is only reached from `waitForToken()` after
+      // `tryConsume()` has thrown `SlidingWindowExhaustedError`, which
+      // `#consumeLog` only throws when `timestamps.length >= this.#limit`;
+      // the schema validated in the constructor requires `limit >= 1`, so
+      // `timestamps` is guaranteed non-empty here.
+      const oldest = timestamps.peek();
+      if (oldest === undefined) { throw new SlidingWindowLimiterConfigError('internal: timestamps unexpectedly empty in nextRetryDelayMs'); }
+
       const result = Math.max(MIN_RETRY_DELAY_MS, (oldest + this.#windowMs) - now);
       return result;
     }

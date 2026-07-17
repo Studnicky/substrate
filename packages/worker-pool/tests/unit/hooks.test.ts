@@ -58,4 +58,38 @@ describe('WorkerPool hooks', () => {
 
     assert.deepEqual(results, ['x']);
   });
+
+  it('an async-rejecting onMessage override is routed to getHookErrors() without an unhandled rejection, and the task still resolves', async () => {
+    class AsyncRejectingMessagePool extends WorkerPool<ItemType, string> {
+      protected override async onMessage(): Promise<void> {
+        await Promise.resolve();
+        throw new Error('async onMessage boom');
+      }
+    }
+
+    const pool = AsyncRejectingMessagePool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH }) as AsyncRejectingMessagePool;
+    const rejectionEvents: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      // run() itself does not await the promise onMessage's hook invocation
+      // returns — the regression under test is that HookInvoker still guards
+      // the eventual rejection internally, routing it to onHookError (here,
+      // WorkerPool's own disposition of recording into #hookErrors) instead
+      // of ever producing an unhandled rejection.
+      const results = await pool.run([{ 'value': 'x' }]);
+
+      assert.deepEqual(results, ['x']);
+      assert.ok(pool.getHookErrorCount() > 0);
+      assert.ok(pool.getHookErrors().some((error) => error.hookName === 'onMessage'));
+
+      await new Promise((resolve) => { setImmediate(resolve); });
+      await new Promise((resolve) => { setImmediate(resolve); });
+
+      assert.deepEqual(rejectionEvents, []);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  });
 });

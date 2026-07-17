@@ -16,8 +16,8 @@
  */
 import type { JsonValueType } from '@studnicky/types';
 
-import type { BaseErrorArgumentsType } from '../interfaces/BaseErrorArgumentsType.js';
-import type { SerializedErrorType } from '../interfaces/SerializedErrorType.js';
+import type { BaseErrorArgumentsType } from '../types/BaseErrorArgumentsType.js';
+import type { SerializedErrorType } from '../types/SerializedErrorType.js';
 
 import {
   CAUSE_CHAIN_DEPTH_LIMIT,

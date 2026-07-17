@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { RequestContextType } from '../src/interfaces/RequestContextType.js';
-import type { ResponseContextType } from '../src/interfaces/ResponseContextType.js';
+import type { RequestContextType } from '../src/types/RequestContextType.js';
+import type { ResponseContextType } from '../src/types/ResponseContextType.js';
 
 import { FetchClient } from '../src/index.js';
 
@@ -33,25 +33,27 @@ class TraceClient extends FetchClient {
   }
 }
 
-const api = TraceClient.create({
-  'baseURL': 'https://jsonplaceholder.typicode.com',
-  'timeout': 8000
-});
+await (async function runBrowserFetchExample(): Promise<void> {
+  const api = TraceClient.create({
+    'baseURL': 'https://jsonplaceholder.typicode.com',
+    'timeout': 8000
+  });
 
-console.log('GET https://jsonplaceholder.typicode.com/todos/1 (native fetch + onRequest/onResponse hooks)');
+  console.log('GET https://jsonplaceholder.typicode.com/todos/1 (native fetch + onRequest/onResponse hooks)');
 
-const response = await api.get('/todos/1');
-const todo: { 'completed': boolean; 'id': number; 'title': string } =
-  await response.json() as { 'completed': boolean; 'id': number; 'title': string };
+  const response = await api.get('/todos/1');
+  const todo: { 'completed': boolean; 'id': number; 'title': string } =
+    await response.json() as { 'completed': boolean; 'id': number; 'title': string };
 
-console.log(`status: ${response.status}`);
-console.log(`onRequest fired ${api.requestHookCount}x, onResponse fired ${api.responseHookCount}x`);
-console.log(`todo #${todo.id}: "${todo.title}" (completed: ${todo.completed})`);
+  console.log(`status: ${response.status}`);
+  console.log(`onRequest fired ${api.requestHookCount}x, onResponse fired ${api.responseHookCount}x`);
+  console.log(`todo #${todo.id}: "${todo.title}" (completed: ${todo.completed})`);
+
+  assert.equal(response.status, 200, 'expected HTTP 200');
+  assert.equal(api.requestHookCount, 1, 'onRequest fires once per request');
+  assert.equal(api.responseHookCount, 1, 'onResponse fires once per request');
+  assert.equal(todo.id, 1, 'fetched todo #1');
+
+  console.log('browserFetch: all assertions passed');
+})();
 // #endregion usage
-
-assert.equal(response.status, 200, 'expected HTTP 200');
-assert.equal(api.requestHookCount, 1, 'onRequest fires once per request');
-assert.equal(api.responseHookCount, 1, 'onResponse fires once per request');
-assert.equal(todo.id, 1, 'fetched todo #1');
-
-console.log('browserFetch: all assertions passed');

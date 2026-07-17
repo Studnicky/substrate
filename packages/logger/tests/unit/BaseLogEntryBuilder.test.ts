@@ -4,8 +4,10 @@ import {
   it
 } from 'node:test';
 
-import type { LogBodyDataType } from '../../src/interfaces/LogBodyDataType.js';
-import type { LogFaultDataType } from '../../src/interfaces/LogFaultDataType.js';
+import type { LogBodyDataEntity } from '../../src/entities/LogBodyDataEntity.js';
+import type { LogFaultDataEntity } from '../../src/entities/LogFaultDataEntity.js';
+
+import { HookInvocationError } from '@studnicky/errors';
 
 import { LogBuildError } from '../../src/errors/LogBuildError.js';
 import { LogBody } from '../../src/modules/LogBody.js';
@@ -18,10 +20,10 @@ import { LogFault } from '../../src/modules/LogFault.js';
 class ObservedLogBody extends LogBody {
   constructor() { super(); }
 
-  readonly builtResults: Array<LogBodyDataType | LogFaultDataType> = [];
+  readonly builtResults: Array<LogBodyDataEntity.Type | LogFaultDataEntity.Type> = [];
   readonly buildErrors: string[] = [];
 
-  protected override onBuild(result: LogBodyDataType | LogFaultDataType): void {
+  protected override onBuild(result: LogBodyDataEntity.Type | LogFaultDataEntity.Type): void {
     this.builtResults.push(result);
   }
 
@@ -33,10 +35,10 @@ class ObservedLogBody extends LogBody {
 class ObservedLogFault extends LogFault {
   constructor() { super(); }
 
-  readonly builtResults: Array<LogBodyDataType | LogFaultDataType> = [];
+  readonly builtResults: Array<LogBodyDataEntity.Type | LogFaultDataEntity.Type> = [];
   readonly buildErrors: string[] = [];
 
-  protected override onBuild(result: LogBodyDataType | LogFaultDataType): void {
+  protected override onBuild(result: LogBodyDataEntity.Type | LogFaultDataEntity.Type): void {
     this.builtResults.push(result);
   }
 
@@ -91,7 +93,7 @@ void describe('BaseLogEntryBuilder onBuild (LogBody)', () => {
       .duration(100)
       .build();
 
-    const captured = builder.builtResults[0] as LogBodyDataType;
+    const captured = builder.builtResults[0] as LogBodyDataEntity.Type;
 
     assert.strictEqual(captured.event, 'graph.query');
     assert.strictEqual(captured.message, 'Done');
@@ -149,7 +151,7 @@ void describe('BaseLogEntryBuilder onBuild (LogFault)', () => {
       .context({ 'query': 'SELECT...' })
       .build();
 
-    const captured = builder.builtResults[0] as LogFaultDataType;
+    const captured = builder.builtResults[0] as LogFaultDataEntity.Type;
 
     assert.strictEqual(captured.event, 'api.request');
     assert.strictEqual(captured.name, 'TimeoutError');
@@ -174,7 +176,7 @@ void describe('BaseLogEntryBuilder onBuild (LogFault)', () => {
     assert.strictEqual(builder.builtResults.length, 0);
   });
 
-  void it('a throwing onBuild hook does not replace a successful body build', () => {
+  void it('a throwing onBuild hook surfaces as HookInvocationError instead of returning the body', () => {
     class ThrowingBuildLogBody extends LogBody {
       constructor() { super(); }
 
@@ -183,18 +185,18 @@ void describe('BaseLogEntryBuilder onBuild (LogFault)', () => {
       }
     }
 
-    const result = new ThrowingBuildLogBody()
-      .component('cache')
-      .operation('get')
-      .status('success')
-      .message('ok')
-      .context({})
-      .build();
-
-    assert.strictEqual(result.event, 'cache.get');
+    assert.throws(() => {
+      new ThrowingBuildLogBody()
+        .component('cache')
+        .operation('get')
+        .status('success')
+        .message('ok')
+        .context({})
+        .build();
+    }, HookInvocationError);
   });
 
-  void it('a throwing onBuild hook does not replace a successful fault build', () => {
+  void it('a throwing onBuild hook surfaces as HookInvocationError instead of returning the fault', () => {
     class ThrowingBuildLogFault extends LogFault {
       constructor() { super(); }
 
@@ -203,16 +205,42 @@ void describe('BaseLogEntryBuilder onBuild (LogFault)', () => {
       }
     }
 
-    const result = new ThrowingBuildLogFault()
-      .component('api')
-      .operation('request')
-      .status('failed')
-      .name('NetworkError')
-      .message('boom')
-      .context({})
-      .build();
+    assert.throws(() => {
+      new ThrowingBuildLogFault()
+        .component('api')
+        .operation('request')
+        .status('failed')
+        .name('NetworkError')
+        .message('boom')
+        .context({})
+        .build();
+    }, HookInvocationError);
+  });
 
-    assert.strictEqual(result.event, 'api.request');
+  void it('HookInvocationError from a throwing onBuild hook carries the hook name and original cause', () => {
+    class ThrowingBuildLogBody extends LogBody {
+      constructor() { super(); }
+
+      protected override onBuild(): void {
+        throw new Error('onBuild boom');
+      }
+    }
+
+    try {
+      new ThrowingBuildLogBody()
+        .component('cache')
+        .operation('get')
+        .status('success')
+        .message('ok')
+        .context({})
+        .build();
+      assert.fail('expected build() to throw');
+    } catch (error) {
+      assert.ok(error instanceof HookInvocationError);
+      assert.strictEqual(error.hookName, 'onBuild');
+      assert.ok(error.cause instanceof Error);
+      assert.strictEqual((error.cause as Error).message, 'onBuild boom');
+    }
   });
 });
 
@@ -333,7 +361,7 @@ void describe('BaseLogEntryBuilder onBuildError (LogFault)', () => {
     assert.strictEqual(builder.buildErrors.length, 0);
   });
 
-  void it('a throwing onBuildError hook does not replace LogBuildError', () => {
+  void it('a throwing onBuildError hook surfaces as HookInvocationError instead of LogBuildError', () => {
     class ThrowingBuildErrorLogBody extends LogBody {
       constructor() { super(); }
 
@@ -349,6 +377,40 @@ void describe('BaseLogEntryBuilder onBuildError (LogFault)', () => {
         .message('m')
         .context({})
         .build();
-    }, LogBuildError);
+    }, HookInvocationError);
+  });
+
+  void describe('async hook override safety net', () => {
+    void it('never produces an unhandled rejection when an async onBuild override rejects (regression: the invoke() arrow must return the hook\'s result so HookInvoker can see and route the promise)', async () => {
+      const rejectionEvents: unknown[] = [];
+      const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+      process.on('unhandledRejection', onUnhandledRejection);
+
+      class AsyncOnBuildLogBody extends LogBody {
+        constructor() { super(); }
+
+        protected override onBuild(): Promise<void> {
+          return Promise.reject(new Error('async onBuild boom'));
+        }
+      }
+
+      try {
+        // build() does not await/return the hook's promise — the safety
+        // net must hold even when the calling site never observes it.
+        new AsyncOnBuildLogBody()
+          .component('c')
+          .operation('query')
+          .status('success')
+          .message('m')
+          .context({})
+          .build();
+
+        await new Promise((resolve) => { setImmediate(resolve); });
+        await new Promise((resolve) => { setImmediate(resolve); });
+        assert.strictEqual(rejectionEvents.length, 0);
+      } finally {
+        process.off('unhandledRejection', onUnhandledRejection);
+      }
+    });
   });
 });

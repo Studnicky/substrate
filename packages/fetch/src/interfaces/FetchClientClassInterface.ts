@@ -1,4 +1,4 @@
-import type { ClientConfigType } from './ClientConfigType.js';
+import type { ClientConfigType } from '../types/ClientConfigType.js';
 import type { FetchClientInterface } from './FetchClientInterface.js';
 import type { FetchClientStaticInterface } from './FetchClientStaticInterface.js';
 

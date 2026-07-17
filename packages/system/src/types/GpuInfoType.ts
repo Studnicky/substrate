@@ -1,5 +1,0 @@
-export type GpuInfoType = {
-  'computeApi': 'cuda' | 'metal' | 'opencl' | 'software';
-  'name': string;
-  'vramMb': number | null;
-};

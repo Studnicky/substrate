@@ -3,8 +3,9 @@
  */
 
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
-import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
 import type { RequestBuilderInterface } from '../interfaces/RequestBuilderInterface.js';
+import type { BodyRequestOptionsType } from '../types/BodyRequestOptionsType.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
 import type { QueryParamsType } from '../types/QueryParamsType.js';
 import type { QueryValueType } from '../types/QueryValueType.js';
 
@@ -42,6 +43,30 @@ export class RequestBuilder implements RequestBuilderInterface {
   }
 
   /**
+   * Sets cache mode
+   *
+   * @param value - Cache mode
+   * @returns This builder for chaining
+   */
+  cache(value: Exclude<FetchOptionsType['cache'], undefined>): this {
+    this.fetchOptions.cache = value;
+
+    return this;
+  }
+
+  /**
+   * Sets credentials mode
+   *
+   * @param value - Credentials mode
+   * @returns This builder for chaining
+   */
+  credentials(value: Exclude<FetchOptionsType['credentials'], undefined>): this {
+    this.fetchOptions.credentials = value;
+
+    return this;
+  }
+
+  /**
    * Builds final fetch options
    */
   private buildOptions(): FetchOptionsType {
@@ -69,6 +94,18 @@ export class RequestBuilder implements RequestBuilderInterface {
     const options = this.buildOptions();
 
     return await this.client.delete(path, options);
+  }
+
+  /**
+   * Sets a custom undici dispatcher/agent for connection pooling
+   *
+   * @param value - Dispatcher/agent instance
+   * @returns This builder for chaining
+   */
+  dispatcher(value: Exclude<FetchOptionsType['dispatcher'], undefined>): this {
+    this.fetchOptions.dispatcher = value;
+
+    return this;
   }
 
   /**
@@ -126,6 +163,18 @@ export class RequestBuilder implements RequestBuilderInterface {
   }
 
   /**
+   * Sets subresource integrity value
+   *
+   * @param value - Integrity value
+   * @returns This builder for chaining
+   */
+  integrity(value: Exclude<FetchOptionsType['integrity'], undefined>): this {
+    this.fetchOptions.integrity = value;
+
+    return this;
+  }
+
+  /**
    * Sets JSON body and Content-Type header
    *
    * @param data - Data to serialize as JSON
@@ -137,6 +186,18 @@ export class RequestBuilder implements RequestBuilderInterface {
       ...this.fetchOptions.headers,
       'Content-Type': 'application/json'
     };
+
+    return this;
+  }
+
+  /**
+   * Sets keep-alive mode
+   *
+   * @param value - Keep-alive mode
+   * @returns This builder for chaining
+   */
+  keepalive(value: Exclude<FetchOptionsType['keepalive'], undefined>): this {
+    this.fetchOptions.keepalive = value;
 
     return this;
   }
@@ -181,8 +242,8 @@ export class RequestBuilder implements RequestBuilderInterface {
   /**
    * Builds options for body-bearing methods, merging fetchOptions with the stored request body
    */
-  private buildBodyOptions(): Omit<FetchOptionsType, 'body'> & { 'body'?: unknown } {
-    const opts: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown } = this.buildOptions();
+  private buildBodyOptions(): BodyRequestOptionsType {
+    const opts: BodyRequestOptionsType = this.buildOptions();
     opts.body = this.requestBody;
     return opts;
   }
@@ -263,6 +324,42 @@ export class RequestBuilder implements RequestBuilderInterface {
           value
         ];
     }
+
+    return this;
+  }
+
+  /**
+   * Sets redirect mode
+   *
+   * @param value - Redirect mode
+   * @returns This builder for chaining
+   */
+  redirect(value: Exclude<FetchOptionsType['redirect'], undefined>): this {
+    this.fetchOptions.redirect = value;
+
+    return this;
+  }
+
+  /**
+   * Sets referrer URL
+   *
+   * @param value - Referrer URL
+   * @returns This builder for chaining
+   */
+  referrer(value: Exclude<FetchOptionsType['referrer'], undefined>): this {
+    this.fetchOptions.referrer = value;
+
+    return this;
+  }
+
+  /**
+   * Sets referrer policy
+   *
+   * @param value - Referrer policy
+   * @returns This builder for chaining
+   */
+  referrerPolicy(value: Exclude<FetchOptionsType['referrerPolicy'], undefined>): this {
+    this.fetchOptions.referrerPolicy = value;
 
     return this;
   }

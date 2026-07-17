@@ -1,35 +1,25 @@
-import { ConfigValidation } from '@studnicky/config';
-import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+import {
+  DefaultHttpErrorClassifier,
+  type ErrorClassificationEntity,
+  HookInvoker,
+  type HookInvokerOptionsType
+} from '@studnicky/errors';
 
-import type {
-  ErrorClassificationType,
-  RequestStatsType,
-  RetryConfigInterface,
-  RetryContextType,
-  RetryInterface
-} from '../interfaces/index.js';
-import type { RetryCallStateType } from '../types/RetryCallStateType.js';
+import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
+import type { RetryConfigInterface, RetryInterface } from '../interfaces/index.js';
+import type { RetryCallStateType, RetryContextType } from '../types/index.js';
 
 import {
   DEFAULT_MAX_RETRIES,
-  EMPTY_LENGTH,
   INCREMENT_BY_ONE,
   INITIAL_COUNTER,
-  LAST_ARRAY_INDEX,
-  NO_DELAY_MS,
-  RETRY_CONFIG_KEYS
+  NO_DELAY_MS
 } from '../constants/index.js';
 import {
-  ConfigurationError,
   MaxRetriesExceededError,
   NonRetryableError
 } from '../errors/index.js';
-import {
-  backoffStrategy,
-  errorClassifier,
-  maxElapsedMs,
-  maxRetries
-} from './config/schemas/index.js';
+import { validateRetryConfig } from './config/validateRetryConfig.js';
 import { Delay } from './Delay.js';
 import { RetryBuilder } from './RetryBuilder.js';
 
@@ -68,7 +58,30 @@ class RetryCallFsm {
     this.#state = to;
     try {
       this.#enter(to, from);
-    } catch {}
+    } catch {
+      // Swallowed: `enterCall` fires on every FSM transition within a call —
+      // a broken override must not abort the retry logic itself (matches
+      // the class's own `onHookError` override, which swallows for the same
+      // reason: "a throwing lifecycle hook must never replace the canonical
+      // result of execute()").
+    }
+  }
+}
+
+/**
+ * Swallows lifecycle hook failures instead of throwing `HookInvocationError`.
+ *
+ * A throwing lifecycle hook must never replace the canonical result of
+ * `execute()` — used by `Retry` for that reason.
+ */
+class SwallowingHookInvoker extends HookInvoker {
+  constructor(options?: HookInvokerOptionsType) {
+    super(options);
+  }
+
+  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
+    const result = undefined as T;
+    return result;
   }
 }
 
@@ -110,7 +123,7 @@ class RetryCallFsm {
  * @example Extension of classification
  * ```typescript
  * class FusekiRetry extends Retry {
- *   protected classifyError(error: Error): ErrorClassificationType {
+ *   protected classifyError(error: Error): ErrorClassificationEntity.Type {
  *     const msg = error.message.toLowerCase();
  *     if (msg.includes('transaction abort') || msg.includes('503')) {
  *       return { retryable: true, reason: 'Transient Fuseki error' };
@@ -135,7 +148,7 @@ export class Retry implements RetryInterface {
    * @returns New builder instance for configuring retry behavior
    */
   static builder(): RetryBuilder<Retry> {
-    const factory = (options: Partial<RetryConfigInterface>): Retry => {
+    const factory = (options: RetryConfigInterface): Retry => {
       const result = Retry.create(options);
       return result;
     };
@@ -148,39 +161,37 @@ export class Retry implements RetryInterface {
    * @param config - Optional partial configuration for retry behavior
    * @returns New Retry instance
    */
-  static create(config?: Partial<RetryConfigInterface>): Retry {
+  static create(config?: RetryConfigInterface): Retry {
     const result = new this(config);
     return result;
   }
-  private readonly classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
+  private readonly classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
   private readonly defaultClassifier: DefaultHttpErrorClassifier;
   private readonly backoffStrategy: RetryConfigInterface['backoffStrategy'];
 
+  protected readonly hooks: HookInvoker;
   protected readonly maxRetries: number;
   protected readonly maxElapsedMs: number | undefined;
 
-  protected stats: RequestStatsType = {
+  protected stats: RequestStatsEntity.Type = {
     'failedRequests': INITIAL_COUNTER,
     'successfulRequests': INITIAL_COUNTER,
     'totalRequests': INITIAL_COUNTER,
     'totalRetries': INITIAL_COUNTER
   };
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  protected constructor(config: RetryConfigInterface = {}) {
+    const validated = validateRetryConfig.validate(config);
 
-  protected constructor(config: Partial<RetryConfigInterface> = {}) {
-    const validated = Retry.#validateConfig(config);
-
+    this.hooks = new SwallowingHookInvoker(
+      validated.hookTimeoutMs === undefined ? undefined : { 'timeoutMs': validated.hookTimeoutMs }
+    );
     this.maxRetries = validated.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.maxElapsedMs = validated.maxElapsedMs;
     this.defaultClassifier = DefaultHttpErrorClassifier.create();
     this.backoffStrategy = validated.backoffStrategy;
 
-    let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationType;
+    let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
     if (validated.errorClassifier === undefined) {
       // Arrow function required for subclass polymorphism - classifyError may be overridden
       classifierFn = (error, attemptNumber) => { const result = this.classifyError(error, attemptNumber); return result; };
@@ -204,7 +215,7 @@ export class Retry implements RetryInterface {
    * @param attemptNumber - Current attempt number (0-indexed)
    * @returns Classification result indicating whether to retry
    */
-  protected classifyError(error: Error, attemptNumber: number): ErrorClassificationType {
+  protected classifyError(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
     const result = this.defaultClassifier.classify(error, attemptNumber);
     return result;
   }
@@ -224,7 +235,7 @@ export class Retry implements RetryInterface {
   protected onRetryableError(
     _attemptNumber: number,
     _error: Error,
-    _classification: ErrorClassificationType
+    _classification: ErrorClassificationEntity.Type
   ): void {}
 
   /**
@@ -319,29 +330,32 @@ export class Retry implements RetryInterface {
     const errors: Error[] = [];
     const state: Record<string, unknown> = {};
 
-    for (let attempt = INITIAL_COUNTER; attempt <= this.maxRetries; attempt++) {
-      this.#invokeHook(() => {
-        this.onAttempt(attempt);
-      });
+    // Unbounded for(;;) is intentional: the only exits are `return` on success
+    // or a throw from handleError()/performRetry() once the attempt-count or
+    // elapsed-time budget is exhausted. That is the single exhaustion path —
+    // there is no post-loop fallthrough to guard against.
+    for (let attempt = INITIAL_COUNTER; ; attempt++) {
+      await Promise.resolve(this.hooks.invoke('onAttempt', () => {
+        const result = this.onAttempt(attempt);
+        return result;
+      }));
 
       const outcome = await this.tryAttempt(fn);
 
       if (outcome.success) {
-        this.handleSuccess(callFsm, attempt, startTime);
+        await this.handleSuccess(callFsm, attempt, startTime);
         return outcome.result;
       }
 
       errors.push(outcome.error);
       await this.handleError(callFsm, attempt, outcome.error, errors, startTime, state);
     }
-
-    return this.handleFinalFailure(callFsm, errors);
   }
 
   /**
    * Get current request statistics.
    */
-  getStats(): RequestStatsType {
+  getStats(): RequestStatsEntity.Type {
     const result = Object.freeze({ ...this.stats });
     return result;
   }
@@ -360,12 +374,13 @@ export class Retry implements RetryInterface {
     const classification = this.classifierFn(error, attempt);
 
     if (!classification.retryable) {
-      this.handleNonRetryableError(callFsm, attempt, error, classification);
+      await this.handleNonRetryableError(callFsm, attempt, error, classification);
     }
 
-    this.#invokeHook(() => {
-      this.onRetryableError(attempt, error, classification);
-    });
+    await Promise.resolve(this.hooks.invoke('onRetryableError', () => {
+      const result = this.onRetryableError(attempt, error, classification);
+      return result;
+    }));
 
     // performRetry transitions FSM: attempting → waiting, then checks budget,
     // then (if budget remains) sleeps and transitions waiting → attempting.
@@ -373,36 +388,16 @@ export class Retry implements RetryInterface {
   }
 
   /**
-   * Handle final failure after loop (unreachable in practice — exhaustion is
-   * caught inside handleError before the loop can exit normally).
-   */
-  private handleFinalFailure(_callFsm: RetryCallFsm, errors: Error[]): never {
-    this.stats.failedRequests++;
-
-    const finalError = errors.at(LAST_ARRAY_INDEX) ?? new Error('Unknown error occurred during retry');
-
-    this.#invokeHook(() => {
-      this.onGiveUp(finalError, this.maxRetries, 'exhausted');
-    });
-
-    throw new MaxRetriesExceededError(
-      `Operation failed after ${this.maxRetries + INCREMENT_BY_ONE} attempts: ${String(finalError)}`,
-      this.maxRetries,
-      this.maxRetries + INCREMENT_BY_ONE,
-      errors.length > EMPTY_LENGTH ? errors : [finalError]
-    );
-  }
-
-  /**
    * Handle lifecycle hook abort.
    */
-  private handleAbort(callFsm: RetryCallFsm, attempt: number, error: Error): never {
+  private async handleAbort(callFsm: RetryCallFsm, attempt: number, error: Error): Promise<never> {
     this.stats.failedRequests++;
 
     callFsm.transition('aborted');
-    this.#invokeHook(() => {
-      this.onGiveUp(error, attempt, 'aborted');
-    });
+    await Promise.resolve(this.hooks.invoke('onGiveUp', () => {
+      const result = this.onGiveUp(error, attempt, 'aborted');
+      return result;
+    }));
 
     throw new MaxRetriesExceededError(
       `Operation aborted by retry lifecycle hook after ${attempt + INCREMENT_BY_ONE} attempts: ${String(error)}`,
@@ -415,18 +410,19 @@ export class Retry implements RetryInterface {
   /**
    * Handle max retries exceeded.
    */
-  private handleMaxRetriesExceeded(
+  private async handleMaxRetriesExceeded(
     callFsm: RetryCallFsm,
     attempt: number,
     error: Error,
     errors: Error[]
-  ): never {
+  ): Promise<never> {
     this.stats.failedRequests++;
 
     callFsm.transition('exhausted');
-    this.#invokeHook(() => {
-      this.onGiveUp(error, attempt, 'exhausted');
-    });
+    await Promise.resolve(this.hooks.invoke('onGiveUp', () => {
+      const result = this.onGiveUp(error, attempt, 'exhausted');
+      return result;
+    }));
 
     throw new MaxRetriesExceededError(
       `Operation failed after ${attempt + INCREMENT_BY_ONE} attempts: ${String(error)}`,
@@ -439,18 +435,19 @@ export class Retry implements RetryInterface {
   /**
    * Handle non-retryable error.
    */
-  private handleNonRetryableError(
+  private async handleNonRetryableError(
     callFsm: RetryCallFsm,
     attempt: number,
     error: Error,
-    classification: ErrorClassificationType
-  ): never {
+    classification: ErrorClassificationEntity.Type
+  ): Promise<never> {
     this.stats.failedRequests++;
 
     callFsm.transition('failed');
-    this.#invokeHook(() => {
-      this.onGiveUp(error, attempt, 'nonRetryable');
-    });
+    await Promise.resolve(this.hooks.invoke('onGiveUp', () => {
+      const result = this.onGiveUp(error, attempt, 'nonRetryable');
+      return result;
+    }));
 
     throw new NonRetryableError(
       `Operation failed with non-retryable error: ${String(error)}`,
@@ -463,13 +460,14 @@ export class Retry implements RetryInterface {
   /**
    * Handle successful execution.
    */
-  private handleSuccess(callFsm: RetryCallFsm, attempt: number, startTime: number): void {
+  private async handleSuccess(callFsm: RetryCallFsm, attempt: number, startTime: number): Promise<void> {
     this.stats.successfulRequests++;
 
     callFsm.transition('succeeded');
-    this.#invokeHook(() => {
-      this.onSuccess(attempt, Date.now() - startTime);
-    });
+    await Promise.resolve(this.hooks.invoke('onSuccess', () => {
+      const result = this.onSuccess(attempt, Date.now() - startTime);
+      return result;
+    }));
   }
 
   /**
@@ -483,7 +481,7 @@ export class Retry implements RetryInterface {
     callFsm: RetryCallFsm,
     attempt: number,
     error: Error,
-    classification: ErrorClassificationType,
+    classification: ErrorClassificationEntity.Type,
     errors: Error[],
     startTime: number,
     state: Record<string, unknown>
@@ -493,13 +491,13 @@ export class Retry implements RetryInterface {
     callFsm.transition('waiting');
 
     if (attempt === this.maxRetries) {
-      this.handleMaxRetriesExceeded(callFsm, attempt, error, errors);
+      await this.handleMaxRetriesExceeded(callFsm, attempt, error, errors);
     }
 
     // Time ceiling: same exhaustion path as attempt-count exhaustion — whichever
     // budget (attempts or elapsed time) is hit first wins.
     if (this.maxElapsedMs !== undefined && Date.now() - startTime >= this.maxElapsedMs) {
-      this.handleMaxRetriesExceeded(callFsm, attempt, error, errors);
+      await this.handleMaxRetriesExceeded(callFsm, attempt, error, errors);
     }
 
     // Only count a retry when the budget allows another attempt.
@@ -520,7 +518,7 @@ export class Retry implements RetryInterface {
     await this.onRetryScheduled(context);
 
     if (context.abort === true) {
-      this.handleAbort(callFsm, attempt, error);
+      await this.handleAbort(callFsm, attempt, error);
     }
 
     await Delay.for(context.delayMs);
@@ -540,35 +538,4 @@ export class Retry implements RetryInterface {
     };
   }
 
-  private static readonly propertyValidators: Record<string, (val: unknown) => void> = {
-    'backoffStrategy': backoffStrategy.validateBackoffStrategy,
-    'errorClassifier': errorClassifier.validateErrorClassifier,
-    'maxElapsedMs': maxElapsedMs.validateMaxElapsedMs,
-    'maxRetries': maxRetries.validateMaxRetries
-  };
-
-  static #validateConfig(config?: Partial<RetryConfigInterface>): Partial<RetryConfigInterface> {
-    try {
-      const userConfig = config ?? {};
-      const configObj = userConfig as Record<string, unknown>;
-
-      ConfigValidation.assertNoUnknownKeys(configObj, RETRY_CONFIG_KEYS);
-
-      for (const [key, validator] of Object.entries(Retry.propertyValidators)) {
-        if (key in userConfig) {
-          validator(configObj[key]);
-        }
-      }
-
-      return userConfig;
-    } catch (error) {
-      if (error instanceof ConfigurationError) {
-        throw error;
-      }
-      if (error instanceof Error) {
-        throw ConfigurationError.create(error.message);
-      }
-      throw ConfigurationError.create(String(error));
-    }
-  }
 }

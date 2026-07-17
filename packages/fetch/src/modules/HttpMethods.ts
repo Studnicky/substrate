@@ -2,13 +2,17 @@
  * HTTP method utilities as static class methods
  */
 
-import type { FetchOptionsType } from '../interfaces/FetchOptionsType.js';
+import { fetch } from 'undici';
+
+import type { BodyRequestOptionsType } from '../types/BodyRequestOptionsType.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
 
 import {
   AbortError,
   ConfigurationError,
   TimeoutError
 } from '../errors/index.js';
+import { BodySerializer } from './BodySerializer.js';
 
 /**
  * HTTP request methods as static class
@@ -17,10 +21,11 @@ export class HttpMethods {
   /**
    * Extracts only standard RequestInit properties from FetchOptionsType
    */
-  private static toRequestInit(opts: FetchOptionsType, signal?: AbortSignal): object {
-    // Destructure to exclude custom properties (dispatcher, json, metadata, requestId, timeout)
+  private static toRequestInit(opts: FetchOptionsType, signal?: AbortSignal): Record<string, unknown> {
+    // Destructure to exclude custom properties (json, metadata, requestId, timeout);
+    // dispatcher is re-attached below since undici's fetch() reads it off RequestInit
     const {
-      'dispatcher': _d,
+      dispatcher,
       'json': _j,
       'metadata': _m,
       'requestId': _r,
@@ -29,11 +34,32 @@ export class HttpMethods {
       ...standardProps
     } = opts;
 
-    if (signal === undefined) {
-      return { ...standardProps };
+    const init: Record<string, unknown> = signal === undefined
+      ? { ...standardProps }
+      : { ...standardProps, 'signal': signal };
+
+    if (dispatcher !== undefined) {
+      init.dispatcher = dispatcher;
     }
 
-    return { ...standardProps, 'signal': signal };
+    return init;
+  }
+
+  /**
+   * Performs the actual network call.
+   *
+   * A custom `dispatcher` is only ever a Node undici `Agent`, so it must be dispatched
+   * through undici's own `fetch` — the platform's native `globalThis.fetch` may be backed
+   * by a different (internally vendored) undici build and can reject an externally
+   * constructed Agent. Requests without a dispatcher keep using the native `fetch`
+   * unchanged, which is what keeps this module runnable in the browser.
+   */
+  private static async performFetch(url: string, init: Record<string, unknown>): Promise<Response> {
+    if (init.dispatcher === undefined) {
+      return await globalThis.fetch(url, init);
+    }
+
+    return await fetch(url, init);
   }
 
   /**
@@ -84,7 +110,7 @@ export class HttpMethods {
     try {
       const init = HttpMethods.toRequestInit(fetchOptions, externalSignal);
 
-      return await globalThis.fetch(url, init);
+      return await HttpMethods.performFetch(url, init);
     } catch (error) {
       if ((error instanceof Error || error instanceof DOMException) && error.name === 'AbortError') {
         const message = error instanceof Error ? error.message : String(error);
@@ -118,7 +144,7 @@ export class HttpMethods {
 
     try {
       const init = HttpMethods.toRequestInit(fetchOptions, combinedSignal);
-      const response = await globalThis.fetch(url, init);
+      const response = await HttpMethods.performFetch(url, init);
 
       return response;
     } catch (error) {
@@ -177,20 +203,8 @@ export class HttpMethods {
    * @param url - Request URL
    * @param opts - Fetch options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    */
-  static async patch(url: string, opts?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
-    const { body, ...restOpts } = opts ?? {};
-    const fetchOptions: FetchOptionsType = { ...restOpts, 'method': 'PATCH' };
-
-    const serialized = HttpMethods.serializeRequestBody(body);
-
-    if (serialized !== undefined) {
-      fetchOptions.body = serialized;
-
-      if (HttpMethods.needsContentType(body)) {
-        fetchOptions.headers = { 'Content-Type': 'application/json', ...restOpts.headers };
-      }
-    }
-
+  static async patch(url: string, opts?: BodyRequestOptionsType): Promise<Response> {
+    const fetchOptions = HttpMethods.buildBodyRequestOptions('PATCH', opts);
     return await HttpMethods.fetch(url, fetchOptions);
   }
 
@@ -200,20 +214,8 @@ export class HttpMethods {
    * @param url - Request URL
    * @param opts - Fetch options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    */
-  static async post(url: string, opts?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
-    const { body, ...restOpts } = opts ?? {};
-    const fetchOptions: FetchOptionsType = { ...restOpts, 'method': 'POST' };
-
-    const serialized = HttpMethods.serializeRequestBody(body);
-
-    if (serialized !== undefined) {
-      fetchOptions.body = serialized;
-
-      if (HttpMethods.needsContentType(body)) {
-        fetchOptions.headers = { 'Content-Type': 'application/json', ...restOpts.headers };
-      }
-    }
-
+  static async post(url: string, opts?: BodyRequestOptionsType): Promise<Response> {
+    const fetchOptions = HttpMethods.buildBodyRequestOptions('POST', opts);
     return await HttpMethods.fetch(url, fetchOptions);
   }
 
@@ -223,54 +225,36 @@ export class HttpMethods {
    * @param url - Request URL
    * @param opts - Fetch options including optional body (auto-serialized to JSON if object/array; raw string/Buffer sent as-is)
    */
-  static async put(url: string, opts?: Omit<FetchOptionsType, 'body'> & { 'body'?: unknown }): Promise<Response> {
-    const { body, ...restOpts } = opts ?? {};
-    const fetchOptions: FetchOptionsType = { ...restOpts, 'method': 'PUT' };
-
-    const serialized = HttpMethods.serializeRequestBody(body);
-
-    if (serialized !== undefined) {
-      fetchOptions.body = serialized;
-
-      if (HttpMethods.needsContentType(body)) {
-        fetchOptions.headers = { 'Content-Type': 'application/json', ...restOpts.headers };
-      }
-    }
-
+  static async put(url: string, opts?: BodyRequestOptionsType): Promise<Response> {
+    const fetchOptions = HttpMethods.buildBodyRequestOptions('PUT', opts);
     return await HttpMethods.fetch(url, fetchOptions);
   }
 
   /**
-   * Determines whether Content-Type should be auto-set to application/json
+   * Builds fetch options for a body-bearing request (PATCH/POST/PUT)
+   *
+   * `body` (pre-serialized) takes precedence over `json` when both are provided.
+   * `json` always forces the Content-Type header, matching `RequestBuilder.json()`.
    */
-  private static needsContentType(body: unknown): boolean {
-    return typeof body === 'object'
-      && body !== null
-      && !(body instanceof Buffer)
-      && !(body instanceof ArrayBuffer)
-      && !ArrayBuffer.isView(body);
-  }
+  private static buildBodyRequestOptions(
+    method: 'PATCH' | 'POST' | 'PUT',
+    opts: BodyRequestOptionsType | undefined
+  ): FetchOptionsType {
+    const {
+      body, json, ...restOpts
+    } = opts ?? {};
+    const fetchOptions: FetchOptionsType = { ...restOpts, 'method': method };
+    const effectiveBody = body !== undefined ? body : json;
+    const serialized = BodySerializer.serialize(effectiveBody);
 
-  /**
-   * Serializes request body to string/buffer suitable for fetch
-   */
-  private static serializeRequestBody(body: unknown): ArrayBuffer | string | Uint8Array | undefined {
-    if (body === undefined || body === null) {
-      return undefined;
+    if (serialized !== undefined) {
+      fetchOptions.body = serialized;
+
+      if (json !== undefined || BodySerializer.needsJsonContentType(effectiveBody)) {
+        fetchOptions.headers = { 'Content-Type': 'application/json', ...restOpts.headers };
+      }
     }
 
-    if (typeof body === 'string') {
-      return body;
-    }
-
-    if (body instanceof Buffer || body instanceof ArrayBuffer) {
-      return body;
-    }
-
-    if (ArrayBuffer.isView(body)) {
-      return body as Uint8Array;
-    }
-
-    return JSON.stringify(body);
+    return fetchOptions;
   }
 }

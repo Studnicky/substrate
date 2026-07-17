@@ -127,6 +127,28 @@ void describe('Draft', () => {
       assert.strictEqual(next.label, 'b');
     });
 
+    void it('finalizes a deeply nested only-child write, preserving structural sharing for untouched siblings', () => {
+      const base = {
+        'branch': {
+          'deep': { 'nested': { 'only': { 'x': 1 } } }
+        },
+        'untouched': { 'y': 2 }
+      };
+
+      const next = Draft.produce(base, (draft) => {
+        draft.branch.deep.nested.only.x = 100;
+      });
+
+      assert.notStrictEqual(next, base);
+      assert.notStrictEqual(next.branch, base.branch);
+      assert.notStrictEqual(next.branch.deep, base.branch.deep);
+      assert.notStrictEqual(next.branch.deep.nested, base.branch.deep.nested);
+      assert.notStrictEqual(next.branch.deep.nested.only, base.branch.deep.nested.only);
+      assert.strictEqual(next.branch.deep.nested.only.x, 100);
+      // Structural sharing — untouched sibling at the root is the SAME reference.
+      assert.strictEqual(next.untouched, base.untouched);
+    });
+
     void it('supports deleting a property through the draft', () => {
       const base: { 'a': number; 'b'?: number } = { 'a': 1, 'b': 2 };
       const next = Draft.produce(base, (draft) => {

@@ -1,0 +1,60 @@
+/**
+ * Interface for standardized module errors.
+ * Provides structured error handling with codes, context, and cause chains.
+ */
+export interface ModuleErrorInterface {
+  /** Underlying error that caused this error (typed as `Error | undefined` for `ModuleError`). */
+  readonly 'cause': Error | undefined;
+
+  /** Error code for classification */
+  readonly 'code': string;
+
+  /** Additional context/metadata for debugging */
+  readonly 'context': Record<string, unknown> | undefined;
+
+  /**
+   * Find the first cause of a specific type in the chain
+   * Useful for checking if a specific error type exists in the cause chain
+   * @example
+   * const timeout = error.findCauseOfType(TimeoutError);
+   * if (timeout) console.log(`Timed out after ${timeout.timeoutMs}ms`);
+   */
+  findCauseOfType<T extends Error>(errorType: new (...args: never[]) => T): T | undefined;
+
+  /**
+   * Get the full error chain including all causes
+   * Returns array starting with this error, followed by each cause
+   */
+  getCauseChain(): Error[];
+
+  /**
+   * Check if this error or any cause is of a specific type
+   * More convenient than findCauseOfType when you only need a boolean
+   * @example
+   * if (error.hasCauseOfType(NetworkError)) {
+   *   // Handle network-related failures
+   * }
+   */
+  hasCauseOfType(errorType: new (...args: never[]) => Error): boolean;
+
+  /** Human-readable error message */
+  readonly 'message': string;
+
+  /** Error class name */
+  readonly 'name': string;
+
+  /** Whether this error should trigger retry logic */
+  readonly 'retryable': boolean;
+
+  /** Stack trace */
+  readonly 'stack'?: string;
+
+  /** HTTP status code (optional) */
+  readonly 'statusCode': number | undefined;
+
+  /**
+   * Serialize error for structured logging
+   * Returns a JSON-safe representation including all properties and cause chain
+   */
+  toJSON(): Record<string, unknown>;
+}

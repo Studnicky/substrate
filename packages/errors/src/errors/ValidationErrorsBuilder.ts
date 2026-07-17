@@ -1,6 +1,6 @@
 /** Fluent builder for assembling a {@link ValidationErrors} instance incrementally. */
 
-import type { ValidationViolationType } from '../types/ValidationViolationType.js';
+import type { ValidationViolationEntity } from '../entities/ValidationViolationEntity.js';
 import type { ValidationErrors } from './ValidationErrors.js';
 
 /**
@@ -11,21 +11,21 @@ import type { ValidationErrors } from './ValidationErrors.js';
 export class ValidationErrorsBuilder {
   /** Creates a new builder wired to the provided factory function. */
   public static create(
-    create: (items: readonly ValidationViolationType[]) => ValidationErrors
+    create: (items: readonly ValidationViolationEntity.Type[]) => ValidationErrors
   ): ValidationErrorsBuilder {
     const result = new ValidationErrorsBuilder(create);
     return result;
   }
 
-  readonly #create: (items: readonly ValidationViolationType[]) => ValidationErrors;
-  readonly #items: ValidationViolationType[] = [];
+  readonly #create: (items: readonly ValidationViolationEntity.Type[]) => ValidationErrors;
+  readonly #items: ValidationViolationEntity.Type[] = [];
 
-  private constructor(create: (items: readonly ValidationViolationType[]) => ValidationErrors) {
+  private constructor(create: (items: readonly ValidationViolationEntity.Type[]) => ValidationErrors) {
     this.#create = create;
   }
 
   /** Appends a violation to the builder. Returns `this` for chaining. */
-  public addViolation(v: ValidationViolationType): this {
+  public addViolation(v: ValidationViolationEntity.Type): this {
     this.#items.push(v);
     return this;
   }

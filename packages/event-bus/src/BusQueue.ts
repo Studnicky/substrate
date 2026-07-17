@@ -1,24 +1,32 @@
 /** Bounded async FIFO queue with backpressure; enqueue blocks at highWaterMark. */
 
+import { CircularBuffer } from '@studnicky/circular-buffer';
+import { HookInvoker } from '@studnicky/errors';
+
 import type { BusQueueCreateOptionsType } from './BusQueueCreateOptionsType.js';
 
 import { BusQueueBuilder } from './BusQueueBuilder.js';
+import {
+  BUS_QUEUE_DEFAULT_HIGH_WATER_MARK,
+  BUS_QUEUE_DEFAULT_WAITER_CAPACITY
+} from './constants/index.js';
 import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 
-const busQueueDefaultHighWaterMark = 256;
+/** Swallows hook failures rather than throwing — a queue processing loop must not halt because an observer hook threw. */
+class SwallowingHookInvoker extends HookInvoker {
+  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
+    const result = undefined as T;
+    return result;
+  }
+}
 
 export class BusQueue<T> {
+  protected readonly hooks: HookInvoker = new SwallowingHookInvoker();
   readonly #handler: (item: T) => Promise<void>;
   readonly #hwm: number;
   readonly #onError: ((err: unknown) => void) | undefined;
-  readonly #onEnqueueCb: ((depth: number) => void) | undefined;
-  readonly #onDequeueCb: ((depth: number) => void) | undefined;
-  readonly #onDropCb: (() => void) | undefined;
-  readonly #onOverflowCb: ((depth: number) => void) | undefined;
-  readonly #onSlowConsumerCb: ((depth: number, highWaterMark: number) => void) | undefined;
-  readonly #onHandlerErrorCb: ((error: unknown) => void) | undefined;
-  readonly #queue: T[] = [];
-  readonly #backpressureWaiters: { 'resolve': () => void }[] = [];
+  readonly #queue: CircularBuffer<T>;
+  readonly #backpressureWaiters: CircularBuffer<{ 'resolve': () => void }>;
   readonly #drainWaiters: { 'resolve': () => void }[] = [];
   #draining = false;
   #aborted = false;
@@ -45,14 +53,13 @@ export class BusQueue<T> {
       throw new BusQueueConfigError('highWaterMark must be a positive integer');
     }
     this.#handler = options.handler;
-    this.#hwm = hwmOption ?? busQueueDefaultHighWaterMark;
+    this.#hwm = hwmOption ?? BUS_QUEUE_DEFAULT_HIGH_WATER_MARK;
     this.#onError = options.onError;
-    this.#onEnqueueCb = options.onEnqueue;
-    this.#onDequeueCb = options.onDequeue;
-    this.#onDropCb = options.onDrop;
-    this.#onOverflowCb = options.onOverflow;
-    this.#onSlowConsumerCb = options.onSlowConsumer;
-    this.#onHandlerErrorCb = options.onHandlerError;
+    this.#queue = CircularBuffer.builder<T>().withCapacity(this.#hwm).withOverflow('grow').build();
+    this.#backpressureWaiters = CircularBuffer.builder<{ 'resolve': () => void }>()
+      .withCapacity(BUS_QUEUE_DEFAULT_WAITER_CAPACITY)
+      .withOverflow('grow')
+      .build();
     const signal = options.signal;
     let aborted = false;
     if (signal !== undefined) {
@@ -72,26 +79,32 @@ export class BusQueue<T> {
 
   async enqueue(item: T): Promise<void> {
     if (this.#aborted) {
-      this.#invokeHook(() => { this.onDrop(); });
-      if (this.#onDropCb !== undefined) { this.#invokeHook(() => { this.#onDropCb?.(); }); }
+      await this.hooks.invoke('onDrop', () => { const result = this.onDrop(); return result; });
       return;
     }
     this.#queue.push(item);
-    this.#invokeHook(() => { this.onEnqueue(this.#queue.length); });
-    if (this.#onEnqueueCb !== undefined) { this.#invokeHook(() => { this.#onEnqueueCb?.(this.#queue.length); }); }
+    const depth = this.#queue.length;
     this.#scheduleLoop();
-    if (this.#queue.length < this.#hwm) { return; }
-    this.#invokeHook(() => { this.onOverflow(this.#queue.length); });
-    if (this.#onOverflowCb !== undefined) { this.#invokeHook(() => { this.#onOverflowCb?.(this.#queue.length); }); }
-    this.#invokeHook(() => { this.onSlowConsumer(this.#queue.length, this.#hwm); });
-    if (this.#onSlowConsumerCb !== undefined) { this.#invokeHook(() => { this.#onSlowConsumerCb?.(this.#queue.length, this.#hwm); }); }
-    await new Promise<void>((resolve) => {
-      this.#backpressureWaiters.push({ 'resolve': resolve });
-    });
+    // Register the backpressure waiter synchronously, before any hook `await` — awaiting
+    // a hook always yields a real microtask (HookInvoker.invoke is always-async, even
+    // for a synchronous hook body), which would let the drain loop race ahead and shift this
+    // item before its waiter existed, leaking a waiter that never gets resolved.
+    const overflowed = depth >= this.#hwm;
+    const backpressure = overflowed
+      ? new Promise<void>((resolve) => { this.#backpressureWaiters.push({ 'resolve': resolve }); })
+      : undefined;
+    await this.hooks.invoke('onEnqueue', () => { const result = this.onEnqueue(depth); return result; });
+    if (overflowed) {
+      await this.hooks.invoke('onOverflow', () => { const result = this.onOverflow(depth); return result; });
+    }
+    if (backpressure !== undefined) { await backpressure; }
   }
 
   async drain(): Promise<void> {
-    if (this.#queue.length === 0 || this.#aborted) { return; }
+    // A drain loop in flight may have already shifted the last item off #queue
+    // (so #queue.length reads 0) while that item's handler is still running —
+    // only the absence of an active loop means nothing is left to wait for.
+    if ((this.#queue.length === 0 && !this.#draining) || this.#aborted) { return; }
     await new Promise<void>((resolve) => {
       this.#drainWaiters.push({ 'resolve': resolve });
     });
@@ -99,17 +112,23 @@ export class BusQueue<T> {
 
   #handleAbort(): void {
     this.#aborted = true;
-    for (const w of this.#backpressureWaiters) { w.resolve(); }
-    this.#backpressureWaiters.length = 0;
+    let waiter = this.#backpressureWaiters.shift();
+    while (waiter !== undefined) {
+      waiter.resolve();
+      waiter = this.#backpressureWaiters.shift();
+    }
     for (const w of this.#drainWaiters) { w.resolve(); }
     this.#drainWaiters.length = 0;
   }
 
   #scheduleLoop(): void {
     if (this.#draining) { return; }
+    this.#draining = true;
     queueMicrotask(() => {
       void this.#runDrainLoop().catch((error: unknown) => {
-        if (this.#onError !== undefined) { this.#invokeHook(() => { this.#onError?.(error); }); }
+        if (this.#onError !== undefined) {
+          try { this.#onError(error); } catch {}
+        }
       });
     });
   }
@@ -118,22 +137,21 @@ export class BusQueue<T> {
     try {
       await this.#handler(item);
     } catch (err: unknown) {
-      if (this.#onError !== undefined) { this.#invokeHook(() => { this.#onError?.(err); }); }
-      this.#invokeHook(() => { this.onHandlerError(err); });
-      if (this.#onHandlerErrorCb !== undefined) { this.#invokeHook(() => { this.#onHandlerErrorCb?.(err); }); }
+      if (this.#onError !== undefined) {
+        try { this.#onError(err); } catch {}
+      }
+      await this.hooks.invoke('onHandlerError', () => { const result = this.onHandlerError(err); return result; });
     }
   }
 
   async #runDrainLoop(): Promise<void> {
-    this.#draining = true;
     try {
       while (this.#queue.length > 0 && !this.#aborted) {
         const item = this.#queue.shift();
         if (item === undefined) { break; }
         const waiter = this.#backpressureWaiters.shift();
         if (waiter !== undefined) { waiter.resolve(); }
-        this.#invokeHook(() => { this.onDequeue(this.#queue.length); });
-        if (this.#onDequeueCb !== undefined) { this.#invokeHook(() => { this.#onDequeueCb?.(this.#queue.length); }); }
+        await this.hooks.invoke('onDequeue', () => { const result = this.onDequeue(this.#queue.length); return result; });
         await this.#tryHandleItem(item);
       }
     } finally {
@@ -145,27 +163,18 @@ export class BusQueue<T> {
     }
   }
 
-  #invokeHook(hook: () => void): void {
-    try {
-      hook();
-    } catch {}
-  }
-
   /** Fires when an item is added to the queue (after push). */
-  protected onEnqueue(_depth: number): void {}
+  protected onEnqueue(_depth: number): void | Promise<void> {}
 
   /** Fires when an item is removed from the queue for processing (after shift). */
-  protected onDequeue(_depth: number): void {}
+  protected onDequeue(_depth: number): void | Promise<void> {}
 
   /** Fires when enqueue is called but the queue is already aborted (item silently dropped). */
-  protected onDrop(): void {}
+  protected onDrop(): void | Promise<void> {}
 
   /** Fires when queue depth reaches highWaterMark and caller will block (backpressure begins). */
-  protected onOverflow(_depth: number): void {}
-
-  /** Fires when queue depth reaches highWaterMark — same moment as onOverflow; args include depth and hwm. */
-  protected onSlowConsumer(_depth: number, _highWaterMark: number): void {}
+  protected onOverflow(_depth: number): void | Promise<void> {}
 
   /** Fires after handler throws and onError callback (if any) has been called. */
-  protected onHandlerError(_error: unknown): void {}
+  protected onHandlerError(_error: unknown): void | Promise<void> {}
 }

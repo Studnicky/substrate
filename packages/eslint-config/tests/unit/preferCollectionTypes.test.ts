@@ -132,6 +132,15 @@ const invalidScenarios: InvalidScenarioType[] = [
       { messageId: 'includesInCallback' },
       { messageId: 'arrayLiteralIncludes' }
     ]
+  },
+  {
+    name: 'Pattern D — nested iteration calls both flagged from one inline match (stack-based tracker regression guard)',
+    code: `const result = arr.filter(x => arr2.some(y => ['a', 'b'].includes(y)));`,
+    errors: [
+      { messageId: 'includesInCallback' },
+      { messageId: 'includesInCallback' },
+      { messageId: 'arrayLiteralIncludes' }
+    ]
   }
 ];
 

@@ -1,7 +1,7 @@
-import type { CoreLogFieldsType } from '../interfaces/CoreLogFieldsType.js';
-import type { CorrelationFieldsType } from '../interfaces/CorrelationFieldsType.js';
-import type { ErrorFieldsType } from '../interfaces/ErrorFieldsType.js';
-import type { TimingFieldsType } from '../interfaces/TimingFieldsType.js';
+import type { CoreLogFieldsEntity } from '../entities/CoreLogFieldsEntity.js';
+import type { CorrelationFieldsEntity } from '../entities/CorrelationFieldsEntity.js';
+import type { ErrorFieldsEntity } from '../entities/ErrorFieldsEntity.js';
+import type { TimingFieldsEntity } from '../entities/TimingFieldsEntity.js';
 
 /**
  * Metadata object attached to log entries
@@ -26,18 +26,18 @@ export type LogMetadataType = Record<string, unknown>;
  * Metadata type with required correlation fields.
  * Used as the narrowed type when LogMetadata.hasCorrelation returns true.
  */
-export type CorrelationMetadataType = CoreLogFieldsType
-  & Required<Pick<CorrelationFieldsType, 'requestId'>>;
+export type CorrelationMetadataType = CoreLogFieldsEntity.Type
+  & Required<Pick<CorrelationFieldsEntity.Type, 'requestId'>>;
 
 /**
  * Metadata type with required timing fields.
  * Used as the narrowed type when LogMetadata.hasTiming returns true.
  */
-export type TimingMetadataType = CoreLogFieldsType & Required<TimingFieldsType>;
+export type TimingMetadataType = CoreLogFieldsEntity.Type & Required<TimingFieldsEntity.Type>;
 
 /**
  * Metadata type with required error fields.
  * Used as the narrowed type when LogMetadata.hasError returns true.
  */
-export type ErrorMetadataType = CoreLogFieldsType
-  & Required<Pick<ErrorFieldsType, 'error'>>;
+export type ErrorMetadataType = CoreLogFieldsEntity.Type
+  & Required<Pick<ErrorFieldsEntity.Type, 'error'>>;

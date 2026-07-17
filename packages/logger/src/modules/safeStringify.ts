@@ -1,20 +1,23 @@
 /**
  * Safely stringifies an object to JSON, handling circular references
- *
- * @param obj - The object to stringify
- * @returns JSON string representation, with '[Circular]' replacing circular references
  */
-export function safeStringify(obj: unknown): string {
-  const seen = new WeakSet();
+export class SafeStringify {
+  /**
+   * @param obj - The object to stringify
+   * @returns JSON string representation, with '[Circular]' replacing circular references
+   */
+  public static stringify(obj: unknown): string {
+    const seen = new WeakSet();
 
-  return JSON.stringify(obj, (_key, value: unknown) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
-        return '[Circular]';
+    return JSON.stringify(obj, (_key, value: unknown) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) {
+          return '[Circular]';
+        }
+        seen.add(value);
       }
-      seen.add(value);
-    }
 
-    return value;
-  });
+      return value;
+    });
+  }
 }

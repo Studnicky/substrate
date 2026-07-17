@@ -4,11 +4,11 @@
  */
 export { Delay } from './delay/index.js';
 export { SchedulerError } from './errors/index.js';
-export type { ScheduledTaskType } from './interfaces/index.js';
-export type { SchedulerProviderType } from './interfaces/index.js';
 export { MinimumHeap } from './scheduler/index.js';
 export { MinimumHeapBuilder } from './scheduler/index.js';
 export { RealTimeScheduler } from './scheduler/index.js';
 export { RealTimeSchedulerBuilder } from './scheduler/index.js';
 export { VirtualScheduler } from './scheduler/index.js';
 export { VirtualSchedulerBuilder } from './scheduler/index.js';
+export type { ScheduledTaskType } from './types/index.js';
+export type { SchedulerProviderType } from './types/index.js';

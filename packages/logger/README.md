@@ -102,9 +102,18 @@ const bridged = Logger.create({
 });
 
 // Implement your own transport
-import type { TransportInterface, LogRecordType } from '@studnicky/logger';
+import { ResolveMinLevel } from '@studnicky/logger';
+import type { TransportInterface, LogRecordEntity } from '@studnicky/logger';
+
 class RemoteTransport implements TransportInterface {
-  write(record: LogRecordType): void {
+  #minLevel: number;
+
+  constructor(options: { level?: string } = {}) {
+    this.#minLevel = ResolveMinLevel.from(options);
+  }
+
+  write(record: LogRecordEntity.Type): void {
+    if (record.level < this.#minLevel) return;
     // send to remote sink
   }
 }
@@ -122,6 +131,18 @@ const logger = Logger.create({
     new ConsoleTransport({ level: 'warn' }),   // warn and above only
   ]
 });
+```
+
+## Hook failures
+
+`Logger` composes a plain `@studnicky/errors` `HookInvoker` with no override, so a throwing `onLog`, `onDropped`, or `onChildCreate` propagates the default `HookInvocationError` to the caller. `onTransportError` is the one hook Logger itself guards: a throwing `onTransportError` override is caught and recorded instead of aborting fan-out to the remaining transports. Inspect recorded failures via `hookErrorCount`/`getHookErrors()`:
+
+```typescript
+class FaultyLogger extends Logger {
+  protected override onTransportError(): void {
+    throw new Error('boom');
+  }
+}
 ```
 
 ## Documentation

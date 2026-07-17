@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/fetch",
-  "version": "5.1.1",
+  "version": "6.0.0",
   "description": "Professional HTTP client with timeout, interceptors, and configured clients for Node.js",
   "type": "module",
   "sideEffects": false,
@@ -81,7 +81,10 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/config": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*",
     "undici": "^8.5.0"
   },
   "devDependencies": {

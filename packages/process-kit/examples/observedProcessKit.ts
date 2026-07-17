@@ -100,11 +100,13 @@ class Kit {
 
 // Cancellation composed via the now-instantiable Signal: an AbortSignal drives a 'cancel'
 // event into the composed ProcessKit's public dispatch().
-const wireCancellation = (kit: ProcessKit<JobState, JobEvent, JobEffect>, abortSignal: AbortSignal): void => {
-  abortSignal.addEventListener('abort', () => {
-    void kit.dispatch({ 'type': 'cancel' });
-  }, { 'once': true });
-};
+class CancellationWiring {
+  static wireCancellation(kit: ProcessKit<JobState, JobEvent, JobEffect>, abortSignal: AbortSignal): void {
+    abortSignal.addEventListener('abort', () => {
+      void kit.dispatch({ 'type': 'cancel' });
+    }, { 'once': true });
+  }
+}
 // #endregion usage
 
 // --- Scenario A: start -> same-cycle self-advance to 'acknowledged' -> scheduled advance
@@ -130,8 +132,8 @@ kitA.stop();
 
 const kitB = Kit.make();
 const controllerB = new AbortController();
-const composedSignalB = signalSource.compose({ 'signal': controllerB.signal });
-wireCancellation(kitB, composedSignalB);
+const composedSignalB = await signalSource.compose({ 'signal': controllerB.signal });
+CancellationWiring.wireCancellation(kitB, composedSignalB);
 
 kitB.start();
 await kitB.dispatch({ 'type': 'start' });

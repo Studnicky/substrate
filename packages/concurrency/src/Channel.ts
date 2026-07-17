@@ -1,13 +1,19 @@
 /** String-keyed fan-in async generator inbox; one active subscriber per key. */
 
-import type { ChannelOptionsType } from './ChannelOptionsType.js';
+import { CircularBuffer } from '@studnicky/circular-buffer';
+import { HookInvoker } from '@studnicky/errors';
+
+import type { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
 
 import { ChannelBuilder } from './ChannelBuilder.js';
+import { ChannelError } from './errors/ChannelError.js';
 
+// json-schema-uninexpressible: 'notify' is a function type and T is a generic type parameter — not a serializable data shape
 type ChannelStateType<T> = {
-  readonly 'buffer': T[];
+  readonly 'buffer': CircularBuffer<T>;
   'closed': boolean;
   'notify': (() => void) | null;
+  'subscriber': boolean;
 };
 
 export class Channel<T> {
@@ -19,20 +25,21 @@ export class Channel<T> {
     return result;
   }
 
-  static create<T>(options?: ChannelOptionsType): Channel<T> {
-    const result = new (this as unknown as new (options?: ChannelOptionsType) => Channel<T>)(options);
+  static create<T>(options?: ChannelOptionsEntity.Type): Channel<T> {
+    const result = new (this as unknown as new (options?: ChannelOptionsEntity.Type) => Channel<T>)(options);
     return result;
   }
 
+  protected readonly hooks: HookInvoker = new HookInvoker();
   #closed = false;
   readonly #channels = new Map<string, ChannelStateType<T>>();
   readonly #highWaterMark: number | undefined;
 
-  protected constructor(options?: ChannelOptionsType) {
+  protected constructor(options?: ChannelOptionsEntity.Type) {
     this.#highWaterMark = options?.highWaterMark;
   }
 
-  close(): void {
+  async close(): Promise<void> {
     this.#closed = true;
     for (const ch of this.#channels.values()) {
       ch.closed = true;
@@ -42,20 +49,19 @@ export class Channel<T> {
         notify();
       }
     }
-    this.#invokeHook(() => { this.onClose(); });
+    await Promise.resolve(this.hooks.invoke('onClose', () => { const result = this.onClose(); return result; }));
   }
 
-  publish(key: string, item: T): void {
+  async publish(key: string, item: T): Promise<void> {
     if (this.#closed) {
-      this.#invokeHook(() => { this.onPublishDropped(key, item); });
+      await Promise.resolve(this.hooks.invoke('onPublishDropped', () => { const result = this.onPublishDropped(key, item); return result; }));
       return;
     }
     const ch = this.#getOrCreate(key);
     ch.buffer.push(item);
-    this.#invokeHook(() => { this.onEnqueue(key, item); });
-    this.#invokeHook(() => { this.onSend(key, item); });
+    await Promise.resolve(this.hooks.invoke('onEnqueue', () => { const result = this.onEnqueue(key, item); return result; }));
     if (this.#highWaterMark !== undefined && ch.buffer.length >= this.#highWaterMark) {
-      this.#invokeHook(() => { this.onOverflow(key, ch.buffer.length); });
+      await Promise.resolve(this.hooks.invoke('onOverflow', () => { const result = this.onOverflow(key, ch.buffer.length); return result; }));
     }
     if (ch.notify !== null) {
       const notify = ch.notify;
@@ -66,33 +72,52 @@ export class Channel<T> {
 
   async *subscribe(key: string): AsyncGenerator<T> {
     const ch = this.#getOrCreate(key);
-    if (this.#closed) { ch.closed = true; }
-
-    while (true) {
-      const item = ch.buffer.shift();
-      if (item !== undefined) {
-        this.#invokeHook(() => { this.onDequeue(key, item); });
-        this.#invokeHook(() => { this.onReceive(key, item); });
-        yield item;
-        continue;
-      }
-      if (ch.closed) { return; }
-      await new Promise<void>((resolve) => { ch.notify = resolve; });
+    if (ch.subscriber) {
+      throw new ChannelError(key);
     }
+    if (this.#closed) { ch.closed = true; }
+    ch.subscriber = true;
+
+    try {
+      while (true) {
+        const item = ch.buffer.shift();
+        if (item !== undefined) {
+          await Promise.resolve(this.hooks.invoke('onDequeue', () => { const result = this.onDequeue(key, item); return result; }));
+          yield item;
+          continue;
+        }
+        if (ch.closed) { return; }
+        await new Promise<void>((resolve) => { ch.notify = resolve; });
+      }
+    } finally {
+      ch.subscriber = false;
+      // The channel-level close() has fired and this key's buffer is fully
+      // drained (the only ways out of the loop above with ch.closed true) —
+      // no further publish() or subscribe() can ever be useful for this key,
+      // so the per-key entry is safe to evict.
+      if (ch.closed && this.#channels.get(key) === ch) {
+        this.#channels.delete(key);
+      }
+    }
+  }
+
+  /** Number of per-key entries currently tracked. Exposed for subclass diagnostics/tests. */
+  protected get channelCount(): number {
+    const result = this.#channels.size;
+    return result;
   }
 
   #getOrCreate(key: string): ChannelStateType<T> {
     const existing = this.#channels.get(key);
     if (existing !== undefined) { return existing; }
-    const fresh: ChannelStateType<T> = { 'buffer': [], 'closed': false, 'notify': null };
+    const fresh: ChannelStateType<T> = {
+      'buffer': CircularBuffer.create<T>({ 'overflow': 'grow' }),
+      'closed': false,
+      'notify': null,
+      'subscriber': false
+    };
     this.#channels.set(key, fresh);
     return fresh;
-  }
-
-  #invokeHook(hook: () => void): void {
-    try {
-      hook();
-    } catch {}
   }
 
   /**
@@ -102,22 +127,10 @@ export class Channel<T> {
   protected onEnqueue(_key: string, _item: T): void {}
 
   /**
-   * Fires in publish() when channel is open, after buffer push (before notify).
-   * Overrides must not throw or block.
-   */
-  protected onSend(_key: string, _item: T): void {}
-
-  /**
    * Fires in subscribe() right after buffer.shift() succeeds — item dequeued.
    * Overrides must not throw or block.
    */
   protected onDequeue(_key: string, _item: T): void {}
-
-  /**
-   * Fires in subscribe() after shift() confirms item present, before yield.
-   * Overrides must not throw or block.
-   */
-  protected onReceive(_key: string, _item: T): void {}
 
   /**
    * Fires in publish() when #closed is true (item silently dropped).

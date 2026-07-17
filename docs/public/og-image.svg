@@ -44,5 +44,5 @@
   <rect x="440" y="436" width="142" height="46" rx="23" ry="23" fill="#14b8a6"/>
 
   <!-- Version pill text -->
-  <text x="511" y="467" font-family="Helvetica, Arial, sans-serif" font-size="24" font-weight="700" fill="#04201c" text-anchor="middle">v5.1.1</text>
+  <text x="511" y="467" font-family="Helvetica, Arial, sans-serif" font-size="24" font-weight="700" fill="#04201c" text-anchor="middle">v6.0.0</text>
 </svg>

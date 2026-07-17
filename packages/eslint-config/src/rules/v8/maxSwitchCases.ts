@@ -1,5 +1,7 @@
 import type { Rule } from 'eslint';
 
+import { ObjectGuard } from '../shared/ObjectGuard.js';
+
 /**
  * Measured on Node v24 (1.5M calls per case count, JIT-warmed, switch cases
  * in the rule-ALLOWED single-call form vs. an equivalent dispatch map):
@@ -12,9 +14,6 @@ import type { Rule } from 'eslint';
  */
 const MAX_SWITCH_CASES = 20;
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object';};
-
 export const maxSwitchCases: Rule.RuleModule = {
   'create': (context) => {
     const onSwitchStatement: NonNullable<Rule.RuleListener['SwitchStatement']> = (node) => {
@@ -24,7 +23,7 @@ export const maxSwitchCases: Rule.RuleModule = {
       if (!Array.isArray(cases)) { return; }
 
       const nonDefaultCount = cases.filter((c: unknown) => {
-        return isNonNullObject(c) && c.test !== null;
+        return ObjectGuard.isObject(c) && c.test !== null;
       }).length;
 
       if (nonDefaultCount < MAX_SWITCH_CASES) { return; }

@@ -5,7 +5,9 @@
  * @module
  */
 
-import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
+import { HookInvoker } from '@studnicky/errors';
+
+import type { ClockProviderType } from '../types/ClockProviderType.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
 
 import { ClockError } from '../errors/ClockError.js';
@@ -34,6 +36,8 @@ export class VirtualClockProvider implements ClockProviderType {
 
   readonly #counter: Readonly<VirtualTimeCounter>;
 
+  protected readonly hooks: HookInvoker = new HookInvoker();
+
   /**
    * Property write order: #counter.
    */
@@ -42,12 +46,6 @@ export class VirtualClockProvider implements ClockProviderType {
       throw new ClockError('counter must be a VirtualTimeCounter instance');
     }
     this.#counter = counter;
-  }
-
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
   }
 
   private static isValidCounter(counter: unknown): counter is Readonly<VirtualTimeCounter> {
@@ -84,13 +82,15 @@ export class VirtualClockProvider implements ClockProviderType {
 
   /**
    * Fires after each `now()` call, with the virtual epoch-ms value (clamped
-   * to 0 if the counter is negative) that was returned to the caller.
+   * to 0 if the counter is negative) that was returned to the caller. A
+   * throwing override surfaces as a `HookInvocationError` from `now()`.
    */
   protected onNow(_timestamp: number): void {}
 
   /**
    * Fires after each `hrtime()` call, with the virtual nanosecond bigint
-   * value that was returned to the caller.
+   * value that was returned to the caller. A throwing override surfaces as a
+   * `HookInvocationError` from `hrtime()`.
    */
   protected onHrtime(_value: bigint): void {}
 
@@ -98,8 +98,9 @@ export class VirtualClockProvider implements ClockProviderType {
   public hrtime(): bigint {
     const result = BigInt(this.readVirtualMs()) * NS_PER_MS;
 
-    this.#invokeHook(() => {
-      this.onHrtime(result);
+    this.hooks.invoke('onHrtime', () => {
+      const hookResult = this.onHrtime(result);
+      return hookResult;
     });
     return result;
   }
@@ -109,8 +110,9 @@ export class VirtualClockProvider implements ClockProviderType {
     const ms = this.readVirtualMs();
     const result = ms >= 0 ? ms : 0;
 
-    this.#invokeHook(() => {
-      this.onNow(result);
+    this.hooks.invoke('onNow', () => {
+      const hookResult = this.onNow(result);
+      return hookResult;
     });
     return result;
   }

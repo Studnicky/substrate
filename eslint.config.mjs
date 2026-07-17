@@ -40,26 +40,28 @@ export default [
       },
       'rules': {
         // @studnicky custom rules
-        '@studnicky/entity-namespace': 'error',
+        '@studnicky/canonical-export-names': 'error',
+        '@studnicky/clean-diagnostics': 'error',
+        '@studnicky/direct-invocation-only': 'error',
+        '@studnicky/folder-content-shape': 'error',
+        '@studnicky/hash-private-fields': 'error',
+        '@studnicky/inline-trivial-logic': 'error',
         '@studnicky/interface-must-be-contract': 'error',
-        '@studnicky/no-bind-apply-call': 'error',
-        '@studnicky/no-export-alias': 'error',
-        '@studnicky/no-freestanding-verb-noun': 'error',
-        '@studnicky/no-prefer-existing-type': 'error',
-        '@studnicky/no-readonly-in-data-type': 'error',
-        '@studnicky/no-suppression-comments': 'error',
-        '@studnicky/no-this-alias': 'error',
-        '@studnicky/no-trivial-shim': 'error',
-        '@studnicky/no-type-aliasing': 'error',
-        '@studnicky/no-underscore-private': 'error',
-        '@studnicky/prefer-collection-types': 'warn',
+        '@studnicky/lexical-this-only': 'error',
+        '@studnicky/prefer-collection-types': 'error',
         '@studnicky/require-options-object': 'error',
         '@studnicky/single-export': 'error',
-        '@studnicky/type-alias-must-end-type': 'error',
+        '@studnicky/static-method-verbs': 'error',
+        '@studnicky/type-alias-invariants': 'error',
         // @studnicky/v8 optimisation rules
         '@studnicky/v8/arguments-object': 'error',
+        '@studnicky/v8/array-concat-outside-loops': 'error',
         '@studnicky/v8/array-from-iterators': 'error',
         '@studnicky/v8/array-from-map-callback': 'error',
+        '@studnicky/v8/array-scan-outside-loops': 'error',
+        '@studnicky/v8/array-splice-outside-loops': 'error',
+        '@studnicky/v8/array-spread-outside-loops': 'error',
+        '@studnicky/v8/chained-array-iteration': 'error',
         '@studnicky/v8/computed-class-properties': 'error',
         '@studnicky/v8/computed-object-properties': 'error',
         '@studnicky/v8/conditional-property-assignment': 'error',
@@ -73,8 +75,6 @@ export default [
         '@studnicky/v8/inline-functions': 'error',
         '@studnicky/v8/max-switch-cases': 'error',
         '@studnicky/v8/memoize-array-length': 'error',
-        '@studnicky/v8/no-concat-in-loops': 'error',
-        '@studnicky/v8/no-spread-in-loops': 'error',
         '@studnicky/v8/object-spread': 'error',
         '@studnicky/v8/prototype-modification': 'error',
         '@studnicky/v8/regexp-in-loops': 'error',
@@ -225,7 +225,7 @@ export default [
         }
       },
       'rules': {
-        '@studnicky/no-trivial-shim': 'off',
+        '@studnicky/inline-trivial-logic': 'off',
         '@studnicky/single-export': 'off',
         '@studnicky/v8/for-of-arrays': 'off',
         '@typescript-eslint/consistent-type-exports': 'off',
@@ -268,10 +268,16 @@ export default [
       }
     }
   ),
-  // ConsoleTransport is the only file in the codebase permitted to use `console`.
-  // All other modules must route output through this transport.
+  // Only these files are permitted to use `console` directly. ConsoleTransport
+  // is the logger's own console sink; all other logger-producing modules must
+  // route output through it. EventRecorder is deliberately raw, dependency-free
+  // console output — example/demo glue any package can use without pulling in
+  // @studnicky/logger as a dependency.
   {
-    'files': ['packages/logger/src/transports/ConsoleTransport.ts'],
+    'files': [
+      'packages/logger/src/transports/ConsoleTransport.ts',
+      'packages/errors/src/observers/EventRecorder.ts'
+    ],
     'rules': {
       'no-console': 'off'
     }

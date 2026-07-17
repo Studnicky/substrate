@@ -1,8 +1,11 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
+import { HookInvoker } from '@studnicky/errors';
+
 import type { FileLockCreateOptionsType } from './FileLockCreateOptionsType.js';
 import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
 
+import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from './constants/FileLockDefaults.js';
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockConfigError } from './errors/FileLockConfigError.js';
 import { FileLockBuilder } from './FileLockBuilder.js';
@@ -11,14 +14,29 @@ import { LockPathHelpers } from './LockPathHelpers.js';
 import { NodeFileSystem } from './NodeFileSystem.js';
 import { NodeOwnerToken } from './NodeOwnerToken.js';
 
-const DEFAULT_POLL_MS = 50;
-const DEFAULT_TIMEOUT_MS = 5000;
-
+// json-schema-uninexpressible: `fs` is a FileSystemInterface — a behavioral interface of methods (existsSync, readFileSync, etc.), not plain data
 type FileLockInternalOptions = {
   readonly 'fs': FileSystemInterface;
   readonly 'lockPath': string;
   readonly 'originalPath': string;
 };
+
+/**
+ * Routes `FileLock`'s hook-invocation failures to the owning instance's
+ * `#hookErrors` array via a constructor callback, since a private field
+ * can't be reached across class boundaries. Hoisted to module scope so V8
+ * compiles this class once rather than per `FileLock` instantiation.
+ */
+class FileLockHookInvoker extends HookInvoker {
+  constructor(private readonly onError: (hookName: string, cause: unknown) => void) {
+    super();
+  }
+
+  protected override onHookError<T>(hookName: string, cause: unknown): T {
+    this.onError(hookName, cause);
+    return undefined as T;
+  }
+}
 
 /**
  * Process-level advisory file lock using atomic rename.
@@ -95,10 +113,21 @@ export class FileLock {
   readonly #originalPath: string;
   #released = false;
 
+  /**
+   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
+   * instead of aborting the acquire/release flow that triggered them.
+   */
+  readonly #hookErrors: { 'cause': unknown; 'hookName': string, }[] = [];
+
+  protected readonly hooks: HookInvoker;
+
   protected constructor(options: FileLockInternalOptions) {
     this.#fs = options.fs;
     this.#originalPath = options.originalPath;
     this.#lockPath = options.lockPath;
+    this.hooks = new FileLockHookInvoker((hookName, cause) => {
+      this.#hookErrors.push({ 'cause': cause, 'hookName': hookName });
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -110,14 +139,20 @@ export class FileLock {
     const deadline = Date.now() + timeoutMs;
     let attempt = 0;
 
-    this.#invokeHook(() => { this.onAcquireStart(path); });
+    this.hooks.invoke('onAcquireStart', () => {
+      const result = this.onAcquireStart(path);
+      return result;
+    });
 
     // Pre-flight: if the file has never been created (neither the target path nor any
     // lock variant exists), bail immediately rather than waiting the full timeout.
     // When a holder has the file, they renamed it to a `.lock.<pid>` path, so `path`
     // is absent but the file still exists as a lock — polling makes sense.
     if (!this.#fs.existsSync(path) && !this.#anyLockExists(path)) {
-      this.#invokeHook(() => { this.onTimeout(path); });
+      this.hooks.invoke('onTimeout', () => {
+        const result = this.onTimeout(path);
+        return result;
+      });
       return await Promise.reject(new FileLockTimeoutError(path, timeoutMs));
     }
 
@@ -125,30 +160,63 @@ export class FileLock {
       const poll = (): void => {
         try {
           this.#fs.renameSync(path, lockPath);
-          this.#invokeHook(() => { this.onAcquire(path); });
+          this.hooks.invoke('onAcquire', () => {
+            const result = this.onAcquire(path);
+            return result;
+          });
           resolve();
         } catch (error: unknown) {
+          // Rename failed. ENOENT means another holder already renamed `path` away
+          // (expected contention for this lock's race); any other code (or no code
+          // at all) is a genuine filesystem failure that must fail fast.
+          if (!FileLock.#isContentionError(error)) {
+            const actualError = error instanceof Error ? error : new Error(String(error));
+            this.hooks.invoke('onError', () => {
+              const result = this.onError(path, actualError);
+              return result;
+            });
+            reject(actualError);
+            return;
+          }
+
           if (Date.now() >= deadline) {
-            this.#invokeHook(() => { this.onTimeout(path); });
+            this.hooks.invoke('onTimeout', () => {
+              const result = this.onTimeout(path);
+              return result;
+            });
             reject(new FileLockTimeoutError(path, timeoutMs));
             return;
           }
 
-          // Rename failed — another holder has the file (it was renamed to a lock path,
-          // making our source ENOENT) or a transient filesystem error.
-          if (error instanceof Error) {
-            this.#invokeHook(() => { this.onContended(path); });
-          } else {
-            this.#invokeHook(() => { this.onError(path, new Error(String(error))); });
-          }
+          this.hooks.invoke('onContended', () => {
+            const result = this.onContended(path);
+            return result;
+          });
 
           attempt += 1;
-          this.#invokeHook(() => { this.onAcquireWait(path, attempt); });
+          this.hooks.invoke('onAcquireWait', () => {
+            const result = this.onAcquireWait(path, attempt);
+            return result;
+          });
           setTimeout(poll, pollMs);
         }
       };
       poll();
     });
+  }
+
+  /**
+   * True when `error` represents ENOENT — the source path is gone because
+   * another holder already renamed it to its own lock path. Checks the real
+   * `NodeJS.ErrnoException.code` (native `fs`) and falls back to the
+   * conventional `ENOENT: ...` message prefix (fakes that model an errno in
+   * text, e.g. `@studnicky/virtual-fs`, without a matching `.code`).
+   */
+  static #isContentionError(error: unknown): boolean {
+    if (!(error instanceof Error)) { return false; }
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT') { return true; }
+    return error.message.startsWith('ENOENT');
   }
 
   /**
@@ -185,13 +253,22 @@ export class FileLock {
     if (this.#released) { return; }
     this.#released = true;
     this.#fs.renameSync(this.#lockPath, this.#originalPath);
-    this.#invokeHook(() => { this.onRelease(this.#originalPath); });
+    this.hooks.invoke('onRelease', () => {
+      const result = this.onRelease(this.#originalPath);
+      return result;
+    });
   }
 
-  #invokeHook(hook: () => void): void {
-    try {
-      hook();
-    } catch {}
+  /** Count of hook failures recorded by `onHookError` since construction. */
+  get hookErrorCount(): number {
+    const result = this.#hookErrors.length;
+    return result;
+  }
+
+  /** Returns a defensive copy of every hook failure recorded since construction. */
+  getHookErrors(): readonly { 'cause': unknown; 'hookName': string, }[] {
+    const result = [...this.#hookErrors];
+    return result;
   }
 
   [Symbol.dispose](): void {
@@ -214,8 +291,8 @@ export class FileLock {
   protected onAcquireWait(_path: string, _attempt: number): void {}
 
   /**
-   * Fires immediately when a rename attempt fails because another holder
-   * has the lock (ENOENT on lock path, EBUSY, ENOTEMPTY, etc.).
+   * Fires immediately when a rename attempt fails with ENOENT — another
+   * holder has already renamed `path` away to its own lock path.
    * Called on every contended attempt, before the sleep.
    */
   protected onContended(_path: string): void {}
@@ -245,8 +322,9 @@ export class FileLock {
   protected onTimeout(_path: string): void {}
 
   /**
-   * Fires when a filesystem error that is neither a contention-related errno
-   * nor an ENOENT is caught during an acquisition attempt.
+   * Fires when a rename attempt fails with any code other than ENOENT (e.g.
+   * ENOSPC, EACCES, EROFS, EPERM). The acquisition rejects immediately with
+   * this same error rather than continuing to poll.
    */
   protected onError(_path: string, _error: Error): void {}
 }

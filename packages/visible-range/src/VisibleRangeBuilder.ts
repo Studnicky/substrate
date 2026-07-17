@@ -1,4 +1,4 @@
-import type { VisibleRangeConfigInterface } from './types/VisibleRangeConfigInterface.js';
+import type { VisibleRangeConfigInterface } from './interfaces/VisibleRangeConfigInterface.js';
 import type { VisibleRange } from './VisibleRange.js';
 
 /**

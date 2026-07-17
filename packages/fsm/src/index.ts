@@ -1,7 +1,7 @@
 export type { EffectHandlerMapType } from './EffectHandlerMapType.js';
 export { EffectInterpreter } from './EffectInterpreter.js';
 export { EffectInterpreterBuilder } from './EffectInterpreterBuilder.js';
-export { FsmConfigError, FsmError, InterpreterNotRunningError, InterpreterNotStartedError } from './errors/index.js';
+export { FsmConfigError, FsmError, InterpreterNotRunningError, InterpreterNotStartedError, MailboxCapacityExceededError } from './errors/index.js';
 export type { FsmStepType } from './FsmStepType.js';
 export type { FsmTransitionType } from './FsmTransitionType.js';
 export { InterpreterHistory } from './InterpreterHistory.js';

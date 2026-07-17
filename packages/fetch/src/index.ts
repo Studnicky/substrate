@@ -17,6 +17,11 @@
  */
 
 export { DEFAULT_DISPATCHER_CONFIG } from './constants/DEFAULT_DISPATCHER_CONFIG.js';
+export { DestroyOptionsEntity } from './entities/DestroyOptionsEntity.js';
+export { DispatcherConfigEntity } from './entities/DispatcherConfigEntity.js';
+export { DispatcherHealthEntity } from './entities/DispatcherHealthEntity.js';
+export { RequestMetadataEntity } from './entities/RequestMetadataEntity.js';
+export { SocketDispatcherStatsEntity } from './entities/SocketDispatcherStatsEntity.js';
 export {
   AbortError,
   BodyTimeoutError,
@@ -25,7 +30,6 @@ export {
   FetchBaseError,
   HeadersTimeoutError,
   HTTPError,
-  NetworkError,
   SocketError,
   SocketExhaustionError,
   TimeoutError

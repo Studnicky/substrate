@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/bounded-dispatcher",
-  "version": "5.1.1",
+  "version": "6.0.0",
   "description": "Bounded work dispatch pattern composing @studnicky/concurrency's Semaphore, /event-bus, and /scheduler",
   "type": "module",
   "sideEffects": false,
@@ -58,7 +58,8 @@
   "dependencies": {
     "@studnicky/concurrency": "workspace:*",
     "@studnicky/event-bus": "workspace:*",
-    "@studnicky/scheduler": "workspace:*"
+    "@studnicky/scheduler": "workspace:*",
+    "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
     "@studnicky/clock": "workspace:*"

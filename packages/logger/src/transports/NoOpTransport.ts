@@ -1,4 +1,4 @@
-import type { LogRecordType } from '../types/LogRecordType.js';
+import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
 import { NoOpTransportBuilder } from './NoOpTransportBuilder.js';
@@ -35,5 +35,5 @@ export class NoOpTransport implements TransportInterface {
   protected constructor() {}
 
   /** Discards the record without any output or side-effects. */
-  write(_record: LogRecordType): void {}
+  write(_record: LogRecordEntity.Type): void {}
 }

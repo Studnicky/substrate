@@ -5,6 +5,3 @@ export { INITIAL_BUFFER_COUNT } from './INITIAL_BUFFER_COUNT.js';
 export { INITIAL_BUFFER_HEAD } from './INITIAL_BUFFER_HEAD.js';
 export { LAST_ARRAY_INDEX } from './LAST_ARRAY_INDEX.js';
 export { PERCENTILE_MAX } from './PERCENTILE_MAX.js';
-export { PERCENTILE_P50 } from './PERCENTILE_P50.js';
-export { PERCENTILE_P95 } from './PERCENTILE_P95.js';
-export { PERCENTILE_P99 } from './PERCENTILE_P99.js';

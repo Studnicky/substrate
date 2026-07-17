@@ -18,7 +18,30 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { it, beforeEach, afterEach } from 'node:test';
 
-import { FileLock, FileLockTimeoutError } from '../../src/index.js';
+import type { FileSystemInterface, StatResultInterface } from '@studnicky/virtual-fs';
+
+import { FileLock, FileLockConfigError, FileLockTimeoutError } from '../../src/index.js';
+
+/**
+ * Minimal `FileSystemInterface` fake whose `renameSync` always throws a
+ * genuine filesystem error (not ENOENT), to exercise the onError/fail-fast path.
+ */
+class FaultyFileSystem implements FileSystemInterface {
+  existsSync(): boolean { return true; }
+  mkdirSync(): void {}
+  readdirSync(): string[] { return []; }
+  readFileSync(): string { return ''; }
+  renameSync(): void {
+    const error = new Error('ENOSPC: no space left on device') as NodeJS.ErrnoException;
+    error.code = 'ENOSPC';
+    throw error;
+  }
+  statSync(): StatResultInterface {
+    return { isDirectory: () => false, isFile: () => true, mtimeMs: 0 };
+  }
+  unlinkSync(): void {}
+  writeFileSync(): void {}
+}
 
 let TEST_DIR = '';
 
@@ -392,6 +415,37 @@ it('a throwing onAcquire hook does not orphan the renamed lock file or reject ac
   ok(existsSync(path), 'release restores the original path even when onAcquire throws');
 });
 
+it('an async-rejecting onAcquire override is routed through onHookError without an unhandled rejection', async () => {
+  const path = FileLockTestHelpers.makePath('hook-async-reject-acquire.txt');
+  writeFileSync(path, 'data');
+
+  class AsyncRejectingAcquireLock extends FileLock {
+    protected override onAcquire(): Promise<void> {
+      return Promise.reject(new Error('async onAcquire failure'));
+    }
+  }
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const lock = await AsyncRejectingAcquireLock.create({ 'path': path });
+
+    // Give the routed rejection a chance to settle before asserting.
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(rejectionEvents.length, 0, 'no unhandled rejection is produced');
+    strictEqual(lock.hookErrorCount, 1, 'the async onAcquire failure is recorded exactly once');
+    strictEqual(lock.getHookErrors()[0]!.hookName, 'onAcquire');
+
+    lock.release();
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
 it('hook: Symbol.dispose triggers onRelease once', async () => {
   const path = FileLockTestHelpers.makePath('hook-dispose.txt');
   writeFileSync(path, 'dispose-hook');
@@ -419,4 +473,80 @@ it('hook: hooks fire with correct paths when acquired via static acquire()', asy
   strictEqual(acquires[0]!.path, path);
 
   lock.release();
+});
+
+// ---------------------------------------------------------------------------
+// anyLockExists() pre-flight — bare relative path (regression: LockPathHelpers.dirname)
+// ---------------------------------------------------------------------------
+
+it('detects contention for a bare relative filename (no directory component)', async () => {
+  const originalCwd = process.cwd();
+  process.chdir(TEST_DIR);
+  try {
+    writeFileSync('queue.json', 'content');
+
+    const holder = await FileLock.create({ path: 'queue.json' });
+    ok(!existsSync('queue.json'), 'original path should not exist while locked');
+
+    // The original path is now absent (renamed to a `.lock.<token>` sibling in
+    // cwd). anyLockExists() must scan cwd (via LockPathHelpers.dirname('queue.json') === '.'),
+    // not the filesystem root, to detect the sibling lock file and avoid a
+    // false-negative pre-flight check.
+    await rejects(
+      FileLock.create({ path: 'queue.json', timeoutMs: 100 }),
+      (error: unknown) => error instanceof FileLockTimeoutError
+    );
+
+    holder.release();
+    ok(existsSync('queue.json'), 'original path restored after release');
+  } finally {
+    process.chdir(originalCwd);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Error routing — genuine filesystem errors vs. expected contention
+// ---------------------------------------------------------------------------
+
+it('a genuine filesystem error rejects immediately via onError, not onContended', async () => {
+  const errorEvents: Array<{ 'path': string; 'message': string }> = [];
+  const contendedEvents: string[] = [];
+
+  class ErrorRoutingFileLock extends FileLock {
+    protected override onError(path: string, error: Error): void {
+      errorEvents.push({ 'path': path, 'message': error.message });
+    }
+
+    protected override onContended(path: string): void {
+      contendedEvents.push(path);
+    }
+  }
+
+  const start = Date.now();
+  await rejects(
+    ErrorRoutingFileLock.create({
+      'fileSystem': new FaultyFileSystem(),
+      'path': '/data.json',
+      'timeoutMs': 5000,
+    }),
+    (error: unknown) => error instanceof Error && error.message.includes('ENOSPC')
+  );
+  const elapsed = Date.now() - start;
+
+  strictEqual(errorEvents.length, 1, 'onError fires exactly once');
+  strictEqual(errorEvents[0]!.path, '/data.json');
+  ok(errorEvents[0]!.message.includes('ENOSPC'), 'onError receives the original error');
+  strictEqual(contendedEvents.length, 0, 'onContended never fires for a genuine fs error');
+  ok(elapsed < 5000, 'rejects immediately rather than waiting out the full timeout');
+});
+
+// ---------------------------------------------------------------------------
+// builder() — path required
+// ---------------------------------------------------------------------------
+
+it('builder throws FileLockConfigError with a clear message when path is not set', async () => {
+  await rejects(
+    FileLock.builder().build(),
+    (error: unknown) => error instanceof FileLockConfigError && error.message.includes('path')
+  );
 });

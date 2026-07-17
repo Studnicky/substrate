@@ -1,12 +1,10 @@
-import type {
-  ErrorClassificationType,
-  ErrorClassifierInterface
-} from '../interfaces/index.js';
+import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
+import type { ErrorClassifierInterface } from '../interfaces/index.js';
 
 import {
   EARLY_RETRY_THRESHOLD,
   HTTP_REQUEST_TIMEOUT,
-  HTTP_TOO_MANY_REQUESTS
+  HttpStatus
 } from '../constants/index.js';
 import { errorTypeGuards } from '../validation/errorTypeGuards.js';
 import { DefaultHttpErrorClassifierBuilder } from './DefaultHttpErrorClassifierBuilder.js';
@@ -66,7 +64,7 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
    * // result.reason === 'Gateway error (503)'
    * ```
    */
-  classify(error: Error, attemptNumber: number): ErrorClassificationType {
+  classify(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
     const {
       HTTP_MATCHERS, NETWORK_MATCHERS
     } = ErrorClassifier;
@@ -74,7 +72,7 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
     if (errorTypeGuards.isErrorWithStatus(error)) {
       const status = error.status;
 
-      if (status === HTTP_TOO_MANY_REQUESTS) {
+      if (status === HttpStatus.TOO_MANY_REQUESTS) {
         return this.retryable('Rate limited');
       }
 

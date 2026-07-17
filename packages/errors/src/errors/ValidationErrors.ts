@@ -1,9 +1,9 @@
 /** Iterable collection of validation violations with RFC 7807 reporting. */
 
-import type { ValidationAggregateViewType } from '../types/ValidationAggregateViewType.js';
-import type { ValidationProblemDetailsType } from '../types/ValidationProblemDetailsType.js';
-import type { ValidationReportOptionsType } from '../types/ValidationReportOptionsType.js';
-import type { ValidationViolationType } from '../types/ValidationViolationType.js';
+import type { ValidationAggregateViewEntity } from '../entities/ValidationAggregateViewEntity.js';
+import type { ValidationProblemDetailsEntity } from '../entities/ValidationProblemDetailsEntity.js';
+import type { ValidationReportOptionsEntity } from '../entities/ValidationReportOptionsEntity.js';
+import type { ValidationViolationEntity } from '../entities/ValidationViolationEntity.js';
 
 import { ValidationError } from './ValidationError.js';
 import { ValidationErrorsBuilder } from './ValidationErrorsBuilder.js';
@@ -11,15 +11,15 @@ import { ValidationErrorsBuilder } from './ValidationErrorsBuilder.js';
 const DEFAULT_PROBLEM_TYPE = 'https://problems.studnicky.dev/validation';
 
 /**
- * Ordered, iterable collection of `ValidationViolationType` items.
+ * Ordered, iterable collection of `ValidationViolationEntity.Type` items.
  *
  * NOT a thrown error — returned by validators. Use `ValidationError` for single-violation boundary exceptions.
  *
  * Construct via `ValidationErrors.create(items)` or `ValidationErrors.builder().addViolation(v).build()`.
  */
-export class ValidationErrors implements Iterable<ValidationViolationType> {
+export class ValidationErrors implements Iterable<ValidationViolationEntity.Type> {
   /** Creates a `ValidationErrors` from an array of violations. */
-  public static create(items: readonly ValidationViolationType[]): ValidationErrors {
+  public static create(items: readonly ValidationViolationEntity.Type[]): ValidationErrors {
     const result = new this(items);
     return result;
   }
@@ -34,7 +34,7 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
   }
 
   /** Creates a `ValidationErrors` from an array of violations. */
-  public static of(violations: ValidationViolationType[]): ValidationErrors {
+  public static of(violations: ValidationViolationEntity.Type[]): ValidationErrors {
     const result = ValidationErrors.create(violations);
     return result;
   }
@@ -42,7 +42,7 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
   /** Merges multiple `ValidationErrors` collections into one. */
   public static merge(...errors: ValidationErrors[]): ValidationErrors {
     const violations = errors.flatMap((e) => {
-      const items: ValidationViolationType[] = [...e.items];
+      const items: ValidationViolationEntity.Type[] = [...e.items];
       return items;
     });
     const result = ValidationErrors.create(violations);
@@ -60,8 +60,8 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
       const result = ValidationErrors.create([]);
       return result;
     }
-    const violations: ValidationViolationType[] = rawErrors.map((raw) => {
-      const violation: ValidationViolationType = {
+    const violations: ValidationViolationEntity.Type[] = rawErrors.map((raw) => {
+      const violation: ValidationViolationEntity.Type = {
         'keyword': raw.keyword,
         'message': raw.message ?? raw.keyword,
         'path': raw.instancePath
@@ -73,9 +73,9 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
   }
 
   /** The raw ordered list of validation violations. */
-  public readonly items: readonly ValidationViolationType[];
+  public readonly items: readonly ValidationViolationEntity.Type[];
 
-  protected constructor(items: readonly ValidationViolationType[]) {
+  protected constructor(items: readonly ValidationViolationEntity.Type[]) {
     if (!Array.isArray(items)) {
       throw ValidationError.create({ 'message': 'items must be an array', 'path': 'items' });
     }
@@ -83,7 +83,7 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
   }
 
   /** Compact rollup of deduplicated, sorted paths and keywords; safe for metric labels. */
-  public aggregate(): ValidationAggregateViewType {
+  public aggregate(): ValidationAggregateViewEntity.Type {
     const pathSet = new Set<string>();
     const keywordSet = new Set<string>();
     for (const item of this.items) {
@@ -98,7 +98,7 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
   }
 
   /** RFC 7807 Problem Details payload; defaults: type validation URI, title 'Validation failed', status 422. */
-  public report(options?: ValidationReportOptionsType): ValidationProblemDetailsType {
+  public report(options?: ValidationReportOptionsEntity.Type): ValidationProblemDetailsEntity.Type {
     const count = this.items.length;
     const detail = count === 1 ? '1 validation error' : `${count} validation errors`;
     return {
@@ -121,7 +121,7 @@ export class ValidationErrors implements Iterable<ValidationViolationType> {
     return this.items.length === 0;
   }
 
-  public [Symbol.iterator](): Iterator<ValidationViolationType> {
+  public [Symbol.iterator](): Iterator<ValidationViolationEntity.Type> {
     const result = this.items[Symbol.iterator]();
     return result;
   }

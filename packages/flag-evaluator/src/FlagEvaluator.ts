@@ -1,11 +1,26 @@
 /** Local deterministic feature-flag evaluation with percentage rollout and observability hooks */
 
+import { HookInvoker } from '@studnicky/errors';
 import { Hash } from '@studnicky/json';
 
 import type { FlagContextType } from './types/FlagContextType.js';
-import type { FlagDefinitionType } from './types/FlagDefinitionType.js';
+
+import { FlagDefinitionEntity } from './entities/FlagDefinitionEntity.js';
+import { FlagDefinitionValidationError } from './errors/FlagDefinitionValidationError.js';
 
 const BUCKET_SPACE = 100;
+
+/**
+ * A broken observability hook must never affect the resolved flag decision
+ * `evaluate()` already computed: swallow the failure rather than let
+ * `HookInvoker`'s default (throwing) behavior propagate out of `evaluate()`.
+ */
+class SwallowingHookInvoker extends HookInvoker {
+  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
+    const result = undefined as T;
+    return result;
+  }
+}
 
 /**
  * Registers named boolean flag definitions and resolves each evaluation deterministically —
@@ -36,18 +51,23 @@ export class FlagEvaluator {
     return new FlagEvaluator();
   }
 
-  readonly #registry = new Map<string, FlagDefinitionType>();
+  protected readonly hooks: HookInvoker = new SwallowingHookInvoker();
+
+  readonly #registry = new Map<string, FlagDefinitionEntity.Type>();
 
   protected constructor() {}
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
-
-  /** Registers (or replaces) a named flag definition. */
-  register(name: string, definition: FlagDefinitionType): void {
+  /**
+   * Registers (or replaces) a named flag definition. Validates the definition against
+   * FlagDefinitionEntity.Schema and throws FlagDefinitionValidationError when it fails.
+   */
+  register(name: string, definition: FlagDefinitionEntity.Type): void {
+    if (!FlagDefinitionEntity.validate(definition)) {
+      const messages = (FlagDefinitionEntity.validate.errors ?? [])
+        .map((e) => {return e.message ?? String(e);})
+        .join('; ');
+      throw new FlagDefinitionValidationError(messages.length > 0 ? messages : 'invalid flag definition');
+    }
     this.#registry.set(name, definition);
   }
 
@@ -62,8 +82,7 @@ export class FlagEvaluator {
   }
 
   list(): readonly string[] {
-    const keys = this.#registry.keys();
-    return [...keys];
+    return [...this.#registry.keys()];
   }
 
   /**
@@ -81,20 +100,23 @@ export class FlagEvaluator {
     const definition = this.#registry.get(name);
 
     if (definition === undefined) {
-      this.#invokeHook(() => {
-        this.onDefault(name);
+      this.hooks.invoke('onDefault', () => {
+        const hookResult = this.onDefault(name);
+        return hookResult;
       });
       const result = false;
-      this.#invokeHook(() => {
-        this.onEvaluate(name, context, result);
+      this.hooks.invoke('onEvaluate', () => {
+        const hookResult = this.onEvaluate(name, context, result);
+        return hookResult;
       });
       return result;
     }
 
     if (!definition.enabled) {
       const result = definition.defaultValue;
-      this.#invokeHook(() => {
-        this.onEvaluate(name, context, result);
+      this.hooks.invoke('onEvaluate', () => {
+        const hookResult = this.onEvaluate(name, context, result);
+        return hookResult;
       });
       return result;
     }
@@ -104,13 +126,15 @@ export class FlagEvaluator {
     const result = bucket < rolloutPercent;
 
     if (!result) {
-      this.#invokeHook(() => {
-        this.onRuleMismatch(name, context);
+      this.hooks.invoke('onRuleMismatch', () => {
+        const hookResult = this.onRuleMismatch(name, context);
+        return hookResult;
       });
     }
 
-    this.#invokeHook(() => {
-      this.onEvaluate(name, context, result);
+    this.hooks.invoke('onEvaluate', () => {
+      const hookResult = this.onEvaluate(name, context, result);
+      return hookResult;
     });
     return result;
   }

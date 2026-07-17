@@ -85,21 +85,21 @@ const bingVerify = seo.bingSiteVerification ?? '';
 const twitterHandle = seo.twitterHandle ?? '';
 
 const ESLINT_CONFIG_RULES = [
-  'all-types-are-entities', 'constants-folder-required', 'entity-namespace',
-  'interface-must-be-contract', 'interface-suffix', 'interfaces-compose-named-types',
-  'no-bind-apply-call', 'no-export-alias', 'no-freestanding-verb-noun', 'no-prefer-existing-type',
-  'no-project-internal-acronyms', 'no-readonly-in-data-type', 'no-suppression-comments',
-  'no-this-alias', 'no-trivial-shim', 'no-type-aliasing', 'no-underscore-private',
-  'prefer-collection-types', 'require-options-object',
-  'single-export', 'type-alias-must-end-type', 'types-derived-from-schema'
+  'adapter-only-import', 'all-types-are-entities', 'canonical-export-names', 'clean-diagnostics',
+  'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'folder-content-shape',
+  'hash-private-fields', 'inline-trivial-logic', 'interface-must-be-contract', 'interface-suffix',
+  'interfaces-compose-named-types', 'known-types-outside-adapters', 'layer-import-boundary',
+  'lexical-this-only', 'prefer-collection-types', 'require-options-object', 'single-export',
+  'static-method-verbs', 'type-alias-invariants', 'whole-canonical-types'
 ] as const;
 
 const ESLINT_V8_RULES = [
-  'arguments-object', 'array-from-iterators', 'array-from-map-callback', 'computed-class-properties',
-  'computed-object-properties', 'conditional-property-assignment', 'define-property', 'delete-property',
-  'dynamic-property-access', 'eval-function', 'for-in-loops', 'for-of-arrays',
-  'inline-arrow-functions', 'inline-functions', 'max-switch-cases', 'memoize-array-length',
-  'no-concat-in-loops', 'no-spread-in-loops', 'object-spread', 'prototype-modification',
+  'arguments-object', 'array-concat-outside-loops', 'array-from-iterators', 'array-from-map-callback',
+  'array-scan-outside-loops', 'array-splice-outside-loops', 'array-spread-outside-loops',
+  'chained-array-iteration', 'computed-class-properties', 'computed-object-properties',
+  'conditional-property-assignment', 'define-property', 'delete-property', 'dynamic-property-access',
+  'eval-function', 'for-in-loops', 'for-of-arrays', 'inline-arrow-functions', 'inline-functions',
+  'max-switch-cases', 'memoize-array-length', 'object-spread', 'prototype-modification',
   'regexp-in-loops', 'switch-statements', 'try-catch-in-loops', 'with-statement'
 ] as const;
 

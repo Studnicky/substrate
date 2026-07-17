@@ -4,18 +4,12 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import { ConfigurationError, ConfigValidation, Guard } from '../src/index.js';
+import { ValidateConfigFixtures } from './fixtures/ValidateConfigFixtures.js';
 
-const knownKeys = new Set<string>(['debug', 'host', 'maxRetries', 'port']);
+const { config } = ValidateConfigFixtures;
 
 // Valid config — all assertions pass silently
-const config: Record<string, unknown> = {
-  'debug': false,
-  'host': 'localhost',
-  'maxRetries': 3,
-  'port': 8080
-};
-
-ConfigValidation.assertNoUnknownKeys(config, knownKeys);
+ConfigValidation.assertNoUnknownKeys(config, ValidateConfigFixtures.knownKeys);
 ConfigValidation.assertString(config.host, 'host');
 ConfigValidation.assertNumber(config.port, 'port');
 ConfigValidation.assertBoolean(config.debug, 'debug');
@@ -57,7 +51,7 @@ try {
 
 let caughtUnknownKey: ConfigurationError | undefined;
 try {
-  ConfigValidation.assertNoUnknownKeys({ 'host': 'localhost', 'unknownKey': true }, knownKeys);
+  ConfigValidation.assertNoUnknownKeys({ 'host': 'localhost', 'unknownKey': true }, ValidateConfigFixtures.knownKeys);
 } catch (err) {
   if (err instanceof ConfigurationError) {
     caughtUnknownKey = err;

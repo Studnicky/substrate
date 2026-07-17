@@ -1,23 +1,11 @@
 import type { Rule } from 'eslint';
 
-const isObject = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-};
-
-class NodeName {
-  static get(rawNode: unknown): string {
-    if (!isObject(rawNode)) { return ''; }
-    const idNode: unknown = rawNode.id;
-    if (!isObject(idNode)) { return ''; }
-    const name: unknown = idNode.name;
-    return typeof name === 'string' ? name : '';
-  }
-}
+import { DeclarationIdName } from './shared/declarationIdName.js';
 
 class InterfaceSuffix {
   static create(context: Rule.RuleContext): Rule.RuleListener {
     function onTSInterfaceDeclaration(node: Rule.Node): void {
-      const name = NodeName.get(node);
+      const name = DeclarationIdName.get(node);
       if (name.endsWith('Interface')) { return; }
       context.report({ 'data': { 'name': name }, 'messageId': 'missing-interface-suffix', 'node': node });
     }

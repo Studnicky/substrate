@@ -7,8 +7,10 @@ import { CircuitBreaker, CircuitBreakerOpenError } from '../src/index.js';
 
 // Deterministic clock so the demo is instant with no real waits
 let now = 0;
-const clock = (): number => { const result = now;
-  return result; };
+class Clock {
+  static now(): number { const result = now;
+    return result; }
+}
 
 // Build a CircuitBreaker with a fluent builder chain
 const breaker = CircuitBreaker.builder()
@@ -16,7 +18,7 @@ const breaker = CircuitBreaker.builder()
   .withFailureThreshold(2)
   .withResetTimeoutMs(500)
   .withSuccessThreshold(1)
-  .withClock(clock)
+  .withClock(Clock.now)
   .build();
 
 console.log('CircuitBreaker built. State:', breaker.state);
@@ -27,9 +29,11 @@ await breaker.execute(() => { const result = Promise.resolve('ok');
 console.log('After success. State:', breaker.state);
 
 // Trip the breaker with 2 consecutive failures
-const fail = (): Promise<never> => { throw new Error('downstream error'); };
-await breaker.execute(fail).catch(() => { /* expected */ });
-await breaker.execute(fail).catch(() => { /* expected */ });
+class Fail {
+  static downstream(): Promise<never> { throw new Error('downstream error'); }
+}
+await breaker.execute(Fail.downstream).catch(() => { /* expected */ });
+await breaker.execute(Fail.downstream).catch(() => { /* expected */ });
 console.log('After 2 failures. State:', breaker.state);
 
 // OPEN — fast rejection

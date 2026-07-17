@@ -33,6 +33,7 @@ import type { ProcessKitConfigType } from './types/ProcessKitConfigType.js';
 
 import { ProcessKitBuilder } from './ProcessKitBuilder.js';
 
+// json-schema-uninexpressible: generic type parameters (TState, TEvent, TEffect) and fields that are live class instances (EffectInterpreter, StateMachine, Signal) plus SchedulerProviderType (method-bearing interface), not plain data
 type ProcessKitDepsType<
   TState extends { readonly 'variant': string },
   TEvent extends { readonly 'type': string },

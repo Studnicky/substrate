@@ -15,6 +15,7 @@ import type { RequestExecutorExecuteOptionsType } from './types/RequestExecutorE
 
 import { RequestExecutorBuilder } from './RequestExecutorBuilder.js';
 
+// json-schema-uninexpressible: composes live class instances (Context, FetchClient, Retry, Signal, Timing) — not a serializable data shape
 type RequestExecutorDepsType = {
   'context'?: Context | undefined;
   'deadlineMs'?: number | undefined;
@@ -121,7 +122,7 @@ export class RequestExecutor {
     options?: RequestExecutorExecuteOptionsType
   ): Promise<T> {
     const deadlineMs = options?.deadlineMs ?? this.#deadlineMs;
-    const composedSignal = this.#signal.compose({
+    const composedSignal = await this.#signal.compose({
       ...(deadlineMs !== undefined ? { 'deadlineMs': deadlineMs } : {}),
       ...(options?.signal !== undefined ? { 'signal': options.signal } : {})
     });
@@ -171,28 +172,26 @@ export class RequestExecutor {
     return this.#timing;
   }
 
+  #emit(status: (typeof TIMING_STATUS)[keyof typeof TIMING_STATUS]): void {
+    this.#timing?.event(TimingEvent.create().component('RequestExecutor').operation('execute').status(status).build());
+  }
+
   async #runWithTiming<T>(fn: () => Promise<T>): Promise<T> {
     if (this.#timing === undefined) {
       const result = await fn();
       return result;
     }
 
-    this.#timing.event(
-      TimingEvent.create().component('RequestExecutor').operation('execute').status(TIMING_STATUS.START).build()
-    );
+    this.#emit(TIMING_STATUS.START);
 
     try {
       const result = await fn();
 
-      this.#timing.event(
-        TimingEvent.create().component('RequestExecutor').operation('execute').status(TIMING_STATUS.COMPLETE).build()
-      );
+      this.#emit(TIMING_STATUS.COMPLETE);
 
       return result;
     } catch (error) {
-      this.#timing.event(
-        TimingEvent.create().component('RequestExecutor').operation('execute').status(TIMING_STATUS.ERROR).build()
-      );
+      this.#emit(TIMING_STATUS.ERROR);
 
       throw error;
     }
