@@ -1,5 +1,13 @@
 # Changelog
 
+## 7.0.1
+
+### Patch Changes
+
+- @studnicky/concurrency@7.0.1
+- @studnicky/mutex@7.0.1
+- @studnicky/types@7.0.1
+
 ## 7.0.0
 
 ### Patch Changes
