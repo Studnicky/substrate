@@ -1,5 +1,17 @@
 # Changelog
 
+## 7.0.1
+
+### Patch Changes
+
+- @studnicky/circular-buffer@7.0.1
+- @studnicky/config@7.0.1
+- @studnicky/errors@7.0.1
+- @studnicky/json@7.0.1
+- @studnicky/sample-buffer@7.0.1
+- @studnicky/signal@7.0.1
+- @studnicky/types@7.0.1
+
 ## 7.0.0
 
 ### Patch Changes

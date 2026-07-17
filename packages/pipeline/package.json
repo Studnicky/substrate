@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/pipeline",
-  "version": "7.0.0",
+  "version": "7.0.1",
   "description": "Generic typed async pipeline for sequential context transforms",
   "type": "module",
   "sideEffects": false,

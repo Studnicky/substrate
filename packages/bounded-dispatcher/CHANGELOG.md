@@ -1,5 +1,14 @@
 # Changelog
 
+## 7.0.1
+
+### Patch Changes
+
+- @studnicky/concurrency@7.0.1
+- @studnicky/event-bus@7.0.1
+- @studnicky/scheduler@7.0.1
+- @studnicky/types@7.0.1
+
 ## 7.0.0
 
 ### Patch Changes

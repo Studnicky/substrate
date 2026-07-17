@@ -1,5 +1,13 @@
 # Changelog
 
+## 7.0.1
+
+### Patch Changes
+
+- @studnicky/fsm@7.0.1
+- @studnicky/scheduler@7.0.1
+- @studnicky/signal@7.0.1
+
 ## 7.0.0
 
 ### Patch Changes
