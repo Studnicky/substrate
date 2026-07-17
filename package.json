@@ -70,6 +70,12 @@
     "vue": "^3.5.39"
   },
   "packageManager": "pnpm@10.32.1",
+  "pnpm": {
+    "overrides": {
+      "vite": "^6.4.3",
+      "esbuild": "^0.25.0"
+    }
+  },
   "substrate": {
     "seo": {
       "googleSiteVerification": "",
