@@ -22,7 +22,11 @@ const PACKAGES_ROOT = join(REPO_ROOT, 'packages');
 const pkgRaw = await fs.readFile(join(REPO_ROOT, 'package.json'), 'utf8');
 const VERSION = JSON.parse(pkgRaw).version;
 
-const HEADING_RE = new RegExp(`^## \\[?${VERSION.replace(/\./g, '\\.')}\\]?`);
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+const HEADING_RE = new RegExp(`^## \\[?${escapeRegExp(VERSION)}\\]?`);
 
 function extractSection(changelog) {
   const lines = changelog.split('\n');
