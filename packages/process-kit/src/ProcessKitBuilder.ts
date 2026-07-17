@@ -52,10 +52,10 @@ export class ProcessKitBuilder<
     }
 
     const config: ProcessKitConfigType<TState, TEvent, TEffect> = {
+      'handlers': this.#handlers,
       'machine': this.#machine,
-      ...(this.#handlers !== undefined ? { 'handlers': this.#handlers } : {}),
-      ...(this.#scheduler !== undefined ? { 'scheduler': this.#scheduler } : {}),
-      ...(this.#signal !== undefined ? { 'signal': this.#signal } : {})
+      'scheduler': this.#scheduler,
+      'signal': this.#signal
     };
     return this.#create(config);
   }

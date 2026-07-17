@@ -1,5 +1,7 @@
 import type { ErrorClassifierFunctionType, ErrorClassifierInterface } from '@studnicky/errors';
 
+import { PickDefined } from '@studnicky/types';
+
 import type {
   RetryBuilderInterface,
   RetryConfigInterface,
@@ -26,16 +28,19 @@ import type {
  */
 export class RetryBuilder<T extends RetryInterface = RetryInterface> implements RetryBuilderInterface<T> {
   static create<T extends RetryInterface = RetryInterface>(
-    create: (options: Partial<RetryConfigInterface>) => T
+    create: (options: RetryConfigInterface) => T
   ): RetryBuilder<T> {
     return new RetryBuilder<T>(create);
   }
 
-  readonly #create: (options: Partial<RetryConfigInterface>) => T;
+  readonly #create: (options: RetryConfigInterface) => T;
   #maxRetries?: number;
+  #maxElapsedMs?: number;
+  #hookTimeoutMs?: number;
   #errorClassifier?: ErrorClassifierFunctionType | ErrorClassifierInterface;
+  #backoffStrategy?: RetryConfigInterface['backoffStrategy'];
 
-  private constructor(create: (options: Partial<RetryConfigInterface>) => T) {
+  private constructor(create: (options: RetryConfigInterface) => T) {
     this.#create = create;
   }
 
@@ -56,14 +61,41 @@ export class RetryBuilder<T extends RetryInterface = RetryInterface> implements 
   }
 
   /**
+   * Set maximum total elapsed time across all attempts (ms)
+   */
+  maxElapsedMs(value: number): this {
+    this.#maxElapsedMs = value;
+    return this;
+  }
+
+  /**
+   * Set the timeout (ms) each lifecycle hook is raced against
+   */
+  hookTimeoutMs(value: number): this {
+    this.#hookTimeoutMs = value;
+    return this;
+  }
+
+  /**
+   * Set backoff strategy for computing retry delays
+   */
+  backoffStrategy(value: NonNullable<RetryConfigInterface['backoffStrategy']>): this {
+    this.#backoffStrategy = value;
+    return this;
+  }
+
+  /**
    * Build and return Retry instance
    * Config validation occurs in create()
    */
   build(): T {
-    const config: Partial<RetryConfigInterface> = {
-      ...(this.#maxRetries !== undefined ? { 'maxRetries': this.#maxRetries } : {}),
-      ...(this.#errorClassifier !== undefined ? { 'errorClassifier': this.#errorClassifier } : {})
-    };
+    const config: RetryConfigInterface = PickDefined.from({
+      'backoffStrategy': this.#backoffStrategy,
+      'errorClassifier': this.#errorClassifier,
+      'hookTimeoutMs': this.#hookTimeoutMs,
+      'maxElapsedMs': this.#maxElapsedMs,
+      'maxRetries': this.#maxRetries
+    });
     return this.#create(config);
   }
 }

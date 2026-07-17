@@ -75,6 +75,17 @@ const retry = Retry.create({
 
 Omitting `maxElapsedMs` preserves the default behavior: only `maxRetries` governs exhaustion.
 
+### Hook timeout
+
+The observation-only hooks (`onAttempt`, `onSuccess`, `onRetryableError`, `onGiveUp`, `enterCall`) run through a composed `HookInvoker` (see `@studnicky/errors`). Pass `hookTimeoutMs` to bound how long an async hook may run before it's treated as a failure — left unset, a hook may take arbitrarily long, matching prior behavior:
+
+```typescript
+const retry = Retry.builder()
+  .maxRetries(3)
+  .hookTimeoutMs(5000)
+  .build();
+```
+
 ## Extending
 
 Subclass `Retry` and override any of the protected lifecycle hooks to add telemetry without changing the retry logic. All hooks are no-ops in the base class.

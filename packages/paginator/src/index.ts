@@ -5,4 +5,4 @@
  */
 
 export { Paginator } from './Paginator.js';
-export type { PaginatorEventType, PaginatorStateType } from './types/index.js';
+export type { PaginatorEventType, PaginatorNextCursorType, PaginatorStateType } from './types/index.js';

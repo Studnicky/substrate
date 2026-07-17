@@ -1,9 +1,14 @@
+import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { singleExport } from '../../src/rules/singleExport.js';
+
+// Workspace root — projectService resolves the tsconfig for the type-aware
+// RuleTester instance below (matches the convention in noPreferExistingType.test.ts).
+const repoRoot = resolve(import.meta.dirname, '../../../..');
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -14,6 +19,28 @@ const ruleTester = new RuleTester({
     parserOptions: {
       ecmaVersion: 2022,
       sourceType: 'module'
+    }
+  }
+});
+
+// Type-aware RuleTester: used only to exercise the type-checker-backed
+// Error-classification path in ExportClassifier.classify (real superclass-chain
+// resolution via checker.isTypeAssignableTo, not name-based heuristics). The
+// 'error-class' vs 'other-class' distinction is not currently branched on by
+// any downstream consumer of exportKinds, so these cases cannot assert a
+// differing messageId from the non-type-aware suite above — they instead prove
+// the type-aware code path runs without crashing and does not regress the
+// existing tooMany/mismatch/valid outcomes for real-Error-extending classes
+// with non-Error-suffixed names, indirect Error inheritance, and
+// Error-suffixed-but-non-Error classes.
+const typeAwareRuleTester = new RuleTester({
+  languageOptions: {
+    parser,
+    parserOptions: {
+      projectService: {
+        allowDefaultProject: ['*.ts']
+      },
+      tsconfigRootDir: repoRoot
     }
   }
 });
@@ -275,4 +302,36 @@ ruleTester.run('single-export', singleExport, {
       filename: '/project/src/types/reexport.ts'
     }
   ]
+});
+
+typeAwareRuleTester.run('single-export (type-aware Error classification)', singleExport, {
+  valid: [
+    // Exercises the type-aware Error-classification path directly: the
+    // superclass name is 'Error' itself, so checker.isTypeAssignableTo
+    // resolves the class type against the real global Error type.
+    {
+      name: 'allows single class export directly extending the real global Error',
+      code: 'export class FooError extends Error {}',
+      filename: 'FooError.ts'
+    },
+    // Indirect inheritance through a non-Error-suffixed intermediate base class.
+    // Proves checker.isTypeAssignableTo (or the getBaseTypes fallback) walks the
+    // full superclass chain to resolve real Error ancestry without crashing —
+    // a naming heuristic would misclassify this ('ConnectionProblem' has no
+    // 'Error' suffix and its direct superclass is 'CustomFailure', not 'Error').
+    {
+      name: 'allows single class export indirectly extending Error through a non-Error-suffixed base',
+      code: 'class CustomFailure extends Error {}\nexport class ConnectionProblem extends CustomFailure {}',
+      filename: 'ConnectionProblem.ts'
+    },
+    // Reverse case: the name ends in 'Error' but the class has no superclass at
+    // all. Proves the type-aware path does not misfire on naming alone and does
+    // not crash when there is nothing to resolve.
+    {
+      name: 'allows single class export named with an Error suffix but extending nothing',
+      code: 'export class ColorError {}',
+      filename: 'ColorError.ts'
+    }
+  ],
+  invalid: []
 });

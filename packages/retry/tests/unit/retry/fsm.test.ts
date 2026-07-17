@@ -15,7 +15,8 @@ import { it } from 'node:test';
 
 import type { RetryCallStateType } from '../../../src/types/RetryCallStateType.js';
 
-import type { RetryConfigInterface, RetryContextType } from '../../../src/interfaces/index.js';
+import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+import type { RetryContextType } from '../../../src/types/index.js';
 
 import {
   DefaultHttpErrorClassifier,

@@ -98,6 +98,8 @@ class InstrumentedStore<T> extends EntityStore<T> {
 | `getAll` | `() => readonly TEntity[]` | Returns every entity, sorted by `sortComparer` if configured |
 | `getById` | `(id: TId) => TEntity \| undefined` | Returns the entity for `id`, or `undefined` |
 | `getIds` | `() => readonly TId[]` | Returns every id, in insertion order |
+| `hookErrorCount` | `get hookErrorCount(): number` | Count of hook failures recorded since construction |
+| `getHookErrors` | `() => readonly HookErrorEntryType[]` | Defensive copy of every hook failure recorded since construction |
 
 ### `EntityStoreBuilder<TEntity, TId>`
 
@@ -116,6 +118,20 @@ class InstrumentedStore<T> extends EntityStore<T> {
 | `onReplaceAll(count)` | Once from `setAll`, with the count of entities in the new collection | `count: number` |
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
+
+A hook override that throws or rejects does not abort the mutation that triggered it — the failure is recorded instead of propagating, backed internally by `@studnicky/errors`'s `HookInvoker`. Inspect recorded failures via `hookErrorCount`/`getHookErrors()`:
+
+```typescript
+class FaultyStore extends EntityStore<{ id: string }> {
+  protected override onUpsert(): void {
+    throw new Error('boom');
+  }
+}
+
+const store = FaultyStore.create({ selectId: (e) => e.id });
+await store.upsertOne({ id: '1' });
+store.hookErrorCount; // 1
+```
 
 ## No eviction or TTL
 

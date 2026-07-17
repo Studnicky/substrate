@@ -13,6 +13,7 @@
     "dist"
   ],
   "references": [
+    { "path": "../circular-buffer" },
     { "path": "../errors" },
     { "path": "../json" },
     { "path": "../types" }

@@ -92,6 +92,14 @@ const ROUTE_HANDLERS = new Map<string, RouteHandlerType>([
     }
   ],
   [
+    'GET:/echo',
+    (req, res) => {
+      const urlObj = new URL(req.url ?? '/', 'http://localhost');
+
+      sendJson(res, HTTP_STATUS_OK, { 'query': Object.fromEntries(urlObj.searchParams.entries()) });
+    }
+  ],
+  [
     'GET:/delay',
     (_req, res) => {
       setTimeout(() => {
@@ -166,6 +174,17 @@ const ROUTE_HANDLERS = new Map<string, RouteHandlerType>([
       sendJson(res, 201, {
         ...parsedBody,
         id: 101
+      });
+    }
+  ],
+  [
+    'POST:/echo',
+    (req, res, body) => {
+      const parsedBody = parseJsonBody(body);
+
+      sendJson(res, HTTP_STATUS_OK, {
+        body: parsedBody,
+        headers: req.headers
       });
     }
   ],

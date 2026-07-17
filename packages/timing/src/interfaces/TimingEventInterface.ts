@@ -1,5 +1,5 @@
+import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingStatusValueType } from '../types/TimingStatusValueType.js';
-import type { TimingEventDataType } from './TimingEventDataType.js';
 
 /**
  * Interface for the TimingEvent builder.
@@ -10,9 +10,9 @@ export interface TimingEventInterface {
   /**
    * Builds the timing event data.
    * @throws TimingBuildError if required fields are missing
-   * @returns Frozen TimingEventDataType
+   * @returns Frozen TimingEventDataEntity.Type
    */
-  build(): TimingEventDataType;
+  build(): TimingEventDataEntity.Type;
 
   /**
    * Sets the component name.

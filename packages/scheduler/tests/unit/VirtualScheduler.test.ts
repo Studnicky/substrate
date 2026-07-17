@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
+import { HookInvocationError, HookInvoker } from '@studnicky/errors';
 
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
 import { MinimumHeap } from '../../src/scheduler/MinimumHeap.js';
@@ -373,6 +374,20 @@ describe('VirtualScheduler', () => {
       sched.advance(ADVANCE_200 + ADVANCE_50);
 
       assert.strictEqual(count, 2);
+    });
+
+    it('scheduleEvery with intervalMs of 0 throws synchronously and does not hang', () => {
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
+
+      assert.throws(() => { sched.scheduleEvery(0, () => { return; }); });
+    });
+
+    it('scheduleEvery with a negative intervalMs throws synchronously and does not hang', () => {
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = VirtualScheduler.create({ 'counter': counter });
+
+      assert.throws(() => { sched.scheduleEvery(NEGATIVE_ADVANCE, () => { return; }); });
     });
 
     it('cancelled interval task does not reschedule', () => {
@@ -821,6 +836,36 @@ describe('VirtualScheduler', () => {
       assert.strictEqual(fired, true);
     });
 
+    it('a throwing onFire hook is wrapped in a HookInvocationError and passed to onHookError', () => {
+      let receivedError: HookInvocationError | undefined;
+
+      class RecordingHookInvoker extends HookInvoker {
+        protected override onHookError<T>(hookName: string, cause: unknown): T {
+          receivedError = new HookInvocationError(hookName, cause);
+          return undefined as T;
+        }
+      }
+
+      class ObservedThrowingFireScheduler extends VirtualScheduler {
+        protected override readonly hooks: HookInvoker = new RecordingHookInvoker();
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override onFire(): void {
+          throw new Error('onFire boom');
+        }
+      }
+
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new ObservedThrowingFireScheduler(counter);
+
+      sched.scheduleAt(TASK_OFFSET_50, () => { return; });
+      sched.advance(ADVANCE_PASS);
+
+      assert.ok(receivedError instanceof HookInvocationError);
+      assert.strictEqual(receivedError.hookName, 'onFire');
+      assert.ok(receivedError.cause instanceof Error);
+      assert.strictEqual(receivedError.cause.message, 'onFire boom');
+    });
+
     it('a throwing onReschedule hook does not stop interval rescheduling', () => {
       class ThrowingRescheduleScheduler extends VirtualScheduler {
         public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
@@ -856,6 +901,59 @@ describe('VirtualScheduler', () => {
       sched.runAll();
 
       assert.ok(true);
+    });
+
+    // -------------------------------------------------------------------------
+    // Regression: async hook override rejection must never become an
+    // unhandled rejection — `hooks.invoke` call sites must return the
+    // hook's result so HookInvoker actually sees the thenable.
+    // -------------------------------------------------------------------------
+
+    it('an async onFire override that rejects is routed to onHookError without an unhandled rejection', async () => {
+      const recordedHookNames: string[] = [];
+      const recordedCauses: unknown[] = [];
+
+      class RecordingSwallowingInvoker extends HookInvoker {
+        protected override onHookError<T>(hookName: string, cause: unknown): T {
+          recordedHookNames.push(hookName);
+          recordedCauses.push(cause);
+          return undefined as T;
+        }
+      }
+
+      const rejectionError = new Error('async onFire rejection');
+
+      class AsyncRejectingFireScheduler extends VirtualScheduler {
+        protected override readonly hooks: HookInvoker = new RecordingSwallowingInvoker();
+        public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
+        protected override async onFire(_id: string): Promise<void> {
+          await Promise.resolve();
+          throw rejectionError;
+        }
+      }
+
+      const rejectionEvents: unknown[] = [];
+      const onUnhandledRejection = (reason: unknown): void => {
+        rejectionEvents.push(reason);
+      };
+      process.on('unhandledRejection', onUnhandledRejection);
+
+      try {
+        const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+        const sched = new AsyncRejectingFireScheduler(counter);
+
+        sched.scheduleAt(TASK_OFFSET_50, () => { return; });
+        sched.runAll();
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        assert.strictEqual(rejectionEvents.length, 0);
+        assert.deepStrictEqual(recordedHookNames, ['onFire']);
+        assert.strictEqual(recordedCauses[0], rejectionError);
+      } finally {
+        process.off('unhandledRejection', onUnhandledRejection);
+      }
     });
   });
 });

@@ -102,16 +102,6 @@ export class Merge {
   }
 
   // ---------------------------------------------------------------------------
-  // Private helpers
-  // ---------------------------------------------------------------------------
-
-  private static assertDeepMergeResult<TBaseShape, TOverlayShape>(
-    value: unknown
-  ): asserts value is DeepMergeType<TBaseShape, TOverlayShape> {
-    void value;
-  }
-
-  // ---------------------------------------------------------------------------
   // Public static API
   // ---------------------------------------------------------------------------
 
@@ -127,8 +117,6 @@ export class Merge {
   ): DeepMergeType<TBaseShape, TOverlayShape> {
     const result: unknown = this.mergeValues(baseValue, overlayValue);
 
-    this.assertDeepMergeResult<TBaseShape, TOverlayShape>(result);
-
-    return result;
+    return result as DeepMergeType<TBaseShape, TOverlayShape>;
   }
 }

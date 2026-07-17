@@ -4,7 +4,9 @@
 
 // EventComponent type
 export type { EventComponentType } from './EventComponentType.js';
-// Log data type
+// Hook error entry type
+export type { HookErrorEntryType } from './HookErrorEntryType.js';
+// Log data types
 export type { LogDataType } from './LogDataType.js';
 
 // Core types

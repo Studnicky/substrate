@@ -1,4 +1,4 @@
-import type { ErrorClassificationType } from './ErrorClassificationType.js';
+import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
 
 /**
  * Interface for error classifiers
@@ -10,7 +10,7 @@ import type { ErrorClassificationType } from './ErrorClassificationType.js';
  * @example
  * ```typescript
  * class MyApiClassifier implements ErrorClassifierInterface {
- *   classify(error: Error): ErrorClassificationType {
+ *   classify(error: Error): ErrorClassificationEntity.Type {
  *     // Custom classification logic
  *     return { retryable: true, reason: 'custom' };
  *   }
@@ -25,5 +25,5 @@ export interface ErrorClassifierInterface {
    * @param attemptNumber - Current attempt number (0-indexed)
    * @returns Classification result indicating whether to retry
    */
-  classify(error: Error, attemptNumber: number): ErrorClassificationType;
+  classify(error: Error, attemptNumber: number): ErrorClassificationEntity.Type;
 }

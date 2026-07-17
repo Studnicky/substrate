@@ -31,6 +31,8 @@ The overall status is worst-status-wins: any `'unhealthy'` check makes the overa
 | `has(name)` | Whether a check is currently registered under `name` |
 | `list()` | The names of every currently registered check |
 | `evaluate()` | Runs every registered check in parallel and returns `{ status, results }` |
+| `hookErrorCount` | Count of hook failures recorded since construction |
+| `getHookErrors()` | Defensive copy of every hook failure recorded since construction |
 
 ## Hooks
 
@@ -40,6 +42,8 @@ The overall status is worst-status-wins: any `'unhealthy'` check makes the overa
 | `onCheckResult(name, status, metadata?)` | Once per check as it settles during `evaluate()` — success, rejection, or timeout |
 | `onCheckTimeout(name, timeoutMs)` | When a check exceeds its configured `timeoutMs`, in addition to `onCheckResult` |
 | `onAggregate(overall, results)` | Once per `evaluate()` call, after every registered check has settled |
+
+A hook override that throws or rejects does not abort `evaluate()` — the failure is recorded instead of propagating; inspect it via `hookErrorCount` (a running total) and `getHookErrors()` (a defensive copy of every recorded `{ hookName, cause }` entry), backed internally by `@studnicky/errors`'s `HookInvoker`.
 
 ## Scope
 

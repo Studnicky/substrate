@@ -1,4 +1,4 @@
-import type { TimingEventDataType } from './TimingEventDataType.js';
+import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 
 /**
  * Interface defining the public API of a Timing instance.
@@ -13,7 +13,7 @@ export interface TimingInterface {
   clear(): this;
 
   /**
-   * Records an event using TimingEventDataType.
+   * Records an event using TimingEventDataEntity.Type.
    *
    * @param data - Event data from TimingEvent.create().build()
    *
@@ -37,7 +37,7 @@ export interface TimingInterface {
    *   .build());
    * ```
    */
-  event(data: TimingEventDataType): void;
+  event(data: TimingEventDataEntity.Type): void;
 
   /**
    * Returns all recorded events with their elapsed times.

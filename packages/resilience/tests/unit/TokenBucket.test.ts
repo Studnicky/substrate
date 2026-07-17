@@ -2,6 +2,8 @@
  * TokenBucket Unit Tests
  */
 
+import type { HookInvocationError } from '@studnicky/errors';
+
 import { ok, rejects, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
 
@@ -122,6 +124,36 @@ it('waitForToken rejects when AbortSignal is aborted', async () => {
   await rejects(() => bucket.waitForToken({ 'tokens': 1, 'signal': controller.signal }));
 });
 
+it('waitForToken throws TokenBucketExhaustedError immediately when tokens exceed burstSize', async () => {
+  const bucket = TokenBucket.create({ requestsPerSecond: 10, burstSize: 5 });
+  await rejects(() => bucket.waitForToken({ 'tokens': 6 }), TokenBucketExhaustedError);
+});
+
+it('waitForToken does not leak abort listeners on a long-lived signal across many calls', async () => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+  let addCount = 0;
+  let removeCount = 0;
+  const originalAdd = signal.addEventListener.bind(signal);
+  const originalRemove = signal.removeEventListener.bind(signal);
+  signal.addEventListener = ((...args: Parameters<typeof originalAdd>) => { addCount += 1; return originalAdd(...args); }) as typeof signal.addEventListener;
+  signal.removeEventListener = ((...args: Parameters<typeof originalRemove>) => { removeCount += 1; return originalRemove(...args); }) as typeof signal.removeEventListener;
+
+  let time = 0;
+  const clock = (): number => time;
+  const bucket = TokenBucket.create({ requestsPerSecond: 1000, burstSize: 1, clock });
+  bucket.consume(); // drain so the first waitForToken call must wait
+
+  for (let i = 0; i < 5; i += 1) {
+    const wait = bucket.waitForToken({ 'signal': signal });
+    time += 2;
+    await wait; // waitForToken consumes the refilled token, leaving 0 for the next iteration
+  }
+
+  strictEqual(addCount, 5);
+  strictEqual(removeCount, 5);
+});
+
 // --- Lifecycle hook tests ---
 
 class ObservedBucket extends TokenBucket {
@@ -211,4 +243,33 @@ it('a throwing onRefill hook does not replace the refilled token state', () => {
 
   time = 500;
   ok(bucket.available >= 4);
+});
+
+it('an async-overridden onTokenAcquired hook that rejects is routed to hookErrors without producing an unhandled rejection', async () => {
+  class AsyncRejectingAcquiredBucket extends TokenBucket {
+    get recordedHookErrors(): HookInvocationError[] { const result = this.hookErrors;
+      return result; }
+
+    protected override async onTokenAcquired(_count: number): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onTokenAcquired boom');
+    }
+  }
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const bucket = new AsyncRejectingAcquiredBucket({ requestsPerSecond: 10, burstSize: 5, clock: frozenClock });
+    bucket.consume();
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(rejectionEvents.length, 0);
+    strictEqual(bucket.recordedHookErrors.length, 1);
+    strictEqual(bucket.recordedHookErrors[0]?.hookName, 'onTokenAcquired');
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });

@@ -72,4 +72,6 @@ for inspection or tooling.
 
 The base class never calls any logger or metrics library. Observer hooks are no-ops by default; intercept hooks are the behavioral seams.
 
+The four observer hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). Pass `hookTimeoutMs` — via `Pipeline.create<T>({ hookTimeoutMs })` or `Pipeline.builder<T>().hookTimeoutMs(value)` — to bound how long an async observer hook may run before it fails through `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long, matching prior behavior.
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/pipeline)

@@ -1,3 +1,5 @@
+// json-schema-uninexpressible: 'clock' is a function type (injectable clock override), not representable
+// in JSON Schema — the rest of this shape is plain data but the field disqualifies the whole literal.
 /** Construction options for {@link KeyedRateLimiter}'s `create()` — the default, `TokenBucket`-per-key path. */
 export type KeyedRateLimiterCreateConfigType = {
   /** Maximum burst capacity applied to every per-key `TokenBucket`. */

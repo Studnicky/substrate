@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
 import { FlagEvaluator } from '../../src/FlagEvaluator.js';
+import { FlagDefinitionValidationError } from '../../src/errors/FlagDefinitionValidationError.js';
+import type { FlagDefinitionEntity } from '../../src/entities/FlagDefinitionEntity.js';
 
 describe('FlagEvaluator', () => {
   let evaluator: FlagEvaluator;
@@ -103,5 +105,30 @@ describe('FlagEvaluator', () => {
 
     evaluator.register('flag', { 'defaultValue': true, 'enabled': false });
     assert.equal(evaluator.evaluate('flag', {}), true);
+  });
+
+  it('register() with rolloutPercent outside [0,100] throws FlagDefinitionValidationError', () => {
+    assert.throws(() => {
+      evaluator.register('bad-rollout', { 'enabled': true, 'rolloutPercent': 150, 'defaultValue': false });
+    }, FlagDefinitionValidationError);
+  });
+
+  it('register() with a definition missing defaultValue throws FlagDefinitionValidationError', () => {
+    // JSON.parse() returns `any`, letting us exercise a definition that fails runtime schema
+    // validation (missing required defaultValue) without violating FlagDefinitionEntity.Type
+    // at the TypeScript level.
+    const invalidDefinition: FlagDefinitionEntity.Type = JSON.parse('{"enabled":true}');
+
+    assert.throws(() => {
+      evaluator.register('missing-default', invalidDefinition);
+    }, FlagDefinitionValidationError);
+  });
+
+  it('register() with a valid definition still succeeds and evaluate() continues to work', () => {
+    evaluator.register('valid-flag', { 'enabled': true, 'rolloutPercent': 25, 'defaultValue': false });
+
+    const result = evaluator.evaluate('valid-flag', { 'targetingKey': 'user-1' });
+
+    assert.equal(typeof result, 'boolean');
   });
 });

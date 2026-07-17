@@ -16,22 +16,29 @@
  * }
  * ```
  */
+import { DomainErrorArgs } from '@studnicky/errors';
+
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class BodyTimeoutError extends FetchBaseError {
   /**
    * Undici error code
    */
-  readonly undiciCode: 'UND_ERR_BODY_TIMEOUT';
+  readonly undiciCode!: 'UND_ERR_BODY_TIMEOUT';
 
   /**
    * The URL that was being requested
    */
-  readonly url: string;
+  readonly url!: string;
 
   constructor(url: string, cause?: Error) {
-    super({ 'cause': cause, 'code': 'fetch.bodyTimeout', 'message': `Body timeout for ${url}`, 'retryable': true });
-    this.undiciCode = 'UND_ERR_BODY_TIMEOUT';
-    this.url = url;
+    const fields = { 'undiciCode': 'UND_ERR_BODY_TIMEOUT' as const, 'url': url };
+    super(DomainErrorArgs.build(fields, {
+      'cause': cause,
+      'code': 'fetch.bodyTimeout',
+      'message': (f) => { const result = `Body timeout for ${f.url}`; return result; },
+      'retryable': true
+    }));
+    Object.assign(this, fields);
   }
 }

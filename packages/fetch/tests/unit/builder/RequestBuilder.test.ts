@@ -1127,6 +1127,147 @@ void describe('RequestBuilder', () => {
     });
   });
 
+  void describe('fetch option setters', () => {
+    void it('should set cache mode', async () => {
+      let capturedOptions: unknown;
+      const client = createMockClient({
+        get: async (_path, options) => {
+          capturedOptions = options;
+
+          return new Response();
+        }
+      });
+
+      const builder = RequestBuilder.create(client, '/test');
+
+      await builder.cache('no-store').get();
+
+      assert.strictEqual((capturedOptions as { 'cache'?: string }).cache, 'no-store');
+    });
+
+    void it('should set credentials mode', async () => {
+      let capturedOptions: unknown;
+      const client = createMockClient({
+        get: async (_path, options) => {
+          capturedOptions = options;
+
+          return new Response();
+        }
+      });
+
+      const builder = RequestBuilder.create(client, '/test');
+
+      await builder.credentials('include').get();
+
+      assert.strictEqual((capturedOptions as { 'credentials'?: string }).credentials, 'include');
+    });
+
+    void it('should set custom dispatcher', async () => {
+      let capturedOptions: unknown;
+      const client = createMockClient({
+        get: async (_path, options) => {
+          capturedOptions = options;
+
+          return new Response();
+        }
+      });
+
+      const builder = RequestBuilder.create(client, '/test');
+      const customDispatcher = { name: 'custom-dispatcher' };
+
+      await builder.dispatcher(customDispatcher).get();
+
+      assert.strictEqual((capturedOptions as { 'dispatcher'?: unknown }).dispatcher, customDispatcher);
+    });
+
+    void it('should set integrity value', async () => {
+      let capturedOptions: unknown;
+      const client = createMockClient({
+        get: async (_path, options) => {
+          capturedOptions = options;
+
+          return new Response();
+        }
+      });
+
+      const builder = RequestBuilder.create(client, '/test');
+      const integrityValue = 'sha256-abc123';
+
+      await builder.integrity(integrityValue).get();
+
+      assert.strictEqual((capturedOptions as { 'integrity'?: string }).integrity, integrityValue);
+    });
+
+    void it('should set keepalive mode', async () => {
+      let capturedOptions: unknown;
+      const client = createMockClient({
+        get: async (_path, options) => {
+          capturedOptions = options;
+
+          return new Response();
+        }
+      });
+
+      const builder = RequestBuilder.create(client, '/test');
+
+      await builder.keepalive(true).get();
+
+      assert.strictEqual((capturedOptions as { 'keepalive'?: boolean }).keepalive, true);
+    });
+
+    void it('should set redirect mode', async () => {
+      let capturedOptions: unknown;
+      const client = createMockClient({
+        get: async (_path, options) => {
+          capturedOptions = options;
+
+          return new Response();
+        }
+      });
+
+      const builder = RequestBuilder.create(client, '/test');
+
+      await builder.redirect('manual').get();
+
+      assert.strictEqual((capturedOptions as { 'redirect'?: string }).redirect, 'manual');
+    });
+
+    void it('should set referrer URL', async () => {
+      let capturedOptions: unknown;
+      const client = createMockClient({
+        get: async (_path, options) => {
+          capturedOptions = options;
+
+          return new Response();
+        }
+      });
+
+      const builder = RequestBuilder.create(client, '/test');
+      const referrerUrl = 'https://example.com/page';
+
+      await builder.referrer(referrerUrl).get();
+
+      assert.strictEqual((capturedOptions as { 'referrer'?: string }).referrer, referrerUrl);
+    });
+
+    void it('should set referrer policy', async () => {
+      let capturedOptions: unknown;
+      const client = createMockClient({
+        get: async (_path, options) => {
+          capturedOptions = options;
+
+          return new Response();
+        }
+      });
+
+      const builder = RequestBuilder.create(client, '/test');
+
+      await builder.referrerPolicy('no-referrer').get();
+
+      assert.strictEqual((capturedOptions as { 'referrerPolicy'?: string }).referrerPolicy, 'no-referrer');
+    });
+  });
+
   void describe('edge cases', () => {
     void it('should handle empty path', async () => {
       let capturedPath: string | undefined;

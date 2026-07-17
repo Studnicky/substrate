@@ -24,10 +24,9 @@
  * ```
  */
 
-import type { LogBodyDataType } from '../interfaces/LogBodyDataType.js';
+import type { LogBodyDataEntity } from '../entities/LogBodyDataEntity.js';
 import type { LogBodyInterface } from '../interfaces/LogBodyInterface.js';
 
-import { LogBuildError } from '../errors/LogBuildError.js';
 import { BaseLogEntryBuilder } from './BaseLogEntryBuilder.js';
 
 /**
@@ -60,37 +59,24 @@ export class LogBody extends BaseLogEntryBuilder implements LogBodyInterface {
    * @returns Immutable log body data with event as 'component.operation'
    * @throws LogBuildError if required fields are missing
    */
-  build(): LogBodyDataType {
+  build(): LogBodyDataEntity.Type {
     this.validateRequiredFields();
 
-    if (this.messageValue === undefined) {
-      this.invokeHook(() => {
-        this.onBuildError('message');
-      });
-      throw new LogBuildError('LogBody: message is required');
-    }
-
+    const message = this.requireField(this.messageValue, 'message');
+    const status = this.requireField(this.statusValue, 'status');
     const event = `${this.componentName}.${this.operationName}`;
 
-    // validateRequiredFields() throws if statusValue is undefined; this guard
-    // narrows the type for the compiler without a non-null assertion.
-    if (this.statusValue === undefined) {
-      this.invokeHook(() => {
-        this.onBuildError('status');
-      });
-      throw new LogBuildError('LogBody: status is required');
-    }
-
-    const result: LogBodyDataType = {
+    const result: LogBodyDataEntity.Type = {
       'context': Object.freeze({ ...this.contextData }),
       'event': event,
-      'message': this.messageValue,
-      'status': this.statusValue,
+      'message': message,
+      'status': status,
       ...(this.durationMs !== undefined && { 'durationMs': this.durationMs })
     };
 
-    this.invokeHook(() => {
-      this.onBuild(result);
+    this.hooks.invoke('onBuild', () => {
+      const hookResult = this.onBuild(result);
+      return hookResult;
     });
     return Object.freeze(result);
   }

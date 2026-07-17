@@ -26,8 +26,10 @@
 import type { DraftProduceResultType } from '../types/DraftProduceResultType.js';
 import type { PatchOperationType } from '../types/PatchOperationType.js';
 
+import { SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { DataType } from './DataType.js';
 
+// json-schema-uninexpressible: self-referential Map<PropertyKey, DraftNodeType> bookkeeping with unknown fields and a Record|unknown[]|undefined union — not JSON Schema representable
 /** Internal per-node draft bookkeeping — copy-on-write shadow plus memoized children. */
 type DraftNodeType = {
   'base': unknown;
@@ -171,19 +173,21 @@ export class Draft {
 
   /** Recursively resolve a node to its finalized (structurally-shared) value. */
   protected static finalize<T>(node: DraftNodeType): T {
-    if (node.copy === undefined) {
-      let anyChildDirty = false;
+    const childEntries: [PropertyKey, DraftNodeType, boolean][] = [];
+    let anyChildDirty = false;
 
-      for (const child of node.children.values()) {
-        if (this.isDirty(child)) {
-          anyChildDirty = true;
-          break;
-        }
-      }
+    for (const [key, childNode] of node.children.entries()) {
+      const dirty = this.isDirty(childNode);
 
-      if (!anyChildDirty) {
-        return node.base as T;
+      childEntries.push([key, childNode, dirty]);
+
+      if (dirty) {
+        anyChildDirty = true;
       }
+    }
+
+    if (node.copy === undefined && !anyChildDirty) {
+      return node.base as T;
     }
 
     const source = (node.copy ?? node.base) as Record<PropertyKey, unknown> | unknown[];
@@ -191,8 +195,8 @@ export class Draft {
       ? [...(source as unknown[])]
       : { ...(source as Record<PropertyKey, unknown>) };
 
-    for (const [key, childNode] of node.children.entries()) {
-      if (this.isDirty(childNode)) {
+    for (const [key, childNode, dirty] of childEntries) {
+      if (dirty) {
         (result as Record<PropertyKey, unknown>)[key as string] = this.finalize(childNode);
       }
     }
@@ -202,7 +206,7 @@ export class Draft {
 
   /** Escape a JSON Pointer path segment (RFC-6901 `~0`/`~1`). */
   protected static escapeSegment(segment: string): string {
-    const result = segment.replace(/~/gu, '~0').replace(/\//gu, '~1');
+    const result = segment.replace(TILDE_PATTERN, '~0').replace(SLASH_PATTERN, '~1');
     return result;
   }
 

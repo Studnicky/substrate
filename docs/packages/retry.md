@@ -59,4 +59,6 @@ Subclass `Retry` and override `classifyError` to control which errors are retrya
 
 The base class never calls any logger or metrics library. Observer hooks are no-ops by default and stay observational; by default `onRetryScheduled` leaves `delayMs` at 0, so retries fire immediately unless a backoff is applied.
 
+The observation-only hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). Pass `.hookTimeoutMs(value)` on the builder to bound how long an async hook may run before it fails through `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long, matching prior behavior.
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/retry)

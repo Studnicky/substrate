@@ -4,7 +4,7 @@ import {
   it
 } from 'node:test';
 
-import { safeStringify } from '../../src/modules/safeStringify.js';
+import { SafeStringify } from '../../src/modules/safeStringify.js';
 
 void describe('safeStringify', () => {
   void it('stringifies simple objects', () => {
@@ -12,7 +12,7 @@ void describe('safeStringify', () => {
       name: 'test',
       value: 42
     };
-    const result = safeStringify(obj);
+    const result = SafeStringify.stringify(obj);
 
     assert.strictEqual(result, '{"name":"test","value":42}');
   });
@@ -23,28 +23,28 @@ void describe('safeStringify', () => {
       2,
       3
     ];
-    const result = safeStringify(arr);
+    const result = SafeStringify.stringify(arr);
 
     assert.strictEqual(result, '[1,2,3]');
   });
 
   void it('stringifies nested objects', () => {
     const obj = { level1: { level2: { level3: 'deep value' } } };
-    const result = safeStringify(obj);
+    const result = SafeStringify.stringify(obj);
 
     assert.strictEqual(result, '{"level1":{"level2":{"level3":"deep value"}}}');
   });
 
   void it('handles null values', () => {
     const obj = { value: null };
-    const result = safeStringify(obj);
+    const result = SafeStringify.stringify(obj);
 
     assert.strictEqual(result, '{"value":null}');
   });
 
   void it('handles undefined values', () => {
     const obj = { value: undefined };
-    const result = safeStringify(obj);
+    const result = SafeStringify.stringify(obj);
 
     assert.strictEqual(result, '{}');
   });
@@ -54,7 +54,7 @@ void describe('safeStringify', () => {
 
     obj.self = obj;
 
-    const result = safeStringify(obj);
+    const result = SafeStringify.stringify(obj);
 
     assert.ok(result.includes('"name":"test"'));
     assert.ok(result.includes('"self":"[Circular]"'));
@@ -67,7 +67,7 @@ void describe('safeStringify', () => {
     obj1.ref = obj2;
     obj2.ref = obj1;
 
-    const result = safeStringify({
+    const result = SafeStringify.stringify({
       obj1,
       obj2
     });
@@ -82,7 +82,7 @@ void describe('safeStringify', () => {
 
     arr.push(arr);
 
-    const result = safeStringify(arr);
+    const result = SafeStringify.stringify(arr);
 
     assert.strictEqual(result, '["value","[Circular]"]');
   });
@@ -92,7 +92,7 @@ void describe('safeStringify', () => {
 
     (obj.level1 as Record<string, unknown>).circularRef = obj;
 
-    const result = safeStringify(obj);
+    const result = SafeStringify.stringify(obj);
 
     assert.ok(result.includes('"value":"deep"'));
     assert.ok(result.includes('"circularRef":"[Circular]"'));
@@ -112,7 +112,7 @@ void describe('safeStringify', () => {
       string: 'text'
     };
 
-    const result = safeStringify(obj);
+    const result = SafeStringify.stringify(obj);
     const parsed = JSON.parse(result) as Record<string, unknown>;
 
     assert.strictEqual(parsed.string, 'text');
@@ -131,21 +131,21 @@ void describe('safeStringify', () => {
     const date = new Date('2024-01-01T00:00:00.000Z');
     const obj = { timestamp: date };
 
-    const result = safeStringify(obj);
+    const result = SafeStringify.stringify(obj);
 
     assert.ok(result.includes('2024-01-01T00:00:00.000Z'));
   });
 
   void it('handles primitive values', () => {
-    assert.strictEqual(safeStringify('string'), '"string"');
-    assert.strictEqual(safeStringify(42), '42');
-    assert.strictEqual(safeStringify(true), 'true');
-    assert.strictEqual(safeStringify(null), 'null');
+    assert.strictEqual(SafeStringify.stringify('string'), '"string"');
+    assert.strictEqual(SafeStringify.stringify(42), '42');
+    assert.strictEqual(SafeStringify.stringify(true), 'true');
+    assert.strictEqual(SafeStringify.stringify(null), 'null');
   });
 
   void it('handles empty objects and arrays', () => {
-    assert.strictEqual(safeStringify({}), '{}');
-    assert.strictEqual(safeStringify([]), '[]');
+    assert.strictEqual(SafeStringify.stringify({}), '{}');
+    assert.strictEqual(SafeStringify.stringify([]), '[]');
   });
 
   void it('handles objects with symbols (symbols are skipped)', () => {
@@ -155,7 +155,7 @@ void describe('safeStringify', () => {
       [sym]: 'symbol value'
     };
 
-    const result = safeStringify(obj);
+    const result = SafeStringify.stringify(obj);
 
     assert.strictEqual(result, '{"regular":"regular value"}');
   });

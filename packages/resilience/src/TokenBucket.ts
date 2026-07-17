@@ -1,10 +1,34 @@
 /** Token bucket rate limiter; consume() throws when exhausted, waitForToken() blocks until available. */
 
+import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { RaceTimeout } from '@studnicky/signal';
+
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 import { TokenBucketBuilder } from './TokenBucketBuilder.js';
 import { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';
+
+/**
+ * Delegates `TokenBucket`'s hook-invocation failures back to the owning
+ * bucket's own `hookErrors` array. Hoisted to module scope so V8 compiles
+ * this class once rather than per `TokenBucket` instantiation.
+ */
+class TokenBucketHookDelegate extends HookInvoker {
+  constructor(private readonly recordFailure: (error: HookInvocationError) => void) {
+    super();
+  }
+
+  /**
+   * A broken hook must not disrupt token consumption or refill: record the
+   * failure and hand back the sentinel `invoke` expects instead of letting
+   * `HookInvoker`'s default (throwing) behavior propagate.
+   */
+  protected override onHookError<T>(hookName: string, cause: unknown): T {
+    this.recordFailure(new HookInvocationError(hookName, cause));
+    return undefined as T;
+  }
+}
 
 export class TokenBucket {
   readonly #requestsPerSecond: number;
@@ -13,11 +37,14 @@ export class TokenBucket {
   #tokens: number;
   #lastRefill: number;
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  /**
+   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
+   * instead of propagating out of consume/waitForToken/refill.
+   */
+  protected readonly hookErrors: HookInvocationError[] = [];
+
+  /** Invokes lifecycle hooks, recording failures into `hookErrors` instead of throwing. */
+  protected readonly hooks: HookInvoker;
 
   static builder(): TokenBucketBuilder {
     const factory = (options: TokenBucketOptionsInterface): TokenBucket => {
@@ -33,6 +60,7 @@ export class TokenBucket {
   }
 
   protected constructor(options: TokenBucketOptionsInterface) {
+    this.hooks = new TokenBucketHookDelegate((error) => { this.hookErrors.push(error); });
     if (options.requestsPerSecond <= 0) {throw new ResilienceConfigError('requestsPerSecond must be > 0');}
     if (options.burstSize < 1) {throw new ResilienceConfigError('burstSize must be >= 1');}
     this.#requestsPerSecond = options.requestsPerSecond;
@@ -51,35 +79,48 @@ export class TokenBucket {
   consume(tokens = 1): void {
     this.#refill();
     if (this.#tokens < tokens) {
-      this.#invokeHook(() => {
-        this.onTokenDepleted();
+      this.hooks.invoke('onTokenDepleted', () => {
+        const result = this.onTokenDepleted();
+        return result;
       });
       throw new TokenBucketExhaustedError();
     }
     this.#tokens -= tokens;
-    this.#invokeHook(() => {
-      this.onTokenAcquired(tokens);
+    this.hooks.invoke('onTokenAcquired', () => {
+      const result = this.onTokenAcquired(tokens);
+      return result;
     });
   }
 
-  /** Wait until tokens are available, then consume. */
+  /**
+   * Wait until tokens are available, then consume.
+   * Throws TokenBucketExhaustedError immediately if `tokens` exceeds burstSize (can never be satisfied).
+   */
   async waitForToken(options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}): Promise<void> {
     const tokens = options.tokens ?? 1;
     const signal = options.signal;
+    if (tokens > this.#burstSize) {
+      this.hooks.invoke('onTokenDepleted', () => {
+        const result = this.onTokenDepleted();
+        return result;
+      });
+      throw new TokenBucketExhaustedError();
+    }
     while (true) {
       this.#refill();
       if (this.#tokens >= tokens) {
         this.#tokens -= tokens;
-        this.#invokeHook(() => {
-          this.onTokenAcquired(tokens);
+        this.hooks.invoke('onTokenAcquired', () => {
+          const result = this.onTokenAcquired(tokens);
+          return result;
         });
         return;
       }
       const waitMs = Math.ceil((tokens - this.#tokens) / this.#requestsPerSecond * 1000);
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(resolve, waitMs);
-        signal?.addEventListener('abort', () => { clearTimeout(timer); reject(signal.reason); }, { 'once': true });
-      });
+      const outcome = await RaceTimeout.wait(waitMs, signal);
+      if (outcome === 'aborted') {
+        throw signal?.reason;
+      }
     }
   }
 
@@ -110,8 +151,9 @@ export class TokenBucket {
     this.#lastRefill = now;
     const added = this.#tokens - prev;
     if (added > 0) {
-      this.#invokeHook(() => {
-        this.onRefill(added);
+      this.hooks.invoke('onRefill', () => {
+        const result = this.onRefill(added);
+        return result;
       });
     }
   }

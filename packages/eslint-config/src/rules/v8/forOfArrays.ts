@@ -1,22 +1,6 @@
 import type { Rule } from 'eslint';
-import type ts from 'typescript';
 
-type ParserServicesType = {
-  readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
-  readonly 'program'?: ts.Program;
-};
-
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object';};
-
-const hasTypeServices = (value: unknown): value is Required<ParserServicesType> => {
-  if (!isNonNullObject(value)) { return false; }
-  if (!('program' in value) || !isNonNullObject(value.program)) { return false; }
-
-  return typeof value.program.getTypeChecker === 'function'
-    && 'esTreeNodeToTSNodeMap' in value
-    && value.esTreeNodeToTSNodeMap instanceof Map;
-};
+import { AstHelpers } from '../shared/astHelpers.js';
 
 export const forOfArrays: Rule.RuleModule = {
   'create': (context) => {
@@ -24,7 +8,7 @@ export const forOfArrays: Rule.RuleModule = {
       const { right } = node;
       const servicesUnknown: unknown = context.sourceCode.parserServices;
 
-      if (hasTypeServices(servicesUnknown)) {
+      if (AstHelpers.hasTypeServices(servicesUnknown)) {
         // Type-checker is authoritative — no name heuristics, no guessing.
         const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(right);
         if (tsNode === undefined) { return; }

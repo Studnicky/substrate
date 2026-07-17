@@ -1,6 +1,8 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
-import type { CoalesceOptionsType } from './CoalesceOptionsType.js';
+import { HookInvoker } from '@studnicky/errors';
+
+import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
 
 import { CoalesceBuilder } from './CoalesceBuilder.js';
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
@@ -14,22 +16,23 @@ export class Coalesce<T> {
     return result;
   }
 
-  static create<T>(options?: CoalesceOptionsType): Coalesce<T> {
-    const result = new (this as unknown as new (options?: CoalesceOptionsType) => Coalesce<T>)(options);
+  static create<T>(options?: CoalesceOptionsEntity.Type): Coalesce<T> {
+    const result = new (this as unknown as new (options?: CoalesceOptionsEntity.Type) => Coalesce<T>)(options);
     return result;
   }
 
+  protected readonly hooks: HookInvoker = new HookInvoker();
   readonly #inFlight = new Map<string, Promise<T>>();
   readonly #timeout: number | undefined;
 
-  protected constructor(options?: CoalesceOptionsType) {
+  protected constructor(options?: CoalesceOptionsEntity.Type) {
     this.#timeout = options?.timeout;
   }
 
   async run(key: string, factory: () => Promise<T>): Promise<T> {
     const existing = this.#inFlight.get(key);
     if (existing !== undefined) {
-      this.#invokeHook(() => { this.onCoalesceJoin(key); });
+      await Promise.resolve(this.hooks.invoke('onCoalesceJoin', () => { const result = this.onCoalesceJoin(key); return result; }));
       return await this.#awaitWithTimeout(key, existing);
     }
 
@@ -37,12 +40,12 @@ export class Coalesce<T> {
     const started = factory()
       .then((v) => { success = true; return v; })
       .catch((e: unknown) => { success = false; throw e; })
-      .finally(() => {
+      .finally(async () => {
         this.#inFlight.delete(key);
-        this.#invokeHook(() => { this.onCoalesceSettled(key, success); });
+        await Promise.resolve(this.hooks.invoke('onCoalesceSettled', () => { const result = this.onCoalesceSettled(key, success); return result; }));
       });
     this.#inFlight.set(key, started);
-    this.#invokeHook(() => { this.onCoalesceStart(key); });
+    await Promise.resolve(this.hooks.invoke('onCoalesceStart', () => { const result = this.onCoalesceStart(key); return result; }));
     return await this.#awaitWithTimeout(key, started);
   }
 
@@ -62,8 +65,24 @@ export class Coalesce<T> {
       const timer = setTimeout(() => {
         if (settled) { return; }
         settled = true;
-        this.#invokeHook(() => { this.onTimeout(key, timeoutMs); });
-        reject(new CoalesceTimeoutError(key, timeoutMs));
+        // The onTimeout hook is invoked in a non-async setTimeout callback, so
+        // it cannot be awaited directly. `hooks.invoke` no longer always returns
+        // a Promise (it returns `T` directly for a genuinely-synchronous
+        // hook), so a synchronous failure would otherwise throw straight out
+        // of this callback instead of rejecting this promise — routing the
+        // call through a resolved-promise `.then` first ensures both a sync
+        // throw and an async-override rejection land in the same handler.
+        // Its own error (if any) is used to reject this caller's promise
+        // instead of CoalesceTimeoutError, scoping the hook failure to this
+        // single caller — the shared in-flight entry and every other waiter
+        // are unaffected either way.
+        const runOnTimeoutHook = (): void => { this.hooks.invoke('onTimeout', () => { const result = this.onTimeout(key, timeoutMs); return result; }); };
+        void Promise.resolve()
+          .then(runOnTimeoutHook)
+          .then(
+            () => { reject(new CoalesceTimeoutError(key, timeoutMs)); },
+            (hookError: unknown) => { reject(hookError); }
+          );
       }, timeoutMs);
       inFlight.then(
         (value) => {
@@ -80,12 +99,6 @@ export class Coalesce<T> {
         }
       );
     });
-  }
-
-  #invokeHook(hook: () => void): void {
-    try {
-      hook();
-    } catch {}
   }
 
   isInflight(key: string): boolean {

@@ -1,11 +1,10 @@
 import type { Rule } from 'eslint';
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-{return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);};
+import { ObjectGuard } from './shared/ObjectGuard.js';
 
 class NodeType {
   static get(rawNode: unknown): string {
-    if (!isObject(rawNode)) { return ''; }
+    if (!ObjectGuard.isObject(rawNode)) { return ''; }
 
     const nodeType: unknown = rawNode.type;
     return typeof nodeType === 'string' ? nodeType : '';
@@ -14,10 +13,10 @@ class NodeType {
 
 class Member {
   static getName(member: unknown): string {
-    if (!isObject(member)) { return '<unnamed>'; }
+    if (!ObjectGuard.isObject(member)) { return '<unnamed>'; }
 
     const key: unknown = member.key;
-    if (!isObject(key)) { return '<unnamed>'; }
+    if (!ObjectGuard.isObject(key)) { return '<unnamed>'; }
 
     if (key.type === 'Identifier') {
       const name: unknown = key.name;
@@ -35,78 +34,82 @@ class Member {
 
 class Parent {
   static get(rawNode: unknown): unknown {
-    return isObject(rawNode) ? rawNode.parent : undefined;
+    return ObjectGuard.isObject(rawNode) ? rawNode.parent : undefined;
   }
 }
 
-const hasTypeParameterAncestor = (rawNode: unknown): boolean => {
-  let current: unknown = Parent.get(rawNode);
-
-  while (isObject(current)) {
-    const nodeType = NodeType.get(current);
-
-    if (nodeType === 'TSTypeParameter') { return true; }
-    if (nodeType === 'TSInterfaceDeclaration') { break; }
-
-    current = Parent.get(current);
-  }
-
-  return false;
+// json-schema-uninexpressible: aggregate of ad-hoc AST-derived facts (a possibly-null raw AST node and a
+// function-flags-derived boolean), not a domain shape this package owns or serializes
+type AncestorInfoType = {
+  readonly 'hasTypeParameterAncestor': boolean;
+  readonly 'interfaceName': string;
+  readonly 'owningMember': unknown;
 };
 
-class OwningMember {
-  static find(rawNode: unknown): unknown {
+/**
+ * Collects all three ancestor-derived facts (type-parameter presence, owning member,
+ * interface name) in a single walk up the parent chain, instead of three independent
+ * walks over the same ancestor chain per matched node.
+ */
+class AncestorInfo {
+  static collect(rawNode: unknown): AncestorInfoType {
+    let hasTypeParameterAncestor = false;
+    let owningMember: unknown = null;
+    let owningMemberResolved = false;
+    let interfaceName = '<unnamed>';
+
     let current: unknown = Parent.get(rawNode);
 
-    while (isObject(current)) {
+    while (ObjectGuard.isObject(current)) {
       const nodeType = NodeType.get(current);
 
-      if (
-        nodeType === 'TSPropertySignature'
-        || nodeType === 'TSMethodSignature'
-        || nodeType === 'TSIndexSignature'
-      ) {
-        return current;
+      if (nodeType === 'TSTypeParameter') {
+        hasTypeParameterAncestor = true;
       }
 
-      if (nodeType === 'TSInterfaceBody' || nodeType === 'TSInterfaceDeclaration') { return null; }
+      if (
+        !owningMemberResolved
+        && (
+          nodeType === 'TSPropertySignature'
+          || nodeType === 'TSMethodSignature'
+          || nodeType === 'TSIndexSignature'
+        )
+      ) {
+        owningMember = current;
+        owningMemberResolved = true;
+      }
 
-      current = Parent.get(current);
-    }
-
-    return null;
-  }
-}
-
-class InterfaceName {
-  static get(rawNode: unknown): string {
-    let current: unknown = Parent.get(rawNode);
-
-    while (isObject(current)) {
-      const nodeType = NodeType.get(current);
+      if (!owningMemberResolved && (nodeType === 'TSInterfaceBody' || nodeType === 'TSInterfaceDeclaration')) {
+        owningMemberResolved = true;
+      }
 
       if (nodeType === 'TSInterfaceDeclaration') {
         const idNode: unknown = current.id;
-        if (!isObject(idNode)) { return '<unnamed>'; }
-
-        const name: unknown = idNode.name;
-        return typeof name === 'string' ? name : '<unnamed>';
+        if (ObjectGuard.isObject(idNode)) {
+          const name: unknown = idNode.name;
+          interfaceName = typeof name === 'string' ? name : '<unnamed>';
+        }
+        break;
       }
 
       current = Parent.get(current);
     }
 
-    return '<unnamed>';
+    return {
+      'hasTypeParameterAncestor': hasTypeParameterAncestor,
+      'interfaceName': interfaceName,
+      'owningMember': owningMember
+    };
   }
 }
 
 export const interfacesComposeNamedTypes: Rule.RuleModule = {
   'create': (context) => {
     const onTSInterfaceDeclarationTSTypeLiteral = (node: Rule.Node): void => {
-      if (hasTypeParameterAncestor(node)) { return; }
+      const ancestorInfo = AncestorInfo.collect(node);
+      if (ancestorInfo.hasTypeParameterAncestor) { return; }
 
-      const interfaceName = InterfaceName.get(node);
-      const owningMember = OwningMember.find(node);
+      const { interfaceName, owningMember } = ancestorInfo;
       const memberName = owningMember !== null ? Member.getName(owningMember) : '<unnamed>';
 
       context.report({

@@ -7,10 +7,12 @@ import { TokenBucket, TokenBucketExhaustedError } from '../src/index.js';
 
 // Deterministic clock: start at t=0, advance manually.
 let now = 0;
-const clock = (): number => { const result = now; return result; };
+class Clock {
+  static now(): number { const result = now; return result; }
+}
 
 // 2 tokens/s, burst capacity 3 → starts full (3 tokens).
-const bucket = TokenBucket.create({ 'burstSize': 3, 'clock': clock, 'requestsPerSecond': 2 });
+const bucket = TokenBucket.create({ 'burstSize': 3, 'clock': Clock.now, 'requestsPerSecond': 2 });
 console.log('Initial available tokens:', bucket.available);
 
 // --- consume() drains tokens ---

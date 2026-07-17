@@ -1,7 +1,7 @@
-import type { GpuInfoType } from '../../types/GpuInfoType.js';
+import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
 
 export class GpuDetector {
-  static detect(): GpuInfoType | null {
+  static detect(): GpuInfoEntity.Type | null {
     try {
       if (!('WebGLRenderingContext' in globalThis)) {
         return null;
@@ -38,7 +38,7 @@ export class GpuDetector {
     }
   }
 
-  static #mapComputeApi(renderer: string, vendor: string): GpuInfoType['computeApi'] {
+  static #mapComputeApi(renderer: string, vendor: string): GpuInfoEntity.Type['computeApi'] {
     const lowerRenderer = renderer.toLowerCase();
     const lowerVendor = vendor.toLowerCase();
 

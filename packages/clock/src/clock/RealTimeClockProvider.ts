@@ -5,7 +5,9 @@
  * @module
  */
 
-import type { ClockProviderType } from '../interfaces/ClockProviderType.js';
+import { HookInvoker } from '@studnicky/errors';
+
+import type { ClockProviderType } from '../types/ClockProviderType.js';
 
 import { RealTimeClockProviderOptionsEntity } from '../entities/RealTimeClockProviderOptionsEntity.js';
 import { ClockError } from '../errors/ClockError.js';
@@ -37,6 +39,8 @@ export class RealTimeClockProvider implements ClockProviderType {
    */
   readonly #offsetMs: number;
 
+  protected readonly hooks: HookInvoker = new HookInvoker();
+
   /**
    * Property write order: #offsetMs.
    */
@@ -49,12 +53,6 @@ export class RealTimeClockProvider implements ClockProviderType {
       throw new ClockError('offsetMs must be a finite number');
     }
     this.#offsetMs = resolved;
-  }
-
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
   }
 
   /**
@@ -88,13 +86,15 @@ export class RealTimeClockProvider implements ClockProviderType {
 
   /**
    * Fires after each `now()` call, with the final epoch-ms value (raw + offset)
-   * that was returned to the caller.
+   * that was returned to the caller. A throwing override surfaces as a
+   * `HookInvocationError` from `now()`.
    */
   protected onNow(_timestamp: number): void {}
 
   /**
    * Fires after each `hrtime()` call, with the final nanosecond bigint value
    * (derived from performance.now() + offset) that was returned to the caller.
+   * A throwing override surfaces as a `HookInvocationError` from `hrtime()`.
    */
   protected onHrtime(_value: bigint): void {}
 
@@ -104,10 +104,20 @@ export class RealTimeClockProvider implements ClockProviderType {
    */
   public hrtime(): bigint {
     const ms = this.readRawHrtimeMs() + this.offsetMs;
-    const result = BigInt(Math.round(ms * Number(NS_PER_MS)));
 
-    this.#invokeHook(() => {
-      this.onHrtime(result);
+    // Split into whole-millisecond and fractional-millisecond parts before
+    // converting to BigInt. Multiplying the full `ms` value by 1e6 as a
+    // `Number` loses integer-nanosecond precision once the product exceeds
+    // `Number.MAX_SAFE_INTEGER` (~104 days of `performance.now()` uptime).
+    // The fractional remainder stays well within `Number` precision, so only
+    // it is multiplied as a float; the whole-ms part is scaled via BigInt.
+    const wholeMs = Math.trunc(ms);
+    const fractionalMs = ms - wholeMs;
+    const result = BigInt(wholeMs) * NS_PER_MS + BigInt(Math.round(fractionalMs * Number(NS_PER_MS)));
+
+    this.hooks.invoke('onHrtime', () => {
+      const hookResult = this.onHrtime(result);
+      return hookResult;
     });
     return result;
   }
@@ -116,8 +126,9 @@ export class RealTimeClockProvider implements ClockProviderType {
   public now(): number {
     const result = this.readRawMs() + this.offsetMs;
 
-    this.#invokeHook(() => {
-      this.onNow(result);
+    this.hooks.invoke('onNow', () => {
+      const hookResult = this.onNow(result);
+      return hookResult;
     });
     return result;
   }

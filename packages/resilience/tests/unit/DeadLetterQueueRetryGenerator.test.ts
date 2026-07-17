@@ -1,3 +1,5 @@
+import type { HookInvocationError } from '@studnicky/errors';
+
 import { deepStrictEqual, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
@@ -107,4 +109,45 @@ it('a throwing onDone hook does not replace generator completion', async () => {
   }
 
   strictEqual(count, 0);
+});
+
+it('an async-overridden onYield hook that rejects is routed to hookErrors without producing an unhandled rejection', async () => {
+  class AsyncRejectingYieldGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
+    get recordedHookErrors(): HookInvocationError[] { const result = this.hookErrors;
+      return result; }
+
+    static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): AsyncRejectingYieldGenerator<T> {
+      return new AsyncRejectingYieldGenerator<T>({ 'dlq': dlq, 'intervalMs': intervalMs });
+    }
+
+    protected override async onYield(): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onYield boom');
+    }
+  }
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const dlq = DeadLetterQueue.create<string>();
+    dlq.enqueue('first', 'reason');
+    dlq.close();
+
+    const generator = AsyncRejectingYieldGenerator.build(dlq, 0);
+    const yielded: string[] = [];
+    for await (const entry of generator.generate()) {
+      yielded.push(entry.item);
+    }
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    deepStrictEqual(yielded, ['first']);
+    strictEqual(rejectionEvents.length, 0);
+    strictEqual(generator.recordedHookErrors.length, 1);
+    strictEqual(generator.recordedHookErrors[0]?.hookName, 'onYield');
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });

@@ -6,14 +6,14 @@ import assert from 'node:assert/strict';
 import { Channel, Semaphore } from '../src/index.js';
 
 class ChannelSemaphoreDemo {
-  static async runChannel(): Promise<number[]> {
+  static async runChannel(): Promise<void> {
     const channel = Channel.create<number>();
 
     // Publish items before subscribing — they buffer in the channel
-    channel.publish('nums', 1);
-    channel.publish('nums', 2);
-    channel.publish('nums', 3);
-    channel.close();
+    await channel.publish('nums', 1);
+    await channel.publish('nums', 2);
+    await channel.publish('nums', 3);
+    await channel.close();
 
     const received: number[] = [];
     for await (const item of channel.subscribe('nums')) {
@@ -21,17 +21,17 @@ class ChannelSemaphoreDemo {
     }
 
     console.log('Channel received:', received);
-    return received;
+    assert.deepEqual(received, [1, 2, 3]);
   }
 
-  static async runChannelMultiKey(): Promise<{ 'a': string[]; 'b': string[] }> {
+  static async runChannelMultiKey(): Promise<void> {
     const channel = Channel.create<string>();
 
     // Two independent keys — no cross-talk
-    channel.publish('a', 'alpha');
-    channel.publish('b', 'beta');
-    channel.publish('a', 'apple');
-    channel.close();
+    await channel.publish('a', 'alpha');
+    await channel.publish('b', 'beta');
+    await channel.publish('a', 'apple');
+    await channel.close();
 
     const fromA: string[] = [];
     for await (const item of channel.subscribe('a')) {
@@ -45,10 +45,11 @@ class ChannelSemaphoreDemo {
 
     console.log('Channel key=a:', fromA);
     console.log('Channel key=b:', fromB);
-    return { 'a': fromA, 'b': fromB };
+    assert.deepEqual(fromA, ['alpha', 'apple']);
+    assert.deepEqual(fromB, ['beta']);
   }
 
-  static async runChannelConcurrent(): Promise<number[]> {
+  static async runChannelConcurrent(): Promise<void> {
     const channel = Channel.create<number>();
     const received: number[] = [];
 
@@ -61,17 +62,17 @@ class ChannelSemaphoreDemo {
 
     // Publish asynchronously, then close
     await Promise.resolve();
-    channel.publish('live', 10);
-    channel.publish('live', 20);
-    channel.close();
+    await channel.publish('live', 10);
+    await channel.publish('live', 20);
+    await channel.close();
 
     await consuming;
 
     console.log('Channel concurrent received:', received);
-    return received;
+    assert.deepEqual(received, [10, 20]);
   }
 
-  static async runSemaphoreWithPermit(): Promise<number> {
+  static async runSemaphoreWithPermit(): Promise<void> {
     const sem = Semaphore.create({ 'permits': 2 });
 
     console.log('Semaphore permits:', sem.permits, 'available:', sem.available);
@@ -92,39 +93,29 @@ class ChannelSemaphoreDemo {
     await Promise.all([task(), task(), task(), task()]);
 
     console.log('Semaphore maxConcurrent:', maxConcurrent, '(≤ 2), available after:', sem.available);
-    return maxConcurrent;
+    assert.ok(maxConcurrent <= 2, `maxConcurrent ${maxConcurrent} exceeded permits`);
   }
 
-  static async runSemaphoreAcquireRelease(): Promise<{ 'afterAcquire': number; 'afterRelease': number }> {
+  static async runSemaphoreAcquireRelease(): Promise<void> {
     const sem = Semaphore.create({ 'permits': 1 });
 
     const release = await sem.acquire();
     const afterAcquire = sem.available;
     console.log('Semaphore available after acquire:', afterAcquire);
 
-    release();
+    await release();
     const afterRelease = sem.available;
     console.log('Semaphore available after release:', afterRelease);
-    return { 'afterAcquire': afterAcquire, 'afterRelease': afterRelease };
+    assert.equal(afterAcquire, 0);
+    assert.equal(afterRelease, 1);
   }
 }
 // #endregion usage
 
-const channelResult = await ChannelSemaphoreDemo.runChannel();
-assert.deepEqual(channelResult, [1, 2, 3]);
-
-const multiKeyResult = await ChannelSemaphoreDemo.runChannelMultiKey();
-assert.deepEqual(multiKeyResult.a, ['alpha', 'apple']);
-assert.deepEqual(multiKeyResult.b, ['beta']);
-
-const concurrentResult = await ChannelSemaphoreDemo.runChannelConcurrent();
-assert.deepEqual(concurrentResult, [10, 20]);
-
-const maxConcurrent = await ChannelSemaphoreDemo.runSemaphoreWithPermit();
-assert.ok(maxConcurrent <= 2, `maxConcurrent ${maxConcurrent} exceeded permits`);
-
-const semResult = await ChannelSemaphoreDemo.runSemaphoreAcquireRelease();
-assert.equal(semResult.afterAcquire, 0);
-assert.equal(semResult.afterRelease, 1);
+await ChannelSemaphoreDemo.runChannel();
+await ChannelSemaphoreDemo.runChannelMultiKey();
+await ChannelSemaphoreDemo.runChannelConcurrent();
+await ChannelSemaphoreDemo.runSemaphoreWithPermit();
+await ChannelSemaphoreDemo.runSemaphoreAcquireRelease();
 
 console.log('channelSemaphore: all assertions passed');

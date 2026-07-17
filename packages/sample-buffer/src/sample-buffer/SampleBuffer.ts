@@ -2,6 +2,8 @@
  * Fixed-capacity circular buffer for numeric samples with percentile calculation
  */
 
+import { HookInvoker } from '@studnicky/errors';
+
 import type { SampleBufferInterface } from '../interfaces/SampleBufferInterface.js';
 
 import {
@@ -83,12 +85,7 @@ export class SampleBuffer implements SampleBufferInterface {
   protected head = INITIAL_BUFFER_HEAD;
   #samples: number[];
   protected sortedCache: null | number[] = null;
-
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  protected readonly hooks: HookInvoker = new HookInvoker();
 
   /**
    * Create a new sample buffer
@@ -106,8 +103,9 @@ export class SampleBuffer implements SampleBufferInterface {
    * Fire point: `onClear` is called at the start, before state is reset.
    */
   clear(): void {
-    this.#invokeHook(() => {
-      this.onClear();
+    this.hooks.invoke('onClear', () => {
+      const result = this.onClear();
+      return result;
     });
     this.count = INITIAL_BUFFER_COUNT;
     this.head = INITIAL_BUFFER_HEAD;
@@ -120,8 +118,9 @@ export class SampleBuffer implements SampleBufferInterface {
    * customize the sort or sample extraction.
    */
   protected buildSortedSamples(): number[] {
-    this.#invokeHook(() => {
-      this.onComputeStart(this.count);
+    this.hooks.invoke('onComputeStart', () => {
+      const result = this.onComputeStart(this.count);
+      return result;
     });
 
     const length = this.count;
@@ -141,8 +140,9 @@ export class SampleBuffer implements SampleBufferInterface {
     result.sort((left, right) => {
       return left - right;
     });
-    this.#invokeHook(() => {
-      this.onComputeComplete(length, result);
+    this.hooks.invoke('onComputeComplete', () => {
+      const hookResult = this.onComputeComplete(length, result);
+      return hookResult;
     });
     return result;
   }
@@ -160,9 +160,7 @@ export class SampleBuffer implements SampleBufferInterface {
    * Getter required: count is mutated internally but exposed read-only
    */
   get length(): number {
-    // Ensure non-negative (defensive - count should never be negative)
-    const result = Math.max(this.count, EMPTY_LENGTH);
-    return result;
+    return this.count;
   }
 
   /**
@@ -257,16 +255,12 @@ export class SampleBuffer implements SampleBufferInterface {
     // Handle edge cases
     if (pct <= EMPTY_LENGTH) {
       result = sorted[FIRST_ARRAY_INDEX]!;
-      this.#invokeHook(() => {
-        this.onPercentile(pct, result);
-      });
+      this.#firePercentile(pct, result);
       return result;
     }
     if (pct >= PERCENTILE_MAX) {
       result = sorted.at(LAST_ARRAY_INDEX)!;
-      this.#invokeHook(() => {
-        this.onPercentile(pct, result);
-      });
+      this.#firePercentile(pct, result);
       return result;
     }
 
@@ -277,9 +271,7 @@ export class SampleBuffer implements SampleBufferInterface {
 
     if (lowerIndex === upperIndex) {
       result = sorted[lowerIndex]!;
-      this.#invokeHook(() => {
-        this.onPercentile(pct, result);
-      });
+      this.#firePercentile(pct, result);
       return result;
     }
 
@@ -288,10 +280,15 @@ export class SampleBuffer implements SampleBufferInterface {
     const upperValue = sorted[upperIndex]!;
 
     result = lowerValue + fraction * (upperValue - lowerValue);
-    this.#invokeHook(() => {
-      this.onPercentile(pct, result);
-    });
+    this.#firePercentile(pct, result);
     return result;
+  }
+
+  #firePercentile(pct: number, result: number): void {
+    this.hooks.invoke('onPercentile', () => {
+      const hookResult = this.onPercentile(pct, result);
+      return hookResult;
+    });
   }
 
   /**
@@ -310,23 +307,28 @@ export class SampleBuffer implements SampleBufferInterface {
       // Buffer not full - append
       this.#samples[this.count] = value;
       this.count++;
-      this.#invokeHook(() => {
-        this.onPush(value, false);
-      });
+      this.#firePush(value, false);
     } else {
       // Buffer full - overwrite oldest (at head position)
-      this.#invokeHook(() => {
-        this.onOverflow(value);
+      this.hooks.invoke('onOverflow', () => {
+        const result = this.onOverflow(value);
+        return result;
       });
       const oldValue = this.#samples[this.head]!;
-      this.#invokeHook(() => {
-        this.onEvict(oldValue);
+      this.hooks.invoke('onEvict', () => {
+        const result = this.onEvict(oldValue);
+        return result;
       });
       this.#samples[this.head] = value;
       this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
-      this.#invokeHook(() => {
-        this.onPush(value, true);
-      });
+      this.#firePush(value, true);
     }
+  }
+
+  #firePush(value: number, evicted: boolean): void {
+    this.hooks.invoke('onPush', () => {
+      const result = this.onPush(value, evicted);
+      return result;
+    });
   }
 }

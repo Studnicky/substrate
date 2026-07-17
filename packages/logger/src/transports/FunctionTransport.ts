@@ -1,4 +1,4 @@
-import type { LogRecordType } from '../types/LogRecordType.js';
+import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { FunctionTransportOptionsType } from './FunctionTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
@@ -12,7 +12,7 @@ import { FunctionTransportBuilder } from './FunctionTransportBuilder.js';
  *
  * This is the generic adapter for bridging to any external logger (pino,
  * winston, Bunyan, etc.). Pass a function that extracts what the external
- * library needs from the `LogRecordType`.
+ * library needs from the `LogRecordEntity.Type`.
  *
  * @example
  * ```typescript
@@ -35,7 +35,7 @@ export class FunctionTransport implements TransportInterface {
    * @returns A new FunctionTransport instance
    */
   static create(
-    sink: (record: LogRecordType) => void,
+    sink: (record: LogRecordEntity.Type) => void,
     options: FunctionTransportOptionsType = {}
   ): FunctionTransport {
     return new this(sink, options);
@@ -47,9 +47,9 @@ export class FunctionTransport implements TransportInterface {
   }
 
   readonly #minLevel: number;
-  readonly #sink: (record: LogRecordType) => void;
+  readonly #sink: (record: LogRecordEntity.Type) => void;
 
-  protected constructor(sink: (record: LogRecordType) => void, options: FunctionTransportOptionsType = {}) {
+  protected constructor(sink: (record: LogRecordEntity.Type) => void, options: FunctionTransportOptionsType = {}) {
     if (typeof sink !== 'function') {
       throw new ConfigurationError('sink must be a function');
     }
@@ -69,7 +69,7 @@ export class FunctionTransport implements TransportInterface {
    *
    * @param record - Assembled log record from the Logger core
    */
-  write(record: LogRecordType): void {
+  write(record: LogRecordEntity.Type): void {
     if (record.level < this.#minLevel) {
       return;
     }

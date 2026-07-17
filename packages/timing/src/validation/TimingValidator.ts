@@ -71,12 +71,13 @@ export class TimingValidator {
     }
 
     const config = value as TimingOptionsEntity.PrecisionConfigType;
+    const validTimeUnits = new Set<string>(VALID_TIME_UNITS);
 
     for (const [
       key,
       val
     ] of Object.entries(config)) {
-      if (!VALID_TIME_UNITS.includes(key as typeof VALID_TIME_UNITS[number])) {
+      if (!validTimeUnits.has(key)) {
         throw ConfigurationError.create(`precision contains invalid time unit "${key}". Valid units: ${VALID_TIME_UNITS.join(', ')}`);
       }
 

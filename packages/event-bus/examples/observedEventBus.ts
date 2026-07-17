@@ -2,15 +2,12 @@
 
 import assert from 'node:assert/strict';
 
+import type { OrderStatusEventMapEntity } from './entities/OrderStatusEventMapEntity.js';
+
 // #region usage
 import { EventBus } from '../src/index.js';
 
-type OrderEvents = {
-  'order:created': { 'id': string; 'total': number };
-  'order:updated': { 'id': string; 'status': string };
-};
-
-class TracedBus extends EventBus<OrderEvents> {
+class TracedBus extends EventBus<OrderStatusEventMapEntity.Type> {
   static override create(): TracedBus {
     return new TracedBus();
   }
@@ -23,11 +20,11 @@ class TracedBus extends EventBus<OrderEvents> {
   readonly subscribeLog: string[] = [];
   readonly unsubscribeLog: string[] = [];
 
-  protected override onDeliver<K extends keyof OrderEvents>(topic: K, payload: OrderEvents[K]): void {
+  protected override onDeliver<K extends keyof OrderStatusEventMapEntity.Type>(topic: K, payload: OrderStatusEventMapEntity.Type[K]): void {
     console.log(`[event-bus] deliver topic=${String(topic)} payload=${JSON.stringify(payload)}`);
     this.deliverLog.push({ 'payload': payload, 'topic': String(topic) });
   }
-  protected override onDequeue<K extends keyof OrderEvents>(topic: K): void {
+  protected override onDequeue<K extends keyof OrderStatusEventMapEntity.Type>(topic: K): void {
     console.log(`[event-bus] dequeue topic=${String(topic)}`);
     this.dequeueLog.push(String(topic));
   }
@@ -35,19 +32,19 @@ class TracedBus extends EventBus<OrderEvents> {
     console.log('[event-bus] dispose');
     this.disposeLog.push(1);
   }
-  protected override onEnqueue<K extends keyof OrderEvents>(topic: K): void {
+  protected override onEnqueue<K extends keyof OrderStatusEventMapEntity.Type>(topic: K): void {
     console.log(`[event-bus] enqueue topic=${String(topic)}`);
     this.enqueueLog.push(String(topic));
   }
-  protected override onPublish<K extends keyof OrderEvents>(topic: K, payload: OrderEvents[K]): void {
+  protected override onPublish<K extends keyof OrderStatusEventMapEntity.Type>(topic: K, payload: OrderStatusEventMapEntity.Type[K]): void {
     console.log(`[event-bus] publish topic=${String(topic)} payload=${JSON.stringify(payload)}`);
     this.publishLog.push({ 'payload': payload, 'topic': String(topic) });
   }
-  protected override onSubscribe<K extends keyof OrderEvents>(topic: K): void {
+  protected override onSubscribe<K extends keyof OrderStatusEventMapEntity.Type>(topic: K): void {
     console.log(`[event-bus] subscribe topic=${String(topic)}`);
     this.subscribeLog.push(String(topic));
   }
-  protected override onUnsubscribe<K extends keyof OrderEvents>(topic: K): void {
+  protected override onUnsubscribe<K extends keyof OrderStatusEventMapEntity.Type>(topic: K): void {
     console.log(`[event-bus] unsubscribe topic=${String(topic)}`);
     this.unsubscribeLog.push(String(topic));
   }

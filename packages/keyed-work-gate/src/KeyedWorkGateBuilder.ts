@@ -1,7 +1,9 @@
 /** Fluent builder for KeyedWorkGate instances */
 
-import type { Coalesce, CoalesceOptionsType } from '@studnicky/concurrency';
+import type { Coalesce, CoalesceOptionsEntity } from '@studnicky/concurrency';
 import type { Mutex, MutexConfigEntity } from '@studnicky/mutex';
+
+import { PickDefined } from '@studnicky/types';
 
 import type { KeyedWorkGate } from './KeyedWorkGate.js';
 import type { KeyedWorkGateConfigType } from './types/KeyedWorkGateConfigType.js';
@@ -25,7 +27,7 @@ export class KeyedWorkGateBuilder<K extends PropertyKey = string> {
   }
 
   readonly #create: (config: KeyedWorkGateConfigType<K>) => KeyedWorkGate<K>;
-  #coalesce?: Coalesce<unknown> | CoalesceOptionsType;
+  #coalesce?: Coalesce<unknown> | CoalesceOptionsEntity.Type;
   #mutex?: Mutex<K> | Partial<MutexConfigEntity.Type>;
 
   private constructor(create: (config: KeyedWorkGateConfigType<K>) => KeyedWorkGate<K>) {
@@ -36,17 +38,17 @@ export class KeyedWorkGateBuilder<K extends PropertyKey = string> {
    * Build and return the KeyedWorkGate instance
    */
   build(): KeyedWorkGate<K> {
-    const config: KeyedWorkGateConfigType<K> = {
-      ...(this.#mutex !== undefined ? { 'mutex': this.#mutex } : {}),
-      ...(this.#coalesce !== undefined ? { 'coalesce': this.#coalesce } : {})
-    };
+    const config: KeyedWorkGateConfigType<K> = PickDefined.from({
+      'coalesce': this.#coalesce,
+      'mutex': this.#mutex
+    });
     return this.#create(config);
   }
 
   /**
    * Set the composed Coalesce instance or config
    */
-  coalesce(value: Coalesce<unknown> | CoalesceOptionsType): this {
+  coalesce(value: Coalesce<unknown> | CoalesceOptionsEntity.Type): this {
     this.#coalesce = value;
     return this;
   }

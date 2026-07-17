@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/errors",
-  "version": "5.1.1",
+  "version": "6.0.0",
   "description": "Standardized error handling for all modules",
   "type": "module",
   "sideEffects": false,
@@ -23,6 +23,10 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./observers": {
+      "types": "./dist/observers/index.d.ts",
+      "import": "./dist/observers/index.js"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",

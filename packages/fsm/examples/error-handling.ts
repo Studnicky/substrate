@@ -4,6 +4,10 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type { FsmStepType } from '../src/index.js';
+import type { BrokenEventEntity } from './entities/BrokenEventEntity.js';
+import type { BrokenStateEntity } from './entities/BrokenStateEntity.js';
+import type { SimpleEventEntity } from './entities/SimpleEventEntity.js';
+import type { SimpleStateEntity } from './entities/SimpleStateEntity.js';
 
 import {
   EffectInterpreter,
@@ -15,8 +19,8 @@ import {
 
 // --- ReducerThrewError ---
 
-type BrokenState = { readonly 'variant': 'active' };
-type BrokenEvent = { readonly 'type': 'boom' };
+type BrokenState = BrokenStateEntity.Type;
+type BrokenEvent = BrokenEventEntity.Type;
 
 class BrokenMachine extends StateMachine<BrokenState, BrokenEvent> {
   static make(): BrokenMachine { return new BrokenMachine(); }
@@ -44,8 +48,8 @@ console.log('ReducerThrewError thrown and caught');
 
 // --- InterpreterNotStartedError ---
 
-type SimpleState = { readonly 'variant': 'idle' };
-type SimpleEvent = { readonly 'type': 'noop' };
+type SimpleState = SimpleStateEntity.Type;
+type SimpleEvent = SimpleEventEntity.Type;
 
 class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
   static make(): SimpleMachine { return new SimpleMachine(); }

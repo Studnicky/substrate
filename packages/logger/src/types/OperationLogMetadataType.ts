@@ -3,10 +3,9 @@
  * Use for individual operation logs within a request.
  */
 
-import type { ErrorFieldsType } from '../interfaces/ErrorFieldsType.js';
-import type { TimingFieldsType } from '../interfaces/TimingFieldsType.js';
+import type { ErrorFieldsEntity } from '../entities/ErrorFieldsEntity.js';
+import type { TimingFieldsEntity } from '../entities/TimingFieldsEntity.js';
 import type { RequestLogMetadataType } from './RequestLogMetadataType.js';
-
 
 /**
  * Operation log metadata type.
@@ -14,6 +13,6 @@ import type { RequestLogMetadataType } from './RequestLogMetadataType.js';
  * Allows additional operation-specific data.
  */
 export type OperationLogMetadataType
-  = Partial<ErrorFieldsType>
-  & Partial<TimingFieldsType>
+  = Partial<ErrorFieldsEntity.Type>
+  & Partial<TimingFieldsEntity.Type>
   & RequestLogMetadataType;

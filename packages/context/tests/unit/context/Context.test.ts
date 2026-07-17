@@ -19,6 +19,8 @@ import {
 } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { Context, ContextScope } from '../../../src/context/index.js';
 import type { ContextScopeOptionsInterface } from '../../../src/context/index.js';
 
@@ -64,7 +66,7 @@ void describe('Context', () => {
           () => {
             return Context.create(config as { name: string });
           },
-          { message: /name must be a non-empty string/ }
+          { message: 'invalid Context config' }
         );
       });
     }
@@ -467,6 +469,51 @@ void describe('Context', () => {
         }
       });
     }
+  });
+
+  void describe('lenient mode (onMissingContext)', () => {
+    class LenientContext extends Context {
+      protected override onMissingContext(): boolean {
+        return true;
+      }
+
+      exposeStore(): Map<string, unknown> {
+        return this.getStore();
+      }
+    }
+
+    void it('returns the same store reference across multiple getStore() calls outside an active context', () => {
+      const context = LenientContext.create({ name: 'lenient' });
+
+      const first = context.exposeStore();
+      const second = context.exposeStore();
+
+      strictEqual(first, second);
+    });
+
+    void it('read accessors do not throw and reflect an empty store outside an active context', () => {
+      const context = LenientContext.create({ name: 'lenient' });
+
+      strictEqual(context.has('key'), false);
+      deepStrictEqual(context.keys(), []);
+      deepStrictEqual(context.snapshot(), {});
+    });
+
+    void it('set() outside an active context does not leak into later reads', () => {
+      const context = LenientContext.create({ name: 'lenient' });
+
+      context.set('key', 'value');
+
+      strictEqual(context.has('key'), false);
+    });
+
+    void it('delete() outside an active context does not corrupt the shared empty store', () => {
+      const context = LenientContext.create({ name: 'lenient' });
+
+      strictEqual(context.delete('key'), false);
+      strictEqual(context.has('key'), false);
+      deepStrictEqual(context.keys(), []);
+    });
   });
 
   void describe('async propagation', () => {
@@ -877,7 +924,7 @@ void describe('Context', () => {
       strictEqual(events.length, 0);
     });
 
-    void it('a throwing onInitialize hook does not replace initialize()', () => {
+    void it('a throwing onInitialize hook surfaces a HookInvocationError', () => {
       class ThrowingInitializeContext extends Context {
         protected override onInitialize(): void {
           throw new Error('onInitialize boom');
@@ -885,14 +932,19 @@ void describe('Context', () => {
       }
 
       const context = ThrowingInitializeContext.create({ 'name': 'throwing-init' });
-      const scope = context.initialize({ 'seed': 1 });
+      let caught: unknown;
 
-      scope.execute(() => {
-        strictEqual(context.get<number>('seed'), 1);
-      });
+      try {
+        context.initialize({ 'seed': 1 });
+      } catch (error) {
+        caught = error;
+      }
+
+      ok(caught instanceof HookInvocationError);
+      strictEqual((caught as HookInvocationError).hookName, 'onInitialize');
     });
 
-    void it('a throwing onSet hook does not replace set()', () => {
+    void it('a throwing onSet hook surfaces a HookInvocationError after the value has already been stored', () => {
       class ThrowingSetContext extends Context {
         protected override onSet(): void {
           throw new Error('onSet boom');
@@ -901,13 +953,23 @@ void describe('Context', () => {
 
       const context = ThrowingSetContext.create({ 'name': 'throwing-set' });
       const scope = context.initialize();
+
       scope.execute(() => {
-        context.set('key', 'value');
+        let caught: unknown;
+
+        try {
+          context.set('key', 'value');
+        } catch (error) {
+          caught = error;
+        }
+
+        ok(caught instanceof HookInvocationError);
+        strictEqual((caught as HookInvocationError).hookName, 'onSet');
         strictEqual(context.get<string>('key'), 'value');
       });
     });
 
-    void it('a throwing onGet hook does not replace get()', () => {
+    void it('a throwing onGet hook surfaces a HookInvocationError', () => {
       class ThrowingGetContext extends Context {
         protected override onGet(): void {
           throw new Error('onGet boom');
@@ -916,12 +978,22 @@ void describe('Context', () => {
 
       const context = ThrowingGetContext.create({ 'name': 'throwing-get' });
       const scope = context.initialize({ 'key': 'value' });
+
       scope.execute(() => {
-        strictEqual(context.get<string>('key'), 'value');
+        let caught: unknown;
+
+        try {
+          context.get('key');
+        } catch (error) {
+          caught = error;
+        }
+
+        ok(caught instanceof HookInvocationError);
+        strictEqual((caught as HookInvocationError).hookName, 'onGet');
       });
     });
 
-    void it('a throwing onDelete hook does not replace delete()', () => {
+    void it('a throwing onDelete hook surfaces a HookInvocationError after the key has already been removed', () => {
       class ThrowingDeleteContext extends Context {
         protected override onDelete(): void {
           throw new Error('onDelete boom');
@@ -930,10 +1002,66 @@ void describe('Context', () => {
 
       const context = ThrowingDeleteContext.create({ 'name': 'throwing-delete' });
       const scope = context.initialize({ 'key': 'value' });
+
       scope.execute(() => {
-        strictEqual(context.delete('key'), true);
+        let caught: unknown;
+
+        try {
+          context.delete('key');
+        } catch (error) {
+          caught = error;
+        }
+
+        ok(caught instanceof HookInvocationError);
+        strictEqual((caught as HookInvocationError).hookName, 'onDelete');
         strictEqual(context.has('key'), false);
       });
+    });
+  });
+
+  void describe('async hook safety (HookInvoker regression)', () => {
+    void it('an async onSet override that rejects is routed through onHookError, not left as an unhandled rejection', async () => {
+      class AsyncRejectingContext extends Context {
+        protected override async onSet(_key: string, _value: unknown): Promise<void> {
+          await setTimeout(5);
+          throw new Error('onSet boom');
+        }
+      }
+
+      const unhandled: unknown[] = [];
+      const onUnhandledRejection = (reason: unknown): void => { unhandled.push(reason); };
+      process.on('unhandledRejection', onUnhandledRejection);
+
+      try {
+        const context = AsyncRejectingContext.create({ name: 'async-set' });
+        const scope = context.initialize();
+
+        scope.execute(() => {
+          // `hooks.invoke` is fired without being awaited by `set()` itself —
+          // this call must not throw synchronously and must not leak an
+          // unhandled rejection once the override's promise settles.
+          context.set('key', 'value');
+        });
+
+        // Give the rejected hook promise time to settle and, if the fix
+        // regressed, time for the unhandled rejection to surface.
+        await setTimeout(20);
+
+        strictEqual(unhandled.length, 0);
+      } finally {
+        process.off('unhandledRejection', onUnhandledRejection);
+      }
+    });
+  });
+
+  void describe('config validation', () => {
+    void it('create() throws when config has unknown properties', () => {
+      throws(
+        () => {
+          return Context.create({ name: 'x', extra: 1 } as unknown as { name: string });
+        },
+        { message: 'invalid Context config' }
+      );
     });
   });
 });

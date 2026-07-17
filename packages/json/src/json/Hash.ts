@@ -9,11 +9,8 @@
  * Subclass `Hash` and override any `protected static` step to customise hashing.
  */
 
+import { FNV_OFFSET_BASIS, FNV_PRIME, UINT32_MASK } from '../constants/HashConstants.js';
 import { DataType } from './DataType.js';
-
-const FNV_OFFSET_BASIS = 2_166_136_261;
-const FNV_PRIME = 16_777_619;
-const UINT32_MASK = 0xFF_FF_FF_FF;
 
 export class Hash {
   // ---------------------------------------------------------------------------
@@ -22,7 +19,7 @@ export class Hash {
 
   /** Compute the raw FNV-1a 32-bit integer for a string. */
   protected static fnv1a32(input: string): number {
-    let hash = FNV_OFFSET_BASIS;
+    let hash: number = FNV_OFFSET_BASIS;
 
     const inputLen = input.length;
     for (let i = 0; i < inputLen; i++) {
@@ -55,6 +52,21 @@ export class Hash {
     }
     if (typeof value === 'string') {
       return `s:${this.toHex32(this.fnv1a32(value))}`;
+    }
+    if (value instanceof Date) {
+      return `date:${value.getTime()}`;
+    }
+    if (value instanceof Map) {
+      const parts = [...value.entries()].map(
+        ([k, v]: [unknown, unknown]) => { const result = `${this.hashValue(k)}=${this.hashValue(v)}`; return result; }
+      ).sort();
+
+      return `map{${parts.join(',')}}`;
+    }
+    if (value instanceof Set) {
+      const parts = [...value.values()].map((v: unknown) => { const result = this.hashValue(v); return result; }).sort();
+
+      return `set{${parts.join(',')}}`;
     }
     if (Array.isArray(value)) {
       const parts = value.map((item: unknown) => { const result = this.hashValue(item); return result; });

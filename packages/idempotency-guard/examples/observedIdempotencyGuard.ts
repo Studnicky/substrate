@@ -33,57 +33,83 @@ class TelemetryIdempotencyGuard extends IdempotencyGuard {
   }
 }
 
-const guard = TelemetryIdempotencyGuard.tracked();
-
-// New key -> onExecute, factory runs
-const first = await guard.run('order-42', { 'amount': 500 }, () => {
-  return { 'chargeId': 'ch_1' };
-});
-
-// Same key, same payload -> onReplay, factory does NOT run
-const replayed = await guard.run('order-42', { 'amount': 500 }, () => {
-  return { 'chargeId': 'ch_should_not_run' };
-});
-
-// Same key, DIFFERENT payload -> onConflict, then throws
-try {
-  await guard.run('order-42', { 'amount': 999 }, () => {
-    return { 'chargeId': 'ch_should_not_run' };
-  });
-} catch (error) {
-  if (error instanceof IdempotencyConflictError) {
-    console.log(`[idempotency-guard] rejected reuse of key="${error.key}"`);
-  } else {
-    throw error;
-  }
-}
-
-// Concurrent calls with the same (new) key share one execution via Coalesce
 class Shared {
   static resolve: (value: string) => void = () => {};
 }
-const pending = new Promise<string>((resolve) => { Shared.resolve = resolve; });
-let factoryCalls = 0;
-const sharedFactory = async (): Promise<string> => {
-  factoryCalls += 1;
-  return await pending;
-};
 
-const callA = guard.run('order-99', { 'region': 'us' }, sharedFactory);
-const callB = guard.run('order-99', { 'region': 'us' }, sharedFactory);
-Shared.resolve('shared-result');
-const [resultA, resultB] = await Promise.all([callA, callB]);
+class SharedFactory {
+  static factoryCalls = 0;
+  static pending: Promise<string> = new Promise<string>((resolve) => { Shared.resolve = resolve; });
 
-console.log('Events:', guard.events);
+  static async create(): Promise<string> {
+    SharedFactory.factoryCalls += 1;
+    return await SharedFactory.pending;
+  }
+}
+
+class IdempotencyGuardDemo {
+  static async run(): Promise<{
+    readonly 'factoryCalls': number;
+    readonly 'first': { 'chargeId': string };
+    readonly 'guard': TelemetryIdempotencyGuard;
+    readonly 'replayed': { 'chargeId': string };
+    readonly 'resultA': string;
+    readonly 'resultB': string;
+  }> {
+    const guard = TelemetryIdempotencyGuard.tracked();
+
+    // New key -> onExecute, factory runs
+    const first = await guard.run('order-42', { 'amount': 500 }, () => {
+      return { 'chargeId': 'ch_1' };
+    });
+
+    // Same key, same payload -> onReplay, factory does NOT run
+    const replayed = await guard.run('order-42', { 'amount': 500 }, () => {
+      return { 'chargeId': 'ch_should_not_run' };
+    });
+
+    // Same key, DIFFERENT payload -> onConflict, then throws
+    try {
+      await guard.run('order-42', { 'amount': 999 }, () => {
+        return { 'chargeId': 'ch_should_not_run' };
+      });
+    } catch (error) {
+      if (error instanceof IdempotencyConflictError) {
+        console.log(`[idempotency-guard] rejected reuse of key="${error.key}"`);
+      } else {
+        throw error;
+      }
+    }
+
+    // Concurrent calls with the same (new) key share one execution via Coalesce
+    const callA = guard.run('order-99', { 'region': 'us' }, SharedFactory.create);
+    const callB = guard.run('order-99', { 'region': 'us' }, SharedFactory.create);
+    Shared.resolve('shared-result');
+    const [resultA, resultB] = await Promise.all([callA, callB]);
+
+    console.log('Events:', guard.events);
+
+    return {
+      'factoryCalls': SharedFactory.factoryCalls,
+      'first': first,
+      'guard': guard,
+      'replayed': replayed,
+      'resultA': resultA,
+      'resultB': resultB
+    };
+  }
+}
+
+const results = await IdempotencyGuardDemo.run();
 // #endregion usage
 
-assert.equal(first.chargeId, 'ch_1');
-assert.equal(replayed.chargeId, 'ch_1');
-assert.equal(factoryCalls, 1);
-assert.equal(resultA, 'shared-result');
-assert.equal(resultB, 'shared-result');
+assert.equal(results.first.chargeId, 'ch_1');
+assert.equal(results.replayed.chargeId, 'ch_1');
+assert.equal(results.factoryCalls, 1);
+assert.equal(results.resultA, 'shared-result');
+assert.equal(results.resultB, 'shared-result');
 
-assert.deepEqual(guard.events, [
+assert.deepEqual(results.guard.events, [
   'execute:order-42',
   'replay:order-42',
   'conflict:order-42',
@@ -94,7 +120,7 @@ assert.deepEqual(guard.events, [
 // getCache()/getCoalesce() expose the exact composed instances (Layer
 // Transparency Rule) — advanced consumers can subclass or introspect them
 // directly without subclassing IdempotencyGuard.
-assert.equal(guard.getCache().size, 2);
-assert.equal(guard.getCoalesce().isInflight('order-99'), false);
+assert.equal(results.guard.getCache().size, 2);
+assert.equal(results.guard.getCoalesce().isInflight('order-99'), false);
 
 console.log('observedIdempotencyGuard: all assertions passed');

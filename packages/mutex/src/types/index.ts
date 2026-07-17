@@ -1,4 +1,1 @@
-export type { AbortResultType } from './AbortResultType.js';
 export type { MutexKeyStateType } from './MutexKeyStateType.js';
-export type { MutexObservabilityType } from './MutexObservabilityType.js';
-export type { MutexStatsType } from './MutexStatsType.js';

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/event-bus",
-  "version": "5.1.1",
+  "version": "6.0.0",
   "description": "Typed async pub/sub with per-subscriber backpressure via BusQueue",
   "type": "module",
   "sideEffects": false,
@@ -58,6 +58,7 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
+    "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"

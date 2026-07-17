@@ -2,7 +2,7 @@
  * Tests for socket-related error classes
  */
 
-import type { SocketDispatcherStatsType } from '../../src/interfaces/SocketDispatcherStatsType.js';
+import type { SocketDispatcherStatsType } from '../../src/types/SocketDispatcherStatsType.js';
 
 import assert from 'node:assert/strict';
 import {

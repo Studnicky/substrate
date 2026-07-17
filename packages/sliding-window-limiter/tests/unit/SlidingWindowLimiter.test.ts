@@ -17,6 +17,7 @@ const ALGORITHMS = ['log', 'counter'] as const;
 const invalidConfigs: Array<{ description: string; config: { limit: number; windowMs: number; algorithm: 'log' | 'counter' } }> = [
   { description: 'throws SlidingWindowLimiterConfigError for limit < 1', config: { limit: 0, windowMs: 1000, algorithm: 'log' } },
   { description: 'throws SlidingWindowLimiterConfigError for windowMs <= 0', config: { limit: 5, windowMs: 0, algorithm: 'log' } },
+  { description: 'throws SlidingWindowLimiterConfigError for non-integer limit', config: { limit: 1.5, windowMs: 1000, algorithm: 'log' } },
 ];
 
 for (const { description, config } of invalidConfigs) {
@@ -277,4 +278,34 @@ it('[counter] a throwing onWindowRoll hook does not replace rollover admission',
 
   time = 150;
   limiter.consume();
+});
+
+// --- Async hook overrides: HookInvoker's async-safety net must actually see the hook's return value ---
+
+class AsyncRejectingAllowLimiter extends SlidingWindowLimiter {
+  get recordedHookErrors(): readonly Error[] { return this.hookErrors; }
+  protected override async onAllow(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('async onAllow boom');
+  }
+}
+
+it('[log] an async-rejecting onAllow override is routed through onHookError without producing an unhandled rejection', async () => {
+  const time = 0;
+  const clock = (): number => time;
+  const limiter = AsyncRejectingAllowLimiter.create({ limit: 1, windowMs: 100, algorithm: 'log', clock });
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    limiter.consume(); // fire-and-forget hook — must not throw or block despite the async rejection
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(rejectionEvents.length, 0);
+    strictEqual(limiter.recordedHookErrors.length, 1);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });

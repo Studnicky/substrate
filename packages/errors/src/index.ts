@@ -16,63 +16,64 @@ export {
   EMPTY_LENGTH,
   ErrorCode,
   ErrorDefaults,
-  HTTP_BAD_GATEWAY,
   HTTP_CLIENT_ERROR_END,
   HTTP_CLIENT_ERROR_START,
-  HTTP_FORBIDDEN,
-  HTTP_GATEWAY_TIMEOUT,
   HTTP_INFORMATIONAL_END,
   HTTP_INFORMATIONAL_START,
-  HTTP_INTERNAL_SERVER_ERROR,
   HTTP_REDIRECT_END,
   HTTP_REDIRECT_START,
   HTTP_REQUEST_TIMEOUT,
   HTTP_SERVER_ERROR_END,
   HTTP_SERVER_ERROR_START,
-  HTTP_SERVICE_UNAVAILABLE,
   HTTP_SUCCESS_END,
   HTTP_SUCCESS_START,
-  HTTP_TOO_MANY_REQUESTS,
-  HTTP_UNAUTHORIZED,
   HttpStatus
 } from './constants/index.js';
+export { ErrorClassificationEntity } from './entities/ErrorClassificationEntity.js';
+export { ErrorCodeDescriptorEntity } from './entities/ErrorCodeDescriptorEntity.js';
+export { ErrorWithAddressEntity } from './entities/ErrorWithAddressEntity.js';
+export { ErrorWithCodeEntity } from './entities/ErrorWithCodeEntity.js';
+export { ErrorWithErrnoEntity } from './entities/ErrorWithErrnoEntity.js';
+export { ErrorWithHostnameEntity } from './entities/ErrorWithHostnameEntity.js';
+export { ErrorWithPortEntity } from './entities/ErrorWithPortEntity.js';
+export { ErrorWithRetryAfterEntity } from './entities/ErrorWithRetryAfterEntity.js';
+export { ErrorWithStatusCodeEntity } from './entities/ErrorWithStatusCodeEntity.js';
+export { ErrorWithStatusEntity } from './entities/ErrorWithStatusEntity.js';
+export { ErrorWithSyscallEntity } from './entities/ErrorWithSyscallEntity.js';
+export { HookInvokerOptionsEntity } from './entities/HookInvokerOptionsEntity.js';
+export { ValidationAggregateViewEntity } from './entities/ValidationAggregateViewEntity.js';
+export { ValidationProblemDetailsEntity } from './entities/ValidationProblemDetailsEntity.js';
+export { ValidationReportOptionsEntity } from './entities/ValidationReportOptionsEntity.js';
+export { ValidationViolationDetailEntity } from './entities/ValidationViolationDetailEntity.js';
+export { ValidationViolationEntity } from './entities/ValidationViolationEntity.js';
+export type { HookInvokerOptionsType } from './errors/HookInvoker.js';
 export {
   BaseError,
   CliExitError,
+  DomainErrorArgs,
   ErrorCodeRegistry,
+  HookInvocationError,
+  HookInvoker,
+  HookTimeoutError,
   ModuleError,
+  ReentrantHookInvocationError,
   ValidationError,
   ValidationErrors,
   ValidationErrorsBuilder
 } from './errors/index.js';
 export type {
-  BaseErrorArgumentsType,
-  ErrorClassificationType,
   ErrorClassifierInterface,
-  ErrorCodeDescriptorType,
-  ErrorWithAddressType,
-  ErrorWithCodeType,
-  ErrorWithErrnoType,
-  ErrorWithHostnameType,
-  ErrorWithPortType,
-  ErrorWithRetryAfterType,
-  ErrorWithStatusCodeType,
-  ErrorWithStatusType,
-  ErrorWithSyscallType,
-  ModuleErrorCreateOptionsType,
-  ModuleErrorInterface,
-  ModuleErrorOptionsType,
-  SerializedErrorType,
-  ValidationErrorArgumentsType,
-  ValidationViolationDetailType
+  ModuleErrorInterface
 } from './interfaces/index.js';
 export type {
+  BaseErrorArgumentsType,
+  DomainErrorOptionsType,
   ErrorClassifierFunctionType,
   ErrorScenarioType,
-  ValidationAggregateViewType,
-  ValidationProblemDetailsType,
-  ValidationReportOptionsType,
-  ValidationViolationType
+  ModuleErrorCreateOptionsType,
+  ModuleErrorOptionsType,
+  SerializedErrorType,
+  ValidationErrorArgumentsType
 } from './types/index.js';
 export { errorTypeGuards } from './validation/errorTypeGuards.js';
-export { isErrorClassification } from './validation/isErrorClassification.js';
+export { ErrorClassificationGuard } from './validation/isErrorClassification.js';

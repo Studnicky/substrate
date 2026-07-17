@@ -75,9 +75,7 @@ internal lifecycle events without modifying the class logic.
 | Hook | When it fires | Args |
 |------|--------------|------|
 | `onEnqueue` | Item added to buffer | `key: string, item: T` |
-| `onSend` | Publish succeeds (channel open) | `key: string, item: T` |
 | `onDequeue` | Item removed from buffer by subscriber | `key: string, item: T` |
-| `onReceive` | Subscriber yields an item | `key: string, item: T` |
 | `onPublishDropped` | Publish attempted on closed channel | `key: string, item: T` |
 | `onClose` | Channel closes (all keys) | — |
 

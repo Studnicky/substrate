@@ -4,42 +4,57 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import { DataType, Frozen, Patch, PatchError } from '../src/index.js';
+import { PatchDatatypeFixture } from './fixtures/PatchDatatypeFixture.js';
+
+// ---------------------------------------------------------------------------
+// Working documents — mutated in-place by Patch.apply/DataType.hasCycle below,
+// so they stay local rather than living as shared, read-only fixture data.
+// ---------------------------------------------------------------------------
+
+const workingDocs: {
+  'circular': Record<string, unknown>;
+  'cyclic': Record<string, unknown>;
+  'doc': Record<string, unknown>;
+  'doc2': Record<string, unknown>;
+  'doc3': Record<string, unknown>;
+} = {
+  'circular': { 'name': 'cycle' },
+  'cyclic': { 'a': 1 },
+  'doc': { 'count': 0, 'meta': { 'version': 1 }, 'status': 'draft' },
+  'doc2': { 'name': 'alpha', 'tags': ['a', 'b'] },
+  'doc3': {}
+};
 
 // ---------------------------------------------------------------------------
 // Patch — instance-based RFC-6902 JSON Patch
 // ---------------------------------------------------------------------------
 
 // Using the constructor with an array of operations
-const doc: Record<string, unknown> = { 'count': 0, 'meta': { 'version': 1 }, 'status': 'draft' };
-
 const patch = Patch.create([
   { 'op': 'replace', 'path': '/status', 'value': 'published' },
   { 'op': 'add', 'path': '/publishedAt', 'value': '2026-06-22' },
   { 'op': 'remove', 'path': '/count' }
 ]);
 
-patch.apply(doc);
+patch.apply(workingDocs.doc);
 
-console.log('doc after patch:', doc);
+console.log('doc after patch:', workingDocs.doc);
 
 // Static factory methods
-const doc2: Record<string, unknown> = { 'name': 'alpha', 'tags': ['a', 'b'] };
+Patch.add('/score', 100).apply(workingDocs.doc2);
+Patch.replace('/name', 'beta').apply(workingDocs.doc2);
 
-Patch.add('/score', 100).apply(doc2);
-Patch.replace('/name', 'beta').apply(doc2);
-
-console.log('doc2 after static patches:', doc2);
+console.log('doc2 after static patches:', workingDocs.doc2);
 
 // Patch.combine merges multiple patches
 const combined = Patch.combine(
   Patch.add('/x', 1),
   Patch.add('/y', 2)
 );
-const doc3: Record<string, unknown> = {};
 
-combined.apply(doc3);
+combined.apply(workingDocs.doc3);
 
-console.log('doc3 after combined patch:', doc3);
+console.log('doc3 after combined patch:', workingDocs.doc3);
 
 // test operation throws PatchError on mismatch
 const strictPatch = Patch.test('/name', 'WRONG');
@@ -61,8 +76,8 @@ const nanEqual = DataType.deepEqual(Number.NaN, Number.NaN);
 
 const d1 = new Date(1_000_000);
 const d2 = new Date(1_000_000);
-const m1 = new Map([['a', 1]]);
-const m2 = new Map([['a', 1]]);
+const m1 = PatchDatatypeFixture.M1;
+const m2 = PatchDatatypeFixture.M2;
 
 console.log('deepEqual nested arrays:', nestedEqual);
 console.log('NaN equals NaN:', nanEqual);
@@ -71,40 +86,36 @@ console.log('Map equality:', DataType.deepEqual(m1, m2));
 console.log('isPlainObject({}):', DataType.isPlainObject({}));
 console.log('isRecord({a:1}):', DataType.isRecord({ 'a': 1 }));
 
-const cyclic: Record<string, unknown> = { 'a': 1 };
+workingDocs.cyclic.self = workingDocs.cyclic;
 
-cyclic.self = cyclic;
-
-console.log('hasCycle (cyclic):', DataType.hasCycle(cyclic));
+console.log('hasCycle (cyclic):', DataType.hasCycle(workingDocs.cyclic));
 console.log('hasCycle (plain):', DataType.hasCycle({ 'a': { 'b': 1 } }));
 
 // ---------------------------------------------------------------------------
 // Frozen — cycle-safe deep freeze
 // ---------------------------------------------------------------------------
 
-const tree = { 'root': { 'child': { 'value': 42 } } };
+const tree = PatchDatatypeFixture.Tree;
 const frozen = Frozen.deepFreeze(tree);
 
 console.log('frozen === tree:', frozen === tree);
 console.log('Object.isFrozen(frozen):', Object.isFrozen(frozen));
 
-const circular: Record<string, unknown> = { 'name': 'cycle' };
+workingDocs.circular.back = workingDocs.circular;
+Frozen.deepFreeze(workingDocs.circular);
 
-circular.back = circular;
-Frozen.deepFreeze(circular);
-
-console.log('circular frozen safely:', Object.isFrozen(circular));
+console.log('circular frozen safely:', Object.isFrozen(workingDocs.circular));
 // #endregion usage
 
-assert.equal(doc.status, 'published', 'replace operation applied');
-assert.equal(doc.publishedAt, '2026-06-22', 'add operation applied');
-assert.equal(doc.count, undefined, 'remove operation applied');
+assert.equal(workingDocs.doc.status, 'published', 'replace operation applied');
+assert.equal(workingDocs.doc.publishedAt, '2026-06-22', 'add operation applied');
+assert.equal(workingDocs.doc.count, undefined, 'remove operation applied');
 
-assert.equal(doc2.score, 100, 'Patch.add static factory');
-assert.equal(doc2.name, 'beta', 'Patch.replace static factory');
+assert.equal(workingDocs.doc2.score, 100, 'Patch.add static factory');
+assert.equal(workingDocs.doc2.name, 'beta', 'Patch.replace static factory');
 
-assert.equal(doc3.x, 1, 'combined patch: first op');
-assert.equal(doc3.y, 2, 'combined patch: second op');
+assert.equal(workingDocs.doc3.x, 1, 'combined patch: first op');
+assert.equal(workingDocs.doc3.y, 2, 'combined patch: second op');
 
 assert.equal(Patch.create([]).isEmpty(), true, 'empty patch reports isEmpty');
 assert.equal(Patch.add('/a', 1).isEmpty(), false, 'non-empty patch not isEmpty');
@@ -121,13 +132,13 @@ assert.equal(DataType.isPlainObject(null), false, 'null is not plain object');
 assert.equal(DataType.isRecord([]), false, 'array is not record');
 assert.equal(DataType.isRecord({ 'a': 1 }), true, 'object is record');
 
-assert.equal(DataType.hasCycle(cyclic), true, 'cycle detected');
+assert.equal(DataType.hasCycle(workingDocs.cyclic), true, 'cycle detected');
 assert.equal(DataType.hasCycle({ 'a': { 'b': 1 } }), false, 'no cycle in plain object');
 
 assert.equal(frozen, tree, 'deepFreeze returns same reference');
 assert.equal(Object.isFrozen(frozen), true, 'root frozen');
 assert.equal(Object.isFrozen(frozen.root), true, 'nested object frozen');
 assert.equal(Object.isFrozen(frozen.root.child), true, 'deeply nested object frozen');
-assert.doesNotThrow(() => { Frozen.deepFreeze(circular); }, 'circular reference handled safely');
+assert.doesNotThrow(() => { Frozen.deepFreeze(workingDocs.circular); }, 'circular reference handled safely');
 
 console.log('patch-datatype: all assertions passed');

@@ -7,9 +7,9 @@
 
 import type { Agent } from 'undici';
 
-import type { DestroyOptionsType } from '../../interfaces/DestroyOptionsType.js';
-import type { DispatcherConfigType } from '../../interfaces/DispatcherConfigType.js';
-import type { DispatcherHealthType } from '../../interfaces/DispatcherHealthType.js';
+import type { DestroyOptionsEntity } from '../../entities/DestroyOptionsEntity.js';
+import type { DispatcherConfigEntity } from '../../entities/DispatcherConfigEntity.js';
+import type { DispatcherHealthEntity } from '../../entities/DispatcherHealthEntity.js';
 import type { UndiciDispatcherInterface } from '../../interfaces/UndiciDispatcherInterface.js';
 
 import { ConfigurationError } from '../../errors/index.js';
@@ -23,7 +23,7 @@ const BROWSER_ERROR_MESSAGE =
  * because create() throws before any instance is constructed.
  */
 export class UndiciDispatcher implements UndiciDispatcherInterface {
-  static create(_config: DispatcherConfigType = {}): UndiciDispatcher {
+  static create(_config: DispatcherConfigEntity.Type = {}): UndiciDispatcher {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 
@@ -34,7 +34,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     return result;
   }
 
-  checkDispatcherHealth(_origin: string): DispatcherHealthType {
+  checkDispatcherHealth(_origin: string): DispatcherHealthEntity.Type {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 
@@ -42,7 +42,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 
-  destroy(_options?: DestroyOptionsType): Promise<void> {
+  destroy(_options?: DestroyOptionsEntity.Type): Promise<void> {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 

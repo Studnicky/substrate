@@ -6,6 +6,8 @@ import type { CircuitBreaker, CircuitBreakerOptionsInterface } from '@studnicky/
 import type { Retry, RetryConfigInterface } from '@studnicky/retry';
 import type { Throttle, ThrottleConfigEntity } from '@studnicky/throttle';
 
+import { PickDefined } from '@studnicky/types';
+
 import type { BoundaryKit } from './BoundaryKit.js';
 import type { BoundaryKitConfigType } from './types/BoundaryKitConfigType.js';
 
@@ -28,8 +30,8 @@ export class BoundaryKitBuilder {
 
   readonly #create: (config: BoundaryKitConfigType) => BoundaryKit;
   #circuitBreaker?: CircuitBreaker | CircuitBreakerOptionsInterface;
-  #retry?: Partial<RetryConfigInterface> | Retry;
-  #throttle?: Partial<ThrottleConfigEntity.Type> | Throttle;
+  #retry?: RetryConfigInterface | Retry;
+  #throttle?: ThrottleConfigEntity.Type | Throttle;
 
   private constructor(create: (config: BoundaryKitConfigType) => BoundaryKit) {
     this.#create = create;
@@ -39,11 +41,11 @@ export class BoundaryKitBuilder {
    * Build and return the BoundaryKit instance
    */
   build(): BoundaryKit {
-    const config: BoundaryKitConfigType = {
-      ...(this.#throttle !== undefined ? { 'throttle': this.#throttle } : {}),
-      ...(this.#circuitBreaker !== undefined ? { 'circuitBreaker': this.#circuitBreaker } : {}),
-      ...(this.#retry !== undefined ? { 'retry': this.#retry } : {})
-    };
+    const config: BoundaryKitConfigType = PickDefined.from({
+      'circuitBreaker': this.#circuitBreaker,
+      'retry': this.#retry,
+      'throttle': this.#throttle
+    });
     return this.#create(config);
   }
 
@@ -58,7 +60,7 @@ export class BoundaryKitBuilder {
   /**
    * Set the composed Retry instance or config
    */
-  retry(value: Partial<RetryConfigInterface> | Retry): this {
+  retry(value: RetryConfigInterface | Retry): this {
     this.#retry = value;
     return this;
   }
@@ -66,7 +68,7 @@ export class BoundaryKitBuilder {
   /**
    * Set the composed Throttle instance or config
    */
-  throttle(value: Partial<ThrottleConfigEntity.Type> | Throttle): this {
+  throttle(value: ThrottleConfigEntity.Type | Throttle): this {
     this.#throttle = value;
     return this;
   }

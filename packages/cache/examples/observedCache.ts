@@ -1,55 +1,50 @@
 /** observedCache — subclass overrides emit console.log trace lines on every cache event. Run: npx tsx examples/observedCache.ts */
 
+// #region usage
+import { EventRecorder } from '@studnicky/errors/observers';
 import assert from 'node:assert/strict';
 
-// #region usage
 import { LruCache } from '../src/index.js';
 
 class TracingCache extends LruCache<string, number> {
-  readonly events: { 'event': string; 'key'?: string }[] = [];
+  readonly #recorder = new EventRecorder<{ 'event': string; 'key'?: string }>();
+
+  get events(): { 'event': string; 'key'?: string }[] { return this.#recorder.events; }
 
   constructor(options: { 'capacity': number; 'ttlMs'?: number }) {
     super(options);
   }
 
   protected override onHit(key: string, value: number): void {
-    this.events.push({ 'event': 'hit', 'key': key });
-    console.log(`[cache] hit   key=${key} value=${value}`);
+    this.#recorder.record({ 'event': 'hit', 'key': key }, `[cache] hit   key=${key} value=${value}`);
   }
 
   protected override onMiss(key: string): void {
-    this.events.push({ 'event': 'miss', 'key': key });
-    console.log(`[cache] miss  key=${key}`);
+    this.#recorder.record({ 'event': 'miss', 'key': key }, `[cache] miss  key=${key}`);
   }
 
   protected override onSet(key: string): void {
-    this.events.push({ 'event': 'set', 'key': key });
-    console.log(`[cache] set   key=${key}`);
+    this.#recorder.record({ 'event': 'set', 'key': key }, `[cache] set   key=${key}`);
   }
 
   protected override onUpdate(key: string): void {
-    this.events.push({ 'event': 'update', 'key': key });
-    console.log(`[cache] update key=${key}`);
+    this.#recorder.record({ 'event': 'update', 'key': key }, `[cache] update key=${key}`);
   }
 
   protected override onEvict(key: string, reason: 'capacity'): void {
-    this.events.push({ 'event': 'evict', 'key': key });
-    console.log(`[cache] evict key=${key} reason=${reason}`);
+    this.#recorder.record({ 'event': 'evict', 'key': key }, `[cache] evict key=${key} reason=${reason}`);
   }
 
   protected override onExpire(key: string): void {
-    this.events.push({ 'event': 'expire', 'key': key });
-    console.log(`[cache] expire key=${key}`);
+    this.#recorder.record({ 'event': 'expire', 'key': key }, `[cache] expire key=${key}`);
   }
 
   protected override onDelete(key: string): void {
-    this.events.push({ 'event': 'delete', 'key': key });
-    console.log(`[cache] delete key=${key}`);
+    this.#recorder.record({ 'event': 'delete', 'key': key }, `[cache] delete key=${key}`);
   }
 
   protected override onClear(count: number): void {
-    this.events.push({ 'event': 'clear' });
-    console.log(`[cache] clear  count=${count}`);
+    this.#recorder.record({ 'event': 'clear' }, `[cache] clear  count=${count}`);
   }
 
   eventNames(): string[] {
