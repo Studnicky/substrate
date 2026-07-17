@@ -1,5 +1,26 @@
 # Changelog
 
+## 7.0.0
+
+### Minor Changes
+
+- d2b44b7: `@studnicky/v8` gains three loop-performance rules covering all loop types (`for`, `while`, `do...while`, `for...of`, `for...in`): `array-splice-outside-loops` flags `.splice()` calls inside a loop body, and `chained-array-iteration` flags `.map().filter()`/`.filter().map()` chains anywhere in the file.
+
+  `array-scan-outside-loops` flags `.find()`/`.filter()`/`.indexOf()`/`.includes()`/`.some()`/`.every()` calls inside a loop body, type-checked against the receiver to distinguish a real array scan from `String.prototype.indexOf`/`.includes()` (same method names, different complexity story), and scoped-checked to skip a receiver proven to be freshly derived every iteration (a `for...of` loop's own binding, or a `const` declared inside the loop body) rather than the same stable collection re-scanned each time.
+
+### Patch Changes
+
+- d2b44b7: Fixed three pre-existing precision bugs surfaced by dogfooding the full rule set against real code for the first time:
+
+  - `PropertyKeyName.get` only resolved unquoted (`key:`) property keys, never quoted (`'key':`) ones — since this repo's own `quote-props: always` convention quotes every property key, the `inlineFunctions`/`inlineArrowFunctions` rules' `EXEMPT_KEYS` allowlist never actually matched anything. Now resolves both forms.
+  - `inlineArrowFunctions`'s `EXEMPT_KEYS` gains `'message'`, alongside the existing `'callback'`/`'handler'`/etc. — a single caller-supplied callback property in an options object is not a dispatch-map branch.
+  - `folderContentShape`'s `isUnderFolder` matched a `types`/`interfaces` path segment anywhere in the file path, including a package's own root name (e.g. `packages/types/`) — incorrectly treating any package literally named `types` or `interfaces` as if every file inside it lived under a `types/`/`interfaces/` convention subfolder. Now only matches real subfolders within the package.
+
+- d2b44b7: Domain error constructors route through `@studnicky/errors`'s `DomainErrorArgs.build()` instead of hand-rolled `super({code,message,retryable})` boilerplate. Fluent builders assemble their options object via `@studnicky/types`'s `PickDefined.from()` instead of manual spread-ternary chains. `@studnicky/fetch`'s config validators subclass `@studnicky/config`'s `ConfigValidation`. `@studnicky/eslint-config`'s duplicated rule-internal AST helpers are consolidated under `rules/shared/`. No public API or behavior changes.
+- 081c7bd: Pin `vite` to `^6.4.3` and `esbuild` to `^0.25.0` via a root `pnpm.overrides` entry, resolving four Dependabot alerts in the transitive `vitepress` docs-build toolchain: `vite`'s `server.fs.deny` bypass on Windows alternate paths, a path-traversal issue in optimized-deps `.map` handling, a `launch-editor` NTLMv2 hash disclosure via UNC paths, and an `esbuild` dev-server request/response exposure. Dev-only tooling change; no published package's runtime code is affected.
+- Updated dependencies [d2b44b7]
+  - @studnicky/types@7.0.0
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
