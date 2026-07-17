@@ -33,6 +33,12 @@ Pass multiple transports to `Logger.create`. Each transport has its own level fl
 
 <<< ../../packages/logger/examples/03-fanout.ts#usage
 
+## Custom transports
+
+Implement `TransportInterface` directly for a custom sink. `ResolveMinLevel.from()` resolves the same level-floor behavior the built-in transports use, so a custom transport's constructor validates and defaults `level` the same way:
+
+<<< ../../packages/logger/examples/04-custom-transport.ts#usage
+
 ## Observability hooks
 
 Subclass `Logger`, `LogBody`, or `LogFault` and override any of the protected hooks below to inject tracing, metrics, or debug logging without modifying the class itself.
@@ -51,11 +57,13 @@ Subclass `Logger`, `LogBody`, or `LogFault` and override any of the protected ho
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
+`Logger` composes a plain `HookInvoker` with no override, so a throwing `onLog`, `onDropped`, or `onChildCreate` propagates the default `HookInvocationError` to the caller rather than being recorded. `onTransportError` is the one hook `Logger` itself guards: a throwing override is caught and recorded instead of aborting fan-out to the remaining transports — inspect it via `hookErrorCount`/`getHookErrors()`.
+
 ## Subpath exports
 
 | Subpath | Contents |
 |---------|----------|
-| `@studnicky/logger` | `Logger`, `LogBody`, `LogFault`, `ConsoleTransport`, `FunctionTransport`, `MemoryTransport`, `NoOpTransport`, `LoggerOptionsEntity`, `parseLogLevel`, `safeStringify` |
+| `@studnicky/logger` | `Logger`, `LogBody`, `LogFault`, `ConsoleTransport`, `FunctionTransport`, `MemoryTransport`, `NoOpTransport`, `LoggerOptionsEntity`, `parseLogLevel`, `ResolveMinLevel`, `safeStringify` |
 | `@studnicky/logger/builders` | Builder classes |
 | `@studnicky/logger/constants` | Log level constants |
 | `@studnicky/logger/errors` | Logger error classes |

@@ -1,7 +1,13 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
+import { HookInvocationError } from '@studnicky/errors';
 import { Semaphore } from '../../src/Semaphore.js';
 import { SemaphoreError } from '../../src/errors/index.js';
+
+/** Flushes every pending microtask (unlike a single `await Promise.resolve()`), for asserting on state set inside awaited hook chains. */
+function flushMicrotasks(): Promise<void> {
+  return new Promise((resolve) => { setImmediate(resolve); });
+}
 
 const errorScenarios: Array<{ description: string; input: number }> = [
   { description: 'rejects zero permits', input: 0 },
@@ -139,7 +145,7 @@ it('onAcquireWait and onContended fire when all permits taken', async () => {
   const r1 = await sem.acquire();
 
   const pending = sem.acquire();
-  await Promise.resolve();
+  await flushMicrotasks();
 
   assert.equal(sem.acquireWaitEvents.length, 1);
   assert.deepEqual(sem.contendedEvents, [1]);
@@ -172,7 +178,7 @@ it('onReleaseDelegated fires when queued waiter gets the permit', async () => {
   assert.equal(sem.releaseEvents.length, 0);
 });
 
-it('a throwing onAcquire hook does not leak a permit or reject acquire()', async () => {
+it('a throwing onAcquire hook rejects acquire() with HookInvocationError', async () => {
   class ThrowingAcquireSemaphore extends Semaphore {
     protected override onAcquire(): void {
       throw new Error('hook boom');
@@ -180,14 +186,15 @@ it('a throwing onAcquire hook does not leak a permit or reject acquire()', async
   }
 
   const sem = ThrowingAcquireSemaphore.create({ 'permits': 1 });
-  const release = await sem.acquire();
+  await assert.rejects(() => sem.acquire(), HookInvocationError);
 
+  // the permit was already decremented before the hook fired, and acquire()
+  // rejected instead of returning a release function — the permit is lost,
+  // a deliberate consequence of hooks now propagating real errors.
   assert.equal(sem.available, 0);
-  release();
-  assert.equal(sem.available, 1);
 });
 
-it('a throwing onContended hook does not strand a queued waiter', async () => {
+it('a throwing onContended hook rejects the waiting acquire() with HookInvocationError', async () => {
   class ThrowingContendedSemaphore extends Semaphore {
     protected override onContended(): void {
       throw new Error('hook boom');
@@ -197,18 +204,59 @@ it('a throwing onContended hook does not strand a queued waiter', async () => {
   const sem = ThrowingContendedSemaphore.create({ 'permits': 1 });
   const releaseFirst = await sem.acquire();
 
-  let acquiredSecond = false;
-  const pendingSecond = sem.acquire().then((releaseSecond) => {
-    acquiredSecond = true;
-    return releaseSecond;
-  });
+  const pendingSecond = sem.acquire();
+  await assert.rejects(() => pendingSecond, HookInvocationError);
 
-  await Promise.resolve();
-  assert.equal(acquiredSecond, false);
+  await releaseFirst();
+});
 
-  releaseFirst();
-  const releaseSecond = await pendingSecond;
-  assert.equal(acquiredSecond, true);
-  releaseSecond();
-  assert.equal(sem.available, 1);
+it('an async-overridden onAcquire hook that rejects is routed safely through HookInvoker without an unhandled rejection', async () => {
+  class AsyncRejectingAcquireSemaphore extends Semaphore {
+    protected override async onAcquire(): Promise<void> {
+      await new Promise((resolve) => { setImmediate(resolve); });
+      throw new Error('async hook boom');
+    }
+  }
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const sem = AsyncRejectingAcquireSemaphore.create({ 'permits': 1 });
+    await assert.rejects(() => sem.acquire(), HookInvocationError);
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    assert.equal(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+it('FIFO order survives the CircularBuffer swap: queued acquirers are granted permits in arrival order', async () => {
+  const sem = Semaphore.create({ 'permits': 1 });
+  const r1 = await sem.acquire();
+
+  const order: number[] = [];
+  const waiters = [1, 2, 3].map((n) =>
+    sem.acquire().then((release) => {
+      order.push(n);
+      return release;
+    })
+  );
+
+  await flushMicrotasks();
+  assert.deepEqual(order, []);
+
+  await r1();
+  const releaseTwo = await waiters[0];
+  assert.deepEqual(order, [1]);
+
+  await releaseTwo();
+  const releaseThree = await waiters[1];
+  assert.deepEqual(order, [1, 2]);
+
+  await releaseThree();
+  await waiters[2];
+  assert.deepEqual(order, [1, 2, 3]);
 });

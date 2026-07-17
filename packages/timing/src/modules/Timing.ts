@@ -1,8 +1,10 @@
 import { ConfigurationError } from '@studnicky/config';
+import { HookInvocationError, HookInvoker } from '@studnicky/errors';
 
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
+import type { TimeUnitType } from '../types/TimeUnitType.js';
 
 import { DEFAULT_DECIMAL_PRECISION, DEFAULT_MAX_EVENTS, NS_PER_UNIT } from '../constants/index.js';
 import { TimingValidator } from '../validation/TimingValidator.js';
@@ -113,6 +115,7 @@ export class Timing implements TimingInterface {
     return new this(options);
   }
 
+  protected readonly hooks: HookInvoker = new HookInvoker();
   protected readonly maxEvents: number;
   readonly #precisions: {
     'h': number;
@@ -126,17 +129,12 @@ export class Timing implements TimingInterface {
   readonly #timingCache: Set<{ 'name': string;
     'timestamp': bigint }>;
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
-
   /**
    * Protected constructor. Use Timing.builder().build() to instantiate.
    * Validates configuration and initializes the timing tracker.
    * @param options - Timing configuration options
    * @throws ConfigurationError - When configuration validation fails
+   * @throws HookInvocationError - When the onInitialize hook throws
    */
   protected constructor(options: TimingOptionsEntity.Type = {}) {
     try {
@@ -168,12 +166,13 @@ export class Timing implements TimingInterface {
         'timestamp': this.startTime
       });
 
-      this.#invokeHook(() => {
-        this.onInitialize(this.startTime);
+      this.hooks.invoke('onInitialize', () => {
+        const result = this.onInitialize(this.startTime);
+        return result;
       });
     } catch (error) {
-      // Re-throw ConfigurationError as-is
-      if (error instanceof ConfigurationError) {
+      // Re-throw ConfigurationError and HookInvocationError as-is
+      if (error instanceof ConfigurationError || error instanceof HookInvocationError) {
         throw error;
       }
 
@@ -194,8 +193,9 @@ export class Timing implements TimingInterface {
    * @returns this for method chaining
    */
   clear(): this {
-    this.#invokeHook(() => {
-      this.onClear();
+    this.hooks.invoke('onClear', () => {
+      const result = this.onClear();
+      return result;
     });
     this.#timingCache.clear();
 
@@ -210,7 +210,7 @@ export class Timing implements TimingInterface {
    * @param unit - Target time unit ('ns', 'ms', 's', 'm', or 'h')
    * @returns Converted and rounded time value as a number
    */
-  protected convertTime(ns: bigint, unit: 'h' | 'm' | 'ms' | 'ns' | 's'): number {
+  protected convertTime(ns: bigint, unit: TimeUnitType): number {
     if (unit === 'ns') {
       return Number(ns);
     }
@@ -261,14 +261,16 @@ export class Timing implements TimingInterface {
     const currentTime = this.readHrtime();
 
     if (this.#timingCache.size >= this.maxEvents) {
-      const firstEvent = this.#timingCache.values().next().value;
+      // maxEvents is validated to be >= 1 (TimingValidator.validateMaxEvents), so
+      // size >= maxEvents >= 1 here, meaning the cache is non-empty and the
+      // iterator always yields a value.
+      const firstEvent = this.#timingCache.values().next().value!;
 
-      if (firstEvent !== undefined) {
-        this.#invokeHook(() => {
-          this.onEvict(firstEvent.name);
-        });
-        this.#timingCache.delete(firstEvent);
-      }
+      this.hooks.invoke('onEvict', () => {
+        const result = this.onEvict(firstEvent.name);
+        return result;
+      });
+      this.#timingCache.delete(firstEvent);
     }
 
     this.#timingCache.add({
@@ -276,8 +278,9 @@ export class Timing implements TimingInterface {
       'timestamp': currentTime
     });
 
-    this.#invokeHook(() => {
-      this.onEvent(data, currentTime);
+    this.hooks.invoke('onEvent', () => {
+      const result = this.onEvent(data, currentTime);
+      return result;
     });
   }
 
@@ -323,8 +326,9 @@ export class Timing implements TimingInterface {
    * ```
    */
   getEvents(): Record<string, number> {
-    this.#invokeHook(() => {
-      this.onGetEvents(this.#timingCache.size);
+    this.hooks.invoke('onGetEvents', () => {
+      const result = this.onGetEvents(this.#timingCache.size);
+      return result;
     });
 
     const currentTime = this.readHrtime();

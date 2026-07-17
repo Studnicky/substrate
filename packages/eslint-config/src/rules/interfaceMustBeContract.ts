@@ -11,6 +11,8 @@ import {
   type TypeReference
 } from 'typescript';
 
+import { ObjectGuard } from './shared/ObjectGuard.js';
+
 /**
  * interface-must-be-contract — interfaces express runtime contracts, not data.
  *
@@ -34,10 +36,6 @@ import {
  */
 
 class TypeGuards {
-  static isObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
-
   // `Array.isArray` narrows to `any[]` per its lib.es5.d.ts signature; this
   // guard reasserts the narrowed type as `unknown[]` so callers stay type-safe.
   static isUnknownArray(value: unknown): value is unknown[] {
@@ -211,7 +209,7 @@ class InterfaceNameCounts {
   private static readonly cache = new WeakMap<object, ReadonlyMap<string, number>>();
 
   public static collect(program: unknown): ReadonlyMap<string, number> {
-    if (!TypeGuards.isObject(program)) { return new Map(); }
+    if (!ObjectGuard.isObject(program)) { return new Map(); }
 
     const cached = InterfaceNameCounts.cache.get(program);
     if (cached !== undefined) { return cached; }
@@ -225,11 +223,11 @@ class InterfaceNameCounts {
       for (let index = 0; index < bodyLength; index++) {
         const bodyNode = body[index];
 
-        if (!TypeGuards.isObject(bodyNode)) { continue; }
+        if (!ObjectGuard.isObject(bodyNode)) { continue; }
         const nodeType = bodyNode.type;
         if (nodeType === 'TSInterfaceDeclaration') {
           const nodeId = bodyNode.id;
-          if (TypeGuards.isObject(nodeId)) {
+          if (ObjectGuard.isObject(nodeId)) {
             const nodeName = nodeId.name;
             if (typeof nodeName === 'string') {
               counts.set(nodeName, (counts.get(nodeName) ?? 0) + 1);
@@ -284,7 +282,7 @@ export const interfaceMustBeContract: Rule.RuleModule = {
     const isAugmentation = (parent: unknown): boolean => {
       let current = parent;
 
-      while (TypeGuards.isObject(current)) {
+      while (ObjectGuard.isObject(current)) {
         if (current.type === 'TSModuleDeclaration') { return true; }
         current = current.parent;
       }
@@ -293,7 +291,7 @@ export const interfaceMustBeContract: Rule.RuleModule = {
     };
 
     const isInterfaceKeyword = (token: unknown): boolean => {
-      return TypeGuards.isObject(token) && token.value === 'interface';
+      return ObjectGuard.isObject(token) && token.value === 'interface';
     };
     const fixInterface = (node: Rule.Node, rawNode: InterfaceNode): NonNullable<Rule.ReportDescriptor['fix']> => {
       return (fixer): Rule.Fix[] | null => {

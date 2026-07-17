@@ -4,24 +4,24 @@ import { it } from 'node:test';
 import { Guard } from '../../../src/guards/Guard.js';
 
 /**
- * Subclass extension test — `LaxGuard` static overrides `isRecord` to treat
+ * Subclass extension test — `LaxGuard` static overrides `isObject` to treat
  * arrays as records, proving that `asRecord` and `asRecordArray` both reflect
- * the override via `this.isRecord` dispatch.
+ * the override via `this.isObject` dispatch.
  */
 class LaxGuard extends Guard {
   /** Override: arrays also count as records. */
-  public static override isRecord(value: unknown): value is Record<string, unknown> {
+  public static override isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
   }
 }
 
-void it('overridden isRecord accepts arrays', () => {
-  assert.equal(LaxGuard.isRecord([1, 2, 3]), true);
-  assert.equal(LaxGuard.isRecord(null), false);
-  assert.equal(LaxGuard.isRecord({}), true);
+void it('overridden isObject accepts arrays', () => {
+  assert.equal(LaxGuard.isObject([1, 2, 3]), true);
+  assert.equal(LaxGuard.isObject(null), false);
+  assert.equal(LaxGuard.isObject({}), true);
 });
 
-void it('asRecord delegates through overridden isRecord — arrays become records', () => {
+void it('asRecord delegates through overridden isObject — arrays become records', () => {
   const arr = [1, 2, 3];
   const result = LaxGuard.asRecord(arr);
 
@@ -29,7 +29,7 @@ void it('asRecord delegates through overridden isRecord — arrays become record
   assert.strictEqual(result, arr);
 });
 
-void it('asRecordArray delegates through overridden isRecord — nested arrays pass filter', () => {
+void it('asRecordArray delegates through overridden isObject — nested arrays pass filter', () => {
   const input: unknown[] = [[1, 2], { a: 1 }, 'skip-me', null];
   const result = LaxGuard.asRecordArray(input);
 
@@ -40,6 +40,6 @@ void it('asRecordArray delegates through overridden isRecord — nested arrays p
   assert.deepEqual(result[1], { a: 1 });
 });
 
-void it('base Guard.isRecord is unchanged — arrays are not records', () => {
-  assert.equal(Guard.isRecord([1, 2, 3]), false);
+void it('base Guard.isObject is unchanged — arrays are not records', () => {
+  assert.equal(Guard.isObject([1, 2, 3]), false);
 });

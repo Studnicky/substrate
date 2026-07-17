@@ -1,14 +1,10 @@
 import type { Rule } from 'eslint';
 
-class TypeGuards {
-  static isObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
-}
+import { ObjectGuard } from './shared/ObjectGuard.js';
 
 class NodeType {
   static get(rawNode: unknown): string {
-    if (!TypeGuards.isObject(rawNode)) { return ''; }
+    if (!ObjectGuard.isObject(rawNode)) { return ''; }
 
     const nodeType: unknown = rawNode.type;
     return typeof nodeType === 'string' ? nodeType : '';
@@ -17,10 +13,10 @@ class NodeType {
 
 class Member {
   static getName(member: unknown): string {
-    if (!TypeGuards.isObject(member)) { return '<unnamed>'; }
+    if (!ObjectGuard.isObject(member)) { return '<unnamed>'; }
 
     const key: unknown = member.key;
-    if (!TypeGuards.isObject(key)) { return '<unnamed>'; }
+    if (!ObjectGuard.isObject(key)) { return '<unnamed>'; }
 
     if (key.type === 'Identifier') {
       const name: unknown = key.name;
@@ -38,7 +34,7 @@ class Member {
 
 class Parent {
   static get(rawNode: unknown): unknown {
-    return TypeGuards.isObject(rawNode) ? rawNode.parent : undefined;
+    return ObjectGuard.isObject(rawNode) ? rawNode.parent : undefined;
   }
 }
 
@@ -64,7 +60,7 @@ class AncestorInfo {
 
     let current: unknown = Parent.get(rawNode);
 
-    while (TypeGuards.isObject(current)) {
+    while (ObjectGuard.isObject(current)) {
       const nodeType = NodeType.get(current);
 
       if (nodeType === 'TSTypeParameter') {
@@ -89,7 +85,7 @@ class AncestorInfo {
 
       if (nodeType === 'TSInterfaceDeclaration') {
         const idNode: unknown = current.id;
-        if (TypeGuards.isObject(idNode)) {
+        if (ObjectGuard.isObject(idNode)) {
           const name: unknown = idNode.name;
           interfaceName = typeof name === 'string' ? name : '<unnamed>';
         }

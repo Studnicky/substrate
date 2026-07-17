@@ -58,7 +58,8 @@
   "dependencies": {
     "@studnicky/concurrency": "workspace:*",
     "@studnicky/event-bus": "workspace:*",
-    "@studnicky/scheduler": "workspace:*"
+    "@studnicky/scheduler": "workspace:*",
+    "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
     "@studnicky/clock": "workspace:*"

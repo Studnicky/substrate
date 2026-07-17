@@ -24,7 +24,11 @@ const falsyScenarios: Array<{ description: string; value: unknown }> = [
   { description: 'JsonObject.is returns false for a string', value: 'hello' },
   { description: 'JsonObject.is returns false for a number', value: 42 },
   { description: 'JsonObject.is returns false for a boolean', value: true },
-  { description: 'JsonObject.is returns false for undefined', value: undefined }
+  { description: 'JsonObject.is returns false for undefined', value: undefined },
+  { description: 'JsonObject.is returns false for a Map', value: new Map() },
+  { description: 'JsonObject.is returns false for a non-empty Map', value: new Map([['a', 1]]) },
+  { description: 'JsonObject.is returns false for a Set', value: new Set() },
+  { description: 'JsonObject.is returns false for a non-empty Set', value: new Set([1]) }
 ];
 
 for (const { description, value } of falsyScenarios) {

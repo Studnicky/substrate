@@ -58,7 +58,10 @@ export default [
         '@studnicky/v8/array-concat-outside-loops': 'error',
         '@studnicky/v8/array-from-iterators': 'error',
         '@studnicky/v8/array-from-map-callback': 'error',
+        '@studnicky/v8/array-scan-outside-loops': 'error',
+        '@studnicky/v8/array-splice-outside-loops': 'error',
         '@studnicky/v8/array-spread-outside-loops': 'error',
+        '@studnicky/v8/chained-array-iteration': 'error',
         '@studnicky/v8/computed-class-properties': 'error',
         '@studnicky/v8/computed-object-properties': 'error',
         '@studnicky/v8/conditional-property-assignment': 'error',
@@ -265,10 +268,16 @@ export default [
       }
     }
   ),
-  // ConsoleTransport is the only file in the codebase permitted to use `console`.
-  // All other modules must route output through this transport.
+  // Only these files are permitted to use `console` directly. ConsoleTransport
+  // is the logger's own console sink; all other logger-producing modules must
+  // route output through it. EventRecorder is deliberately raw, dependency-free
+  // console output — example/demo glue any package can use without pulling in
+  // @studnicky/logger as a dependency.
   {
-    'files': ['packages/logger/src/transports/ConsoleTransport.ts'],
+    'files': [
+      'packages/logger/src/transports/ConsoleTransport.ts',
+      'packages/errors/src/observers/EventRecorder.ts'
+    ],
     'rules': {
       'no-console': 'off'
     }

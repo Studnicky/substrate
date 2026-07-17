@@ -65,3 +65,37 @@ it('measureItem is a no-op in fixed-size mode', () => {
 
   deepStrictEqual(after, before);
 });
+
+it('computes correct final offsets after interleaved out-of-order measureItem corrections', () => {
+  const range = VisibleRange.create({ 'count': 20, 'estimateSize': () => 40 });
+
+  range.setScrollOffset(0);
+  range.setViewportSize(50);
+
+  // Force an initial offsets build (all items estimated at 40).
+  range.getRange();
+
+  // Interleave corrections in non-ascending index order, each forcing a
+  // partial rebuild from the earliest-dirtied watermark, with a getRange()
+  // call between each to exercise the incremental-repair path.
+  range.measureItem(10, 100);
+  range.getRange();
+
+  range.measureItem(2, 10);
+  range.getRange();
+
+  range.measureItem(5, 60);
+  range.getRange();
+
+  // Final sizes: item 2 = 10, item 5 = 60, item 10 = 100, all others = 40.
+  // Cumulative offset of item i is the sum of sizes of items [0, i).
+  const sizes = Array.from({ 'length': 20 }, (_, i) => (i === 2 ? 10 : i === 5 ? 60 : i === 10 ? 100 : 40));
+  const cumulativeAt = (index: number): number => sizes.slice(0, index).reduce((sum, size) => sum + size, 0);
+
+  range.setScrollOffset(cumulativeAt(12));
+  range.setViewportSize(1);
+
+  const result = range.getRange();
+
+  deepStrictEqual(result, { 'end': 12, 'start': 12 });
+});

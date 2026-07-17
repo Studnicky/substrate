@@ -13,13 +13,3 @@ export const POOL_PRESSURE_THRESHOLD = 0.5;
 
 /** Queue ratio threshold indicating pool is overloaded */
 export const POOL_OVERLOAD_THRESHOLD = 1;
-
-/**
- * Pool health configuration constants
- */
-export const POOL_HEALTH = {
-  'POOL_OVERLOAD_MULTIPLIER': POOL_OVERLOAD_MULTIPLIER,
-  'POOL_OVERLOAD_THRESHOLD': POOL_OVERLOAD_THRESHOLD,
-  'POOL_PRESSURE_MULTIPLIER': POOL_PRESSURE_MULTIPLIER,
-  'POOL_PRESSURE_THRESHOLD': POOL_PRESSURE_THRESHOLD
-} as const;

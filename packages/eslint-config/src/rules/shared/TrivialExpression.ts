@@ -1,19 +1,9 @@
-class AstHelpers {
-  public static isJsonObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
+import { AstHelpers } from './astHelpers.js';
+import { ObjectGuard } from './ObjectGuard.js';
 
-  public static getNodeType(node: unknown): string | undefined {
-    if (!AstHelpers.isJsonObject(node)) {
-      return undefined;
-    }
-    const type = node.type;
-
-    return typeof type === 'string' ? type : undefined;
-  }
-
+class NodeExpressionAccess {
   public static getExpression(node: unknown): unknown {
-    if (!AstHelpers.isJsonObject(node)) {
+    if (!ObjectGuard.isObject(node)) {
       return undefined;
     }
 
@@ -23,7 +13,7 @@ class AstHelpers {
 
 class ThisAccess {
   public static isRooted(node: unknown): boolean {
-    if (!AstHelpers.isJsonObject(node)) { return false; }
+    if (!ObjectGuard.isObject(node)) { return false; }
     const t = AstHelpers.getNodeType(node);
     if (t === 'ThisExpression') { return true; }
     if (t === 'MemberExpression') { return ThisAccess.isRooted(node.object); }
@@ -32,7 +22,7 @@ class ThisAccess {
   }
 
   public static isMemberExpression(node: unknown): boolean {
-    if (!AstHelpers.isJsonObject(node)) { return false; }
+    if (!ObjectGuard.isObject(node)) { return false; }
     if (node.type !== 'MemberExpression') { return false; }
 
     return ThisAccess.isRooted(node.object);
@@ -74,7 +64,7 @@ export class TrivialExpression {
 
     // Strip TS wrappers and recurse.
     if (type === 'TSAsExpression' || type === 'TSNonNullExpression' || type === 'TSSatisfiesExpression') {
-      return TrivialExpression.isTrivial(AstHelpers.getExpression(node), opts);
+      return TrivialExpression.isTrivial(NodeExpressionAccess.getExpression(node), opts);
     }
 
     return false;

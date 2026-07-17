@@ -11,36 +11,25 @@
  */
 import type { VirtualTimeCounter } from '@studnicky/clock';
 
+import { HookInvoker } from '@studnicky/errors';
+
 import type { PendingTaskType } from '../types/PendingTaskType.js';
 import type { ScheduledTaskType } from '../types/ScheduledTaskType.js';
 import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
 
 import { SchedulerError } from '../errors/index.js';
+import { CancellableTask } from './CancellableTask.js';
 import { MinimumHeap } from './MinimumHeap.js';
 import { VirtualSchedulerBuilder } from './VirtualSchedulerBuilder.js';
 
 /**
- * `ScheduledTask` implementation backed by a cancel callback.
- * Calling `cancel()` invokes the callback, which adds this task's ID to the
- * shared cancelled set and fires the `onCancel` lifecycle hook.
+ * A broken lifecycle hook must never abort scheduler machinery: swallow the
+ * failure instead of `HookInvoker`'s default (throwing) behavior.
  */
-class VirtualTask implements ScheduledTaskType {
-  public readonly atMs: number;
-  public readonly id: string;
-  readonly #onCancelCallback: (id: string) => void;
-
-  /**
-   * Property write order: atMs, id, #onCancelCallback.
-   */
-  public constructor(atMs: number, id: string, onCancelCallback: (id: string) => void) {
-    this.atMs = atMs;
-    this.id = id;
-    this.#onCancelCallback = onCancelCallback;
-  }
-
-  /** Marks this task as cancelled by invoking the cancel callback. */
-  public cancel(): void {
-    this.#onCancelCallback(this.id);
+class SwallowingHookInvoker extends HookInvoker {
+  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
+    const result = undefined as T;
+    return result;
   }
 }
 
@@ -57,16 +46,11 @@ class VirtualTask implements ScheduledTaskType {
  *   `onCancelAll`, `onAdvance`, `onRunUntil`, `onIdle`
  */
 export class VirtualScheduler implements SchedulerProviderType {
+  protected readonly hooks: HookInvoker = new SwallowingHookInvoker();
   readonly #cancelledIds: Set<string>;
   readonly #counter: Readonly<VirtualTimeCounter>;
   readonly #heap: MinimumHeap;
   #idCounter: number;
-
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
 
   /**
    * Property write order: #cancelledIds, #counter, #idCounter, #heap.
@@ -134,16 +118,18 @@ export class VirtualScheduler implements SchedulerProviderType {
     try {
       fireResult = task.fire();
     } catch (error: unknown) {
-      this.#invokeHook(() => {
-        this.onFireError(task.id, error);
+      this.hooks.invoke('onFireError', () => {
+        const result = this.onFireError(task.id, error);
+        return result;
       });
       return false;
     }
 
     if (fireResult instanceof Promise) {
       fireResult.catch((error: unknown) => {
-        this.#invokeHook(() => {
-          this.onFireError(task.id, error);
+        this.hooks.invoke('onFireError', () => {
+          const result = this.onFireError(task.id, error);
+          return result;
         });
       });
     }
@@ -198,11 +184,13 @@ export class VirtualScheduler implements SchedulerProviderType {
       this.#cancelledIds.add(task.id);
       task = this.#heap.removeMinimum();
     }
-    this.#invokeHook(() => {
-      this.onCancelAll();
+    this.hooks.invoke('onCancelAll', () => {
+      const result = this.onCancelAll();
+      return result;
     });
-    this.#invokeHook(() => {
-      this.onIdle();
+    this.hooks.invoke('onIdle', () => {
+      const result = this.onIdle();
+      return result;
     });
   }
 
@@ -220,14 +208,16 @@ export class VirtualScheduler implements SchedulerProviderType {
     };
 
     this.#heap.insert(pending);
-    this.#invokeHook(() => {
-      this.onSchedule(id, atMs, 'timeout');
+    this.hooks.invoke('onSchedule', () => {
+      const result = this.onSchedule(id, atMs, 'timeout');
+      return result;
     });
 
-    return new VirtualTask(atMs, id, (taskId: string) => {
+    return new CancellableTask(atMs, id, (taskId: string) => {
       this.#cancelledIds.add(taskId);
-      this.#invokeHook(() => {
-        this.onCancel(taskId);
+      this.hooks.invoke('onCancel', () => {
+        const result = this.onCancel(taskId);
+        return result;
       });
     });
   }
@@ -237,6 +227,10 @@ export class VirtualScheduler implements SchedulerProviderType {
    * The first fire occurs at `currentTime + intervalMs`.
    */
   public scheduleEvery(intervalMs: number, fire: () => Promise<void> | void): ScheduledTaskType {
+    if (intervalMs <= 0) {
+      throw new SchedulerError(`scheduleEvery requires intervalMs > 0, received ${intervalMs.toString()}`);
+    }
+
     const id = this.generateId();
     const atMs = this.#counter.nowMs() + intervalMs;
     const pending: PendingTaskType = {
@@ -248,14 +242,16 @@ export class VirtualScheduler implements SchedulerProviderType {
     };
 
     this.#heap.insert(pending);
-    this.#invokeHook(() => {
-      this.onSchedule(id, atMs, 'interval');
+    this.hooks.invoke('onSchedule', () => {
+      const result = this.onSchedule(id, atMs, 'interval');
+      return result;
     });
 
-    return new VirtualTask(atMs, id, (taskId: string) => {
+    return new CancellableTask(atMs, id, (taskId: string) => {
       this.#cancelledIds.add(taskId);
-      this.#invokeHook(() => {
-        this.onCancel(taskId);
+      this.hooks.invoke('onCancel', () => {
+        const result = this.onCancel(taskId);
+        return result;
       });
     });
   }
@@ -265,8 +261,9 @@ export class VirtualScheduler implements SchedulerProviderType {
    * Interval tasks are rescheduled automatically after each fire.
    */
   public advance(deltaMs: number): void {
-    this.#invokeHook(() => {
-      this.onAdvance(deltaMs);
+    this.hooks.invoke('onAdvance', () => {
+      const result = this.onAdvance(deltaMs);
+      return result;
     });
     this.#counter.advance(deltaMs);
     this.runUntil(this.#counter.nowMs());
@@ -277,8 +274,9 @@ export class VirtualScheduler implements SchedulerProviderType {
    * Interval tasks are rescheduled at `task.atMs + task.intervalMs`.
    */
   public runUntil(atMs: number): void {
-    this.#invokeHook(() => {
-      this.onRunUntil(atMs);
+    this.hooks.invoke('onRunUntil', () => {
+      const result = this.onRunUntil(atMs);
+      return result;
     });
 
     for (;;) {
@@ -290,12 +288,18 @@ export class VirtualScheduler implements SchedulerProviderType {
 
       const task = this.#heap.removeMinimum();
 
-      if (task === undefined || this.#cancelledIds.has(task.id)) {
+      if (task === undefined) {
         continue;
       }
 
-      this.#invokeHook(() => {
-        this.onFire(task.id);
+      if (this.#cancelledIds.has(task.id)) {
+        this.#cancelledIds.delete(task.id);
+        continue;
+      }
+
+      this.hooks.invoke('onFire', () => {
+        const result = this.onFire(task.id);
+        return result;
       });
       const succeeded = this.#invokeTask(task);
 
@@ -310,15 +314,17 @@ export class VirtualScheduler implements SchedulerProviderType {
         };
 
         this.#heap.insert(rescheduled);
-        this.#invokeHook(() => {
-          this.onReschedule(task.id, nextAtMs);
+        this.hooks.invoke('onReschedule', () => {
+          const result = this.onReschedule(task.id, nextAtMs);
+          return result;
         });
       }
     }
 
     if (this.#heap.peekAtMs() === undefined) {
-      this.#invokeHook(() => {
-        this.onIdle();
+      this.hooks.invoke('onIdle', () => {
+        const result = this.onIdle();
+        return result;
       });
     }
   }
@@ -336,17 +342,20 @@ export class VirtualScheduler implements SchedulerProviderType {
       }
 
       if (this.#cancelledIds.has(task.id)) {
+        this.#cancelledIds.delete(task.id);
         continue;
       }
 
-      this.#invokeHook(() => {
-        this.onFire(task.id);
+      this.hooks.invoke('onFire', () => {
+        const result = this.onFire(task.id);
+        return result;
       });
       this.#invokeTask(task);
     }
 
-    this.#invokeHook(() => {
-      this.onIdle();
+    this.hooks.invoke('onIdle', () => {
+      const result = this.onIdle();
+      return result;
     });
   }
 }

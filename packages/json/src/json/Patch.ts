@@ -12,12 +12,12 @@
  * static factories for one-shot operations).
  */
 
-import type { PatchOperationType, PatchOpVariantType } from '../types/index.js';
+import type { PatchOperationType } from '../types/index.js';
 
 import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { PatchError } from '../errors/PatchError.js';
-
-const VALID_OPS = new Set<PatchOpVariantType>(['add', 'copy', 'move', 'remove', 'replace', 'test']);
+import { ARRAY_INDEX_PATTERN, VALID_OPS } from './constants/PatchConstants.js';
+import { DataType } from './DataType.js';
 
 export class Patch {
   public readonly operations: readonly PatchOperationType[];
@@ -304,9 +304,11 @@ export class Patch {
     }
 
     if (Array.isArray(current)) {
-      const idx = parseInt(lastPart, 10);
+      if (!ARRAY_INDEX_PATTERN.test(lastPart)) {
+        throw new PatchError(`Invalid array index in path: ${path}`, 'removeValue', path);
+      }
 
-      current.splice(idx, 1);
+      current.splice(parseInt(lastPart, 10), 1);
     } else {
       const asRecord = current as Record<string, unknown>;
 
@@ -319,16 +321,71 @@ export class Patch {
     this.setValue(target, op.path, op.value);
   }
 
+  /**
+   * Traverse `path` once and resolve the container/key to write for a
+   * `replace` operation. Throws `PatchError` when any segment of `path`
+   * (intermediate or final) does not already exist. Returns `undefined`
+   * for the root path (replace-in-place on root is a no-op, matching
+   * `setValue`'s root handling).
+   */
+  private resolveReplaceTarget(
+    target: Record<string, unknown>,
+    path: string
+  ): { 'container': Record<string, unknown>; 'key': string } | undefined {
+    const parts = this.parsePath(path);
+
+    if (parts.length === 0) {
+      return undefined;
+    }
+
+    let current: unknown = target;
+
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+
+      if (part === undefined) {
+        break;
+      }
+
+      if (current === null || typeof current !== 'object') {
+        throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
+      }
+
+      const asRecord = current as Record<string, unknown>;
+
+      if (!(part in asRecord)) {
+        throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
+      }
+      current = asRecord[part];
+    }
+
+    const lastPart = parts.at(-1);
+
+    if (lastPart === undefined) {
+      return undefined;
+    }
+
+    if (current === null || typeof current !== 'object') {
+      throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
+    }
+
+    const container = current as Record<string, unknown>;
+
+    if (!(lastPart in container)) {
+      throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
+    }
+
+    return { 'container': container, 'key': lastPart };
+  }
+
   /** Apply a single RFC-6902 `replace` operation. */
   private applyReplace(target: Record<string, unknown>, op: PatchOperationType): void {
-    if (!this.hasValue(target, op.path)) {
-      throw new PatchError(
-        `Cannot replace non-existent path: ${op.path}`,
-        op.op,
-        op.path
-      );
+    const resolved = this.resolveReplaceTarget(target, op.path);
+
+    if (resolved === undefined) {
+      return;
     }
-    this.setValue(target, op.path, op.value);
+    resolved.container[resolved.key] = op.value;
   }
 
   /** Apply a single RFC-6902 `remove` operation. */
@@ -361,7 +418,7 @@ export class Patch {
   private applyTest(target: Record<string, unknown>, op: PatchOperationType): void {
     const actual = this.getValue(target, op.path);
 
-    if (actual !== op.value) {
+    if (!DataType.deepEqual(actual, op.value)) {
       throw new PatchError(
         `Test failed at ${op.path}: expected ${String(op.value)}, got ${String(actual)}`,
         op.op,

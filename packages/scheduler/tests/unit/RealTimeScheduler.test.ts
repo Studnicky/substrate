@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 import { describe, it } from 'node:test';
 
+import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+
 import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
 
 // ---------------------------------------------------------------------------
@@ -22,6 +24,15 @@ const TASK_COUNT = 5;
 
 /** Short delay to allow a past-due timer to fire in the event loop. */
 const FLUSH_DELAY_MS = 20;
+
+/** Overridden `maxTimeoutDelayMs` used to exercise the chained-timeout path without waiting ~24.8 days. */
+const TINY_MAX_DELAY_MS = 10;
+
+/** Number of chained stages to force in the far-future scheduleAt tests. */
+const CHAIN_STAGE_COUNT = 3;
+
+/** Extra buffer added on top of the total chained delay when awaiting a real fire. */
+const CHAIN_FLUSH_BUFFER_MS = 30;
 
 // ---------------------------------------------------------------------------
 // scheduleAt()
@@ -422,6 +433,36 @@ describe('RealTimeScheduler', () => {
       assert.strictEqual(fired, true);
     });
 
+    it('a throwing onFire hook is wrapped in a HookInvocationError and passed to onHookError', async () => {
+      let receivedError: HookInvocationError | undefined;
+
+      class RecordingHookInvoker extends HookInvoker {
+        protected override onHookError<T>(hookName: string, cause: unknown): T {
+          receivedError = new HookInvocationError(hookName, cause);
+          return undefined as T;
+        }
+      }
+
+      class ObservedThrowingFireScheduler extends RealTimeScheduler {
+        protected override readonly hooks: HookInvoker = new RecordingHookInvoker();
+        public constructor() { super(); }
+        protected override onFire(): void {
+          throw new Error('onFire boom');
+        }
+      }
+
+      const sched = new ObservedThrowingFireScheduler();
+
+      sched.scheduleAt(Date.now() - 1, () => { return; });
+      await setTimeoutPromise(FLUSH_DELAY_MS);
+
+      assert.ok(receivedError instanceof HookInvocationError);
+      assert.strictEqual(receivedError.hookName, 'onFire');
+      assert.ok(receivedError.cause instanceof Error);
+      assert.strictEqual(receivedError.cause.message, 'onFire boom');
+      sched.cancelAll();
+    });
+
     it('a throwing onFireError hook does not replace swallowed task failure', async () => {
       class ThrowingFireErrorScheduler extends RealTimeScheduler {
         public constructor() { super(); }
@@ -436,6 +477,118 @@ describe('RealTimeScheduler', () => {
       await setTimeoutPromise(FLUSH_DELAY_MS);
 
       assert.ok(true);
+    });
+
+    // -------------------------------------------------------------------------
+    // scheduleAt: chained timeout for delays beyond maxTimeoutDelayMs
+    // -------------------------------------------------------------------------
+
+    /** Subclass with a tiny `maxTimeoutDelayMs` so chained stages resolve without real 24+ day waits. */
+    class TinyMaxDelayScheduler extends RealTimeScheduler {
+      public fireCount = 0;
+      public scheduleCount = 0;
+
+      public constructor() { super(); }
+
+      protected override get maxTimeoutDelayMs(): number {
+        return TINY_MAX_DELAY_MS;
+      }
+
+      protected override onFire(_id: string): void {
+        this.fireCount++;
+      }
+
+      protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
+        this.scheduleCount++;
+      }
+    }
+
+    it('scheduleAt chains through intermediate stages and still fires once for a far-future atMs', async () => {
+      const sched = new TinyMaxDelayScheduler();
+      const atMs = Date.now() + (TINY_MAX_DELAY_MS * CHAIN_STAGE_COUNT);
+      let fired = false;
+      const task = sched.scheduleAt(atMs, () => {
+        fired = true;
+      });
+
+      await setTimeoutPromise((TINY_MAX_DELAY_MS * CHAIN_STAGE_COUNT) + CHAIN_FLUSH_BUFFER_MS);
+
+      assert.strictEqual(fired, true);
+      assert.strictEqual(sched.fireCount, 1);
+      assert.strictEqual(sched.scheduleCount, 1);
+      assert.strictEqual(task.atMs, atMs);
+      sched.cancelAll();
+    });
+
+    it('cancel() during an intermediate chained stage prevents the eventual fire', async () => {
+      const sched = new TinyMaxDelayScheduler();
+      const atMs = Date.now() + (TINY_MAX_DELAY_MS * CHAIN_STAGE_COUNT);
+      let fired = false;
+      const task = sched.scheduleAt(atMs, () => {
+        fired = true;
+      });
+
+      // Cancel partway through the chain — before the terminal stage arms.
+      await setTimeoutPromise(TINY_MAX_DELAY_MS / 2);
+      task.cancel();
+
+      await setTimeoutPromise((TINY_MAX_DELAY_MS * CHAIN_STAGE_COUNT) + CHAIN_FLUSH_BUFFER_MS);
+
+      assert.strictEqual(fired, false);
+      assert.strictEqual(sched.fireCount, 0);
+    });
+
+    // -------------------------------------------------------------------------
+    // Regression: async hook override rejection must never become an
+    // unhandled rejection — `hooks.invoke` call sites must return the
+    // hook's result so HookInvoker actually sees the thenable.
+    // -------------------------------------------------------------------------
+
+    it('an async onFire override that rejects is routed to onHookError without an unhandled rejection', async () => {
+      const recordedHookNames: string[] = [];
+      const recordedCauses: unknown[] = [];
+
+      class RecordingSwallowingInvoker extends HookInvoker {
+        protected override onHookError<T>(hookName: string, cause: unknown): T {
+          recordedHookNames.push(hookName);
+          recordedCauses.push(cause);
+          return undefined as T;
+        }
+      }
+
+      const rejectionError = new Error('async onFire rejection');
+
+      class AsyncRejectingFireScheduler extends RealTimeScheduler {
+        protected override readonly hooks: HookInvoker = new RecordingSwallowingInvoker();
+        public constructor() { super(); }
+        protected override async onFire(_id: string): Promise<void> {
+          await Promise.resolve();
+          throw rejectionError;
+        }
+      }
+
+      const rejectionEvents: unknown[] = [];
+      const onUnhandledRejection = (reason: unknown): void => {
+        rejectionEvents.push(reason);
+      };
+      process.on('unhandledRejection', onUnhandledRejection);
+
+      const sched = new AsyncRejectingFireScheduler();
+
+      try {
+        sched.scheduleAt(Date.now() - 1, () => { return; });
+
+        await setTimeoutPromise(FLUSH_DELAY_MS);
+        await new Promise((resolve) => { setImmediate(resolve); });
+        await new Promise((resolve) => { setImmediate(resolve); });
+
+        assert.strictEqual(rejectionEvents.length, 0);
+        assert.deepStrictEqual(recordedHookNames, ['onFire']);
+        assert.strictEqual(recordedCauses[0], rejectionError);
+      } finally {
+        process.off('unhandledRejection', onUnhandledRejection);
+        sched.cancelAll();
+      }
     });
   });
 });

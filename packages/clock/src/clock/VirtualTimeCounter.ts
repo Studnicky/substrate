@@ -6,6 +6,8 @@
  * @module
  */
 
+import { HookInvoker } from '@studnicky/errors';
+
 import { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
 import { ClockError } from '../errors/ClockError.js';
 import { VirtualTimeCounterBuilder } from './VirtualTimeCounterBuilder.js';
@@ -31,6 +33,8 @@ export class VirtualTimeCounter {
   /** Current virtual epoch-ms. Must be non-negative. */
   #nowMs: number;
 
+  protected readonly hooks: HookInvoker = new HookInvoker();
+
   /**
    * Property write order: #nowMs.
    */
@@ -45,12 +49,6 @@ export class VirtualTimeCounter {
     this.#nowMs = resolved;
   }
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
-
   // ---------------------------------------------------------------------------
   // Lifecycle hooks — no-op by default. Override to add logging/tracing/metrics.
   // Overrides must not throw or block.
@@ -58,13 +56,15 @@ export class VirtualTimeCounter {
 
   /**
    * Fires after a successful `advance()` call (positive delta only), with the
-   * applied delta and the resulting epoch-ms after the advance.
+   * applied delta and the resulting epoch-ms after the advance. A throwing
+   * override surfaces as a `HookInvocationError` from `advance()`.
    */
   protected onAdvance(_deltaMs: number, _nowMs: number): void {}
 
   /**
    * Fires after each `nowMs()` call, with the current virtual epoch-ms value
-   * that was returned to the caller.
+   * that was returned to the caller. A throwing override surfaces as a
+   * `HookInvocationError` from `nowMs()`.
    */
   protected onNowMs(_value: number): void {}
 
@@ -77,16 +77,18 @@ export class VirtualTimeCounter {
       return;
     }
     this.#nowMs = this.#nowMs + deltaMs;
-    this.#invokeHook(() => {
-      this.onAdvance(deltaMs, this.#nowMs);
+    this.hooks.invoke('onAdvance', () => {
+      const result = this.onAdvance(deltaMs, this.#nowMs);
+      return result;
     });
   }
 
   /** Returns the current virtual epoch-ms (always non-negative). */
   public nowMs(): number {
     const result = this.#nowMs;
-    this.#invokeHook(() => {
-      this.onNowMs(result);
+    this.hooks.invoke('onNowMs', () => {
+      const hookResult = this.onNowMs(result);
+      return hookResult;
     });
     return result;
   }

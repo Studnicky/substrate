@@ -63,6 +63,8 @@ Each call to `run()` spawns a fresh `Worker` per item and terminates it once tha
 | `WorkerPool.builder()` | Returns a `WorkerPoolBuilder` fluent builder |
 | `run(items)` | Fans `items` across at most `concurrency` workers and resolves an ordered `TResult[]` |
 | `getSignal()` | Returns the composed `Signal` instance |
+| `getHookErrorCount()` | Count of hook failures recorded since construction |
+| `getHookErrors()` | Defensive copy of every hook failure recorded since construction |
 
 ## Hooks
 
@@ -73,6 +75,8 @@ Each call to `run()` spawns a fresh `Worker` per item and terminates it once tha
 | `onMessage(envelope, index)` | For every envelope a worker posts back — `log`, `progress`, `result`, and `error` alike |
 | `onWorkerTimeout(index)` | When a task exceeds its configured `timeoutMs`, immediately before the worker is terminated |
 | `onWorkerError(error, index)` | When a task rejects — a `'error'` envelope, an uncaught worker `'error'` event, or an unexpected exit |
+
+A hook override that throws or rejects does not abort a worker's task settlement — the failure is recorded instead of propagating, backed internally by `@studnicky/errors`'s `HookInvoker`. Inspect recorded failures via `getHookErrorCount()`/`getHookErrors()`.
 
 ```typescript
 import { WorkerPool } from '@studnicky/worker-pool';

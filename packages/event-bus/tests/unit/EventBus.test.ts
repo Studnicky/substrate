@@ -16,6 +16,19 @@ import { EventBus } from '../../src/EventBus.js';
 import { EventBusBuilder } from '../../src/EventBusBuilder.js';
 import type { BusQueueOptionsEntity } from '../../src/entities/BusQueueOptionsEntity.js';
 
+/**
+ * Hook firing now relays through several async layers (BusQueue's own
+ * HookInvoking.invokeHook, the per-subscription BusQueue subclass override,
+ * then EventBus's own HookInvoking.invokeHook) before an EventBus-level hook
+ * observes a value — each layer costs a real microtask tick. A couple of
+ * `await Promise.resolve()` calls is not enough headroom; flush generously.
+ */
+async function flushMicrotasks(times = 20): Promise<void> {
+  for (let i = 0; i < times; i += 1) {
+    await Promise.resolve();
+  }
+}
+
 interface TestTopics {
   ping: string;
   count: number;
@@ -134,6 +147,33 @@ void it('captured subscription signal is aborted after bus.close()', async () =>
   deepStrictEqual(capturedSignal?.aborted, true, 'signal should be aborted after bus.close()');
 });
 
+void it('unsubscribing via the returned fn removes the listener from a caller-supplied AbortSignal (no leak across repeated subscribe/unsubscribe cycles)', async () => {
+  const bus = EventBus.create<TestTopics>();
+  const controller = new AbortController();
+
+  let addCount = 0;
+  let removeCount = 0;
+  const originalAdd = controller.signal.addEventListener.bind(controller.signal);
+  const originalRemove = controller.signal.removeEventListener.bind(controller.signal);
+  controller.signal.addEventListener = ((...args: Parameters<typeof originalAdd>) => {
+    addCount += 1;
+    return originalAdd(...args);
+  }) as typeof controller.signal.addEventListener;
+  controller.signal.removeEventListener = ((...args: Parameters<typeof originalRemove>) => {
+    removeCount += 1;
+    return originalRemove(...args);
+  }) as typeof controller.signal.removeEventListener;
+
+  for (let i = 0; i < 8; i += 1) {
+    const unsub = bus.subscribe('ping', async (_payload) => {}, { 'signal': controller.signal });
+    strictEqual(addCount - removeCount, 1, `net listener count should be 1 right after subscribing (cycle ${i})`);
+    unsub();
+    strictEqual(addCount - removeCount, 0, `net listener count should return to 0 after unsubscribe (cycle ${i}), not accumulate`);
+  }
+
+  await bus.close();
+});
+
 void it('close() stops all delivery across all topics', async () => {
   const bus = EventBus.create<TestTopics>();
   const received: string[] = [];
@@ -147,8 +187,7 @@ void it('close() stops all delivery across all topics', async () => {
   // Publish after close — should be a no-op since the subscriber queue is aborted
   await bus.publish('ping', 'after-close');
   // Allow any pending microtasks to settle
-  await Promise.resolve();
-  await Promise.resolve();
+  await flushMicrotasks();
 
   deepStrictEqual(received, ['before-close'], 'No messages should arrive after close()');
 });
@@ -380,8 +419,7 @@ void it('EventBus.create() with no config defaults subscriber queues to highWate
     pending.push(bus.publish('x', `item-${i}`));
   }
 
-  await Promise.resolve();
-  await Promise.resolve();
+  await flushMicrotasks();
 
   strictEqual(bus.overflowDepths.length, 0, 'no overflow should occur at depth 10 against default hwm 256');
 
@@ -409,8 +447,7 @@ void it('EventBus.create({ highWaterMark: 3 }) forwards the value to subscriber 
   const p2 = bus.publish('x', '2');
   const p3 = bus.publish('x', '3');
 
-  await Promise.resolve();
-  await Promise.resolve();
+  await flushMicrotasks();
 
   strictEqual(bus.overflowDepths.length >= 1, true, 'onOverflow should fire once queue depth reaches configured hwm 3');
 
@@ -438,8 +475,7 @@ void it('the same publish depth (3) does NOT overflow the default-configured bus
   const p2 = bus.publish('x', '2');
   const p3 = bus.publish('x', '3');
 
-  await Promise.resolve();
-  await Promise.resolve();
+  await flushMicrotasks();
 
   strictEqual(bus.overflowDepths.length, 0, 'default hwm 256 should not overflow at depth 3');
 
@@ -480,8 +516,7 @@ void it('EventBus.builder().withHighWaterMark(N).build() produces a bus whose su
   const p2 = result.publish('x', '2');
   const p3 = result.publish('x', '3');
 
-  await Promise.resolve();
-  await Promise.resolve();
+  await flushMicrotasks();
 
   strictEqual(result.overflowDepths.length >= 1, true, 'onOverflow should fire once queue depth reaches builder-configured hwm 3');
 
@@ -511,6 +546,45 @@ void it('a throwing onPublish hook does not replace publish() or prevent deliver
   await bus.drain();
 
   deepStrictEqual(received, ['hello']);
+  await bus.close();
+});
+
+// ── Topic map cleanup ───────────────────────────────────────────────────────
+
+class IntrospectableBus extends EventBus<TestTopics> {
+  static override create(): IntrospectableBus {
+    return new IntrospectableBus();
+  }
+
+  hasTopic(topic: keyof TestTopics): boolean {
+    const result = this.hasTopicEntry(topic);
+    return result;
+  }
+}
+
+void it('unsubscribing the only handler for a topic removes the topic entry from internal state', async () => {
+  const bus = IntrospectableBus.create();
+
+  strictEqual(bus.hasTopic('ping'), false, 'no entry before any subscription');
+
+  const unsub = bus.subscribe('ping', async (_payload) => {});
+  strictEqual(bus.hasTopic('ping'), true, 'entry exists once subscribed');
+
+  unsub();
+  strictEqual(bus.hasTopic('ping'), false, 'entry is removed once the last handler unsubscribes');
+
+  await bus.close();
+});
+
+void it('unsubscribing one of several handlers for a topic keeps the topic entry', async () => {
+  const bus = IntrospectableBus.create();
+
+  const unsubA = bus.subscribe('ping', async (_payload) => {});
+  bus.subscribe('ping', async (_payload) => {});
+
+  unsubA();
+  strictEqual(bus.hasTopic('ping'), true, 'entry remains while another handler is still subscribed');
+
   await bus.close();
 });
 

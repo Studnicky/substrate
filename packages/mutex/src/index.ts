@@ -17,5 +17,4 @@ export type {
 } from './interfaces/MutexInterface.js';
 export { Mutex } from './mutex/Mutex.js';
 export { MutexBuilder } from './mutex/MutexBuilder.js';
-export type { MutexObservabilityType } from './types/MutexObservabilityType.js';
 export { ConfigurationError } from '@studnicky/config';

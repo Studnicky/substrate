@@ -22,8 +22,8 @@ it('reset() from idle stays idle', () => {
 it('reset() from hasMore discards pages and cursor', () => {
   const paginator = Paginator.create<string, number>();
 
-  paginator.next('page-1', 2);
-  paginator.next('page-2', 3);
+  paginator.next('page-1', { 'cursor': 2, 'exhausted': false });
+  paginator.next('page-2', { 'cursor': 3, 'exhausted': false });
   paginator.reset();
 
   deepStrictEqual(paginator.pages, []);
@@ -33,7 +33,7 @@ it('reset() from hasMore discards pages and cursor', () => {
 it('reset() from exhausted returns to idle and allows receiving pages again', () => {
   const paginator = Paginator.create<string, number>();
 
-  paginator.next('page-1', undefined);
+  paginator.next('page-1', { 'exhausted': true });
   strictEqual(paginator.hasNext(), false);
 
   paginator.reset();
@@ -41,6 +41,6 @@ it('reset() from exhausted returns to idle and allows receiving pages again', ()
   deepStrictEqual(paginator.pages, []);
   strictEqual(paginator.hasNext(), true);
 
-  paginator.next('page-1-again', 2);
+  paginator.next('page-1-again', { 'cursor': 2, 'exhausted': false });
   deepStrictEqual(paginator.pages, ['page-1-again']);
 });

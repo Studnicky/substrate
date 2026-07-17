@@ -4,6 +4,7 @@
 
 import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
+import { HookInvoker } from '@studnicky/errors';
 
 import type { MemoizeOptionsType } from './types/MemoizeOptionsType.js';
 
@@ -88,13 +89,21 @@ export class Memoize<TArgs extends unknown[], TResult> {
       protected override onCoalesceStart(key: string): void {
         super.onCoalesceStart(key);
         const memo = memoRefBox.current!;
-        memo.onMemoMiss(key, memo.pendingArgs!);
+        const args = memo.#pendingArgsByKey.get(key)!;
+        void memo.#invokeHookSafely('onMemoMiss', () => {
+          const hookResult = memo.onMemoMiss(key, args);
+          return hookResult;
+        });
       }
 
       protected override onCoalesceJoin(key: string): void {
         super.onCoalesceJoin(key);
         const memo = memoRefBox.current!;
-        memo.onMemoCoalesced(key, memo.pendingArgs!);
+        const args = memo.#pendingArgsByKey.get(key)!;
+        void memo.#invokeHookSafely('onMemoCoalesced', () => {
+          const hookResult = memo.onMemoCoalesced(key, args);
+          return hookResult;
+        });
       }
     })();
 
@@ -122,28 +131,42 @@ export class Memoize<TArgs extends unknown[], TResult> {
   readonly #coalesce: Coalesce<TResult>;
   readonly #fn: (...args: TArgs) => TResult | Promise<TResult>;
   readonly #keyFn: (...args: TArgs) => string;
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  protected readonly hooks: HookInvoker = new HookInvoker();
   /**
-   * Arguments for the call currently entering the composed `Coalesce`,
-   * readable from its delegated `onCoalesceStart`/`onCoalesceJoin` hooks so
-   * `onMemoMiss`/`onMemoCoalesced` can be fired with the caller's `args`
-   * alongside `key`. Set synchronously in `call()` immediately before
-   * `Coalesce#run()` is invoked; `Coalesce#run()` calls its hooks
-   * synchronously (before its first `await`), so this is always current when
-   * a hook reads it.
+   * Runs `hookName` through the composed `HookInvoker#invoke` — which
+   * `await`s `fn`, so it catches both a synchronous throw and a rejected
+   * `Promise` from an `async` override — and discards a failure rather than
+   * letting `invoke`'s default `onHookError` rethrow it as a
+   * `HookInvocationError`: a broken hook must never corrupt `call()`'s cache
+   * or coalesce bookkeeping.
    */
-  protected pendingArgs: TArgs | undefined;
+  async #invokeHookSafely(hookName: string, fn: () => unknown): Promise<void> {
+    try {
+      await this.hooks.invoke(hookName, fn);
+    } catch {
+      // Discarded — see method doc: hooks must never break memoization bookkeeping.
+    }
+  }
+
+  /**
+   * Per-key arguments for calls currently entering the composed `Coalesce`,
+   * readable from its delegated `onCoalesceStart`/`onCoalesceJoin` hooks so
+   * `onMemoMiss`/`onMemoCoalesced` can be fired with the caller's own `args`
+   * alongside `key`. Keyed by the derived cache key (rather than a single
+   * shared field) so concurrent `call()` invocations for distinct keys never
+   * cross-contaminate each other's hook args — each entry is set
+   * synchronously in `call()` immediately before `Coalesce#run()` is invoked
+   * for that key, and `Coalesce#run()` calls its hooks synchronously (before
+   * its first `await`), so the entry is always current when its hook reads
+   * it. Removed once that `call()`'s `run()` settles.
+   */
+  readonly #pendingArgsByKey = new Map<string, TArgs>();
 
   protected constructor(deps: MemoizeDepsType<TArgs, TResult>) {
     this.#cache = deps.cache;
     this.#coalesce = deps.coalesce;
     this.#fn = deps.fn;
     this.#keyFn = deps.keyFn;
-    this.pendingArgs = undefined;
   }
 
   /**
@@ -157,24 +180,30 @@ export class Memoize<TArgs extends unknown[], TResult> {
   async call(...args: TArgs): Promise<TResult> {
     const key = this.#keyFn(...args);
 
-    if (this.#cache.has(key)) {
-      const value = this.#cache.get(key) as TResult;
-      this.#invokeHook(() => {
-        this.onMemoHit(key, args);
+    const cached = this.#cache.tryGet(key);
+    if (cached.found) {
+      const value = cached.value as TResult;
+      await this.#invokeHookSafely('onMemoHit', () => {
+        const hookResult = this.onMemoHit(key, args);
+        return hookResult;
       });
       return value;
     }
 
-    this.pendingArgs = args;
+    this.#pendingArgsByKey.set(key, args);
 
-    const result = await this.#coalesce.run(key, () => {
-      const value = this.#fn(...args);
-      return Promise.resolve(value);
-    });
+    try {
+      const result = await this.#coalesce.run(key, () => {
+        const value = this.#fn(...args);
+        return Promise.resolve(value);
+      });
 
-    this.#cache.set(key, result);
+      this.#cache.set(key, result);
 
-    return result;
+      return result;
+    } finally {
+      this.#pendingArgsByKey.delete(key);
+    }
   }
 
   /** Evicts the cache entry for `keyFn(...args)` so the next matching call re-invokes the wrapped function. */
@@ -201,7 +230,10 @@ export class Memoize<TArgs extends unknown[], TResult> {
   // ---------------------------------------------------------------------------
   // Lifecycle hooks — no-op by default. Observe memoization semantics
   // (hit/miss/coalesced) without coupling this class to any logging/metrics
-  // library. Overrides must not throw or block.
+  // library. Overrides must not throw or block; every hook is invoked through
+  // `#invokeHookSafely`, which discards both a synchronous throw and a
+  // rejection from an `async` override, so a broken hook can never corrupt
+  // `call()`'s cache or coalesce bookkeeping.
   // ---------------------------------------------------------------------------
 
   /** Fires when `call()` returns a cached result for `key` without re-invoking the wrapped function. */

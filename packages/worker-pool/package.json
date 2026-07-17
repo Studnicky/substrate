@@ -55,6 +55,7 @@
   },
   "dependencies": {
     "@studnicky/batch": "workspace:*",
+    "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/system": "workspace:*",

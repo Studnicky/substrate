@@ -2,9 +2,7 @@ import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { MemoryTransportOptionsType } from './MemoryTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
-import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
-import { ConfigurationError } from '../errors/ConfigurationError.js';
-import { ParseLogLevel } from '../modules/parseLogLevel.js';
+import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
 import { MemoryTransportBuilder } from './MemoryTransportBuilder.js';
 
 /**
@@ -45,14 +43,7 @@ export class MemoryTransport implements TransportInterface {
   readonly #minLevel: number;
 
   protected constructor(options: MemoryTransportOptionsType = {}) {
-    if (options.level !== undefined
-      && typeof options.level !== 'string'
-      && typeof options.level !== 'number') {
-      throw new ConfigurationError('level must be a string or number');
-    }
-    this.#minLevel = options.level !== undefined
-      ? ParseLogLevel.parse(options.level)
-      : LOG_LEVEL.TRACE;
+    this.#minLevel = ResolveMinLevel.from(options);
   }
 
   /**
@@ -63,7 +54,9 @@ export class MemoryTransport implements TransportInterface {
   }
 
   /**
-   * Returns a readonly snapshot of all captured records.
+   * Returns a live, readonly view of the internal buffer — not an isolated
+   * copy. Records pushed after this call are visible through the returned
+   * reference, and `clear()` empties it in place.
    */
   records(): readonly LogRecordEntity.Type[] {
     return this.#buffer;

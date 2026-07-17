@@ -5,27 +5,17 @@
  * unsafe assertions. Use these when processing external API responses or any
  * dynamically-typed payload where the shape is not yet known.
  *
- * Extend `Guard` and `static override isRecord` to customise record detection;
- * `asRecord` and `asRecordArray` delegate through `this.isRecord` so overrides
+ * Extend `Guard` and `static override isObject` to customise record detection;
+ * `asRecord` and `asRecordArray` delegate through `this.isObject` so overrides
  * propagate.
  */
 export class Guard {
-  /**
-   * Returns `true` when `value` is a non-null, non-array object.
-   *
-   * Static override this method in a subclass to customise what counts as a
-   * record; `asRecord` and `asRecordArray` both delegate here.
-   */
-  public static isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  }
-
   /**
    * Returns the value as `Record<string, unknown>` when it is a non-null,
    * non-array object, otherwise returns `undefined`.
    */
   public static asRecord(value: unknown): Record<string, unknown> | undefined {
-    return this.isRecord(value) ? value : undefined;
+    return this.isObject(value) ? value : undefined;
   }
 
   /**
@@ -60,7 +50,7 @@ export class Guard {
    * value, filtering out any non-record elements. Returns `undefined` when
    * `value` is not an array or when no records are found.
    *
-   * Delegates record-detection to `this.isRecord` so subclass static overrides
+   * Delegates record-detection to `this.isObject` so subclass static overrides
    * propagate.
    */
   public static asRecordArray(value: unknown): Record<string, unknown>[] | undefined {
@@ -99,8 +89,20 @@ export class Guard {
     return typeof value === 'function';
   }
 
+  /**
+   * Returns `true` when `value` is a plain, non-null, non-array object.
+   * `Map` and `Set` instances return `false` — a `Record<string, unknown>`
+   * must support bracket-property access, which neither collection provides.
+   * This is the canonical plain-object check for the package: `Empty.isObject`
+   * and `JsonObject.is` both delegate here rather than reimplementing the
+   * exclusion. `asRecord` and `asRecordArray` both delegate here too; static
+   * override this method in a subclass to customise what counts as a record.
+   */
   public static isObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      return false;
+    }
+    return !(value instanceof Map) && !(value instanceof Set);
   }
 
   /**

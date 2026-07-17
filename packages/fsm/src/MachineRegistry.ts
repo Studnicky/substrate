@@ -1,8 +1,30 @@
+import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+
 import type { EffectInterpreter } from './EffectInterpreter.js';
 
 import { MachineAlreadyRegisteredError } from './MachineAlreadyRegisteredError.js';
 
 type BoundedInterpreter = EffectInterpreter<{ readonly 'variant': string }, { readonly 'type': string }, { readonly 'variant': string }>;
+
+/**
+ * Records a `MachineRegistry`'s hook failures instead of letting
+ * `HookInvoker`'s default (throwing) behavior propagate — a broken observer
+ * hook must never be able to unwind a registration/unregistration/lookup
+ * that already completed.
+ */
+class MachineRegistryHookInvoker extends HookInvoker {
+  readonly #onError: (hookName: string, cause: unknown) => void;
+
+  constructor(onError: (hookName: string, cause: unknown) => void) {
+    super();
+    this.#onError = onError;
+  }
+
+  protected override onHookError<T>(hookName: string, cause: unknown): T {
+    this.#onError(hookName, cause);
+    return undefined as T;
+  }
+}
 
 export class MachineRegistry {
   static create(): MachineRegistry {
@@ -11,34 +33,46 @@ export class MachineRegistry {
 
   readonly #registry = new Map<string, BoundedInterpreter>();
 
-  protected constructor() {}
+  /** Errors raised by lifecycle hook overrides, recorded by `onHookError` instead of aborting registry operations. */
+  readonly #hookErrors: HookInvocationError[] = [];
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
+  protected readonly hooks: HookInvoker;
+
+  protected constructor() {
+    this.hooks = new MachineRegistryHookInvoker((hookName, cause) => {
+      this.#hookErrors.push(new HookInvocationError(hookName, cause));
+    });
+  }
+
+  /** Count of hook failures recorded by `onHookError` since construction. */
+  get hookErrorCount(): number {
+    const result = this.#hookErrors.length;
+    return result;
   }
 
   register(name: string, interpreter: BoundedInterpreter): void {
     if (this.#registry.has(name)) { throw new MachineAlreadyRegisteredError(name); }
     this.#registry.set(name, interpreter);
-    this.#invokeHook(() => {
-      this.onRegister(name);
+    this.hooks.invoke('onRegister', () => {
+      const result = this.onRegister(name);
+      return result;
     });
   }
 
   unregister(name: string): void {
     this.#registry.delete(name);
-    this.#invokeHook(() => {
-      this.onUnregister(name);
+    this.hooks.invoke('onUnregister', () => {
+      const result = this.onUnregister(name);
+      return result;
     });
   }
 
   get(name: string): BoundedInterpreter | undefined {
     const result = this.#registry.get(name);
     if (result === undefined) {
-      this.#invokeHook(() => {
-        this.onResolveMiss(name);
+      this.hooks.invoke('onResolveMiss', () => {
+        const result = this.onResolveMiss(name);
+        return result;
       });
     }
     return result;

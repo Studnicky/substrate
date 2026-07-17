@@ -1,21 +1,19 @@
 import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
+import { ObjectGuard } from './shared/ObjectGuard.js';
+
 type ParserServicesType = {
   readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
   readonly 'program'?: ts.Program;
 };
 
 class TypeGuards {
-  static isNonNullObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object';
-  }
-
   static hasTypeServices(value: unknown): value is Required<ParserServicesType> {
-    if (!TypeGuards.isNonNullObject(value)) { return false; }
-    if (!('program' in value) || !TypeGuards.isNonNullObject(value.program)) { return false; }
+    if (!ObjectGuard.isObject(value)) { return false; }
+    if (!('program' in value) || !ObjectGuard.isObject(value.program)) { return false; }
     if (typeof value.program.getTypeChecker !== 'function') { return false; }
-    if (!('esTreeNodeToTSNodeMap' in value) || !TypeGuards.isNonNullObject(value.esTreeNodeToTSNodeMap)) { return false; }
+    if (!('esTreeNodeToTSNodeMap' in value) || !ObjectGuard.isObject(value.esTreeNodeToTSNodeMap)) { return false; }
 
     // Duck-type the Map: avoid cross-realm instanceof failures when the Map is from a different module instance.
     return typeof value.esTreeNodeToTSNodeMap.get === 'function';

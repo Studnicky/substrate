@@ -6,6 +6,8 @@ import {
   after, before, describe, it
 } from 'node:test';
 
+import { HookInvocationError, HookTimeoutError } from '@studnicky/errors';
+
 import { FetchClient } from '../../../src/index.js';
 
 type HookEvent = { 'hook': string; 'args': unknown[] };
@@ -205,7 +207,7 @@ void describe('FetchClient lifecycle hooks', () => {
     assert.equal(destroys.length, 1);
   });
 
-  void it('a throwing onRequestStart hook does not replace a successful response', async () => {
+  void it('a throwing onRequestStart hook surfaces as a HookInvocationError and aborts the request', async () => {
     class ThrowingStartClient extends FetchClient {
       static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingStartClient {
         return new this(config);
@@ -217,12 +219,19 @@ void describe('FetchClient lifecycle hooks', () => {
     }
 
     const client = ThrowingStartClient.create({ 'baseURL': baseURL });
-    const response = await client.get('/ok');
 
-    assert.equal(response.status, 200);
+    await assert.rejects(
+      () => client.get('/ok'),
+      (error: unknown) => {
+        assert.ok(error instanceof HookInvocationError);
+        assert.equal(error.hookName, 'onRequestStart');
+        assert.ok(error.cause instanceof Error && error.cause.message === 'onRequestStart boom');
+        return true;
+      }
+    );
   });
 
-  void it('a throwing onResponseSuccess hook does not replace a successful response', async () => {
+  void it('a throwing onResponseSuccess hook surfaces as a HookInvocationError instead of the successful response', async () => {
     class ThrowingSuccessClient extends FetchClient {
       static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingSuccessClient {
         return new this(config);
@@ -234,12 +243,18 @@ void describe('FetchClient lifecycle hooks', () => {
     }
 
     const client = ThrowingSuccessClient.create({ 'baseURL': baseURL });
-    const response = await client.get('/ok');
 
-    assert.equal(response.status, 200);
+    await assert.rejects(
+      () => client.get('/ok'),
+      (error: unknown) => {
+        assert.ok(error instanceof HookInvocationError);
+        assert.equal(error.hookName, 'onResponseSuccess');
+        return true;
+      }
+    );
   });
 
-  void it('a throwing onTimeout hook does not replace the timeout error', async () => {
+  void it('a throwing onTimeout hook surfaces as a HookInvocationError caused by the timeout error', async () => {
     class ThrowingTimeoutClient extends FetchClient {
       static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingTimeoutClient {
         return new this(config);
@@ -255,12 +270,14 @@ void describe('FetchClient lifecycle hooks', () => {
     await assert.rejects(
       () => client.get('/delay'),
       (error: unknown) => {
-        return error instanceof Error && error.name.endsWith('TimeoutError');
+        assert.ok(error instanceof HookInvocationError);
+        assert.equal(error.hookName, 'onTimeout');
+        return true;
       }
     );
   });
 
-  void it('a throwing onRequestError hook does not replace the original request error', async () => {
+  void it('a throwing onRequestError hook surfaces as a HookInvocationError', async () => {
     class ThrowingRequestErrorClient extends FetchClient {
       static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingRequestErrorClient {
         return new this(config);
@@ -276,12 +293,14 @@ void describe('FetchClient lifecycle hooks', () => {
     await assert.rejects(
       () => client.get('/delay'),
       (error: unknown) => {
-        return error instanceof Error && error.name.endsWith('TimeoutError');
+        assert.ok(error instanceof HookInvocationError);
+        assert.equal(error.hookName, 'onRequestError');
+        return true;
       }
     );
   });
 
-  void it('a throwing onDispatcherDestroy hook does not replace dispatcher shutdown', async () => {
+  void it('a throwing onDispatcherDestroy hook surfaces as a HookInvocationError and skips dispatcher shutdown', async () => {
     class ThrowingDestroyClient extends FetchClient {
       static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingDestroyClient {
         return new this(config);
@@ -297,8 +316,85 @@ void describe('FetchClient lifecycle hooks', () => {
       'dispatcher': { 'connections': 2, 'enabled': true }
     });
 
-    await assert.doesNotReject(async () => {
-      await client.destroy();
-    });
+    await assert.rejects(
+      () => client.destroy(),
+      (error: unknown) => {
+        assert.ok(error instanceof HookInvocationError);
+        assert.equal(error.hookName, 'onDispatcherDestroy');
+        return true;
+      }
+    );
+  });
+});
+
+void describe('FetchClient hookTimeoutMs', () => {
+  void it('a hook that resolves before hookTimeoutMs behaves identically to today', async () => {
+    class SlowButFastEnoughClient extends FetchClient {
+      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): SlowButFastEnoughClient {
+        return new this(config);
+      }
+
+      readonly events: string[] = [];
+
+      protected override async onRequestStart(): Promise<void> {
+        await new Promise((resolve) => { setTimeout(resolve, 5); });
+        this.events.push('onRequestStart');
+      }
+    }
+
+    const client = SlowButFastEnoughClient.create({ 'baseURL': baseURL, 'hookTimeoutMs': 50 });
+    const response = await client.get('/ok');
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(client.events, ['onRequestStart']);
+  });
+
+  void it('a hook that never settles fails the request with a HookInvocationError whose cause is a HookTimeoutError, once hookTimeoutMs is configured', async () => {
+    class NeverSettlesClient extends FetchClient {
+      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): NeverSettlesClient {
+        return new this(config);
+      }
+
+      protected override onRequestStart(): Promise<void> {
+        return new Promise(() => {
+          // Deliberately never resolves or rejects.
+        });
+      }
+    }
+
+    const client = NeverSettlesClient.create({ 'baseURL': baseURL, 'hookTimeoutMs': 20 });
+
+    await assert.rejects(
+      () => client.get('/ok'),
+      (error: unknown) => {
+        assert.ok(error instanceof HookInvocationError);
+        assert.equal(error.hookName, 'onRequestStart');
+        assert.ok(error.cause instanceof HookTimeoutError);
+        assert.equal(error.cause.hookName, 'onRequestStart');
+        assert.equal(error.cause.timeoutMs, 20);
+        return true;
+      }
+    );
+  });
+
+  void it('with hookTimeoutMs unset, a slow-settling hook still succeeds, unchanged from today', async () => {
+    class SlowUnboundedClient extends FetchClient {
+      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): SlowUnboundedClient {
+        return new this(config);
+      }
+
+      readonly events: string[] = [];
+
+      protected override async onRequestStart(): Promise<void> {
+        await new Promise((resolve) => { setTimeout(resolve, 40); });
+        this.events.push('onRequestStart');
+      }
+    }
+
+    const client = SlowUnboundedClient.create({ 'baseURL': baseURL });
+    const response = await client.get('/ok');
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(client.events, ['onRequestStart']);
   });
 });

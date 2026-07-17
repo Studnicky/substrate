@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { CacheConfigError } from '../../src/errors/index.js';
 import { LruCache } from '../../src/LruCache.js';
 
 // --- Scenario runners (synchronous, simple input → check) ---
@@ -54,6 +55,19 @@ const getHasDeleteScenarios: Array<{ description: string; exec: () => void }> = 
     exec: () => {
       const cache = LruCache.create<string, number>({ capacity: 10 });
       assert.equal(cache.delete('nonexistent'), false);
+    },
+  },
+  {
+    description: 'distinct object keys do not collide (identity-based keying, not stringified)',
+    exec: () => {
+      const cache = LruCache.create<object, number>({ capacity: 10 });
+      const keyA = { id: 1 };
+      const keyB = { id: 2 };
+      cache.set(keyA, 100);
+      cache.set(keyB, 200);
+      assert.equal(cache.get(keyA), 100);
+      assert.equal(cache.get(keyB), 200);
+      assert.equal(cache.size, 2);
     },
   },
 ];
@@ -609,4 +623,100 @@ it('a throwing onUpdate hook does not replace the completed overwrite', () => {
   cache.set('a', 2);
 
   assert.equal(cache.get('a'), 2);
+});
+
+// ---------------------------------------------------------------------------
+// Options validation — schema-driven (LruCacheOptionsEntity.validate)
+// ---------------------------------------------------------------------------
+
+it('a negative ttlMs is rejected with CacheConfigError', () => {
+  assert.throws(() => {
+    LruCache.create<string, number>({ 'capacity': 10, 'ttlMs': -5 });
+  }, CacheConfigError);
+});
+
+it('a negative staleMs is rejected with CacheConfigError', () => {
+  assert.throws(() => {
+    LruCache.create<string, number>({ 'capacity': 10, 'staleMs': -5 });
+  }, CacheConfigError);
+});
+
+it('builder: withCapacity + withStaleMs produces a cache whose entries survive staleMs without eviction', async () => {
+  const cache = LruCache.builder<string, number>()
+    .withCapacity(10)
+    .withStaleMs(1)
+    .withTtlMs(10_000)
+    .build();
+
+  cache.set('a', 1);
+
+  await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
+
+  // Past staleMs but well before ttlMs: the entry is still live and servable.
+  assert.equal(cache.get('a'), 1);
+  assert.equal(cache.size, 1);
+});
+
+it('builder: withStaleMs fires the onStale path (not onHit) once past the stale mark', async () => {
+  class RecordingStaleCache extends LruCache<string, number> {
+    staleFired = false;
+    hitFired = false;
+
+    protected override onStale(): void {
+      this.staleFired = true;
+    }
+
+    protected override onHit(): void {
+      this.hitFired = true;
+    }
+  }
+
+  const cache = new RecordingStaleCache({ 'capacity': 10, 'staleMs': 1, 'ttlMs': 10_000 });
+  cache.set('a', 1);
+
+  await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
+
+  assert.equal(cache.get('a'), 1);
+  assert.equal(cache.staleFired, true);
+  assert.equal(cache.hitFired, false);
+});
+
+// ---------------------------------------------------------------------------
+// HookInvoker async-safety regression — hooks.invoke() must see the hook's
+// return value so an async override's eventual rejection is routed through
+// onHookError instead of becoming an unhandled rejection. This only holds if
+// the `() => { ... }` wrapper passed to hooks.invoke() actually returns the
+// hook call's result; a block body without `return` discards it before
+// HookInvoker ever observes the Promise.
+// ---------------------------------------------------------------------------
+
+it('an async-overridden onEvict rejects safely through onHookError without an unhandled rejection', async () => {
+  class AsyncRejectingEvictCache extends LruCache<string, number> {
+    protected override async onEvict(_key: string, _reason: 'capacity'): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onEvict boom');
+    }
+  }
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const cache = new AsyncRejectingEvictCache({ 'capacity': 1 });
+    cache.set('lru', 1);
+    cache.set('new', 2); // evicts 'lru', triggering the async-rejecting onEvict override
+
+    // LruCache's HookInvoker swallows onHookError, so the cache stays fully
+    // usable — but we still need to flush the microtask/macrotask queues to
+    // give a mishandled rejection a chance to surface as 'unhandledRejection'.
+    await new Promise((resolve) => { setTimeout(resolve, 10); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    assert.equal(rejectionEvents.length, 0, 'the async onEvict rejection must be routed through onHookError, not left unhandled');
+    assert.equal(cache.get('new'), 2, 'cache remains usable after a swallowed hook failure');
+    assert.equal(cache.get('lru'), undefined);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });

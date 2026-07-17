@@ -46,10 +46,10 @@ class BuilderConcurrencyDemo {
     const channel = Channel.builder<string>().build();
 
     console.log('\nChannel built. Publishing items...');
-    channel.publish('notifications', 'signup');
-    channel.publish('notifications', 'payment');
-    channel.publish('notifications', 'logout');
-    channel.close();
+    await channel.publish('notifications', 'signup');
+    await channel.publish('notifications', 'payment');
+    await channel.publish('notifications', 'logout');
+    await channel.close();
 
     const received: string[] = [];
     for await (const item of channel.subscribe('notifications')) {

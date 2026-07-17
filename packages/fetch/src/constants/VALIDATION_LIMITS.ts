@@ -21,13 +21,3 @@ export const HTTP_STATUS_OK = 200;
  * HTTP status code for not found response
  */
 export const HTTP_STATUS_NOT_FOUND = 404;
-
-/**
- * Validation limit configuration constants
- */
-export const VALIDATION_LIMITS = {
-  'HTTP_STATUS_NOT_FOUND': HTTP_STATUS_NOT_FOUND,
-  'HTTP_STATUS_OK': HTTP_STATUS_OK,
-  'MAX_DISPATCHER_CONNECTIONS': MAX_DISPATCHER_CONNECTIONS,
-  'MAX_PIPELINING': MAX_PIPELINING
-} as const;

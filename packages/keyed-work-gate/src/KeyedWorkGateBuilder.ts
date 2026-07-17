@@ -3,6 +3,8 @@
 import type { Coalesce, CoalesceOptionsEntity } from '@studnicky/concurrency';
 import type { Mutex, MutexConfigEntity } from '@studnicky/mutex';
 
+import { PickDefined } from '@studnicky/types';
+
 import type { KeyedWorkGate } from './KeyedWorkGate.js';
 import type { KeyedWorkGateConfigType } from './types/KeyedWorkGateConfigType.js';
 
@@ -36,10 +38,10 @@ export class KeyedWorkGateBuilder<K extends PropertyKey = string> {
    * Build and return the KeyedWorkGate instance
    */
   build(): KeyedWorkGate<K> {
-    const config: KeyedWorkGateConfigType<K> = {
-      ...(this.#mutex !== undefined ? { 'mutex': this.#mutex } : {}),
-      ...(this.#coalesce !== undefined ? { 'coalesce': this.#coalesce } : {})
-    };
+    const config: KeyedWorkGateConfigType<K> = PickDefined.from({
+      'coalesce': this.#coalesce,
+      'mutex': this.#mutex
+    });
     return this.#create(config);
   }
 

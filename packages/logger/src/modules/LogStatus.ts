@@ -18,11 +18,8 @@ export class LogStatus {
    * @returns True if the status is a success status, with type narrowing
    */
   public static isSuccess(status: LogStatusType): status is SuccessStatusType {
-    if (typeof status !== 'string') {
-      return false;
-    }
-
-    return (STATUS_CATEGORIES.SUCCESS as readonly string[]).includes(status);
+    const result = (STATUS_CATEGORIES.SUCCESS as readonly string[]).includes(status);
+    return result;
   }
 
   /**
@@ -32,11 +29,8 @@ export class LogStatus {
    * @returns True if the status is a failure status, with type narrowing
    */
   public static isFailure(status: LogStatusType): status is FailureStatusType {
-    if (typeof status !== 'string') {
-      return false;
-    }
-
-    return (STATUS_CATEGORIES.FAILURE as readonly string[]).includes(status);
+    const result = (STATUS_CATEGORIES.FAILURE as readonly string[]).includes(status);
+    return result;
   }
 
   /**
@@ -46,10 +40,7 @@ export class LogStatus {
    * @returns True if the status is a lifecycle status, with type narrowing
    */
   public static isLifecycle(status: LogStatusType): status is LifecycleStatusType {
-    if (typeof status !== 'string') {
-      return false;
-    }
-
-    return (STATUS_CATEGORIES.LIFECYCLE as readonly string[]).includes(status);
+    const result = (STATUS_CATEGORIES.LIFECYCLE as readonly string[]).includes(status);
+    return result;
   }
 }

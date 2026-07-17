@@ -161,7 +161,7 @@ console.log('Job A final state:', jobA.interpreter.getState().variant);
 
 const jobB = Job.make();
 const controllerB = new AbortController();
-const composedSignalB = signalSource.compose({ 'signal': controllerB.signal });
+const composedSignalB = await signalSource.compose({ 'signal': controllerB.signal });
 CancellationWiring.wire(jobB.interpreter, jobB.getScheduledTask, composedSignalB);
 
 jobB.interpreter.start();

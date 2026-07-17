@@ -10,10 +10,10 @@ class ChannelSemaphoreDemo {
     const channel = Channel.create<number>();
 
     // Publish items before subscribing — they buffer in the channel
-    channel.publish('nums', 1);
-    channel.publish('nums', 2);
-    channel.publish('nums', 3);
-    channel.close();
+    await channel.publish('nums', 1);
+    await channel.publish('nums', 2);
+    await channel.publish('nums', 3);
+    await channel.close();
 
     const received: number[] = [];
     for await (const item of channel.subscribe('nums')) {
@@ -28,10 +28,10 @@ class ChannelSemaphoreDemo {
     const channel = Channel.create<string>();
 
     // Two independent keys — no cross-talk
-    channel.publish('a', 'alpha');
-    channel.publish('b', 'beta');
-    channel.publish('a', 'apple');
-    channel.close();
+    await channel.publish('a', 'alpha');
+    await channel.publish('b', 'beta');
+    await channel.publish('a', 'apple');
+    await channel.close();
 
     const fromA: string[] = [];
     for await (const item of channel.subscribe('a')) {
@@ -62,9 +62,9 @@ class ChannelSemaphoreDemo {
 
     // Publish asynchronously, then close
     await Promise.resolve();
-    channel.publish('live', 10);
-    channel.publish('live', 20);
-    channel.close();
+    await channel.publish('live', 10);
+    await channel.publish('live', 20);
+    await channel.close();
 
     await consuming;
 
@@ -103,7 +103,7 @@ class ChannelSemaphoreDemo {
     const afterAcquire = sem.available;
     console.log('Semaphore available after acquire:', afterAcquire);
 
-    release();
+    await release();
     const afterRelease = sem.available;
     console.log('Semaphore available after release:', afterRelease);
     assert.equal(afterAcquire, 0);
