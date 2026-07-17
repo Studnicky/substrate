@@ -19,6 +19,16 @@ export class SystemProvider implements SystemProviderInterface {
     return result;
   }
 
+  cpuInfo(): { 'logicalCount': number; 'model': string; 'physicalCount': number } {
+    const logicalCount = this.logicalCpuCount();
+
+    return {
+      'logicalCount': logicalCount,
+      'model': this.cpuModel(),
+      'physicalCount': logicalCount
+    };
+  }
+
   cpuModel(): string {
     const result = 'Unknown';
     return result;
@@ -37,6 +47,17 @@ export class SystemProvider implements SystemProviderInterface {
   logicalCpuCount(): number {
     const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
     const result = nav?.hardwareConcurrency ?? 1;
+    return result;
+  }
+
+  /**
+   * The browser has no API for true physical core count — `navigator
+   * .hardwareConcurrency` only reports logical (thread) count. Reporting
+   * the logical count as the physical count avoids silently under- or
+   * over-estimating available parallelism with an unreliable heuristic.
+   */
+  physicalCpuCount(): number {
+    const result = this.logicalCpuCount();
     return result;
   }
 

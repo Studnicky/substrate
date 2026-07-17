@@ -43,6 +43,29 @@ void describe('Hash', () => {
 
       assert.notStrictEqual(h1, h2);
     });
+
+    void it('hashes Map, Set, Date and {} distinctly', () => {
+      const hashes = [
+        Hash.value(new Map([['a', 1]])),
+        Hash.value(new Set(['a'])),
+        Hash.value(new Date(0)),
+        Hash.value({}),
+      ];
+
+      assert.strictEqual(new Set(hashes).size, hashes.length);
+    });
+
+    void it('is insensitive to Map/Set insertion order', () => {
+      const m1 = Hash.value(new Map([['a', 1], ['b', 2]]));
+      const m2 = Hash.value(new Map([['b', 2], ['a', 1]]));
+
+      assert.strictEqual(m1, m2);
+
+      const s1 = Hash.value(new Set(['a', 'b']));
+      const s2 = Hash.value(new Set(['b', 'a']));
+
+      assert.strictEqual(s1, s2);
+    });
   });
 });
 

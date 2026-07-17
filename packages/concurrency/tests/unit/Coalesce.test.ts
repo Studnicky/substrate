@@ -1,5 +1,6 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
+import { HookInvocationError } from '@studnicky/errors';
 import { Coalesce } from '../../src/Coalesce.js';
 import { CoalesceTimeoutError } from '../../src/errors/CoalesceTimeoutError.js';
 
@@ -210,7 +211,7 @@ it('a second caller joining after the first times out still receives the real re
   assert.equal(c.timeoutEvents.length, 1);
 });
 
-it('a throwing onCoalesceStart hook does not replace the leader result or clear the in-flight entry early', async () => {
+it('a throwing onCoalesceStart hook rejects run() with HookInvocationError; the factory still runs and the in-flight entry still clears', async () => {
   class ThrowingStartCoalesce<T> extends Coalesce<T> {
     protected override onCoalesceStart(): void {
       throw new Error('hook boom');
@@ -224,13 +225,17 @@ it('a throwing onCoalesceStart hook does not replace the leader result or clear 
     return 'ok';
   };
 
-  const result = await c.run('k', factory);
-  assert.equal(result, 'ok');
+  await assert.rejects(() => c.run('k', factory), HookInvocationError);
   assert.equal(calls, 1);
+
+  // the underlying factory promise (already started before the hook threw)
+  // settles independently of the rejected leader call — give its .finally()
+  // cleanup a tick to run.
+  await new Promise((resolve) => { setImmediate(resolve); });
   assert.equal(c.isInflight('k'), false);
 });
 
-it('a throwing onCoalesceSettled hook does not replace the factory outcome', async () => {
+it('a throwing onCoalesceSettled hook replaces the factory outcome with HookInvocationError for every caller sharing the in-flight promise', async () => {
   class ThrowingSettledCoalesce<T> extends Coalesce<T> {
     protected override onCoalesceSettled(): void {
       throw new Error('hook boom');
@@ -238,9 +243,13 @@ it('a throwing onCoalesceSettled hook does not replace the factory outcome', asy
   }
 
   const resolved = new ThrowingSettledCoalesce<string>();
-  assert.equal(await resolved.run('resolve', async () => 'value'), 'value');
+  await assert.rejects(() => resolved.run('resolve', async () => 'value'), HookInvocationError);
+  assert.equal(resolved.isInflight('resolve'), false);
 
   const rejected = new ThrowingSettledCoalesce<string>();
-  await assert.rejects(() => rejected.run('reject', async () => { throw new Error('factory-error'); }), /factory-error/);
+  await assert.rejects(
+    () => rejected.run('reject', async () => { throw new Error('factory-error'); }),
+    HookInvocationError
+  );
   assert.equal(rejected.isInflight('reject'), false);
 });

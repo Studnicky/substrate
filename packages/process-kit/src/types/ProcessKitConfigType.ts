@@ -17,15 +17,15 @@ import type { Signal } from '@studnicky/signal';
  */
 // json-schema-uninexpressible: generic type parameters (TState, TEvent, TEffect), a function-map field (handlers: EffectHandlerMapType), and live class instances (StateMachine, Signal), not plain data
 export type ProcessKitConfigType<
-  TState extends { readonly 'variant': string },
-  TEvent extends { readonly 'type': string },
-  TEffect extends { readonly 'variant': string } = never
+  TState extends { 'variant': string },
+  TEvent extends { 'type': string },
+  TEffect extends { 'variant': string } = never
 > = {
   /**
    * Effect handlers passed straight to `EffectInterpreter.create({ machine, handlers })`.
    * No default — a machine with no effects needs none.
    */
-  'handlers'?: EffectHandlerMapType<TEffect, TEvent>;
+  'handlers'?: EffectHandlerMapType<TEffect, TEvent> | undefined;
 
   /**
    * The caller-supplied `StateMachine` subclass. Required — `ProcessKit` never invents a
@@ -37,10 +37,10 @@ export type ProcessKitConfigType<
    * A pre-built `SchedulerProviderType`. Defaults to `RealTimeScheduler.create()`.
    * Pass a `VirtualScheduler` for deterministic test fixtures — no kit-side test-mode flag.
    */
-  'scheduler'?: SchedulerProviderType;
+  'scheduler'?: SchedulerProviderType | undefined;
 
   /**
    * A pre-built `Signal` instance. Defaults to `Signal.create()`.
    */
-  'signal'?: Signal;
+  'signal'?: Signal | undefined;
 };

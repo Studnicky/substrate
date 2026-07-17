@@ -49,7 +49,7 @@ class Dispatcher {
       await bus.publish('dispatch.failed', { 'error': error, 'key': key });
       throw error;
     } finally {
-      release();
+      await release();
     }
   }
 

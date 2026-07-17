@@ -19,7 +19,7 @@
 ## Checklist
 
 - [ ] `pnpm typecheck` and `pnpm lint` pass
-- [ ] `CHANGELOG.md` updated under `[Unreleased]`
+- [ ] `pnpm changeset` run and the generated `.changeset/*.md` committed
 - [ ] Self-review completed
 - [ ] Docs updated if needed
 - [ ] All tests pass

@@ -2,7 +2,7 @@
  * CircuitBreaker Unit Tests
  */
 
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity, HookInvocationError } from '@studnicky/errors';
 
 import { deepStrictEqual, ok, rejects, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
@@ -386,4 +386,34 @@ it('a throwing onTrip hook does not replace the original failure or the open tra
     (error: unknown) => error instanceof Error && error.message === 'failure'
   );
   strictEqual(cb.state, 'open');
+});
+
+it('an async-overridden onSuccess hook that rejects is routed to hookErrors without producing an unhandled rejection', async () => {
+  class AsyncRejectingSuccessBreaker extends CircuitBreaker {
+    get recordedHookErrors(): HookInvocationError[] { const result = this.hookErrors;
+      return result; }
+
+    protected override async onSuccess(): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onSuccess boom');
+    }
+  }
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const cb = new AsyncRejectingSuccessBreaker({ failureThreshold: 2, resetTimeoutMs: 100 });
+    const result = await cb.execute(succeed);
+
+    strictEqual(result, 'ok');
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(rejectionEvents.length, 0);
+    strictEqual(cb.recordedHookErrors.length, 1);
+    strictEqual(cb.recordedHookErrors[0]?.hookName, 'onSuccess');
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { it } from 'node:test';
+import { it, mock } from 'node:test';
 import { Predicates } from '../../src/Predicates.js';
 
 // matchesType
@@ -19,19 +19,19 @@ for (const { description, schemaType, value, expected } of matchesTypeScenarios)
   void it(description, () => { assert.strictEqual(Predicates.matchesType(schemaType as 'string', value), expected); });
 }
 
-// checkMinLength
-const checkMinLengthScenarios: Array<{ description: string; input: string; min: number; expected: boolean }> = [
+// satisfiesMinLength
+const satisfiesMinLengthScenarios: Array<{ description: string; input: string; min: number; expected: boolean }> = [
   { description: 'returns true when string meets minimum code-point count', input: 'hello', min: 3, expected: true },
   { description: 'returns false when string is shorter than minimum', input: 'hi', min: 3, expected: false },
   { description: 'handles surrogate pair as single code point (meets min 1)', input: '𝄞', min: 1, expected: true },
   { description: 'handles surrogate pair as single code point (below min 2)', input: '𝄞', min: 2, expected: false },
 ];
-for (const { description, input, min, expected } of checkMinLengthScenarios) {
-  void it(description, () => { assert.strictEqual(Predicates.checkMinLength(input, min), expected); });
+for (const { description, input, min, expected } of satisfiesMinLengthScenarios) {
+  void it(description, () => { assert.strictEqual(Predicates.satisfiesMinLength(input, min), expected); });
 }
 
-// checkMaxLength
-const checkMaxLengthScenarios: Array<{ description: string; input: string; max: number; expected: boolean }> = [
+// satisfiesMaxLength
+const satisfiesMaxLengthScenarios: Array<{ description: string; input: string; max: number; expected: boolean }> = [
   { description: 'returns true when string is within maximum code-point count', input: 'hello', max: 10, expected: true },
   { description: 'returns false when string exceeds maximum', input: 'hello', max: 3, expected: false },
   { description: 'returns true at exact maximum', input: 'hello', max: 5, expected: true },
@@ -39,8 +39,8 @@ const checkMaxLengthScenarios: Array<{ description: string; input: string; max: 
   { description: 'handles surrogate pairs as single code points (within max)', input: '𝄞𝄞', max: 2, expected: true },
   { description: 'handles surrogate pairs as single code points (exceeds max)', input: '𝄞𝄞𝄞', max: 2, expected: false },
 ];
-for (const { description, input, max, expected } of checkMaxLengthScenarios) {
-  void it(description, () => { assert.strictEqual(Predicates.checkMaxLength(input, max), expected); });
+for (const { description, input, max, expected } of satisfiesMaxLengthScenarios) {
+  void it(description, () => { assert.strictEqual(Predicates.satisfiesMaxLength(input, max), expected); });
 }
 
 // checkPattern — kept as individual it() calls (mixed second-arg types)
@@ -52,6 +52,19 @@ void it('returns false when string does not match pattern string', () => {
 });
 void it('accepts a compiled RegExp', () => {
   assert.strictEqual(Predicates.checkPattern('hello', /^he/u), true);
+});
+void it('reuses the compiled RegExp for repeated calls with the same pattern string', () => {
+  const ctor = mock.method(globalThis, 'RegExp');
+
+  try {
+    assert.strictEqual(Predicates.checkPattern('foobar', '^checkPattern-cache-spy'), false);
+    assert.strictEqual(Predicates.checkPattern('checkPattern-cache-spy-hit', '^checkPattern-cache-spy'), true);
+    assert.strictEqual(Predicates.checkPattern('checkPattern-cache-spy-again', '^checkPattern-cache-spy'), true);
+
+    assert.strictEqual(ctor.mock.callCount(), 1);
+  } finally {
+    ctor.mock.restore();
+  }
 });
 
 // checkMinimum
@@ -86,44 +99,44 @@ for (const { description, value, divisor, expected } of checkMultipleOfScenarios
   void it(description, () => { assert.strictEqual(Predicates.checkMultipleOf(value, divisor), expected); });
 }
 
-// checkMinItems
-const checkMinItemsScenarios: Array<{ description: string; array: unknown[]; min: number; expected: boolean }> = [
+// satisfiesMinItems
+const satisfiesMinItemsScenarios: Array<{ description: string; array: unknown[]; min: number; expected: boolean }> = [
   { description: 'returns true when array meets minimum length', array: [1, 2], min: 1, expected: true },
   { description: 'returns true at exact minimum', array: [1], min: 1, expected: true },
   { description: 'returns false when array is shorter than minimum', array: [], min: 1, expected: false },
 ];
-for (const { description, array, min, expected } of checkMinItemsScenarios) {
-  void it(description, () => { assert.strictEqual(Predicates.checkMinItems(array, min), expected); });
+for (const { description, array, min, expected } of satisfiesMinItemsScenarios) {
+  void it(description, () => { assert.strictEqual(Predicates.satisfiesMinItems(array, min), expected); });
 }
 
-// checkMaxItems
-const checkMaxItemsScenarios: Array<{ description: string; array: unknown[]; max: number; expected: boolean }> = [
+// satisfiesMaxItems
+const satisfiesMaxItemsScenarios: Array<{ description: string; array: unknown[]; max: number; expected: boolean }> = [
   { description: 'returns true when array is within maximum', array: [1, 2], max: 3, expected: true },
   { description: 'returns false when array exceeds maximum', array: [1, 2, 3], max: 2, expected: false },
 ];
-for (const { description, array, max, expected } of checkMaxItemsScenarios) {
-  void it(description, () => { assert.strictEqual(Predicates.checkMaxItems(array, max), expected); });
+for (const { description, array, max, expected } of satisfiesMaxItemsScenarios) {
+  void it(description, () => { assert.strictEqual(Predicates.satisfiesMaxItems(array, max), expected); });
 }
 
-// checkUniqueItems
-const checkUniqueItemsScenarios: Array<{ description: string; array: unknown[]; expected: boolean }> = [
+// satisfiesUniqueItems
+const satisfiesUniqueItemsScenarios: Array<{ description: string; array: unknown[]; expected: boolean }> = [
   { description: 'returns true for array with all unique primitives', array: [1, 2, 3], expected: true },
   { description: 'returns false for array with duplicate primitives', array: [1, 2, 1], expected: false },
   { description: 'returns true for array with unique objects', array: [{ a: 1 }, { a: 2 }], expected: true },
   { description: 'returns false for array with deeply-equal objects', array: [{ a: 1 }, { a: 1 }], expected: false },
 ];
-for (const { description, array, expected } of checkUniqueItemsScenarios) {
-  void it(description, () => { assert.strictEqual(Predicates.checkUniqueItems(array), expected); });
+for (const { description, array, expected } of satisfiesUniqueItemsScenarios) {
+  void it(description, () => { assert.strictEqual(Predicates.satisfiesUniqueItems(array), expected); });
 }
 
-// checkRequired
-const checkRequiredScenarios: Array<{ description: string; obj: Record<string, unknown>; required: string[]; expected: boolean }> = [
+// hasAllRequiredProperties
+const hasAllRequiredPropertiesScenarios: Array<{ description: string; obj: Record<string, unknown>; required: string[]; expected: boolean }> = [
   { description: 'returns true when all required properties are present', obj: { a: 1, b: 2 }, required: ['a', 'b'], expected: true },
   { description: 'returns false when a required property is missing', obj: { a: 1 }, required: ['a', 'b'], expected: false },
   { description: 'returns true for empty required list', obj: {}, required: [], expected: true },
 ];
-for (const { description, obj, required, expected } of checkRequiredScenarios) {
-  void it(description, () => { assert.strictEqual(Predicates.checkRequired(obj, required), expected); });
+for (const { description, obj, required, expected } of hasAllRequiredPropertiesScenarios) {
+  void it(description, () => { assert.strictEqual(Predicates.hasAllRequiredProperties(obj, required), expected); });
 }
 
 // matchesAnyType

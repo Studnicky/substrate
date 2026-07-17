@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@studnicky/concurrency": "workspace:*",
-    "@studnicky/mutex": "workspace:*"
+    "@studnicky/mutex": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

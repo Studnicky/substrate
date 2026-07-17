@@ -7,8 +7,10 @@
  * state change in between fire the hook once, not twice.
  */
 
-import { deepStrictEqual, strictEqual } from 'node:assert/strict';
+import { deepStrictEqual, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
+
+import { HookInvocationError } from '@studnicky/errors';
 
 import type { VisibleRangeEntity } from '../../../src/index.js';
 
@@ -58,7 +60,7 @@ it('fires again when the scroll offset moves the range', () => {
   deepStrictEqual(range.changes[1], second);
 });
 
-it('a throwing onRangeChange hook does not replace getRange()', () => {
+it('a throwing onRangeChange hook surfaces as a HookInvocationError', () => {
   class ThrowingVisibleRange extends VisibleRange {
     protected override onRangeChange(): void {
       throw new Error('onRangeChange boom');
@@ -69,5 +71,42 @@ it('a throwing onRangeChange hook does not replace getRange()', () => {
   range.setScrollOffset(0);
   range.setViewportSize(100);
 
-  deepStrictEqual(range.getRange(), { 'end': 2, 'start': 0 });
+  throws(() => {
+    range.getRange();
+  }, HookInvocationError);
+});
+
+it('an async-rejecting onRangeChange override is routed through the hook\'s safety net without producing an unhandled rejection', async () => {
+  const original = new Error('async onRangeChange boom');
+
+  class AsyncRejectingVisibleRange extends VisibleRange {
+    protected override async onRangeChange(): Promise<void> {
+      await Promise.resolve();
+      throw original;
+    }
+  }
+
+  const range = AsyncRejectingVisibleRange.create({ 'count': 1000, 'itemSize': 50 });
+  range.setScrollOffset(0);
+  range.setViewportSize(100);
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    // getRange() itself only returns the computed range synchronously — the
+    // hook's own promise is not awaited by the call site (mirroring real
+    // fire-and-forget callers). If `onRangeChange`'s return value were
+    // discarded by the invoke() call site, this rejection would surface as
+    // an unhandled rejection instead of being routed to onHookError.
+    range.getRange();
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });

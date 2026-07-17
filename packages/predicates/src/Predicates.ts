@@ -1,5 +1,6 @@
 /** Static predicate library for JSON Schema draft 2020-12 validation. */
 
+import { LruCache } from '@studnicky/cache';
 import { DataType } from '@studnicky/json';
 
 import type { CoerceToBooleanResultType } from './CoerceToBooleanResultType.js';
@@ -7,11 +8,16 @@ import type { CoerceToNumberResultType } from './CoerceToNumberResultType.js';
 
 import {
   MULTIPLE_OF_EPSILON_FACTOR,
+  PATTERN_CACHE_CAPACITY,
   SUPPORTED_CONTENT_ENCODINGS,
   SUPPORTED_CONTENT_MEDIA_TYPES
 } from './constants/index.js';
 
 export class Predicates {
+  /** Bounded so schemas sourced from untrusted input cannot grow this cache unboundedly. */
+  private static readonly patternCache = LruCache.create<string, RegExp>({
+    'capacity': PATTERN_CACHE_CAPACITY
+  });
   private static readonly coercionHandlers = new Map<string, (value: unknown) => unknown>([
     [
       'array',
@@ -278,45 +284,29 @@ export class Predicates {
     return Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * MULTIPLE_OF_EPSILON_FACTOR;
   }
 
-  static satisfiesMinimum(value: number, minimum: number): boolean {
-    return value >= minimum;
-  }
-
-  static satisfiesMaximum(value: number, maximum: number): boolean {
-    return value <= maximum;
-  }
-
-  static satisfiesExclusiveMinimum(value: number, limit: number): boolean {
-    return value > limit;
-  }
-
-  static satisfiesExclusiveMaximum(value: number, limit: number): boolean {
-    return value < limit;
-  }
-
   static satisfiesMultipleOf(value: number, divisor: number): boolean {
     const result = Predicates.checkMultipleOf(value, divisor);
     return result;
   }
 
-  /** Fast-paths: len<min→false, len>=2*min→true; walks code points only in residual band. */
-  static checkMinLength(value: string, minimum: number): boolean {
-    const result = Predicates.satisfiesMinLength(value, minimum);
-    return result;
-  }
-
-  /** Fast-path: code_points <= utf16_length, so value.length<=max is definitely true. */
-  static checkMaxLength(value: string, maximum: number): boolean {
-    const result = Predicates.satisfiesMaxLength(value, maximum);
-    return result;
-  }
-
   static checkPattern(value: string, pattern: RegExp | string): boolean {
-    const regex = pattern instanceof RegExp ? pattern : new RegExp(pattern, 'u');
+    if (pattern instanceof RegExp) {
+      return pattern.test(value);
+    }
+
+    const cached = Predicates.patternCache.get(pattern);
+
+    if (cached !== undefined) {
+      return cached.test(value);
+    }
+
+    const regex = new RegExp(pattern, 'u');
+    Predicates.patternCache.set(pattern, regex);
 
     return regex.test(value);
   }
 
+  /** Fast-paths: len<min→false, len>=2*min→true; walks code points only in residual band. */
   static satisfiesMinLength(value: string, minimum: number): boolean {
     const len = value.length;
 
@@ -330,6 +320,7 @@ export class Predicates {
     return Predicates.codePointLengthAtLeast(value, minimum);
   }
 
+  /** Fast-path: code_points <= utf16_length, so value.length<=max is definitely true. */
   static satisfiesMaxLength(value: string, maximum: number): boolean {
     if (value.length <= maximum) {
       return true;
@@ -377,19 +368,6 @@ export class Predicates {
     return true;
   }
 
-  static checkMinItems(value: unknown[], minimum: number): boolean {
-    return value.length >= minimum;
-  }
-
-  static checkMaxItems(value: unknown[], maximum: number): boolean {
-    return value.length <= maximum;
-  }
-
-  static checkUniqueItems(value: unknown[]): boolean {
-    const result = Predicates.satisfiesUniqueItems(value);
-    return result;
-  }
-
   /** Validates minContains/maxContains bounds against match count from a contains schema. */
   static satisfiesContains(
     matchCount: number,
@@ -428,11 +406,6 @@ export class Predicates {
     }
 
     return true;
-  }
-
-  static checkRequired(value: Record<string, unknown>, required: string[]): boolean {
-    const result = Predicates.hasAllRequiredProperties(value, required);
-    return result;
   }
 
   static hasAllRequiredProperties(value: Record<string, unknown>, required: string[]): boolean {

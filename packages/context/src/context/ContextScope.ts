@@ -1,3 +1,4 @@
+import { HookInvoker } from '@studnicky/errors';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
@@ -106,16 +107,12 @@ export class ContextScope implements ContextScopeInterface {
   readonly #store: Map<string, unknown>;
   #state: ContextScopeState = 'created';
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
-
   /**
    * The name of this scope, used in error messages.
    */
   protected readonly name: string;
+
+  protected readonly hooks: HookInvoker = new HookInvoker();
 
   protected constructor(options: ContextScopeOptionsInterface) {
     if (typeof options.name !== 'string' || options.name.length === 0) {
@@ -146,12 +143,14 @@ export class ContextScope implements ContextScopeInterface {
       throw new ContextError(`Illegal state transition: ${from} → ${to}`);
     }
 
-    this.#invokeHook(() => {
-      this.onExit(from, to);
+    this.hooks.invoke('onExit', () => {
+      const hookResult = this.onExit(from, to);
+      return hookResult;
     });
     this.#state = to;
-    this.#invokeHook(() => {
-      this.onEnter(to, from);
+    this.hooks.invoke('onEnter', () => {
+      const hookResult = this.onEnter(to, from);
+      return hookResult;
     });
   }
 
@@ -254,29 +253,59 @@ export class ContextScope implements ContextScopeInterface {
    * @param fn - Function to execute within the context
    * @returns The result of the function (or Promise if fn is async)
    * @throws {ContextError} If scope has been terminated
+   *
+   * @remarks
+   * When `fn` is async (returns a Promise), `onAfterExecute()` fires only
+   * after the returned promise resolves, and `onError()` fires if it
+   * rejects instead. The returned promise still resolves/rejects exactly
+   * as `fn`'s promise does.
    */
   execute<TResult>(fn: () => TResult): TResult {
     if (this.#state === 'terminated') {
-      this.#invokeHook(() => {
-        this.onTerminatedAccess();
+      this.hooks.invoke('onTerminatedAccess', () => {
+        const hookResult = this.onTerminatedAccess();
+        return hookResult;
       });
       throw new ContextError(`${this.name} scope has been terminated`);
     }
 
-    this.#invokeHook(() => {
-      this.onBeforeExecute();
+    this.hooks.invoke('onBeforeExecute', () => {
+      const hookResult = this.onBeforeExecute();
+      return hookResult;
     });
     let result: TResult;
     try {
       result = this.#storage.run(this.#store, fn);
     } catch (error) {
-      this.#invokeHook(() => {
-        this.onError(error);
+      this.hooks.invoke('onError', () => {
+        const hookResult = this.onError(error);
+        return hookResult;
       });
       throw error;
     }
-    this.#invokeHook(() => {
-      this.onAfterExecute();
+
+    if (result instanceof Promise) {
+      result.then(
+        () => {
+          this.hooks.invoke('onAfterExecute', () => {
+            const hookResult = this.onAfterExecute();
+            return hookResult;
+          });
+        },
+        (error: unknown) => {
+          this.hooks.invoke('onError', () => {
+            const hookResult = this.onError(error);
+            return hookResult;
+          });
+        }
+      );
+
+      return result;
+    }
+
+    this.hooks.invoke('onAfterExecute', () => {
+      const hookResult = this.onAfterExecute();
+      return hookResult;
     });
 
     return result;
@@ -301,8 +330,9 @@ export class ContextScope implements ContextScopeInterface {
     const snapshot = Object.fromEntries(this.#store);
 
     this.#store.clear();
-    this.#invokeHook(() => {
-      this.onDispose();
+    this.hooks.invoke('onDispose', () => {
+      const hookResult = this.onDispose();
+      return hookResult;
     });
 
     return this.onTerminate(snapshot);

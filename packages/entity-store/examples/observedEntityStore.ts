@@ -41,14 +41,14 @@ class TelemetryStore extends EntityStore<TaskEntity.Type> {
 
 const store = TelemetryStore.tracked();
 
-store.upsertOne({ 'id': 'task-1', 'title': 'Write proposal' });
-store.upsertMany([
+await store.upsertOne({ 'id': 'task-1', 'title': 'Write proposal' });
+await store.upsertMany([
   { 'id': 'task-2', 'title': 'Review PR' },
   { 'id': 'task-3', 'title': 'Ship release' }
 ]);
-store.removeOne('task-2');
-store.removeOne('missing'); // no-op — does not fire onRemove
-store.setAll([
+await store.removeOne('task-2');
+await store.removeOne('missing'); // no-op — does not fire onRemove
+await store.setAll([
   { 'id': 'task-4', 'title': 'Deploy' },
   { 'id': 'task-5', 'title': 'Announce' }
 ]);

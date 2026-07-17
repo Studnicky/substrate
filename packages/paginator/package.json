@@ -53,6 +53,7 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"

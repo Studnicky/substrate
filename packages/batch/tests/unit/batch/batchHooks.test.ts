@@ -336,3 +336,78 @@ it('a throwing completion hook does not replace processSettled() completion stat
   const results = await collectBatches(batch.processSettled([1, 2], async (n) => n));
   assert.deepStrictEqual(results.map((result) => (result as PromiseFulfilledResult<number>).value), [1, 2]);
 });
+
+// ── onHookError continue-on-error ────────────────────────────────────────────
+
+it('a throwing onItemSuccess/onItemError hook does not abort processing of subsequent items, and the failure is recorded', async () => {
+  class FlakyHooksBatch extends Batch<number> {
+    public constructor() { super(); }
+    public readonly recordedHookErrors: readonly unknown[] = this.hookErrors;
+
+    protected override onItemSuccess(index: number): void {
+      if (index === 0) { throw new Error(`onItemSuccess boom for index ${index}`); }
+    }
+    protected override onItemError(index: number): void {
+      if (index === 1) { throw new Error(`onItemError boom for index ${index}`); }
+    }
+  }
+
+  const batch = new FlakyHooksBatch(4);
+  const items = [1, 2, 3, 4];
+
+  // Item at index 1 fails in the underlying operation (triggering the throwing
+  // onItemError), item at index 0 succeeds (triggering the throwing onItemSuccess).
+  // processSettled() is used so operation-level failures don't themselves abort the run —
+  // this isolates the hook-error continue-on-error behavior under test.
+  const results = await collectBatches(batch.processSettled(
+    items,
+    async (n) => {
+      if (n === 2) { throw new Error('operation failed for item 2'); }
+      return n;
+    }
+  ));
+
+  // All 4 items were processed despite two hooks throwing.
+  assert.strictEqual(results.length, 4);
+  assert.strictEqual(results[0]?.status, 'fulfilled');
+  assert.strictEqual(results[1]?.status, 'rejected');
+  assert.strictEqual(results[2]?.status, 'fulfilled');
+  assert.strictEqual(results[3]?.status, 'fulfilled');
+
+  // Both hook failures were recorded rather than swallowed silently or aborting the batch.
+  assert.strictEqual(batch.recordedHookErrors.length, 2);
+});
+
+it('an async onItemSuccess override that rejects is routed to onHookError (record-and-continue) without ever producing an unhandled rejection', async () => {
+  class AsyncRejectingBatch extends Batch<number> {
+    public constructor() { super(); }
+    public readonly recordedHookErrors: readonly unknown[] = this.hookErrors;
+
+    protected override async onItemSuccess(_index: number, _result: number): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onItemSuccess boom');
+    }
+  }
+
+  const batch = new AsyncRejectingBatch();
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const results = await collectBatches(batch.processSettled([1, 2, 3], async (n) => n));
+
+    // Underlying operation results are unaffected by the hook rejection.
+    assert.strictEqual(results.length, 3);
+    assert.ok(results.every((r) => r.status === 'fulfilled'));
+
+    // Give the async hook rejection's routing a chance to settle.
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    assert.strictEqual(rejectionEvents.length, 0, 'no unhandled rejection is produced');
+    assert.strictEqual(batch.recordedHookErrors.length, 3, 'each async hook failure is recorded, one per item');
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});

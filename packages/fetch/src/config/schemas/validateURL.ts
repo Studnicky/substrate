@@ -2,9 +2,9 @@
  * URL validation schema
  */
 
-import { ConfigurationError } from '../../errors/index.js';
+import { FetchConfigValidation } from './FetchConfigValidation.js';
 
-export class ValidateURL {
+export class ValidateURL extends FetchConfigValidation {
   /**
    * Validates URL configuration
    * Must be a valid, non-empty URL string
@@ -13,22 +13,19 @@ export class ValidateURL {
    * @throws ConfigurationError if validation fails
    */
   public static validate(val: unknown): void {
-    if (val === undefined || val === null) {
+    this.assertString(val, 'baseURL');
+    if (val === undefined || val === null || typeof val !== 'string') {
       return;
     }
 
-    if (typeof val !== 'string') {
-      throw new ConfigurationError('baseURL must be a string');
-    }
-
     if (val === '') {
-      throw new ConfigurationError('baseURL must not be empty');
+      this.onValidationError('baseURL must not be empty');
     }
 
     try {
       new URL(val);
     } catch {
-      throw new ConfigurationError('baseURL must be a valid URL');
+      this.onValidationError('baseURL must be a valid URL');
     }
   }
 }

@@ -43,7 +43,11 @@ import type {
   ModuleErrorOptionsType
 } from '../types/index.js';
 
-import { ErrorDefaults } from '../constants/index.js';
+import {
+  CAUSE_CHAIN_DEPTH_LIMIT,
+  CAUSE_DEPTH_SENTINEL,
+  ErrorDefaults
+} from '../constants/index.js';
 import { BaseError } from './BaseError.js';
 import { ValidationError } from './ValidationError.js';
 
@@ -139,16 +143,15 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
   /**
    * Walks the cause chain starting at `this`, returning all `Error` nodes.
    * Subclasses may override to alter traversal behavior.
+   *
+   * Delegates to `BaseError.getCauseChain()` so traversal is bounded by
+   * `CAUSE_CHAIN_DEPTH_LIMIT` and safe against circular `cause` references —
+   * the same depth-limited walk `BaseError`'s own cause-chain helpers use.
    */
   protected walkCauseChain(): Error[] {
-    const chain: Error[] = [this];
-    let current: unknown = this.cause;
-
-    while (current instanceof Error) {
-      chain.push(current);
-      current = (current as { 'cause'?: unknown }).cause;
-    }
-
+    const chain = BaseError.getCauseChain(this).filter(
+      (node): node is Error => {return node instanceof Error;}
+    );
     return chain;
   }
 
@@ -190,11 +193,16 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
   }
 
   /**
-   * Serializes this error for structured logging.
-   * Builds the ModuleError-format JSON object, then merges `serializeExtra()`
-   * so subclasses can inject additional fields without rewriting cause-chain logic.
+   * Builds the ModuleError-format JSON object for this node at the given
+   * cause-chain depth. Recursion into a `ModuleError` cause is bounded by
+   * `CAUSE_CHAIN_DEPTH_LIMIT` — the same limit and `CAUSE_DEPTH_SENTINEL`
+   * sentinel `BaseError.serializeCause()` uses — so a long wrap chain or a
+   * circular `cause` reference cannot overflow the stack.
+   *
+   * Fire-point: called from `toJSON()` with `depth = 0`, and recursively for
+   * each `ModuleError` cause encountered.
    */
-  override toJSON(): Record<string, unknown> {
+  private serializeModuleNode(depth: number): Record<string, unknown> {
     const json: Record<string, unknown> = {
       'code': this.code,
       'message': this.message,
@@ -214,7 +222,9 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
     const cause = this.cause;
     if (cause !== undefined) {
       if (cause instanceof ModuleError) {
-        json.cause = cause.toJSON();
+        json.cause = depth >= CAUSE_CHAIN_DEPTH_LIMIT
+          ? CAUSE_DEPTH_SENTINEL
+          : cause.serializeModuleNode(depth + 1);
       } else if (cause instanceof Error) {
         json.cause = {
           'message': cause.message,
@@ -226,6 +236,17 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
       }
     }
 
+    return json;
+  }
+
+  /**
+   * Serializes this error for structured logging.
+   * Builds the depth-limited ModuleError-format JSON object, then merges
+   * `serializeExtra()` so subclasses can inject additional fields without
+   * rewriting cause-chain logic.
+   */
+  override toJSON(): Record<string, unknown> {
+    const json = this.serializeModuleNode(0);
     return { ...json, ...this.serializeExtra() };
   }
 }

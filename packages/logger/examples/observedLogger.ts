@@ -1,5 +1,6 @@
 /** observedLogger — subclass hook overrides that emit console.log trace lines for every logger lifecycle stage. Run: npx tsx examples/observedLogger.ts */
 
+import { EventRecorder } from '@studnicky/errors/observers';
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -30,26 +31,33 @@ class ObservedLogger extends Logger {
     super(config);
   }
 
-  readonly events: LogEvent[] = [];
+  readonly #recorder = new EventRecorder<LogEvent>();
+
+  get events(): LogEvent[] { return this.#recorder.events; }
 
   protected override onLog(level: LogLevelType, record: LogRecordEntity.Type): void {
-    console.log(`[logger] onLog level=${level} msg=${String(record.data.message)}`);
-    this.events.push({ 'kind': 'log', 'level': level, 'message': String(record.data.message) });
+    this.#recorder.record(
+      { 'kind': 'log', 'level': level, 'message': String(record.data.message) },
+      `[logger] onLog level=${level} msg=${String(record.data.message)}`
+    );
   }
 
   protected override onDropped(level: LogLevelType): void {
-    console.log(`[logger] onDropped level=${level}`);
-    this.events.push({ 'kind': 'dropped', 'level': level });
+    this.#recorder.record({ 'kind': 'dropped', 'level': level }, `[logger] onDropped level=${level}`);
   }
 
   protected override onChildCreate(bindings: LogMetadataType): void {
-    console.log(`[logger] onChildCreate bindings=${JSON.stringify(bindings)}`);
-    this.events.push({ 'bindings': bindings, 'kind': 'childCreate' });
+    this.#recorder.record(
+      { 'bindings': bindings, 'kind': 'childCreate' },
+      `[logger] onChildCreate bindings=${JSON.stringify(bindings)}`
+    );
   }
 
   protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
-    console.log(`[logger] onTransportError error=${String(error instanceof Error ? error.message : error)}`);
-    this.events.push({ 'error': error, 'kind': 'transportError' });
+    this.#recorder.record(
+      { 'error': error, 'kind': 'transportError' },
+      `[logger] onTransportError error=${String(error instanceof Error ? error.message : error)}`
+    );
   }
 }
 
@@ -64,16 +72,16 @@ type BuilderEvent =
 class ObservedLogBody extends LogBody {
   constructor() { super(); }
 
-  readonly builderEvents: BuilderEvent[] = [];
+  readonly #recorder = new EventRecorder<BuilderEvent>();
+
+  get builderEvents(): BuilderEvent[] { return this.#recorder.events; }
 
   protected override onBuild(result: LogBodyDataEntity.Type | LogFaultDataEntity.Type): void {
-    console.log(`[logger] onBuild event=${result.event}`);
-    this.builderEvents.push({ 'kind': 'build', 'result': result });
+    this.#recorder.record({ 'kind': 'build', 'result': result }, `[logger] onBuild event=${result.event}`);
   }
 
   protected override onBuildError(field: string): void {
-    console.log(`[logger] onBuildError field=${field}`);
-    this.builderEvents.push({ 'field': field, 'kind': 'buildError' });
+    this.#recorder.record({ 'field': field, 'kind': 'buildError' }, `[logger] onBuildError field=${field}`);
   }
 }
 

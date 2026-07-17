@@ -1,17 +1,17 @@
 /** Composes AbortSignal sources; eliminates repeated AbortController boilerplate. */
 
+import { HookInvoker } from '@studnicky/errors';
+
 import { SignalError } from './errors/SignalError.js';
 
 export class Signal {
   static #never: AbortSignal | null = null;
   static #default: Signal | null = null;
 
-  protected constructor() {}
+  protected readonly hooks: HookInvoker;
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
+  protected constructor(hooks: HookInvoker = new HookInvoker()) {
+    this.hooks = hooks;
   }
 
   static create(): Signal {
@@ -25,8 +25,8 @@ export class Signal {
     return Signal.#never;
   }
 
-  static compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): AbortSignal {
-    const result = Signal.#defaultInstance().compose(options);
+  static async compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): Promise<AbortSignal> {
+    const result = await Signal.#defaultInstance().compose(options);
     return result;
   }
 
@@ -42,7 +42,7 @@ export class Signal {
     return Signal.#default;
   }
 
-  compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): AbortSignal {
+  async compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): Promise<AbortSignal> {
     const callerSignal  = options.signal;
     const deadlineMs    = options.deadlineMs;
 
@@ -64,17 +64,32 @@ export class Signal {
       result = Signal.never();
     }
 
-    this.#invokeHook(() => {
-      this.onCompose(options, result);
+    await this.hooks.invoke('onCompose', () => {
+      const hookResult = this.onCompose(options, result);
+      return hookResult;
     });
     return result;
   }
 
   timeout(ms: number): AbortSignal {
     const result = AbortSignal.timeout(ms);
+    const hookResult = this.hooks.invoke('onTimeout', () => {
+      const value = this.onTimeout(ms, result);
+      return value;
+    });
+    if (hookResult instanceof Promise) {
+      // timeout() is deliberately synchronous — an async onTimeout override's
+      // rejection is already routed through HookInvoker's own internal
+      // safety net (see HookInvoker#guardResult), so this is purely to
+      // satisfy static floating-promise analysis at this call site.
+      hookResult.catch(() => {});
+    }
     return result;
   }
 
   /** Fires synchronously after `compose()` computes its result, right before returning it. No-op by default. */
-  protected onCompose(_options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }, _result: AbortSignal): void {}
+  protected onCompose(_options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }, _result: AbortSignal): void | Promise<void> {}
+
+  /** Fires synchronously after `timeout()` computes its result, right before returning it. No-op by default. */
+  protected onTimeout(_ms: number, _result: AbortSignal): void | Promise<void> {}
 }

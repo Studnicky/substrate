@@ -7,6 +7,7 @@
  */
 
 export type { BaseErrorArgumentsType } from './BaseErrorArgumentsType.js';
+export type { DomainErrorOptionsType } from './DomainErrorOptionsType.js';
 export type { ErrorClassifierFunctionType } from './ErrorClassifierFunctionType.js';
 export type { ErrorScenarioType } from './ErrorScenarioType.js';
 export type {

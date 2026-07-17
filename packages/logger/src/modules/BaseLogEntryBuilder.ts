@@ -1,3 +1,5 @@
+import { HookInvoker } from '@studnicky/errors';
+
 import type { LogBodyDataEntity } from '../entities/LogBodyDataEntity.js';
 import type { LogFaultDataEntity } from '../entities/LogFaultDataEntity.js';
 import type { LogStatusType } from '../types/LogStatusType.js';
@@ -10,11 +12,7 @@ import { LogBuildError } from '../errors/LogBuildError.js';
 export abstract class BaseLogEntryBuilder {
   protected constructor() {}
 
-  protected invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  protected readonly hooks: HookInvoker = new HookInvoker();
 
   protected componentName: string | undefined;
   protected contextCalled = false;
@@ -35,8 +33,9 @@ export abstract class BaseLogEntryBuilder {
    */
   component(name: string): this {
     this.componentName = name;
-    this.invokeHook(() => {
-      this.onFieldSet('component', name);
+    this.hooks.invoke('onFieldSet', () => {
+      const result = this.onFieldSet('component', name);
+      return result;
     });
 
     return this;
@@ -50,8 +49,9 @@ export abstract class BaseLogEntryBuilder {
   context(data: Record<string, unknown>): this {
     this.contextCalled = true;
     Object.assign(this.contextData, data);
-    this.invokeHook(() => {
-      this.onFieldSet('context', data);
+    this.hooks.invoke('onFieldSet', () => {
+      const result = this.onFieldSet('context', data);
+      return result;
     });
 
     return this;
@@ -62,8 +62,9 @@ export abstract class BaseLogEntryBuilder {
    */
   duration(ms: number): this {
     this.durationMs = ms;
-    this.invokeHook(() => {
-      this.onFieldSet('duration', ms);
+    this.hooks.invoke('onFieldSet', () => {
+      const result = this.onFieldSet('duration', ms);
+      return result;
     });
 
     return this;
@@ -75,8 +76,9 @@ export abstract class BaseLogEntryBuilder {
    */
   operation(name: string): this {
     this.operationName = name;
-    this.invokeHook(() => {
-      this.onFieldSet('operation', name);
+    this.hooks.invoke('onFieldSet', () => {
+      const result = this.onFieldSet('operation', name);
+      return result;
     });
 
     return this;
@@ -88,8 +90,9 @@ export abstract class BaseLogEntryBuilder {
    */
   status(status: LogStatusType): this {
     this.statusValue = status;
-    this.invokeHook(() => {
-      this.onFieldSet('status', status);
+    this.hooks.invoke('onFieldSet', () => {
+      const result = this.onFieldSet('status', status);
+      return result;
     });
 
     return this;
@@ -117,35 +120,35 @@ export abstract class BaseLogEntryBuilder {
   protected onBuildError(_field: string): void {}
 
   /**
+   * Asserts that a required field was set, invoking the build-error hook and
+   * throwing LogBuildError if it was not. Returns the narrowed non-undefined value.
+   */
+  protected requireField<T>(value: T | undefined, fieldName: string): T {
+    if (value === undefined) {
+      this.hooks.invoke('onBuildError', () => {
+        const result = this.onBuildError(fieldName);
+        return result;
+      });
+      throw new LogBuildError(`${this.constructor.name}: ${fieldName} is required`);
+    }
+
+    return value;
+  }
+
+  /**
    * Validates the fields shared by all log entry builders.
    * Throws LogBuildError if component, operation, status, or context are missing.
    * Subclasses call this and then validate their own additional required fields.
    */
   protected validateRequiredFields(): void {
-    if (this.componentName === undefined) {
-      this.invokeHook(() => {
-        this.onBuildError('component');
-      });
-      throw new LogBuildError(`${this.constructor.name}: component is required`);
-    }
-
-    if (this.operationName === undefined) {
-      this.invokeHook(() => {
-        this.onBuildError('operation');
-      });
-      throw new LogBuildError(`${this.constructor.name}: operation is required`);
-    }
-
-    if (this.statusValue === undefined) {
-      this.invokeHook(() => {
-        this.onBuildError('status');
-      });
-      throw new LogBuildError(`${this.constructor.name}: status is required`);
-    }
+    this.requireField(this.componentName, 'component');
+    this.requireField(this.operationName, 'operation');
+    this.requireField(this.statusValue, 'status');
 
     if (!this.contextCalled) {
-      this.invokeHook(() => {
-        this.onBuildError('context');
+      this.hooks.invoke('onBuildError', () => {
+        const result = this.onBuildError('context');
+        return result;
       });
       throw new LogBuildError(`${this.constructor.name}: context is required (use empty object {} if no context needed)`);
     }

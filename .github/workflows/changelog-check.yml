@@ -7,43 +7,26 @@ on:
 
 jobs:
   check:
-    name: Changelog entry required
+    name: Changeset required
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Release and hotfix PRs promote [Unreleased] into a versioned heading, so
-    # the section is intentionally empty on those branches. The publish workflow
-    # (on the v* tag) enforces that the versioned changelog heading exists.
+    # Release and hotfix PRs consume pending changesets via `changeset version`,
+    # so no new changeset file is expected on those branches. The publish
+    # workflow (on the v* tag) enforces that no changesets remain unconsumed.
     if: ${{ github.actor != 'dependabot[bot]' && !startsWith(github.head_ref, 'release/') && !startsWith(github.head_ref, 'hotfix/') }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: Verify Unreleased section has content
+      - name: Verify a changeset was added
         run: |
-          if ! grep -q "^## \[Unreleased\]" CHANGELOG.md; then
-            echo "ERROR: CHANGELOG.md is missing an [Unreleased] section."
-            echo "Add your changes under ## [Unreleased] before merging to main."
+          set -euo pipefail
+
+          PENDING=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
+
+          if [ "$PENDING" -eq 0 ]; then
+            echo "ERROR: No changeset found for this PR."
+            echo "Run 'pnpm changeset' and commit the generated .changeset/*.md file before merging to main."
             exit 1
           fi
 
-          # Extract content between [Unreleased] and the next ## heading
-          UNRELEASED_CONTENT=$(awk '/^## \[Unreleased\]/{found=1; next} found && /^## \[/{exit} found{print}' CHANGELOG.md)
-
-          # Check for at least one subsection with content
-          SUBSECTION_COUNT=$(echo "$UNRELEASED_CONTENT" | grep -cE "^### (Added|Changed|Fixed|Removed|Deprecated|Security)" || true)
-
-          if [ "$SUBSECTION_COUNT" -eq 0 ]; then
-            echo "ERROR: [Unreleased] section in CHANGELOG.md has no subsections."
-            echo "Add at least one of: ### Added, ### Changed, ### Fixed, ### Removed, ### Deprecated, ### Security"
-            exit 1
-          fi
-
-          # Check that at least one subsection has a non-empty entry
-          HAS_CONTENT=$(echo "$UNRELEASED_CONTENT" | grep -cE "^- " || true)
-
-          if [ "$HAS_CONTENT" -eq 0 ]; then
-            echo "ERROR: [Unreleased] section has subsection headers but no entries."
-            echo "Add at least one bullet entry under a subsection heading."
-            exit 1
-          fi
-
-          echo "CHANGELOG.md [Unreleased] section is valid with $SUBSECTION_COUNT subsection(s) and $HAS_CONTENT entries."
+          echo "Found ${PENDING} pending changeset(s)."

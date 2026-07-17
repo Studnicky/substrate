@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { Guard } from '../../../src/index.js';
 
 void describe('Guard', () => {
-  void describe('isRecord', () => {
+  void describe('isObject', () => {
     const scenarios: Array<{ description: string; input: unknown; expected: boolean }> = [
       { description: 'returns true for a plain object', input: { a: 1 }, expected: true },
       { description: 'returns false for null', input: null, expected: false },
@@ -14,7 +14,7 @@ void describe('Guard', () => {
 
     for (const { description, input, expected } of scenarios) {
       void it(description, () => {
-        assert.strictEqual(Guard.isRecord(input), expected);
+        assert.strictEqual(Guard.isObject(input), expected);
       });
     }
   });

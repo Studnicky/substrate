@@ -1,5 +1,8 @@
 import type { Rule } from 'eslint';
 
+import { AstHelpers } from './shared/astHelpers.js';
+import { ObjectGuard } from './shared/ObjectGuard.js';
+
 const BANNED_SHORTENINGS = new Set([
   'args',
   'arr',
@@ -184,12 +187,6 @@ const LOOP_ITERATOR_PATTERN = /^[ijk]$/v;
 
 const CAMEL_TOKEN_PATTERN = /[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|$)/gv;
 
-class ObjectGuard {
-  public static isObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
-  }
-}
-
 class CamelCase {
   public static split(name: string): string[] {
     const tokens: string[] = [];
@@ -224,17 +221,6 @@ class BannedToken {
   }
 }
 
-class IdentifierName {
-  public static get(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node)) {
-      return undefined;
-    }
-    const name: unknown = node.name;
-
-    return typeof name === 'string' ? name : undefined;
-  }
-}
-
 class ViolationReporter {
   public static reportIfBanned(
     name: string,
@@ -265,7 +251,7 @@ class DescriptiveIdentifiers {
     }
 
     function onNodeWithId(node: Rule.Node): void {
-      const name = IdentifierName.get(getNodeProperty(node, 'id'));
+      const name = AstHelpers.getIdentifierName(getNodeProperty(node, 'id'));
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);
@@ -303,7 +289,7 @@ class DescriptiveIdentifiers {
         }
       }
 
-      const name = IdentifierName.get(node);
+      const name = AstHelpers.getIdentifierName(node);
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);
@@ -311,7 +297,7 @@ class DescriptiveIdentifiers {
     }
 
     function onNodeWithKey(node: Rule.Node): void {
-      const name = IdentifierName.get(getNodeProperty(node, 'key'));
+      const name = AstHelpers.getIdentifierName(getNodeProperty(node, 'key'));
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);
@@ -319,7 +305,7 @@ class DescriptiveIdentifiers {
     }
 
     function onTSTypeParameter(node: Rule.Node): void {
-      const name = IdentifierName.get(getNodeProperty(node, 'name'));
+      const name = AstHelpers.getIdentifierName(getNodeProperty(node, 'name'));
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);

@@ -2,9 +2,9 @@
  * Validates autoGenerateRequestId boolean flag
  */
 
-import { ConfigurationError } from '../../errors/index.js';
+import { FetchConfigValidation } from './FetchConfigValidation.js';
 
-export class ValidateAutoGenerateRequestId {
+export class ValidateAutoGenerateRequestId extends FetchConfigValidation {
   /**
    * Validates autoGenerateRequestId boolean flag
    *
@@ -12,11 +12,6 @@ export class ValidateAutoGenerateRequestId {
    * @throws ConfigurationError if validation fails
    */
   public static validate(val: unknown): void {
-    if (val === undefined || val === null) {
-      return;
-    }
-    if (typeof val !== 'boolean') {
-      throw new ConfigurationError('autoGenerateRequestId must be a boolean');
-    }
+    this.assertBoolean(val, 'autoGenerateRequestId');
   }
 }

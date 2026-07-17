@@ -1,5 +1,6 @@
 import type { Rule } from 'eslint';
 
+import { ObjectGuard } from '../shared/ObjectGuard.js';
 import { FunctionScope } from './functionScope.js';
 
 class AstHelpers {
@@ -10,21 +11,17 @@ class AstHelpers {
 
     const raw: unknown = node;
 
-    if (!AstHelpers.isJsonObject(raw)) {
+    if (!ObjectGuard.isObject(raw)) {
       return false;
     }
 
     const callee = raw.callee;
 
-    if (!AstHelpers.isJsonObject(callee)) {
+    if (!ObjectGuard.isObject(callee)) {
       return false;
     }
 
     return callee.type === 'Identifier' && callee.name === 'RegExp';
-  }
-
-  public static isJsonObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
   }
 }
 

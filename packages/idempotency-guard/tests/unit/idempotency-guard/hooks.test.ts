@@ -143,6 +143,57 @@ it('a throwing onExecute hook does not replace the leader result', async () => {
   strictEqual(result, 'ok');
 });
 
+it('regression (HookInvoking migration): a throwing onReplay hook is discarded by #invokeHookSafely and does not propagate out of run()', async () => {
+  class ThrowingReplayGuard extends IdempotencyGuard {
+    static tracked(): ThrowingReplayGuard {
+      return new ThrowingReplayGuard({ 'capacity': 10, 'ttlMs': 60_000 });
+    }
+
+    protected override onReplay(): void {
+      throw new Error('onReplay boom (post-HookInvoking-migration)');
+    }
+  }
+
+  const guard = ThrowingReplayGuard.tracked();
+
+  await guard.run('order-14', { 'amount': 500 }, async () => 'ok');
+  const result = await guard.run('order-14', { 'amount': 500 }, async () => 'wrong');
+
+  strictEqual(result, 'ok');
+});
+
+it('regression (HookInvoker async-override safety net): an async onReplay override that rejects is routed safely with no unhandled rejection', async () => {
+  class AsyncRejectingReplayGuard extends IdempotencyGuard {
+    static tracked(): AsyncRejectingReplayGuard {
+      return new AsyncRejectingReplayGuard({ 'capacity': 10, 'ttlMs': 60_000 });
+    }
+
+    protected override async onReplay(_key: string): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onReplay boom');
+    }
+  }
+
+  const guard = AsyncRejectingReplayGuard.tracked();
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    await guard.run('order-15', { 'amount': 500 }, async () => 'ok');
+    const result = await guard.run('order-15', { 'amount': 500 }, async () => 'wrong');
+
+    strictEqual(result, 'ok');
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
 it('a throwing onCoalesce hook does not replace the shared follower result', async () => {
   class ThrowingCoalesceGuard extends IdempotencyGuard {
     static tracked(): ThrowingCoalesceGuard {

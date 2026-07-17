@@ -29,7 +29,7 @@ class Directly {
     fn: (client: FetchClient, abortSignal: AbortSignal) => Promise<T>,
     options: { 'deadlineMs'?: number } = {}
   ): Promise<T> {
-    const composedSignal = signal.compose(
+    const composedSignal = await signal.compose(
       options.deadlineMs !== undefined ? { 'deadlineMs': options.deadlineMs } : {}
     );
 

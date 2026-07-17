@@ -1,25 +1,36 @@
-import type { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js';
+import { HookInvoker } from '@studnicky/errors';
 
+import { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js';
 import { CacheConfigError } from './errors/index.js';
 import { LruCacheBuilder } from './LruCacheBuilder.js';
 
-// json-schema-uninexpressible: generic type parameter V (value type is caller-supplied, unbounded)
-type EntryType<V> = {
+// json-schema-uninexpressible: generic type parameters K/V plus self-referential doubly-linked-list pointers (next/prev), not a plain data shape
+type NodeType<K, V> = {
   /** Expiry timestamp (ms since epoch) or `0` (no expiry sentinel). */
   'expiresAt': number;
+  'key': K;
+  'next': NodeType<K, V> | undefined;
+  'prev': NodeType<K, V> | undefined;
   /** Staleness timestamp (ms since epoch) or `0` (no staleness configured sentinel). */
   'staleAt': number;
   'value': V;
 };
 
-// json-schema-uninexpressible: generic type parameter K plus self-referential doubly-linked-list pointers (next/prev), not a plain data shape
-type NodeType<K> = {
-  'key': K;
-  'next': NodeType<K> | undefined;
-  'prev': NodeType<K> | undefined;
-};
-
 const noExpiry = 0;
+
+/**
+ * Silently swallows hook failures instead of letting `HookInvoker`'s default
+ * (throwing) behavior propagate. Unlike `Batch`/`EntityStore`, which record
+ * hook errors for later inspection, `LruCache` hooks are pure observability
+ * side channels with no consumer-facing error surface — a broken hook must
+ * never affect cache read/write behavior.
+ */
+class LruCacheHookInvoker extends HookInvoker {
+  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
+    const result = undefined as T;
+    return result;
+  }
+}
 
 /**
  * In-process LRU + TTL cache with O(1) promotion on read.
@@ -42,16 +53,13 @@ const noExpiry = 0;
  * ```
  */
 export class LruCache<K, V> {
+  protected readonly hooks: HookInvoker = new LruCacheHookInvoker();
   readonly #capacity: number;
   readonly #defaultStaleMs: number | undefined;
   readonly #defaultTtlMs: number | undefined;
-  readonly #entries: Map<string, EntryType<V>>;
-  /** Maps internal (prefixed) string key → original caller key, for use in hooks. */
-  readonly #keyMap: Map<string, K>;
-  readonly #nodes: Map<string, NodeType<string>>;
-  readonly #prefix: string;
-  #head: NodeType<string> | undefined;
-  #tail: NodeType<string> | undefined;
+  readonly #nodes: Map<K, NodeType<K, V>>;
+  #head: NodeType<K, V> | undefined;
+  #tail: NodeType<K, V> | undefined;
 
   static create<K = unknown, V = unknown>(options: LruCacheOptionsEntity.Type): LruCache<K, V> {
     // `new this(...)` so subclass factories return the subclass instance.
@@ -68,17 +76,17 @@ export class LruCache<K, V> {
   }
 
   protected constructor(options: LruCacheOptionsEntity.Type) {
-    if (options.capacity <= 0 || !Number.isInteger(options.capacity)) {
-      throw new CacheConfigError('capacity must be a positive integer');
+    if (!LruCacheOptionsEntity.validate(options)) {
+      const messages = (LruCacheOptionsEntity.validate.errors ?? [])
+        .map((error) => { return error.message ?? String(error); })
+        .join('; ');
+      throw new CacheConfigError(messages.length > 0 ? messages : 'invalid options');
     }
 
     this.#capacity = options.capacity;
     this.#defaultStaleMs = options.staleMs;
     this.#defaultTtlMs = options.ttlMs;
-    this.#entries = new Map();
-    this.#keyMap = new Map();
     this.#nodes = new Map();
-    this.#prefix = options.prefix ?? '';
     this.#head = undefined;
     this.#tail = undefined;
   }
@@ -141,36 +149,61 @@ export class LruCache<K, V> {
 
   /** Includes expired entries not yet lazily evicted. */
   public get size(): number {
-    const result = this.#entries.size;
+    const result = this.#nodes.size;
     return result;
   }
 
   /** Promotes entry to MRU on hit; returns undefined on miss or expiry (lazily evicts). */
   public get(key: K): V | undefined {
-    const internalKey = this.buildInternalKey(key);
-    const entry = this.#entries.get(internalKey);
+    const result = this.tryGet(key);
+    return result.value;
+  }
 
-    if (entry === undefined) {
-      this.#invokeHook(() => { this.onMiss(key); });
-      return undefined;
+  /**
+   * Single-traversal presence-and-value lookup: distinguishes "not present"
+   * from "present with value `undefined`" without a caller needing a separate
+   * `has()` call. Same promotion/expiry/staleness semantics as `get()` — `get()`
+   * is implemented in terms of this method.
+   */
+  public tryGet(key: K): { readonly 'found': boolean; readonly 'value': V | undefined } {
+    const node = this.#nodes.get(key);
+
+    if (node === undefined) {
+      this.hooks.invoke('onMiss', () => {
+        const result = this.onMiss(key);
+        return result;
+      });
+      return { 'found': false, 'value': undefined };
     }
 
-    if (LruCache.isExpired(entry)) {
-      this.#invokeHook(() => { this.onExpire(key); });
-      this.removeEntry(internalKey);
-      this.#invokeHook(() => { this.onMiss(key); });
-      return undefined;
+    if (LruCache.isExpired(node)) {
+      this.hooks.invoke('onExpire', () => {
+        const result = this.onExpire(key);
+        return result;
+      });
+      this.removeEntry(key);
+      this.hooks.invoke('onMiss', () => {
+        const result = this.onMiss(key);
+        return result;
+      });
+      return { 'found': false, 'value': undefined };
     }
 
-    this.promoteToHead(internalKey);
+    this.promoteToHead(node);
 
-    if (entry.staleAt !== noExpiry && Date.now() > entry.staleAt) {
-      this.#invokeHook(() => { this.onStale(key, entry.value); });
+    if (node.staleAt !== noExpiry && Date.now() > node.staleAt) {
+      this.hooks.invoke('onStale', () => {
+        const result = this.onStale(key, node.value);
+        return result;
+      });
     } else {
-      this.#invokeHook(() => { this.onHit(key, entry.value); });
+      this.hooks.invoke('onHit', () => {
+        const result = this.onHit(key, node.value);
+        return result;
+      });
     }
 
-    return entry.value;
+    return { 'found': true, 'value': node.value };
   }
 
   /**
@@ -187,59 +220,60 @@ export class LruCache<K, V> {
 
   /** Stores value; promotes existing key to MRU or evicts LRU tail if at capacity. */
   public set(key: K, value: V, opts?: { 'staleMs'?: number; 'ttlMs'?: number }): void {
-    const internalKey = this.buildInternalKey(key);
     const effectiveTtl = opts?.ttlMs ?? this.#defaultTtlMs;
     const expiresAt = effectiveTtl !== undefined ? Date.now() + effectiveTtl : noExpiry;
     const effectiveStale = opts?.staleMs ?? this.#defaultStaleMs;
     const staleAt = effectiveStale !== undefined ? Date.now() + effectiveStale : noExpiry;
 
-    const existing = this.#entries.get(internalKey);
+    const existing = this.#nodes.get(key);
 
     if (existing !== undefined) {
       existing.expiresAt = expiresAt;
       existing.staleAt = staleAt;
       existing.value = value;
-      this.promoteToHead(internalKey);
-      this.#invokeHook(() => { this.onUpdate(key); });
+      this.promoteToHead(existing);
+      this.hooks.invoke('onUpdate', () => {
+        const result = this.onUpdate(key);
+        return result;
+      });
       return;
     }
 
-    if (this.#entries.size >= this.#capacity && this.#tail !== undefined) {
-      this.evictTail(this.#tail.key);
+    if (this.#nodes.size >= this.#capacity && this.#tail !== undefined) {
+      this.evictTail(this.#tail);
     }
 
-    const entry: EntryType<V> = {
+    const node: NodeType<K, V> = {
       'expiresAt': expiresAt,
+      'key': key,
+      'next': undefined,
+      'prev': undefined,
       'staleAt': staleAt,
       'value': value
     };
 
-    this.#entries.set(internalKey, entry);
-    this.#keyMap.set(internalKey, key);
-
-    const node: NodeType<string> = {
-      'key': internalKey,
-      'next': undefined,
-      'prev': undefined
-    };
-
-    this.#nodes.set(internalKey, node);
+    this.#nodes.set(key, node);
     this.insertAtHead(node);
-    this.#invokeHook(() => { this.onSet(key); });
+    this.hooks.invoke('onSet', () => {
+      const result = this.onSet(key);
+      return result;
+    });
   }
 
   /** Returns true if key exists and has not expired; lazily evicts expired entries. */
   public has(key: K): boolean {
-    const internalKey = this.buildInternalKey(key);
-    const entry = this.#entries.get(internalKey);
+    const node = this.#nodes.get(key);
 
-    if (entry === undefined) {
+    if (node === undefined) {
       return false;
     }
 
-    if (LruCache.isExpired(entry)) {
-      this.#invokeHook(() => { this.onExpire(key); });
-      this.removeEntry(internalKey);
+    if (LruCache.isExpired(node)) {
+      this.hooks.invoke('onExpire', () => {
+        const result = this.onExpire(key);
+        return result;
+      });
+      this.removeEntry(key);
       return false;
     }
 
@@ -247,12 +281,14 @@ export class LruCache<K, V> {
   }
 
   public delete(key: K): boolean {
-    const internalKey = this.buildInternalKey(key);
-    const existed = this.#entries.has(internalKey);
+    const existed = this.#nodes.has(key);
 
     if (existed) {
-      this.removeEntry(internalKey);
-      this.#invokeHook(() => { this.onDelete(key); });
+      this.removeEntry(key);
+      this.hooks.invoke('onDelete', () => {
+        const result = this.onDelete(key);
+        return result;
+      });
     }
 
     return existed;
@@ -268,16 +304,13 @@ export class LruCache<K, V> {
   public deleteWhere(predicate: (key: K, value: V) => boolean): number {
     let removed = 0;
 
-    for (const [internalKey, entry] of this.#entries) {
-      const originalKey = this.#keyMap.get(internalKey);
-
-      if (originalKey === undefined) {
-        continue;
-      }
-
-      if (predicate(originalKey, entry.value)) {
-        this.removeEntry(internalKey);
-        this.#invokeHook(() => { this.onDelete(originalKey); });
+    for (const [key, node] of this.#nodes) {
+      if (predicate(key, node.value)) {
+        this.removeEntry(key);
+        this.hooks.invoke('onDelete', () => {
+          const result = this.onDelete(key);
+          return result;
+        });
         removed += 1;
       }
     }
@@ -286,30 +319,25 @@ export class LruCache<K, V> {
   }
 
   public clear(): void {
-    const count = this.#entries.size;
-    this.#entries.clear();
-    this.#keyMap.clear();
+    const count = this.#nodes.size;
     this.#nodes.clear();
     this.#head = undefined;
     this.#tail = undefined;
-    this.#invokeHook(() => { this.onClear(count); });
+    this.hooks.invoke('onClear', () => {
+      const result = this.onClear(count);
+      return result;
+    });
   }
 
-  private static isExpired<V>(entry: EntryType<V>): boolean {
-    if (entry.expiresAt === noExpiry) {
+  private static isExpired<K, V>(node: NodeType<K, V>): boolean {
+    if (node.expiresAt === noExpiry) {
       return false;
     }
 
-    return Date.now() > entry.expiresAt;
+    return Date.now() > node.expiresAt;
   }
 
-  private buildInternalKey(key: K): string {
-    const raw = String(key);
-
-    return this.#prefix.length > 0 ? `${this.#prefix}:${raw}` : raw;
-  }
-
-  private insertAtHead(node: NodeType<string>): void {
+  private insertAtHead(node: NodeType<K, V>): void {
     node.next = this.#head;
     node.prev = undefined;
 
@@ -324,10 +352,8 @@ export class LruCache<K, V> {
     }
   }
 
-  private promoteToHead(key: string): void {
-    const node = this.#nodes.get(key);
-
-    if (node === undefined || node === this.#head) {
+  private promoteToHead(node: NodeType<K, V>): void {
+    if (node === this.#head) {
       return;
     }
 
@@ -337,7 +363,7 @@ export class LruCache<K, V> {
     this.insertAtHead(node);
   }
 
-  private unlinkNode(node: NodeType<string>): void {
+  private unlinkNode(node: NodeType<K, V>): void {
     if (node.prev !== undefined) {
       node.prev.next = node.next;
     } else {
@@ -354,9 +380,7 @@ export class LruCache<K, V> {
     node.prev = undefined;
   }
 
-  private removeEntry(key: string): void {
-    this.#entries.delete(key);
-    this.#keyMap.delete(key);
+  private removeEntry(key: K): void {
     const node = this.#nodes.get(key);
 
     if (node !== undefined) {
@@ -365,25 +389,12 @@ export class LruCache<K, V> {
     }
   }
 
-  private evictTail(key: string): void {
-    const originalKey = this.#keyMap.get(key);
-    this.#entries.delete(key);
-    this.#keyMap.delete(key);
-    const node = this.#nodes.get(key);
-
-    if (node !== undefined) {
-      this.unlinkNode(node);
-      this.#nodes.delete(key);
-    }
-
-    if (originalKey !== undefined) {
-      this.#invokeHook(() => { this.onEvict(originalKey, 'capacity'); });
-    }
-  }
-
-  #invokeHook(hook: () => void): void {
-    try {
-      hook();
-    } catch {}
+  private evictTail(node: NodeType<K, V>): void {
+    this.unlinkNode(node);
+    this.#nodes.delete(node.key);
+    this.hooks.invoke('onEvict', () => {
+      const result = this.onEvict(node.key, 'capacity');
+      return result;
+    });
   }
 }

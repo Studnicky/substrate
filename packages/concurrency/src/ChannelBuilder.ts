@@ -1,29 +1,30 @@
 import type { Channel } from './Channel.js';
 import type { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
 
+import { SingleOptionBuilder } from './SingleOptionBuilder.js';
+
 export class ChannelBuilder<T> {
   static create<T>(create: (options?: ChannelOptionsEntity.Type) => Channel<T>): ChannelBuilder<T> {
     const result = new ChannelBuilder(create);
     return result;
   }
 
-  readonly #create: (options?: ChannelOptionsEntity.Type) => Channel<T>;
-  #highWaterMark: number | undefined;
+  readonly #inner: SingleOptionBuilder<'highWaterMark', number, ChannelOptionsEntity.Type, Channel<T>>;
 
   private constructor(create: (options?: ChannelOptionsEntity.Type) => Channel<T>) {
-    this.#create = create;
+    this.#inner = SingleOptionBuilder.create<'highWaterMark', number, ChannelOptionsEntity.Type, Channel<T>>(
+      'highWaterMark',
+      create
+    );
   }
 
   withHighWaterMark(highWaterMark: number): this {
-    this.#highWaterMark = highWaterMark;
+    this.#inner.withValue(highWaterMark);
     return this;
   }
 
   build(): Channel<T> {
-    const options: ChannelOptionsEntity.Type = this.#highWaterMark === undefined
-      ? {}
-      : { 'highWaterMark': this.#highWaterMark };
-    const result = this.#create(options);
+    const result = this.#inner.build();
     return result;
   }
 }

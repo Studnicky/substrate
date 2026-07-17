@@ -22,10 +22,19 @@
  *   ctx for the next stage (or the final result if it was the last stage)
  * - `onStageError(index, error)` — when a stage fn throws, before the
  *   error is wrapped and re-thrown; void observer, no-op by default
- * - `onRunError(error)` — when a stage error propagates out of run(),
- *   after onStageError; void observer, no-op by default
+ * - `onRunError(error)` — when a stage fn throws, immediately after
+ *   onStageError, receiving the wrapped PipelineError; void observer,
+ *   no-op by default. Fires only for stage fn failures — not for throws
+ *   from `beforeStage`, `afterStage`, `onStageStart`, `onStageSuccess`,
+ *   `onRunStart`, or `onRunComplete`
  * - `onRunComplete(ctx)` — after all stages complete; return value is the
  *   resolved result of run()
+ *
+ * All four void observer hooks (`onStageStart`, `onStageSuccess`,
+ * `onStageError`, `onRunError`) are invoked through the composed
+ * `hooks: HookInvoker` field (see `HookInvoker`). A hook implementation that
+ * throws or rejects propagates as a `HookInvocationError` — it is not
+ * swallowed.
  *
  * @example
  * ```typescript
@@ -48,13 +57,18 @@
  * ```
  */
 
+import { HookInvoker, ValidationError } from '@studnicky/errors';
+
 import type { PipelineInterface } from '../interfaces/PipelineInterface.js';
 import type { PipelineFnType } from '../types/PipelineFnType.js';
 
+import { PipelineOptionsEntity } from '../entities/PipelineOptionsEntity.js';
 import { PipelineError } from '../errors/PipelineError.js';
 import { PipelineBuilder } from './PipelineBuilder.js';
 
 export class Pipeline<T> implements PipelineInterface<T> {
+  protected readonly hooks: HookInvoker;
+
   /**
    * Create a fluent builder for constructing a Pipeline instance.
    *
@@ -66,35 +80,54 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * ```
    */
   static builder<T>(): PipelineBuilder<T> {
-    const result = PipelineBuilder.create<T>(() => { const instance = Pipeline.create<T>(); return instance; });
+    const result = PipelineBuilder.create<T>((options) => { const instance = Pipeline.create<T>(options); return instance; });
     return result;
   }
 
   /**
    * Create a new Pipeline instance.
    *
+   * @param options - Optional configuration. See `PipelineOptionsEntity`.
    * @returns New Pipeline instance
    *
    * @example
    * ```typescript
    * const pipeline = Pipeline.create<RequestCtx>();
+   * const withTimeout = Pipeline.create<RequestCtx>({ hookTimeoutMs: 5000 });
    * ```
    */
-  static create<T>(): Pipeline<T> {
+  static create<T>(options?: Readonly<PipelineOptionsEntity.Type>): Pipeline<T> {
     // `new this()` so subclass factories return the subclass instance.
-    return new this<T>();
+    return new this<T>(options);
   }
 
-  // No-config construction — nothing to validate.
-  protected constructor() {}
+  /**
+   * @param options - Optional configuration, schema-validated against
+   *   `PipelineOptionsEntity.Schema`. Left unset, hook invocation waits
+   *   unbounded, matching prior behavior exactly.
+   */
+  protected constructor(options?: Readonly<PipelineOptionsEntity.Type>) {
+    if (options !== undefined && !PipelineOptionsEntity.validate(options)) {
+      throw ValidationError.create({
+        'message': 'Must match PipelineOptionsEntity.Schema',
+        'path': 'options'
+      });
+    }
+    this.hooks = options?.hookTimeoutMs === undefined
+      ? new HookInvoker()
+      : new HookInvoker({ 'timeoutMs': options.hookTimeoutMs });
+  }
 
   protected fns: PipelineFnType<T>[] = [];
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  /**
+   * Per-call tokens kept in lockstep with `fns`, one per registered stage.
+   * Each `add()` call mints a unique token so its `remove()` closure can
+   * identify its own stage by token identity rather than by function
+   * reference — this disambiguates duplicate `fn` values registered via
+   * separate `add()` calls, which `Array.prototype.indexOf` cannot.
+   */
+  #tokens: symbol[] = [];
 
   /**
    * Readonly view of the registered transform functions.
@@ -111,16 +144,21 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * Add a transform function to the pipeline
    *
    * @param fn - Transform function to add
-   * @returns Function that removes this transform when called
+   * @returns Function that removes this transform when called — identifies
+   *   its stage by a per-call token, so it removes the exact stage it was
+   *   returned for even if the same `fn` value was registered more than once
    */
   add(fn: PipelineFnType<T>): () => void {
+    const token = Symbol('pipeline-stage');
     this.fns.push(fn);
+    this.#tokens.push(token);
 
     return () => {
-      const index = this.fns.indexOf(fn);
+      const index = this.#tokens.indexOf(token);
 
       if (index !== -1) {
         this.fns.splice(index, 1);
+        this.#tokens.splice(index, 1);
       }
     };
   }
@@ -130,6 +168,15 @@ export class Pipeline<T> implements PipelineInterface<T> {
    */
   clear(): void {
     this.fns.length = 0;
+    this.#tokens.length = 0;
+  }
+
+  // Fast path: the common case is no self-removal/reordering, so the stage
+  // still sits at `expectedIndex`. Only fall back to the linear scan when
+  // that assumption fails.
+  #resolveTokenIndex(expectedIndex: number, token: symbol): number {
+    if (this.#tokens[expectedIndex] === token) { return expectedIndex; }
+    return this.#tokens.indexOf(token);
   }
 
   /**
@@ -216,11 +263,13 @@ export class Pipeline<T> implements PipelineInterface<T> {
   protected onStageError(_index: number, _error: unknown): void {}
 
   /**
-   * Fires when a stage error propagates out of run(), after onStageError().
+   * Fires when a stage fn throws, immediately after onStageError().
    * The error at this point is a PipelineError wrapping the original.
-   * No-op by default. Overrides must not throw or block.
+   * Fires only for stage fn failures — not for throws from `beforeStage`,
+   * `afterStage`, `onStageStart`, `onStageSuccess`, `onRunStart`, or
+   * `onRunComplete`. No-op by default. Overrides must not throw or block.
    *
-   * @param _error - The PipelineError propagating out of run()
+   * @param _error - The PipelineError wrapping the stage fn's failure
    */
   protected onRunError(_error: unknown): void {}
 
@@ -235,35 +284,91 @@ export class Pipeline<T> implements PipelineInterface<T> {
       const output = await fn(input);
       return output;
     } catch (err: unknown) {
-      this.#invokeHook(() => {
-        this.onStageError(index, err);
-      });
+      await Promise.resolve(this.hooks.invoke('onStageError', () => {
+        const result = this.onStageError(index, err);
+        return result;
+      }));
       throw new PipelineError('Pipeline stage failed', err);
     }
   }
 
+  /**
+   * `true` while index `i` still names a live stage. Deliberately re-reads
+   * `this.fns.length` on every call rather than a cached count, so `run()`'s
+   * loop sees a mid-run `add()`/`remove()` immediately.
+   */
+  #hasStageAt(i: number): boolean {
+    return i < this.fns.length;
+  }
+
+  /**
+   * Runs a single stage via `runStage` and fires `onRunError` if it throws,
+   * re-throwing so the caller's control flow is unaffected. Extracted out of
+   * `run()`'s loop body — a try-catch inline in a loop defeats V8
+   * optimization of the enclosing function.
+   *
+   * @param fn - Stage function to run
+   * @param input - Context value to pass to the stage fn
+   * @param index - Zero-based index of the stage
+   * @returns The stage fn's output
+   * @throws The original error, after `onRunError` has fired
+   */
+  async #runStageWithErrorHandling(fn: PipelineFnType<T>, input: T, index: number): Promise<T> {
+    try {
+      const output = await this.runStage(fn, input, index);
+      return output;
+    } catch (err: unknown) {
+      await Promise.resolve(this.hooks.invoke('onRunError', () => {
+        const result = this.onRunError(err);
+        return result;
+      }));
+      throw err;
+    }
+  }
+
+  /**
+   * Run the context through all registered transforms in order.
+   *
+   * `fns` (and its parallel `#tokens`) are live, mutable structures — see
+   * the `stages` getter doc-comment. A stage fn may capture and later
+   * invoke an `add()`-returned `remove()` closure, including removing
+   * itself or a not-yet-run later stage, mid-run. The loop condition calls
+   * `#hasStageAt(i)`, which re-reads `this.fns.length` on every iteration
+   * rather than caching it, so a mid-run removal takes effect immediately:
+   * a removed not-yet-run stage is skipped in the CURRENT run. When the
+   * stage that just ran removed itself, the loop realigns to the current
+   * stage's token position so the next not-yet-run stage is not also
+   * skipped as a side effect of the array shift.
+   */
   async run(ctx: T): Promise<T> {
     let current = this.onRunStart(ctx);
 
-    try {
-      const fnsLen = this.fns.length;
-      for (let i = 0; i < fnsLen; i++) {
-        const fn = this.fns[i]!;
-        const input = this.beforeStage(current, i);
-        this.#invokeHook(() => {
-          this.onStageStart(i, input);
-        });
-        const output = await this.runStage(fn, input, i);
-        this.#invokeHook(() => {
-          this.onStageSuccess(i, output);
-        });
-        current = this.afterStage(output, i);
-      }
-    } catch (err: unknown) {
-      this.#invokeHook(() => {
-        this.onRunError(err);
-      });
-      throw err;
+    for (let i = 0; this.#hasStageAt(i); i++) {
+      const token = this.#tokens[i];
+      const fn = this.fns[i]!;
+      const input = this.beforeStage(current, i);
+      await Promise.resolve(this.hooks.invoke('onStageStart', () => {
+        const result = this.onStageStart(i, input);
+        return result;
+      }));
+
+      const output = await this.#runStageWithErrorHandling(fn, input, i);
+
+      await Promise.resolve(this.hooks.invoke('onStageSuccess', () => {
+        const result = this.onStageSuccess(i, output);
+        return result;
+      }));
+      current = this.afterStage(output, i);
+
+      // Realign `i` to the live array after the stage ran, in case it
+      // removed itself or an earlier stage. `token` identifies the
+      // stage that just ran; if it is gone (self-removal), the
+      // not-yet-run stage that was next now occupies index `i` — the
+      // loop's `i++` must not skip past it, so back up by one. If it
+      // moved (an earlier stage was removed), continue from its new
+      // position so the following `i++` lands on the correct next stage.
+      const newIndex = this.#resolveTokenIndex(i, token!);
+      i = newIndex === -1 ? i - 1 : newIndex;
     }
 
     return this.onRunComplete(current);

@@ -6,6 +6,7 @@ export { CoalesceBuilder } from './CoalesceBuilder.js';
 export { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
 export { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
 export { SemaphoreOptionsEntity } from './entities/SemaphoreOptionsEntity.js';
+export { ChannelError } from './errors/index.js';
 export { CoalesceTimeoutError } from './errors/index.js';
 export { ConcurrencyError } from './errors/index.js';
 export { SemaphoreError } from './errors/index.js';

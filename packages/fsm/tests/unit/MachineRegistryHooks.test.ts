@@ -176,4 +176,38 @@ describe('MachineRegistry lifecycle hooks', () => {
     });
     assert.equal(throwingRegistry.has('gone'), false);
   });
+
+  it('an async-overridden onRegister hook that rejects is routed through onHookError without an unhandled rejection, because invoke() actually receives its return value', async () => {
+    class AsyncRejectingRegisterRegistry extends MachineRegistry {
+      static override create(): AsyncRejectingRegisterRegistry {
+        return new AsyncRejectingRegisterRegistry();
+      }
+
+      protected override async onRegister(_id: string): Promise<void> {
+        await Promise.resolve();
+        throw new Error('async onRegister boom');
+      }
+    }
+
+    const rejectionEvents: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      const asyncRegistry = AsyncRejectingRegisterRegistry.create();
+      const interpreter = makeInterpreter();
+
+      // register() never awaits invoke()'s return — this call is synchronous.
+      asyncRegistry.register('async-hook-test', interpreter);
+      assert.equal(asyncRegistry.get('async-hook-test'), interpreter);
+
+      await new Promise((resolve) => { setImmediate(resolve); });
+      await new Promise((resolve) => { setImmediate(resolve); });
+
+      assert.equal(rejectionEvents.length, 0);
+      assert.equal(asyncRegistry.hookErrorCount, 1);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  });
 });

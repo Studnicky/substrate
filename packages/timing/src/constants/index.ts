@@ -14,9 +14,12 @@ export const DEFAULT_DECIMAL_PRECISION = {
 } as const;
 
 /**
- * Default maximum events (unlimited).
+ * Default maximum events held in the internal cache.
+ * Oldest events are evicted once this limit is reached.
+ * Generous enough for a single operation's timing spans while bounding
+ * memory growth for long-lived instances.
  */
-export const DEFAULT_MAX_EVENTS = Infinity;
+export const DEFAULT_MAX_EVENTS = 1000;
 
 /**
  * Maximum allowed decimal precision (0-20).

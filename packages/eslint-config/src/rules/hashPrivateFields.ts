@@ -4,48 +4,18 @@ import type { LayerOptionsType } from '../types/LayerOptionsType.js';
 
 import { layerOptionsSchema } from './layers/layerOptionsSchema.js';
 import { LayerResolver } from './layers/LayerResolver.js';
+import { ExemptionComment } from './shared/exemptionComment.js';
+import { ObjectGuard } from './shared/ObjectGuard.js';
 
 const DIRECTIVE_PATTERN = /^\s*external-contract:\s*\S.{9,}/v;
 
-class ObjectGuard {
-  public static isNonNullObject(value: unknown): value is Record<string, unknown> {
-    return value !== null && value !== undefined && typeof value === 'object';
-  }
-}
-
-// json-schema-uninexpressible: internal narrowing helper mirroring the shape of ESLint's own Comment token; never serialized or runtime-validated by this package
-type CommentToken = { readonly 'type': string; readonly 'value': string };
-
-// json-schema-uninexpressible: contains a function-typed member ('getCommentsBefore'), which JSON Schema cannot express
-type SourceCodeLike = { 'getCommentsBefore': (node: unknown) => readonly CommentToken[] };
-
-class ExemptionComment {
-  public static commentsContainDirective(comments: readonly CommentToken[]): boolean {
-    const length = comments.length;
-    for (let index = 0; index < length; index++) {
-      const comment = comments[index];
-      if (comment?.type === 'Line' && DIRECTIVE_PATTERN.test(comment.value)) { return true; }
-    }
-    return false;
-  }
-
-  public static isSourceCodeLike(value: unknown): value is SourceCodeLike {
-    return ObjectGuard.isNonNullObject(value) && typeof (value as { 'getCommentsBefore'?: unknown }).getCommentsBefore === 'function';
-  }
-
-  public static has(rawNode: unknown, rawSourceCode: unknown): boolean {
-    if (!ExemptionComment.isSourceCodeLike(rawSourceCode)) { return false; }
-    return ExemptionComment.commentsContainDirective(rawSourceCode.getCommentsBefore(rawNode));
-  }
-}
-
 class UnderscoreName {
   public static get(node: unknown): string | undefined {
-    if (!ObjectGuard.isNonNullObject(node)) { return undefined; }
+    if (!ObjectGuard.isObject(node)) { return undefined; }
     if (Reflect.get(node, 'computed') === true) { return undefined; }
 
     const key: unknown = Reflect.get(node, 'key');
-    if (!ObjectGuard.isNonNullObject(key)) { return undefined; }
+    if (!ObjectGuard.isObject(key)) { return undefined; }
     if (Reflect.get(key, 'type') !== 'Identifier') { return undefined; }
 
     const name: unknown = Reflect.get(key, 'name');
@@ -76,17 +46,17 @@ class ClassMemberCheck {
     const name = UnderscoreName.get(node);
     if (name === undefined) { return; }
 
-    if (exemptionEligible && ExemptionComment.has(node, context.sourceCode)) { return; }
+    if (exemptionEligible && ExemptionComment.has(node, context.sourceCode, DIRECTIVE_PATTERN)) { return; }
 
     ViolationReporter.reportUnderscoreName(context, node.key as Rule.Node, name);
   }
 
   public static unwrapParameterIdentifier(parameter: unknown): Record<string, unknown> | undefined {
-    if (!ObjectGuard.isNonNullObject(parameter)) { return undefined; }
+    if (!ObjectGuard.isObject(parameter)) { return undefined; }
     if (Reflect.get(parameter, 'type') !== 'AssignmentPattern') { return parameter; }
 
     const left: unknown = Reflect.get(parameter, 'left');
-    return ObjectGuard.isNonNullObject(left) ? left : undefined;
+    return ObjectGuard.isObject(left) ? left : undefined;
   }
 
   public static isDeclaredField(node: Record<string, unknown>): boolean {
@@ -94,7 +64,7 @@ class ClassMemberCheck {
   }
 
   public static onParameterProperty(context: Rule.RuleContext, exemptionEligible: boolean, node: unknown): void {
-    if (!ObjectGuard.isNonNullObject(node)) { return; }
+    if (!ObjectGuard.isObject(node)) { return; }
     if (!ClassMemberCheck.isDeclaredField(node)) { return; }
 
     const identifier = ClassMemberCheck.unwrapParameterIdentifier(Reflect.get(node, 'parameter'));
@@ -104,7 +74,7 @@ class ClassMemberCheck {
     const name: unknown = Reflect.get(identifier, 'name');
     if (typeof name !== 'string' || !name.startsWith('_')) { return; }
 
-    if (exemptionEligible && ExemptionComment.has(node, context.sourceCode)) { return; }
+    if (exemptionEligible && ExemptionComment.has(node, context.sourceCode, DIRECTIVE_PATTERN)) { return; }
 
     ViolationReporter.reportUnderscoreName(context, identifier as unknown as Rule.Node, name);
   }
