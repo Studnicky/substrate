@@ -85,7 +85,7 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "undici": "^8.5.0"
+    "undici": "^8.7.0"
   },
   "devDependencies": {
     "@studnicky/timing": "workspace:*"
