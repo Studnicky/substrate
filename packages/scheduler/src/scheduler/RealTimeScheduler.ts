@@ -6,46 +6,33 @@
  * @module
  */
 
-import type { ScheduledTaskType } from '../interfaces/ScheduledTaskType.js';
-import type { SchedulerProviderType } from '../interfaces/SchedulerProviderType.js';
+import { HookInvoker } from '@studnicky/errors';
 
+import type { ScheduledTaskType } from '../types/ScheduledTaskType.js';
+import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
+
+import { CancellableTask } from './CancellableTask.js';
 import { RealTimeSchedulerBuilder } from './RealTimeSchedulerBuilder.js';
 
+/**
+ * A broken lifecycle hook must never abort scheduler machinery: swallow the
+ * failure instead of `HookInvoker`'s default (throwing) behavior.
+ */
+class SwallowingHookInvoker extends HookInvoker {
+  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
+    const result = undefined as T;
+    return result;
+  }
+}
+
+// json-schema-uninexpressible: 'handle' is a ReturnType<typeof setTimeout> — an opaque Node.js runtime
+// timer handle object, not a JSON-serializable data shape.
 /** Internal record kept per active timer. */
 type ActiveTimerType = {
   readonly 'handle': ReturnType<typeof setTimeout>;
   readonly 'id': string;
   readonly 'variant': 'interval' | 'timeout';
 };
-
-/**
- * Unified `ScheduledTask` implementation for both one-shot and interval timers.
- * Cancellation is fully delegated to the provided callback, which handles
- * timer clearing, map removal, and the `onCancel` lifecycle hook.
- */
-class RealTimeTask implements ScheduledTaskType {
-  public readonly atMs: number;
-  public readonly id: string;
-  readonly #onCancelCallback: (id: string) => void;
-
-  /**
-   * Property write order: atMs, id, #onCancelCallback.
-   */
-  public constructor(
-    atMs: number,
-    id: string,
-    onCancelCallback: (id: string) => void
-  ) {
-    this.atMs = atMs;
-    this.id = id;
-    this.#onCancelCallback = onCancelCallback;
-  }
-
-  /** Cancels the underlying timer via the cancel callback. No-op if already fired/cancelled. */
-  public cancel(): void {
-    this.#onCancelCallback(this.id);
-  }
-}
 
 /**
  * Real-time `SchedulerProvider` using `setTimeout` and `setInterval`.
@@ -60,15 +47,10 @@ class RealTimeTask implements ScheduledTaskType {
  *   `onCancel`, `onCancelAll`, `onIdle`
  */
 export class RealTimeScheduler implements SchedulerProviderType {
+  protected readonly hooks: HookInvoker = new SwallowingHookInvoker();
   /** Map from task ID to active timer. */
   readonly #timers: Map<string, ActiveTimerType>;
   #idCounter: number;
-
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
 
   /**
    * Property write order: #timers, #idCounter.
@@ -117,6 +99,16 @@ export class RealTimeScheduler implements SchedulerProviderType {
     } else {
       clearTimeout(handle);
     }
+  }
+
+  /**
+   * Largest delay `setTimeout` accepts before Node silently truncates it (2^31 - 1 ms,
+   * ~24.8 days). `scheduleAt` chains through intermediate stages capped at this value
+   * for any `atMs` further out than this. Override to substitute a smaller value in tests.
+   */
+  protected get maxTimeoutDelayMs(): number {
+    const result = 2147483647;
+    return result;
   }
 
   /** Called after a task is registered via `scheduleAt` or `scheduleEvery`. */
@@ -173,75 +165,107 @@ export class RealTimeScheduler implements SchedulerProviderType {
       this.clearTimer(timer.handle, timer.variant);
     }
     this.#timers.clear();
-    this.#invokeHook(() => {
-      this.onCancelAll();
+    this.hooks.invoke('onCancelAll', () => {
+      const result = this.onCancelAll();
+      return result;
     });
-    this.#invokeHook(() => {
-      this.onIdle();
+    this.hooks.invoke('onIdle', () => {
+      const result = this.onIdle();
+      return result;
     });
   }
 
   /**
    * Schedules `fire` once at `atMs` (epoch-ms).
    * If `atMs` is in the past, fires at the next event-loop turn (and `onMiss` fires).
+   *
+   * `setTimeout` silently truncates delays beyond `maxTimeoutDelayMs` (~24.8 days), so
+   * an `atMs` further out than that is armed across a chain of intermediate stages, each
+   * capped at `maxTimeoutDelayMs`, until the real remaining delay is exhausted. Only the
+   * final, terminal stage invokes `fire`/`onFire`/`onDrift` — intermediate stages just
+   * re-arm the next stage.
    */
   public scheduleAt(atMs: number, fire: () => Promise<void> | void): ScheduledTaskType {
     const id = this.generateId();
     const scheduleNowMs = Date.now();
     const rawDelayMs = atMs - scheduleNowMs;
-    const delayMs = rawDelayMs < 0 ? 0 : rawDelayMs;
     const timers = this.#timers;
+    const maxDelayMs = this.maxTimeoutDelayMs;
 
     if (rawDelayMs < 0) {
-      this.#invokeHook(() => {
-        this.onMiss(id, atMs, scheduleNowMs);
+      this.hooks.invoke('onMiss', () => {
+        const result = this.onMiss(id, atMs, scheduleNowMs);
+        return result;
       });
     }
 
-    const handle = this.createTimeout(() => {
-      timers.delete(id);
-      this.#invokeHook(() => {
-        this.onFire(id);
-      });
+    const armStage = (): void => {
+      const remainingDelayMs = atMs - Date.now();
+      const isTerminalStage = remainingDelayMs <= maxDelayMs;
+      let stageDelayMs: number;
 
-      const fireNowMs = Date.now();
-      const drift = fireNowMs - atMs;
-
-      if (drift > 0) {
-        this.#invokeHook(() => {
-          this.onDrift(id, atMs, fireNowMs, drift);
-        });
+      if (isTerminalStage) {
+        stageDelayMs = remainingDelayMs < 0 ? 0 : remainingDelayMs;
+      } else {
+        stageDelayMs = maxDelayMs;
       }
 
-      let result: Promise<void> | void;
+      const handle = this.createTimeout(() => {
+        if (!isTerminalStage) {
+          armStage();
+          return;
+        }
 
-      try {
-        result = fire();
-      } catch (error: unknown) {
-        this.#invokeHook(() => {
-          this.onFireError(id, error);
+        timers.delete(id);
+        this.hooks.invoke('onFire', () => {
+          const result = this.onFire(id);
+          return result;
         });
-        return;
-      }
 
-      if (result instanceof Promise) {
-        result.catch((error: unknown) => {
-          this.#invokeHook(() => {
-            this.onFireError(id, error);
+        const fireNowMs = Date.now();
+        const drift = fireNowMs - atMs;
+
+        if (drift > 0) {
+          this.hooks.invoke('onDrift', () => {
+            const result = this.onDrift(id, atMs, fireNowMs, drift);
+            return result;
           });
-        });
-      }
-    }, delayMs);
+        }
 
-    const activeTimer: ActiveTimerType = {
-      'handle': handle,
-      'id': id,
-      'variant': 'timeout'
+        let result: Promise<void> | void;
+
+        try {
+          result = fire();
+        } catch (error: unknown) {
+          this.hooks.invoke('onFireError', () => {
+            const result = this.onFireError(id, error);
+            return result;
+          });
+          return;
+        }
+
+        if (result instanceof Promise) {
+          result.catch((error: unknown) => {
+            this.hooks.invoke('onFireError', () => {
+              const result = this.onFireError(id, error);
+              return result;
+            });
+          });
+        }
+      }, stageDelayMs);
+
+      const activeTimer: ActiveTimerType = {
+        'handle': handle,
+        'id': id,
+        'variant': 'timeout'
+      };
+
+      timers.set(id, activeTimer);
     };
 
-    timers.set(id, activeTimer);
+    armStage();
 
-    const task = new RealTimeTask(atMs, id, (taskId: string) => {
+    const task = new CancellableTask(atMs, id, (taskId: string) => {
       const timer = timers.get(taskId);
 
       if (timer === undefined) {
@@ -249,13 +273,15 @@ export class RealTimeScheduler implements SchedulerProviderType {
       }
       this.clearTimer(timer.handle, timer.variant);
       timers.delete(taskId);
-      this.#invokeHook(() => {
-        this.onCancel(taskId);
+      this.hooks.invoke('onCancel', () => {
+        const result = this.onCancel(taskId);
+        return result;
       });
     });
 
-    this.#invokeHook(() => {
-      this.onSchedule(id, atMs, 'timeout');
+    this.hooks.invoke('onSchedule', () => {
+      const result = this.onSchedule(id, atMs, 'timeout');
+      return result;
     });
 
     return task;
@@ -270,24 +296,27 @@ export class RealTimeScheduler implements SchedulerProviderType {
     const timers = this.#timers;
 
     const handle = this.createInterval(() => {
-      this.#invokeHook(() => {
-        this.onFire(id);
+      this.hooks.invoke('onFire', () => {
+        const result = this.onFire(id);
+        return result;
       });
       let result: Promise<void> | void;
 
       try {
         result = fire();
       } catch (error: unknown) {
-        this.#invokeHook(() => {
-          this.onFireError(id, error);
+        this.hooks.invoke('onFireError', () => {
+          const result = this.onFireError(id, error);
+          return result;
         });
         return;
       }
 
       if (result instanceof Promise) {
         result.catch((error: unknown) => {
-          this.#invokeHook(() => {
-            this.onFireError(id, error);
+          this.hooks.invoke('onFireError', () => {
+            const result = this.onFireError(id, error);
+            return result;
           });
         });
       }
@@ -301,7 +330,7 @@ export class RealTimeScheduler implements SchedulerProviderType {
 
     timers.set(id, activeTimer);
 
-    const task = new RealTimeTask(atMs, id, (taskId: string) => {
+    const task = new CancellableTask(atMs, id, (taskId: string) => {
       const timer = timers.get(taskId);
 
       if (timer === undefined) {
@@ -309,13 +338,15 @@ export class RealTimeScheduler implements SchedulerProviderType {
       }
       this.clearTimer(timer.handle, timer.variant);
       timers.delete(taskId);
-      this.#invokeHook(() => {
-        this.onCancel(taskId);
+      this.hooks.invoke('onCancel', () => {
+        const result = this.onCancel(taskId);
+        return result;
       });
     });
 
-    this.#invokeHook(() => {
-      this.onSchedule(id, atMs, 'interval');
+    this.hooks.invoke('onSchedule', () => {
+      const result = this.onSchedule(id, atMs, 'interval');
+      return result;
     });
 
     return task;

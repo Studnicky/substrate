@@ -1,4 +1,4 @@
-import type { TimingEventDataType } from '../interfaces/TimingEventDataType.js';
+import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingEventInterface } from '../interfaces/TimingEventInterface.js';
 import type { TimingStatusValueType } from '../types/TimingStatusValueType.js';
 
@@ -52,9 +52,9 @@ export class TimingEvent implements TimingEventInterface {
    * Builds the timing event data.
    * Validates that required fields (component, operation) are set.
    * @throws TimingBuildError if component or operation is missing
-   * @returns Frozen TimingEventDataType
+   * @returns Frozen TimingEventDataEntity.Type
    */
-  build(): TimingEventDataType {
+  build(): TimingEventDataEntity.Type {
     if (this.componentValue === undefined) {
       throw TimingBuildError.create('TimingEvent requires component()');
     }

@@ -4,10 +4,12 @@
 
 import type { Context } from '@studnicky/context';
 import type { FetchClient } from '@studnicky/fetch';
-import type { ClientConfigType } from '@studnicky/fetch/interfaces';
+import type { ClientConfigType } from '@studnicky/fetch/types';
 import type { Retry, RetryConfigInterface } from '@studnicky/retry';
 import type { Signal } from '@studnicky/signal';
 import type { Timing } from '@studnicky/timing';
+
+import { PickDefined } from '@studnicky/types';
 
 import type { RequestExecutor } from './RequestExecutor.js';
 import type { RequestExecutorConfigType } from './types/RequestExecutorConfigType.js';
@@ -31,7 +33,7 @@ export class RequestExecutorBuilder {
 
   readonly #create: (config: RequestExecutorConfigType) => RequestExecutor;
   #fetchClient?: ClientConfigType | FetchClient;
-  #retry?: Partial<RetryConfigInterface> | Retry;
+  #retry?: RetryConfigInterface | Retry;
   #signal?: Signal;
   #timing?: Timing;
   #context?: Context;
@@ -45,14 +47,14 @@ export class RequestExecutorBuilder {
    * Build and return the RequestExecutor instance
    */
   build(): RequestExecutor {
-    const config: RequestExecutorConfigType = {
-      ...(this.#fetchClient !== undefined ? { 'fetchClient': this.#fetchClient } : {}),
-      ...(this.#retry !== undefined ? { 'retry': this.#retry } : {}),
-      ...(this.#signal !== undefined ? { 'signal': this.#signal } : {}),
-      ...(this.#timing !== undefined ? { 'timing': this.#timing } : {}),
-      ...(this.#context !== undefined ? { 'context': this.#context } : {}),
-      ...(this.#deadlineMs !== undefined ? { 'deadlineMs': this.#deadlineMs } : {})
-    };
+    const config: RequestExecutorConfigType = PickDefined.from({
+      'context': this.#context,
+      'deadlineMs': this.#deadlineMs,
+      'fetchClient': this.#fetchClient,
+      'retry': this.#retry,
+      'signal': this.#signal,
+      'timing': this.#timing
+    });
     return this.#create(config);
   }
 
@@ -83,7 +85,7 @@ export class RequestExecutorBuilder {
   /**
    * Set the composed Retry instance or config
    */
-  retry(value: Partial<RetryConfigInterface> | Retry): this {
+  retry(value: RetryConfigInterface | Retry): this {
     this.#retry = value;
     return this;
   }

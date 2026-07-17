@@ -151,4 +151,37 @@ describe('FlagEvaluator lifecycle hooks', () => {
       assert.equal(throwingEvaluator.evaluate('enabled-flag', { 'targetingKey': 'user-1' }), true);
     });
   });
+
+  it('an async-rejecting onEvaluate override is routed safely, producing no unhandled rejection', async () => {
+    class AsyncRejectingEvaluateEvaluator extends FlagEvaluator {
+      static override create(): AsyncRejectingEvaluateEvaluator {
+        return new AsyncRejectingEvaluateEvaluator();
+      }
+
+      protected override onEvaluate(): Promise<void> {
+        return Promise.reject(new Error('onEvaluate async boom'));
+      }
+    }
+
+    const asyncEvaluator = AsyncRejectingEvaluateEvaluator.create();
+    asyncEvaluator.register('enabled-flag', { 'defaultValue': false, 'enabled': true });
+
+    const rejectionEvents: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown): void => {
+      rejectionEvents.push(reason);
+    };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      const result = asyncEvaluator.evaluate('enabled-flag', { 'targetingKey': 'user-1' });
+      assert.equal(result, true);
+
+      await new Promise((resolve) => { setImmediate(resolve); });
+      await new Promise((resolve) => { setImmediate(resolve); });
+
+      assert.deepEqual(rejectionEvents, []);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  });
 });

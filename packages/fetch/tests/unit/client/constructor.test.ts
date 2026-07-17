@@ -242,8 +242,8 @@ void describe('FetchClient Constructor', () => {
         }
 
         protected override async onRequest(
-          context: import('../../../src/interfaces/RequestContextType.js').RequestContextType
-        ): Promise<import('../../../src/interfaces/RequestContextType.js').RequestContextType> {
+          context: import('../../../src/types/RequestContextType.js').RequestContextType
+        ): Promise<import('../../../src/types/RequestContextType.js').RequestContextType> {
           capturedMetadata.push({ ...context.metadata.metadata });
           return context;
         }

@@ -5,7 +5,7 @@ import type { AsyncLocalStorage } from 'node:async_hooks';
  */
 export interface ContextScopeOptionsInterface {
   /** Initial key-value pairs to seed into the store. */
-  readonly 'initial'?: Record<string, unknown>;
+  readonly 'initial'?: Record<string, unknown> | undefined;
   /** The name of this scope, used in error messages. */
   readonly 'name': string;
   /** AsyncLocalStorage instance to bind this scope to. */

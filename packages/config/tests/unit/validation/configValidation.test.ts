@@ -208,6 +208,25 @@ void describe('configValidation', () => {
         }
       });
     }
+
+    void it('propagates a real error thrown by exotic property access instead of swallowing it', () => {
+      const boom = new Error('boom');
+      const target: Record<string, unknown> = Object.defineProperty({}, 'log', {
+        enumerable: true,
+        get(): never {
+          throw boom;
+        },
+      });
+
+      assert.throws(
+        () => ConfigValidation.assertHasMethod(target, 'log', 'logger'),
+        (err: unknown) => {
+          assert.strictEqual(err, boom);
+          assert.ok(!(err instanceof ConfigurationError));
+          return true;
+        }
+      );
+    });
   });
 
   void describe('assertFunctionOrObjectWithMethod', () => {
@@ -231,6 +250,25 @@ void describe('configValidation', () => {
         }
       });
     }
+
+    void it('propagates a real error thrown by exotic property access instead of swallowing it', () => {
+      const boom = new Error('boom');
+      const target: Record<string, unknown> = Object.defineProperty({}, 'emit', {
+        enumerable: true,
+        get(): never {
+          throw boom;
+        },
+      });
+
+      assert.throws(
+        () => ConfigValidation.assertFunctionOrObjectWithMethod(target, 'emit', 'handler'),
+        (err: unknown) => {
+          assert.strictEqual(err, boom);
+          assert.ok(!(err instanceof ConfigurationError));
+          return true;
+        }
+      );
+    });
   });
 
   void describe('assertNoUnknownKeys', () => {

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import { Batch } from '../src/index.js';
+import { BasicProcessingFixture } from './fixtures/BasicProcessingFixture.js';
 
 class NumberItem {
   static double(n: number): Promise<number> {
@@ -12,12 +13,10 @@ class NumberItem {
   }
 }
 
-const items = [1, 2, 3, 4, 5] as const;
-
 const allResults: number[] = [];
 let batchIndex = 0;
 
-for await (const batch of Batch.create<number>(2).process(items, NumberItem.double)) {
+for await (const batch of Batch.create<number>(2).process(BasicProcessingFixture.Items, NumberItem.double)) {
   console.log(`Batch ${batchIndex}:`, batch);
   allResults.push(...batch);
   batchIndex++;
@@ -30,7 +29,6 @@ console.log('All results:', allResults);
 assert.equal(allResults.length, 5, 'Expected 5 results');
 
 // Results must match expected doubled values (order preserved within each batch).
-const expected = [2, 4, 6, 8, 10];
-assert.deepEqual(allResults.sort((a, b) => {return a - b;}), expected);
+assert.deepEqual(allResults.sort((a, b) => {return a - b;}), BasicProcessingFixture.ExpectedDoubled);
 
 console.log('basic-processing: all assertions passed');

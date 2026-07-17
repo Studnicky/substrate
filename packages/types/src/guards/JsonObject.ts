@@ -9,12 +9,18 @@
  */
 import type { JsonObjectType } from '../types/JsonObject.js';
 
+import { Guard } from './Guard.js';
+
 export class JsonObject {
   /**
    * Returns `true` when `value` is a plain, non-null, non-array object,
-   * narrowing its type to `JsonObjectType`.
+   * narrowing its type to `JsonObjectType`. `Map` and `Set` instances return
+   * `false` — a JSON object is a property bag, and neither collection is
+   * JSON-serialisable in that shape. Delegates to `Guard.isObject`, the
+   * canonical plain-object predicate for the package.
    */
   public static is(value: unknown): value is JsonObjectType {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+    const result = Guard.isObject(value);
+    return result;
   }
 }

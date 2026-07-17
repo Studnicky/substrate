@@ -49,14 +49,17 @@ load spikes. The new `jitter` option randomises the delay within
 the computed window.
 ```
 
-## Changelog (mandatory)
+## Changesets (mandatory)
 
-Every PR must include a changelog entry. The `changelog-check` workflow enforces this:
+Every PR must include a changeset. The `changelog-check` workflow enforces this on PRs targeting `main`.
 
-- PRs targeting `develop`: `CHANGELOG.md` at the root and in each affected package must have a `## [Unreleased]` section with at least one populated subsection (`### Added`, `### Changed`, `### Fixed`, etc.).
-- PRs targeting `main` (release/hotfix): that `## [Unreleased]` section must be dated to `## [<version>] - YYYY-MM-DD`.
+```bash
+pnpm changeset
+```
 
-If the changelog check fails, add the missing entry — do not modify the workflow to skip the check.
+This prompts for the affected package(s) (all `@studnicky/*` packages version together as one fixed group, so selecting any one bumps them all), a bump type, and a summary. It writes a `.changeset/<random-name>.md` file — commit it with your PR.
+
+At release time, `pnpm changeset:version` consumes every pending changeset: it bumps `package.json#version` in lockstep across all packages and prepends the summaries to each affected package's own `CHANGELOG.md`. Don't hand-edit a package's `CHANGELOG.md` — the next `changeset:version` run overwrites hand-written entries at the same heading. Release and hotfix branches run `changeset:version` and commit the result before tagging; the publish workflow's changeset gate fails the release if any `.changeset/*.md` file is left unconsumed.
 
 ## Design rules
 

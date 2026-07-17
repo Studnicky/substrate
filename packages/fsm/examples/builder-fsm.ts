@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type { EffectHandlerMapType, FsmStepType } from '../src/index.js';
+import type { TrafficEffectEntity } from './entities/TrafficEffectEntity.js';
+import type { TrafficEventEntity } from './entities/TrafficEventEntity.js';
 
 import { EffectInterpreter, StateMachine } from '../src/index.js';
 
@@ -12,9 +14,9 @@ type TrafficState =
   | { readonly 'variant': 'green' }
   | { readonly 'variant': 'amber' };
 
-type TrafficEvent = { readonly 'type': 'advance' };
+type TrafficEvent = TrafficEventEntity.Type;
 
-type TrafficEffect = { readonly 'tone': string; readonly 'variant': 'playSound'; };
+type TrafficEffect = TrafficEffectEntity.Type;
 
 class TrafficLight extends StateMachine<TrafficState, TrafficEvent, TrafficEffect> {
   static make(): TrafficLight { return new TrafficLight(); }
@@ -33,47 +35,55 @@ class TrafficLight extends StateMachine<TrafficState, TrafficEvent, TrafficEffec
   }
 }
 
-const soundsPlayed: string[] = [];
+class BuilderFsmDemo {
+  static readonly soundsPlayed: string[] = [];
+  static readonly history: string[] = [];
 
-const handlers: EffectHandlerMapType<TrafficEffect> = {
-  'playSound': (effect) => {
-    soundsPlayed.push(effect.tone);
-    console.log(`  effect handler: playSound tone="${effect.tone}"`);
+  static readonly handlers: EffectHandlerMapType<TrafficEffect> = {
+    'playSound': (effect) => {
+      BuilderFsmDemo.soundsPlayed.push(effect.tone);
+      console.log(`  effect handler: playSound tone="${effect.tone}"`);
+    }
+  };
+
+  static async run(): Promise<{ readonly 'finalVariant': TrafficState['variant']; readonly 'history': string[]; readonly 'soundsPlayed': string[] }> {
+    const machine: TrafficLight = TrafficLight.make();
+
+    const interpreter = EffectInterpreter.builder<TrafficState, TrafficEvent, TrafficEffect>()
+      .withMachine(machine)
+      .withHandlers(BuilderFsmDemo.handlers)
+      .withOptions({ 'machineId': 'builder-demo' })
+      .build();
+
+    const unsubscribe = interpreter.subscribe((state) => { BuilderFsmDemo.history.push(state.variant); });
+
+    interpreter.start();
+    console.log('started — initial state:', interpreter.getState().variant);
+
+    await interpreter.send({ 'type': 'advance' });
+    console.log('after advance 1:', interpreter.getState().variant);
+
+    await interpreter.send({ 'type': 'advance' });
+    console.log('after advance 2:', interpreter.getState().variant);
+
+    await interpreter.send({ 'type': 'advance' });
+    console.log('after advance 3:', interpreter.getState().variant);
+
+    console.log('State history:', BuilderFsmDemo.history);
+    console.log('Sounds played:', BuilderFsmDemo.soundsPlayed);
+
+    unsubscribe();
+    interpreter.stop();
+
+    return { 'finalVariant': interpreter.getState().variant, 'history': BuilderFsmDemo.history, 'soundsPlayed': BuilderFsmDemo.soundsPlayed };
   }
-};
+}
 
-const machine: TrafficLight = TrafficLight.make();
-
-const interpreter = EffectInterpreter.builder<TrafficState, TrafficEvent, TrafficEffect>()
-  .withMachine(machine)
-  .withHandlers(handlers)
-  .withOptions({ 'machineId': 'builder-demo' })
-  .build();
-
-const history: string[] = [];
-const unsubscribe = interpreter.subscribe((state) => { history.push(state.variant); });
-
-interpreter.start();
-console.log('started — initial state:', interpreter.getState().variant);
-
-await interpreter.send({ 'type': 'advance' });
-console.log('after advance 1:', interpreter.getState().variant);
-
-await interpreter.send({ 'type': 'advance' });
-console.log('after advance 2:', interpreter.getState().variant);
-
-await interpreter.send({ 'type': 'advance' });
-console.log('after advance 3:', interpreter.getState().variant);
-
-console.log('State history:', history);
-console.log('Sounds played:', soundsPlayed);
-
-unsubscribe();
-interpreter.stop();
+const results = await BuilderFsmDemo.run();
 // #endregion usage
 
-assert.equal(interpreter.getState().variant, 'red');
-assert.deepEqual(soundsPlayed, ['chime']);
-assert.deepEqual(history, ['red', 'green', 'amber', 'red']);
+assert.equal(results.finalVariant, 'red');
+assert.deepEqual(results.soundsPlayed, ['chime']);
+assert.deepEqual(results.history, ['red', 'green', 'amber', 'red']);
 
 console.log('builder-fsm: all assertions passed');

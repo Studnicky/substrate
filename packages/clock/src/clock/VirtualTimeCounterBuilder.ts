@@ -3,6 +3,8 @@
  *
  * @module
  */
+import { PickDefined } from '@studnicky/types';
+
 import type { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
 
@@ -27,9 +29,9 @@ export class VirtualTimeCounterBuilder {
   }
 
   build(): VirtualTimeCounter {
-    const options: VirtualTimeCounterOptionsEntity.Type = {
-      ...(this.#startMs !== undefined && { 'startMs': this.#startMs })
-    };
+    const options: VirtualTimeCounterOptionsEntity.Type = PickDefined.from({
+      'startMs': this.#startMs
+    });
     const result = this.#create(options);
     return result;
   }

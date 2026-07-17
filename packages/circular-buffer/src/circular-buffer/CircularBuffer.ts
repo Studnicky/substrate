@@ -10,13 +10,32 @@
  * Subclasses may override the protected hook methods to observe lifecycle
  * events. All hooks have no-op defaults — super() call is not required.
  *
- * Fire points:
- * - `onOverflow(item)` — in push(), when full in overwrite mode, before eviction (overwrite mode only)
- * - `onEvict(item)` — in push(), before the oldest item is overwritten (overwrite mode only)
+ * `unshift()` inserts at the front (head) instead of the back (tail) —
+ * useful for preempting the queue with a follow-up item. It mirrors push()'s
+ * overflow/growth semantics: in overwrite mode, a full buffer evicts from the
+ * opposite end (tail) to make room at the front; in grow mode, it grows first.
+ *
+ * Fire points — in overwrite mode, push()/unshift() fully commit head/tail/items
+ * for the operation (including the eviction) before any hook fires, so a
+ * reentrant push()/unshift() from within a hook observes a consistent buffer:
+ * - `onOverflow(item)` — in push()/unshift(), when full in overwrite mode, after the eviction and insertion are committed (overwrite mode only)
+ * - `onEvict(item)` — in push()/unshift(), after the displaced item's slot has been overwritten (overwrite mode only)
  * - `onGrow(oldCapacity, newCapacity)` — end of grow(), after resize completes (grow mode only)
- * - `onPush(item)` — end of push(), after item is inserted and length updated
+ * - `onPush(item)` — end of push() or unshift(), after the item is inserted and length updated
  * - `onShift(item)` — in shift(), before returning a defined item
+ *
+ * Each fire point is invoked through a `HookInvoker` instance held as the
+ * `hooks` field, from `@studnicky/errors`. push()/shift()/unshift() stay
+ * synchronous — `invoke` never `await`s at the call site, so a hook that resolves
+ * synchronously never touches the Promise machinery. A hook that throws
+ * surfaces as a `HookInvocationError` (from `@studnicky/errors`) carrying
+ * the hook name, propagated synchronously out of push()/shift()/unshift().
+ * An unexpectedly-async hook override is also handled safely: its eventual
+ * rejection routes through `onHookError` via a guaranteed `.catch`, so it
+ * can never produce an unhandled promise rejection or crash the process.
  */
+
+import { HookInvoker, ReentrantHookInvocationError } from '@studnicky/errors';
 
 import type { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import type { CircularBufferInterface } from '../interfaces/CircularBufferInterface.js';
@@ -74,14 +93,24 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   protected items: (T | undefined)[];
   protected tail = INITIAL_BUFFER_TAIL;
   protected capacity: number;
+  protected readonly hooks: HookInvoker = new HookInvoker({ 'detectReentrancy': true });
 
   readonly #overflow: 'grow' | 'overwrite';
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  // Guards push()/unshift()/shift(): true for the entire duration of one of
+  // these calls (mutation through every hook it fires), so a hook override
+  // that reentrantly calls back into any of them on this same instance is
+  // rejected at entry — before it can mutate head/tail/items — rather than
+  // relying solely on HookInvoker's own reentrancy check, which only trips
+  // once the reentrant call reaches its own `hooks.invoke`, by which point
+  // it has already mutated shared state.
+  #dispatching = false;
+
+  // Separate flag for grow(): grow() is legitimately called from inside
+  // push()/unshift() while #dispatching is already true, so it cannot share
+  // that flag. This one guards only against onGrow reentrantly calling
+  // grow() again on the same instance.
+  #growing = false;
 
   /**
    * Create a new circular buffer.
@@ -108,26 +137,35 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * Fire point: `onGrow` is called at the end after the resize completes.
    */
   protected grow(): void {
-    const oldCapacity = this.capacity;
-    const newCapacity = this.capacity * BUFFER_GROWTH_FACTOR;
-    const newItems = Array.from<T | undefined>({ 'length': newCapacity });
-    const length = this.count;
-    const capacity = this.capacity;
-    const head = this.head;
-    const items = this.items;
-
-    for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
-      newItems[i] = items[(head + i) % capacity];
+    if (this.#growing) {
+      throw new ReentrantHookInvocationError('grow');
     }
+    this.#growing = true;
+    try {
+      const oldCapacity = this.capacity;
+      const newCapacity = this.capacity * BUFFER_GROWTH_FACTOR;
+      const newItems = Array.from<T | undefined>({ 'length': newCapacity });
+      const length = this.count;
+      const capacity = this.capacity;
+      const head = this.head;
+      const items = this.items;
 
-    this.items = newItems;
-    this.head = INITIAL_BUFFER_HEAD;
-    this.tail = length;
-    this.capacity = newCapacity;
+      for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
+        newItems[i] = items[(head + i) % capacity];
+      }
 
-    this.#invokeHook(() => {
-      this.onGrow(oldCapacity, newCapacity);
-    });
+      this.items = newItems;
+      this.head = INITIAL_BUFFER_HEAD;
+      this.tail = length;
+      this.capacity = newCapacity;
+
+      this.hooks.invoke('onGrow', () => {
+        const result = this.onGrow(oldCapacity, newCapacity);
+        return result;
+      });
+    } finally {
+      this.#growing = false;
+    }
   }
 
   /**
@@ -136,14 +174,14 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * Getter required: count is mutated internally but exposed read-only
    */
   get length(): number {
-    // Ensure non-negative (defensive - count should never be negative)
-    const result = Math.max(this.count, EMPTY_LENGTH);
-    return result;
+    return this.count;
   }
 
   /**
-   * Called in push() when the buffer is full and overflow strategy is 'overwrite'.
-   * Fires before onEvict — carries the incoming item, not the one being dropped.
+   * Called in push()/unshift() when the buffer is full and overflow strategy
+   * is 'overwrite'. Fires after the eviction and insertion are fully
+   * committed (head/tail/items), and before onEvict — carries the incoming
+   * item, not the one being dropped.
    * Not called in grow mode (onGrow covers that path).
    * No-op default — override to observe overflow events.
    *
@@ -154,8 +192,9 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   }
 
   /**
-   * Called when an item is evicted during an overwrite push (overflow: 'overwrite').
-   * Fires before the new item is written at the evicted slot.
+   * Called when an item is evicted during an overwrite push/unshift
+   * (overflow: 'overwrite'). Fires after the evicted slot has been
+   * overwritten by the new item and head/tail/items are fully committed.
    * No-op default — override to observe evictions.
    *
    * @param _item - The item that was evicted
@@ -176,11 +215,13 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   }
 
   /**
-   * Called at the end of push(), after the item has been inserted and
-   * length updated.
+   * Called at the end of push() or unshift(), after the item has been
+   * inserted and length updated. Both entry points share this hook — from an
+   * observer's perspective, "a new item entered the buffer" is the same
+   * event regardless of which end it entered from.
    * No-op default — override to observe item insertions.
    *
-   * @param _item - The item that was pushed
+   * @param _item - The item that was pushed or unshifted
    */
   protected onPush(_item: T): void {
     // no-op
@@ -209,37 +250,154 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * @param item - Item to add
    */
   push(item: T): void {
-    if (this.count === this.capacity) {
-      if (this.#overflow === 'grow') {
-        this.grow();
-      } else {
-        // overwrite: evict oldest, advance head, keep length at capacity
-        this.#invokeHook(() => {
-          this.onOverflow(item);
-        });
-        const evicted = this.items[this.head];
-        if (evicted !== undefined) {
-          this.#invokeHook(() => {
-            this.onEvict(evicted);
-          });
-        }
-        this.items[this.tail] = item;
-        this.tail = (this.tail + INCREMENT_BY_ONE) % this.capacity;
-        this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
-        this.#invokeHook(() => {
-          this.onPush(item);
-        });
-        return;
-      }
+    if (this.#dispatching) {
+      throw new ReentrantHookInvocationError('push');
     }
+    this.#dispatching = true;
+    try {
+      if (this.count === this.capacity) {
+        if (this.#overflow === 'grow') {
+          this.grow();
+        } else {
+          // overwrite: evict oldest, advance head, keep length at capacity.
+          // Buffer is full (count === capacity), so the slot at head always
+          // holds a real item — occupancy is already known, no value check needed.
+          const evicted = this.items[this.head]!;
+          this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
+          this.#writeTail(item);
 
+          // State (head/tail/items) is fully committed above before any hook
+          // fires, so a reentrant push()/unshift()/shift() from
+          // onOverflow/onEvict observes a consistent buffer instead of a
+          // half-advanced one. The #dispatching guard above additionally
+          // rejects such a reentrant call before it can mutate anything.
+          this.hooks.invoke('onOverflow', () => {
+            const result = this.onOverflow(item);
+            return result;
+          });
+          this.hooks.invoke('onEvict', () => {
+            const result = this.onEvict(evicted);
+            return result;
+          });
+          this.#firePushHook(item);
+          return;
+        }
+      }
+
+      this.count++;
+      this.#appendItem(item);
+    } finally {
+      this.#dispatching = false;
+    }
+  }
+
+  /**
+   * Shared tail-write step used by both the generic append path and the
+   * overwrite-eviction path: writes `item` at `tail` and advances `tail`.
+   * Does not fire `onPush` — callers that need it invoke `#firePushHook`
+   * once all state for the operation is committed.
+   */
+  #writeTail(item: T): void {
     this.items[this.tail] = item;
     this.tail = (this.tail + INCREMENT_BY_ONE) % this.capacity;
-    this.count++;
+  }
 
-    this.#invokeHook(() => {
-      this.onPush(item);
+  /**
+   * Fires `onPush` for the item just inserted. Split out from the write
+   * steps so overwrite-eviction paths can commit head/tail/count fully
+   * before any hook (`onOverflow`/`onEvict`/`onPush`) observes the buffer.
+   */
+  #firePushHook(item: T): void {
+    this.hooks.invoke('onPush', () => {
+      const result = this.onPush(item);
+      return result;
     });
+  }
+
+  /**
+   * Writes `item` at `tail`, advances `tail`, then fires `onPush`. Used by
+   * the non-overflow append path where there is no eviction to sequence
+   * around.
+   */
+  #appendItem(item: T): void {
+    this.#writeTail(item);
+    this.#firePushHook(item);
+  }
+
+  /**
+   * Add an item to the front of the buffer.
+   * Time complexity: O(1) amortized (overwrite mode: always O(1))
+   *
+   * In overwrite mode (default): when full, evicts from the tail (the
+   * opposite end from insertion) to make room, retreating tail. Length stays
+   * at capacity.
+   *
+   * In grow mode: when full, doubles capacity before inserting.
+   *
+   * @param item - Item to add
+   */
+  unshift(item: T): void {
+    if (this.#dispatching) {
+      throw new ReentrantHookInvocationError('unshift');
+    }
+    this.#dispatching = true;
+    try {
+      if (this.count === this.capacity) {
+        if (this.#overflow === 'grow') {
+          this.grow();
+        } else {
+          // overwrite: evict from tail (opposite end from insertion), retreat
+          // tail, keep length at capacity.
+          this.tail = (this.tail - INCREMENT_BY_ONE + this.capacity) % this.capacity;
+          // Buffer is full (count === capacity), so the slot before tail always
+          // holds a real item — occupancy is already known, no value check needed.
+          const evicted = this.items[this.tail]!;
+          this.#writeHead(item);
+
+          // State (head/tail/items) is fully committed above before any hook
+          // fires, so a reentrant push()/unshift()/shift() from
+          // onOverflow/onEvict observes a consistent buffer instead of a
+          // half-advanced one. The #dispatching guard above additionally
+          // rejects such a reentrant call before it can mutate anything.
+          this.hooks.invoke('onOverflow', () => {
+            const result = this.onOverflow(item);
+            return result;
+          });
+          this.hooks.invoke('onEvict', () => {
+            const result = this.onEvict(evicted);
+            return result;
+          });
+          this.#firePushHook(item);
+          return;
+        }
+      }
+
+      this.count++;
+      this.#prependItem(item);
+    } finally {
+      this.#dispatching = false;
+    }
+  }
+
+  /**
+   * Shared head-write step used by both the generic prepend path and the
+   * overwrite-eviction path: retreats `head` and writes `item` at the new
+   * head. Does not fire `onPush` — callers invoke `#firePushHook` once all
+   * state for the operation is committed.
+   */
+  #writeHead(item: T): void {
+    this.head = (this.head - INCREMENT_BY_ONE + this.capacity) % this.capacity;
+    this.items[this.head] = item;
+  }
+
+  /**
+   * Retreats `head`, writes `item` at the new head, then fires `onPush`.
+   * Used by the non-overflow prepend path where there is no eviction to
+   * sequence around.
+   */
+  #prependItem(item: T): void {
+    this.#writeHead(item);
+    this.#firePushHook(item);
   }
 
   /**
@@ -249,22 +407,31 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * @returns First item or undefined if buffer is empty
    */
   shift(): T | undefined {
+    if (this.#dispatching) {
+      throw new ReentrantHookInvocationError('shift');
+    }
     if (this.count === EMPTY_LENGTH) {
       return undefined;
     }
 
-    const item = this.items[this.head];
+    this.#dispatching = true;
+    try {
+      // Past the EMPTY_LENGTH guard above, count > 0 means the slot at head
+      // always holds a real item — occupancy is already known, no value check needed.
+      const item = this.items[this.head]!;
 
-    this.items[this.head] = undefined;
-    this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
-    this.count--;
+      this.items[this.head] = undefined;
+      this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
+      this.count--;
 
-    if (item !== undefined) {
-      this.#invokeHook(() => {
-        this.onShift(item);
+      this.hooks.invoke('onShift', () => {
+        const result = this.onShift(item);
+        return result;
       });
-    }
 
-    return item;
+      return item;
+    } finally {
+      this.#dispatching = false;
+    }
   }
 }

@@ -2,8 +2,11 @@
  * Fluent builder for FetchClient
  */
 
-import type { ClientConfigType } from '../interfaces/ClientConfigType.js';
-import type { DispatcherConfigType } from '../interfaces/DispatcherConfigType.js';
+import { PickDefined } from '@studnicky/types';
+
+import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
+import type { ClientConfigType } from '../types/ClientConfigType.js';
+import type { FetchOptionsType } from '../types/FetchOptionsType.js';
 import type { QueryParamsType } from '../types/QueryParamsType.js';
 import type { FetchClient } from './FetchClient.js';
 
@@ -18,10 +21,12 @@ export class FetchClientBuilder {
   readonly #create: (options: ClientConfigType) => FetchClient;
   #autoGenerateRequestId?: boolean;
   #baseURL?: string;
-  #dispatcher?: DispatcherConfigType;
+  #dispatcher?: DispatcherConfigEntity.Type;
   #headers?: Record<string, string>;
+  #hookTimeoutMs?: number;
   #metadata?: Record<string, unknown>;
   #name?: string;
+  #options?: FetchOptionsType;
   #params?: QueryParamsType;
   #requestIdGenerator?: () => string;
   #timeout?: number;
@@ -40,13 +45,18 @@ export class FetchClientBuilder {
     return this;
   }
 
-  withDispatcher(value: DispatcherConfigType): this {
+  withDispatcher(value: DispatcherConfigEntity.Type): this {
     this.#dispatcher = value;
     return this;
   }
 
   withHeaders(value: Record<string, string>): this {
     this.#headers = value;
+    return this;
+  }
+
+  withHookTimeoutMs(value: number): this {
+    this.#hookTimeoutMs = value;
     return this;
   }
 
@@ -57,6 +67,11 @@ export class FetchClientBuilder {
 
   withName(value: string): this {
     this.#name = value;
+    return this;
+  }
+
+  withOptions(value: FetchOptionsType): this {
+    this.#options = value;
     return this;
   }
 
@@ -76,35 +91,19 @@ export class FetchClientBuilder {
   }
 
   build(): FetchClient {
-    const config: ClientConfigType = {};
-
-    if (this.#autoGenerateRequestId !== undefined) {
-      config.autoGenerateRequestId = this.#autoGenerateRequestId;
-    }
-    if (this.#baseURL !== undefined) {
-      config.baseURL = this.#baseURL;
-    }
-    if (this.#dispatcher !== undefined) {
-      config.dispatcher = this.#dispatcher;
-    }
-    if (this.#headers !== undefined) {
-      config.headers = this.#headers;
-    }
-    if (this.#metadata !== undefined) {
-      config.metadata = this.#metadata;
-    }
-    if (this.#name !== undefined) {
-      config.name = this.#name;
-    }
-    if (this.#params !== undefined) {
-      config.params = this.#params;
-    }
-    if (this.#requestIdGenerator !== undefined) {
-      config.requestIdGenerator = this.#requestIdGenerator;
-    }
-    if (this.#timeout !== undefined) {
-      config.timeout = this.#timeout;
-    }
+    const config: ClientConfigType = PickDefined.from({
+      'autoGenerateRequestId': this.#autoGenerateRequestId,
+      'baseURL': this.#baseURL,
+      'dispatcher': this.#dispatcher,
+      'headers': this.#headers,
+      'hookTimeoutMs': this.#hookTimeoutMs,
+      'metadata': this.#metadata,
+      'name': this.#name,
+      'options': this.#options,
+      'params': this.#params,
+      'requestIdGenerator': this.#requestIdGenerator,
+      'timeout': this.#timeout
+    });
 
     return this.#create(config);
   }

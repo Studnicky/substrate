@@ -1,5 +1,8 @@
 import type { ClockProviderType } from '@studnicky/clock';
 
+import { HookInvoker } from '@studnicky/errors';
+
+import type { EntryEntity } from '../entities/EntryEntity.js';
 import type { FileSystemInterface } from '../interfaces/FileSystemInterface.js';
 import type { StatResultInterface } from '../interfaces/StatResultInterface.js';
 import type { VirtualFileSystemOptionsType } from '../types/VirtualFileSystemOptionsType.js';
@@ -7,11 +10,7 @@ import type { VirtualFileSystemOptionsType } from '../types/VirtualFileSystemOpt
 import { VirtualFileSystemError } from '../errors/VirtualFileSystemError.js';
 import { VirtualFileSystemBuilder } from './VirtualFileSystemBuilder.js';
 
-type EntryKindType = 'directory' | 'file';
-type EntryType = {
-  readonly 'kind': EntryKindType;
-  readonly 'mtimeMs': number;
-};
+type EntryKindType = EntryEntity.Type['kind'];
 
 const DEFAULT_CLOCK: ClockProviderType = {
   'hrtime': () => { return BigInt(Date.now()) * 1_000_000n; },
@@ -52,19 +51,42 @@ export class VirtualFileSystem implements FileSystemInterface {
     return result;
   }
 
+  static splitPath(path: string): { 'name': string; 'parent': string } {
+    const separatorIndex = path.lastIndexOf('/');
+    const name = path.slice(separatorIndex + 1);
+    const parent = separatorIndex === 0 ? '/' : path.slice(0, separatorIndex);
+    return { 'name': name, 'parent': parent };
+  }
+
+  protected readonly hooks: HookInvoker = new HookInvoker();
+
+  readonly #children: Map<string, Set<string>>;
   readonly #clock: ClockProviderType;
-  readonly #entries: Map<string, EntryType>;
+  readonly #entries: Map<string, EntryEntity.Type>;
   readonly #files: Map<string, string>;
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
+  #indexAdd(path: string): void {
+    const { name, parent } = VirtualFileSystem.splitPath(path);
+    let siblings = this.#children.get(parent);
+    if (siblings === undefined) {
+      siblings = new Set<string>();
+      this.#children.set(parent, siblings);
+    }
+    siblings.add(name);
+  }
+
+  #indexRemove(path: string): void {
+    const { name, parent } = VirtualFileSystem.splitPath(path);
+    const siblings = this.#children.get(parent);
+    if (siblings !== undefined) {
+      siblings.delete(name);
+    }
   }
 
   protected constructor(options: VirtualFileSystemOptionsType) {
+    this.#children = new Map<string, Set<string>>();
     this.#clock = options.clock ?? DEFAULT_CLOCK;
-    this.#entries = new Map<string, EntryType>();
+    this.#entries = new Map<string, EntryEntity.Type>();
     this.#files = new Map<string, string>();
 
     // Seed root directory
@@ -108,6 +130,10 @@ export class VirtualFileSystem implements FileSystemInterface {
       return;
     }
 
+    if (this.#files.has(path)) {
+      throw new VirtualFileSystemError(`EEXIST: file already exists, mkdir '${path}'`);
+    }
+
     if (recursive) {
       const segments = path.split('/');
       const filtered: string[] = [];
@@ -124,20 +150,27 @@ export class VirtualFileSystem implements FileSystemInterface {
         const seg = filtered[i];
         if (seg !== undefined) {
           current = `${current}/${seg}`;
+          if (this.#files.has(current)) {
+            throw new VirtualFileSystemError(`ENOTDIR: not a directory, mkdir '${path}'`);
+          }
           if (!this.#entries.has(current)) {
-            const entry: EntryType = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
+            const entry: EntryEntity.Type = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
             this.#entries.set(current, entry);
-            this.#invokeHook(() => {
-              this.onCreate(current);
+            this.#indexAdd(current);
+            this.hooks.invoke('onCreate', () => {
+              const result = this.onCreate(current);
+              return result;
             });
           }
         }
       }
     } else {
-      const entry: EntryType = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
+      const entry: EntryEntity.Type = { 'kind': 'directory', 'mtimeMs': this.#clock.now() };
       this.#entries.set(path, entry);
-      this.#invokeHook(() => {
-        this.onCreate(path);
+      this.#indexAdd(path);
+      this.hooks.invoke('onCreate', () => {
+        const result = this.onCreate(path);
+        return result;
       });
     }
   }
@@ -151,39 +184,12 @@ export class VirtualFileSystem implements FileSystemInterface {
       throw new VirtualFileSystemError(`ENOTDIR: not a directory, scandir '${path}'`);
     }
 
-    const prefix = path === '/' ? '/' : `${path}/`;
-    const result: string[] = [];
+    const siblings = this.#children.get(path);
+    const result: string[] = siblings === undefined ? [] : Array.from(siblings);
 
-    const entryKeys = Array.from(this.#entries.keys());
-    const entryLen = entryKeys.length;
-    for (let i = 0; i < entryLen; i += 1) {
-      const candidate = entryKeys[i];
-      if (candidate !== undefined && candidate !== path && candidate.startsWith(prefix)) {
-        const rest = candidate.slice(prefix.length);
-        if (rest.length > 0 && !rest.includes('/')) {
-          result.push(rest);
-        }
-      }
-    }
-
-    const fileKeys = Array.from(this.#files.keys());
-    const fileLen = fileKeys.length;
-    for (let i = 0; i < fileLen; i += 1) {
-      const candidate = fileKeys[i];
-      if (
-        candidate !== undefined &&
-        !this.#entries.has(candidate) &&
-        candidate.startsWith(prefix)
-      ) {
-        const rest = candidate.slice(prefix.length);
-        if (rest.length > 0 && !rest.includes('/')) {
-          result.push(rest);
-        }
-      }
-    }
-
-    this.#invokeHook(() => {
-      this.onRead(path);
+    this.hooks.invoke('onRead', () => {
+      const hookResult = this.onRead(path);
+      return hookResult;
     });
     return result;
   }
@@ -193,29 +199,86 @@ export class VirtualFileSystem implements FileSystemInterface {
     if (content === undefined) {
       throw new VirtualFileSystemError(`ENOENT: no such file or directory, open '${path}'`);
     }
-    this.#invokeHook(() => {
-      this.onRead(path);
+    this.hooks.invoke('onRead', () => {
+      const result = this.onRead(path);
+      return result;
     });
     return content;
   }
 
   renameSync(oldPath: string, newPath: string): void {
     const content = this.#files.get(oldPath);
-    if (content === undefined) {
+    const oldEntry = this.#entries.get(oldPath);
+
+    if (content === undefined && oldEntry === undefined) {
       throw new VirtualFileSystemError(`ENOENT: no such file or directory, rename '${oldPath}' -> '${newPath}'`);
     }
-    const oldEntry = this.#entries.get(oldPath);
+
     const mtimeMs = this.#clock.now();
 
-    this.#files.set(newPath, content);
-    this.#files.delete(oldPath);
+    if (oldEntry?.kind === 'directory') {
+      const prefix = `${oldPath}/`;
 
-    const kind: EntryKindType = oldEntry !== undefined ? oldEntry.kind : 'file';
-    this.#entries.set(newPath, { 'kind': kind, 'mtimeMs': mtimeMs });
-    this.#entries.delete(oldPath);
+      const entryKeys = Array.from(this.#entries.keys());
+      const entryLen = entryKeys.length;
+      for (let i = 0; i < entryLen; i += 1) {
+        const candidate = entryKeys[i];
+        if (candidate?.startsWith(prefix) === true) {
+          const rest = candidate.slice(prefix.length);
+          const entry = this.#entries.get(candidate);
+          if (entry !== undefined) {
+            const movedPath = `${newPath}/${rest}`;
+            this.#entries.set(movedPath, entry);
+            this.#entries.delete(candidate);
+            this.#indexRemove(candidate);
+            this.#indexAdd(movedPath);
+            if (entry.kind === 'directory') {
+              // The candidate's own child-listing key (it as a parent) is
+              // superseded by #indexAdd calls from its descendants below,
+              // which derive their new parent purely from movedPath — drop
+              // the stale key rather than transplant its (possibly
+              // already-drained) Set, which would be iteration-order-dependent.
+              this.#children.delete(candidate);
+            }
+          }
+        }
+      }
 
-    this.#invokeHook(() => {
-      this.onRename(oldPath, newPath);
+      const fileKeys = Array.from(this.#files.keys());
+      const fileLen = fileKeys.length;
+      for (let i = 0; i < fileLen; i += 1) {
+        const candidate = fileKeys[i];
+        if (candidate?.startsWith(prefix) === true) {
+          const rest = candidate.slice(prefix.length);
+          const fileContent = this.#files.get(candidate);
+          if (fileContent !== undefined) {
+            this.#files.set(`${newPath}/${rest}`, fileContent);
+            this.#files.delete(candidate);
+          }
+        }
+      }
+
+      this.#entries.set(newPath, { 'kind': 'directory', 'mtimeMs': mtimeMs });
+      this.#entries.delete(oldPath);
+      this.#indexRemove(oldPath);
+      this.#indexAdd(newPath);
+      this.#children.delete(oldPath);
+    } else {
+      if (content !== undefined) {
+        this.#files.set(newPath, content);
+        this.#files.delete(oldPath);
+      }
+
+      const kind: EntryKindType = oldEntry !== undefined ? oldEntry.kind : 'file';
+      this.#entries.set(newPath, { 'kind': kind, 'mtimeMs': mtimeMs });
+      this.#entries.delete(oldPath);
+      this.#indexRemove(oldPath);
+      this.#indexAdd(newPath);
+    }
+
+    this.hooks.invoke('onRename', () => {
+      const result = this.onRename(oldPath, newPath);
+      return result;
     });
   }
 
@@ -235,12 +298,18 @@ export class VirtualFileSystem implements FileSystemInterface {
 
   unlinkSync(path: string): void {
     if (!this.#files.has(path)) {
+      const entry = this.#entries.get(path);
+      if (entry?.kind === 'directory') {
+        throw new VirtualFileSystemError(`EISDIR: illegal operation on a directory, unlink '${path}'`);
+      }
       throw new VirtualFileSystemError(`ENOENT: no such file or directory, unlink '${path}'`);
     }
     this.#files.delete(path);
     this.#entries.delete(path);
-    this.#invokeHook(() => {
-      this.onDelete(path);
+    this.#indexRemove(path);
+    this.hooks.invoke('onDelete', () => {
+      const result = this.onDelete(path);
+      return result;
     });
   }
 
@@ -252,12 +321,15 @@ export class VirtualFileSystem implements FileSystemInterface {
     this.#entries.set(path, { 'kind': 'file', 'mtimeMs': mtimeMs });
 
     if (isNew) {
-      this.#invokeHook(() => {
-        this.onCreate(path);
+      this.#indexAdd(path);
+      this.hooks.invoke('onCreate', () => {
+        const result = this.onCreate(path);
+        return result;
       });
     } else {
-      this.#invokeHook(() => {
-        this.onWrite(path);
+      this.hooks.invoke('onWrite', () => {
+        const result = this.onWrite(path);
+        return result;
       });
     }
   }

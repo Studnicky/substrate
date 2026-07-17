@@ -2,14 +2,14 @@
  * Fluent interface for LogBody builder.
  */
 
+import type { LogBodyDataEntity } from '../entities/LogBodyDataEntity.js';
 import type { LogStatusType } from '../types/LogStatusType.js';
-import type { LogBodyDataType } from './LogBodyDataType.js';
 
 /**
  * Builder interface for creating normalized log entries.
  */
 export interface LogBodyInterface {
-  build(): LogBodyDataType;
+  build(): LogBodyDataEntity.Type;
   component(name: string): LogBodyInterface;
   context(data: Record<string, unknown>): LogBodyInterface;
   duration(ms: number): LogBodyInterface;

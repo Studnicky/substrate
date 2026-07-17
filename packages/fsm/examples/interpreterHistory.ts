@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type { FsmStepType } from '../src/index.js';
+import type { TrafficEventEntity } from './entities/TrafficEventEntity.js';
 
 import { InterpreterHistory, StateMachine } from '../src/index.js';
 
@@ -14,7 +15,7 @@ type TrafficState =
   | { readonly 'variant': 'green' }
   | { readonly 'variant': 'red' };
 
-type TrafficEvent = { readonly 'type': 'advance' };
+type TrafficEvent = TrafficEventEntity.Type;
 
 class TrafficMachine extends StateMachine<TrafficState, TrafficEvent> {
   static make(): TrafficMachine { return new TrafficMachine(); }

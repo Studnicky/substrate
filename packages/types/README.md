@@ -73,6 +73,39 @@ const schema: JsonSchemaObject = { type: 'string', minLength: 1 };
 const typeName: JsonSchemaTypeName = 'string'; // 'string' | 'number' | 'integer' | 'boolean' | 'null' | 'array' | 'object'
 ```
 
+### Assembling options objects (`PickDefined`)
+
+`PickDefined.from` strips `undefined`-valued keys from a record and narrows each remaining value's type away from `undefined`. It's built for builders that assemble an options object from a mix of required and optional fields, replacing a manual spread-ternary chain with one call:
+
+```typescript
+import { PickDefined } from '@studnicky/types';
+
+interface RateLimiterOptionsInterface {
+  requestsPerSecond: number;
+  burstSize: number;
+  clock?: () => number;
+}
+
+class RateLimiterBuilder {
+  private requestsPerSecond?: number;
+  private burstSize?: number;
+  private clock?: () => number;
+
+  public withClock(value: () => number): this {
+    this.clock = value;
+    return this;
+  }
+
+  public build(): RateLimiterOptionsInterface {
+    return PickDefined.from({
+      requestsPerSecond: this.requestsPerSecond ?? 10,
+      burstSize: this.burstSize ?? 20,
+      clock: this.clock, // omitted from the result when never set
+    });
+  }
+}
+```
+
 ## Extending
 
 All types are pure compile-time constructs — import and annotate, nothing more.

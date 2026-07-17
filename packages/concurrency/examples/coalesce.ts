@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { Coalesce } from '../src/index.js';
 
 class CoalesceDemo {
-  static async runSharedInFlight(): Promise<{ 'a': string; 'b': string; 'callCount': number }> {
+  static async runSharedInFlight(): Promise<void> {
     const coalesce = Coalesce.create<string>();
     let callCount = 0;
 
@@ -24,10 +24,12 @@ class CoalesceDemo {
     ]);
 
     console.log('Coalesce shared result a:', a, 'b:', b, 'callCount:', callCount);
-    return { 'a': a, 'b': b, 'callCount': callCount };
+    assert.equal(a, 'data');
+    assert.equal(b, 'data');
+    assert.equal(callCount, 1);
   }
 
-  static async runIsInflight(): Promise<number> {
+  static async runIsInflight(): Promise<void> {
     const coalesce = Coalesce.create<number>();
 
     let resolve!: (v: number) => void;
@@ -47,10 +49,10 @@ class CoalesceDemo {
     // No longer in-flight once resolved
     const afterResolve = coalesce.isInflight('item');
     console.log('isInflight — before:', beforeStart, 'during:', duringInflight, 'after:', afterResolve, 'result:', result);
-    return result;
+    assert.equal(result, 42);
   }
 
-  static async runDistinctKeys(): Promise<{ 'a': string; 'b': string; 'callCounts': Record<string, number> }> {
+  static async runDistinctKeys(): Promise<void> {
     const coalesce = Coalesce.create<string>();
     const callCounts: Record<string, number> = { 'a': 0, 'b': 0 };
 
@@ -65,10 +67,13 @@ class CoalesceDemo {
     ]);
 
     console.log('Distinct keys — a:', a, 'b:', b, 'callCounts:', callCounts);
-    return { 'a': a, 'b': b, 'callCounts': callCounts };
+    assert.equal(a, 'result-a');
+    assert.equal(b, 'result-b');
+    assert.equal(callCounts.a, 1);
+    assert.equal(callCounts.b, 1);
   }
 
-  static async runSequentialCallsEachInvokeFactory(): Promise<{ 'callCount': number; 'first': number; 'second': number }> {
+  static async runSequentialCallsEachInvokeFactory(): Promise<void> {
     const coalesce = Coalesce.create<number>();
     let callCount = 0;
 
@@ -82,28 +87,16 @@ class CoalesceDemo {
     const second = await coalesce.run('seq', factory);
 
     console.log('Sequential — first:', first, 'second:', second, 'callCount:', callCount);
-    return { 'callCount': callCount, 'first': first, 'second': second };
+    assert.equal(first, 1);
+    assert.equal(second, 2);
+    assert.equal(callCount, 2);
   }
 }
 // #endregion usage
 
-const sharedResult = await CoalesceDemo.runSharedInFlight();
-assert.equal(sharedResult.a, 'data');
-assert.equal(sharedResult.b, 'data');
-assert.equal(sharedResult.callCount, 1);
-
-const inflightResult = await CoalesceDemo.runIsInflight();
-assert.equal(inflightResult, 42);
-
-const distinctResult = await CoalesceDemo.runDistinctKeys();
-assert.equal(distinctResult.a, 'result-a');
-assert.equal(distinctResult.b, 'result-b');
-assert.equal(distinctResult.callCounts.a, 1);
-assert.equal(distinctResult.callCounts.b, 1);
-
-const seqResult = await CoalesceDemo.runSequentialCallsEachInvokeFactory();
-assert.equal(seqResult.first, 1);
-assert.equal(seqResult.second, 2);
-assert.equal(seqResult.callCount, 2);
+await CoalesceDemo.runSharedInFlight();
+await CoalesceDemo.runIsInflight();
+await CoalesceDemo.runDistinctKeys();
+await CoalesceDemo.runSequentialCallsEachInvokeFactory();
 
 console.log('coalesce: all assertions passed');

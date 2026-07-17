@@ -3,8 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { TimingOptionsEntity } from '../src/index.js';
-import type { TimingEventDataType } from '../src/interfaces/index.js';
+import type { TimingEventDataEntity, TimingOptionsEntity } from '../src/index.js';
 
 import { Timing, TimingEvent } from '../src/index.js';
 
@@ -13,7 +12,7 @@ class ObservedTiming extends Timing {
   // Use `declare` so TypeScript knows the type but emits no own-property
   // initializer that would reset the value after super() returns.
   declare initEvents: { 'startTime': bigint }[];
-  recordedEvents: { 'data': TimingEventDataType; 'timestamp': bigint }[] = [];
+  recordedEvents: { 'data': TimingEventDataEntity.Type; 'timestamp': bigint }[] = [];
   evictedNames: string[] = [];
   clearCount = 0;
   getEventsCalls: { 'eventCount': number }[] = [];
@@ -29,7 +28,7 @@ class ObservedTiming extends Timing {
     this.initEvents.push({ 'startTime': startTime });
   }
 
-  protected override onEvent(data: TimingEventDataType, timestamp: bigint): void {
+  protected override onEvent(data: TimingEventDataEntity.Type, timestamp: bigint): void {
     console.log(`[timing] event name=${data.event} timestamp=${timestamp}`);
     this.recordedEvents.push({ 'data': data, 'timestamp': timestamp });
   }

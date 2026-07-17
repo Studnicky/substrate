@@ -187,4 +187,33 @@ describe('StateMachine lifecycle hooks', () => {
       (err: unknown) => err instanceof ReducerThrewError
     );
   });
+
+  it('an async-overridden hook that rejects is routed through onHookError without an unhandled rejection, because invoke() actually receives its return value', async () => {
+    class AsyncRejectingEnterStateMachine extends TrafficMachine {
+      protected override async onEnterState(_state: TrafficState): Promise<void> {
+        await Promise.resolve();
+        throw new Error('async onEnterState boom');
+      }
+    }
+
+    const rejectionEvents: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      const machine = new AsyncRejectingEnterStateMachine();
+      const step = machine.transition({ 'variant': 'red' }, { 'type': 'advance' });
+
+      // The caller never awaits anything hook-related — transition() is synchronous.
+      assert.deepEqual(step.state, { 'variant': 'green' });
+
+      await new Promise((resolve) => { setImmediate(resolve); });
+      await new Promise((resolve) => { setImmediate(resolve); });
+
+      assert.equal(rejectionEvents.length, 0);
+      assert.equal(machine.hookErrorCount, 1);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  });
 });

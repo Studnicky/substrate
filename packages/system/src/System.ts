@@ -1,28 +1,23 @@
-import type { CpuInfoType } from './types/CpuInfoType.js';
-import type { GpuInfoType } from './types/GpuInfoType.js';
-import type { MemoryInfoType } from './types/MemoryInfoType.js';
-import type { PlatformInfoType } from './types/PlatformInfoType.js';
-import type { SystemInfoType } from './types/SystemInfoType.js';
+import type { CpuInfoEntity } from './entities/CpuInfoEntity.js';
+import type { GpuInfoEntity } from './entities/GpuInfoEntity.js';
+import type { MemoryInfoEntity } from './entities/MemoryInfoEntity.js';
+import type { PlatformInfoEntity } from './entities/PlatformInfoEntity.js';
+import type { SystemInfoEntity } from './entities/SystemInfoEntity.js';
 
 import { SystemProvider } from './providers/SystemProvider.js';
 
 const PROVIDER = new SystemProvider();
 
 export class System {
-  static #gpuCache: GpuInfoType | null | undefined = undefined;
+  static #gpuCache: GpuInfoEntity.Type | null | undefined = undefined;
 
   private constructor() {
     throw new Error('System is a static-only class');
   }
 
-  static get cpu(): CpuInfoType {
-    const logicalCount = PROVIDER.logicalCpuCount();
-    const model = PROVIDER.cpuModel();
+  static get cpu(): CpuInfoEntity.Type {
     const arch = PROVIDER.arch();
-    const hasHyperthreading = arch !== 'arm64';
-    const physicalCount = hasHyperthreading
-      ? Math.max(1, Math.round(logicalCount / 2))
-      : logicalCount;
+    const { logicalCount, model, physicalCount } = PROVIDER.cpuInfo();
 
     return {
       'arch': arch,
@@ -32,25 +27,24 @@ export class System {
     };
   }
 
-  static get memory(): MemoryInfoType {
+  static get memory(): MemoryInfoEntity.Type {
     return {
       'freeMb': PROVIDER.freeMb(),
       'totalMb': PROVIDER.totalMb()
     };
   }
 
-  static get platform(): PlatformInfoType {
+  static get platform(): PlatformInfoEntity.Type {
     const platformStr = PROVIDER.platform();
-    const arch = PROVIDER.arch();
 
     return {
-      'isAppleSilicon': platformStr === 'darwin' && arch === 'arm64',
+      'isAppleSilicon': System.#isAppleSilicon(platformStr),
       'nodeVersion': PROVIDER.runtimeVersion(),
       'os': platformStr
     };
   }
 
-  static gpu(): GpuInfoType | null {
+  static gpu(): GpuInfoEntity.Type | null {
     if (System.#gpuCache !== undefined) {
       return System.#gpuCache;
     }
@@ -73,11 +67,15 @@ export class System {
 
   static get isAppleSilicon(): boolean {
     const platformStr = PROVIDER.platform();
+    return System.#isAppleSilicon(platformStr);
+  }
+
+  static #isAppleSilicon(platformStr: string): boolean {
     const arch = PROVIDER.arch();
     return platformStr === 'darwin' && arch === 'arm64';
   }
 
-  static snapshot(): SystemInfoType {
+  static snapshot(): SystemInfoEntity.Type {
     const gpu = System.gpu();
 
     return {

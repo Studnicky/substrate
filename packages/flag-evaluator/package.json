@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/flag-evaluator",
-  "version": "5.1.1",
+  "version": "6.0.0",
   "description": "Local deterministic feature-flag evaluation with percentage rollout and observability hooks",
   "type": "module",
   "sideEffects": false,
@@ -53,6 +53,8 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@studnicky/json": "workspace:*"
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

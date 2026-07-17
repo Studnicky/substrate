@@ -1,7 +1,5 @@
-import type {
-  ErrorClassificationType,
-  ErrorClassifierInterface
-} from '../interfaces/index.js';
+import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
+import type { ErrorClassifierInterface } from '../interfaces/index.js';
 
 import { matchers } from './matchers.js';
 
@@ -15,7 +13,7 @@ import { matchers } from './matchers.js';
  * @example HTTP Error Classifier
  * ```typescript
  * class HttpErrorClassifier extends ErrorClassifier {
- *   classify(error: Error, attemptNumber: number): ErrorClassificationType {
+ *   classify(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
  *     if ('status' in error) {
  *       const status = (error as { status: number }).status;
  *
@@ -40,7 +38,7 @@ import { matchers } from './matchers.js';
  *     super();
  *   }
  *
- *   classify(error: Error, attemptNumber: number): ErrorClassificationType {
+ *   classify(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
  *     const msg = error.message.toLowerCase();
  *
  *     if (msg.includes('transaction') || msg.includes('503')) {
@@ -72,7 +70,7 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
    * @example Using matchers
    * ```typescript
    * class HttpErrorClassifier extends ErrorClassifier {
-   *   classify(error: Error): ErrorClassificationType {
+   *   classify(error: Error): ErrorClassificationEntity.Type {
    *     const { HTTP_MATCHERS, NETWORK_MATCHERS, LOGIC_MATCHERS } = ErrorClassifier;
    *
    *     // Use domain-specific matchers
@@ -109,7 +107,7 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
    * @param attemptNumber - Current attempt number (0-indexed)
    * @returns Classification result indicating whether to retry
    */
-  abstract classify(error: Error, attemptNumber: number): ErrorClassificationType;
+  abstract classify(error: Error, attemptNumber: number): ErrorClassificationEntity.Type;
 
   /**
    * Helper: Check if error has a property, optionally with a specific value or matching a predicate
@@ -244,8 +242,8 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
    * @param reason - Reason for classification
    * @returns Non-retryable error classification
    */
-  protected nonRetryable(reason: string): ErrorClassificationType {
-    const classification: ErrorClassificationType = {
+  protected nonRetryable(reason: string): ErrorClassificationEntity.Type {
+    const classification: ErrorClassificationEntity.Type = {
       'reason': reason,
       'retryable': false
     };
@@ -258,8 +256,8 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
    * @param reason - Reason for classification
    * @returns Retryable error classification
    */
-  protected retryable(reason: string): ErrorClassificationType {
-    const classification: ErrorClassificationType = {
+  protected retryable(reason: string): ErrorClassificationEntity.Type {
+    const classification: ErrorClassificationEntity.Type = {
       'reason': reason,
       'retryable': true
     };

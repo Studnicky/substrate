@@ -2,6 +2,10 @@
 
 import assert from 'node:assert/strict';
 
+import type { EnrichedEntity } from './entities/EnrichedEntity.js';
+import type { EnrichmentEntity } from './entities/EnrichmentEntity.js';
+import type { ItemEntity } from './entities/ItemEntity.js';
+
 // #region usage
 import { AsyncIter } from '../src/index.js';
 
@@ -9,24 +13,26 @@ import { AsyncIter } from '../src/index.js';
 // Node alike, so AsyncIter's combinators consume them directly (no node:stream).
 // Each awaits a microtask before yielding to model a genuinely asynchronous
 // producer.
-async function* range(start: number, end: number): AsyncGenerator<number> {
-  for (let i = start; i <= end; i += 1) {
-    await Promise.resolve();
-    yield i;
+class AsyncSources {
+  static async *range(start: number, end: number): AsyncGenerator<number> {
+    for (let i = start; i <= end; i += 1) {
+      await Promise.resolve();
+      yield i;
+    }
   }
-}
 
-async function* words(items: string[]): AsyncGenerator<string> {
-  for (const item of items) {
-    await Promise.resolve();
-    yield item;
+  static async *words(items: string[]): AsyncGenerator<string> {
+    for (const item of items) {
+      await Promise.resolve();
+      yield item;
+    }
   }
-}
 
-async function* itemsOf<T>(items: T[]): AsyncGenerator<T> {
-  for (const item of items) {
-    await Promise.resolve();
-    yield item;
+  static async *itemsOf<T>(items: T[]): AsyncGenerator<T> {
+    for (const item of items) {
+      await Promise.resolve();
+      yield item;
+    }
   }
 }
 
@@ -34,8 +40,8 @@ class AsyncIterDemo {
   static async runMerge(): Promise<void> {
     // Merge two non-overlapping ranges
     const merged = AsyncIter.merge(
-      range(1, 3),
-      range(10, 12)
+      AsyncSources.range(1, 3),
+      AsyncSources.range(10, 12)
     );
     const results: number[] = [];
     for await (const n of merged) {
@@ -46,9 +52,10 @@ class AsyncIterDemo {
     assert.equal(results.length, 6);
     const expected = [1, 2, 3, 10, 11, 12];
     const expectedLen = expected.length;
+    const resultsSet = new Set(results);
 
     for (let i = 0; i < expectedLen; i += 1) {
-      assert.ok(results.includes(expected[i]!), `Missing value ${expected[i]}`);
+      assert.ok(resultsSet.has(expected[i]!), `Missing value ${expected[i]}`);
     }
     // Within each source, relative order is preserved
     assert.ok(results.indexOf(1) < results.indexOf(2));
@@ -69,7 +76,7 @@ class AsyncIterDemo {
   }
 
   static async runFilter(): Promise<void> {
-    const evens = AsyncIter.filter(range(1, 10), (n) => { return n % 2 === 0; });
+    const evens = AsyncIter.filter(AsyncSources.range(1, 10), (n) => { return n % 2 === 0; });
     const results: number[] = [];
     for await (const n of evens) {
       results.push(n);
@@ -81,7 +88,7 @@ class AsyncIterDemo {
   static async runFilterAsync(): Promise<void> {
     // Predicate may return a Promise
     const longWords = AsyncIter.filter(
-      words(['hi', 'hello', 'hey', 'greetings']),
+      AsyncSources.words(['hi', 'hello', 'hey', 'greetings']),
       async (w) => { const result = await Promise.resolve(w.length > 3); return result; }
     );
     const results: string[] = [];
@@ -93,20 +100,16 @@ class AsyncIterDemo {
   }
 
   static async runEnrich(): Promise<void> {
-    type Item = { 'id': number };
-    type Enrichment = { 'label': string };
-    type Enriched = { 'id': number; 'label': string };
-
-    const items = itemsOf<Item>([{ 'id': 1 }, { 'id': 2 }, { 'id': 3 }]);
+    const items = AsyncSources.itemsOf<ItemEntity.Type>([{ 'id': 1 }, { 'id': 2 }, { 'id': 3 }]);
 
     // Only even ids get enrichment; odd ids pass through unchanged
-    const enriched = AsyncIter.enrich<Item, Enrichment, Enriched>(
+    const enriched = AsyncIter.enrich<ItemEntity.Type, EnrichmentEntity.Type, EnrichedEntity.Type>(
       items,
       (item) => { const result = Promise.resolve(item.id % 2 === 0 ? { 'label': `even-${item.id}` } : null); return result; },
       (item, enrichment) => { return { 'id': item.id, 'label': enrichment.label }; }
     );
 
-    const results: (Item | Enriched)[] = [];
+    const results: (ItemEntity.Type | EnrichedEntity.Type)[] = [];
     for await (const item of enriched) {
       results.push(item);
     }
@@ -128,8 +131,8 @@ class AsyncIterDemo {
   static async runMergeFilterEnrichPipeline(): Promise<void> {
     // Compose all three combinators in a pipeline
     const merged = AsyncIter.merge<number>(
-      range(1, 5),
-      range(6, 10)
+      AsyncSources.range(1, 5),
+      AsyncSources.range(6, 10)
     );
     const filtered = AsyncIter.filter<number>(merged, (n) => { return n % 3 === 0; });
     const enriched = AsyncIter.enrich<number, { 'tier': string }, { 'n': number; 'tier': string }>(

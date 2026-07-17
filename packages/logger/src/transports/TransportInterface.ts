@@ -1,4 +1,4 @@
-import type { LogRecordType } from '../types/LogRecordType.js';
+import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 
 /**
  * Sink port for log records.
@@ -12,5 +12,5 @@ import type { LogRecordType } from '../types/LogRecordType.js';
 export interface TransportInterface {
   close?(): Promise<void> | void;
   flush?(): Promise<void> | void;
-  write(record: LogRecordType): void;
+  write(record: LogRecordEntity.Type): void;
 }

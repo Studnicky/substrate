@@ -8,6 +8,8 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { VirtualFileSystem } from '../../../src/virtual-fs/VirtualFileSystem.js';
 
 // ── Tracing subclasses ───────────────────────────────────────────────────────
@@ -162,7 +164,7 @@ it('subclass static create() returns subclass instance', () => {
   assert.ok(fs instanceof VirtualFileSystem);
 });
 
-it('a throwing onCreate hook does not replace a completed write', () => {
+it('a throwing onCreate hook still leaves the write applied, then throws HookInvocationError', () => {
   class ThrowingCreateFs extends VirtualFileSystem {
     override onCreate(): void {
       throw new Error('onCreate boom');
@@ -170,12 +172,19 @@ it('a throwing onCreate hook does not replace a completed write', () => {
   }
 
   const fs = ThrowingCreateFs.create();
-  fs.writeFileSync('/created.txt', 'hello', 'utf8');
+  assert.throws(
+    () => { fs.writeFileSync('/created.txt', 'hello', 'utf8'); },
+    (error: unknown) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.equal(error.hookName, 'onCreate');
+      return true;
+    }
+  );
 
   assert.equal(fs.readFileSync('/created.txt', 'utf8'), 'hello');
 });
 
-it('a throwing onWrite hook does not replace an overwrite', () => {
+it('a throwing onWrite hook still leaves the overwrite applied, then throws HookInvocationError', () => {
   class ThrowingWriteFs extends VirtualFileSystem {
     override onWrite(): void {
       throw new Error('onWrite boom');
@@ -184,12 +193,19 @@ it('a throwing onWrite hook does not replace an overwrite', () => {
 
   const fs = ThrowingWriteFs.create();
   fs.writeFileSync('/file.txt', 'first', 'utf8');
-  fs.writeFileSync('/file.txt', 'second', 'utf8');
+  assert.throws(
+    () => { fs.writeFileSync('/file.txt', 'second', 'utf8'); },
+    (error: unknown) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.equal(error.hookName, 'onWrite');
+      return true;
+    }
+  );
 
   assert.equal(fs.readFileSync('/file.txt', 'utf8'), 'second');
 });
 
-it('a throwing onRead hook does not replace a successful read', () => {
+it('a throwing onRead hook still returns the read outcome via the thrown cause, but propagates HookInvocationError', () => {
   class ThrowingReadFs extends VirtualFileSystem {
     override onRead(): void {
       throw new Error('onRead boom');
@@ -199,10 +215,17 @@ it('a throwing onRead hook does not replace a successful read', () => {
   const fs = ThrowingReadFs.create();
   fs.writeFileSync('/read.txt', 'content', 'utf8');
 
-  assert.equal(fs.readFileSync('/read.txt', 'utf8'), 'content');
+  assert.throws(
+    () => { fs.readFileSync('/read.txt', 'utf8'); },
+    (error: unknown) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.equal(error.hookName, 'onRead');
+      return true;
+    }
+  );
 });
 
-it('a throwing onRename hook does not replace a completed rename', () => {
+it('a throwing onRename hook still leaves the rename applied, then throws HookInvocationError', () => {
   class ThrowingRenameFs extends VirtualFileSystem {
     override onRename(): void {
       throw new Error('onRename boom');
@@ -211,13 +234,20 @@ it('a throwing onRename hook does not replace a completed rename', () => {
 
   const fs = ThrowingRenameFs.create();
   fs.writeFileSync('/old.txt', 'content', 'utf8');
-  fs.renameSync('/old.txt', '/new.txt');
+  assert.throws(
+    () => { fs.renameSync('/old.txt', '/new.txt'); },
+    (error: unknown) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.equal(error.hookName, 'onRename');
+      return true;
+    }
+  );
 
   assert.equal(fs.existsSync('/old.txt'), false);
   assert.equal(fs.readFileSync('/new.txt', 'utf8'), 'content');
 });
 
-it('a throwing onDelete hook does not replace an unlink', () => {
+it('a throwing onDelete hook still leaves the unlink applied, then throws HookInvocationError', () => {
   class ThrowingDeleteFs extends VirtualFileSystem {
     override onDelete(): void {
       throw new Error('onDelete boom');
@@ -226,7 +256,61 @@ it('a throwing onDelete hook does not replace an unlink', () => {
 
   const fs = ThrowingDeleteFs.create();
   fs.writeFileSync('/gone.txt', 'content', 'utf8');
-  fs.unlinkSync('/gone.txt');
+  assert.throws(
+    () => { fs.unlinkSync('/gone.txt'); },
+    (error: unknown) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.equal(error.hookName, 'onDelete');
+      return true;
+    }
+  );
 
   assert.equal(fs.existsSync('/gone.txt'), false);
+});
+
+it('a throwing hook chains the original error as cause', () => {
+  const original = new Error('original boom');
+  class ThrowingCreateFs extends VirtualFileSystem {
+    override onCreate(): void {
+      throw original;
+    }
+  }
+
+  const fs = ThrowingCreateFs.create();
+  assert.throws(
+    () => { fs.writeFileSync('/chained.txt', 'data', 'utf8'); },
+    (error: unknown) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.equal(error.cause, original);
+      return true;
+    }
+  );
+});
+
+it('an async-rejecting hook override is routed through the default onHookError disposition without ever surfacing as an unhandled rejection', async () => {
+  class AsyncRejectingCreateFs extends VirtualFileSystem {
+    override onCreate(_path: string): Promise<void> {
+      return Promise.reject(new Error('async onCreate boom'));
+    }
+  }
+
+  const fs = AsyncRejectingCreateFs.create();
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => {
+    rejectionEvents.push(reason);
+  };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    fs.writeFileSync('/async.txt', 'data', 'utf8');
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    assert.deepStrictEqual(rejectionEvents, []);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+
+  assert.equal(fs.readFileSync('/async.txt', 'utf8'), 'data');
 });

@@ -1,16 +1,18 @@
+import { DomainErrorArgs } from '@studnicky/errors';
+
 import { FileLockError } from './errors/FileLockError.js';
 
 export class FileLockTimeoutError extends FileLockError {
-  readonly path: string;
-  readonly timeoutMs: number;
+  readonly path!: string;
+  readonly timeoutMs!: number;
 
   constructor(path: string, timeoutMs: number) {
-    super({
+    const fields = { 'path': path, 'timeoutMs': timeoutMs };
+    super(DomainErrorArgs.build(fields, {
       'code': 'fileLock.timeout',
-      'message': `Timed out acquiring lock on "${path}" after ${String(timeoutMs)}ms`,
+      'message': (f) => { const result = `Timed out acquiring lock on "${f.path}" after ${String(f.timeoutMs)}ms`; return result; },
       'retryable': false
-    });
-    this.path = path;
-    this.timeoutMs = timeoutMs;
+    }));
+    Object.assign(this, fields);
   }
 }

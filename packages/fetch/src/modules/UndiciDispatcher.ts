@@ -6,10 +6,11 @@
 
 import { Agent } from 'undici';
 
-import type { DestroyOptionsType } from '../interfaces/DestroyOptionsType.js';
-import type { DispatcherConfigType } from '../interfaces/DispatcherConfigType.js';
-import type { DispatcherHealthType } from '../interfaces/DispatcherHealthType.js';
-import type { SocketDispatcherStatsType } from '../interfaces/SocketDispatcherStatsType.js';
+import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
+import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
+import type { DispatcherHealthEntity } from '../entities/DispatcherHealthEntity.js';
+import type { MergedConfigEntity } from '../entities/MergedConfigEntity.js';
+import type { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
 import type { UndiciDispatcherInterface } from '../interfaces/UndiciDispatcherInterface.js';
 
 import { validateDispatcher } from '../config/schemas/validateDispatcher.js';
@@ -25,29 +26,6 @@ import { Delay } from './Delay.js';
 import { UndiciDispatcherBuilder } from './UndiciDispatcherBuilder.js';
 
 type OptionsRecordType = Record<string, unknown>;
-
-type MergedConfigType = {
-  'allowH2': boolean;
-  'autoSelectFamily': boolean;
-  'autoSelectFamilyAttemptTimeout': number;
-  'bodyTimeout': number;
-  'clientTtl': number | undefined;
-  'connections': null | number;
-  'connectTimeout': number;
-  'enabled': boolean | undefined;
-  'headersTimeout': number;
-  'keepAliveMaxTimeout': number;
-  'keepAliveTimeout': number;
-  'keepAliveTimeoutThreshold': number;
-  'localAddress': string | undefined;
-  'maxConcurrentStreams': number;
-  'maxHeaderSize': number;
-  'maxOrigins': number | undefined;
-  'maxRequestsPerClient': number | undefined;
-  'maxResponseSize': number;
-  'pipelining': number;
-  'strictContentLength': boolean;
-};
 
 /**
  * Dispatcher for HTTP connection pooling using undici Agent
@@ -95,7 +73,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * const response = await client.get('/users');
    * ```
    */
-  static create(config: DispatcherConfigType = {}): UndiciDispatcher {
+  static create(config: DispatcherConfigEntity.Type = {}): UndiciDispatcher {
     return new this(config);
   }
 
@@ -116,7 +94,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    *
    * @param config - Dispatcher configuration (validated in constructor)
    */
-  protected constructor(config: DispatcherConfigType) {
+  protected constructor(config: DispatcherConfigEntity.Type) {
     if (typeof config !== 'object' || Array.isArray(config)) {
       throw new ConfigurationError('dispatcher configuration must be an object');
     }
@@ -178,16 +156,11 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * }, 5000); // Check every 5 seconds
    * ```
    */
-  checkDispatcherHealth(origin: string): DispatcherHealthType {
-    const stats = this.agent.stats[origin] as SocketDispatcherStatsType | undefined;
+  checkDispatcherHealth(origin: string): DispatcherHealthEntity.Type {
+    const stats = this.agent.stats[origin] as SocketDispatcherStatsEntity.Type | undefined;
 
     if (stats === undefined) {
-      return {
-        'healthy': true,
-        'queueRatio': undefined,
-        'recommendation': undefined,
-        'stats': undefined
-      };
+      return { 'healthy': true };
     }
 
     const queueRatio = stats.connected > 0
@@ -207,8 +180,8 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     return {
       'healthy': healthy,
       'queueRatio': queueRatio,
-      'recommendation': recommendation,
-      'stats': stats
+      'stats': stats,
+      ...(recommendation !== undefined && { 'recommendation': recommendation })
     };
   }
 
@@ -254,7 +227,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * await dispatcher.destroy({ timeout: 5000 });
    * ```
    */
-  async destroy(options?: DestroyOptionsType): Promise<void> {
+  async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
     const timeout = options?.timeout;
 
     if (timeout !== undefined && timeout > 0) {
@@ -331,30 +304,30 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     return Object.freeze(frozenStats);
   }
 
-  private static mergeWithDefaults(config: DispatcherConfigType): MergedConfigType {
-    const merged: MergedConfigType = {
+  private static mergeWithDefaults(config: DispatcherConfigEntity.Type): MergedConfigEntity.Type {
+    const merged: MergedConfigEntity.Type = {
       'allowH2': config.allowH2 ?? DEFAULT_DISPATCHER_CONFIG.allowH2,
       'autoSelectFamily': config.autoSelectFamily ?? DEFAULT_DISPATCHER_CONFIG.autoSelectFamily,
       'autoSelectFamilyAttemptTimeout':
         config.autoSelectFamilyAttemptTimeout ?? DEFAULT_DISPATCHER_CONFIG.autoSelectFamilyAttemptTimeout,
       'bodyTimeout': config.bodyTimeout ?? DEFAULT_DISPATCHER_CONFIG.bodyTimeout,
-      'clientTtl': config.clientTtl,
       'connections': config.connections === undefined ? DEFAULT_DISPATCHER_CONFIG.connections : config.connections,
       'connectTimeout': config.connectTimeout ?? DEFAULT_DISPATCHER_CONFIG.connectTimeout,
-      'enabled': config.enabled,
       'headersTimeout': config.headersTimeout ?? DEFAULT_DISPATCHER_CONFIG.headersTimeout,
       'keepAliveMaxTimeout': config.keepAliveMaxTimeout ?? DEFAULT_DISPATCHER_CONFIG.keepAliveMaxTimeout,
       'keepAliveTimeout': config.keepAliveTimeout ?? DEFAULT_DISPATCHER_CONFIG.keepAliveTimeout,
       'keepAliveTimeoutThreshold':
         config.keepAliveTimeoutThreshold ?? DEFAULT_DISPATCHER_CONFIG.keepAliveTimeoutThreshold,
-      'localAddress': config.localAddress,
       'maxConcurrentStreams': config.maxConcurrentStreams ?? DEFAULT_DISPATCHER_CONFIG.maxConcurrentStreams,
       'maxHeaderSize': config.maxHeaderSize ?? DEFAULT_DISPATCHER_CONFIG.maxHeaderSize,
-      'maxOrigins': config.maxOrigins,
-      'maxRequestsPerClient': config.maxRequestsPerClient,
       'maxResponseSize': config.maxResponseSize ?? DEFAULT_DISPATCHER_CONFIG.maxResponseSize,
       'pipelining': config.pipelining ?? DEFAULT_DISPATCHER_CONFIG.pipelining,
-      'strictContentLength': config.strictContentLength ?? DEFAULT_DISPATCHER_CONFIG.strictContentLength
+      'strictContentLength': config.strictContentLength ?? DEFAULT_DISPATCHER_CONFIG.strictContentLength,
+      ...(config.clientTtl !== undefined && { 'clientTtl': config.clientTtl }),
+      ...(config.enabled !== undefined && { 'enabled': config.enabled }),
+      ...(config.localAddress !== undefined && { 'localAddress': config.localAddress }),
+      ...(config.maxOrigins !== undefined && { 'maxOrigins': config.maxOrigins }),
+      ...(config.maxRequestsPerClient !== undefined && { 'maxRequestsPerClient': config.maxRequestsPerClient })
     };
     return merged;
   }
@@ -383,7 +356,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     }
   }
 
-  private static toAgentOptions(config: DispatcherConfigType): Agent.Options {
+  private static toAgentOptions(config: DispatcherConfigEntity.Type): Agent.Options {
     const merged = UndiciDispatcher.mergeWithDefaults(config);
     const options: OptionsRecordType = { 'pipelining': merged.pipelining };
 

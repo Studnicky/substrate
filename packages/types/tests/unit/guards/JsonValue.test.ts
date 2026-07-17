@@ -61,7 +61,10 @@ const nonJsonScenarios: Array<{ description: string; value: unknown }> = [
   { description: 'JsonValue.from coerces undefined to null', value: undefined },
   { description: 'JsonValue.from coerces a function to null', value: () => { return 0; } },
   { description: 'JsonValue.from coerces a symbol to null', value: Symbol('s') },
-  { description: 'JsonValue.from coerces a bigint to null', value: 9007199254740993n }
+  { description: 'JsonValue.from coerces a bigint to null', value: 9007199254740993n },
+  { description: 'JsonValue.from coerces NaN to null', value: Number.NaN },
+  { description: 'JsonValue.from coerces Infinity to null', value: Number.POSITIVE_INFINITY },
+  { description: 'JsonValue.from coerces -Infinity to null', value: Number.NEGATIVE_INFINITY }
 ];
 
 for (const { description, value } of nonJsonScenarios) {

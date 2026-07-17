@@ -1,14 +1,13 @@
-import type { LogRecordType } from '../types/LogRecordType.js';
+import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { ConsoleTransportOptionsType } from './ConsoleTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
-import { ConfigurationError } from '../errors/ConfigurationError.js';
-import { ParseLogLevel } from '../modules/parseLogLevel.js';
-import { safeStringify } from '../modules/safeStringify.js';
+import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
+import { SafeStringify } from '../modules/safeStringify.js';
 import { ConsoleTransportBuilder } from './ConsoleTransportBuilder.js';
 
-type ConsoleFn = (message: string, record: LogRecordType) => void;
+type ConsoleFn = (message: string, record: LogRecordEntity.Type) => void;
 
 /**
  * Dispatch map from numeric log level to the corresponding console method.
@@ -17,12 +16,13 @@ type ConsoleFn = (message: string, record: LogRecordType) => void;
  * NOTE: This is the ONLY file in the package permitted to use `console`.
  * All other modules route output through this transport.
  */
-const consoleDispatch: Record<number, ConsoleFn> = {};
-consoleDispatch[LOG_LEVEL.TRACE] = (msg, rec) => { console.trace(msg, rec); };
-consoleDispatch[LOG_LEVEL.DEBUG] = (msg, rec) => { console.debug(msg, rec); };
-consoleDispatch[LOG_LEVEL.INFO]  = (msg, rec) => { console.info(msg, rec); };
-consoleDispatch[LOG_LEVEL.WARN]  = (msg, rec) => { console.warn(msg, rec); };
-consoleDispatch[LOG_LEVEL.ERROR] = (msg, rec) => { console.error(msg, rec); };
+const consoleDispatch = new Map<number, ConsoleFn>([
+  [LOG_LEVEL.DEBUG, (msg, rec) => { console.debug(msg, rec); }],
+  [LOG_LEVEL.ERROR, (msg, rec) => { console.error(msg, rec); }],
+  [LOG_LEVEL.INFO, (msg, rec) => { console.info(msg, rec); }],
+  [LOG_LEVEL.TRACE, (msg, rec) => { console.trace(msg, rec); }],
+  [LOG_LEVEL.WARN, (msg, rec) => { console.warn(msg, rec); }]
+]);
 
 /**
  * Transport that writes records to the console using the level-appropriate method.
@@ -57,14 +57,7 @@ export class ConsoleTransport implements TransportInterface {
   readonly #minLevel: number;
 
   protected constructor(options: ConsoleTransportOptionsType = {}) {
-    if (options.level !== undefined
-      && typeof options.level !== 'string'
-      && typeof options.level !== 'number') {
-      throw new ConfigurationError('level must be a string or number');
-    }
-    this.#minLevel = options.level !== undefined
-      ? ParseLogLevel.parse(options.level)
-      : LOG_LEVEL.TRACE;
+    this.#minLevel = ResolveMinLevel.from(options);
   }
 
   /**
@@ -72,17 +65,17 @@ export class ConsoleTransport implements TransportInterface {
    *
    * @param record - Assembled log record from the Logger core
    */
-  write(record: LogRecordType): void {
+  write(record: LogRecordEntity.Type): void {
     if (record.level < this.#minLevel) {
       return;
     }
 
     const metaStr = Object.keys(record.metadata).length > 0
-      ? `${safeStringify(record.metadata)} `
+      ? `${SafeStringify.stringify(record.metadata)} `
       : '';
 
     const message = `${metaStr}${record.data.message}`;
-    const dispatch = consoleDispatch[record.level];
+    const dispatch = consoleDispatch.get(record.level);
 
     if (dispatch !== undefined) {
       dispatch(message, record);

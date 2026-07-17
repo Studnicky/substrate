@@ -50,6 +50,8 @@ const { status, results } = await registry.evaluate();
 | `has(name)` | Whether a check is currently registered under `name` |
 | `list()` | The names of every currently registered check |
 | `evaluate()` | Runs every registered check in parallel and returns `{ status, results }`. An empty registry evaluates to `'healthy'` with an empty results map |
+| `hookErrorCount` | Count of hook failures recorded since construction |
+| `getHookErrors()` | Defensive copy of every hook failure recorded since construction |
 
 A check that rejects, and a check that exceeds its `timeoutMs`, are both folded into `results` as `{ status: 'unhealthy', metadata }` — `metadata` carries the thrown error or a timeout description, respectively — rather than causing `evaluate()` to reject.
 
@@ -63,6 +65,8 @@ A check that rejects, and a check that exceeds its `timeoutMs`, are both folded 
 | `onCheckResult(name, status, metadata?)` | Once per check as it settles during `evaluate()` — success, rejection, or timeout |
 | `onCheckTimeout(name, timeoutMs)` | When a check exceeds its configured `timeoutMs`, in addition to `onCheckResult` |
 | `onAggregate(overall, results)` | Once per `evaluate()` call, after every registered check has settled |
+
+A hook override that throws or rejects does not abort `evaluate()` — the failure is recorded instead of propagating, backed internally by `@studnicky/errors`'s `HookInvoker`. Inspect recorded failures via `hookErrorCount`/`getHookErrors()`.
 
 ```typescript
 import { HealthRegistry } from '@studnicky/health-registry';

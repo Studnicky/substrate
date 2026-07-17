@@ -95,6 +95,36 @@ describe('InterpreterHistory', () => {
     assert.equal(history.history().length, 1);
   });
 
+  // history() implements its snapshot by rotating every record through the
+  // internal CircularBuffer's shift()/push(), which are not pure operations
+  // from CircularBuffer's hook perspective (onShift/onPush fire on each call).
+  // CircularBuffer's public API (packages/circular-buffer/src/circular-buffer/CircularBuffer.ts)
+  // exposes no non-mutating read method (no toArray/iterator/entries/peek), so
+  // a genuinely hook-silent read cannot be implemented from InterpreterHistory
+  // without an upstream CircularBuffer API addition. This test locks in the
+  // array-identity/order/isolation contract that a corrected implementation
+  // must also satisfy.
+  it('history() returns a fresh, order-stable array on each call, independent of prior calls', async () => {
+    const history = InterpreterHistory.create({ capacity: 5, machine: new ToggleMachine(), machineId: 'repeated-read' });
+    history.start();
+    await history.send({ type: 'toggle' });
+    await history.send({ type: 'toggle' });
+    await history.send({ type: 'toggle' });
+
+    const first = history.history();
+    const second = history.history();
+
+    assert.notEqual(first, second);
+    assert.deepEqual(first, second);
+
+    first.push({ event: { type: 'toggle' }, from: { variant: 'a' }, to: { variant: 'b' }, timestamp: 0 });
+    first.pop();
+    first.pop();
+
+    assert.equal(second.length, 3);
+    assert.deepEqual(history.history(), second);
+  });
+
   it('behaves as a fully-functional EffectInterpreter — start/send/stop work identically to the base class', async () => {
     const logged: string[] = [];
     const history = InterpreterHistory.create({

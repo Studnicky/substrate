@@ -6,10 +6,10 @@
  *
  * @module
  */
-import type { ErrorCodeDescriptorType } from '../interfaces/ErrorCodeDescriptorType.js';
+import type { ErrorCodeDescriptorEntity } from '../entities/ErrorCodeDescriptorEntity.js';
 
 // Module-level singleton map.
-const registry = new Map<string, ErrorCodeDescriptorType>();
+const registry = new Map<string, ErrorCodeDescriptorEntity.Type>();
 
 // Collision handler — set during bootstrap. Before it is set, any collision during
 // the early-registration window is silently ignored (structurally unreachable in
@@ -43,7 +43,7 @@ export class ErrorCodeRegistry {
   /**
    * Returns the descriptor for a registered code, or `undefined` if not found.
    */
-  public static describe(code: string): ErrorCodeDescriptorType | undefined {
+  public static describe(code: string): ErrorCodeDescriptorEntity.Type | undefined {
     if (code.length === 0) {
       return undefined;
     }
@@ -63,8 +63,8 @@ export class ErrorCodeRegistry {
   /**
    * Returns all registered descriptors as a readonly array.
    */
-  public static list(): readonly ErrorCodeDescriptorType[] {
-    const snapshot: ErrorCodeDescriptorType[] = [];
+  public static list(): readonly ErrorCodeDescriptorEntity.Type[] {
+    const snapshot: ErrorCodeDescriptorEntity.Type[] = [];
     for (const entry of registry.values()) {
       snapshot.push(entry);
     }
@@ -76,7 +76,7 @@ export class ErrorCodeRegistry {
    * On collision after bootstrap, signals the registered collision handler.
    * During the collision-free bootstrap window, duplicates are silently ignored.
    */
-  public static register(descriptor: Readonly<ErrorCodeDescriptorType>): void {
+  public static register(descriptor: Readonly<ErrorCodeDescriptorEntity.Type>): void {
     if (registry.has(descriptor.code)) {
       if (collisionHandler !== undefined) {
         collisionHandler(descriptor.code);

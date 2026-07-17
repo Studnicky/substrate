@@ -2,7 +2,7 @@ import type { FsmStepType } from '@studnicky/fsm';
 
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
 
-import type { PaginatorEventType } from './types/PaginatorEventType.js';
+import type { PaginatorEventType, PaginatorNextCursorType } from './types/PaginatorEventType.js';
 import type { PaginatorStateType } from './types/PaginatorStateType.js';
 
 /**
@@ -43,18 +43,23 @@ export abstract class PaginatorMachine<TPage, TCursor> extends StateMachine<
           'reason': 'Paginator is exhausted: no more pages can be received after exhaustion',
           'stateVariant': state.variant
         });
+      default:
+        return this.assertUnreachableState(state);
     }
-    return { 'effects': [], 'state': state };
+  }
+
+  private assertUnreachableState(state: never): never {
+    throw new Error(`Unhandled PaginatorStateType variant: ${JSON.stringify(state)}`);
   }
 
   private receivePage(
-    priorPages: readonly TPage[],
-    event: { readonly 'nextCursor': TCursor | undefined; readonly 'page': TPage; readonly 'type': 'pageReceived'; }
+    priorPages: TPage[],
+    event: { readonly 'nextCursor': PaginatorNextCursorType<TCursor>; readonly 'page': TPage; readonly 'type': 'pageReceived'; }
   ): PaginatorStateType<TPage, TCursor> {
-    const pages = [...priorPages, event.page];
+    priorPages.push(event.page);
 
-    return event.nextCursor === undefined
-      ? { 'pages': pages, 'variant': 'exhausted' }
-      : { 'cursor': event.nextCursor, 'pages': pages, 'variant': 'hasMore' };
+    return event.nextCursor.exhausted
+      ? { 'pages': priorPages, 'variant': 'exhausted' }
+      : { 'cursor': event.nextCursor.cursor, 'pages': priorPages, 'variant': 'hasMore' };
   }
 }

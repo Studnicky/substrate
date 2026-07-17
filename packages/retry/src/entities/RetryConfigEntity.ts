@@ -8,6 +8,11 @@ export namespace RetryConfigEntity {
     'additionalProperties': false,
     'description': 'Configuration for request retry behavior',
     'properties': {
+      'hookTimeoutMs': {
+        'description': 'When set, races each lifecycle hook against this timeout (ms); a hook that neither resolves nor rejects in time is treated as a failure',
+        'exclusiveMinimum': 0,
+        'type': 'integer'
+      },
       'maxElapsedMs': {
         'description': 'Maximum total elapsed time across all attempts (ms)',
         'minimum': 0,

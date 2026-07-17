@@ -1,11 +1,12 @@
+import { HookInvoker } from '@studnicky/errors';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
  * Context implementation using AsyncLocalStorage.
  */
-import type { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import type { ContextInterface } from '../interfaces/ContextInterface.js';
 
+import { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import { ContextConfigError, ContextError } from '../errors/ContextError.js';
 import { ContextBuilder } from './ContextBuilder.js';
 import { ContextScope } from './ContextScope.js';
@@ -75,22 +76,30 @@ export class Context implements ContextInterface {
     return result;
   }
 
-  readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
+  /**
+   * Shared, never-written-to store returned by getStore() when no context is
+   * active and onMissingContext() opts into lenient mode.
+   *
+   * Safe to share across calls and instances because getStore() only backs
+   * read-only accessors (get, has, keys, snapshot). Mutating accessors (set,
+   * delete) go through getMutableStore() instead, which allocates a fresh,
+   * isolated Map so that writes made outside an active context stay inert
+   * and never leak into this shared instance or between unrelated callers.
+   */
+  static readonly #EMPTY_STORE: Map<string, unknown> = new Map();
 
-  #invokeHook(invoke: () => void): void {
-    try {
-      invoke();
-    } catch {}
-  }
+  readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
 
   /**
    * The name of this context (from config).
    */
   readonly name: string;
 
+  protected readonly hooks: HookInvoker = new HookInvoker();
+
   protected constructor(config: ContextConfigEntity.Type) {
-    if (typeof config.name !== 'string' || config.name.length === 0) {
-      throw new ContextConfigError('name must be a non-empty string');
+    if (!ContextConfigEntity.validate(config)) {
+      throw new ContextConfigError('invalid Context config');
     }
 
     this.name = config.name;
@@ -98,15 +107,40 @@ export class Context implements ContextInterface {
   }
 
   /**
-   * Retrieves the current context store from AsyncLocalStorage.
+   * Retrieves the current context store from AsyncLocalStorage for read-only access.
    *
    * If the store is absent, calls onMissingContext(). If that hook returns true,
-   * the throw is suppressed and an empty Map is returned. Otherwise throws.
+   * the throw is suppressed and a shared, empty Map is returned. Otherwise throws.
+   *
+   * Only safe for callers that never mutate the returned Map - use
+   * getMutableStore() instead when a write is intended.
    *
    * @returns The current context Map
    * @throws {ContextError} If no active context exists and onMissingContext returns false
    */
   protected getStore(): Map<string, unknown> {
+    const store = this.#storage.getStore();
+
+    if (store === undefined) {
+      if (this.onMissingContext()) {return Context.#EMPTY_STORE;}
+
+      throw new ContextError(`No active ${this.name} context - ensure code runs within execute()`);
+    }
+
+    return store;
+  }
+
+  /**
+   * Retrieves the current context store from AsyncLocalStorage for a mutating operation.
+   *
+   * Identical fallback semantics to getStore(), except the lenient-mode fallback
+   * allocates a fresh, isolated Map so that writes made outside an active context
+   * are discarded rather than persisted into a store visible to other callers.
+   *
+   * @returns The current context Map
+   * @throws {ContextError} If no active context exists and onMissingContext returns false
+   */
+  private getMutableStore(): Map<string, unknown> {
     const store = this.#storage.getStore();
 
     if (store === undefined) {
@@ -182,9 +216,10 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   delete(key: string): boolean {
-    const result = this.getStore().delete(key);
-    this.#invokeHook(() => {
-      this.onDelete(key, result);
+    const result = this.getMutableStore().delete(key);
+    this.hooks.invoke('onDelete', () => {
+      const hookResult = this.onDelete(key, result);
+      return hookResult;
     });
     return result;
   }
@@ -206,8 +241,9 @@ export class Context implements ContextInterface {
     }
 
     const value = store.get(key) as T;
-    this.#invokeHook(() => {
-      this.onGet(key, value);
+    this.hooks.invoke('onGet', () => {
+      const hookResult = this.onGet(key, value);
+      return hookResult;
     });
     return value;
   }
@@ -241,13 +277,12 @@ export class Context implements ContextInterface {
    * ```
    */
   initialize(initial?: Record<string, unknown>): ContextScope {
-    const options = initial !== undefined
-      ? { 'initial': initial, 'name': this.name, 'storage': this.#storage }
-      : { 'name': this.name, 'storage': this.#storage };
+    const options = { 'initial': initial, 'name': this.name, 'storage': this.#storage };
     const scope = ContextScope.create(options);
 
-    this.#invokeHook(() => {
-      this.onInitialize(initial, scope);
+    this.hooks.invoke('onInitialize', () => {
+      const hookResult = this.onInitialize(initial, scope);
+      return hookResult;
     });
 
     return scope;
@@ -282,9 +317,10 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   set<T>(key: string, value: T): void {
-    this.getStore().set(key, value);
-    this.#invokeHook(() => {
-      this.onSet(key, value);
+    this.getMutableStore().set(key, value);
+    this.hooks.invoke('onSet', () => {
+      const hookResult = this.onSet(key, value);
+      return hookResult;
     });
   }
 

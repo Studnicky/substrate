@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/throttle",
-  "version": "5.1.1",
+  "version": "6.0.0",
   "description": "Generic async operation throttle with sliding window concurrency control",
   "type": "module",
   "sideEffects": false,
@@ -76,6 +76,7 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/sample-buffer": "workspace:*",
+    "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*"
   },
   "devDependencies": {

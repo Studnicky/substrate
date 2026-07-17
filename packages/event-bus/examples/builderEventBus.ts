@@ -2,16 +2,13 @@
 
 import assert from 'node:assert/strict';
 
+import type { OrderLifecycleEventMapEntity } from './entities/OrderLifecycleEventMapEntity.js';
+
 // #region usage
 import { EventBus } from '../src/index.js';
 
-type AppEvents = {
-  'order:placed': { 'id': string; 'total': number };
-  'order:shipped': { 'carrier': string; 'id': string; };
-};
-
 // Build an EventBus using the fluent builder
-const bus = EventBus.builder<AppEvents>().build();
+const bus = EventBus.builder<OrderLifecycleEventMapEntity.Type>().build();
 
 console.log('EventBus built.');
 

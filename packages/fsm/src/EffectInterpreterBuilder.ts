@@ -10,6 +10,7 @@ interface EffectInterpreterBuilderCreateOptionsInterface<
   readonly 'handlers'?: EffectHandlerMapType<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;
   readonly 'machineId'?: string | undefined;
+  readonly 'mailboxCapacity'?: number | undefined;
 }
 
 export class EffectInterpreterBuilder<
@@ -32,6 +33,7 @@ export class EffectInterpreterBuilder<
   #handlers: EffectHandlerMapType<TEffect, TEvent> | undefined;
   #machine: StateMachine<TState, TEvent, TEffect> | undefined;
   #machineId: string | undefined;
+  #mailboxCapacity: number | undefined;
 
   private constructor(
     create: (options: EffectInterpreterBuilderCreateOptionsInterface<TState, TEvent, TEffect>) => EffectInterpreter<TState, TEvent, TEffect>
@@ -49,8 +51,9 @@ export class EffectInterpreterBuilder<
     return this;
   }
 
-  withOptions(options: { readonly 'machineId'?: string }): this {
+  withOptions(options: { readonly 'machineId'?: string; readonly 'mailboxCapacity'?: number }): this {
     this.#machineId = options.machineId;
+    this.#mailboxCapacity = options.mailboxCapacity;
     return this;
   }
 
@@ -58,7 +61,8 @@ export class EffectInterpreterBuilder<
     const result = this.#create({
       'handlers': this.#handlers,
       'machine': this.#machine,
-      'machineId': this.#machineId
+      'machineId': this.#machineId,
+      'mailboxCapacity': this.#mailboxCapacity
     });
     return result;
   }

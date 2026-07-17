@@ -8,6 +8,7 @@ import {
   VirtualClockProvider,
   VirtualTimeCounter
 } from '../src/index.js';
+import { VirtualTimeFixture } from './fixtures/VirtualTimeFixture.js';
 
 // --- hrtime matches epoch-ms * 1_000_000n ---
 
@@ -26,13 +27,12 @@ console.log(`epochMs=${epochMs}, hrtime=${ns}n (== ${epochMs} * 1_000_000n)`);
 const counterB = VirtualTimeCounter.create();
 const clockB = Clock.create(VirtualClockProvider.create(counterB));
 
-const deltas = [0, 50, 0, 200, 100];
 const readings: number[] = [];
 
-const deltasLen = deltas.length;
+const deltasLen = VirtualTimeFixture.Deltas.length;
 
 for (let i = 0; i < deltasLen; i++) {
-  counterB.advance(deltas[i] ?? 0);
+  counterB.advance(VirtualTimeFixture.Deltas[i] ?? 0);
   readings.push(clockB.now());
 }
 

@@ -1,51 +1,51 @@
 import type { Rule } from 'eslint';
 
 import { allTypesAreEntities } from './rules/allTypesAreEntities.js';
-import { noThisAlias } from './rules/arch/noThisAlias.js';
-import { constantsFolderRequired } from './rules/constantsFolderRequired.js';
-import { entityNamespace } from './rules/entityNamespace.js';
+import { adapterOnlyImport } from './rules/arch/adapterOnlyImport.js';
+import { domainPurity } from './rules/arch/domainPurity.js';
+import { knownTypesOutsideAdapters } from './rules/arch/knownTypesOutsideAdapters.js';
+import { layerImportBoundary } from './rules/arch/layerImportBoundary.js';
+import { lexicalThisOnly } from './rules/arch/lexicalThisOnly.js';
+import { canonicalExportNames } from './rules/canonicalExportNames.js';
+import { cleanDiagnostics } from './rules/cleanDiagnostics.js';
+import { descriptiveIdentifiers } from './rules/descriptiveIdentifiers.js';
+import { directInvocationOnly } from './rules/directInvocationOnly.js';
+import { folderContentShape } from './rules/folderContentShape.js';
+import { hashPrivateFields } from './rules/hashPrivateFields.js';
+import { inlineTrivialLogic } from './rules/inlineTrivialLogic.js';
 import { interfaceMustBeContract } from './rules/interfaceMustBeContract.js';
 import { interfacesComposeNamedTypes } from './rules/interfacesComposeNamedTypes.js';
 import { interfaceSuffix } from './rules/interfaceSuffix.js';
-import { noBindApplyCall } from './rules/noBindApplyCall.js';
-import { noExportAlias } from './rules/noExportAlias.js';
-import { noFreestandingVerbNoun } from './rules/noFreestandingVerbNoun.js';
-import { noPreferExistingType } from './rules/noPreferExistingType.js';
-import { noProjectInternalAcronyms } from './rules/noProjectInternalAcronyms.js';
-import { noReadonlyInDataType } from './rules/noReadonlyInDataType.js';
-import { noSuppressionComments } from './rules/noSuppressionComments.js';
-import { noTrivialShim } from './rules/noTrivialShim.js';
-import { noTypeAliasing } from './rules/noTypeAliasing.js';
-import { noUnderscorePrivate } from './rules/noUnderscorePrivate.js';
 import { preferCollectionTypes } from './rules/preferCollectionTypes.js';
 import { requireOptionsObject } from './rules/requireOptionsObject.js';
 import { singleExport } from './rules/singleExport.js';
-import { typeAliasMustEndType } from './rules/typeAliasMustEndType.js';
-import { typesDerivedFromSchema } from './rules/typesDerivedFromSchema.js';
+import { staticMethodVerbs } from './rules/staticMethodVerbs.js';
+import { typeAliasInvariants } from './rules/typeAliasInvariants.js';
+import { wholeCanonicalTypes } from './rules/wholeCanonicalTypes.js';
 
 export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
   'rules': {
+    'adapter-only-import': adapterOnlyImport,
     'all-types-are-entities': allTypesAreEntities,
-    'constants-folder-required': constantsFolderRequired,
-    'entity-namespace': entityNamespace,
+    'canonical-export-names': canonicalExportNames,
+    'clean-diagnostics': cleanDiagnostics,
+    'descriptive-identifiers': descriptiveIdentifiers,
+    'direct-invocation-only': directInvocationOnly,
+    'domain-purity': domainPurity,
+    'folder-content-shape': folderContentShape,
+    'hash-private-fields': hashPrivateFields,
+    'inline-trivial-logic': inlineTrivialLogic,
     'interface-must-be-contract': interfaceMustBeContract,
     'interface-suffix': interfaceSuffix,
     'interfaces-compose-named-types': interfacesComposeNamedTypes,
-    'no-bind-apply-call': noBindApplyCall,
-    'no-export-alias': noExportAlias,
-    'no-freestanding-verb-noun': noFreestandingVerbNoun,
-    'no-prefer-existing-type': noPreferExistingType,
-    'no-project-internal-acronyms': noProjectInternalAcronyms,
-    'no-readonly-in-data-type': noReadonlyInDataType,
-    'no-suppression-comments': noSuppressionComments,
-    'no-this-alias': noThisAlias,
-    'no-trivial-shim': noTrivialShim,
-    'no-type-aliasing': noTypeAliasing,
-    'no-underscore-private': noUnderscorePrivate,
+    'known-types-outside-adapters': knownTypesOutsideAdapters,
+    'layer-import-boundary': layerImportBoundary,
+    'lexical-this-only': lexicalThisOnly,
     'prefer-collection-types': preferCollectionTypes,
     'require-options-object': requireOptionsObject,
     'single-export': singleExport,
-    'type-alias-must-end-type': typeAliasMustEndType,
-    'types-derived-from-schema': typesDerivedFromSchema
+    'static-method-verbs': staticMethodVerbs,
+    'type-alias-invariants': typeAliasInvariants,
+    'whole-canonical-types': wholeCanonicalTypes
   }
 };

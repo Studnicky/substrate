@@ -1,6 +1,7 @@
 import type { Rule } from 'eslint';
 
 import path from 'node:path';
+import { type Program, type Symbol, SymbolFlags, type Type, type TypeChecker } from 'typescript';
 
 const INDEX_FILES = new Set([
   'index.cts',
@@ -34,7 +35,7 @@ class CaseConverter {
     }
 
     return words.map((word) => {
-      if (preserveAcronyms && isAllUpper(word)) {
+      if (preserveAcronyms && CaseConverter.isAllUpper(word)) {
         return word;
       }
 
@@ -54,7 +55,7 @@ class CaseConverter {
     ] = words;
     const firstOut = first !== undefined && first.length > 0 ? first.toLowerCase() : '';
     const restOut = rest.map((word) => {
-      if (preserveAcronyms && isAllUpper(word)) {
+      if (preserveAcronyms && CaseConverter.isAllUpper(word)) {
         return word;
       }
 
@@ -126,6 +127,32 @@ class CaseConverter {
     return baseName.slice(0, -extension.length);
   }
 
+  public static isAllUpper(value: string): boolean {
+    return value.length > 1 && value === value.toUpperCase() && value !== value.toLowerCase();
+  }
+
+  public static matchesFilename(exportName: string, fileName: string): boolean {
+    const base = CaseConverter.getFileBase(fileName);
+    const normalized = fileName.split(path.sep).join('/');
+
+    if (normalized.includes('/constants/')) {
+      return base === CaseConverter.toScreamingSnakeCase(exportName);
+    }
+    const candidates = new Set<string>();
+
+    candidates.add(exportName);
+    if (exportName.length > 0) {
+      candidates.add(exportName.charAt(0).toLowerCase() + exportName.slice(1));
+      candidates.add(exportName.charAt(0).toUpperCase() + exportName.slice(1));
+    }
+    candidates.add(CaseConverter.toCamelCase(exportName, true));
+    candidates.add(CaseConverter.toCamelCase(exportName, false));
+    candidates.add(CaseConverter.toPascalCase(exportName, true));
+    candidates.add(CaseConverter.toPascalCase(exportName, false));
+
+    return candidates.has(base);
+  }
+
   public static getFilenameCandidates(exportName: string, fileName: string): string[] {
     const base = CaseConverter.getFileBase(fileName);
     const normalized = fileName.split(path.sep).join('/');
@@ -156,32 +183,6 @@ class CaseConverter {
   }
 }
 
-const isAllUpper = (value: string): boolean => {
-  return value.length > 1 && value === value.toUpperCase() && value !== value.toLowerCase();
-};
-
-const matchesFilename = (exportName: string, fileName: string): boolean => {
-  const base = CaseConverter.getFileBase(fileName);
-  const normalized = fileName.split(path.sep).join('/');
-
-  if (normalized.includes('/constants/')) {
-    return base === CaseConverter.toScreamingSnakeCase(exportName);
-  }
-  const candidates = new Set<string>();
-
-  candidates.add(exportName);
-  if (exportName.length > 0) {
-    candidates.add(exportName.charAt(0).toLowerCase() + exportName.slice(1));
-    candidates.add(exportName.charAt(0).toUpperCase() + exportName.slice(1));
-  }
-  candidates.add(CaseConverter.toCamelCase(exportName, true));
-  candidates.add(CaseConverter.toCamelCase(exportName, false));
-  candidates.add(CaseConverter.toPascalCase(exportName, true));
-  candidates.add(CaseConverter.toPascalCase(exportName, false));
-
-  return candidates.has(base);
-};
-
 type ExportKind =
   | 'const-function'
   | 'const-value'
@@ -195,8 +196,64 @@ type ExportKind =
   | 'type'
   | 'type-reexport';
 
+type ParserServicesType = {
+  readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
+  readonly 'getTypeAtLocation': (node: unknown) => Type;
+  readonly 'program': Program;
+};
+
+// json-schema-uninexpressible: wraps 'ParserServicesType', which itself references externally-defined 'typescript' package types (Program/Symbol/Type) one level of local-alias indirection removed — not a domain shape we own
+type SourceCodeServicesAccessorType = {
+  readonly 'parserServices'?: ParserServicesType;
+};
+
+class ContextHelpers {
+  public static getServices(context: Rule.RuleContext): ParserServicesType | undefined {
+    const result = (context.sourceCode as unknown as SourceCodeServicesAccessorType).parserServices;
+    return result;
+  }
+}
+
+type CheckerWithAssignable = TypeChecker & {
+  readonly 'isTypeAssignableTo': (a: Type, b: Type) => boolean;
+};
+
+class TypeCheckerHelpers {
+  public static isAssignable(checker: TypeChecker, a: Type, b: Type): boolean {
+    const result = (checker as unknown as CheckerWithAssignable).isTypeAssignableTo(a, b);
+    return result;
+  }
+
+  /**
+   * Resolves whether a class declaration actually, through the type system,
+   * extends the real global `Error` — direct or indirect inheritance. Falls
+   * back to `false` (never 'error-class') whenever type-aware services are
+   * unavailable, so the rest of the rule keeps working without type info.
+   */
+  public static isErrorClass(
+    classNode: unknown,
+    services: ParserServicesType | undefined
+  ): boolean {
+    if (services?.program === undefined || services.program === null) {
+      return false;
+    }
+
+    const checker = services.program.getTypeChecker();
+    const errorSymbol = checker.resolveName('Error', undefined, SymbolFlags.Type, false);
+
+    if (errorSymbol === undefined) {
+      return false;
+    }
+
+    const errorType = checker.getDeclaredTypeOfSymbol(errorSymbol);
+    const classType = services.getTypeAtLocation(classNode);
+
+    return TypeCheckerHelpers.isAssignable(checker, classType, errorType);
+  }
+}
+
 class ExportClassifier {
-  public static classify(node: Rule.Node): ExportKind {
+  public static classify(node: Rule.Node, services: ParserServicesType | undefined): ExportKind {
     if (node.type !== 'ExportNamedDeclaration') {
       return 'other';
     }
@@ -209,7 +266,6 @@ class ExportClassifier {
         }[];
         'id'?: { 'name'?: string; 'type'?: string; };
         'kind'?: string;
-        'superClass'?: { 'name'?: string; 'type'?: string; } | null;
         'type'?: string;
       } | null;
       'exportKind'?: string;
@@ -250,14 +306,8 @@ class ExportClassifier {
     }
 
     if (declType === 'ClassDeclaration') {
-      const superClass = decl.superClass;
-
-      if (superClass !== null && superClass !== undefined) {
-        const superName = superClass.name ?? '';
-
-        if (superName === 'Error' || superName.endsWith('Error')) {
-          return 'error-class';
-        }
+      if (TypeCheckerHelpers.isErrorClass(decl, services)) {
+        return 'error-class';
       }
 
       return 'other-class';
@@ -276,6 +326,10 @@ class ExportClassifier {
     }
 
     return 'other';
+  }
+
+  public static isEnumOrConstValueKind(kind: ExportKind): boolean {
+    return kind === 'const-value' || kind === 'enum';
   }
 }
 
@@ -353,10 +407,6 @@ class RestrictedTopology {
   }
 }
 
-const isEnumOrConstValueKind = (kind: ExportKind): boolean => {
-  return kind === 'const-value' || kind === 'enum';
-};
-
 export const singleExport: Rule.RuleModule = {
   'create': (context) => {
     const fileName = context.filename;
@@ -384,8 +434,9 @@ export const singleExport: Rule.RuleModule = {
       };
     }
 
+    const services = ContextHelpers.getServices(context);
     const exportKinds: ExportKind[] = [];
-    let exportNames: string[] = [];
+    const exportNames: string[] = [];
     let reportedDefault = false;
     let firstExportNode: Rule.Node | undefined = undefined;
     let sawExportAll = false;
@@ -411,8 +462,8 @@ export const singleExport: Rule.RuleModule = {
         return;
       }
       firstExportNode ??= node;
-      exportKinds.push(ExportClassifier.classify(node));
-      exportNames = exportNames.concat(ExportNames.extract(node));
+      exportKinds.push(ExportClassifier.classify(node, services));
+      exportNames.push(...ExportNames.extract(node));
     };
 
     const onProgramExit: NonNullable<Rule.RuleListener['Program:exit']> = (node) => {
@@ -463,7 +514,7 @@ export const singleExport: Rule.RuleModule = {
         return;
       }
 
-      if (exportKinds.includes('enum') && exportKinds.every(isEnumOrConstValueKind)) {
+      if (exportKinds.includes('enum') && exportKinds.every(ExportClassifier.isEnumOrConstValueKind)) {
         return;
       }
 
@@ -485,7 +536,7 @@ export const singleExport: Rule.RuleModule = {
       }
       const [exportName = ''] = unique;
 
-      if (!matchesFilename(exportName, fileName)) {
+      if (!CaseConverter.matchesFilename(exportName, fileName)) {
         const reportNode = firstExportNode ?? node;
         const base = CaseConverter.getFileBase(fileName);
         const candidates = CaseConverter.getFilenameCandidates(exportName, fileName);

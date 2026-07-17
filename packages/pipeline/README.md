@@ -84,6 +84,13 @@ const result = await pipeline.run({ userId: 'u1', action: 'login' });
 // result.timestamp is set; audit log emitted after all stages
 ```
 
+The four void observer hooks (`onStageStart`, `onStageSuccess`, `onStageError`, `onRunError`) run through a composed `HookInvoker` (see `@studnicky/errors`). Pass `hookTimeoutMs` to bound how long an async observer hook may run before it's treated as a failure — left unset, a hook may take arbitrarily long, matching prior behavior:
+
+```typescript
+const pipeline = Pipeline.create<OrderCtx>({ hookTimeoutMs: 5000 });
+// equivalent: Pipeline.builder<OrderCtx>().hookTimeoutMs(5000).build()
+```
+
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/pipeline

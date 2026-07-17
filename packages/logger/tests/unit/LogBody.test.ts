@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { LogBody } from '../../src/index.js';
 
 void it('creates a new builder instance', () => {
@@ -142,7 +144,7 @@ for (const status of validStatuses) {
   });
 }
 
-void it('a throwing onFieldSet hook does not replace fluent setters or build()', () => {
+void it('a throwing onFieldSet hook surfaces as HookInvocationError', () => {
   class ThrowingFieldSetBody extends LogBody {
     constructor() { super(); }
 
@@ -151,13 +153,7 @@ void it('a throwing onFieldSet hook does not replace fluent setters or build()',
     }
   }
 
-  const body = new ThrowingFieldSetBody()
-    .component('graph')
-    .operation('query')
-    .status('success')
-    .message('Query executed')
-    .context({})
-    .build();
-
-  assert.strictEqual(body.event, 'graph.query');
+  assert.throws(() => {
+    new ThrowingFieldSetBody().component('graph');
+  }, HookInvocationError);
 });

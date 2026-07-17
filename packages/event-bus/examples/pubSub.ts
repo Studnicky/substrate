@@ -2,14 +2,12 @@
 
 import assert from 'node:assert/strict';
 
+import type { UserCreatedEventMapEntity } from './entities/UserCreatedEventMapEntity.js';
+
 // #region usage
 import { EventBus } from '../src/index.js';
 
-type AppEvents = {
-  'user:created': { 'email': string; 'id': string; };
-};
-
-const bus = EventBus.create<AppEvents>();
+const bus = EventBus.create<UserCreatedEventMapEntity.Type>();
 
 const received: { 'email': string; 'id': string; }[] = [];
 

@@ -1,18 +1,16 @@
-export type { RequestStatsType } from './RequestStatsType.js';
 export type { RetryBuilderInterface } from './RetryBuilderInterface.js';
 export type { RetryConfigInterface } from './RetryConfigInterface.js';
-export type { RetryContextType } from './RetryContextType.js';
 export type { RetryInterface } from './RetryInterface.js';
-export type {
-  ErrorClassificationType,
-  ErrorClassifierInterface,
-  ErrorWithAddressType,
-  ErrorWithCodeType,
-  ErrorWithErrnoType,
-  ErrorWithHostnameType,
-  ErrorWithPortType,
-  ErrorWithRetryAfterType,
-  ErrorWithStatusCodeType,
-  ErrorWithStatusType,
-  ErrorWithSyscallType
+export type { ErrorClassifierInterface } from '@studnicky/errors';
+export {
+  ErrorClassificationEntity,
+  ErrorWithAddressEntity,
+  ErrorWithCodeEntity,
+  ErrorWithErrnoEntity,
+  ErrorWithHostnameEntity,
+  ErrorWithPortEntity,
+  ErrorWithRetryAfterEntity,
+  ErrorWithStatusCodeEntity,
+  ErrorWithStatusEntity,
+  ErrorWithSyscallEntity
 } from '@studnicky/errors';

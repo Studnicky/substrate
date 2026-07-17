@@ -4,11 +4,12 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type { FsmStepType } from '../src/index.js';
+import type { ToggleEventEntity } from './entities/ToggleEventEntity.js';
 
 import { EffectInterpreter, MachineAlreadyRegisteredError, MachineRegistry, StateMachine } from '../src/index.js';
 
 type ToggleState = { readonly 'variant': 'on' } | { readonly 'variant': 'off' };
-type ToggleEvent = { readonly 'type': 'toggle' };
+type ToggleEvent = ToggleEventEntity.Type;
 
 class Toggle extends StateMachine<ToggleState, ToggleEvent> {
   static make(): Toggle { return new Toggle(); }

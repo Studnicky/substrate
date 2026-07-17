@@ -1,4 +1,4 @@
-import type { TimingEventDataType } from '../interfaces/TimingEventDataType.js';
+import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
 import { NoOpTimingBuilder } from './NoOpTimingBuilder.js';
@@ -89,7 +89,7 @@ export class NoOpTiming implements TimingInterface {
    *
    * @param _data - Ignored event data
    */
-  event(_data: TimingEventDataType): void {
+  event(_data: TimingEventDataEntity.Type): void {
     // No-op
   }
 

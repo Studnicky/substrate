@@ -5,7 +5,6 @@ import {
 
 import {
   FetchClient,
-  NetworkError,
   TimeoutError,
   UndiciDispatcher
 } from '../../../src/index.js';
@@ -178,8 +177,7 @@ void describe('Connection Pool Error Scenarios', () => {
           assert.ok(error instanceof Error);
           const cause = (error as Error & { 'cause'?: Error }).cause;
           const hasConnectError
-            = error instanceof NetworkError
-            || error.message.includes('connect')
+            = error.message.includes('connect')
             || (cause?.message ?? '').includes('connect');
 
           assert.ok(hasConnectError, `Expected connect error, got: ${error.message}`);
@@ -206,8 +204,7 @@ void describe('Connection Pool Error Scenarios', () => {
           assert.ok(error instanceof Error);
           const cause = (error as Error & { 'cause'?: Error }).cause;
           const hasDnsError
-            = error instanceof NetworkError
-            || error.message.includes('getaddrinfo')
+            = error.message.includes('getaddrinfo')
             || (cause?.message ?? '').includes('getaddrinfo');
 
           assert.ok(hasDnsError, `Expected DNS error, got: ${error.message}`);
