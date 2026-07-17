@@ -1,7 +1,8 @@
+import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
-import { RuleTester } from 'eslint';
+import { Linter, RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { descriptiveIdentifiers } from '../../src/rules/descriptiveIdentifiers.js';
@@ -91,4 +92,32 @@ ruleTester.run('descriptive-identifiers', descriptiveIdentifiers, {
       'name': 'class property opts — flagged'
     }
   ]
+});
+
+describe('descriptive-identifiers — CamelCase.split performance', () => {
+  it('does not exhibit polynomial blowup on a long uppercase run followed by a digit', () => {
+    // Regression test for a ReDoS in CamelCase's former regex-based
+    // tokenizer: an uppercase run immediately followed by a non-letter
+    // (here a digit) that isn't the end of the identifier forced the
+    // engine to backtrack the greedy `[A-Z]+` one character at a time at
+    // every starting position within the run, which is quadratic in the
+    // run's length.
+    const name = `${'A'.repeat(50_000)}1x`;
+    const linter = new Linter();
+
+    const start = Date.now();
+
+    linter.verify(`const ${name} = 1; void ${name};`, {
+      'languageOptions': { 'ecmaVersion': 2024, 'sourceType': 'module' },
+      'plugins': { 'local': { 'rules': { 'descriptive-identifiers': descriptiveIdentifiers } } },
+      'rules': { 'local/descriptive-identifiers': 'error' }
+    });
+
+    const elapsedMs = Date.now() - start;
+
+    assert.ok(
+      elapsedMs < 1000,
+      `expected linting a pathological identifier to stay well under 1s, took ${elapsedMs}ms`
+    );
+  });
 });

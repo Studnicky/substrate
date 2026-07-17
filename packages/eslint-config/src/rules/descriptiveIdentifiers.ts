@@ -185,18 +185,68 @@ const WHITELISTED_ACRONYMS = new Set([
 
 const LOOP_ITERATOR_PATTERN = /^[ijk]$/v;
 
-const CAMEL_TOKEN_PATTERN = /[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|$)/gv;
-
+// Manual scan instead of a single backtracking regex: the equivalent
+// `/[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|$)/g` is polynomial-time on an
+// uppercase run followed by a non-letter, non-end character (e.g. a long
+// run of capitals immediately before a digit) — the greedy `[A-Z]+`
+// backtracks one character at a time, and the lookahead fails at every
+// step, for every starting position within the run.
 class CamelCase {
+  private static isUpper(char: string): boolean {
+    return char >= 'A' && char <= 'Z';
+  }
+
+  private static isLower(char: string): boolean {
+    return char >= 'a' && char <= 'z';
+  }
+
   public static split(name: string): string[] {
     const tokens: string[] = [];
+    const length = name.length;
+    let i = 0;
 
-    CAMEL_TOKEN_PATTERN.lastIndex = 0;
-    let match = CAMEL_TOKEN_PATTERN.exec(name);
+    while (i < length) {
+      const char = name[i]!;
 
-    while (match !== null) {
-      tokens.push(match[0]);
-      match = CAMEL_TOKEN_PATTERN.exec(name);
+      if (CamelCase.isLower(char)) {
+        let j = i + 1;
+
+        while (j < length && CamelCase.isLower(name[j]!)) {
+          j += 1;
+        }
+        tokens.push(name.slice(i, j));
+        i = j;
+        continue;
+      }
+
+      if (CamelCase.isUpper(char)) {
+        if (i + 1 < length && CamelCase.isLower(name[i + 1]!)) {
+          let j = i + 2;
+
+          while (j < length && CamelCase.isLower(name[j]!)) {
+            j += 1;
+          }
+          tokens.push(name.slice(i, j));
+          i = j;
+          continue;
+        }
+
+        let j = i + 1;
+
+        while (j < length && CamelCase.isUpper(name[j]!)) {
+          j += 1;
+        }
+        if (j < length && CamelCase.isLower(name[j]!) && j - i > 1) {
+          tokens.push(name.slice(i, j - 1));
+          i = j - 1;
+        } else {
+          tokens.push(name.slice(i, j));
+          i = j;
+        }
+        continue;
+      }
+
+      i += 1;
     }
 
     return tokens;
