@@ -24,17 +24,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- The package root is the sole public code entrypoint and exports `CircularBuffer`, `CircularBufferInterface`, `CircularBufferOptionsEntity`, `CircularBufferStateEntity`, and the domain error; storage constants remain implementation details.
-- `CircularBuffer` constructor is `protected`. Use `CircularBuffer.create(options)` to construct instances. Subclasses that call `super(options)` are unaffected.
-
-### Added
-
-- `CircularBuffer.create(options?)` — validated static factory; the single construction entry point.
-
 ## [1.0.0] - 2026-06-22
 
 ### Added

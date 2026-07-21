@@ -40,9 +40,9 @@ Import `RequestExecutor`, `RequestExecutorConfigInterface`, `RequestExecutorDeps
 
 `context` scope wraps the whole call → `timing` span brackets the retry loop → `retry` loop wraps the caller's `fn` → the composed cancellation `AbortSignal` threads into whatever call `fn` makes.
 
-## When to stop using this and move to Dagonizer
+## When this composition tips into orchestration
 
-`RequestExecutor` executes exactly one call (with its own internal retry attempts). It has no concept of a node, a graph, or a dependency between multiple calls. Once a workflow needs to coordinate the *outcome* of one `RequestExecutor#execute()` call to decide whether or how to run a second one — branching, fan-out across dependent requests, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration and belongs in Dagonizer, not in a loop of `RequestExecutor` calls glued together by hand.
+`RequestExecutor` executes exactly one call (with its own internal retry attempts). It has no concept of a node, a graph, or a dependency between multiple calls. Once a workflow needs to coordinate the *outcome* of one `RequestExecutor#execute()` call to decide whether or how to run a second one — branching, fan-out across dependent requests, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration, not a loop of `RequestExecutor` calls glued together by hand.
 
 ## Documentation
 

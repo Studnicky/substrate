@@ -43,9 +43,9 @@ Callers who supply subclassed `Mutex` or `Coalesce` instances retain those insta
 
 `KeyedWorkGate` does not invent its own staleness ceiling for coalesced calls — that gap stays with `Coalesce` itself, configured via its own `timeout` option.
 
-## When to stop using this and move to Dagonizer
+## When this composition tips into orchestration
 
-`KeyedWorkGate` gates a single unit of work per key. It has no concept of a node, a graph, or a dependency between multiple keyed calls. Once a workflow needs to coordinate the *outcome* of one keyed call to decide whether or how to run a second one — branching, fan-out across dependent keys, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration and belongs in Dagonizer, not in a loop of `KeyedWorkGate` calls glued together by hand.
+`KeyedWorkGate` gates a single unit of work per key. It has no concept of a node, a graph, or a dependency between multiple keyed calls. Once a workflow needs to coordinate the *outcome* of one keyed call to decide whether or how to run a second one — branching, fan-out across dependent keys, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration, not a loop of `KeyedWorkGate` calls glued together by hand.
 
 ## Documentation
 

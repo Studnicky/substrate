@@ -40,14 +40,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- The package root is the sole public code entrypoint for retry behavior, backoff, configuration, errors, entities, validators, and interfaces; algorithm constants remain implementation details.
-- Backoff, retry context, retry error options, configuration, and runtime contracts are exported as interfaces. Per-call state is exported as `RetryCallStateEntity.Type`.
-- Error classification contracts and `DefaultHttpErrorClassifier` are imported directly from `@studnicky/errors`.
-
 ## [4.0.0] - 2026-06-28
 
 ### Changed

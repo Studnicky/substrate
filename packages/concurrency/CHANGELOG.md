@@ -27,14 +27,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- The package root is the sole code entrypoint for `AsyncIter`, `Channel`, `Coalesce`, `Semaphore`, their option entities, and package errors.
-- `Channel.create(options?)`, `Coalesce.create(options?)`, and `Semaphore.create(options)` are the sole construction entry points; constructors are protected.
-- `Semaphore.create()` accepts the schema-validated `SemaphoreOptionsEntity.Type` options object `{ permits }`.
-
 ## [1.0.0] - 2026-06-22
 
 ### Added

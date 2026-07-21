@@ -224,10 +224,6 @@ export default withMermaid(defineConfig({
     siteTitle: 'Substrate',
     nav: [
       { text: 'Guide', link: '/getting-started' },
-      { text: 'Lifecycle Hooks', link: '/concepts/lifecycle-hooks' },
-      { text: 'Pattern Composition', link: '/concepts/pattern-composition' },
-      { text: 'Anti-Patterns', link: '/concepts/composition-anti-patterns' },
-      { text: 'Dagonizer Boundary', link: '/concepts/dagonizer-boundary' },
       { text: 'Packages', link: '/packages/' },
       { text: 'GitHub', link: SITE_REPO }
     ],
@@ -244,15 +240,6 @@ export default withMermaid(defineConfig({
             { text: 'Overview', link: '/' },
             { text: 'Getting Started', link: '/getting-started' },
             { text: 'Architecture', link: '/architecture' }
-          ]
-        },
-        {
-          text: 'Concepts',
-          items: [
-            { text: 'Lifecycle Hooks', link: '/concepts/lifecycle-hooks' },
-            { text: 'Pattern Composition', link: '/concepts/pattern-composition' },
-            { text: 'Composition Anti-Patterns', link: '/concepts/composition-anti-patterns' },
-            { text: 'Dagonizer Boundary', link: '/concepts/dagonizer-boundary' }
           ]
         },
         {

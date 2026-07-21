@@ -40,9 +40,9 @@ Throttle bounds concurrency first, so the circuit breaker and retry never observ
 
 `BoundaryKit#execute()` tracks whether the inner operation completes separately from its resolved value. An operation that legitimately resolves `undefined` or returns `void` completes normally with that value. `BoundaryKitAbortedError` is reserved for a throttle discard caused by detach-and-abandon abort behavior, where the inner operation never runs.
 
-## When to stop using this and move to Dagonizer
+## When this composition tips into orchestration
 
-`BoundaryKit` protects exactly one call (with its own internal throttle/circuit/retry state). It has no concept of a node, a graph, or a dependency between multiple calls. Once a workflow needs to coordinate the *outcome* of one `BoundaryKit#execute()` call to decide whether or how to run a second one — branching, fan-out across dependent calls, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration and belongs in Dagonizer, not in a loop of `BoundaryKit` calls glued together by hand.
+`BoundaryKit` protects exactly one call (with its own internal throttle/circuit/retry state). It has no concept of a node, a graph, or a dependency between multiple calls. Once a workflow needs to coordinate the *outcome* of one `BoundaryKit#execute()` call to decide whether or how to run a second one — branching, fan-out across dependent calls, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration, not a loop of `BoundaryKit` calls glued together by hand.
 
 ## Documentation
 

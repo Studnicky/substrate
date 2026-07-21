@@ -39,17 +39,15 @@ Import `ProcessKit` and `ProcessKitConfigInterface` from `@studnicky/process-kit
 
 ## Orchestration-boundary risk flags
 
-`ProcessKit` sits nearest the Dagonizer boundary of substrate's pattern kits. Three boundaries are enforced by convention, not by a runtime guard:
+`ProcessKit` sits nearest substrate's scope boundary of its pattern kits. Three boundaries are enforced by convention, not by a runtime guard:
 
 1. **`scheduleDispatch` chaining** — do not nest `scheduleDispatch` calls that branch on the resulting state to schedule the next step; that is hand-rolling a workflow scheduler. Let a single `StateMachine` own sequencing as ordinary transitions.
-2. **Multi-instance registries** — do not build a registry/lookup of many named `ProcessKit` instances dispatched into by name; that is node-placement, which belongs to Dagonizer.
+2. **Multi-instance registries** — do not build a registry/lookup of many named `ProcessKit` instances dispatched into by name; that is node-placement, outside substrate's scope.
 3. **Checkpoint/resume creep** — `stop()`/teardown must stay in-memory only; do not add a `save`/`resume` pair backed by a store.
 
-See [Composition Anti-Patterns](/concepts/composition-anti-patterns) and [Substrate vs. Dagonizer Boundary](/concepts/dagonizer-boundary) for the full rationale.
+## When this composition tips into orchestration
 
-## When to stop using this and move to Dagonizer
-
-`ProcessKit` drives exactly one process (one machine, one interpreter, one scheduler) through in-memory transitions. It has no concept of a node, a graph, or a dependency between multiple processes. Once a workflow needs to coordinate the outcome of one process to decide whether or how to run another — branching, fan-out across dependent processes, checkpoint/resume, or cross-process retry budgets — that is workflow orchestration and belongs in Dagonizer, not in a hand-rolled registry or chain of `ProcessKit` instances.
+`ProcessKit` drives exactly one process (one machine, one interpreter, one scheduler) through in-memory transitions. It has no concept of a node, a graph, or a dependency between multiple processes. Once a workflow needs to coordinate the outcome of one process to decide whether or how to run another — branching, fan-out across dependent processes, checkpoint/resume, or cross-process retry budgets — that is workflow orchestration, not a hand-rolled registry or chain of `ProcessKit` instances.
 
 ## Documentation
 

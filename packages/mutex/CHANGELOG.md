@@ -26,15 +26,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- The package root is the sole public code entrypoint. Mutex implementation constants remain internal.
-- `Mutex.create(config?)` is the sole construction entry point; the constructor remains protected for subclassing.
-- `Mutex.create()` uses `new this()` internally so subclass factories return the correct subclass type.
-- Per-key FSM state is exported as the schema-backed `MutexKeyStateEntity.Type`.
-
 ## [1.0.0] - 2026-06-22
 
 ### Added

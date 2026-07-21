@@ -30,5 +30,3 @@ Substrate is built around three principles that make its primitives safe to subc
 **No observability in bare classes.** The base class never logs, never emits metrics, never references a logger. Protected hooks are the extension points; observability lives in subclasses or decorators. Observer hooks stay observational; behavioral hooks are documented where they intentionally participate in control flow.
 
 **Factory-owned state.** Stateful classes expose package-root `create(config)` factories so validation and dependency injection follow one construction path. Static helpers remain stateless utility classes.
-
-Primitives expose protected hooks at their observable stages, so tracing and metrics can live in subclasses without changing core behavior. See [Lifecycle Hooks](/concepts/lifecycle-hooks) for the full convention and a per-package map.

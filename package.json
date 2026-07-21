@@ -15,6 +15,9 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
+  "workspaces": [
+    "packages/*"
+  ],
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"

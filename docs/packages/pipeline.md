@@ -17,15 +17,16 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-Build a `Pipeline<T>` instance, register stages with `add()`, and run a context
+Construct a `Pipeline<T>` instance with a fixed array of stages, and run a context
 through all of them with `run()`. Each stage receives the context and returns a
-(possibly transformed) copy. `add()` returns a removal function:
+(possibly transformed) copy. The stage list is fixed at construction — a different
+composition is a different `Pipeline.create()` call with a different array:
 
 <<< ../../packages/pipeline/examples/basic-pipeline.ts#usage
 
 ## Try it
 
-The basic demo constructs a `Pipeline` directly with `Pipeline.create<RequestCtx>()` and registers stages in order. Each stage receives the transformed context from the previous one.
+The basic demo constructs a `Pipeline` directly with `Pipeline.create<RequestCtx>([...stages])`. Each stage receives the transformed context from the previous one.
 
 <RunnableExample src="packages/pipeline/examples/basic-pipeline" title="Pipeline stages" />
 
@@ -45,12 +46,12 @@ context mutation without coupling the core pipeline to any external dependency:
 
 <<< ../../packages/pipeline/examples/subclass-hooks.ts#usage
 
-The `stages` getter returns a readonly snapshot of all registered transforms, useful
+The `stages` getter returns a readonly snapshot of all constructed transforms, useful
 for inspection or tooling.
 
 ## Observability hooks
 
-`Pipeline` exposes eight protected hooks for every stage of execution. The four **intercept hooks** (`onRunStart`, `beforeStage`, `afterStage`, `onRunComplete`) return `T`, stay in-band, and can transform the context or fail the run. The four **observer hooks** are void, fire at every stage boundary and error path, and are kept observational so they do not replace the stage result or canonical stage error.
+`Pipeline` exposes eight protected hooks for every stage of execution. The four **transform hooks** (`onRunStart`, `beforeStage`, `afterStage`, `onRunComplete`) return `T`, stay in-band, and can transform the context or fail the run. The four **observer hooks** are void, fire at every stage boundary and error path, and are kept observational so they do not replace the stage result or canonical stage error.
 
 | Hook | When it fires | Args |
 |------|---------------|------|
@@ -65,8 +66,8 @@ for inspection or tooling.
 
 <<< ../../packages/pipeline/examples/observedPipeline.ts#usage
 
-The base class never calls any logger or metrics library. Observer hooks are no-ops by default; intercept hooks are the behavioral seams.
+The base class never calls any logger or metrics library. Observer hooks are no-ops by default; transform hooks are the behavioral seams.
 
-The four observer hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). A throwing observer surfaces as `HookInvocationError`. Pass `hookTimeoutMs` to `Pipeline.create<T>({ hookTimeoutMs })` to bound an asynchronous observer; exceeding the bound surfaces through `HookTimeoutError`. Without `hookTimeoutMs`, hook invocation is unbounded.
+The four observer hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). A throwing observer surfaces as `HookInvocationError`. Pass `hookTimeoutMs` to `Pipeline.create<T>([...stages], { hookTimeoutMs })` to bound an asynchronous observer; exceeding the bound surfaces through `HookTimeoutError`. Without `hookTimeoutMs`, hook invocation is unbounded.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/pipeline)

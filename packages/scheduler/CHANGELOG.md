@@ -26,18 +26,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- `Delay.sleep(ms, { clock?, scheduler?, signal? })` resolves after a scheduler-aware delay. A native `AbortSignal` rejects with its exact reason, schedules nothing when already aborted, and cancels a pending scheduled task on later abort.
-
-### Changed
-
-- The package root is the sole public code entrypoint and includes `PendingTaskInterface`, `ScheduledTaskInterface`, and `SchedulerProviderInterface` alongside scheduler behavior.
-- `MinimumHeap`, `RealTimeScheduler`, and `VirtualScheduler` use `Class.create(...)`. Their constructors are protected.
-- `VirtualScheduler.create({ counter })` accepts an options object. The constructor validates the injected counter and throws `SchedulerError` if missing.
-
 ## [1.0.0] - 2026-06-22
 
 ### Added

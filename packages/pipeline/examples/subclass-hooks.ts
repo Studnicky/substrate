@@ -26,13 +26,13 @@ class TimedPipeline extends Pipeline<HookRequestContextEntity.Type> {
   }
 }
 
-const pipeline = TimedPipeline.create<HookRequestContextEntity.Type>();
-
-// Stage: attach an Authorization header
-pipeline.add((ctx) => { return {
-  ...ctx,
-  'headers': { ...ctx.headers, 'Authorization': 'Bearer token-abc' }
-}; });
+const pipeline = TimedPipeline.create<HookRequestContextEntity.Type>([
+  // Stage: attach an Authorization header
+  (ctx) => { return {
+    ...ctx,
+    'headers': { ...ctx.headers, 'Authorization': 'Bearer token-abc' }
+  }; }
+]);
 
 const result = await pipeline.run({ 'headers': {}, 'url': '/api/data' });
 

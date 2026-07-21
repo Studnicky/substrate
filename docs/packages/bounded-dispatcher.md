@@ -43,9 +43,9 @@ Passing a `VirtualScheduler` gives deterministic test fixtures for free — `sch
 
 `dispatch()`: acquire `Semaphore` permit (`Semaphore#withPermit`) → initiate `'dispatch'` `start` publication → run `fn` → initiate `'dispatch'` `success`/`error` publication → release the permit. Publication promises complete independently through the guarded hook invoker, so event-bus backpressure cannot throttle work concurrency. `scheduleDispatch()`: `scheduler.scheduleAt(atMs, () => dispatch(fn))` — the scheduler's own error containment applies to a rejecting `fn` the same way it does to any other scheduled callback.
 
-## When to stop using this and move to Dagonizer
+## When this composition tips into orchestration
 
-`BoundedDispatcher` bounds how many `fn` calls run concurrently and republishes their outcome on one bus. It has no concept of a node, a graph, or a dependency between multiple dispatches. Once a workflow needs to coordinate the *outcome* of one dispatch to decide whether or how to run another — branching, fan-out across dependent work, checkpoint/resume, or cross-dispatch retry budgets — that is workflow orchestration and belongs in Dagonizer, not in a loop of `BoundedDispatcher#dispatch()` calls glued together by hand.
+`BoundedDispatcher` bounds how many `fn` calls run concurrently and republishes their outcome on one bus. It has no concept of a node, a graph, or a dependency between multiple dispatches. Once a workflow needs to coordinate the *outcome* of one dispatch to decide whether or how to run another — branching, fan-out across dependent work, checkpoint/resume, or cross-dispatch retry budgets — that is workflow orchestration, not a loop of `BoundedDispatcher#dispatch()` calls glued together by hand.
 
 ## Documentation
 

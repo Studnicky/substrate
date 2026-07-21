@@ -1,12 +1,5 @@
 # @studnicky/virtual-fs
 
-## [Unreleased]
-
-### Changed
-
-- `EntryEntity.Type` is the schema-derived filesystem entry data. `VirtualFileSystemOptionsInterface`, `FileSystemInterface`, and `StatResultInterface` define runtime and readonly contracts.
-- `@studnicky/virtual-fs` is the sole public code entrypoint.
-
 ## 7.0.1
 
 ### Patch Changes

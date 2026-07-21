@@ -37,17 +37,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- `FileLock.create(options)` — canonical async factory accepting `{ path, pollMs?, timeoutMs? }`; validates options via `FileLockOptionsEntity` schema and throws `FileLockConfigError` on invalid input.
-- `FileLockOptionsEntity` schema extended with the required `path` field.
-
-### Changed
-
-- Runtime construction and owner-token contracts are exported as `FileLockCreateOptionsInterface` and `OwnerTokenInterface`; schema-backed options remain `FileLockOptionsEntity.Type`.
-
 ## [1.0.0] - 2026-06-22
 
 ### Added

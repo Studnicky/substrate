@@ -32,14 +32,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- The package root is the sole public code entrypoint for throttle behavior, entities, errors, validators, and `ThrottleInterface`; scheduling constants remain implementation details.
-- `Throttle` constructor is protected; instances are created via `Throttle.create(config?)`.
-- FSM state is exported as `ThrottleStateEntity.Type`; adaptive, configuration, statistics, and validation data remain schema-backed entity types, while runtime behavior is an interface. Runtime statistics are validated through `ThrottleStatsEntity.validate`.
-
 ## [1.0.0] - 2026-06-22
 
 ### Added
