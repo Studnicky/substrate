@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/clock",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Wall-clock and monotonic time primitives with injectable providers for deterministic testing",
   "type": "module",
   "sideEffects": false,

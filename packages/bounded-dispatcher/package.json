@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/bounded-dispatcher",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Bounded work dispatch pattern composing @studnicky/concurrency's Semaphore, /event-bus, and /scheduler",
   "type": "module",
   "sideEffects": false,

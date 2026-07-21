@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/entity-store",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Normalized, ID-indexed entity collection with CRUD operations and O(1) lookup",
   "type": "module",
   "sideEffects": false,

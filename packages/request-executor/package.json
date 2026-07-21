@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/request-executor",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "One-shot request execution pattern composing @studnicky/fetch, /retry, /signal, /timing, and /context",
   "type": "module",
   "sideEffects": false,
