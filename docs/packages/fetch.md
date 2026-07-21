@@ -13,7 +13,9 @@ description: HTTP client with timeout, override hooks, and configured clients.
 pnpm add @studnicky/fetch
 ```
 
-`@studnicky/fetch` runs in the browser and Node alike: every request goes through the runtime's native `fetch`, and the override hook pipeline, timeout, request builder, and URL utilities work in both. The undici connection-pool dispatcher (socket pools, HTTP/1.1 keep-alive) is a **Node-only enhancement** — disabled by default and enabled with `dispatcher: { enabled: true }`. In the browser, native `fetch` handles connection management, so enabling the undici dispatcher there throws a clear error.
+`@studnicky/fetch` is the sole public code entrypoint. It runs in browsers and Node: every request goes through the runtime's native `fetch`, and direct HTTP verb methods, override hooks, timeout handling, and URL utilities work in both. The undici connection-pool dispatcher is a Node-only enhancement enabled with `dispatcher: { enabled: true }`.
+
+`FetchClient` owns an enabled connection-pool Agent internally. Direct `UndiciDispatcher` use accepts a caller-owned `undici` `Agent`; retain that Agent for request dispatch and use `UndiciDispatcher` for health checks and lifecycle management.
 
 ## Try it
 
@@ -25,16 +27,25 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 
 <<< ../../packages/fetch/examples/01-client-config.ts#usage
 
+### Request methods
+
+`FetchClient.create(config?)` accepts shared `baseURL`, headers, query parameters, timeout, metadata, request-ID, fetch-option, hook-timeout, and dispatcher settings. Requests execute through the canonical verb methods:
+
+| Methods | Options |
+|---------|---------|
+| `get`, `head`, `options`, `delete` | `FetchOptionsInterface` |
+| `post`, `put`, `patch` | `BodyRequestOptionsInterface` with optional body serialization |
+
 ### Override hooks
 
 `FetchClient` exposes two protected lifecycle hooks that subclasses override to transform the outgoing request or incoming response. These two hooks are in-band behavioral seams: they can mutate the request/response flow directly, and if they throw, the request fails through the normal error path.
 
 | Hook | Signature | Purpose |
 |------|-----------|---------|
-| `onRequest` | `(context: RequestContextType): Promise<RequestContextType>` | Mutate `context.url`, `context.options`, or `context.metadata` before the request is sent |
-| `onResponse` | `(context: ResponseContextType): Promise<ResponseContextType>` | Inspect or replace `context.response` after the raw response arrives |
+| `onRequest` | `(context: RequestContextInterface): Promise<RequestContextInterface>` | Mutate `context.url`, `context.options`, or `context.metadata` before the request is sent |
+| `onResponse` | `(context: ResponseContextInterface): Promise<ResponseContextInterface>` | Inspect or replace `context.response` after the raw response arrives |
 
-`RequestContextType` carries `url`, `options`, and `metadata`. `ResponseContextType` carries `response` and `request`. The base implementations return the context unchanged; un-subclassed instances behave as if the hooks are absent.
+`RequestContextInterface` carries `url`, `options`, and `metadata`. `ResponseContextInterface` carries `response` and `request`. The base implementations return the context unchanged; un-subclassed instances behave as if the hooks are absent.
 
 <<< ../../packages/fetch/examples/02-override-hooks.ts#usage
 
@@ -44,16 +55,9 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 |--------|---------|
 | `UrlUtils` | Static helpers for building and parsing URLs |
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/fetch` | `FetchClient`, `HttpMethods`, `RequestBuilder`, `UndiciDispatcher`, `UrlUtils`, all error classes |
-| `@studnicky/fetch/constants` | `DEFAULT_DISPATCHER_CONFIG` |
-| `@studnicky/fetch/errors` | `HTTPError`, `TimeoutError`, `NetworkError`, `AbortError`, and more |
-| `@studnicky/fetch/interfaces` | All interface types |
-| `@studnicky/fetch/modules` | Module re-exports |
-| `@studnicky/fetch/types` | `QueryParamsType`, `RequestContextType`, `ResponseContextType` |
+The package root exports `FetchClient`, `UndiciDispatcher`, `UrlUtils`, `DEFAULT_DISPATCHER_CONFIG`, fetch error classes, dispatcher entities, `FetchRequestOptionsEntity`, `ClientConfigDataEntity`, and the package-owned request, response, configuration, query, body, fetch-option, client, and dispatcher interfaces. The request and client interfaces compose schema-expressible fields from those entities while retaining runtime-only headers, signals, dispatchers, metadata, and callbacks.
 
 ## Observability hooks
 

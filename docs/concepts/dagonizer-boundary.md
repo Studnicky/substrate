@@ -19,8 +19,7 @@ for the specific ways composition drifts toward the line this page draws.
 
 ## The exclusion list
 
-Each item below was evaluated against substrate's real primitives and explicitly assigned
-to Dagonizer rather than substrate.
+Each item below belongs to Dagonizer rather than substrate.
 
 - **Node dependency graph / DAG resolution** — Dagonizer core. Substrate has no node/edge
   graph model; `@studnicky/pipeline` is a linear sequential context transform, not a DAG.
@@ -53,21 +52,18 @@ to Dagonizer rather than substrate.
 - **Event-bus as a durable event-sourced log** — Dagonizer (`dagonizer-store-eventlog`).
   `@studnicky/event-bus` is typed in-memory pub/sub with backpressure, not an append-only
   persisted history.
-- **State-scoped child-actor lifecycle** (XState's `invoke`, spawn/stop tied to a named
-  node) — Dagonizer (`DAGLifecycleMachine`). Confirmed against XState's prior art during the
-  primitive seam audit: substrate's `@studnicky/fsm` stays a single-machine reducer with no
-  child-actor spawning.
+- **State-scoped child-actor lifecycle** (`invoke`, spawn/stop tied to a named node) —
+  Dagonizer (`DAGLifecycleMachine`). Substrate's `@studnicky/fsm` stays a single-machine
+  reducer with no child-actor spawning.
 - **Actor-model message-passing between named actors** (supervision, `sendTo`) — Dagonizer.
-  Confirmed against the same prior art: a supervision tree is graph structure, and routing
-  between named actors is node-to-node communication. Substrate's ceiling for inter-machine
-  coordination stays `@studnicky/event-bus`.
+  A supervision tree is graph structure, and routing between named actors is node-to-node
+  communication. Substrate's ceiling for inter-machine coordination stays
+  `@studnicky/event-bus`.
 
-Two related capabilities were evaluated and rejected for a **different** reason — not a
-Dagonizer-boundary issue, but out of scope for substrate at any layer: TanStack Query's
-window-focus refetch, network-reconnect refetch, and offline/network-mode handling all
-assume a runtime-specific connectivity source (browser `navigator.onLine` vs. Node interface
-polling), which violates the rule that substrate primitives "do not assume storage,
-transport topology, or application architecture."
+Window-focus refetch, network-reconnect refetch, and offline/network-mode handling are out
+of scope for substrate at every layer. They assume a runtime-specific connectivity source
+(browser `navigator.onLine` or Node interface polling), which violates the rule that
+substrate primitives do not assume storage, transport topology, or application architecture.
 
 ## The 5-question gate
 
@@ -85,10 +81,10 @@ Before adding a new package or API to substrate, ask:
 
 | Proposal | Q3 durable? | Q4 graph/scheduling? | Q5 Dagonizer's home? | Verdict |
 |---|---|---|---|---|
-| A one-shot request execution pattern composing `fetch`+`retry`+`signal`+`timing`+`context` | No | No | No | Substrate — shipped as `@studnicky/request-executor` |
-| A `retry` → `CircuitBreaker` → `throttle` boundary-protection recipe | No | No | No | Substrate — documentation-only composition guide, no package needed |
-| A reducer-with-effects process built from `fsm`+`pipeline`+`scheduler`+`signal` | No, while `stop()` stays in-memory only | No, while transitions stay single-machine and linear | No, while the kit never grows a named-instance registry | Substrate — documentation-only, but nearest the line (see [anti-pattern risk flags](/concepts/composition-anti-patterns)) |
-| A cursor/page-list tracker for paginated data sources | No — caller supplies fetched pages, tracker holds no fetch logic | No | No | Substrate — shipped as `@studnicky/paginator` |
+| A one-shot request execution pattern composing `fetch`+`retry`+`signal`+`timing`+`context` | No | No | No | Substrate — `@studnicky/request-executor` |
+| A `throttle` → `CircuitBreaker` → `retry` boundary-protection recipe | No | No | No | Substrate — `@studnicky/boundary-kit` |
+| A reducer-with-effects process built from `fsm`+`scheduler` | No, while `stop()` stays in-memory only | No, while transitions stay single-machine and linear | No, while the kit never grows a named-instance registry | Substrate — `@studnicky/process-kit`, nearest the line (see [anti-pattern risk flags](/concepts/composition-anti-patterns)) |
+| A cursor/page-list tracker for paginated data sources | No — caller supplies fetched pages, tracker holds no fetch logic | No | No | Substrate — `@studnicky/paginator` |
 | A dependency graph of retry-protected calls that resume from a checkpoint after a crash | Yes (checkpoint) | Yes (dependency graph) | Yes | Dagonizer |
 | A registry that dispatches events to any of several named, independently-addressable state machines | Depends | Yes — that addressing is node-placement | Yes | Dagonizer |
 | A plugin tier that swaps in different LLM/vector/tool backends behind one interface | No | No | Yes — `dagonizer-adapter-*`/`-embedder-*`/`-tool-*` already own this | Dagonizer |

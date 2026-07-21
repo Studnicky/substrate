@@ -9,15 +9,19 @@
 import { HookInvoker } from '@studnicky/errors';
 
 import type { VisibleRangeEntity } from './entities/VisibleRangeEntity.js';
+import type { VisibleRangeResolvedConfigEntity } from './entities/VisibleRangeResolvedConfigEntity.js';
 import type { VisibleRangeConfigInterface } from './interfaces/VisibleRangeConfigInterface.js';
 
 import { DEFAULT_OVERSCAN, INITIAL_OFFSET } from './constants/index.js';
 import { VisibleRangeError } from './errors/index.js';
-import { VisibleRangeBuilder } from './VisibleRangeBuilder.js';
 
-type ResolvedConfigType =
-  | { readonly 'count': number; readonly 'itemSize': number; readonly 'mode': 'fixed'; readonly 'overscan': number }
-  | { readonly 'count': number; readonly 'estimateSize': (index: number) => number; readonly 'mode': 'variable'; readonly 'overscan': number };
+interface VisibleRangeResolvedConfigInterface {
+  readonly 'count': VisibleRangeResolvedConfigEntity.Type['count'];
+  readonly 'estimateSize'?: (index: number) => number;
+  readonly 'itemSize'?: VisibleRangeResolvedConfigEntity.Type['itemSize'];
+  readonly 'mode': VisibleRangeResolvedConfigEntity.Type['mode'];
+  readonly 'overscan': VisibleRangeResolvedConfigEntity.Type['overscan'];
+}
 
 /**
  * Computes the inclusive `[start, end]` index range of items currently
@@ -38,20 +42,12 @@ type ResolvedConfigType =
  *   range differs from the previously computed range.
  */
 export class VisibleRange {
-  static builder(): VisibleRangeBuilder {
-    const result = VisibleRangeBuilder.create((config) => {
-      const range = VisibleRange.create(config);
-      return range;
-    });
-    return result;
-  }
-
   static create(config: VisibleRangeConfigInterface): VisibleRange {
     const resolved = VisibleRange.#resolve(config);
     return new this(resolved);
   }
 
-  static #resolve(config: VisibleRangeConfigInterface): ResolvedConfigType {
+  static #resolve(config: VisibleRangeConfigInterface): VisibleRangeResolvedConfigInterface {
     const hasItemSize = config.itemSize !== undefined;
     const hasEstimateSize = config.estimateSize !== undefined;
 
@@ -70,12 +66,15 @@ export class VisibleRange {
       }
       return { 'count': config.count, 'itemSize': config.itemSize, 'mode': 'fixed', 'overscan': overscan };
     }
-    return { 'count': config.count, 'estimateSize': config.estimateSize as (index: number) => number, 'mode': 'variable', 'overscan': overscan };
+    if (config.estimateSize === undefined) {
+      throw new VisibleRangeError('`estimateSize` is required in variable mode');
+    }
+    return { 'count': config.count, 'estimateSize': config.estimateSize, 'mode': 'variable', 'overscan': overscan };
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();
 
-  private readonly config: ResolvedConfigType;
+  private readonly config: VisibleRangeResolvedConfigInterface;
   private scrollOffset = INITIAL_OFFSET;
   private viewportSize = INITIAL_OFFSET;
   private lastRange: VisibleRangeEntity.Type | undefined;
@@ -87,7 +86,7 @@ export class VisibleRange {
   /** Earliest index whose downstream cumulative offsets are stale. `null` when the array (if built) is fully up to date. */
   private dirtyFrom: number | null = null;
 
-  protected constructor(config: ResolvedConfigType) {
+  protected constructor(config: VisibleRangeResolvedConfigInterface) {
     this.config = config;
   }
 
@@ -133,14 +132,18 @@ export class VisibleRange {
     const range = this.config.mode === 'fixed' ? this.computeFixedRange(this.config) : this.computeVariableRange(this.config);
 
     if (this.lastRange?.start !== range.start || this.lastRange.end !== range.end) {
-      this.lastRange = range;
-      this.hooks.invoke('onRangeChange', () => { const result = this.onRangeChange(range); return result; });
+      this.lastRange = { 'end': range.end, 'start': range.start };
+      const hookRange = { 'end': range.end, 'start': range.start };
+      this.hooks.invoke('onRangeChange', () => { const result = this.onRangeChange(hookRange); return result; });
     }
-    return range;
+    return { 'end': range.end, 'start': range.start };
   }
 
-  private computeFixedRange(config: { readonly 'count': number; readonly 'itemSize': number; readonly 'overscan': number }): VisibleRangeEntity.Type {
+  private computeFixedRange(config: VisibleRangeResolvedConfigInterface): VisibleRangeEntity.Type {
     const { count, itemSize, overscan } = config;
+    if (itemSize === undefined) {
+      throw new VisibleRangeError('`itemSize` is required in fixed mode');
+    }
 
     const start = Math.max(0, Math.floor(this.scrollOffset / itemSize) - overscan);
     const end = Math.min(count - 1, Math.ceil((this.scrollOffset + this.viewportSize) / itemSize) + overscan);
@@ -184,8 +187,11 @@ export class VisibleRange {
     }
 
     const { count, estimateSize } = this.config;
+    if (estimateSize === undefined) {
+      throw new VisibleRangeError('`estimateSize` is required in variable mode');
+    }
     const offsets = this.offsets ?? new Float64Array(count + 1);
-    const startIndex = this.offsets === null ? 0 : this.dirtyFrom!;
+    const startIndex = this.offsets === null || this.dirtyFrom === null ? 0 : this.dirtyFrom;
 
     if (this.offsets === null) {
       offsets[0] = 0;

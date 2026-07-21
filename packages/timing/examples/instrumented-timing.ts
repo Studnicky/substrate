@@ -20,11 +20,11 @@ class InstrumentedTiming extends Timing {
 const timing = InstrumentedTiming.of();
 
 timing.event(
-  TimingEvent.create().component('GraphAdapter').operation('query').build()
+  TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' })
 );
 
 timing.event(
-  TimingEvent.create().component('AuthService').operation('verify').build()
+  TimingEvent.create({ 'component': 'AuthService', 'operation': 'verify' })
 );
 
 console.log('fired:', timing.fired);

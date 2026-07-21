@@ -1,8 +1,9 @@
+import type { CpuSnapshotEntity } from '../entities/CpuSnapshotEntity.js';
 import type { GpuInfoEntity } from '../entities/GpuInfoEntity.js';
 
 export interface SystemProviderInterface {
   arch(): string;
-  cpuInfo(): { 'logicalCount': number; 'model': string; 'physicalCount': number };
+  cpuInfo(): CpuSnapshotEntity.Type;
   cpuModel(): string;
   detectGpu(): GpuInfoEntity.Type | null;
   freeMb(): number;

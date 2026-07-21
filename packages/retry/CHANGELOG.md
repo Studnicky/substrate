@@ -21,11 +21,11 @@
 
   `@studnicky/logger`'s `Logger` composes a plain `HookInvoker` for `onLog`/`onDropped`/`onChildCreate` (unchanged throwing behavior) and separately guards `onTransportError`, recording its failures via `hookErrorCount`/`getHookErrors()` so a broken override can't abort fan-out to the remaining transports.
 
-  `@studnicky/retry` and `@studnicky/pipeline` gain a `hookTimeoutMs` builder option (and matching `Retry.create`/`Pipeline.create` config field) bounding how long an async lifecycle hook may run before it's routed to `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long, matching prior behavior.
+  `@studnicky/retry` and `@studnicky/pipeline` gain a `hookTimeoutMs` config field on `Retry.create`/`Pipeline.create`, bounding how long an async lifecycle hook may run before it's routed to `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long, matching prior behavior.
 
 ### Patch Changes
 
-- d2b44b7: Domain error constructors route through `@studnicky/errors`'s `DomainErrorArgs.build()` instead of hand-rolled `super({code,message,retryable})` boilerplate. Fluent builders assemble their options object via `@studnicky/types`'s `PickDefined.from()` instead of manual spread-ternary chains. `@studnicky/fetch`'s config validators subclass `@studnicky/config`'s `ConfigValidation`. `@studnicky/eslint-config`'s duplicated rule-internal AST helpers are consolidated under `rules/shared/`. No public API or behavior changes.
+- d2b44b7: Domain error constructors route through `@studnicky/errors`'s `DomainErrorArgs.build()` instead of hand-rolled `super({code,message,retryable})` boilerplate. `@studnicky/fetch`'s config validators subclass `@studnicky/config`'s `ConfigValidation`. `@studnicky/eslint-config`'s duplicated rule-internal AST helpers are consolidated under `rules/shared/`. No public API or behavior changes.
 - Updated dependencies [d2b44b7]
 - Updated dependencies [d2b44b7]
   - @studnicky/types@7.0.0
@@ -42,15 +42,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The package root is the sole public code entrypoint for retry behavior, backoff, configuration, errors, entities, validators, and interfaces; algorithm constants remain implementation details.
+- Backoff, retry context, retry error options, configuration, and runtime contracts are exported as interfaces. Per-call state is exported as `RetryCallStateEntity.Type`.
+- Error classification contracts and `DefaultHttpErrorClassifier` are imported directly from `@studnicky/errors`.
+
 ## [4.0.0] - 2026-06-28
 
 ### Changed
 
-- **Breaking:** the `retryInterceptor` pipeline is replaced by a protected `onRetryScheduled(context)` lifecycle hook. Subclass `Retry` and override it to set `context.delayMs` (using a shipped `BackoffStrategy`), set `context.abort` to stop retrying, or mutate `context.state` across attempts (the hook may be async). Removed: the `retryInterceptor` config field and builder method, the `RetryInterceptorType` type, and the `isRetryInterceptor` guard. The package no longer depends on `@studnicky/pipeline`.
-- `Retry`, `DefaultHttpErrorClassifier` construction goes through `static create(options?)` and `static builder()` factory methods. Constructors are non-public. `Retry.builder()` uses the create-closure idiom (type-only import cycle-free).
-- `RetryBuilder` adopts the create-closure idiom: `static create(createFn)` instead of a constructor-reference; private fields replace the `config` plain object.
+- The protected `onRetryScheduled(context)` lifecycle hook controls retry scheduling. Subclasses can set `context.delayMs` with a shipped `BackoffStrategy`, set `context.abort`, or mutate `context.state` across attempts.
+- `Retry` construction goes through `static create(options?)`. Its constructor is non-public.
 - `ErrorClassifier` abstract base gains a `protected constructor()`.
-- `DefaultHttpErrorClassifierBuilder` added as the builder companion for `DefaultHttpErrorClassifier`.
+- `@studnicky/errors` owns `DefaultHttpErrorClassifier`.
 
 ## [1.0.0] - 2026-06-22
 
@@ -58,5 +63,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Retry` class with configurable `maxRetries`, pluggable error classifiers, and a retryInterceptor pipeline for per-attempt delay control.
 - Protected lifecycle hooks (`onAttempt`, `onSuccess`, `onRetryableError`, `onRetryScheduled`, `onGiveUp`) for zero-cost observability via subclassing.
-- Per-call FSM (`RetryCallStateType`: `attempting` / `waiting` / `succeeded` / `failed` / `exhausted` / `aborted`) with overridable `guardCall` and `enterCall` hooks.
-- `DefaultHttpErrorClassifier` with built-in classification for HTTP 5xx, 429, 408, network errors, and early-retry unknown errors; `ErrorClassifier` base class for custom implementations.
+- Per-call FSM (`RetryCallStateEntity.Type`: `attempting` / `waiting` / `succeeded` / `failed` / `exhausted` / `aborted`) with overridable `guardCall` and `enterCall` hooks.
+- `@studnicky/errors` supplies `DefaultHttpErrorClassifier` with built-in classification for HTTP 5xx, 429, 408, network errors, and early-retry unknown errors, plus the classifier contracts for custom implementations.

@@ -1,19 +1,14 @@
 import type { LoggerOptionsEntity } from '../entities/LoggerOptionsEntity.js';
 import type { TransportInterface } from '../transports/TransportInterface.js';
-import type { LogLevelStringType } from '../types/LogLevelStringType.js';
-import type { LogLevelType } from '../types/LogLevelType.js';
-import type { LogMetadataType } from '../types/LogMetadataType.js';
+import type { LogMetadataInterface } from './LogMetadataInterface.js';
 
 /**
  * Runtime contract for Logger construction options.
  *
- * Extends the JSON Schema–derived `LoggerOptionsEntity.Type` (level + metadata,
- * JSON-serialisable) with `transports`, which is a runtime interface array that
- * JSON Schema cannot describe.  The tighter domain types for `level` and
- * `metadata` are explicit overrides of the schema-derived widened forms.
+ * Extends the JSON Schema-derived level and metadata data with runtime
+ * transport instances and readonly construction access.
  */
 export interface LoggerOptionsInterface extends LoggerOptionsEntity.Type {
-  readonly 'level'?: LogLevelStringType | LogLevelType;
-  readonly 'metadata'?: LogMetadataType;
+  readonly 'metadata'?: LogMetadataInterface;
   readonly 'transports'?: readonly TransportInterface[];
 }

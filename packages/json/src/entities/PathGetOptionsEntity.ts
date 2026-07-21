@@ -1,4 +1,4 @@
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '../schema/SchemaValidator.js';
 
@@ -11,7 +11,7 @@ export namespace PathGetOptionsEntity {
     },
     'title': 'PathGetOptionsType',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 

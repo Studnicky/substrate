@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/pipeline)
 
-`@studnicky/pipeline` provides `Pipeline<T>`, a generic typed async pipeline that runs a context value through an ordered list of transform functions, passing each stage's output as the next stage's input. Construct instances via `Pipeline.create<T>()` or `Pipeline.builder<T>().build()`. Stages are registered at runtime and can be removed individually or cleared wholesale.
+`@studnicky/pipeline` provides `Pipeline<T>`, a generic typed async pipeline that runs a context value through an ordered list of transform functions, passing each stage's output as the next stage's input. Construct instances via `Pipeline.create<T>()`. Stages are registered at runtime and can be removed individually or cleared wholesale.
 
 ## Install
 
@@ -22,20 +22,17 @@ pnpm add @studnicky/pipeline
 
 ```typescript
 import { Pipeline } from '@studnicky/pipeline';
-import type { PipelineFnType } from '@studnicky/pipeline';
+import type { PipelineFunctionInterface } from '@studnicky/pipeline';
+import type { OrderContextEntity } from './entities/OrderContextEntity.js';
 
-interface OrderCtx {
-  items: string[];
-  total: number;
-  discount: number;
-}
-
-// Construct via create() or builder()
-const pipeline = Pipeline.create<OrderCtx>();
-// equivalent: Pipeline.builder<OrderCtx>().build()
+const pipeline = Pipeline.create<OrderContextEntity.Type>();
 
 // Add stages — each receives the previous stage's output
-pipeline.add((ctx) => ({ ...ctx, total: ctx.items.length * 10 }));
+const calculateTotal: PipelineFunctionInterface<OrderContextEntity.Type> = (ctx) => ({
+  ...ctx,
+  total: ctx.items.length * 10
+});
+pipeline.add(calculateTotal);
 pipeline.add((ctx) => ({ ...ctx, discount: ctx.total > 20 ? 5 : 0 }));
 pipeline.add((ctx) => ({ ...ctx, total: ctx.total - ctx.discount }));
 
@@ -56,19 +53,18 @@ Subclass `Pipeline<T>` to intercept execution at any fire point. All four protec
 
 ```typescript
 import { Pipeline } from '@studnicky/pipeline';
+import type { AuditContextEntity } from './entities/AuditContextEntity.js';
 
-interface AuditCtx {
-  userId: string;
-  action: string;
-  timestamp?: number;
-}
-
-class AuditPipeline extends Pipeline<AuditCtx> {
-  protected override onRunStart(ctx: AuditCtx): AuditCtx {
+class AuditPipeline extends Pipeline<AuditContextEntity.Type> {
+  protected override onRunStart(
+    ctx: AuditContextEntity.Type
+  ): AuditContextEntity.Type {
     return { ...ctx, timestamp: Date.now() };
   }
 
-  protected override onRunComplete(ctx: AuditCtx): AuditCtx {
+  protected override onRunComplete(
+    ctx: AuditContextEntity.Type
+  ): AuditContextEntity.Type {
     console.log(`[audit] ${ctx.action} by ${ctx.userId} at ${ctx.timestamp}`);
     return ctx;
   }
@@ -87,8 +83,7 @@ const result = await pipeline.run({ userId: 'u1', action: 'login' });
 The four void observer hooks (`onStageStart`, `onStageSuccess`, `onStageError`, `onRunError`) run through a composed `HookInvoker` (see `@studnicky/errors`). Pass `hookTimeoutMs` to bound how long an async observer hook may run before it's treated as a failure — left unset, a hook may take arbitrarily long, matching prior behavior:
 
 ```typescript
-const pipeline = Pipeline.create<OrderCtx>({ hookTimeoutMs: 5000 });
-// equivalent: Pipeline.builder<OrderCtx>().hookTimeoutMs(5000).build()
+const pipeline = Pipeline.create<OrderContextEntity.Type>({ hookTimeoutMs: 5000 });
 ```
 
 ## Documentation

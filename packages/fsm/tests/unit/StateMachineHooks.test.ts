@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { StateMachine } from '../../src/StateMachine.js';
 import { ReducerThrewError } from '../../src/ReducerThrewError.js';
-import type { FsmStepType } from '../../src/FsmStepType.js';
+import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
 
 type TrafficState =
   | { readonly 'variant': 'red' }
@@ -13,7 +13,7 @@ type TrafficEvent = { readonly 'type': 'advance' };
 
 class TrafficMachine extends StateMachine<TrafficState, TrafficEvent> {
   getInitialState(): TrafficState { return { 'variant': 'red' }; }
-  reduce(state: TrafficState, _event: TrafficEvent): FsmStepType<TrafficState> {
+  reduce(state: TrafficState, _event: TrafficEvent): FsmStepInterface<TrafficState> {
     if (state.variant === 'red')   { return { 'effects': [], 'state': { 'variant': 'green' } }; }
     if (state.variant === 'green') { return { 'effects': [], 'state': { 'variant': 'amber' } }; }
     return { 'effects': [], 'state': { 'variant': 'red' } };
@@ -22,7 +22,7 @@ class TrafficMachine extends StateMachine<TrafficState, TrafficEvent> {
 
 class ThrowingMachine extends StateMachine<TrafficState, TrafficEvent> {
   getInitialState(): TrafficState { return { 'variant': 'red' }; }
-  reduce(_state: TrafficState, _event: TrafficEvent): FsmStepType<TrafficState> {
+  reduce(_state: TrafficState, _event: TrafficEvent): FsmStepInterface<TrafficState> {
     throw new Error('reducer error');
   }
 }
@@ -106,7 +106,7 @@ describe('StateMachine lifecycle hooks', () => {
   it('no hooks fire when variant is unchanged', () => {
     class SelfLoopMachine extends StateMachine<TrafficState, TrafficEvent> {
       getInitialState(): TrafficState { return { 'variant': 'red' }; }
-      reduce(state: TrafficState, _event: TrafficEvent): FsmStepType<TrafficState> {
+      reduce(state: TrafficState, _event: TrafficEvent): FsmStepInterface<TrafficState> {
         return { 'effects': [], 'state': state }; // same object, same variant
       }
     }
@@ -188,11 +188,18 @@ describe('StateMachine lifecycle hooks', () => {
     );
   });
 
-  it('an async-overridden hook that rejects is routed through onHookError without an unhandled rejection, because invoke() actually receives its return value', async () => {
+  it('captures a rejected async lifecycle hook without an unhandled rejection', async () => {
     class AsyncRejectingEnterStateMachine extends TrafficMachine {
+      readonly failureDetails = { 'labels': ['initial'] };
+      readonly failure = new Error('async onEnterState boom', { 'cause': this.failureDetails });
+
+      diagnostics() {
+        return this.hooks.getHookErrors();
+      }
+
       protected override async onEnterState(_state: TrafficState): Promise<void> {
         await Promise.resolve();
-        throw new Error('async onEnterState boom');
+        throw this.failure;
       }
     }
 
@@ -210,8 +217,25 @@ describe('StateMachine lifecycle hooks', () => {
       await new Promise((resolve) => { setImmediate(resolve); });
       await new Promise((resolve) => { setImmediate(resolve); });
 
+      machine.failureDetails.labels.push('caller mutation');
+      const firstDiagnostics = machine.diagnostics();
       assert.equal(rejectionEvents.length, 0);
       assert.equal(machine.hookErrorCount, 1);
+      assert.equal(firstDiagnostics.length, 1);
+      const firstCause = firstDiagnostics[0]?.cause;
+      assert.ok(firstCause instanceof Error);
+      const firstDetails = firstCause.cause;
+      assert.ok(firstDetails !== null && typeof firstDetails === 'object');
+      const firstLabels: unknown = Reflect.get(firstDetails, 'labels');
+      assert.deepEqual(firstLabels, ['initial']);
+      assert.ok(Array.isArray(firstLabels));
+      firstLabels.push('returned mutation');
+
+      const secondCause = machine.diagnostics()[0]?.cause;
+      assert.ok(secondCause instanceof Error);
+      const secondDetails = secondCause.cause;
+      assert.ok(secondDetails !== null && typeof secondDetails === 'object');
+      assert.deepEqual(Reflect.get(secondDetails, 'labels'), ['initial']);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }

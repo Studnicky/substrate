@@ -7,14 +7,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { BoundedDispatcherEventType } from '../../../src/index.js';
+import type { BoundedDispatcherTopicMapInterface } from '../../../src/index.js';
 
 import { BoundedDispatcher } from '../../../src/index.js';
 
 void describe('BoundedDispatcher#dispatch() lifecycle events', () => {
   void it('publishes start then success for a resolving fn', async () => {
     const dispatcher = BoundedDispatcher.create();
-    const received: BoundedDispatcherEventType[] = [];
+    const received: BoundedDispatcherTopicMapInterface['dispatch'][] = [];
 
     dispatcher.getBus().subscribe('dispatch', (payload) => { received.push(payload); });
 
@@ -30,7 +30,7 @@ void describe('BoundedDispatcher#dispatch() lifecycle events', () => {
 
   void it('publishes start then error for a rejecting fn, and rethrows', async () => {
     const dispatcher = BoundedDispatcher.create();
-    const received: BoundedDispatcherEventType[] = [];
+    const received: BoundedDispatcherTopicMapInterface['dispatch'][] = [];
     const boom = new Error('boom');
 
     dispatcher.getBus().subscribe('dispatch', (payload) => { received.push(payload); });

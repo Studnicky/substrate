@@ -51,27 +51,21 @@ import {
   INITIAL_BUFFER_TAIL
 } from '../constants/index.js';
 import { CircularBufferError } from '../errors/index.js';
-import { CircularBufferBuilder } from './CircularBufferBuilder.js';
+
+interface CircularBufferSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class CircularBufferInstance {
+  static belongsTo<TInstance>(
+    constructor: CircularBufferSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
 
 export class CircularBuffer<T> implements CircularBufferInterface<T> {
-  /**
-   * Create a fluent builder for constructing a CircularBuffer instance.
-   *
-   * @returns A new CircularBufferBuilder
-   *
-   * @example
-   * ```typescript
-   * const buf = CircularBuffer.builder<number>().withCapacity(16).build();
-   * ```
-   */
-  static builder<T>(): CircularBufferBuilder<T> {
-    const result = CircularBufferBuilder.create<T>((options) => {
-      const buffer = CircularBuffer.create<T>(options);
-      return buffer;
-    });
-    return result;
-  }
-
   /**
    * Create a new CircularBuffer instance.
    *
@@ -83,9 +77,18 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * const buf = CircularBuffer.create<number>({ capacity: 16 });
    * ```
    */
-  static create<T>(options: CircularBufferOptionsEntity.Type = {}): CircularBuffer<T> {
-    // `new this(...)` so subclass factories return the subclass instance.
-    return new this(options);
+  static create<
+    T,
+    TInstance extends CircularBuffer<T> = CircularBuffer<T>
+  >(
+    this: CircularBufferSubclassInterface<TInstance>,
+    options: CircularBufferOptionsEntity.Type = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!CircularBufferInstance.belongsTo(this, result)) {
+      throw new TypeError('CircularBuffer.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   protected count = INITIAL_BUFFER_COUNT;
@@ -279,7 +282,10 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
             const result = this.onEvict(evicted);
             return result;
           });
-          this.#firePushHook(item);
+          this.hooks.invoke('onPush', () => {
+            const result = this.onPush(item);
+            return result;
+          });
           return;
         }
       }
@@ -294,24 +300,12 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   /**
    * Shared tail-write step used by both the generic append path and the
    * overwrite-eviction path: writes `item` at `tail` and advances `tail`.
-   * Does not fire `onPush` — callers that need it invoke `#firePushHook`
-   * once all state for the operation is committed.
+   * Does not fire `onPush` — callers invoke that hook directly once all state
+   * for the operation is committed.
    */
   #writeTail(item: T): void {
     this.items[this.tail] = item;
     this.tail = (this.tail + INCREMENT_BY_ONE) % this.capacity;
-  }
-
-  /**
-   * Fires `onPush` for the item just inserted. Split out from the write
-   * steps so overwrite-eviction paths can commit head/tail/count fully
-   * before any hook (`onOverflow`/`onEvict`/`onPush`) observes the buffer.
-   */
-  #firePushHook(item: T): void {
-    this.hooks.invoke('onPush', () => {
-      const result = this.onPush(item);
-      return result;
-    });
   }
 
   /**
@@ -321,7 +315,10 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    */
   #appendItem(item: T): void {
     this.#writeTail(item);
-    this.#firePushHook(item);
+    this.hooks.invoke('onPush', () => {
+      const result = this.onPush(item);
+      return result;
+    });
   }
 
   /**
@@ -367,7 +364,10 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
             const result = this.onEvict(evicted);
             return result;
           });
-          this.#firePushHook(item);
+          this.hooks.invoke('onPush', () => {
+            const result = this.onPush(item);
+            return result;
+          });
           return;
         }
       }
@@ -382,7 +382,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   /**
    * Shared head-write step used by both the generic prepend path and the
    * overwrite-eviction path: retreats `head` and writes `item` at the new
-   * head. Does not fire `onPush` — callers invoke `#firePushHook` once all
+   * head. Does not fire `onPush` — callers invoke that hook directly once all
    * state for the operation is committed.
    */
   #writeHead(item: T): void {
@@ -397,7 +397,10 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    */
   #prependItem(item: T): void {
     this.#writeHead(item);
-    this.#firePushHook(item);
+    this.hooks.invoke('onPush', () => {
+      const result = this.onPush(item);
+      return result;
+    });
   }
 
   /**

@@ -10,8 +10,15 @@ import { it } from 'node:test';
 
 import { IdempotencyGuard } from '../../../src/index.js';
 
+it('accepts a synchronous factory', async () => {
+  const guard = IdempotencyGuard.create<{ 'chargeId': string }>({ 'capacity': 10, 'ttlMs': 60_000 });
+  const result = await guard.run('order-sync', { 'amount': 500 }, () => ({ 'chargeId': 'ch_sync' }));
+
+  strictEqual(result.chargeId, 'ch_sync');
+});
+
 it('replays the cached result for a repeat call with the same key and payload', async () => {
-  const guard = IdempotencyGuard.create({ 'capacity': 10, 'ttlMs': 60_000 });
+  const guard = IdempotencyGuard.create<{ 'chargeId': string }>({ 'capacity': 10, 'ttlMs': 60_000 });
   let calls = 0;
 
   const first = await guard.run('order-1', { 'amount': 500 }, async () => {
@@ -30,7 +37,7 @@ it('replays the cached result for a repeat call with the same key and payload', 
 });
 
 it('runs the factory again once the cached entry expires', async () => {
-  const guard = IdempotencyGuard.create({ 'capacity': 10, 'ttlMs': 10 });
+  const guard = IdempotencyGuard.create<string>({ 'capacity': 10, 'ttlMs': 10 });
   let calls = 0;
 
   await guard.run('order-2', { 'amount': 500 }, async () => {

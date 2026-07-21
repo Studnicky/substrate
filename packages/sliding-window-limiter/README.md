@@ -66,16 +66,6 @@ await limiter.waitForToken({ signal: controller.signal });
 await handleRequest();
 ```
 
-### Builder
-
-```typescript
-const limiter = SlidingWindowLimiter.builder()
-  .withLimit(100)
-  .withWindowMs(60_000)
-  .withAlgorithm('log')
-  .build();
-```
-
 ## Structural fit with `@studnicky/keyed-rate-limiter`
 
 `consume(tokens?: number): void` and `waitForToken(options?: { signal?: AbortSignal; tokens?: number }): Promise<void>` are shaped to structurally match the rate-limiter strategy seam `@studnicky/keyed-rate-limiter` expects from any single-instance limiter it wraps per-key (the same method names and parameter shapes `TokenBucket` already exposes). `SlidingWindowLimiter` takes no dependency on `keyed-rate-limiter` and neither package imports the other — the fit is structural typing only, verified by TypeScript's duck typing, not a shared interface import.
@@ -87,9 +77,8 @@ const limiter = SlidingWindowLimiter.builder()
 | Export | Type | Description |
 |--------|------|-------------|
 | `SlidingWindowLimiter` | class | Sliding-window rate limiter (`'log'` or `'counter'`) |
-| `SlidingWindowLimiterBuilder` | class | Fluent builder for `SlidingWindowLimiter` |
 | `SlidingWindowExhaustedError` | class | Thrown by `consume()` when admission would exceed `limit` |
-| `SlidingWindowLimiterConfigError` | class | Thrown by `create()`/`build()` on invalid configuration |
+| `SlidingWindowLimiterConfigError` | class | Thrown by `create()` on invalid configuration |
 | `SlidingWindowLimiterError` | class | Package-level abstract error ancestor |
 | `SlidingWindowLimiterOptionsInterface` | type | `{ limit, windowMs, algorithm: 'log' \| 'counter', clock? }` |
 

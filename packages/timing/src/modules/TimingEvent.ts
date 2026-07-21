@@ -1,12 +1,10 @@
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
-import type { TimingEventInterface } from '../interfaces/TimingEventInterface.js';
-import type { TimingStatusValueType } from '../types/TimingStatusValueType.js';
+import type { TimingStatusEntity } from '../entities/TimingStatusEntity.js';
 
 import { TimingBuildError } from '../errors/TimingBuildError.js';
 
 /**
- * Builder for creating timing event data.
- * Use TimingEvent.create() to instantiate.
+ * Creates immutable timing event data from one configuration object.
  *
  * @public
  *
@@ -14,92 +12,44 @@ import { TimingBuildError } from '../errors/TimingBuildError.js';
  * ```typescript
  * import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
  *
- * const timing = Timing.builder().build();
+ * const timing = Timing.create();
  *
- * // Record event with builder
- * timing.event(TimingEvent.create()
- *   .component('GraphAdapter')
- *   .operation('query')
- *   .build());
+ * timing.event(TimingEvent.create({
+ *   component: 'GraphAdapter',
+ *   operation: 'query'
+ * }));
  *
  * // Record event with status
- * timing.event(TimingEvent.create()
- *   .component('DatabaseAdapter')
- *   .operation('connect')
- *   .status(TIMING_STATUS.START)
- *   .build());
+ * timing.event(TimingEvent.create({
+ *   component: 'DatabaseAdapter',
+ *   operation: 'connect',
+ *   status: TIMING_STATUS.START
+ * }));
  * ```
  */
-export class TimingEvent implements TimingEventInterface {
+export class TimingEvent {
   /**
-   * Creates a new TimingEvent builder.
-   * @returns A new TimingEvent builder instance
+   * Creates frozen timing event data.
    */
-  static create(): TimingEvent {
-    const result = new TimingEvent();
-    return result;
-  }
-
-  private componentValue: string | undefined;
-
-  private operationValue: string | undefined;
-
-  private statusValue: TimingStatusValueType | undefined;
-
-  private constructor() {}
-
-  /**
-   * Builds the timing event data.
-   * Validates that required fields (component, operation) are set.
-   * @throws TimingBuildError if component or operation is missing
-   * @returns Frozen TimingEventDataEntity.Type
-   */
-  build(): TimingEventDataEntity.Type {
-    if (this.componentValue === undefined) {
-      throw TimingBuildError.create('TimingEvent requires component()');
+  static create(config: Readonly<{
+    'component': string;
+    'operation': string;
+    'status'?: TimingStatusEntity.Type;
+  }>): TimingEventDataEntity.Type {
+    if (config.component === undefined) {
+      throw TimingBuildError.create('TimingEvent requires component');
     }
 
-    if (this.operationValue === undefined) {
-      throw TimingBuildError.create('TimingEvent requires operation()');
+    if (config.operation === undefined) {
+      throw TimingBuildError.create('TimingEvent requires operation');
     }
 
-    const event = this.statusValue === undefined
-      ? `${this.componentValue}.${this.operationValue}`
-      : `${this.componentValue}.${this.operationValue}.${this.statusValue}`;
+    const event = config.status === undefined
+      ? `${config.component}.${config.operation}`
+      : `${config.component}.${config.operation}.${config.status}`;
 
     return Object.freeze({ 'event': event });
   }
 
-  /**
-   * Sets the component name.
-   * @param name - Component name (e.g., 'graph', 'cache', 'api')
-   * @returns this for method chaining
-   */
-  component(name: string): this {
-    this.componentValue = name;
-
-    return this;
-  }
-
-  /**
-   * Sets the operation name.
-   * @param name - Operation name (e.g., 'query', 'get', 'response')
-   * @returns this for method chaining
-   */
-  operation(name: string): this {
-    this.operationValue = name;
-
-    return this;
-  }
-
-  /**
-   * Sets the optional status from TIMING_STATUS constants.
-   * @param status - Status from TIMING_STATUS (e.g., TIMING_STATUS.START, TIMING_STATUS.COMPLETE)
-   * @returns this for method chaining
-   */
-  status(status: TimingStatusValueType): this {
-    this.statusValue = status;
-
-    return this;
-  }
+  private constructor() {}
 }

@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/types",
   "version": "7.0.1",
-  "description": "Shared zero-runtime utility types and type-guard helpers for @studnicky/substrate",
+  "description": "Shared runtime type-guard and object helpers for @studnicky/substrate",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -11,14 +11,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./types": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/types/index.js"
-    },
-    "./guards": {
-      "types": "./dist/guards/index.d.ts",
-      "import": "./dist/guards/index.js"
     }
   },
   "files": [
@@ -29,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist coverage test-reports",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
@@ -39,8 +31,7 @@
     "utility-types",
     "type-guards",
     "json",
-    "readonly",
-    "deep-merge"
+    "validation"
   ],
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
@@ -62,6 +53,6 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "json-schema-to-ts": "^3.1.1"
+    "@types/json-schema": "^7.0.15"
   }
 }

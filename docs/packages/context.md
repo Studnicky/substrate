@@ -15,6 +15,8 @@ pnpm add @studnicky/context
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
+`@studnicky/context` is the sole public code entrypoint.
+
 ::: info Live demo unavailable
 In-browser execution of this package is not supported. Async context propagation across `await` boundaries relies on Node's `AsyncLocalStorage` from `node:async_hooks`, which browsers do not provide. The examples below are shown statically.
 :::
@@ -25,19 +27,13 @@ Create a named context, initialize a scope with seed values, run code inside `ex
 
 <<< ../../packages/context/examples/basic-context.ts#usage
 
-## Builder API and tryGet vs get
+## Scope and lookup behavior
 
-Use `Context.builder()` for the fluent construction style. `tryGet` returns `undefined` for absent keys; `get` throws `ContextError`:
+`Context.initialize(initial?)` is the sole context-scope construction path. It returns `ContextScopeInterface`, whose public operations are `execute(fn)` and `terminate()`. `tryGet` returns `undefined` when no scope is active or a key is absent; `get` throws `ContextError` in either case.
 
-<<< ../../packages/context/examples/builder-api.ts#usage
+## Public API
 
-## Subpath exports
-
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/context` | `Context`, `ContextBuilder`, `ContextScope`, `ContextScopeBuilder`, `ContextScopeOptionsInterface`, `ContextError`, `ContextConfigError` |
-| `@studnicky/context/errors` | `ContextError`, `ContextConfigError` |
-| `@studnicky/context/interfaces` | `ContextInterface`, `ContextScopeInterface` |
+The package root exports `Context`, `ContextConfigEntity`, `ContextInterface`, `ContextScopeInterface`, `ContextError`, and `ContextConfigError`.
 
 ## Extending
 
@@ -47,23 +43,15 @@ Override `onInitialize` to seed default values into every scope without requirin
 
 ## Observability hooks
 
-Both `Context` and `ContextScope` expose protected hook methods you can override in a subclass. All hooks are no-ops by default. The base class never calls any logger or metrics library.
+`Context` exposes protected hook methods that a subclass can override. Scope instances remain factory-owned behind `ContextScopeInterface`. All hooks are no-ops by default, and the base class never calls a logger or metrics library.
 
 | Hook | Class | When it fires | Args |
 |------|-------|---------------|------|
-| `onInitialize` | `Context` | After `initialize()` creates the scope | `initial: Record<string, unknown> \| undefined, scope: ContextScope` |
+| `onInitialize` | `Context` | After `initialize()` creates the scope | `initial: Record<string, unknown> \| undefined, scope: ContextScopeInterface` |
 | `onMissingContext` | `Context` | When `get`/`set`/etc. is called with no active store; return `true` to suppress throw | `key?: string` → `boolean` |
 | `onGet` | `Context` | After a successful `get()` retrieval | `key: string, value: unknown` |
 | `onSet` | `Context` | After `set()` stores a value | `key: string, value: unknown` |
 | `onDelete` | `Context` | After `delete()` removes (or attempts to remove) a key | `key: string, existed: boolean` |
-| `onExit` | `ContextScope` | Before FSM leaves a state (before `#state` updates) | `from: ContextScopeState, to: ContextScopeState` |
-| `onEnter` | `ContextScope` | After FSM enters a new state | `to: ContextScopeState, from: ContextScopeState` |
-| `onBeforeExecute` | `ContextScope` | Before each `execute()` invocation (success path only) | — |
-| `onAfterExecute` | `ContextScope` | After each `execute()` completes without error | — |
-| `onError` | `ContextScope` | When the fn passed to `execute()` throws; error re-throws after | `error: unknown` |
-| `onTerminatedAccess` | `ContextScope` | When `execute()` is called on a terminated scope; throw always follows | — |
-| `onDispose` | `ContextScope` | After internal store is cleared in `terminate()` | — |
-| `onTerminate` | `ContextScope` | During `terminate()`, after dispose; can augment the snapshot | `snapshot: Record<string, unknown>` → `Record<string, unknown>` |
 
 <<< ../../packages/context/examples/observedContext.ts#usage
 

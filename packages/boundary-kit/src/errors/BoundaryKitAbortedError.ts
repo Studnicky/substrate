@@ -8,7 +8,8 @@ import { BaseError } from '@studnicky/errors';
  * it surfaces the discard as a rejection instead.
  */
 export class BoundaryKitAbortedError extends BaseError {
-  constructor(message = 'BoundaryKit call was discarded by an aborted Throttle') {
-    super({ 'code': 'boundaryKit.aborted', 'message': message, 'retryable': false });
+  constructor(message?: string) {
+    const resolvedMessage = message ?? 'BoundaryKit call was discarded by an aborted Throttle';
+    super({ 'code': 'boundaryKit.aborted', 'message': resolvedMessage, 'retryable': false });
   }
 }

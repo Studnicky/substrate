@@ -9,28 +9,24 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import type { HookRequestContextEntity } from './entities/HookRequestContextEntity.js';
+
 import { Pipeline } from '../src/index.js';
 
-type RequestCtxType = {
-  'elapsed'?: number;
-  'headers': Record<string, string>;
-  'url': string;
-};
-
-class TimedPipeline extends Pipeline<RequestCtxType> {
+class TimedPipeline extends Pipeline<HookRequestContextEntity.Type> {
   private startTime = 0;
 
-  protected override onRunStart(ctx: RequestCtxType): RequestCtxType {
+  protected override onRunStart(ctx: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
     this.startTime = Date.now();
     return ctx;
   }
 
-  protected override onRunComplete(ctx: RequestCtxType): RequestCtxType {
+  protected override onRunComplete(ctx: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
     return { ...ctx, 'elapsed': Date.now() - this.startTime };
   }
 }
 
-const pipeline = TimedPipeline.create<RequestCtxType>();
+const pipeline = TimedPipeline.create<HookRequestContextEntity.Type>();
 
 // Stage: attach an Authorization header
 pipeline.add((ctx) => { return {

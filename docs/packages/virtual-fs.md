@@ -15,19 +15,21 @@ pnpm add @studnicky/virtual-fs
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
+`@studnicky/virtual-fs` is the sole public code entrypoint.
+
 ## Usage
 
-Build an instance with the fluent builder, seed files, then call the familiar synchronous methods:
+Create an instance with `VirtualFileSystem.create(options?)`, seed files, then call the familiar synchronous methods:
 
 <<< ../../packages/virtual-fs/examples/basicVirtualFs.ts#usage
 
 ## Try it
 
-### Builder demo
+### Factory demo
 
-The builder seeds `/data/hello.txt`, writes a second file, renames it, reads the directory listing, and stats the renamed file. All assertions verify the expected state.
+The factory seeds `/data/hello.txt`, writes a second file, renames it, reads the directory listing, and stats the renamed file. All assertions verify the expected state.
 
-<RunnableExample src="packages/virtual-fs/examples/basicVirtualFs" title="VirtualFileSystem builder — seed, write, rename, readdir, stat" />
+<RunnableExample src="packages/virtual-fs/examples/basicVirtualFs" title="VirtualFileSystem factory — seed, write, rename, readdir, stat" />
 
 ### Lifecycle hooks
 
@@ -53,19 +55,19 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 ## Injectable clock
 
-Pass a `@studnicky/clock` `ClockProviderType` via `.withClock(clock)` on the builder to control `mtimeMs` timestamps for deterministic test scenarios:
+Pass a `@studnicky/clock` `ClockProviderInterface` through `VirtualFileSystem.create({ clock })` to control `mtimeMs` timestamps for deterministic test scenarios:
 
 <!-- inline-ts-ok: conceptual API illustration -->
 ```typescript
-import type { ClockProviderType } from '@studnicky/clock';
+import type { ClockProviderInterface } from '@studnicky/clock';
 import { VirtualFileSystem } from '@studnicky/virtual-fs';
 
-// Any ClockProviderType drives mtimeMs — here a fixed, deterministic clock.
-const clock: ClockProviderType = {
+// Any ClockProviderInterface drives mtimeMs — here a fixed, deterministic clock.
+const clock: ClockProviderInterface = {
   hrtime: () => 1_000_000_000n,
   now: () => 1000
 };
-const vfs = VirtualFileSystem.builder().withClock(clock).build();
+const vfs = VirtualFileSystem.create({ clock });
 ```
 
 ## `FileSystemInterface` contract
@@ -82,11 +84,8 @@ function processFiles(fs: FileSystemInterface): void {
 }
 ```
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/virtual-fs` | `VirtualFileSystem`, `VirtualFileSystemBuilder`, `VirtualFileSystemError`, `VirtualFileSystemOptionsType` |
-| `@studnicky/virtual-fs/interfaces` | `FileSystemInterface`, `StatResultInterface` |
+The package root exports `VirtualFileSystem`, `VirtualFileSystemError`, `EntryEntity`, `VirtualFileSystemOptionsInterface`, `FileSystemInterface`, and `StatResultInterface`.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/virtual-fs)

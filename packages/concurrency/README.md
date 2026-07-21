@@ -6,7 +6,9 @@
 
 `@studnicky/concurrency` provides four building blocks for async coordination in Node.js. `Channel` is a string-keyed fan-in inbox where producers publish items and consumers iterate them as async generators. `Semaphore` is a counting permit gate that bounds how many concurrent operations run at once. `Coalesce` deduplicates concurrent calls by key so that a shared factory runs exactly once per in-flight batch. `AsyncIter` supplies static combinators — `merge`, `filter`, and `enrich` — for composing async iterables.
 
-All primitives are TypeScript-native, ESM-only, and carry no runtime dependencies.
+All primitives are TypeScript-native and ESM-only. The package declares runtime dependencies on `@studnicky/circular-buffer`, `@studnicky/errors`, `@studnicky/json`, `ajv`, and `json-schema-to-ts`.
+
+The package root also exports schema-backed contracts for internal coordination state and the bounded-dispatcher recipe: the three `AsyncIter*DiscriminantEntity` namespaces, `ChannelEntryStateEntity`, `ChannelStateEntity`, `SemaphoreWaiterStateEntity`, `DispatchStartedEventEntity`, and `DispatchCompletedEventEntity`. Each namespace exposes `Schema`, schema-derived `Type`, and `validate` members.
 
 ## Install
 
@@ -37,7 +39,7 @@ for await (const msg of channel.subscribe('events')) {
 // received === ['hello', 'world']
 
 // Channel — observing a slow consumer via highWaterMark
-const bounded = Channel.create<string>({ highWaterMark: 100 });
+const boundedChannel = Channel.create<string>({ highWaterMark: 100 });
 // override onOverflow(key, depth) in a subclass to observe a per-key buffer
 // growing past 100 items; publish() still accepts every item — nothing is dropped
 
@@ -57,8 +59,11 @@ const [a, b] = await Promise.all([
 ]);
 // factory called once; both callers receive the same resolved value
 
+// the shared completion is reserved before onCoalesceStart and the factory;
+// a start-hook or factory rejection is shared by the leader and every joiner
+
 // Coalesce — capping how long a caller waits on a stuck factory
-const bounded = Coalesce.create<Response>({ timeout: 5000 });
+const boundedCoalesce = Coalesce.create<Response>({ timeout: 5000 });
 // each caller races its own 5s timeout against the shared in-flight promise;
 // a caller whose timeout elapses rejects with CoalesceTimeoutError without
 // evicting the entry or affecting other callers still waiting on it
@@ -79,6 +84,8 @@ for await (const item of enriched) {
   console.log(item); // 2, { n: 10, label: 'high' }, { n: 12, label: 'high' }
 }
 ```
+
+`Coalesce#run()` publishes the shared completion before it awaits `onCoalesceStart` or invokes the factory. Reentrant or concurrent callers for that key therefore join the same promise during either stage. A rejection from `onCoalesceStart` or the factory rejects that shared promise for the leader and every joiner, and the entry is removed after settlement.
 
 ## Documentation
 

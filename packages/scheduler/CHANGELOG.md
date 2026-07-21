@@ -30,12 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Delay.sleep(ms, options?)` and `Delay.value(ms, value, options?)` — resolve a `Promise` after a scheduled delay. Accept an optional `scheduler` (`SchedulerProviderType`, default `RealTimeScheduler`) and `clock` (`ClockProviderType`, default `RealTimeClockProvider`), so tests can inject a `VirtualScheduler` + `VirtualClockProvider` pair sharing a `VirtualTimeCounter` to resolve deterministically as virtual time advances.
+- `Delay.sleep(ms, { clock?, scheduler?, signal? })` resolves after a scheduler-aware delay. A native `AbortSignal` rejects with its exact reason, schedules nothing when already aborted, and cancels a pending scheduled task on later abort.
 
 ### Changed
 
-- `MinimumHeap`, `RealTimeScheduler`, and `VirtualScheduler` are constructed through `Class.create(...)` and `Class.builder().build()`. Public constructors are replaced with `protected` constructors; stray `new Class(...)` from outside the class files is a compile error. Each class has a corresponding `*Builder` (single-export file) exported from the package barrel.
-- `VirtualScheduler.create({ counter })` accepts an options object. The builder exposes `withCounter()`. The constructor validates the injected counter and throws `SchedulerError` if missing.
+- The package root is the sole public code entrypoint and includes `PendingTaskInterface`, `ScheduledTaskInterface`, and `SchedulerProviderInterface` alongside scheduler behavior.
+- `MinimumHeap`, `RealTimeScheduler`, and `VirtualScheduler` use `Class.create(...)`. Their constructors are protected.
+- `VirtualScheduler.create({ counter })` accepts an options object. The constructor validates the injected counter and throws `SchedulerError` if missing.
 
 ## [1.0.0] - 2026-06-22
 

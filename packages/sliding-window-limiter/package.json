@@ -21,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist coverage test-reports",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
@@ -56,6 +56,7 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/types": "workspace:*"
+    "ajv": "^8.20.0",
+    "json-schema-to-ts": "^3.1.1"
   }
 }

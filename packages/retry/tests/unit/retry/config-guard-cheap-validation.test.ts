@@ -3,7 +3,9 @@ import {
 } from 'node:assert/strict';
 import { it, mock } from 'node:test';
 
-import { DefaultHttpErrorClassifier, RetryConfigGuard } from '../../../src/index.js';
+import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+
+import { RetryConfigGuard } from '../../../src/index.js';
 
 it('rejects an invalid config (bad maxRetries type) without constructing a classifier', () => {
   const createSpy = mock.method(DefaultHttpErrorClassifier, 'create');

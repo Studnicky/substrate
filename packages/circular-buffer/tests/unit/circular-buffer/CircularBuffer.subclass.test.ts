@@ -117,6 +117,16 @@ class ThrowingShiftBuffer<T> extends CircularBuffer<T> {
 
 // ── onEvict scenarios ─────────────────────────────────────────────────────────
 
+it('create returns the requested subclass type without a cast', () => {
+  const buf: EvictLogBuffer<number> = EvictLogBuffer.create<number, EvictLogBuffer<number>>({ 'capacity': 2 });
+
+  buf.push(1);
+  buf.push(2);
+  buf.push(3);
+
+  assert.deepStrictEqual(buf.evictLog, [1]);
+});
+
 it('onEvict is called with the evicted item when overwrite triggers', () => {
   const buf = EvictLogBuffer.create<number>({ 'capacity': 2 });
   buf.push(1);
@@ -448,10 +458,8 @@ it('a throwing onShift hook surfaces a HookInvocationError after the item has al
 });
 
 // ── Regression: async hook override must route through HookInvoker safely ────
-// (fixes call sites like `this.hooks.invoke('onPush', () => { this.onPush(item); })`
-// that discarded the hook's return value in a block-bodied arrow, defeating
-// HookInvoker's async-detection — a rejecting async override would otherwise
-// produce an unhandled promise rejection instead of routing through onHookError.)
+// Every synchronous insertion fire point returns the protected hook result to
+// HookInvoker so an unexpected asynchronous override remains guarded.
 
 class AsyncRejectingPushBuffer<T> extends CircularBuffer<T> {
   override async onPush(_item: T): Promise<void> {
@@ -460,20 +468,19 @@ class AsyncRejectingPushBuffer<T> extends CircularBuffer<T> {
   }
 }
 
-it('an async-overridden onPush hook that rejects routes through onHookError without producing an unhandled rejection', async () => {
-  const buf = AsyncRejectingPushBuffer.create<number>({ 'capacity': 4 });
+it('async-rejecting onPush overrides stay guarded across push and unshift append/overwrite paths', async () => {
+  const buf = AsyncRejectingPushBuffer.create<number>({ 'capacity': 2 });
   const rejectionEvents: unknown[] = [];
   const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
   process.on('unhandledRejection', onUnhandledRejection);
 
   try {
-    // push() itself stays synchronous and returns void — the async hook
-    // override's eventual rejection must not surface here nor escape as an
-    // unhandled rejection.
     buf.push(1);
+    buf.unshift(0);
+    buf.push(2);
+    buf.unshift(-1);
 
-    // push() already committed the item before the hook fired.
-    assert.strictEqual(buf.length, 1);
+    assert.strictEqual(buf.length, 2);
 
     // Give the microtask queue a couple of turns to let the hook's rejection
     // route through HookInvoker's default onHookError (which rethrows as a
@@ -483,6 +490,7 @@ it('an async-overridden onPush hook that rejects routes through onHookError with
     await new Promise((resolve) => { setImmediate(resolve); });
 
     assert.strictEqual(rejectionEvents.length, 0);
+    assert.deepStrictEqual([buf.shift(), buf.shift()], [-1, 1]);
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }

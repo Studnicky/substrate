@@ -3,26 +3,20 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { FsmStepType } from '../src/index.js';
+import type { FsmStepInterface } from '../src/index.js';
 import type { TrafficEventEntity } from './entities/TrafficEventEntity.js';
+import type { TrafficStateEntity } from './entities/TrafficStateEntity.js';
 
 import { InterpreterHistory, StateMachine } from '../src/index.js';
 
 // --- Domain types ---
 
-type TrafficState =
-  | { readonly 'variant': 'amber' }
-  | { readonly 'variant': 'green' }
-  | { readonly 'variant': 'red' };
-
-type TrafficEvent = TrafficEventEntity.Type;
-
-class TrafficMachine extends StateMachine<TrafficState, TrafficEvent> {
+class TrafficMachine extends StateMachine<TrafficStateEntity.Type, TrafficEventEntity.Type> {
   static make(): TrafficMachine { return new TrafficMachine(); }
 
-  getInitialState(): TrafficState { return { 'variant': 'red' }; }
+  getInitialState(): TrafficStateEntity.Type { return { 'variant': 'red' }; }
 
-  reduce(state: TrafficState, event: TrafficEvent): FsmStepType<TrafficState> {
+  reduce(state: TrafficStateEntity.Type, event: TrafficEventEntity.Type): FsmStepInterface<TrafficStateEntity.Type> {
     if (event.type === 'advance') {
       if (state.variant === 'red')   { return { 'effects': [], 'state': { 'variant': 'green' } }; }
       if (state.variant === 'green') { return { 'effects': [], 'state': { 'variant': 'amber' } }; }

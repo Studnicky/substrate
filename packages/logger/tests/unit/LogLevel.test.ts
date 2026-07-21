@@ -3,19 +3,21 @@ import { it } from 'node:test';
 
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { LOG_LEVEL_MAP } from '../../src/constants/LOG_LEVEL_MAP.js';
+import type { LogLevelEntity } from '../../src/entities/LogLevelEntity.js';
+import type { LogLevelNameEntity } from '../../src/entities/LogLevelNameEntity.js';
 import { ParseLogLevel } from '../../src/index.js';
 
-const levelValueScenarios: Array<{ level: LOG_LEVEL; expected: number }> = [
-  { expected: 0, level: LOG_LEVEL.TRACE },
-  { expected: 1, level: LOG_LEVEL.DEBUG },
-  { expected: 2, level: LOG_LEVEL.INFO },
-  { expected: 3, level: LOG_LEVEL.WARN },
-  { expected: 4, level: LOG_LEVEL.ERROR },
-  { expected: 5, level: LOG_LEVEL.SILENT }
+const levelValueScenarios: Array<{ expected: LogLevelEntity.Type; level: LogLevelEntity.Type; name: string }> = [
+  { expected: 0, level: LOG_LEVEL.TRACE, name: 'TRACE' },
+  { expected: 1, level: LOG_LEVEL.DEBUG, name: 'DEBUG' },
+  { expected: 2, level: LOG_LEVEL.INFO, name: 'INFO' },
+  { expected: 3, level: LOG_LEVEL.WARN, name: 'WARN' },
+  { expected: 4, level: LOG_LEVEL.ERROR, name: 'ERROR' },
+  { expected: 5, level: LOG_LEVEL.SILENT, name: 'SILENT' }
 ];
 
-for (const { level, expected } of levelValueScenarios) {
-  void it(`LOG_LEVEL.${LOG_LEVEL[level]} equals ${expected}`, () => {
+for (const { level, expected, name } of levelValueScenarios) {
+  void it(`LOG_LEVEL.${name} equals ${expected}`, () => {
     assert.strictEqual(level, expected);
   });
 }
@@ -39,7 +41,7 @@ void it('levels are ordered by severity', () => {
   }
 });
 
-const logLevelMapScenarios: Array<{ key: keyof typeof LOG_LEVEL_MAP; expectedLevel: LOG_LEVEL }> = [
+const logLevelMapScenarios: Array<{ expectedLevel: LogLevelEntity.Type; key: LogLevelNameEntity.Type }> = [
   { expectedLevel: LOG_LEVEL.TRACE, key: 'trace' },
   { expectedLevel: LOG_LEVEL.DEBUG, key: 'debug' },
   { expectedLevel: LOG_LEVEL.INFO, key: 'info' },
@@ -49,27 +51,27 @@ const logLevelMapScenarios: Array<{ key: keyof typeof LOG_LEVEL_MAP; expectedLev
 ];
 
 for (const { key, expectedLevel } of logLevelMapScenarios) {
-  void it(`LOG_LEVEL_MAP.${key} maps to LOG_LEVEL.${LOG_LEVEL[expectedLevel]}`, () => {
+  void it(`LOG_LEVEL_MAP.${key} maps to ${expectedLevel}`, () => {
     assert.strictEqual(LOG_LEVEL_MAP[key], expectedLevel);
   });
 }
 
-const numericPassthroughScenarios: Array<{ input: LOG_LEVEL; expected: LOG_LEVEL }> = [
-  { expected: LOG_LEVEL.TRACE, input: LOG_LEVEL.TRACE },
-  { expected: LOG_LEVEL.DEBUG, input: LOG_LEVEL.DEBUG },
-  { expected: LOG_LEVEL.INFO, input: LOG_LEVEL.INFO },
-  { expected: LOG_LEVEL.WARN, input: LOG_LEVEL.WARN },
-  { expected: LOG_LEVEL.ERROR, input: LOG_LEVEL.ERROR },
-  { expected: LOG_LEVEL.SILENT, input: LOG_LEVEL.SILENT }
+const numericPassthroughScenarios: Array<{ expected: LogLevelEntity.Type; input: LogLevelEntity.Type; name: string }> = [
+  { expected: LOG_LEVEL.TRACE, input: LOG_LEVEL.TRACE, name: 'TRACE' },
+  { expected: LOG_LEVEL.DEBUG, input: LOG_LEVEL.DEBUG, name: 'DEBUG' },
+  { expected: LOG_LEVEL.INFO, input: LOG_LEVEL.INFO, name: 'INFO' },
+  { expected: LOG_LEVEL.WARN, input: LOG_LEVEL.WARN, name: 'WARN' },
+  { expected: LOG_LEVEL.ERROR, input: LOG_LEVEL.ERROR, name: 'ERROR' },
+  { expected: LOG_LEVEL.SILENT, input: LOG_LEVEL.SILENT, name: 'SILENT' }
 ];
 
-for (const { input, expected } of numericPassthroughScenarios) {
-  void it(`parseLogLevel passes through numeric LOG_LEVEL.${LOG_LEVEL[input]}`, () => {
+for (const { input, expected, name } of numericPassthroughScenarios) {
+  void it(`parseLogLevel passes through numeric LOG_LEVEL.${name}`, () => {
     assert.strictEqual(ParseLogLevel.parse(input), expected);
   });
 }
 
-const stringParseScenarios: Array<{ input: string; expected: LOG_LEVEL }> = [
+const stringParseScenarios: Array<{ expected: LogLevelEntity.Type; input: LogLevelNameEntity.Type }> = [
   { expected: LOG_LEVEL.TRACE, input: 'trace' },
   { expected: LOG_LEVEL.DEBUG, input: 'debug' },
   { expected: LOG_LEVEL.INFO, input: 'info' },
@@ -80,7 +82,7 @@ const stringParseScenarios: Array<{ input: string; expected: LOG_LEVEL }> = [
 
 for (const { input, expected } of stringParseScenarios) {
   void it(`parseLogLevel parses string '${input}'`, () => {
-    assert.strictEqual(ParseLogLevel.parse(input as 'info'), expected);
+    assert.strictEqual(ParseLogLevel.parse(input), expected);
   });
 }
 
@@ -92,6 +94,6 @@ const invalidStringScenarios: Array<{ input: string }> = [
 
 for (const { input } of invalidStringScenarios) {
   void it(`parseLogLevel falls back to INFO for invalid string '${input}'`, () => {
-    assert.strictEqual(ParseLogLevel.parse(input as 'info'), LOG_LEVEL.INFO);
+    assert.strictEqual(ParseLogLevel.parse(input), LOG_LEVEL.INFO);
   });
 }

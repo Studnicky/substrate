@@ -23,7 +23,7 @@ pnpm add @studnicky/throttle
 ```typescript
 import { Throttle } from '@studnicky/throttle';
 
-const throttle = new Throttle({ concurrencyLimit: 5 });
+const throttle = Throttle.create({ concurrencyLimit: 5 });
 
 const urls = ['https://api.example.com/a', 'https://api.example.com/b'];
 
@@ -34,6 +34,8 @@ const results = await Promise.all(
 const stats = throttle.getStats();
 console.log(`Executed: ${stats.totalExecuted}, active: ${stats.activeCount}`);
 ```
+
+`ThrottleAbortOptionsEntity` validates the optional abort grace period. `ActiveOperationStateEntity` owns the serializable completion state retained alongside each active operation's runtime resolver.
 
 ## Extending
 

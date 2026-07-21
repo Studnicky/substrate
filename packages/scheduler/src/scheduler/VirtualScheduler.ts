@@ -10,28 +10,16 @@
  * @module
  */
 import type { VirtualTimeCounter } from '@studnicky/clock';
+import type { HookInvoker } from '@studnicky/errors';
 
-import { HookInvoker } from '@studnicky/errors';
-
-import type { PendingTaskType } from '../types/PendingTaskType.js';
-import type { ScheduledTaskType } from '../types/ScheduledTaskType.js';
-import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
+import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
+import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
+import type { SchedulerProviderInterface } from '../interfaces/SchedulerProviderInterface.js';
 
 import { SchedulerError } from '../errors/index.js';
 import { CancellableTask } from './CancellableTask.js';
 import { MinimumHeap } from './MinimumHeap.js';
-import { VirtualSchedulerBuilder } from './VirtualSchedulerBuilder.js';
-
-/**
- * A broken lifecycle hook must never abort scheduler machinery: swallow the
- * failure instead of `HookInvoker`'s default (throwing) behavior.
- */
-class SwallowingHookInvoker extends HookInvoker {
-  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
-    const result = undefined as T;
-    return result;
-  }
-}
+import { SchedulerHookInvoker } from './SchedulerHookInvoker.js';
 
 /**
  * Deterministic `SchedulerProvider` for testing.
@@ -45,15 +33,16 @@ class SwallowingHookInvoker extends HookInvoker {
  * - Lifecycle hooks: `onSchedule`, `onFire`, `onFireError`, `onReschedule`, `onCancel`,
  *   `onCancelAll`, `onAdvance`, `onRunUntil`, `onIdle`
  */
-export class VirtualScheduler implements SchedulerProviderType {
-  protected readonly hooks: HookInvoker = new SwallowingHookInvoker();
+export class VirtualScheduler implements SchedulerProviderInterface {
+  protected readonly hooks: HookInvoker = new SchedulerHookInvoker();
   readonly #cancelledIds: Set<string>;
   readonly #counter: Readonly<VirtualTimeCounter>;
   readonly #heap: MinimumHeap;
+  readonly #tasks: Map<string, CancellableTask>;
   #idCounter: number;
 
   /**
-   * Property write order: #cancelledIds, #counter, #idCounter, #heap.
+   * Property write order: #cancelledIds, #counter, #idCounter, #heap, #tasks.
    *
    * @param counter - Shared `VirtualTimeCounter`. Pass the same instance to
    *                  `VirtualClockProvider` so `Clock.now()` and task fires stay in sync.
@@ -66,17 +55,12 @@ export class VirtualScheduler implements SchedulerProviderType {
     this.#counter = counter;
     this.#idCounter = 0;
     this.#heap = this.createHeap();
+    this.#tasks = new Map();
   }
 
   /** Creates a new `VirtualScheduler` with the given options. */
   static create(options: { readonly 'counter': Readonly<VirtualTimeCounter> }): VirtualScheduler {
     return new this(options.counter);
-  }
-
-  /** Returns a `VirtualSchedulerBuilder` pre-wired to create `VirtualScheduler` instances. */
-  static builder(): VirtualSchedulerBuilder {
-    const result = VirtualSchedulerBuilder.create((options) => { const instance = VirtualScheduler.create(options); return instance; });
-    return result;
   }
 
   /** Returns a unique task ID. Override to customise the ID format. */
@@ -112,7 +96,7 @@ export class VirtualScheduler implements SchedulerProviderType {
    * Extracted from the hot loop bodies so V8 can optimise the loops
    * independently of try/catch deoptimisation.
    */
-  #invokeTask(task: PendingTaskType): boolean {
+  #invokeTask(task: PendingTaskInterface): boolean {
     let fireResult: Promise<void> | void;
 
     try {
@@ -181,7 +165,9 @@ export class VirtualScheduler implements SchedulerProviderType {
     let task = this.#heap.removeMinimum();
 
     while (task !== undefined) {
-      this.#cancelledIds.add(task.id);
+      this.#tasks.get(task.id)?.complete();
+      this.#tasks.delete(task.id);
+      this.#cancelledIds.delete(task.id);
       task = this.#heap.removeMinimum();
     }
     this.hooks.invoke('onCancelAll', () => {
@@ -197,9 +183,9 @@ export class VirtualScheduler implements SchedulerProviderType {
   /**
    * Schedules `fire` to run once at `atMs` (virtual epoch-ms).
    */
-  public scheduleAt(atMs: number, fire: () => Promise<void> | void): ScheduledTaskType {
+  public scheduleAt(atMs: number, fire: () => Promise<void> | void): ScheduledTaskInterface {
     const id = this.generateId();
-    const pending: PendingTaskType = {
+    const pending: PendingTaskInterface = {
       'atMs': atMs,
       'fire': fire,
       'id': id,
@@ -208,32 +194,38 @@ export class VirtualScheduler implements SchedulerProviderType {
     };
 
     this.#heap.insert(pending);
-    this.hooks.invoke('onSchedule', () => {
-      const result = this.onSchedule(id, atMs, 'timeout');
-      return result;
-    });
-
-    return new CancellableTask(atMs, id, (taskId: string) => {
+    const task = new CancellableTask(atMs, id, (taskId: string) => {
+      if (!this.#tasks.delete(taskId)) {
+        return;
+      }
       this.#cancelledIds.add(taskId);
       this.hooks.invoke('onCancel', () => {
         const result = this.onCancel(taskId);
         return result;
       });
     });
+
+    this.#tasks.set(id, task);
+    this.hooks.invoke('onSchedule', () => {
+      const result = this.onSchedule(id, atMs, 'timeout');
+      return result;
+    });
+
+    return task;
   }
 
   /**
    * Schedules `fire` to run every `intervalMs` virtual milliseconds.
    * The first fire occurs at `currentTime + intervalMs`.
    */
-  public scheduleEvery(intervalMs: number, fire: () => Promise<void> | void): ScheduledTaskType {
+  public scheduleEvery(intervalMs: number, fire: () => Promise<void> | void): ScheduledTaskInterface {
     if (intervalMs <= 0) {
       throw new SchedulerError(`scheduleEvery requires intervalMs > 0, received ${intervalMs.toString()}`);
     }
 
     const id = this.generateId();
     const atMs = this.#counter.nowMs() + intervalMs;
-    const pending: PendingTaskType = {
+    const pending: PendingTaskInterface = {
       'atMs': atMs,
       'fire': fire,
       'id': id,
@@ -242,18 +234,24 @@ export class VirtualScheduler implements SchedulerProviderType {
     };
 
     this.#heap.insert(pending);
-    this.hooks.invoke('onSchedule', () => {
-      const result = this.onSchedule(id, atMs, 'interval');
-      return result;
-    });
-
-    return new CancellableTask(atMs, id, (taskId: string) => {
+    const task = new CancellableTask(atMs, id, (taskId: string) => {
+      if (!this.#tasks.delete(taskId)) {
+        return;
+      }
       this.#cancelledIds.add(taskId);
       this.hooks.invoke('onCancel', () => {
         const result = this.onCancel(taskId);
         return result;
       });
     });
+
+    this.#tasks.set(id, task);
+    this.hooks.invoke('onSchedule', () => {
+      const result = this.onSchedule(id, atMs, 'interval');
+      return result;
+    });
+
+    return task;
   }
 
   /**
@@ -297,6 +295,11 @@ export class VirtualScheduler implements SchedulerProviderType {
         continue;
       }
 
+      if (task.variant === 'timeout') {
+        this.#tasks.get(task.id)?.complete();
+        this.#tasks.delete(task.id);
+      }
+
       this.hooks.invoke('onFire', () => {
         const result = this.onFire(task.id);
         return result;
@@ -305,7 +308,7 @@ export class VirtualScheduler implements SchedulerProviderType {
 
       if (succeeded && task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
         const nextAtMs = task.atMs + task.intervalMs;
-        const rescheduled: PendingTaskType = {
+        const rescheduled: PendingTaskInterface = {
           'atMs': nextAtMs,
           'fire': task.fire,
           'id': task.id,
@@ -318,6 +321,10 @@ export class VirtualScheduler implements SchedulerProviderType {
           const result = this.onReschedule(task.id, nextAtMs);
           return result;
         });
+      } else if (task.variant === 'interval') {
+        this.#cancelledIds.delete(task.id);
+        this.#tasks.get(task.id)?.complete();
+        this.#tasks.delete(task.id);
       }
     }
 
@@ -345,6 +352,9 @@ export class VirtualScheduler implements SchedulerProviderType {
         this.#cancelledIds.delete(task.id);
         continue;
       }
+
+      this.#tasks.get(task.id)?.complete();
+      this.#tasks.delete(task.id);
 
       this.hooks.invoke('onFire', () => {
         const result = this.onFire(task.id);

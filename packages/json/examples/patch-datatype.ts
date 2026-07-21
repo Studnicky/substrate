@@ -29,7 +29,7 @@ const workingDocs: {
 // Patch — instance-based RFC-6902 JSON Patch
 // ---------------------------------------------------------------------------
 
-// Using the constructor with an array of operations
+// Create a patch with an array of operations
 const patch = Patch.create([
   { 'op': 'replace', 'path': '/status', 'value': 'published' },
   { 'op': 'add', 'path': '/publishedAt', 'value': '2026-06-22' },
@@ -40,24 +40,22 @@ patch.apply(workingDocs.doc);
 
 console.log('doc after patch:', workingDocs.doc);
 
-// Static factory methods
-Patch.add('/score', 100).apply(workingDocs.doc2);
-Patch.replace('/name', 'beta').apply(workingDocs.doc2);
+Patch.create({ 'op': 'add', 'path': '/score', 'value': 100 }).apply(workingDocs.doc2);
+Patch.create({ 'op': 'replace', 'path': '/name', 'value': 'beta' }).apply(workingDocs.doc2);
 
-console.log('doc2 after static patches:', workingDocs.doc2);
+console.log('doc2 after patches:', workingDocs.doc2);
 
-// Patch.combine merges multiple patches
-const combined = Patch.combine(
-  Patch.add('/x', 1),
-  Patch.add('/y', 2)
-);
+const combined = Patch.create([
+  { 'op': 'add', 'path': '/x', 'value': 1 },
+  { 'op': 'add', 'path': '/y', 'value': 2 }
+]);
 
 combined.apply(workingDocs.doc3);
 
 console.log('doc3 after combined patch:', workingDocs.doc3);
 
 // test operation throws PatchError on mismatch
-const strictPatch = Patch.test('/name', 'WRONG');
+const strictPatch = Patch.create({ 'op': 'test', 'path': '/name', 'value': 'WRONG' });
 
 assert.throws(
   () => { strictPatch.apply({ 'name': 'actual' }); },
@@ -65,7 +63,7 @@ assert.throws(
   'test operation throws PatchError on mismatch'
 );
 
-console.log('isEmpty:', Patch.create([]).isEmpty(), Patch.add('/a', 1).isEmpty());
+console.log('isEmpty:', Patch.create([]).isEmpty(), Patch.create({ 'op': 'add', 'path': '/a', 'value': 1 }).isEmpty());
 
 // ---------------------------------------------------------------------------
 // DataType — deep equality and type guards
@@ -111,14 +109,14 @@ assert.equal(workingDocs.doc.status, 'published', 'replace operation applied');
 assert.equal(workingDocs.doc.publishedAt, '2026-06-22', 'add operation applied');
 assert.equal(workingDocs.doc.count, undefined, 'remove operation applied');
 
-assert.equal(workingDocs.doc2.score, 100, 'Patch.add static factory');
-assert.equal(workingDocs.doc2.name, 'beta', 'Patch.replace static factory');
+assert.equal(workingDocs.doc2.score, 100, 'add operation applied');
+assert.equal(workingDocs.doc2.name, 'beta', 'replace operation applied');
 
 assert.equal(workingDocs.doc3.x, 1, 'combined patch: first op');
 assert.equal(workingDocs.doc3.y, 2, 'combined patch: second op');
 
 assert.equal(Patch.create([]).isEmpty(), true, 'empty patch reports isEmpty');
-assert.equal(Patch.add('/a', 1).isEmpty(), false, 'non-empty patch not isEmpty');
+assert.equal(Patch.create({ 'op': 'add', 'path': '/a', 'value': 1 }).isEmpty(), false, 'non-empty patch not isEmpty');
 
 assert.equal(nestedEqual, true, 'deepEqual for nested arrays');
 assert.equal(DataType.deepEqual({ 'a': 1 }, { 'a': 2 }), false, 'deepEqual detects difference');

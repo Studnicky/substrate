@@ -21,39 +21,51 @@ pnpm add @studnicky/batch
 ## Usage
 
 ```typescript
-import { batchConcurrent } from '@studnicky/batch';
+import { Batch } from '@studnicky/batch';
 
 const ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 // Process up to 3 items at a time; yields results batch by batch
-for await (const batchResults of batchConcurrent.process(ids, async (id) => fetchUser(id), 3)) {
+const users = Batch.create<Awaited<ReturnType<typeof fetchUser>>>(3);
+for await (const batchResults of users.process(ids, async (id) => fetchUser(id))) {
   console.log('Batch complete:', batchResults);
 }
 
 // Collect all results
 const all: number[] = [];
-for await (const batch of batchConcurrent.process(ids, async (id) => id * 2, { maxConcurrent: 5 })) {
+const doubles = Batch.create<number>(5);
+for await (const batch of doubles.process(ids, async (id) => id * 2)) {
   all.push(...batch);
 }
 ```
 
 ## Extending
 
-Since `batchConcurrent` is a utility namespace (not a class), extension means injecting a custom worker function (the `operation` parameter). Define a typed mapper and pass it in:
+Subclass `Batch` and override protected lifecycle hooks to observe processing without changing the worker function or batching behavior:
 
 ```typescript
-import { batchConcurrent } from '@studnicky/batch';
+import { Batch, BatchStatsEntity } from '@studnicky/batch';
 
-const enrichItem = async (id: number): Promise<{ id: number; label: string }> => {
-  return { id, label: `item-${id}` };
-};
+class ObservedBatch extends Batch<string> {
+  readonly completions: BatchStatsEntity.Type[] = [];
 
-for await (const batch of batchConcurrent.process([1, 2, 3], enrichItem, 2)) {
-  console.log(batch);
+  static monitored(maxConcurrent: number): ObservedBatch {
+    return new ObservedBatch(maxConcurrent);
+  }
+
+  protected override onBatchComplete(stats: BatchStatsEntity.Type): void {
+    this.completions.push(stats);
+  }
+}
+
+const batch = ObservedBatch.monitored(2);
+const ids = [1, 2, 3];
+for await (const results of batch.process(ids, async (id) => `item-${id}`)) {
+  console.log(results);
 }
 ```
 
-The `operation` parameter is the extension seam — swap in any async function that matches `(item: T) => Promise<TResult>`.
+Other hooks cover batch start, concurrency saturation, item start/success/error/settlement, and completion.
 
 ## Documentation
 

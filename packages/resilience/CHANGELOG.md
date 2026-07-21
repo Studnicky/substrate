@@ -13,7 +13,7 @@
 
 ### Patch Changes
 
-- d2b44b7: Domain error constructors route through `@studnicky/errors`'s `DomainErrorArgs.build()` instead of hand-rolled `super({code,message,retryable})` boilerplate. Fluent builders assemble their options object via `@studnicky/types`'s `PickDefined.from()` instead of manual spread-ternary chains. `@studnicky/fetch`'s config validators subclass `@studnicky/config`'s `ConfigValidation`. `@studnicky/eslint-config`'s duplicated rule-internal AST helpers are consolidated under `rules/shared/`. No public API or behavior changes.
+- d2b44b7: Domain error constructors use `@studnicky/errors`'s `DomainErrorArgs.build()`. Fluent builders assemble options through `@studnicky/types`'s `PickDefined.from()`. `@studnicky/fetch` config validators subclass `@studnicky/config`'s `ConfigValidation`. Shared ESLint rule AST helpers reside under `@studnicky/eslint-config`'s `rules/shared/`.
 - Updated dependencies [d2b44b7]
 - Updated dependencies [d2b44b7]
   - @studnicky/types@7.0.0
@@ -28,13 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `CircuitBreaker.reset()` is the single operation that restores the closed state.
+- `@studnicky/resilience` is the sole public code entrypoint.
+
 ### Added
 
-- `CircuitBreaker.create(options)` factory and `CircuitBreaker.builder()` fluent builder with `withFailureThreshold()`, `withResetTimeoutMs()`, `withSuccessThreshold()`, `withName()`, `withClock()`. Constructor is now `protected`.
-- `DeadLetterQueue.create(options)` factory and `DeadLetterQueue.builder()` fluent builder with `withCapacity()`, `withClock()`, `withSignal()`. Constructor is now `protected`.
-- `TokenBucket.create(options)` factory and `TokenBucket.builder()` fluent builder with `withRequestsPerSecond()`, `withBurstSize()`, `withClock()`. Constructor is now `protected`.
-- `DeadLetterQueueRetryGenerator.create(options)` factory accepting `{ dlq, intervalMs }` and `DeadLetterQueueRetryGenerator.builder()` fluent builder with `withDlq()`, `withIntervalMs()`. Constructor is now `protected`.
-- `CircuitBreakerBuilder`, `DeadLetterQueueBuilder`, `TokenBucketBuilder`, `DeadLetterQueueRetryGeneratorBuilder` exported from the package index.
+- `CircuitBreaker.create(options)`, `DeadLetterQueue.create(options)`, `TokenBucket.create(options)`, and `DeadLetterQueueRetryGenerator.create(options)` construct instances through protected constructors.
+- Entity declarations use direct `JSONSchema` and `FromSchema` imports from `json-schema-to-ts` and direct `ValidateFunction` imports from `ajv`.
+- `CircuitBreaker`, `DeadLetterQueue`, `DeadLetterQueueRetryGenerator`, and `TokenBucket` compose instance-local `HookInvoker` objects as the sole owners of hook-failure diagnostics. The primitives retain their swallow disposition without duplicate owner storage or public diagnostic facades.
 
 ## [1.0.0] - 2026-06-22
 

@@ -1,100 +1,206 @@
 ---
 title: '@studnicky/interface-must-be-contract'
-description: 'Interfaces express runtime contracts. Pure data shapes — every member JSON-serializable — must be schema-derived type aliases.'
+description: 'Interfaces express runtime, callable, nominal, and readonly access contracts; pure data is schema-derived.'
 ---
 
 # @studnicky/interface-must-be-contract
 
-An `interface` must carry at least one contract signal: a method signature, call signature, construct signature, or a member whose resolved type is a class instance, `Date`, `Map`, `Set`, `Promise`, or another non-serializable type. The rule resolves each member's type through the TypeScript type checker and reports an interface only when **every** member is JSON-serializable. A named-type reference is judged by what it resolves to — a reference to a pure-data type is itself data (so the interface is flagged); a reference to a class instance or a function type is a contract signal (not flagged).
+Requires every interface to carry a runtime or access-contract signal.
 
-Generic type parameters are treated as serializable placeholders, so `interface Box<T> { v: T }` is a data shape and is flagged. The autofix converts the interface to a `type` alias, preserving the name, `export`/`declare` modifiers, generics, and rewriting `extends` clauses as intersections. The autofix is skipped for declaration-merged or globally-augmented interfaces.
+Pure JSON data belongs in a schema-derived entity type or a named composition of canonical entity types. An interface containing only serializable data is reported, including an empty interface, an index-only interface, and a generic data container.
 
-An interface with no members of its own (`interface Foo {}`) is always exempt — there is no shape for a `type` alias to preserve, and an empty interface is the standard idiom for a consumer-declaration-merge target (a library exports it empty so downstream code can `declare module` and merge members in later). This exemption cannot be disabled.
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
-An interface whose only members are index signatures (e.g. `interface Config { [flag: string]: boolean }`) is still flagged, since a plain index-signature shape is usually genuinely just data. If your case is actually a consumer-augmentable extensibility point (declaration merging is only possible for `interface`, never `type`), add it to the `allow` option rather than converting it — the rule cannot distinguish "this really is just a `Record`" from "this is deliberately kept mergeable" through static analysis alone.
+## Contract signals
 
-**Fixable:** Yes (converts to `type` alias) · **Options:** `allow` (array of interface names to exempt) · **Suggested severity:** `error`
+An interface is a contract when its own or inherited shape includes at least one of these signals:
 
-## ✗ Incorrect
+- a method or call signature;
+- a construct signature;
+- a function or constructor member;
+- a class-instance or runtime-library type such as `Date`, `Map`, `Set`, or `Promise`;
+- a unique-symbol brand marker;
+- readonly property, index, array, tuple, or intrinsic readonly policy; or
+- a conditional, mapped, indexed-access, `keyof`, or other non-schema contract computation.
+
+Readonly on an interface describes consumer access policy. It is valid even when the referenced value is canonical pure data.
+
+Named references are resolved through the TypeScript checker. A reference to canonical data remains data. A reference to a class, callable contract, readonly contract, or other interface contract supplies a contract signal.
+
+## Incorrect
+
+### Pure-data interface
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Pure data shape — every member is JSON-serializable
-interface UserRecord {
+interface UserRecordInterface {
   id: string;
   name: string;
 }
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// Index-only shape — no contract signals
-interface StringMap {
-  [key: string]: string;
-}
-```
+Define the data in an entity schema:
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Generic type parameter is a serializable placeholder — still a data shape
-interface Box<T> {
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+export namespace UserEntity {
+  export const Schema = {
+    properties: {
+      id: { type: 'string' },
+      name: { type: 'string' }
+    },
+    required: ['id', 'name'],
+    type: 'object'
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
+}
+```
+
+### Named pure-data reference without a contract signal
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface UserEnvelopeInterface {
+  user: UserEntity.Type;
+}
+```
+
+### Index-only data
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface FeatureFlagsInterface {
+  [key: string]: boolean;
+}
+```
+
+### Generic pure data
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface BoxInterface<T> {
   value: T;
 }
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// Named reference that resolves to a pure-data type — still a data shape
-type CoordinateType = { x: number; y: number };
-interface PointRecord {
-  coord: CoordinateType;
-}
-```
-
-## ✓ Correct
+### Empty interface
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Contract — carries a method signature
-interface UserRepositoryInterface {
-  find(id: string): Promise<UserRecord>;
-  save(user: UserRecord): Promise<void>;
-}
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// Contract — named reference resolves to a class instance
-interface ServiceInterface {
-  clock: Clock;
-  logger: Logger;
-  start(): Promise<void>;
-}
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// Contract — named reference to a class instance keeps the interface
-class EventEmitter { /* … */ }
-interface BusInterface {
-  emitter: EventEmitter;
-}
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// Empty — a consumer-declaration-merge target, always exempt
 interface PluginRegistryInterface {}
 ```
 
-## Options
+An empty interface has no runtime or access-contract signal, so it is pure data while this rule is enabled.
 
-```json
-{
-  "@studnicky/interface-must-be-contract": ["error", { "allow": ["LegacyShape"] }]
+## Correct
+
+### Method contract
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface UserRepositoryInterface {
+  find(id: string): Promise<UserEntity.Type | undefined>;
+  save(user: UserEntity.Type): Promise<void>;
 }
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `allow` | `string[]` | `[]` | Interface names to exempt from this rule. |
+### Readonly access policy
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface UserSnapshotInterface {
+  readonly value: UserEntity.Type;
+}
+```
+
+### Callable contract
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface UserHandlerInterface {
+  (user: UserEntity.Type): Promise<void>;
+}
+```
+
+`entitySuite` disables `@typescript-eslint/prefer-function-type` so this minimal callable interface receives one consistent verdict. Re-enabling that upstream preference after the suite conflicts with the required interface representation.
+
+### Constructor contract
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface ServiceFactoryInterface {
+  new (options: ServiceOptionsEntity.Type): Service;
+}
+```
+
+### Runtime member
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface RuntimeStateInterface {
+  startedAt: Date;
+  stop(): Promise<void>;
+}
+```
+
+### Brand marker
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface UserIdBrandInterface {
+  readonly __brand: unique symbol;
+}
+```
+
+### Inline callable contract object
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface DispatcherInterface {
+  handler: {
+    (event: DomainEventType): Promise<void>;
+  };
+}
+```
+
+The inline object is callable contract structure, not a pure-data portion.
+
+## Remediation
+
+The rule does not convert an interface to a type alias because correct remediation requires a schema and runtime validation boundary. Choose one of these outcomes:
+
+1. define canonical data in an entity namespace with `FromSchema<typeof Schema>`;
+2. compose existing canonical entity types in `src/types/`; or
+3. keep the interface and express its actual runtime, callable, nominal, or readonly access contract.
+
+Schema, derivation, validation, and dependency-owned JSON types keep direct provenance at their use sites: `JSONSchema` and `FromSchema` come from `json-schema-to-ts`, `ValidateFunction` comes from `ajv`, and `JSONSchema7Type` comes from `json-schema` with declarations supplied by `@types/json-schema`. Each consuming package declares the dependency whose functionality it uses.
+
+## Scoped exceptions
+
+The rule has no per-interface name allow list. Source comments do not change classification. Disable the rule only for an explicitly scoped flat-config file set:
+
+```js
+export default [
+  {
+    files: ['src/**/*.ts'],
+    rules: {
+      '@studnicky/interface-must-be-contract': 'error'
+    }
+  },
+  {
+    files: ['src/module-augmentation/**/*.ts'],
+    rules: {
+      '@studnicky/interface-must-be-contract': 'off'
+    }
+  }
+];
+```
+
+## Related rules
+
+- [`type-alias-invariants`](./type-alias-invariants.md) directs non-schema aliases to interfaces or redesign.
+- [`interfaces-compose-named-types`](./interfaces-compose-named-types.md) extracts inline pure-data portions from valid contract interfaces.
+- [`all-types-are-entities`](./all-types-are-entities.md) owns canonical alias placement.

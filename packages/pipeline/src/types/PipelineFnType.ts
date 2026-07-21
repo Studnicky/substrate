@@ -1,7 +1,0 @@
-/**
- * A pipeline transform function
- *
- * Receives a context value, optionally transforms it, and returns the result.
- * Both sync and async return values are supported.
- */
-export type PipelineFnType<T> = (ctx: T) => Promise<T> | T;

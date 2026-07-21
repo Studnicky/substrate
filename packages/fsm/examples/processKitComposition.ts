@@ -1,20 +1,11 @@
-/** processKitComposition — hand-composes fsm's StateMachine + EffectInterpreter, scheduler's
- * VirtualScheduler, and signal's Signal into the Process Kit's documentation-only
- * reducer-with-effects recipe (no `@studnicky/process-kit` package exists; this composition
- * order IS the deliverable). A single small `JobProcess` machine models "local process as
- * explicit state plus side-effect descriptors": `reduce()` stays pure, and the `requestAck`
- * effect's handler uses the effect-handler `dispatch` capability (shipped in Phase 5) to
- * self-advance the machine with a follow-up event processed within the SAME drain cycle —
- * one flat machine, not a pyramid of chained `scheduler.schedule` calls (see the Process Kit
- * orchestration-boundary risk flags in `docs/concepts/composition-anti-patterns.md`). A
- * genuinely time-delayed transition (the `scheduleAdvance` effect) fires after the drain
- * cycle has already ended, so its scheduled callback goes through the interpreter's public
- * `send()` — `dispatch` only ever reaches events still inside the current cycle, which this
- * example demonstrates honestly rather than papering over. `VirtualScheduler` gives this
- * example a deterministic, fast-running clock; cancellation is composed via an instantiable
- * `Signal`. Run: npx tsx examples/processKitComposition.ts */
+/** processKitComposition — directly composes fsm's StateMachine + EffectInterpreter,
+ * scheduler's VirtualScheduler, and signal's Signal into a reducer-with-effects process.
+ * The `requestAck` effect uses the handler's same-cycle `dispatch` capability, while the
+ * delayed `scheduleAdvance` effect uses the interpreter's public `send()` path after its
+ * drain cycle ends. Virtual time keeps scheduling deterministic, and Signal supplies the
+ * cancellation boundary. Run: npx tsx examples/processKitComposition.ts */
 
-import type { ScheduledTaskType } from '@studnicky/scheduler';
+import type { ScheduledTaskInterface } from '@studnicky/scheduler';
 
 // #region usage
 import { VirtualTimeCounter } from '@studnicky/clock';
@@ -22,7 +13,10 @@ import { VirtualScheduler } from '@studnicky/scheduler';
 import { Signal } from '@studnicky/signal';
 import assert from 'node:assert/strict';
 
-import type { FsmStepType } from '../src/index.js';
+import type { EffectHandlerInterface, FsmStepInterface } from '../src/index.js';
+import type { JobEffectEntity } from './entities/JobEffectEntity.js';
+import type { JobEventEntity } from './entities/JobEventEntity.js';
+import type { JobStateEntity } from './entities/JobStateEntity.js';
 
 import { EffectInterpreter, MachineTerminatedError, StateMachine, TransitionRejectedError } from '../src/index.js';
 
@@ -30,29 +24,15 @@ import { EffectInterpreter, MachineTerminatedError, StateMachine, TransitionReje
 // advance, then settles. Two terminal outcomes (completed, cancelled) — reduce() stays a
 // pure function of (state, event) throughout. ---
 
-type JobState =
-  | { readonly 'variant': 'acknowledged' }
-  | { readonly 'variant': 'cancelled' }
-  | { readonly 'variant': 'completed' }
-  | { readonly 'variant': 'idle' }
-  | { readonly 'variant': 'waiting' };
-
-type JobEvent =
-  | { readonly 'type': 'acknowledge' }
-  | { readonly 'type': 'advance' }
-  | { readonly 'type': 'cancel' }
-  | { readonly 'type': 'start' };
-
-type JobEffect =
-  | { readonly 'delayMs': number; readonly 'variant': 'scheduleAdvance' }
-  | { readonly 'variant': 'requestAck' };
-
-class JobProcess extends StateMachine<JobState, JobEvent, JobEffect> {
+class JobProcess extends StateMachine<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type> {
   static make(): JobProcess { return new JobProcess(); }
 
-  getInitialState(): JobState { return { 'variant': 'idle' }; }
+  getInitialState(): JobStateEntity.Type { return { 'variant': 'idle' }; }
 
-  reduce(state: JobState, event: JobEvent): FsmStepType<JobState, JobEffect> {
+  reduce(
+    state: JobStateEntity.Type,
+    event: JobEventEntity.Type
+  ): FsmStepInterface<JobStateEntity.Type, JobEffectEntity.Type> {
     if (state.variant === 'idle' && event.type === 'start') {
       return { 'effects': [{ 'variant': 'requestAck' }], 'state': { 'variant': 'waiting' } };
     }
@@ -75,7 +55,7 @@ class JobProcess extends StateMachine<JobState, JobEvent, JobEffect> {
   }
 
   // Once settled, further transitions are rejected outright — reduce() is never called.
-  protected override isTerminated(state: JobState): boolean {
+  protected override isTerminated(state: JobStateEntity.Type): boolean {
     return state.variant === 'completed' || state.variant === 'cancelled';
   }
 }
@@ -86,56 +66,66 @@ const scheduler = VirtualScheduler.create({ 'counter': counter });
 
 class Job {
   static make(): {
-    'getScheduledTask': () => ScheduledTaskType | undefined;
-    'interpreter': EffectInterpreter<JobState, JobEvent, JobEffect>;
+    'getScheduledTask': () => ScheduledTaskInterface | undefined;
+    'interpreter': EffectInterpreter<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>;
+    'waitForScheduledDispatch': () => Promise<void>;
   } {
-    const scheduledTaskRef: { 'current': ScheduledTaskType | undefined } = { 'current': undefined };
-    const interpreterRef = { 'current': null as unknown as EffectInterpreter<JobState, JobEvent, JobEffect> };
-
-    const requestAckFn = (_effect: JobEffect, dispatch: (event: JobEvent) => void): void => {
-      dispatch({ 'type': 'acknowledge' });
-    };
-
-    const scheduleAdvanceFn = (effect: JobEffect): void => {
-      scheduledTaskRef.current = scheduler.scheduleAt(counter.nowMs() + (effect as Extract<JobEffect, { 'variant': 'scheduleAdvance' }>).delayMs, () => {
+    const scheduledTaskRef: { 'current': ScheduledTaskInterface | undefined } = { 'current': undefined };
+    const scheduledDispatchRef: { 'current': Promise<void> | undefined } = { 'current': undefined };
+    const handler: EffectHandlerInterface<JobEffectEntity.Type, JobEventEntity.Type> = (effect, dispatch) => {
+      if (effect.variant === 'requestAck') {
+        dispatch({ 'type': 'acknowledge' });
+        return;
+      }
+      scheduledTaskRef.current = scheduler.scheduleAt(counter.nowMs() + effect.delayMs, () => {
         scheduledTaskRef.current = undefined;
-        void interpreterRef.current.send({ 'type': 'advance' });
+        const scheduledDispatch = interpreter.send({ 'type': 'advance' });
+        scheduledDispatchRef.current = scheduledDispatch;
+        return scheduledDispatch;
       });
     };
 
-    interpreterRef.current = EffectInterpreter.create<JobState, JobEvent, JobEffect>({
-      'handlers': {
-        'requestAck': requestAckFn,
-        'scheduleAdvance': scheduleAdvanceFn
-      },
+    const interpreter = EffectInterpreter.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({
+      'handler': handler,
       'machine': JobProcess.make()
     });
 
-    const getScheduledTaskFn = (): ScheduledTaskType | undefined => {
+    const getScheduledTaskFn = (): ScheduledTaskInterface | undefined => {
       const result = scheduledTaskRef.current;
       return result;
     };
 
+    const waitForScheduledDispatchFn = (): Promise<void> => {
+      const scheduledDispatch = scheduledDispatchRef.current;
+      if (scheduledDispatch === undefined) {
+        throw new Error('Scheduled dispatch has not started');
+      }
+      return scheduledDispatch;
+    };
+
     return {
       'getScheduledTask': getScheduledTaskFn,
-      'interpreter': interpreterRef.current
+      'interpreter': interpreter,
+      'waitForScheduledDispatch': waitForScheduledDispatchFn
     };
   }
 }
 
-// Cancellation composed via the now-instantiable Signal: an AbortSignal drives a 'cancel'
+// Cancellation composed via Signal: an AbortSignal drives a 'cancel'
 // event into the interpreter and cancels any still-pending scheduled advance.
 class CancellationWiring {
   static wire(
-    interpreter: EffectInterpreter<JobState, JobEvent, JobEffect>,
-    getScheduledTask: () => ScheduledTaskType | undefined,
+    interpreter: EffectInterpreter<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>,
+    getScheduledTask: () => ScheduledTaskInterface | undefined,
     abortSignal: AbortSignal
-  ): void {
-    abortSignal.addEventListener('abort', () => {
-      const pending = getScheduledTask();
-      if (pending !== undefined) { pending.cancel(); }
-      void interpreter.send({ 'type': 'cancel' });
-    }, { 'once': true });
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      abortSignal.addEventListener('abort', () => {
+        const pending = getScheduledTask();
+        if (pending !== undefined) { pending.cancel(); }
+        interpreter.send({ 'type': 'cancel' }).then(resolve, reject);
+      }, { 'once': true });
+    });
   }
 }
 // #endregion usage
@@ -153,6 +143,7 @@ await jobA.interpreter.send({ 'type': 'start' });
 assert.equal(jobA.interpreter.getState().variant, 'acknowledged');
 
 scheduler.advance(50);
+await jobA.waitForScheduledDispatch();
 assert.equal(jobA.interpreter.getState().variant, 'completed');
 console.log('Job A final state:', jobA.interpreter.getState().variant);
 
@@ -162,7 +153,7 @@ console.log('Job A final state:', jobA.interpreter.getState().variant);
 const jobB = Job.make();
 const controllerB = new AbortController();
 const composedSignalB = await signalSource.compose({ 'signal': controllerB.signal });
-CancellationWiring.wire(jobB.interpreter, jobB.getScheduledTask, composedSignalB);
+const cancellationB = CancellationWiring.wire(jobB.interpreter, jobB.getScheduledTask, composedSignalB);
 
 jobB.interpreter.start();
 await jobB.interpreter.send({ 'type': 'start' });
@@ -170,6 +161,7 @@ assert.equal(jobB.interpreter.getState().variant, 'acknowledged');
 assert.notEqual(jobB.getScheduledTask(), undefined, 'a scheduled advance must be pending while acknowledged');
 
 controllerB.abort();
+await cancellationB;
 assert.equal(jobB.interpreter.getState().variant, 'cancelled');
 
 scheduler.advance(50);
@@ -179,8 +171,6 @@ console.log('Job B final state:', jobB.interpreter.getState().variant);
 // --- Scenario C: a deliberate rejection (TransitionRejectedError) is distinguishable from
 // attempting a transition on an already-terminated machine (MachineTerminatedError). ---
 
-// A rejected transition leaves the interpreter's drain loop mid-exception, so this
-// instance is used for the rejection check only, never reused afterward.
 const jobRejected = Job.make();
 jobRejected.interpreter.start();
 
@@ -199,6 +189,7 @@ const jobTerminated = Job.make();
 jobTerminated.interpreter.start();
 await jobTerminated.interpreter.send({ 'type': 'start' });
 scheduler.advance(50);
+await jobTerminated.waitForScheduledDispatch();
 assert.equal(jobTerminated.interpreter.getState().variant, 'completed');
 
 let rejectedByTermination = false;

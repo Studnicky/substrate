@@ -13,16 +13,14 @@ import {
 } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import type { RetryCallStateType } from '../../../src/types/RetryCallStateType.js';
+import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+
+import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
-import type { RetryContextType } from '../../../src/types/index.js';
+import type { RetryContextInterface } from '../../../src/interfaces/RetryContextInterface.js';
 
-import {
-  DefaultHttpErrorClassifier,
-  Retry,
-  RetryBuilder
-} from '../../../src/retry/index.js';
+import { Retry } from '../../../src/retry/index.js';
 import {
   MaxRetriesExceededError,
   NonRetryableError
@@ -32,7 +30,7 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-type TransitionRecord = { from: RetryCallStateType; to: RetryCallStateType };
+type TransitionRecord = { from: RetryCallStateEntity.Type; to: RetryCallStateEntity.Type };
 
 /**
  * Subclass that records every per-call FSM transition via enterCall().
@@ -45,7 +43,7 @@ class TrackingRetry extends Retry {
 
   readonly transitions: TransitionRecord[] = [];
 
-  override enterCall(to: RetryCallStateType, from: RetryCallStateType): void {
+  override enterCall(to: RetryCallStateEntity.Type, from: RetryCallStateEntity.Type): void {
     this.transitions.push({ from, to });
   }
 }
@@ -63,7 +61,7 @@ class AlwaysNonRetryableClassifier {
  * TrackingRetry subclass that signals abort via the onRetryScheduled lifecycle hook.
  */
 class AbortingTrackingRetry extends TrackingRetry {
-  protected override onRetryScheduled(context: RetryContextType): void {
+  protected override onRetryScheduled(context: RetryContextInterface): void {
     context.abort = true;
     context.delayMs = 0;
   }
@@ -203,7 +201,7 @@ it('illegal transition throws when guardCall returns false', async () => {
       super(config ?? {});
     }
 
-    override guardCall(from: RetryCallStateType, to: RetryCallStateType): boolean {
+    override guardCall(from: RetryCallStateEntity.Type, to: RetryCallStateEntity.Type): boolean {
       if (from === 'attempting' && to === 'succeeded') return false;
       return super.guardCall(from, to);
     }
@@ -221,30 +219,14 @@ it('illegal transition throws when guardCall returns false', async () => {
     caught = error;
   }
 
-  strictEqual(caught instanceof Error, true, 'should throw an Error');
-
   const fsmMessage = 'Illegal state transition: attempting → succeeded';
-  const err = caught as Error;
+  if (!(caught instanceof Error)) {
+    throw new Error('expected execute() to throw an Error');
+  }
+  const err = caught;
   const messageOrCause =
     err.message.includes(fsmMessage)
     || (err.cause instanceof Error && err.cause.message.includes(fsmMessage));
 
   strictEqual(messageOrCause, true, `Expected FSM error message in thrown error chain. Got: ${err.message}`);
-});
-
-// ---------------------------------------------------------------------------
-// Builder integration
-// ---------------------------------------------------------------------------
-
-it('TrackingRetry is constructable via RetryBuilder', () => {
-  const retry = RetryBuilder.create((opts) => {
-    const result = new TrackingRetry(opts);
-    return result;
-  })
-    .maxRetries(2)
-    .errorClassifier(DefaultHttpErrorClassifier.create())
-    .build();
-
-  strictEqual(retry instanceof TrackingRetry, true);
-  strictEqual(retry instanceof Retry, true);
 });

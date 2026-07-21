@@ -3,8 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { RequestContextType } from '../src/types/RequestContextType.js';
-import type { ResponseContextType } from '../src/types/ResponseContextType.js';
+import type { RequestContextInterface, ResponseContextInterface } from '../src/index.js';
 
 import { FetchClient } from '../src/index.js';
 
@@ -19,15 +18,15 @@ class TraceClient extends FetchClient {
   requestHookCount = 0;
   responseHookCount = 0;
 
-  protected override onRequest(context: RequestContextType): Promise<RequestContextType> {
+  protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     this.requestHookCount += 1;
     const headers: Record<string, string> = context.options.headers ?? {};
     headers['X-Demo-Trace'] = 'substrate-fetch';
-    const result: RequestContextType = { ...context, 'options': { ...context.options, 'headers': headers } };
+    const result: RequestContextInterface = { ...context, 'options': { ...context.options, 'headers': headers } };
     return Promise.resolve(result);
   }
 
-  protected override onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+  protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     this.responseHookCount += 1;
     return Promise.resolve(context);
   }

@@ -7,7 +7,7 @@ description: How Substrate's pattern kits compose primitives, and how to compose
 
 A [pattern](/packages/request-executor) in Substrate is a named composition of two or
 more primitives — a repeatable runtime shape, still usable without a graph executor. Five
-pattern families have shipped as real packages: the **Execution Kit**
+pattern families exist as packages: the **Execution Kit**
 (`@studnicky/request-executor`), the **Boundary Kit** (`@studnicky/boundary-kit`), the
 **Coordination Kit** — split into `@studnicky/keyed-work-gate` and
 `@studnicky/bounded-dispatcher` since a single kit would force the `event-bus` dependency
@@ -45,10 +45,13 @@ everything inside it:
 - **Retry loop wraps the actual call** — retry needs to be the closest layer to `fn` so that
   every attempt, not just the first, gets the same cancellation signal and runs inside the
   same context/timing span.
-- **The composed cancellation signal is threaded through, not layered** — `Signal#compose()`
-  runs once, before any of the above, merging a caller-supplied `AbortSignal` and/or
+- **The composed cancellation signal is threaded through, not layered** — a caller creates
+  one instance with `Signal.create()`, then calls `signal.compose(...)` before any of the
+  above, merging a caller-supplied `AbortSignal` and/or
   `deadlineMs` into a single `AbortSignal` that every retry attempt receives identically. A
-  signal is a value passed down, not a nesting layer.
+  signal is a value passed down, not a nesting layer. Deadline-only signals use the same
+  `signal.compose({ deadlineMs })` route; only the non-aborting sentinel is static:
+  `Signal.never()`.
 
 ## Using the kit
 
@@ -64,7 +67,7 @@ composition glue; a caller who wants the identical behavior without depending on
 
 <<< ../../packages/request-executor/examples/directComposition.ts#usage
 
-Both versions are correct, produce identical results, and use exactly the same five
+The kit and direct composition produce identical results and use exactly the same five
 primitives in exactly the same order — one names the order once inside a reusable class,
 the other writes it out inline. Reach for the kit when the same composition repeats across
 many call sites; hand-compose when a single call site needs a one-off variant (a different
@@ -95,14 +98,11 @@ a call via its detach-and-abandon abort behavior; `BoundaryKit#execute()` cannot
 `undefined` as `T`, so it surfaces that discard as a rejected `BoundaryKitAbortedError`
 instead.
 
-<<< ../../packages/boundary-kit/examples/observedBoundaryKit.ts#usage
-
 `BoundaryKit` introduces no hook of its own — every observable stage is already covered by
-the composed primitive it delegates to, reachable through `getThrottle()`,
-`getCircuitBreaker()`, and `getRetry()`. Every getter returns the exact instance passed to
-`create()`/`builder()` — never a copy or wrapper — so a caller who subclassed
-`Throttle`/`CircuitBreaker`/`Retry` for their own hooks (`onAcquire`, `onOpen`, `onGiveUp`,
-and so on) keeps full access to those subclasses' own hooks. See
+the composed primitive it delegates to. A caller who needs custom primitive hooks creates
+the `Throttle`, `CircuitBreaker`, or `Retry` instance, passes it directly to
+`BoundaryKit.create({ throttle, circuitBreaker, retry })`, and retains that original
+reference. See
 [`@studnicky/retry`](/packages/retry#observability-hooks),
 [`@studnicky/resilience`](/packages/resilience#observability-hooks), and
 [`@studnicky/throttle`](/packages/throttle#observability-hooks) for each primitive's full
@@ -150,12 +150,10 @@ coalescing would only ever see one queued caller at a time.
 ceiling) together bound how long a caller can wait on either side, so the composition below
 never hangs forever on a stuck upstream call.
 
-<<< ../../packages/keyed-work-gate/examples/observedKeyedWorkGate.ts#usage
-
 `KeyedWorkGate` introduces no hook of its own — every observable stage is already covered by
-the composed primitive it delegates to, reachable through `getMutex()` and `getCoalesce()`.
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or
-wrapper. See [`@studnicky/mutex`](/packages/mutex) and
+the composed primitive it delegates to. A caller who needs direct primitive observability
+creates the `Mutex` or `Coalesce` instance, passes it to `KeyedWorkGate.create(...)`, and
+retains the original reference. See [`@studnicky/mutex`](/packages/mutex) and
 [`@studnicky/concurrency`](/packages/concurrency) for each primitive's full hook table.
 
 #### Hand-composing `KeyedWorkGate` without the package
@@ -170,7 +168,7 @@ the two recipes, or a different `Coalesce`/`Mutex` composition order for a delib
 
 `@studnicky/bounded-dispatcher`'s `BoundedDispatcher` composes `@studnicky/concurrency`'s
 `Semaphore`, `@studnicky/event-bus`'s `EventBus`, and `@studnicky/scheduler`'s
-`SchedulerProviderType` into a bounded-concurrency dispatch shape: `dispatch()` acquires a
+`SchedulerProviderInterface` into a bounded-concurrency dispatch shape: `dispatch()` acquires a
 `Semaphore` permit before running the caller's `fn`, publishes `'dispatch'` lifecycle events
 (`{ phase: 'start' }` before `fn` runs, then `{ phase: 'success', result }` or
 `{ phase: 'error', error }` after it settles) onto a composed `EventBus`, and releases the
@@ -184,7 +182,7 @@ call shape.
 `permits` is shorthand for `Semaphore.create({ permits })`. `bus` accepts either a pre-built
 `EventBus` instance or `BusQueueOptionsEntity.Type` config (e.g. `{ highWaterMark: 4 }`)
 passed straight to `EventBus.create()`. `scheduler` accepts a pre-built
-`SchedulerProviderType` — defaults to `RealTimeScheduler.create()`, or pass a
+`SchedulerProviderInterface` — defaults to `RealTimeScheduler.create()`, or pass a
 `VirtualScheduler` for deterministic test fixtures.
 
 `EventBus.create()` forwards `highWaterMark` into every subscriber's internal `BusQueue`, so
@@ -192,12 +190,11 @@ the composition below tunes bus-wide backpressure for a dispatcher's lifecycle e
 directly through configuration, with no subclass override of internal `EventBus` wiring
 needed.
 
-<<< ../../packages/bounded-dispatcher/examples/observedBoundedDispatcher.ts#usage
-
 `BoundedDispatcher` introduces no hook of its own. Permit-level observability stays on
 `Semaphore`'s existing hooks (`onAcquire`, `onAcquireWait`, `onContended`, `onRelease`,
-`onReleaseDelegated`); dispatch-level observability is the `'dispatch'` topic on the composed
-`EventBus`, reachable through `getBus()`, `getSemaphore()`, and `getScheduler()`. See
+`onReleaseDelegated`); dispatch-level observability is the `'dispatch'` topic on a supplied
+`EventBus`. Callers retain any pre-built bus or scheduler references passed to
+`BoundedDispatcher.create(...)`. See
 [`@studnicky/concurrency`](/packages/concurrency),
 [`@studnicky/event-bus`](/packages/event-bus), and
 [`@studnicky/scheduler`](/packages/scheduler) for each primitive's full hook table.
@@ -215,18 +212,19 @@ wiring.
 ## The Process Kit
 
 `@studnicky/process-kit`'s `ProcessKit` composes `@studnicky/fsm`'s `StateMachine` and
-`EffectInterpreter`, `@studnicky/scheduler`'s `SchedulerProviderType`, and
-`@studnicky/signal`'s `Signal` into a reducer-with-effects shape: a caller-supplied
+`EffectInterpreter` with `@studnicky/scheduler`'s `SchedulerProviderInterface` into a
+reducer-with-effects shape: a caller-supplied
 `StateMachine` subclass owns `getInitialState()`/`reduce()` as the only source of transition
 logic, an internally-built `EffectInterpreter` runs the side effects an event produced, a
-scheduler drives time-delayed transitions, and a composed `Signal` cancels the process.
+scheduler drives time-delayed transitions, and callers compose cancellation externally when
+needed.
 `ProcessKit` does not implement any reducer logic itself. `ProcessKit.create({ machine })`
 wraps a caller-built `StateMachine` subclass; `kit.start()` then `kit.dispatch(event)` drive
 it — see the example below for the full call shape.
 
-`machine` is the only required field. `handlers` (effect handlers), `scheduler`, and
-`signal` are all optional and defaulted internally (`RealTimeScheduler.create()`,
-`Signal.create()`).
+`machine` is the only required field. Configure the optional singular `handler` directly
+through `ProcessKit.create({ machine, handler })`; there is no second handler configuration
+path. `scheduler` is optional and defaults to `RealTimeScheduler.create()`.
 
 This is the pattern family nearest the Dagonizer boundary — see [Composition
 Anti-Patterns](/concepts/composition-anti-patterns#process-kit-orchestration-boundary-risk-flags)
@@ -257,9 +255,9 @@ capabilities have a sharp edge here:
   blurring it.
 - `VirtualScheduler` gives the example a deterministic, fast-running clock — no real timers,
   no flaky delays.
-- Cancellation composes a caller's `AbortController` through `Signal#compose()` into an
-  `AbortSignal`, whose `abort` listener cancels the pending scheduled task and drives a
-  `cancel` event into the interpreter — no bespoke cancellation plumbing.
+- Cancellation remains an external composition: create a `Signal` instance, call
+  `signal.compose(...)`, then have its `AbortSignal` listener drive a domain `cancel` event
+  through `ProcessKit#dispatch()`.
 - `TransitionRejectedError` (a reducer's deliberate rejection) and `MachineTerminatedError`
   (an event sent after the machine reached a terminal state) are exercised as distinct,
   `instanceof`-checkable outcomes.
@@ -267,11 +265,10 @@ capabilities have a sharp edge here:
 <<< ../../packages/process-kit/examples/observedProcessKit.ts#usage
 
 `ProcessKit` introduces no hook of its own — every observable stage is already covered by
-the primitive it delegates to, reachable through `getMachine()`, `getInterpreter()`,
-`getScheduler()`, and `getSignal()`. A caller who subclassed `StateMachine` for its 6
+the primitive it delegates to. A caller who subclasses `StateMachine` for its 6
 lifecycle hooks (`onTransition`, `onEnterState`, `onExitState`, `onTransitionRejected`,
-`isTerminated`, `onTerminatedAccess`) keeps full access to those hooks; `EffectInterpreter`'s
-9 hooks and the scheduler's own hooks remain reachable the same way. See
+`isTerminated`, `onTerminatedAccess`) retains the machine reference; callers likewise retain
+any scheduler instance they pass in. See
 [`@studnicky/fsm`](/packages/fsm), [`@studnicky/scheduler`](/packages/scheduler), and
 [`@studnicky/signal`](/packages/signal) for each primitive's full hook table.
 
@@ -279,7 +276,7 @@ lifecycle hooks (`onTransition`, `onEnterState`, `onExitState`, `onTransitionRej
 
 <<< ../../packages/fsm/examples/processKitComposition.ts#usage
 
-Reach for `ProcessKit` when the `StateMachine`+`EffectInterpreter`+`scheduler`+`Signal`
+Reach for `ProcessKit` when the `StateMachine`+`EffectInterpreter`+`scheduler`
 wiring repeats across call sites and the `dispatch()`/`scheduleDispatch()` split matters;
 hand-compose when a single call site needs a one-off variant of the wiring, or when pulling
 in `@studnicky/process-kit` as a dependency isn't worth it for a single reducer.

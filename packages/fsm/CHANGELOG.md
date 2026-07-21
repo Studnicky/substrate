@@ -25,17 +25,18 @@
 
 ### Added
 
-- `InterpreterHistory<TState, TEvent, TEffect>` — a bounded recorder of an `EffectInterpreter`'s own transitions. Subclasses `EffectInterpreter`, overriding `onTransition` to push a `{ event, from, to, timestamp }` record into an internal `@studnicky/circular-buffer` ring. `InterpreterHistory.create({ capacity, machine, handlers?, machineId? })` mirrors `EffectInterpreter.create`'s validation, plus a required positive-integer `capacity`. `history()` returns a snapshot array, oldest first, bounded to `capacity`.
+- `InterpreterHistory<TState, TEvent, TEffect>` — bounded, single-interpreter observability built on `EffectInterpreter.onTransition` and `@studnicky/circular-buffer`. `InterpreterHistory.create({ capacity, machine, handler?, machineId? })` forwards the optional singular handler and requires a positive-integer capacity. Variant-changing transitions produce readonly `{ event, from, to, timestamp }` records; same-variant sends are absent. `history()` returns a fresh isolated, oldest-first snapshot and evicts the oldest record when capacity is full.
 - `TransitionRejectedError` — thrown by a reducer to deliberately reject an event as invalid business logic. `StateMachine#transition()` re-throws it as-is (not wrapped in `ReducerThrewError`), so callers can `instanceof`-check it to distinguish a deliberate rejection from an actual reducer defect.
 - `MachineTerminatedError` and `StateMachine#isTerminated()` / `StateMachine#onTerminatedAccess()` hooks — mark specific state variants as terminal. `transition()` throws `MachineTerminatedError` before `reduce()` is invoked once a state is terminated.
-- Effect handlers in `EffectHandlerMapType<TEffect, TEvent>` now receive a `dispatch(event: TEvent) => void` second argument. Calling it enqueues a follow-up event at the front of the interpreter's mailbox, processed within the same `send()` call. Non-breaking for handlers that ignore the second argument.
+- `EffectHandlerInterface<TEffect, TEvent>` receives an effect and a `dispatch(event: TEvent) => void` capability. Calling `dispatch` enqueues a follow-up event at the front of the interpreter's mailbox for the current `send()` drain.
 
 ### Changed
 
-- `EffectInterpreter` construction uses `EffectInterpreter.create({ machine, handlers?, machineId? })` and `EffectInterpreter.builder()` factory methods. Constructor is protected; direct `new EffectInterpreter(...)` from outside the class is no longer accessible.
+- The package root is the sole public code entrypoint for state-machine, interpreter, registry, error, and interface contracts.
+- `EffectInterpreter.create({ machine, handler?, machineId?, mailboxCapacity? })` supports singular effect-handler configuration.
 - `StateMachine` abstract base has a protected constructor for uniformity; concrete subclasses funnel through it.
-- `EffectInterpreterBuilder` exported from the package barrel.
-- **Breaking:** `MachineRegistry` is instantiable, matching every other primitive in this package. Create an instance with `MachineRegistry.create()`; `register`/`unregister`/`get`/`has`/`list` are now instance methods, and `onRegister`/`onUnregister`/`onResolveMiss` are protected instance hooks (no longer `static`). Each instance owns its own registry — nothing is process-wide anymore.
+- `MachineRegistry.create()` creates an independent registry. `register`, `unregister`, `get`, `has`, and `list` are instance methods, and `onRegister`, `onUnregister`, and `onResolveMiss` are protected instance hooks.
+- Pure state, event, and effect data compose from entity-derived types. `InterpreterHistoryRecordMetadataEntity` owns record timestamps, `RegisteredInterpreterMetricsEntity` owns hook-error counts, and history capacity composes from `CircularBufferOptionsEntity`; the interfaces retain generic, readonly, callable, and runtime contracts.
 
 ## [1.0.0] - 2026-06-22
 
@@ -43,4 +44,4 @@
 
 - `StateMachine` abstract base class with `transition()` wrapper and `ReducerThrewError`
 - `EffectInterpreter` with async FIFO mailbox, observer subscriptions, and effect dispatch
-- `MachineRegistry` module-singleton for name-based interpreter lookup
+- `MachineRegistry` for name-based interpreter lookup

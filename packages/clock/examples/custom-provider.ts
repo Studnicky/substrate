@@ -1,15 +1,15 @@
-/** custom-provider — implement ClockProviderType to inject any time source into Clock. Run: npx tsx packages/clock/examples/custom-provider.ts */
+/** custom-provider — implement ClockProviderInterface to inject any time source into Clock. Run: npx tsx packages/clock/examples/custom-provider.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { ClockProviderType } from '../src/index.js';
+import type { ClockProviderInterface } from '../src/index.js';
 
 import { Clock } from '../src/index.js';
 
 // --- Custom provider with fixed values ---
 
-class FixedClockProvider implements ClockProviderType {
+class FixedClockProvider implements ClockProviderInterface {
   readonly #epochMs: number;
   readonly #ns: bigint;
 
@@ -34,7 +34,7 @@ console.log(`FixedClockProvider: now()=${clockFixed.now()}, hrtime()=${clockFixe
 
 // --- Swapping provider changes what Clock returns ---
 
-class CountingClockProvider implements ClockProviderType {
+class CountingClockProvider implements ClockProviderInterface {
   #callCount: number;
 
   public constructor() {

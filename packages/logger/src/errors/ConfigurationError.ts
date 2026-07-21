@@ -3,8 +3,7 @@ import { LoggerError } from './LoggerError.js';
 /**
  * Error thrown when logger configuration is invalid
  *
- * Used for type validation and configuration errors during
- * logger initialization or builder configuration.
+ * Used for type validation and configuration errors during initialization.
  *
  * @example
  * ```typescript

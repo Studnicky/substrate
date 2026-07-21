@@ -14,17 +14,17 @@
 
 - d2b44b7: `@studnicky/types` exports `PickDefined.from(record)`, which strips `undefined`-valued keys from a record while narrowing each remaining value's type away from `undefined` — built for builders assembling an options object from a mix of required and optional fields.
 
-  `@studnicky/errors` exports `DomainErrorArgs.build(fields, options)`, which computes `code`/`message`/`retryable`/`cause`/`correlationId`/`metadata` for a `super()` call so leaf error classes can skip the manual field-assignment ceremony while keeping their `extends` chain and `instanceof` checks intact.
+  `@studnicky/errors` exports `DomainErrorArgs.build(fields, options)`, which computes `code`, `message`, `retryable`, `cause`, `correlationId`, and `metadata` for a `super()` call while preserving the leaf error's `extends` chain and `instanceof` behavior.
 
-  `@studnicky/logger` exports `ResolveMinLevel.from(options)`, the level-validation-and-resolution logic `ConsoleTransport`/`MemoryTransport` already use internally, now reusable by third-party `TransportInterface` implementations.
+  `@studnicky/logger` exports `ResolveMinLevel.from(options)` for the level validation and resolution shared by built-in and third-party `TransportInterface` implementations.
 
-- d2b44b7: `@studnicky/errors` exports `HookInvoker`, a composable delegate for safely invoking consumer-supplied lifecycle hooks — synchronous or asynchronous, without forcing async contagion on a synchronous caller and without letting a broken hook produce an unhandled rejection. A class composes it as a field (never extends it directly) and calls `invoke(hookName, fn)` from its own methods; a caller needing a different failure disposition than the default throw defines a small delegate subclass overriding `onHookError`. Also exports `HookInvocationError`, `HookTimeoutError` (thrown when an optional `timeoutMs` elapses before a hook settles), and `ReentrantHookInvocationError` (thrown when `detectReentrancy` catches a synchronous same-call-stack reentrant `invoke`).
+- d2b44b7: `@studnicky/errors` exports `HookInvoker`, a composable delegate for safely invoking synchronous or asynchronous consumer lifecycle hooks without forcing asynchronous behavior on a synchronous caller or producing an unhandled rejection. A class composes it as a field and calls `invoke(hookName, fn)` from its own methods. The package also exports `HookInvocationError`, `HookTimeoutError` for a configured timeout, and `ReentrantHookInvocationError` for synchronous same-call-stack reentrancy.
 
-  `@studnicky/entity-store`, `@studnicky/file-lock`, `@studnicky/health-registry`, and `@studnicky/worker-pool` route their lifecycle hooks through a record-and-continue `HookInvoker` delegate: a throwing hook override no longer aborts or corrupts an in-flight operation — the failure is recorded instead, inspectable via `hookErrorCount`/`getHookErrors()` (`getHookErrorCount()`/`getHookErrors()` on `WorkerPool`).
+  `@studnicky/entity-store`, `@studnicky/file-lock`, `@studnicky/health-registry`, and `@studnicky/worker-pool` route lifecycle hooks through a record-and-continue `HookInvoker` boundary. Failures are available through `hookErrorCount` and `getHookErrors()` (`getHookErrorCount()` and `getHookErrors()` on `WorkerPool`).
 
-  `@studnicky/logger`'s `Logger` composes a plain `HookInvoker` for `onLog`/`onDropped`/`onChildCreate` (unchanged throwing behavior) and separately guards `onTransportError`, recording its failures via `hookErrorCount`/`getHookErrors()` so a broken override can't abort fan-out to the remaining transports.
+  `@studnicky/logger`'s `Logger` composes a plain `HookInvoker` for `onLog`, `onDropped`, and `onChildCreate`, and separately guards `onTransportError`. Transport-hook failures are available through `hookErrorCount` and `getHookErrors()`.
 
-  `@studnicky/retry` and `@studnicky/pipeline` gain a `hookTimeoutMs` builder option (and matching `Retry.create`/`Pipeline.create` config field) bounding how long an async lifecycle hook may run before it's routed to `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long, matching prior behavior.
+  `@studnicky/retry` and `@studnicky/pipeline` expose a `hookTimeoutMs` builder option and matching `Retry.create` and `Pipeline.create` configuration field. A configured timeout routes an unsettled lifecycle hook to `onHookError` with a `HookTimeoutError` cause; an omitted timeout remains unbounded.
 
 ### Patch Changes
 
@@ -41,18 +41,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The package root is the sole code entrypoint for logger classes, transports, entities, constants, errors, and contracts.
+- Serializable logger data is exposed through `LogRecordEntity.Type`, `LogBodyDataEntity.Type`, `LogFaultDataEntity.Type`, `LogLevelEntity.Type`, and `LogStatusEntity.Type`.
+- Entity declarations import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts`, and validator declarations import `ValidateFunction` directly from `ajv`.
+- Logger, transport, and log-entry construction uses each class's direct `create()` entry point.
+
 ## [5.0.0] - 2026-07-08
 
 ### Changed
 
-- **Breaking:** exported log-level constants now use `SCREAMING_SNAKE_CASE`. `LogLevel` and `LogLevelMap` are renamed to `LOG_LEVEL` and `LOG_LEVEL_MAP`.
+- Exported log-level constants use `SCREAMING_SNAKE_CASE`: `LOG_LEVEL` and `LOG_LEVEL_MAP`.
 
 ### Changed
 
-- Logger, ConsoleTransport, MemoryTransport, FunctionTransport, and NoOpTransport constructors are non-public (protected). All instances are created through `Class.create(options)` or `Class.builder().build()`, both of which validate configuration in the single protected constructor.
-- LogBody and LogFault constructors are protected; `static create()` uses `new this()` for subclass-safe instantiation.
-- BaseLogEntryBuilder has an explicit protected constructor that concrete subclasses funnel through.
-- Five new builder classes: LoggerBuilder, ConsoleTransportBuilder, MemoryTransportBuilder, FunctionTransportBuilder, NoOpTransportBuilder — all exported from the package index and the relevant sub-barrels.
+- `Logger`, `ConsoleTransport`, `MemoryTransport`, `FunctionTransport`, and `NoOpTransport` expose `Class.create(options)` and `Class.builder().build()` construction paths backed by protected constructors.
+- `LogBody` and `LogFault` expose subclass-safe `static create()` construction.
+- `BaseLogEntryBuilder` provides the protected constructor used by concrete subclasses.
+- `LoggerBuilder`, `ConsoleTransportBuilder`, `MemoryTransportBuilder`, `FunctionTransportBuilder`, and `NoOpTransportBuilder` are exported from the package root and transport barrel where applicable.
 
 ## [1.0.0] - 2026-06-23
 
@@ -60,12 +67,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Logger` core with pluggable `TransportInterface` port; a Logger with no transports is a valid silent logger
 - `ConsoleTransport` — writes to console using a level-dispatch map; the only file permitted to use `console`
-- `NoOpTransport` — discards all records, replacing the previous `NoOpLogger`
-- `MemoryTransport` — captures `LogRecordType` records into an internal buffer; exposes `records()` and `clear()` for test assertion
+- `NoOpTransport` — discards all records.
+- `MemoryTransport` — captures `LogRecordEntity.Type` records into an internal buffer; exposes `records()` and `clear()` for test assertion.
 - `FunctionTransport` — generic bridge adapter; passes each record to a user-supplied sink function, enabling integration with pino, winston, or any external logger
 - Per-transport level filtering: each transport accepts an optional `level` option that acts as an independent floor above the Logger global floor
-- `LogRecordType` — immutable record assembled at emit time, carrying `level`, `time` (milliseconds), `metadata`, and `data`
+- `LogRecordEntity.Type` — schema-derived record assembled at emit time, carrying `level`, `time` (milliseconds), `metadata`, and `data`.
 - `LoggerOptionsEntity` namespace — `Schema`, `Type`, and `validate` type guard for Logger configuration
 - `./transports` package export entry for direct transport imports
-- Fluent `LogBody` and `LogFault` builders retained with all required fields enforced at build time
+- Fluent `LogBody` and `LogFault` builders enforce all required fields at build time.
 - Child loggers via `.child(metadata)` for correlation ID injection from async context

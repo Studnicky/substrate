@@ -1,12 +1,9 @@
-export { BaseLogEntryBuilder } from './BaseLogEntryBuilder.js';
 export { configValidation } from './configValidation.js';
 export { LogBody } from './LogBody.js';
 export { LogEventName } from './LogEventName.js';
 export { LogFault } from './LogFault.js';
 export { Logger } from './Logger.js';
-export { LoggerBuilder } from './LoggerBuilder.js';
 export { LogMetadata } from './LogMetadata.js';
 export { LogStatus } from './LogStatus.js';
 export { ParseLogLevel } from './parseLogLevel.js';
-export { ResolveMinLevel } from './ResolveMinLevel.js';
 export { SafeStringify } from './safeStringify.js';

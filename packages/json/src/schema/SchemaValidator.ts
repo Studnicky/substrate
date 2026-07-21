@@ -3,7 +3,7 @@
  *
  * Compiles a JSON Schema 2020-12 document into a reusable type-guard predicate
  * backed by Ajv. Entities declare a single `Schema` (`as const satisfies
- * JsonSchemaObjectType`) and derive both their compile-time `Type`
+ * JSONSchema`) and derive both their compile-time `Type`
  * (via `FromSchema`) and their runtime `validate` guard from it — there is no
  * second, hand-written validator to drift out of sync.
  *
@@ -31,7 +31,7 @@ export class SchemaValidator {
    * validator instead of recompiling.
    */
   public static compile<TValidated>(schema: object): ValidateFunction<TValidated> {
-    const id = (schema as { readonly '$id'?: unknown }).$id;
+    const id: unknown = Reflect.get(schema, '$id');
 
     if (typeof id === 'string') {
       const existing = ajvInstance.getSchema<TValidated>(id);

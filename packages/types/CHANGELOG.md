@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- The package root is the sole code entrypoint for every runtime helper.
+- `JsonValue.is` and `JsonValue.from` use `JSONSchema7Type` from its owner module, `json-schema`; `@types/json-schema` supplies the package's direct declaration dependency.
+- The package exports runtime helpers only: `Empty`, `Guard`, `JsonObject`, `JsonValue`, and `PickDefined`.
+
 ## 7.0.1
 
 ## 7.0.0
@@ -8,9 +16,9 @@
 
 - d2b44b7: `@studnicky/types` exports `PickDefined.from(record)`, which strips `undefined`-valued keys from a record while narrowing each remaining value's type away from `undefined` — built for builders assembling an options object from a mix of required and optional fields.
 
-  `@studnicky/errors` exports `DomainErrorArgs.build(fields, options)`, which computes `code`/`message`/`retryable`/`cause`/`correlationId`/`metadata` for a `super()` call so leaf error classes can skip the manual field-assignment ceremony while keeping their `extends` chain and `instanceof` checks intact.
+  `@studnicky/errors` exports `DomainErrorArgs.build(fields, options)`, which computes `code`, `message`, `retryable`, `cause`, `correlationId`, and `metadata` for a `super()` call while preserving the leaf error's `extends` chain and `instanceof` behavior.
 
-  `@studnicky/logger` exports `ResolveMinLevel.from(options)`, the level-validation-and-resolution logic `ConsoleTransport`/`MemoryTransport` already use internally, now reusable by third-party `TransportInterface` implementations.
+  `@studnicky/logger` exports `ResolveMinLevel.from(options)` for the level validation and resolution shared by built-in and third-party `TransportInterface` implementations.
 
 All notable changes to this project will be documented in this file.
 
@@ -21,7 +29,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Wire` pure-static class with six type-safe accessors (`isRecord`, `asRecord`, `asString`, `asNumber`, `asStringOrNull`, `asRecordArray`) for narrowing `unknown` wire-format values without unsafe assertions
-- `JsonValue`, `JsonObject` compile-time types for recursive readonly JSON-safe values and unvalidated JSON objects
-- `DeepReadonly<T>` and `DeepMergeType<TBase, TOverlay>` generic utility types for recursive immutability and type-level deep merging
-- `JsonSchema`, `JsonSchemaObject`, and `JsonSchemaTypeName` compile-time types modelling the JSON Schema 2020-12 vocabulary
+- `Guard` pure-static runtime accessors and predicates for narrowing `unknown` values.
+- `JsonObject` and `JsonValue` runtime boundaries for plain objects and recursive JSON-compatible values.

@@ -32,18 +32,22 @@ class CoalesceDemo {
   static async runIsInflight(): Promise<void> {
     const coalesce = Coalesce.create<number>();
 
-    let resolve!: (v: number) => void;
-    const factory = (): Promise<number> =>
-    {return new Promise<number>((res) => { resolve = res; });};
+    const completion = Promise.withResolvers<number>();
+    const factoryStarted = Promise.withResolvers<void>();
+    const factory = (): Promise<number> => {
+      factoryStarted.resolve();
+      return completion.promise;
+    };
 
     // Not in-flight before we start
     const beforeStart = coalesce.isInflight('item');
     const promise = coalesce.run('item', factory);
+    await factoryStarted.promise;
 
     // In-flight while factory is pending
     const duringInflight = coalesce.isInflight('item');
 
-    resolve(42);
+    completion.resolve(42);
     const result = await promise;
 
     // No longer in-flight once resolved

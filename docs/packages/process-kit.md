@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/process-kit'
-description: Reducer-with-effects process pattern composing fsm, scheduler, and signal.
+description: Reducer-with-effects process pattern composing fsm and scheduler.
 ---
 
 # @studnicky/process-kit
 
-> Reducer-with-effects process pattern composing `@studnicky/fsm`, `@studnicky/scheduler`, and `@studnicky/signal`.
+> Reducer-with-effects process pattern composing `@studnicky/fsm` and `@studnicky/scheduler`.
 
 ## Install
 
@@ -15,7 +15,7 @@ pnpm add @studnicky/process-kit
 
 ## Usage
 
-`ProcessKit` wraps a caller-supplied `StateMachine` subclass with an internally-built `EffectInterpreter`, a `SchedulerProviderType` (real-time by default, or a `VirtualScheduler` for deterministic tests), and a `Signal` for cancellation composition. `machine` is the only required field — `ProcessKit` never invents a reducer, only wires one to its supporting primitives:
+`ProcessKit` wraps a caller-supplied `StateMachine` subclass with an internally-built `EffectInterpreter` and a `SchedulerProviderInterface` (real-time by default, or a `VirtualScheduler` for deterministic tests). `machine` is the only required field — `ProcessKit` never invents a reducer, only wires one to its supporting primitives:
 
 <<< ../../packages/process-kit/examples/observedProcessKit.ts#usage
 
@@ -26,18 +26,12 @@ pnpm add @studnicky/process-kit
 | Config key | Accepts | Default |
 |------------|---------|---------|
 | `machine` | `StateMachine` subclass instance | required — no default |
-| `handlers` | `EffectHandlerMapType<TEffect, TEvent>` | `undefined` — no effects handled |
-| `scheduler` | `SchedulerProviderType` (`RealTimeScheduler`/`VirtualScheduler`) | `RealTimeScheduler.create()` |
-| `signal` | `Signal` instance | `Signal.create()` |
+| `handler` | `EffectHandlerInterface<TEffect, TEvent>` | `undefined` — no effects handled; configure through `ProcessKit.create({ machine, handler })` |
+| `scheduler` | `SchedulerProviderInterface` (`RealTimeScheduler`/`VirtualScheduler`) | `RealTimeScheduler.create()` |
 
-| Getter | Returns |
-|--------|---------|
-| `getMachine()` | The composed `StateMachine` instance |
-| `getInterpreter()` | The composed `EffectInterpreter` instance |
-| `getScheduler()` | The composed `SchedulerProviderType` instance |
-| `getSignal()` | The composed `Signal` instance |
+`ProcessKit` exposes no collaborator getters. Callers retain their machine and optional scheduler references when they need those primitives' lifecycle APIs. The interpreter is owned internally and receives the singular handler through `ProcessKit.create({ machine, handler, scheduler? })`.
 
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper. A caller who subclassed `StateMachine` for its 6 lifecycle hooks keeps full access to those hooks; `EffectInterpreter`'s 9 hooks and the scheduler's own hooks remain reachable through `getInterpreter()`/`getScheduler()`.
+Import `ProcessKit` and `ProcessKitConfigInterface` from `@studnicky/process-kit`. The package root is the only public code entrypoint.
 
 ## `dispatch()` vs. the effect-handler `dispatch` capability
 

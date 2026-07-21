@@ -1,9 +1,7 @@
 export { BusQueue } from './BusQueue.js';
-export { BusQueueBuilder } from './BusQueueBuilder.js';
-export type { BusQueueCreateOptionsType } from './BusQueueCreateOptionsType.js';
+export type { BusQueueCreateOptionsInterface } from './BusQueueCreateOptionsInterface.js';
 export { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
 export { BusQueueConfigError, EventBusError } from './errors/index.js';
 export { EventBus } from './EventBus.js';
-export { EventBusBuilder } from './EventBusBuilder.js';
-export type { EventHandlerType } from './EventHandlerType.js';
-export type { UnsubscribeType } from './UnsubscribeType.js';
+export type { EventHandlerInterface } from './EventHandlerInterface.js';
+export type { UnsubscribeInterface } from './UnsubscribeInterface.js';

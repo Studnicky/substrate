@@ -1,30 +1,29 @@
-/**
- * Getter identity tests — strict identity, not deep equality
- */
+/** Key capacity behavior. */
 
-import { strictEqual } from 'node:assert/strict';
+import { deepStrictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
-
-import { LruCache } from '@studnicky/cache';
 
 import { KeyedRateLimiter } from '../../../src/index.js';
 
-it('getCache() returns the exact composed LruCache instance', () => {
-  const limiter = KeyedRateLimiter.create({ 'burstSize': 5, 'requestsPerSecond': 10 });
+class TrackingLimiter extends KeyedRateLimiter {
+  readonly evicted: string[] = [];
 
-  const cache = limiter.getCache();
+  protected override onKeyEvicted(key: string): void {
+    this.evicted.push(key);
+  }
+}
 
-  strictEqual(cache instanceof LruCache, true);
-  strictEqual(limiter.getCache(), cache);
-});
+it('create() applies maxKeys while composing the limiter', () => {
+  const limiter = TrackingLimiter.create({
+    'burstSize': 5,
+    'maxKeys': 3,
+    'requestsPerSecond': 10
+  });
 
-it('builder() produces an equivalent limiter to create()', () => {
-  const limiter = KeyedRateLimiter.builder()
-    .withRequestsPerSecond(10)
-    .withBurstSize(5)
-    .withMaxKeys(3)
-    .build();
+  limiter.consume('user-a');
+  limiter.consume('user-b');
+  limiter.consume('user-c');
+  limiter.consume('user-d');
 
-  limiter.consume('user-a', 5);
-  strictEqual(limiter.getCache().size, 1);
+  deepStrictEqual(limiter.evicted, ['user-a']);
 });

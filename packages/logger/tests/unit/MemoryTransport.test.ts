@@ -27,7 +27,7 @@ void describe('MemoryTransport', () => {
 
     void it('throws ConfigurationError on invalid level type', () => {
       assert.throws(
-        () => MemoryTransport.create({ level: {} as unknown as string }),
+        () => { Reflect.apply(MemoryTransport.create, MemoryTransport, [{ 'level': {} }]); },
         ConfigurationError
       );
     });
@@ -65,15 +65,48 @@ void describe('MemoryTransport', () => {
       assert.strictEqual(records[2]?.data.message, 'third');
     });
 
-    void it('returns readonly array (same reference reflects new writes)', () => {
+    void it('returns a defensive snapshot', () => {
       const transport = MemoryTransport.create();
       const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [transport] });
       const snapshot = transport.records();
 
       logger.info(TestFactory.body('msg'));
 
-      // The returned array is the live buffer — length updates
-      assert.strictEqual(snapshot.length, 1);
+      assert.strictEqual(snapshot.length, 0);
+      const current = transport.records();
+      Reflect.set(current, 0, undefined);
+      assert.strictEqual(transport.records()[0]?.data.message, 'msg');
+    });
+
+    void it('does not expose mutable retained record state', () => {
+      const transport = MemoryTransport.create();
+      const logger = Logger.create({
+        'level': LOG_LEVEL.TRACE,
+        'metadata': { 'deployment': { 'region': 'east' } },
+        'transports': [transport]
+      });
+      const context = { 'request': { 'attempt': 1 } };
+
+      logger.info(TestFactory.body('immutable', context));
+      const exposed = transport.records()[0];
+      assert.ok(exposed);
+
+      const exposedDeployment = Reflect.get(exposed.metadata, 'deployment');
+      assert.ok(exposedDeployment !== null && typeof exposedDeployment === 'object');
+      const exposedRegion = Reflect.get(exposedDeployment, 'region');
+      const exposedRequest = Reflect.get(exposed.data.context, 'request');
+      assert.ok(exposedRequest !== null && typeof exposedRequest === 'object');
+      Reflect.set(exposed, 'level', LOG_LEVEL.SILENT);
+      Reflect.set(exposedDeployment, 'region', 'west');
+      Reflect.set(exposedRequest, 'attempt', 2);
+      context.request.attempt = 3;
+
+      const retained = transport.records()[0];
+      assert.ok(retained);
+      assert.strictEqual(retained.level, LOG_LEVEL.INFO);
+      assert.strictEqual(exposedRegion, 'east');
+      assert.deepStrictEqual(retained.metadata, { 'deployment': { 'region': 'east' } });
+      assert.deepStrictEqual(retained.data.context, { 'request': { 'attempt': 1 } });
     });
   });
 

@@ -6,6 +6,8 @@
 
 A fine-grained async mutex where operations on different keys run concurrently, while operations sharing the same key are serialized via an internal queue. Designed for entity resolution, cache population, and any scenario where concurrent writes to the same logical resource must be prevented.
 
+`MutexQueueEntryEntity` is the package-root schema contract for queued acquisition timestamps. The internal queue interface indexes that serializable field from the entity while retaining its callback and timer contracts directly.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -40,6 +42,17 @@ await Promise.all([
 // counter === 2, increments happened one at a time
 ```
 
+`runExclusive()` returns `unknown` unless the caller supplies a runtime type predicate. This keeps coalescing sound when concurrent same-key callers provide callbacks with different result types: every caller validates the one shared result before receiving a narrowed value.
+
+```typescript
+const acceptsUser = (value: unknown): value is User => value instanceof User;
+const user = await mutex.runExclusive(
+  'user:1',
+  () => fetchUser('user:1'),
+  acceptsUser,
+);
+```
+
 ## Extending
 
 Subclass `Mutex` and override any of the protected lifecycle hooks to add telemetry without coupling the base class to a metrics library. The hooks fire around every acquire and release cycle.
@@ -61,7 +74,7 @@ const mutex = new InstrumentedMutex({ timeout: 3000 });
 await mutex.runExclusive('resource', () => doWork());
 ```
 
-Available hooks: `beforeAcquire`, `afterAcquire`, `onContended`, `beforeRelease`, `afterRelease`, `onTimeout`.
+Available hooks: `beforeAcquire`, `afterAcquire`, `onContended`, `beforeRelease`, `afterRelease`, `onTimeout`, `onAcquireWait`, `onRelease`, `onQueueDrain`, and `onEnterKey`. Hook calls preserve the mutex's synchronous state transitions; synchronous throws and async rejections are recorded and swallowed so observability cannot corrupt lock bookkeeping.
 
 ## Documentation
 

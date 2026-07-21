@@ -1,8 +1,7 @@
 import assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { FrozenMutationError } from '../../../src/errors/FrozenMutationError.js';
-import { Frozen } from '../../../src/json/Frozen.js';
+import { Frozen, FrozenMutationError } from '../../../src/index.js';
 
 void describe('Frozen', () => {
   void describe('Frozen.deepFreeze', () => {

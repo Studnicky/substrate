@@ -13,8 +13,8 @@ scope.execute(() => {
   context.set('statusCode', 200);
   context.set('userId', 'u-42');
 
-  console.log(`requestId: ${context.get<string>('requestId')}`);
-  console.log(`statusCode: ${context.get<number>('statusCode')}`);
+  console.log(`requestId: ${context.get('requestId')}`);
+  console.log(`statusCode: ${context.get('statusCode')}`);
   console.log(`isActive inside execute: ${context.isActive()}`);
 });
 

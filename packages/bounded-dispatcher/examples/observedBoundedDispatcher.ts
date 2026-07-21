@@ -1,43 +1,14 @@
 /** observedBoundedDispatcher — direct composition of BoundedDispatcher over a bounded
- * Semaphore, an EventBus tuned with a highWaterMark, and a RealTimeScheduler, plus an
- * extension subclass reaching composed instances via getters. Run:
+ * Semaphore, an EventBus tuned with a highWaterMark, and a RealTimeScheduler, with
+ * dispatch observation through the composed bus. Run:
  * npx tsx examples/observedBoundedDispatcher.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { BoundedDispatcherEventType } from '../src/index.js';
-
 import { BoundedDispatcher } from '../src/index.js';
 
-/**
- * Advanced extension: BoundedDispatcher has no hooks of its own — dispatch-level
- * observability is the `'dispatch'` topic on the composed `EventBus`, reachable
- * through `getBus()`. A subclass can still add convenience behavior by reaching
- * the composed instances through the getters.
- */
-class ReportingBoundedDispatcher extends BoundedDispatcher {
-  readonly #completedCount = { 'value': 0 };
-  readonly #failedCount = { 'value': 0 };
-
-  // `this.create(...)` (not `BoundedDispatcher.create(...)`) so the inherited factory's
-  // `new this(...)` binds to ReportingBoundedDispatcher — same `new this()` polymorphism
-  // Semaphore/EventBus/RealTimeScheduler use for their own subclass factories.
-  static tracked(permits: number): ReportingBoundedDispatcher {
-    const result = this.create({ 'bus': { 'highWaterMark': 4 }, 'permits': permits }) as ReportingBoundedDispatcher;
-    result.getBus().subscribe('dispatch', (payload) => { result.#record(payload); });
-    return result;
-  }
-
-  report(): { 'completed': number; 'failed': number } {
-    return { 'completed': this.#completedCount.value, 'failed': this.#failedCount.value };
-  }
-
-  #record(payload: BoundedDispatcherEventType): void {
-    if (payload.phase === 'success') { this.#completedCount.value += 1; }
-    if (payload.phase === 'error') { this.#failedCount.value += 1; }
-  }
-}
+const report = { 'completed': 0, 'failed': 0 };
 // #endregion usage
 
 class ObservedBoundedDispatcherExample {
@@ -45,7 +16,11 @@ class ObservedBoundedDispatcherExample {
     // --- Scenario A: bounded concurrency — permits=2 means at most 2 of 5 dispatched tasks
     // run at once, the rest queue on the Semaphore. ---
 
-    const dispatcher = ReportingBoundedDispatcher.tracked(2);
+    const dispatcher = BoundedDispatcher.create({ 'bus': { 'highWaterMark': 4 }, 'permits': 2 });
+    dispatcher.getBus().subscribe('dispatch', (payload) => {
+      if (payload.phase === 'success') { report.completed += 1; }
+      if (payload.phase === 'error') { report.failed += 1; }
+    });
 
     let concurrentCount = 0;
     let maxConcurrentObserved = 0;
@@ -70,14 +45,14 @@ class ObservedBoundedDispatcherExample {
     assert.ok(maxConcurrentObserved <= 2, `expected at most 2 concurrent tasks, observed ${maxConcurrentObserved}`);
 
     // --- Scenario B: one failing dispatch is tracked distinctly from the successful ones,
-    // via the subclass's 'dispatch' subscription. ---
+    // via the 'dispatch' subscription. ---
 
     await dispatcher.dispatch(() => { throw new Error('boom'); }).catch(() => { /* expected */ });
     await dispatcher.getBus().drain();
 
-    console.log('Report:', dispatcher.report());
-    assert.equal(dispatcher.report().completed, 5);
-    assert.equal(dispatcher.report().failed, 1);
+    console.log('Report:', report);
+    assert.equal(report.completed, 5);
+    assert.equal(report.failed, 1);
 
     // --- Scenario C: scheduleDispatch delays a dispatch through the scheduler instead of
     // running it immediately. ---

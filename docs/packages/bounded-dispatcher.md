@@ -15,11 +15,15 @@ pnpm add @studnicky/bounded-dispatcher
 
 ## Usage
 
-`BoundedDispatcher#dispatch(fn)` acquires a permit from the composed `Semaphore`, publishes a `{ phase: 'start' }` event on the `'dispatch'` topic, runs `fn`, publishes `{ phase: 'success', result }` or `{ phase: 'error', error }`, and releases the permit — regardless of outcome. `scheduleDispatch(atMs, fn)` layers a `scheduler`-driven delayed dispatch on top, returning the scheduler's own cancellable task handle:
+`BoundedDispatcher#dispatch(fn)` acquires a permit from the composed `Semaphore`, initiates a non-blocking `{ phase: 'start' }` publication on the `'dispatch'` topic, runs `fn`, initiates `{ phase: 'success', result }` or `{ phase: 'error', error }`, and releases the permit when `fn` settles. `scheduleDispatch(atMs, fn)` layers a scheduler-driven delayed dispatch on top, returning the scheduler's own cancellable task handle:
 
 <<< ../../packages/bounded-dispatcher/examples/observedBoundedDispatcher.ts#usage
 
 ## Transparency contract
+
+Import `BoundedDispatcher` and its package-owned configuration, topic-map, and dispatch-event interfaces from `@studnicky/bounded-dispatcher`. The package root is the only public code entrypoint. Import `Semaphore`, `EventBus`, and scheduler contracts directly from their owning package roots.
+
+The package root also exports `BoundedDispatcherStartEventEntity`, `BoundedDispatcherSuccessEventEntity`, and `BoundedDispatcherErrorEventEntity`. These entities own the schema-derived phase discriminants; the event interfaces compose those fields with their runtime result and error values.
 
 `BoundedDispatcher` introduces no hook of its own — every observable stage is either already covered by a composed primitive's own hooks, or surfaced as the `'dispatch'` topic on the composed `EventBus`:
 
@@ -27,21 +31,17 @@ pnpm add @studnicky/bounded-dispatcher
 |------------|---------|---------|
 | `permits` | `number`, shorthand for `Semaphore.create({ permits })` | `1` |
 | `bus` | `EventBus` instance or `BusQueueOptionsEntity.Type` (e.g. `{ highWaterMark }`) | `EventBus.create({})` |
-| `scheduler` | `SchedulerProviderType` (`RealTimeScheduler` or `VirtualScheduler`) | `RealTimeScheduler.create()` |
+| `scheduler` | `SchedulerProviderInterface` (`RealTimeScheduler` or `VirtualScheduler`) | `RealTimeScheduler.create()` |
 
-| Getter | Returns |
-|--------|---------|
-| `getSemaphore()` | The composed `Semaphore` instance |
-| `getBus()` | The composed `EventBus` instance |
-| `getScheduler()` | The composed `SchedulerProviderType` instance |
+`getBus()` is the functional access path for subscribing to and draining the dispatcher-owned bus. `hookErrorCount` reports rejected lifecycle publications, and `getHookErrors()` returns their `HookInvocationError` records. The scheduler remains caller-owned when supplied; the dispatcher creates its semaphore internally from `permits` and exposes no scheduler or semaphore getter.
 
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper. A caller who subclassed `Semaphore` for custom queueing, or `EventBus` for custom delivery hooks, keeps full access to those subclasses' own hooks; `BoundedDispatcher` never re-exposes a stage a wrapped primitive's hook already covers (no redundant "before acquire" hook, no redundant "on publish" hook). Permit-level observability stays entirely on `Semaphore#onAcquire`/`onAcquireWait`/`onContended`/`onRelease`/`onReleaseDelegated`; dispatch-level observability is the `'dispatch'` topic, reachable through `getBus()`.
+`BoundedDispatcher` never re-exposes a stage a wrapped primitive's hook already covers. Permit-level observability stays on `Semaphore#onAcquire`/`onAcquireWait`/`onContended`/`onRelease`/`onReleaseDelegated`; dispatch-level observability is the `'dispatch'` topic reached through `getBus()`. Publication completion remains outside the permit hold. Rejections do not replace the work result or error.
 
 Passing a `VirtualScheduler` gives deterministic test fixtures for free — `scheduleDispatch()` only fires once the virtual clock is advanced past `atMs`, with no kit-side test-mode flag.
 
 ## Composition order
 
-`dispatch()`: acquire `Semaphore` permit (`Semaphore#withPermit`) → publish `'dispatch'` `start` → run `fn` → publish `'dispatch'` `success`/`error` → release the permit. `scheduleDispatch()`: `scheduler.scheduleAt(atMs, () => dispatch(fn))` — the scheduler's own error containment applies to a rejecting `fn` the same way it does to any other scheduled callback (the scheduler's `onFireError` hook is the only observability seam for a scheduled dispatch's failure that no caller awaited).
+`dispatch()`: acquire `Semaphore` permit (`Semaphore#withPermit`) → initiate `'dispatch'` `start` publication → run `fn` → initiate `'dispatch'` `success`/`error` publication → release the permit. Publication promises complete independently through the guarded hook invoker, so event-bus backpressure cannot throttle work concurrency. `scheduleDispatch()`: `scheduler.scheduleAt(atMs, () => dispatch(fn))` — the scheduler's own error containment applies to a rejecting `fn` the same way it does to any other scheduled callback.
 
 ## When to stop using this and move to Dagonizer
 

@@ -7,13 +7,13 @@
  * replaying the leader's result under a mismatched fingerprint.
  */
 
-import { deepStrictEqual, rejects, strictEqual } from 'node:assert/strict';
+import { rejects, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { IdempotencyConflictError, IdempotencyGuard } from '../../../src/index.js';
 
 it('throws IdempotencyConflictError for a concurrent same-key different-payload racer with no cached entry yet', async () => {
-  const guard = IdempotencyGuard.create({ 'capacity': 10, 'ttlMs': 60_000 });
+  const guard = IdempotencyGuard.create<string>({ 'capacity': 10, 'ttlMs': 60_000 });
   let leaderCalls = 0;
   let followerCalls = 0;
   let resolveLeader: (value: string) => void = () => {};
@@ -42,7 +42,12 @@ it('throws IdempotencyConflictError for a concurrent same-key different-payload 
   strictEqual(leaderCalls, 1);
   strictEqual(followerCalls, 0);
 
-  const cache = guard.getCache();
-  const entry = cache.get('order-race');
-  deepStrictEqual(entry, { 'fingerprint': entry?.fingerprint, 'result': 'leader-result' });
+  let replayFactoryCalls = 0;
+  const replayed = await guard.run('order-race', { 'amount': 500 }, async () => {
+    replayFactoryCalls += 1;
+    return 'unexpected-result';
+  });
+
+  strictEqual(replayed, 'leader-result');
+  strictEqual(replayFactoryCalls, 0);
 });

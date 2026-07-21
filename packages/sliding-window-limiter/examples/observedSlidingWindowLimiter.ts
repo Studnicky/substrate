@@ -2,11 +2,10 @@
 
 import assert from 'node:assert/strict';
 
-import type { SlidingWindowLimiterOptionsInterface } from '../src/interfaces/SlidingWindowLimiterOptionsInterface.js';
+import type { SlidingWindowLimiterOptionsInterface } from '../src/index.js';
 
 // #region usage
-import { SlidingWindowExhaustedError } from '../src/SlidingWindowExhaustedError.js';
-import { SlidingWindowLimiter } from '../src/SlidingWindowLimiter.js';
+import { SlidingWindowExhaustedError, SlidingWindowLimiter } from '../src/index.js';
 
 class TracedLimiter extends SlidingWindowLimiter {
   readonly allowed: number[] = [];

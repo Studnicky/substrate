@@ -30,16 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `EventBus.builder<T>()` — fluent builder entry point. Returns an `EventBusBuilder<T>` whose `build()` produces the bus. Uniform API for no-config construction.
-- `BusQueue.builder<T>()` — fluent builder with `withHandler()`, `withHighWaterMark()`, `withOnError()`, and `withSignal()` setters. `build()` validates and throws `BusQueueConfigError` on bad config.
-- `BusQueue.create<T>(options)` — static factory accepting a single `BusQueueCreateOptionsType<T>` options object `{ handler, highWaterMark?, onError?, signal? }`. Both `create` and `builder().build()` funnel through the protected constructor, which is the single validation gate.
-- `BusQueueBuilder<T>` and `EventBusBuilder<T>` exported from the package barrel and available as named imports.
-- `BusQueueCreateOptionsType<T>` type exported for consumers that assemble options programmatically.
+- `EventBus.create<T>(config?)` is the direct construction entry point.
+- `BusQueue.create<T>(options)` accepts the handler directly in its `BusQueueCreateOptionsInterface<T>` options object: `{ handler, highWaterMark?, onError?, signal? }`.
+- `BusQueueCreateOptionsInterface<T>`, `EventHandlerInterface<T>`, and `UnsubscribeInterface` exported as runtime and callable contracts.
 
 ### Changed
 
-- `EventBus` and `BusQueue` constructors are now `protected` (were `private`/`public` respectively). Direct `new EventBus()` / `new BusQueue(handler, options?)` from outside the class file is no longer the intended path — use `EventBus.create()` / `BusQueue.create(options)` instead.
-- Handler callbacks now receive the subscription `AbortSignal` as a second argument (`(payload, signal)`). The signal aborts when the subscriber is unsubscribed, when a caller-supplied signal aborts, or when the bus is closed. Callbacks can pass it to `fetch()` or check `signal.aborted` to cancel long-running async work.
+- The package root is the sole code entrypoint for `EventBus`, `BusQueue`, and their package-owned contracts, entities, and errors.
+- `EventBus` and `BusQueue` constructors are `protected`; use `EventBus.create()` / `BusQueue.create(options)` to construct instances.
+- Handler callbacks receive the subscription `AbortSignal` as a second argument (`(payload, signal)`). The signal aborts when the subscriber is unsubscribed, when a caller-supplied signal aborts, or when the bus is closed. Callbacks can pass it to `fetch()` or check `signal.aborted` to cancel long-running async work.
+- `BusQueue` completes `onEnqueue` and applicable `onOverflow` admission hooks before handler delivery. A rejected admission hook cancels only its item, and later enqueues continue in FIFO order.
 
 ## [1.0.0] - 2026-06-22
 

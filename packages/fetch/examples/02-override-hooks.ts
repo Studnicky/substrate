@@ -4,8 +4,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 
 // #region usage
-import type { RequestContextType } from '../src/types/RequestContextType.js';
-import type { ResponseContextType } from '../src/types/ResponseContextType.js';
+import type { RequestContextInterface, ResponseContextInterface } from '../src/index.js';
 
 import { FetchClient } from '../src/index.js';
 
@@ -23,9 +22,9 @@ class AuthClient extends FetchClient {
   readonly requestLog: string[] = [];
   readonly responseLog: number[] = [];
 
-  protected override onRequest(context: RequestContextType): Promise<RequestContextType> {
+  protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     this.requestLog.push(context.url);
-    const result: RequestContextType = {
+    const result: RequestContextInterface = {
       ...context,
       'options': {
         ...context.options,
@@ -39,7 +38,7 @@ class AuthClient extends FetchClient {
     return Promise.resolve(result);
   }
 
-  protected override onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+  protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     this.responseLog.push(context.response.status);
     return Promise.resolve(context);
   }

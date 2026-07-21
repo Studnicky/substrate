@@ -30,14 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `Mutex` constructor is `protected`; use `Mutex.create()` or `Mutex.builder()` to construct instances. Subclasses with implicit constructors remain publicly instantiable.
-- `MutexBuilder` constructor is `private`; obtain a builder via `Mutex.builder()` or `MutexBuilder.create()`. Initial-config shorthand (`new MutexBuilder({ ... })`) is replaced by chained `.withMaxQueueSize()` / `.withTimeout()` / `.withCoalescing()` calls.
+- The package root is the sole public code entrypoint. Mutex implementation constants remain internal.
+- `Mutex.create(config?)` is the sole construction entry point; the constructor remains protected for subclassing.
 - `Mutex.create()` uses `new this()` internally so subclass factories return the correct subclass type.
-
-### Added
-
-- `Mutex.builder<K>()` static method returns a `MutexBuilder` for fluent configuration, replacing direct `new MutexBuilder()` construction.
-- `MutexBuilder.create(factory)` static factory accepts an injected creation function, enabling subclass builders that produce the correct subclass type.
+- Per-key FSM state is exported as the schema-backed `MutexKeyStateEntity.Type`.
 
 ## [1.0.0] - 2026-06-22
 

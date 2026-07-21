@@ -4,13 +4,9 @@
 
 import type { Server } from 'node:http';
 
-import { equal, ok } from 'node:assert/strict';
+import { equal } from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { after, before, it } from 'node:test';
-
-import { FetchClient } from '@studnicky/fetch';
-import { Retry } from '@studnicky/retry';
-import { Signal } from '@studnicky/signal';
 
 import { RequestExecutor } from '../../../src/index.js';
 
@@ -41,12 +37,6 @@ after(() => {
 
 it('produces a working, callable instance with real default primitives', async () => {
   const executor = RequestExecutor.create();
-
-  ok(executor.getFetchClient() instanceof FetchClient);
-  ok(executor.getRetry() instanceof Retry);
-  ok(executor.getSignal() instanceof Signal);
-  equal(executor.getTiming(), undefined);
-  equal(executor.getContext(), undefined);
 
   const response = await executor.execute((client, signal) => {
     return client.get(`${serverUrl}/`, { signal });

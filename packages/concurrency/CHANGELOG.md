@@ -31,14 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `Channel`, `Coalesce`, and `Semaphore` expose reified construction API: `Class.create(options?)` and `Class.builder()` as the sole entry points; constructors are protected. `ChannelBuilder`, `CoalesceBuilder`, and `SemaphoreBuilder` classes are exported.
-- `Semaphore` constructor argument normalized from positional `permits: number` to options object `{ permits }` via `SemaphoreOptionsEntity` (schema-validated).
+- The package root is the sole code entrypoint for `AsyncIter`, `Channel`, `Coalesce`, `Semaphore`, their option entities, and package errors.
+- `Channel.create(options?)`, `Coalesce.create(options?)`, and `Semaphore.create(options)` are the sole construction entry points; constructors are protected.
+- `Semaphore.create()` accepts the schema-validated `SemaphoreOptionsEntity.Type` options object `{ permits }`.
 
 ## [1.0.0] - 2026-06-22
 
 ### Added
 
 - `Semaphore`: counting permit gate with `acquire()` returning an idempotent release function, `withPermit()` for automatic acquire/release around a callback, and `available`/`permits` getters.
-- `Coalesce`: keyed async coalescing that shares a single in-flight promise across concurrent callers for the same key; `isInflight()` for observability.
+- `Coalesce`: keyed async coalescing that reserves the shared completion before `onCoalesceStart` and the factory, so reentrant and concurrent callers join the same in-flight promise. A start-hook or factory rejection is shared by the leader and every joiner; `isInflight()` provides observability.
 - `Channel`: string-keyed fan-in async generator inbox; `publish()` buffers items to a named key, `subscribe()` yields them as an async generator, `close()` terminates all active subscribers.
 - `AsyncIter`: static-method class with three async-iterable combinators — `merge()` for FIFO fan-in of N sources, `filter()` for sync/async predicate filtering, and `enrich()` for left-join enrichment with null-passthrough.

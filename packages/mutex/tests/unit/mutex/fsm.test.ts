@@ -13,13 +13,13 @@ import {
   setTimeout as delay
 } from 'node:timers/promises';
 
-import type { MutexKeyStateType } from '../../../src/types/MutexKeyStateType.js';
+import { MutexKeyStateEntity } from '../../../src/entities/MutexKeyStateEntity.js';
 import { Mutex } from '../../../src/mutex/index.js';
 
 interface TransitionRecord {
-  from: MutexKeyStateType;
+  from: MutexKeyStateEntity.Type;
   key: string;
-  to: MutexKeyStateType;
+  to: MutexKeyStateEntity.Type;
 }
 
 class TrackingMutex extends Mutex<string> {
@@ -29,11 +29,15 @@ class TrackingMutex extends Mutex<string> {
     return new TrackingMutex();
   }
 
-  protected override guardKey(from: MutexKeyStateType, to: MutexKeyStateType): boolean {
+  protected override guardKey(from: MutexKeyStateEntity.Type, to: MutexKeyStateEntity.Type): boolean {
     return super.guardKey(from, to);
   }
 
-  protected override onEnterKey(key: string, to: MutexKeyStateType, from: MutexKeyStateType): void {
+  protected override onEnterKey(
+    key: string,
+    to: MutexKeyStateEntity.Type,
+    from: MutexKeyStateEntity.Type
+  ): void {
     this.transitions.push({ from, key, to });
   }
 }
@@ -42,17 +46,27 @@ class TrackingMutex extends Mutex<string> {
  * Subclass that exposes transitionKey publicly for illegal-edge testing.
  */
 class ForcingMutex extends Mutex<string> {
-  protected override guardKey(_from: MutexKeyStateType, to: MutexKeyStateType): boolean {
+  protected override guardKey(
+    _from: MutexKeyStateEntity.Type,
+    to: MutexKeyStateEntity.Type
+  ): boolean {
     // Block any transition TO 'unlocked' to test the throw path
     if (to === 'unlocked') return false;
 
     return super.guardKey(_from, to);
   }
 
-  forceKeyTransition(key: string, to: MutexKeyStateType): void {
+  forceKeyTransition(key: string, to: MutexKeyStateEntity.Type): void {
     this.transitionKey(key, to);
   }
 }
+
+it('validates every mutex key state and rejects unsupported states', () => {
+  for (const state of ['locked', 'queued', 'unlocked']) {
+    deepStrictEqual(MutexKeyStateEntity.validate(state), true);
+  }
+  deepStrictEqual(MutexKeyStateEntity.validate('waiting'), false);
+});
 
 it('records unlocked → locked when a key is acquired with no contention', async () => {
   const mutex = TrackingMutex.tracked();

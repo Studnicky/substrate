@@ -6,6 +6,8 @@
 
 Collects `process.hrtime.bigint()` timestamps for named `component.operation[.status]` events and returns them as a flat record of elapsed milliseconds. Designed for low-overhead instrumentation of async pipelines, adapters, and services.
 
+`@studnicky/timing` is the sole public code entrypoint.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -25,25 +27,17 @@ pnpm add @studnicky/timing
 ```typescript
 import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
 
-const timing = Timing.builder().maxEvents(100).build();
+const timing = Timing.create({ 'maxEvents': 100 });
 
 // Record a plain component.operation event
-timing.event(TimingEvent.create().component('GraphAdapter').operation('query').build());
+timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
 
 // Record a component.operation.status event
 timing.event(
-  TimingEvent.create()
-    .component('GraphAdapter')
-    .operation('query')
-    .status(TIMING_STATUS.START)
-    .build()
+  TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query', 'status': TIMING_STATUS.START })
 );
 timing.event(
-  TimingEvent.create()
-    .component('GraphAdapter')
-    .operation('query')
-    .status(TIMING_STATUS.COMPLETE)
-    .build()
+  TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query', 'status': TIMING_STATUS.COMPLETE })
 );
 
 const events = timing.getEvents();
@@ -65,7 +59,7 @@ Use `NoOpTiming` when timing collection should be silenced — in test helpers o
 import { NoOpTiming } from '@studnicky/timing';
 
 const timing = NoOpTiming.create();
-timing.event(TimingEvent.create().component('Cache').operation('get').build());
+timing.event(TimingEvent.create({ 'component': 'Cache', 'operation': 'get' }));
 
 console.log(timing.getEvents()); // { durationMs: 0 }
 ```
@@ -73,10 +67,10 @@ console.log(timing.getEvents()); // { durationMs: 0 }
 ### Precision control
 
 ```typescript
-const timing = Timing.builder()
-  .maxEvents(50)
-  .precision({ ms: 2 }) // round to 2 decimal places
-  .build();
+const timing = Timing.create({
+  maxEvents: 50,
+  precision: { ms: 2 } // round to 2 decimal places
+});
 ```
 
 ## Extending
@@ -84,12 +78,14 @@ const timing = Timing.builder()
 Override the protected `onEvent` hook to instrument or export timing data without changing the public API:
 
 ```typescript
+import type { TimingEventDataEntity } from '@studnicky/timing';
+
 import { Timing } from '@studnicky/timing';
 
 class InstrumentedTiming extends Timing {
   readonly fired: string[] = [];
 
-  protected override onEvent(data: { event: string }): void {
+  protected override onEvent(data: TimingEventDataEntity.Type, _timestamp: bigint): void {
     this.fired.push(data.event);
   }
 

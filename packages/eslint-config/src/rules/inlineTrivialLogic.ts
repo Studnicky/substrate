@@ -1,4 +1,5 @@
 import type { Rule } from 'eslint';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
@@ -20,19 +21,28 @@ class SourceRangeAccess {
   }
 }
 
-// json-schema-uninexpressible: ESLint rule-options shape validated at runtime by this rule's own meta.schema, not this package's entity/data layer
-type OptionsType = {
-  readonly 'allowLiterals': boolean;
-  readonly 'allowMemberExpressions': boolean;
-};
+namespace InlineTrivialLogicOptionsEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'allowLiterals': {
+        'default': false,
+        'description': 'Allow functions that return a constant literal (string, number, boolean).',
+        'type': 'boolean'
+      },
+      'allowMemberExpressions': {
+        'default': false,
+        'description': 'Allow functions that return a non-this member expression (e.g. obj.prop).',
+        'type': 'boolean'
+      }
+    },
+    'type': 'object'
+  } as const satisfies JSONSchema;
 
-// json-schema-uninexpressible: raw pre-default rule-options shape read directly off context.options before defaults are applied
-type RawOptionsType = {
-  readonly 'allowLiterals'?: boolean;
-  readonly 'allowMemberExpressions'?: boolean;
-};
+  export type Type = FromSchema<typeof Schema>;
+}
 
-const DEFAULT_OPTIONS: OptionsType = {
+const DEFAULT_OPTIONS: Required<InlineTrivialLogicOptionsEntity.Type> = {
   'allowLiterals': false,
   'allowMemberExpressions': false
 };
@@ -41,10 +51,14 @@ const LEADING_WHITESPACE_PATTERN = /^\s*/v;
 
 export const inlineTrivialLogic: Rule.RuleModule = {
   'create': (context) => {
-    const rawOptions = context.options.at(0) as RawOptionsType | undefined;
-    const opts: OptionsType = {
-      'allowLiterals': rawOptions?.allowLiterals ?? DEFAULT_OPTIONS.allowLiterals,
-      'allowMemberExpressions': rawOptions?.allowMemberExpressions ?? DEFAULT_OPTIONS.allowMemberExpressions
+    const rawOptions: unknown = context.options.at(0);
+    const opts: Required<InlineTrivialLogicOptionsEntity.Type> = {
+      'allowLiterals': ObjectGuard.isObject(rawOptions) && typeof rawOptions.allowLiterals === 'boolean'
+        ? rawOptions.allowLiterals
+        : DEFAULT_OPTIONS.allowLiterals,
+      'allowMemberExpressions': ObjectGuard.isObject(rawOptions) && typeof rawOptions.allowMemberExpressions === 'boolean'
+        ? rawOptions.allowMemberExpressions
+        : DEFAULT_OPTIONS.allowMemberExpressions
     };
     const { sourceCode } = context;
 
@@ -154,24 +168,7 @@ export const inlineTrivialLogic: Rule.RuleModule = {
     },
     'fixable': 'code',
     'messages': { 'trivial': 'Trivial shim functions are forbidden. Inline the logic at the call site.' },
-    'schema': [
-      {
-        'additionalProperties': false,
-        'properties': {
-          'allowLiterals': {
-            'default': false,
-            'description': 'Allow functions that return a constant literal (string, number, boolean).',
-            'type': 'boolean'
-          },
-          'allowMemberExpressions': {
-            'default': false,
-            'description': 'Allow functions that return a non-this member expression (e.g. obj.prop).',
-            'type': 'boolean'
-          }
-        },
-        'type': 'object'
-      }
-    ],
+    'schema': [InlineTrivialLogicOptionsEntity.Schema],
     'type': 'problem'
   }
 };

@@ -6,6 +6,10 @@ import type { GpuInfoEntity } from '../entities/GpuInfoEntity.js';
 import { BYTES_PER_MB, EXEC_TIMEOUT_MS, VRAM_STRING_PATTERN } from '../constants/index.js';
 
 export class GpuDetector {
+  static #isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
   static detect(): GpuInfoEntity.Type | null {
     const platform = os.platform();
 
@@ -26,14 +30,16 @@ export class GpuDetector {
         'timeout': EXEC_TIMEOUT_MS
       }).toString();
 
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const parsed: unknown = JSON.parse(raw);
+      if (!GpuDetector.#isRecord(parsed)) { return null; }
       const displays = parsed.SPDisplaysDataType;
 
       if (!Array.isArray(displays) || displays.length === 0) {
         return null;
       }
 
-      const first = displays[0] as Record<string, unknown>;
+      const first: unknown = displays[0];
+      if (!GpuDetector.#isRecord(first)) { return null; }
       const name = typeof first.sppci_model === 'string' ? first.sppci_model : 'Unknown GPU';
       const vramMb = GpuDetector.#parseVramString(
         typeof first.spdisplays_vram === 'string' ? first.spdisplays_vram : null
@@ -92,7 +98,8 @@ export class GpuDetector {
         'timeout': EXEC_TIMEOUT_MS
       }).toString();
 
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const parsed: unknown = JSON.parse(raw);
+      if (!GpuDetector.#isRecord(parsed)) { return null; }
       const keys = Object.keys(parsed);
       const firstKey = keys[0];
 
@@ -100,7 +107,8 @@ export class GpuDetector {
         return null;
       }
 
-      const gpuInfo = parsed[firstKey] as Record<string, unknown>;
+      const gpuInfo: unknown = parsed[firstKey];
+      if (!GpuDetector.#isRecord(gpuInfo)) { return null; }
       const vramTotalStr = gpuInfo['VRAM Total Memory (B)'];
       const vramMb = typeof vramTotalStr === 'string'
         ? Math.round(parseInt(vramTotalStr, 10) / BYTES_PER_MB)

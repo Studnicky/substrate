@@ -47,43 +47,42 @@ export class Frozen {
       return value;
     }
 
-    const obj = value as object;
-
-    if (seen.has(obj)) {
+    if (seen.has(value)) {
       return value;
     }
 
-    seen.add(obj);
+    seen.add(value);
 
-    if (obj instanceof Map) {
-      Object.freeze(obj);
-      for (const v of obj.values()) {
+    if (value instanceof Map) {
+      Object.freeze(value);
+      for (const v of value.values()) {
         this.freezeValue(v, seen);
       }
 
-      return this.guardMutations(obj, FROZEN_MAP_MUTATORS) as unknown as T;
+      return this.guardMutations(value, FROZEN_MAP_MUTATORS);
     }
 
-    if (obj instanceof Set) {
-      Object.freeze(obj);
-      for (const v of obj.values()) {
+    if (value instanceof Set) {
+      Object.freeze(value);
+      for (const v of value.values()) {
         this.freezeValue(v, seen);
       }
 
-      return this.guardMutations(obj, FROZEN_SET_MUTATORS) as unknown as T;
+      return this.guardMutations(value, FROZEN_SET_MUTATORS);
     }
 
-    if (this.shouldFreeze(obj)) {
-      Object.freeze(obj);
+    if (this.shouldFreeze(value)) {
+      Object.freeze(value);
     }
 
-    if (Array.isArray(obj)) {
-      const objLen = (obj as unknown[]).length;
+    if (Array.isArray(value)) {
+      const items = Array.from<unknown>(value);
+      const objLen = items.length;
       for (let i = 0; i < objLen; i += 1) {
-        this.freezeValue((obj as unknown[])[i], seen);
+        this.freezeValue(items[i], seen);
       }
     } else {
-      const children = Object.values(obj);
+      const children = Object.values(value);
       const childLen = children.length;
       for (let i = 0; i < childLen; i += 1) {
         this.freezeValue(children[i], seen);

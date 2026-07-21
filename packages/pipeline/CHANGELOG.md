@@ -35,12 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The package root is the sole code entrypoint for `Pipeline` and its package-owned entity, error, and contracts.
+- `PipelineOptionsEntity.Type` is the schema-derived configuration data. `PipelineFunctionInterface<T>` and `PipelineInterface<T>` define the callable and runtime contracts exported from the package root.
+
 ### Added
 
-- `Pipeline.create<T>()` static factory — the single validated construction path; replaces direct `new Pipeline()`.
-- `Pipeline.builder<T>()` static method returning a `PipelineBuilder<T>` via the create-closure idiom.
-- `PipelineBuilder<T>` class (own file, single export) with private constructor, `static create(closure)`, and `build()` — no `withX()` setters since `Pipeline` carries no configuration.
-- `Pipeline` constructor is now `protected`, preventing external `new Pipeline()` while preserving subclassability and `new this()` in `create()`.
+- `Pipeline.create<T>(options?)` is the single validated construction path.
+- `Pipeline` has a protected constructor, preserving subclassability and `new this()` in `create()`.
 
 ## [1.0.0] - 2026-06-22
 

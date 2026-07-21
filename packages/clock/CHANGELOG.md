@@ -12,7 +12,7 @@
 
 ### Patch Changes
 
-- d2b44b7: Domain error constructors route through `@studnicky/errors`'s `DomainErrorArgs.build()` instead of hand-rolled `super({code,message,retryable})` boilerplate. Fluent builders assemble their options object via `@studnicky/types`'s `PickDefined.from()` instead of manual spread-ternary chains. `@studnicky/fetch`'s config validators subclass `@studnicky/config`'s `ConfigValidation`. `@studnicky/eslint-config`'s duplicated rule-internal AST helpers are consolidated under `rules/shared/`. No public API or behavior changes.
+- d2b44b7: Domain error constructors route through `@studnicky/errors`'s `DomainErrorArgs.build()` instead of hand-rolled `super({code,message,retryable})` boilerplate. `@studnicky/fetch`'s config validators subclass `@studnicky/config`'s `ConfigValidation`. `@studnicky/eslint-config`'s duplicated rule-internal AST helpers are consolidated under `rules/shared/`. No public API or behavior changes.
 - Updated dependencies [d2b44b7]
 - Updated dependencies [d2b44b7]
   - @studnicky/types@7.0.0
@@ -28,15 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, and `VirtualTimeCounter` constructors are now protected. All instances are created via `Class.create(...)` or `Class.builder()....build()`, with validation consolidated in the constructor.
-- `RealTimeClockProvider` construction normalizes to an options object: `RealTimeClockProvider.create({ offsetMs })`. Builder: `RealTimeClockProvider.builder().withOffsetMs(500).build()`.
-- `VirtualTimeCounter` construction normalizes to an options object: `VirtualTimeCounter.create({ startMs })`. Previously silently clamped negative `startMs` to 0; now throws `ClockError` on non-finite or negative values. Builder: `VirtualTimeCounter.builder().withStartMs(1000).build()`.
-- `VirtualClockProvider.create(counter)` and `VirtualClockProvider.builder().withCounter(counter).build()` are the construction paths.
-- `Clock.create(provider)` and `Clock.builder().withProvider(provider).build()` are the construction paths.
+- The package root is the sole public code entrypoint, including `ClockProviderInterface` and all clock implementations and option entities.
+- `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, and `VirtualTimeCounter` have protected constructors. Instances use `Class.create(...)`, with validation consolidated in the constructor.
+- `RealTimeClockProvider` construction normalizes to an options object: `RealTimeClockProvider.create({ offsetMs })`.
+- `VirtualTimeCounter.create({ startMs })` accepts finite, non-negative time and throws `ClockError` for invalid values.
+- `VirtualClockProvider.create(counter)` is the construction path.
+- `Clock.create(provider)` is the construction path.
 
 ### Added
 
-- `ClockBuilder`, `RealTimeClockProviderBuilder`, `VirtualClockProviderBuilder`, `VirtualTimeCounterBuilder` — fluent builder classes for all four service classes.
 - `RealTimeClockProviderOptionsEntity`, `VirtualTimeCounterOptionsEntity` — schema-validated option types for plain-data configuration.
 
 ## [1.0.0] - 2026-06-22

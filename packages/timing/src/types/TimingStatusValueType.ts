@@ -1,6 +1,0 @@
-import type { TIMING_STATUS } from '../constants/index.js';
-
-/**
- * Type representing any standard timing status value.
- */
-export type TimingStatusValueType = typeof TIMING_STATUS[keyof typeof TIMING_STATUS];

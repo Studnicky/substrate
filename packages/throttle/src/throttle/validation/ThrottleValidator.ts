@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/config';
+import { Guard } from '@studnicky/types';
 
 import type { ThrottleInterface } from '../../interfaces/ThrottleInterface.js';
 
@@ -19,7 +19,6 @@ class ThrottleValidator {
     return (
       Guard.isFunction(value.execute)
       && Guard.isFunction(value.getStats)
-      && Guard.isFunction(value.updateConfig)
       && Guard.isFunction(value.isComplete)
       && Guard.isFunction(value.drain)
       && Guard.isFunction(value.abort)

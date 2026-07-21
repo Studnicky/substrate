@@ -1,20 +1,20 @@
 import { HookInvoker } from '@studnicky/errors';
 
+import type { LruCacheNodeTimingEntity } from './entities/LruCacheNodeTimingEntity.js';
+
 import { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js';
 import { CacheConfigError } from './errors/index.js';
-import { LruCacheBuilder } from './LruCacheBuilder.js';
 
-// json-schema-uninexpressible: generic type parameters K/V plus self-referential doubly-linked-list pointers (next/prev), not a plain data shape
-type NodeType<K, V> = {
+interface LruCacheNodeInterface<K, V> {
   /** Expiry timestamp (ms since epoch) or `0` (no expiry sentinel). */
-  'expiresAt': number;
+  'expiresAt': LruCacheNodeTimingEntity.Type['expiresAt'];
   'key': K;
-  'next': NodeType<K, V> | undefined;
-  'prev': NodeType<K, V> | undefined;
+  'next': LruCacheNodeInterface<K, V> | undefined;
+  'prev': LruCacheNodeInterface<K, V> | undefined;
   /** Staleness timestamp (ms since epoch) or `0` (no staleness configured sentinel). */
-  'staleAt': number;
+  'staleAt': LruCacheNodeTimingEntity.Type['staleAt'];
   'value': V;
-};
+}
 
 const noExpiry = 0;
 
@@ -26,10 +26,7 @@ const noExpiry = 0;
  * never affect cache read/write behavior.
  */
 class LruCacheHookInvoker extends HookInvoker {
-  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
-    const result = undefined as T;
-    return result;
-  }
+  protected override onHookError(_hookName: string, _cause: unknown): void {}
 }
 
 /**
@@ -57,22 +54,13 @@ export class LruCache<K, V> {
   readonly #capacity: number;
   readonly #defaultStaleMs: number | undefined;
   readonly #defaultTtlMs: number | undefined;
-  readonly #nodes: Map<K, NodeType<K, V>>;
-  #head: NodeType<K, V> | undefined;
-  #tail: NodeType<K, V> | undefined;
+  readonly #nodes: Map<K, LruCacheNodeInterface<K, V>>;
+  #head: LruCacheNodeInterface<K, V> | undefined;
+  #tail: LruCacheNodeInterface<K, V> | undefined;
 
   static create<K = unknown, V = unknown>(options: LruCacheOptionsEntity.Type): LruCache<K, V> {
     // `new this(...)` so subclass factories return the subclass instance.
     return new this(options);
-  }
-
-  static builder<K = unknown, V = unknown>(): LruCacheBuilder<K, V> {
-    const factory = (options: LruCacheOptionsEntity.Type): LruCache<K, V> => {
-      const result = LruCache.create<K, V>(options);
-      return result;
-    };
-    const result = LruCacheBuilder.create<K, V>(factory);
-    return result;
   }
 
   protected constructor(options: LruCacheOptionsEntity.Type) {
@@ -206,18 +194,6 @@ export class LruCache<K, V> {
     return { 'found': true, 'value': node.value };
   }
 
-  /**
-   * Inserts each `[key, value]` pair in array order. The last entry in the array
-   * ends up most-recently-used. An empty array is a no-op. `ttlMs` applies to all
-   * entries in the batch with the same precedence as the per-call TTL in `set`.
-   */
-  public setMany(entries: readonly (readonly [K, V])[], ttlMs?: number): void {
-    for (const [key, value] of entries) {
-      const opts = ttlMs !== undefined ? { 'ttlMs': ttlMs } : undefined;
-      this.set(key, value, opts);
-    }
-  }
-
   /** Stores value; promotes existing key to MRU or evicts LRU tail if at capacity. */
   public set(key: K, value: V, opts?: { 'staleMs'?: number; 'ttlMs'?: number }): void {
     const effectiveTtl = opts?.ttlMs ?? this.#defaultTtlMs;
@@ -243,7 +219,7 @@ export class LruCache<K, V> {
       this.evictTail(this.#tail);
     }
 
-    const node: NodeType<K, V> = {
+    const node: LruCacheNodeInterface<K, V> = {
       'expiresAt': expiresAt,
       'key': key,
       'next': undefined,
@@ -329,7 +305,7 @@ export class LruCache<K, V> {
     });
   }
 
-  private static isExpired<K, V>(node: NodeType<K, V>): boolean {
+  private static isExpired<K, V>(node: LruCacheNodeInterface<K, V>): boolean {
     if (node.expiresAt === noExpiry) {
       return false;
     }
@@ -337,7 +313,7 @@ export class LruCache<K, V> {
     return Date.now() > node.expiresAt;
   }
 
-  private insertAtHead(node: NodeType<K, V>): void {
+  private insertAtHead(node: LruCacheNodeInterface<K, V>): void {
     node.next = this.#head;
     node.prev = undefined;
 
@@ -352,7 +328,7 @@ export class LruCache<K, V> {
     }
   }
 
-  private promoteToHead(node: NodeType<K, V>): void {
+  private promoteToHead(node: LruCacheNodeInterface<K, V>): void {
     if (node === this.#head) {
       return;
     }
@@ -363,7 +339,7 @@ export class LruCache<K, V> {
     this.insertAtHead(node);
   }
 
-  private unlinkNode(node: NodeType<K, V>): void {
+  private unlinkNode(node: LruCacheNodeInterface<K, V>): void {
     if (node.prev !== undefined) {
       node.prev.next = node.next;
     } else {
@@ -389,7 +365,7 @@ export class LruCache<K, V> {
     }
   }
 
-  private evictTail(node: NodeType<K, V>): void {
+  private evictTail(node: LruCacheNodeInterface<K, V>): void {
     this.unlinkNode(node);
     this.#nodes.delete(node.key);
     this.hooks.invoke('onEvict', () => {

@@ -6,6 +6,8 @@
 
 A fixed-capacity sliding window of numeric samples. When the buffer reaches capacity, the oldest sample is automatically evicted to make room for the new one. Supports percentile calculation with linear interpolation and extensible lifecycle hooks.
 
+`@studnicky/sample-buffer` is the sole public code entrypoint.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -51,6 +53,8 @@ console.log(`p50: ${median}, p95: ${p95}`);
 buffer.clear();
 console.log(buffer.length);  // 0
 ```
+
+`SampleBufferOptionsEntity` owns validated construction data. `SampleBufferStateEntity` owns the schema-derived `isFull` and `length` fields exposed through `SampleBufferInterface`.
 
 ## Extending
 

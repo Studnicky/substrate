@@ -5,15 +5,11 @@
  * "browser" field in package.json.
  */
 
-import type { Agent } from 'undici';
-
 import type { DestroyOptionsEntity } from '../../entities/DestroyOptionsEntity.js';
-import type { DispatcherConfigEntity } from '../../entities/DispatcherConfigEntity.js';
 import type { DispatcherHealthEntity } from '../../entities/DispatcherHealthEntity.js';
 import type { UndiciDispatcherInterface } from '../../interfaces/UndiciDispatcherInterface.js';
 
 import { ConfigurationError } from '../../errors/index.js';
-import { UndiciDispatcherBuilder } from '../UndiciDispatcherBuilder.js';
 
 const BROWSER_ERROR_MESSAGE =
   'undici connection pooling requires a Node.js runtime; the browser uses native fetch';
@@ -23,16 +19,12 @@ const BROWSER_ERROR_MESSAGE =
  * because create() throws before any instance is constructed.
  */
 export class UndiciDispatcher implements UndiciDispatcherInterface {
-  static create(_config: DispatcherConfigEntity.Type = {}): UndiciDispatcher {
+  static create(_agent: unknown): UndiciDispatcher {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 
-  static builder(): UndiciDispatcherBuilder {
-    const result = UndiciDispatcherBuilder.create((_options) => {
-      throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
-    });
-    return result;
-  }
+  /** Browser construction follows the canonical create-only surface. */
+  protected constructor() {}
 
   checkDispatcherHealth(_origin: string): DispatcherHealthEntity.Type {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
@@ -43,14 +35,6 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
   }
 
   destroy(_options?: DestroyOptionsEntity.Type): Promise<void> {
-    throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
-  }
-
-  getAgent(): Agent {
-    throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
-  }
-
-  getSignal(): AbortSignal {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 

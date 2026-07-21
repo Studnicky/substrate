@@ -1,4 +1,0 @@
-/**
- * Query string parameter value types
- */
-export type QueryValueType = boolean | null | number | string | undefined;

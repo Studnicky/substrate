@@ -25,7 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `Patch` constructor is now `protected`; construct instances via `Patch.create(operations?)` (canonical entry point) or the existing static factories (`Patch.add`, `Patch.remove`, `Patch.replace`, `Patch.move`, `Patch.copy`, `Patch.test`, `Patch.combine`, `Patch.fromPlain`). Subclasses remain fully supported — `new this(...)` inside `make()` is unaffected.
+- The package root is the sole public code entrypoint for JSON operations, schemas, interfaces, and package-owned errors, including `FrozenMutationError`.
+- `Patch.create(operations?)` is the sole construction and configuration route. Its `operations` projection is deeply isolated from both constructor input and retained patch state.
+- `SchemaValidator.compile` exposes the `ValidateFunction` contract owned by `ajv`, while schema declarations and derived types use direct `JSONSchema` and `FromSchema` imports from `json-schema-to-ts`.
+- Patch value signatures use `JSONSchema7Type` from `json-schema`, backed by the package's direct `@types/json-schema` dependency.
+- `DraftNodeStateEntity`, `PatchApplyResultStatusEntity`, and `PathWildcardResultEntity` own schema-expressible state and status fields composed by JSON runtime interfaces.
 
 ## [1.0.0] - 2026-06-22
 

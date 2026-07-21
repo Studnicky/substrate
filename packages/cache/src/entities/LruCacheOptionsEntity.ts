@@ -1,18 +1,19 @@
-import { SchemaValidator, type ValidateFunction } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 export namespace LruCacheOptionsEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
       'capacity': { 'minimum': 1, 'type': 'integer' },
-      'prefix': { 'type': 'string' },
       'staleMs': { 'minimum': 0, 'type': 'number' },
       'ttlMs': { 'minimum': 0, 'type': 'number' }
     },
     'required': ['capacity'],
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   /** Construction options for {@link LruCache}. */
   export type Type = FromSchema<typeof Schema>;

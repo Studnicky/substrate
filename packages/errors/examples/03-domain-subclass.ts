@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { ModuleErrorOptionsType } from '../src/index.js';
+import type { ModuleErrorOptionsInterface } from '../src/index.js';
 
 import { BaseError, ModuleError } from '../src/index.js';
 
@@ -12,7 +12,7 @@ class StorageError extends ModuleError {
     message: string,
     options?: { 'cause'?: Error; 'context'?: Record<string, unknown> }
   ): StorageError {
-    const opts: ModuleErrorOptionsType = {
+    const opts: ModuleErrorOptionsInterface = {
       'cause': options?.cause,
       'code': 'STORAGE_ERROR',
       'context': options?.context,
@@ -44,14 +44,14 @@ const json = err.toJSON();
 console.log('toJSON().domain:', json.domain);
 console.log('toJSON().name:', json.name);
 
-// Wrapping: findCauseOfType finds StorageError in a chain
+// Wrapping: inspect the canonical BaseError cause chain
 const outer = ModuleError.create('Operation failed', {
   'cause': err,
   'scenario': 'INTERNAL'
 });
 
-const found = outer.findCauseOfType(StorageError);
-console.log('findCauseOfType(StorageError):', found?.code);
+const found = BaseError.getCauseChain(outer).find((cause) => { return cause instanceof StorageError; });
+console.log('StorageError in cause chain:', found?.code);
 // #endregion usage
 
 assert.ok(err instanceof StorageError, 'instanceof StorageError');
@@ -64,7 +64,7 @@ assert.strictEqual(err.retryable, false);
 assert.strictEqual(err.toUserMessage(), 'Storage unavailable. Please try again later.');
 assert.strictEqual(json.domain, 'storage', 'serializeExtra() in toJSON()');
 assert.strictEqual(json.name, 'StorageError');
-assert.ok(found instanceof StorageError, 'findCauseOfType(StorageError) found it');
+assert.ok(found instanceof StorageError, 'BaseError.getCauseChain() found StorageError');
 assert.strictEqual(found?.code, 'STORAGE_ERROR');
 
 console.log('03-domain-subclass: all assertions passed');

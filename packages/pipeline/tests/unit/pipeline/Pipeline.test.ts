@@ -240,6 +240,16 @@ void describe('Pipeline', () => {
       void removeB;
     });
 
+    void it('stages returns a defensive snapshot', async () => {
+      const pipeline = Pipeline.create<number>();
+      pipeline.add((n) => n + 1);
+      const snapshot = pipeline.stages;
+
+      Reflect.set(snapshot, 0, (n: number) => n + 100);
+
+      assert.strictEqual(await pipeline.run(0), 1);
+    });
+
     void it('a stage that removes itself mid-run does not skip the following stage', async () => {
       const pipeline = Pipeline.create<number>();
       const calls: string[] = [];

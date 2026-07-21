@@ -1,8 +1,8 @@
-import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
 
 /** Abstract base for all `@studnicky/idempotency-guard` errors. */
 export abstract class IdempotencyGuardError extends BaseError {
-  protected constructor(args: Readonly<BaseErrorArgumentsType>) {
+  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
     super(args);
   }
 }

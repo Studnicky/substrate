@@ -1,10 +1,10 @@
 # @studnicky/types
 
-> Shared zero-runtime utility types and type-guard helpers for @studnicky/substrate
+> Shared runtime type-guard and object helpers for @studnicky/substrate
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/types)
 
-`@studnicky/types` provides compile-time utility types (`JsonValue`, `DeepReadonly`, `DeepMergeType`, `JsonSchema`) and the `Wire` pure-static class for safely narrowing `unknown` wire-format values — with zero runtime overhead for the types and a minimal footprint for the guards.
+`@studnicky/types` provides runtime guards for narrowing untrusted values, a recursive JSON validation/coercion boundary, empty-value helpers, and defined-property selection.
 
 ## Install
 
@@ -20,62 +20,59 @@ pnpm add @studnicky/types
 
 ## Usage
 
-### Runtime guards (`Wire`)
+### Runtime guards
 
-`Wire` narrows `unknown` values returned from external APIs, JSON payloads, or any dynamically-typed source:
+`Guard` narrows `unknown` values returned from external APIs, JSON payloads, or any dynamically typed source:
 
 ```typescript
-import { Wire } from '@studnicky/types';
+import { Guard } from '@studnicky/types';
 
 const raw: unknown = await fetchApiResponse();
 
 // Narrow to Record<string, unknown>
-const record = Wire.asRecord(raw);
-if (record !== undefined) {
-  const name = Wire.asString(record['name']);     // string | undefined
-  const age  = Wire.asNumber(record['age']);      // number | undefined
-  const note = Wire.asStringOrNull(record['note']); // string | null | undefined
+if (Guard.isObject(raw)) {
+  const name = raw['name'];
+  if (Guard.isString(name)) {
+    console.log(name);
+  }
+  const age = Guard.asNumber(raw['age']);
+  const note = Guard.asStringOrNull(raw['note']);
 }
 
 // Type guard form
-if (Wire.isRecord(raw)) {
-  // raw is Record<string, unknown> here
+if (Guard.isObject(raw)) {
+  console.log(Object.keys(raw));
 }
 
 // Narrowing arrays of records (non-record elements are filtered out)
-const items = Wire.asRecordArray(raw);
-// items is Record<string, unknown>[] | undefined
+const items = Guard.asRecordArray(raw);
 ```
 
-### Compile-time types
+### JSON values
 
-These are type annotations only — no runtime overhead:
+`JsonObject.is` performs a shallow plain-object check and narrows `unknown` to `Record<string, unknown>`. `JsonValue` validates or coerces recursive JSON data. Its public signatures use the canonical `JSONSchema7Type` imported directly from its owner, `json-schema`:
 
 ```typescript
-import type { JsonValue, JsonObject, DeepReadonly, DeepMergeType } from '@studnicky/types';
-import type { JsonSchema, JsonSchemaObject, JsonSchemaTypeName } from '@studnicky/types';
+import type { JSONSchema7Type } from 'json-schema';
 
-// Recursive readonly JSON-safe value
-const value: JsonValue = { nested: [1, 'two', null] };
+import { JsonValue } from '@studnicky/types';
 
-// Unvalidated JSON object
-const payload: JsonObject = JSON.parse(responseText) as JsonObject;
+const candidate: unknown = JSON.parse(responseText);
 
-// Recursive readonly wrapper
-type Config = DeepReadonly<{ host: string; ports: number[] }>;
+if (JsonValue.is(candidate)) {
+  const value: JSONSchema7Type = candidate;
+  console.log(value);
+}
 
-// Type-level deep merge
-type Merged = DeepMergeType<{ a: string; b: number }, { b: string; c: boolean }>;
-// → { a: string; b: string; c: boolean }
-
-// JSON Schema 2020-12 types
-const schema: JsonSchemaObject = { type: 'string', minLength: 1 };
-const typeName: JsonSchemaTypeName = 'string'; // 'string' | 'number' | 'integer' | 'boolean' | 'null' | 'array' | 'object'
+const safe = JsonValue.from({ nested: [1, undefined] });
+// { nested: [1, null] }
 ```
+
+Import `JSONSchema7Type` from `json-schema` when a public signature or local annotation needs the type. Its declarations come from this package's direct `@types/json-schema` dependency. This package exports runtime boundaries rather than aliases for dependency-owned JSON types.
 
 ### Assembling options objects (`PickDefined`)
 
-`PickDefined.from` strips `undefined`-valued keys from a record and narrows each remaining value's type away from `undefined`. It's built for builders that assemble an options object from a mix of required and optional fields, replacing a manual spread-ternary chain with one call:
+`PickDefined.from` strips `undefined`-valued keys from a record and narrows each remaining value's type away from `undefined`. It assembles an options object directly from a mix of required and optional values, replacing a manual spread-ternary chain with one call:
 
 ```typescript
 import { PickDefined } from '@studnicky/types';
@@ -86,44 +83,34 @@ interface RateLimiterOptionsInterface {
   clock?: () => number;
 }
 
-class RateLimiterBuilder {
-  private requestsPerSecond?: number;
-  private burstSize?: number;
-  private clock?: () => number;
-
-  public withClock(value: () => number): this {
-    this.clock = value;
-    return this;
-  }
-
-  public build(): RateLimiterOptionsInterface {
-    return PickDefined.from({
-      requestsPerSecond: this.requestsPerSecond ?? 10,
-      burstSize: this.burstSize ?? 20,
-      clock: this.clock, // omitted from the result when never set
-    });
-  }
-}
+const options: RateLimiterOptionsInterface = PickDefined.from({
+  requestsPerSecond: 10,
+  burstSize: 20,
+  clock: undefined, // omitted from the result
+});
 ```
 
 ## Extending
 
-All types are pure compile-time constructs — import and annotate, nothing more.
-
-For `Wire`, override the static `isRecord` predicate in a subclass to customise record detection. Because `asRecord` and `asRecordArray` delegate through `this.isRecord`, overrides propagate automatically:
+For `Guard`, override the static `isObject` predicate in a subclass to customise record detection. Because `asRecordArray` delegates through `this.isObject`, overrides propagate automatically:
 
 ```typescript
-import { Wire } from '@studnicky/types';
+import { Guard } from '@studnicky/types';
 
-class StrictWire extends Wire {
-  public static override isRecord(value: unknown): value is Record<string, unknown> {
-    return super.isRecord(value) && !Array.isArray(value);
+class StrictGuard extends Guard {
+  public static override isObject(value: unknown): value is Record<string, unknown> {
+    return super.isObject(value) && Object.getPrototypeOf(value) === Object.prototype;
   }
 }
 
-// StrictWire.asRecord and StrictWire.asRecordArray use the overridden predicate
-const result = StrictWire.asRecord(payload);
+if (StrictGuard.isObject(payload)) {
+  console.log(Object.keys(payload));
+}
 ```
+
+## Public API
+
+Import `Empty`, `Guard`, `JsonObject`, `JsonValue`, and `PickDefined` from the package root. The package has one code entrypoint.
 
 ## Documentation
 

@@ -11,22 +11,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./semaphore": {
-      "types": "./dist/Semaphore.d.ts",
-      "import": "./dist/Semaphore.js"
-    },
-    "./coalesce": {
-      "types": "./dist/Coalesce.d.ts",
-      "import": "./dist/Coalesce.js"
-    },
-    "./channel": {
-      "types": "./dist/Channel.d.ts",
-      "import": "./dist/Channel.js"
-    },
-    "./async-iter": {
-      "types": "./dist/AsyncIter.d.ts",
-      "import": "./dist/AsyncIter.js"
     }
   },
   "files": [
@@ -37,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
   "license": "MIT",
@@ -70,7 +54,8 @@
     "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/types": "workspace:*"
+    "ajv": "^8.20.0",
+    "json-schema-to-ts": "^3.1.1"
   },
   "devDependencies": {
     "@studnicky/event-bus": "workspace:*",

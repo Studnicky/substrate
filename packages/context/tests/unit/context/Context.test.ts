@@ -6,11 +6,10 @@
  * - Dynamic key-value operations
  * - Async propagation
  * - Concurrent isolation
- * - Factory and builder patterns
+ * - Direct factory construction
  * - Subclass extension via protected hooks
  */
 
-import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   deepStrictEqual, ok, strictEqual, throws
 } from 'node:assert/strict';
@@ -21,32 +20,15 @@ import { setTimeout } from 'node:timers/promises';
 
 import { HookInvocationError } from '@studnicky/errors';
 
-import { Context, ContextScope } from '../../../src/context/index.js';
-import type { ContextScopeOptionsInterface } from '../../../src/context/index.js';
+import { Context } from '../../../src/context/index.js';
+import type { ContextScopeInterface } from '../../../src/interfaces/index.js';
 
 void describe('Context', () => {
-  void describe('factory patterns', () => {
+  void describe('factory construction', () => {
     void it('creates a context with static create()', () => {
       const context = Context.create({ name: 'test' });
 
       strictEqual(context.name, 'test');
-    });
-
-    void it('creates a context with builder pattern', () => {
-      const context = Context.builder()
-        .name('test-builder')
-        .build();
-
-      strictEqual(context.name, 'test-builder');
-    });
-
-    void it('builder throws if name not set', () => {
-      throws(
-        () => {
-          return Context.builder().build();
-        },
-        { message: 'Context name is required' }
-      );
     });
 
     const invalidNameScenarios: Array<{ description: string; config: unknown }> = [
@@ -56,7 +38,7 @@ void describe('Context', () => {
       },
       {
         description: 'create() throws when name is not a string',
-        config: { name: 0 as unknown as string }
+        config: { name: 0 }
       }
     ];
 
@@ -64,7 +46,7 @@ void describe('Context', () => {
       void it(description, () => {
         throws(
           () => {
-            return Context.create(config as { name: string });
+            return Reflect.apply(Context.create, Context, [config]);
           },
           { message: 'invalid Context config' }
         );
@@ -98,8 +80,8 @@ void describe('Context', () => {
       });
 
       scope.execute(() => {
-        strictEqual(context.get<string>('requestId'), '123');
-        strictEqual(context.get<number>('value'), 42);
+        strictEqual(context.get('requestId'), '123');
+        strictEqual(context.get('value'), 42);
       });
     });
   });
@@ -110,7 +92,7 @@ void describe('Context', () => {
       const scope = context.initialize({ key: 'value' });
 
       scope.execute(() => {
-        strictEqual(context.get<string>('key'), 'value');
+        strictEqual(context.get('key'), 'value');
       });
     });
 
@@ -119,7 +101,9 @@ void describe('Context', () => {
       const scope = context.initialize({ value: 5 });
 
       const result = scope.execute(() => {
-        return context.get<number>('value') * 2;
+        const value = context.get('value');
+        if (typeof value !== 'number') { throw new TypeError('Expected numeric context value'); }
+        return value * 2;
       });
 
       strictEqual(result, 10);
@@ -132,7 +116,9 @@ void describe('Context', () => {
       const result = await scope.execute(async () => {
         await Promise.resolve();
 
-        return context.get<number>('value') * 3;
+        const value = context.get('value');
+        if (typeof value !== 'number') { throw new TypeError('Expected numeric context value'); }
+        return value * 3;
       });
 
       strictEqual(result, 21);
@@ -143,11 +129,15 @@ void describe('Context', () => {
       const scope = context.initialize({ count: 0 });
 
       scope.execute(() => {
-        context.set('count', context.get<number>('count') + 1);
+        const count = context.get('count');
+        if (typeof count !== 'number') { throw new TypeError('Expected numeric context count'); }
+        context.set('count', count + 1);
       });
 
       scope.execute(() => {
-        context.set('count', context.get<number>('count') + 1);
+        const count = context.get('count');
+        if (typeof count !== 'number') { throw new TypeError('Expected numeric context count'); }
+        context.set('count', count + 1);
       });
 
       const finalState = scope.terminate();
@@ -234,7 +224,7 @@ void describe('Context', () => {
         initial: {},
         run: (context) => {
           context.set('key', 'value');
-          strictEqual(context.get<string>('key'), 'value');
+          strictEqual(context.get('key'), 'value');
         }
       },
       {
@@ -242,21 +232,28 @@ void describe('Context', () => {
         initial: { key: 'original' },
         run: (context) => {
           context.set('key', 'updated');
-          strictEqual(context.get<string>('key'), 'updated');
+          strictEqual(context.get('key'), 'updated');
         }
       },
       {
-        description: 'tryGet() returns undefined when key not found',
+        description: 'tryGet() reports a missing key',
         initial: {},
         run: (context) => {
-          strictEqual(context.tryGet('nonexistent'), undefined);
+          deepStrictEqual(context.tryGet('nonexistent'), { 'found': false, 'value': undefined });
         }
       },
       {
-        description: 'tryGet() returns value when key exists',
+        description: 'tryGet() reports a present value',
         initial: { key: 'value' },
         run: (context) => {
-          strictEqual(context.tryGet<string>('key'), 'value');
+          deepStrictEqual(context.tryGet('key'), { 'found': true, 'value': 'value' });
+        }
+      },
+      {
+        description: 'tryGet() distinguishes a stored undefined value from an absent key',
+        initial: { key: undefined },
+        run: (context) => {
+          deepStrictEqual(context.tryGet('key'), { 'found': true, 'value': undefined });
         }
       }
     ];
@@ -388,7 +385,7 @@ void describe('Context', () => {
 
         context.set('key', 'modified');
         strictEqual(snap.key, 'original');
-        strictEqual(context.get<string>('key'), 'modified');
+        strictEqual(context.get('key'), 'modified');
       });
     });
   });
@@ -452,9 +449,11 @@ void describe('Context', () => {
         expected: { message: 'No active my-context context - ensure code runs within execute()' }
       },
       {
-        description: 'tryGet() returns undefined outside execute()',
+        description: 'tryGet() reports absence outside execute()',
         throws: false,
-        run: (context) => context.tryGet('key')
+        run: (context) => {
+          deepStrictEqual(context.tryGet('key'), { 'found': false, 'value': undefined });
+        }
       }
     ];
 
@@ -476,19 +475,12 @@ void describe('Context', () => {
       protected override onMissingContext(): boolean {
         return true;
       }
-
-      exposeStore(): Map<string, unknown> {
-        return this.getStore();
-      }
     }
 
-    void it('returns the same store reference across multiple getStore() calls outside an active context', () => {
+    void it('does not expose the internal store through the subclass surface', () => {
       const context = LenientContext.create({ name: 'lenient' });
 
-      const first = context.exposeStore();
-      const second = context.exposeStore();
-
-      strictEqual(first, second);
+      strictEqual('getStore' in context, false);
     });
 
     void it('read accessors do not throw and reflect an empty store outside an active context', () => {
@@ -523,10 +515,10 @@ void describe('Context', () => {
 
       await scope.execute(async () => {
         await Promise.resolve();
-        strictEqual(context.get<string>('requestId'), 'async-test');
+        strictEqual(context.get('requestId'), 'async-test');
 
         await setTimeout(10);
-        strictEqual(context.get<string>('requestId'), 'async-test');
+        strictEqual(context.get('requestId'), 'async-test');
       });
     });
 
@@ -538,11 +530,11 @@ void describe('Context', () => {
         context.set('step', 1);
 
         await Promise.resolve();
-        strictEqual(context.get<number>('step'), 1);
+        strictEqual(context.get('step'), 1);
         context.set('step', 2);
 
         await Promise.resolve();
-        strictEqual(context.get<number>('step'), 2);
+        strictEqual(context.get('step'), 2);
       });
     });
   });
@@ -557,12 +549,12 @@ void describe('Context', () => {
 
       const task1 = scope1.execute(async () => {
         await setTimeout(20);
-        results.push(`task1: ${context.get<string>('taskId')}`);
+        results.push(`task1: ${context.get('taskId')}`);
       });
 
       const task2 = scope2.execute(async () => {
         await setTimeout(10);
-        results.push(`task2: ${context.get<string>('taskId')}`);
+        results.push(`task2: ${context.get('taskId')}`);
       });
 
       await Promise.all([
@@ -585,13 +577,13 @@ void describe('Context', () => {
         context.set('value', 200);
         await setTimeout(20);
 
-        return context.get<number>('value');
+        return context.get('value');
       });
 
       const task2 = scope2.execute(async () => {
         await setTimeout(20);
 
-        return context.get<number>('value');
+        return context.get('value');
       });
 
       const [
@@ -613,15 +605,15 @@ void describe('Context', () => {
       const outerScope = context.initialize({ level: 'outer' });
 
       outerScope.execute(() => {
-        strictEqual(context.get<string>('level'), 'outer');
+        strictEqual(context.get('level'), 'outer');
 
         const innerScope = context.initialize({ level: 'inner' });
 
         innerScope.execute(() => {
-          strictEqual(context.get<string>('level'), 'inner');
+          strictEqual(context.get('level'), 'inner');
         });
 
-        strictEqual(context.get<string>('level'), 'outer');
+        strictEqual(context.get('level'), 'outer');
       });
     });
 
@@ -649,8 +641,8 @@ void describe('Context', () => {
 
       scope1.execute(() => {
         scope2.execute(() => {
-          strictEqual(context1.get<string>('id'), 'first');
-          strictEqual(context2.get<number>('count'), 42);
+          strictEqual(context1.get('id'), 'first');
+          strictEqual(context2.get('count'), 42);
         });
       });
     });
@@ -704,7 +696,7 @@ void describe('Context', () => {
       class SeededContext extends Context {
         protected override onInitialize(
           _initial: Record<string, unknown> | undefined,
-          scope: ContextScope
+          scope: ContextScopeInterface
         ): void {
           scope.execute(() => {
             this.set('seeded', 'default-value');
@@ -716,7 +708,7 @@ void describe('Context', () => {
       const scope = context.initialize();
 
       scope.execute(() => {
-        strictEqual(context.get<string>('seeded'), 'default-value');
+        strictEqual(context.get('seeded'), 'default-value');
       });
     });
 
@@ -724,7 +716,7 @@ void describe('Context', () => {
       class SeededContext extends Context {
         protected override onInitialize(
           _initial: Record<string, unknown> | undefined,
-          scope: ContextScope
+          scope: ContextScopeInterface
         ): void {
           scope.execute(() => {
             this.set('seeded', 'default-value');
@@ -736,114 +728,9 @@ void describe('Context', () => {
       const scope = context.initialize({ caller: 'provided' });
 
       scope.execute(() => {
-        strictEqual(context.get<string>('seeded'), 'default-value');
-        strictEqual(context.get<string>('caller'), 'provided');
+        strictEqual(context.get('seeded'), 'default-value');
+        strictEqual(context.get('caller'), 'provided');
       });
-    });
-
-    void it('TracedScope.onTerminate augments snapshot', () => {
-      class TracedScope extends ContextScope {
-        protected override onTerminate(
-          snapshot: Record<string, unknown>
-        ): Record<string, unknown> {
-          return { ...snapshot, traced: true };
-        }
-
-        testTransition(to: 'active' | 'created' | 'terminated'): void {
-          this.transition(to);
-        }
-      }
-
-      const storage = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'initial': { 'key': 'value' }, 'name': 'test', 'storage': storage });
-
-      const snapshot = scope.terminate();
-
-      strictEqual(snapshot.traced, true);
-      strictEqual(snapshot.key, 'value');
-    });
-
-    void it('TracedScope.onBeforeExecute increments on each execute call', () => {
-      class TracedScope extends ContextScope {
-        executionCount = 0;
-
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onBeforeExecute(): void {
-          this.executionCount++;
-        }
-
-        testTransition(to: 'active' | 'created' | 'terminated'): void {
-          this.transition(to);
-        }
-      }
-
-      const storage = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': storage });
-
-      scope.execute(() => {});
-      scope.execute(() => {});
-      scope.execute(() => {});
-
-      strictEqual(scope.executionCount, 3);
-    });
-
-    void it('TracedScope execute-after-terminate still throws ContextError', () => {
-      class TracedScope extends ContextScope {
-        terminatedAccessCount = 0;
-
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onTerminatedAccess(): void {
-          this.terminatedAccessCount++;
-        }
-
-        testTransition(to: 'active' | 'created' | 'terminated'): void {
-          this.transition(to);
-        }
-      }
-
-      const storage = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': storage });
-
-      scope.terminate();
-
-      throws(
-        () => {
-          return scope.execute(() => {});
-        },
-        { message: 'test scope has been terminated' }
-      );
-
-      strictEqual(scope.terminatedAccessCount, 1);
-    });
-
-    void it('FSM guard rejects illegal transition terminated → active', () => {
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        testTransition(to: 'active' | 'created' | 'terminated'): void {
-          this.transition(to);
-        }
-      }
-
-      const storage = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': storage });
-
-      scope.terminate();
-
-      throws(
-        () => {
-          scope.testTransition('active');
-        },
-        { message: 'Illegal state transition: terminated → active' }
-      );
     });
 
     void it('onSet fires after set() with key and value', () => {
@@ -877,8 +764,8 @@ void describe('Context', () => {
       const context = TracedContext.create({ 'name': 'traced' });
       const scope = context.initialize({ 'x': 42 });
       scope.execute(() => {
-        context.get<number>('x');
-        context.get<number>('x');
+        context.get('x');
+        context.get('x');
       });
       scope.terminate();
       strictEqual(events.length, 2);
@@ -940,8 +827,8 @@ void describe('Context', () => {
         caught = error;
       }
 
-      ok(caught instanceof HookInvocationError);
-      strictEqual((caught as HookInvocationError).hookName, 'onInitialize');
+      if (!(caught instanceof HookInvocationError)) { throw new TypeError('Expected HookInvocationError'); }
+      strictEqual(caught.hookName, 'onInitialize');
     });
 
     void it('a throwing onSet hook surfaces a HookInvocationError after the value has already been stored', () => {
@@ -963,9 +850,9 @@ void describe('Context', () => {
           caught = error;
         }
 
-        ok(caught instanceof HookInvocationError);
-        strictEqual((caught as HookInvocationError).hookName, 'onSet');
-        strictEqual(context.get<string>('key'), 'value');
+        if (!(caught instanceof HookInvocationError)) { throw new TypeError('Expected HookInvocationError'); }
+        strictEqual(caught.hookName, 'onSet');
+        strictEqual(context.get('key'), 'value');
       });
     });
 
@@ -988,8 +875,8 @@ void describe('Context', () => {
           caught = error;
         }
 
-        ok(caught instanceof HookInvocationError);
-        strictEqual((caught as HookInvocationError).hookName, 'onGet');
+        if (!(caught instanceof HookInvocationError)) { throw new TypeError('Expected HookInvocationError'); }
+        strictEqual(caught.hookName, 'onGet');
       });
     });
 
@@ -1012,8 +899,8 @@ void describe('Context', () => {
           caught = error;
         }
 
-        ok(caught instanceof HookInvocationError);
-        strictEqual((caught as HookInvocationError).hookName, 'onDelete');
+        if (!(caught instanceof HookInvocationError)) { throw new TypeError('Expected HookInvocationError'); }
+        strictEqual(caught.hookName, 'onDelete');
         strictEqual(context.has('key'), false);
       });
     });
@@ -1058,7 +945,7 @@ void describe('Context', () => {
     void it('create() throws when config has unknown properties', () => {
       throws(
         () => {
-          return Context.create({ name: 'x', extra: 1 } as unknown as { name: string });
+          return Reflect.apply(Context.create, Context, [{ 'extra': 1, 'name': 'x' }]);
         },
         { message: 'invalid Context config' }
       );

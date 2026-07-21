@@ -1,6 +1,6 @@
 import type { Linter } from 'eslint';
 
-import type { LayerOptionsType } from '../types/LayerOptionsType.js';
+import type { LayerOptionsEntity } from '../rules/layers/LayerOptionsEntity.js';
 
 import { plugin } from '../plugin.js';
 
@@ -13,7 +13,7 @@ import { plugin } from '../plugin.js';
  * entry enabling all three consistently.
  */
 export class HexagonalSuite {
-  public static create(options: LayerOptionsType & {
+  public static create(options: LayerOptionsEntity.Type & {
     'adapterOnlyImport'?: {
       'adapterLayerName'?: string;
       'adapterOnlyImports'?: string[];

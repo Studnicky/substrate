@@ -9,7 +9,7 @@
  */
 
 import type { PathGetOptionsEntity } from '../entities/PathGetOptionsEntity.js';
-import type { PathWildcardResultType } from '../types/index.js';
+import type { PathWildcardResultInterface } from '../interfaces/PathWildcardResultInterface.js';
 
 import { BRACKET_QUOTED_KEY_PATTERN, DANGEROUS_PROPERTIES, NUMERIC_SEGMENT_PATTERN, VALID_IDENTIFIER } from '../constants/PathConstants.js';
 
@@ -87,7 +87,7 @@ export class Path {
    * Supports array indexing (`items[0]`) and wildcard (`items[*]`).
    * Proto-pollution safe — returns `undefined` for dangerous property names.
    *
-   * When `[*]` is encountered, returns a `PathWildcardResultType` sentinel
+   * When `[*]` is encountered, returns a `PathWildcardResultInterface` sentinel
    * describing the matched array and any remaining path suffix.
    *
    * @param obj - The root value to traverse.
@@ -119,10 +119,10 @@ export class Path {
             return undefined;
           }
 
-          if (current === null || current === undefined) {
+          if (current === null || typeof current !== 'object') {
             return undefined;
           }
-          current = (current as Record<string, unknown>)[key];
+          current = Reflect.get(current, key);
         }
 
         return current;
@@ -158,7 +158,11 @@ export class Path {
           return undefined;
         }
 
-        const arrayValue = (current as Record<string, unknown>)[fieldName];
+        if (typeof current !== 'object') {
+          return undefined;
+        }
+
+        const arrayValue: unknown = Reflect.get(current, fieldName);
 
         if (!Array.isArray(arrayValue)) {
           return undefined;
@@ -171,7 +175,7 @@ export class Path {
             'array': arrayValue,
             'isWildcard': true,
             'remainingPath': remaining
-          } satisfies PathWildcardResultType;
+          } satisfies PathWildcardResultInterface;
         }
 
         if (!NUMERIC_SEGMENT_PATTERN.test(arrayIndex)) {
@@ -185,7 +189,11 @@ export class Path {
         if (!this.isSafeProperty(part)) {
           return undefined;
         }
-        current = (current as Record<string, unknown>)[part];
+        if (typeof current !== 'object') {
+          return undefined;
+        }
+
+        current = Reflect.get(current, part);
       }
     }
 

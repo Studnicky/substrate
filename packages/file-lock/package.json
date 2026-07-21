@@ -21,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
   "license": "MIT",
@@ -57,7 +57,8 @@
   "dependencies": {
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/types": "workspace:*",
-    "@studnicky/virtual-fs": "workspace:*"
+    "@studnicky/virtual-fs": "workspace:*",
+    "ajv": "^8.20.0",
+    "json-schema-to-ts": "^3.1.1"
   }
 }

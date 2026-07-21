@@ -4,9 +4,8 @@
 // edited) source in the browser we must resolve its imports. Imports fall into
 // two worlds:
 //
-//   1. Package sources (packages/*/src/index.ts) — imported STATICALLY here via
-//      an eager glob so Vite bundles them optimally.
-//   2. Example-tree modules — loaded LAZILY from their raw source via a tiny
+//   1. Package sources — imported on demand from a lazy glob before execution.
+//   2. Example-tree modules — loaded lazily from their raw source via a tiny
 //      CommonJS evaluator, memoized so only modules an example actually imports
 //      are evaluated, and side-effectful module bodies run at most once.
 //
@@ -15,7 +14,14 @@
 
 import { transform } from 'sucrase';
 
-// Eager glob of all browser-compatible package sources — Vite compiles these.
+import { ExampleSources } from './ExampleSources';
+
+interface SourceModuleLoaderInterface {
+  (): Promise<Record<string, unknown>>;
+}
+
+// Lazy glob of browser-compatible package entry points. Vite compiles each
+// selected package only when an example imports it.
 // Keys are relative to this file (docs/.vitepress/theme/utils/), e.g.:
 //   '../../../../packages/retry/src/index.ts'
 //
@@ -30,33 +36,27 @@ import { transform } from 'sucrase';
 // docs/.vitepress/config.ts), so they ARE included here. (fetch runs over the
 // browser's native `fetch`; the undici connection-pool dispatcher is the
 // swapped Node-only enhancement.)
-const SOURCE_GLOB = import.meta.glob(
+const SOURCE_GLOB = import.meta.glob<Record<string, unknown>>(
   [
     '../../../../packages/*/src/index.ts',
+    '../../../../packages/*/src/**/index.ts',
     '!../../../../packages/context/src/index.ts',
+    '!../../../../packages/context/src/**/index.ts',
     '!../../../../packages/eslint-config/src/index.ts',
-    '!../../../../packages/worker-pool/src/index.ts'
-  ],
-  { eager: true }
-) as Record<string, Record<string, unknown>>;
+    '!../../../../packages/eslint-config/src/**/index.ts',
+    '!../../../../packages/worker-pool/src/index.ts',
+    '!../../../../packages/worker-pool/src/**/index.ts'
+  ]
+);
 
-// Raw source of every example file, keyed the same way.
-// Examples from excluded packages are also excluded.
-const RAW_GLOB = import.meta.glob(
-  [
-    '../../../../packages/*/examples/**/*.ts',
-    '!../../../../packages/context/examples/**/*.ts',
-    '!../../../../packages/eslint-config/examples/**/*.ts',
-    '!../../../../packages/worker-pool/examples/**/*.ts'
-  ],
-  { query: '?raw', import: 'default', eager: true }
-) as Record<string, string>;
+const SOURCE_LOADERS: Record<string, SourceModuleLoaderInterface> = {};
+const STATIC_MODULES: Record<string, unknown> = buildStaticModules();
+const PENDING_MODULES = new Map<string, Promise<Record<string, unknown>>>();
 
-/** Raw source of every example module, keyed by extension-less canonical path. */
-const RAW_SOURCES = buildRawSources();
-
-/** Canonical path → statically-bundled module namespace. */
-const STATIC_MODULES: Readonly<Record<string, unknown>> = buildStaticModules();
+for (const [key, loader] of Object.entries(SOURCE_GLOB)) {
+  const canonical = key.replace(/^(\.\.\/)+/, '').replace(/\.ts$/, '');
+  SOURCE_LOADERS[canonical] = loader;
+}
 
 interface TimerOptionsInterface {
   signal?: AbortSignal;
@@ -155,32 +155,12 @@ function makeAssertShim(): unknown {
 function buildStaticModules(): Record<string, unknown> {
   const out: Record<string, unknown> = {};
 
-  for (const [key, mod] of Object.entries(SOURCE_GLOB)) {
-    // key: '../../../../packages/retry/src/index.ts'
-    // canonical: 'packages/retry/src/index'
-    const canonical = key.replace(/^(\.\.\/)+/, '').replace(/\.ts$/, '');
-    out[canonical] = mod;
-  }
-
   // Node built-in shims
   const assertShim = makeAssertShim();
   out['node:assert'] = assertShim;
   out['node:assert/strict'] = assertShim;
   out['node:timers/promises'] = makeTimersShim();
   out['node:crypto'] = { randomUUID: () => { return globalThis.crypto.randomUUID(); } };
-
-  return out;
-}
-
-function buildRawSources(): Record<string, string> {
-  const out: Record<string, string> = {};
-
-  for (const [key, source] of Object.entries(RAW_GLOB)) {
-    // key: '../../../../packages/retry/examples/basicRetry.ts'
-    // canonical: 'packages/retry/examples/basicRetry'
-    const canonical = key.replace(/^(\.\.\/)+/, '').replace(/\.ts$/, '');
-    out[canonical] = source;
-  }
 
   return out;
 }
@@ -204,8 +184,100 @@ function resolveRelative(spec: string, fromCanonical: string): string {
   return fromDir.join('/');
 }
 
-function lookupRaw(canonical: string): string | undefined {
-  return RAW_SOURCES[canonical] ?? RAW_SOURCES[`${canonical}/index`];
+function resolveModuleSpecifier(specifier: string, fromCanonical: string): string {
+  if (specifier.startsWith('@studnicky/')) {
+    const packageParts = specifier.slice('@studnicky/'.length).split('/');
+    const packageName = packageParts[0];
+    const subpath = packageParts.slice(1).join('/');
+    return subpath === ''
+      ? `packages/${packageName}/src/index`
+      : `packages/${packageName}/src/${subpath}/index`;
+  }
+
+  return specifier.startsWith('.')
+    ? resolveRelative(specifier, fromCanonical)
+    : specifier;
+}
+
+function resolveSourceCanonical(canonical: string): string | undefined {
+  if (canonical in SOURCE_LOADERS) {
+    return canonical;
+  }
+
+  const indexCanonical = `${canonical}/index`;
+  return indexCanonical in SOURCE_LOADERS ? indexCanonical : undefined;
+}
+
+async function loadSourceModule(canonical: string): Promise<boolean> {
+  const resolved = resolveSourceCanonical(canonical);
+
+  if (resolved === undefined) {
+    return false;
+  }
+
+  const loaded = STATIC_MODULES[resolved];
+
+  if (loaded !== undefined) {
+    STATIC_MODULES[canonical] = loaded;
+    return true;
+  }
+
+  let pending = PENDING_MODULES.get(resolved);
+
+  if (pending === undefined) {
+    pending = SOURCE_LOADERS[resolved]();
+    PENDING_MODULES.set(resolved, pending);
+  }
+
+  try {
+    const moduleNamespace = await pending;
+    STATIC_MODULES[resolved] = moduleNamespace;
+    STATIC_MODULES[canonical] = moduleNamespace;
+    return true;
+  } finally {
+    PENDING_MODULES.delete(resolved);
+  }
+}
+
+function collectRequireSpecifiers(code: string): string[] {
+  const specifiers = new Set<string>();
+  const requirePattern = /require\(["']([^"']+)["']\)/g;
+
+  for (const match of code.matchAll(requirePattern)) {
+    const specifier = match[1];
+    if (specifier !== undefined) {
+      specifiers.add(specifier);
+    }
+  }
+
+  return [...specifiers];
+}
+
+async function preloadDependencies(code: string, fromCanonical: string, visited: Set<string>): Promise<void> {
+  const specifiers = collectRequireSpecifiers(code);
+
+  await Promise.all(specifiers.map(async (specifier) => {
+    const canonical = resolveModuleSpecifier(specifier, fromCanonical);
+
+    if (canonical in STATIC_MODULES || await loadSourceModule(canonical)) {
+      return;
+    }
+
+    if (visited.has(canonical)) {
+      return;
+    }
+    visited.add(canonical);
+
+    const rawSource = await ExampleSources.get(canonical);
+
+    if (rawSource !== undefined) {
+      const transformed = transform(rawSource, {
+        filePath: `${canonical}.ts`,
+        transforms: ['imports', 'typescript']
+      });
+      await preloadDependencies(transformed.code, canonical, visited);
+    }
+  }));
 }
 
 interface LoadedModuleInterface {
@@ -213,9 +285,10 @@ interface LoadedModuleInterface {
 }
 
 const moduleCache = new Map<string, LoadedModuleInterface>();
-const silentConsole = { ...console, debug() {}, error() {}, info() {}, log() {}, warn() {} } as Console;
+const silentConsole: Console = { ...console, debug() {}, error() {}, info() {}, log() {}, warn() {} };
 
-const processShim = { cwd: () => { return '/'; }, env: {} as Record<string, string>, platform: 'browser' };
+const processEnvironment: Record<string, string> = {};
+const processShim = { cwd: () => { return '/'; }, env: processEnvironment, platform: 'browser' };
 
 function evaluate(source: string, canonical: string, runtimeConsole: Console): Record<string, unknown> {
   const { code } = transform(source, { filePath: `${canonical}.ts`, transforms: ['imports', 'typescript'] });
@@ -228,13 +301,7 @@ function evaluate(source: string, canonical: string, runtimeConsole: Console): R
   const factory = new Function(
     'require', 'exports', 'module', 'console', 'process',
     code
-  ) as (
-    require: (specifier: string) => unknown,
-    exports: Record<string, unknown>,
-    module: LoadedModuleInterface,
-    console: Console,
-    process: typeof processShim
-  ) => void;
+  );
 
   factory(requireShim, moduleObject.exports, moduleObject, runtimeConsole, processShim);
 
@@ -247,9 +314,7 @@ function makeRequire(fromCanonical: string, runtimeConsole: Console): (specifier
       return STATIC_MODULES[specifier];
     }
 
-    const canonical = specifier.startsWith('.')
-      ? resolveRelative(specifier, fromCanonical)
-      : specifier;
+    const canonical = resolveModuleSpecifier(specifier, fromCanonical);
 
     if (canonical in STATIC_MODULES) {
       return STATIC_MODULES[canonical];
@@ -261,7 +326,7 @@ function makeRequire(fromCanonical: string, runtimeConsole: Console): (specifier
       return cached.exports;
     }
 
-    const source = lookupRaw(canonical);
+    const source = ExampleSources.getLoaded(canonical);
 
     if (source === undefined) {
       throw new Error(`Cannot resolve import '${specifier}' (resolved to '${canonical}') in the playground`);
@@ -287,6 +352,7 @@ function makeRequire(fromCanonical: string, runtimeConsole: Console): (specifier
  */
 export async function runExample(source: string, path: string, runtimeConsole: Console): Promise<void> {
   const { code } = transform(source, { filePath: `${path}.ts`, transforms: ['imports', 'typescript'] });
+  await preloadDependencies(code, path, new Set<string>());
   const requireShim = makeRequire(path, runtimeConsole);
   const moduleObject: LoadedModuleInterface = { exports: {} };
 
@@ -295,22 +361,7 @@ export async function runExample(source: string, path: string, runtimeConsole: C
   const factory = new Function(
     'require', 'exports', 'module', 'console', 'process',
     `return (async () => {\n${code}\n})();`
-  ) as (
-    require: (specifier: string) => unknown,
-    exports: Record<string, unknown>,
-    module: LoadedModuleInterface,
-    console: Console,
-    process: typeof processShim
-  ) => Promise<void>;
+  );
 
   await factory(requireShim, moduleObject.exports, moduleObject, runtimeConsole, processShim);
-}
-
-/**
- * The verbatim source of an example by its repo-rooted, extension-less path
- * (e.g. 'packages/retry/examples/basicRetry'), or undefined if unknown.
- * This is the single source of truth shown in the editor and run on Execute.
- */
-export function getExampleSource(path: string): string | undefined {
-  return lookupRaw(path);
 }

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import { ErrorDefaults, ModuleError } from '../src/index.js';
+import { BaseError, ErrorDefaults, ModuleError } from '../src/index.js';
 
 // Create from scenario — defaults supply code, statusCode, retryable
 const notFound = ModuleError.create('User not found', {
@@ -28,7 +28,7 @@ const wrapped = ModuleError.create('Request timed out', {
   'scenario': 'TIMEOUT'
 });
 
-const chain = wrapped.getCauseChain();
+const chain = BaseError.getCauseChain(wrapped);
 console.log('Cause chain length:', chain.length);
 
 // toJSON serialization
@@ -44,7 +44,7 @@ assert.deepStrictEqual(notFound.context, { 'userId': 'u-456' });
 assert.strictEqual(connErr.retryable, true);
 assert.strictEqual(connErr.statusCode, 503);
 assert.strictEqual(wrapped.cause, cause, '.cause is the original error');
-assert.ok(wrapped.hasCauseOfType(Error), 'hasCauseOfType(Error) = true');
+assert.ok(BaseError.hasCauseOfType(wrapped, Error), 'BaseError.hasCauseOfType(wrapped, Error) = true');
 assert.strictEqual(chain.length, 2, 'chain has 2 nodes');
 assert.strictEqual(json.name, 'ModuleError');
 assert.strictEqual(json.code, ErrorDefaults.NOT_FOUND.code);

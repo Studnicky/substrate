@@ -5,7 +5,6 @@
 
 export {
   DefaultHttpErrorClassifier,
-  DefaultHttpErrorClassifierBuilder,
   ErrorClassifier,
   matchers
 } from './classifiers/index.js';
@@ -31,6 +30,7 @@ export {
 } from './constants/index.js';
 export { ErrorClassificationEntity } from './entities/ErrorClassificationEntity.js';
 export { ErrorCodeDescriptorEntity } from './entities/ErrorCodeDescriptorEntity.js';
+export { ErrorDiagnosticEntity } from './entities/ErrorDiagnosticEntity.js';
 export { ErrorWithAddressEntity } from './entities/ErrorWithAddressEntity.js';
 export { ErrorWithCodeEntity } from './entities/ErrorWithCodeEntity.js';
 export { ErrorWithErrnoEntity } from './entities/ErrorWithErrnoEntity.js';
@@ -42,38 +42,32 @@ export { ErrorWithStatusEntity } from './entities/ErrorWithStatusEntity.js';
 export { ErrorWithSyscallEntity } from './entities/ErrorWithSyscallEntity.js';
 export { HookInvokerOptionsEntity } from './entities/HookInvokerOptionsEntity.js';
 export { ValidationAggregateViewEntity } from './entities/ValidationAggregateViewEntity.js';
+export { ValidationErrorArgumentsEntity } from './entities/ValidationErrorArgumentsEntity.js';
 export { ValidationProblemDetailsEntity } from './entities/ValidationProblemDetailsEntity.js';
 export { ValidationReportOptionsEntity } from './entities/ValidationReportOptionsEntity.js';
 export { ValidationViolationDetailEntity } from './entities/ValidationViolationDetailEntity.js';
 export { ValidationViolationEntity } from './entities/ValidationViolationEntity.js';
-export type { HookInvokerOptionsType } from './errors/HookInvoker.js';
 export {
   BaseError,
   CliExitError,
   DomainErrorArgs,
-  ErrorCodeRegistry,
   HookInvocationError,
   HookInvoker,
   HookTimeoutError,
   ModuleError,
   ReentrantHookInvocationError,
   ValidationError,
-  ValidationErrors,
-  ValidationErrorsBuilder
+  ValidationErrors
 } from './errors/index.js';
 export type {
+  BaseErrorArgumentsInterface,
+  DomainErrorOptionsInterface,
+  ErrorClassifierFunctionInterface,
   ErrorClassifierInterface,
-  ModuleErrorInterface
+  ModuleErrorCreateOptionsInterface,
+  ModuleErrorInterface,
+  ModuleErrorOptionsInterface
 } from './interfaces/index.js';
-export type {
-  BaseErrorArgumentsType,
-  DomainErrorOptionsType,
-  ErrorClassifierFunctionType,
-  ErrorScenarioType,
-  ModuleErrorCreateOptionsType,
-  ModuleErrorOptionsType,
-  SerializedErrorType,
-  ValidationErrorArgumentsType
-} from './types/index.js';
+export { EventRecorder } from './observers/EventRecorder.js';
 export { errorTypeGuards } from './validation/errorTypeGuards.js';
 export { ErrorClassificationGuard } from './validation/isErrorClassification.js';

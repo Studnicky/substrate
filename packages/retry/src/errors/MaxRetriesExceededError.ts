@@ -23,7 +23,7 @@ export class MaxRetriesExceededError extends RetryError {
     message: string,
     maxRetries: number,
     attempts: number,
-    errors: Error[]
+    errors: readonly Error[]
   ) {
     const cause = errors.at(LAST_ARRAY_INDEX) ?? new Error('Unknown error');
 

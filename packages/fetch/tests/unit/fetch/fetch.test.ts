@@ -7,10 +7,10 @@ import {
 } from 'node:test';
 
 import {
-  AbortError, HttpMethods, TimeoutError
+  AbortError, FetchClient, TimeoutError
 } from '../../../src/index.js';
 
-const { fetch } = HttpMethods;
+const client = FetchClient.create();
 
 let server: Server;
 let serverUrl: string;
@@ -69,7 +69,7 @@ void describe('fetch wrapper', () => {
     void it('should reject empty string URL', async () => {
       await assert.rejects(
         async () => {
-          return fetch('');
+          return client.get('');
         },
         /url must be a non-empty string/u
       );
@@ -78,8 +78,7 @@ void describe('fetch wrapper', () => {
     void it('should reject non-string URL', async () => {
       await assert.rejects(
         async () => {
-          // @ts-expect-error - Testing invalid input
-          return fetch(123);
+          return Reflect.apply(client.get, client, [123]);
         },
         /url must be a non-empty string/u
       );
@@ -88,7 +87,7 @@ void describe('fetch wrapper', () => {
     void it('should reject null URL', async () => {
       await assert.rejects(
         async () => {
-          return fetch(null as unknown as string);
+          return Reflect.apply(client.get, client, [null]);
         },
         /url must be a non-empty string/u
       );
@@ -97,15 +96,14 @@ void describe('fetch wrapper', () => {
     void it('should reject undefined URL', async () => {
       await assert.rejects(
         async () => {
-          // @ts-expect-error - Testing invalid input
-          return fetch();
+          return Reflect.apply(client.get, client, []);
         },
         /url must be a non-empty string/u
       );
     });
 
     void it('should accept valid URL strings', async () => {
-      const response = await fetch(`${serverUrl}/instant`);
+      const response = await client.get(`${serverUrl}/instant`);
 
       assert.strictEqual(response.status, 200);
       assert.strictEqual(await response.text(), 'instant response');
@@ -144,7 +142,7 @@ void describe('fetch wrapper', () => {
       void it(`should reject ${description} timeout`, async () => {
         await assert.rejects(
           async () => {
-            return fetch(`${testUrl}/instant`, { timeout: value });
+            return client.get(`${testUrl}/instant`, { timeout: value });
           },
           /timeout must be a positive number/u
         );
@@ -154,15 +152,14 @@ void describe('fetch wrapper', () => {
     void it('should reject non-number timeout', async () => {
       await assert.rejects(
         async () => {
-          // @ts-expect-error - Testing invalid input
-          return fetch(`${serverUrl}/instant`, { timeout: '5000' });
+          return Reflect.apply(client.get, client, [`${serverUrl}/instant`, { timeout: '5000' }]);
         },
         /timeout must be a positive number/u
       );
     });
 
     void it('should accept valid positive timeout', async () => {
-      const response = await fetch(`${serverUrl}/instant`, { timeout: 5000 });
+      const response = await client.get(`${serverUrl}/instant`, { timeout: 5000 });
 
       assert.strictEqual(response.status, 200);
     });
@@ -171,7 +168,7 @@ void describe('fetch wrapper', () => {
   void describe('Timeout functionality', () => {
     void it('should timeout request that exceeds timeout', async () => {
       try {
-        await fetch(`${serverUrl}/delay?ms=200`, { timeout: 50 });
+        await client.get(`${serverUrl}/delay?ms=200`, { timeout: 50 });
         assert.fail('Should have thrown TimeoutError');
       } catch (error) {
         assert.ok(error instanceof TimeoutError);
@@ -186,7 +183,7 @@ void describe('fetch wrapper', () => {
     });
 
     void it('should complete request within timeout', async () => {
-      const response = await fetch(`${serverUrl}/delay?ms=50`, { timeout: 200 });
+      const response = await client.get(`${serverUrl}/delay?ms=50`, { timeout: 200 });
 
       assert.strictEqual(response.status, 200);
       assert.strictEqual(await response.text(), 'delayed 50ms');
@@ -194,7 +191,7 @@ void describe('fetch wrapper', () => {
 
     void it('should handle very short timeout (1ms)', async () => {
       try {
-        await fetch(`${serverUrl}/delay?ms=100`, { timeout: 1 });
+        await client.get(`${serverUrl}/delay?ms=100`, { timeout: 1 });
         assert.fail('Should have thrown TimeoutError');
       } catch (error) {
         assert.ok(error instanceof TimeoutError);
@@ -205,7 +202,7 @@ void describe('fetch wrapper', () => {
     });
 
     void it('should handle very long timeout', async () => {
-      const response = await fetch(`${serverUrl}/instant`, { timeout: 3_600_000 });
+      const response = await client.get(`${serverUrl}/instant`, { timeout: 3_600_000 });
 
       assert.strictEqual(response.status, 200);
     });
@@ -220,7 +217,7 @@ void describe('fetch wrapper', () => {
       }, 10);
 
       try {
-        await fetch(`${serverUrl}/delay?ms=200`, { signal: controller.signal });
+        await client.get(`${serverUrl}/delay?ms=200`, { signal: controller.signal });
         assert.fail('Should have thrown AbortError');
       } catch (error) {
         assert.ok(error instanceof AbortError);
@@ -238,7 +235,7 @@ void describe('fetch wrapper', () => {
       controller.abort();
 
       try {
-        await fetch(`${serverUrl}/instant`, { signal: controller.signal });
+        await client.get(`${serverUrl}/instant`, { signal: controller.signal });
         assert.fail('Should have thrown AbortError');
       } catch (error) {
         assert.ok(error instanceof AbortError);
@@ -251,7 +248,7 @@ void describe('fetch wrapper', () => {
 
     void it('should combine timeout signal and external signal', async () => {
       const controller = new AbortController();
-      const response = await fetch(`${serverUrl}/instant`, {
+      const response = await client.get(`${serverUrl}/instant`, {
         signal: controller.signal,
         timeout: 5000
       });
@@ -263,7 +260,7 @@ void describe('fetch wrapper', () => {
       const controller = new AbortController();
 
       try {
-        await fetch(`${serverUrl}/delay?ms=200`, {
+        await client.get(`${serverUrl}/delay?ms=200`, {
           signal: controller.signal,
           timeout: 50
         });
@@ -285,7 +282,7 @@ void describe('fetch wrapper', () => {
       }, 10);
 
       try {
-        await fetch(`${serverUrl}/delay?ms=200`, {
+        await client.get(`${serverUrl}/delay?ms=200`, {
           signal: controller.signal,
           timeout: 5000
         });
@@ -302,7 +299,7 @@ void describe('fetch wrapper', () => {
 
   void describe('Request without timeout', () => {
     void it('should make successful request without timeout option', async () => {
-      const response = await fetch(`${serverUrl}/instant`);
+      const response = await client.get(`${serverUrl}/instant`);
 
       assert.strictEqual(response.status, 200);
       assert.strictEqual(await response.text(), 'instant response');
@@ -310,13 +307,13 @@ void describe('fetch wrapper', () => {
 
     void it('should handle request with external signal but no timeout', async () => {
       const controller = new AbortController();
-      const response = await fetch(`${serverUrl}/instant`, { signal: controller.signal });
+      const response = await client.get(`${serverUrl}/instant`, { signal: controller.signal });
 
       assert.strictEqual(response.status, 200);
     });
 
     void it('should propagate server errors without timeout', async () => {
-      const response = await fetch(`${serverUrl}/error`);
+      const response = await client.get(`${serverUrl}/error`);
 
       assert.strictEqual(response.status, 500);
       assert.strictEqual(await response.text(), 'server error');
@@ -327,7 +324,7 @@ void describe('fetch wrapper', () => {
     void it('should handle network errors', async () => {
       await assert.rejects(
         async () => {
-          return fetch('http://localhost:1');
+          return client.get('http://localhost:1');
         },
         /ECONNREFUSED|fetch failed/u
       );
@@ -336,7 +333,7 @@ void describe('fetch wrapper', () => {
     void it('should handle DNS resolution errors', async () => {
       await assert.rejects(
         async () => {
-          return fetch('http://this-domain-definitely-does-not-exist-12345.com');
+          return client.get('http://this-domain-definitely-does-not-exist-12345.com');
         },
         /EAI_AGAIN|ENOTFOUND|fetch failed/u
       );
@@ -345,7 +342,7 @@ void describe('fetch wrapper', () => {
     void it('should handle invalid URL format', async () => {
       await assert.rejects(
         async () => {
-          return fetch('not-a-valid-url');
+          return client.get('not-a-valid-url');
         },
         Error
       );
@@ -358,8 +355,8 @@ void describe('fetch wrapper', () => {
         response1,
         response2
       ] = await Promise.all([
-        fetch(`${serverUrl}/instant`, { timeout: 1000 }),
-        fetch(`${serverUrl}/instant`, { timeout: 2000 })
+        client.get(`${serverUrl}/instant`, { timeout: 1000 }),
+        client.get(`${serverUrl}/instant`, { timeout: 2000 })
       ]);
 
       assert.strictEqual(response1.status, 200);
@@ -367,20 +364,20 @@ void describe('fetch wrapper', () => {
     });
 
     void it('should handle request that completes just before timeout', async () => {
-      const response = await fetch(`${serverUrl}/delay?ms=40`, { timeout: 100 });
+      const response = await client.get(`${serverUrl}/delay?ms=40`, { timeout: 100 });
 
       assert.strictEqual(response.status, 200);
       assert.strictEqual(await response.text(), 'delayed 40ms');
     });
 
     void it('should handle empty options object', async () => {
-      const response = await fetch(`${serverUrl}/instant`, {});
+      const response = await client.get(`${serverUrl}/instant`, {});
 
       assert.strictEqual(response.status, 200);
     });
 
     void it('should handle request with additional fetch options', async () => {
-      const response = await fetch(`${serverUrl}/instant`, {
+      const response = await client.get(`${serverUrl}/instant`, {
         headers: { 'X-Custom': 'test' },
         method: 'GET',
         timeout: 5000
@@ -390,7 +387,7 @@ void describe('fetch wrapper', () => {
     });
 
     void it('should pass through other fetch options without timeout', async () => {
-      const response = await fetch(`${serverUrl}/instant`, {
+      const response = await client.get(`${serverUrl}/instant`, {
         headers: { 'X-Test': 'value' },
         method: 'GET'
       });
@@ -401,7 +398,7 @@ void describe('fetch wrapper', () => {
 
   void describe('Signal cleanup', () => {
     void it('should cleanup timeout on successful request', async () => {
-      const response = await fetch(`${serverUrl}/instant`, { timeout: 5000 });
+      const response = await client.get(`${serverUrl}/instant`, { timeout: 5000 });
 
       assert.strictEqual(response.status, 200);
     });
@@ -412,7 +409,7 @@ void describe('fetch wrapper', () => {
       controller.abort();
 
       try {
-        await fetch(`${serverUrl}/instant`, {
+        await client.get(`${serverUrl}/instant`, {
           signal: controller.signal,
           timeout: 5000
         });
@@ -425,7 +422,7 @@ void describe('fetch wrapper', () => {
 
   void describe('fetchWithoutTimeout path', () => {
     void it('should use direct fetch when timeout is undefined', async () => {
-      const response = await fetch(`${serverUrl}/instant`);
+      const response = await client.get(`${serverUrl}/instant`);
 
       assert.strictEqual(response.status, 200);
     });
@@ -438,7 +435,7 @@ void describe('fetch wrapper', () => {
       }, 10);
 
       try {
-        await fetch(`${serverUrl}/delay?ms=200`, { signal: controller.signal });
+        await client.get(`${serverUrl}/delay?ms=200`, { signal: controller.signal });
         assert.fail('Should have thrown AbortError');
       } catch (error) {
         assert.ok(error instanceof AbortError);
@@ -451,7 +448,7 @@ void describe('fetch wrapper', () => {
       controller.abort();
 
       try {
-        await fetch(`${serverUrl}/instant`, { signal: controller.signal });
+        await client.get(`${serverUrl}/instant`, { signal: controller.signal });
         assert.fail('Should have thrown AbortError');
       } catch (error) {
         assert.ok(error instanceof AbortError);
@@ -462,16 +459,16 @@ void describe('fetch wrapper', () => {
     });
   });
 
-  void describe('fetchWithTimeout path', () => {
-    void it('should use timeout wrapper when timeout is specified', async () => {
-      const response = await fetch(`${serverUrl}/instant`, { timeout: 5000 });
+  void describe('timeout path', () => {
+    void it('should apply a timeout when specified', async () => {
+      const response = await client.get(`${serverUrl}/instant`, { timeout: 5000 });
 
       assert.strictEqual(response.status, 200);
     });
 
     void it('should throw TimeoutError when timeout expires', async () => {
       try {
-        await fetch(`${serverUrl}/delay?ms=200`, { timeout: 50 });
+        await client.get(`${serverUrl}/delay?ms=200`, { timeout: 50 });
         assert.fail('Should have thrown TimeoutError');
       } catch (error) {
         assert.ok(error instanceof TimeoutError);
@@ -490,7 +487,7 @@ void describe('fetch wrapper', () => {
       }, 10);
 
       try {
-        await fetch(`${serverUrl}/delay?ms=200`, {
+        await client.get(`${serverUrl}/delay?ms=200`, {
           signal: controller.signal,
           timeout: 5000
         });
@@ -512,7 +509,7 @@ void describe('fetch wrapper', () => {
       }, 100);
 
       try {
-        await fetch(`${serverUrl}/delay?ms=200`, {
+        await client.get(`${serverUrl}/delay?ms=200`, {
           signal: controller.signal,
           timeout: 20
         });

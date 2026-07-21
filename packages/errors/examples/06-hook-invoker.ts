@@ -1,49 +1,42 @@
-/** 06-hook-invoker — HookInvoker with a record-and-continue delegate subclass. Run: npx tsx packages/errors/examples/06-hook-invoker.ts */
+/** 06-hook-invoker — HookInvoker with record-and-continue error handling. Run: npx tsx packages/errors/examples/06-hook-invoker.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
-import { HookInvoker } from '../src/index.js';
-
-// json-schema-uninexpressible: minimal demo-only entry type for a runnable doc example, not a shipped domain shape
-type HookErrorEntryType = { 'cause': unknown; 'hookName': string };
-
-/**
- * Hoisted to module scope, per the delegate-class idiom: overrides
- * `onHookError` to record a failure instead of letting it throw, so a
- * broken observer hook can never abort a mutation that already committed.
- */
-class CounterHookInvoker extends HookInvoker {
-  constructor(private readonly onError: (hookName: string, cause: unknown) => void) {
-    super();
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.onError(hookName, cause);
-    return undefined as T;
-  }
-}
+import { type HookInvocationError, HookInvoker } from '../src/index.js';
 
 class ObservedCounter {
-  #value = 0;
-  readonly #hookErrors: HookErrorEntryType[] = [];
-  readonly #hooks: HookInvoker;
+  static readonly #OwnedHookInvoker = class CounterHookInvoker extends HookInvoker {
+    // Disposition only: HookInvoker already owns and snapshots diagnostics.
+    protected override onHookError(_hookName: string, _cause: unknown): void {}
+  };
 
-  constructor() {
-    this.#hooks = new CounterHookInvoker((hookName, cause) => {
-      this.#hookErrors.push({ 'cause': cause, 'hookName': hookName });
-    });
-  }
+  #value = 0;
+  readonly #hooks: HookInvoker = new ObservedCounter.#OwnedHookInvoker();
 
   get value(): number { return this.#value; }
-  get hookErrorCount(): number { return this.#hookErrors.length; }
-  getHookErrors(): readonly HookErrorEntryType[] { return [...this.#hookErrors]; }
+  get hookErrorCount(): number { return this.#hooks.hookErrorCount; }
+  getHookErrors(): readonly HookInvocationError[] {
+    const diagnostics = this.#hooks.getHookErrors();
+    if (diagnostics.length !== this.#hooks.hookErrorCount) {
+      throw new Error('Hook diagnostic projection count mismatch');
+    }
+    return diagnostics;
+  }
 
   protected onIncrement(_next: number): void {}
 
   increment(): void {
     this.#value += 1;
     this.#hooks.invoke('onIncrement', () => {
+      const result = this.onIncrement(this.#value);
+      return result;
+    });
+  }
+
+  async incrementAndWait(): Promise<void> {
+    this.#value += 1;
+    await this.#hooks.invokeAsync('onIncrement', () => {
       const result = this.onIncrement(this.#value);
       return result;
     });
@@ -59,9 +52,9 @@ class ThrowingObservedCounter extends ObservedCounter {
 }
 
 const counter = new ThrowingObservedCounter();
-counter.increment(); // onIncrement(1) succeeds
-counter.increment(); // onIncrement(2) throws, recorded instead of propagating
-counter.increment(); // onIncrement(3) succeeds
+counter.increment(); // Fire-and-forget when subsequent work does not depend on hook completion.
+await counter.incrementAndWait(); // Await when subsequent work requires hook completion.
+counter.increment();
 // #endregion usage
 
 assert.strictEqual(counter.value, 3, 'increments proceed even after a hook failure');

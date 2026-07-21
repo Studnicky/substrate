@@ -27,8 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `LruCache` constructor is `protected`; instances are constructed via `LruCache.create(options)` or `LruCache.builder().withCapacity(n).build()`.
-- `LruCacheBuilder` provides a fluent API with `withCapacity()`, `withTtlMs()`, and `withPrefix()` setters.
+- `LruCache` constructor is `protected`; instances are constructed through `LruCache.create(options)`.
+- Cache configuration contains only effective runtime options: `capacity`, `staleMs`, and `ttlMs`.
+- `LruCacheNodeTimingEntity` owns the schema-derived `expiresAt` and `staleAt` fields composed by cache nodes.
+- `@studnicky/cache` is the sole public code entrypoint.
 
 ## [1.0.0] - 2026-06-22
 
@@ -41,6 +43,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `delete(key)` removes an entry and returns `true` on success, `false` if absent.
 - `clear()` empties the cache and resets the linked list.
 - `size` getter reflecting the current entry count.
-- `LruCacheOptions` interface with `capacity`, optional `ttlMs`, and optional `prefix` fields.
-- Optional `prefix` namespaces stored keys using `prefix:key` form; unprefixed and prefixed instances are independent.
+- `LruCacheOptions` interface with `capacity`, optional `ttlMs`, and optional `staleMs` fields.
 - No background sweep, no timers — all TTL checks are lazy on access.

@@ -1,15 +1,15 @@
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
-import type { MemoryTransportOptionsType } from './MemoryTransportOptionsType.js';
+import type { MemoryTransportOptionsEntity } from '../entities/MemoryTransportOptionsEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
+import { ImmutableSnapshot } from '../modules/ImmutableSnapshot.js';
 import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
-import { MemoryTransportBuilder } from './MemoryTransportBuilder.js';
 
 /**
  * Transport that captures log records into an internal array for test assertions.
  *
- * All captured records share the same array, so `records()` always reflects
- * the current state regardless of which child logger emitted them.
+ * `records()` returns a snapshot of the current captured records regardless
+ * of which child logger emitted them.
  *
  * @example
  * ```typescript
@@ -30,19 +30,14 @@ export class MemoryTransport implements TransportInterface {
    * @param options - Optional configuration for this transport
    * @returns A new MemoryTransport instance
    */
-  static create(options: MemoryTransportOptionsType = {}): MemoryTransport {
+  static create(options: MemoryTransportOptionsEntity.Type = {}): MemoryTransport {
     return new this(options);
-  }
-
-  static builder(): MemoryTransportBuilder {
-    const result = MemoryTransportBuilder.create((options) => { const result = MemoryTransport.create(options); return result; });
-    return result;
   }
 
   readonly #buffer: LogRecordEntity.Type[] = [];
   readonly #minLevel: number;
 
-  protected constructor(options: MemoryTransportOptionsType = {}) {
+  protected constructor(options: MemoryTransportOptionsEntity.Type = {}) {
     this.#minLevel = ResolveMinLevel.from(options);
   }
 
@@ -54,12 +49,10 @@ export class MemoryTransport implements TransportInterface {
   }
 
   /**
-   * Returns a live, readonly view of the internal buffer — not an isolated
-   * copy. Records pushed after this call are visible through the returned
-   * reference, and `clear()` empties it in place.
+   * Returns a readonly snapshot of the current internal buffer.
    */
   records(): readonly LogRecordEntity.Type[] {
-    return this.#buffer;
+    return [...this.#buffer];
   }
 
   /**
@@ -71,6 +64,6 @@ export class MemoryTransport implements TransportInterface {
     if (record.level < this.#minLevel) {
       return;
     }
-    this.#buffer.push(record);
+    this.#buffer.push(ImmutableSnapshot.from(record));
   }
 }

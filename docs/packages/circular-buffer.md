@@ -21,26 +21,15 @@ Fixed-capacity ring buffer. When the buffer is full, the oldest item is evicted 
 
 ## Try it
 
-### Builder
-
-`CircularBuffer.builder().withCapacity(n).withOverflow('overwrite' | 'grow').build()` constructs the ring through the fluent builder. Press Execute to see both overflow strategies: an overwrite-mode capacity-3 ring evicts the oldest item on overflow (drains to [2, 3, 4]), while a grow-mode capacity-2 ring doubles to capacity 4 instead of dropping anything.
-
-<RunnableExample src="packages/circular-buffer/examples/builder-circular-buffer" title="Builder — fluent ring buffer construction" />
-
 ### Lifecycle hooks
 
 `TracingBuffer` subclasses `CircularBuffer` and overrides five hooks: `onOverflow`, `onEvict`, `onPush`, `onShift`, and `onGrow`. Two scenarios run: an overwrite-mode ring (capacity 3, 5 pushes — watch 2 overflow and 2 eviction events) and a grow-mode ring (capacity 2, 3 pushes — watch the buffer double to capacity 4 instead of evicting).
 
 <RunnableExample src="packages/circular-buffer/examples/observedCircularBuffer" title="Observed ring buffer — lifecycle hook trace" />
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/circular-buffer` | `CircularBuffer`, `CircularBufferBuilder`, `CircularBufferOptionsEntity` |
-| `@studnicky/circular-buffer/circular-buffer` | `CircularBuffer`, `CircularBufferBuilder` (direct subpath) |
-| `@studnicky/circular-buffer/interfaces` | `CircularBufferInterface` |
-| `@studnicky/circular-buffer/constants` | Buffer configuration constants |
+Import `CircularBuffer`, `CircularBufferOptionsEntity`, `CircularBufferStateEntity`, `CircularBufferError`, and `CircularBufferInterface` from `@studnicky/circular-buffer`. Construct a ring through `CircularBuffer.create({ capacity, overflow })`. `CircularBufferInterface.length` composes the schema-derived field owned by `CircularBufferStateEntity`. The package root is the only public code entrypoint; storage constants are implementation details.
 
 ## Extending
 

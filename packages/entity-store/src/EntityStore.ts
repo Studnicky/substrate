@@ -1,27 +1,6 @@
-import { HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 
-import type { EntityStoreOptionsType } from './types/EntityStoreOptionsType.js';
-import type { HookErrorEntryType } from './types/HookErrorEntryType.js';
-
-import { EntityStoreBuilder } from './EntityStoreBuilder.js';
-
-/**
- * Records a hook failure back into the owning `EntityStore`'s `#hookErrors`
- * instead of `HookInvoker`'s default (throwing) behavior: a broken observer
- * hook must never be able to abort or revert an entity mutation that already
- * completed. Hoisted to module scope so V8 compiles this class once rather
- * than per `EntityStore` instantiation.
- */
-class EntityStoreHookInvoker extends HookInvoker {
-  constructor(private readonly onError: (hookName: string, cause: unknown) => void) {
-    super();
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.onError(hookName, cause);
-    return undefined as T;
-  }
-}
+import type { EntityStoreOptionsInterface } from './interfaces/EntityStoreOptionsInterface.js';
 
 /**
  * Normalized, ID-indexed entity collection — the RTK `createEntityAdapter` shape
@@ -52,36 +31,29 @@ class EntityStoreHookInvoker extends HookInvoker {
  * ```
  */
 export class EntityStore<TEntity, TId extends PropertyKey = string> {
+  /** Keeps completed mutations intact when a lifecycle hook fails. */
+  static readonly #OwnedHookInvoker = class EntityStoreHookInvoker extends HookInvoker {
+    protected override onHookError(): void {}
+  };
+
   readonly #entities: Map<TId, TEntity>;
   readonly #selectId: (entity: TEntity) => TId;
   readonly #sortComparer: ((a: TEntity, b: TEntity) => number) | undefined;
-  readonly #hookErrors: HookErrorEntryType[] = [];
   protected readonly hooks: HookInvoker;
   #cachedSorted: TEntity[] | undefined;
 
   static create<TEntity, TId extends PropertyKey = string>(
-    options: EntityStoreOptionsType<TEntity, TId>
+    options: EntityStoreOptionsInterface<TEntity, TId>
   ): EntityStore<TEntity, TId> {
     // `new this(...)` so subclass factories return the subclass instance.
     return new this(options);
   }
 
-  static builder<TEntity = unknown, TId extends PropertyKey = string>(): EntityStoreBuilder<TEntity, TId> {
-    const factory = (options: EntityStoreOptionsType<TEntity, TId>): EntityStore<TEntity, TId> => {
-      const result = EntityStore.create<TEntity, TId>(options);
-      return result;
-    };
-    const result = EntityStoreBuilder.create<TEntity, TId>(factory);
-    return result;
-  }
-
-  protected constructor(deps: EntityStoreOptionsType<TEntity, TId>) {
+  protected constructor(deps: EntityStoreOptionsInterface<TEntity, TId>) {
     this.#entities = new Map();
     this.#selectId = deps.selectId;
     this.#sortComparer = deps.sortComparer;
-    this.hooks = new EntityStoreHookInvoker((hookName, cause) => {
-      this.#hookErrors.push({ 'cause': cause, 'hookName': hookName });
-    });
+    this.hooks = new EntityStore.#OwnedHookInvoker();
   }
 
   // ---------------------------------------------------------------------------
@@ -107,25 +79,26 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
 
   /** Count of hook failures recorded by `onHookError` since construction. */
   public get hookErrorCount(): number {
-    const result = this.#hookErrors.length;
+    const result = this.hooks.hookErrorCount;
     return result;
   }
 
   /** Returns a defensive copy of every hook failure recorded since construction. */
-  public getHookErrors(): readonly HookErrorEntryType[] {
-    const result = [...this.#hookErrors];
+  public getHookErrors(): readonly HookInvocationError[] {
+    const result = this.hooks.getHookErrors();
     return result;
   }
 
   /** Derives the id via `selectId`; inserts a new entity or overwrites an existing one. */
   public async upsertOne(entity: TEntity): Promise<void> {
-    const id = this.#selectId(entity);
-    this.#entities.set(id, entity);
+    const retainedEntity = structuredClone(entity);
+    const id = this.#selectId(retainedEntity);
+    this.#entities.set(id, retainedEntity);
     this.#cachedSorted = undefined;
-    await Promise.resolve(this.hooks.invoke('onUpsert', () => {
+    await this.hooks.invokeAsync('onUpsert', () => {
       const result = this.onUpsert(id, entity);
       return result;
-    }));
+    });
   }
 
   /** Upserts every entity in array order. An empty array is a no-op. */
@@ -141,10 +114,10 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
 
     if (existed) {
       this.#cachedSorted = undefined;
-      await Promise.resolve(this.hooks.invoke('onRemove', () => {
+      await this.hooks.invokeAsync('onRemove', () => {
         const result = this.onRemove(id);
         return result;
-      }));
+      });
     }
 
     return existed;
@@ -168,21 +141,22 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
     this.#entities.clear();
 
     for (const entity of entities) {
-      const id = this.#selectId(entity);
-      this.#entities.set(id, entity);
+      const retainedEntity = structuredClone(entity);
+      const id = this.#selectId(retainedEntity);
+      this.#entities.set(id, retainedEntity);
     }
 
     this.#cachedSorted = undefined;
-    await Promise.resolve(this.hooks.invoke('onReplaceAll', () => {
+    await this.hooks.invokeAsync('onReplaceAll', () => {
       const result = this.onReplaceAll(this.#entities.size);
       return result;
-    }));
+    });
   }
 
   /** Returns every entity, sorted by `sortComparer` if configured, else in insertion order. */
   public getAll(): readonly TEntity[] {
     if (this.#sortComparer === undefined) {
-      const result = Array.from(this.#entities.values());
+      const result = structuredClone(Array.from(this.#entities.values()));
       return result;
     }
 
@@ -192,12 +166,14 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
       this.#cachedSorted = sorted;
     }
 
-    return this.#cachedSorted;
+    const result = structuredClone(this.#cachedSorted ?? []);
+    return result;
   }
 
   /** Returns the entity for `id`, or `undefined` if absent. */
   public getById(id: TId): TEntity | undefined {
-    const result = this.#entities.get(id);
+    const entity = this.#entities.get(id);
+    const result = entity === undefined ? undefined : structuredClone(entity);
     return result;
   }
 

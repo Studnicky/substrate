@@ -25,22 +25,16 @@ pnpm add @studnicky/request-executor
 
 | Config key | Accepts | Default |
 |------------|---------|---------|
-| `fetchClient` | `FetchClient` instance or `ClientConfigType` | `FetchClient.create({})` |
-| `retry` | `Retry` instance or `Partial<RetryConfigInterface>` | `Retry.create({})` |
+| `fetchClient` | `FetchClient` instance or `ClientConfigInterface` from `@studnicky/fetch` | `FetchClient.create({})` |
+| `retry` | `Retry` instance or `RetryConfigInterface` from `@studnicky/retry` | `Retry.create({})` |
 | `signal` | `Signal` instance | `Signal.create()` |
 | `timing` | `Timing` instance | `undefined` — no span recorded |
 | `context` | `Context` instance | `undefined` — no scope wrapping |
 | `deadlineMs` | Default deadline (ms) for calls that don't pass their own | `undefined` |
 
-| Getter | Returns |
-|--------|---------|
-| `getFetchClient()` | The composed `FetchClient` instance |
-| `getRetry()` | The composed `Retry` instance |
-| `getSignal()` | The composed `Signal` instance |
-| `getTiming()` | The composed `Timing` instance, or `undefined` |
-| `getContext()` | The composed `Context` instance, or `undefined` |
+`RequestExecutor` exposes no collaborator getters. Callers retain references to any `FetchClient`, `Retry`, `Signal`, `Timing`, or `Context` instances supplied to `RequestExecutor.create(config)` when they need those primitives' hooks or state. The executor never re-exposes a stage a wrapped primitive already owns.
 
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper. A caller who subclassed `FetchClient` for auth headers, `Retry` for custom backoff or classification, or `Timing`/`Context` for correlation keeps full access to those subclasses' own hooks; `RequestExecutor` never re-exposes a stage a wrapped primitive's hook already covers (no redundant "before request" hook, no redundant "before attempt" hook).
+Import `RequestExecutor`, `RequestExecutorConfigInterface`, `RequestExecutorDepsInterface`, and `RequestExecutorExecuteOptionsInterface` from `@studnicky/request-executor`. The package root is the only public code entrypoint. Import dependency-owned configuration and context contracts directly from their owning package roots.
 
 ## Composition order
 

@@ -59,30 +59,14 @@
 
 import { HookInvoker, ValidationError } from '@studnicky/errors';
 
+import type { PipelineFunctionInterface } from '../interfaces/PipelineFunctionInterface.js';
 import type { PipelineInterface } from '../interfaces/PipelineInterface.js';
-import type { PipelineFnType } from '../types/PipelineFnType.js';
 
 import { PipelineOptionsEntity } from '../entities/PipelineOptionsEntity.js';
 import { PipelineError } from '../errors/PipelineError.js';
-import { PipelineBuilder } from './PipelineBuilder.js';
 
 export class Pipeline<T> implements PipelineInterface<T> {
   protected readonly hooks: HookInvoker;
-
-  /**
-   * Create a fluent builder for constructing a Pipeline instance.
-   *
-   * @returns A new PipelineBuilder
-   *
-   * @example
-   * ```typescript
-   * const pipeline = Pipeline.builder<RequestCtx>().build();
-   * ```
-   */
-  static builder<T>(): PipelineBuilder<T> {
-    const result = PipelineBuilder.create<T>((options) => { const instance = Pipeline.create<T>(options); return instance; });
-    return result;
-  }
 
   /**
    * Create a new Pipeline instance.
@@ -118,7 +102,7 @@ export class Pipeline<T> implements PipelineInterface<T> {
       : new HookInvoker({ 'timeoutMs': options.hookTimeoutMs });
   }
 
-  protected fns: PipelineFnType<T>[] = [];
+  protected fns: PipelineFunctionInterface<T>[] = [];
 
   /**
    * Per-call tokens kept in lockstep with `fns`, one per registered stage.
@@ -130,13 +114,10 @@ export class Pipeline<T> implements PipelineInterface<T> {
   #tokens: symbol[] = [];
 
   /**
-   * Readonly view of the registered transform functions.
-   * Returns the live array reference as a readonly view — order reflects
-   * registration order. Exposed so external observers can inspect pipeline
-   * contents without subclassing.
+   * Readonly snapshot of the registered transform functions in registration order.
    */
-  get stages(): readonly PipelineFnType<T>[] {
-    const result = this.fns;
+  get stages(): readonly PipelineFunctionInterface<T>[] {
+    const result = [...this.fns];
     return result;
   }
 
@@ -148,7 +129,7 @@ export class Pipeline<T> implements PipelineInterface<T> {
    *   its stage by a per-call token, so it removes the exact stage it was
    *   returned for even if the same `fn` value was registered more than once
    */
-  add(fn: PipelineFnType<T>): () => void {
+  add(fn: PipelineFunctionInterface<T>): () => void {
     const token = Symbol('pipeline-stage');
     this.fns.push(fn);
     this.#tokens.push(token);
@@ -279,15 +260,15 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @param ctx - Initial context value
    * @returns Context after all transforms have been applied
    */
-  private async runStage(fn: PipelineFnType<T>, input: T, index: number): Promise<T> {
+  private async runStage(fn: PipelineFunctionInterface<T>, input: T, index: number): Promise<T> {
     try {
       const output = await fn(input);
       return output;
     } catch (err: unknown) {
-      await Promise.resolve(this.hooks.invoke('onStageError', () => {
+      await this.hooks.invokeAsync('onStageError', () => {
         const result = this.onStageError(index, err);
         return result;
-      }));
+      });
       throw new PipelineError('Pipeline stage failed', err);
     }
   }
@@ -313,15 +294,15 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @returns The stage fn's output
    * @throws The original error, after `onRunError` has fired
    */
-  async #runStageWithErrorHandling(fn: PipelineFnType<T>, input: T, index: number): Promise<T> {
+  async #runStageWithErrorHandling(fn: PipelineFunctionInterface<T>, input: T, index: number): Promise<T> {
     try {
       const output = await this.runStage(fn, input, index);
       return output;
     } catch (err: unknown) {
-      await Promise.resolve(this.hooks.invoke('onRunError', () => {
+      await this.hooks.invokeAsync('onRunError', () => {
         const result = this.onRunError(err);
         return result;
-      }));
+      });
       throw err;
     }
   }
@@ -347,17 +328,17 @@ export class Pipeline<T> implements PipelineInterface<T> {
       const token = this.#tokens[i];
       const fn = this.fns[i]!;
       const input = this.beforeStage(current, i);
-      await Promise.resolve(this.hooks.invoke('onStageStart', () => {
+      await this.hooks.invokeAsync('onStageStart', () => {
         const result = this.onStageStart(i, input);
         return result;
-      }));
+      });
 
       const output = await this.#runStageWithErrorHandling(fn, input, i);
 
-      await Promise.resolve(this.hooks.invoke('onStageSuccess', () => {
+      await this.hooks.invokeAsync('onStageSuccess', () => {
         const result = this.onStageSuccess(i, output);
         return result;
-      }));
+      });
       current = this.afterStage(output, i);
 
       // Realign `i` to the live array after the stage ran, in case it

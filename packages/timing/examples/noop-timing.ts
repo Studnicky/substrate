@@ -8,8 +8,8 @@ import { NoOpTiming, TimingEvent } from '../src/index.js';
 const timing = NoOpTiming.create();
 
 // Recording events is accepted without error but produces no stored data
-timing.event(TimingEvent.create().component('Cache').operation('get').build());
-timing.event(TimingEvent.create().component('Cache').operation('set').build());
+timing.event(TimingEvent.create({ 'component': 'Cache', 'operation': 'get' }));
+timing.event(TimingEvent.create({ 'component': 'Cache', 'operation': 'set' }));
 
 const events = timing.getEvents();
 

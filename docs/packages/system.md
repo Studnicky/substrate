@@ -19,15 +19,16 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ### CPU, memory, and platform
 
-Read CPU topology, memory usage, and platform info synchronously, plus computed shorthands for common worker-pool decisions:
+Read CPU topology, memory usage, and platform info synchronously, plus the computed worker-pool recommendation:
 
 <<< ../../packages/system/examples/cpuMemoryPlatform.ts#usage
 
-### GPU detection and full snapshot
+### GPU detection
 
-GPU detection is async: it shells out to `system_profiler` (macOS), `nvidia-smi` (Linux NVIDIA), or `rocm-smi` (Linux AMD). Results are cached after the first call. `System.snapshot()` returns all four info objects together:
-
-<<< ../../packages/system/examples/snapshot.ts#usage
+`System.gpu()` synchronously detects and caches GPU information, then returns a defensive copy. It invokes `system_profiler`
+on macOS, `nvidia-smi` for Linux NVIDIA systems, or `rocm-smi` for Linux AMD systems,
+returning `null` when detection is unavailable. Import `System` from `@studnicky/system` and
+use the canonical `System.cpu`, `System.gpu()`, `System.memory`, and `System.platform` APIs.
 
 ## Try it
 
@@ -40,32 +41,30 @@ The output shows live CPU architecture, model, logical and physical counts, `opt
 | Export | Type | Description |
 |--------|------|-------------|
 | `System` | class | Static-only system introspection API |
-| `CpuInfoType` | type | `{ arch, logicalCount, physicalCount, model }` |
-| `MemoryInfoType` | type | `{ totalMb, freeMb }` |
-| `PlatformInfoType` | type | `{ os, isAppleSilicon, nodeVersion }` |
-| `GpuInfoType` | type | `{ name, computeApi, vramMb }` |
-| `SystemInfoType` | type | Aggregates all four info types |
+| `CpuInfoEntity.Type` | entity type | `{ arch, logicalCount, physicalCount, model }` |
+| `MemoryInfoEntity.Type` | entity type | `{ totalMb, freeMb }` |
+| `PlatformInfoEntity.Type` | entity type | `{ os, isAppleSilicon, nodeVersion }` |
+| `GpuInfoEntity.Type` | entity type | `{ name, computeApi, vramMb }` |
+| `SystemInfoEntity.Type` | entity type | Canonical composition of CPU, GPU, memory, and platform data |
+| `SystemProviderInterface` | interface | Runtime provider contract used by platform implementations |
 
 ### `System`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| `cpu` | `static get cpu(): CpuInfoType` | CPU model, arch, logical and physical count |
-| `memory` | `static get memory(): MemoryInfoType` | Total and free memory in megabytes |
-| `platform` | `static get platform(): PlatformInfoType` | OS, Node.js version, Apple Silicon flag |
-| `gpu` | `static gpu(): Promise<GpuInfoType \| null>` | Detects GPU; returns `null` when unavailable; cached after first call |
-| `logicalCpuCount` | `static get logicalCpuCount(): number` | Shorthand for `System.cpu.logicalCount` |
-| `optimalWorkerCount` | `static get optimalWorkerCount(): number` | `max(1, logicalCpuCount - 1)` (leaves one core for the event loop) |
-| `isAppleSilicon` | `static get isAppleSilicon(): boolean` | True on `darwin`/`arm64` |
-| `snapshot` | `static snapshot(): Promise<SystemInfoType>` | Returns all info as a single object |
+| `cpu` | `static get cpu(): CpuInfoEntity.Type` | CPU model, architecture, logical count, and physical count |
+| `memory` | `static get memory(): MemoryInfoEntity.Type` | Total and free memory in megabytes |
+| `platform` | `static get platform(): PlatformInfoEntity.Type` | OS, Node.js version, and Apple Silicon flag |
+| `gpu` | `static gpu(): GpuInfoEntity.Type \| null` | Detects and caches GPU information; returns a defensive copy or `null` when unavailable |
+| `optimalWorkerCount` | `static get optimalWorkerCount(): number` | `max(1, System.cpu.logicalCount - 1)` |
 
-### `GpuInfoType.computeApi` values
+### `GpuInfoEntity.Type.computeApi` values
 
 | Value | Platform | Detector |
 |-------|----------|----------|
 | `'metal'` | macOS | `system_profiler SPDisplaysDataType` |
 | `'cuda'` | Linux (NVIDIA) | `nvidia-smi` |
 | `'opencl'` | Linux (AMD) | `rocm-smi` |
-| `'software'` | fallback | reported when no hardware accelerator found |
+| `'software'` | software renderer | reported by providers that identify a software-backed renderer |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/system)

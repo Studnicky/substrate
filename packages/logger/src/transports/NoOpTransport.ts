@@ -1,8 +1,6 @@
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
-import { NoOpTransportBuilder } from './NoOpTransportBuilder.js';
-
 /**
  * Transport that discards all records.
  *
@@ -25,11 +23,6 @@ export class NoOpTransport implements TransportInterface {
    */
   static create(): NoOpTransport {
     return new this();
-  }
-
-  static builder(): NoOpTransportBuilder {
-    const result = NoOpTransportBuilder.create(() => { const result = NoOpTransport.create(); return result; });
-    return result;
   }
 
   protected constructor() {}

@@ -28,22 +28,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `FetchClient` direct verb methods are the single request surface for absolute and configured URLs; timeout, abort, body serialization, and dispatcher behavior execute on that path.
+- Client configuration contains only behaviorally effective fields; the unused `name` field is not accepted.
+- Request, response, client configuration, query parameter, body option, fetch option, and dispatcher contracts are exported from `@studnicky/fetch`; `FetchRequestOptionsEntity` and `ClientConfigDataEntity` own their schema-expressible data fields, while interfaces retain headers, signals, callbacks, and other runtime contracts.
+- `UndiciDispatcher.create(agent)` manages health and lifecycle for a caller-owned undici `Agent`; callers retain the Agent they use for request dispatch.
+- `@studnicky/fetch` is the sole public code entrypoint.
+
 ## [5.0.0] - 2026-07-08
 
 ### Changed
 
-- **Breaking:** exported constant objects now use `SCREAMING_SNAKE_CASE`. `DefaultDispatcherConfig`, `PoolHealth`, and `ValidationLimits` are renamed to `DEFAULT_DISPATCHER_CONFIG`, `POOL_HEALTH`, and `VALIDATION_LIMITS`.
+- Exported constant objects use `SCREAMING_SNAKE_CASE`: `DEFAULT_DISPATCHER_CONFIG`, `POOL_HEALTH`, and `VALIDATION_LIMITS`.
 
 ### Changed
 
-- `FetchClient`, `InterceptorManager`, `UndiciDispatcher`, and `RequestBuilder` constructors are now non-public (`protected`). Use `FetchClient.create(config)`, `InterceptorManager.create()`, `UndiciDispatcher.create(config)`, and `RequestBuilder.create(client, path)` to construct instances.
-- `FetchClient.builder()`, `InterceptorManager.builder()`, and `UndiciDispatcher.builder()` factory methods provide a fluent alternative to `create()` for each service class.
+- `FetchClient`, `InterceptorManager`, and `UndiciDispatcher` constructors are non-public (`protected`). Use `FetchClient.create(config)`, `InterceptorManager.create()`, and `UndiciDispatcher.create(config)` to construct instances.
 
 ## [1.0.0] - 2026-06-22
 
 ### Added
 
-- FetchClient class with static `create()` factory and fluent `request()` builder API
+- FetchClient class with static `create()` factory and direct HTTP verb methods
 - Request and response interceptor pipeline — single function or ordered array, applied per-client and per-request
 - Protected hook points `onRequestStart`, `onResponseSuccess`, `onRequestError` for subclass telemetry without modifying core behavior
 - Undici connection pool dispatcher, query-string utilities, and typed error hierarchy (AbortError, TimeoutError, HTTPError, and more)

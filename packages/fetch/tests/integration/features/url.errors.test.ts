@@ -4,14 +4,13 @@ import {
 } from 'node:test';
 
 import {
-  FetchClient,
-  HttpMethods
+  FetchClient
 } from '../../../src/index.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 
-const { fetch: fetchWithTimeout } = HttpMethods;
+const client = FetchClient.create();
 
 void describe('URL Error Scenarios', () => {
   let testUrl: string;
@@ -84,7 +83,7 @@ void describe('URL Error Scenarios', () => {
     void it('rejects empty URL in standalone fetch', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('');
+          await client.get('');
         },
         Error
       );
@@ -93,7 +92,7 @@ void describe('URL Error Scenarios', () => {
     void it('handles URL with spaces', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('http://invalid url with spaces.com/api');
+          await client.get('http://invalid url with spaces.com/api');
         },
         (error: Error) => {
           assert.ok(error instanceof TypeError || error.message.includes('URL'));
@@ -106,7 +105,7 @@ void describe('URL Error Scenarios', () => {
     void it('rejects URL with only whitespace', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('   ');
+          await client.get('   ');
         },
         (error: Error) => {
           assert.ok(error instanceof TypeError || error.message.includes('URL'));
@@ -177,7 +176,7 @@ void describe('URL Error Scenarios', () => {
     void it('handles URL with username and password', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('http://user:pass@localhost:9999/api');
+          await client.get('http://user:pass@localhost:9999/api');
         },
         (error: Error) => {
           assert.ok(error.name.includes('Error'));
@@ -190,7 +189,7 @@ void describe('URL Error Scenarios', () => {
     void it('handles URL with username only', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('http://user@localhost:9999/api');
+          await client.get('http://user@localhost:9999/api');
         },
         (error: Error) => {
           assert.ok(error.name.includes('Error'));
@@ -203,7 +202,7 @@ void describe('URL Error Scenarios', () => {
     void it('handles URL with encoded credentials', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('http://user%40email.com:pass%40123@localhost:9999/api');
+          await client.get('http://user%40email.com:pass%40123@localhost:9999/api');
         },
         (error: Error) => {
           assert.ok(error.name.includes('Error'));
@@ -248,7 +247,7 @@ void describe('URL Error Scenarios', () => {
     void it('rejects relative path without baseURL', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('/posts/1');
+          await client.get('/posts/1');
         },
         (error: Error) => {
           assert.ok(error instanceof TypeError || error.message.includes('URL'));
@@ -261,7 +260,7 @@ void describe('URL Error Scenarios', () => {
     void it('rejects path without protocol or baseURL', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('api/posts/1');
+          await client.get('api/posts/1');
         },
         (error: Error) => {
           assert.ok(error instanceof TypeError || error.message.includes('URL'));
@@ -276,7 +275,7 @@ void describe('URL Error Scenarios', () => {
     void it('handles IPv6 localhost format', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('http://[::1]:9999/api');
+          await client.get('http://[::1]:9999/api');
         },
         (error: Error) => {
           assert.ok(error.name.includes('Error'));
@@ -289,7 +288,7 @@ void describe('URL Error Scenarios', () => {
     void it('handles full IPv6 address format', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('http://[2001:db8::1]:9999/api');
+          await client.get('http://[2001:db8::1]:9999/api');
         },
         (error: Error) => {
           assert.ok(error.name.includes('Error'));
@@ -304,7 +303,7 @@ void describe('URL Error Scenarios', () => {
     void it('rejects file:// protocol', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('file:///etc/passwd');
+          await client.get('file:///etc/passwd');
         },
         (error: Error) => {
           assert.ok(error.message.includes('protocol') || error.message.includes('scheme') || error instanceof TypeError);
@@ -317,7 +316,7 @@ void describe('URL Error Scenarios', () => {
     void it('rejects ftp:// protocol', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('ftp://example.com/file');
+          await client.get('ftp://example.com/file');
         },
         (error: Error) => {
           assert.ok(error.message.includes('protocol') || error.message.includes('scheme') || error instanceof TypeError);
@@ -330,7 +329,7 @@ void describe('URL Error Scenarios', () => {
     void it('rejects custom protocol', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('custom://example.com/api');
+          await client.get('custom://example.com/api');
         },
         (error: Error) => {
           assert.ok(error.message.includes('protocol') || error.message.includes('scheme') || error instanceof TypeError);
@@ -382,7 +381,7 @@ void describe('URL Error Scenarios', () => {
     void it('throws network error for non-existent domain', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('https://this-domain-definitely-does-not-exist-12345.com', { timeout: 5000 });
+          await client.get('https://this-domain-definitely-does-not-exist-12345.com', { timeout: 5000 });
         },
         (error: Error) => {
           assert.ok(error.name.includes('Error'));
@@ -395,7 +394,7 @@ void describe('URL Error Scenarios', () => {
     void it('throws network error for connection refused', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('http://127.0.0.1:1', { timeout: 5000 });
+          await client.get('http://127.0.0.1:1', { timeout: 5000 });
         },
         (error: Error) => {
           assert.ok(error.name.includes('Error'));
@@ -408,7 +407,7 @@ void describe('URL Error Scenarios', () => {
     void it('throws network error for unreachable host', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('http://192.0.2.1:9999', { timeout: 2000 });
+          await client.get('http://192.0.2.1:9999', { timeout: 2000 });
         },
         (error: Error) => {
           assert.ok(error.name.includes('Error'));

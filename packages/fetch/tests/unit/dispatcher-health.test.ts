@@ -9,13 +9,18 @@ import {
   describe, it
 } from 'node:test';
 
+import { DispatcherAgent } from '../../src/config/DispatcherAgent.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
 
+const createDispatcher = (connections: number): UndiciDispatcher => {
+  const agent = DispatcherAgent.create({ connections });
+  return UndiciDispatcher.create(agent);
+};
 
 void describe('dispatcher health monitoring', () => {
   void describe('getStats', () => {
     void it('should return empty object for new dispatcher', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 10 });
+      const dispatcher = createDispatcher(10);
       const stats = dispatcher.getStats();
 
       assert.equal(typeof stats, 'object');
@@ -25,7 +30,7 @@ void describe('dispatcher health monitoring', () => {
     });
 
     void it('should return stats object after requests', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 10 });
+      const dispatcher = createDispatcher(10);
 
       // Note: Can't easily test with real requests in unit tests
       // Stats would be populated after actual fetch requests
@@ -37,7 +42,7 @@ void describe('dispatcher health monitoring', () => {
     });
 
     void it('should return frozen stats object', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 10 });
+      const dispatcher = createDispatcher(10);
       const stats = dispatcher.getStats();
 
       // Outer object should be frozen
@@ -45,7 +50,7 @@ void describe('dispatcher health monitoring', () => {
 
       // Attempting to add new properties should throw (ES modules are strict by default)
       assert.throws(() => {
-        (stats as Record<string, unknown>)['new-origin'] = { test: 'value' };
+        Object.assign(stats, { 'new-origin': { 'test': 'value' } });
       }, TypeError);
 
       await dispatcher.destroy();
@@ -54,7 +59,7 @@ void describe('dispatcher health monitoring', () => {
     void it('should return deeply frozen stats with dispatcher data', async () => {
       // This test would require making actual HTTP requests to populate stats
       // For now, verify the structure is correct for empty stats
-      const dispatcher = UndiciDispatcher.create({ connections: 10 });
+      const dispatcher = createDispatcher(10);
       const stats = dispatcher.getStats();
 
       // Empty stats should still be frozen
@@ -62,7 +67,7 @@ void describe('dispatcher health monitoring', () => {
 
       // Verify immutability at the outer level (ES modules are strict by default)
       const attemptMutation = (): void => {
-        (stats as Record<string, unknown>).test = 'value';
+        Object.assign(stats, { 'test': 'value' });
       };
 
       assert.throws(attemptMutation, TypeError);
@@ -73,7 +78,7 @@ void describe('dispatcher health monitoring', () => {
 
   void describe('checkDispatcherHealth', () => {
     void it('should return healthy for non-existent origin', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 10 });
+      const dispatcher = createDispatcher(10);
       const health = dispatcher.checkDispatcherHealth('https://example.com:443');
 
       assert.equal(health.healthy, true);
@@ -86,7 +91,7 @@ void describe('dispatcher health monitoring', () => {
 
     void it('should return healthy for newly created dispatcher', async () => {
       // Fresh dispatcher with no requests = healthy
-      const dispatcher = UndiciDispatcher.create({ connections: 20 });
+      const dispatcher = createDispatcher(20);
       const stats = dispatcher.getStats();
 
       // Should have no origins yet
@@ -101,7 +106,7 @@ void describe('dispatcher health monitoring', () => {
     });
 
     void it('should have proper DispatcherHealthType interface', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 10 });
+      const dispatcher = createDispatcher(10);
       const health: DispatcherHealthType = dispatcher.checkDispatcherHealth('https://test.com:443');
 
       // Verify all required properties exist
@@ -116,7 +121,7 @@ void describe('dispatcher health monitoring', () => {
     });
 
     void it('should return proper structure after getStats()', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 10 });
+      const dispatcher = createDispatcher(10);
       const stats = dispatcher.getStats();
 
       // Stats should be a record object

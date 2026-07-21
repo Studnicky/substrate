@@ -1,19 +1,22 @@
 /**
  * Retry Instantiation Unit Tests
  *
- * Tests for creating Retry instances via factory and builder.
+ * Tests for creating Retry instances via the static factory.
  */
 
 import {
-  ok, strictEqual
+  deepStrictEqual, notStrictEqual, ok, strictEqual
 } from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+
 import {
-  DefaultHttpErrorClassifier,
-  Retry,
-  RetryBuilder
-} from '../../../src/retry/index.js';
+  MaxRetriesExceededError,
+  NonRetryableError,
+  RetryError
+} from '../../../src/errors/index.js';
+import { Retry } from '../../../src/retry/index.js';
 
 // ---------------------------------------------------------------------------
 // Static factory method scenarios
@@ -40,73 +43,12 @@ for (const { description, build } of createScenarios) {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Builder pattern scenarios
-// ---------------------------------------------------------------------------
-
-const builderScenarios: Array<{ description: string; build: () => Retry }> = [
-  {
-    description: 'creates retry with RetryBuilder.create(...).build()',
-    build: () => RetryBuilder.create((opts) => Retry.create(opts)).build()
-  },
-  {
-    description: 'creates retry with Retry.builder().build()',
-    build: () => Retry.builder().build()
-  },
-  {
-    description: 'builds with custom maxRetries(7)',
-    build: () => Retry.builder().maxRetries(7).build()
-  },
-  {
-    description: 'builds with errorClassifier and maxRetries',
-    build: () => Retry.builder().maxRetries(3).errorClassifier(DefaultHttpErrorClassifier.create()).build()
-  },
-  {
-    description: 'builds with custom maxElapsedMs(5000)',
-    build: () => Retry.builder().maxElapsedMs(5000).build()
-  },
-  {
-    description: 'builds with backoffStrategy',
-    build: () => Retry.builder()
-      .backoffStrategy({ baseDelayMs: 100, strategy: (attempt, base) => base * (attempt + 1) })
-      .build()
-  }
-];
-
-for (const { description, build } of builderScenarios) {
-  it(description, () => {
-    ok(build() instanceof Retry);
+it('create-configured maxRetries and backoffStrategy drive actual retry behavior', async () => {
+  const retry = Retry.create({
+    'backoffStrategy': { 'baseDelayMs': 5, 'strategy': () => 1 },
+    'errorClassifier': () => ({ 'retryable': true }),
+    'maxRetries': 10
   });
-}
-
-// ---------------------------------------------------------------------------
-// Builder fluent return — non-scenario, identity check
-// ---------------------------------------------------------------------------
-
-it('builder.maxRetries() returns builder instance for chaining', () => {
-  const builder = Retry.builder();
-  const result = builder.maxRetries(5);
-
-  strictEqual(result, builder, 'maxRetries should return this');
-});
-
-it('builder.backoffStrategy() returns builder instance for chaining', () => {
-  const builder = Retry.builder();
-  const result = builder.backoffStrategy({ baseDelayMs: 10, strategy: () => 0 });
-
-  strictEqual(result, builder, 'backoffStrategy should return this');
-});
-
-// ---------------------------------------------------------------------------
-// Builder-configured maxRetries and backoffStrategy drive real retry behavior
-// ---------------------------------------------------------------------------
-
-it('builder-configured maxRetries and backoffStrategy drive actual retry behavior', async () => {
-  const retry = Retry.builder()
-    .maxRetries(10)
-    .errorClassifier(() => ({ retryable: true }))
-    .backoffStrategy({ baseDelayMs: 5, strategy: () => 1 })
-    .build();
 
   let attempts = 0;
 
@@ -134,4 +76,63 @@ it('create and factory produce functionally equivalent instances', async () => {
 
   strictEqual(result1, 'test');
   strictEqual(result2, 'test');
+});
+
+it('RetryError snapshots caller-owned arrays and mutable error graphs', () => {
+  const details = { 'attempt': 1 };
+  const inner = Object.assign(new Error('inner'), { 'details': details });
+  const outer = new Error('outer', { 'cause': inner });
+  const inputErrors = [outer];
+  const retryError = new RetryError('failed', 1, { 'cause': outer, 'errors': inputErrors });
+
+  inputErrors.push(new Error('later'));
+  outer.message = 'mutated outer';
+  inner.message = 'mutated inner';
+  details.attempt = 2;
+
+  const [first] = retryError.errors;
+  ok(first instanceof Error);
+  strictEqual(first.message, 'outer');
+  ok(first.cause instanceof Error);
+  strictEqual(first.cause.message, 'inner');
+  deepStrictEqual(Reflect.get(first.cause, 'details'), { 'attempt': 1 });
+  strictEqual(retryError.errors.length, 1);
+
+  const projectedCause = retryError.cause;
+  ok(projectedCause instanceof Error);
+  strictEqual(projectedCause.message, 'outer');
+  notStrictEqual(projectedCause, outer);
+});
+
+it('RetryError projections cannot mutate retained diagnostics', () => {
+  const retryError = new RetryError('failed', 1, {
+    'cause': new Error('outer', { 'cause': new Error('inner') })
+  });
+  const [projectedError] = retryError.errors;
+  const projectedCause = retryError.cause;
+
+  ok(projectedError instanceof Error);
+  ok(projectedCause instanceof Error);
+  projectedError.message = 'changed history';
+  projectedCause.message = 'changed cause';
+  Reflect.set(projectedError.cause, 'message', 'changed inner');
+  strictEqual(Reflect.set(retryError.errors, 1, new Error('appended')), false);
+
+  const [nextError] = retryError.errors;
+  ok(nextError instanceof Error);
+  strictEqual(nextError.message, 'outer');
+  ok(nextError.cause instanceof Error);
+  strictEqual(nextError.cause.message, 'inner');
+  strictEqual(retryError.cause?.message, 'outer');
+  strictEqual(retryError.errors.length, 1);
+});
+
+it('derived retry errors expose detached readonly diagnostics', () => {
+  const source = new Error('source');
+  const exhausted = new MaxRetriesExceededError('exhausted', 1, 2, [source]);
+  const nonRetryable = new NonRetryableError('rejected', source, 'fatal', 1);
+
+  notStrictEqual(exhausted.errors[0], source);
+  notStrictEqual(nonRetryable.originalError, source);
+  strictEqual(nonRetryable.originalError.message, 'source');
 });

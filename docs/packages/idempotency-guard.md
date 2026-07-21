@@ -15,7 +15,7 @@ pnpm add @studnicky/idempotency-guard
 
 ## Usage
 
-`IdempotencyGuard#run(key, payload, factory)` fingerprints `payload` via `Hash.value()` and checks the composed `LruCache` for an entry under `key`. A matching fingerprint replays the cached result; a mismatched fingerprint throws `IdempotencyConflictError` before `factory` runs; no entry runs the call through the composed `Coalesce` so concurrent callers sharing the key share one execution:
+`IdempotencyGuard<TResult>#run(key, payload, factory)` fingerprints `payload` via `Hash.value()` and checks the composed `LruCache` for an entry under `key`. `TResult` belongs to the guard instance and is shared by every key it owns. A matching fingerprint replays the cached result; a mismatched fingerprint throws `IdempotencyConflictError` before `factory` runs; no entry runs the call through the composed `Coalesce` so concurrent callers sharing the key share one execution:
 
 <<< ../../packages/idempotency-guard/examples/observedIdempotencyGuard.ts#usage
 
@@ -28,18 +28,13 @@ pnpm add @studnicky/idempotency-guard
 | `onConflict(key)` | Fires immediately before throwing `IdempotencyConflictError` for a fingerprint mismatch |
 | `onExecute(key)` | `key` is genuinely new (or its entry expired) and `factory` is about to run |
 
-`IdempotencyGuard` introduces no hooks duplicating what `LruCache`/`Coalesce` already expose — its own hooks are specifically about idempotency semantics (replay/conflict/execute/coalesce). Generic cache/coalesce lifecycle (`onHit`, `onEvict`, `onCoalesceSettled`, `onTimeout`, ...) stays reachable via `getCache()`/`getCoalesce()` for a consumer who subclasses the composed instances directly.
+`IdempotencyGuard` introduces no hooks duplicating generic cache or coalescing lifecycle. Its hooks are specifically about idempotency semantics: replay, conflict, execution, and joining an in-flight call.
 
-## Transparency contract
+## Ownership contract
 
-`IdempotencyGuard`'s own hooks (`onReplay`, `onCoalesce`, `onConflict`, `onExecute`) are specifically about idempotency semantics — never a restatement of generic cache/coalesce lifecycle:
+`IdempotencyGuard.create({ capacity, ttlMs })` creates and owns its cache and coalescer. Those collaborators are implementation details and have no public getters. Consumers observe the guard through `onReplay`, `onCoalesce`, `onConflict`, and `onExecute`.
 
-| Getter | Returns |
-|--------|---------|
-| `getCache()` | The composed `LruCache<string, { fingerprint, result }>` instance |
-| `getCoalesce()` | The composed `Coalesce<unknown>` instance |
-
-Every getter returns the exact instance used internally — never a copy or wrapper. A consumer who needs `LruCache`'s `onEvict`/`onExpire`/`onHit` or `Coalesce`'s `onCoalesceSettled`/`onTimeout` subclasses those primitives directly and passes nothing new through `IdempotencyGuard` — `IdempotencyGuard` composes `LruCache`/`Coalesce` internally rather than accepting them as injected config, so those getters are the only path to the live instances.
+Import `IdempotencyGuard`, `IdempotencyGuardOptionsEntity`, `IdempotencyGuardEntryMetadataEntity`, `IdempotencyGuardEntryInterface`, `IdempotencyConflictError`, and `IdempotencyGuardError` from `@studnicky/idempotency-guard`. `IdempotencyGuardEntryInterface<TResult>` composes the schema-derived fingerprint from the metadata entity and retains the caller-owned generic result. The package root is the only public code entrypoint.
 
 ## Composition order
 
@@ -50,7 +45,7 @@ Every getter returns the exact instance used internally — never a copy or wrap
 | Error | Thrown when |
 |-------|-------------|
 | `IdempotencyConflictError` | `run()` is called with a key whose cached entry has a different payload fingerprint |
-| `IdempotencyGuardConfigError` | `IdempotencyGuardBuilder#build()` is called without `capacity` or `ttlMs` |
+| `IdempotencyGuardError` | Base domain error for idempotency-guard failures |
 
 ## Documentation
 

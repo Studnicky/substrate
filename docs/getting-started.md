@@ -21,58 +21,50 @@ Packages are published to the GitHub Package Registry under the `@studnicky` sco
 Then install any package:
 
 ```bash
-pnpm add @studnicky/retry
+pnpm add @studnicky/cache
 ```
+
+Import public code from the package root, such as `@studnicky/cache`.
 
 ## Minimal usage example
 
-<!-- inline-ts-ok: consumer-facing snippet using the published @studnicky/retry import and live fetch; illustrates install-and-use ergonomics, not an in-repo runnable example (those use relative ../src imports) -->
+<!-- inline-ts-ok: consumer-facing snippet using the published package-root import -->
 ```typescript
-import { Retry } from '@studnicky/retry';
+import { LruCache } from '@studnicky/cache';
 
-// Create via static factory
-const retry = Retry.create({ maxRetries: 3 });
-
-// Or use the fluent builder
-const retryWithClassifier = Retry.builder()
-  .maxRetries(5)
-  .build();
-
-// Execute any async operation with automatic retry
-const result = await retry.execute(async () => {
-  const response = await fetch('https://api.example.com/data');
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.json();
+const users = LruCache.create<string, { name: string }>({
+  capacity: 100,
+  ttlMs: 60_000
 });
+
+users.set('user-42', { name: 'Ada' });
+
+const user = users.get('user-42');
 ```
 
 ## Extending a primitive
 
 Every class exposes documented protected seams. Most are observer hooks for tracing and metrics; some packages also expose behavioral hooks that intentionally transform or redirect control flow. Subclass to add observability without touching the base class:
 
-<!-- inline-ts-ok: consumer-facing subclass illustration using the published @studnicky/retry import; demonstrates the extension pattern, not an in-repo runnable example -->
+<!-- inline-ts-ok: consumer-facing subclass illustration using the published package-root import -->
 ```typescript
-import { Retry } from '@studnicky/retry';
-import type { RetryContextInterface } from '@studnicky/retry';
+import { LruCache } from '@studnicky/cache';
 
-class InstrumentedRetry extends Retry {
-  protected override onAttempt(ctx: RetryContextInterface): void {
-    console.log(`[retry] attempt ${ctx.attemptNumber} of ${this.maxRetries}`);
+class InstrumentedCache extends LruCache<string, { name: string }> {
+  protected override onHit(key: string, value: { name: string }): void {
+    console.log(`[cache] hit key=${key} name=${value.name}`);
   }
 
-  protected override onSuccess(ctx: RetryContextInterface): void {
-    console.log(`[retry] succeeded after ${ctx.attemptNumber} attempt(s)`);
-  }
-
-  protected override onGiveUp(ctx: RetryContextInterface, error: Error): void {
-    console.error(`[retry] gave up after ${ctx.attemptNumber} attempts:`, error.message);
+  protected override onMiss(key: string): void {
+    console.log(`[cache] miss key=${key}`);
   }
 }
 
-const retry = new InstrumentedRetry({ maxRetries: 3 });
+const cache = InstrumentedCache.create<string, { name: string }>({ capacity: 100 });
+cache.get('user-42');
 ```
 
-The base `Retry` class never logs; the observer hooks are no-ops by default. Override only what you need, and check each package page for which hooks are observational versus behavioral.
+The base `LruCache` class never logs; observer hooks are no-ops by default. Override only what you need, and check each package page for which hooks are observational versus behavioral.
 
 ## Next steps
 

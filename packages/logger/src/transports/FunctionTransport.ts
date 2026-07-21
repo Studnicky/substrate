@@ -1,11 +1,9 @@
+import type { FunctionTransportOptionsEntity } from '../entities/FunctionTransportOptionsEntity.js';
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
-import type { FunctionTransportOptionsType } from './FunctionTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
-import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
-import { ParseLogLevel } from '../modules/parseLogLevel.js';
-import { FunctionTransportBuilder } from './FunctionTransportBuilder.js';
+import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
 
 /**
  * Transport that delegates record delivery to a user-supplied function.
@@ -36,32 +34,20 @@ export class FunctionTransport implements TransportInterface {
    */
   static create(
     sink: (record: LogRecordEntity.Type) => void,
-    options: FunctionTransportOptionsType = {}
+    options: FunctionTransportOptionsEntity.Type = {}
   ): FunctionTransport {
     return new this(sink, options);
-  }
-
-  static builder(): FunctionTransportBuilder {
-    const result = FunctionTransportBuilder.create((sink, options) => { const result = FunctionTransport.create(sink, options); return result; });
-    return result;
   }
 
   readonly #minLevel: number;
   readonly #sink: (record: LogRecordEntity.Type) => void;
 
-  protected constructor(sink: (record: LogRecordEntity.Type) => void, options: FunctionTransportOptionsType = {}) {
+  protected constructor(sink: (record: LogRecordEntity.Type) => void, options: FunctionTransportOptionsEntity.Type = {}) {
     if (typeof sink !== 'function') {
       throw new ConfigurationError('sink must be a function');
     }
-    if (options.level !== undefined
-      && typeof options.level !== 'string'
-      && typeof options.level !== 'number') {
-      throw new ConfigurationError('level must be a string or number');
-    }
     this.#sink = sink;
-    this.#minLevel = options.level !== undefined
-      ? ParseLogLevel.parse(options.level)
-      : LOG_LEVEL.TRACE;
+    this.#minLevel = ResolveMinLevel.from(options);
   }
 
   /**

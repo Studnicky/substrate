@@ -11,6 +11,7 @@ import {
 import {
   FetchClient, UndiciDispatcher
 } from '../../../src/index.js';
+import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
@@ -27,10 +28,11 @@ void describe('Dispatcher routing', () => {
   });
 
   void it('records pool activity on the configured dispatcher when passed via options.dispatcher', async () => {
-    const dispatcher = UndiciDispatcher.create({ connections: 5 });
+    const agent = DispatcherAgent.create({ connections: 5 });
+    const dispatcher = UndiciDispatcher.create(agent);
     const client = FetchClient.create({
       baseURL: testUrl,
-      options: { dispatcher: dispatcher.getAgent() }
+      options: { dispatcher: agent }
     });
 
     const origin = new URL(testUrl).origin;
@@ -50,11 +52,13 @@ void describe('Dispatcher routing', () => {
   });
 
   void it('does not record activity on an unrelated dispatcher for the same request', async () => {
-    const usedDispatcher = UndiciDispatcher.create({ connections: 5 });
-    const idleDispatcher = UndiciDispatcher.create({ connections: 5 });
+    const usedAgent = DispatcherAgent.create({ connections: 5 });
+    const idleAgent = DispatcherAgent.create({ connections: 5 });
+    const usedDispatcher = UndiciDispatcher.create(usedAgent);
+    const idleDispatcher = UndiciDispatcher.create(idleAgent);
     const client = FetchClient.create({
       baseURL: testUrl,
-      options: { dispatcher: usedDispatcher.getAgent() }
+      options: { dispatcher: usedAgent }
     });
 
     const origin = new URL(testUrl).origin;

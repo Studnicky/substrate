@@ -1,40 +1,37 @@
 import type { Rule } from 'eslint';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import type { LayerOptionsType } from '../../types/LayerOptionsType.js';
-
-import { layerOptionsSchema } from '../layers/layerOptionsSchema.js';
+import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
 import { ImportSourceValue } from '../shared/importSourceValue.js';
 import { ObjectGuard } from '../shared/ObjectGuard.js';
 
-type DomainPurityOptionsType = LayerOptionsType & {
-  'domainLayerName'?: string;
-  'forbiddenCalls'?: string[];
-  'forbiddenImports'?: string[];
-};
+namespace DomainPurityOptionsEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      ...LayerOptionsEntity.Schema.properties,
+      'domainLayerName': {
+        'description': 'Name of the layer treated as the pure-data domain layer, e.g. "domain" or "entities". Defaults to "domain".',
+        'type': 'string'
+      },
+      'forbiddenCalls': {
+        'description': 'Dotted call expressions forbidden in domain-layer files, e.g. ["Date.now", "Math.random"].',
+        'items': { 'type': 'string' },
+        'type': 'array'
+      },
+      'forbiddenImports': {
+        'description': 'Bare import specifiers or roots forbidden in domain-layer files, e.g. ["fs", "axios", "node:fs"].',
+        'items': { 'type': 'string' },
+        'type': 'array'
+      }
+    },
+    'required': LayerOptionsEntity.Schema.required,
+    'type': 'object'
+  } as const satisfies JSONSchema;
 
-const domainPuritySchema = {
-  'additionalProperties': false,
-  'properties': {
-    ...layerOptionsSchema.properties,
-    'domainLayerName': {
-      'description': 'Name of the layer treated as the pure-data domain layer, e.g. "domain" or "entities". Defaults to "domain".',
-      'type': 'string'
-    },
-    'forbiddenCalls': {
-      'description': 'Dotted call expressions forbidden in domain-layer files, e.g. ["Date.now", "Math.random"].',
-      'items': { 'type': 'string' },
-      'type': 'array'
-    },
-    'forbiddenImports': {
-      'description': 'Bare import specifiers or roots forbidden in domain-layer files, e.g. ["fs", "axios", "node:fs"].',
-      'items': { 'type': 'string' },
-      'type': 'array'
-    }
-  },
-  'required': layerOptionsSchema.required,
-  'type': 'object'
-} as const;
+  export type Type = FromSchema<typeof Schema>;
+}
 
 class ForbiddenSpecifierMatch {
   public static test(specifier: string, forbidden: readonly string[]): boolean {
@@ -78,17 +75,25 @@ class CalleeDottedName {
 
 export const domainPurity: Rule.RuleModule = {
   'create': (context) => {
-    const options = context.options.at(0) as DomainPurityOptionsType | undefined;
+    const options: unknown = context.options.at(0);
 
-    if (options === undefined) { return {}; }
+    if (!LayerOptionsEntity.validate(options)) { return {}; }
 
     const filename = context.physicalFilename;
-    const domainLayerFile = LayerResolver.layerForPath(filename, options) === (options.domainLayerName ?? 'domain');
+    const domainLayerNameValue: unknown = Reflect.get(options, 'domainLayerName');
+    const domainLayerName = typeof domainLayerNameValue === 'string' ? domainLayerNameValue : 'domain';
+    const domainLayerFile = LayerResolver.layerForPath(filename, options) === domainLayerName;
 
     if (!domainLayerFile) { return {}; }
 
-    const forbiddenImports = options.forbiddenImports ?? [];
-    const forbiddenCalls = options.forbiddenCalls ?? [];
+    const forbiddenImportsValue: unknown = Reflect.get(options, 'forbiddenImports');
+    const forbiddenCallsValue: unknown = Reflect.get(options, 'forbiddenCalls');
+    const forbiddenImports = Array.isArray(forbiddenImportsValue)
+      ? forbiddenImportsValue.filter((value): value is string => { return typeof value === 'string'; })
+      : [];
+    const forbiddenCalls = Array.isArray(forbiddenCallsValue)
+      ? forbiddenCallsValue.filter((value): value is string => { return typeof value === 'string'; })
+      : [];
 
     const onImportDeclaration: NonNullable<Rule.RuleListener['ImportDeclaration']> = (node) => {
       const specifier = ImportSourceValue.get(node);
@@ -130,7 +135,7 @@ export const domainPurity: Rule.RuleModule = {
       'impureCall': "Domain-layer files may not call '{{callName}}'. Business logic must stay deterministic — inject the value instead.",
       'impureImport': "Domain-layer files may not import '{{specifier}}'. Business logic must stay free of I/O and infrastructure dependencies."
     },
-    'schema': [domainPuritySchema],
+    'schema': [DomainPurityOptionsEntity.Schema],
     'type': 'problem'
   }
 };

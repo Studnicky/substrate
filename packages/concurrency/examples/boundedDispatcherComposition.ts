@@ -9,32 +9,29 @@
  * this composition no longer has to work around an untunable bus. Run:
  * npx tsx examples/boundedDispatcherComposition.ts */
 
-import type { ScheduledTaskType } from '@studnicky/scheduler';
+import type { ScheduledTaskInterface } from '@studnicky/scheduler';
 
 // #region usage
 import { EventBus } from '@studnicky/event-bus';
 import { RealTimeScheduler } from '@studnicky/scheduler';
 import assert from 'node:assert/strict';
 
+import type { DispatchCompletedEventEntity, DispatchStartedEventEntity } from '../src/index.js';
+
 import { Semaphore } from '../src/index.js';
 
-// json-schema-uninexpressible: 'error' is typed `unknown` — TypeScript types caught values as
-// `unknown` by design (a `catch` clause may receive any thrown value, not just an Error), which
-// JSON Schema cannot model. 'result' is 'string' because every dispatched task in this demo
-// returns a string; the generic Dispatcher.dispatch<T> is constrained to T extends string to
-// match, rather than widening the published event payload to 'unknown' for convenience.
-type DispatchTopicMapType = {
-  'dispatch.completed': { 'key': string; 'result': string };
+interface DispatchTopicMapInterface {
+  'dispatch.completed': DispatchCompletedEventEntity.Type;
   'dispatch.failed': { 'error': unknown; 'key': string; };
-  'dispatch.started': { 'key': string };
-};
+  'dispatch.started': DispatchStartedEventEntity.Type;
+}
 
 // One Semaphore bounds how many dispatched tasks run at once; one EventBus, tuned with a
 // highWaterMark now that EventBus.create() forwards it into every subscriber's BusQueue,
 // publishes lifecycle events for whoever wants to observe dispatch without coupling to the
 // dispatcher itself; one scheduler drives delayed dispatch.
 const semaphore = Semaphore.create({ 'permits': 2 });
-const bus = EventBus.create<DispatchTopicMapType>({ 'highWaterMark': 4 });
+const bus = EventBus.create<DispatchTopicMapInterface>({ 'highWaterMark': 4 });
 const scheduler = RealTimeScheduler.create();
 
 class Dispatcher {
@@ -53,7 +50,7 @@ class Dispatcher {
     }
   }
 
-  static scheduleDispatch<T extends string>(atMs: number, key: string, fn: () => Promise<T>): ScheduledTaskType {
+  static scheduleDispatch<T extends string>(atMs: number, key: string, fn: () => Promise<T>): ScheduledTaskInterface {
     const task = scheduler.scheduleAt(atMs, () => { void Dispatcher.dispatch(key, fn); });
     return task;
   }

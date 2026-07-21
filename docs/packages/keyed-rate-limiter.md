@@ -13,40 +13,41 @@ description: Per-key rate limiting composing cache and resilience — one strate
 pnpm add @studnicky/keyed-rate-limiter
 ```
 
+`@studnicky/keyed-rate-limiter` is the sole public code entrypoint.
+
 ## Usage
 
 `KeyedRateLimiter#consume(key, tokens?)` / `#waitForToken(key, options?)` lazily create one rate-limiting strategy per key on first use, backed by a composed `LruCache` that bounds and evicts idle keys. Draining one key's strategy has no effect on any other key:
 
 <<< ../../packages/keyed-rate-limiter/examples/observedKeyedRateLimiter.ts#usage
 
-## The `RateLimiterStrategyType` extension seam
+## The `RateLimiterStrategyInterface` extension seam
 
-`KeyedRateLimiter<TStrategy extends RateLimiterStrategyType = TokenBucket>` is generic over an injectable rate-limiting strategy — a purely structural seam:
+`KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = TokenBucket>` is generic over an injectable rate-limiting strategy — a purely structural seam:
 
-<<< ../../packages/keyed-rate-limiter/src/RateLimiterStrategyType.ts#shape
+<<< ../../packages/keyed-rate-limiter/src/interfaces/RateLimiterStrategyInterface.ts
 
-`@studnicky/resilience`'s `TokenBucket` matches this shape without declaring or importing it. `KeyedRateLimiter.create()` composes a `TokenBucket` per key by default; `KeyedRateLimiter.createWithStrategy()` accepts any factory producing an object with those two methods — a future rate-limiting algorithm slots in without a second wrapper class, and without ever importing from `@studnicky/keyed-rate-limiter` or coupling to `TokenBucket`.
+`@studnicky/resilience`'s `TokenBucket` matches this shape without declaring or importing it. `KeyedRateLimiter.create(config)` accepts either of two root-exported config families:
+
+- `KeyedRateLimiterCreateConfigInterface` supplies `requestsPerSecond`, `burstSize`, and optional `clock`, `maxKeys`, and `keyIdleTtlMs` for the default `TokenBucket`-per-key path.
+- `KeyedRateLimiterStrategyConfigInterface<TStrategy>` supplies `factory`, `maxKeys`, and `keyIdleTtlMs` for any structural strategy implementation.
 
 ## Hooks
 
 | Hook | Fires when |
 |------|-----------|
 | `onKeyCreated(key)` | A key is seen for the first time (or re-seen after eviction) and its strategy is lazily created |
-| `onKeyEvicted(key)` | The internal `LruCache` removes a key's strategy — capacity eviction, idle TTL expiry, or a direct `getCache().delete(key)` all route here |
+| `onKeyEvicted(key)` | The internal `LruCache` removes a key's strategy through capacity eviction or idle TTL expiry |
 | `onLimitExceeded(key)` | `key`'s strategy `consume()` throws, before the error propagates |
-| `onTokenAcquired(key, count)` | A successful acquisition on the default `create()` path only — delegated from the per-key `TokenBucket`'s own hook; `createWithStrategy()` has no hook surface to delegate through for an arbitrary caller-supplied strategy |
+| `onTokenAcquired(key, count)` | A successful acquisition on the default token-bucket config path; factory-supplied strategies own their acquisition telemetry |
 
 `KeyedRateLimiter`'s own hooks are specifically about per-key rate-limiting semantics — never a restatement of generic cache/bucket lifecycle.
 
-## Transparency contract
+## Encapsulation contract
 
 `KeyedRateLimiter`'s own hooks (`onKeyCreated`, `onKeyEvicted`, `onLimitExceeded`, `onTokenAcquired`) are specifically about per-key rate-limiting semantics:
 
-| Getter | Returns |
-|--------|---------|
-| `getCache()` | The composed `LruCache<string, TStrategy>` instance |
-
-Every getter returns the exact instance used internally — never a copy or wrapper. `onKeyEvicted` is delegated from the internally-composed `LruCache`'s own `onEvict`/`onExpire`/`onDelete` hooks (capacity eviction, idle TTL expiry, and direct deletion respectively), the same delegation technique `@studnicky/paginator`'s `Paginator` and `@studnicky/idempotency-guard`'s `IdempotencyGuard` use for their own internally-composed instances. `onTokenAcquired` is delegated from the per-key `TokenBucket`'s own hook, but only on the `create()` path — `createWithStrategy()` has no structural hook surface to delegate through for an arbitrary caller-supplied strategy.
+The composed cache remains private. Callers observe rate-limiter behavior through `consume()`, `waitForToken()`, and the lifecycle hooks instead of mutating the limiter's owned storage. `onKeyEvicted` is delegated from the internally composed `LruCache`; `onTokenAcquired` is delegated from a per-key `TokenBucket` for the default config family. A factory-supplied strategy owns its own acquisition telemetry because `RateLimiterStrategyInterface` has no hook surface.
 
 ## Composition order
 
@@ -56,7 +57,7 @@ Every getter returns the exact instance used internally — never a copy or wrap
 
 | Error | Thrown when |
 |-------|-------------|
-| `KeyedRateLimiterConfigError` | `KeyedRateLimiterBuilder#build()` is called without `requestsPerSecond` or `burstSize` |
+| `KeyedRateLimiterConfigError` | `KeyedRateLimiter.create(config)` receives an invalid default or strategy configuration |
 
 `consume()`/`waitForToken()` throw whatever the underlying strategy throws on exhaustion — `TokenBucketExhaustedError` (from `@studnicky/resilience`) on the default `create()` path.
 

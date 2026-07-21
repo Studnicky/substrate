@@ -8,6 +8,12 @@ import { RetryError } from './RetryError.js';
  * Contains the original error and classification reason.
  */
 export class NonRetryableError extends RetryError {
+  /** Returns a detached snapshot of the error rejected by classification. */
+  public get originalError(): Error {
+    const [originalError] = this.errors;
+    return originalError ?? new Error('Unknown non-retryable error');
+  }
+
   /**
    * Create a NonRetryableError
    *
@@ -18,10 +24,10 @@ export class NonRetryableError extends RetryError {
    */
   constructor(
     message: string,
-    public readonly originalError: Error,
+    originalError: Error,
     public readonly reason: string,
     attempts: number
   ) {
-    super(message, attempts, { 'cause': originalError, 'code': 'retry.nonRetryable', 'errors': [] });
+    super(message, attempts, { 'cause': originalError, 'code': 'retry.nonRetryable', 'errors': [originalError] });
   }
 }

@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import { it, mock } from 'node:test';
 
+import type { GpuInfoEntity } from '../../src/entities/GpuInfoEntity.js';
+
 import { System } from '../../src/System.js';
+import { SystemProvider } from '../../src/providers/SystemProvider.js';
 
-// logicalCpuCount
-it('logicalCpuCount is a positive integer', () => {
-  const count = System.logicalCpuCount;
+it('cpu.logicalCount is a positive integer', () => {
+  const count = System.cpu.logicalCount;
 
-  assert.ok(typeof count === 'number', 'logicalCpuCount is a number');
-  assert.ok(count > 0, `logicalCpuCount > 0, got ${String(count)}`);
-  assert.ok(Number.isInteger(count), 'logicalCpuCount is an integer');
+  assert.ok(typeof count === 'number', 'cpu.logicalCount is a number');
+  assert.ok(count > 0, `cpu.logicalCount > 0, got ${String(count)}`);
+  assert.ok(Number.isInteger(count), 'cpu.logicalCount is an integer');
 });
 
 // optimalWorkerCount
@@ -24,9 +26,9 @@ const optimalWorkerScenarios: Array<{ description: string; check: () => void }> 
     },
   },
   {
-    description: 'optimalWorkerCount is logicalCpuCount - 1 clamped to 1',
+    description: 'optimalWorkerCount is cpu.logicalCount - 1 clamped to 1',
     check: () => {
-      const expected = Math.max(1, System.logicalCpuCount - 1);
+      const expected = Math.max(1, System.cpu.logicalCount - 1);
       assert.equal(System.optimalWorkerCount, expected);
     },
   },
@@ -138,7 +140,7 @@ const platformFieldScenarios: Array<{ description: string; check: () => void }> 
     description: 'platform.isAppleSilicon matches darwin + arm64',
     check: () => {
       const expected = os.platform() === 'darwin' && os.arch() === 'arm64';
-      assert.equal(System.isAppleSilicon, expected);
+      assert.equal(System.platform.isAppleSilicon, expected);
     },
   },
 ];
@@ -146,31 +148,27 @@ for (const { description, check } of platformFieldScenarios) {
   it(description, check);
 }
 
-// isAppleSilicon
-it('isAppleSilicon returns correct value for the current platform', () => {
-  const expected = os.platform() === 'darwin' && os.arch() === 'arm64';
-  assert.equal(System.isAppleSilicon, expected);
-});
+it('gpu caches detection without exposing the cached object', () => {
+  const detectGpu = mock.method(
+    SystemProvider.prototype,
+    'detectGpu',
+    (): GpuInfoEntity.Type => ({ 'computeApi': 'software', 'name': 'Test GPU', 'vramMb': 512 })
+  );
 
-it('isAppleSilicon and platform.isAppleSilicon agree (shared detection logic)', () => {
-  assert.equal(System.isAppleSilicon, System.platform.isAppleSilicon);
-});
+  try {
+    const first = System.gpu();
+    if (first === null) {
+      throw new Error('mocked GPU detection returned null');
+    }
+    Reflect.set(first, 'name', 'tampered');
 
-// snapshot()
-it('snapshot resolves with cpu, gpu, memory, platform fields', async () => {
-  const info = await System.snapshot();
-
-  assert.ok(typeof info === 'object' && info !== null, 'snapshot is an object');
-  assert.ok('cpu' in info, 'snapshot has cpu');
-  assert.ok('gpu' in info, 'snapshot has gpu');
-  assert.ok('memory' in info, 'snapshot has memory');
-  assert.ok('platform' in info, 'snapshot has platform');
-
-  // gpu may be null — that is valid
-  assert.ok(info.gpu === null || typeof info.gpu === 'object', 'gpu is null or object');
-
-  // spot-check nested values
-  assert.ok(info.cpu.logicalCount > 0, 'snapshot.cpu.logicalCount > 0');
-  assert.ok(info.memory.totalMb > 0, 'snapshot.memory.totalMb > 0');
-  assert.equal(info.platform.nodeVersion, process.version);
+    const second = System.gpu();
+    if (second === null) {
+      throw new Error('cached GPU detection returned null');
+    }
+    assert.equal(second.name, 'Test GPU');
+    assert.equal(detectGpu.mock.callCount(), 1);
+  } finally {
+    detectGpu.mock.restore();
+  }
 });

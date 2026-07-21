@@ -1,6 +1,6 @@
 ---
 title: '@studnicky/logger'
-description: Pluggable logging with transport architecture, child loggers, and structured builders.
+description: Pluggable logging with transport architecture, child loggers, and immutable structured entries.
 ---
 
 # @studnicky/logger
@@ -17,15 +17,17 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-Build a `Logger` instance with `Logger.create`, attach transports, then pass structured `LogBody` or `LogFault` entries to the log methods:
+Create a `Logger` with one configuration object, attach transports, then pass structured `LogBody` or `LogFault` entries to the log methods:
 
 <<< ../../packages/logger/examples/01-memory-transport.ts#usage
 
-## LogBody and LogFault builders
+## Immutable LogBody and LogFault configuration
 
-`LogBody` and `LogFault` are fluent builders that enforce required fields (`component`, `operation`, `status`, `message`, `context`) at build time. `LogFault` adds `name` and a `fromError()` convenience. Missing required fields throw `LogBuildError`:
-
-<<< ../../packages/logger/examples/02-log-builders.ts#usage
+`LogBody.create(config)` and `LogFault.create(config)` validate one readonly configuration
+object and return an immutable normalized entry. Both require `component`, `operation`,
+`status`, `message`, and `context`; faults also require `name`. Missing required fields throw
+`LogBuildError`. The usage example above exercises both factories directly from the package
+root.
 
 ## Fan-out and level filtering
 
@@ -35,23 +37,20 @@ Pass multiple transports to `Logger.create`. Each transport has its own level fl
 
 ## Custom transports
 
-Implement `TransportInterface` directly for a custom sink. `ResolveMinLevel.from()` resolves the same level-floor behavior the built-in transports use, so a custom transport's constructor validates and defaults `level` the same way:
+Implement `TransportInterface` directly for a custom sink. Use the root-exported `ParseLogLevel.parse()` when the transport accepts named or numeric level configuration:
 
 <<< ../../packages/logger/examples/04-custom-transport.ts#usage
 
 ## Observability hooks
 
-Subclass `Logger`, `LogBody`, or `LogFault` and override any of the protected hooks below to inject tracing, metrics, or debug logging without modifying the class itself.
+Subclass `Logger` and override the protected hooks below to inject tracing, metrics, or debug logging without modifying the class itself.
 
 | Hook | Class | When it fires | Args |
 |------|-------|---------------|------|
-| `onFieldSet` | `BaseLogEntryBuilder` | After each fluent setter call | `field: string, value: unknown` |
-| `onBuild` | `BaseLogEntryBuilder` | After `build()` assembles the frozen result | `result: LogBodyDataType \| LogFaultDataType` |
-| `onBuildError` | `BaseLogEntryBuilder` | When a required field is missing and `build()` is about to throw | `field: string` |
-| `onLog` | `Logger` | After a record is assembled, before fan-out to transports | `level: LogLevelType, record: LogRecordType` |
-| `onDropped` | `Logger` | When a record is below the logger's level floor and is discarded | `level: LogLevelType` |
-| `onChildCreate` | `Logger` | After a child logger is created via `.child()` | `bindings: LogMetadataType` |
-| `onTransportError` | `Logger` | When a transport's `write()` throws | `transport: TransportInterface, record: LogRecordType, error: unknown` |
+| `onLog` | `Logger` | After a record is assembled, before fan-out to transports | `level: LogLevelEntity.Type, record: LogRecordEntity.Type` |
+| `onDropped` | `Logger` | When a record is below the logger's level floor and is discarded | `level: LogLevelEntity.Type` |
+| `onChildCreate` | `Logger` | After a child logger is created via `.child()` | `bindings: LogMetadataInterface` |
+| `onTransportError` | `Logger` | When a transport's `write()` throws | `transport: TransportInterface, record: LogRecordEntity.Type, error: unknown` |
 
 <<< ../../packages/logger/examples/observedLogger.ts#usage
 
@@ -59,27 +58,19 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 `Logger` composes a plain `HookInvoker` with no override, so a throwing `onLog`, `onDropped`, or `onChildCreate` propagates the default `HookInvocationError` to the caller rather than being recorded. `onTransportError` is the one hook `Logger` itself guards: a throwing override is caught and recorded instead of aborting fan-out to the remaining transports — inspect it via `hookErrorCount`/`getHookErrors()`.
 
-## Subpath exports
+## Declaration boundaries
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/logger` | `Logger`, `LogBody`, `LogFault`, `ConsoleTransport`, `FunctionTransport`, `MemoryTransport`, `NoOpTransport`, `LoggerOptionsEntity`, `parseLogLevel`, `ResolveMinLevel`, `safeStringify` |
-| `@studnicky/logger/builders` | Builder classes |
-| `@studnicky/logger/constants` | Log level constants |
-| `@studnicky/logger/errors` | Logger error classes |
-| `@studnicky/logger/interfaces` | Interface types |
-| `@studnicky/logger/transports` | Transport classes and `TransportInterface` |
-| `@studnicky/logger/types` | `LogStatusType` and other type aliases |
+Serializable log records, bodies, faults, levels, and statuses are owned by their entity namespaces: `LogRecordEntity.Type`, `LogBodyDataEntity.Type`, `LogFaultDataEntity.Type`, `LogLevelEntity.Type`, and `LogStatusEntity.Type`. Runtime and access contracts remain interfaces, including `TransportInterface` and `LogMetadataInterface`.
+
+Entity source files import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`. Both dependencies are declared directly by `@studnicky/logger`; dependency-owned types are not proxy-exported.
+
+## Public API
+
+Import logger classes, immutable entry factories, transports, entities, constants, errors, and contracts from `@studnicky/logger`. The package root is the sole code entrypoint.
 
 ## Try it
 
 The examples below run in the browser via the embedded playground.
-
-### Builder
-
-The builder wires level, metadata, and transports before calling `build()` — the resulting logger is already configured for fan-out and level filtering.
-
-<RunnableExample src="packages/logger/examples/builder-logger" title="Logger builder" />
 
 ### Lifecycle hooks
 

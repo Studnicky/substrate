@@ -1,7 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import type { WorkerEnvelopeType } from '../../src/types/WorkerEnvelopeType.js';
+import type { WorkerErrorEnvelopeInterface } from '../../src/interfaces/WorkerErrorEnvelopeInterface.js';
+import type { WorkerLogEnvelopeInterface } from '../../src/interfaces/WorkerLogEnvelopeInterface.js';
+import type { WorkerProgressEnvelopeInterface } from '../../src/interfaces/WorkerProgressEnvelopeInterface.js';
+import type { WorkerResultEnvelopeInterface } from '../../src/interfaces/WorkerResultEnvelopeInterface.js';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 
@@ -14,12 +17,16 @@ describe('WorkerPool hooks', () => {
     const seenTypes: string[] = [];
 
     class ObservingPool extends WorkerPool<ItemType, string> {
-      protected override onMessage(envelope: WorkerEnvelopeType<ItemType, string>): void {
+      protected override onMessage(envelope:
+        | WorkerErrorEnvelopeInterface
+        | WorkerLogEnvelopeInterface
+        | WorkerProgressEnvelopeInterface
+        | WorkerResultEnvelopeInterface<string>): void {
         seenTypes.push(envelope.type);
       }
     }
 
-    const pool = ObservingPool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH }) as ObservingPool;
+    const pool = ObservingPool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH });
     await pool.run([{ 'value': 'x' }]);
 
     assert.deepEqual(seenTypes, ['log', 'progress', 'result']);
@@ -30,7 +37,11 @@ describe('WorkerPool hooks', () => {
     const seenErrors: string[] = [];
 
     class ObservingPool extends WorkerPool<ItemType, string> {
-      protected override onMessage(envelope: WorkerEnvelopeType<ItemType, string>): void {
+      protected override onMessage(envelope:
+        | WorkerErrorEnvelopeInterface
+        | WorkerLogEnvelopeInterface
+        | WorkerProgressEnvelopeInterface
+        | WorkerResultEnvelopeInterface<string>): void {
         seenTypes.push(envelope.type);
       }
 
@@ -39,7 +50,7 @@ describe('WorkerPool hooks', () => {
       }
     }
 
-    const pool = ObservingPool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH }) as ObservingPool;
+    const pool = ObservingPool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH });
     await assert.rejects(pool.run([{ 'error': 'kaboom', 'value': 'x' }]), /kaboom/);
 
     assert.deepEqual(seenTypes, ['log', 'progress', 'error']);
@@ -67,7 +78,7 @@ describe('WorkerPool hooks', () => {
       }
     }
 
-    const pool = AsyncRejectingMessagePool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH }) as AsyncRejectingMessagePool;
+    const pool = AsyncRejectingMessagePool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH });
     const rejectionEvents: unknown[] = [];
     const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
@@ -75,8 +86,8 @@ describe('WorkerPool hooks', () => {
     try {
       // run() itself does not await the promise onMessage's hook invocation
       // returns — the regression under test is that HookInvoker still guards
-      // the eventual rejection internally, routing it to onHookError (here,
-      // WorkerPool's own disposition of recording into #hookErrors) instead
+      // the eventual rejection internally, recording it before WorkerPool's
+      // swallowing disposition is applied instead
       // of ever producing an unhandled rejection.
       const results = await pool.run([{ 'value': 'x' }]);
 
@@ -91,5 +102,46 @@ describe('WorkerPool hooks', () => {
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
+  });
+
+  it('records hook failures only on the worker-pool instance that owns the invoker', async () => {
+    class FirstThrowingPool extends WorkerPool<ItemType, string> {
+      static readonly hookCause = new Error('first pool hook failed');
+
+      protected override onWorkerCreated(): void {
+        throw FirstThrowingPool.hookCause;
+      }
+    }
+
+    class SecondThrowingPool extends WorkerPool<ItemType, string> {
+      static readonly hookCause = new Error('second pool hook failed');
+
+      protected override onWorkerCreated(): void {
+        throw SecondThrowingPool.hookCause;
+      }
+    }
+
+    const first = FirstThrowingPool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH });
+    const second = SecondThrowingPool.create({ 'concurrency': 1, 'workerPath': WORKER_PATH });
+
+    const [firstResults, secondResults] = await Promise.all([
+      first.run([{ 'value': 'first' }]),
+      second.run([{ 'value': 'second' }])
+    ]);
+
+    const firstErrors = first.getHookErrors();
+    const secondErrors = second.getHookErrors();
+    assert.deepEqual(firstResults, ['first']);
+    assert.deepEqual(secondResults, ['second']);
+    assert.equal(first.getHookErrorCount(), 1);
+    assert.equal(second.getHookErrorCount(), 1);
+    assert.equal(firstErrors[0]?.hookName, 'onWorkerCreated');
+    assert.equal(secondErrors[0]?.hookName, 'onWorkerCreated');
+    assert.notStrictEqual(firstErrors[0]?.cause, FirstThrowingPool.hookCause);
+    assert.notStrictEqual(secondErrors[0]?.cause, SecondThrowingPool.hookCause);
+    assert.notStrictEqual(firstErrors[0], first.getHookErrors()[0]);
+    assert.notStrictEqual(secondErrors[0], second.getHookErrors()[0]);
+    assert.equal(firstErrors[0]?.cause instanceof Error && firstErrors[0].cause.message, 'first pool hook failed');
+    assert.equal(secondErrors[0]?.cause instanceof Error && secondErrors[0].cause.message, 'second pool hook failed');
   });
 });

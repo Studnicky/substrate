@@ -40,6 +40,7 @@ export default [
       },
       'rules': {
         // @studnicky custom rules
+        '@studnicky/all-types-are-entities': 'error',
         '@studnicky/canonical-export-names': 'error',
         '@studnicky/clean-diagnostics': 'error',
         '@studnicky/direct-invocation-only': 'error',
@@ -47,12 +48,15 @@ export default [
         '@studnicky/hash-private-fields': 'error',
         '@studnicky/inline-trivial-logic': 'error',
         '@studnicky/interface-must-be-contract': 'error',
+        '@studnicky/interface-suffix': 'error',
+        '@studnicky/interfaces-compose-named-types': 'error',
         '@studnicky/lexical-this-only': 'error',
         '@studnicky/prefer-collection-types': 'error',
         '@studnicky/require-options-object': 'error',
         '@studnicky/single-export': 'error',
         '@studnicky/static-method-verbs': 'error',
         '@studnicky/type-alias-invariants': 'error',
+        '@studnicky/whole-canonical-types': 'error',
         // @studnicky/v8 optimisation rules
         '@studnicky/v8/arguments-object': 'error',
         '@studnicky/v8/array-concat-outside-loops': 'error',
@@ -127,7 +131,7 @@ export default [
         '@typescript-eslint/no-useless-empty-export': 'error',
         '@typescript-eslint/non-nullable-type-assertion-style': 'error',
         '@typescript-eslint/prefer-as-const': 'error',
-        '@typescript-eslint/prefer-function-type': 'error',
+        '@typescript-eslint/prefer-function-type': 'off',
         '@typescript-eslint/prefer-nullish-coalescing': 'error',
         '@typescript-eslint/prefer-optional-chain': 'error',
         '@typescript-eslint/require-await': 'error',

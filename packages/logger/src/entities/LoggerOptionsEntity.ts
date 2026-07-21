@@ -1,5 +1,7 @@
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
 import { SchemaValidator } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
 
 export namespace LoggerOptionsEntity {
   export const Schema = {
@@ -9,7 +11,7 @@ export namespace LoggerOptionsEntity {
         'description': 'Global minimum log level. Records below this floor are discarded.',
         'oneOf': [
           { 'enum': ['trace', 'debug', 'info', 'warn', 'error', 'silent'], 'type': 'string' },
-          { 'maximum': 5, 'minimum': 0, 'type': 'number' }
+          { 'enum': [0, 1, 2, 3, 4, 5], 'type': 'integer' }
         ]
       },
       'metadata': {
@@ -18,9 +20,9 @@ export namespace LoggerOptionsEntity {
       }
     },
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
 }

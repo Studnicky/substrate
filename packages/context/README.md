@@ -6,6 +6,8 @@
 
 Scoped key-value stores that propagate automatically through async boundaries — promises, timers, and callbacks — without passing values down the call stack.
 
+`@studnicky/context` is the sole public code entrypoint.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -33,8 +35,12 @@ const result = await scope.execute(async () => {
   requestContext.set('statusCode', 200);
 
   // Read anywhere in the async chain
-  const id = requestContext.get<string>('requestId');
-  const code = requestContext.get<number>('statusCode');
+  const id = requestContext.get('requestId');
+  const code = requestContext.get('statusCode');
+
+  if (typeof id !== 'string' || typeof code !== 'number') {
+    throw new TypeError('Invalid request context');
+  }
 
   return { id, code };
 });
@@ -51,12 +57,12 @@ Context is designed for subclassing. Two commonly overridden extension points:
 **1. Seed default values with `onInitialize`**
 
 ```typescript
-import { Context, type ContextScope } from '@studnicky/context';
+import { Context, type ContextScopeInterface } from '@studnicky/context';
 
 class RequestContext extends Context {
   protected override onInitialize(
     initial: Record<string, unknown> | undefined,
-    scope: ContextScope
+    scope: ContextScopeInterface
   ): void {
     // Always present in every scope, regardless of what caller passed
     scope.execute(() => {
@@ -69,27 +75,14 @@ const ctx = RequestContext.create({ name: 'request' });
 const scope = ctx.initialize({ requestId: 'req-001' });
 
 scope.execute(() => {
-  const startedAt = ctx.get<number>('_startedAt'); // seeded automatically
+  const startedAt = ctx.get('_startedAt'); // seeded automatically
+  if (typeof startedAt !== 'number') throw new TypeError('Missing start time');
 });
 ```
 
-**2. Observe FSM transitions with `onEnter`**
-
-```typescript
-import { AsyncLocalStorage } from 'node:async_hooks';
-import { ContextScope } from '@studnicky/context';
-
-class TracedScope extends ContextScope {
-  readonly transitions: Array<{ to: string; from: string }> = [];
-
-  protected override onEnter(to: string, from: string): void {
-    this.transitions.push({ to, from });
-  }
-}
-
-const storage = new AsyncLocalStorage<Map<string, unknown>>();
-const scope = TracedScope.create({ name: 'traced', storage });
-```
+`get(key)` returns `unknown` because string keys carry no runtime type evidence.
+Narrow the value before using it. `tryGet(key)` returns `{ found, value }`, so a
+stored `undefined` remains distinguishable from a missing key.
 
 ## Documentation
 

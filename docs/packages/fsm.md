@@ -1,6 +1,6 @@
 ---
 title: '@studnicky/fsm'
-description: Abstract finite state machine with async effect dispatch and singleton registry.
+description: Abstract finite state machine with async effect dispatch and an instantiable named registry.
 ---
 
 # @studnicky/fsm
@@ -21,15 +21,15 @@ Define a `StateMachine` subclass with `getInitialState` and `reduce`, then drive
 
 <<< ../../packages/fsm/examples/traffic-light.ts#usage
 
-## MachineRegistry: named singleton registry
+## MachineRegistry: named registry
 
-`MachineRegistry` is a process-scoped store for named interpreter instances. Registering under a key makes the interpreter accessible from any module without passing references:
+Each `MachineRegistry.create()` call creates an independent store for named interpreter instances. Registering under a key makes the interpreter available to code holding that registry instance:
 
 <<< ../../packages/fsm/examples/registry.ts#usage
 
 ## Error handling
 
-`StateMachine.transition` wraps any throw from `reduce` in a `ReducerThrewError`. `EffectInterpreter` guards against reads before `start()` and sends after `stop()`:
+`StateMachine.transition` rethrows `TransitionRejectedError` unchanged and wraps other reducer defects in `ReducerThrewError`. `EffectInterpreter` guards against reads before `start()` and sends after `stop()`:
 
 <<< ../../packages/fsm/examples/error-handling.ts#usage
 
@@ -64,7 +64,7 @@ Every stateful class exposes `protected` hook methods that fire at each signific
 
 ### `MachineRegistry` hooks
 
-`MachineRegistry` is a static-only class; hooks are `protected static` methods. Override them in a subclass and route all calls through the subclass.
+`MachineRegistry` exposes protected instance hooks. Override them in a subclass and call `register`, `unregister`, and `get` on that registry instance.
 
 | Hook | When it fires | Args |
 |------|--------------|------|
@@ -80,25 +80,30 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 ## API
 
+Import every FSM class, package-owned interface, and package error from `@studnicky/fsm`. The package root is the only public code entrypoint.
+
 | Export | Type | Description |
 |--------|------|-------------|
 | `StateMachine<TState, TEvent, TEffect>` | abstract class | Base FSM; implement `getInitialState` and `reduce` |
-| `EffectInterpreter<TState, TEvent, TEffect>` | class | Drives a machine; use `EffectInterpreter.create()` or `EffectInterpreter.builder()` |
-| `EffectInterpreterBuilder<TState, TEvent, TEffect>` | class | Fluent builder for `EffectInterpreter` |
-| `MachineRegistry` | class | Process-scoped named registry of interpreters |
-| `FsmStepType<TState, TEffect>` | type | `{ state, effects }` (return value of `reduce`) |
-| `FsmTransitionType<TState, TEvent, TEffect>` | type | Function signature for standalone transition functions |
-| `EffectHandlerMapType<TEffect>` | type | Variant-keyed async handler map |
-| `MachineAlreadyRegisteredError` | class | Thrown by `MachineRegistry.register` on duplicate name |
-| `ReducerThrewError` | class | Thrown by `StateMachine.transition` when `reduce` throws |
+| `EffectInterpreter<TState, TEvent, TEffect>` | class | Drives a machine; configure a singular handler through `create({ machine, handler })` |
+| `InterpreterHistory<TState, TEvent, TEffect>` | class | Bounded recorder of one interpreter's variant-changing transitions |
+| `MachineRegistry<TState, TEvent>` | class | Instantiable named registry of interpreters |
+| `FsmStepInterface<TState, TEffect>` | interface | Readonly `{ state, effects }` contract returned by `reduce` |
+| `FsmTransitionInterface<TState, TEvent, TEffect>` | interface | Callable contract for standalone transition functions |
+| `EffectHandlerInterface<TEffect, TEvent>` | interface | Singular callable effect handler with an in-drain `dispatch(event)` capability |
+| `InterpreterHistoryRecordInterface<TState, TEvent>` | interface | Readonly transition-history record contract |
+| `RegisteredInterpreterInterface<TState, TEvent>` | interface | Interpreter contract accepted by `MachineRegistry` |
+| `InterpreterHistoryRecordMetadataEntity` | namespace | Schema-derived transition-record timestamp contract |
+| `RegisteredInterpreterMetricsEntity` | namespace | Schema-derived hook-error count contract |
+| `FsmError` and package errors | classes | `FsmConfigError`, interpreter lifecycle errors, mailbox capacity errors, registry errors, reducer defects, termination, and rejected transitions |
 
 ### `StateMachine<TState, TEvent, TEffect>`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | `getInitialState` | `() => TState` | Returns the machine's initial state |
-| `reduce` | `(state, event) => FsmStepType<TState, TEffect>` | Pure transition function |
-| `transition` | `(state, event) => FsmStepType<TState, TEffect>` | Calls `reduce`; wraps throws in `ReducerThrewError` |
+| `reduce` | `(state, event) => FsmStepInterface<TState, TEffect>` | Pure transition function |
+| `transition` | `(state, event) => FsmStepInterface<TState, TEffect>` | Calls `reduce`; wraps reducer defects in `ReducerThrewError` |
 
 ### `EffectInterpreter<TState, TEvent, TEffect>`
 
@@ -110,19 +115,23 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 | `send` | `(event: TEvent) => Promise<void>` | Enqueues event and drains mailbox |
 | `subscribe` | `(observer) => () => void` | Registers a state observer; returns unsubscribe fn |
 
+### `InterpreterHistory<TState, TEvent, TEffect>`
+
+`InterpreterHistory` is a bounded `EffectInterpreter` with the same optional singular handler. It records each variant-changing `onTransition` event and exposes readonly, isolated snapshots:
+
+<<< ../../packages/fsm/examples/interpreterHistory.ts#usage
+
+Each `InterpreterHistoryRecordInterface<TState, TEvent>` contains `event`, `from`, `to`, and `timestamp`. `history()` returns a fresh oldest-first snapshot. The internal ring retains at most `capacity` records and evicts the oldest when full. Successful sends that retain the current state variant are absent because the recorder follows `EffectInterpreter.onTransition` semantics.
+
+The record timestamp composes from `InterpreterHistoryRecordMetadataEntity`, registered-interpreter metrics compose from `RegisteredInterpreterMetricsEntity`, and history capacity uses `CircularBufferOptionsEntity.Type['capacity']` directly from `@studnicky/circular-buffer`.
+
 ## Try it
 
 Run the examples below directly in the browser to see the FSM primitives in action.
 
-### Builder
-
-The builder chains machine, handlers, and options before calling `build()` — the interpreter is ready to start with no constructor parameters.
-
-<RunnableExample src="packages/fsm/examples/builder-fsm" title="FSM builder" />
-
 ### Lifecycle hooks
 
-Every state transition fires hooks on both the machine and interpreter layers — watch the paired log lines as each advance propagates.
+Every variant-changing state transition fires hooks on both the machine and interpreter layers — watch the paired log lines as each advance propagates.
 
 <RunnableExample src="packages/fsm/examples/observedFsm" title="FSM lifecycle hooks" />
 

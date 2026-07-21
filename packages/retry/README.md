@@ -21,12 +21,13 @@ pnpm add @studnicky/retry
 ## Usage
 
 ```typescript
-import { Retry, DefaultHttpErrorClassifier } from '@studnicky/retry';
+import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+import { Retry } from '@studnicky/retry';
 
-const retry = Retry.builder()
-  .maxRetries(3)
-  .errorClassifier(new DefaultHttpErrorClassifier())
-  .build();
+const retry = Retry.create({
+  maxRetries: 3,
+  errorClassifier: DefaultHttpErrorClassifier.create()
+});
 
 const result = await retry.execute(() => fetch('https://api.example.com/data').then((r) => r.json()));
 
@@ -37,6 +38,8 @@ console.log(retry.getStats());
 ### Backoff
 
 Backoff has the same dual-path treatment as error classification: supply a `backoffStrategy` in config, or override the `onRetryScheduled` hook. Config takes precedence when both are present on the same instance — a subclass that overrides `onRetryScheduled` fully replaces the default body, so the config-based backoff never runs for that instance.
+
+`BackoffConfigEntity` owns the serializable `baseDelayMs` field, while `RetryContextDataEntity` owns serializable attempt, delay, elapsed-time, and abort state. `RetryConfigInterface` and `RetryContextInterface` compose those schema-derived fields with their callable strategy and runtime error members.
 
 Config-based, using a shipped `BackoffStrategy`:
 
@@ -52,11 +55,12 @@ const retry = Retry.create({
 Subclass-override, for full control over `context.delayMs`:
 
 ```typescript
+import type { RetryContextInterface } from '@studnicky/retry';
+
 import { Retry, BackoffStrategy } from '@studnicky/retry';
-import type { RetryContextType } from '@studnicky/retry';
 
 class CustomBackoffRetry extends Retry {
-  protected override onRetryScheduled(context: RetryContextType): void {
+  protected override onRetryScheduled(context: RetryContextInterface): void {
     context.delayMs = BackoffStrategy.exponentialWithJitter(context.attemptNumber, 100);
   }
 }
@@ -77,13 +81,13 @@ Omitting `maxElapsedMs` preserves the default behavior: only `maxRetries` govern
 
 ### Hook timeout
 
-The observation-only hooks (`onAttempt`, `onSuccess`, `onRetryableError`, `onGiveUp`, `enterCall`) run through a composed `HookInvoker` (see `@studnicky/errors`). Pass `hookTimeoutMs` to bound how long an async hook may run before it's treated as a failure — left unset, a hook may take arbitrarily long, matching prior behavior:
+All lifecycle hooks, including behavioral `onRetryScheduled` and FSM `enterCall`, run through a composed `HookInvoker` (see `@studnicky/errors`). Hook failures are advisory and never replace the retry result. Pass `hookTimeoutMs` to bound how long an awaited async hook may run before it is treated as a failure — left unset, an awaited hook may take arbitrarily long:
 
 ```typescript
-const retry = Retry.builder()
-  .maxRetries(3)
-  .hookTimeoutMs(5000)
-  .build();
+const retry = Retry.create({
+  maxRetries: 3,
+  hookTimeoutMs: 5000
+});
 ```
 
 ## Extending
@@ -91,17 +95,19 @@ const retry = Retry.builder()
 Subclass `Retry` and override any of the protected lifecycle hooks to add telemetry without changing the retry logic. All hooks are no-ops in the base class.
 
 ```typescript
+import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
+
 import { Retry } from '@studnicky/retry';
-import type { ErrorClassificationInterface, RetryConfigInterface, RetryContextType } from '@studnicky/retry';
 
 class InstrumentedRetry extends Retry {
   readonly events: string[] = [];
 
-  constructor(config?: Partial<RetryConfigInterface>) {
+  constructor(config?: RetryConfigInterface) {
     super(config ?? {});
   }
 
-  protected override onRetryScheduled(context: RetryContextType): void {
+  protected override onRetryScheduled(context: RetryContextInterface): void {
     this.events.push(`scheduled attempt=${context.attemptNumber} delay=${context.delayMs}ms`);
   }
 
@@ -122,7 +128,7 @@ Override `classifyError` to supply domain-specific retry decisions without provi
 
 ```typescript
 class DatabaseRetry extends Retry {
-  protected override classifyError(error: Error): ErrorClassificationInterface {
+  protected override classifyError(error: Error): ErrorClassificationEntity.Type {
     if (error.message.includes('deadlock')) {
       return { retryable: true, reason: 'Transient deadlock' };
     }

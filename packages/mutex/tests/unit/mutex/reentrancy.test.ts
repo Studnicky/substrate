@@ -36,7 +36,7 @@ class ReentrantBeforeAcquireMutex extends Mutex<string> {
   }
 
   getHookErrors(): readonly HookInvocationError[] {
-    return this.hookErrors;
+    return this.hooks.getHookErrors();
   }
 }
 
@@ -56,7 +56,7 @@ class ReentrantOnReleaseMutex extends Mutex<string> {
   }
 
   getHookErrors(): readonly HookInvocationError[] {
-    return this.hookErrors;
+    return this.hooks.getHookErrors();
   }
 }
 
@@ -73,7 +73,7 @@ class DifferentKeysMutex extends Mutex<string> {
   }
 
   getHookErrors(): readonly HookInvocationError[] {
-    return this.hookErrors;
+    return this.hooks.getHookErrors();
   }
 }
 

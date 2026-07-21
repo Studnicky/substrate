@@ -42,16 +42,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `FileLock.create(options)` — canonical async factory accepting `{ path, pollMs?, timeoutMs? }`; validates options via `FileLockOptionsEntity` schema and throws `FileLockConfigError` on invalid input.
-- `FileLock.builder()` — returns a `FileLockBuilder` with `withPath()`, `withPollMs()`, and `withTimeoutMs()` fluent setters; `build()` is `async` and resolves to a `FileLock`.
-- `FileLockBuilder` class exported from the package index and placed in its own `FileLockBuilder.ts` file (single-export rule).
 - `FileLockOptionsEntity` schema extended with the required `path` field.
-- `FileLock.acquire(path, options?)` is retained as an alias delegating to `FileLock.create({ path, ...options })`.
+
+### Changed
+
+- Runtime construction and owner-token contracts are exported as `FileLockCreateOptionsInterface` and `OwnerTokenInterface`; schema-backed options remain `FileLockOptionsEntity.Type`.
 
 ## [1.0.0] - 2026-06-22
 
 ### Added
 
-- `FileLock` class with `acquire()` static method: async polling loop using atomic POSIX `renameSync` to obtain exclusive write access on a file path.
+- `FileLock` class with a static async factory that uses an atomic POSIX `renameSync` polling loop to obtain exclusive write access on a file path.
 - `FileLockTimeoutError` thrown when the source file does not exist (immediate) or the polling deadline elapses.
 - `read()` and `write()` instance methods for operating on the locked file while the lock is held.
 - Idempotent `release()` renames the lockfile back to the original path; safe to call multiple times.

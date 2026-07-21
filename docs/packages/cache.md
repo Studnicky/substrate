@@ -15,6 +15,8 @@ pnpm add @studnicky/cache
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
+`@studnicky/cache` is the sole public code entrypoint.
+
 ## Usage
 
 Create an `LruCache` instance with a capacity, then use `set`, `get`, `has`, `delete`, and `clear`:
@@ -33,19 +35,7 @@ Pass `ttlMs` to expire entries automatically. Eviction is lazy: entries are remo
 
 <<< ../../packages/cache/examples/ttlExpiry.ts#usage
 
-## Bulk insert
-
-`setMany` inserts many entries at once. Entries are processed in argument order; the last entry in the array is the most-recently-used after the call. When the batch causes capacity overflow, entries earlier in the argument list are evicted first:
-
-<<< ../../packages/cache/examples/setMany.ts#usage
-
 ## Try it
-
-### Builder
-
-`LruCache.builder().withCapacity(2).withTtlMs(5_000).withPrefix('demo').build()` constructs the cache through the fluent builder. Press Execute to watch set, get, and LRU eviction at capacity 2: reading a key promotes it, so the next insert evicts the other key. The final assertions confirm which keys survived.
-
-<RunnableExample src="packages/cache/examples/builder-cache" title="Builder — fluent LRU cache construction" />
 
 ### Lifecycle hooks
 
@@ -63,6 +53,7 @@ default.
 | Hook | When it fires | Args |
 |------|--------------|------|
 | `onHit(key, value)` | `get()` finds a live, non-expired entry | `key: K`, `value: V` |
+| `onStale(key, value)` | `get()` finds a live entry past its `staleMs` threshold | `key: K`, `value: V` |
 | `onMiss(key)` | `get()` returns `undefined` (key absent or entry expired) | `key: K` |
 | `onSet(key)` | `set()` inserts a **new** key | `key: K` |
 | `onUpdate(key)` | `set()` overwrites a value for an **existing** key | `key: K` |
@@ -81,30 +72,23 @@ no-ops by default.
 | Export | Type | Description |
 |--------|------|-------------|
 | `LruCache<K, V>` | class | LRU + TTL cache; generic key and value types |
-| `LruCacheBuilder<K, V>` | class | Fluent builder for `LruCache`; produced by `LruCache.builder()` |
-| `LruCacheOptionsType` | type | `{ capacity, prefix?, ttlMs? }` |
+| `LruCacheOptionsEntity` | namespace | Schema, derived `Type`, and validator for `{ capacity, staleMs?, ttlMs? }` |
+| `LruCacheNodeTimingEntity` | namespace | Schema, derived `Type`, and validator for cache-node `expiresAt` and `staleAt` timestamps |
+| `CacheError` | class | Base package error |
+| `CacheConfigError` | class | Invalid cache configuration |
 
 ### `LruCache<K, V>`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| `create` | `static create<K, V>(options): LruCache<K, V>` | Constructs a cache from options |
-| `builder` | `static builder<K, V>(): LruCacheBuilder<K, V>` | Returns a fluent builder for constructing a cache |
+| `create` | `static create<K, V>(options: LruCacheOptionsEntity.Type): LruCache<K, V>` | Constructs a cache from validated options |
 | `size` | `get size(): number` | Current entry count |
 | `get` | `(key: K) => V \| undefined` | Returns value; promotes to MRU; evicts expired |
-| `set` | `(key: K, value: V, ttlMs?: number) => void` | Stores value; evicts LRU tail when at capacity |
-| `setMany` | `(entries: ReadonlyArray<readonly [K, V]>, ttlMs?: number) => void` | Inserts entries in argument order; last entry is MRU; empty array is a no-op |
+| `tryGet` | `(key: K) => { found: boolean; value: V \| undefined }` | Distinguishes a miss from a stored `undefined` value in one traversal |
+| `set` | `(key: K, value: V, options?: { staleMs?: number; ttlMs?: number }) => void` | Stores a value with optional per-entry staleness and expiry thresholds |
 | `has` | `(key: K) => boolean` | True if key exists and has not expired |
 | `delete` | `(key: K) => boolean` | Removes entry; returns whether it existed |
+| `deleteWhere` | `(predicate: (key: K, value: V) => boolean) => number` | Removes matching entries and returns the removal count |
 | `clear` | `() => void` | Removes all entries |
-
-### `LruCacheBuilder<K, V>`
-
-| Member | Signature | Description |
-|--------|-----------|-------------|
-| `withCapacity` | `(value: number) => this` | Sets the cache capacity (required before `build()`) |
-| `withTtlMs` | `(value: number) => this` | Sets the default TTL in milliseconds |
-| `withPrefix` | `(value: string) => this` | Sets the key namespace prefix |
-| `build` | `() => LruCache<K, V>` | Constructs the cache; throws if `capacity` was not set |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/cache)

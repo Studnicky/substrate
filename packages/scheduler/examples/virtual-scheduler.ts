@@ -5,12 +5,12 @@
  *
  * Run: npx tsx packages/scheduler/examples/virtual-scheduler.ts
  */
+import { VirtualTimeCounter } from '@studnicky/clock';
 import assert from 'node:assert/strict';
 
-// #region usage
-import { VirtualTimeCounter } from '../../clock/src/index.js';
 import { VirtualScheduler } from '../src/index.js';
 
+// #region usage
 const counter = VirtualTimeCounter.create({ 'startMs': 0 });
 const scheduler = VirtualScheduler.create({ 'counter': counter });
 

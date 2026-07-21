@@ -7,12 +7,10 @@ description: Concrete anti-patterns to avoid when composing Substrate primitives
 
 [Pattern composition](/concepts/pattern-composition) stays substrate-shaped as long as it
 stops at "a repeatable runtime shape, still usable without a graph executor." Every
-anti-pattern below is a way that boundary gets crossed in practice — not a hypothetical, but
-a shape this codebase has explicitly named and rejected while scoping the pattern-kit layer.
+anti-pattern below is a way that boundary gets crossed in practice.
 
 Each entry pairs a concrete "looks like this, don't do this" sketch with the substrate-shaped
-alternative. None of the "don't do this" sketches are real APIs in this codebase — they
-describe shapes a future pattern kit must not grow into, not code that exists today.
+alternative. The "don't do this" sketches are boundary illustrations rather than package APIs.
 
 See [Dagonizer Boundary](/concepts/dagonizer-boundary) for the full exclusion list these
 anti-patterns are drawn from, and [Lifecycle Hooks](/concepts/lifecycle-hooks) for the hook
@@ -51,10 +49,10 @@ Dagonizer, not in a loop of pattern calls glued together by hand inside substrat
 
 ## A facade must not become an opaque wrapper
 
-Every facade in substrate must preserve access to the primitives it composes — the [Layer
-Transparency Rule](/concepts/lifecycle-hooks). A facade that swallows its composed instances
-behind a config object, with no getter and no way to pass a pre-built subclassed instance in,
-has become the "hidden runtime" Layer 3 explicitly forbids.
+Every facade in substrate accepts pre-built composed primitives where callers need custom
+subclasses. Callers keep their own references to those instances. A facade that only accepts
+flattened configuration prevents composition with package-owned subclass hooks and becomes
+the hidden runtime this layer forbids.
 
 <!-- inline-ts-ok: illustrative anti-pattern shape, no runnable backing -->
 ```typescript
@@ -63,17 +61,15 @@ class OpaqueExecutor {
   private constructor(config: { baseURL: string; maxRetries: number }) { /* builds FetchClient and Retry internally, never exposed */ }
   static create(config: { baseURL: string; maxRetries: number }): OpaqueExecutor { return new this(config); }
   async execute<T>(fn: (client: unknown) => Promise<T>): Promise<T> { throw new Error('not implemented'); }
-  // no getFetchClient(), no getRetry() — a caller who needs to subclass FetchClient
-  // for auth headers has no way to get that subclass into this executor at all
+  // A caller cannot supply a subclassed FetchClient or Retry.
 }
 ```
 
 <<< ../../packages/request-executor/examples/observedRequestExecutor.ts#usage
 
-`RequestExecutor` accepts pre-built (possibly subclassed) `FetchClient` and `Retry`
-instances and exposes `getFetchClient()`/`getRetry()`/`getSignal()`/`getTiming()`/`getContext()`
-returning the exact instances passed in — never copies, never wrappers. That is the
-"escape hatch" every facade in substrate must have.
+`RequestExecutor` accepts pre-built `FetchClient`, `Retry`, `Timing`, and `Context`
+instances. The caller retains those original references for direct lifecycle observation;
+the facade does not clone or wrap them.
 
 ## Process Kit orchestration-boundary risk flags
 

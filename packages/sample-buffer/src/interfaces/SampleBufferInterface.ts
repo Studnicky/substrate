@@ -1,3 +1,5 @@
+import type { SampleBufferStateEntity } from '../entities/SampleBufferStateEntity.js';
+
 /**
  * Interface for a fixed-capacity sliding-window numeric sample buffer
  */
@@ -10,12 +12,12 @@ export interface SampleBufferInterface {
   /**
    * Whether the buffer has reached capacity
    */
-  readonly 'isFull': boolean;
+  readonly 'isFull': SampleBufferStateEntity.Type['isFull'];
 
   /**
    * Number of samples in the buffer
    */
-  readonly 'length': number;
+  readonly 'length': SampleBufferStateEntity.Type['length'];
 
   /**
    * Calculate a percentile from the buffered samples

@@ -60,7 +60,7 @@ everywhere:
 |--------|-------|
 | Operation span | `onStart` · `onSuccess` · `onError` · `onSettled` |
 | Resources & locks | `onAcquire` · `onAcquireWait` · `onContended` · `onRelease` · `onTimeout` |
-| Queues & streams | `onEnqueue` · `onDequeue` · `onDrop` · `onOverflow` · `onSlowConsumer` |
+| Queues & streams | `onEnqueue` · `onDequeue` · `onDrop` · `onOverflow` |
 | Cache | `onHit` · `onMiss` · `onSet` · `onUpdate` · `onEvict` · `onExpire` · `onDelete` · `onClear` |
 | State machines | `onTransition` · `onEnterState` · `onExitState` · `onTransitionRejected` · `onEffectStart` / `onEffectSuccess` / `onEffectError` |
 | Circuit & rate limiting | `onTrip` · `onOpen` · `onHalfOpen` · `onClose` · `onReject` · `onTokenAcquired` · `onTokenDepleted` · `onRefill` |
@@ -81,23 +81,27 @@ its arguments. This index is the at-a-glance map of where each stage lives.
 | [cache](/packages/cache#observability-hooks) | `onHit` `onMiss` `onSet` `onUpdate` `onEvict` `onExpire` `onDelete` `onClear` |
 | [circular-buffer](/packages/circular-buffer#observability-hooks) | `onPush` `onShift` `onOverflow` `onEvict` `onGrow` |
 | [clock](/packages/clock#observability-hooks) | `onNow` `onHrtime` `onAdvance` `onNowMs` |
-| [concurrency](/packages/concurrency#observability-hooks) | `onAcquire` `onAcquireWait` `onContended` `onRelease` `onReleaseDelegated` `onEnqueue` `onDequeue` `onClose` `onPublishDropped` `onCoalesceStart` `onCoalesceJoin` `onCoalesceSettled` |
+| [concurrency](/packages/concurrency#observability-hooks) | `onAcquire` `onAcquireWait` `onContended` `onRelease` `onReleaseDelegated` `onEnqueue` `onDequeue` `onClose` `onPublishDropped` `onOverflow` `onCoalesceStart` `onCoalesceJoin` `onCoalesceSettled` `onTimeout` |
 | [context](/packages/context#observability-hooks) | `onInitialize` `onMissingContext` `onSet` `onGet` `onDelete` `onEnter` `onExit` `onBeforeExecute` `onAfterExecute` `onError` `onTerminate` `onTerminatedAccess` `onDispose` |
-| [event-bus](/packages/event-bus#observability-hooks) | `onPublish` `onSubscribe` `onUnsubscribe` `onDeliver` `onEnqueue` `onDequeue` `onDrop` `onOverflow` `onSlowConsumer` `onHandlerError` `onDispose` |
+| [entity-store](/packages/entity-store#observability-hooks) | `onUpsert` `onRemove` `onReplaceAll` |
+| [event-bus](/packages/event-bus#observability-hooks) | `onPublish` `onSubscribe` `onUnsubscribe` `onDeliver` `onEnqueue` `onDequeue` `onDrop` `onOverflow` `onHandlerError` `onDispose` |
 | [fetch](/packages/fetch#observability-hooks) | `onRequest` _(transform)_ `onResponse` _(transform)_ `onRequestStart` `onResponseSuccess` `onResponseError` `onRequestError` `onTimeout` `onAbort` `onDispatcherDestroy` |
 | [file-lock](/packages/file-lock#observability-hooks) | `onAcquireStart` `onAcquireWait` `onContended` `onAcquire` `onRelease` `onStaleDetected` `onStaleBreak` `onTimeout` `onError` |
 | [flag-evaluator](/packages/flag-evaluator#hooks) | `onEvaluate` `onDefault` `onRuleMismatch` |
 | [fsm](/packages/fsm#observability-hooks) | `onTransition` `onEnterState` `onExitState` `onTransitionRejected` `onEffectStart` `onEffectSuccess` `onEffectError` `onStart` `onStop` `onEnqueue` `onRegister` `onUnregister` `onResolveMiss` |
+| [health-registry](/packages/health-registry#hooks) | `onCheckRegistered` `onCheckResult` `onCheckTimeout` `onAggregate` |
 | [idempotency-guard](/packages/idempotency-guard#hooks) | `onReplay` `onCoalesce` `onConflict` `onExecute` |
 | [keyed-rate-limiter](/packages/keyed-rate-limiter#hooks) | `onKeyCreated` `onKeyEvicted` `onLimitExceeded` `onTokenAcquired` |
-| [logger](/packages/logger#observability-hooks) | `onLog` `onDropped` `onChildCreate` `onTransportError` `onFieldSet` `onBuild` `onBuildError` |
+| [logger](/packages/logger#observability-hooks) | `onLog` `onDropped` `onChildCreate` `onTransportError` |
 | [memoize](/packages/memoize#hooks) | `onMemoHit` `onMemoMiss` `onMemoCoalesced` |
 | [mutex](/packages/mutex#observability-hooks) | `beforeAcquire` `afterAcquire` `onAcquireWait` `onContended` `onEnterKey` `beforeRelease` `onRelease` `afterRelease` `onQueueDrain` `onTimeout` |
+| [paginator](/packages/paginator#observability-hooks) | `onTransition` `onEnterState` `onExitState` `onTransitionRejected` |
 | [pipeline](/packages/pipeline#observability-hooks) | `onRunStart` _(transform)_ `beforeStage` _(transform)_ `onStageStart` `onStageSuccess` `afterStage` _(transform)_ `onStageError` `onRunComplete` _(transform)_ `onRunError` |
 | [resilience](/packages/resilience#observability-hooks) | `onSuccess` `onFailure` `onTrip` `onOpen` `onHalfOpen` `onClose` `onReject` `onTokenAcquired` `onTokenDepleted` `onRefill` `onWait` `onEnqueue` `onDequeue` `onOverflow` `onYield` `onDone` `onAbort` |
 | [retry](/packages/retry#observability-hooks) | `enterCall` `onAttempt` `classifyError` _(behavioral)_ `onRetryableError` `onRetryScheduled` _(behavioral)_ `onGiveUp` `onSuccess` |
 | [sample-buffer](/packages/sample-buffer#observability-hooks) | `onPush` `onOverflow` `onEvict` `onComputeStart` `onComputeComplete` `onPercentile` `onClear` |
 | [scheduler](/packages/scheduler#observability-hooks) | `onSchedule` `onFire` `onFireError` `onReschedule` `onCancel` `onCancelAll` `onAdvance` `onRunUntil` `onDrift` `onMiss` `onIdle` |
+| [sliding-window-limiter](/packages/sliding-window-limiter#observability-hooks) | `onAllow` `onReject` `onWindowRoll` |
 | [throttle](/packages/throttle#observability-hooks) | `onEnter` `onAcquire` `onAcquireWait` `onContended` `onReject` `onRelease` `onWindowSlide` `onAdaptiveAdjust` `onDrainStart` `onDrainComplete` `onAbortStart` |
 | [timing](/packages/timing#observability-hooks) | `onInitialize` `onEvent` `onGetEvents` `onEvict` `onClear` |
 | [visible-range](/packages/visible-range#observability-hooks) | `onRangeChange` |
@@ -109,7 +113,7 @@ Lifecycle hooks are the sanctioned extensibility mechanism one layer up too: sub
 pattern kits and composition guides never accept an externally-injected callback chain as an
 extensibility point, only compose primitives that already have hooks like the ones above.
 
-- [Pattern Composition](/concepts/pattern-composition) — how the shipped `@studnicky/request-executor`
+- [Pattern Composition](/concepts/pattern-composition) — how the packaged `@studnicky/request-executor`
   kit composes hook-covered primitives, and how to compose the same primitives directly.
 - [Composition Anti-Patterns](/concepts/composition-anti-patterns) — the interceptor-pattern
   prohibition applied to the pattern-kit layer, plus other orchestration-shaped mistakes to avoid.

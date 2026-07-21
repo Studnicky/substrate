@@ -2,9 +2,8 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
-import { FlagEvaluator } from '../../src/FlagEvaluator.js';
-import { FlagDefinitionValidationError } from '../../src/errors/FlagDefinitionValidationError.js';
-import type { FlagDefinitionEntity } from '../../src/entities/FlagDefinitionEntity.js';
+import { FlagDefinitionValidationError, FlagEvaluator } from '../../src/index.js';
+import type { FlagDefinitionEntity } from '../../src/index.js';
 
 describe('FlagEvaluator', () => {
   let evaluator: FlagEvaluator;
@@ -105,6 +104,16 @@ describe('FlagEvaluator', () => {
 
     evaluator.register('flag', { 'defaultValue': true, 'enabled': false });
     assert.equal(evaluator.evaluate('flag', {}), true);
+  });
+
+  it('register() snapshots and freezes caller-owned definitions', () => {
+    const definition = { 'defaultValue': false, 'enabled': false };
+    evaluator.register('owned-definition', definition);
+
+    definition.defaultValue = true;
+    definition.enabled = true;
+
+    assert.equal(evaluator.evaluate('owned-definition', {}), false);
   });
 
   it('register() with rolloutPercent outside [0,100] throws FlagDefinitionValidationError', () => {

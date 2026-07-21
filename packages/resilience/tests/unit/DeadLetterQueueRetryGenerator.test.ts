@@ -1,9 +1,10 @@
 import type { HookInvocationError } from '@studnicky/errors';
 
-import { deepStrictEqual, strictEqual } from 'node:assert/strict';
+import { deepStrictEqual, ok, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { DeadLetterQueue, DeadLetterQueueRetryGenerator } from '../../src/index.js';
+import { ResilienceConfigError } from '../../src/errors/ResilienceConfigError.js';
 
 class ObservedRetryGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
   readonly events: string[] = [];
@@ -54,6 +55,16 @@ class ThrowingDoneGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
     throw new Error('onDone boom');
   }
 }
+
+it('rejects negative and fractional retry intervals', () => {
+  const dlq = DeadLetterQueue.create<string>();
+  for (const intervalMs of [-1, 0.5]) {
+    throws(
+      () => { DeadLetterQueueRetryGenerator.create({ dlq, intervalMs }); },
+      ResilienceConfigError
+    );
+  }
+});
 
 it('lifecycle hooks fire around yielded entries', async () => {
   const dlq = DeadLetterQueue.create<string>();
@@ -111,18 +122,25 @@ it('a throwing onDone hook does not replace generator completion', async () => {
   strictEqual(count, 0);
 });
 
-it('an async-overridden onYield hook that rejects is routed to hookErrors without producing an unhandled rejection', async () => {
+it('async hook failures remain isolated to their owning retry generator instances', async () => {
   class AsyncRejectingYieldGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
-    get recordedHookErrors(): HookInvocationError[] { const result = this.hookErrors;
+    readonly #cause: Error;
+
+    get recordedHookErrors(): readonly HookInvocationError[] { const result = this.hooks.getHookErrors();
       return result; }
 
-    static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): AsyncRejectingYieldGenerator<T> {
-      return new AsyncRejectingYieldGenerator<T>({ 'dlq': dlq, 'intervalMs': intervalMs });
+    static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number, cause: Error): AsyncRejectingYieldGenerator<T> {
+      return new AsyncRejectingYieldGenerator<T>(dlq, intervalMs, cause);
+    }
+
+    private constructor(dlq: DeadLetterQueue<T>, intervalMs: number, cause: Error) {
+      super({ 'dlq': dlq, 'intervalMs': intervalMs });
+      this.#cause = cause;
     }
 
     protected override async onYield(): Promise<void> {
       await Promise.resolve();
-      throw new Error('async onYield boom');
+      throw this.#cause;
     }
   }
 
@@ -131,22 +149,41 @@ it('an async-overridden onYield hook that rejects is routed to hookErrors withou
   process.on('unhandledRejection', onUnhandledRejection);
 
   try {
-    const dlq = DeadLetterQueue.create<string>();
-    dlq.enqueue('first', 'reason');
-    dlq.close();
+    const firstQueue = DeadLetterQueue.create<string>();
+    firstQueue.enqueue('first', 'reason');
+    firstQueue.close();
+    const secondQueue = DeadLetterQueue.create<string>();
+    secondQueue.enqueue('second', 'reason');
+    secondQueue.close();
 
-    const generator = AsyncRejectingYieldGenerator.build(dlq, 0);
-    const yielded: string[] = [];
-    for await (const entry of generator.generate()) {
-      yielded.push(entry.item);
+    const firstCause = new Error('first async onYield boom');
+    const secondCause = new Error('second async onYield boom');
+    const first = AsyncRejectingYieldGenerator.build(firstQueue, 0, firstCause);
+    const second = AsyncRejectingYieldGenerator.build(secondQueue, 0, secondCause);
+    const firstYielded: string[] = [];
+    const secondYielded: string[] = [];
+    for await (const entry of first.generate()) {
+      firstYielded.push(entry.item);
+    }
+    for await (const entry of second.generate()) {
+      secondYielded.push(entry.item);
     }
 
     await new Promise((resolve) => { setImmediate(resolve); });
 
-    deepStrictEqual(yielded, ['first']);
+    deepStrictEqual(firstYielded, ['first']);
+    deepStrictEqual(secondYielded, ['second']);
     strictEqual(rejectionEvents.length, 0);
-    strictEqual(generator.recordedHookErrors.length, 1);
-    strictEqual(generator.recordedHookErrors[0]?.hookName, 'onYield');
+    const firstErrors = first.recordedHookErrors;
+    const secondErrors = second.recordedHookErrors;
+    strictEqual(firstErrors.length, 1);
+    strictEqual(firstErrors[0]?.hookName, 'onYield');
+    ok(firstErrors[0]?.cause instanceof Error);
+    strictEqual(firstErrors[0].cause.message, firstCause.message);
+    strictEqual(secondErrors.length, 1);
+    strictEqual(secondErrors[0]?.hookName, 'onYield');
+    ok(secondErrors[0]?.cause instanceof Error);
+    strictEqual(secondErrors[0].cause.message, secondCause.message);
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }

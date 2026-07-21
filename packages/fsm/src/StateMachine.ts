@@ -1,58 +1,32 @@
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import type { FsmStepInterface } from './FsmStepInterface.js';
 
-import type { FsmStepType } from './FsmStepType.js';
-
+import { FsmHookInvoker } from './FsmHookInvoker.js';
 import { MachineTerminatedError } from './MachineTerminatedError.js';
 import { ReducerThrewError } from './ReducerThrewError.js';
 import { TransitionRejectedError } from './TransitionRejectedError.js';
-
-/**
- * Records a `StateMachine`'s hook failures instead of letting `HookInvoker`'s
- * default (throwing) behavior propagate — a broken observer hook must never
- * be able to replace the transition step (or the reducer error)
- * `transition()` already computed.
- */
-class StateMachineHookInvoker extends HookInvoker {
-  readonly #onError: (hookName: string, cause: unknown) => void;
-
-  constructor(onError: (hookName: string, cause: unknown) => void) {
-    super();
-    this.#onError = onError;
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.#onError(hookName, cause);
-    return undefined as T;
-  }
-}
 
 export abstract class StateMachine<
   TState extends { readonly 'variant': string },
   TEvent extends { readonly 'type': string },
   TEffect = never
 > {
-  /** Errors raised by lifecycle hook overrides, recorded by `onHookError` instead of aborting a transition. */
-  readonly #hookErrors: HookInvocationError[] = [];
-
-  protected readonly hooks: HookInvoker;
+  protected readonly hooks: FsmHookInvoker;
 
   protected constructor() {
-    this.hooks = new StateMachineHookInvoker((hookName, cause) => {
-      this.#hookErrors.push(new HookInvocationError(hookName, cause));
-    });
+    this.hooks = new FsmHookInvoker();
   }
 
-  /** Count of hook failures recorded by `onHookError` since construction. */
+  /** Count of lifecycle hook failures captured since construction. */
   get hookErrorCount(): number {
-    const result = this.#hookErrors.length;
+    const result = this.hooks.hookErrorCount;
     return result;
   }
 
   abstract getInitialState(): TState;
 
-  abstract reduce(state: TState, event: TEvent): FsmStepType<TState, TEffect>;
+  abstract reduce(state: TState, event: TEvent): FsmStepInterface<TState, TEffect>;
 
-  transition(state: TState, event: TEvent): FsmStepType<TState, TEffect> {
+  transition(state: TState, event: TEvent): FsmStepInterface<TState, TEffect> {
     if (this.isTerminated(state)) {
       this.hooks.invoke('onTerminatedAccess', () => { const result = this.onTerminatedAccess(state, event);
         return result; });

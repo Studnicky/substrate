@@ -42,10 +42,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Worker message envelopes are exported as `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, and `WorkerErrorEnvelopeInterface`; pool construction uses `WorkerPoolConfigInterface`.
+
 ## [1.0.0] - 2026-07-08
 
 ### Added
 
-- `WorkerPool` class: bounded `node:worker_threads` pool composing `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal`. `run()` fans work items across at most `concurrency` concurrently-running workers, spawning each fresh against `workerPath` and terminating it once its item settles, and resolves an ordered results array.
-- Typed discriminated-union message envelope (`log` / `progress` / `result` / `error`) between worker and pool; `run()` inherits `Batch#process()`'s order-preserved, fail-fast semantics; per-task `timeoutMs` via `@studnicky/signal`.
-- Protected observability hooks `onMessage`, `onWorkerTimeout`, and `onWorkerError` for logging/tracing/metrics via subclassing; `WorkerPoolBuilder` fluent builder; `getSignal()` transparency getter; `WorkerEnvelopeType` and `WorkerPoolConfigType` exported types.
+- `WorkerPool` class: bounded `node:worker_threads` pool composing `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal`. Each `run()` creates at most `concurrency` workers, reuses idle workers for later items in that run, waits for dispatched work to settle, and terminates every live worker before returning. An unexpected mid-task worker exit retries the item once on a replacement worker; a repeated exit rejects it.
+- Typed discriminated-union message envelope (`log` / `progress` / `result` / `error`) between worker and pool; `run()` inherits `Batch#process()`'s order-preserved, fail-fast semantics and awaits `Signal.compose({ deadlineMs: timeoutMs })` before each timed task is posted to a worker.
+- Protected observability hooks `onMessage`, `onWorkerTimeout`, and `onWorkerError` for logging/tracing/metrics via subclassing; public envelope and configuration interfaces.

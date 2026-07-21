@@ -1,13 +1,18 @@
-/** observedRequestExecutor — direct composition of subclassed primitives, plus an extension subclass reaching composed instances via getters. Run: npx tsx examples/observedRequestExecutor.ts */
+/** observedRequestExecutor — direct composition of caller-owned subclassed primitives. Run: npx tsx examples/observedRequestExecutor.ts */
 
 // #region usage
-import type { RequestContextType, ResponseContextType } from '@studnicky/fetch/interfaces';
-import type { RetryConfigInterface, RetryContextType } from '@studnicky/retry';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
 
-import { FetchClient } from '@studnicky/fetch';
+import {
+  FetchClient,
+  type RequestContextInterface,
+  type ResponseContextInterface
+} from '@studnicky/fetch';
 import { Retry } from '@studnicky/retry';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+
+import type { RequestExecutorDepsInterface } from '../src/index.js';
 
 import { RequestExecutor } from '../src/index.js';
 
@@ -18,13 +23,13 @@ class TelemetryFetchClient extends FetchClient {
     return new this(config);
   }
 
-  protected override onRequest(context: RequestContextType): Promise<RequestContextType> {
+  protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     console.log(`[fetch] ${context.metadata.method} ${context.metadata.path}`);
     this.requestPaths.push(context.metadata.path);
     return Promise.resolve(context);
   }
 
-  protected override onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+  protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     console.log(`[fetch] <- ${context.response.status}`);
     return Promise.resolve(context);
   }
@@ -33,32 +38,46 @@ class TelemetryFetchClient extends FetchClient {
 class TelemetryRetry extends Retry {
   readonly scheduledRetries: number[] = [];
 
-  constructor(config?: Partial<RetryConfigInterface>) {
+  constructor(config?: RetryConfigInterface) {
     super(config ?? {});
   }
 
-  protected override onRetryScheduled(context: RetryContextType): void {
+  protected override onRetryScheduled(context: RetryContextInterface): void {
     console.log(`[retry] attempt ${context.attemptNumber} scheduled retry`);
     this.scheduledRetries.push(context.attemptNumber);
   }
 }
 
 /**
- * Advanced extension: RequestExecutor has no hooks of its own — observability is
- * delegated entirely to the composed primitives. A subclass can still add
- * convenience behavior by reaching the composed instances through the getters.
+ * RequestExecutor has no hooks of its own, so the subclass explicitly owns the
+ * retry dependency needed by its reporting behavior.
  */
 class ReportingRequestExecutor extends RequestExecutor {
+  readonly #retry: TelemetryRetry;
+
+  protected constructor(deps: RequestExecutorDepsInterface) {
+    super(deps);
+    if (!(deps.retry instanceof TelemetryRetry)) {
+      throw new TypeError('ReportingRequestExecutor requires TelemetryRetry');
+    }
+    this.#retry = deps.retry;
+  }
+
   // `this.create(...)` (not `RequestExecutor.create(...)`) so the inherited factory's
   // `new this(...)` binds to ReportingRequestExecutor — same `new this()` polymorphism
   // FetchClient/Timing/Retry use for their own subclass factories.
   static tracked(fetchClient: TelemetryFetchClient, retry: TelemetryRetry): ReportingRequestExecutor {
-    const result = this.create({ 'fetchClient': fetchClient, 'retry': retry }) as ReportingRequestExecutor;
+    const result = this.create({ 'fetchClient': fetchClient, 'retry': retry });
+
+    if (!(result instanceof ReportingRequestExecutor)) {
+      throw new Error('RequestExecutor subclass factory returned the wrong instance type');
+    }
+
     return result;
   }
 
   report(): { 'retries': number; 'totalRequests': number } {
-    const stats = this.getRetry().getStats();
+    const stats = this.#retry.getStats();
 
     return { 'retries': stats.totalRetries, 'totalRequests': stats.totalRequests };
   }
@@ -125,10 +144,6 @@ const report = executor.report();
 
 assert.equal(report.totalRequests, 1);
 assert.equal(report.retries, 2);
-
-// Composed instances stay reachable via getters, even from within the subclass
-assert.equal(executor.getFetchClient(), fetchClient);
-assert.equal(executor.getRetry(), retry);
 
 server.close();
 

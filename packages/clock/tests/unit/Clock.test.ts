@@ -17,7 +17,7 @@ import { VirtualClockProvider } from '../../src/clock/VirtualClockProvider.js';
 import { VirtualTimeCounter } from '../../src/clock/VirtualTimeCounter.js';
 import type { Scenario } from '../helpers/Scenario.js';
 import { ScenarioRunner } from '../helpers/runScenarios.js';
-import type { ClockProviderType } from '../../src/types/ClockProviderType.js';
+import type { ClockProviderInterface } from '../../src/interfaces/ClockProviderInterface.js';
 
 // ---------------------------------------------------------------------------
 // Named constants
@@ -328,7 +328,7 @@ void describe('Clock', () => {
     // -----------------------------------------------------------------------
 
     class HookedClock extends Clock {
-      public constructor(provider: ClockProviderType) { super(provider); }
+      public constructor(provider: ClockProviderInterface) { super(provider); }
 
       readonly nowEvents: number[] = [];
       readonly hrtimeEvents: bigint[] = [];
@@ -404,7 +404,7 @@ void describe('Clock', () => {
 
     void it('Clock routes an async onNow override that rejects through the safety net without producing an unhandled rejection', async () => {
       class AsyncRejectingNowClock extends Clock {
-        public constructor(provider: ClockProviderType) { super(provider); }
+        public constructor(provider: ClockProviderInterface) { super(provider); }
 
         protected override async onNow(_timestamp: number): Promise<void> {
           await Promise.resolve();
@@ -695,7 +695,7 @@ void describe('Clock', () => {
 
     void it('Clock raises HookInvocationError from a throwing onNow hook', () => {
       class ThrowingNowClock extends Clock {
-        public constructor(provider: ClockProviderType) { super(provider); }
+        public constructor(provider: ClockProviderInterface) { super(provider); }
 
         protected override onNow(): void {
           throw new Error('onNow boom');
@@ -714,7 +714,7 @@ void describe('Clock', () => {
 
     void it('Clock raises HookInvocationError from a throwing onHrtime hook', () => {
       class ThrowingHrtimeClock extends Clock {
-        public constructor(provider: ClockProviderType) { super(provider); }
+        public constructor(provider: ClockProviderInterface) { super(provider); }
 
         protected override onHrtime(): void {
           throw new Error('onHrtime boom');
@@ -777,7 +777,7 @@ void describe('Clock', () => {
       #nowCallCount = 0;
       #hrtimeCallCount = 0;
 
-      public constructor(provider: ClockProviderType) { super(provider); }
+      public constructor(provider: ClockProviderInterface) { super(provider); }
 
       public get nowCallCount(): number { return this.#nowCallCount; }
       public get hrtimeCallCount(): number { return this.#hrtimeCallCount; }

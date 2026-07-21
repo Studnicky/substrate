@@ -1,70 +1,36 @@
 /** Bounded FIFO DLQ with async-generator drain; enqueue() throws on capacity/closed/aborted. */
 
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { HookInvoker } from '@studnicky/errors';
 
-import type { DlqEntryType } from './DlqEntryType.js';
 import type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
+import type { DlqEntryInterface } from './interfaces/DlqEntryInterface.js';
 
-import { DeadLetterQueueBuilder } from './DeadLetterQueueBuilder.js';
 import { DlqAbortedError } from './DlqAbortedError.js';
 import { DlqClosedError } from './DlqClosedError.js';
 import { DlqFullError } from './DlqFullError.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
-/**
- * Delegates `DeadLetterQueue`'s hook-invocation failures back to the owning
- * queue's own `hookErrors` array. Hoisted to module scope so V8 compiles this
- * class once rather than per `DeadLetterQueue` instantiation.
- */
-class DeadLetterQueueHookDelegate extends HookInvoker {
-  constructor(private readonly recordFailure: (error: HookInvocationError) => void) {
-    super();
-  }
-
-  /**
-   * A broken hook must not disrupt the queue's enqueue/drain/close/abort
-   * behavior: record the failure and hand back the sentinel `invoke`
-   * expects instead of letting `HookInvoker`'s default (throwing) behavior
-   * propagate.
-   */
-  protected override onHookError<TResult>(hookName: string, cause: unknown): TResult {
-    this.recordFailure(new HookInvocationError(hookName, cause));
-    return undefined as TResult;
-  }
-}
-
 export class DeadLetterQueue<T> {
+  static readonly #OwnedHookInvoker = class DeadLetterQueueHookInvoker extends HookInvoker {
+    protected override onHookError(): void {}
+  };
+
   readonly #capacity: number;
   readonly #clock: () => number;
-  readonly #entries: DlqEntryType<T>[] = [];
+  readonly #entries: DlqEntryInterface<T>[] = [];
   #closed = false;
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
 
-  /**
-   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
-   * instead of propagating out of the queue's enqueue/drain/close/abort paths.
-   */
-  protected readonly hookErrors: HookInvocationError[] = [];
-
-  /** Invokes lifecycle hooks, recording failures into `hookErrors` instead of throwing. */
+  /** Invokes lifecycle hooks, retaining diagnostics in the invoker while swallowing failures. */
   protected readonly hooks: HookInvoker;
-
-  static builder<T>(): DeadLetterQueueBuilder<T> {
-    const factory = (options: DeadLetterQueueOptionsInterface): DeadLetterQueue<T> => {
-      const result = DeadLetterQueue.create<T>(options);
-      return result;
-    };
-    const result = DeadLetterQueueBuilder.create<T>(factory);
-    return result;
-  }
 
   static create<T>(options?: DeadLetterQueueOptionsInterface): DeadLetterQueue<T> {
     return new DeadLetterQueue<T>(options);
   }
 
   protected constructor(options?: DeadLetterQueueOptionsInterface) {
-    this.hooks = new DeadLetterQueueHookDelegate((error) => { this.hookErrors.push(error); });
+    this.hooks = new DeadLetterQueue.#OwnedHookInvoker();
     const capacity = options?.capacity ?? Infinity;
     if (capacity !== undefined && (capacity <= 0 || Number.isNaN(capacity))) {
       throw new ResilienceConfigError('capacity must be > 0');
@@ -105,7 +71,7 @@ export class DeadLetterQueue<T> {
   }
 
   /** Single-consumer by default — a second concurrent drain() call replaces the previously registered waiter. Override `registerDrainWaiter`/`wakeDrainWaiters` for consumer-side fan-out. */
-  async *drain(): AsyncGenerator<DlqEntryType<T>> {
+  async *drain(): AsyncGenerator<DlqEntryInterface<T>> {
     while (true) {
       const entry = this.#entries.shift();
       if (entry !== undefined) {

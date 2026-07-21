@@ -16,26 +16,30 @@ import type { VisibleRangeEntity } from '../../../src/index.js';
 
 import { VisibleRange } from '../../../src/index.js';
 
-class TrackingVisibleRange extends VisibleRange {
-  readonly changes: VisibleRangeEntity.Type[] = [];
-
-  protected override onRangeChange(range: VisibleRangeEntity.Type): void {
-    this.changes.push(range);
-  }
-}
-
 it('fires on the first getRange() call', () => {
-  const range = TrackingVisibleRange.create({ 'count': 1000, 'itemSize': 50 }) as TrackingVisibleRange;
+  const changes: VisibleRangeEntity.Type[] = [];
+  class TrackingVisibleRange extends VisibleRange {
+    protected override onRangeChange(range: VisibleRangeEntity.Type): void {
+      changes.push(range);
+    }
+  }
+  const range = TrackingVisibleRange.create({ 'count': 1000, 'itemSize': 50 });
 
   range.setScrollOffset(0);
   range.setViewportSize(100);
   range.getRange();
 
-  strictEqual(range.changes.length, 1);
+  strictEqual(changes.length, 1);
 });
 
 it('fires only once when getRange() is called twice with no state change', () => {
-  const range = TrackingVisibleRange.create({ 'count': 1000, 'itemSize': 50 }) as TrackingVisibleRange;
+  const changes: VisibleRangeEntity.Type[] = [];
+  class TrackingVisibleRange extends VisibleRange {
+    protected override onRangeChange(range: VisibleRangeEntity.Type): void {
+      changes.push(range);
+    }
+  }
+  const range = TrackingVisibleRange.create({ 'count': 1000, 'itemSize': 50 });
 
   range.setScrollOffset(0);
   range.setViewportSize(100);
@@ -43,11 +47,17 @@ it('fires only once when getRange() is called twice with no state change', () =>
   range.getRange();
   range.getRange();
 
-  strictEqual(range.changes.length, 1);
+  strictEqual(changes.length, 1);
 });
 
 it('fires again when the scroll offset moves the range', () => {
-  const range = TrackingVisibleRange.create({ 'count': 1000, 'itemSize': 50 }) as TrackingVisibleRange;
+  const changes: VisibleRangeEntity.Type[] = [];
+  class TrackingVisibleRange extends VisibleRange {
+    protected override onRangeChange(range: VisibleRangeEntity.Type): void {
+      changes.push(range);
+    }
+  }
+  const range = TrackingVisibleRange.create({ 'count': 1000, 'itemSize': 50 });
 
   range.setScrollOffset(0);
   range.setViewportSize(100);
@@ -56,8 +66,27 @@ it('fires again when the scroll offset moves the range', () => {
   range.setScrollOffset(1000);
   const second = range.getRange();
 
-  strictEqual(range.changes.length, 2);
-  deepStrictEqual(range.changes[1], second);
+  strictEqual(changes.length, 2);
+  deepStrictEqual(changes[1], second);
+});
+
+it('isolates returned and observed ranges from retained comparison state', () => {
+  const changes: VisibleRangeEntity.Type[] = [];
+  class MutatingVisibleRange extends VisibleRange {
+    protected override onRangeChange(range: VisibleRangeEntity.Type): void {
+      changes.push({ 'end': range.end, 'start': range.start });
+      range.start = 999;
+    }
+  }
+  const range = MutatingVisibleRange.create({ 'count': 1000, 'itemSize': 50 });
+  range.setViewportSize(100);
+
+  const first = range.getRange();
+  first.end = 999;
+  const second = range.getRange();
+
+  deepStrictEqual(second, { 'end': 2, 'start': 0 });
+  deepStrictEqual(changes, [{ 'end': 2, 'start': 0 }]);
 });
 
 it('a throwing onRangeChange hook surfaces as a HookInvocationError', () => {

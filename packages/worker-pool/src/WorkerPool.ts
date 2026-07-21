@@ -1,46 +1,44 @@
 /** Bounded node:worker_threads pool that fans work items across workers via a typed message envelope */
 
 import { Batch } from '@studnicky/batch';
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 import { Signal } from '@studnicky/signal';
 import { System } from '@studnicky/system';
 import { Worker } from 'node:worker_threads';
 
-import type { WorkerEnvelopeType } from './types/WorkerEnvelopeType.js';
-import type { WorkerPoolConfigType } from './types/WorkerPoolConfigType.js';
+import type { WorkerPoolConfigEntity } from './entities/WorkerPoolConfigEntity.js';
+import type { WorkerTaskDispositionEntity } from './entities/WorkerTaskDispositionEntity.js';
+import type { WorkerTaskIndexEntity } from './entities/WorkerTaskIndexEntity.js';
+import type { WorkerErrorEnvelopeInterface } from './interfaces/WorkerErrorEnvelopeInterface.js';
+import type { WorkerLogEnvelopeInterface } from './interfaces/WorkerLogEnvelopeInterface.js';
+import type { WorkerPoolConfigInterface } from './interfaces/WorkerPoolConfigInterface.js';
+import type { WorkerProgressEnvelopeInterface } from './interfaces/WorkerProgressEnvelopeInterface.js';
+import type { WorkerResultEnvelopeInterface } from './interfaces/WorkerResultEnvelopeInterface.js';
 
-import { WorkerPoolBuilder } from './WorkerPoolBuilder.js';
 
-/**
- * Composed `HookInvoker` for `WorkerPool` — records a hook failure into the
- * owning `WorkerPool`'s `#hookErrors` array via a constructor callback instead
- * of throwing. Hoisted to module scope so V8 compiles this class once rather
- * than per `WorkerPool` instantiation.
- */
-class WorkerPoolHookInvoker extends HookInvoker {
-  constructor(private readonly recordFailure: (hookName: string, cause: unknown) => void) {
-    super();
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.recordFailure(hookName, cause);
-    return undefined as T;
-  }
+interface WorkerPoolDepsInterface extends WorkerPoolConfigEntity.Type {
+  'concurrency': Required<WorkerPoolConfigEntity.Type>['concurrency'];
+  'signal': Signal;
 }
 
-// json-schema-uninexpressible: 'signal' is a live Signal class instance — not a serializable data shape
-type WorkerPoolDepsType = {
-  'concurrency': number;
-  'signal': Signal;
-  'timeoutMs'?: number | undefined;
-  'workerPath': string;
-};
+interface IndexedItemInterface<TMessage> extends WorkerTaskIndexEntity.Type {
+  readonly 'item': TMessage;
+}
 
-// json-schema-uninexpressible: 'item' is a generic TMessage type parameter — the payload shape is caller-defined, not a fixed domain shape
-type IndexedItemType<TMessage> = {
-  'index': number;
+interface PendingEntryInterface<TMessage, TResult> extends WorkerTaskIndexEntity.Type {
   'item': TMessage;
-};
+  'reject': (error: Error) => void;
+  'resolve': (value: TResult) => void;
+  'retried'?: WorkerTaskDispositionEntity.Type['retried'];
+}
+
+interface TaskContextInterface<TMessage, TResult>
+  extends WorkerTaskDispositionEntity.Type, WorkerTaskIndexEntity.Type {
+  'item': TMessage;
+  'reject': (error: Error) => void;
+  'resolve': (value: TResult) => void;
+  'unregisterTimeout': () => void;
+}
 
 /**
  * Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded
@@ -78,6 +76,10 @@ type IndexedItemType<TMessage> = {
  * ```
  */
 export class WorkerPool<TMessage = unknown, TResult = unknown> {
+  static readonly #OwnedHookInvoker = class WorkerPoolHookInvoker extends HookInvoker {
+    protected override onHookError(_hookName: string, _cause: unknown): void {}
+  };
+
   /**
    * Creates a new WorkerPool, defaulting `concurrency` to `System.optimalWorkerCount` and
    * `signal` to a fresh `Signal.create()` when omitted.
@@ -85,27 +87,38 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
    * @param config - `workerPath` is required; every other field defaults
    * @returns New WorkerPool instance
    */
-  static create<TMessage = unknown, TResult = unknown>(
-    config: WorkerPoolConfigType
-  ): WorkerPool<TMessage, TResult> {
+  private static isConstructed<
+    TMessage,
+    TResult,
+    TInstance extends WorkerPool<TMessage, TResult>
+  >(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<
+    TMessage = unknown,
+    TResult = unknown,
+    TInstance extends WorkerPool<TMessage, TResult> = WorkerPool<TMessage, TResult>
+  >(
+    this: Function & { readonly 'prototype': TInstance },
+    config: WorkerPoolConfigInterface
+  ): TInstance {
     if (typeof config.workerPath !== 'string' || config.workerPath.length === 0) {
       throw new Error('WorkerPool: workerPath is required');
     }
 
-    const result = new this<TMessage, TResult>({
+    const result: unknown = Reflect.construct(this, [{
       'concurrency': config.concurrency ?? System.optimalWorkerCount,
       'signal': config.signal ?? Signal.create(),
       'timeoutMs': config.timeoutMs,
       'workerPath': config.workerPath
-    });
-    return result;
-  }
-
-  static builder<TMessage = unknown, TResult = unknown>(): WorkerPoolBuilder<TMessage, TResult> {
-    const result = WorkerPoolBuilder.create<TMessage, TResult>((config) => {
-      const pool = WorkerPool.create<TMessage, TResult>(config);
-      return pool;
-    });
+    }]);
+    if (!WorkerPool.isConstructed(result, this)) {
+      throw new TypeError('WorkerPool.create() must construct a WorkerPool instance');
+    }
     return result;
   }
 
@@ -114,18 +127,10 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
   readonly #timeoutMs: number | undefined;
   readonly #signal: Signal;
 
-  /**
-   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
-   * instead of aborting in-flight worker dispatch or task settlement.
-   */
-  readonly #hookErrors: HookInvocationError[] = [];
-
   protected readonly hooks: HookInvoker;
 
-  protected constructor(deps: WorkerPoolDepsType) {
-    this.hooks = new WorkerPoolHookInvoker((hookName, cause) => {
-      this.#hookErrors.push(new HookInvocationError(hookName, cause));
-    });
+  protected constructor(deps: WorkerPoolDepsInterface) {
+    this.hooks = new WorkerPool.#OwnedHookInvoker();
     this.#workerPath = deps.workerPath;
     this.#concurrency = deps.concurrency;
     this.#timeoutMs = deps.timeoutMs;
@@ -140,55 +145,63 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
    * @returns Results in the same order as `items`
    */
   async run(items: readonly TMessage[]): Promise<TResult[]> {
-    // json-schema-uninexpressible: 'reject'/'resolve'/'unregisterTimeout' are function-typed callbacks — run-local scheduling state, never serialized
-    type TaskContextType = {
-      'index': number;
-      'item': TMessage;
-      'reject': (error: Error) => void;
-      'resolve': (value: TResult) => void;
-      'retried': boolean;
-      'settled': boolean;
-      'unregisterTimeout': () => void;
-    };
-
-    // json-schema-uninexpressible: 'item'/'resolve'/'reject' close over the caller's generic TMessage/TResult — run-local scheduling state, never serialized
-    type PendingEntryType = {
-      'index': number;
-      'item': TMessage;
-      'reject': (error: Error) => void;
-      'resolve': (value: TResult) => void;
-      'retried'?: boolean;
-    };
-
-    const currentTaskByWorker = new Map<Worker, TaskContextType>();
-    const liveWorkers = new Set<Worker>();
+    const currentTaskByWorker = new Map<Worker, TaskContextInterface<TMessage, TResult>>();
+    const liveWorkers = new Map<Worker, number>();
     const idleWorkers: Worker[] = [];
-    const pendingQueue: PendingEntryType[] = [];
+    const pendingQueue: PendingEntryInterface<TMessage, TResult>[] = [];
     let spawnedCount = 0;
     let shuttingDown = false;
 
-    const settleTask = (worker: Worker, fn: (context: TaskContextType) => void): void => {
+    const settleTask = (worker: Worker, fn: (context: TaskContextInterface<TMessage, TResult>) => void): boolean => {
       const context = currentTaskByWorker.get(worker);
-      if (context === undefined || context.settled) { return; }
+      if (context === undefined || context.settled) { return false; }
       context.settled = true;
       context.unregisterTimeout();
       currentTaskByWorker.delete(worker);
       fn(context);
+      return true;
     };
 
-    const freeWorker = (worker: Worker): void => {
+    const freeWorker = async (worker: Worker): Promise<void> => {
       const next = pendingQueue.shift();
       if (next !== undefined) {
-        assignTask(worker, next);
+        await assignTask(worker, next);
         return;
       }
       idleWorkers.push(worker);
     };
 
-    const assignTask = (worker: Worker, entry: PendingEntryType): void => {
-      const timeoutSignal = this.#timeoutMs !== undefined ? this.#signal.timeout(this.#timeoutMs) : undefined;
+    const assignTask = async (
+      worker: Worker,
+      entry: PendingEntryInterface<TMessage, TResult>
+    ): Promise<void> => {
+      let timeoutSignal: AbortSignal | undefined;
+      try {
+        timeoutSignal = this.#timeoutMs === undefined
+          ? undefined
+          : await this.#signal.compose({ 'deadlineMs': this.#timeoutMs });
+      } catch (cause) {
+        const error = cause instanceof Error
+          ? cause
+          : new Error('WorkerPool: task timeout signal composition failed', { 'cause': cause });
+        entry.reject(error);
+        await freeWorker(worker);
+        return;
+      }
 
-      const context: TaskContextType = {
+      if (!liveWorkers.has(worker)) {
+        const replacement = idleWorkers.pop();
+        if (replacement === undefined) {
+          pendingQueue.unshift(entry);
+          return;
+        }
+        await assignTask(replacement, entry);
+        return;
+      }
+
+      liveWorkers.set(worker, entry.index);
+
+      const context: TaskContextInterface<TMessage, TResult> = {
         'index': entry.index,
         'item': entry.item,
         'reject': entry.reject,
@@ -205,7 +218,15 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
             return result;
           });
           ctx.reject(new Error(`WorkerPool: task at index ${String(ctx.index)} exceeded its timeout`));
-          worker.terminate().catch(() => {});
+          worker.terminate().catch((cause: unknown) => {
+            const terminationError = cause instanceof Error
+              ? cause
+              : new Error('WorkerPool: worker termination failed', { 'cause': cause });
+            this.hooks.invoke('onWorkerError', () => {
+              const result = this.onWorkerError(terminationError, ctx.index);
+              return result;
+            });
+          });
         });
       };
 
@@ -213,40 +234,63 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         timeoutSignal?.removeEventListener('abort', onTimeoutAbort);
       };
 
-      timeoutSignal?.addEventListener('abort', onTimeoutAbort, { 'once': true });
-
       currentTaskByWorker.set(worker, context);
+
+      if (timeoutSignal?.aborted === true) {
+        onTimeoutAbort();
+        return;
+      }
+
+      timeoutSignal?.addEventListener('abort', onTimeoutAbort, { 'once': true });
       worker.postMessage(entry.item);
     };
 
-    const handleResultEnvelope = (worker: Worker, value: TResult): void => {
-      settleTask(worker, (ctx) => {
+    const handleResultEnvelope = async (worker: Worker, value: TResult): Promise<void> => {
+      const settled = settleTask(worker, (ctx) => {
         ctx.resolve(value);
-        freeWorker(worker);
       });
+      if (settled) {
+        await freeWorker(worker);
+      }
     };
 
-    const handleErrorEnvelope = (worker: Worker, message: string): void => {
-      settleTask(worker, (ctx) => {
+    const handleErrorEnvelope = async (worker: Worker, message: string): Promise<void> => {
+      const settled = settleTask(worker, (ctx) => {
         const error = new Error(message);
         this.hooks.invoke('onWorkerError', () => {
           const result = this.onWorkerError(error, ctx.index);
           return result;
         });
         ctx.reject(error);
-        freeWorker(worker);
+      });
+      if (settled) {
+        await freeWorker(worker);
+      }
+    };
+
+    const reportOperationFailure = (cause: unknown, index: number): void => {
+      const error = cause instanceof Error
+        ? cause
+        : new Error('WorkerPool: asynchronous worker operation failed', { 'cause': cause });
+      this.hooks.invoke('onWorkerError', () => {
+        const result = this.onWorkerError(error, index);
+        return result;
       });
     };
 
-    const createWorker = (): Worker => {
+    const createWorker = (workerIndex: number): Worker => {
       const worker = new Worker(this.#workerPath);
-      liveWorkers.add(worker);
+      liveWorkers.set(worker, workerIndex);
       this.hooks.invoke('onWorkerCreated', () => {
         const result = this.onWorkerCreated(worker.threadId);
         return result;
       });
 
-      worker.on('message', (envelope: WorkerEnvelopeType<TMessage, TResult>) => {
+      worker.on('message', (envelope:
+        | WorkerErrorEnvelopeInterface
+        | WorkerLogEnvelopeInterface
+        | WorkerProgressEnvelopeInterface
+        | WorkerResultEnvelopeInterface<TResult>) => {
         const context = currentTaskByWorker.get(worker);
         if (context === undefined) {
           // Stray envelope for a worker with no assigned task — ignore safely.
@@ -260,13 +304,17 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
         switch (envelope.type) {
           case 'error':
-            handleErrorEnvelope(worker, envelope.error);
+            handleErrorEnvelope(worker, envelope.error).catch((cause: unknown) => {
+              reportOperationFailure(cause, context.index);
+            });
             break;
           case 'log':
           case 'progress':
             break;
           case 'result':
-            handleResultEnvelope(worker, envelope.value);
+            handleResultEnvelope(worker, envelope.value).catch((cause: unknown) => {
+              reportOperationFailure(cause, context.index);
+            });
             break;
           default:
             WorkerPool.#assertExhaustiveEnvelope(envelope);
@@ -274,6 +322,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       });
 
       worker.on('error', (error: Error) => {
+        const workerIndex = liveWorkers.get(worker) ?? -1;
         settleTask(worker, (ctx) => {
           this.hooks.invoke('onWorkerError', () => {
             const result = this.onWorkerError(error, ctx.index);
@@ -281,10 +330,19 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
           });
           ctx.reject(error);
         });
-        worker.terminate().catch(() => {});
+        worker.terminate().catch((cause: unknown) => {
+          const terminationError = cause instanceof Error
+            ? cause
+            : new Error('WorkerPool: worker termination failed', { 'cause': cause });
+          this.hooks.invoke('onWorkerError', () => {
+            const result = this.onWorkerError(terminationError, workerIndex);
+            return result;
+          });
+        });
       });
 
       worker.on('exit', (code: number) => {
+        const workerIndex = liveWorkers.get(worker) ?? -1;
         liveWorkers.delete(worker);
         const idleIndex = idleWorkers.indexOf(worker);
         if (idleIndex !== -1) { idleWorkers.splice(idleIndex, 1); }
@@ -293,8 +351,10 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
         if (context === undefined || context.settled) {
           if (!shuttingDown) {
-            const replacement = createWorker();
-            freeWorker(replacement);
+            const replacement = createWorker(workerIndex);
+            freeWorker(replacement).catch((cause: unknown) => {
+              reportOperationFailure(cause, workerIndex);
+            });
           }
           return;
         }
@@ -306,13 +366,15 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         // thread tearing itself down on its own between tasks, while a task that still fails
         // after the retry surfaces as a genuine rejection.
         if (!context.retried && !shuttingDown) {
-          const replacement = createWorker();
+          const replacement = createWorker(context.index);
           assignTask(replacement, {
             'index': context.index,
             'item': context.item,
             'reject': context.reject,
             'resolve': context.resolve,
             'retried': true
+          }).catch((cause: unknown) => {
+            reportOperationFailure(cause, context.index);
           });
           return;
         }
@@ -320,35 +382,43 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         context.reject(new Error(`WorkerPool: worker at index ${String(context.index)} exited with code ${String(code)} before returning a result`));
 
         if (!shuttingDown) {
-          const replacement = createWorker();
-          freeWorker(replacement);
+          const replacement = createWorker(context.index);
+          freeWorker(replacement).catch((cause: unknown) => {
+            reportOperationFailure(cause, context.index);
+          });
         }
       });
 
       return worker;
     };
 
-    const dispatch = (item: TMessage, index: number): Promise<TResult> => {return new Promise<TResult>((resolve, reject) => {
-      const entry: PendingEntryType = { 'index': index, 'item': item, 'reject': reject, 'resolve': resolve };
+    const dispatch = async (item: TMessage, index: number): Promise<TResult> => {
+      const completion = Promise.withResolvers<TResult>();
+      const entry: PendingEntryInterface<TMessage, TResult> = {
+        'index': index,
+        'item': item,
+        'reject': completion.reject,
+        'resolve': completion.resolve
+      };
 
       const idleWorker = idleWorkers.pop();
       if (idleWorker !== undefined) {
-        assignTask(idleWorker, entry);
-        return;
-      }
-
-      if (spawnedCount < this.#concurrency) {
+        await assignTask(idleWorker, entry);
+      } else if (spawnedCount < this.#concurrency) {
         spawnedCount += 1;
-        const worker = createWorker();
-        assignTask(worker, entry);
-        return;
+        const worker = createWorker(entry.index);
+        await assignTask(worker, entry);
+      } else {
+        pendingQueue.push(entry);
       }
 
-      pendingQueue.push(entry);
-    });};
+      return await completion.promise;
+    };
 
     const batch = Batch.create<TResult>(this.#concurrency);
-    const indexed: IndexedItemType<TMessage>[] = items.map((item, index) => { return { 'index': index, 'item': item }; });
+    const indexed: IndexedItemInterface<TMessage>[] = items.map((item, index) => {
+      return { 'index': index, 'item': item };
+    });
 
     const allDispatchedPromises: Promise<TResult>[] = [];
     const results: TResult[] = [];
@@ -366,24 +436,35 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     } finally {
       shuttingDown = true;
       await Promise.allSettled(allDispatchedPromises);
-      const workersToTerminate = [...liveWorkers];
-      await Promise.allSettled(workersToTerminate.map((worker) => { const result = worker.terminate().catch(() => {}); return result; }));
+      const workersToTerminate = [...liveWorkers.entries()];
+      const terminationResults = await Promise.allSettled(
+        workersToTerminate.map(([worker]) => { const result = worker.terminate(); return result; })
+      );
+      terminationResults.forEach((outcome, index) => {
+        if (outcome.status === 'fulfilled') { return; }
+        const workerEntry = workersToTerminate[index];
+        if (workerEntry === undefined) { return; }
+        const terminationCause: unknown = outcome.reason;
+        const terminationError = terminationCause instanceof Error
+          ? terminationCause
+          : new Error('WorkerPool: worker termination failed', { 'cause': terminationCause });
+        this.hooks.invoke('onWorkerError', () => {
+          const result = this.onWorkerError(terminationError, workerEntry[1]);
+          return result;
+        });
+      });
     }
-  }
-
-  getSignal(): Signal {
-    return this.#signal;
   }
 
   /** Count of hook failures recorded by `onHookError` since construction. */
   getHookErrorCount(): number {
-    const result = this.#hookErrors.length;
+    const result = this.hooks.hookErrorCount;
     return result;
   }
 
-  /** Returns a defensive copy of every hook failure recorded since construction. */
+  /** Returns detached diagnostics for every hook failure recorded since construction. */
   getHookErrors(): readonly HookInvocationError[] {
-    const result = [...this.#hookErrors];
+    const result = this.hooks.getHookErrors();
     return result;
   }
 
@@ -398,12 +479,19 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
   // ---------------------------------------------------------------------------
 
   /** Fires for every envelope a worker posts back — `log`, `progress`, `result`, and `error` alike. */
-  protected onMessage(_envelope: WorkerEnvelopeType<TMessage, TResult>, _index: number): void {}
+  protected onMessage(
+    _envelope:
+      | WorkerErrorEnvelopeInterface
+      | WorkerLogEnvelopeInterface
+      | WorkerProgressEnvelopeInterface
+      | WorkerResultEnvelopeInterface<TResult>,
+    _index: number
+  ): void {}
 
   /** Fires when a task exceeds its configured `timeoutMs`, immediately before the worker is terminated. */
   protected onWorkerTimeout(_index: number): void {}
 
-  /** Fires when a task rejects — a `'error'` envelope, an uncaught worker `'error'` event, or an unexpected exit. */
+  /** Fires when a task rejects or worker termination fails. */
   protected onWorkerError(_error: Error, _index: number): void {}
 
   /** Fires whenever the pool constructs a Worker — the initial per-run spin-up and any crash-triggered replacement alike. */

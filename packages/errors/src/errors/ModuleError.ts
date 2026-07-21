@@ -16,16 +16,16 @@
  * @example Extending for domain-specific errors
  * ```typescript
  * import { ModuleError } from '@studnicky/errors';
- * import type { ModuleErrorOptionsType } from '@studnicky/errors';
+ * import type { ModuleErrorOptionsInterface } from '@studnicky/errors';
  * import { ErrorDefaults } from '@studnicky/errors';
  *
  * export class GraphStoreError extends ModuleError {
  *   static override create(
  *     message: string,
- *     options?: Omit<ModuleErrorCreateOptionsType, 'scenario'>
+ *     options?: Omit<ModuleErrorCreateOptionsInterface, 'scenario'>
  *   ): GraphStoreError {
  *     const defaults = ErrorDefaults.DATABASE;
- *     const mergedOptions: ModuleErrorOptionsType = {
+ *     const mergedOptions: ModuleErrorOptionsInterface = {
  *       cause: options?.cause,
  *       code: defaults.code,
  *       context: options?.context,
@@ -37,17 +37,18 @@
  * }
  * ```
  */
-import type { ModuleErrorInterface } from '../interfaces/index.js';
 import type {
-  ModuleErrorCreateOptionsType,
-  ModuleErrorOptionsType
-} from '../types/index.js';
+  ModuleErrorCreateOptionsInterface,
+  ModuleErrorInterface,
+  ModuleErrorOptionsInterface
+} from '../interfaces/index.js';
 
 import {
   CAUSE_CHAIN_DEPTH_LIMIT,
   CAUSE_DEPTH_SENTINEL,
   ErrorDefaults
 } from '../constants/index.js';
+import { DefensiveSnapshot } from '../validation/DefensiveSnapshot.js';
 import { BaseError } from './BaseError.js';
 import { ValidationError } from './ValidationError.js';
 
@@ -63,7 +64,7 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
    * Merges user options over the specified scenario defaults from `ErrorDefaults`.
    * User-provided options take precedence over scenario defaults.
    */
-  static create(message: string, options: ModuleErrorCreateOptionsType): ModuleError {
+  static create(message: string, options: ModuleErrorCreateOptionsInterface): ModuleError {
     if (!(options.scenario in ErrorDefaults)) {
       throw ValidationError.create({
         'message': `Must be one of: ${Object.keys(ErrorDefaults).join(', ')}`,
@@ -79,7 +80,7 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
 
     const defaults = ErrorDefaults[options.scenario];
 
-    const mergedOptions: ModuleErrorOptionsType = {
+    const mergedOptions: ModuleErrorOptionsInterface = {
       'cause': options.cause,
       'code': defaults.code,
       'context': options.context,
@@ -95,7 +96,13 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
    *
    * Shadows `BaseError.metadata` for the `ModuleError` public API surface.
    */
-  public readonly context: Record<string, unknown> | undefined;
+  readonly #context: Record<string, unknown> | undefined;
+
+  public get context(): Record<string, unknown> | undefined {
+    return this.#context === undefined
+      ? undefined
+      : DefensiveSnapshot.record(this.#context);
+  }
 
   /**
    * Typed cause — narrows `Error.cause: unknown` to `Error | undefined`.
@@ -109,7 +116,7 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
    * Protected constructor — use `ModuleError.create()` instead.
    * Subclasses can call this constructor directly in their own `create()` methods.
    */
-  protected constructor(message: string, options: ModuleErrorOptionsType) {
+  protected constructor(message: string, options: ModuleErrorOptionsInterface) {
     if (typeof message !== 'string' || message.length === 0) {
       throw ValidationError.create({
         'message': 'Must be a non-empty string',
@@ -133,26 +140,13 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
 
     this.cause = options.cause;
     this.statusCode = options.statusCode;
-    this.context = options.context;
+    this.#context = options.context === undefined
+      ? undefined
+      : DefensiveSnapshot.record(options.context);
 
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, this.constructor);
     }
-  }
-
-  /**
-   * Walks the cause chain starting at `this`, returning all `Error` nodes.
-   * Subclasses may override to alter traversal behavior.
-   *
-   * Delegates to `BaseError.getCauseChain()` so traversal is bounded by
-   * `CAUSE_CHAIN_DEPTH_LIMIT` and safe against circular `cause` references —
-   * the same depth-limited walk `BaseError`'s own cause-chain helpers use.
-   */
-  protected walkCauseChain(): Error[] {
-    const chain = BaseError.getCauseChain(this).filter(
-      (node): node is Error => {return node instanceof Error;}
-    );
-    return chain;
   }
 
   /**
@@ -166,30 +160,6 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
   protected override serializeExtra(): Record<string, unknown> {
     const extra: Record<string, unknown> = {};
     return extra;
-  }
-
-  /**
-   * Finds the first cause of a specific type in the chain.
-   */
-  findCauseOfType<T extends Error>(errorType: new (...args: never[]) => T): T | undefined {
-    const found = this.walkCauseChain().find((error): error is T => {return error instanceof errorType;});
-    return found;
-  }
-
-  /**
-   * Returns the full error chain including all causes.
-   */
-  getCauseChain(): Error[] {
-    const result = this.walkCauseChain();
-    return result;
-  }
-
-  /**
-   * Returns `true` if this error or any cause is an instance of `errorType`.
-   */
-  hasCauseOfType(errorType: new (...args: never[]) => Error): boolean {
-    const result = this.walkCauseChain().some((error) => {return error instanceof errorType;});
-    return result;
   }
 
   /**
@@ -215,8 +185,8 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
       json.statusCode = this.statusCode;
     }
 
-    if (this.context !== undefined) {
-      json.context = this.context;
+    if (this.#context !== undefined) {
+      json.context = DefensiveSnapshot.record(this.#context);
     }
 
     const cause = this.cause;

@@ -2,7 +2,7 @@
  * URL and query string utilities as static class methods
  */
 
-import type { QueryParamsType } from '../types/QueryParamsType.js';
+import type { QueryParamsInterface } from '../interfaces/QueryParamsInterface.js';
 
 /**
  * URL and query string utilities
@@ -14,7 +14,7 @@ export class UrlUtils {
    * @param params - Query parameters
    * @returns Query string without leading ?
    */
-  static buildQueryString(params: QueryParamsType): string {
+  static buildQueryString(params: QueryParamsInterface): string {
     const pairs: string[] = [];
 
     for (const [
@@ -50,7 +50,7 @@ export class UrlUtils {
    * @param params - Query parameters to append
    * @returns Complete URL with query string
    */
-  static buildUrl(baseUrl: string, params?: QueryParamsType): string {
+  static buildUrl(baseUrl: string, params?: QueryParamsInterface): string {
     if (params === undefined) {
       return baseUrl;
     }
@@ -72,7 +72,7 @@ export class UrlUtils {
    * @param queryString - Query string (with or without leading ?)
    * @returns Parsed query parameters
    */
-  static parseQueryString(queryString: string): QueryParamsType {
+  static parseQueryString(queryString: string): QueryParamsInterface {
     const cleanQuery = queryString.startsWith('?') ? queryString.slice(1) : queryString;
 
     if (cleanQuery === '') {
@@ -80,7 +80,7 @@ export class UrlUtils {
     }
 
     const params = new URLSearchParams(cleanQuery);
-    const result: QueryParamsType = {};
+    const result: QueryParamsInterface = {};
 
     for (const [
       key,

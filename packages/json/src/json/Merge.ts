@@ -11,7 +11,7 @@
  * Subclass `Merge` and override protected static steps to customise merge behaviour.
  */
 
-import type { DeepMergeType } from '../types/DeepMergeType.js';
+import { DataType } from './DataType.js';
 
 export class Merge {
   // ---------------------------------------------------------------------------
@@ -20,7 +20,11 @@ export class Merge {
 
   /** Return `true` when `value` is a mergeable plain object (not null, not array). */
   protected static isMergeable(value: unknown): value is Readonly<Record<string, unknown>> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+    if (!DataType.isPlainObject(value)) {
+      return false;
+    }
+
+    return true;
   }
 
   /** Return the sorted union of keys from `base` and `overlay`. */
@@ -51,6 +55,27 @@ export class Merge {
     return result;
   }
 
+  /** Return a detached snapshot for JSON containers while preserving atomic values. */
+  protected static snapshot(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      const snapshot: unknown[] = [];
+      for (const entry of value) {
+        snapshot.push(this.snapshot(entry));
+      }
+      return snapshot;
+    }
+
+    if (!DataType.isPlainObject(value)) {
+      return value;
+    }
+
+    const snapshot: Record<string, unknown> = {};
+    for (const key of Object.keys(value).sort()) {
+      snapshot[key] = this.snapshot(value[key]);
+    }
+    return snapshot;
+  }
+
   /** Merge two plain objects key-by-key in alphabetical union order. */
   protected static mergeObjects(
     base: Readonly<Record<string, unknown>>,
@@ -60,45 +85,10 @@ export class Merge {
     const merged: Record<string, unknown> = {};
 
     for (const key of keys) {
-      merged[key] = this.mergeValues(base[key], overlay[key]);
+      merged[key] = this.deep(base[key], overlay[key]);
     }
 
     return merged;
-  }
-
-  /**
-   * Recursively merge two values. Dispatches to `mergeArrays` or
-   * `mergeObjects` as appropriate; scalar overlay always wins.
-   */
-  protected static mergeValues(baseValue: unknown, overlayValue: unknown): unknown {
-    if (overlayValue === undefined) {
-      return baseValue;
-    }
-
-    if (baseValue === undefined) {
-      return overlayValue;
-    }
-
-    if (Array.isArray(overlayValue)) {
-      if (Array.isArray(baseValue)) {
-        return this.mergeArrays(baseValue, overlayValue);
-      }
-      return overlayValue;
-    }
-
-    if (Array.isArray(baseValue)) {
-      return overlayValue;
-    }
-
-    if (!this.isMergeable(overlayValue)) {
-      return overlayValue;
-    }
-
-    if (!this.isMergeable(baseValue)) {
-      return overlayValue;
-    }
-
-    return this.mergeObjects(baseValue, overlayValue);
   }
 
   // ---------------------------------------------------------------------------
@@ -111,12 +101,40 @@ export class Merge {
    * Overlay wins on conflicting primitives. Arrays replaced atomically.
    * Plain objects merged key-wise in alphabetical union order (monomorphic).
    */
-  public static deep<TBaseShape, TOverlayShape>(
-    baseValue: TBaseShape,
-    overlayValue: TOverlayShape
-  ): DeepMergeType<TBaseShape, TOverlayShape> {
-    const result: unknown = this.mergeValues(baseValue, overlayValue);
+  public static deep(
+    baseValue: Readonly<Record<string, unknown>>,
+    overlayValue: Readonly<Record<string, unknown>>
+  ): Record<string, unknown>;
+  public static deep(baseValue: readonly unknown[], overlayValue: readonly unknown[]): readonly unknown[];
+  public static deep(baseValue: unknown, overlayValue: unknown): unknown;
+  public static deep(baseValue: unknown, overlayValue: unknown): unknown {
+    if (overlayValue === undefined) {
+      return this.snapshot(baseValue);
+    }
 
-    return result as DeepMergeType<TBaseShape, TOverlayShape>;
+    if (baseValue === undefined) {
+      return this.snapshot(overlayValue);
+    }
+
+    if (Array.isArray(overlayValue)) {
+      if (Array.isArray(baseValue)) {
+        return this.snapshot(this.mergeArrays(baseValue, overlayValue));
+      }
+      return this.snapshot(overlayValue);
+    }
+
+    if (Array.isArray(baseValue)) {
+      return this.snapshot(overlayValue);
+    }
+
+    if (!this.isMergeable(overlayValue)) {
+      return this.snapshot(overlayValue);
+    }
+
+    if (!this.isMergeable(baseValue)) {
+      return this.snapshot(overlayValue);
+    }
+
+    return this.mergeObjects(baseValue, overlayValue);
   }
 }

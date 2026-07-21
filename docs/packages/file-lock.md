@@ -15,6 +15,8 @@ pnpm add @studnicky/file-lock
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
+`@studnicky/file-lock` is the sole public code entrypoint.
+
 ## Usage
 
 Acquire a lock, read and write the file while holding it, then release in a `try/finally` block:
@@ -37,10 +39,6 @@ const lock = await FileLock.create({
   timeoutMs: 3000, // give up after 3 s (default 5000 ms)
 });
 ```
-
-### Builder API
-
-<<< ../../packages/file-lock/examples/builderAcquire.ts#usage
 
 ### Error handling
 
@@ -74,7 +72,7 @@ A hook override that throws or rejects does not abort acquisition or release —
 
 By default, `FileLock` performs all filesystem operations through the real Node.js `fs` module (atomic rename on disk). These demos inject an in-memory `@studnicky/virtual-fs` `VirtualFileSystem` so the exact same lock semantics — atomic rename-based acquisition, contention polling, release — run entirely in the browser.
 
-### Builder with injected VirtualFileSystem
+### Injected VirtualFileSystem
 
 <RunnableExample src="packages/file-lock/examples/vfsLock" title="FileLock with VirtualFileSystem — browser-safe lock" />
 
@@ -92,33 +90,25 @@ Two `FileLock` instances share the same `VirtualFileSystem` path. The holder acq
 
 | Export | Type | Description |
 |--------|------|-------------|
-| `FileLock` | class | Advisory file lock; acquired via `FileLock.create` or `FileLock.builder()` |
-| `FileLockBuilder` | class | Fluent builder for `FileLock`; returned by `FileLock.builder()` |
+| `FileLock` | class | Advisory file lock acquired through `FileLock.create(options)` |
+| `FileLockError` | class | Base package error |
+| `FileLockConfigError` | class | Invalid lock configuration |
 | `FileLockTimeoutError` | class | Thrown when lock cannot be acquired within `timeoutMs` |
 | `FileLockOptionsEntity` | namespace | Schema and type for `FileLock` options |
+| `FileLockCreateOptionsInterface` | interface | Runtime construction contract, including an optional injected filesystem |
+| `OwnerTokenInterface` | interface | Runtime lock-owner identity contract |
 
 ### `FileLock`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | `create` | `static (options) => Promise<FileLock>` | Acquires the lock; throws `FileLockTimeoutError` on timeout or `FileLockConfigError` on invalid options |
-| `builder` | `static () => FileLockBuilder` | Returns a fluent builder for configuring and acquiring a lock |
-| `acquire` | `static (path, options?) => Promise<FileLock>` | Alias for `create({ path, ...options })`; retained for compatibility |
 | `read` | `() => string` | Reads the locked file as UTF-8 |
 | `write` | `(content: string) => void` | Writes content to the locked file |
 | `release` | `() => void` | Releases the lock; safe to call multiple times |
 | `[Symbol.dispose]` | `() => void` | Calls `release`; enables `using` syntax |
 | `hookErrorCount` | `get hookErrorCount(): number` | Count of hook failures recorded since construction |
 | `getHookErrors` | `() => readonly { hookName: string; cause: unknown }[]` | Defensive copy of every hook failure recorded since construction |
-
-### `FileLockBuilder`
-
-| Member | Signature | Description |
-|--------|-----------|-------------|
-| `withPath` | `(value: string) => this` | Sets the file path to lock |
-| `withPollMs` | `(value: number) => this` | Sets the poll interval in milliseconds |
-| `withTimeoutMs` | `(value: number) => this` | Sets the acquisition timeout in milliseconds |
-| `build` | `() => Promise<FileLock>` | Acquires and returns the lock |
 
 ### `FileLockTimeoutError`
 

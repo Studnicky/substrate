@@ -3,22 +3,20 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { FsmStepType } from '../src/index.js';
+import type { FsmStepInterface } from '../src/index.js';
 import type { ToggleEventEntity } from './entities/ToggleEventEntity.js';
+import type { ToggleStateEntity } from './entities/ToggleStateEntity.js';
 
 import { EffectInterpreter, MachineAlreadyRegisteredError, MachineRegistry, StateMachine } from '../src/index.js';
 
-type ToggleState = { readonly 'variant': 'on' } | { readonly 'variant': 'off' };
-type ToggleEvent = ToggleEventEntity.Type;
-
-class Toggle extends StateMachine<ToggleState, ToggleEvent> {
+class Toggle extends StateMachine<ToggleStateEntity.Type, ToggleEventEntity.Type> {
   static make(): Toggle { return new Toggle(); }
 
-  getInitialState(): ToggleState {
+  getInitialState(): ToggleStateEntity.Type {
     return { 'variant': 'off' };
   }
 
-  reduce(state: ToggleState, event: ToggleEvent): FsmStepType<ToggleState> {
+  reduce(state: ToggleStateEntity.Type, event: ToggleEventEntity.Type): FsmStepInterface<ToggleStateEntity.Type> {
     if (event.type === 'toggle') {
       return { 'effects': [], 'state': { 'variant': state.variant === 'off' ? 'on' : 'off' } };
     }
@@ -26,10 +24,10 @@ class Toggle extends StateMachine<ToggleState, ToggleEvent> {
   }
 }
 
-const interpreter: EffectInterpreter<ToggleState, ToggleEvent> = EffectInterpreter.create({ 'machine': Toggle.make(), 'machineId': 'toggle-a' });
+const interpreter: EffectInterpreter<ToggleStateEntity.Type, ToggleEventEntity.Type> = EffectInterpreter.create({ 'machine': Toggle.make(), 'machineId': 'toggle-a' });
 interpreter.start();
 
-const registry = MachineRegistry.create();
+const registry = MachineRegistry.create<ToggleStateEntity.Type, ToggleEventEntity.Type>();
 
 // Registry is empty before registration
 assert.equal(registry.has('toggle-a'), false);

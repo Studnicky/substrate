@@ -8,6 +8,7 @@ import { plugin } from '../plugin.js';
  * array to enable the full domain with one import.
  */
 export const entitySuite: Linter.Config = {
+  'linterOptions': { 'noInlineConfig': true },
   'plugins': { '@studnicky': plugin },
   'rules': {
     '@studnicky/all-types-are-entities': 'error',
@@ -16,6 +17,7 @@ export const entitySuite: Linter.Config = {
     '@studnicky/interface-suffix': 'error',
     '@studnicky/interfaces-compose-named-types': 'error',
     '@studnicky/type-alias-invariants': 'error',
-    '@studnicky/whole-canonical-types': 'error'
+    '@studnicky/whole-canonical-types': 'error',
+    '@typescript-eslint/prefer-function-type': 'off'
   }
 };

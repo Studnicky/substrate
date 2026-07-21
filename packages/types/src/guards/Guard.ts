@@ -6,26 +6,9 @@
  * dynamically-typed payload where the shape is not yet known.
  *
  * Extend `Guard` and `static override isObject` to customise record detection;
- * `asRecord` and `asRecordArray` delegate through `this.isObject` so overrides
- * propagate.
+ * `asRecordArray` delegates through `this.isObject` so overrides propagate.
  */
 export class Guard {
-  /**
-   * Returns the value as `Record<string, unknown>` when it is a non-null,
-   * non-array object, otherwise returns `undefined`.
-   */
-  public static asRecord(value: unknown): Record<string, unknown> | undefined {
-    return this.isObject(value) ? value : undefined;
-  }
-
-  /**
-   * Returns the value as `string` when it is a string, otherwise returns
-   * `undefined`.
-   */
-  public static asString(value: unknown): string | undefined {
-    return typeof value === 'string' ? value : undefined;
-  }
-
   /**
    * Returns the value as `number` when it is a number, otherwise returns
    * `undefined`.
@@ -63,10 +46,8 @@ export class Guard {
 
     for (let idx = 0; idx < length; idx += 1) {
       const item: unknown = value[idx];
-      const rec = this.asRecord(item);
-
-      if (rec !== undefined) {
-        result.push(rec);
+      if (this.isObject(item)) {
+        result.push(item);
       }
     }
 
@@ -95,8 +76,8 @@ export class Guard {
    * must support bracket-property access, which neither collection provides.
    * This is the canonical plain-object check for the package: `Empty.isObject`
    * and `JsonObject.is` both delegate here rather than reimplementing the
-   * exclusion. `asRecord` and `asRecordArray` both delegate here too; static
-   * override this method in a subclass to customise what counts as a record.
+   * exclusion. `asRecordArray` delegates here too; static override this method
+   * in a subclass to customise what counts as a record.
    */
   public static isObject(value: unknown): value is Record<string, unknown> {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {

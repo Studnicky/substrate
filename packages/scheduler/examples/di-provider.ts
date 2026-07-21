@@ -1,18 +1,18 @@
 /**
- * di-provider — injectable SchedulerProviderType pattern and lifecycle hook extension.
+ * di-provider — injectable SchedulerProviderInterface pattern and lifecycle hook extension.
  * Shows a LoggingScheduler subclass that records schedule and fire events, and a
- * WorkQueue that accepts any SchedulerProviderType (real or virtual) for easy test swap.
+ * WorkQueue that accepts any SchedulerProviderInterface (real or virtual) for easy test swap.
  *
  * Run: npx tsx packages/scheduler/examples/di-provider.ts
  */
+import { VirtualTimeCounter } from '@studnicky/clock';
 import assert from 'node:assert/strict';
 
-// #region usage
-import type { SchedulerLogEntryEntity } from '../src/entities/SchedulerLogEntryEntity.js';
-import type { SchedulerProviderType } from '../src/index.js';
+import type { SchedulerLogEntryEntity, SchedulerProviderInterface } from '../src/index.js';
 
-import { VirtualTimeCounter } from '../../clock/src/index.js';
 import { VirtualScheduler } from '../src/index.js';
+
+// #region usage
 
 /** VirtualScheduler subclass that appends lifecycle events to a log array. */
 class LoggingScheduler extends VirtualScheduler {
@@ -29,12 +29,12 @@ class LoggingScheduler extends VirtualScheduler {
   }
 }
 
-/** Accepts any SchedulerProviderType — injectable for production/test swap. */
+/** Accepts any SchedulerProviderInterface — injectable for production/test swap. */
 class WorkQueue {
-  readonly #scheduler: SchedulerProviderType;
+  readonly #scheduler: SchedulerProviderInterface;
   public readonly processed: string[] = [];
 
-  public constructor(scheduler: SchedulerProviderType) {
+  public constructor(scheduler: SchedulerProviderInterface) {
     this.#scheduler = scheduler;
   }
 
