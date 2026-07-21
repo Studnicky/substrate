@@ -40,6 +40,11 @@ export interface MutexInterface<K extends PropertyKey = string> {
   isComplete(): boolean;
   isLocked(key: K): boolean;
   queueSize(key: K): number;
-  runExclusive<T>(key: K, fn: () => Promise<T> | T): Promise<T>;
+  runExclusive(key: K, fn: () => unknown): Promise<unknown>;
+  runExclusive<T>(
+    key: K,
+    fn: () => unknown,
+    acceptsResult: (value: unknown) => value is T
+  ): Promise<T>;
   size(): number;
 }

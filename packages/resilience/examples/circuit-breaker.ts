@@ -46,7 +46,7 @@ console.log('State after probe 1:', breaker.state);
 await breaker.execute(() => { const result = Promise.resolve('probe 2'); return result; });
 console.log('State after probe 2:', breaker.state);
 
-// --- forceOpen / forceClosed ---
+// --- forceOpen / reset ---
 breaker.forceOpen();
 console.log('State after forceOpen:', breaker.state);
 breaker.reset();

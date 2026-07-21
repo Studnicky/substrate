@@ -17,7 +17,7 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-Build a `Retry` instance with the builder, then pass any operation to `execute`. The instance tracks stats and retries on transient failures:
+Create a `Retry` instance with `Retry.create(config)`, then pass any operation to `execute`. The instance tracks stats and retries on transient failures:
 
 <<< ../../packages/retry/examples/basicRetry.ts#usage
 
@@ -25,7 +25,7 @@ Build a `Retry` instance with the builder, then pass any operation to `execute`.
 
 <RunnableExample src="packages/retry/examples/basicRetry" title="Basic retry with backoff" />
 
-The output shows the builder API (`.builder().maxRetries(3).build()`), the operation failing twice before succeeding on the third attempt, and final stats reporting 2 retries.
+The output shows `Retry.create({ maxRetries: 3 })`, the operation failing twice before succeeding on the third attempt, and final stats reporting 2 retries.
 
 ### Lifecycle hooks
 
@@ -33,17 +33,9 @@ The output shows the builder API (`.builder().maxRetries(3).build()`), the opera
 
 <RunnableExample src="packages/retry/examples/observedRetry" title="Observed retry — lifecycle hook trace" />
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/retry` | `Retry`, `RetryBuilder`, `DefaultHttpErrorClassifier`, `ErrorClassifier`, errors, type guards |
-| `@studnicky/retry/backoff` | Backoff strategy helpers |
-| `@studnicky/retry/constants` | Default configuration constants |
-| `@studnicky/retry/errors` | `ConfigurationError`, `MaxRetriesExceededError`, `NonRetryableError`, `RetryError` |
-| `@studnicky/retry/interfaces` | Interface types |
-| `@studnicky/retry/matchers` | Error matcher utilities |
-| `@studnicky/retry/types` | `BackoffStrategyType`, `ErrorClassifierFunctionType` |
+Import `Retry`, `BackoffStrategy`, the retry entities and guards, `MaxRetriesExceededError`, `NonRetryableError`, `RetryError`, and the public retry interfaces from `@studnicky/retry`. The package root is the only public code entrypoint; algorithm constants are implementation details.
 
 ## Custom error classification
 
@@ -59,6 +51,6 @@ Subclass `Retry` and override `classifyError` to control which errors are retrya
 
 The base class never calls any logger or metrics library. Observer hooks are no-ops by default and stay observational; by default `onRetryScheduled` leaves `delayMs` at 0, so retries fire immediately unless a backoff is applied.
 
-The observation-only hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). Pass `.hookTimeoutMs(value)` on the builder to bound how long an async hook may run before it fails through `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long, matching prior behavior.
+The observation-only hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). Pass `hookTimeoutMs` to `Retry.create({ hookTimeoutMs })` to bound how long an async hook may run before it fails through `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/retry)

@@ -9,14 +9,14 @@
 import { strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { ThrottleStateEntity } from '../../../src/entities/ThrottleStateEntity.js';
 import { Throttle } from '../../../src/throttle/index.js';
-import type { ThrottleStateType } from '../../../src/types/ThrottleStateType.js';
 
 // ── Test subclass ─────────────────────────────────────────────────────────────
 
 interface TransitionRecord {
-  'from': ThrottleStateType;
-  'to': ThrottleStateType;
+  'from': ThrottleStateEntity.Type;
+  'to': ThrottleStateEntity.Type;
 }
 
 /**
@@ -29,21 +29,21 @@ class TrackingThrottle extends Throttle {
     super(config);
   }
 
-  override guard(from: ThrottleStateType, to: ThrottleStateType): boolean {
+  override guard(from: ThrottleStateEntity.Type, to: ThrottleStateEntity.Type): boolean {
     return super.guard(from, to);
   }
 
-  override onEnter(to: ThrottleStateType, from: ThrottleStateType): void {
+  override onEnter(to: ThrottleStateEntity.Type, from: ThrottleStateEntity.Type): void {
     this.transitions.push({ from, to });
   }
 
   /** Expose current FSM state for assertions. */
-  get currentState(): ThrottleStateType {
+  get currentState(): ThrottleStateEntity.Type {
     return this.state;
   }
 
   /** Expose transition() as public for illegal-edge tests. */
-  public forceTransition(to: ThrottleStateType): void {
+  public forceTransition(to: ThrottleStateEntity.Type): void {
     this.transition(to);
   }
 }
@@ -59,6 +59,13 @@ class BlockingThrottle extends TrackingThrottle {
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
+
+void it('validates every throttle state and rejects unsupported states', () => {
+  for (const state of ['aborted', 'active', 'draining', 'idle']) {
+    strictEqual(ThrottleStateEntity.validate(state), true);
+  }
+  strictEqual(ThrottleStateEntity.validate('stopped'), false);
+});
 
 // 1. Initial state
 void it('starts in idle state', () => {
@@ -164,7 +171,7 @@ void it('throws on an illegal transition with a message containing "Illegal stat
    * GuardBlockingThrottle — blocks a specific edge so we can trigger the throw.
    */
   class GuardBlockingThrottle extends TrackingThrottle {
-    override guard(from: ThrottleStateType, to: ThrottleStateType): boolean {
+    override guard(from: ThrottleStateEntity.Type, to: ThrottleStateEntity.Type): boolean {
       if (from === 'idle' && to === 'active') return false;
       return super.guard(from, to);
     }

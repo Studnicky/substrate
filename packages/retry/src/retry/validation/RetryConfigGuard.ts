@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/config';
+import { Guard } from '@studnicky/types';
 
 import type { RetryConfigInterface } from '../../interfaces/RetryConfigInterface.js';
 

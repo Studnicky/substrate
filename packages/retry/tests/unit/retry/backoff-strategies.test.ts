@@ -9,7 +9,7 @@ import {
 } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import type { BackoffStrategyType } from '../../../src/types/BackoffStrategyType.js';
+import type { BackoffStrategyInterface } from '../../../src/interfaces/BackoffStrategyInterface.js';
 
 import { BackoffStrategy } from '../../../src/retry/index.js';
 
@@ -140,7 +140,7 @@ it('exponentialWithJitter produces varying results due to jitter', () => {
 
 const withCeilingScenarios: Array<{
   description: string;
-  strategy: BackoffStrategyType;
+  strategy: BackoffStrategyInterface;
   ceiling: number;
   attempt: number;
   baseDelay: number;

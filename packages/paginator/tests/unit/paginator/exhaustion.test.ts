@@ -13,7 +13,7 @@ import { it } from 'node:test';
 
 import { Paginator } from '../../../src/index.js';
 
-it('becomes exhausted when nextCursor is undefined on the first page', () => {
+it('becomes exhausted when the first page carries an exhausted cursor signal', () => {
   const paginator = Paginator.create<string, number>();
 
   paginator.next('page-1', { 'exhausted': true });
@@ -22,7 +22,7 @@ it('becomes exhausted when nextCursor is undefined on the first page', () => {
   deepStrictEqual(paginator.pages, ['page-1']);
 });
 
-it('becomes exhausted when nextCursor is undefined after prior hasMore pages', () => {
+it('becomes exhausted when a later page carries an exhausted cursor signal', () => {
   const paginator = Paginator.create<string, number>();
 
   paginator.next('page-1', { 'cursor': 2, 'exhausted': false });

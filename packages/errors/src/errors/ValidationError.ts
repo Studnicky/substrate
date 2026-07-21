@@ -3,11 +3,12 @@
  *
  * @module
  */
-import type { JsonValueType } from '@studnicky/types';
+import type { JSONSchema7Type } from 'json-schema';
 
+import type { ValidationErrorArgumentsEntity } from '../entities/ValidationErrorArgumentsEntity.js';
 import type { ValidationViolationDetailEntity } from '../entities/ValidationViolationDetailEntity.js';
-import type { ValidationErrorArgumentsType } from '../types/ValidationErrorArgumentsType.js';
 
+import { DefensiveSnapshot } from '../validation/DefensiveSnapshot.js';
 import { BaseError } from './BaseError.js';
 import { ErrorCodeRegistry } from './ErrorCodeRegistry.js';
 
@@ -30,17 +31,36 @@ export class ValidationError extends BaseError {
   /**
    * Creates a new `ValidationError`.
    */
-  public static create(args: Readonly<ValidationErrorArgumentsType>): ValidationError {
+  public static create(args: Readonly<ValidationErrorArgumentsEntity.Type>): ValidationError {
     const result = new ValidationError(args);
     return result;
   }
 
-  /** Structured list of validation violations. */
-  public readonly violations: readonly Readonly<ValidationViolationDetailEntity.Type>[] | undefined;
+  readonly #violations: readonly Readonly<ValidationViolationDetailEntity.Type>[] | undefined;
 
-  protected constructor(args: Readonly<ValidationErrorArgumentsType>) {
-    const metadata: Record<string, JsonValueType> = { 'path': args.path };
-    // Don't try to serialize violations into JsonValueType — store them separately.
+  /** Detached structured validation violations. */
+  public get violations(): readonly Readonly<ValidationViolationDetailEntity.Type>[] | undefined {
+    if (this.#violations === undefined) {
+      return undefined;
+    }
+
+    const result: ValidationViolationDetailEntity.Type[] = [];
+    for (const violation of this.#violations) {
+      const snapshot: ValidationViolationDetailEntity.Type = {
+        'message': violation.message,
+        'path': violation.path
+      };
+      if (violation.details !== undefined) {
+        snapshot.details = DefensiveSnapshot.record(violation.details);
+      }
+      result.push(snapshot);
+    }
+    return result;
+  }
+
+  protected constructor(args: Readonly<ValidationErrorArgumentsEntity.Type>) {
+    const metadata: Record<string, JSONSchema7Type> = { 'path': args.path };
+    // Violations remain a dedicated field rather than error metadata.
     super({
       'code': 'errors.validationFailed',
       'correlationId': args.correlationId,
@@ -48,7 +68,21 @@ export class ValidationError extends BaseError {
       'metadata': metadata,
       'retryable': false
     });
-    this.violations = args.violations;
+    let violations: ValidationViolationDetailEntity.Type[] | undefined;
+    if (args.violations !== undefined) {
+      violations = [];
+      for (const violation of args.violations) {
+        const snapshot: ValidationViolationDetailEntity.Type = {
+          'message': violation.message,
+          'path': violation.path
+        };
+        if (violation.details !== undefined) {
+          snapshot.details = DefensiveSnapshot.record(violation.details);
+        }
+        violations.push(snapshot);
+      }
+    }
+    this.#violations = violations;
   }
 
   /**
@@ -70,7 +104,7 @@ export class ValidationError extends BaseError {
    * Fire-point: called from `toJSON()` via the base `serializeExtra()` hook.
    */
   protected override serializeExtra(): Record<string, unknown> {
-    if (this.violations !== undefined) {
+    if (this.#violations !== undefined) {
       return { 'violations': this.violations };
     }
     return {};
@@ -83,8 +117,8 @@ export class ValidationError extends BaseError {
    * Fire-point: called from `toUserMessage()`.
    */
   protected override formatUserMessage(): string {
-    if (this.violations !== undefined && this.violations.length > 0) {
-      const lines = this.violations.map((v) => { const result = `  - ${v.path}: ${v.message}`; return result; });
+    if (this.#violations !== undefined && this.#violations.length > 0) {
+      const lines = this.#violations.map((v) => { const result = `  - ${v.path}: ${v.message}`; return result; });
       return `${this.message}\n${lines.join('\n')}`;
     }
     return this.message;

@@ -28,10 +28,6 @@ ruleTester.run('clean-diagnostics', cleanDiagnostics, {
     { name: 'allows block comment without suppression tokens', code: `/* This is a block comment */\nconst x = 1;` },
     // JSDoc comment (no suppression)
     { name: 'allows JSDoc comment with no suppression', code: `/** @param x - the value */\nfunction fn(x: number) { return x + 1; }` },
-    // ESLint directive comments that are swallowed by ESLint's own directive processing
-    // before getAllComments() is called — the rule cannot intercept them
-    { name: 'allows eslint-disable-line (swallowed by ESLint directive processing)', code: `const x = 1; // eslint-disable-line` },
-    { name: 'allows block eslint-disable (swallowed by ESLint directive processing)', code: `/* eslint-disable */\nconst x = 1;` }
   ],
   invalid: [
     // case: standalone block-level suppression on its own line

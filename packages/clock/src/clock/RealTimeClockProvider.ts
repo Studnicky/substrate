@@ -7,11 +7,10 @@
 
 import { HookInvoker } from '@studnicky/errors';
 
-import type { ClockProviderType } from '../types/ClockProviderType.js';
+import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
 import { RealTimeClockProviderOptionsEntity } from '../entities/RealTimeClockProviderOptionsEntity.js';
 import { ClockError } from '../errors/ClockError.js';
-import { RealTimeClockProviderBuilder } from './RealTimeClockProviderBuilder.js';
 
 /** Named constant: nanoseconds per millisecond (as BigInt). */
 const NS_PER_MS = 1_000_000n;
@@ -20,15 +19,7 @@ const NS_PER_MS = 1_000_000n;
  * Concrete `ClockProvider` backed by `Date.now()` and `performance.now()`.
  * Supports an optional epoch offset for clock-skew correction.
  */
-export class RealTimeClockProvider implements ClockProviderType {
-  static builder(): RealTimeClockProviderBuilder {
-    const result = RealTimeClockProviderBuilder.create((options) => {
-      const provider = RealTimeClockProvider.create(options);
-      return provider;
-    });
-    return result;
-  }
-
+export class RealTimeClockProvider implements ClockProviderInterface {
   static create(options: RealTimeClockProviderOptionsEntity.Type = {}): RealTimeClockProvider {
     return new this(options);
   }

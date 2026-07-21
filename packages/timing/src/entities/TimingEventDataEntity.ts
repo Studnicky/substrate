@@ -1,5 +1,7 @@
-import { SchemaValidator, type ValidateFunction } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 export namespace TimingEventDataEntity {
   export const Schema = {
@@ -12,10 +14,10 @@ export namespace TimingEventDataEntity {
     },
     'required': ['event'],
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   /**
-   * Output of TimingEvent.create().build().
+   * Output of TimingEvent.create().
    * Represents a fully validated timing event.
    */
   export type Type = FromSchema<typeof Schema>;

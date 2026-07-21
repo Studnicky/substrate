@@ -88,9 +88,9 @@ void describe('safeStringify', () => {
   });
 
   void it('handles deeply nested circular references', () => {
-    const obj: Record<string, unknown> = { level1: { level2: { level3: { value: 'deep' } } } };
-
-    (obj.level1 as Record<string, unknown>).circularRef = obj;
+    const level1: Record<string, unknown> = { level2: { level3: { value: 'deep' } } };
+    const obj: Record<string, unknown> = { level1 };
+    level1.circularRef = obj;
 
     const result = SafeStringify.stringify(obj);
 
@@ -113,18 +113,9 @@ void describe('safeStringify', () => {
     };
 
     const result = SafeStringify.stringify(obj);
-    const parsed = JSON.parse(result) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(result);
 
-    assert.strictEqual(parsed.string, 'text');
-    assert.strictEqual(parsed.number, 42);
-    assert.strictEqual(parsed.boolean, true);
-    assert.strictEqual(parsed.nullValue, null);
-    assert.deepStrictEqual(parsed.array, [
-      1,
-      2,
-      3
-    ]);
-    assert.deepStrictEqual(parsed.nested, { key: 'value' });
+    assert.deepStrictEqual(parsed, obj);
   });
 
   void it('handles Date objects', () => {

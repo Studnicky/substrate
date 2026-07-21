@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { ContextScope } from '../src/index.js';
+import type { ContextScopeInterface } from '../src/index.js';
 
 import { Context } from '../src/index.js';
 
@@ -13,7 +13,7 @@ import { Context } from '../src/index.js';
 class AuditContext extends Context {
   protected override onInitialize(
     _initial: Record<string, unknown> | undefined,
-    scope: ContextScope
+    scope: ContextScopeInterface
   ): void {
     // Seed a timestamp into the new scope so every execute() can read it
     scope.execute(() => {
@@ -28,9 +28,9 @@ const auditContext = AuditContext.create({ 'name': 'audit' });
 const scope = auditContext.initialize({ 'operation': 'delete', 'resource': 'user/99' });
 
 scope.execute(() => {
-  const createdAt = auditContext.get<number>('_createdAt');
-  const operation = auditContext.get<string>('operation');
-  const resource = auditContext.get<string>('resource');
+  const createdAt = auditContext.get('_createdAt');
+  const operation = auditContext.get('operation');
+  const resource = auditContext.get('resource');
 
   console.log(`operation:  ${operation}`);
   console.log(`resource:   ${resource}`);

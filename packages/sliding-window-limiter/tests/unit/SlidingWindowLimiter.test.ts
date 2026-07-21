@@ -5,6 +5,8 @@
 import { ok, rejects, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import { SlidingWindowLimiterConfigError } from '../../src/errors/SlidingWindowLimiterConfigError.js';
 import { SlidingWindowExhaustedError } from '../../src/SlidingWindowExhaustedError.js';
 import { SlidingWindowLimiter } from '../../src/SlidingWindowLimiter.js';
@@ -201,40 +203,24 @@ it('consume(tokens?) and waitForToken(options?) accept the token-bucket-shaped s
   await limiter.waitForToken({ tokens: 1 });
 });
 
-// --- Builder ---
-
-it('builder constructs an equivalent limiter to create()', () => {
-  const time = 0;
-  const clock = (): number => time;
-  const limiter = SlidingWindowLimiter.builder()
-    .withLimit(1)
-    .withWindowMs(100)
-    .withAlgorithm('log')
-    .withClock(clock)
-    .build();
-  limiter.consume();
-  throws(() => { limiter.consume(); }, SlidingWindowExhaustedError);
-});
-
-it('builder throws SlidingWindowLimiterConfigError when required fields are missing', () => {
-  throws(() => { SlidingWindowLimiter.builder().withWindowMs(100).withAlgorithm('log').build(); }, SlidingWindowLimiterConfigError);
-  throws(() => { SlidingWindowLimiter.builder().withLimit(1).withAlgorithm('log').build(); }, SlidingWindowLimiterConfigError);
-  throws(() => { SlidingWindowLimiter.builder().withLimit(1).withWindowMs(100).build(); }, SlidingWindowLimiterConfigError);
-});
-
 class ThrowingAllowLimiter extends SlidingWindowLimiter {
+  readonly failure = new Error('onAllow boom', { 'cause': { 'windows': [1] } });
+  get recordedHookErrorCount(): number { return this.hookErrorCount; }
+  get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
   protected override onAllow(): void {
-    throw new Error('onAllow boom');
+    throw this.failure;
   }
 }
 
 class ThrowingRejectLimiter extends SlidingWindowLimiter {
+  get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
   protected override onReject(): void {
     throw new Error('onReject boom');
   }
 }
 
 class ThrowingWindowRollLimiter extends SlidingWindowLimiter {
+  get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
   protected override onWindowRoll(): void {
     throw new Error('onWindowRoll boom');
   }
@@ -247,6 +233,11 @@ for (const algorithm of ALGORITHMS) {
     const limiter = ThrowingAllowLimiter.create({ limit: 1, windowMs: 100, algorithm, clock });
 
     limiter.consume();
+    strictEqual(limiter.recordedHookErrorCount, 1);
+    strictEqual(limiter.recordedHookErrors.length, 1);
+    strictEqual(limiter.recordedHookErrors[0]?.hookName, 'onAllow');
+    ok(limiter.recordedHookErrors[0]?.cause instanceof Error);
+    strictEqual(limiter.recordedHookErrors[0].cause.message, limiter.failure.message);
   });
 
   it(`[${algorithm}] a throwing onReject hook does not replace SlidingWindowExhaustedError`, () => {
@@ -256,8 +247,58 @@ for (const algorithm of ALGORITHMS) {
     limiter.consume();
 
     throws(() => { limiter.consume(); }, SlidingWindowExhaustedError);
+    strictEqual(limiter.recordedHookErrors.length, 1);
+    strictEqual(limiter.recordedHookErrors[0]?.hookName, 'onReject');
   });
 }
+
+it('hook failure records are isolated between limiter instances', () => {
+  const first = ThrowingAllowLimiter.create({ limit: 1, windowMs: 100, algorithm: 'log' });
+  const second = ThrowingAllowLimiter.create({ limit: 1, windowMs: 100, algorithm: 'log' });
+
+  first.consume();
+  const firstSnapshot = first.recordedHookErrors;
+
+  strictEqual(first.recordedHookErrorCount, 1);
+  strictEqual(second.recordedHookErrorCount, 0);
+  ok(firstSnapshot[0]?.cause instanceof Error);
+  strictEqual(firstSnapshot[0].cause.message, first.failure.message);
+
+  second.consume();
+
+  strictEqual(first.recordedHookErrorCount, 1);
+  strictEqual(second.recordedHookErrorCount, 1);
+  strictEqual(firstSnapshot.length, 1);
+  ok(second.recordedHookErrors[0]?.cause instanceof Error);
+  strictEqual(second.recordedHookErrors[0].cause.message, second.failure.message);
+});
+
+it('getHookErrors records one failure and deeply detaches nested diagnostics', () => {
+  const limiter = ThrowingAllowLimiter.create({ 'algorithm': 'log', 'limit': 1, 'windowMs': 100 });
+
+  limiter.consume();
+
+  strictEqual(limiter.recordedHookErrorCount, 1);
+  const firstCause = limiter.recordedHookErrors[0]?.cause;
+  ok(firstCause instanceof Error);
+  firstCause.message = 'mutated';
+  const firstDetails = firstCause.cause;
+  ok(firstDetails !== null && typeof firstDetails === 'object');
+  const firstWindows = Reflect.get(firstDetails, 'windows');
+  ok(Array.isArray(firstWindows));
+  firstWindows.push(2);
+
+  const secondCause = limiter.recordedHookErrors[0]?.cause;
+  ok(secondCause instanceof Error);
+  strictEqual(secondCause.message, 'onAllow boom');
+  strictEqual(limiter.recordedHookErrorCount, 1);
+  const secondDetails = secondCause.cause;
+  ok(secondDetails !== null && typeof secondDetails === 'object');
+  const secondWindows = Reflect.get(secondDetails, 'windows');
+  ok(Array.isArray(secondWindows));
+  strictEqual(secondWindows.length, 1);
+  strictEqual(secondWindows[0], 1);
+});
 
 it('[log] a throwing onWindowRoll hook does not replace rollover admission', () => {
   let time = 0;
@@ -267,6 +308,8 @@ it('[log] a throwing onWindowRoll hook does not replace rollover admission', () 
 
   time = 101;
   limiter.consume();
+  strictEqual(limiter.recordedHookErrors.length, 1);
+  strictEqual(limiter.recordedHookErrors[0]?.hookName, 'onWindowRoll');
 });
 
 it('[counter] a throwing onWindowRoll hook does not replace rollover admission', () => {
@@ -278,12 +321,14 @@ it('[counter] a throwing onWindowRoll hook does not replace rollover admission',
 
   time = 150;
   limiter.consume();
+  strictEqual(limiter.recordedHookErrors.length, 1);
+  strictEqual(limiter.recordedHookErrors[0]?.hookName, 'onWindowRoll');
 });
 
 // --- Async hook overrides: HookInvoker's async-safety net must actually see the hook's return value ---
 
 class AsyncRejectingAllowLimiter extends SlidingWindowLimiter {
-  get recordedHookErrors(): readonly Error[] { return this.hookErrors; }
+  get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
   protected override async onAllow(): Promise<void> {
     await Promise.resolve();
     throw new Error('async onAllow boom');
@@ -305,6 +350,54 @@ it('[log] an async-rejecting onAllow override is routed through onHookError with
 
     strictEqual(rejectionEvents.length, 0);
     strictEqual(limiter.recordedHookErrors.length, 1);
+    strictEqual(limiter.recordedHookErrors[0]?.hookName, 'onAllow');
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+class AsyncRejectingNotificationLimiter extends SlidingWindowLimiter {
+  get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
+
+  protected override async onAllow(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('async onAllow boom');
+  }
+
+  protected override async onReject(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('async onReject boom');
+  }
+
+  protected override async onWindowRoll(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('async onWindowRoll boom');
+  }
+}
+
+it('unexpected async notification overrides preserve decisions and record ordered failures without unhandled rejections', async () => {
+  let time = 0;
+  const clock = (): number => time;
+  const limiter = AsyncRejectingNotificationLimiter.create({ limit: 1, windowMs: 100, algorithm: 'log', clock });
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    limiter.consume();
+    time = 101;
+    limiter.consume();
+    throws(() => { limiter.consume(); }, SlidingWindowExhaustedError);
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(rejectionEvents.length, 0);
+    strictEqual(limiter.recordedHookErrors.length, 4);
+    strictEqual(limiter.recordedHookErrors[0]?.hookName, 'onAllow');
+    strictEqual(limiter.recordedHookErrors[1]?.hookName, 'onWindowRoll');
+    strictEqual(limiter.recordedHookErrors[2]?.hookName, 'onAllow');
+    strictEqual(limiter.recordedHookErrors[3]?.hookName, 'onReject');
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }

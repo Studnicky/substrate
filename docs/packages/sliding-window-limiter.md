@@ -53,16 +53,17 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 | Export | Type | Description |
 |--------|------|-------------|
 | `SlidingWindowLimiter` | class | Sliding-window rate limiter (`'log'` or `'counter'`) |
-| `SlidingWindowLimiterBuilder` | class | Fluent builder for `SlidingWindowLimiter` |
 | `SlidingWindowExhaustedError` | class | Thrown by `consume()` when admission would exceed `limit` |
-| `SlidingWindowLimiterConfigError` | class | Thrown by `create()`/`build()` on invalid configuration |
+| `SlidingWindowLimiterConfigError` | class | Thrown by `create()` on invalid configuration |
 | `SlidingWindowLimiterError` | class | Package-level abstract error ancestor |
-| `SlidingWindowLimiterOptionsInterface` | type | `{ limit, windowMs, algorithm: 'log' \| 'counter', clock? }` |
+| `SlidingWindowLimiterOptionsEntity` | entity | Schema-backed limiter configuration |
+| `SlidingWindowLimiterOptionsInterface` | interface | `{ limit, windowMs, algorithm: 'log' \| 'counter', clock? }` |
 
 ### `SlidingWindowLimiter`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
+| `create` | `static create(options: SlidingWindowLimiterOptionsInterface) => SlidingWindowLimiter` | Constructs a validated limiter |
 | `consume` | `(tokens?: number) => void` | Admits one request; throws `SlidingWindowExhaustedError` if it would exceed `limit` |
 | `waitForToken` | `(options?: { signal?, tokens? }) => Promise<void>` | Polls until `consume()` would succeed, then consumes |
 

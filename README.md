@@ -11,13 +11,15 @@
 
 **[Documentation](https://studnicky.github.io/substrate/)** · **[Releases](https://github.com/Studnicky/substrate/releases)**
 
-A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM. The design favors extension over configuration: swap behavior by subclassing, not by passing option bags.
+A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Stateful primitives use explicit factories, direct operations, protected lifecycle hooks, and named state transitions; stateless utilities expose focused static operations.
 
 ## Architecture
 
 - **Subclass-first:** Every public API delegates to documented `protected` seams. Some seams are passive observer hooks; some are in-band behavioral hooks that transform, classify, or intercept the operation itself.
+- **One public path:** Import package-owned symbols from `@studnicky/<package>`, construct stateful primitives through `Class.create(config)`, and invoke their direct operation methods. These root imports and direct factories define the public API.
+- **Dependency ownership:** Composition packages expose their own behavior and contracts without proxy-exporting dependency functionality. Consumers import dependency-owned values and types from the dependency root.
 - **No observability in bare classes:** Telemetry seams are `protected` no-op hooks (`onRetry`, `onThrottle`, `onAcquire`, etc.). Consumers add metrics and logging by overriding those hooks; the base implementation has zero dependency on any logger or metrics backend. Observer hooks stay observational. Behavioral hooks remain in-band and are documented per package.
-- **No exported singletons:** Stateless utilities are pure-`static` classes; stateful classes are `new`-able with an explicit `transition()` FSM funnel that subclasses can intercept for state-change hooks.
+- **No exported stateful singletons:** Stateless utilities are pure-`static` classes; stateful classes are created explicitly and injected. Stateful transition systems use named funnels and protected lifecycle hooks.
 
 ## Packages
 
@@ -30,7 +32,7 @@ A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, sc
 | [@studnicky/circular-buffer](https://studnicky.github.io/substrate/packages/circular-buffer) | Generic circular buffer with O(1) push and shift operations |
 | [@studnicky/clock](https://studnicky.github.io/substrate/packages/clock) | Wall-clock and monotonic time primitives with injectable providers for deterministic testing |
 | [@studnicky/concurrency](https://studnicky.github.io/substrate/packages/concurrency) | Keyed async channels, semaphore, and coalesce primitives |
-| [@studnicky/config](https://studnicky.github.io/substrate/packages/config) | Configuration validation and clamping utilities and type guards |
+| [@studnicky/config](https://studnicky.github.io/substrate/packages/config) | Configuration validation and clamping utilities |
 | [@studnicky/context](https://studnicky.github.io/substrate/packages/context) | Per-request async context isolation using AsyncLocalStorage |
 | [@studnicky/entity-store](https://studnicky.github.io/substrate/packages/entity-store) | Normalized, ID-indexed entity collection with CRUD operations and O(1) lookup |
 | [@studnicky/errors](https://studnicky.github.io/substrate/packages/errors) | Standardized error handling for all modules |
@@ -51,13 +53,13 @@ A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, sc
 | [@studnicky/paginator](https://studnicky.github.io/substrate/packages/paginator) | Cursor/page-list state tracker for paginated data sources |
 | [@studnicky/pipeline](https://studnicky.github.io/substrate/packages/pipeline) | Generic typed async pipeline for sequential context transforms |
 | [@studnicky/predicates](https://studnicky.github.io/substrate/packages/predicates) | Type-safe predicates and coercion utilities |
-| [@studnicky/process-kit](https://studnicky.github.io/substrate/packages/process-kit) | Reducer-with-effects process pattern composing @studnicky/fsm, /scheduler, and /signal |
+| [@studnicky/process-kit](https://studnicky.github.io/substrate/packages/process-kit) | Reducer-with-effects process pattern composing @studnicky/fsm and /scheduler |
 | [@studnicky/request-executor](https://studnicky.github.io/substrate/packages/request-executor) | One-shot request execution pattern composing @studnicky/fetch, /retry, /signal, /timing, and /context |
 | [@studnicky/resilience](https://studnicky.github.io/substrate/packages/resilience) | Circuit breaker, token bucket, and dead-letter queue primitives |
 | [@studnicky/retry](https://studnicky.github.io/substrate/packages/retry) | Generic async retry utility with extensible error classification |
 | [@studnicky/sample-buffer](https://studnicky.github.io/substrate/packages/sample-buffer) | Fixed-capacity circular buffer for numeric samples with percentile calculation |
 | [@studnicky/scheduler](https://studnicky.github.io/substrate/packages/scheduler) | Scheduler primitives — real-time (setTimeout/setInterval) and virtual (min-heap, deterministic) implementations |
-| [@studnicky/signal](https://studnicky.github.io/substrate/packages/signal) | AbortSignal composition utilities |
+| [@studnicky/signal](https://studnicky.github.io/substrate/packages/signal) | Instance-based AbortSignal composition and timeout utilities |
 | [@studnicky/sliding-window-limiter](https://studnicky.github.io/substrate/packages/sliding-window-limiter) | Sliding-window rate limiter: exact timestamp-log or approximate blended-counter algorithm |
 | [@studnicky/system](https://studnicky.github.io/substrate/packages/system) | CPU/GPU/memory/platform detection for worker sizing |
 | [@studnicky/throttle](https://studnicky.github.io/substrate/packages/throttle) | Generic async operation throttle with sliding window concurrency control |

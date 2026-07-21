@@ -21,12 +21,8 @@ export class ValidateParams {
       throw new ConfigurationError('params must be an object');
     }
 
-    const paramsObj = val as Record<string, unknown>;
-
-    for (const [
-      key,
-      value
-    ] of Object.entries(paramsObj)) {
+    for (const key of Object.keys(val)) {
+      const value: unknown = Reflect.get(val, key);
       if (value !== null && value !== undefined) {
         const valueType = typeof value;
         const isValidType = valueType === 'string' || valueType === 'number' || valueType === 'boolean';

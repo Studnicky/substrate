@@ -4,7 +4,7 @@
 import { TokenBucketExhaustedError } from '@studnicky/resilience';
 import assert from 'node:assert/strict';
 
-import type { RateLimiterStrategyType } from '../src/index.js';
+import type { RateLimiterStrategyInterface } from '../src/index.js';
 
 import { KeyedRateLimiter } from '../src/index.js';
 
@@ -15,45 +15,36 @@ class FixedClock {
   }
 }
 
+const telemetryEvents: string[] = [];
+
 class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
-  readonly events: string[] = [];
-
-  static tracked(): TelemetryKeyedRateLimiter {
-    // Calling `create()` through the subclass reference (not
-    // `KeyedRateLimiter.create()`) matters: `create()`/`createWithStrategy()`
-    // use the polymorphic `new this(...)` idiom, so only a call routed
-    // through `TelemetryKeyedRateLimiter` actually constructs one.
-    const result = TelemetryKeyedRateLimiter.create({
-      'burstSize': 2,
-      'clock': FixedClock.now,
-      'maxKeys': 2,
-      'requestsPerSecond': 1
-    }) as TelemetryKeyedRateLimiter;
-    return result;
-  }
-
   protected override onKeyCreated(key: string): void {
     console.log(`[keyed-rate-limiter] key created key=${key}`);
-    this.events.push(`created:${key}`);
+    telemetryEvents.push(`created:${key}`);
   }
 
   protected override onKeyEvicted(key: string): void {
     console.log(`[keyed-rate-limiter] key evicted key=${key}`);
-    this.events.push(`evicted:${key}`);
+    telemetryEvents.push(`evicted:${key}`);
   }
 
   protected override onLimitExceeded(key: string): void {
     console.log(`[keyed-rate-limiter] limit exceeded key=${key}`);
-    this.events.push(`exceeded:${key}`);
+    telemetryEvents.push(`exceeded:${key}`);
   }
 
   protected override onTokenAcquired(key: string, count: number): void {
     console.log(`[keyed-rate-limiter] token acquired key=${key} count=${count}`);
-    this.events.push(`acquired:${key}:${count}`);
+    telemetryEvents.push(`acquired:${key}:${count}`);
   }
 }
 
-const limiter = TelemetryKeyedRateLimiter.tracked();
+const limiter = TelemetryKeyedRateLimiter.create({
+  'burstSize': 2,
+  'clock': FixedClock.now,
+  'maxKeys': 2,
+  'requestsPerSecond': 1
+});
 
 // Two independent keys — draining user-a does not touch user-b
 limiter.consume('user-a');
@@ -70,12 +61,12 @@ limiter.consume('user-b'); // unaffected by user-a's exhaustion
 // maxKeys: 2 — a third key evicts the LRU tail (user-a)
 limiter.consume('user-c');
 
-console.log('Events:', limiter.events);
+console.log('Events:', telemetryEvents);
 
-// The generic extension point: any object matching RateLimiterStrategyType
+// The generic extension point: any object matching RateLimiterStrategyInterface
 // slots in without a second wrapper class — no import of, or coupling to,
 // TokenBucket required.
-class FixedAllowance implements RateLimiterStrategyType {
+class FixedAllowance implements RateLimiterStrategyInterface {
   #remaining: number;
   constructor(allowance: number) { this.#remaining = allowance; }
   consume(tokens = 1): void {
@@ -88,14 +79,14 @@ class FixedAllowance implements RateLimiterStrategyType {
   }
 }
 
-const genericLimiter = KeyedRateLimiter.createWithStrategy<FixedAllowance>({
+const genericLimiter = KeyedRateLimiter.create<FixedAllowance>({
   'factory': (_key) => {return new FixedAllowance(3);}
 });
 
 genericLimiter.consume('tenant-1', 3);
 // #endregion usage
 
-assert.deepEqual(limiter.events, [
+assert.deepEqual(telemetryEvents, [
   'created:user-a',
   'acquired:user-a:1',
   'acquired:user-a:1',
@@ -108,9 +99,5 @@ assert.deepEqual(limiter.events, [
   'created:user-c',
   'acquired:user-c:1'
 ]);
-
-assert.equal(limiter.getCache().has('user-a'), false);
-assert.equal(limiter.getCache().has('user-b'), true);
-assert.equal(limiter.getCache().has('user-c'), true);
 
 console.log('observedKeyedRateLimiter: all assertions passed');

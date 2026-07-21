@@ -1,4 +1,6 @@
-import { type FromSchema, Guard, type JsonSchemaObjectType } from '@studnicky/types';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { Guard } from '@studnicky/types';
 
 /** Compact rollup of deduplicated paths and keywords with a total error count. */
 export namespace ValidationAggregateViewEntity {
@@ -20,7 +22,7 @@ export namespace ValidationAggregateViewEntity {
     'required': ['count', 'keywords', 'paths'],
     'title': 'ValidationAggregateView',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
@@ -30,11 +32,10 @@ export namespace ValidationAggregateViewEntity {
    * circular workspace reference.
    */
   export function validate(candidate: unknown): candidate is Type {
-    const record = Guard.asRecord(candidate);
-    if (record === undefined) { return false; }
-    if (typeof record.count !== 'number') { return false; }
-    if (!Array.isArray(record.keywords) || !record.keywords.every((k) => { return typeof k === 'string'; })) { return false; }
-    if (!Array.isArray(record.paths) || !record.paths.every((p) => { return typeof p === 'string'; })) { return false; }
+    if (!Guard.isObject(candidate)) { return false; }
+    if (typeof candidate.count !== 'number') { return false; }
+    if (!Array.isArray(candidate.keywords) || !candidate.keywords.every((k) => { return typeof k === 'string'; })) { return false; }
+    if (!Array.isArray(candidate.paths) || !candidate.paths.every((p) => { return typeof p === 'string'; })) { return false; }
     return true;
   }
 }

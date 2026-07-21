@@ -1,5 +1,7 @@
-import { SchemaValidator, type ValidateFunction } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 export namespace SampleBufferOptionsEntity {
   export const Schema = {
@@ -9,7 +11,7 @@ export namespace SampleBufferOptionsEntity {
     },
     'required': ['capacity'],
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   /** Construction options for {@link SampleBuffer}. */
   export type Type = FromSchema<typeof Schema>;

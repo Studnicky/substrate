@@ -1,14 +1,16 @@
 /** observedRetry — override onRetryScheduled and onGiveUp to collect telemetry. Run: npx tsx examples/observedRetry.ts */
 
+// #region usage
+import type { ErrorClassificationEntity } from '@studnicky/errors';
+
 import assert from 'node:assert/strict';
 
-// #region usage
-import type { ErrorClassificationEntity, RetryConfigInterface , RetryContextType} from '../src/index.js';
+import type { RetryConfigInterface, RetryContextInterface } from '../src/index.js';
 
 import { MaxRetriesExceededError, Retry } from '../src/index.js';
 
 class TelemetryRetry extends Retry {
-  constructor(config?: Partial<RetryConfigInterface>) {
+  constructor(config?: RetryConfigInterface) {
     super(config ?? {});
   }
 
@@ -31,7 +33,7 @@ class TelemetryRetry extends Retry {
     console.log(`[retry] attempt ${attemptNumber} retryable error: ${error.message} (${classification.reason ?? 'no reason'})`);
   }
 
-  protected override onRetryScheduled(context: RetryContextType): void {
+  protected override onRetryScheduled(context: RetryContextInterface): void {
     console.log(`[retry] attempt ${context.attemptNumber} scheduled retry in ${context.delayMs}ms`);
     this.scheduledEvents.push({ 'attemptNumber': context.attemptNumber, 'delayMs': context.delayMs });
   }

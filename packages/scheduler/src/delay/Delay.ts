@@ -1,31 +1,32 @@
 /**
  * `Delay` — static utilities that resolve a `Promise` after a scheduled delay.
- * Composes with `SchedulerProviderType` and `ClockProviderType` so callers can
+ * Composes with `SchedulerProviderInterface` and `ClockProviderInterface` so callers can
  * inject a `VirtualScheduler` + `VirtualClockProvider` pair (sharing a
  * `VirtualTimeCounter`) to resolve deterministically under advanced virtual
  * time instead of waiting on real timers.
  *
  * @module
  */
-import { type ClockProviderType, RealTimeClockProvider } from '@studnicky/clock';
+import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
 
-import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
+import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
+import type { SchedulerProviderInterface } from '../interfaces/SchedulerProviderInterface.js';
 
 import { RealTimeScheduler } from '../scheduler/RealTimeScheduler.js';
 
-// json-schema-uninexpressible: both fields reference provider interfaces whose members are function
-// types (ClockProviderType/SchedulerProviderType), not JSON-serializable data.
-/** Options for `Delay.sleep` and `Delay.value`. */
-type DelayOptionsType = {
+/** Options for `Delay.sleep`. */
+interface DelayOptionsInterface {
   /** Clock used to compute the absolute fire time. Default: `RealTimeClockProvider`. */
-  readonly 'clock'?: ClockProviderType;
+  readonly 'clock'?: ClockProviderInterface;
   /** Scheduler used to fire the delay. Default: `RealTimeScheduler`. */
-  readonly 'scheduler'?: SchedulerProviderType;
-};
+  readonly 'scheduler'?: SchedulerProviderInterface;
+  /** Optional cancellation signal. The returned promise rejects with its exact reason. */
+  readonly 'signal'?: AbortSignal;
+}
 
 /**
  * Static utilities for resolving a `Promise` after `ms` milliseconds via an
- * injectable `SchedulerProviderType` and `ClockProviderType`.
+ * injectable `SchedulerProviderInterface` and `ClockProviderInterface`.
  */
 export class Delay {
   /**
@@ -33,24 +34,76 @@ export class Delay {
    * Pass a `VirtualScheduler` and a `VirtualClockProvider` sharing the same
    * `VirtualTimeCounter` to resolve deterministically as virtual time advances.
    */
-  public static sleep(ms: number, options: DelayOptionsType = {}): Promise<void> {
-    const scheduler = options.scheduler ?? RealTimeScheduler.create();
-    const clock = options.clock ?? RealTimeClockProvider.create();
-    const atMs = clock.now() + ms;
+  public static sleep(ms: number, options: DelayOptionsInterface = {}): Promise<void> {
+    const signal = options.signal;
 
-    return new Promise<void>((resolve) => {
-      scheduler.scheduleAt(atMs, () => { resolve(); });
-    });
-  }
+    return new Promise<void>((resolve, reject) => {
+      let abortListenerAttached = false;
+      let outcome: 'aborted' | 'complete' | 'pending' = 'pending';
+      let task: ScheduledTaskInterface | undefined;
+      const removeAbortListener = (): void => {
+        if (!abortListenerAttached) {
+          return;
+        }
+        abortListenerAttached = false;
+        signal?.removeEventListener('abort', onAbort);
+      };
+      const finish = (nextOutcome: 'aborted' | 'complete'): boolean => {
+        if (outcome !== 'pending') {
+          return false;
+        }
+        outcome = nextOutcome;
+        removeAbortListener();
+        return true;
+      };
+      const abortWon = (): boolean => {
+        return outcome === 'aborted';
+      };
+      const onAbort = (): void => {
+        if (!finish('aborted')) {
+          return;
+        }
+        reject(signal?.reason);
+        task?.cancel();
+      };
 
-  /** Resolves with `value` after `ms` milliseconds. Same semantics as `sleep`. */
-  public static value<T>(ms: number, value: T, options: DelayOptionsType = {}): Promise<T> {
-    const scheduler = options.scheduler ?? RealTimeScheduler.create();
-    const clock = options.clock ?? RealTimeClockProvider.create();
-    const atMs = clock.now() + ms;
+      if (signal !== undefined) {
+        signal.addEventListener('abort', onAbort, { 'once': true });
+        abortListenerAttached = true;
 
-    return new Promise<T>((resolve) => {
-      scheduler.scheduleAt(atMs, () => { resolve(value); });
+        if (signal.aborted) {
+          onAbort();
+        }
+      }
+
+      if (outcome !== 'pending') {
+        return;
+      }
+
+      try {
+        const scheduler = options.scheduler ?? RealTimeScheduler.create();
+        const clock = options.clock ?? RealTimeClockProvider.create();
+        const atMs = clock.now() + ms;
+
+        if (outcome !== 'pending') {
+          return;
+        }
+
+        const scheduledTask = scheduler.scheduleAt(atMs, () => {
+          if (finish('complete')) {
+            resolve();
+          }
+        });
+        task = scheduledTask;
+
+        if (abortWon()) {
+          scheduledTask.cancel();
+        }
+      } catch (error: unknown) {
+        if (finish('complete')) {
+          reject(error);
+        }
+      }
     });
   }
 }

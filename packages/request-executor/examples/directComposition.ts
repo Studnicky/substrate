@@ -38,20 +38,32 @@ class Directly {
     try {
       const result = await scope.execute(async () => {
         timing.event(
-          TimingEvent.create().component('directComposition').operation('execute').status(TIMING_STATUS.START).build()
+          TimingEvent.create({
+            'component': 'directComposition',
+            'operation': 'execute',
+            'status': TIMING_STATUS.START
+          })
         );
 
         try {
           const attemptResult = await retry.execute(() => { const result = fn(fetchClient, composedSignal); return result; });
 
           timing.event(
-            TimingEvent.create().component('directComposition').operation('execute').status(TIMING_STATUS.COMPLETE).build()
+            TimingEvent.create({
+              'component': 'directComposition',
+              'operation': 'execute',
+              'status': TIMING_STATUS.COMPLETE
+            })
           );
 
           return attemptResult;
         } catch (error) {
           timing.event(
-            TimingEvent.create().component('directComposition').operation('execute').status(TIMING_STATUS.ERROR).build()
+            TimingEvent.create({
+              'component': 'directComposition',
+              'operation': 'execute',
+              'status': TIMING_STATUS.ERROR
+            })
           );
           throw error;
         }

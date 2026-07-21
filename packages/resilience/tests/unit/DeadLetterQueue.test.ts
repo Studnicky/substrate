@@ -393,14 +393,21 @@ it('a throwing onAbort hook does not replace abort()', () => {
   throws(() => { dlq.enqueue('payload', 'reason'); }, DlqAbortedError);
 });
 
-it('an async-overridden onEnqueue hook that rejects is routed to hookErrors without producing an unhandled rejection', async () => {
+it('async hook failures remain isolated to their owning DeadLetterQueue instances', async () => {
   class AsyncRejectingEnqueueDlq<T> extends DeadLetterQueue<T> {
-    get recordedHookErrors(): HookInvocationError[] { const result = this.hookErrors;
+    readonly #cause: Error;
+
+    constructor(cause: Error) {
+      super();
+      this.#cause = cause;
+    }
+
+    get recordedHookErrors(): readonly HookInvocationError[] { const result = this.hooks.getHookErrors();
       return result; }
 
     protected override async onEnqueue(_item: T): Promise<void> {
       await Promise.resolve();
-      throw new Error('async onEnqueue boom');
+      throw this.#cause;
     }
   }
 
@@ -409,14 +416,28 @@ it('an async-overridden onEnqueue hook that rejects is routed to hookErrors with
   process.on('unhandledRejection', onUnhandledRejection);
 
   try {
-    const dlq = new AsyncRejectingEnqueueDlq<string>();
-    dlq.enqueue('msg', 'reason');
+    const firstCause = new Error('first async onEnqueue boom');
+    const secondCause = new Error('second async onEnqueue boom');
+    const first = new AsyncRejectingEnqueueDlq<string>(firstCause);
+    const second = new AsyncRejectingEnqueueDlq<string>(secondCause);
+    first.enqueue('first', 'reason');
+    second.enqueue('second', 'reason');
 
     await new Promise((resolve) => { setImmediate(resolve); });
 
     strictEqual(rejectionEvents.length, 0);
-    strictEqual(dlq.recordedHookErrors.length, 1);
-    strictEqual(dlq.recordedHookErrors[0]?.hookName, 'onEnqueue');
+    strictEqual(first.size, 1);
+    const firstErrors = first.recordedHookErrors;
+    const secondErrors = second.recordedHookErrors;
+    strictEqual(firstErrors.length, 1);
+    strictEqual(firstErrors[0]?.hookName, 'onEnqueue');
+    ok(firstErrors[0]?.cause instanceof Error);
+    strictEqual(firstErrors[0].cause.message, firstCause.message);
+    strictEqual(second.size, 1);
+    strictEqual(secondErrors.length, 1);
+    strictEqual(secondErrors[0]?.hookName, 'onEnqueue');
+    ok(secondErrors[0]?.cause instanceof Error);
+    strictEqual(secondErrors[0].cause.message, secondCause.message);
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { FsmStepType } from '../src/index.js';
+import type { FsmStepInterface } from '../src/index.js';
 import type { BrokenEventEntity } from './entities/BrokenEventEntity.js';
 import type { BrokenStateEntity } from './entities/BrokenStateEntity.js';
 import type { SimpleEventEntity } from './entities/SimpleEventEntity.js';
@@ -19,24 +19,21 @@ import {
 
 // --- ReducerThrewError ---
 
-type BrokenState = BrokenStateEntity.Type;
-type BrokenEvent = BrokenEventEntity.Type;
-
-class BrokenMachine extends StateMachine<BrokenState, BrokenEvent> {
+class BrokenMachine extends StateMachine<BrokenStateEntity.Type, BrokenEventEntity.Type> {
   static make(): BrokenMachine { return new BrokenMachine(); }
 
-  getInitialState(): BrokenState {
+  getInitialState(): BrokenStateEntity.Type {
     return { 'variant': 'active' };
   }
 
-  reduce(_state: BrokenState, event: BrokenEvent): FsmStepType<BrokenState> {
+  reduce(_state: BrokenStateEntity.Type, event: BrokenEventEntity.Type): FsmStepInterface<BrokenStateEntity.Type> {
     if (event.type === 'boom') { throw new Error('reducer exploded'); }
     return { 'effects': [], 'state': _state };
   }
 }
 
 const broken: BrokenMachine = BrokenMachine.make();
-const initialState: BrokenState = { 'variant': 'active' };
+const initialState: BrokenStateEntity.Type = { 'variant': 'active' };
 
 // StateMachine.transition wraps reducer throws in ReducerThrewError
 assert.throws(
@@ -48,16 +45,13 @@ console.log('ReducerThrewError thrown and caught');
 
 // --- InterpreterNotStartedError ---
 
-type SimpleState = SimpleStateEntity.Type;
-type SimpleEvent = SimpleEventEntity.Type;
-
-class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
+class SimpleMachine extends StateMachine<SimpleStateEntity.Type, SimpleEventEntity.Type> {
   static make(): SimpleMachine { return new SimpleMachine(); }
-  getInitialState(): SimpleState { return { 'variant': 'idle' }; }
-  reduce(state: SimpleState): FsmStepType<SimpleState> { return { 'effects': [], 'state': state }; }
+  getInitialState(): SimpleStateEntity.Type { return { 'variant': 'idle' }; }
+  reduce(state: SimpleStateEntity.Type): FsmStepInterface<SimpleStateEntity.Type> { return { 'effects': [], 'state': state }; }
 }
 
-const notStarted: EffectInterpreter<SimpleState, SimpleEvent> = EffectInterpreter.create({ 'machine': SimpleMachine.make() });
+const notStarted: EffectInterpreter<SimpleStateEntity.Type, SimpleEventEntity.Type> = EffectInterpreter.create({ 'machine': SimpleMachine.make() });
 
 // getState before start() throws InterpreterNotStartedError
 assert.throws(
@@ -69,7 +63,7 @@ console.log('InterpreterNotStartedError thrown and caught');
 
 // --- InterpreterNotRunningError ---
 
-const stopped: EffectInterpreter<SimpleState, SimpleEvent> = EffectInterpreter.create({ 'machine': SimpleMachine.make() });
+const stopped: EffectInterpreter<SimpleStateEntity.Type, SimpleEventEntity.Type> = EffectInterpreter.create({ 'machine': SimpleMachine.make() });
 stopped.start();
 stopped.stop();
 

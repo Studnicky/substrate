@@ -17,8 +17,9 @@ import { setTimeout } from 'node:timers/promises';
 
 import { HookInvocationError } from '@studnicky/errors';
 
+import type { ThrottleStateEntity } from '../../../src/entities/ThrottleStateEntity.js';
+
 import { Throttle } from '../../../src/throttle/index.js';
-import type { ThrottleStateType } from '../../../src/types/ThrottleStateType.js';
 
 // ── Recording subclass ────────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ type HookEvent =
   | { 'args': [number, number]; 'name': 'onContended' }
   | { 'args': [number]; 'name': 'onDrainComplete' }
   | { 'args': [number, number]; 'name': 'onDrainStart' }
-  | { 'args': [ThrottleStateType, ThrottleStateType]; 'name': 'onEnter' }
+  | { 'args': [ThrottleStateEntity.Type, ThrottleStateEntity.Type]; 'name': 'onEnter' }
   | { 'args': [unknown]; 'name': 'onReject' }
   | { 'args': [number, number]; 'name': 'onRelease' }
   | { 'args': [number, number]; 'name': 'onWindowSlide' };
@@ -42,7 +43,7 @@ class RecordingThrottle extends Throttle {
     super(config);
   }
 
-  protected override onEnter(to: ThrottleStateType, from: ThrottleStateType): void {
+  protected override onEnter(to: ThrottleStateEntity.Type, from: ThrottleStateEntity.Type): void {
     this.events.push({ 'args': [to, from], 'name': 'onEnter' });
   }
 
@@ -89,8 +90,13 @@ class RecordingThrottle extends Throttle {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function eventsNamed(t: RecordingThrottle, name: HookEvent['name']): HookEvent[] {
-  return t.events.filter((e) => {return e.name === name;});
+function eventsNamed<Name extends HookEvent['name']>(
+  t: RecordingThrottle,
+  name: Name
+): Extract<HookEvent, { 'name': Name }>[] {
+  return t.events.filter((event): event is Extract<HookEvent, { 'name': Name }> => {
+    return event.name === name;
+  });
 }
 
 // ── onAcquire — immediate slot ────────────────────────────────────────────────
@@ -172,6 +178,90 @@ void it('onAcquireWait fires once per queued caller, after onContended', async (
   // Queue depth at each wait: first waiter sees queue length 1, second sees 2.
   strictEqual((waited[0]!.args as [number])[0], 1, 'first waiter: queue depth 1');
   strictEqual((waited[1]!.args as [number])[0], 2, 'second waiter: queue depth 2');
+});
+
+void it('a synchronous onAcquireWait failure removes its waiter without leaking capacity', async () => {
+  const boom = new Error('onAcquireWait boom');
+
+  class ThrowingAcquireWaitThrottle extends Throttle {
+    protected override onAcquireWait(): void {
+      throw boom;
+    }
+  }
+
+  let releaseHolder: () => void = () => {};
+  const holderGate = new Promise<void>((resolve) => { releaseHolder = resolve; });
+  const throttle = new ThrowingAcquireWaitThrottle({ 'concurrencyLimit': 1 });
+  const holder = throttle.execute(async () => { await holderGate; return 'holder'; });
+  await Promise.resolve();
+
+  await rejects(
+    throttle.execute(async () => 'rejected-waiter'),
+    (error: unknown) => {
+      ok(error instanceof HookInvocationError);
+      strictEqual(error.hookName, 'onAcquireWait');
+      strictEqual(error.cause, boom);
+      return true;
+    }
+  );
+
+  strictEqual(throttle.getStats().activeCount, 1);
+  strictEqual(throttle.getStats().queuedCount, 0);
+
+  releaseHolder();
+  strictEqual(await holder, 'holder');
+  strictEqual(throttle.getStats().activeCount, 0);
+  strictEqual(throttle.getStats().queuedCount, 0);
+  strictEqual(await throttle.execute(async () => 'later'), 'later');
+  strictEqual(throttle.getStats().activeCount, 0);
+});
+
+void it('an async-rejecting onAcquireWait removes its waiter without an unhandled rejection or capacity leak', async () => {
+  const boom = new Error('onAcquireWait async boom');
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  class AsyncRejectingAcquireWaitThrottle extends Throttle {
+    protected override async onAcquireWait(): Promise<void> {
+      await Promise.resolve();
+      throw boom;
+    }
+  }
+
+  let releaseHolder: () => void = () => {};
+  const holderGate = new Promise<void>((resolve) => { releaseHolder = resolve; });
+  const throttle = new AsyncRejectingAcquireWaitThrottle({ 'concurrencyLimit': 1 });
+
+  try {
+    const holder = throttle.execute(async () => { await holderGate; return 'holder'; });
+    await Promise.resolve();
+
+    await rejects(
+      throttle.execute(async () => 'rejected-waiter'),
+      (error: unknown) => {
+        ok(error instanceof HookInvocationError);
+        strictEqual(error.hookName, 'onAcquireWait');
+        strictEqual(error.cause, boom);
+        return true;
+      }
+    );
+
+    strictEqual(throttle.getStats().activeCount, 1);
+    strictEqual(throttle.getStats().queuedCount, 0);
+
+    releaseHolder();
+    strictEqual(await holder, 'holder');
+    strictEqual(throttle.getStats().activeCount, 0);
+    strictEqual(throttle.getStats().queuedCount, 0);
+    strictEqual(await throttle.execute(async () => 'later'), 'later');
+    strictEqual(throttle.getStats().activeCount, 0);
+
+    await setTimeout(0);
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });
 
 // ── onWindowSlide — queued caller gets slot ───────────────────────────────────
@@ -342,11 +432,11 @@ void it('onEnter fires for idle→active and active→idle transitions', async (
 
   const enters = eventsNamed(t, 'onEnter');
   const idleToActive = enters.find((e) => {
-    const args = e.args as [ThrottleStateType, ThrottleStateType];
+    const args = e.args;
     return args[0] === 'active' && args[1] === 'idle';
   });
   const activeToIdle = enters.find((e) => {
-    const args = e.args as [ThrottleStateType, ThrottleStateType];
+    const args = e.args;
     return args[0] === 'idle' && args[1] === 'active';
   });
 
@@ -504,6 +594,44 @@ void it('a throwing onReject hook surfaces a HookInvocationError instead of the 
       return true;
     }
   );
+
+  strictEqual(t.getStats().activeCount, 0, 'the failed hook does not leak the operation slot');
+  strictEqual(await t.execute(async () => 'next'), 'next', 'later operations can acquire the released slot');
+});
+
+void it('a release hook failure takes precedence over an onReject failure after slot cleanup', async () => {
+  const rejectBoom = new Error('onReject boom');
+  const releaseBoom = new Error('onRelease boom');
+  let remainingReleaseFailures = 1;
+
+  class ThrowingRejectAndReleaseThrottle extends Throttle {
+    protected override onReject(): void {
+      throw rejectBoom;
+    }
+
+    protected override onRelease(): void {
+      if (remainingReleaseFailures > 0) {
+        remainingReleaseFailures--;
+        throw releaseBoom;
+      }
+    }
+  }
+
+  const t = new ThrowingRejectAndReleaseThrottle({ 'concurrencyLimit': 1 });
+
+  await rejects(
+    t.execute(async () => { throw new Error('operation boom'); }),
+    (error: unknown) => {
+      ok(error instanceof HookInvocationError);
+      strictEqual(error.hookName, 'onRelease');
+      strictEqual(error.cause, releaseBoom);
+
+      return true;
+    }
+  );
+
+  strictEqual(t.getStats().activeCount, 0, 'the slot is released before the cleanup failure propagates');
+  strictEqual(await t.execute(async () => 'next'), 'next', 'the cleaned-up throttle remains usable');
 });
 
 void it('a throwing onDrainStart hook surfaces a HookInvocationError from drain()', async () => {
@@ -610,6 +738,53 @@ void it('a throwing onRelease hook still unblocks a pending drain() call (drain 
   ok(typeof opOutcome === 'object' && opOutcome !== null && 'errored' in opOutcome, 'the operation itself still surfaces the hook failure');
   ok((opOutcome as { 'error': unknown }).error instanceof HookInvocationError);
   strictEqual((opOutcome as { 'error': HookInvocationError }).error.hookName, 'onRelease');
+  strictEqual(t.getStats().isDraining, false, 'release cleanup transitions the throttle out of draining');
+});
+
+void it('a drain-complete failure takes precedence over a release failure after all waiters are notified', async () => {
+  const releaseBoom = new Error('onRelease boom');
+  const drainCompleteBoom = new Error('onDrainComplete boom');
+
+  class ThrowingReleaseAndDrainCompleteThrottle extends Throttle {
+    protected override onRelease(): void {
+      throw releaseBoom;
+    }
+
+    protected override onDrainComplete(): void {
+      throw drainCompleteBoom;
+    }
+  }
+
+  let releaseOperation: () => void = () => {};
+  const operationGate = new Promise<void>((resolve) => { releaseOperation = resolve; });
+  const t = new ThrowingReleaseAndDrainCompleteThrottle({ 'concurrencyLimit': 1 });
+  const operation = t.execute(async () => { await operationGate; return 'done'; });
+  const operationFailure = rejects(
+    operation,
+    (error: unknown) => {
+      ok(error instanceof HookInvocationError);
+      strictEqual(error.hookName, 'onDrainComplete');
+      strictEqual(error.cause, drainCompleteBoom);
+
+      return true;
+    }
+  );
+  await Promise.resolve();
+
+  const drainA = t.drain();
+  const drainB = t.drain();
+  releaseOperation();
+
+  const drainOutcome = await Promise.race([
+    Promise.all([drainA, drainB]).then(() => 'SETTLED'),
+    setTimeout(2000).then(() => 'TIMEOUT'),
+  ]);
+
+  strictEqual(drainOutcome, 'SETTLED', 'both drain waiters settle before the hook failure propagates');
+  await operationFailure;
+  strictEqual(t.getStats().activeCount, 0);
+  strictEqual(t.getStats().isDraining, false);
+  strictEqual(t.isComplete(), true);
 });
 
 void it('a throwing onDrainComplete hook still transitions the FSM out of draining and unblocks other drain() waiters', async () => {
@@ -654,7 +829,7 @@ void it('a throwing onEnter hook on the draining→idle transition still unblock
   const boom = new Error('onEnter boom');
 
   class ThrowingIdleEnterThrottle extends Throttle {
-    protected override onEnter(to: ThrottleStateType, from: ThrottleStateType): void {
+    protected override onEnter(to: ThrottleStateEntity.Type, from: ThrottleStateEntity.Type): void {
       if (to === 'idle' && from === 'draining') {
         throw boom;
       }
@@ -757,6 +932,220 @@ void it('an async onDrainStart override that rejects is routed through invoke() 
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }
+});
+
+void it('runtime async overrides on synchronous transition and queue hooks preserve FIFO completion without unhandled rejections', async () => {
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  class AsyncRejectingLifecycleThrottle extends Throttle {
+    readonly enteredHooks = new Set<string>();
+
+    protected override onEnter(): Promise<void> {
+      return this.rejectAfterEntry('onEnter');
+    }
+
+    protected override onContended(): Promise<void> {
+      return this.rejectAfterEntry('onContended');
+    }
+
+    protected override onWindowSlide(): Promise<void> {
+      return this.rejectAfterEntry('onWindowSlide');
+    }
+
+    protected override onRelease(): Promise<void> {
+      return this.rejectAfterEntry('onRelease');
+    }
+
+    private async rejectAfterEntry(hookName: string): Promise<void> {
+      this.enteredHooks.add(hookName);
+      await Promise.resolve();
+      throw new Error(`${hookName} async boom`);
+    }
+  }
+
+  let unblock!: () => void;
+  const blocker = new Promise<void>((resolve) => { unblock = resolve; });
+  const t = new AsyncRejectingLifecycleThrottle({ 'concurrencyLimit': 1 });
+
+  try {
+    const first = t.execute(async () => { await blocker; return 'first'; });
+    await Promise.resolve();
+    const second = t.execute(async () => 'second');
+
+    unblock();
+
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+    strictEqual(firstResult, 'first');
+    strictEqual(secondResult, 'second');
+    ok(t.enteredHooks.has('onEnter'));
+    ok(t.enteredHooks.has('onContended'));
+    ok(t.enteredHooks.has('onWindowSlide'));
+    ok(t.enteredHooks.has('onRelease'));
+    strictEqual(t.getStats().activeCount, 0);
+    strictEqual(t.getStats().queuedCount, 0);
+
+    await setTimeout(0);
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+void it('a runtime async onReject override preserves the operation error and releases its slot', async () => {
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  class AsyncRejectingRejectThrottle extends Throttle {
+    protected override async onReject(): Promise<void> {
+      await Promise.resolve();
+      throw new Error('onReject async boom');
+    }
+  }
+
+  const t = new AsyncRejectingRejectThrottle({ 'concurrencyLimit': 1 });
+  const operationError = new Error('operation boom');
+
+  try {
+    await rejects(
+      t.execute(async () => { throw operationError; }),
+      (error: unknown) => {
+        strictEqual(error, operationError);
+        return true;
+      }
+    );
+
+    strictEqual(t.getStats().activeCount, 0);
+    strictEqual(await t.execute(async () => 'next'), 'next');
+
+    await setTimeout(0);
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+void it('a runtime async onDrainComplete override preserves idle transition and waiter cleanup', async () => {
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  class AsyncRejectingDrainCompleteThrottle extends Throttle {
+    enteredDrainComplete = false;
+
+    protected override async onDrainComplete(): Promise<void> {
+      this.enteredDrainComplete = true;
+      await Promise.resolve();
+      throw new Error('onDrainComplete async boom');
+    }
+  }
+
+  let unblock!: () => void;
+  const blocker = new Promise<void>((resolve) => { unblock = resolve; });
+  const t = new AsyncRejectingDrainCompleteThrottle({ 'concurrencyLimit': 1 });
+
+  try {
+    const operation = t.execute(async () => { await blocker; return 'done'; });
+    await Promise.resolve();
+    const firstDrain = t.drain();
+    const secondDrain = t.drain();
+
+    unblock();
+
+    strictEqual(await operation, 'done');
+    await Promise.all([firstDrain, secondDrain]);
+    strictEqual(t.enteredDrainComplete, true);
+    strictEqual(t.getStats().isDraining, false);
+    strictEqual(t.isComplete(), true);
+
+    await setTimeout(0);
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+void it('a runtime async onAdaptiveAdjust override preserves the committed limit adjustment', async () => {
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  class AsyncRejectingAdaptiveThrottle extends Throttle {
+    adjustmentEntries = 0;
+
+    protected override async onAdaptiveAdjust(): Promise<void> {
+      this.adjustmentEntries++;
+      await Promise.resolve();
+      throw new Error('onAdaptiveAdjust async boom');
+    }
+  }
+
+  const t = new AsyncRejectingAdaptiveThrottle({
+    'adaptive': {
+      'adjustmentInterval': 100,
+      'enabled': true,
+      'maxConcurrency': 20,
+      'minConcurrency': 1,
+      'sampleWindow': 10,
+      'scaleDownThreshold': 2,
+      'scaleUpThreshold': 0.5,
+      'stepSize': 1,
+      'targetLatencyMs': 5000
+    },
+    'concurrencyLimit': 5
+  });
+
+  try {
+    await Promise.all(Array.from({ 'length': 10 }, () => { return t.execute(async () => true); }));
+    await setTimeout(150);
+    strictEqual(await t.execute(async () => true), true);
+
+    const adaptive = t.getStats().adaptive;
+    ok(adaptive !== undefined);
+    ok(adaptive.adjustmentCount > 0);
+    ok(t.adjustmentEntries > 0);
+
+    await setTimeout(0);
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+void it('a synchronous onWindowSlide failure rejects only the dequeued waiter after slot rollback', async () => {
+  const boom = new Error('onWindowSlide boom');
+
+  class ThrowingWindowSlideThrottle extends Throttle {
+    protected override onWindowSlide(): void {
+      throw boom;
+    }
+  }
+
+  let unblock!: () => void;
+  const blocker = new Promise<void>((resolve) => { unblock = resolve; });
+  const t = new ThrowingWindowSlideThrottle({ 'concurrencyLimit': 1 });
+  const first = t.execute(async () => { await blocker; return 'first'; });
+  await Promise.resolve();
+  const second = t.execute(async () => 'second');
+
+  unblock();
+
+  strictEqual(await first, 'first');
+  await rejects(
+    second,
+    (error: unknown) => {
+      ok(error instanceof HookInvocationError);
+      strictEqual(error.hookName, 'onWindowSlide');
+      strictEqual(error.cause, boom);
+      return true;
+    }
+  );
+  strictEqual(t.getStats().activeCount, 0);
+  strictEqual(t.getStats().queuedCount, 0);
+  strictEqual(await t.execute(async () => 'later'), 'later');
+  strictEqual(t.getStats().activeCount, 0);
 });
 
 // ── HookInvocationError regression ───────────────────────────────────────────

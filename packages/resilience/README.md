@@ -8,6 +8,8 @@ Three standalone resilience primitives for async TypeScript services: a three-st
 
 Each primitive is independently usable and composes naturally — wrap a rate-limited call with a circuit breaker, or pipe circuit breaker rejections into a DLQ for reprocessing.
 
+`@studnicky/resilience` is the sole public code entrypoint.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -44,12 +46,12 @@ try {
   }
 }
 
-breaker.state;      // 'closed' | 'open' | 'halfOpen'
-breaker.reset();    // force-close
+breaker.state();     // 'closed' | 'open' | 'halfOpen'
+breaker.reset();     // restore the closed state
 breaker.forceOpen(); // force-open for testing
 ```
 
-By default every thrown error counts toward `failureThreshold`. To only count real, non-transient errors — e.g. skip errors already being retried by a wrapped `Retry` — supply an `errorClassifier`. This is the same classifier family (`ErrorClassificationType`, `ErrorClassifierFunctionType`, `ErrorClassifierInterface`) that `@studnicky/retry`'s `Retry` class uses, from `@studnicky/errors` — not a resilience-specific concept. A classification of `{ retryable: true }` means the error is transient and already handled elsewhere, so it does NOT count toward the threshold; `{ retryable: false }` means real breakage, so it DOES count:
+By default every thrown error counts toward `failureThreshold`. To only count real, non-transient errors — e.g. skip errors already being retried by a wrapped `Retry` — supply an `errorClassifier`. The option accepts `ErrorClassifierFunctionInterface` or `ErrorClassifierInterface` from `@studnicky/errors`, and both produce `ErrorClassificationEntity.Type`. This is the same classifier family that `@studnicky/retry` uses. A classification of `{ retryable: true }` means the error is transient and already handled elsewhere, so it does NOT count toward the threshold; `{ retryable: false }` means real breakage, so it DOES count:
 
 ```typescript
 import { DefaultHttpErrorClassifier } from '@studnicky/errors';
@@ -64,8 +66,12 @@ const breaker = CircuitBreaker.create({
 For classification logic that can't be expressed as config, extend `CircuitBreaker` and override the protected `classifyError(error, attemptNumber)` method (bypassed when `errorClassifier` is supplied in options):
 
 ```typescript
+import type { ErrorClassificationEntity } from '@studnicky/errors';
+
+import { CircuitBreaker } from '@studnicky/resilience';
+
 class MyBreaker extends CircuitBreaker {
-  protected override classifyError(error: unknown): ErrorClassificationType {
+  protected override classifyError(error: unknown, _attemptNumber: number): ErrorClassificationEntity.Type {
     return { retryable: error instanceof TransientError };
   }
 }
@@ -138,6 +144,16 @@ for await (const entry of retryGen.generate()) {
   await retryJob(entry.item); // each entry is yielded with a 5 s pause between
 }
 ```
+
+## Hook failure disposition
+
+`CircuitBreaker`, `DeadLetterQueue`, `DeadLetterQueueRetryGenerator`, and `TokenBucket` each compose an instance-local `HookInvoker` from `@studnicky/errors`. The invoker is the sole owner of hook-failure diagnostics and exposes detached `HookInvocationError` snapshots through its count and projection APIs. The primitives retain their swallow disposition so hook failures do not replace canonical operation results or errors, and they add no public diagnostic facade.
+
+## Declaration boundaries
+
+Entity namespaces own serializable configuration and state, including `CircuitStateEntity.Type`, `CircuitBreakerOptionsEntity.Type`, `TokenBucketOptionsEntity.Type`, `DeadLetterQueueOptionsEntity.Type`, `DeadLetterQueueRetryGeneratorOptionsEntity.Type`, and `DlqEntryMetadataEntity.Type`. `DlqEntryInterface` indexes its enqueue timestamp, identifier, and reason from `DlqEntryMetadataEntity` while retaining caller-owned payload and `Error` contracts. Other interfaces add runtime contracts such as clocks, classifiers, signals, and live queues.
+
+Entity source files import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`. Both owner packages are direct dependencies of `@studnicky/resilience`; dependency-owned declarations are not proxy-exported through another substrate package.
 
 ## Documentation
 

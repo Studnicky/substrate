@@ -2,72 +2,39 @@
 
 import type { ErrorClassificationEntity } from '@studnicky/errors';
 
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { HookInvoker } from '@studnicky/errors';
 
-import type { CircuitStateType } from './CircuitStateType.js';
+import type { CircuitStateEntity } from './entities/CircuitStateEntity.js';
 import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 
-import { CircuitBreakerBuilder } from './CircuitBreakerBuilder.js';
 import { CircuitBreakerOpenError } from './CircuitBreakerOpenError.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
-/**
- * Delegates `CircuitBreaker`'s hook-invocation failures back to the owning
- * breaker's own `hookErrors` array. Hoisted to module scope so V8 compiles
- * this class once rather than per `CircuitBreaker` instantiation.
- */
-class CircuitBreakerHookDelegate extends HookInvoker {
-  constructor(private readonly recordFailure: (error: HookInvocationError) => void) {
-    super();
-  }
-
-  /**
-   * A broken hook must not disrupt circuit state transitions: record the
-   * failure and hand back the sentinel `invoke` expects instead of letting
-   * `HookInvoker`'s default (throwing) behavior propagate.
-   */
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.recordFailure(new HookInvocationError(hookName, cause));
-    return undefined as T;
-  }
-}
-
 export class CircuitBreaker {
+  static readonly #OwnedHookInvoker = class CircuitBreakerHookInvoker extends HookInvoker {
+    protected override onHookError(): void {}
+  };
+
   readonly #failureThreshold: number;
   readonly #resetTimeoutMs: number;
   readonly #successThreshold: number;
   readonly #name: string;
   readonly #clock: () => number;
   readonly #classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
-  #state: CircuitStateType = 'closed';
+  #state: CircuitStateEntity.Type = 'closed';
   #failureCount = 0;
   #successCount = 0;
   #openedAt = 0;
 
-  /**
-   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
-   * instead of propagating out of the circuit breaker's state machine.
-   */
-  protected readonly hookErrors: HookInvocationError[] = [];
-
-  /** Invokes lifecycle hooks, recording failures into `hookErrors` instead of throwing. */
+  /** Invokes lifecycle hooks, retaining diagnostics in the invoker while swallowing failures. */
   protected readonly hooks: HookInvoker;
-
-  static builder(): CircuitBreakerBuilder {
-    const factory = (options: CircuitBreakerOptionsInterface): CircuitBreaker => {
-      const result = CircuitBreaker.create(options);
-      return result;
-    };
-    const result = CircuitBreakerBuilder.create(factory);
-    return result;
-  }
 
   static create(options: CircuitBreakerOptionsInterface): CircuitBreaker {
     return new this(options);
   }
 
   protected constructor(options: CircuitBreakerOptionsInterface) {
-    this.hooks = new CircuitBreakerHookDelegate((error) => { this.hookErrors.push(error); });
+    this.hooks = new CircuitBreaker.#OwnedHookInvoker();
     if (options.failureThreshold < 1) {throw new ResilienceConfigError('failureThreshold must be >= 1');}
     if (options.resetTimeoutMs < 0) {throw new ResilienceConfigError('resetTimeoutMs must be >= 0');}
     this.#failureThreshold = options.failureThreshold;
@@ -90,7 +57,7 @@ export class CircuitBreaker {
     this.#classifierFn = classifierFn;
   }
 
-  get state(): CircuitStateType { const result = this.#state;
+  get state(): CircuitStateEntity.Type { const result = this.#state;
     return result; }
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {
@@ -122,8 +89,6 @@ export class CircuitBreaker {
       return result;
     });
   }
-
-  forceClosed(): void { this.reset(); }
 
   forceOpen(): void {
     this.#state = 'open';

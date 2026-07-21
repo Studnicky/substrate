@@ -1,20 +1,17 @@
 export { CircuitBreaker } from './CircuitBreaker.js';
-export { CircuitBreakerBuilder } from './CircuitBreakerBuilder.js';
 export { CircuitBreakerOpenError } from './CircuitBreakerOpenError.js';
-export type { CircuitStateType } from './CircuitStateType.js';
 
 export { DeadLetterQueue } from './DeadLetterQueue.js';
-export { DeadLetterQueueBuilder } from './DeadLetterQueueBuilder.js';
 export { DeadLetterQueueRetryGenerator } from './DeadLetterQueueRetryGenerator.js';
-export { DeadLetterQueueRetryGeneratorBuilder } from './DeadLetterQueueRetryGeneratorBuilder.js';
 export { DlqAbortedError } from './DlqAbortedError.js';
 export { DlqClosedError } from './DlqClosedError.js';
-export type { DlqEntryType } from './DlqEntryType.js';
 export { DlqFullError } from './DlqFullError.js';
 
 export { CircuitBreakerOptionsEntity } from './entities/CircuitBreakerOptionsEntity.js';
+export { CircuitStateEntity } from './entities/CircuitStateEntity.js';
 export { DeadLetterQueueOptionsEntity } from './entities/DeadLetterQueueOptionsEntity.js';
 export { DeadLetterQueueRetryGeneratorOptionsEntity } from './entities/DeadLetterQueueRetryGeneratorOptionsEntity.js';
+export { DlqEntryMetadataEntity } from './entities/DlqEntryMetadataEntity.js';
 export { TokenBucketOptionsEntity } from './entities/TokenBucketOptionsEntity.js';
 
 export { ResilienceConfigError } from './errors/ResilienceConfigError.js';
@@ -22,8 +19,9 @@ export { ResilienceError } from './errors/ResilienceError.js';
 
 export type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 export type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
+export type { DeadLetterQueueRetryGeneratorOptionsInterface } from './interfaces/DeadLetterQueueRetryGeneratorOptionsInterface.js';
+export type { DlqEntryInterface } from './interfaces/DlqEntryInterface.js';
 export type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
 export { TokenBucket } from './TokenBucket.js';
-export { TokenBucketBuilder } from './TokenBucketBuilder.js';
 export { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';

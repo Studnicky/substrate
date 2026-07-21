@@ -1,10 +1,10 @@
 # @studnicky/process-kit
 
-> Reducer-with-effects process pattern composing `@studnicky/fsm`, `@studnicky/scheduler`, and `@studnicky/signal`
+> Reducer-with-effects process pattern composing `@studnicky/fsm` and `@studnicky/scheduler`
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/process-kit)
 
-Composes three substrate primitives into the "local process as explicit state plus scheduled transitions" pattern: a caller-supplied `StateMachine` subclass is wired to an internally-built `EffectInterpreter`, a `SchedulerProviderType` (real-time by default, or a `VirtualScheduler` for deterministic tests), and a `Signal` for cancellation composition. `ProcessKit` does not implement any reducer logic itself — the caller's `StateMachine` subclass owns `getInitialState()`/`reduce()` and stays the only source of transition logic.
+Composes FSM and scheduler primitives into the "local process as explicit state plus scheduled transitions" pattern: a caller-supplied `StateMachine` subclass is wired to an internally-built `EffectInterpreter` and a `SchedulerProviderInterface` (real-time by default, or a `VirtualScheduler` for deterministic tests). `ProcessKit` does not implement any reducer logic itself — the caller's `StateMachine` subclass owns `getInitialState()`/`reduce()` and stays the only source of transition logic.
 
 ## Install
 
@@ -21,30 +21,35 @@ pnpm add @studnicky/process-kit
 ## Usage
 
 ```typescript
-import { ProcessKit } from '@studnicky/process-kit';
+import type { EffectHandlerInterface } from '@studnicky/fsm';
+import type { JobEffectEntity } from './entities/JobEffectEntity.js';
+import type { JobEventEntity } from './entities/JobEventEntity.js';
 
-const kit = ProcessKit.create({ machine: new JobProcess() });
+import { ProcessKit } from '@studnicky/process-kit';
+import { JobProcess } from './JobProcess.js';
+
+const handler: EffectHandlerInterface<
+  JobEffectEntity.Type,
+  JobEventEntity.Type
+> = (effect, dispatch) => {
+  if (effect.variant === 'requestAck') {
+    dispatch({ type: 'acknowledge' });
+  }
+};
+
+const kit = ProcessKit.create({ machine: JobProcess.make(), handler });
 
 kit.start();
 const state = await kit.dispatch({ type: 'start' });
 ```
 
-`machine` is the only required field — `ProcessKit` always wraps a caller-built `StateMachine` subclass, never invents a reducer. `handlers` (effect handlers), `scheduler`, and `signal` are all optional and defaulted internally (`RealTimeScheduler.create()`, `Signal.create()`).
+`machine` is the only required field — `ProcessKit` always wraps a caller-built `StateMachine` subclass, never invents a reducer. Configure the optional singular `handler` through `ProcessKit.create({ machine, handler })`. `scheduler` is optional and defaults to `RealTimeScheduler.create()`.
 
-See `examples/observedProcessKit.ts` for the full runnable version, including a scheduled time-delayed transition and Signal-driven cancellation.
+See `examples/observedProcessKit.ts` for the full runnable version, including a scheduled time-delayed transition and cancellation composed directly with a caller-owned `Signal`.
 
-## Transparency
+## Observability
 
-`ProcessKit` introduces no hook of its own — every observable stage is already covered by the primitive it delegates to:
-
-| Getter | Returns |
-|--------|---------|
-| `getMachine()` | The composed `StateMachine` instance |
-| `getInterpreter()` | The composed `EffectInterpreter` instance |
-| `getScheduler()` | The composed `SchedulerProviderType` instance |
-| `getSignal()` | The composed `Signal` instance |
-
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper. A caller who subclassed `StateMachine` for its 6 lifecycle hooks (`onTransition`, `onEnterState`, `onExitState`, `onTransitionRejected`, `isTerminated`, `onTerminatedAccess`) keeps full access to those hooks; `EffectInterpreter`'s 9 hooks and the scheduler's own hooks remain reachable the same way through `getInterpreter()`/`getScheduler()`.
+`ProcessKit` introduces no hook of its own. Callers retain their `StateMachine` and optional scheduler references when they need lifecycle observability. `dispatch()` returns the settled process state directly, and `scheduleDispatch()` returns the scheduler's cancellable task handle.
 
 ## `dispatch()` vs. the effect-handler `dispatch` capability
 
@@ -62,7 +67,7 @@ See [Composition Anti-Patterns](../../docs/concepts/composition-anti-patterns.md
 
 ## Extending
 
-Subclass `ProcessKit` to add convenience behavior that reaches the composed instances through the getters — `ProcessKit` has no lifecycle hooks of its own to override. Subclass `StateMachine` to add transition observability; subclass the scheduler to add scheduling observability. Those hooks fire exactly as they would standalone.
+Subclass `StateMachine` to add transition observability and retain that explicit dependency alongside the kit. Subclass the scheduler to add scheduling observability and pass the owned instance to `ProcessKit.create()`. Those hooks fire exactly as they would standalone.
 
 ## Documentation
 

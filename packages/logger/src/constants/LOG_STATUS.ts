@@ -1,3 +1,5 @@
+import type { LogStatusEntity } from '../entities/LogStatusEntity.js';
+
 /**
  * Runtime constants for LogStatus values.
  * Use for comparisons and switch statements.
@@ -23,7 +25,7 @@ export const LOG_STATUS = {
   'TIMEOUT': 'timeout',
   'UNAUTHORIZED': 'unauthorized',
   'UNAVAILABLE': 'unavailable'
-} as const;
+} as const satisfies Record<string, LogStatusEntity.Type>;
 
 /**
  * Status categories for filtering.
@@ -60,4 +62,4 @@ export const STATUS_CATEGORIES = {
     'cached',
     'skipped'
   ] as const
-} as const;
+} as const satisfies Record<string, readonly LogStatusEntity.Type[]>;

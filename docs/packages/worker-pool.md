@@ -13,37 +13,30 @@ description: Bounded node:worker_threads pool that fans work items across worker
 pnpm add @studnicky/worker-pool
 ```
 
+`@studnicky/worker-pool` is the sole public code entrypoint.
+
 ## Usage
 
-Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers — each spawned fresh against `workerPath` and terminated once its item settles — and resolves an ordered results array. `concurrency` defaults to `System.optimalWorkerCount` when omitted:
+Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers, reuses them for later items in that run, terminates the live workers after dispatched work settles, and resolves an ordered results array. `concurrency` defaults to `System.optimalWorkerCount` when omitted:
 
 <<< ../../packages/worker-pool/examples/observedWorkerPool.ts#usage
 
-The worker entry script (`examples/observedWorkerPoolWorker.mjs` above) receives each item via a single `postMessage` and responds with the fixed discriminated-union envelope:
-
-<!-- inline-ts-ok: type-only contract shape, not backed by a single runnable region — every variant is exercised piecemeal across the transcluded example and its .mjs worker fixture -->
-```typescript
-type WorkerEnvelopeType<TMessage, TResult> =
-  | { type: 'log'; message: string }
-  | { type: 'progress'; percent: number }
-  | { type: 'result'; value: TResult }
-  | { type: 'error'; error: string };
-```
+The worker entry script (`examples/observedWorkerPoolWorker.mjs` above) receives each item via a single `postMessage` and responds with one of four exported interface contracts: `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, or `WorkerErrorEnvelopeInterface`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
 
 ## Ordering and failure semantics
 
 `run()` delegates its scheduling loop directly to `Batch#process()`, so it inherits that method's semantics: results resolve in the same order as the input `items`, and the first item to reject makes the whole `run()` call reject (`Promise.all`-like fail-fast, matching `Batch`'s own default). Items already in flight in the same concurrency batch are not aborted when a sibling rejects; only items in batches that have not started yet never spawn. A caller that needs every item's outcome regardless of individual failures should drive `WorkerPool` per-item itself rather than through `run()`.
 
-## Spawn-per-item
+An unexpected worker exit during a task retries that item once on a freshly spawned replacement worker. A second unexpected mid-task exit rejects the item.
 
-Each call to `run()` spawns a fresh `Worker` per item and terminates it once that item settles, rather than keeping a warm pool of long-lived, reused worker threads. This keeps failure isolation simple: a worker that throws, hangs, or times out only ever affects the one item it was handling, with no state leaking into the next item on a reused thread. Total concurrent workers is still bounded at `concurrency` via `@studnicky/batch`.
+## Per-run worker reuse and teardown
+
+Each call to `run()` creates its own pool of at most `concurrency` workers. An idle worker receives the next queued item in that run; workers are not retained across separate `run()` calls. After the dispatched task promises settle, `run()` terminates every live worker and waits for those termination attempts before it resolves or rejects.
 
 | Method | Description |
 |--------|-------------|
 | `WorkerPool.create(config)` | Creates a pool. `config.workerPath` is required; `concurrency`, `timeoutMs`, and `signal` default |
-| `WorkerPool.builder()` | Returns a `WorkerPoolBuilder` fluent builder |
 | `run(items)` | Fans `items` across at most `concurrency` workers and resolves an ordered `TResult[]` |
-| `getSignal()` | Returns the composed `Signal` instance |
 | `getHookErrorCount()` | Count of hook failures recorded since construction |
 | `getHookErrors()` | Defensive copy of every hook failure recorded since construction |
 
@@ -53,7 +46,7 @@ Each call to `run()` spawns a fresh `Worker` per item and terminates it once tha
 |------|-------|
 | `onMessage(envelope, index)` | For every envelope a worker posts back — `log`, `progress`, `result`, and `error` alike |
 | `onWorkerTimeout(index)` | When a task exceeds its configured `timeoutMs`, immediately before the worker is terminated |
-| `onWorkerError(error, index)` | When a task rejects — a `'error'` envelope, an uncaught worker `'error'` event, or an unexpected exit |
+| `onWorkerError(error, index)` | When a worker reports an error envelope, emits an uncaught error, or termination fails |
 
 A hook override that throws or rejects does not abort a worker's task settlement — the failure is recorded instead of propagating; inspect it via `getHookErrorCount()` (a running total) and `getHookErrors()` (a defensive copy of every recorded failure), backed internally by `@studnicky/errors`'s `HookInvoker`.
 

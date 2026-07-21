@@ -21,9 +21,7 @@ class Counter {
 
 const counter = new Counter();
 
-const retry = Retry.builder()
-  .maxRetries(3)
-  .build();
+const retry = Retry.create({ 'maxRetries': 3 });
 
 const result = await retry.execute(() => {
   const attempt = counter.increment();

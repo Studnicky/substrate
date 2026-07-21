@@ -3,31 +3,24 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { EffectHandlerMapType, FsmStepType } from '../src/index.js';
+import type { EffectHandlerInterface, FsmStepInterface } from '../src/index.js';
 import type { TrafficEffectEntity } from './entities/TrafficEffectEntity.js';
 import type { TrafficEventEntity } from './entities/TrafficEventEntity.js';
+import type { TrafficStateEntity } from './entities/TrafficStateEntity.js';
 
 import { EffectInterpreter, MachineRegistry, StateMachine } from '../src/index.js';
 
-// --- Domain types ---
-
-type TrafficState =
-  | { readonly 'variant': 'amber' }
-  | { readonly 'variant': 'green' }
-  | { readonly 'variant': 'red' };
-
-type TrafficEvent = TrafficEventEntity.Type;
-
-type TrafficEffect = TrafficEffectEntity.Type;
-
 // --- Observed StateMachine subclass ---
 
-class ObservedTrafficMachine extends StateMachine<TrafficState, TrafficEvent, TrafficEffect> {
+class ObservedTrafficMachine extends StateMachine<TrafficStateEntity.Type, TrafficEventEntity.Type, TrafficEffectEntity.Type> {
   static make(): ObservedTrafficMachine { return new ObservedTrafficMachine(); }
 
-  getInitialState(): TrafficState { return { 'variant': 'red' }; }
+  getInitialState(): TrafficStateEntity.Type { return { 'variant': 'red' }; }
 
-  reduce(state: TrafficState, event: TrafficEvent): FsmStepType<TrafficState, TrafficEffect> {
+  reduce(
+    state: TrafficStateEntity.Type,
+    event: TrafficEventEntity.Type
+  ): FsmStepInterface<TrafficStateEntity.Type, TrafficEffectEntity.Type> {
     if (event.type === 'advance') {
       if (state.variant === 'red')   { return { 'effects': [], 'state': { 'variant': 'green' } }; }
       if (state.variant === 'green') { return { 'effects': [{ 'tone': 'chime', 'variant': 'playSound' }], 'state': { 'variant': 'amber' } }; }
@@ -36,74 +29,78 @@ class ObservedTrafficMachine extends StateMachine<TrafficState, TrafficEvent, Tr
     return { 'effects': [], 'state': state };
   }
 
-  protected override onTransition(from: TrafficState, to: TrafficState, event: TrafficEvent): void {
+  protected override onTransition(from: TrafficStateEntity.Type, to: TrafficStateEntity.Type, event: TrafficEventEntity.Type): void {
     console.log(`[fsm:machine] transition  ${from.variant} --[${event.type}]--> ${to.variant}`);
   }
 
-  protected override onEnterState(state: TrafficState): void {
+  protected override onEnterState(state: TrafficStateEntity.Type): void {
     console.log(`[fsm:machine] enter       state=${state.variant}`);
   }
 
-  protected override onExitState(state: TrafficState): void {
+  protected override onExitState(state: TrafficStateEntity.Type): void {
     console.log(`[fsm:machine] exit        state=${state.variant}`);
   }
 
-  protected override onTransitionRejected(state: TrafficState, event: TrafficEvent, reason: string): void {
+  protected override onTransitionRejected(state: TrafficStateEntity.Type, event: TrafficEventEntity.Type, reason: string): void {
     console.log(`[fsm:machine] rejected    state=${state.variant} event=${event.type} reason=${reason}`);
   }
 }
 
 // --- Observed EffectInterpreter subclass ---
 
-class ObservedInterpreter extends EffectInterpreter<TrafficState, TrafficEvent, TrafficEffect> {
+class ObservedInterpreter extends EffectInterpreter<TrafficStateEntity.Type, TrafficEventEntity.Type, TrafficEffectEntity.Type> {
+  static readonly handler: EffectHandlerInterface<TrafficEffectEntity.Type> = (effect) => {
+    soundsPlayed.push(effect.tone);
+  };
+
   static makeObserved(
     machine: ObservedTrafficMachine,
-    handlers: EffectHandlerMapType<TrafficEffect>
+    handler: EffectHandlerInterface<TrafficEffectEntity.Type>
   ): ObservedInterpreter {
-    return new ObservedInterpreter({ 'handlers': handlers, 'machine': machine, 'machineId': 'traffic-light' });
+    return new ObservedInterpreter({ 'handler': handler, 'machine': machine, 'machineId': 'traffic-light' });
   }
 
-  protected override onStart(state: TrafficState): void {
+  protected override onStart(state: TrafficStateEntity.Type): void {
     console.log(`[fsm:interp]  start       initialState=${state.variant}`);
   }
 
-  protected override onStop(state: TrafficState | undefined): void {
+  protected override onStop(state: TrafficStateEntity.Type | undefined): void {
     console.log(`[fsm:interp]  stop        lastState=${state?.variant ?? 'unknown'}`);
   }
 
-  protected override onEnqueue(event: TrafficEvent): void {
+  protected override onEnqueue(event: TrafficEventEntity.Type): void {
     console.log(`[fsm:interp]  enqueue     event=${event.type}`);
   }
 
-  protected override onTransition(from: TrafficState, to: TrafficState, event: TrafficEvent): void {
+  protected override onTransition(from: TrafficStateEntity.Type, to: TrafficStateEntity.Type, event: TrafficEventEntity.Type): void {
     console.log(`[fsm:interp]  transition  ${from.variant} --[${event.type}]--> ${to.variant}`);
   }
 
-  protected override onEnterState(state: TrafficState): void {
+  protected override onEnterState(state: TrafficStateEntity.Type): void {
     console.log(`[fsm:interp]  enter       state=${state.variant}`);
   }
 
-  protected override onExitState(state: TrafficState): void {
+  protected override onExitState(state: TrafficStateEntity.Type): void {
     console.log(`[fsm:interp]  exit        state=${state.variant}`);
   }
 
-  protected override onEffectStart(effect: TrafficEffect): void {
+  protected override onEffectStart(effect: TrafficEffectEntity.Type): void {
     console.log(`[fsm:interp]  effectStart variant=${effect.variant} tone=${effect.tone}`);
   }
 
-  protected override onEffectSuccess(effect: TrafficEffect): void {
+  protected override onEffectSuccess(effect: TrafficEffectEntity.Type): void {
     console.log(`[fsm:interp]  effectOk    variant=${effect.variant}`);
   }
 
-  protected override onEffectError(effect: TrafficEffect, error: Error): void {
+  protected override onEffectError(effect: TrafficEffectEntity.Type, error: Error): void {
     console.log(`[fsm:interp]  effectError variant=${effect.variant} error=${error.message}`);
   }
 }
 
 // --- Observed MachineRegistry subclass ---
 
-class ObservedRegistry extends MachineRegistry {
-  static override create(): ObservedRegistry {
+class ObservedRegistry extends MachineRegistry<TrafficStateEntity.Type, TrafficEventEntity.Type> {
+  static make(): ObservedRegistry {
     return new ObservedRegistry();
   }
 
@@ -123,17 +120,13 @@ class ObservedRegistry extends MachineRegistry {
 // --- Scenario: drive the traffic light through a full cycle ---
 
 const soundsPlayed: string[] = [];
-const handlers: EffectHandlerMapType<TrafficEffect> = {
-  'playSound': (effect) => { soundsPlayed.push(effect.tone); }
-};
-
 const machine = ObservedTrafficMachine.make();
-const interpreter = ObservedInterpreter.makeObserved(machine, handlers);
+const interpreter = ObservedInterpreter.makeObserved(machine, ObservedInterpreter.handler);
 
-const observedRegistry = ObservedRegistry.create();
+const observedRegistry = ObservedRegistry.make();
 
 console.log('\n--- Registering interpreter ---');
-observedRegistry.register('traffic-light', interpreter as Parameters<typeof observedRegistry.register>[1]);
+observedRegistry.register('traffic-light', interpreter);
 
 console.log('\n--- Starting interpreter ---');
 interpreter.start();

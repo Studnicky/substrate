@@ -1,3 +1,2 @@
 export * from './configInternal.js';
 export * from './Mutex.js';
-export * from './MutexBuilder.js';

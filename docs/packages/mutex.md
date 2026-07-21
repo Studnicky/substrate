@@ -27,22 +27,13 @@ Use `acquire()` when you need explicit try/finally control, or `acquireDisposabl
 
 ## Try it
 
-The builder demo constructs a `Mutex` via `Mutex.builder().withTimeout().withMaxQueueSize().build()`. Watch the stats output — `maxQueueSize` and `timeout` reflect the values set on the builder, and `totalExecuted` increments with every `runExclusive` call.
-
-<RunnableExample src="packages/mutex/examples/builderMutex" title="Mutex builder" />
-
 The hooks demo subclasses `Mutex` and overrides eight protected lifecycle methods. Observe the trace: `beforeAcquire` fires for every caller regardless of contention; `onContended` fires only for the queued waiter; `onAcquireWait` fires only after the waiter acquires through the queue; and `onQueueDrain` fires once the key's queue empties.
 
 <RunnableExample src="packages/mutex/examples/observedMutex" title="Mutex lifecycle hooks" />
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/mutex` | `Mutex`, `MutexBuilder`, errors, interfaces |
-| `@studnicky/mutex/constants` | Default configuration constants |
-| `@studnicky/mutex/errors` | `ConfigurationError`, `LockTimeoutError`, `QueueSizeExceededError` |
-| `@studnicky/mutex/interfaces` | `MutexInterface`, `MutexConfigInterface`, `MutexStatsInterface`, `MutexObservabilityInterface` |
+Import `Mutex`, its schema-backed entities, package errors, `MutexInterface`, and `MutexLockInterface` from `@studnicky/mutex`. Create instances directly with `Mutex.create(config?)`; implementation constants remain internal.
 
 ## Observability hooks
 
@@ -59,7 +50,7 @@ Subclass `Mutex` and override any protected hook to inject trace logging, metric
 | `afterRelease(key)` | After the lock is dropped completely (no waiters remained) | `key: K` |
 | `onQueueDrain(key)` | When the last waiter for a key leaves the queue (by acquiring or timing out) | `key: K` |
 | `onTimeout(key, timeoutMs)` | When a queued acquisition exceeds the configured timeout | `key: K`, `timeoutMs: number` |
-| `onEnterKey(key, to, from)` | On every per-key FSM state transition | `key: K`, `to: MutexKeyStateType`, `from: MutexKeyStateType` |
+| `onEnterKey(key, to, from)` | On every per-key FSM state transition | `key: K`, `to: MutexKeyStateEntity.Type`, `from: MutexKeyStateEntity.Type` |
 
 <<< ../../packages/mutex/examples/observedMutex.ts#usage
 

@@ -37,13 +37,20 @@ it('consume(key, tokens) consumes the requested count in one call', () => {
   throws(() => { limiter.consume('user-d', 1); }, TokenBucketExhaustedError);
 });
 
-it('the same key reuses the same underlying strategy instance across calls', () => {
-  const limiter = KeyedRateLimiter.create({ 'burstSize': 3, 'requestsPerSecond': 1, 'clock': () => 0 });
+it('the same key creates its strategy exactly once across calls', () => {
+  let factoryCalls = 0;
+  const limiter = KeyedRateLimiter.create({
+    'factory': () => {
+      factoryCalls += 1;
+      return {
+        consume(): void {},
+        waitForToken(): Promise<void> { return Promise.resolve(); }
+      };
+    }
+  });
 
   limiter.consume('user-e');
-  const firstBucket = limiter.getCache().get('user-e');
   limiter.consume('user-e');
-  const secondBucket = limiter.getCache().get('user-e');
 
-  strictEqual(firstBucket, secondBucket);
+  strictEqual(factoryCalls, 1);
 });

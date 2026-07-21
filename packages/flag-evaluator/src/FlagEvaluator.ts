@@ -3,7 +3,7 @@
 import { HookInvoker } from '@studnicky/errors';
 import { Hash } from '@studnicky/json';
 
-import type { FlagContextType } from './types/FlagContextType.js';
+import type { FlagContextInterface } from './interfaces/FlagContextInterface.js';
 
 import { FlagDefinitionEntity } from './entities/FlagDefinitionEntity.js';
 import { FlagDefinitionValidationError } from './errors/FlagDefinitionValidationError.js';
@@ -15,11 +15,8 @@ const BUCKET_SPACE = 100;
  * `evaluate()` already computed: swallow the failure rather than let
  * `HookInvoker`'s default (throwing) behavior propagate out of `evaluate()`.
  */
-class SwallowingHookInvoker extends HookInvoker {
-  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
-    const result = undefined as T;
-    return result;
-  }
+class FlagEvaluationHookInvoker extends HookInvoker {
+  protected override onHookError(_hookName: string, _cause: unknown): void {}
 }
 
 /**
@@ -47,11 +44,24 @@ class SwallowingHookInvoker extends HookInvoker {
  * ```
  */
 export class FlagEvaluator {
-  static create(): FlagEvaluator {
-    return new FlagEvaluator();
+  private static isConstructed<TInstance extends FlagEvaluator>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
   }
 
-  protected readonly hooks: HookInvoker = new SwallowingHookInvoker();
+  static create<TInstance extends FlagEvaluator>(
+    this: Function & { readonly 'prototype': TInstance }
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, []);
+    if (!FlagEvaluator.isConstructed(result, this)) {
+      throw new TypeError('FlagEvaluator.create() must construct a FlagEvaluator instance');
+    }
+    return result;
+  }
+
+  protected readonly hooks: HookInvoker = new FlagEvaluationHookInvoker();
 
   readonly #registry = new Map<string, FlagDefinitionEntity.Type>();
 
@@ -68,7 +78,7 @@ export class FlagEvaluator {
         .join('; ');
       throw new FlagDefinitionValidationError(messages.length > 0 ? messages : 'invalid flag definition');
     }
-    this.#registry.set(name, definition);
+    this.#registry.set(name, Object.freeze({ ...definition }));
   }
 
   /** Removes a named flag definition. No-op if the name was never registered. */
@@ -96,7 +106,7 @@ export class FlagEvaluator {
    *
    * `onEvaluate(name, context, result)` always fires last, on every path, before returning.
    */
-  evaluate(name: string, context: FlagContextType): boolean {
+  evaluate(name: string, context: FlagContextInterface): boolean {
     const definition = this.#registry.get(name);
 
     if (definition === undefined) {

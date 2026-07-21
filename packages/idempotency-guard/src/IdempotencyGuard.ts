@@ -8,28 +8,12 @@ import { HookInvoker } from '@studnicky/errors';
 import { Hash } from '@studnicky/json';
 
 import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
-import type { IdempotencyGuardEntryType } from './types/IdempotencyGuardEntryType.js';
+import type { IdempotencyGuardEntryInterface } from './interfaces/IdempotencyGuardEntryInterface.js';
 
 import { IdempotencyConflictError } from './errors/index.js';
-import { IdempotencyGuardBuilder } from './IdempotencyGuardBuilder.js';
 
-class IdempotencyGuardCoalesce extends Coalesce<unknown> {
-  constructor(
-    private readonly onStart: (key: string) => void | Promise<void>,
-    private readonly onJoin: (key: string) => void | Promise<void>
-  ) {
-    super();
-  }
-
-  protected override onCoalesceStart(key: string): void {
-    super.onCoalesceStart(key);
-    void this.onStart(key);
-  }
-
-  protected override onCoalesceJoin(key: string): void {
-    super.onCoalesceJoin(key);
-    void this.onJoin(key);
-  }
+class IdempotencyGuardHookInvoker extends HookInvoker {
+  protected override onHookError(_hookName: string, _cause: unknown): void {}
 }
 
 /**
@@ -54,84 +38,73 @@ class IdempotencyGuardCoalesce extends Coalesce<unknown> {
  *   instead of being merged onto the leader's execution — the leader's
  *   fingerprint is tracked for the lifetime of its in-flight run.
  *
- * Composes `Coalesce` rather than extending it, and delegates the internal
- * instance's `onCoalesceStart`/`onCoalesceJoin` hooks to `IdempotencyGuard`'s
- * own `onExecute`/`onCoalesce` hooks so subclasses can observe idempotency
- * semantics without reaching into the internal instance — the same
- * delegation technique `@studnicky/paginator`'s `Paginator` uses for its
- * internal `StateMachine`.
+ * Composes `Coalesce` rather than extending it. A class-private owned
+ * `Coalesce` subclass holds a readonly reference to its `IdempotencyGuard`
+ * and dispatches `onCoalesceStart`/`onCoalesceJoin` directly to the owning
+ * guard's `onExecute`/`onCoalesce` hooks.
  *
  * @example Direct composition
  * ```typescript
- * const guard = IdempotencyGuard.create({ capacity: 1000, ttlMs: 60_000 });
+ * const guard = IdempotencyGuard.create<ChargeResult>({ capacity: 1000, ttlMs: 60_000 });
  *
  * const result = await guard.run('order-123', { amount: 500 }, async () => {
  *   return chargeCard(500);
  * });
  * ```
+ *
+ * @typeParam TResult - The result contract shared by every key owned by this guard
  */
-export class IdempotencyGuard {
+export class IdempotencyGuard<TResult = unknown> {
+  static readonly #OwnedCoalesce = class IdempotencyGuardCoalesce<TOwnerResult>
+    extends Coalesce<IdempotencyGuardEntryInterface<TOwnerResult>> {
+    readonly #owner: IdempotencyGuard<TOwnerResult>;
+
+    constructor(owner: IdempotencyGuard<TOwnerResult>) {
+      super();
+      this.#owner = owner;
+    }
+
+    protected override onCoalesceStart(key: string): void {
+      super.onCoalesceStart(key);
+      this.#owner.hooks.invoke('onExecute', () => {
+        const hookResult = this.#owner.onExecute(key);
+        return hookResult;
+      });
+    }
+
+    protected override onCoalesceJoin(key: string): void {
+      super.onCoalesceJoin(key);
+      this.#owner.hooks.invoke('onCoalesce', () => {
+        const hookResult = this.#owner.onCoalesce(key);
+        return hookResult;
+      });
+    }
+  };
+
   /**
    * Creates a new IdempotencyGuard.
    *
    * @param options - `{ capacity, ttlMs }` for the composed `LruCache`
    * @returns New IdempotencyGuard instance
    */
-  static create(options: IdempotencyGuardOptionsEntity.Type): IdempotencyGuard {
-    return new this(options);
+  static create<TResult = unknown>(
+    options: IdempotencyGuardOptionsEntity.Type
+  ): IdempotencyGuard<TResult> {
+    return new this<TResult>(options);
   }
 
-  static builder(): IdempotencyGuardBuilder {
-    const result = IdempotencyGuardBuilder.create((options) => {
-      const guard = IdempotencyGuard.create(options);
-      return guard;
-    });
-    return result;
-  }
-
-  readonly #cache: LruCache<string, IdempotencyGuardEntryType>;
-  readonly #coalesce: Coalesce<unknown>;
+  readonly #cache: LruCache<string, IdempotencyGuardEntryInterface<TResult>>;
+  readonly #coalesce: Coalesce<IdempotencyGuardEntryInterface<TResult>>;
   readonly #inFlightFingerprints = new Map<string, string>();
-  protected readonly hooks: HookInvoker = new HookInvoker();
-
-  /**
-   * Runs `hookName` through the composed `HookInvoker#invoke` — which
-   * `await`s `fn`, so it catches both a synchronous throw and a rejected
-   * `Promise` from an `async` override — and discards a failure rather than
-   * letting `invoke`'s default `onHookError` rethrow it as a
-   * `HookInvocationError`: a broken hook must never throw out of or block
-   * `run()`.
-   */
-  async #invokeHookSafely(hookName: string, fn: () => unknown): Promise<void> {
-    try {
-      await this.hooks.invoke(hookName, fn);
-    } catch {
-      // Discarded — see method doc: hooks must never break `run()`.
-    }
-  }
+  protected readonly hooks: HookInvoker = new IdempotencyGuardHookInvoker();
 
   protected constructor(options: IdempotencyGuardOptionsEntity.Type) {
-    this.#cache = LruCache.create<string, IdempotencyGuardEntryType>({
+    this.#cache = LruCache.create<string, IdempotencyGuardEntryInterface<TResult>>({
       'capacity': options.capacity,
       'ttlMs': options.ttlMs
     });
 
-    this.#coalesce = new IdempotencyGuardCoalesce(
-      (key: string): Promise<void> => {
-        const pending = this.#invokeHookSafely('onExecute', () => {
-          const hookResult = this.onExecute(key);
-          return hookResult;
-        });
-        return pending;
-      },
-      (key: string): Promise<void> => {
-        const pending = this.#invokeHookSafely('onCoalesce', () => {
-          const hookResult = this.onCoalesce(key);
-          return hookResult;
-        });
-        return pending;
-      }
-    );
+    this.#coalesce = new IdempotencyGuard.#OwnedCoalesce<TResult>(this);
   }
 
   /**
@@ -146,20 +119,24 @@ export class IdempotencyGuard {
    *   currently in-flight execution, whose fingerprint does not match
    *   `payload`'s fingerprint
    */
-  async run<TResult>(key: string, payload: unknown, factory: () => Promise<TResult>): Promise<TResult> {
+  async run(
+    key: string,
+    payload: unknown,
+    factory: () => TResult | Promise<TResult>
+  ): Promise<TResult> {
     const fingerprint = Hash.value(payload);
     const cached = this.#cache.get(key);
 
     if (cached !== undefined) {
       if (cached.fingerprint === fingerprint) {
-        await this.#invokeHookSafely('onReplay', () => {
+        await this.hooks.invokeAsync('onReplay', () => {
           const hookResult = this.onReplay(key);
           return hookResult;
         });
-        return cached.result as TResult;
+        return cached.result;
       }
 
-      await this.#invokeHookSafely('onConflict', () => {
+      await this.hooks.invokeAsync('onConflict', () => {
         const hookResult = this.onConflict(key);
         return hookResult;
       });
@@ -175,7 +152,7 @@ export class IdempotencyGuard {
     // own.
     const leaderFingerprint = this.#inFlightFingerprints.get(key);
     if (leaderFingerprint !== undefined && leaderFingerprint !== fingerprint) {
-      await this.#invokeHookSafely('onConflict', () => {
+      await this.hooks.invokeAsync('onConflict', () => {
         const hookResult = this.onConflict(key);
         return hookResult;
       });
@@ -188,26 +165,23 @@ export class IdempotencyGuard {
     }
 
     try {
-      const result = await this.#coalesce.run(key, factory);
+      const executeFactory = async (): Promise<IdempotencyGuardEntryInterface<TResult>> => {
+        const produced = factory();
+        const result = await Promise.resolve(produced);
+        return { 'fingerprint': fingerprint, 'result': result };
+      };
+      const entry = await this.#coalesce.run(key, executeFactory);
+      if (entry.fingerprint !== fingerprint) {
+        throw new TypeError('Idempotency guard result entry does not match its payload fingerprint.');
+      }
+      this.#cache.set(key, entry);
 
-      this.#cache.set(key, { 'fingerprint': fingerprint, 'result': result });
-
-      return result as TResult;
+      return entry.result;
     } finally {
       if (isLeader) {
         this.#inFlightFingerprints.delete(key);
       }
     }
-  }
-
-  /** The composed `LruCache` instance — never a copy or wrapper. */
-  getCache(): LruCache<string, IdempotencyGuardEntryType> {
-    return this.#cache;
-  }
-
-  /** The composed `Coalesce` instance — never a copy or wrapper. */
-  getCoalesce(): Coalesce<unknown> {
-    return this.#coalesce;
   }
 
   // ---------------------------------------------------------------------------

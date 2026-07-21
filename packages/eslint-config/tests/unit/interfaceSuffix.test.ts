@@ -27,29 +27,58 @@ const ruleTester = new RuleTester({
 
 ruleTester.run('interface-suffix', interfaceSuffix, {
   'valid': [
-    // Interface name already ends with 'Interface'.
     {
       'code': 'interface FooInterface { readonly x: number; }',
-      'name': 'interface name ending with Interface — not flagged'
+      'name': 'readonly contract ending with Interface'
     },
-    // Namespace-nested interfaces are NOT exempt — this one already complies.
     {
       'code': 'namespace X { interface FooInterface { readonly x: number; } }',
-      'name': 'namespace-nested interface with the suffix — not flagged'
+      'name': 'namespace contract ending with Interface'
+    },
+    {
+      'code': 'interface PureData { value: string; count: number; }',
+      'name': 'pure-data interface is owned by interface-must-be-contract'
+    },
+    {
+      'code': 'interface Empty {}',
+      'name': 'empty interface is owned by interface-must-be-contract'
     }
   ],
   'invalid': [
-    // Top-level interface missing the required suffix.
     {
       'code': 'interface Foo { readonly x: number; }',
       'errors': [{ 'messageId': 'missing-interface-suffix' }],
-      'name': 'top-level interface missing Interface suffix — flagged'
+      'name': 'readonly contract missing Interface suffix'
     },
-    // Suffixes are not optional: no namespace exemption.
     {
       'code': 'namespace X { interface Foo { readonly x: number; } }',
       'errors': [{ 'messageId': 'missing-interface-suffix' }],
-      'name': 'namespace-nested interface missing Interface suffix — flagged, no exemption'
+      'name': 'namespace contract missing Interface suffix'
+    },
+    {
+      'code': 'interface Callable { (): void; }',
+      'errors': [{ 'messageId': 'missing-interface-suffix' }],
+      'name': 'callable contract missing Interface suffix'
+    },
+    {
+      'code': 'interface RuntimeOwner { value: Date; }',
+      'errors': [{ 'messageId': 'missing-interface-suffix' }],
+      'name': 'runtime contract missing Interface suffix'
+    },
+    {
+      'code': 'interface Branded { readonly __brand: unique symbol; value: string; }',
+      'errors': [{ 'messageId': 'missing-interface-suffix' }],
+      'name': 'brand contract missing Interface suffix'
+    },
+    {
+      'code': 'interface NonSchema { value: unknown; }',
+      'errors': [{ 'messageId': 'missing-interface-suffix' }],
+      'name': 'non-schema contract missing Interface suffix'
+    },
+    {
+      'code': 'interface Handler { run(): void; config: { retries: number }; }',
+      'errors': [{ 'messageId': 'missing-interface-suffix' }],
+      'name': 'contract with inline pure data missing Interface suffix'
     }
   ]
 });

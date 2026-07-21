@@ -1,7 +1,6 @@
 /**
  * Regression tests: the documented `json` option must serialize a body and
- * set Content-Type, matching RequestBuilder.json() behavior — for both the
- * FetchClient instance methods and the standalone HttpMethods.
+ * set Content-Type for FetchClient instance methods.
  */
 
 import assert from 'node:assert';
@@ -9,15 +8,14 @@ import {
   after, before, describe, it
 } from 'node:test';
 
-import {
-  FetchClient, HttpMethods
-} from '../../../src/index.js';
+import { FetchClient } from '../../../src/index.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 
 void describe('json option', () => {
   let testUrl: string;
+  const absoluteClient = FetchClient.create();
 
   before(async () => {
     testUrl = await startTestServer();
@@ -57,9 +55,9 @@ void describe('json option', () => {
     });
   });
 
-  void describe('HttpMethods (standalone)', () => {
+  void describe('absolute URL requests', () => {
     void it('serializes json into the request body and sets Content-Type for post', async () => {
-      const response = await HttpMethods.post(`${testUrl}/echo`, { json: { a: 1, b: 'two' } });
+      const response = await absoluteClient.post(`${testUrl}/echo`, { json: { a: 1, b: 'two' } });
 
       assert.strictEqual(response.status, 200);
 
@@ -70,7 +68,7 @@ void describe('json option', () => {
     });
 
     void it('serializes json into the request body for put', async () => {
-      const response = await HttpMethods.put(`${testUrl}/posts/1`, { json: { title: 'updated via json' } });
+      const response = await absoluteClient.put(`${testUrl}/posts/1`, { json: { title: 'updated via json' } });
 
       assert.strictEqual(response.status, 200);
 
@@ -80,7 +78,7 @@ void describe('json option', () => {
     });
 
     void it('serializes json into the request body for patch', async () => {
-      const response = await HttpMethods.patch(`${testUrl}/posts/1`, { json: { title: 'patched via json' } });
+      const response = await absoluteClient.patch(`${testUrl}/posts/1`, { json: { title: 'patched via json' } });
 
       assert.strictEqual(response.status, 200);
 

@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
-
 import { ClampedConfig } from '../../../src/validation/clampedConfig.js';
 import type { ClampEventEntity } from '../../../src/entities/ClampEventEntity.js';
 import type { ClampRuleEntity } from '../../../src/entities/ClampRuleEntity.js';
@@ -54,7 +52,7 @@ void describe('ClampedConfig', () => {
     });
 
     void it('leaves a non-numeric field untouched even if the key is ruled', () => {
-      const config = { timeoutMs: 'not-a-number' as unknown as number };
+      const config: Record<string, unknown> = { timeoutMs: 'not-a-number' };
       const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout out of range' },
       };
@@ -165,11 +163,10 @@ void describe('ClampedConfig', () => {
       assert.doesNotThrow(() => ClampedConfig.apply(config, rules));
     });
 
-    void it('a throwing onClamp hook surfaces as a HookInvocationError', () => {
-      const cause = new Error('onClamp boom');
+    void it('a throwing onClamp hook does not replace the clamped result', () => {
       class ThrowingClampedConfig extends ClampedConfig {
         protected static override onClamp(): void {
-          throw cause;
+          throw new Error('onClamp boom');
         }
       }
 
@@ -178,15 +175,9 @@ void describe('ClampedConfig', () => {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout too low' },
       };
 
-      assert.throws(
-        () => ThrowingClampedConfig.apply(config, rules),
-        (error: unknown) => {
-          assert.ok(error instanceof HookInvocationError);
-          assert.strictEqual(error.hookName, 'onClamp');
-          assert.strictEqual(error.cause, cause);
-          return true;
-        }
-      );
+      const result = ThrowingClampedConfig.apply(config, rules);
+
+      assert.strictEqual(result.timeoutMs, 100);
     });
 
     void it('a throwing onClamp hook does not corrupt the input config', () => {
@@ -201,22 +192,21 @@ void describe('ClampedConfig', () => {
         timeoutMs: { min: 100, max: 5000, reason: 'timeout too low' },
       };
 
-      assert.throws(() => ThrowingClampedConfig.apply(config, rules));
+      const result = ThrowingClampedConfig.apply(config, rules);
+
+      assert.strictEqual(result.timeoutMs, 100);
       assert.strictEqual(config.timeoutMs, 10, 'input must not be mutated even when the hook throws');
     });
 
-    void it('routes a rejection from an unexpectedly-async onClamp override to onHookError without ever producing an unhandled rejection', async () => {
-      const erroredCauses: unknown[] = [];
+    void it('an unexpectedly-async rejecting onClamp override preserves the clamped result without an unhandled rejection', async () => {
+      let hookInvoked = false;
       class AsyncOverrideClampedConfig extends ClampedConfig {
         // Declared signature is `void`; TypeScript's void-return leniency
         // structurally permits this `async` override even though `apply` is
         // a synchronous, non-awaiting call site.
         protected static override async onClamp(_event: ClampEventEntity.Type): Promise<void> {
+          hookInvoked = true;
           throw new Error('async onClamp boom');
-        }
-
-        protected static override onHookError(cause: unknown): void {
-          erroredCauses.push(cause);
         }
       }
 
@@ -243,10 +233,8 @@ void describe('ClampedConfig', () => {
         await new Promise((resolve) => { setImmediate(resolve); });
         await new Promise((resolve) => { setImmediate(resolve); });
 
+        assert.strictEqual(hookInvoked, true);
         assert.strictEqual(rejectionEvents.length, 0);
-        assert.strictEqual(erroredCauses.length, 1);
-        assert.ok(erroredCauses[0] instanceof Error);
-        assert.strictEqual((erroredCauses[0] as Error).message, 'async onClamp boom');
       } finally {
         process.off('unhandledRejection', onUnhandledRejection);
       }

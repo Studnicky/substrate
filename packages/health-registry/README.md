@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/health-registry)
 
-Registers named async check functions, each resolving to a `'healthy' | 'degraded' | 'unhealthy'` status with optional metadata, and aggregates every registered check into one overall status. `evaluate()` runs all checks in parallel via `Promise.allSettled`, applies each check's own configured `timeoutMs` (composed via `@studnicky/signal`), and folds a rejecting or timed-out check into the results as `'unhealthy'` instead of crashing the evaluation of the other checks. `HealthRegistry` owns only the registry-and-aggregate logic — no HTTP endpoint wiring, no Kubernetes liveness/readiness distinction; wire `evaluate()` into a route or probe in the consuming application.
+Registers named async check functions, each resolving to a `'healthy' | 'degraded' | 'unhealthy'` status with optional metadata, and aggregates every registered check into one overall status. `evaluate()` runs all checks in parallel via `Promise.allSettled`; a configured `timeoutMs` races that check against a local timer with `Promise.race`. A rejecting or timed-out check is folded into the results as `'unhealthy'` instead of crashing the evaluation of the other checks. `HealthRegistry` owns only the registry-and-aggregate logic — no HTTP endpoint wiring, no Kubernetes liveness/readiness distinction; wire `evaluate()` into a route or probe in the consuming application.
 
 ## Install
 

@@ -5,11 +5,11 @@
  * @example
  * ```typescript
  * import { FetchClient, HTTPError } from '@studnicky/fetch';
- * import type { ResponseContextType } from '@studnicky/fetch';
+ * import type { ResponseContextInterface } from '@studnicky/fetch';
  *
  * // Subclass and override onResponse to throw on HTTP error status
  * class StrictClient extends FetchClient {
- *   protected override async onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+ *   protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
  *     if (!context.response.ok) {
  *       throw new HTTPError(context.response.url, context.response);
  *     }

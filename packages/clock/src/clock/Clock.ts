@@ -9,10 +9,9 @@
 
 import { HookInvoker } from '@studnicky/errors';
 
-import type { ClockProviderType } from '../types/ClockProviderType.js';
+import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
 import { ClockError } from '../errors/ClockError.js';
-import { ClockBuilder } from './ClockBuilder.js';
 
 const HRTIME_ZERO = 0n;
 
@@ -21,19 +20,11 @@ const HRTIME_ZERO = 0n;
  * while enforcing per-instance monotonicity for `now()` and `hrtime()`.
  */
 export class Clock {
-  static builder(): ClockBuilder {
-    const result = ClockBuilder.create((provider) => {
-      const clock = Clock.create(provider);
-      return clock;
-    });
-    return result;
-  }
-
-  static create(provider: ClockProviderType): Clock {
+  static create(provider: ClockProviderInterface): Clock {
     return new this(provider);
   }
 
-  readonly #provider: ClockProviderType;
+  readonly #provider: ClockProviderInterface;
   #lastHrtime: bigint;
   #lastNow: number;
 
@@ -42,21 +33,23 @@ export class Clock {
   /**
    * Property write order: #provider, #lastHrtime, #lastNow.
    */
-  protected constructor(provider: ClockProviderType) {
+  protected constructor(provider: ClockProviderInterface) {
     if (!Clock.isValidProvider(provider)) {
-      throw new ClockError('provider must implement ClockProviderType');
+      throw new ClockError('provider must implement ClockProviderInterface');
     }
     this.#provider = provider;
     this.#lastHrtime = HRTIME_ZERO;
     this.#lastNow = 0;
   }
 
-  private static isValidProvider(provider: unknown): provider is ClockProviderType {
+  private static isValidProvider(provider: unknown): provider is ClockProviderInterface {
     return (
       typeof provider === 'object' &&
       provider !== null &&
-      typeof (provider as ClockProviderType).now === 'function' &&
-      typeof (provider as ClockProviderType).hrtime === 'function'
+      'now' in provider &&
+      typeof provider.now === 'function' &&
+      'hrtime' in provider &&
+      typeof provider.hrtime === 'function'
     );
   }
 

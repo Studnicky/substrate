@@ -13,14 +13,17 @@ export class ValidateRequestIdGenerator extends FetchConfigValidation {
    * @throws ConfigurationError if validation fails
    */
   public static validate(val: unknown): void {
-    this.assertFunction(val, 'requestIdGenerator');
     if (val === undefined || val === null) {
       return;
     }
 
+    if (typeof val !== 'function') {
+      this.onValidationError('requestIdGenerator must be a function');
+    }
+
     // Test that the function returns a string
     try {
-      const result = (val as () => string)();
+      const result: unknown = Reflect.apply(val, undefined, []);
 
       if (typeof result !== 'string') {
         this.onValidationError('requestIdGenerator must return a string');

@@ -5,10 +5,10 @@
  *   1. `AuditError extends BaseError` — overrides `serializeExtra()` and
  *      `formatUserMessage()`.
  *   2. `NetworkModuleError extends ModuleError` — verifies that `name` resolves
- *      to the concrete subclass and that cause-chain helpers + toJSON work correctly.
+ *      to the concrete subclass and that canonical cause-chain operations + toJSON work correctly.
  */
 
-import type { ModuleErrorOptionsType } from '../../src/types/index.js';
+import type { ModuleErrorOptionsInterface } from '../../src/interfaces/index.js';
 
 import {
   deepStrictEqual,
@@ -22,34 +22,27 @@ import {
 
 import { ErrorDefaults } from '../../src/constants/index.js';
 import { BaseError } from '../../src/errors/BaseError.js';
-import { ErrorCodeRegistry } from '../../src/errors/ErrorCodeRegistry.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
 
 // ---------------------------------------------------------------------------
 // AuditError — extends BaseError, overrides serializeExtra + formatUserMessage
 // ---------------------------------------------------------------------------
 
-ErrorCodeRegistry.register({
-  'code': 'audit.failed',
-  'description': 'Audit check failed.',
-  'retryable': false
-});
-
-type AuditErrorArgumentsType = {
+interface AuditErrorArgumentsInterface {
   readonly 'auditId': string;
   readonly 'message': string;
   readonly 'policy': string;
-};
+}
 
 class AuditError extends BaseError {
   public readonly auditId: string;
   public readonly policy: string;
 
-  public static of(args: AuditErrorArgumentsType): AuditError {
+  public static of(args: AuditErrorArgumentsInterface): AuditError {
     return new AuditError(args);
   }
 
-  protected constructor(args: AuditErrorArgumentsType) {
+  protected constructor(args: AuditErrorArgumentsInterface) {
     super({ 'code': 'audit.failed', 'message': args.message, 'retryable': false });
     this.auditId = args.auditId;
     this.policy = args.policy;
@@ -77,7 +70,7 @@ class NetworkModuleError extends ModuleError {
     options?: Omit<Parameters<typeof ModuleError.create>[1], 'scenario'>
   ): NetworkModuleError {
     const defaults = ErrorDefaults.CONNECTION;
-    const mergedOptions: ModuleErrorOptionsType = {
+    const mergedOptions: ModuleErrorOptionsInterface = {
       'cause': options?.cause,
       'code': defaults.code,
       'context': options?.context,
@@ -87,7 +80,7 @@ class NetworkModuleError extends ModuleError {
     return new NetworkModuleError(message, mergedOptions);
   }
 
-  protected constructor(message: string, options: ModuleErrorOptionsType) {
+  protected constructor(message: string, options: ModuleErrorOptionsInterface) {
     super(message, options);
   }
 }
@@ -157,28 +150,28 @@ void describe('NetworkModuleError extends ModuleError', () => {
     ok(err instanceof NetworkModuleError);
   });
 
-  void it('getCauseChain() works on subclass instance', () => {
+  void it('BaseError.getCauseChain() works on subclass instance', () => {
     const root = new Error('socket hung up');
     const err = NetworkModuleError.create('Connection refused', { 'cause': root });
-    const chain = err.getCauseChain();
+    const chain = BaseError.getCauseChain(err);
     strictEqual(chain.length, 2);
     strictEqual(chain[0], err);
     strictEqual(chain[1], root);
   });
 
-  void it('findCauseOfType() works on subclass instance', () => {
+  void it('BaseError.findCauseOfType() works on subclass instance', () => {
     const root = new TypeError('bad address');
     const err = NetworkModuleError.create('Connection refused', { 'cause': root });
-    const found = err.findCauseOfType(TypeError);
+    const found = BaseError.findCauseOfType(err, TypeError);
     ok(found instanceof TypeError);
     strictEqual(found, root);
   });
 
-  void it('hasCauseOfType() works on subclass instance', () => {
+  void it('BaseError.hasCauseOfType() works on subclass instance', () => {
     const root = new RangeError('port out of range');
     const err = NetworkModuleError.create('Connection refused', { 'cause': root });
-    ok(err.hasCauseOfType(RangeError));
-    strictEqual(err.hasCauseOfType(TypeError), false);
+    ok(BaseError.hasCauseOfType(err, RangeError));
+    strictEqual(BaseError.hasCauseOfType(err, TypeError), false);
   });
 
   void it('toJSON includes name as NetworkModuleError', () => {

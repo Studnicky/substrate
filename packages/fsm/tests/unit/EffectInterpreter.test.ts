@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { StateMachine } from '../../src/StateMachine.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MailboxCapacityExceededError } from '../../src/errors/MailboxCapacityExceededError.js';
-import type { FsmStepType } from '../../src/FsmStepType.js';
+import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
 
 type DemoState = { readonly variant: 'idle' } | { readonly variant: 'active' };
 type DemoEvent = { readonly type: 'activate' } | { readonly type: 'deactivate' };
@@ -11,7 +11,7 @@ type DemoEffect = { readonly variant: 'log'; readonly message: string };
 
 class DemoMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
   getInitialState(): DemoState { return { variant: 'idle' }; }
-  reduce(state: DemoState, event: DemoEvent): FsmStepType<DemoState, DemoEffect> {
+  reduce(state: DemoState, event: DemoEvent): FsmStepInterface<DemoState, DemoEffect> {
     if (state.variant === 'idle' && event.type === 'activate') {
       return { state: { variant: 'active' }, effects: [{ variant: 'log', message: 'activated' }] };
     }
@@ -24,25 +24,25 @@ class DemoMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
 
 describe('EffectInterpreter', () => {
   it('getState() throws before start()', () => {
-    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-1' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), machineId: 'test-1' });
     assert.throws(() => interp.getState(), /not started/);
   });
 
   it('send() throws before start()', async () => {
-    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-2' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), machineId: 'test-2' });
     await assert.rejects(() => interp.send({ type: 'activate' }), /not running/);
   });
 
   it('create throws FsmConfigError for empty machineId', () => {
     assert.throws(
-      () => EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: '' }),
+      () => EffectInterpreter.create({ machine: new DemoMachine(), machineId: '' }),
       { message: 'machineId must not be empty' }
     );
   });
 
   it('start() sets initial state and notifies observers', () => {
     const states: DemoState[] = [];
-    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-3' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), machineId: 'test-3' });
     interp.subscribe(s => states.push(s));
     interp.start();
     assert.deepEqual(interp.getState(), { variant: 'idle' });
@@ -52,7 +52,7 @@ describe('EffectInterpreter', () => {
 
   it('send() transitions state and notifies observer', async () => {
     const states: DemoState[] = [];
-    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-4' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), machineId: 'test-4' });
     interp.subscribe(s => states.push(s));
     interp.start();
     await interp.send({ type: 'activate' });
@@ -61,11 +61,42 @@ describe('EffectInterpreter', () => {
     assert.deepEqual(states[1], { variant: 'active' });
   });
 
+  it('getState() and observer snapshots cannot mutate retained interpreter state', async () => {
+    type NestedState = { readonly variant: 'idle' | 'active'; details: { count: number } };
+    type NestedEvent = { readonly type: 'activate' };
+
+    class NestedMachine extends StateMachine<NestedState, NestedEvent> {
+      getInitialState(): NestedState { return { 'details': { 'count': 1 }, 'variant': 'idle' }; }
+      reduce(_state: NestedState): FsmStepInterface<NestedState> {
+        return { 'effects': [], 'state': { 'details': { 'count': 2 }, 'variant': 'active' } };
+      }
+    }
+
+    const observed: NestedState[] = [];
+    const interp = EffectInterpreter.create({ 'machine': new NestedMachine(), 'machineId': 'snapshot-state' });
+    interp.subscribe((state) => {
+      observed.push(state);
+      state.details.count = 90;
+    });
+    interp.start();
+
+    const initial = interp.getState();
+    initial.details.count = 99;
+    assert.equal(interp.getState().details.count, 1);
+
+    await interp.send({ 'type': 'activate' });
+    const active = interp.getState();
+    active.details.count = 88;
+
+    assert.equal(interp.getState().details.count, 2);
+    assert.deepEqual(observed.map((state) => state.details.count), [90, 90]);
+  });
+
   it('effect handler is called after transition', async () => {
     const logged: string[] = [];
     const interp = EffectInterpreter.create({
       machine: new DemoMachine(),
-      handlers: { log: (e) => { logged.push(e.message); } },
+      handler: (effect) => { logged.push(effect.message); },
       machineId: 'test-5',
     });
     interp.start();
@@ -75,7 +106,7 @@ describe('EffectInterpreter', () => {
 
   it('unsubscribe stops notifications', async () => {
     const states: DemoState[] = [];
-    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-6' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), machineId: 'test-6' });
     const unsub = interp.subscribe(s => states.push(s));
     interp.start();
     unsub();
@@ -84,7 +115,7 @@ describe('EffectInterpreter', () => {
   });
 
   it('processes events FIFO', async () => {
-    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-7' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), machineId: 'test-7' });
     interp.start();
     const p1 = interp.send({ type: 'activate' });
     const p2 = interp.send({ type: 'deactivate' });
@@ -95,9 +126,7 @@ describe('EffectInterpreter', () => {
   it('effect handler dispatch() causes the dispatched event to be processed within the same send() call', async () => {
     const interp = EffectInterpreter.create({
       machine: new DemoMachine(),
-      handlers: {
-        log: (_effect, dispatch) => { dispatch({ type: 'deactivate' }); },
-      },
+      handler: (_effect, dispatch) => { dispatch({ type: 'deactivate' }); },
       machineId: 'test-8',
     });
     interp.start();
@@ -110,7 +139,7 @@ describe('EffectInterpreter', () => {
   it('a rejected transition does not permanently wedge the interpreter — a later send() still drains', async () => {
     class RejectingMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
       getInitialState(): DemoState { return { variant: 'idle' }; }
-      reduce(state: DemoState, event: DemoEvent): FsmStepType<DemoState, DemoEffect> {
+      reduce(state: DemoState, event: DemoEvent): FsmStepInterface<DemoState, DemoEffect> {
         if (event.type === 'deactivate') { throw new Error('deliberately rejected'); }
         if (state.variant === 'idle' && event.type === 'activate') {
           return { state: { variant: 'active' }, effects: [] };
@@ -121,21 +150,19 @@ describe('EffectInterpreter', () => {
 
     const interp = EffectInterpreter.create({
       machine: new RejectingMachine(),
-      handlers: {},
       machineId: 'test-9',
     });
     interp.start();
 
     await assert.rejects(() => interp.send({ type: 'deactivate' }));
 
-    // Before the fix, #draining stayed stuck true after the throw above, so this
-    // send() would silently no-op — the mailbox would fill but never drain.
+    // A rejected entry releases the drain loop so the next send can transition.
     await interp.send({ type: 'activate' });
     assert.deepEqual(interp.getState(), { variant: 'active' });
   });
 
   it('a throwing observer does not replace a successful send() result or block state advancement', async () => {
-    const interp = EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-10' });
+    const interp = EffectInterpreter.create({ machine: new DemoMachine(), machineId: 'test-10' });
     interp.subscribe((_state) => {
       throw new Error('observer boom');
     });
@@ -146,14 +173,12 @@ describe('EffectInterpreter', () => {
   });
 
   it('stop() while an async effect handler is in-flight prevents further queued events from being processed once it resolves', async () => {
-    let releaseHandler!: () => void;
+    let releaseHandler: (() => void) | undefined;
     const handlerGate = new Promise<void>((resolve) => { releaseHandler = resolve; });
 
     const interp = EffectInterpreter.create({
       machine: new DemoMachine(),
-      handlers: {
-        log: async () => { await handlerGate; },
-      },
+      handler: async () => { await handlerGate; },
       machineId: 'test-11',
     });
     interp.start();
@@ -167,7 +192,11 @@ describe('EffectInterpreter', () => {
     await Promise.resolve();
     interp.stop();
 
-    releaseHandler();
+    const release = releaseHandler;
+    if (release === undefined) {
+      throw new Error('Handler gate was not initialized');
+    }
+    release();
 
     // The already in-flight 'activate' event completes — it transitioned before stop() was called.
     await activatePromise;
@@ -180,7 +209,7 @@ describe('EffectInterpreter', () => {
   it('send() while another drain is in-flight resolves only after its own event transitions, even when the in-flight drain errors', async () => {
     class RejectingMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
       getInitialState(): DemoState { return { variant: 'idle' }; }
-      reduce(state: DemoState, event: DemoEvent): FsmStepType<DemoState, DemoEffect> {
+      reduce(state: DemoState, event: DemoEvent): FsmStepInterface<DemoState, DemoEffect> {
         if (event.type === 'deactivate') { throw new Error('deliberately rejected'); }
         if (state.variant === 'idle' && event.type === 'activate') {
           return { state: { variant: 'active' }, effects: [] };
@@ -191,7 +220,6 @@ describe('EffectInterpreter', () => {
 
     const interp = EffectInterpreter.create({
       machine: new RejectingMachine(),
-      handlers: {},
       machineId: 'test-12',
     });
     interp.start();
@@ -212,14 +240,14 @@ describe('EffectInterpreter', () => {
 
   it('create throws FsmConfigError for a non-positive mailboxCapacity', () => {
     assert.throws(
-      () => EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-13', mailboxCapacity: 0 }),
+      () => EffectInterpreter.create({ machine: new DemoMachine(), machineId: 'test-13', mailboxCapacity: 0 }),
       { message: 'mailboxCapacity must be a positive integer' }
     );
   });
 
   it('create throws FsmConfigError for a non-integer mailboxCapacity', () => {
     assert.throws(
-      () => EffectInterpreter.create({ machine: new DemoMachine(), handlers: {}, machineId: 'test-14', mailboxCapacity: 1.5 }),
+      () => EffectInterpreter.create({ machine: new DemoMachine(), machineId: 'test-14', mailboxCapacity: 1.5 }),
       { message: 'mailboxCapacity must be a positive integer' }
     );
   });
@@ -227,7 +255,6 @@ describe('EffectInterpreter', () => {
   it('mailboxCapacity bounds the mailbox: overflow rejects the evicted send() with MailboxCapacityExceededError, without disturbing surrounding entries', async () => {
     const interp = EffectInterpreter.create({
       machine: new DemoMachine(),
-      handlers: {},
       machineId: 'test-15',
       mailboxCapacity: 2,
     });

@@ -167,12 +167,8 @@ export class ValidateOptions {
       throw new ConfigurationError('options must be an object');
     }
 
-    const optionsObj = val as Record<string, unknown>;
-
-    for (const [
-      key,
-      value
-    ] of Object.entries(optionsObj)) {
+    for (const key of Object.keys(val)) {
+      const value: unknown = Reflect.get(val, key);
       const validator = optionValidators[key];
 
       if (validator !== undefined) {

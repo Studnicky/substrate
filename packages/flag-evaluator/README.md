@@ -49,6 +49,8 @@ const unregisteredOn = evaluator.evaluate('never-registered', { targetingKey: 'u
 | `list()` | The names of every currently registered flag |
 | `evaluate(name, context)` | Resolves a boolean decision for `name` given `context: { targetingKey?, ...arbitrary }` |
 
+`FlagContextEntity` owns the optional schema-derived `targetingKey` field. `FlagContextInterface` composes that field and remains open to application-specific context values.
+
 ### Unregistered vs. disabled
 
 These are two distinct outcomes, both returning a boolean, for different reasons:

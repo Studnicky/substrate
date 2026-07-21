@@ -15,7 +15,7 @@ pnpm add @studnicky/throttle
 
 ## Usage
 
-Build a `Throttle` instance with the constructor or factory, then pass any operation to `execute`. The instance tracks stats and enforces the concurrency limit:
+Create a `Throttle` instance with `Throttle.create(config)`, then pass any operation to `execute`. Configuration is supplied once at construction and is not exposed through setters. The instance tracks stats and enforces the concurrency limit:
 
 <<< ../../packages/throttle/examples/basicThrottle.ts#usage
 
@@ -26,12 +26,6 @@ Call `drain()` to stop accepting new work and wait for all active and queued ope
 <<< ../../packages/throttle/examples/drainThrottle.ts#usage
 
 ## Try it
-
-### Builder
-
-`Throttle.builder().withConcurrencyLimit(3).build()` constructs the throttle through the fluent builder. Press Execute to submit 6 operations through the concurrencyLimit-3 throttle; all 6 complete in order, and stats confirm 6 total executed with the configured limit.
-
-<RunnableExample src="packages/throttle/examples/builder-throttle" title="Builder — fluent throttle construction" />
 
 ### Lifecycle hooks
 
@@ -49,26 +43,27 @@ const throttle = Throttle.create({ concurrencyLimit: 3 });
 await throttle.abort();
 ```
 
-### Builder
+## Public API
 
-<!-- inline-ts-ok: brief API surface demo -->
+Import `Throttle`, its schema-backed entities, `ThrottleAbortedError`, `ThrottleDrainingError`, `ThrottleInterface`, and `ThrottleValidator` from `@studnicky/throttle`. The package root is the only public code entrypoint; defaults and scheduling constants are implementation details.
+
+`Throttle.create(config)` validates and copies the supplied configuration into instance-owned state. Adaptive concurrency may adjust the instance's effective limit without mutating the caller's config object.
+
+Use `ThrottleConfigEntity.validate(candidate)` at an untrusted configuration boundary. It validates against `ThrottleConfigEntity.Schema`, throws for invalid input, and narrows a valid candidate to `ThrottleConfigEntity.Type`.
+
+`getStats()` returns `ThrottleStatsEntity.Type`. Use the root-exported compiled validator at trust boundaries:
+
+<!-- inline-ts-ok: compact validation example -->
 ```typescript
-import { Throttle } from '@studnicky/throttle';
+import { Throttle, ThrottleStatsEntity } from '@studnicky/throttle';
 
-const throttle = Throttle.builder()
-  .withConcurrencyLimit(8)
-  .build();
+const throttle = Throttle.create({ concurrencyLimit: 3 });
+const stats = throttle.getStats();
+
+if (!ThrottleStatsEntity.validate(stats)) {
+  throw new Error('invalid throttle statistics');
+}
 ```
-
-## Subpath exports
-
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/throttle` | `Throttle`, `ThrottleBuilder`, errors, interfaces, type guards |
-| `@studnicky/throttle/constants` | Default configuration constants |
-| `@studnicky/throttle/errors` | `ConfigurationError`, `ThrottleAbortedError`, `ThrottleDrainingError` |
-| `@studnicky/throttle/interfaces` | Interface types |
-| `@studnicky/throttle/types` | `AdaptiveConfigInputType` |
 
 ## Observability hooks
 
@@ -76,7 +71,7 @@ Subclass `Throttle` and override any of the protected hooks below to add logging
 
 | Hook | When it fires | Args |
 |------|--------------|------|
-| `onEnter(to, from)` | Every FSM state transition | `to: ThrottleStateType`, `from: ThrottleStateType` |
+| `onEnter(to, from)` | Every FSM state transition | `to: ThrottleStateEntity.Type`, `from: ThrottleStateEntity.Type` |
 | `onAcquire(activeCount, queuedCount)` | A slot is granted immediately (window not full) | `activeCount: number`, `queuedCount: number` |
 | `onContended(activeCount, queuedCount)` | A caller arrives at a saturated window and is about to queue | `activeCount: number`, `queuedCount: number` |
 | `onAcquireWait(queuedCount)` | A caller has been pushed onto the queue; queue depth after enqueue | `queuedCount: number` |

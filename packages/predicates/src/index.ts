@@ -6,6 +6,4 @@
  *   array, object, and content validation (JSON Schema draft 2020-12).
  */
 
-export type { CoerceToBooleanResultType } from './CoerceToBooleanResultType.js';
-export type { CoerceToNumberResultType } from './CoerceToNumberResultType.js';
 export { Predicates } from './Predicates.js';

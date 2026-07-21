@@ -10,7 +10,6 @@ import { HookInvoker } from '@studnicky/errors';
 
 import { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
 import { ClockError } from '../errors/ClockError.js';
-import { VirtualTimeCounterBuilder } from './VirtualTimeCounterBuilder.js';
 
 /**
  * Mutable counter that tracks virtual epoch-ms for test scenarios.
@@ -18,14 +17,6 @@ import { VirtualTimeCounterBuilder } from './VirtualTimeCounterBuilder.js';
  * instances see the change immediately.
  */
 export class VirtualTimeCounter {
-  static builder(): VirtualTimeCounterBuilder {
-    const result = VirtualTimeCounterBuilder.create((options) => {
-      const counter = VirtualTimeCounter.create(options);
-      return counter;
-    });
-    return result;
-  }
-
   static create(options: VirtualTimeCounterOptionsEntity.Type = {}): VirtualTimeCounter {
     return new this(options);
   }

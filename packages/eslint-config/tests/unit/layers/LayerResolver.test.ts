@@ -2,9 +2,9 @@ import assert from 'node:assert';
 import { describe, it } from 'node:test';
 
 import { LayerResolver } from '../../../src/rules/layers/LayerResolver.js';
-import type { LayerOptionsType } from '../../../src/types/LayerOptionsType.js';
+import type { LayerOptionsEntity } from '../../../src/rules/layers/LayerOptionsEntity.js';
 
-const baseOptions: LayerOptionsType = {
+const baseOptions: LayerOptionsEntity.Type = {
   'aliasPrefixes': { '@domain/': 'domain', '@ports/': 'ports' },
   'layers': ['domain', 'ports', 'application', 'adapters', 'infrastructure'],
   'sourceRoot': 'src'
@@ -68,7 +68,7 @@ describe('LayerResolver.canImport', () => {
   });
 
   it('respects an allowedImports override that changes the default-matrix result', () => {
-    const options: LayerOptionsType = {
+    const options: LayerOptionsEntity.Type = {
       ...baseOptions,
       'allowedImports': { 'domain': ['domain', 'application'] }
     };

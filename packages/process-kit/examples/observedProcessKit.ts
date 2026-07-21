@@ -5,10 +5,10 @@
  * time-delayed transition via ProcessKit#scheduleDispatch(), which fires well after that
  * drain cycle has ended and therefore goes through the interpreter's public send() —
  * dispatch() has no reach past the cycle that invoked the handler. Cancellation is composed
- * via the now-instantiable Signal. Run: npx tsx examples/observedProcessKit.ts */
+ * through Signal. Run: npx tsx examples/observedProcessKit.ts */
 
 // #region usage
-import type { FsmStepType } from '@studnicky/fsm';
+import type { EffectHandlerInterface, FsmStepInterface } from '@studnicky/fsm';
 
 import { VirtualTimeCounter } from '@studnicky/clock';
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
@@ -16,34 +16,27 @@ import { VirtualScheduler } from '@studnicky/scheduler';
 import { Signal } from '@studnicky/signal';
 import assert from 'node:assert/strict';
 
+import type { JobEffectEntity } from './entities/JobEffectEntity.js';
+import type { JobEventEntity } from './entities/JobEventEntity.js';
+import type { JobStateEntity } from './entities/JobStateEntity.js';
+
 import { ProcessKit } from '../src/index.js';
 
 // --- Domain: a job that starts, self-acknowledges in the same cycle, waits for a scheduled
 // advance, then settles. reduce() stays a pure function of (state, event) throughout. ---
 
-type JobState =
-  | { readonly 'variant': 'acknowledged' }
-  | { readonly 'variant': 'cancelled' }
-  | { readonly 'variant': 'completed' }
-  | { readonly 'variant': 'idle' }
-  | { readonly 'variant': 'waiting' };
+class JobProcess extends StateMachine<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type> {
+  readonly #stateWaiters = new Map<JobStateEntity.Type['variant'], Set<() => void>>();
+  currentState: JobStateEntity.Type = { 'variant': 'idle' };
 
-type JobEvent =
-  | { readonly 'type': 'acknowledge' }
-  | { readonly 'type': 'advance' }
-  | { readonly 'type': 'cancel' }
-  | { readonly 'type': 'start' };
-
-type JobEffect =
-  | { readonly 'delayMs': number; readonly 'variant': 'scheduleAdvance' }
-  | { readonly 'variant': 'requestAck' };
-
-class JobProcess extends StateMachine<JobState, JobEvent, JobEffect> {
   static make(): JobProcess { return new JobProcess(); }
 
-  getInitialState(): JobState { return { 'variant': 'idle' }; }
+  getInitialState(): JobStateEntity.Type { return { 'variant': 'idle' }; }
 
-  reduce(state: JobState, event: JobEvent): FsmStepType<JobState, JobEffect> {
+  reduce(
+    state: JobStateEntity.Type,
+    event: JobEventEntity.Type
+  ): FsmStepInterface<JobStateEntity.Type, JobEffectEntity.Type> {
     if (state.variant === 'idle' && event.type === 'start') {
       return { 'effects': [{ 'variant': 'requestAck' }], 'state': { 'variant': 'waiting' } };
     }
@@ -63,9 +56,33 @@ class JobProcess extends StateMachine<JobState, JobEvent, JobEffect> {
     });
   }
 
+  waitForState(variant: JobStateEntity.Type['variant']): Promise<void> {
+    if (this.currentState.variant === variant) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      const waiters = this.#stateWaiters.get(variant) ?? new Set<() => void>();
+      waiters.add(resolve);
+      this.#stateWaiters.set(variant, waiters);
+    });
+  }
+
   // Once settled, further transitions are rejected outright — reduce() is never called.
-  protected override isTerminated(state: JobState): boolean {
+  protected override isTerminated(state: JobStateEntity.Type): boolean {
     return state.variant === 'completed' || state.variant === 'cancelled';
+  }
+
+  protected override onEnterState(state: JobStateEntity.Type): void {
+    this.currentState = state;
+    const waiters = this.#stateWaiters.get(state.variant);
+    if (waiters === undefined) {
+      return;
+    }
+    this.#stateWaiters.delete(state.variant);
+    for (const resolve of waiters) {
+      resolve();
+    }
   }
 }
 
@@ -74,37 +91,41 @@ const counter = VirtualTimeCounter.create({ 'startMs': 0 });
 const scheduler = VirtualScheduler.create({ 'counter': counter });
 
 class Kit {
-  static make(): ProcessKit<JobState, JobEvent, JobEffect> {
-    const kitRef = { 'current': null as unknown as ProcessKit<JobState, JobEvent, JobEffect> };
-
-    const requestAckFn = (_effect: JobEffect, dispatch: (event: JobEvent) => void): void => {
-      dispatch({ 'type': 'acknowledge' });
+  static make(): {
+    readonly 'kit': ProcessKit<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>;
+    readonly 'machine': JobProcess;
+  } {
+    const handler: EffectHandlerInterface<JobEffectEntity.Type, JobEventEntity.Type> = (effect, dispatch) => {
+      if (effect.variant === 'requestAck') {
+        dispatch({ 'type': 'acknowledge' });
+        return;
+      }
+      kit.scheduleDispatch(counter.nowMs() + effect.delayMs, { 'type': 'advance' });
     };
 
-    const scheduleAdvanceFn = (effect: JobEffect): void => {
-      kitRef.current.scheduleDispatch(counter.nowMs() + (effect as Extract<JobEffect, { 'variant': 'scheduleAdvance' }>).delayMs, { 'type': 'advance' });
-    };
-
-    kitRef.current = ProcessKit.create<JobState, JobEvent, JobEffect>({
-      'handlers': {
-        'requestAck': requestAckFn,
-        'scheduleAdvance': scheduleAdvanceFn
-      },
-      'machine': JobProcess.make(),
+    const machine = JobProcess.make();
+    const kit = ProcessKit.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({
+      'handler': handler,
+      'machine': machine,
       'scheduler': scheduler
     });
 
-    return kitRef.current;
+    return { 'kit': kit, 'machine': machine };
   }
 }
 
-// Cancellation composed via the now-instantiable Signal: an AbortSignal drives a 'cancel'
+// Cancellation composed via Signal: an AbortSignal drives a 'cancel'
 // event into the composed ProcessKit's public dispatch().
 class CancellationWiring {
-  static wireCancellation(kit: ProcessKit<JobState, JobEvent, JobEffect>, abortSignal: AbortSignal): void {
-    abortSignal.addEventListener('abort', () => {
-      void kit.dispatch({ 'type': 'cancel' });
-    }, { 'once': true });
+  static wireCancellation(
+    kit: ProcessKit<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>,
+    abortSignal: AbortSignal
+  ): Promise<JobStateEntity.Type> {
+    return new Promise<JobStateEntity.Type>((resolve, reject) => {
+      abortSignal.addEventListener('abort', () => {
+        kit.dispatch({ 'type': 'cancel' }).then(resolve, reject);
+      }, { 'once': true });
+    });
   }
 }
 // #endregion usage
@@ -114,46 +135,51 @@ class CancellationWiring {
 
 const signalSource = Signal.create();
 
-const kitA = Kit.make();
+const processA = Kit.make();
+const kitA = processA.kit;
 kitA.start();
 await kitA.dispatch({ 'type': 'start' });
 // dispatch() already carried the machine from 'waiting' to 'acknowledged' within this one
 // send() call — no second dispatch() was needed for that leg.
-assert.equal(kitA.getInterpreter().getState().variant, 'acknowledged');
+assert.equal(processA.machine.currentState.variant, 'acknowledged');
 
+const completedA = processA.machine.waitForState('completed');
 scheduler.advance(50);
-assert.equal(kitA.getInterpreter().getState().variant, 'completed');
-console.log('Job A final state:', kitA.getInterpreter().getState().variant);
+await completedA;
+assert.equal(processA.machine.currentState.variant, 'completed');
+console.log('Job A final state:', processA.machine.currentState.variant);
 kitA.stop();
 
 // --- Scenario B: start -> cancelled via Signal before the scheduled advance fires;
 // ProcessKit#stop() cancels the pending scheduled task too, so advancing time afterward
 // has no effect. ---
 
-const kitB = Kit.make();
+const processB = Kit.make();
+const kitB = processB.kit;
 const controllerB = new AbortController();
 const composedSignalB = await signalSource.compose({ 'signal': controllerB.signal });
-CancellationWiring.wireCancellation(kitB, composedSignalB);
+const cancellationB = CancellationWiring.wireCancellation(kitB, composedSignalB);
 
 kitB.start();
 await kitB.dispatch({ 'type': 'start' });
-assert.equal(kitB.getInterpreter().getState().variant, 'acknowledged');
+assert.equal(processB.machine.currentState.variant, 'acknowledged');
 
 controllerB.abort();
-assert.equal(kitB.getInterpreter().getState().variant, 'cancelled');
+await cancellationB;
+assert.equal(processB.machine.currentState.variant, 'cancelled');
 
 // The scheduled advance is still pending on the shared scheduler; cancelling the machine
 // does not by itself cancel it — only kit.stop() (or the task's own .cancel()) does.
 // Since this kit is done, stop() tears down both the interpreter and any pending task.
 kitB.stop();
 scheduler.advance(50);
-assert.equal(kitB.getInterpreter().getState().variant, 'cancelled', 'stop() must also cancel the pending scheduled task');
-console.log('Job B final state:', kitB.getInterpreter().getState().variant);
+assert.equal(processB.machine.currentState.variant, 'cancelled', 'stop() must also cancel the pending scheduled task');
+console.log('Job B final state:', processB.machine.currentState.variant);
 
 // --- Scenario C: a deliberate rejection (TransitionRejectedError) is distinguishable from
 // attempting a transition on an already-terminated machine (MachineTerminatedError). ---
 
-const kitRejected = Kit.make();
+const kitRejected = Kit.make().kit;
 kitRejected.start();
 
 let rejectedByReducer = false;

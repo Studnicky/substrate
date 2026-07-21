@@ -1,7 +1,7 @@
 /** observedCache — subclass overrides emit console.log trace lines on every cache event. Run: npx tsx examples/observedCache.ts */
 
 // #region usage
-import { EventRecorder } from '@studnicky/errors/observers';
+import { EventRecorder } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 
 import { LruCache } from '../src/index.js';

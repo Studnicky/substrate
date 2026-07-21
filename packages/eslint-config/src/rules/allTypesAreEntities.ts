@@ -1,59 +1,99 @@
 import type { Rule } from 'eslint';
 
-import path from 'node:path';
+import {
+  getCombinedModifierFlags,
+  isIdentifier,
+  isModuleBlock,
+  isModuleDeclaration,
+  isTypeAliasDeclaration,
+  isTypeQueryNode,
+  isTypeReferenceNode,
+  isVariableStatement,
+  ModifierFlags,
+  type Node,
+  type Program,
+  SyntaxKind,
+  type TypeAliasDeclaration
+} from 'typescript';
 
-import { ExemptionComment } from './shared/exemptionComment.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
+import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
-const DIRECTIVE_PATTERN = /^\s*json-schema-uninexpressible:\s*\S.{9,}/v;
+interface NodeMapInterface {
+  readonly 'get': (node: unknown) => Node | undefined;
+}
 
-const EXEMPT_PATH_PATTERNS = [
-  /\/entities\/[^\/]+\.ts$/v,
-  /\/src\/types\//v,
-  /\/tests\//v,
-  /\/eslint-config\//v,
-  /eslint\.config\.mjs$/v
-];
+interface ParserServicesInterface {
+  readonly 'esTreeNodeToTSNodeMap': NodeMapInterface;
+  readonly 'program': Program;
+}
 
-class PathGuards {
-  static isExemptPath(filename: string): boolean {
-    if (filename === '<input>' || filename.length === 0) { return true; }
-    const normalized = filename.split(path.sep).join('/');
-    return EXEMPT_PATH_PATTERNS.some((pattern) => { const result = pattern.test(normalized); return result; });
+class ParserServices {
+  static has(value: unknown): value is ParserServicesInterface {
+    if (!ObjectGuard.isObject(value)) { return false; }
+
+    const program = value.program;
+    const nodeMap = value.esTreeNodeToTSNodeMap;
+    if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) { return false; }
+
+    return typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
   }
 }
 
-class NodeName {
-  static get(rawNode: unknown): string {
-    if (!ObjectGuard.isObject(rawNode)) { return ''; }
-    const idNode: unknown = rawNode.id;
-    if (!ObjectGuard.isObject(idNode) || typeof idNode.name !== 'string') { return ''; }
-    return idNode.name;
-  }
+class EntityTypeDeclaration {
+  static isCanonical(declaration: TypeAliasDeclaration): boolean {
+    if (declaration.name.text !== 'Type') { return false; }
+    if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) { return false; }
 
-  static isInsideNamespace(rawNode: unknown): boolean {
-    let current: unknown = ObjectGuard.isObject(rawNode) ? rawNode.parent : undefined;
-    while (ObjectGuard.isObject(current)) {
-      const nodeType: unknown = current.type;
-      if (nodeType === 'TSModuleDeclaration') { return true; }
-      if (nodeType === 'Program') { return false; }
-      current = current.parent;
+    const namespaceBlock = declaration.parent;
+    if (!isModuleBlock(namespaceBlock)) { return false; }
+
+    if (!isTypeReferenceNode(declaration.type)) { return false; }
+    const [schemaArgument] = declaration.type.typeArguments ?? [];
+    if (
+      schemaArgument === undefined
+      || !isTypeQueryNode(schemaArgument)
+      || !isIdentifier(schemaArgument.exprName)
+      || schemaArgument.exprName.text !== 'Schema'
+    ) {
+      return false;
     }
-    return false;
+
+    const ownsExportedSchema = namespaceBlock.statements.some((statement) => {
+      if (!isVariableStatement(statement)) { return false; }
+      const exported = statement.modifiers?.some((modifier) => {
+        return modifier.kind === SyntaxKind.ExportKeyword;
+      }) ?? false;
+      if (!exported) { return false; }
+      return statement.declarationList.declarations.some((schemaDeclaration) => {
+        return isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema';
+      });
+    });
+    if (!ownsExportedSchema) { return false; }
+
+    const namespaceDeclaration = namespaceBlock.parent;
+    return isModuleDeclaration(namespaceDeclaration)
+      && isIdentifier(namespaceDeclaration.name)
+      && namespaceDeclaration.name.text.endsWith('Entity');
   }
 }
 
 export const allTypesAreEntities: Rule.RuleModule = {
   'create': (context) => {
-    const filename = context.filename;
-    if (PathGuards.isExemptPath(filename)) { return {}; }
+    const services: unknown = context.sourceCode.parserServices;
+    if (!ParserServices.has(services)) { return {}; }
+
+    const classification = TypeContractClassification.forProgram(services.program);
 
     const onTSTypeAliasDeclaration = (node: Rule.Node): void => {
-      if (NodeName.isInsideNamespace(node)) { return; }
-      if (ExemptionComment.hasWithExportFallback(node, context.sourceCode, DIRECTIVE_PATTERN)) { return; }
+      const declaration = services.esTreeNodeToTSNodeMap.get(node);
+      if (declaration === undefined || !isTypeAliasDeclaration(declaration)) { return; }
+      const analysis = classification.analyzeAlias(declaration);
+      if (analysis.classification !== 'pureDataCanonical') { return; }
+      if (analysis.reason === 'fromSchema' && EntityTypeDeclaration.isCanonical(declaration)) { return; }
 
       context.report({
-        'data': { 'name': NodeName.get(node) },
+        'data': { 'name': declaration.name.text },
         'messageId': 'forbidden-type-alias',
         'node': node
       });
@@ -63,11 +103,11 @@ export const allTypesAreEntities: Rule.RuleModule = {
   },
   'meta': {
     'docs': {
-      'description': 'Disallow free-standing type aliases outside entity namespaces.',
+      'description': "Require every canonical pure-data alias to be an exported '*Entity.Type' derived from its namespace's Schema.",
       'recommended': false
     },
     'messages': {
-      'forbidden-type-alias': "Free-standing type alias '{{name}}' is forbidden. Data types live inside an entity namespace (e.g. 'export namespace {{name}}Entity { export const Schema = ...; export type Type = FromSchema<typeof Schema>; export const validate = ...; }') under an 'entities/' directory. If JSON Schema truly cannot express this shape, add '// json-schema-uninexpressible: <reason>' immediately before the declaration with a clear justification (at least 10 characters)."
+      'forbidden-type-alias': "Canonical pure-data alias '{{name}}' must be the exported 'Type' member of an '*Entity' namespace and derive directly from that entity's JSON Schema."
     },
     'schema': [],
     'type': 'problem'

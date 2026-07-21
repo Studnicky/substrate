@@ -541,12 +541,8 @@ it('HookInvocationError carries the failing hook name and original cause', () =>
 
 // ── Async hook override safety net ───────────────────────────────────────────
 //
-// HookInvoker.invoke() only detects an asynchronous override (and routes its
-// eventual rejection through onHookError) when the call site's fn() actually
-// returns the hook's own return value. Every `this.hooks.invoke(...)` call
-// site inside SampleBuffer must forward that return value — this test proves
-// it for onPush (fire-and-forget from push(), which itself returns void),
-// with the default onHookError disposition (synchronous rethrow) left intact.
+// Every synchronous fire point returns the protected hook result to
+// HookInvoker so an unexpected asynchronous override remains guarded.
 
 class AsyncRejectingPushBuffer extends SampleBuffer {
   override async onPush(_value: number, _evicted: boolean): Promise<void> {
@@ -555,8 +551,15 @@ class AsyncRejectingPushBuffer extends SampleBuffer {
   }
 }
 
+class AsyncRejectingPercentileBuffer extends SampleBuffer {
+  override async onPercentile(_pct: number, _result: number): Promise<void> {
+    await Promise.resolve();
+    throw new Error('async onPercentile failure');
+  }
+}
+
 it('an async-rejecting onPush override is routed safely with no unhandled rejection, even though push() never awaits the hook', async () => {
-  const buf = AsyncRejectingPushBuffer.create({ 'capacity': 3 });
+  const buf = AsyncRejectingPushBuffer.create({ 'capacity': 1 });
   const rejectionEvents: unknown[] = [];
   const onUnhandledRejection = (reason: unknown): void => {
     rejectionEvents.push(reason);
@@ -565,13 +568,41 @@ it('an async-rejecting onPush override is routed safely with no unhandled reject
 
   try {
     buf.push(10);
+    buf.push(20);
 
     await new Promise((resolve) => { setImmediate(resolve); });
     await new Promise((resolve) => { setImmediate(resolve); });
 
     assert.equal(rejectionEvents.length, 0);
-    // The synchronous append already completed before the async hook settles.
     assert.equal(buf.length, 1);
+    assert.equal(buf.percentile(50), 20);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+it('async-rejecting onPercentile overrides stay guarded across edge, exact-rank, and interpolated results', async () => {
+  const buf = AsyncRejectingPercentileBuffer.create({ 'capacity': 3 });
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => {
+    rejectionEvents.push(reason);
+  };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    buf.push(10);
+    buf.push(20);
+    buf.push(30);
+
+    assert.equal(buf.percentile(0), 10);
+    assert.equal(buf.percentile(100), 30);
+    assert.equal(buf.percentile(50), 20);
+    assert.equal(buf.percentile(25), 15);
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    assert.equal(rejectionEvents.length, 0);
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }

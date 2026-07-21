@@ -1,3 +1,5 @@
+import type { VisibleRangeConfigDataEntity } from '../entities/VisibleRangeConfigDataEntity.js';
+
 /**
  * Construction config for {@link VisibleRange}.
  *
@@ -6,7 +8,7 @@
  */
 export interface VisibleRangeConfigInterface {
   /** Total number of items in the list. */
-  readonly 'count': number;
+  readonly 'count': VisibleRangeConfigDataEntity.Type['count'];
   /**
    * Per-index size estimator. Enables binary-search-based cumulative-offset
    * range math, and allows corrections via `measureItem()`. Mutually
@@ -17,10 +19,10 @@ export interface VisibleRangeConfigInterface {
    * Fixed size (in the scroll axis) shared by every item. Enables O(1)
    * division-based range math. Mutually exclusive with `estimateSize`.
    */
-  readonly 'itemSize'?: number;
+  readonly 'itemSize'?: VisibleRangeConfigDataEntity.Type['itemSize'];
   /**
    * Extra items to include on either side of the visible range.
    * Defaults to `0`.
    */
-  readonly 'overscan'?: number;
+  readonly 'overscan'?: VisibleRangeConfigDataEntity.Type['overscan'];
 }

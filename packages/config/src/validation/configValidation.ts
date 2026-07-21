@@ -35,7 +35,8 @@ export class ConfigValidation {
    * callers are responsible for deciding how to handle that.
    */
   private static hasCallableMethod(val: object, method: string): boolean {
-    return method in val && typeof (val as Record<string, unknown>)[method] === 'function';
+    if (!(method in val)) { return false; }
+    return typeof Reflect.get(val, method) === 'function';
   }
 
   public static assertString(val: unknown, name: string): void {

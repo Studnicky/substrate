@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/process-kit",
   "version": "7.0.1",
-  "description": "Reducer-with-effects process pattern composing @studnicky/fsm, /scheduler, and /signal",
+  "description": "Reducer-with-effects process pattern composing @studnicky/fsm and /scheduler",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -56,10 +56,13 @@
   },
   "dependencies": {
     "@studnicky/fsm": "workspace:*",
+    "@studnicky/json": "workspace:*",
     "@studnicky/scheduler": "workspace:*",
-    "@studnicky/signal": "workspace:*"
+    "ajv": "^8.20.0",
+    "json-schema-to-ts": "^3.1.1"
   },
   "devDependencies": {
-    "@studnicky/clock": "workspace:*"
+    "@studnicky/clock": "workspace:*",
+    "@studnicky/signal": "workspace:*"
   }
 }

@@ -50,22 +50,25 @@ class TelemetryCoalesce extends Coalesce<unknown> {
  * convenience behavior by reaching the composed instances through the getters.
  */
 class ReportingKeyedWorkGate extends KeyedWorkGate<string> {
-  // `this.create(...)` (not `KeyedWorkGate.create(...)`) so the inherited factory's
-  // `new this(...)` binds to ReportingKeyedWorkGate — same `new this()` polymorphism
-  // RequestExecutor/Mutex/Coalesce use for their own subclass factories.
+  readonly #telemetryCoalesce: TelemetryCoalesce;
+  readonly #telemetryMutex: TelemetryMutex;
+
   static tracked(mutex: TelemetryMutex, coalesce: TelemetryCoalesce): ReportingKeyedWorkGate {
-    const result = this.create({ 'coalesce': coalesce, 'mutex': mutex }) as ReportingKeyedWorkGate;
+    const result = new ReportingKeyedWorkGate(mutex, coalesce);
     return result;
   }
 
-  report(): { 'coalesceJoins': number; 'coalesceLeaders': number; 'mutexAcquisitions': number } {
-    const mutex = this.getMutex() as TelemetryMutex;
-    const coalesce = this.getCoalesce() as TelemetryCoalesce;
+  protected constructor(mutex: TelemetryMutex, coalesce: TelemetryCoalesce) {
+    super({ 'coalesce': coalesce, 'mutex': mutex });
+    this.#telemetryCoalesce = coalesce;
+    this.#telemetryMutex = mutex;
+  }
 
+  report(): { 'coalesceJoins': number; 'coalesceLeaders': number; 'mutexAcquisitions': number } {
     return {
-      'coalesceJoins': coalesce.joiners.length,
-      'coalesceLeaders': coalesce.leaders.length,
-      'mutexAcquisitions': mutex.acquisitions.length
+      'coalesceJoins': this.#telemetryCoalesce.joiners.length,
+      'coalesceLeaders': this.#telemetryCoalesce.leaders.length,
+      'mutexAcquisitions': this.#telemetryMutex.acquisitions.length
     };
   }
 }
@@ -74,10 +77,26 @@ class ReportingKeyedWorkGate extends KeyedWorkGate<string> {
 let fetchCount = 0;
 
 class UserProfile {
-  static async fetch(userId: string): Promise<{ 'id': string; 'version': number }> {
+  static async fetch(userId: string): Promise<UserProfile> {
     fetchCount += 1;
     await setTimeout(30);
-    return { 'id': userId, 'version': fetchCount };
+    return new UserProfile(userId, fetchCount);
+  }
+
+  private constructor(
+    readonly id: string,
+    readonly version: number
+  ) {
+  }
+}
+
+class ResultValidation {
+  static acceptsUndefined(value: unknown): value is undefined {
+    return value === undefined;
+  }
+
+  static acceptsUserProfile(value: unknown): value is UserProfile {
+    return value instanceof UserProfile;
   }
 }
 
@@ -90,9 +109,9 @@ const gate = ReportingKeyedWorkGate.tracked(mutex, coalesce);
 // Three concurrent callers for the same key collapse into one execution via
 // runSingleFlight — the leader still acquires the mutex before running.
 const profiles = await Promise.all([
-  gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }),
-  gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }),
-  gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; })
+  gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }, ResultValidation.acceptsUserProfile),
+  gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }, ResultValidation.acceptsUserProfile),
+  gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }, ResultValidation.acceptsUserProfile)
 ]);
 
 console.log('Single-flight results:', profiles[0], profiles[1], profiles[2]);
@@ -117,17 +136,13 @@ await Promise.all([
   gate.runSerialized('user-42', async () => {
     serializedRuns += 1;
     await setTimeout(5);
-  }),
+  }, ResultValidation.acceptsUndefined),
   gate.runSerialized('user-42', async () => {
     serializedRuns += 1;
     await setTimeout(5);
-  })
+  }, ResultValidation.acceptsUndefined)
 ]);
 
 assert.equal(serializedRuns, 2, 'runSerialized never skips or shares calls');
-
-// Composed instances stay reachable via getters, even from within the subclass
-assert.equal(gate.getMutex(), mutex);
-assert.equal(gate.getCoalesce(), coalesce);
 
 console.log('observedKeyedWorkGate: all assertions passed');

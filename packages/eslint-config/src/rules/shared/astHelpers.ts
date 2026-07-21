@@ -2,12 +2,10 @@ import type ts from 'typescript';
 
 import { ObjectGuard } from './ObjectGuard.js';
 
-// json-schema-uninexpressible: ad-hoc narrowed view into TS-ESLint parser services — the real authority
-// for this shape is @typescript-eslint/utils, not a domain shape this package owns or defines
-type ParserServicesType = {
+interface ParserServicesInterface {
   readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
   readonly 'program'?: ts.Program;
-};
+}
 
 export class AstHelpers {
   public static getNodeType(node: unknown): string | undefined {
@@ -22,7 +20,7 @@ export class AstHelpers {
     return typeof name === 'string' ? name : undefined;
   }
 
-  public static hasTypeServices(value: unknown): value is Required<ParserServicesType> {
+  public static hasTypeServices(value: unknown): value is Required<ParserServicesInterface> {
     if (!ObjectGuard.isObject(value)) { return false; }
     if (!('program' in value) || !ObjectGuard.isObject(value.program)) { return false; }
 

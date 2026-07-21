@@ -3,6 +3,24 @@ import { it } from 'node:test';
 
 import { JsonValue } from '../../../src/guards/JsonValue.js';
 
+void it('JsonValue.is accepts nested JSON data', () => {
+  assert.equal(JsonValue.is({ 'nested': [1, 'two', null, true] }), true);
+});
+
+void it('JsonValue.is rejects non-JSON data', () => {
+  assert.equal(JsonValue.is({ 'value': undefined }), false);
+});
+
+void it('JsonValue.is rejects class instances', () => {
+  assert.equal(JsonValue.is(new Date(0)), false);
+});
+
+void it('JsonValue.is rejects cyclic data', () => {
+  const value: Record<string, unknown> = {};
+  value.self = value;
+  assert.equal(JsonValue.is(value), false);
+});
+
 // Primitives pass through
 void it('JsonValue.from passes null through', () => {
   assert.strictEqual(JsonValue.from(null), null);
@@ -35,6 +53,16 @@ void it('JsonValue.from coerces non-JSON elements inside an array to null', () =
 
 void it('JsonValue.from recurses nested arrays', () => {
   assert.deepEqual(JsonValue.from([[1, 2], [3, 4]]), [[1, 2], [3, 4]]);
+});
+
+void it('JsonValue.from replaces a cyclic branch with null', () => {
+  const value: Record<string, unknown> = {};
+  value.self = value;
+  assert.deepEqual(JsonValue.from(value), { 'self': null });
+});
+
+void it('JsonValue.from replaces class instances with null', () => {
+  assert.equal(JsonValue.from(new Date(0)), null);
 });
 
 // Plain objects recurse field-wise

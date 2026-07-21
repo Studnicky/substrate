@@ -1,31 +1,22 @@
-/**
- * Getter identity tests — strict identity, not deep equality
- */
+/** Default delegate behavior. */
 
-import { strictEqual } from 'node:assert/strict';
+import { deepStrictEqual, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
-
-import { Coalesce } from '@studnicky/concurrency';
-import { Mutex } from '@studnicky/mutex';
 
 import { KeyedWorkGate } from '../../../src/index.js';
 
-it('getters return the exact instances passed into create()', () => {
-  const mutex = Mutex.create<string>();
-  const coalesce = Coalesce.create<unknown>();
+const acceptsNumber = (value: unknown): value is number => typeof value === 'number';
 
-  const gate = KeyedWorkGate.create<string>({
-    'coalesce': coalesce,
-    'mutex': mutex
-  });
-
-  strictEqual(gate.getMutex(), mutex);
-  strictEqual(gate.getCoalesce(), coalesce);
-});
-
-it('defaults construct real Mutex/Coalesce instances when no config is supplied', () => {
+it('defaults serialize every same-key call', async () => {
   const gate = KeyedWorkGate.create<string>();
+  const order: string[] = [];
 
-  strictEqual(gate.getMutex() instanceof Mutex, true);
-  strictEqual(gate.getCoalesce() instanceof Coalesce, true);
+  const results = await Promise.all([
+    gate.runSerialized('key', async () => { order.push('first'); return 1; }, acceptsNumber),
+    gate.runSerialized('key', async () => { order.push('second'); return 2; }, acceptsNumber)
+  ]);
+
+  deepStrictEqual(order, ['first', 'second']);
+  deepStrictEqual(results, [1, 2]);
+  strictEqual(results.length, 2);
 });

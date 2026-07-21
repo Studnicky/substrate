@@ -58,11 +58,11 @@ class TracingPipeline<T extends StepCtxTypeEntity.Type> extends Pipeline<T> {
 
 // ── Happy-path run: 3 stages that mutate step/value ───────────────────────────
 
-const successPipeline = TracingPipeline.create<StepCtxTypeEntity.Type>();
-
-successPipeline.add((ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->alpha` }; });
-successPipeline.add((ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->beta` }; });
-successPipeline.add((ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->gamma` }; });
+const successPipeline = TracingPipeline.create<StepCtxTypeEntity.Type>([
+  (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->alpha` }; },
+  (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->beta` }; },
+  (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->gamma` }; }
+]);
 
 console.log('\n--- happy path ---');
 const successResult = await successPipeline.run({ 'step': 0, 'value': 'start' });
@@ -70,10 +70,10 @@ console.log(`result: step=${successResult.step} value=${successResult.value}`);
 
 // ── Failing run: 2 stages where the second throws ────────────────────────────
 
-const failPipeline = TracingPipeline.create<StepCtxTypeEntity.Type>();
-
-failPipeline.add((ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->alpha` }; });
-failPipeline.add((_ctx) => { throw new Error('stage 1 fails'); });
+const failPipeline = TracingPipeline.create<StepCtxTypeEntity.Type>([
+  (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->alpha` }; },
+  (_ctx) => { throw new Error('stage 1 fails'); }
+]);
 
 console.log('\n--- failing path ---');
 try {

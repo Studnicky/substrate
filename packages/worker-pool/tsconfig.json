@@ -17,6 +17,9 @@
       "path": "../batch"
     },
     {
+      "path": "../json"
+    },
+    {
       "path": "../signal"
     },
     {

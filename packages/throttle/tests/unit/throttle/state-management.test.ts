@@ -7,7 +7,7 @@
 import { strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import { Throttle } from '../../../src/throttle/index.js';
+import { Throttle, ThrottleStatsEntity } from '../../../src/index.js';
 
 // ── getStats() ────────────────────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ for (const { description } of initialStatsScenarios) {
     strictEqual(stats.queuedCount, 0);
     strictEqual(stats.totalExecuted, 0);
     strictEqual(stats.concurrencyLimit, 5);
+    strictEqual(ThrottleStatsEntity.validate(stats), true);
   });
 }
 

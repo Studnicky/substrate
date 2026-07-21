@@ -40,7 +40,7 @@ export const NS_PER_UNIT = {
 /**
  * Standard timing status constants.
  *
- * Use these values with TimingEvent.status() for type-safe timing events.
+ * Pass these values as the optional `status` property to `TimingEvent.create()`.
  *
  * @public
  *
@@ -48,34 +48,18 @@ export const NS_PER_UNIT = {
  * ```typescript
  * import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
  *
- * const timing = Timing.builder().build();
+ * const timing = Timing.create();
  *
  * // Lifecycle statuses
- * timing.event(TimingEvent.create()
- *   .component('DatabaseAdapter')
- *   .operation('connect')
- *   .status(TIMING_STATUS.START)
- *   .build());
+ * timing.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.START }));
  *
- * timing.event(TimingEvent.create()
- *   .component('DatabaseAdapter')
- *   .operation('connect')
- *   .status(TIMING_STATUS.COMPLETE)
- *   .build());
+ * timing.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.COMPLETE }));
  *
  * // Cache statuses
- * timing.event(TimingEvent.create()
- *   .component('CacheService')
- *   .operation('get')
- *   .status(TIMING_STATUS.HIT)
- *   .build());
+ * timing.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get', 'status': TIMING_STATUS.HIT }));
  *
  * // Resource management statuses
- * timing.event(TimingEvent.create()
- *   .component('MutexManager')
- *   .operation('acquire')
- *   .status(TIMING_STATUS.ACQUIRED)
- *   .build());
+ * timing.event(TimingEvent.create({ 'component': 'MutexManager', 'operation': 'acquire', 'status': TIMING_STATUS.ACQUIRED }));
  * ```
  */
 export const TIMING_STATUS = {

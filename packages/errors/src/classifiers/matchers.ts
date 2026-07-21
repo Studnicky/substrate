@@ -36,7 +36,7 @@ class TypeGuardFactory {
 /**
  * Number matchers
  */
-const NumberMatchers = {
+const NumberMatchers = Object.freeze({
   /**
    * Check if number is greater than value
    */
@@ -71,12 +71,12 @@ const NumberMatchers = {
    * Check if number equals any of the provided values
    */
   'oneOf': (...values: number[]) => {return (value: number): boolean => { const result = values.includes(value); return result; };}
-};
+});
 
 /**
  * String matchers
  */
-const StringMatchers = {
+const StringMatchers = Object.freeze({
   /**
    * Check if string contains substring (case-sensitive)
    */
@@ -132,12 +132,12 @@ const StringMatchers = {
 
     return (value: string): boolean => { const result = value.toLowerCase().startsWith(lowerPrefix); return result; };
   }
-};
+});
 
 /**
  * Boolean matchers
  */
-const BooleanMatchers = {
+const BooleanMatchers = Object.freeze({
   /**
    * Check if value is false
    */
@@ -152,12 +152,12 @@ const BooleanMatchers = {
     const result = value;
     return result;
   }
-};
+});
 
 /**
  * Array matchers
  */
-const ArrayMatchers = {
+const ArrayMatchers = Object.freeze({
   /**
    * Check if array contains value
    */
@@ -187,12 +187,12 @@ const ArrayMatchers = {
   'notEmpty': <T>(value: T[]): boolean => {
     return value.length > EMPTY_LENGTH;
   }
-};
+});
 
 /**
  * Object matchers
  */
-const ObjectMatchers = {
+const ObjectMatchers = Object.freeze({
   /**
    * Check if object has all properties
    */
@@ -210,12 +210,12 @@ const ObjectMatchers = {
    */
   'hasProperty': (propertyName: string) =>
   {return (value: Record<string, unknown>): boolean => {return propertyName in value;};}
-};
+});
 
 /**
  * Logical combinators for composing matchers
  */
-const LogicMatchers = {
+const LogicMatchers = Object.freeze({
   /**
    * Combine matchers with AND logic
    *
@@ -263,12 +263,12 @@ const LogicMatchers = {
   'or': <T>(...predicates: ((value: T) => boolean)[]) => {
     return (value: T): boolean => { const result = predicates.some((pred) => { const result = pred(value); return result; }); return result; };
   }
-};
+});
 
 /**
  * Common HTTP status code matchers
  */
-const HttpMatchers = {
+const HttpMatchers = Object.freeze({
   /**
    * Authentication errors
    */
@@ -322,12 +322,12 @@ const HttpMatchers = {
    * 2xx Success responses
    */
   'isSuccess': NumberMatchers.inRange(HTTP_SUCCESS_START, HTTP_SUCCESS_END)
-};
+});
 
 /**
  * Common network error code matchers
  */
-const NetworkMatchers = {
+const NetworkMatchers = Object.freeze({
   /**
    * Connection errors
    */
@@ -342,12 +342,12 @@ const NetworkMatchers = {
    * Timeout errors
    */
   'isTimeout': StringMatchers.oneOf('ETIMEDOUT', 'ESOCKETTIMEDOUT')
-};
+});
 
 /**
  * Common database error matchers (PostgreSQL codes)
  */
-const DatabaseMatchers = {
+const DatabaseMatchers = Object.freeze({
   /**
    * Connection errors (Class 08)
    */
@@ -376,12 +376,12 @@ const DatabaseMatchers = {
   'isUniqueViolation': (code: string): boolean => {
     return code === '23505';
   }
-};
+});
 
 /**
  * Instance and type checking matchers
  */
-const InstanceMatchers = {
+const InstanceMatchers = Object.freeze({
   /**
    * Check if value is an Error instance (any Error type)
    *
@@ -392,20 +392,6 @@ const InstanceMatchers = {
    */
   'isError': (value: unknown): value is Error => {
     return value instanceof Error;
-  },
-
-  /**
-   * Check if value's type matches (using typeof)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'metadata', instance.isType('object'))
-   * ```
-   */
-  'isType': (type: 'boolean' | 'function' | 'number' | 'object' | 'string' | 'symbol' | 'undefined') => {
-    return (value: unknown): boolean => {
-      return typeof value === type;
-    };
   },
 
   /**
@@ -465,7 +451,7 @@ const InstanceMatchers = {
    */
   'ofAny': <T>(...constructors: (new (...args: unknown[]) => T)[]) =>
   {return (value: unknown): value is T => { const result = constructors.some((ctor) => {return value instanceof ctor;}); return result; };}
-};
+});
 
 /**
  * Prototype checking matchers
@@ -524,7 +510,7 @@ class ProtoMatcherFactory {
   }
 }
 
-const ProtoMatchers = {
+const ProtoMatchers = Object.freeze({
   /**
    * Check if value's prototype has all specified methods
    *
@@ -595,12 +581,12 @@ const ProtoMatchers = {
    * ```
    */
   'isIterable': ProtoMatcherFactory.isIterable
-};
+});
 
 /**
  * Aggregated matchers export matching filename
  */
-const matchers = {
+const matchers = Object.freeze({
   'array': ArrayMatchers,
   'boolean': BooleanMatchers,
   'database': DatabaseMatchers,
@@ -613,6 +599,6 @@ const matchers = {
   'object': ObjectMatchers,
   'proto': ProtoMatchers,
   'string': StringMatchers
-};
+});
 
 export { matchers };

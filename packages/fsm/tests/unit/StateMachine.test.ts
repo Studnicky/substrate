@@ -4,28 +4,28 @@ import { StateMachine } from '../../src/StateMachine.js';
 import { ReducerThrewError } from '../../src/ReducerThrewError.js';
 import { TransitionRejectedError } from '../../src/TransitionRejectedError.js';
 import { MachineTerminatedError } from '../../src/MachineTerminatedError.js';
-import type { FsmStepType } from '../../src/FsmStepType.js';
+import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
 
 type ToggleState = { readonly variant: 'on' } | { readonly variant: 'off' };
 type ToggleEvent = { readonly type: 'toggle' };
 
 class ToggleMachine extends StateMachine<ToggleState, ToggleEvent> {
   getInitialState(): ToggleState { return { variant: 'off' }; }
-  reduce(state: ToggleState, _event: ToggleEvent): FsmStepType<ToggleState> {
+  reduce(state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState> {
     return { state: state.variant === 'off' ? { variant: 'on' } : { variant: 'off' }, effects: [] };
   }
 }
 
 class ThrowingMachine extends StateMachine<ToggleState, ToggleEvent> {
   getInitialState(): ToggleState { return { variant: 'off' }; }
-  reduce(_state: ToggleState, _event: ToggleEvent): FsmStepType<ToggleState> {
+  reduce(_state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState> {
     throw new Error('boom');
   }
 }
 
 class DeliberatelyRejectingMachine extends StateMachine<ToggleState, ToggleEvent> {
   getInitialState(): ToggleState { return { variant: 'off' }; }
-  reduce(state: ToggleState, event: ToggleEvent): FsmStepType<ToggleState> {
+  reduce(state: ToggleState, event: ToggleEvent): FsmStepInterface<ToggleState> {
     throw new TransitionRejectedError({
       eventType: event.type,
       reason: 'toggle is disabled',
@@ -36,7 +36,7 @@ class DeliberatelyRejectingMachine extends StateMachine<ToggleState, ToggleEvent
 
 class TerminatingMachine extends StateMachine<ToggleState, ToggleEvent> {
   getInitialState(): ToggleState { return { variant: 'off' }; }
-  reduce(state: ToggleState, _event: ToggleEvent): FsmStepType<ToggleState> {
+  reduce(state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState> {
     return { state: state.variant === 'off' ? { variant: 'on' } : { variant: 'off' }, effects: [] };
   }
   protected override isTerminated(state: ToggleState): boolean {

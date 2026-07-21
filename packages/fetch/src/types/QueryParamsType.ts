@@ -1,6 +1,0 @@
-import type { QueryValueType } from './QueryValueType.js';
-
-/**
- * Query string parameters object
- */
-export type QueryParamsType = Record<string, QueryValueType | QueryValueType[]>;

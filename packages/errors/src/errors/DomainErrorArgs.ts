@@ -7,13 +7,13 @@
  */
 import { PickDefined } from '@studnicky/types';
 
-import type { BaseErrorArgumentsType } from '../types/BaseErrorArgumentsType.js';
-import type { DomainErrorOptionsType } from '../types/DomainErrorOptionsType.js';
+import type { BaseErrorArgumentsInterface } from '../interfaces/BaseErrorArgumentsInterface.js';
+import type { DomainErrorOptionsInterface } from '../interfaces/DomainErrorOptionsInterface.js';
 
-/** Builds `BaseErrorArgumentsType` values for domain error `super()` calls. */
+/** Builds `BaseErrorArgumentsInterface` values for domain error `super()` calls. */
 export class DomainErrorArgs {
   /**
-   * Builds a `BaseErrorArgumentsType` for `super()` from typed fields and a
+   * Builds a `BaseErrorArgumentsInterface` for `super()` from typed fields and a
    * `{ code, message, retryable, ... }` options object.
    *
    * Field assignment is left to the caller — `Object.assign(this, fields)`
@@ -21,8 +21,8 @@ export class DomainErrorArgs {
    */
   public static build<TFields extends Record<string, unknown>>(
     fields: Readonly<TFields>,
-    options: Readonly<DomainErrorOptionsType<TFields>>
-  ): BaseErrorArgumentsType {
+    options: Readonly<DomainErrorOptionsInterface<TFields>>
+  ): BaseErrorArgumentsInterface {
     return {
       'code': options.code,
       'message': options.message(fields),

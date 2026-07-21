@@ -13,6 +13,8 @@ description: Keyed single-flight and serialized work gate composing mutex and co
 pnpm add @studnicky/keyed-work-gate
 ```
 
+`@studnicky/keyed-work-gate` is the sole public code entrypoint.
+
 ## Usage
 
 `KeyedWorkGate` performs no work itself — the caller's `fn` is the unit of work being gated. `runSingleFlight` collapses concurrent callers requesting the identical key into one execution via `Coalesce`; `runSerialized` bypasses coalescing entirely and routes directly through `Mutex`, so every call actually runs:
@@ -28,27 +30,22 @@ pnpm add @studnicky/keyed-work-gate
 
 Reversing the order (mutex-first, then coalesce) would defeat single-flight collapsing: every caller would separately queue for the lock before coalescing ever got a chance to join them, so coalescing would only ever see one queued caller at a time and would never actually collapse concurrent duplicates.
 
-## Transparency contract
+## Composition contract
 
 `KeyedWorkGate` introduces no hook of its own — every observable stage is already covered by the primitive it delegates to. Each composed primitive accepts either a pre-built instance (subclassed or not) or the config shape passed straight to that primitive's own `create()`:
 
 | Config key | Accepts | Default |
 |------------|---------|---------|
 | `mutex` | `Mutex<K>` instance or `Partial<MutexConfigEntity.Type>` | `Mutex.create()` |
-| `coalesce` | `Coalesce<unknown>` instance or `CoalesceOptionsType` | `Coalesce.create()` |
+| `coalesce` | `Coalesce<TResult>` instance or `CoalesceOptionsEntity.Type` | `Coalesce.create<TResult>()` |
 
-| Getter | Returns |
-|--------|---------|
-| `getMutex()` | The composed `Mutex<K>` instance |
-| `getCoalesce()` | The composed `Coalesce<unknown>` instance |
-
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper. A caller who subclassed `Mutex` for lock-lifecycle observability or `Coalesce` for join/leader tracking keeps full access to those subclasses' own hooks; `KeyedWorkGate` never re-exposes a stage a wrapped primitive's hook already covers (no redundant "before work" hook, no redundant "after work" hook).
+Callers who supply subclassed `Mutex` or `Coalesce` instances retain those instances and inspect their hook state directly. The gate keeps its delegates private and does not duplicate stages already covered by a composed primitive.
 
 `KeyedWorkGate` does not invent its own staleness ceiling for coalesced calls — that gap stays with `Coalesce` itself, configured via its own `timeout` option.
 
-## When to stop using this and move to Dagonizer
+## When this composition tips into orchestration
 
-`KeyedWorkGate` gates a single unit of work per key. It has no concept of a node, a graph, or a dependency between multiple keyed calls. Once a workflow needs to coordinate the *outcome* of one keyed call to decide whether or how to run a second one — branching, fan-out across dependent keys, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration and belongs in Dagonizer, not in a loop of `KeyedWorkGate` calls glued together by hand.
+`KeyedWorkGate` gates a single unit of work per key. It has no concept of a node, a graph, or a dependency between multiple keyed calls. Once a workflow needs to coordinate the *outcome* of one keyed call to decide whether or how to run a second one — branching, fan-out across dependent keys, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration, not a loop of `KeyedWorkGate` calls glued together by hand.
 
 ## Documentation
 

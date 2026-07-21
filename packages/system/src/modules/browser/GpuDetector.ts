@@ -11,7 +11,7 @@ export class GpuDetector {
         return null;
       }
 
-      const doc = (globalThis as unknown as { 'document': Document }).document;
+      const doc = globalThis.document;
       const canvas = doc.createElement('canvas');
       const gl = canvas.getContext('webgl');
 
@@ -25,8 +25,9 @@ export class GpuDetector {
         return null;
       }
 
-      const renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string;
-      const vendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) as string;
+      const renderer: unknown = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);
+      const vendor: unknown = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL);
+      if (typeof renderer !== 'string' || typeof vendor !== 'string') { return null; }
 
       return {
         'computeApi': GpuDetector.#mapComputeApi(renderer, vendor),

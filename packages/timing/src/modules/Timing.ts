@@ -1,21 +1,20 @@
 import { ConfigurationError } from '@studnicky/config';
 import { HookInvocationError, HookInvoker } from '@studnicky/errors';
 
+import type { TimeUnitEntity } from '../entities/TimeUnitEntity.js';
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
-import type { TimeUnitType } from '../types/TimeUnitType.js';
 
 import { DEFAULT_DECIMAL_PRECISION, DEFAULT_MAX_EVENTS, NS_PER_UNIT } from '../constants/index.js';
 import { TimingValidator } from '../validation/TimingValidator.js';
-import { TimingBuilder } from './TimingBuilder.js';
 
 /**
  * High-resolution timing tracker for collecting operation metrics.
  * Uses process.hrtime.bigint() for nanosecond precision.
  * Events are stored with component.operation[.status] format for CloudWatch filtering.
  *
- * Use Timing.builder().build() to instantiate.
+ * Use Timing.create() to instantiate.
  *
  * @public
  *
@@ -23,34 +22,16 @@ import { TimingBuilder } from './TimingBuilder.js';
  * ```typescript
  * import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
  *
- * const timing = Timing.builder()
- *   .maxEvents(100)
- *   .precision({ ms: 2 })
- *   .build();
+ * const timing = Timing.create({ 'maxEvents': 100, 'precision': { ms: 2 } });
  *
- * // Record events using builder pattern
- * timing.event(TimingEvent.create()
- *   .component('DatabaseAdapter')
- *   .operation('connect')
- *   .status(TIMING_STATUS.START)
- *   .build());
+ * // Record immutable event data
+ * timing.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.START }));
  *
- * timing.event(TimingEvent.create()
- *   .component('GraphAdapter')
- *   .operation('query')
- *   .build());
+ * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
  *
- * timing.event(TimingEvent.create()
- *   .component('CacheService')
- *   .operation('get')
- *   .status('hit')
- *   .build());
+ * timing.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get', 'status': 'hit' }));
  *
- * timing.event(TimingEvent.create()
- *   .component('DatabaseAdapter')
- *   .operation('connect')
- *   .status(TIMING_STATUS.COMPLETE)
- *   .build());
+ * timing.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.COMPLETE }));
  *
  * // Get all events as logging context
  * const ctx = timing.getEvents();
@@ -64,39 +45,6 @@ import { TimingBuilder } from './TimingBuilder.js';
  * ```
  */
 export class Timing implements TimingInterface {
-  /**
-   * Creates a new TimingBuilder for fluent configuration.
-   * Call .build() on the builder to create the Timing instance.
-   *
-   * @returns A new TimingBuilder instance
-   * @throws ConfigurationError - When configuration validation fails (at build time)
-   *
-   * @example
-   * ```typescript
-   * import { Timing } from '@studnicky/timing';
-   *
-   * // Create timing tracker with default options
-   * const timing = Timing.builder().build();
-   *
-   * // Create with LRU cache (max 100 events)
-   * const limitedTiming = Timing.builder()
-   *   .maxEvents(100)
-   *   .build();
-   *
-   * // Create with custom precision
-   * const preciseTiming = Timing.builder()
-   *   .precision({ ms: 2 })
-   *   .build();
-   * ```
-   */
-  static builder(): TimingBuilder {
-    const result = TimingBuilder.create((options: TimingOptionsEntity.Type) => {
-      const instance = Timing.create(options);
-      return instance;
-    });
-    return result;
-  }
-
   /**
    * Direct factory method for creating a Timing instance.
    * Subclasses benefit from `new this(options)` so that overrides work correctly.
@@ -130,7 +78,7 @@ export class Timing implements TimingInterface {
     'timestamp': bigint }>;
 
   /**
-   * Protected constructor. Use Timing.builder().build() to instantiate.
+   * Protected constructor. Use Timing.create() to instantiate.
    * Validates configuration and initializes the timing tracker.
    * @param options - Timing configuration options
    * @throws ConfigurationError - When configuration validation fails
@@ -210,7 +158,7 @@ export class Timing implements TimingInterface {
    * @param unit - Target time unit ('ns', 'ms', 's', 'm', or 'h')
    * @returns Converted and rounded time value as a number
    */
-  protected convertTime(ns: bigint, unit: TimeUnitType): number {
+  protected convertTime(ns: bigint, unit: TimeUnitEntity.Type): number {
     if (unit === 'ns') {
       return Number(ns);
     }
@@ -228,33 +176,22 @@ export class Timing implements TimingInterface {
    * Multiple events with the same name can be recorded.
    * If maxEvents is exceeded, the oldest event is evicted.
    *
-   * @param data - Event data from TimingEvent.create().build()
+   * @param data - Immutable event data from TimingEvent.create()
    *
    * @example
    * ```typescript
    * import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
    *
-   * const timing = Timing.builder().build();
+   * const timing = Timing.create();
    *
    * // Without status
-   * timing.event(TimingEvent.create()
-   *   .component('GraphAdapter')
-   *   .operation('query')
-   *   .build());
+   * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
    *
    * // With standard status (use TIMING_STATUS constants)
-   * timing.event(TimingEvent.create()
-   *   .component('DatabaseAdapter')
-   *   .operation('connect')
-   *   .status(TIMING_STATUS.START)
-   *   .build());
+   * timing.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.START }));
    *
    * // With domain-specific status
-   * timing.event(TimingEvent.create()
-   *   .component('CacheService')
-   *   .operation('get')
-   *   .status('hit')
-   *   .build());
+   * timing.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get', 'status': 'hit' }));
    * ```
    */
   event(data: TimingEventDataEntity.Type): void {
@@ -296,17 +233,11 @@ export class Timing implements TimingInterface {
    * ```typescript
    * import { Timing, TimingEvent } from '@studnicky/timing';
    *
-   * const timing = Timing.builder().build();
+   * const timing = Timing.create();
    *
-   * timing.event(TimingEvent.create()
-   *   .component('GraphAdapter')
-   *   .operation('query')
-   *   .build());
+   * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
    *
-   * timing.event(TimingEvent.create()
-   *   .component('CacheService')
-   *   .operation('get')
-   *   .build());
+   * timing.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
    *
    * const ctx = timing.getEvents();
    * // {
@@ -316,13 +247,13 @@ export class Timing implements TimingInterface {
    * //   durationMs: 15.671
    * // }
    *
-   * logger.info(LogBody.create()
-   *   .component('ApiController')
-   *   .operation('handleResponse')
-   *   .status('success')
-   *   .message('Request complete')
-   *   .context(ctx)
-   *   .build());
+   * logger.info(LogBody.create({
+   *   component: 'ApiController',
+   *   context: ctx,
+   *   message: 'Request complete',
+   *   operation: 'handleResponse',
+   *   status: 'success'
+   * }));
    * ```
    */
   getEvents(): Record<string, number> {

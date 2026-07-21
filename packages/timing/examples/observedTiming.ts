@@ -54,11 +54,11 @@ const timing = new ObservedTiming({ 'maxEvents': 3 });
 
 // Record two events (cache: initialize + DbAdapter.query + CacheService.get = 3, at capacity)
 timing.event(
-  TimingEvent.create().component('DbAdapter').operation('query').build()
+  TimingEvent.create({ 'component': 'DbAdapter', 'operation': 'query' })
 );
 
 timing.event(
-  TimingEvent.create().component('CacheService').operation('get').build()
+  TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' })
 );
 
 // Call getEvents to trigger onGetEvents (3 entries in cache)
@@ -70,20 +70,20 @@ timing.clear();
 
 // Fill cache to capacity (maxEvents: 3) then overflow to trigger eviction
 timing.event(
-  TimingEvent.create().component('DbAdapter').operation('insert').build()
+  TimingEvent.create({ 'component': 'DbAdapter', 'operation': 'insert' })
 );
 
 timing.event(
-  TimingEvent.create().component('CacheService').operation('set').build()
+  TimingEvent.create({ 'component': 'CacheService', 'operation': 'set' })
 );
 
 timing.event(
-  TimingEvent.create().component('MetricsService').operation('flush').build()
+  TimingEvent.create({ 'component': 'MetricsService', 'operation': 'flush' })
 );
 
 // This 4th event overflows the cache — evicts DbAdapter.insert
 timing.event(
-  TimingEvent.create().component('MetricsService').operation('emit').build()
+  TimingEvent.create({ 'component': 'MetricsService', 'operation': 'emit' })
 );
 
 // Final getEvents call

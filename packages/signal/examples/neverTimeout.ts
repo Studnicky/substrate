@@ -1,9 +1,11 @@
-/** neverTimeout — demonstrates Signal.never singleton and Signal.timeout. Run: npx tsx examples/neverTimeout.ts */
+/** neverTimeout — demonstrates Signal.never and deadline composition. Run: npx tsx examples/neverTimeout.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
 import { Signal } from '../src/index.js';
+
+const signals = Signal.create();
 
 class NeverTimeoutDemo {
   /** Signal.never() returns the same singleton on every call. */
@@ -25,29 +27,29 @@ class NeverTimeoutDemo {
     console.log(`neverIsNotAborted: aborted=${signal.aborted}`);
   }
 
-  /** Signal.timeout returns an AbortSignal that is not yet aborted for a generous deadline. */
-  static timeoutNotYetAborted(): void {
-    const signal = Signal.timeout(5000);
+  /** compose() returns an AbortSignal that is not yet aborted for a generous deadline. */
+  static async deadlineNotYetAborted(): Promise<void> {
+    const signal = await signals.compose({ 'deadlineMs': 5000 });
 
-    assert.ok(signal instanceof AbortSignal, 'Signal.timeout returns an AbortSignal');
+    assert.ok(signal instanceof AbortSignal, 'deadline composition returns an AbortSignal');
     assert.ok(!signal.aborted, 'signal with 5 s deadline is not yet aborted');
-    console.log(`timeoutNotYetAborted: aborted=${signal.aborted}`);
+    console.log(`deadlineNotYetAborted: aborted=${signal.aborted}`);
   }
 
-  /** Signal.timeout with distinct durations returns distinct signal instances. */
-  static timeoutReturnsDistinctInstances(): void {
-    const a = Signal.timeout(1000);
-    const b = Signal.timeout(2000);
+  /** compose() with distinct deadlines returns distinct signal instances. */
+  static async deadlinesReturnDistinctInstances(): Promise<void> {
+    const a = await signals.compose({ 'deadlineMs': 1000 });
+    const b = await signals.compose({ 'deadlineMs': 2000 });
 
-    assert.notStrictEqual(a, b, 'different timeouts are distinct AbortSignal instances');
-    console.log(`timeoutReturnsDistinctInstances: a===b=${a === b}`);
+    assert.notStrictEqual(a, b, 'different deadlines are distinct AbortSignal instances');
+    console.log(`deadlinesReturnDistinctInstances: a===b=${a === b}`);
   }
 }
 
 NeverTimeoutDemo.neverIsSingleton();
 NeverTimeoutDemo.neverIsNotAborted();
-NeverTimeoutDemo.timeoutNotYetAborted();
-NeverTimeoutDemo.timeoutReturnsDistinctInstances();
+await NeverTimeoutDemo.deadlineNotYetAborted();
+await NeverTimeoutDemo.deadlinesReturnDistinctInstances();
 // #endregion usage
 
 console.log('neverTimeout: all assertions passed');

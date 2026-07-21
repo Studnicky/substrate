@@ -20,13 +20,13 @@ const logger = Logger.create({
   'transports': [memoryAll, memoryWarn]
 });
 
-const body = LogBody.create()
-  .component('router')
-  .operation('handle')
-  .status('success')
-  .message('Request routed')
-  .context({ 'route': '/api/users' })
-  .build();
+const body = LogBody.create({
+  'component': 'router',
+  'context': { 'route': '/api/users' },
+  'message': 'Request routed',
+  'operation': 'handle',
+  'status': 'success'
+});
 
 logger.info(body);
 

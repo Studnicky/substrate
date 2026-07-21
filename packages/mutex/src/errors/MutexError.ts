@@ -1,4 +1,4 @@
-import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
 
 /**
  * Abstract base class for all mutex-domain errors.
@@ -8,7 +8,7 @@ import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
  */
 
 export abstract class MutexError extends BaseError {
-  protected constructor(args: Readonly<BaseErrorArgumentsType>) {
+  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
     super(args);
   }
 }

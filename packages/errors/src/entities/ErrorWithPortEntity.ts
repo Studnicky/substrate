@@ -1,4 +1,6 @@
-import { type FromSchema, Guard, type JsonSchemaObjectType } from '@studnicky/types';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { Guard } from '@studnicky/types';
 
 /** Error with port information. */
 export namespace ErrorWithPortEntity {
@@ -12,7 +14,7 @@ export namespace ErrorWithPortEntity {
     'required': ['port'],
     'title': 'ErrorWithPort',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
@@ -22,8 +24,7 @@ export namespace ErrorWithPortEntity {
    * circular workspace reference.
    */
   export function validate(candidate: unknown): candidate is Type {
-    const record = Guard.asRecord(candidate);
-    if (record === undefined) { return false; }
-    return typeof record.port === 'number';
+    if (!Guard.isObject(candidate)) { return false; }
+    return typeof candidate.port === 'number';
   }
 }

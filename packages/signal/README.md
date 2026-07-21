@@ -6,7 +6,7 @@
 
 `@studnicky/signal` provides a single composable entry point for AbortSignal construction. Pass a caller-provided signal, a deadline in milliseconds, both, or neither — `compose` returns the correct signal for each case without requiring manual `AbortController` wiring.
 
-`Signal` is an instantiable primitive — `Signal.create()` returns an instance with `compose(options)` and `timeout(ms)` methods, plus a protected `onCompose(options, result)` hook that a subclass can override to observe every `compose()` call. The static `Signal.compose(options)` and `Signal.timeout(ms)` entry points remain available for callers that don't need a hook and delegate to an internal default instance.
+`Signal` is an instantiable primitive — `Signal.create()` returns an explicitly owned instance with the canonical `compose(options)` method and a protected hook that a subclass can override to observe composition.
 
 The library also exposes `Signal.never()`, a singleton sentinel that never aborts, useful as a default when downstream APIs require an `AbortSignal` argument but the caller has no cancellation intent.
 
@@ -27,15 +27,17 @@ pnpm add @studnicky/signal
 ```typescript
 import { Signal, SignalError } from '@studnicky/signal';
 
+const signals = Signal.create();
+
 // Combine a caller signal with a 5-second deadline — whichever fires first wins
 async function fetchWithDeadline(callerSignal: AbortSignal): Promise<Response> {
-  const signal = Signal.compose({ signal: callerSignal, deadlineMs: 5000 });
+  const signal = await signals.compose({ signal: callerSignal, deadlineMs: 5000 });
   return fetch('https://api.example.com/data', { signal });
 }
 
 // Timeout only — no caller signal available
 async function fetchWithTimeout(): Promise<Response> {
-  const signal = Signal.compose({ deadlineMs: 10_000 });
+  const signal = await signals.compose({ deadlineMs: 10_000 });
   return fetch('https://api.example.com/data', { signal });
 }
 
@@ -44,12 +46,9 @@ function getDefaultSignal(): AbortSignal {
   return Signal.never(); // same singleton on every call
 }
 
-// Direct timeout shorthand
-const signal = Signal.timeout(3000);
-
 // Invalid deadlineMs throws SignalError
 try {
-  Signal.compose({ deadlineMs: -1 });
+  await signals.compose({ deadlineMs: -1 });
 } catch (err) {
   if (err instanceof SignalError) {
     console.error('Invalid config:', err.message);
@@ -57,9 +56,9 @@ try {
 }
 ```
 
-### Instance form and the `onCompose` hook
+### The `onCompose` hook
 
-`Signal.create()` returns an instance with the same `compose`/`timeout` methods. Subclass it and override `onCompose` to observe every composed signal — the base class never logs on its own:
+Subclass `Signal` and override `onCompose` to observe every composed signal — the base class never logs on its own:
 
 ```typescript
 import { Signal } from '@studnicky/signal';
@@ -74,7 +73,7 @@ class ObservedSignal extends Signal {
 }
 
 const signals = new ObservedSignal();
-signals.compose({ deadlineMs: 5000 }); // logs the composed signal
+await signals.compose({ deadlineMs: 5000 }); // logs the composed signal
 ```
 
 ## Documentation

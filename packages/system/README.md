@@ -4,9 +4,9 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/system)
 
-`@studnicky/system` exposes static accessors for host hardware and runtime environment without spawning child processes or loading native addons. CPU topology (logical and physical core counts, architecture, model name), memory availability, and platform metadata are all read synchronously from Node.js built-ins, making them safe to call at module initialisation time.
+`@studnicky/system` exposes static accessors for host hardware and runtime environment without loading native addons. CPU topology (logical and physical core counts, architecture, model name), memory availability, and platform metadata are read synchronously from Node.js built-ins, making them safe to call at module initialisation time.
 
-GPU detection runs once on first call and caches the result. On macOS it probes the Metal command queue; on Linux it queries CUDA or OpenCL availability, falling back to a software sentinel when no hardware GPU is present. The `snapshot()` method aggregates all four info objects into a single async call, useful for logging startup context or making worker-pool sizing decisions.
+GPU detection runs once on the first `System.gpu()` call and caches the result; each call returns a defensive copy. On macOS it reads display information through `system_profiler`; on Linux it queries NVIDIA or AMD command-line tools. Read `System.cpu`, `System.gpu()`, `System.memory`, and `System.platform` explicitly so each call performs only the inspection the caller needs.
 
 ## Install
 
@@ -45,18 +45,14 @@ console.log(plat.os);            // e.g. 'darwin'
 console.log(plat.nodeVersion);   // e.g. 'v22.3.0'
 console.log(plat.isAppleSilicon); // true on darwin/arm64
 
-// GPU detection (async, result cached after first call)
-const gpu = await System.gpu();
+// GPU detection (result cached after first call)
+const gpu = System.gpu();
 if (gpu !== null) {
   console.log(gpu.name);        // e.g. 'Apple M3 Pro'
   console.log(gpu.computeApi);  // 'metal' | 'cuda' | 'opencl' | 'software'
   console.log(gpu.vramMb);      // number | null
 }
 
-// Full snapshot
-const info = await System.snapshot();
-// { cpu, memory, platform, gpu }
-console.log(info);
 ```
 
 ## Documentation

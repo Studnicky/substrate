@@ -3,13 +3,9 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
 import { FlagEvaluator } from '../../src/FlagEvaluator.js';
-import type { FlagContextType } from '../../src/types/FlagContextType.js';
+import type { FlagContextInterface } from '../../src/interfaces/FlagContextInterface.js';
 
 class ObservedEvaluator extends FlagEvaluator {
-  static override create(): ObservedEvaluator {
-    return new ObservedEvaluator();
-  }
-
   readonly evaluateCalls: { 'flag': string; 'context': Record<string, unknown>; 'result': boolean }[] = [];
   readonly defaultCalls: string[] = [];
   readonly ruleMismatchCalls: { 'flag': string; 'context': Record<string, unknown> }[] = [];
@@ -89,7 +85,7 @@ describe('FlagEvaluator lifecycle hooks', () => {
 
   it('onEvaluate context matches the exact context object passed to evaluate()', () => {
     evaluator.register('flag', { 'defaultValue': false, 'enabled': true });
-    const context: FlagContextType = { 'plan': 'pro', 'targetingKey': randomUUID() };
+    const context: FlagContextInterface = { 'plan': 'pro', 'targetingKey': randomUUID() };
 
     evaluator.evaluate('flag', context);
 
@@ -98,10 +94,6 @@ describe('FlagEvaluator lifecycle hooks', () => {
 
   it('a throwing onDefault hook does not replace the fallback false result', () => {
     class ThrowingDefaultEvaluator extends FlagEvaluator {
-      static override create(): ThrowingDefaultEvaluator {
-        return new ThrowingDefaultEvaluator();
-      }
-
       protected override onDefault(): void {
         throw new Error('onDefault boom');
       }
@@ -116,10 +108,6 @@ describe('FlagEvaluator lifecycle hooks', () => {
 
   it('a throwing onRuleMismatch hook does not replace the computed false rollout decision', () => {
     class ThrowingMismatchEvaluator extends FlagEvaluator {
-      static override create(): ThrowingMismatchEvaluator {
-        return new ThrowingMismatchEvaluator();
-      }
-
       protected override onRuleMismatch(): void {
         throw new Error('onRuleMismatch boom');
       }
@@ -135,10 +123,6 @@ describe('FlagEvaluator lifecycle hooks', () => {
 
   it('a throwing onEvaluate hook does not replace a completed evaluation result', () => {
     class ThrowingEvaluateEvaluator extends FlagEvaluator {
-      static override create(): ThrowingEvaluateEvaluator {
-        return new ThrowingEvaluateEvaluator();
-      }
-
       protected override onEvaluate(): void {
         throw new Error('onEvaluate boom');
       }
@@ -154,10 +138,6 @@ describe('FlagEvaluator lifecycle hooks', () => {
 
   it('an async-rejecting onEvaluate override is routed safely, producing no unhandled rejection', async () => {
     class AsyncRejectingEvaluateEvaluator extends FlagEvaluator {
-      static override create(): AsyncRejectingEvaluateEvaluator {
-        return new AsyncRejectingEvaluateEvaluator();
-      }
-
       protected override onEvaluate(): Promise<void> {
         return Promise.reject(new Error('onEvaluate async boom'));
       }

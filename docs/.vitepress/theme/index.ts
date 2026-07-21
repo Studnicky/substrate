@@ -1,10 +1,13 @@
-import { h } from 'vue';
+import { defineAsyncComponent, h } from 'vue';
 import type { Theme } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 import PackageGrid from './PackageGrid.vue';
-import RunnableExample from './components/RunnableExample.vue';
 import './palette.css';
 import './base.css';
+
+const RunnableExample = defineAsyncComponent(async () => {
+  return await import('./components/RunnableExample.vue');
+});
 
 // The sidebar header logo is injected into the default layout's
 // `sidebar-nav-before` slot and rendered as a CSS block in base.css.

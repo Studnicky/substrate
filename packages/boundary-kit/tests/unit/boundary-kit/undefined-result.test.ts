@@ -8,6 +8,8 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { Throttle } from '@studnicky/throttle';
+
 import { BoundaryKitAbortedError } from '../../../src/errors/BoundaryKitAbortedError.js';
 import { BoundaryKit } from '../../../src/index.js';
 
@@ -26,7 +28,8 @@ void it('does not throw BoundaryKitAbortedError when fn legitimately resolves un
 });
 
 void it('throws BoundaryKitAbortedError when the throttle discards a queued call before fn runs', async () => {
-  const kit = BoundaryKit.create({ 'throttle': { 'concurrencyLimit': 1 } });
+  const throttle = Throttle.create({ 'concurrencyLimit': 1 });
+  const kit = BoundaryKit.create({ 'throttle': throttle });
 
   let ran = false;
   const blockingWork = async (): Promise<string> => {
@@ -40,7 +43,7 @@ void it('throws BoundaryKitAbortedError when the throttle discards a queued call
   const first = kit.execute(blockingWork);
   const queued = kit.execute(queuedWork);
 
-  await kit.getThrottle().abort();
+  await throttle.abort();
 
   await first.catch(() => {});
   await assert.rejects(() => queued, BoundaryKitAbortedError);

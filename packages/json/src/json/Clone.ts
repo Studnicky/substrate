@@ -8,59 +8,36 @@
  * cloning behaviour.
  */
 
+import { DataType } from './DataType.js';
+
 export class Clone {
   // ---------------------------------------------------------------------------
   // Protected steps — override in subclasses to customise cloning
   // ---------------------------------------------------------------------------
 
-  /** Clone a single value by dispatching to the appropriate protected step. */
-  protected static cloneValue<T>(value: T): T {
-    if (value === null || typeof value !== 'object') {
-      return value;
-    }
-
-    if (Array.isArray(value)) {
-      return this.cloneArray(value) as unknown as T;
-    }
-
-    if (value instanceof Map) {
-      return this.cloneMap(value) as unknown as T;
-    }
-
-    if (value instanceof Set) {
-      return this.cloneSet(value) as unknown as T;
-    }
-
-    if (value instanceof Date) {
-      return this.cloneDate(value) as unknown as T;
-    }
-
-    return this.cloneObject(value as Record<string, unknown>) as unknown as T;
-  }
-
   /** Clone an array element-by-element. */
-  protected static cloneArray<T>(value: T[]): T[] {
-    const result = value.map((item: T) => { const result = this.cloneValue(item); return result; });
+  protected static cloneArray(value: unknown[]): unknown[] {
+    const result = value.map((item) => { const result = this.deep(item); return result; });
     return result;
   }
 
   /** Clone a Map, deep-cloning both keys and values. */
-  protected static cloneMap<K, V>(value: Map<K, V>): Map<K, V> {
-    const cloned = new Map<K, V>();
+  protected static cloneMap(value: Map<unknown, unknown>): Map<unknown, unknown> {
+    const cloned = new Map<unknown, unknown>();
 
     for (const [k, v] of value.entries()) {
-      cloned.set(this.cloneValue(k), this.cloneValue(v));
+      cloned.set(this.deep(k), this.deep(v));
     }
 
     return cloned;
   }
 
   /** Clone a Set, deep-cloning each member. */
-  protected static cloneSet<V>(value: Set<V>): Set<V> {
-    const cloned = new Set<V>();
+  protected static cloneSet(value: Set<unknown>): Set<unknown> {
+    const cloned = new Set<unknown>();
 
     for (const v of value.values()) {
-      cloned.add(this.cloneValue(v));
+      cloned.add(this.deep(v));
     }
 
     return cloned;
@@ -83,7 +60,7 @@ export class Clone {
     const keysLen = keys.length;
     for (let i = 0; i < keysLen; i += 1) {
       const key = keys[i]!;
-      cloned[key] = this.cloneValue(value[key]);
+      cloned[key] = this.deep(value[key]);
     }
 
     return cloned;
@@ -101,9 +78,34 @@ export class Clone {
    * (own enumerable keys only) — use `structuredClone` when you need
    * transfer semantics for non-plain classes.
    */
-  public static deep<T>(value: T): T {
-    const result = this.cloneValue(value);
-    return result;
+  public static deep<T>(value: T): T;
+  public static deep(value: unknown): unknown;
+  public static deep(value: unknown): unknown {
+    if (value === null || typeof value !== 'object') {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return this.cloneArray(value);
+    }
+
+    if (value instanceof Map) {
+      return this.cloneMap(value);
+    }
+
+    if (value instanceof Set) {
+      return this.cloneSet(value);
+    }
+
+    if (value instanceof Date) {
+      return this.cloneDate(value);
+    }
+
+    if (DataType.isRecord(value)) {
+      return this.cloneObject(value);
+    }
+
+    return value;
   }
 
   /**

@@ -4,7 +4,7 @@
  */
 
 export { CircularBuffer } from './circular-buffer/index.js';
-export { CircularBufferBuilder } from './circular-buffer/index.js';
 export { CircularBufferOptionsEntity } from './entities/CircularBufferOptionsEntity.js';
+export { CircularBufferStateEntity } from './entities/CircularBufferStateEntity.js';
 export { CircularBufferError } from './errors/index.js';
 export type { CircularBufferInterface } from './interfaces/index.js';

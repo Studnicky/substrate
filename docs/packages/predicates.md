@@ -15,6 +15,8 @@ pnpm add @studnicky/predicates
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
+`@studnicky/predicates` is the sole public code entrypoint.
+
 ## Usage
 
 ### Type checks
@@ -60,8 +62,6 @@ The output shows `inferValueType` mapping JS values to JSON Schema type names, `
 | Export | Type | Description |
 |--------|------|-------------|
 | `Predicates` | class | Static-only predicate and coercion library |
-| `CoerceToBooleanResultType` | type | `boolean \| undefined` |
-| `CoerceToNumberResultType` | type | `number \| undefined` |
 
 ### Selected `Predicates` static methods
 
@@ -76,6 +76,9 @@ The output shows `inferValueType` mapping JS values to JSON Schema type names, `
 | `coerceToNumber(value)` | Coerces string to finite `number`; returns `undefined` for non-numeric input |
 | `coerceValue(schemaTypes, value)` | Tries each coercer in order; returns first successful result |
 | `codePointLength(str)` | Counts Unicode code points without allocating |
+| `checkPattern(value, pattern)` | Checks a string against a `RegExp` or pattern string |
+| `checkMinimum(value, minimum, exclusive)` | Checks inclusive or exclusive minimum bounds |
+| `checkMaximum(value, maximum, exclusive)` | Checks inclusive or exclusive maximum bounds |
 | `satisfiesMinLength(str, min)` | Fast-path code-point length check |
 | `satisfiesMaxLength(str, max)` | Fast-path code-point length check |
 | `checkMultipleOf(value, divisor)` | Epsilon-tolerant floating-point multiple check |

@@ -6,6 +6,8 @@
 
 Wraps an arbitrary function and caches its result keyed by a caller-supplied key derivation over its arguments, with LRU+TTL eviction and in-flight call dedup. It composes two existing primitives into the "check cache → check in-flight → run → store" sequence: an `LruCache` for TTL-bounded result storage and a `Coalesce` for in-flight dedup — no new storage engine, no implicit argument hashing.
 
+`MemoizeOptionsInterface` indexes its cache fields from `LruCacheOptionsEntity.Type`, and `CacheLookupEntity` owns the serializable hit/miss state used by the generic lookup contract. `CacheLookupEntity` is exported from the package root with its schema-derived type and runtime validator.
+
 **`@studnicky/memoize` vs. `@studnicky/idempotency-guard`:** both compose `LruCache` + `Coalesce`, but solve different problems. `Memoize` is pure memoization — the same derived key always replays the cached result, no conflict detection. `IdempotencyGuard` fingerprints a payload alongside the cached result and *errors* when a key is reused for a different payload — pick `IdempotencyGuard` when key reuse with a different payload is a bug you want to catch, pick `Memoize` when you just want to cache a function's result.
 
 ## Install
@@ -57,10 +59,6 @@ Concurrent calls with the same derived key, issued before the first resolves, sh
 | `ttlMs` | `number?` | Time-to-live (ms) for a cached result |
 | `staleMs` | `number?` | Staleness threshold (ms) for a cached result |
 
-### `Memoize.builder(): MemoizeBuilder`
-
-Fluent alternative: `.withFn(fn).withKeyFn(keyFn).withCapacity(n).withTtlMs(ms).build()`.
-
 ### `call(...args): Promise<TResult>`
 
 Derives `key = keyFn(...args)` and checks the composed cache:
@@ -78,12 +76,7 @@ Evicts every cached entry.
 
 ### Getters (Layer Transparency)
 
-| Getter | Returns |
-|--------|---------|
-| `getCache()` | The composed `LruCache<string, TResult>` instance |
-| `getCoalesce()` | The composed `Coalesce<TResult>` instance |
-
-Every getter returns the exact instance used internally — never a copy or wrapper — so an advanced consumer can subclass `LruCache`/`Coalesce` directly and reach it through the getter without subclassing `Memoize`.
+The composed `LruCache` and `Coalesce` remain private. Callers control cached state through `invalidate()` and `clear()`, and observe memoization behavior through the memo-specific hooks.
 
 ## Hooks
 
@@ -93,7 +86,7 @@ Every getter returns the exact instance used internally — never a copy or wrap
 | `onMemoMiss(key, args)` | `key` is genuinely new (or its entry expired) and `fn` is about to run |
 | `onMemoCoalesced(key, args)` | A caller joins an already in-flight invocation for `key` |
 
-`Memoize` introduces no hooks duplicating what `LruCache`/`Coalesce` already expose — its own hooks are specifically about memoization semantics (hit/miss/coalesced). Generic cache/coalesce lifecycle (`onEvict`, `onExpire`, `onCoalesceSettled`, `onTimeout`, ...) stays reachable via `getCache()`/`getCoalesce()` for a consumer who subclasses the composed instances directly.
+`Memoize`'s hooks are specifically about memoization semantics (hit/miss/coalesced); implementation-level cache and coalescing state stays encapsulated.
 
 ## Extending
 
@@ -106,7 +99,7 @@ class TelemetryMemoize extends Memoize<[string], User> {
   readonly events: string[] = [];
 
   static tracked(fn: (userId: string) => Promise<User>): TelemetryMemoize {
-    return TelemetryMemoize.create(fn, { keyFn: (userId) => userId, capacity: 1000, ttlMs: 60_000 }) as TelemetryMemoize;
+    return TelemetryMemoize.create(fn, { keyFn: (userId) => userId, capacity: 1000, ttlMs: 60_000 });
   }
 
   protected override onMemoHit(key: string): void {

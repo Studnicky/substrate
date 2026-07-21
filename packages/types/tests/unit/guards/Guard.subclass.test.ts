@@ -5,8 +5,8 @@ import { Guard } from '../../../src/guards/Guard.js';
 
 /**
  * Subclass extension test — `LaxGuard` static overrides `isObject` to treat
- * arrays as records, proving that `asRecord` and `asRecordArray` both reflect
- * the override via `this.isObject` dispatch.
+ * arrays as records, proving that `asRecordArray` reflects the override via
+ * `this.isObject` dispatch.
  */
 class LaxGuard extends Guard {
   /** Override: arrays also count as records. */
@@ -19,14 +19,6 @@ void it('overridden isObject accepts arrays', () => {
   assert.equal(LaxGuard.isObject([1, 2, 3]), true);
   assert.equal(LaxGuard.isObject(null), false);
   assert.equal(LaxGuard.isObject({}), true);
-});
-
-void it('asRecord delegates through overridden isObject — arrays become records', () => {
-  const arr = [1, 2, 3];
-  const result = LaxGuard.asRecord(arr);
-
-  // The override treats arrays as records, so asRecord returns the array
-  assert.strictEqual(result, arr);
 });
 
 void it('asRecordArray delegates through overridden isObject — nested arrays pass filter', () => {

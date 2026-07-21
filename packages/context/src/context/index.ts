@@ -1,5 +1,1 @@
 export * from './Context.js';
-export * from './ContextBuilder.js';
-export * from './ContextScope.js';
-export * from './ContextScopeBuilder.js';
-export type * from './ContextScopeOptionsInterface.js';

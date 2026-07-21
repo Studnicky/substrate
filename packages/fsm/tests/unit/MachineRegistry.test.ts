@@ -4,14 +4,14 @@ import { StateMachine } from '../../src/StateMachine.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MachineRegistry } from '../../src/MachineRegistry.js';
 import { MachineAlreadyRegisteredError } from '../../src/MachineAlreadyRegisteredError.js';
-import type { FsmStepType } from '../../src/FsmStepType.js';
+import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
 
 type SimpleState = { readonly variant: 'idle' };
 type SimpleEvent = { readonly type: 'noop' };
 
 class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
   getInitialState(): SimpleState { return { variant: 'idle' }; }
-  reduce(state: SimpleState, _event: SimpleEvent): FsmStepType<SimpleState> {
+  reduce(state: SimpleState, _event: SimpleEvent): FsmStepInterface<SimpleState> {
     return { state, effects: [] };
   }
 }
@@ -23,10 +23,10 @@ class Fixture {
 }
 
 describe('MachineRegistry', () => {
-  let registry: MachineRegistry;
+  let registry: MachineRegistry<SimpleState, SimpleEvent>;
 
   beforeEach(() => {
-    registry = MachineRegistry.create();
+    registry = MachineRegistry.create<SimpleState, SimpleEvent>();
   });
 
   it('register() and get() round-trip', () => {
@@ -54,7 +54,7 @@ describe('MachineRegistry', () => {
 
   const hasScenarios: Array<{
     description: string;
-    setup: (r: MachineRegistry) => void;
+    setup: (r: MachineRegistry<SimpleState, SimpleEvent>) => void;
     name: string;
     expected: boolean;
   }> = [
@@ -88,7 +88,7 @@ describe('MachineRegistry', () => {
   });
 
   it('two instances do not share state', () => {
-    const other = MachineRegistry.create();
+    const other = MachineRegistry.create<SimpleState, SimpleEvent>();
     registry.register('isolated', Fixture.interpreter());
     assert.equal(registry.has('isolated'), true);
     assert.equal(other.has('isolated'), false);

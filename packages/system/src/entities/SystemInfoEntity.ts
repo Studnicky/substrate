@@ -1,5 +1,7 @@
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
 import { SchemaValidator } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
 
 import { CpuInfoEntity } from './CpuInfoEntity.js';
 import { GpuInfoEntity } from './GpuInfoEntity.js';
@@ -18,7 +20,7 @@ export namespace SystemInfoEntity {
     'required': ['cpu', 'gpu', 'memory', 'platform'],
     'title': 'SystemInfoType',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
   export type Type = FromSchema<typeof Schema>;
-  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
 }

@@ -1,14 +1,11 @@
-import type {
-  FailureStatusType,
-  LifecycleStatusType,
-  LogStatusType,
-  SuccessStatusType
-} from '../types/LogStatusType.js';
+import type { LogStatusEntity } from '../entities/LogStatusEntity.js';
 
-import { STATUS_CATEGORIES } from '../constants/LOG_STATUS.js';
+import { FailureStatusEntity } from '../entities/FailureStatusEntity.js';
+import { LifecycleStatusEntity } from '../entities/LifecycleStatusEntity.js';
+import { SuccessStatusEntity } from '../entities/SuccessStatusEntity.js';
 
 /**
- * Type predicates for narrowing LogStatusType values.
+ * Type predicates for narrowing log status entity values.
  */
 export class LogStatus {
   /**
@@ -17,8 +14,8 @@ export class LogStatus {
    * @param status - The status to check
    * @returns True if the status is a success status, with type narrowing
    */
-  public static isSuccess(status: LogStatusType): status is SuccessStatusType {
-    const result = (STATUS_CATEGORIES.SUCCESS as readonly string[]).includes(status);
+  public static isSuccess(status: LogStatusEntity.Type): status is SuccessStatusEntity.Type {
+    const result = SuccessStatusEntity.validate(status);
     return result;
   }
 
@@ -28,8 +25,8 @@ export class LogStatus {
    * @param status - The status to check
    * @returns True if the status is a failure status, with type narrowing
    */
-  public static isFailure(status: LogStatusType): status is FailureStatusType {
-    const result = (STATUS_CATEGORIES.FAILURE as readonly string[]).includes(status);
+  public static isFailure(status: LogStatusEntity.Type): status is FailureStatusEntity.Type {
+    const result = FailureStatusEntity.validate(status);
     return result;
   }
 
@@ -39,8 +36,8 @@ export class LogStatus {
    * @param status - The status to check
    * @returns True if the status is a lifecycle status, with type narrowing
    */
-  public static isLifecycle(status: LogStatusType): status is LifecycleStatusType {
-    const result = (STATUS_CATEGORIES.LIFECYCLE as readonly string[]).includes(status);
+  public static isLifecycle(status: LogStatusEntity.Type): status is LifecycleStatusEntity.Type {
+    const result = LifecycleStatusEntity.validate(status);
     return result;
   }
 }

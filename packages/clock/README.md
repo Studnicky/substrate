@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/clock)
 
-`@studnicky/clock` provides a `Clock` class that delegates to a swappable `ClockProviderType`, returning epoch-ms from `.now()` and nanosecond timestamps from `.hrtime()` — both with per-instance monotonicity enforcement. Swap in `VirtualClockProvider` and `VirtualTimeCounter` for fully deterministic time control in tests.
+`@studnicky/clock` provides a `Clock` class that delegates to a swappable `ClockProviderInterface`, returning epoch-ms from `.now()` and nanosecond timestamps from `.hrtime()` — both with per-instance monotonicity enforcement. Swap in `VirtualClockProvider` and `VirtualTimeCounter` for fully deterministic time control in tests.
 
 ## Install
 
@@ -68,35 +68,15 @@ console.log(clockA.now()); // 200
 console.log(clockB.now()); // 200
 ```
 
-### Fluent builder API
-
-```ts
-const clock = Clock.builder()
-  .withProvider(RealTimeClockProvider.create())
-  .build();
-
-const skewed = RealTimeClockProvider.builder()
-  .withOffsetMs(500)
-  .build();
-
-const counter = VirtualTimeCounter.builder()
-  .withStartMs(1000)
-  .build();
-
-const provider = VirtualClockProvider.builder()
-  .withCounter(counter)
-  .build();
-```
-
 ## Extending
 
-`ClockProviderType` is the DI seam — implement it to inject any time source:
+`ClockProviderInterface` is the DI seam — implement it to inject any time source:
 
 ```ts
-import type { ClockProviderType } from '@studnicky/clock';
+import type { ClockProviderInterface } from '@studnicky/clock';
 import { Clock } from '@studnicky/clock';
 
-class FixedClockProvider implements ClockProviderType {
+class FixedClockProvider implements ClockProviderInterface {
   hrtime(): bigint { return 42_000_000n; }
   now(): number    { return 42; }
 }

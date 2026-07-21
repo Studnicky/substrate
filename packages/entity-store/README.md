@@ -21,14 +21,11 @@ pnpm add @studnicky/entity-store
 ## Usage
 
 ```typescript
+import type { UserEntity } from './entities/UserEntity.js';
+
 import { EntityStore } from '@studnicky/entity-store';
 
-interface User {
-  id: string;
-  name: string;
-}
-
-const store = EntityStore.create<User>({
+const store = EntityStore.create<UserEntity.Type>({
   selectId: (user) => user.id
 });
 
@@ -47,7 +44,7 @@ store.size; // 2
 Pass `sortComparer` to keep `getAll()` sorted instead of insertion-ordered:
 
 ```typescript
-const store = EntityStore.create<User>({
+const store = EntityStore.create<UserEntity.Type>({
   selectId: (user) => user.id,
   sortComparer: (a, b) => a.name.localeCompare(b.name)
 });
@@ -80,34 +77,24 @@ class InstrumentedStore<T> extends EntityStore<T> {
 | Export | Type | Description |
 |--------|------|-------------|
 | `EntityStore<TEntity, TId>` | class | Normalized entity collection; generic entity and id types |
-| `EntityStoreBuilder<TEntity, TId>` | class | Fluent builder for `EntityStore`; produced by `EntityStore.builder()` |
-| `EntityStoreOptionsType<TEntity, TId>` | type | `{ selectId, sortComparer? }` |
+| `EntityStoreOptionsInterface<TEntity, TId>` | interface | Runtime configuration contract containing the required `selectId` function and optional `sortComparer` function |
 
 ### `EntityStore<TEntity, TId>`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | `create` | `static create<TEntity, TId>(options): EntityStore<TEntity, TId>` | Constructs a store from options |
-| `builder` | `static builder<TEntity, TId>(): EntityStoreBuilder<TEntity, TId>` | Returns a fluent builder for constructing a store |
 | `size` | `get size(): number` | Current entity count |
 | `upsertOne` | `(entity: TEntity) => void` | Derives id via `selectId`; inserts or overwrites |
 | `upsertMany` | `(entities: readonly TEntity[]) => void` | Upserts every entity in array order |
 | `removeOne` | `(id: TId) => boolean` | Removes an entity; returns whether it existed |
 | `removeMany` | `(ids: readonly TId[]) => number` | Removes each id; returns the count actually removed |
 | `setAll` | `(entities: readonly TEntity[]) => void` | Replaces the entire collection |
-| `getAll` | `() => readonly TEntity[]` | Returns every entity, sorted by `sortComparer` if configured |
+| `getAll` | `() => readonly TEntity[]` | Returns a defensive snapshot, sorted by `sortComparer` if configured |
 | `getById` | `(id: TId) => TEntity \| undefined` | Returns the entity for `id`, or `undefined` |
 | `getIds` | `() => readonly TId[]` | Returns every id, in insertion order |
 | `hookErrorCount` | `get hookErrorCount(): number` | Count of hook failures recorded since construction |
-| `getHookErrors` | `() => readonly HookErrorEntryType[]` | Defensive copy of every hook failure recorded since construction |
-
-### `EntityStoreBuilder<TEntity, TId>`
-
-| Member | Signature | Description |
-|--------|-----------|-------------|
-| `withSelectId` | `(value: (entity: TEntity) => TId) => this` | Sets the id-derivation function (required before `build()`) |
-| `withSortComparer` | `(value: (a: TEntity, b: TEntity) => number) => this` | Sets the optional sort comparator for `getAll()` |
-| `build` | `() => EntityStore<TEntity, TId>` | Constructs the store; throws if `selectId` was not set |
+| `getHookErrors` | `() => readonly HookInvocationError[]` | Defensive copy of every hook failure recorded since construction |
 
 ## Hooks
 
@@ -122,7 +109,7 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 A hook override that throws or rejects does not abort the mutation that triggered it — the failure is recorded instead of propagating, backed internally by `@studnicky/errors`'s `HookInvoker`. Inspect recorded failures via `hookErrorCount`/`getHookErrors()`:
 
 ```typescript
-class FaultyStore extends EntityStore<{ id: string }> {
+class FaultyStore extends EntityStore<UserEntity.Type> {
   protected override onUpsert(): void {
     throw new Error('boom');
   }

@@ -19,7 +19,7 @@ class TelemetryMemoize extends Memoize<[string], { 'chargeId': string }> {
       'capacity': 1000,
       'keyFn': keyFn,
       'ttlMs': 60_000
-    }) as TelemetryMemoize;
+    });
     return result;
   }
 
@@ -117,11 +117,5 @@ assert.equal(demo.resultB.chargeId, 'ch_shared');
 
 assert.deepEqual(demo.memo.events, ['miss:charge:order-42', 'hit:charge:order-42', 'miss:charge:order-42']);
 assert.deepEqual(demo.sharedMemo.events, ['miss:charge:order-99', 'coalesced:charge:order-99']);
-
-// getCache()/getCoalesce() expose the exact composed instances (Layer
-// Transparency Rule) — advanced consumers can subclass or introspect them
-// directly without subclassing Memoize.
-assert.equal(demo.memo.getCache().size, 1);
-assert.equal(demo.sharedMemo.getCoalesce().isInflight('order-99'), false);
 
 console.log('observedMemoize: all assertions passed');

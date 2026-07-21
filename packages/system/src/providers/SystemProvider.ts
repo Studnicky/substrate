@@ -1,5 +1,6 @@
 import os from 'node:os';
 
+import type { CpuSnapshotEntity } from '../entities/CpuSnapshotEntity.js';
 import type { GpuInfoEntity } from '../entities/GpuInfoEntity.js';
 import type { SystemProviderInterface } from '../interfaces/SystemProviderInterface.js';
 
@@ -19,7 +20,7 @@ export class SystemProvider implements SystemProviderInterface {
    * combining `logicalCpuCount()`, `cpuModel()`, and `physicalCpuCount()`,
    * which each re-enumerate independently.
    */
-  cpuInfo(): { 'logicalCount': number; 'model': string; 'physicalCount': number } {
+  cpuInfo(): CpuSnapshotEntity.Type {
     const cpus = os.cpus();
     const logicalCount = cpus.length;
     const model = cpus[0]?.model ?? 'Unknown';

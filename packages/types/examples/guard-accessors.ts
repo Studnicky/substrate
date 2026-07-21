@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import { Empty, Guard } from '../src/index.js';
+import { Empty, Guard, JsonValue } from '../src/index.js';
 import { GuardAccessorsFixtures } from './fixtures/GuardAccessorsFixtures.js';
 
 // ── Guard.isObject ───────────────────────────────────────────────────────────
@@ -16,21 +16,11 @@ console.log('Guard.isObject({ a: 1 }):', plainObj);
 console.log('Guard.isObject([1,2,3]):', arrIsRecord);
 console.log('Guard.isObject(null):', nullIsRecord);
 
-// ── Guard.asRecord ──────────────────────────────────────────────────────────
+// ── Guard.asNumber / asStringOrNull ─────────────────────────────────────────
 
-const rec = Guard.asRecord({ 'age': 42, 'name': 'Ada' });
-const recFromNull = Guard.asRecord(null);
-
-console.log('Guard.asRecord({ age:42, name:"Ada" }):', rec);
-console.log('Guard.asRecord(null):', recFromNull);
-
-// ── Guard.asString / asNumber / asStringOrNull ──────────────────────────────
-
-const str = Guard.asString('hello');
 const numResult = Guard.asNumber(3.14);
 const strOrNull = Guard.asStringOrNull(null);
 
-console.log('Guard.asString("hello"):', str);
 console.log('Guard.asNumber(3.14):', numResult);
 console.log('Guard.asStringOrNull(null):', strOrNull);
 
@@ -57,10 +47,8 @@ class StrictGuard extends Guard {
   }
 }
 
-const strictRec = StrictGuard.asRecord({ 'host': 'localhost' });
 const strictArr = StrictGuard.asRecordArray([{ 'a': 1 }, 99, { 'b': 2 }]);
 
-console.log('StrictGuard.asRecord({ host:"localhost" }):', strictRec);
 console.log('StrictGuard.asRecordArray([{a:1},99,{b:2}]):', strictArr);
 
 // ── Empty producers ─────────────────────────────────────────────────────────
@@ -85,13 +73,10 @@ console.log('Empty.isArray([]):', Empty.isArray([]));
 console.log('Empty.isMap(new Map()):', Empty.isMap(new Map()));
 console.log('Empty.isSet(new Set()):', Empty.isSet(new Set()));
 
-// ── Type-level witnesses ────────────────────────────────────────────────────
-// Values typed as JsonSchemaObjectType / JsonValueType prove the utility at compile time.
+// ── JSON value boundary ─────────────────────────────────────────────────────
 
-const schema = GuardAccessorsFixtures.schema;
 const value = GuardAccessorsFixtures.value;
 
-console.log('schema.type:', schema.type);
 console.log('value:', JSON.stringify(value));
 // #endregion usage
 
@@ -101,14 +86,6 @@ assert.equal(arrIsRecord, false, 'array is not a record');
 assert.equal(nullIsRecord, false, 'null is not a record');
 assert.equal(Guard.isObject('hello'), false, 'string is not a record');
 
-assert.ok(rec !== undefined, 'asRecord returns the object');
-assert.equal(rec?.name, 'Ada');
-assert.equal(recFromNull, undefined, 'asRecord returns undefined for null');
-assert.equal(Guard.asRecord([]), undefined, 'asRecord returns undefined for array');
-
-assert.equal(str, 'hello');
-assert.equal(Guard.asString(42), undefined, 'number is not a string');
-assert.equal(Guard.asString(null), undefined, 'null is not a string');
 assert.equal(numResult, 3.14);
 assert.equal(Guard.asNumber('3'), undefined, 'string is not a number');
 assert.equal(Guard.asNumber(Number.NaN), Number.NaN, 'NaN passes typeof check');
@@ -139,8 +116,6 @@ assert.equal(Guard.isPositiveInteger(0), false);
 
 assert.equal(StrictGuard.isObject({ 'x': 1 }), true, 'StrictGuard accepts plain objects');
 assert.equal(StrictGuard.isObject([]), false, 'StrictGuard rejects arrays');
-assert.ok(strictRec !== undefined);
-assert.equal(strictRec?.host, 'localhost');
 assert.ok(strictArr !== undefined);
 assert.equal(strictArr?.length, 2);
 
@@ -159,7 +134,7 @@ assert.equal(Empty.isArray([1]), false);
 assert.equal(Empty.isMap(new Map()), true);
 assert.equal(Empty.isSet(new Set()), true);
 
-assert.equal(schema.type, 'string', 'JsonSchemaObjectType accepts schema keyword object');
-assert.deepEqual(value, { 'nested': [1, 'two', null] }, 'JsonValueType accepts nested JSON');
+assert.equal(JsonValue.is(value), true, 'JSON value validation accepts nested JSON');
+assert.deepEqual(value, { 'nested': [1, 'two', null] }, 'canonical JSON value accepts nested JSON');
 
 console.log('guard-accessors: all assertions passed');

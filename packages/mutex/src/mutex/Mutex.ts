@@ -28,16 +28,17 @@
  * ```
  */
 
-import { HookInvocationError, HookInvoker, ReentrantHookInvocationError } from '@studnicky/errors';
+import { HookInvoker, ReentrantHookInvocationError } from '@studnicky/errors';
 
 import type { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
+import type { MutexKeyStateEntity } from '../entities/MutexKeyStateEntity.js';
+import type { MutexQueueEntryEntity } from '../entities/MutexQueueEntryEntity.js';
 import type { MutexStatsEntity } from '../entities/MutexStatsEntity.js';
 import type {
   MutexInterface,
   MutexLockInterface
 } from '../interfaces/index.js';
-import type { MutexKeyStateType } from '../types/MutexKeyStateType.js';
 
 import {
   EMPTY_LENGTH,
@@ -51,26 +52,22 @@ import {
   QueueSizeExceededError
 } from '../errors/index.js';
 import { configInternal } from './configInternal.js';
-import { MutexBuilder } from './MutexBuilder.js';
 
-// json-schema-uninexpressible: reject/resolve are callback function fields, not JSON-representable
-type QueueEntryType = {
-  'queuedAt': number;
+interface QueueEntryInterface {
+  'queuedAt': MutexQueueEntryEntity.Type['queuedAt'];
   'reject': (error: Error) => void;
   'resolve': (release: () => void) => void;
   'timeoutId': ReturnType<typeof setTimeout> | undefined;
-};
+}
 
-// json-schema-uninexpressible: promise is a Promise instance, not a JSON-representable value
-type InFlightOperationType = {
+interface InFlightOperationInterface {
   'promise': Promise<unknown>;
-};
+}
 
-// json-schema-uninexpressible: reject/resolve are callback function fields, prev/next are node links
-type QueueNodeType = QueueEntryType & {
-  'next': QueueNodeType | undefined;
-  'prev': QueueNodeType | undefined;
-};
+interface QueueNodeInterface extends QueueEntryInterface {
+  'next': QueueNodeInterface | undefined;
+  'prev': QueueNodeInterface | undefined;
+}
 
 /**
  * Intrusive doubly-linked list backing the per-key acquisition queue.
@@ -84,10 +81,10 @@ type QueueNodeType = QueueEntryType & {
  * `Array#shift`).
  */
 class LinkedAcquisitionQueue {
-  #head: QueueNodeType | undefined;
-  #tail: QueueNodeType | undefined;
+  #head: QueueNodeInterface | undefined;
+  #tail: QueueNodeInterface | undefined;
   #size: number;
-  readonly #nodesByTimeoutId: Map<ReturnType<typeof setTimeout>, QueueNodeType>;
+  readonly #nodesByTimeoutId: Map<ReturnType<typeof setTimeout>, QueueNodeInterface>;
 
   constructor() {
     this.#head = undefined;
@@ -100,8 +97,8 @@ class LinkedAcquisitionQueue {
     return this.#size;
   }
 
-  enqueue(entry: QueueEntryType): void {
-    const node: QueueNodeType = {
+  enqueue(entry: QueueEntryInterface): void {
+    const node: QueueNodeInterface = {
       'next': undefined,
       'prev': this.#tail,
       'queuedAt': entry.queuedAt,
@@ -124,7 +121,7 @@ class LinkedAcquisitionQueue {
     }
   }
 
-  dequeueHead(): QueueNodeType | undefined {
+  dequeueHead(): QueueNodeInterface | undefined {
     const node = this.#head;
 
     if (node === undefined) {
@@ -136,7 +133,7 @@ class LinkedAcquisitionQueue {
     return node;
   }
 
-  removeByTimeoutId(timeoutId: ReturnType<typeof setTimeout>): QueueNodeType | undefined {
+  removeByTimeoutId(timeoutId: ReturnType<typeof setTimeout>): QueueNodeInterface | undefined {
     const node = this.#nodesByTimeoutId.get(timeoutId);
 
     if (node === undefined) {
@@ -148,8 +145,8 @@ class LinkedAcquisitionQueue {
     return node;
   }
 
-  values(): QueueNodeType[] {
-    const result: QueueNodeType[] = [];
+  values(): QueueNodeInterface[] {
+    const result: QueueNodeInterface[] = [];
     let node = this.#head;
 
     while (node !== undefined) {
@@ -160,7 +157,7 @@ class LinkedAcquisitionQueue {
     return result;
   }
 
-  #detach(node: QueueNodeType): void {
+  #detach(node: QueueNodeInterface): void {
     const { next, prev } = node;
 
     if (prev !== undefined) {
@@ -221,23 +218,6 @@ class MutexLock<K extends PropertyKey> implements MutexLockInterface {
 }
 
 /**
- * Routes `Mutex`'s hook-invocation failures to the owning instance's
- * `hookErrors` array via a constructor callback, since a private field
- * can't be reached across class boundaries. Hoisted to module scope so V8
- * compiles this class once rather than per `Mutex` instantiation.
- */
-class MutexHookInvoker extends HookInvoker {
-  constructor(private readonly onError: (hookName: string, cause: unknown) => void) {
-    super();
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.onError(hookName, cause);
-    return undefined as T;
-  }
-}
-
-/**
  * Key-based mutual exclusion for async operations.
  *
  * Provides fine-grained locking where operations on different keys run
@@ -263,6 +243,10 @@ class MutexHookInvoker extends HookInvoker {
  * @typeParam K - The type of keys used for locking (defaults to string)
  */
 export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> {
+  static readonly #OwnedHookInvoker = class MutexHookInvoker extends HookInvoker {
+    protected override onHookError(): void {}
+  };
+
   /**
    * Create a new Mutex instance with validated configuration
    *
@@ -284,24 +268,12 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     return new this(config);
   }
 
-  /**
-   * Create a MutexBuilder for fluent configuration of a Mutex instance.
-   *
-   * @returns MutexBuilder instance
-   */
-  static builder<K extends PropertyKey = string>(): MutexBuilder<K> {
-    const builder = MutexBuilder.create<K>((options) => {
-      return new this(options);
-    });
-    return builder;
-  }
-
-  readonly #keyStates: Map<K, MutexKeyStateType>;
+  readonly #keyStates: Map<K, MutexKeyStateEntity.Type>;
   readonly #activeKeys: Set<K>;
 
   private coalescedCount = INITIAL_COUNTER;
   private readonly config: MutexConfigEntity.Type;
-  private readonly inFlightOperations: Map<K, InFlightOperationType>;
+  private readonly inFlightOperations: Map<K, InFlightOperationInterface>;
   private readonly lockMetrics: Map<K, LockMetricsEntity.Type>;
   private readonly locks: Set<K>;
   private readonly observers: (() => void)[] = [];
@@ -309,32 +281,11 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private totalExecuted = INITIAL_COUNTER;
 
   /**
-   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
-   * instead of aborting acquisition or release — a broken hook must never
-   * block or corrupt lock bookkeeping.
-   */
-  protected readonly hookErrors: HookInvocationError[] = [];
-
-  /**
-   * Composed hook-invocation delegate. `onHookError` (via `MutexHookInvoker`)
-   * always records and swallows the failure into `hookErrors` instead of
-   * throwing: a broken lifecycle hook must never interrupt lock acquisition
-   * or release.
+   * Composed hook-invocation delegate. `MutexHookInvoker` retains the
+   * canonical diagnostic and swallows the failure so a broken lifecycle hook
+   * cannot interrupt lock acquisition or release.
    */
   protected readonly hooks: HookInvoker;
-
-  /**
-   * Fires `hookName` through the composed `HookInvoker#invoke`, discarding
-   * the result. `invoke` `await`s `fn`, but `fn` itself always runs
-   * synchronously at this call site — only `invoke`'s returned Promise
-   * resolves on a later microtask — so leaving it unawaited here keeps every
-   * caller's subsequent lock-state mutation synchronous, exactly like the
-   * ad-hoc `try/catch` blocks this replaces. `onHookError` always records and
-   * swallows the failure, so the returned promise never rejects.
-   */
-  #fireHook(hookName: string, fn: () => void): void {
-    this.hooks.invoke(hookName, fn);
-  }
 
   /**
    * Constructor validates and initializes Mutex
@@ -349,9 +300,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     this.lockMetrics = new Map();
     this.inFlightOperations = new Map();
     this.config = configInternal.validateConfig(config);
-    this.hooks = new MutexHookInvoker((hookName, cause) => {
-      this.hookErrors.push(new HookInvocationError(hookName, cause));
-    });
+    this.hooks = new Mutex.#OwnedHookInvoker();
   }
 
   /**
@@ -379,7 +328,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   async acquire(key: K): Promise<() => void> {
     const requestedAt = Date.now();
 
-    this.#fireHook('beforeAcquire', () => {
+    this.hooks.invoke('beforeAcquire', () => {
       if (this.#activeKeys.has(key)) {
         throw new ReentrantHookInvocationError('beforeAcquire');
       }
@@ -387,7 +336,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       this.#activeKeys.add(key);
 
       try {
-        this.beforeAcquire(key);
+        const result = this.beforeAcquire(key);
+        return result;
       } finally {
         this.#activeKeys.delete(key);
       }
@@ -408,7 +358,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     this.validateQueueSize(key, queue);
 
-    this.#fireHook('onContended', () => { this.onContended(key, queue.size); });
+    this.hooks.invoke('onContended', () => {
+      const result = this.onContended(key, queue.size);
+      return result;
+    });
 
     return await this.createQueuedAcquisition(key, queue, requestedAt);
   }
@@ -513,7 +466,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * When `key` is absent from `#keyStates` it is treated as `'unlocked'`.
    * Throws if `guardKey` rejects the edge.
    */
-  protected transitionKey(key: K, to: MutexKeyStateType): void {
+  protected transitionKey(key: K, to: MutexKeyStateEntity.Type): void {
     const from = this.#keyStates.get(key) ?? 'unlocked';
 
     if (!this.guardKey(from, to)) {
@@ -521,7 +474,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     }
 
     this.#keyStates.set(key, to);
-    this.#fireHook('onEnterKey', () => { this.onEnterKey(key, to, from); });
+    this.hooks.invoke('onEnterKey', () => {
+      const result = this.onEnterKey(key, to, from);
+      return result;
+    });
   }
 
   /**
@@ -533,7 +489,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * - `queued → locked`
    * - `locked → unlocked`
    */
-  protected guardKey(from: MutexKeyStateType, to: MutexKeyStateType): boolean {
+  protected guardKey(from: MutexKeyStateEntity.Type, to: MutexKeyStateEntity.Type): boolean {
     if (from === 'unlocked' && to === 'locked') {return true;}
     if (from === 'locked' && to === 'queued') {return true;}
     if (from === 'queued' && to === 'locked') {return true;}
@@ -546,7 +502,11 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * Hook called when the per-key FSM enters a new state.
    * Override in a subclass to observe or react to per-key state changes.
    */
-  protected onEnterKey(_key: K, _to: MutexKeyStateType, _from: MutexKeyStateType): void {}
+  protected onEnterKey(
+    _key: K,
+    _to: MutexKeyStateEntity.Type,
+    _from: MutexKeyStateEntity.Type
+  ): void {}
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -563,7 +523,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     const waitTimeMs = acquiredAt - requestedAt;
 
-    this.#fireHook('afterAcquire', () => { this.afterAcquire(key, waitTimeMs); });
+    this.hooks.invoke('afterAcquire', () => {
+      const result = this.afterAcquire(key, waitTimeMs);
+      return result;
+    });
 
     return this.createReleaseFunction(key);
   }
@@ -594,7 +557,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     for (const [key, keyState] of this.#keyStates) {
       if (keyState !== 'unlocked') {
         this.#keyStates.set(key, 'unlocked');
-        this.#fireHook('onEnterKey', () => { this.onEnterKey(key, 'unlocked', keyState); });
+        this.hooks.invoke('onEnterKey', () => {
+          const result = this.onEnterKey(key, 'unlocked', keyState);
+          return result;
+        });
       }
     }
 
@@ -653,11 +619,17 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     const waitTimeMs = acquiredAt - requestedAt;
 
-    this.#fireHook('afterAcquire', () => { this.afterAcquire(key, waitTimeMs); });
+    this.hooks.invoke('afterAcquire', () => {
+      const result = this.afterAcquire(key, waitTimeMs);
+      return result;
+    });
 
     resolve(releaseFunction);
 
-    this.#fireHook('onAcquireWait', () => { this.onAcquireWait(key, waitTimeMs); });
+    this.hooks.invoke('onAcquireWait', () => {
+      const result = this.onAcquireWait(key, waitTimeMs);
+      return result;
+    });
   }
 
   /**
@@ -674,7 +646,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       const handleResolve = (releaseFunction: () => void): void => {
         this.handleQueuedResolution(releaseFunction, key, requestedAt, resolve);
       };
-      const entry: QueueEntryType = {
+      const entry: QueueEntryInterface = {
         'queuedAt': requestedAt,
         'reject': reject,
         'resolve': handleResolve,
@@ -709,10 +681,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * Execute a coalesced operation - acquires lock, runs function, resolves/rejects deferred
    * This is called without awaiting to avoid blocking the synchronous path
    */
-  private async executeCoalescedOperation<T>(
+  private async executeCoalescedOperation(
     key: K,
-    fn: () => Promise<T> | T,
-    resolveDeferred: (value: T) => void,
+    fn: () => unknown,
+    resolveDeferred: (value: unknown) => void,
     rejectDeferred: (error: Error) => void
   ): Promise<void> {
     let release: (() => void) | undefined;
@@ -811,7 +783,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       if (removed !== undefined) {
         if (timeoutQueue.size === EMPTY_LENGTH) {
           this.queues.delete(key);
-          this.#fireHook('onQueueDrain', () => { this.onQueueDrain(key); });
+          this.hooks.invoke('onQueueDrain', () => {
+            const result = this.onQueueDrain(key);
+            return result;
+          });
           // FSM: the last waiter timed out; holder still holds the lock but queue is
           // now empty — transition queued → locked to reflect the unchallenged holder.
           const currentState = this.#keyStates.get(key) ?? 'unlocked';
@@ -823,7 +798,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       }
     }
 
-    this.#fireHook('onTimeout', () => { this.onTimeout(key, this.config.timeout); });
+    this.hooks.invoke('onTimeout', () => {
+      const result = this.onTimeout(key, this.config.timeout);
+      return result;
+    });
 
     reject(new LockTimeoutError(key, this.config.timeout));
   }
@@ -868,10 +846,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   /**
    * Join an existing in-flight operation
    */
-  private joinInFlightOperation<T>(_key: K, inFlight: InFlightOperationType): Promise<T> {
+  private joinInFlightOperation(_key: K, inFlight: InFlightOperationInterface): Promise<unknown> {
     this.coalescedCount++;
 
-    return inFlight.promise as Promise<T>;
+    return inFlight.promise;
   }
 
   /**
@@ -916,7 +894,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     if (queue.size === EMPTY_LENGTH) {
       this.queues.delete(key);
-      this.#fireHook('onQueueDrain', () => { this.onQueueDrain(key); });
+      this.hooks.invoke('onQueueDrain', () => {
+        const result = this.onQueueDrain(key);
+        return result;
+      });
     }
   }
 
@@ -947,7 +928,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     if (metrics !== undefined) {
       const holdTimeMs = releasedAt - metrics.acquiredAt;
 
-      this.#fireHook('beforeRelease', () => { this.beforeRelease(key, holdTimeMs); });
+      this.hooks.invoke('beforeRelease', () => {
+        const result = this.beforeRelease(key, holdTimeMs);
+        return result;
+      });
     }
   }
 
@@ -974,7 +958,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
         this.releaseLockCompletely(key);
       }
 
-      this.#fireHook('onRelease', () => { this.onRelease(key); });
+      this.hooks.invoke('onRelease', () => {
+        const result = this.onRelease(key);
+        return result;
+      });
     } finally {
       this.#activeKeys.delete(key);
     }
@@ -991,7 +978,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     this.locks.delete(key);
     this.lockMetrics.delete(key);
 
-    this.#fireHook('afterRelease', () => { this.afterRelease(key); });
+    this.hooks.invoke('afterRelease', () => {
+      const result = this.afterRelease(key);
+      return result;
+    });
 
     if (this.locks.size === EMPTY_LENGTH && this.queues.size === EMPTY_LENGTH) {
       this.notifyObservers();
@@ -1009,34 +999,53 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    *
    * @param key - The key to lock on
    * @param fn - The function to execute exclusively
-   * @returns Promise that resolves to the function's return value
+   * @param acceptsResult - Optional runtime predicate that validates and narrows the shared result
+   * @returns The shared result as `unknown`, or as the predicate's proven type
    * @throws {QueueSizeExceededError} If maxQueueSize is exceeded
    * @throws {LockTimeoutError} If timeout is exceeded
    *
    * @example
    * ```typescript
+   * const acceptsEntity = (value: unknown): value is Entity => value instanceof Entity;
    * const result = await mutex.runExclusive('user1', async () => {
    *   // This code has exclusive access for key 'user1'
    *   return await resolveEntity('user1');
-   * });
+   * }, acceptsEntity);
    * ```
    */
-  async runExclusive<T>(key: K, fn: () => Promise<T> | T): Promise<T> {
-    if (this.config.enableCoalescing) {
-      return await this.runExclusiveCoalesced(key, fn);
+  runExclusive(key: K, fn: () => unknown): Promise<unknown>;
+  runExclusive<T>(
+    key: K,
+    fn: () => unknown,
+    acceptsResult: (value: unknown) => value is T
+  ): Promise<T>;
+  async runExclusive<T>(
+    key: K,
+    fn: () => unknown,
+    acceptsResult?: (value: unknown) => value is T
+  ): Promise<unknown> {
+    const result = this.config.enableCoalescing
+      ? await this.runExclusiveCoalesced(key, fn)
+      : await this.runExclusiveStandard(key, fn);
+
+    if (acceptsResult !== undefined && !acceptsResult(result)) {
+      throw new TypeError(`Mutex result for key ${String(key)} does not satisfy the requested type`);
     }
 
-    return await this.runExclusiveStandard(key, fn);
+    return result;
   }
 
   /**
    * Execute with coalescing - concurrent calls share the result
    */
-  private runExclusiveCoalesced<T>(key: K, fn: () => Promise<T> | T): Promise<T> {
+  private runExclusiveCoalesced(
+    key: K,
+    fn: () => unknown
+  ): Promise<unknown> {
     const inFlight = this.inFlightOperations.get(key);
 
     if (inFlight !== undefined) {
-      return this.joinInFlightOperation<T>(key, inFlight);
+      return this.joinInFlightOperation(key, inFlight);
     }
 
     return this.startCoalescedOperation(key, fn);
@@ -1045,7 +1054,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   /**
    * Execute without coalescing - standard acquire/release pattern
    */
-  private async runExclusiveStandard<T>(key: K, fn: () => Promise<T> | T): Promise<T> {
+  private async runExclusiveStandard(
+    key: K,
+    fn: () => unknown
+  ): Promise<unknown> {
     const release = await this.acquire(key);
 
     return await Promise.resolve(fn()).then(
@@ -1098,10 +1110,13 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   /**
    * Start a new coalesced operation
    */
-  private startCoalescedOperation<T>(key: K, fn: () => Promise<T> | T): Promise<T> {
-    let deferredResolve!: (value: T) => void;
+  private startCoalescedOperation(
+    key: K,
+    fn: () => unknown
+  ): Promise<unknown> {
+    let deferredResolve!: (value: unknown) => void;
     let deferredReject!: (error: Error) => void;
-    const deferredPromise = new Promise<T>((resolve, reject) => {
+    const deferredPromise = new Promise<unknown>((resolve, reject) => {
       deferredResolve = resolve;
       deferredReject = reject;
     });

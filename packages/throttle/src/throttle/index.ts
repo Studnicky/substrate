@@ -1,3 +1,1 @@
 export * from './Throttle.js';
-export * from './ThrottleBuilder.js';
-export { ConfigurationError } from '@studnicky/config';

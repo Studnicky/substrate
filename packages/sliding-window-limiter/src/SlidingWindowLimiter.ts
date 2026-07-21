@@ -27,7 +27,7 @@
  * of what is passed, is treated as exactly one admitted request.
  */
 
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 import { SchemaValidator } from '@studnicky/json';
 import { RaceTimeout, Signal } from '@studnicky/signal';
 
@@ -37,25 +37,10 @@ import { COUNTER_POLL_DIVISOR, MIN_RETRY_DELAY_MS } from './constants/index.js';
 import { SlidingWindowLimiterOptionsEntity } from './entities/SlidingWindowLimiterOptionsEntity.js';
 import { SlidingWindowLimiterConfigError } from './errors/SlidingWindowLimiterConfigError.js';
 import { SlidingWindowExhaustedError } from './SlidingWindowExhaustedError.js';
-import { SlidingWindowLimiterBuilder } from './SlidingWindowLimiterBuilder.js';
 import { TimestampLog } from './TimestampLog.js';
 
-/**
- * Composed `HookInvoker` for `SlidingWindowLimiter` — records a hook failure
- * into the owning `SlidingWindowLimiter`'s `hookErrors` array via a
- * constructor callback instead of throwing. Hoisted to module scope so V8
- * compiles this class once rather than per `SlidingWindowLimiter`
- * instantiation.
- */
-class SlidingWindowLimiterHookInvoker extends HookInvoker {
-  constructor(private readonly recordFailure: (error: HookInvocationError) => void) {
-    super();
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.recordFailure(new HookInvocationError(hookName, cause));
-    return undefined as T;
-  }
+class SlidingWindowHookInvoker extends HookInvoker {
+  protected override onHookError(): void {}
 }
 
 export class SlidingWindowLimiter {
@@ -63,6 +48,7 @@ export class SlidingWindowLimiter {
   readonly #windowMs: number;
   readonly #algorithm: 'log' | 'counter';
   readonly #clock: () => number;
+  readonly #signal: Signal;
 
   // 'log' algorithm state
   readonly #timestamps: TimestampLog | undefined;
@@ -73,40 +59,16 @@ export class SlidingWindowLimiter {
   #previousWindowCount = 0;
 
   /**
-   * Hook failures recorded by `onHookError` instead of propagated, since
-   * construction. `onAllow`/`onReject`/`onWindowRoll` are fire-and-forget
-   * notifications that must never affect an admission decision already
-   * made — a consumer's broken hook override must not turn a successful
-   * `consume()` into a thrown error, nor replace the specific
-   * `SlidingWindowExhaustedError` a rejection throws with an unrelated hook
-   * failure.
+   * Invokes fire-and-forget notification hooks without allowing a broken
+   * override to replace an admission decision or its specific rejection.
    */
-  protected readonly hookErrors: HookInvocationError[] = [];
-
-  /**
-   * `HookInvoker`'s default `onHookError` throws a `HookInvocationError`,
-   * which would leak through `consume()` in exactly the cases described by
-   * `hookErrors` above, so `SlidingWindowLimiterHookInvoker` overrides it to
-   * record the failure instead of throwing (mirroring the pattern `Batch`
-   * and `EntityStore` use for their own fire-and-forget hooks).
-   */
-  protected readonly hooks: HookInvoker;
-
-  static builder(): SlidingWindowLimiterBuilder {
-    const factory = (options: SlidingWindowLimiterOptionsInterface): SlidingWindowLimiter => {
-      const result = SlidingWindowLimiter.create(options);
-      return result;
-    };
-    const result = SlidingWindowLimiterBuilder.create(factory);
-    return result;
-  }
+  protected readonly hooks = new SlidingWindowHookInvoker();
 
   static create(options: SlidingWindowLimiterOptionsInterface): SlidingWindowLimiter {
     return new this(options);
   }
 
   protected constructor(options: SlidingWindowLimiterOptionsInterface) {
-    this.hooks = new SlidingWindowLimiterHookInvoker((error) => { this.hookErrors.push(error); });
     const schemaOptions: SlidingWindowLimiterOptionsEntity.Type = {
       'algorithm': options.algorithm,
       'limit': options.limit,
@@ -121,8 +83,23 @@ export class SlidingWindowLimiter {
     this.#windowMs = options.windowMs;
     this.#algorithm = options.algorithm;
     this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
-    this.#timestamps = this.#algorithm === 'log' ? TimestampLog.make(this.#limit) : undefined;
+    this.#signal = Signal.create();
+    this.#timestamps = this.#algorithm === 'log'
+      ? TimestampLog.create<number, TimestampLog>({ 'capacity': this.#limit })
+      : undefined;
     this.#currentWindowIndex = Math.floor(this.#clock() / this.#windowMs);
+  }
+
+  /** Count of hook failures recorded by the safe invocation boundary. */
+  protected get hookErrorCount(): number {
+    const result = this.hooks.hookErrorCount;
+    return result;
+  }
+
+  /** Returns a defensive snapshot of failures recorded by notification hooks. */
+  protected getHookErrors(): readonly HookInvocationError[] {
+    const result = this.hooks.getHookErrors();
+    return result;
   }
 
   /**
@@ -142,7 +119,7 @@ export class SlidingWindowLimiter {
 
   /** Wait until `consume()` would succeed, then consume. */
   async waitForToken(options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}): Promise<void> {
-    const signal = await Signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
+    const signal = await this.#signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
     const tryConsume = (tokens?: number): boolean => {
       try {
         this.consume(tokens);

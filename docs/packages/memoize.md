@@ -15,6 +15,8 @@ description: Pure function memoization composing cache and concurrency — LRU+T
 pnpm add @studnicky/memoize
 ```
 
+`@studnicky/memoize` is the sole public code entrypoint.
+
 ## Usage
 
 `Memoize#call(...args)` derives `key = keyFn(...args)` and checks the composed `LruCache` for an entry under `key`. A hit returns the cached result without re-invoking the wrapped function; a miss runs the call through the composed `Coalesce` so concurrent callers sharing the derived key share one invocation:
@@ -29,18 +31,13 @@ pnpm add @studnicky/memoize
 | `onMemoMiss(key, args)` | `key` is genuinely new (or its entry expired) and `fn` is about to run |
 | `onMemoCoalesced(key, args)` | A caller joins an already in-flight invocation for `key` |
 
-`Memoize` introduces no hooks duplicating what `LruCache`/`Coalesce` already expose — its own hooks are specifically about memoization semantics (hit/miss/coalesced). Generic cache/coalesce lifecycle (`onEvict`, `onExpire`, `onCoalesceSettled`, `onTimeout`, ...) stays reachable via `getCache()`/`getCoalesce()` for a consumer who subclasses the composed instances directly.
+`Memoize`'s hooks are specifically about memoization semantics (hit/miss/coalesced); implementation-level cache and coalescing state stays encapsulated.
 
-## Transparency contract
+## Encapsulation contract
 
 `Memoize`'s own hooks (`onMemoHit`, `onMemoMiss`, `onMemoCoalesced`) are specifically about memoization semantics — never a restatement of generic cache/coalesce lifecycle:
 
-| Getter | Returns |
-|--------|---------|
-| `getCache()` | The composed `LruCache<string, TResult>` instance |
-| `getCoalesce()` | The composed `Coalesce<TResult>` instance |
-
-Every getter returns the exact instance used internally — never a copy or wrapper. A consumer who needs `LruCache`'s `onEvict`/`onExpire`/`onHit` or `Coalesce`'s `onCoalesceSettled`/`onTimeout` subclasses those primitives directly and passes nothing new through `Memoize` — `Memoize` composes `LruCache`/`Coalesce` internally rather than accepting them as injected config, so those getters are the only path to the live instances.
+The composed `LruCache` and `Coalesce` remain private. Callers control cached state through `invalidate()` and `clear()`, and observe memoization behavior through the memo-specific hooks.
 
 ## Composition order
 
@@ -50,7 +47,7 @@ Every getter returns the exact instance used internally — never a copy or wrap
 
 | Error | Thrown when |
 |-------|-------------|
-| `MemoizeConfigError` | `MemoizeBuilder#build()` is called without `fn`, `keyFn`, or `capacity` |
+| `MemoizeConfigError` | `Memoize.create(fn, options)` receives an invalid function, key derivation, or cache capacity |
 
 ## Documentation
 

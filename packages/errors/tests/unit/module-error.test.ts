@@ -9,7 +9,7 @@
  * - Stack traces
  */
 
-import type { ModuleErrorOptionsType } from '../../src/types/index.js';
+import type { ModuleErrorOptionsInterface } from '../../src/interfaces/index.js';
 
 import {
   deepStrictEqual,
@@ -23,6 +23,7 @@ import {
 } from 'node:test';
 
 import { CAUSE_CHAIN_DEPTH_LIMIT, CAUSE_DEPTH_SENTINEL, ErrorDefaults } from '../../src/constants/index.js';
+import { BaseError } from '../../src/errors/BaseError.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
 
 // Test error subclasses
@@ -42,7 +43,7 @@ class NetworkError extends ModuleError {
     const defaults = ErrorDefaults.CONNECTION;
 
     // Merge user options over defaults
-    const mergedOptions: ModuleErrorOptionsType = {
+    const mergedOptions: ModuleErrorOptionsInterface = {
       cause: options?.cause,
       code: defaults.code,
       context: options?.context,
@@ -54,7 +55,7 @@ class NetworkError extends ModuleError {
     return new NetworkError(message, mergedOptions);
   }
 
-  protected constructor(message: string, options: ModuleErrorOptionsType) {
+  protected constructor(message: string, options: ModuleErrorOptionsInterface) {
     super(message, options);
   }
 }
@@ -113,8 +114,7 @@ void describe('ModuleError', () => {
     void it('validates invalid scenario', () => {
       throws(
         () => {
-          // @ts-expect-error - testing invalid scenario
-          ModuleError.create('Test', { scenario: 'INVALID' });
+          Reflect.apply(ModuleError.create, ModuleError, ['Test', { 'scenario': 'INVALID' }]);
         },
         {
           message: /Validation failed at "scenario"/u,
@@ -201,6 +201,22 @@ void describe('ModuleError', () => {
 
       deepStrictEqual(error.context, {});
     });
+
+    void it('detaches nested construction context and each public projection', () => {
+      const context = { 'request': { 'attempt': 1 } };
+      const error = ModuleError.create('Test', { context, scenario: 'INTERNAL' });
+
+      context.request.attempt = 2;
+      deepStrictEqual(error.context, { 'request': { 'attempt': 1 } });
+
+      const projection = error.context;
+      if (projection !== undefined && projection.request !== null && typeof projection.request === 'object') {
+        Reflect.set(projection.request, 'attempt', 3);
+      }
+
+      deepStrictEqual(error.context, { 'request': { 'attempt': 1 } });
+      deepStrictEqual(error.toJSON().context, { 'request': { 'attempt': 1 } });
+    });
   });
 
   void describe('HTTP semantics', () => {
@@ -267,11 +283,11 @@ void describe('ModuleError', () => {
     });
   });
 
-  void describe('getCauseChain()', () => {
+  void describe('BaseError.getCauseChain()', () => {
     void it('returns single error for no causes', () => {
       const error = ModuleError.create('Test', { scenario: 'INTERNAL' });
 
-      const chain = error.getCauseChain();
+      const chain = BaseError.getCauseChain(error);
 
       strictEqual(chain.length, 1);
       strictEqual(chain[0], error);
@@ -288,7 +304,7 @@ void describe('ModuleError', () => {
         scenario: 'INTERNAL'
       });
 
-      const chain = top.getCauseChain();
+      const chain = BaseError.getCauseChain(top);
 
       strictEqual(chain.length, 3);
       strictEqual(chain[0], top);
@@ -307,7 +323,8 @@ void describe('ModuleError', () => {
         });
       }
 
-      const chain = (current as ModuleError).getCauseChain();
+      ok(current instanceof BaseError);
+      const chain = BaseError.getCauseChain(current);
 
       strictEqual(chain.length, 10);
       strictEqual(chain[0], current);
@@ -323,15 +340,15 @@ void describe('ModuleError', () => {
       });
       // Force a cycle: a -> b -> a. `cause` is readonly at the type level
       // only; mutate the runtime property to simulate a mutated cause graph.
-      (a as unknown as { 'cause': Error }).cause = b;
+      Reflect.set(a, 'cause', b);
 
-      const chain = b.getCauseChain();
+      const chain = BaseError.getCauseChain(b);
 
       ok(chain.length <= CAUSE_CHAIN_DEPTH_LIMIT, 'Chain should be bounded despite the cycle');
     });
   });
 
-  void describe('findCauseOfType()', () => {
+  void describe('BaseError.findCauseOfType()', () => {
     void it('finds matching cause in chain', () => {
       const root = new TestError('Test error');
       const middle = ModuleError.create('Middle', {
@@ -343,7 +360,7 @@ void describe('ModuleError', () => {
         scenario: 'INTERNAL'
       });
 
-      const found = top.findCauseOfType(TestError);
+      const found = BaseError.findCauseOfType(top, TestError);
 
       ok(found instanceof TestError);
       strictEqual(found, root);
@@ -356,7 +373,7 @@ void describe('ModuleError', () => {
         scenario: 'INTERNAL'
       });
 
-      const found = top.findCauseOfType(TestError);
+      const found = BaseError.findCauseOfType(top, TestError);
 
       strictEqual(found, undefined);
     });
@@ -378,7 +395,7 @@ void describe('ModuleError', () => {
       });
 
       // Should find the first TestError in the chain (middle, not root)
-      const found = top.findCauseOfType(TestError);
+      const found = BaseError.findCauseOfType(top, TestError);
 
       strictEqual(found, middle);
     });
@@ -391,7 +408,7 @@ void describe('ModuleError', () => {
         scenario: 'INTERNAL'
       });
 
-      const found = top.findCauseOfType(NetworkError as unknown as new (...args: never[]) => NetworkError);
+      const found = BaseError.getCauseChain(top).find((error) => { return error instanceof NetworkError; });
 
       ok(found instanceof NetworkError);
       strictEqual(found, network);
@@ -403,15 +420,15 @@ void describe('ModuleError', () => {
         cause: a,
         scenario: 'INTERNAL'
       });
-      (a as unknown as { 'cause': Error }).cause = b;
+      Reflect.set(a, 'cause', b);
 
-      const found = b.findCauseOfType(TestError);
+      const found = BaseError.findCauseOfType(b, TestError);
 
       strictEqual(found, undefined);
     });
   });
 
-  void describe('hasCauseOfType()', () => {
+  void describe('BaseError.hasCauseOfType()', () => {
     void it('returns true when type exists in chain', () => {
       const root = new TestError('Test');
       const top = ModuleError.create('Top', {
@@ -419,7 +436,7 @@ void describe('ModuleError', () => {
         scenario: 'INTERNAL'
       });
 
-      ok(top.hasCauseOfType(TestError));
+      ok(BaseError.hasCauseOfType(top, TestError));
     });
 
     void it('returns false when type not in chain', () => {
@@ -429,13 +446,13 @@ void describe('ModuleError', () => {
         scenario: 'INTERNAL'
       });
 
-      strictEqual(top.hasCauseOfType(TestError), false);
+      strictEqual(BaseError.hasCauseOfType(top, TestError), false);
     });
 
     void it('returns false for error with no causes', () => {
       const error = ModuleError.create('Test', { scenario: 'INTERNAL' });
 
-      strictEqual(error.hasCauseOfType(TestError), false);
+      strictEqual(BaseError.hasCauseOfType(error, TestError), false);
     });
 
     void it('checks entire cause chain', () => {
@@ -453,7 +470,7 @@ void describe('ModuleError', () => {
         scenario: 'INTERNAL'
       });
 
-      ok(top.hasCauseOfType(TestError), 'Should find TestError deep in chain');
+      ok(BaseError.hasCauseOfType(top, TestError), 'Should find TestError deep in chain');
     });
 
     void it('does not hang on a circular cause chain', () => {
@@ -462,9 +479,9 @@ void describe('ModuleError', () => {
         cause: a,
         scenario: 'INTERNAL'
       });
-      (a as unknown as { 'cause': Error }).cause = b;
+      Reflect.set(a, 'cause', b);
 
-      strictEqual(b.hasCauseOfType(TestError), false);
+      strictEqual(BaseError.hasCauseOfType(b, TestError), false);
     });
   });
 

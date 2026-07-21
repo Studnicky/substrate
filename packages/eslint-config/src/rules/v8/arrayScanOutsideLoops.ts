@@ -8,15 +8,13 @@ const SCAN_METHODS: ReadonlySet<string> = new Set(['every', 'filter', 'find', 'i
 const LOOP_TYPES: ReadonlySet<string> = new Set(['DoWhileStatement', 'ForInStatement', 'ForOfStatement', 'ForStatement', 'WhileStatement']);
 const FUNCTION_TYPES: ReadonlySet<string> = new Set(['ArrowFunctionExpression', 'FunctionDeclaration', 'FunctionExpression']);
 
-// json-schema-uninexpressible: ad-hoc narrowed view into TS-ESLint parser services — the real authority
-// for this shape is @typescript-eslint/utils, not a domain shape this package owns or defines
-type ParserServicesType = {
+interface ParserServicesInterface {
   readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
   readonly 'program'?: ts.Program;
-};
+}
 
 class TypeGuards {
-  static hasTypeServices(value: unknown): value is Required<ParserServicesType> {
+  static hasTypeServices(value: unknown): value is Required<ParserServicesInterface> {
     if (!ObjectGuard.isObject(value)) { return false; }
     if (!('program' in value) || !ObjectGuard.isObject(value.program)) { return false; }
     if (typeof value.program.getTypeChecker !== 'function') { return false; }
