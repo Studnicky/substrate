@@ -1,4 +1,6 @@
-import { type FromSchema, Guard, type JsonSchemaObjectType } from '@studnicky/types';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { Guard } from '@studnicky/types';
 
 /** Describes one validation failure from a schema check, with optional structured details. */
 export namespace ValidationViolationDetailEntity {
@@ -23,7 +25,7 @@ export namespace ValidationViolationDetailEntity {
     'required': ['message', 'path'],
     'title': 'ValidationViolationDetail',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
@@ -33,11 +35,10 @@ export namespace ValidationViolationDetailEntity {
    * circular workspace reference.
    */
   export function validate(candidate: unknown): candidate is Type {
-    const record = Guard.asRecord(candidate);
-    if (record === undefined) { return false; }
-    if (typeof record.message !== 'string') { return false; }
-    if (typeof record.path !== 'string') { return false; }
-    if (record.details !== undefined && !Guard.isObject(record.details)) { return false; }
+    if (!Guard.isObject(candidate)) { return false; }
+    if (typeof candidate.message !== 'string') { return false; }
+    if (typeof candidate.path !== 'string') { return false; }
+    if (candidate.details !== undefined && !Guard.isObject(candidate.details)) { return false; }
     return true;
   }
 }

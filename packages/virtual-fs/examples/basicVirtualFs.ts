@@ -1,13 +1,13 @@
-/** basicVirtualFs — builder demo: seed, write, read, rename, readdir, stat. Run: npx tsx examples/basicVirtualFs.ts */
+/** basicVirtualFs — seed, write, read, rename, readdir, and stat. Run: npx tsx examples/basicVirtualFs.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
 import { VirtualFileSystem } from '../src/index.js';
 
-const vfs = VirtualFileSystem.builder()
-  .seed('/data/hello.txt', 'Hello, virtual world!')
-  .build();
+const vfs = VirtualFileSystem.create({
+  'seed': new Map([['/data/hello.txt', 'Hello, virtual world!']])
+});
 
 // Ensure /data directory entry exists for readdirSync
 vfs.mkdirSync('/data', { 'recursive': true });

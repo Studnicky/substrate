@@ -3,19 +3,19 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { RequestEventEntity } from '../src/entities/RequestEventEntity.js';
-import type { ResponseEventEntity } from '../src/entities/ResponseEventEntity.js';
+import {
+  FetchClient,
+  type RequestEventEntity,
+  type ResponseEventEntity
+} from '../src/index.js';
 
-import { FetchClient } from '../src/index.js';
-
-// json-schema-uninexpressible: 'error' is typed unknown (the caught value from a request failure), which JSON Schema cannot express.
-type ErrorEventType = {
-  'durationMs': number;
+interface ErrorEventInterface {
+  'durationMs': ResponseEventEntity.Type['durationMs'];
   'error': unknown;
-  'method': string;
-  'requestId': string;
-  'url': string;
-};
+  'method': RequestEventEntity.Type['method'];
+  'requestId': RequestEventEntity.Type['requestId'];
+  'url': RequestEventEntity.Type['url'];
+}
 
 // Subclass FetchClient to capture telemetry events via protected lifecycle hooks.
 class TelemetryClient extends FetchClient {
@@ -25,7 +25,7 @@ class TelemetryClient extends FetchClient {
 
   public readonly requestEvents: RequestEventEntity.Type[] = [];
   public readonly responseEvents: ResponseEventEntity.Type[] = [];
-  public readonly errorEvents: ErrorEventType[] = [];
+  public readonly errorEvents: ErrorEventInterface[] = [];
 
   protected override onRequestStart(method: string, _path: string, requestId: string, url: string): void {
     this.requestEvents.push({ 'method': method, 'requestId': requestId, 'url': url });

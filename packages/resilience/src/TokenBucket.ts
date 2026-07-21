@@ -1,66 +1,33 @@
 /** Token bucket rate limiter; consume() throws when exhausted, waitForToken() blocks until available. */
 
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { HookInvoker } from '@studnicky/errors';
 import { RaceTimeout } from '@studnicky/signal';
 
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
-import { TokenBucketBuilder } from './TokenBucketBuilder.js';
 import { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';
 
-/**
- * Delegates `TokenBucket`'s hook-invocation failures back to the owning
- * bucket's own `hookErrors` array. Hoisted to module scope so V8 compiles
- * this class once rather than per `TokenBucket` instantiation.
- */
-class TokenBucketHookDelegate extends HookInvoker {
-  constructor(private readonly recordFailure: (error: HookInvocationError) => void) {
-    super();
-  }
-
-  /**
-   * A broken hook must not disrupt token consumption or refill: record the
-   * failure and hand back the sentinel `invoke` expects instead of letting
-   * `HookInvoker`'s default (throwing) behavior propagate.
-   */
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.recordFailure(new HookInvocationError(hookName, cause));
-    return undefined as T;
-  }
-}
-
 export class TokenBucket {
+  static readonly #OwnedHookInvoker = class TokenBucketHookInvoker extends HookInvoker {
+    protected override onHookError(): void {}
+  };
+
   readonly #requestsPerSecond: number;
   readonly #burstSize: number;
   readonly #clock: () => number;
   #tokens: number;
   #lastRefill: number;
 
-  /**
-   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
-   * instead of propagating out of consume/waitForToken/refill.
-   */
-  protected readonly hookErrors: HookInvocationError[] = [];
-
-  /** Invokes lifecycle hooks, recording failures into `hookErrors` instead of throwing. */
+  /** Invokes lifecycle hooks, retaining diagnostics in the invoker while swallowing failures. */
   protected readonly hooks: HookInvoker;
-
-  static builder(): TokenBucketBuilder {
-    const factory = (options: TokenBucketOptionsInterface): TokenBucket => {
-      const result = TokenBucket.create(options);
-      return result;
-    };
-    const result = TokenBucketBuilder.create(factory);
-    return result;
-  }
 
   static create(options: TokenBucketOptionsInterface): TokenBucket {
     return new this(options);
   }
 
   protected constructor(options: TokenBucketOptionsInterface) {
-    this.hooks = new TokenBucketHookDelegate((error) => { this.hookErrors.push(error); });
+    this.hooks = new TokenBucket.#OwnedHookInvoker();
     if (options.requestsPerSecond <= 0) {throw new ResilienceConfigError('requestsPerSecond must be > 0');}
     if (options.burstSize < 1) {throw new ResilienceConfigError('burstSize must be >= 1');}
     this.#requestsPerSecond = options.requestsPerSecond;

@@ -3,9 +3,8 @@
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { HookInvoker } from '@studnicky/errors';
 
-import type { BusQueueCreateOptionsType } from './BusQueueCreateOptionsType.js';
+import type { BusQueueCreateOptionsInterface } from './BusQueueCreateOptionsInterface.js';
 
-import { BusQueueBuilder } from './BusQueueBuilder.js';
 import {
   BUS_QUEUE_DEFAULT_HIGH_WATER_MARK,
   BUS_QUEUE_DEFAULT_WAITER_CAPACITY
@@ -13,40 +12,59 @@ import {
 import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 
 /** Swallows hook failures rather than throwing — a queue processing loop must not halt because an observer hook threw. */
-class SwallowingHookInvoker extends HookInvoker {
-  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
-    const result = undefined as T;
+class BusQueueHookInvoker extends HookInvoker {
+  protected override onHookError(_hookName: string, _cause: unknown): void {}
+}
+
+class BusQueueEntry<T> {
+  readonly item: T;
+  readonly ready: Promise<void>;
+  readonly #resolveReady: () => void;
+  #cancelled = false;
+
+  constructor(item: T) {
+    const readiness = Promise.withResolvers<void>();
+    this.item = item;
+    this.ready = readiness.promise;
+    this.#resolveReady = readiness.resolve;
+  }
+
+  get cancelled(): boolean {
+    const result = this.#cancelled;
     return result;
+  }
+
+  cancel(): void {
+    this.#cancelled = true;
+    this.#resolveReady();
+  }
+
+  release(): void {
+    this.#resolveReady();
   }
 }
 
 export class BusQueue<T> {
-  protected readonly hooks: HookInvoker = new SwallowingHookInvoker();
+  protected readonly hooks: HookInvoker = new BusQueueHookInvoker();
   readonly #handler: (item: T) => Promise<void>;
   readonly #hwm: number;
   readonly #onError: ((err: unknown) => void) | undefined;
-  readonly #queue: CircularBuffer<T>;
+  readonly #queue: CircularBuffer<BusQueueEntry<T>>;
   readonly #backpressureWaiters: CircularBuffer<{ 'resolve': () => void }>;
   readonly #drainWaiters: { 'resolve': () => void }[] = [];
   #draining = false;
   #aborted = false;
+  #drainTask: Promise<void> | undefined = undefined;
+  #activeEntry: BusQueueEntry<T> | undefined = undefined;
 
-  static builder<T>(): BusQueueBuilder<T> {
-    const result = BusQueueBuilder.create<T>((options) => {
-      const instance = BusQueue.create<T>(options);
-      return instance;
-    });
-    return result;
-  }
-
-  static create<T>(options: BusQueueCreateOptionsType<T>): BusQueue<T> {
+  static create<T>(options: BusQueueCreateOptionsInterface<T>): BusQueue<T> {
     const result = new this<T>(options);
     return result;
   }
 
-  protected constructor(options: BusQueueCreateOptionsType<T>) {
+  protected constructor(options: BusQueueCreateOptionsInterface<T>) {
     if (typeof options.handler !== 'function') {
-      throw new BusQueueConfigError('handler must be a function');
+      throw new BusQueueConfigError('BusQueue.create(options): options.handler must be a function');
     }
     const hwmOption = options.highWaterMark;
     if (hwmOption !== undefined && (!Number.isInteger(hwmOption) || hwmOption <= 0)) {
@@ -55,11 +73,14 @@ export class BusQueue<T> {
     this.#handler = options.handler;
     this.#hwm = hwmOption ?? BUS_QUEUE_DEFAULT_HIGH_WATER_MARK;
     this.#onError = options.onError;
-    this.#queue = CircularBuffer.builder<T>().withCapacity(this.#hwm).withOverflow('grow').build();
-    this.#backpressureWaiters = CircularBuffer.builder<{ 'resolve': () => void }>()
-      .withCapacity(BUS_QUEUE_DEFAULT_WAITER_CAPACITY)
-      .withOverflow('grow')
-      .build();
+    this.#queue = CircularBuffer.create<BusQueueEntry<T>>({
+      'capacity': this.#hwm,
+      'overflow': 'grow'
+    });
+    this.#backpressureWaiters = CircularBuffer.create<{ 'resolve': () => void }>({
+      'capacity': BUS_QUEUE_DEFAULT_WAITER_CAPACITY,
+      'overflow': 'grow'
+    });
     const signal = options.signal;
     let aborted = false;
     if (signal !== undefined) {
@@ -79,23 +100,45 @@ export class BusQueue<T> {
 
   async enqueue(item: T): Promise<void> {
     if (this.#aborted) {
-      await this.hooks.invoke('onDrop', () => { const result = this.onDrop(); return result; });
+      await this.hooks.invokeAsync('onDrop', () => { const result = this.onDrop(); return result; });
       return;
     }
-    this.#queue.push(item);
+    const entry = new BusQueueEntry(item);
+    this.#queue.push(entry);
     const depth = this.#queue.length;
     this.#scheduleLoop();
-    // Register the backpressure waiter synchronously, before any hook `await` — awaiting
-    // a hook always yields a real microtask (HookInvoker.invoke is always-async, even
-    // for a synchronous hook body), which would let the drain loop race ahead and shift this
-    // item before its waiter existed, leaking a waiter that never gets resolved.
+    // Register the backpressure waiter synchronously, before any hook `await` —
+    // `HookInvoker.invokeAsync` always yields a real microtask, even for a
+    // synchronous hook body, which would let the drain loop race ahead and shift
+    // this item before its waiter existed, leaking a waiter that never resolves.
     const overflowed = depth >= this.#hwm;
     const backpressure = overflowed
       ? new Promise<void>((resolve) => { this.#backpressureWaiters.push({ 'resolve': resolve }); })
       : undefined;
-    await this.hooks.invoke('onEnqueue', () => { const result = this.onEnqueue(depth); return result; });
-    if (overflowed) {
-      await this.hooks.invoke('onOverflow', () => { const result = this.onOverflow(depth); return result; });
+    try {
+      await this.hooks.invokeAsync('onEnqueue', async () => {
+        try {
+          await this.onEnqueue(depth);
+        } catch (error: unknown) {
+          entry.cancel();
+          throw error;
+        }
+      });
+      if (overflowed) {
+        await this.hooks.invokeAsync('onOverflow', async () => {
+          try {
+            await this.onOverflow(depth);
+          } catch (error: unknown) {
+            entry.cancel();
+            throw error;
+          }
+        });
+      }
+    } catch (error: unknown) {
+      entry.cancel();
+      throw error;
+    } finally {
+      entry.release();
     }
     if (backpressure !== undefined) { await backpressure; }
   }
@@ -105,6 +148,11 @@ export class BusQueue<T> {
     // (so #queue.length reads 0) while that item's handler is still running —
     // only the absence of an active loop means nothing is left to wait for.
     if ((this.#queue.length === 0 && !this.#draining) || this.#aborted) { return; }
+    const drainTask = this.#drainTask;
+    if (drainTask !== undefined) {
+      await drainTask;
+      return;
+    }
     await new Promise<void>((resolve) => {
       this.#drainWaiters.push({ 'resolve': resolve });
     });
@@ -112,6 +160,7 @@ export class BusQueue<T> {
 
   #handleAbort(): void {
     this.#aborted = true;
+    this.#activeEntry?.cancel();
     let waiter = this.#backpressureWaiters.shift();
     while (waiter !== undefined) {
       waiter.resolve();
@@ -125,11 +174,7 @@ export class BusQueue<T> {
     if (this.#draining) { return; }
     this.#draining = true;
     queueMicrotask(() => {
-      void this.#runDrainLoop().catch((error: unknown) => {
-        if (this.#onError !== undefined) {
-          try { this.#onError(error); } catch {}
-        }
-      });
+      this.#drainTask = this.#runDrainLoop();
     });
   }
 
@@ -137,25 +182,53 @@ export class BusQueue<T> {
     try {
       await this.#handler(item);
     } catch (err: unknown) {
-      if (this.#onError !== undefined) {
-        try { this.#onError(err); } catch {}
+      const onError = this.#onError;
+      if (onError !== undefined) {
+        await this.hooks.invokeAsync('onError', () => {
+          const result = onError(err);
+          return result;
+        });
       }
-      await this.hooks.invoke('onHandlerError', () => { const result = this.onHandlerError(err); return result; });
+      await this.hooks.invokeAsync('onHandlerError', () => { const result = this.onHandlerError(err); return result; });
+    }
+  }
+
+  async #processEntry(entry: BusQueueEntry<T>): Promise<void> {
+    this.#activeEntry = entry;
+    try {
+      const waiter = this.#backpressureWaiters.shift();
+      if (waiter !== undefined) { waiter.resolve(); }
+      await entry.ready;
+      if (!entry.cancelled && !this.#aborted) {
+        await this.hooks.invokeAsync('onDequeue', () => {
+          const result = this.onDequeue(this.#queue.length);
+          return result;
+        });
+        await this.#tryHandleItem(entry.item);
+      }
+    } finally {
+      this.#activeEntry = undefined;
     }
   }
 
   async #runDrainLoop(): Promise<void> {
     try {
       while (this.#queue.length > 0 && !this.#aborted) {
-        const item = this.#queue.shift();
-        if (item === undefined) { break; }
-        const waiter = this.#backpressureWaiters.shift();
-        if (waiter !== undefined) { waiter.resolve(); }
-        await this.hooks.invoke('onDequeue', () => { const result = this.onDequeue(this.#queue.length); return result; });
-        await this.#tryHandleItem(item);
+        const entry = this.#queue.shift();
+        if (entry === undefined) { break; }
+        await this.#processEntry(entry);
+      }
+    } catch (error: unknown) {
+      const onError = this.#onError;
+      if (onError !== undefined) {
+        await this.hooks.invokeAsync('onError', () => {
+          const result = onError(error);
+          return result;
+        });
       }
     } finally {
       this.#draining = false;
+      this.#drainTask = undefined;
       if (this.#queue.length === 0 || this.#aborted) {
         for (const w of this.#drainWaiters) { w.resolve(); }
         this.#drainWaiters.length = 0;
@@ -163,7 +236,7 @@ export class BusQueue<T> {
     }
   }
 
-  /** Fires when an item is added to the queue (after push). */
+  /** Admission hook after push; handler delivery waits for completion. */
   protected onEnqueue(_depth: number): void | Promise<void> {}
 
   /** Fires when an item is removed from the queue for processing (after shift). */
@@ -172,7 +245,7 @@ export class BusQueue<T> {
   /** Fires when enqueue is called but the queue is already aborted (item silently dropped). */
   protected onDrop(): void | Promise<void> {}
 
-  /** Fires when queue depth reaches highWaterMark and caller will block (backpressure begins). */
+  /** Admission hook at highWaterMark; handler delivery waits for completion. */
   protected onOverflow(_depth: number): void | Promise<void> {}
 
   /** Fires after handler throws and onError callback (if any) has been called. */

@@ -1,22 +1,21 @@
 /** Bounded work dispatch composing concurrency's Semaphore, event-bus's EventBus, and scheduler. */
 
-import type { ScheduledTaskType, SchedulerProviderType } from '@studnicky/scheduler';
+import type { HookInvocationError } from '@studnicky/errors';
+import type { ScheduledTaskInterface, SchedulerProviderInterface } from '@studnicky/scheduler';
 
 import { Semaphore } from '@studnicky/concurrency';
+import { HookInvoker } from '@studnicky/errors';
 import { EventBus } from '@studnicky/event-bus';
 import { RealTimeScheduler } from '@studnicky/scheduler';
 
-import type { BoundedDispatcherConfigType } from './types/BoundedDispatcherConfigType.js';
-import type { BoundedDispatcherComposedTopicMapType } from './types/BoundedDispatcherTopicMapType.js';
+import type { BoundedDispatcherConfigInterface } from './interfaces/BoundedDispatcherConfigInterface.js';
+import type { BoundedDispatcherTopicMapInterface } from './interfaces/BoundedDispatcherTopicMapInterface.js';
 
-import { BoundedDispatcherBuilder } from './BoundedDispatcherBuilder.js';
-
-// json-schema-uninexpressible: composes live class instances (EventBus, SchedulerProviderType, Semaphore) and a generic TTopicMap type parameter — not a serializable data shape
-type BoundedDispatcherDepsType<TTopicMap extends Record<string, unknown>> = {
-  'bus': EventBus<BoundedDispatcherComposedTopicMapType<TTopicMap>>;
-  'scheduler': SchedulerProviderType;
-  'semaphore': Semaphore;
-};
+interface BoundedDispatcherDepsInterface<TTopicMap extends BoundedDispatcherTopicMapInterface> {
+  readonly 'bus': EventBus<TTopicMap>;
+  readonly 'scheduler': SchedulerProviderInterface;
+  readonly 'semaphore': Semaphore;
+}
 
 /**
  * Composes `@studnicky/concurrency`'s `Semaphore`, `@studnicky/event-bus`'s `EventBus`, and
@@ -29,8 +28,10 @@ type BoundedDispatcherDepsType<TTopicMap extends Record<string, unknown>> = {
  * `BoundedDispatcher` has no lifecycle hooks of its own. Permit-level observability stays on
  * `Semaphore`'s existing hooks (`onAcquire`, `onAcquireWait`, `onContended`, `onRelease`,
  * `onReleaseDelegated`); dispatch-level observability is the `'dispatch'` topic on the composed
- * `EventBus`, reachable via `getBus()`. A caller's own `TTopicMap` merges onto the same bus
- * alongside `'dispatch'`, so `getBus()` stays usable for domain events too.
+ * `EventBus`, reachable via `getBus()`. Rejected lifecycle publications are available through
+ * `hookErrorCount` and `getHookErrors()` without replacing the dispatched work's result or error.
+ * A caller's own `TTopicMap` merges onto the same bus alongside `'dispatch'`, so `getBus()` stays
+ * usable for domain events too.
  *
  * @example Direct composition
  * ```typescript
@@ -41,15 +42,23 @@ type BoundedDispatcherDepsType<TTopicMap extends Record<string, unknown>> = {
  * );
  * ```
  */
-export class BoundedDispatcher<TTopicMap extends Record<string, unknown> = Record<string, unknown>> {
+export class BoundedDispatcher<
+  TTopicMap extends BoundedDispatcherTopicMapInterface = BoundedDispatcherTopicMapInterface
+> {
+  static readonly #OwnedHookInvoker = class BoundedDispatcherHookInvoker extends HookInvoker {
+    protected override onHookError(_hookName: string, _cause: unknown): void {}
+  };
+
   /**
    * Creates a new BoundedDispatcher, defaulting any omitted primitive.
    *
    * @param config - Composition configuration
    * @returns New BoundedDispatcher instance
    */
-  static create<TTopicMap extends Record<string, unknown> = Record<string, unknown>>(
-    config: BoundedDispatcherConfigType<TTopicMap> = {}
+  static create<
+    TTopicMap extends BoundedDispatcherTopicMapInterface = BoundedDispatcherTopicMapInterface
+  >(
+    config: BoundedDispatcherConfigInterface<TTopicMap> = {}
   ): BoundedDispatcher<TTopicMap> {
     const result = new this<TTopicMap>({
       'bus': BoundedDispatcher.#resolveBus<TTopicMap>(config.bus),
@@ -59,32 +68,26 @@ export class BoundedDispatcher<TTopicMap extends Record<string, unknown> = Recor
     return result;
   }
 
-  static builder<TTopicMap extends Record<string, unknown> = Record<string, unknown>>(): BoundedDispatcherBuilder<TTopicMap> {
-    const result = BoundedDispatcherBuilder.create<TTopicMap>((config) => {
-      const dispatcher = BoundedDispatcher.create<TTopicMap>(config);
-      return dispatcher;
-    });
-    return result;
-  }
-
-  static #resolveBus<TTopicMap extends Record<string, unknown>>(
-    value: BoundedDispatcherConfigType<TTopicMap>['bus']
-  ): EventBus<BoundedDispatcherComposedTopicMapType<TTopicMap>> {
+  static #resolveBus<TTopicMap extends BoundedDispatcherTopicMapInterface>(
+    value: BoundedDispatcherConfigInterface<TTopicMap>['bus']
+  ): EventBus<TTopicMap> {
     if (value instanceof EventBus) {
       return value;
     }
-    const result = EventBus.create<BoundedDispatcherComposedTopicMapType<TTopicMap>>(value ?? {});
+    const result = EventBus.create<TTopicMap>(value ?? {});
     return result;
   }
 
-  readonly #bus: EventBus<BoundedDispatcherComposedTopicMapType<TTopicMap>>;
-  readonly #scheduler: SchedulerProviderType;
+  readonly #bus: EventBus<TTopicMap>;
+  readonly #publicationHooks: HookInvoker;
+  readonly #scheduler: SchedulerProviderInterface;
   readonly #semaphore: Semaphore;
 
-  protected constructor(deps: BoundedDispatcherDepsType<TTopicMap>) {
+  protected constructor(deps: BoundedDispatcherDepsInterface<TTopicMap>) {
     this.#semaphore = deps.semaphore;
     this.#bus = deps.bus;
     this.#scheduler = deps.scheduler;
+    this.#publicationHooks = new BoundedDispatcher.#OwnedHookInvoker();
   }
 
   /**
@@ -95,23 +98,55 @@ export class BoundedDispatcher<TTopicMap extends Record<string, unknown> = Recor
    * The `'dispatch'` publishes are best-effort observability: they are not awaited while the
    * permit is held, so a slow or backpressured `'dispatch'` subscriber cannot stall the permit
    * hold beyond `fn`'s own execution time, and cannot throttle the configured concurrency bound.
+   * A rejected publication is recorded as a `HookInvocationError`; it never replaces `fn`'s
+   * result or thrown value.
    *
    * @param fn - The work to run while holding a permit
    * @returns The result of `fn`
    */
   async dispatch<T>(fn: () => Promise<T> | T): Promise<T> {
     const result = await this.#semaphore.withPermit(async () => {
-      void this.#bus.publish('dispatch', { 'phase': 'start' }).catch(() => {});
+      this.#publicationHooks.invoke(
+        'publishDispatchStart',
+        (): unknown => {
+          const publication = this.#bus.publish('dispatch', { 'phase': 'start' });
+          return publication;
+        }
+      );
 
       try {
         const value = await fn();
-        void this.#bus.publish('dispatch', { 'phase': 'success', 'result': value }).catch(() => {});
+        this.#publicationHooks.invoke(
+          'publishDispatchSuccess',
+          (): unknown => {
+            const publication = this.#bus.publish('dispatch', { 'phase': 'success', 'result': value });
+            return publication;
+          }
+        );
         return value;
       } catch (error: unknown) {
-        void this.#bus.publish('dispatch', { 'error': error, 'phase': 'error' }).catch(() => {});
+        this.#publicationHooks.invoke(
+          'publishDispatchError',
+          (): unknown => {
+            const publication = this.#bus.publish('dispatch', { 'error': error, 'phase': 'error' });
+            return publication;
+          }
+        );
         throw error;
       }
     });
+    return result;
+  }
+
+  /** Count of rejected lifecycle publications recorded since construction. */
+  get hookErrorCount(): number {
+    const result = this.#publicationHooks.hookErrorCount;
+    return result;
+  }
+
+  /** Returns detached diagnostics for every rejected lifecycle publication. */
+  getHookErrors(): readonly HookInvocationError[] {
+    const result = this.#publicationHooks.getHookErrors();
     return result;
   }
 
@@ -121,22 +156,14 @@ export class BoundedDispatcher<TTopicMap extends Record<string, unknown> = Recor
    *
    * @param atMs - Absolute time to dispatch at
    * @param fn - The work to dispatch once `atMs` is reached
-   * @returns The scheduler's `ScheduledTaskType` handle
+   * @returns The scheduler's `ScheduledTaskInterface` handle
    */
-  scheduleDispatch<T>(atMs: number, fn: () => Promise<T> | T): ScheduledTaskType {
+  scheduleDispatch<T>(atMs: number, fn: () => Promise<T> | T): ScheduledTaskInterface {
     const result = this.#scheduler.scheduleAt(atMs, async () => { await this.dispatch(fn); });
     return result;
   }
 
-  getBus(): EventBus<BoundedDispatcherComposedTopicMapType<TTopicMap>> {
+  getBus(): EventBus<TTopicMap> {
     return this.#bus;
-  }
-
-  getScheduler(): SchedulerProviderType {
-    return this.#scheduler;
-  }
-
-  getSemaphore(): Semaphore {
-    return this.#semaphore;
   }
 }

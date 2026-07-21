@@ -28,14 +28,14 @@ void describe('FunctionTransport', () => {
 
     void it('throws ConfigurationError when sink is not a function', () => {
       assert.throws(
-        () => FunctionTransport.create('not-a-function' as unknown as (r: LogRecordEntity.Type) => void),
+        () => { Reflect.apply(FunctionTransport.create, FunctionTransport, ['not-a-function']); },
         ConfigurationError
       );
     });
 
     void it('throws ConfigurationError when level option has invalid type', () => {
       assert.throws(
-        () => FunctionTransport.create(() => {}, { level: [] as unknown as string }),
+        () => { Reflect.apply(FunctionTransport.create, FunctionTransport, [() => {}, { 'level': [] }]); },
         ConfigurationError
       );
     });

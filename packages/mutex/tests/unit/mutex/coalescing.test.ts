@@ -6,7 +6,7 @@
  * first in-flight operation.
  */
 
-import { strictEqual } from 'node:assert/strict';
+import { rejects, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 import {
   setTimeout as delay
@@ -36,6 +36,21 @@ it('shares result when coalescing is enabled', async () => {
   strictEqual(result1, 'result');
   strictEqual(result2, 'result');
   strictEqual(result3, 'result');
+});
+
+it('validates each caller result when same-key callers request different types', async () => {
+  const mutex = Mutex.create(coalescingConfig);
+  const acceptsNumber = (value: unknown): value is number => typeof value === 'number';
+  const acceptsString = (value: unknown): value is string => typeof value === 'string';
+
+  const numberResult = mutex.runExclusive('shared-key', async () => {
+    await delay(25);
+    return 42;
+  }, acceptsNumber);
+  const stringResult = mutex.runExclusive('shared-key', () => 'not-executed', acceptsString);
+
+  strictEqual(await numberResult, 42);
+  await rejects(stringResult, TypeError);
 });
 
 it('does NOT share result when coalescing is disabled (default)', async () => {
@@ -227,25 +242,6 @@ it('coalescedCount increments for each joined request', async () => {
   ]);
 
   strictEqual(mutex.getStats().coalescedCount, 2, 'Two callers joined the in-flight operation');
-});
-
-it('builder creates a coalescing mutex that tracks coalesced calls', async () => {
-  const mutex = Mutex.builder<string>()
-    .withCoalescing(true)
-    .build();
-
-  const operation = async (): Promise<string> => {
-    await delay(50);
-
-    return 'result';
-  };
-
-  await Promise.all([
-    mutex.runExclusive('key1', operation),
-    mutex.runExclusive('key1', operation)
-  ]);
-
-  strictEqual(mutex.getStats().coalescedCount, 1);
 });
 
 it('allows new operations after clear() is called', async () => {

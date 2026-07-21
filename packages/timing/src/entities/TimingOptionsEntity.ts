@@ -1,5 +1,9 @@
-import { SchemaValidator, type ValidateFunction } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
+
+import { TimingPrecisionEntity } from './TimingPrecisionEntity.js';
 
 export namespace TimingOptionsEntity {
   export const Schema = {
@@ -12,22 +16,10 @@ export namespace TimingOptionsEntity {
           { 'type': 'null' }
         ]
       },
-      'precision': {
-        'additionalProperties': { 'maximum': 20, 'minimum': 0, 'type': 'integer' },
-        'description': 'Decimal precision configuration per time unit (h, m, ms, ns, s).',
-        'type': 'object'
-      }
+      'precision': TimingPrecisionEntity.Schema
     },
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
-
-  export type PrecisionConfigType = {
-    'h'?: number;
-    'm'?: number;
-    'ms'?: number;
-    'ns'?: number;
-    's'?: number;
-  };
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 

@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/types'
-description: Shared zero-runtime utility types and type-guard helpers.
+description: Runtime type guards, JSON boundaries, empty-value helpers, and defined-property selection.
 ---
 
 # @studnicky/types
 
-> Shared zero-runtime utility types and type-guard helpers for `@studnicky/substrate`.
+> Runtime type-guard and object helpers for `@studnicky/substrate`.
 
 ## Install
 
@@ -15,7 +15,7 @@ pnpm add @studnicky/types
 
 ## Usage
 
-`Guard` provides type-safe narrowing accessors for wire-format values. `Empty` produces fresh empty collection instances and predicates. Type utilities (`JsonValueType`, `DeepReadonlyType`, `DeepMergeType`) are erased at compile time and carry no runtime cost:
+`Guard` provides type-safe narrowing accessors for wire-format values. `Empty` produces fresh empty collection instances and predicates. `JsonObject` and `JsonValue` implement runtime JSON boundaries. `PickDefined` assembles objects without retaining `undefined` properties.
 
 <<< ../../packages/types/examples/guard-accessors.ts#usage
 
@@ -23,61 +23,70 @@ pnpm add @studnicky/types
 
 <RunnableExample src="packages/types/examples/guard-accessors" title="Guard accessors, type predicates, and Empty producers" />
 
-The output shows `Guard.isRecord`/`asRecord`/`asRecordArray` narrowing, scalar accessors, the `StrictGuard` static-override subclass, and `Empty` producing and testing fresh zero-value collection instances.
+The output shows `Guard.isObject`/`asRecordArray` narrowing, scalar guards and coercions, the `StrictGuard` static-override subclass, `Empty` producers and predicates, and a JSON value boundary.
 
-## JSON runtime guards (`JsonObject`, `JsonValue`)
+## JSON runtime boundaries
 
-`JsonObjectType` and `JsonValueType` are compile-time-only annotations — they narrow nothing at runtime. `JsonObject` and `JsonValue` are the runtime counterparts: pure-static guard classes that actually inspect a value and narrow or coerce it, for the boundary where a payload is genuinely `unknown` (a deserialized blob, a generic tool return, `JSON.parse` output).
+### `JsonObject`
 
-`JsonObject.is` is a type-guard predicate narrowing `unknown` to `JsonObjectType`:
+`JsonObject.is` performs a shallow plain-object check and narrows `unknown` to `Record<string, unknown>`. It rejects arrays, `Map`, `Set`, class instances, and other non-plain objects.
 
-<!-- inline-ts-ok: JsonObject/JsonValue have no dedicated runnable example region; guard-accessors.ts#usage covers Guard/Empty only -->
-
+<!-- inline-ts-ok: conceptual boundary example -->
 ```typescript
 import { JsonObject } from '@studnicky/types';
 
 const parsed: unknown = JSON.parse(responseText);
 
 if (JsonObject.is(parsed)) {
-  // parsed is JsonObjectType (Record<string, unknown>) here
+  const id = parsed.id;
+  console.log(id);
 }
 ```
 
-`JsonValue.from` is cast-free coercion: rather than asserting `value as JsonValueType` — a lie when the value is a function, `undefined`, symbol, or bigint — it walks the value and returns a real `JsonValueType`. Primitives pass through, arrays and plain objects recurse field-wise, and anything not representable in JSON becomes `null`:
+Use schema validation when object members also need structural guarantees.
 
-<!-- inline-ts-ok: JsonObject/JsonValue have no dedicated runnable example region; guard-accessors.ts#usage covers Guard/Empty only -->
+### `JsonValue`
 
+`JsonValue.is` narrows `unknown` to the canonical `JSONSchema7Type` owned by `json-schema`. `JsonValue.from` recursively coerces unsupported values to `null`, producing a finite, acyclic `JSONSchema7Type` without a cast.
+
+<!-- inline-ts-ok: conceptual boundary example -->
 ```typescript
+import type { JSONSchema7Type } from 'json-schema';
+
 import { JsonValue } from '@studnicky/types';
 
-const raw: unknown = await fetchApiResponse();
-const safe = JsonValue.from(raw); // JsonValueType, never a lie
+const candidate: unknown = JSON.parse(responseText);
+
+if (JsonValue.is(candidate)) {
+  const value: JSONSchema7Type = candidate;
+  console.log(value);
+}
+
+const safe: JSONSchema7Type = JsonValue.from({
+  nested: [1, undefined]
+});
 ```
 
-Use the `Type`-suffixed exports (`JsonObjectType`, `JsonValueType`) to annotate a value you already trust. Use `JsonObject`/`JsonValue` to actually narrow or coerce a value you don't yet trust.
+Import `JSONSchema7Type` directly from `json-schema` when a public signature or local annotation needs the type. Its declarations come from the package's direct `@types/json-schema` dependency. `@studnicky/types` exports the runtime boundary, not a type alias for the dependency-owned JSON type.
 
 ## Assembling options objects (`PickDefined`)
 
-`PickDefined.from` strips `undefined`-valued keys from a record, narrowing each remaining value's type away from `undefined`. It's built for builders that assemble an options object from a mix of required and optional fields, replacing a manual spread-ternary chain with one call:
+`PickDefined.from` strips `undefined`-valued keys from a record, narrowing each remaining value away from `undefined`. It assembles direct configuration objects from required and optional fields.
 
 <<< ../../packages/types/examples/pickDefined.ts#usage
 
 ## Try it (`PickDefined`)
 
-<RunnableExample src="packages/types/examples/pickDefined" title="Assembling a builder's options object with PickDefined" />
+<RunnableExample src="packages/types/examples/pickDefined" title="Assembling configuration with PickDefined" />
 
-The output shows a builder that populates required fields with defaults and an optional `clock` field only when it was set — `PickDefined.from` drops the unset optional keys instead of carrying them through as `undefined`.
+The output shows direct configuration with required defaults and an optional `clock` field that is present only when defined.
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/types` | All types + `Guard` + `Empty` + `JsonObject` + `JsonValue` + `PickDefined` |
-| `@studnicky/types/types` | `JsonValueType`, `JsonObjectType`, `DeepReadonlyType`, `DeepMergeType`, `JsonSchemaType`, `JsonSchemaObjectType`, `JsonSchemaTypeNameType` |
-| `@studnicky/types/guards` | `Guard`, `Empty`, `JsonObject`, `JsonValue` |
+Import `Empty`, `Guard`, `JsonObject`, `JsonValue`, and `PickDefined` from `@studnicky/types`.
 
 ## Extending
 
-`Guard` is a pure-static class. Extend it and `static override isRecord` to customise record detection; `asRecord` and `asRecordArray` delegate through `this.isRecord`, so overrides propagate automatically. The subclass pattern is demonstrated in the usage example above.
+`Guard` is a pure-static class. Extend it and override `static isObject` to customise record detection. `asRecordArray` delegates through `this.isObject`, so overrides propagate automatically.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/types)

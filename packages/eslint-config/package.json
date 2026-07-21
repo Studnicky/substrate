@@ -11,14 +11,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./plugin": {
-      "types": "./dist/plugin.d.ts",
-      "import": "./dist/plugin.js"
-    },
-    "./v8": {
-      "types": "./dist/v8Plugin.d.ts",
-      "import": "./dist/v8Plugin.js"
     }
   },
   "files": [
@@ -29,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "test": "node --import tsx --test \"tests/**/*.test.ts\"",
     "type-check": "tsc --noEmit"
@@ -61,7 +53,8 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@studnicky/types": "workspace:*"
+    "@studnicky/types": "workspace:*",
+    "json-schema-to-ts": "^3.1.1"
   },
   "peerDependencies": {
     "@stylistic/eslint-plugin": ">=5.0.0",

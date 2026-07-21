@@ -1,16 +1,19 @@
 import { CircularBuffer } from '@studnicky/circular-buffer';
-import { ConfigValidation } from '@studnicky/config';
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { ConfigurationError, ConfigValidation } from '@studnicky/config';
+import { HookInvoker } from '@studnicky/errors';
 import { SampleBuffer } from '@studnicky/sample-buffer';
 
 import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
+import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStateEntity.js';
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
+import type { ThrottleAbortOptionsEntity } from '../entities/ThrottleAbortOptionsEntity.js';
+import type { ThrottleStateEntity } from '../entities/ThrottleStateEntity.js';
 import type { ThrottleStatsEntity } from '../entities/ThrottleStatsEntity.js';
+import type { ValidatedAdaptiveConfigEntity } from '../entities/ValidatedAdaptiveConfigEntity.js';
+import type { ValidatedThrottleConfigEntity } from '../entities/ValidatedThrottleConfigEntity.js';
 import type { ThrottleInterface } from '../interfaces/index.js';
-import type { ThrottleStateType } from '../types/ThrottleStateType.js';
 
 import {
-  ADAPTIVE_CONFIG_KEYS,
   DEFAULT_ADAPTIVE_CONFIG,
   DEFAULT_BUFFER_CAPACITY,
   DEFAULT_THROTTLE_CONCURRENCY,
@@ -27,35 +30,31 @@ import {
 } from '../constants/index.js';
 import { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
 import {
-  ConfigurationError,
   ThrottleAbortedError,
   ThrottleDrainingError
 } from '../errors/index.js';
 import { Delay } from './Delay.js';
-import { ThrottleBuilder } from './ThrottleBuilder.js';
-
-type AdaptiveConfigType = AdaptiveConfigEntity.Type;
-type ThrottleConfigType = ThrottleConfigEntity.Type;
-type ValidatedThrottleConfigType = ThrottleConfigEntity.ValidatedThrottleConfigType;
-
-type AdaptiveConfig = NonNullable<ValidatedThrottleConfigType['adaptive']>;
 
 /**
  * Tracks an active operation for detach-and-abandon abort support
  */
-// json-schema-uninexpressible: 'resolve' is a function type (the Promise executor's resolve callback),
-// not representable in JSON Schema.
-type ActiveOperationType = {
+interface ActiveOperationInterface {
   /**
    * Whether the operation has completed (naturally or via abort)
    */
-  'completed': boolean;
+  'completed': ActiveOperationStateEntity.Type['completed'];
 
   /**
    * Resolves the execute() promise with undefined (aborted state)
    */
   'resolve': () => void;
-};
+}
+
+/** Queued continuation retained until a concurrency slot becomes available. */
+interface ThrottleQueueEntryInterface {
+  readonly 'reject': (error: unknown) => void;
+  readonly 'resolve': () => void;
+}
 
 /**
  * Generic async operation throttle with abort support
@@ -120,49 +119,26 @@ export class Throttle implements ThrottleInterface {
    * const throttle = Throttle.create({ concurrencyLimit: 5 });
    * ```
    */
-  static create(config?: Partial<ThrottleConfigType>): Throttle {
+  static create(config?: Partial<ThrottleConfigEntity.Type>): Throttle {
     const result = new this(config);
     return result;
   }
 
   /**
-   * Return a fluent builder for creating Throttle instances
-   *
-   * @returns ThrottleBuilder instance
-   *
-   * @example
-   * ```typescript
-   * const throttle = Throttle.builder()
-   *   .withConcurrencyLimit(5)
-   *   .build();
-   * ```
-   */
-  static builder(): ThrottleBuilder {
-    const factory = (options: Partial<ThrottleConfigType>): Throttle => {
-      const instance = Throttle.create(options);
-      return instance;
-    };
-    return ThrottleBuilder.create(factory);
-  }
-
-  /**
    * FSM state. Transitions via transition().
    */
-  #state: ThrottleStateType = 'idle';
+  #state: ThrottleStateEntity.Type = 'idle';
 
   private activeCount = INITIAL_COUNTER;
-  private readonly activeOperations = new Set<ActiveOperationType>();
+  private readonly activeOperations = new Set<ActiveOperationInterface>();
   private adjustmentCount = INITIAL_COUNTER;
   private completionPromise: null | Promise<void> = null;
-  private config: ValidatedThrottleConfigType;
+  private config: ValidatedThrottleConfigEntity.Type;
   protected readonly hooks: HookInvoker = new HookInvoker();
   private lastAdjustmentTime = INITIAL_COUNTER;
   private readonly latencyBuffer: SampleBuffer | undefined;
   private readonly observers: (() => void)[] = [];
-  private readonly queue: CircularBuffer<{
-    'reject': (error: Error) => void;
-    'resolve': () => void;
-  }>;
+  private readonly queue: CircularBuffer<ThrottleQueueEntryInterface>;
 
   private totalExecuted = INITIAL_COUNTER;
 
@@ -184,9 +160,12 @@ export class Throttle implements ThrottleInterface {
    * const throttle = Throttle.create({ concurrencyLimit: 5 });
    * ```
    */
-  protected constructor(config?: Partial<ThrottleConfigType>) {
+  protected constructor(config?: Partial<ThrottleConfigEntity.Type>) {
     this.config = Throttle.validateConfig(config);
-    this.queue = CircularBuffer.create({ 'capacity': DEFAULT_BUFFER_CAPACITY, 'overflow': 'grow' });
+    this.queue = CircularBuffer.create<ThrottleQueueEntryInterface>({
+      'capacity': DEFAULT_BUFFER_CAPACITY,
+      'overflow': 'grow'
+    });
 
     const buffer: SampleBuffer | undefined = this.config.adaptive?.enabled === true
       ? SampleBuffer.create({ 'capacity': this.config.adaptive.sampleWindow })
@@ -205,7 +184,7 @@ export class Throttle implements ThrottleInterface {
    *
    * @throws {Error} When the transition is not permitted by guard().
    */
-  protected transition(to: ThrottleStateType): void {
+  protected transition(to: ThrottleStateEntity.Type): void {
     const from = this.#state;
 
     if (!this.guard(from, to)) {
@@ -214,16 +193,10 @@ export class Throttle implements ThrottleInterface {
 
     this.#state = to;
 
-    // Synchronous by design: transition() is invoked from both synchronous callers
-    // (acquireSlot(), releaseSlot() via notifyObservers()) and async callers
-    // (abort(), drain()) — awaiting here would force the synchronous callers async.
-    // This only catches a synchronous throw from onEnter; an async override's
-    // rejection is unhandled — an accepted, documented trade-off for this call site.
-    try {
-      this.onEnter(to, from);
-    } catch (cause) {
-      throw new HookInvocationError('onEnter', cause);
-    }
+    this.hooks.invoke('onEnter', () => {
+      const result = this.onEnter(to, from);
+      return result;
+    });
   }
 
   /**
@@ -237,7 +210,7 @@ export class Throttle implements ThrottleInterface {
    * - draining → idle     (drained: all ops complete)
    * - *        → aborted  (abort() called from any state except aborted itself)
    */
-  protected guard(from: ThrottleStateType, to: ThrottleStateType): boolean {
+  protected guard(from: ThrottleStateEntity.Type, to: ThrottleStateEntity.Type): boolean {
     if (from === 'aborted') {return false;}          // aborted is terminal
     if (to === 'aborted') {return true;}             // any non-aborted → aborted
     if (from === 'idle' && to === 'active') {return true;}
@@ -252,12 +225,12 @@ export class Throttle implements ThrottleInterface {
    * Hook called when the FSM enters a new state.
    * Subclasses override to react to transitions.
    */
-  protected onEnter(_to: ThrottleStateType, _from: ThrottleStateType): void {}
+  protected onEnter(_to: ThrottleStateEntity.Type, _from: ThrottleStateEntity.Type): void {}
 
   /**
    * The current FSM state.
    */
-  protected get state(): ThrottleStateType {
+  protected get state(): ThrottleStateEntity.Type {
     const result = this.#state;
     return result;
   }
@@ -290,7 +263,7 @@ export class Throttle implements ThrottleInterface {
    * }
    * ```
    */
-  async abort(options?: { 'timeout'?: number }): Promise<AbortResultEntity.Type> {
+  async abort(options?: ThrottleAbortOptionsEntity.Type): Promise<AbortResultEntity.Type> {
     const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
     if (this.#state === 'aborted') {
       return {
@@ -323,10 +296,10 @@ export class Throttle implements ThrottleInterface {
     let abortHookError: unknown;
 
     try {
-      await Promise.resolve(this.hooks.invoke('onAbortStart', () => {
+      await this.hooks.invokeAsync('onAbortStart', () => {
         const result = this.onAbortStart(cancelledCount);
         return result;
-      }));
+      });
     } catch (error) {
       abortHookError = error;
     }
@@ -363,10 +336,10 @@ export class Throttle implements ThrottleInterface {
       // fails, the slot was never actually put to use, so it is rolled back via
       // releaseSlot() before the failure propagates to the caller.
       try {
-        await Promise.resolve(this.hooks.invoke('onAcquire', () => {
+        await this.hooks.invokeAsync('onAcquire', () => {
           const result = this.onAcquire(this.activeCount, this.queue.length);
           return result;
-        }));
+        });
       } catch (error) {
         this.releaseSlot();
         throw error;
@@ -375,37 +348,42 @@ export class Throttle implements ThrottleInterface {
       return;
     }
 
-    // Kept synchronous: onContended fires before this caller is pushed onto the
-    // queue. Awaiting here would let a concurrently-contended caller's push()
-    // interleave ahead of this one, reversing FIFO queue order — an invariant
-    // the queue depth/order assertions in hooks.test.ts depend on. This only
-    // catches a synchronous throw; an async override's rejection is unhandled,
-    // an accepted, documented trade-off for this call site.
-    try {
-      this.onContended(this.activeCount, this.queue.length);
-    } catch (cause) {
-      throw new HookInvocationError('onContended', cause);
-    }
+    // Synchronous entry preserves the ordering guarantee that onContended fires
+    // before this caller is pushed onto the queue.
+    this.hooks.invoke('onContended', () => {
+      const result = this.onContended(this.activeCount, this.queue.length);
+      return result;
+    });
 
     await new Promise<void>((resolve, reject) => {
-      this.queue.push({
+      const pendingTask = {
         'reject': reject,
         'resolve': resolve
-      });
+      };
+      this.queue.push(pendingTask);
 
       // onAcquireWait fires from inside a Promise executor, which must stay
       // synchronous per the Promise constructor contract — it cannot be awaited
-      // here. A synchronous throw from hooks.invoke propagates out of this
-      // executor and is caught by the enclosing `new Promise(...)` itself
-      // (standard executor semantics), safely rejecting this promise; wrapping
-      // the call in `Promise.resolve` lets the same `.catch` also handle the
-      // case where an async-override hook rejects later, since `hooks.invoke`
-      // does not always return a Promise.
-      Promise.resolve(this.hooks.invoke('onAcquireWait', () => {
+      // here. invokeAsync exposes both synchronous and asynchronous hook
+      // failures through its completion promise, so the same catch handles
+      // either failure mode.
+      this.hooks.invokeAsync('onAcquireWait', () => {
         const result = this.onAcquireWait(this.queue.length);
         return result;
-      }))
-        .catch((error: unknown) => { reject(error); });
+      })
+        .catch((error: unknown) => {
+          const queuedCount = this.queue.length;
+
+          for (let i = INITIAL_COUNTER; i < queuedCount; i++) {
+            const queuedTask = this.queue.shift();
+
+            if (queuedTask !== undefined && queuedTask !== pendingTask) {
+              this.queue.push(queuedTask);
+            }
+          }
+
+          reject(error);
+        });
     });
   }
 
@@ -413,7 +391,7 @@ export class Throttle implements ThrottleInterface {
    * Calculate new concurrency limit based on latency
    */
   private calculateNewLimit(
-    adaptive: AdaptiveConfig,
+    adaptive: ValidatedAdaptiveConfigEntity.Type,
     p95: number
   ): number {
     if (p95 < adaptive.targetLatencyMs * adaptive.scaleUpThreshold
@@ -469,10 +447,10 @@ export class Throttle implements ThrottleInterface {
 
     // drain() is already async and the state transition above is already
     // committed — awaiting here cannot race with a concurrent synchronous call.
-    await Promise.resolve(this.hooks.invoke('onDrainStart', () => {
+    await this.hooks.invokeAsync('onDrainStart', () => {
       const result = this.onDrainStart(this.activeCount, this.queue.length);
       return result;
-    }));
+    });
 
     return await this.waitForCompletion();
   }
@@ -515,7 +493,7 @@ export class Throttle implements ThrottleInterface {
         }
 
         const resolveOperation = (): void => { resolveExecute(undefined); };
-        const operation: ActiveOperationType = {
+        const operation: ActiveOperationInterface = {
           'completed': false,
           'resolve': resolveOperation
         };
@@ -611,7 +589,7 @@ export class Throttle implements ThrottleInterface {
    * Handle operation error
    */
   private handleOperationError(
-    operation: ActiveOperationType,
+    operation: ActiveOperationInterface,
     error: unknown,
     rejectExecute: (error: unknown) => void
   ): void {
@@ -622,18 +600,15 @@ export class Throttle implements ThrottleInterface {
     operation.completed = true;
     this.activeOperations.delete(operation);
 
-    // Kept synchronous: handleOperationError runs inside a .then() rejection
-    // callback that execute() does not await, so awaiting here would not delay
-    // anything meaningful and only adds complexity. The slot is always released
-    // regardless of hook outcome.
     try {
-      this.onReject(error);
-    } catch (cause) {
+      this.hooks.invoke('onReject', () => {
+        const result = this.onReject(error);
+        return result;
+      });
+    } finally {
       this.releaseSlot();
-      throw new HookInvocationError('onReject', cause);
     }
 
-    this.releaseSlot();
     rejectExecute(error);
   }
 
@@ -641,7 +616,7 @@ export class Throttle implements ThrottleInterface {
    * Handle successful operation completion
    */
   private handleOperationSuccess<T>(
-    operation: ActiveOperationType,
+    operation: ActiveOperationInterface,
     result: T,
     operationStartTime: number,
     resolveExecute: (value: T | undefined) => void
@@ -672,15 +647,10 @@ export class Throttle implements ThrottleInterface {
 
     this.releaseSlot();
 
-    // Kept synchronous: handleOperationSuccess runs inside a .then() success
-    // callback that execute() does not await, so awaiting here would not delay
-    // anything meaningful. releaseSlot() has already committed accounting by
-    // this point, so a failure here only affects this operation's own outcome.
-    try {
-      this.onRelease(this.activeCount, this.totalExecuted);
-    } catch (cause) {
-      throw new HookInvocationError('onRelease', cause);
-    }
+    this.hooks.invoke('onRelease', () => {
+      const hookResult = this.onRelease(this.activeCount, this.totalExecuted);
+      return hookResult;
+    });
 
     resolveExecute(result);
   }
@@ -738,55 +708,34 @@ export class Throttle implements ThrottleInterface {
    * No transition when aborted (terminal state).
    */
   private notifyObservers(): void {
-    // Kept synchronous: notifyObservers() is invoked from releaseSlot(), which
-    // must itself stay synchronous (see releaseSlot() below) — awaiting here
-    // would cascade an async requirement up through releaseSlot(). This only
-    // catches a synchronous throw; an async override's rejection is
-    // unhandled, an accepted, documented trade-off for this call site.
-    //
-    // The transition to 'idle' and the full observer-notification loop below
-    // unblock every other pending drain()/waitForCompletion() caller, so they
-    // run unconditionally even when onDrainComplete throws, or when
-    // transition('idle') itself throws (its onEnter hook can fail — #state is
-    // already flipped to 'idle' by that point, but the throw would otherwise
-    // skip the loop and reset below). The first captured hook failure is
-    // rethrown only after that cleanup completes.
-    let hookError: unknown;
-
-    if (this.#state === 'draining') {
-      try {
-        this.onDrainComplete(this.totalExecuted);
-      } catch (cause) {
-        hookError = new HookInvocationError('onDrainComplete', cause);
-      }
-
-      try {
+    try {
+      if (this.#state === 'draining') {
+        try {
+          this.hooks.invoke('onDrainComplete', () => {
+            const result = this.onDrainComplete(this.totalExecuted);
+            return result;
+          });
+        } finally {
+          this.transition('idle');
+        }
+      } else if (this.#state === 'active') {
         this.transition('idle');
-      } catch (transitionError) {
-        hookError ??= transitionError;
       }
-    } else if (this.#state === 'active') {
+    } finally {
+      const length = this.observers.length;
+
       try {
-        this.transition('idle');
-      } catch (transitionError) {
-        hookError = transitionError;
+        for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
+          const observer = this.observers[i];
+
+          if (observer !== undefined) {
+            observer();
+          }
+        }
+      } finally {
+        this.observers.length = EMPTY_LENGTH;
+        this.completionPromise = null;
       }
-    }
-
-    const length = this.observers.length;
-
-    for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
-      const observer = this.observers[i];
-
-      if (observer !== undefined) {
-        observer();
-      }
-    }
-    this.observers.length = EMPTY_LENGTH;
-    this.completionPromise = null;
-
-    if (hookError !== undefined) {
-      throw hookError;
     }
   }
 
@@ -847,6 +796,33 @@ export class Throttle implements ThrottleInterface {
    */
   protected onRelease(_activeCount: number, _totalExecuted: number): void {}
 
+  /** Grants the next queued caller a slot and reports the grant outcome. */
+  private grantNextQueuedOperation(): 'failed' | 'granted' | undefined {
+    const pendingTask = this.queue.shift();
+
+    if (pendingTask === undefined) {
+      return undefined;
+    }
+
+    this.activeCount++;
+
+    try {
+      this.hooks.invoke('onWindowSlide', () => {
+        const result = this.onWindowSlide(this.activeCount, this.queue.length);
+        return result;
+      });
+    } catch (error) {
+      this.activeCount--;
+      pendingTask.reject(error);
+
+      return 'failed';
+    }
+
+    pendingTask.resolve();
+
+    return 'granted';
+  }
+
   /**
    * Process queued operations up to concurrency limit
    * @returns Number of operations dequeued
@@ -855,28 +831,12 @@ export class Throttle implements ThrottleInterface {
     let count = INITIAL_COUNTER;
 
     while (this.queue.length > EMPTY_LENGTH && this.activeCount < this.config.concurrencyLimit) {
-      const pendingTask = this.queue.shift();
+      const outcome = this.grantNextQueuedOperation();
 
-      if (pendingTask !== undefined) {
-        this.activeCount++;
-
-        // Kept synchronous: this runs inside a while loop mutating
-        // activeCount/queue on every iteration — awaiting mid-loop would let a
-        // concurrent acquire/release interleave and corrupt that accounting.
-        // A hook failure here belongs to this specific queued caller, not to
-        // whichever operation's completion triggered this dequeue cascade, so
-        // it rejects that caller's own promise (rolling back the slot) and the
-        // loop continues rather than propagating up to an unrelated caller.
-        const hookError = Throttle.tryOnWindowSlide(this);
-
-        if (hookError !== undefined) {
-          this.activeCount--;
-          pendingTask.reject(hookError);
-          continue;
-        }
-
-        pendingTask.resolve();
+      if (outcome === 'granted') {
         count++;
+      } else if (outcome === undefined) {
+        return count;
       }
     }
 
@@ -890,72 +850,26 @@ export class Throttle implements ThrottleInterface {
     this.activeCount--;
 
     if (this.queue.length > EMPTY_LENGTH) {
-      this.activeCount++;
-      const pendingTask = this.queue.shift();
+      const outcome = this.grantNextQueuedOperation();
 
-      if (pendingTask !== undefined) {
-        // Kept synchronous: same shift-then-resolve shape as
-        // processQueuedOperations() — awaiting before pendingTask.resolve()
-        // would let a concurrent acquire/release interleave and corrupt
-        // activeCount/queue accounting. A failure here belongs to this
-        // specific dequeued waiter, so it rejects that waiter's own promise
-        // (rolling back the slot) rather than propagating to the operation
-        // whose completion triggered this release.
-        const hookError = Throttle.tryOnWindowSlide(this);
-
-        if (hookError !== undefined) {
-          this.activeCount--;
-          pendingTask.reject(hookError);
-
-          return;
-        }
-
-        pendingTask.resolve();
-
+      if (outcome === 'granted') {
         // onRelease here describes the just-completed operation's own release
         // (accounting is already fully committed above), so a failure
         // propagates up to that operation's caller rather than to the waiter.
-        try {
-          this.onRelease(this.activeCount, this.totalExecuted);
-        } catch (cause) {
-          throw new HookInvocationError('onRelease', cause);
-        }
+        this.hooks.invoke('onRelease', () => {
+          const result = this.onRelease(this.activeCount, this.totalExecuted);
+          return result;
+        });
       }
     } else if (this.activeCount === INITIAL_COUNTER) {
-      // notifyObservers() unblocks every pending drain()/waitForCompletion()
-      // caller, so it must run unconditionally even when onRelease throws —
-      // the hook failure is captured and rethrown only after that cleanup
-      // completes.
-      let releaseHookError: HookInvocationError | undefined;
-
       try {
-        this.onRelease(this.activeCount, this.totalExecuted);
-      } catch (cause) {
-        releaseHookError = new HookInvocationError('onRelease', cause);
+        this.hooks.invoke('onRelease', () => {
+          const result = this.onRelease(this.activeCount, this.totalExecuted);
+          return result;
+        });
+      } finally {
+        this.notifyObservers();
       }
-
-      this.notifyObservers();
-
-      if (releaseHookError !== undefined) {
-        throw releaseHookError;
-      }
-    }
-  }
-
-  /**
-   * Invokes onWindowSlide for `instance`, catching a synchronous throw and
-   * returning it as a HookInvocationError instead. Extracted to a static
-   * method so its try/catch is never nested inside the while loops in
-   * processQueuedOperations() and releaseSlot() (V8 deoptimizes try/catch
-   * inside a loop body).
-   */
-  private static tryOnWindowSlide(instance: Throttle): HookInvocationError | undefined {
-    try {
-      instance.onWindowSlide(instance.activeCount, instance.queue.length);
-
-      return undefined;
-    } catch (cause) {
-      return new HookInvocationError('onWindowSlide', cause);
     }
   }
 
@@ -963,7 +877,7 @@ export class Throttle implements ThrottleInterface {
    * Scale concurrency limit
    */
   private scaleConcurrency(
-    adaptive: AdaptiveConfig,
+    adaptive: ValidatedAdaptiveConfigEntity.Type,
     _p95: number,
     direction: 'down' | 'up'
   ): number {
@@ -972,16 +886,10 @@ export class Throttle implements ThrottleInterface {
       ? Math.min(previousLimit + adaptive.stepSize, adaptive.maxConcurrency)
       : Math.max(previousLimit - adaptive.stepSize, adaptive.minConcurrency);
 
-    // Kept synchronous: scaleConcurrency is called synchronously from
-    // calculateNewLimit → maybeAdjustConcurrency → handleOperationSuccess,
-    // itself invoked from a .then() callback execute() does not await. Forcing
-    // this whole chain async would cascade with no corresponding safety
-    // benefit, since nothing here depends on concurrent-call ordering.
-    try {
-      this.onAdaptiveAdjust(previousLimit, newLimit);
-    } catch (cause) {
-      throw new HookInvocationError('onAdaptiveAdjust', cause);
-    }
+    this.hooks.invoke('onAdaptiveAdjust', () => {
+      const result = this.onAdaptiveAdjust(previousLimit, newLimit);
+      return result;
+    });
 
     return newLimit;
   }
@@ -989,7 +897,9 @@ export class Throttle implements ThrottleInterface {
   /**
    * Check if concurrency adjustment should occur
    */
-  private shouldAdjustConcurrency(adaptive: AdaptiveConfig | undefined): adaptive is AdaptiveConfig {
+  private shouldAdjustConcurrency(
+    adaptive: ValidatedAdaptiveConfigEntity.Type | undefined
+  ): adaptive is ValidatedAdaptiveConfigEntity.Type {
     if (adaptive?.enabled !== true) {
       return false;
     }
@@ -1001,28 +911,6 @@ export class Throttle implements ThrottleInterface {
     const now = Date.now();
 
     return now - this.lastAdjustmentTime >= adaptive.adjustmentInterval;
-  }
-
-  /**
-   * Update throttle configuration
-   *
-   * @param config - Partial configuration to update
-   *
-   * @throws {ConfigurationError} When new config values fail validation
-   *
-   * @example Adjust concurrency limit
-   * ```typescript
-   * throttle.updateConfig({ concurrencyLimit: 20 });
-   * ```
-   */
-  updateConfig(config: Partial<ThrottleConfigType>): void {
-    const mergedConfig = {
-      ...this.config,
-      ...config
-    };
-
-    this.config = Throttle.validateConfig(mergedConfig);
-    this.processQueuedOperations();
   }
 
   /**
@@ -1090,12 +978,15 @@ export class Throttle implements ThrottleInterface {
     'targetLatencyMs': NO_DELAY_MS
   } as const;
 
-  private static buildEnabledAdaptiveConfig(adaptiveObj: Record<string, unknown>): Required<AdaptiveConfigType> {
+  private static buildEnabledAdaptiveConfig(
+    adaptive: AdaptiveConfigEntity.Type,
+    targetLatencyMs: number
+  ): ValidatedAdaptiveConfigEntity.Type {
     const d = Throttle.ADAPTIVE_DEFAULTS;
-    const minConcurrency = (adaptiveObj.minConcurrency as number | undefined) ?? d.minConcurrency;
-    const maxConcurrency = (adaptiveObj.maxConcurrency as number | undefined) ?? d.maxConcurrency;
-    const scaleUpThreshold = (adaptiveObj.scaleUpThreshold as number | undefined) ?? d.scaleUpThreshold;
-    const scaleDownThreshold = (adaptiveObj.scaleDownThreshold as number | undefined) ?? d.scaleDownThreshold;
+    const minConcurrency = adaptive.minConcurrency ?? d.minConcurrency;
+    const maxConcurrency = adaptive.maxConcurrency ?? d.maxConcurrency;
+    const scaleUpThreshold = adaptive.scaleUpThreshold ?? d.scaleUpThreshold;
+    const scaleDownThreshold = adaptive.scaleDownThreshold ?? d.scaleDownThreshold;
 
     // Cross-field business rules the static JSON Schema cannot express: it
     // validates each field in isolation, not the relationship between two of them.
@@ -1108,27 +999,29 @@ export class Throttle implements ThrottleInterface {
 
     // The schema's structural minimum for these two fields (1) is looser than
     // their actual business minimum, so that stricter floor is enforced here.
-    if (adaptiveObj.sampleWindow !== undefined) {
-      ConfigValidation.assertMin(adaptiveObj.sampleWindow, MIN_SAMPLE_WINDOW, 'adaptive.sampleWindow');
+    if (adaptive.sampleWindow !== undefined) {
+      ConfigValidation.assertMin(adaptive.sampleWindow, MIN_SAMPLE_WINDOW, 'adaptive.sampleWindow');
     }
-    if (adaptiveObj.adjustmentInterval !== undefined) {
-      ConfigValidation.assertMin(adaptiveObj.adjustmentInterval, MIN_ADJUSTMENT_INTERVAL, 'adaptive.adjustmentInterval');
+    if (adaptive.adjustmentInterval !== undefined) {
+      ConfigValidation.assertMin(adaptive.adjustmentInterval, MIN_ADJUSTMENT_INTERVAL, 'adaptive.adjustmentInterval');
     }
 
     return {
-      'adjustmentInterval': (adaptiveObj.adjustmentInterval as number | undefined) ?? d.adjustmentInterval,
+      'adjustmentInterval': adaptive.adjustmentInterval ?? d.adjustmentInterval,
       'enabled': true,
       'maxConcurrency': maxConcurrency,
       'minConcurrency': minConcurrency,
-      'sampleWindow': (adaptiveObj.sampleWindow as number | undefined) ?? d.sampleWindow,
+      'sampleWindow': adaptive.sampleWindow ?? d.sampleWindow,
       'scaleDownThreshold': scaleDownThreshold,
       'scaleUpThreshold': scaleUpThreshold,
-      'stepSize': (adaptiveObj.stepSize as number | undefined) ?? d.stepSize,
-      'targetLatencyMs': adaptiveObj.targetLatencyMs as number
+      'stepSize': adaptive.stepSize ?? d.stepSize,
+      'targetLatencyMs': targetLatencyMs
     };
   }
 
-  private static validateAdaptiveConfig(adaptive: unknown): Required<AdaptiveConfigType> | undefined {
+  private static validateAdaptiveConfig(
+    adaptive: AdaptiveConfigEntity.Type | undefined
+  ): ValidatedAdaptiveConfigEntity.Type | undefined {
     if (adaptive === undefined) {
       return undefined;
     }
@@ -1136,15 +1029,9 @@ export class Throttle implements ThrottleInterface {
     // adaptive's shape (object, boolean enabled, required: ['enabled'], and
     // per-field type/exclusiveMinimum) is already enforced by
     // ThrottleConfigEntity.validate() before this method is reached.
-    const adaptiveObj = adaptive as Record<string, unknown>;
     const d = Throttle.ADAPTIVE_DEFAULTS;
 
-    // The nested "adaptive" schema does not declare additionalProperties: false
-    // (only the top-level schema does), so unknown keys inside adaptive are not
-    // caught by ThrottleConfigEntity.validate() above.
-    ConfigValidation.assertNoUnknownKeys(adaptiveObj, ADAPTIVE_CONFIG_KEYS);
-
-    if (adaptiveObj.enabled === false) {
+    if (adaptive.enabled === false) {
       return {
         'adjustmentInterval': d.adjustmentInterval,
         'enabled': false,
@@ -1162,20 +1049,21 @@ export class Throttle implements ThrottleInterface {
     // targetLatencyMs is required only when adaptive.enabled is true — the
     // schema keeps every adaptive field but "enabled" optional so it can also
     // express the disabled shape.
-    if (adaptiveObj.targetLatencyMs === undefined) {
+    if (adaptive.targetLatencyMs === undefined) {
       throw ConfigurationError.create('adaptive.targetLatencyMs is required when adaptive is enabled');
     }
 
-    return Throttle.buildEnabledAdaptiveConfig(adaptiveObj);
+    return Throttle.buildEnabledAdaptiveConfig(adaptive, adaptive.targetLatencyMs);
   }
 
-  private static validateConfig(config?: Partial<ThrottleConfigType>): ValidatedThrottleConfigType {
+  private static validateConfig(
+    config?: Partial<ThrottleConfigEntity.Type>
+  ): ValidatedThrottleConfigEntity.Type {
     const cfg = config ?? {};
 
     ThrottleConfigEntity.validate(cfg);
 
-    const configObj = cfg as Record<string, unknown>;
-    const adaptive = Throttle.validateAdaptiveConfig(configObj.adaptive);
+    const adaptive = Throttle.validateAdaptiveConfig(cfg.adaptive);
     const concurrencyLimit = cfg.concurrencyLimit ?? DEFAULT_THROTTLE_CONCURRENCY;
 
     // Cross-field business rule the static JSON Schema cannot express:
@@ -1189,7 +1077,7 @@ export class Throttle implements ThrottleInterface {
       }
     }
 
-    const result: ValidatedThrottleConfigType = { 'concurrencyLimit': concurrencyLimit };
+    const result: ValidatedThrottleConfigEntity.Type = { 'concurrencyLimit': concurrencyLimit };
 
     if (adaptive !== undefined) {
       result.adaptive = adaptive;

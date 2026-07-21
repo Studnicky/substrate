@@ -18,7 +18,7 @@ import { it } from 'node:test';
 import { HookInvoker } from '@studnicky/errors';
 
 import { BusQueue } from '../../src/BusQueue.js';
-import type { BusQueueCreateOptionsType } from '../../src/BusQueueCreateOptionsType.js';
+import type { BusQueueCreateOptionsInterface } from '../../src/BusQueueCreateOptionsInterface.js';
 
 void it('calls handler for each enqueued item in order', async () => {
   const received: number[] = [];
@@ -30,6 +30,13 @@ void it('calls handler for each enqueued item in order', async () => {
   await queue.drain();
 
   deepStrictEqual(received, [1, 2, 3]);
+});
+
+it('create rejects a missing handler at the factory boundary', () => {
+  throws(
+    () => Reflect.apply(BusQueue.create, BusQueue, [{}]),
+    { message: 'BusQueue.create(options): options.handler must be a function' },
+  );
 });
 
 void it('size reflects queue depth before drain', async () => {
@@ -92,6 +99,43 @@ void it('onError is called when handler throws, delivery continues', async () =>
   strictEqual((errors[0] as Error).message, 'boom');
 });
 
+await it('an async-rejecting onError callback is swallowed before onHandlerError and queue progress continues', async () => {
+  const handlerFailure = new Error('handler failed');
+  const onErrorFailure = new Error('onError rejected');
+  const handlerErrors: unknown[] = [];
+  const received: number[] = [];
+  const unhandledRejections: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+
+  class ObservedQueue extends BusQueue<number> {
+    protected override onHandlerError(error: unknown): void {
+      handlerErrors.push(error);
+    }
+  }
+
+  process.on('unhandledRejection', onUnhandledRejection);
+  try {
+    const queue = ObservedQueue.create({
+      'handler': async (item) => {
+        if (item === 1) { throw handlerFailure; }
+        received.push(item);
+      },
+      'onError': async () => { throw onErrorFailure; },
+    });
+
+    await queue.enqueue(1);
+    await queue.enqueue(2);
+    await queue.drain();
+    await new Promise<void>((resolve) => { setImmediate(resolve); });
+
+    deepStrictEqual(handlerErrors, [handlerFailure]);
+    deepStrictEqual(received, [2]);
+    strictEqual(unhandledRejections.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
 void it('AbortSignal cancels queue: enqueue becomes no-op after abort', async () => {
   const received: number[] = [];
   const controller = new AbortController();
@@ -112,6 +156,36 @@ void it('AbortSignal cancels queue: enqueue becomes no-op after abort', async ()
   await Promise.resolve();
 
   deepStrictEqual(received, [1], 'Only item before abort should be received');
+});
+
+await it('abort releases an item waiting on its admission hook without delivery', async () => {
+  const controller = new AbortController();
+  const enqueueGate = Promise.withResolvers<void>();
+  const enqueueStarted = Promise.withResolvers<void>();
+  const received: number[] = [];
+
+  class PendingEnqueueQueue extends BusQueue<number> {
+    protected override async onEnqueue(): Promise<void> {
+      enqueueStarted.resolve();
+      await enqueueGate.promise;
+    }
+  }
+
+  const queue = PendingEnqueueQueue.create({
+    'handler': async (item) => { received.push(item); },
+    'signal': controller.signal,
+  });
+
+  const enqueue = queue.enqueue(1);
+  await enqueueStarted.promise;
+  controller.abort();
+  await queue.drain();
+
+  deepStrictEqual(received, []);
+
+  enqueueGate.resolve();
+  await enqueue;
+  deepStrictEqual(received, []);
 });
 
 const highWaterMarkScenarios: Array<{ description: string; value: number }> = [
@@ -225,6 +299,55 @@ void it('onOverflow hook fires when queue reaches highWaterMark', async () => {
   strictEqual(overflowDepths.length >= 1, true, 'onOverflow should fire at least once');
 });
 
+await it('waits for onEnqueue and onOverflow completion before delivering the item', async () => {
+  const enqueueGate = Promise.withResolvers<void>();
+  const enqueueStarted = Promise.withResolvers<void>();
+  const overflowGate = Promise.withResolvers<void>();
+  const overflowStarted = Promise.withResolvers<void>();
+  const order: string[] = [];
+
+  class PendingAdmissionQueue extends BusQueue<number> {
+    protected override async onEnqueue(): Promise<void> {
+      order.push('enqueue:start');
+      enqueueStarted.resolve();
+      await enqueueGate.promise;
+      order.push('enqueue:end');
+    }
+
+    protected override async onOverflow(): Promise<void> {
+      order.push('overflow:start');
+      overflowStarted.resolve();
+      await overflowGate.promise;
+      order.push('overflow:end');
+    }
+  }
+
+  const queue = PendingAdmissionQueue.create({
+    'handler': async () => { order.push('handler'); },
+    'highWaterMark': 1,
+  });
+
+  const enqueue = queue.enqueue(1);
+  await enqueueStarted.promise;
+  deepStrictEqual(order, ['enqueue:start']);
+
+  enqueueGate.resolve();
+  await overflowStarted.promise;
+  deepStrictEqual(order, ['enqueue:start', 'enqueue:end', 'overflow:start']);
+
+  overflowGate.resolve();
+  await enqueue;
+  await queue.drain();
+
+  deepStrictEqual(order, [
+    'enqueue:start',
+    'enqueue:end',
+    'overflow:start',
+    'overflow:end',
+    'handler',
+  ]);
+});
+
 void it('onHandlerError hook fires when handler throws', async () => {
   const errors: unknown[] = [];
 
@@ -247,7 +370,7 @@ void it('protected onEnqueue hook fires via subclass override', async () => {
   const depths: number[] = [];
 
   class ObservedQueue extends BusQueue<number> {
-    static override create(options: BusQueueCreateOptionsType<number>): ObservedQueue {
+    static override create(options: BusQueueCreateOptionsInterface<number>): ObservedQueue {
       return new ObservedQueue(options);
     }
     protected override onEnqueue(depth: number): void { depths.push(depth); }
@@ -266,7 +389,7 @@ void it('a throwing dequeue hook does not interrupt current or later queue work'
   const processed: number[] = [];
 
   class ThrowingOnDequeueQueue extends BusQueue<number> {
-    static override create(options: BusQueueCreateOptionsType<number>): ThrowingOnDequeueQueue {
+    static override create(options: BusQueueCreateOptionsInterface<number>): ThrowingOnDequeueQueue {
       return new ThrowingOnDequeueQueue(options);
     }
 
@@ -295,12 +418,17 @@ void it('a throwing dequeue hook does not interrupt current or later queue work'
   strictEqual(errors.length, 0);
 });
 
-void it('a throwing enqueue hook does not replace enqueue() or later delivery', async () => {
+await it('a rejecting enqueue hook cancels only its duplicate item and concurrent enqueue recovers', async () => {
   const processed: number[] = [];
 
   class ThrowingEnqueueQueue extends BusQueue<number> {
-    protected override onEnqueue(): void {
-      throw new Error('hook boom');
+    #attempt = 0;
+
+    protected override async onEnqueue(): Promise<void> {
+      this.#attempt += 1;
+      if (this.#attempt === 1) {
+        throw new Error('hook boom');
+      }
     }
   }
 
@@ -308,26 +436,29 @@ void it('a throwing enqueue hook does not replace enqueue() or later delivery', 
     'handler': async (item) => { processed.push(item); },
   });
 
-  await queue.enqueue(1);
+  const first = queue.enqueue(1);
+  const second = queue.enqueue(1);
+
+  await Promise.all([first, second]);
   await queue.drain();
 
   deepStrictEqual(processed, [1]);
 });
 
-void it('a throwing hook is routed through onHookError with the hook name and original cause', async () => {
+await it('a throwing admission hook is routed through onHookError and its item is not delivered', async () => {
   const seen: Array<{ 'hookName': string; 'cause': unknown }> = [];
+  const failure = new Error('enqueue hook boom');
 
   class RecordingHookInvoker extends HookInvoker {
-    protected override onHookError<T>(hookName: string, cause: unknown): T {
+    protected override onHookError(hookName: string, cause: unknown): void {
       seen.push({ 'hookName': hookName, 'cause': cause });
-      return undefined as T;
     }
   }
 
   class RecordingHookErrorQueue extends BusQueue<number> {
     protected override readonly hooks: HookInvoker = new RecordingHookInvoker();
     protected override onEnqueue(): void {
-      throw new Error('enqueue hook boom');
+      throw failure;
     }
   }
 
@@ -339,10 +470,36 @@ void it('a throwing hook is routed through onHookError with the hook name and or
   await queue.enqueue(1);
   await queue.drain();
 
-  strictEqual(seen.length, 1);
-  strictEqual(seen[0]!.hookName, 'onEnqueue');
-  strictEqual((seen[0]!.cause as Error).message, 'enqueue hook boom');
-  deepStrictEqual(processed, [1], 'delivery still proceeds despite the throwing hook');
+  deepStrictEqual(seen, [{ 'hookName': 'onEnqueue', 'cause': failure }]);
+  deepStrictEqual(processed, [], 'the failed admission hook cancels its queue item');
+});
+
+await it('a rejecting overflow hook cancels only its item and later overflow work progresses', async () => {
+  const processed: number[] = [];
+
+  class ThrowingOverflowQueue extends BusQueue<number> {
+    #attempt = 0;
+
+    protected override async onOverflow(): Promise<void> {
+      this.#attempt += 1;
+      if (this.#attempt === 1) {
+        throw new Error('overflow hook boom');
+      }
+    }
+  }
+
+  const queue = ThrowingOverflowQueue.create({
+    'handler': async (item) => { processed.push(item); },
+    'highWaterMark': 1,
+  });
+
+  const first = queue.enqueue(1);
+  const second = queue.enqueue(2);
+
+  await Promise.all([first, second]);
+  await queue.drain();
+
+  deepStrictEqual(processed, [2]);
 });
 
 void it('two synchronous enqueue() calls in the same tick do not spawn concurrent drain loops', async () => {

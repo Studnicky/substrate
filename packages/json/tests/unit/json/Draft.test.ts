@@ -170,7 +170,7 @@ void describe('Draft', () => {
         draft.tags.push('c');
       });
 
-      const target: Record<string, unknown> = JSON.parse(JSON.stringify(base)) as Record<string, unknown>;
+      const target: Record<string, unknown> = structuredClone(base);
 
       Patch.create(patch).apply(target);
 
@@ -184,7 +184,7 @@ void describe('Draft', () => {
         delete draft.b;
       });
 
-      const target: Record<string, unknown> = JSON.parse(JSON.stringify(base)) as Record<string, unknown>;
+      const target: Record<string, unknown> = structuredClone(base);
 
       Patch.create(patch).apply(target);
 
@@ -196,10 +196,10 @@ void describe('Draft', () => {
       const base: Record<string, unknown> = { 'a': 1 };
 
       const { next, patch } = Draft.producePatch(base, (draft) => {
-        (draft as Record<string, unknown>).b = 2;
+        draft['b'] = 2;
       });
 
-      const target: Record<string, unknown> = JSON.parse(JSON.stringify(base)) as Record<string, unknown>;
+      const target: Record<string, unknown> = structuredClone(base);
 
       Patch.create(patch).apply(target);
 

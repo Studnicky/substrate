@@ -1,47 +1,74 @@
 import type { Rule, Scope } from 'eslint';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
 
-// json-schema-uninexpressible: ESLint rule-options shape validated at runtime by this rule's own meta.schema, not this package's entity/data layer
-type OptionsType = {
-  readonly 'checkArrayLiterals': boolean;
-  readonly 'checkFromEntries': boolean;
-  readonly 'checkModuleScopeArrays': boolean;
-};
+namespace PreferCollectionTypesOptionsEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'checkArrayLiterals': {
+        'default': true,
+        'description': 'Flag inline array literals used with .includes() (Pattern A) and .includes() inside iteration callbacks (Pattern D).',
+        'type': 'boolean'
+      },
+      'checkFromEntries': {
+        'default': true,
+        'description': 'Flag Object.fromEntries() results accessed with computed bracket notation (Pattern B).',
+        'type': 'boolean'
+      },
+      'checkModuleScopeArrays': {
+        'default': true,
+        'description': 'Flag module-scope const arrays used exclusively for .includes() membership tests (Pattern C).',
+        'type': 'boolean'
+      }
+    },
+    'type': 'object'
+  } as const satisfies JSONSchema;
 
-// json-schema-uninexpressible: raw pre-default rule-options shape read directly off context.options before defaults are applied
-type RawOptionsType = {
-  readonly 'checkArrayLiterals'?: boolean;
-  readonly 'checkFromEntries'?: boolean;
-  readonly 'checkModuleScopeArrays'?: boolean;
-};
+  export type Type = FromSchema<typeof Schema>;
+}
 
-const DEFAULT_OPTIONS: OptionsType = {
+namespace PreferCollectionTypesInternalEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'found': { 'type': 'boolean' },
+      'method': { 'type': 'string' },
+      'name': { 'type': 'string' },
+      'reported': { 'type': 'boolean' }
+    },
+    'required': ['found', 'method', 'name', 'reported'],
+    'type': 'object'
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
+}
+
+const DEFAULT_OPTIONS: Required<PreferCollectionTypesOptionsEntity.Type> = {
   'checkArrayLiterals': true,
   'checkFromEntries': true,
   'checkModuleScopeArrays': true
 };
 
-type ModuleScopeArrayEntryType = {
-  readonly 'name': string;
+interface ModuleScopeArrayEntryInterface {
+  readonly 'name': PreferCollectionTypesInternalEntity.Type['name'];
   readonly 'node': Rule.Node;
   readonly 'variable': Scope.Variable;
-};
+}
 
 // Tracks a `.filter/.some/.every/.find/.findIndex(fn)` call whose function-argument
 // subtree is currently being traversed by ESLint's own visitor, so that a nested
 // ArrayLiteral.includes()/indexOf() match encountered by the ordinary CallExpression
 // listener can be attributed back to this outer call without a second manual walk.
-type IterationStackEntryType = {
-  'found': boolean;
-  readonly 'method': string;
+interface IterationStackEntryInterface {
+  'found': PreferCollectionTypesInternalEntity.Type['found'];
+  readonly 'method': PreferCollectionTypesInternalEntity.Type['method'];
   readonly 'outerNode': Rule.Node;
   readonly 'pendingArgs': Set<unknown>;
-  'reported': boolean;
-};
-
-type ProgramExitNodeType = Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0];
+  'reported': PreferCollectionTypesInternalEntity.Type['reported'];
+}
 
 class NodePropertyAccess {
   public static getString(obj: Record<string, unknown>, key: string): string | undefined {
@@ -162,7 +189,7 @@ class IterationCallbackTracker {
   // If `node` is arr.method(fn) for a tracked iteration method with at least one
   // function-typed argument, pushes a stack entry so nested matches (found via the
   // rule's ordinary CallExpression listener) can be attributed back to this call.
-  public static pushIfQualifying(node: Rule.Node, stack: IterationStackEntryType[]): void {
+  public static pushIfQualifying(node: Rule.Node, stack: IterationStackEntryInterface[]): void {
     const raw = node as unknown as Record<string, unknown>;
     if (AstHelpers.getNodeType(raw) !== 'CallExpression') { return; }
 
@@ -197,7 +224,7 @@ class IterationCallbackTracker {
   // Marks every currently-active outer call as containing a match — mirrors the old
   // manual walk's behavior of finding matches at any depth beneath the callback body,
   // including inside further-nested qualifying calls.
-  public static markActiveFound(stack: IterationStackEntryType[]): void {
+  public static markActiveFound(stack: IterationStackEntryInterface[]): void {
     const stackLen = stack.length;
     for (let si = 0; si < stackLen; si += 1) {
       const entry = stack[si];
@@ -208,7 +235,7 @@ class IterationCallbackTracker {
   // Called from the function argument's `:exit` listener. Pops the entry once all of
   // its function-typed arguments have finished traversal, reporting once if a match
   // was found anywhere beneath it.
-  public static onFunctionArgumentExit(node: unknown, stack: IterationStackEntryType[], context: Rule.RuleContext): void {
+  public static onFunctionArgumentExit(node: unknown, stack: IterationStackEntryInterface[], context: Rule.RuleContext): void {
     const top = stack.at(-1);
     if (top === undefined) { return; }
     if (!top.pendingArgs.has(node)) { return; }
@@ -278,9 +305,9 @@ class ScopeReferenceDetection {
 class RuleHandlers {
   public static onCallExpression(
     node: Rule.Node,
-    opts: OptionsType,
+    opts: Required<PreferCollectionTypesOptionsEntity.Type>,
     context: Rule.RuleContext,
-    iterationStack: IterationStackEntryType[]
+    iterationStack: IterationStackEntryInterface[]
   ): void {
     if (!opts.checkArrayLiterals) { return; }
 
@@ -303,11 +330,11 @@ class RuleHandlers {
     IterationCallbackTracker.pushIfQualifying(node, iterationStack);
   }
 
-  public static onIterationCallbackExit(node: unknown, context: Rule.RuleContext, iterationStack: IterationStackEntryType[]): void {
+  public static onIterationCallbackExit(node: unknown, context: Rule.RuleContext, iterationStack: IterationStackEntryInterface[]): void {
     IterationCallbackTracker.onFunctionArgumentExit(node, iterationStack, context);
   }
 
-  public static onMemberExpression(node: Rule.Node, opts: OptionsType, context: Rule.RuleContext): void {
+  public static onMemberExpression(node: Rule.Node, opts: Required<PreferCollectionTypesOptionsEntity.Type>, context: Rule.RuleContext): void {
     // Pattern B: Object.fromEntries(...)[key] — inline computed access on fromEntries result
     if (!opts.checkFromEntries) { return; }
     const raw = node as unknown as Record<string, unknown>;
@@ -331,10 +358,10 @@ class RuleHandlers {
   }
 
   public static onProgramExit(
-    _node: ProgramExitNodeType,
-    opts: OptionsType,
+    _node: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0],
+    opts: Required<PreferCollectionTypesOptionsEntity.Type>,
     context: Rule.RuleContext,
-    moduleScopeArrays: ModuleScopeArrayEntryType[]
+    moduleScopeArrays: ModuleScopeArrayEntryInterface[]
   ): void {
     if (!opts.checkModuleScopeArrays || moduleScopeArrays.length === 0) { return; }
 
@@ -365,9 +392,9 @@ class RuleHandlers {
 
   public static onVariableDeclarator(
     node: Rule.Node,
-    opts: OptionsType,
+    opts: Required<PreferCollectionTypesOptionsEntity.Type>,
     context: Rule.RuleContext,
-    moduleScopeArrays: ModuleScopeArrayEntryType[]
+    moduleScopeArrays: ModuleScopeArrayEntryInterface[]
   ): void {
     // Pattern C: const VALID = ['a', 'b'] at module scope, used only for .includes()
     if (!opts.checkModuleScopeArrays) { return; }
@@ -403,27 +430,31 @@ class RuleHandlers {
 }
 
 class Options {
-  static build(rawOptions: RawOptionsType | undefined): OptionsType {
+  static build(rawOptions: unknown): Required<PreferCollectionTypesOptionsEntity.Type> {
     return {
-      'checkArrayLiterals': rawOptions?.checkArrayLiterals ?? DEFAULT_OPTIONS.checkArrayLiterals,
-      'checkFromEntries': rawOptions?.checkFromEntries ?? DEFAULT_OPTIONS.checkFromEntries,
-      'checkModuleScopeArrays': rawOptions?.checkModuleScopeArrays ?? DEFAULT_OPTIONS.checkModuleScopeArrays
+      'checkArrayLiterals': ObjectGuard.isObject(rawOptions) && typeof rawOptions.checkArrayLiterals === 'boolean'
+        ? rawOptions.checkArrayLiterals
+        : DEFAULT_OPTIONS.checkArrayLiterals,
+      'checkFromEntries': ObjectGuard.isObject(rawOptions) && typeof rawOptions.checkFromEntries === 'boolean'
+        ? rawOptions.checkFromEntries
+        : DEFAULT_OPTIONS.checkFromEntries,
+      'checkModuleScopeArrays': ObjectGuard.isObject(rawOptions) && typeof rawOptions.checkModuleScopeArrays === 'boolean'
+        ? rawOptions.checkModuleScopeArrays
+        : DEFAULT_OPTIONS.checkModuleScopeArrays
     };
   }
 }
 
 export const preferCollectionTypes: Rule.RuleModule = {
   'create': (context) => {
-    const [firstOption] = (context.options as readonly unknown[]);
-    const rawOptions = firstOption as RawOptionsType | undefined;
-    const opts = Options.build(rawOptions);
+    const opts = Options.build(context.options.at(0));
 
-    const moduleScopeArrays: ModuleScopeArrayEntryType[] = [];
-    const iterationStack: IterationStackEntryType[] = [];
+    const moduleScopeArrays: ModuleScopeArrayEntryInterface[] = [];
+    const iterationStack: IterationStackEntryInterface[] = [];
 
     const callExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onCallExpression(node, opts, context, iterationStack); };
     const memberExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onMemberExpression(node, opts, context); };
-    const programExitHandler = (node: ProgramExitNodeType): void => { RuleHandlers.onProgramExit(node, opts, context, moduleScopeArrays); };
+    const programExitHandler: NonNullable<Rule.RuleListener['Program:exit']> = (node): void => { RuleHandlers.onProgramExit(node, opts, context, moduleScopeArrays); };
     const variableDeclaratorHandler = (node: Rule.Node): void => { RuleHandlers.onVariableDeclarator(node, opts, context, moduleScopeArrays); };
     const iterationCallbackExitHandler = (node: unknown): void => { RuleHandlers.onIterationCallbackExit(node, context, iterationStack); };
 
@@ -447,29 +478,7 @@ export const preferCollectionTypes: Rule.RuleModule = {
       'fromEntriesWithBracket': "'Object.fromEntries()' accessed via computed key. Use 'new Map(...)' — Map.get() is 3× faster than POJO bracket access for string key lookups.",
       'includesInCallback': "'.includes()' on an array literal inside '.{{method}}()' is O(n×m). Convert the array to a Set and use '.has()' for O(m) total — Set.has is 29× faster."
     },
-    'schema': [
-      {
-        'additionalProperties': false,
-        'properties': {
-          'checkArrayLiterals': {
-            'default': true,
-            'description': 'Flag inline array literals used with .includes() (Pattern A) and .includes() inside iteration callbacks (Pattern D).',
-            'type': 'boolean'
-          },
-          'checkFromEntries': {
-            'default': true,
-            'description': 'Flag Object.fromEntries() results accessed with computed bracket notation (Pattern B).',
-            'type': 'boolean'
-          },
-          'checkModuleScopeArrays': {
-            'default': true,
-            'description': 'Flag module-scope const arrays used exclusively for .includes() membership tests (Pattern C).',
-            'type': 'boolean'
-          }
-        },
-        'type': 'object'
-      }
-    ],
+    'schema': [PreferCollectionTypesOptionsEntity.Schema],
     'type': 'suggestion'
   }
 };

@@ -1,4 +1,5 @@
 import type { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
+import type { ContextLookupEntity } from '../entities/ContextLookupEntity.js';
 import type { ContextScopeInterface } from './ContextScopeInterface.js';
 
 /**
@@ -13,7 +14,7 @@ export interface ContextInterface extends ContextConfigEntity.Type {
   /**
    * Gets a value from the context by key.
    */
-  get<T>(key: string): T;
+  get(key: string): unknown;
 
   /**
    * Checks if a key exists in the context.
@@ -46,9 +47,9 @@ export interface ContextInterface extends ContextConfigEntity.Type {
   snapshot(): Record<string, unknown>;
 
   /**
-   * Gets a value from the context by key, or undefined if not found or not active.
+   * Gets a presence-aware value from the context without throwing.
    *
    * Never throws — safe to call without checking isActive() first.
    */
-  tryGet<T>(key: string): T | undefined;
+  tryGet(key: string): ContextLookupEntity.Type;
 }

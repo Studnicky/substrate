@@ -19,12 +19,9 @@ Build a `Clock` instance with a provider, then call `now()` for epoch-ms and `hr
 
 <<< ../../packages/clock/examples/basic-usage.ts#usage
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/clock` | `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCounter` |
-| `@studnicky/clock/interfaces` | `ClockProviderType` |
+Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCounter`, their option entities, `ClockProviderInterface`, and `ClockError` from `@studnicky/clock`. Construct each stateful primitive through its root-exported `create(...)` method. The package root is the only public code entrypoint.
 
 ## Virtual time control
 
@@ -34,7 +31,7 @@ Build a `Clock` instance with a provider, then call `now()` for epoch-ms and `hr
 
 ## Custom providers
 
-Implement `ClockProviderType` (two methods: `now(): number` and `hrtime(): bigint`) to inject any time source into `Clock`. Swapping the provider changes what `Clock` returns without touching consumers:
+Implement `ClockProviderInterface` (two methods: `now(): number` and `hrtime(): bigint`) to inject any time source into `Clock`. Swapping the provider changes what `Clock` returns without touching consumers:
 
 <<< ../../packages/clock/examples/custom-provider.ts#usage
 
@@ -63,31 +60,23 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 <!-- inline-ts-ok: conceptual subclass pattern; no standalone runnable example exists for Clock subclassing -->
 ```typescript
-import { Clock } from '@studnicky/clock';
-import type { ClockProviderType } from '@studnicky/clock/interfaces';
+import { Clock, type ClockProviderInterface } from '@studnicky/clock';
 
 class TrackedClock extends Clock {
-  constructor(provider: ClockProviderType) {
-    super(provider);
-  }
-
   protected override readHrtime(): bigint {
     const t = super.readHrtime();
     metrics.gauge('clock.hrtime', Number(t));
     return t;
   }
 }
+
+declare const provider: ClockProviderInterface;
+const clock = TrackedClock.create(provider);
 ```
 
 ## Try it
 
 The examples below run directly in the browser against the published package.
-
-### Builder
-
-Watch the builder chain assemble a virtual clock — each step is logged.
-
-<RunnableExample src="packages/clock/examples/builder-clock" title="Clock builder" />
 
 ### Lifecycle hooks
 

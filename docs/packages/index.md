@@ -11,6 +11,10 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 @studnicky:registry=https://npm.pkg.github.com
 ```
 
+## Public path contract
+
+Each package root is its only public code entrypoint. Import package-owned behavior, errors, entities, and interfaces from `@studnicky/<package>`, construct stateful primitives through `Class.create(config)`, and invoke the primitive's direct operation methods. Composition packages do not proxy-export dependency functionality; import dependency-owned contracts from the dependency root.
+
 ## Concurrency
 
 | Package | Description |
@@ -22,7 +26,7 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 | [@studnicky/concurrency](/packages/concurrency) | Keyed async channels, semaphore, and coalesce primitives |
 | [@studnicky/file-lock](/packages/file-lock) | Process-level advisory file locking |
 | [@studnicky/virtual-fs](/packages/virtual-fs) | In-memory synchronous filesystem primitive with browser compatibility |
-| [@studnicky/signal](/packages/signal) | AbortSignal composition utilities |
+| [@studnicky/signal](/packages/signal) | Instance-based AbortSignal composition and timeout utilities |
 | [@studnicky/idempotency-guard](/packages/idempotency-guard) | Idempotency key guard composing cache, concurrency, and json: replay, coalesce, and conflict detection |
 | [@studnicky/memoize](/packages/memoize) | Pure function memoization composing cache and concurrency: LRU+TTL result caching with in-flight call dedup |
 | [@studnicky/bounded-dispatcher](/packages/bounded-dispatcher) | Bounded work dispatch pattern composing concurrency's Semaphore, event-bus, and scheduler |
@@ -45,7 +49,7 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 | [@studnicky/fsm](/packages/fsm) | Abstract finite state machine base class with effect interpreter |
 | [@studnicky/pipeline](/packages/pipeline) | Generic typed async pipeline for sequential context transforms |
 | [@studnicky/paginator](/packages/paginator) | Cursor/page-list state tracker for paginated data sources |
-| [@studnicky/process-kit](/packages/process-kit) | Reducer-with-effects process pattern composing fsm, scheduler, and signal |
+| [@studnicky/process-kit](/packages/process-kit) | Reducer-with-effects process pattern composing fsm and scheduler |
 | [@studnicky/visible-range](/packages/visible-range) | Pure index/offset arithmetic for computing the visible item range of a virtualized list |
 | [@studnicky/flag-evaluator](/packages/flag-evaluator) | Local deterministic feature-flag evaluation with percentage rollout and observability hooks |
 
@@ -58,7 +62,7 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 | [@studnicky/json](/packages/json) | JSON/object value-tools: deep merge, clone, equal, freeze, patch, hash, path, sort |
 | [@studnicky/predicates](/packages/predicates) | Type-safe predicates and coercion utilities |
 | [@studnicky/types](/packages/types) | Shared zero-runtime utility types and type-guard helpers |
-| [@studnicky/config](/packages/config) | Configuration validation utilities and type guards |
+| [@studnicky/config](/packages/config) | Configuration validation and clamping utilities |
 
 ## I/O & Observability
 
@@ -66,7 +70,7 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 |---------|-------------|
 | [@studnicky/event-bus](/packages/event-bus) | Publish/subscribe event bus with backpressure-aware queues |
 | [@studnicky/fetch](/packages/fetch) | Professional HTTP client with timeout, override hooks, and configured clients |
-| [@studnicky/logger](/packages/logger) | Pluggable logging interface with Pino wrapper, child loggers, and structured builders |
+| [@studnicky/logger](/packages/logger) | Pluggable logging interface with Pino wrapper, child loggers, and structured metadata |
 | [@studnicky/errors](/packages/errors) | Standardized error hierarchy with cause-chain serialization and error codes |
 | [@studnicky/request-executor](/packages/request-executor) | Composes fetch, retry, signal, timing, and context into a one-shot request execution pattern |
 | [@studnicky/resilience](/packages/resilience) | Circuit breaker, token bucket, and dead-letter queue primitives |

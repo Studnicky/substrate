@@ -22,137 +22,129 @@ const ruleTester = new RuleTester({
     }
   }
 });
-
 ruleTester.run('interface-must-be-contract', interfaceMustBeContract, {
   'valid': [
     {
-      'name': 'interface with a method signature is a contract',
-      'code': `interface Runner { run(): void; }`
+      'name': 'method signature is a callable contract',
+      'code': 'interface RunnerInterface { run(): void; }'
     },
     {
-      'name': 'interface with a call signature is a contract',
-      'code': `interface Factory { (): number; }`
+      'name': 'call signature is a callable contract',
+      'code': 'interface FactoryInterface { (): number; }'
     },
     {
-      'name': 'interface with a construct signature is a contract',
-      'code': `interface Ctor { new (): object; }`
+      'name': 'construct signature is a constructor contract',
+      'code': 'interface ConstructorInterface { new (): object; }'
     },
     {
-      'name': 'function-valued property is a non-serializable contract signal',
-      'code': `interface ClockSource { readonly tick?: () => number; }`
+      'name': 'readonly property is an access contract',
+      'code': 'interface SnapshotInterface { readonly value: string; }'
     },
     {
-      'name': 'constructor-typed property is a contract signal',
-      'code': `interface Builder { make: new () => object; }`
+      'name': 'readonly index signature is an access contract',
+      'code': 'interface RegistryInterface { readonly [key: string]: number; }'
     },
     {
-      'name': 'class-instance reference is a contract signal',
-      'code': `class Logger {} interface WithLogger { logger: Logger; }`
+      'name': 'intrinsic Readonly is an access contract',
+      'code': 'interface SnapshotInterface { value: Readonly<{ id: string }>; }'
     },
     {
-      'name': 'Date-valued property is a contract signal',
-      'code': `interface WithDate { when: Date; }`
+      'name': 'intrinsic ReadonlyArray is an access contract',
+      'code': 'interface RegistryInterface { values: ReadonlyArray<string>; }'
     },
     {
-      'name': 'Map-valued property is a contract signal',
-      'code': `interface WithMap { m: Map<string, number>; }`
+      'name': 'readonly alias indirection is an access contract',
+      'code': 'type ValuesType = readonly string[]; interface RegistryInterface { values: ValuesType; }'
     },
     {
-      'name': 'array of function types is a contract signal',
-      'code': `interface Transports { transports: ReadonlyArray<() => void>; }`
+      'name': 'function-valued named-data property is a callable contract',
+      'code': 'type EventType = { id: string }; interface HandlerInterface { handle: (event: EventType) => void; }'
     },
     {
-      'name': 'allow option exempts a named pure-data interface',
-      'code': `interface LegacyShape { id: string; }`,
-      'options': [{ 'allow': ['LegacyShape'] }]
+      'name': 'named callable interface property is a callable contract',
+      'code': 'interface HandlerInterface { (value: string): void } interface OwnerInterface { handler: HandlerInterface }'
     },
     {
-      'name': 'empty interface is exempt — the standard consumer-declaration-merge idiom, with no shape to preserve as a type',
-      'code': `interface Empty {}`
+      'name': 'constructor-typed property is a constructor contract',
+      'code': 'interface BuilderInterface { make: new () => object; }'
+    },
+    {
+      'name': 'class-instance reference is a runtime contract',
+      'code': 'class Logger {} interface LoggerOwnerInterface { logger: Logger; }'
+    },
+    {
+      'name': 'global runtime providers are runtime contracts',
+      'code': 'interface RuntimeOwnerInterface { pattern: RegExp; error: Error; signal: AbortSignal; bytes: Uint8Array; buffer: ArrayBuffer; url: URL; }'
+    },
+    {
+      'name': 'readonly unique-symbol brand with named data is a contract',
+      'code': 'type ValueType = string; interface UserIdInterface { readonly __brand: unique symbol; value: ValueType; }'
     }
   ],
   'invalid': [
     {
-      'name': 'pure primitive data shape must be a type',
-      'code': `interface Point { x: number; y: number; }`,
+      'name': 'empty interface has no implicit contract signal',
+      'code': 'interface EmptyInterface {}',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type Point = { x: number; y: number; };`
+      'output': null
     },
     {
-      'name': 'nested object literal of primitives is data',
-      'code': `interface Config { nested: { depth: number; label: string }; }`,
+      'name': 'pure primitive data interface requires entity construction',
+      'code': 'interface PointInterface { x: number; y: number; }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type Config = { nested: { depth: number; label: string }; };`
+      'output': null
     },
     {
-      'name': 'index signature of primitives is data',
-      'code': `interface Dict { [key: string]: number; }`,
+      'name': 'nested pure-data interface requires entity construction',
+      'code': 'interface ConfigInterface { nested: { depth: number; label: string }; }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type Dict = { [key: string]: number; };`
+      'output': null
     },
     {
-      'name': 'array of primitives is data',
-      'code': `interface Bag { items: number[]; }`,
+      'name': 'pure-data index signature requires entity construction',
+      'code': 'interface DictInterface { [key: string]: number; }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type Bag = { items: number[]; };`
+      'output': null
     },
     {
-      'name': 'generic interface whose body uses the type parameter — headline fix',
-      'code': `interface Box<T> { v: T; }`,
+      'name': 'pure-data array property requires entity construction',
+      'code': 'interface BagInterface { items: number[]; }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type Box<T> = { v: T; };`
+      'output': null
     },
     {
-      'name': 'generic interface with primitive body — type parameters preserved',
-      'code': `interface Wrapper<_T> { count: number; }`,
+      'name': 'generic pure-data interface requires entity construction',
+      'code': 'interface BoxInterface<T> { value: T; }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type Wrapper<_T> = { count: number; };`
+      'output': null
     },
     {
-      'name': 'union of primitives is data',
-      'code': `interface U { v: string | number; }`,
+      'name': 'primitive union remains pure data',
+      'code': 'interface UnionInterface { value: string | number; }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type U = { v: string | number; };`
+      'output': null
     },
     {
-      'name': 'enum-typed property is serializable — interface reports',
-      'code': `enum E { A, B } interface WithEnum { e: E; }`,
+      'name': 'enum-valued property remains pure data',
+      'code': 'enum Value { A, B } interface EnumOwnerInterface { value: Value; }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `enum E { A, B } type WithEnum = { e: E; };`
+      'output': null
     },
     {
-      'name': 'sibling pure-data type alias property is serializable — interface reports',
-      'code': `type DataT = { a: number }; interface Foo { d: DataT; }`,
+      'name': 'named pure-data alias property remains pure data',
+      'code': 'type DataType = { value: number }; interface DataOwnerInterface { data: DataType; }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type DataT = { a: number }; type Foo = { d: DataT; };`
+      'output': null
     },
     {
-      'name': 'exported data-shape interface becomes exported type',
-      'code': `export interface Foo { a: number; }`,
+      'name': 'exported pure-data interface remains non-fixable',
+      'code': 'export interface ExportedInterface { value: number; }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `export type Foo = { a: number; };`
+      'output': null
     },
     {
-      'name': 'single extends clause becomes intersection — Base declared inline',
-      'code': `type Base = { y: number }; interface A extends Base { x: number; }`,
-      'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type Base = { y: number }; type A = { x: number; } & Base;`
-    },
-    {
-      'name': 'exported interface with extends becomes exported intersection type',
-      'code': `type Base = { y: number }; export interface Foo extends Base { a: number; }`,
-      'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `type Base = { y: number }; export type Foo = { a: number; } & Base;`
-    },
-    {
-      'name': 'declare modifier is preserved',
-      'code': `declare interface Bar { a: number; }`,
-      'errors': [{ 'messageId': 'dataShapeMustBeType' }],
-      'output': `declare type Bar = { a: number; };`
-    },
-    {
-      'name': 'declaration merging — no fix applied',
-      'code': `interface Dup { a: number; } interface Dup { b: number; }`,
+      'name': 'pure-data heritage remains non-fixable',
+      'code': 'interface BaseInterface { base: number; } interface ChildInterface extends BaseInterface { value: number; }',
       'errors': [
         { 'messageId': 'dataShapeMustBeType' },
         { 'messageId': 'dataShapeMustBeType' }
@@ -160,8 +152,17 @@ ruleTester.run('interface-must-be-contract', interfaceMustBeContract, {
       'output': null
     },
     {
-      'name': 'global augmentation — no fix applied',
-      'code': `declare global { interface GlobalShape { a: number; } }`,
+      'name': 'merged pure-data interfaces remain non-fixable',
+      'code': 'interface MergedInterface { first: number; } interface MergedInterface { second: number; }',
+      'errors': [
+        { 'messageId': 'dataShapeMustBeType' },
+        { 'messageId': 'dataShapeMustBeType' }
+      ],
+      'output': null
+    },
+    {
+      'name': 'augmentation pure-data interface remains non-fixable',
+      'code': 'declare global { interface GlobalShapeInterface { value: number; } }',
       'errors': [{ 'messageId': 'dataShapeMustBeType' }],
       'output': null
     }

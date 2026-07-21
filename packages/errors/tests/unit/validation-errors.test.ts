@@ -4,6 +4,7 @@
 
 import {
   deepStrictEqual,
+  notStrictEqual,
   ok,
   strictEqual
 } from 'node:assert/strict';
@@ -36,19 +37,48 @@ void describe('ValidationErrors', () => {
     });
   });
 
-  void describe('ValidationErrors.of()', () => {
+  void describe('ValidationErrors.create()', () => {
     void it('produces correct collection from array', () => {
       const v = TestViolation.of('/email', 'format', 'must be email');
-      const errs = ValidationErrors.of([v]);
+      const errs = ValidationErrors.create([v]);
       strictEqual(errs.length, 1);
-      strictEqual(errs.items[0], v);
+      notStrictEqual(errs.items[0], v);
+      deepStrictEqual(errs.items[0], v);
+    });
+
+    void it('detaches source items and every returned projection', () => {
+      const source = [TestViolation.of('/email', 'format', 'must be email')];
+      const errs = ValidationErrors.create(source);
+
+      source[0]!.message = 'mutated source';
+      source.push(TestViolation.of('/name', 'required', 'required'));
+      strictEqual(errs.length, 1);
+      strictEqual(errs.items[0]?.message, 'must be email');
+
+      const items = errs.items;
+      if (items[0] !== undefined) {
+        items[0].message = 'mutated projection';
+      }
+      strictEqual(errs.items[0]?.message, 'must be email');
+
+      const report = errs.report();
+      if (report.errors[0] !== undefined) {
+        report.errors[0].message = 'mutated report';
+      }
+      strictEqual(errs.items[0]?.message, 'must be email');
+
+      const iterated = [...errs];
+      if (iterated[0] !== undefined) {
+        iterated[0].message = 'mutated iterator';
+      }
+      strictEqual(errs.items[0]?.message, 'must be email');
     });
   });
 
   void describe('ValidationErrors.merge()', () => {
     void it('combines violations from multiple collections', () => {
-      const a = ValidationErrors.of([TestViolation.of('/a', 'required', 'required')]);
-      const b = ValidationErrors.of([TestViolation.of('/b', 'minLength', 'too short')]);
+      const a = ValidationErrors.create([TestViolation.of('/a', 'required', 'required')]);
+      const b = ValidationErrors.create([TestViolation.of('/b', 'minLength', 'too short')]);
       const merged = ValidationErrors.merge(a, b);
       strictEqual(merged.length, 2);
       strictEqual(merged.items[0]?.path, '/a');
@@ -97,7 +127,7 @@ void describe('ValidationErrors', () => {
 
   void describe('aggregate()', () => {
     void it('returns deduplicated sorted paths and keywords', () => {
-      const errs = ValidationErrors.of([
+      const errs = ValidationErrors.create([
         TestViolation.of('/b', 'minLength', 'too short'),
         TestViolation.of('/a', 'required', 'required'),
         TestViolation.of('/b', 'type', 'wrong type'),
@@ -119,7 +149,7 @@ void describe('ValidationErrors', () => {
 
   void describe('report()', () => {
     void it('returns RFC 7807 shape with defaults', () => {
-      const errs = ValidationErrors.of([TestViolation.of('/x', 'required', 'required')]);
+      const errs = ValidationErrors.create([TestViolation.of('/x', 'required', 'required')]);
       const report = errs.report();
       strictEqual(report.type, 'https://problems.studnicky.dev/validation');
       strictEqual(report.title, 'Validation failed');
@@ -129,7 +159,7 @@ void describe('ValidationErrors', () => {
     });
 
     void it('uses plural detail for multiple errors', () => {
-      const errs = ValidationErrors.of([
+      const errs = ValidationErrors.create([
         TestViolation.of('/a', 'required', 'required'),
         TestViolation.of('/b', 'format', 'bad format')
       ]);
@@ -137,7 +167,7 @@ void describe('ValidationErrors', () => {
     });
 
     void it('applies provided type and status overrides', () => {
-      const errs = ValidationErrors.of([TestViolation.of('/x', 'required', 'required')]);
+      const errs = ValidationErrors.create([TestViolation.of('/x', 'required', 'required')]);
       const report = errs.report({ type: 'https://example.com/custom', status: 400 });
       strictEqual(report.type, 'https://example.com/custom');
       strictEqual(report.status, 400);
@@ -145,7 +175,7 @@ void describe('ValidationErrors', () => {
     });
 
     void it('applies provided title override', () => {
-      const errs = ValidationErrors.of([TestViolation.of('/x', 'required', 'required')]);
+      const errs = ValidationErrors.create([TestViolation.of('/x', 'required', 'required')]);
       const report = errs.report({ title: 'Schema check failed' });
       strictEqual(report.title, 'Schema check failed');
     });
@@ -155,11 +185,12 @@ void describe('ValidationErrors', () => {
     void it('spread yields all violations', () => {
       const v1 = TestViolation.of('/a', 'required', 'required');
       const v2 = TestViolation.of('/b', 'minLength', 'too short');
-      const errs = ValidationErrors.of([v1, v2]);
+      const errs = ValidationErrors.create([v1, v2]);
       const spread = [...errs];
       strictEqual(spread.length, 2);
-      strictEqual(spread[0], v1);
-      strictEqual(spread[1], v2);
+      notStrictEqual(spread[0], v1);
+      notStrictEqual(spread[1], v2);
+      deepStrictEqual(spread, [v1, v2]);
     });
 
     void it('for-of iterates violations in order', () => {
@@ -168,7 +199,7 @@ void describe('ValidationErrors', () => {
         TestViolation.of('/b', 'format', 'bad format'),
         TestViolation.of('/c', 'type', 'wrong type')
       ];
-      const errs = ValidationErrors.of(violations);
+      const errs = ValidationErrors.create(violations);
       const collected: ValidationViolationEntity.Type[] = [];
       for (const v of errs) {
         collected.push(v);

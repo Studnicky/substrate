@@ -1,206 +1,84 @@
 ---
 title: '@studnicky/type-alias-invariants'
-description: 'Merged type-alias/interface invariants: must end in Type, must not bake in readonly, must not be naked re-aliases, must derive from JSON Schema, and must not duplicate an imported shape.'
+description: 'Type aliases preserve schema-derived data identity while interfaces represent contracts and non-schema computations.'
 ---
 
 # @studnicky/type-alias-invariants
 
-Merges five independent, independently toggleable checks into one shared `TSTypeAliasDeclaration`/`TSInterfaceDeclaration` visitor:
+Enforces one ordered contract for type aliases and imported type identity.
 
-1. **mustEndType** — exported type aliases must end in `Type`.
-2. **noReadonly** — exported data-type aliases must not bake in `readonly` (autofix removes the token).
-3. **noAliasing** — disallow naked type re-aliases, primitive aliases, generic forwarding shims, and import aliases.
-4. **derivedFromSchema** — disallow inline object-literal type aliases outside `entities/`.
-5. **noPreferExisting** — disallow locally-declared object types/interfaces whose shape already exists in an imported package.
+A retained alias is verified schema-derived pure data. Callable, constructor, runtime, brand, conditional, mapped, indexed-access, unknown-bearing, and other non-schema computations are interfaces or are redesigned into named schema data plus interface contracts.
 
-Each check reports its own `messageId` and can be disabled independently via options. When two checks would fire on the same node with contradictory advice, one is suppressed: `noAliasing`'s and `noPreferExisting`'s "delete this declaration" verdicts take precedence over `mustEndType`'s "rename it" advice (renaming a declaration slated for deletion is contradictory), and `noPreferExisting`'s "use the import" verdict takes precedence over `derivedFromSchema`'s "move this into an entity" advice (entity-ifying a redundant duplicate just re-declares the same redundancy elsewhere).
+**Fixable:** Partial (`noReadonly` explicit syntax only) · **Options:** No · **Suggested severity:** `error`
 
-**Fixable:** Partial (noReadonly only) · **Options:** Yes · **Suggested severity:** `error`
+## Declaration contract
 
-### Options
+| Declaration | Required representation |
+|---|---|
+| JSON-Schema-expressible data | `*Entity.Type = FromSchema<typeof Schema>` under the complete entity suite |
+| Callable or constructor | Interface call, method, or construct signature |
+| Runtime object or provider seam | Interface |
+| Readonly access policy | Interface |
+| Unique-symbol brand marker | Interface |
+| Conditional, mapped, indexed-access, or other non-schema computation | Interface where representable; otherwise named schema data plus a contract interface |
 
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `mustEndType` | `boolean` | `true` | Require exported type aliases to end in `Type`. |
-| `noReadonly` | `boolean` | `true` | Forbid `readonly` baked into an exported data-type alias. |
-| `noAliasing` | `boolean` | `true` | Forbid naked re-aliases, primitive aliases, generic forwarding shims, and import aliases. |
-| `derivedFromSchema` | `boolean` | `true` | Forbid inline object-literal type aliases outside `entities/`. |
-| `noPreferExisting` | `boolean \| object` | `true` | Forbid local types/interfaces that duplicate an imported shape. `false` disables entirely; an object tunes the sub-options below. |
-| `noPreferExisting.exactMatch` | `'error' \| 'warn' \| 'off'` | `'error'` | Severity when the local shape is structurally identical to an imported shape. |
-| `noPreferExisting.nearMatch` | `'error' \| 'warn' \| 'off'` | `'warn'` | Severity when the local shape matches all required fields of an imported shape but differs in optional fields. |
-| `noPreferExisting.subsumedMatch` | `'error' \| 'warn' \| 'off'` | `'warn'` | Severity when the local shape is fully covered by an imported shape but not vice versa. |
-| `noPreferExisting.minFields` | `integer` | `2` | Minimum property count on the local shape before a match is considered. |
-| `noPreferExisting.excludePrefixes` | `string[]` | `['@types/', 'node:']` | Import source prefixes exempt from the duplicate-shape check. |
+Primitive forwarding aliases, naked renames, generic forwarding aliases, import aliases, inline object aliases, unresolved references, contract-interface references, and non-JSON types do not establish canonical data.
 
-## ✗ Incorrect
+## Direct schema provenance
 
-### mustEndType
+Import `FromSchema` and `JSONSchema` directly from `json-schema-to-ts` and declare it as a direct dependency. A canonical entity exports `Schema` from an `*Entity` namespace and declares the exact same-namespace relationship `export type Type = FromSchema<typeof Schema>`.
 
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// inline export not ending in Type — flagged
-export type Foo = { a: number };
+Dependencies are used directly. Packages do not proxy-export `FromSchema`, `JSONSchema`, `ValidateFunction`, or JSON value types.
+
+Provenance resolution follows TypeScript symbols through local declarations and imports with deterministic cycle and depth protection. An unresolved source is non-canonical; matching field shapes do not substitute for verified provenance.
+
+## Diagnostic order
+
+The rule has no subchecks or internal severity settings. ESLint's configured severity is the sole severity.
+
+1. Alias identity reports primitive aliases, naked aliases, generic forwarding aliases, and import aliases.
+2. Declaration kind reports callable, constructor, runtime, brand, and non-schema computations as interfaces.
+3. Canonical provenance reports data-shaped aliases without verified schema provenance.
+4. Exported naming requires retained aliases to end in `Type`.
+5. Readonly output reports mutable data aliases that author access policy.
+
+An earlier verdict suppresses later advice for the same alias. Structural equality, near-match, and subsumption are not identity evidence: two data types may share a shape while representing different semantics. The rule therefore performs no heuristic imported-shape comparison and does not infer canonical identity from broader or narrower shapes.
+
+The companion [`all-types-are-entities`](./all-types-are-entities.md) rule then requires a retained canonical alias to use the exact entity form.
+
+## Readonly output policy
+
+Pure-data aliases describe mutable data. Readonly access belongs on interface contracts and use sites. The rule detects readonly properties, index signatures, arrays, tuples, mapped output modifiers, `Readonly<T>`, `ReadonlyArray<T>`, exposed readonly defaults, and readonly alias references.
+
+Generic constraints, callable inputs, conditional operands, `keyof` operands, indexed-access operands, mapped keys, and `-readonly` modifiers inspect or constrain data without authoring output policy.
+
+For example, `UserSnapshotInterface` may expose `readonly value: UserEntity.Type` together with a `refresh(): Promise<void>` method. The entity owns the data shape; the interface owns readonly access and runtime behavior.
+
+Pure-data portions inside a contract interface reference separately declared entity types.
+
+## Configuration
+
+The rule takes no options and recognizes no comment, declaration-name, member-name, package, or path exemptions. Enable or disable the complete rule through flat configuration; individual invariant checks cannot be configured independently:
+
+```js
+export default [
+  {
+    files: ['src/**/*.ts'],
+    rules: {
+      '@studnicky/type-alias-invariants': 'error'
+    }
+  },
+  {
+    files: ['generated/**/*.ts'],
+    rules: {
+      '@studnicky/type-alias-invariants': 'off'
+    }
+  }
+];
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// separate re-export form — flagged even though the declaration itself is not exported inline
-type Foo = { a: number };
-export type { Foo };
-```
+## Related rules
 
-### noReadonly
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// flat readonly property signature — bakes readonly into own inline shape
-export type FlatType = { readonly a: number };
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// readonly array in property type
-export type ArrPropType = { items: readonly string[] };
-```
-
-### noAliasing
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// naked type reference re-alias
-type FooType = BarType;
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// primitive type alias
-type IdType = string;
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// generic forwarding shim — single type param forwarded unchanged
-type FooList<T> = Array<T>;
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// import alias that hides the canonical name
-import { FooType as BarType } from './foo';
-```
-
-### derivedFromSchema
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// exported inline object-literal type alias outside entities/ — forbidden
-export type FooType = { a: number; b: string };
-```
-
-### noPreferExisting
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// exactMatch: local type is structurally identical to an imported type
-import type { Rule } from 'eslint';
-import { plugin } from '@studnicky/eslint-config';
-
-type LocalPluginType = { rules: Record<string, Rule.RuleModule> };
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// nearMatch: local has the same required fields as imported but a different optional count
-import type { Rule } from 'eslint';
-import { plugin } from '@studnicky/eslint-config';
-
-type LocalPluginType = { rules: Record<string, Rule.RuleModule>; optionalExtra?: string };
-```
-
-## ✓ Correct
-
-### mustEndType
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// inline export already ends in Type — not flagged
-export type FooType = { a: number };
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// not exported at all — not flagged
-type Foo = { a: number };
-```
-
-### noReadonly
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// mutable exported type alias — no readonly anywhere
-export type MutableType = { a: number; items: string[]; nested: { x: number } };
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// non-exported type alias with readonly — parent is not ExportNamedDeclaration, out of scope
-type PrivateType = { readonly a: number };
-```
-
-### noAliasing
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// generic alias that creates a new shape — not a forwarding shim
-type Wrapped<T> = { value: T };
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// union type
-type FooType = string | number;
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// import without alias
-import { FooType } from './foo';
-```
-
-### derivedFromSchema
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// FromSchema<typeof XSchema> reference — the canonical derivation form
-export type FooType = FromSchema<typeof FooSchema>;
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// inline object shape inside an entities/ file — exempt path
-// (filename: src/entities/RetryConfigEntity.ts)
-export type Type = { a: string };
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// json-schema-uninexpressible directive comment — exempt
-// json-schema-uninexpressible: this shape needs a mapped-type transform
-export type FooType = { a: string };
-```
-
-### noPreferExisting
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// no imports from any package — rule does not fire
-type FooType = { a: string; b: number };
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// node: prefix is excluded by default — rule does not fire
-import { Buffer } from 'node:buffer';
-
-type LocalType = { data: unknown };
-```
+- [`all-types-are-entities`](./all-types-are-entities.md) requires the exact entity declaration form.
+- [`interface-must-be-contract`](./interface-must-be-contract.md) rejects pure-data interfaces.
+- [`interfaces-compose-named-types`](./interfaces-compose-named-types.md) extracts pure-data portions from contract interfaces.

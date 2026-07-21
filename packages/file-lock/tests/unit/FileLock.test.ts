@@ -9,7 +9,7 @@
  * - write() + release() round-trip
  * - idempotent release()
  * - [Symbol.dispose]() delegates to release()
- * - builder() path via FileLockBuilder
+ * - direct create() configuration
  */
 
 import { strictEqual, ok, rejects } from 'node:assert/strict';
@@ -20,7 +20,7 @@ import { it, beforeEach, afterEach } from 'node:test';
 
 import type { FileSystemInterface, StatResultInterface } from '@studnicky/virtual-fs';
 
-import { FileLock, FileLockConfigError, FileLockTimeoutError } from '../../src/index.js';
+import { FileLock, FileLockTimeoutError } from '../../src/index.js';
 
 /**
  * Minimal `FileSystemInterface` fake whose `renameSync` always throws a
@@ -173,41 +173,18 @@ it('calls release when disposed', async () => {
   ok(existsSync(path), 'original should be restored after dispose');
 });
 
-// ---------------------------------------------------------------------------
-// builder()
-// ---------------------------------------------------------------------------
-
-it('builder acquires lock via withPath and build', async () => {
-  const path = FileLockTestHelpers.makePath('test-builder.txt');
-  writeFileSync(path, 'builder-content');
-
-  const lock = await FileLock.builder().withPath(path).build();
-  ok(!existsSync(path), 'original path should not exist while locked via builder');
-
-  lock.release();
-  ok(existsSync(path), 'original path should be restored after release');
-});
-
-it('builder respects withPollMs and withTimeoutMs', async () => {
-  const path = FileLockTestHelpers.makePath('test-builder-opts.txt');
+it('create respects pollMs and timeoutMs', async () => {
+  const path = FileLockTestHelpers.makePath('test-create-opts.txt');
   writeFileSync(path, 'content');
 
   const firstLock = await FileLock.create({ path });
 
   await rejects(
-    FileLock.builder().withPath(path).withPollMs(25).withTimeoutMs(100).build(),
+    FileLock.create({ path, 'pollMs': 25, 'timeoutMs': 100 }),
     (error: unknown) => error instanceof FileLockTimeoutError
   );
 
   firstLock.release();
-});
-
-it('builder throws FileLockConfigError when path is not set', async () => {
-  const { FileLockConfigError } = await import('../../src/index.js');
-  await rejects(
-    FileLock.builder().build(),
-    (error: unknown) => error instanceof FileLockConfigError
-  );
 });
 
 // ---------------------------------------------------------------------------
@@ -420,8 +397,12 @@ it('an async-rejecting onAcquire override is routed through onHookError without 
   writeFileSync(path, 'data');
 
   class AsyncRejectingAcquireLock extends FileLock {
+    static readonly hookCause = new Error('async onAcquire failure', {
+      'cause': { 'details': { 'attempt': 1 } }
+    });
+
     protected override onAcquire(): Promise<void> {
-      return Promise.reject(new Error('async onAcquire failure'));
+      return Promise.reject(AsyncRejectingAcquireLock.hookCause);
     }
   }
 
@@ -438,11 +419,54 @@ it('an async-rejecting onAcquire override is routed through onHookError without 
 
     strictEqual(rejectionEvents.length, 0, 'no unhandled rejection is produced');
     strictEqual(lock.hookErrorCount, 1, 'the async onAcquire failure is recorded exactly once');
-    strictEqual(lock.getHookErrors()[0]!.hookName, 'onAcquire');
+    const firstDiagnostic = lock.getHookErrors()[0];
+    const secondDiagnostic = lock.getHookErrors()[0];
+    strictEqual(firstDiagnostic?.hookName, 'onAcquire');
+    ok(firstDiagnostic?.cause instanceof Error);
+    ok(secondDiagnostic?.cause instanceof Error);
+    ok(firstDiagnostic !== secondDiagnostic);
+    ok(firstDiagnostic.cause !== AsyncRejectingAcquireLock.hookCause);
+    ok(firstDiagnostic.cause !== secondDiagnostic.cause);
+    firstDiagnostic.cause.message = 'mutated projection';
+    strictEqual(secondDiagnostic.cause.message, 'async onAcquire failure');
+    strictEqual(lock.hookErrorCount, 1, 'reading diagnostics does not duplicate storage');
 
     lock.release();
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+it('records hook failures only on the file-lock instance that produced them', async () => {
+  const firstPath = FileLockTestHelpers.makePath('hook-isolation-first.txt');
+  const secondPath = FileLockTestHelpers.makePath('hook-isolation-second.txt');
+  writeFileSync(firstPath, 'first');
+  writeFileSync(secondPath, 'second');
+
+  class IsolatedFailureLock extends FileLock {
+    protected override onAcquire(path: string): void {
+      throw new Error(`hook failure for ${path}`);
+    }
+  }
+
+  const first = await IsolatedFailureLock.create({ 'path': firstPath });
+  const second = await IsolatedFailureLock.create({ 'path': secondPath });
+
+  try {
+    const firstError = first.getHookErrors()[0];
+    const secondError = second.getHookErrors()[0];
+
+    strictEqual(first.hookErrorCount, 1);
+    strictEqual(second.hookErrorCount, 1);
+    strictEqual(firstError?.hookName, 'onAcquire');
+    strictEqual(secondError?.hookName, 'onAcquire');
+    ok(firstError?.cause instanceof Error);
+    ok(secondError?.cause instanceof Error);
+    strictEqual(firstError.cause.message, `hook failure for ${firstPath}`);
+    strictEqual(secondError.cause.message, `hook failure for ${secondPath}`);
+  } finally {
+    first.release();
+    second.release();
   }
 });
 
@@ -455,24 +479,6 @@ it('hook: Symbol.dispose triggers onRelease once', async () => {
 
   const releases = lock.events.filter((e) => { return e.hook === 'onRelease'; });
   strictEqual(releases.length, 1, 'onRelease fires once via Symbol.dispose');
-});
-
-it('hook: hooks fire with correct paths when acquired via static acquire()', async () => {
-  const path = FileLockTestHelpers.makePath('hook-static-acquire.txt');
-  writeFileSync(path, 'static');
-
-  // Call acquire() on the subclass so the returned instance is a RecordingFileLock.
-  // FileLock.acquire delegates to `this.create()` via the static polymorphic chain.
-  const lock = (await RecordingFileLock.acquire(path)) as RecordingFileLock;
-
-  const starts = lock.events.filter((e) => { return e.hook === 'onAcquireStart'; });
-  const acquires = lock.events.filter((e) => { return e.hook === 'onAcquire'; });
-  strictEqual(starts.length, 1, 'onAcquireStart fires once via static acquire');
-  strictEqual(starts[0]!.path, path);
-  strictEqual(acquires.length, 1, 'onAcquire fires once via static acquire');
-  strictEqual(acquires[0]!.path, path);
-
-  lock.release();
 });
 
 // ---------------------------------------------------------------------------
@@ -538,15 +544,4 @@ it('a genuine filesystem error rejects immediately via onError, not onContended'
   ok(errorEvents[0]!.message.includes('ENOSPC'), 'onError receives the original error');
   strictEqual(contendedEvents.length, 0, 'onContended never fires for a genuine fs error');
   ok(elapsed < 5000, 'rejects immediately rather than waiting out the full timeout');
-});
-
-// ---------------------------------------------------------------------------
-// builder() — path required
-// ---------------------------------------------------------------------------
-
-it('builder throws FileLockConfigError with a clear message when path is not set', async () => {
-  await rejects(
-    FileLock.builder().build(),
-    (error: unknown) => error instanceof FileLockConfigError && error.message.includes('path')
-  );
 });

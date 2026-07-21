@@ -1,4 +1,6 @@
-import { type FromSchema, Guard, type JsonSchemaObjectType } from '@studnicky/types';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { Guard } from '@studnicky/types';
 
 /** Options accepted by the `HookInvoker` constructor. */
 export namespace HookInvokerOptionsEntity {
@@ -19,7 +21,7 @@ export namespace HookInvokerOptionsEntity {
     },
     'title': 'HookInvokerOptions',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
@@ -29,10 +31,9 @@ export namespace HookInvokerOptionsEntity {
    * circular workspace reference.
    */
   export function validate(candidate: unknown): candidate is Type {
-    const record = Guard.asRecord(candidate);
-    if (record === undefined) { return false; }
-    if (record.detectReentrancy !== undefined && typeof record.detectReentrancy !== 'boolean') { return false; }
-    if (record.timeoutMs !== undefined && (typeof record.timeoutMs !== 'number' || !Number.isFinite(record.timeoutMs) || record.timeoutMs <= 0)) { return false; }
+    if (!Guard.isObject(candidate)) { return false; }
+    if (candidate.detectReentrancy !== undefined && typeof candidate.detectReentrancy !== 'boolean') { return false; }
+    if (candidate.timeoutMs !== undefined && (typeof candidate.timeoutMs !== 'number' || !Number.isFinite(candidate.timeoutMs) || candidate.timeoutMs <= 0)) { return false; }
     return true;
   }
 }

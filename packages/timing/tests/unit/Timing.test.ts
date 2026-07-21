@@ -85,7 +85,7 @@ class TracedTiming extends Timing {
 }
 
 void it('creates instance with expected interface', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
   assert.ok(timer instanceof Timing);
   assert.strictEqual(typeof timer.event, 'function');
@@ -94,7 +94,7 @@ void it('creates instance with expected interface', () => {
 });
 
 void it('starts timing immediately with initialize event', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
   TestClock.busyWait(10);
   const events = timer.getEvents();
@@ -105,20 +105,16 @@ void it('starts timing immediately with initialize event', () => {
   assert.ok(events.initialize >= 0);
 });
 
-void it('accepts configuration options via builder', () => {
+void it('accepts configuration options via create', () => {
   const configs = [
     () => {
-      return Timing.builder().maxEvents(5)
-        .build();
+      return Timing.create({ 'maxEvents': 5 });
     },
     () => {
-      return Timing.builder().precision({ ms: 2 })
-        .build();
+      return Timing.create({ 'precision': { ms: 2 } });
     },
     () => {
-      return Timing.builder().maxEvents(10)
-        .precision({ ms: 3 })
-        .build();
+      return Timing.create({ 'maxEvents': 10, 'precision': { ms: 3 } });
     }
   ];
 
@@ -130,14 +126,10 @@ void it('accepts configuration options via builder', () => {
 });
 
 void it('records events with component.operation format', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
 
   const events = timer.getEvents();
 
@@ -146,20 +138,14 @@ void it('records events with component.operation format', () => {
 });
 
 void it('records events with increasing elapsed times', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
   TestClock.busyWait(5);
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   TestClock.busyWait(5);
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
   TestClock.busyWait(5);
-  timer.event(TimingEvent.create().component('EntityResolver')
-    .operation('resolve')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'EntityResolver', 'operation': 'resolve' }));
 
   const events = timer.getEvents();
 
@@ -171,15 +157,11 @@ void it('records events with increasing elapsed times', () => {
 });
 
 void it('stores multiple events with the same name', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   TestClock.busyWait(5);
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
 
   const events = timer.getEvents();
 
@@ -188,16 +170,10 @@ void it('stores multiple events with the same name', () => {
 });
 
 void it('records events with optional status parameter', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('DatabaseAdapter')
-    .operation('connect')
-    .status(TIMING_STATUS.START)
-    .build());
-  timer.event(TimingEvent.create().component('DatabaseAdapter')
-    .operation('connect')
-    .status(TIMING_STATUS.COMPLETE)
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.START }));
+  timer.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.COMPLETE }));
 
   const events = timer.getEvents();
 
@@ -206,20 +182,11 @@ void it('records events with optional status parameter', () => {
 });
 
 void it('records events with domain-specific status', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .status(TIMING_STATUS.HIT)
-    .build());
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('lookup')
-    .status(TIMING_STATUS.MISS)
-    .build());
-  timer.event(TimingEvent.create().component('MutexManager')
-    .operation('acquire')
-    .status(TIMING_STATUS.WAITING)
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get', 'status': TIMING_STATUS.HIT }));
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'lookup', 'status': TIMING_STATUS.MISS }));
+  timer.event(TimingEvent.create({ 'component': 'MutexManager', 'operation': 'acquire', 'status': TIMING_STATUS.WAITING }));
 
   const events = timer.getEvents();
 
@@ -229,22 +196,12 @@ void it('records events with domain-specific status', () => {
 });
 
 void it('mixes events with and without status', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
-  timer.event(TimingEvent.create().component('DatabaseAdapter')
-    .operation('connect')
-    .status(TIMING_STATUS.START)
-    .build());
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .build());
-  timer.event(TimingEvent.create().component('DatabaseAdapter')
-    .operation('connect')
-    .status(TIMING_STATUS.COMPLETE)
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
+  timer.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.START }));
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
+  timer.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.COMPLETE }));
 
   const events = timer.getEvents();
 
@@ -255,24 +212,12 @@ void it('mixes events with and without status', () => {
 });
 
 void it('works with TIMING_STATUS constants', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('DatabaseAdapter')
-    .operation('connect')
-    .status(TIMING_STATUS.START)
-    .build());
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .status(TIMING_STATUS.HIT)
-    .build());
-  timer.event(TimingEvent.create().component('MutexManager')
-    .operation('acquire')
-    .status(TIMING_STATUS.ACQUIRED)
-    .build());
-  timer.event(TimingEvent.create().component('DatabaseAdapter')
-    .operation('connect')
-    .status(TIMING_STATUS.COMPLETE)
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.START }));
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get', 'status': TIMING_STATUS.HIT }));
+  timer.event(TimingEvent.create({ 'component': 'MutexManager', 'operation': 'acquire', 'status': TIMING_STATUS.ACQUIRED }));
+  timer.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.COMPLETE }));
 
   const events = timer.getEvents();
 
@@ -283,18 +228,11 @@ void it('works with TIMING_STATUS constants', () => {
 });
 
 void it('evicts oldest events when maxEvents exceeded', () => {
-  const timer = Timing.builder().maxEvents(3)
-    .build();
+  const timer = Timing.create({ 'maxEvents': 3 });
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .build());
-  timer.event(TimingEvent.create().component('EntityResolver')
-    .operation('resolve')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
+  timer.event(TimingEvent.create({ 'component': 'EntityResolver', 'operation': 'resolve' }));
 
   const events = timer.getEvents();
   const eventKeys = Object.keys(events).filter((k) => {
@@ -326,21 +264,12 @@ void it('maintains most recent events across various limits', () => {
   for (const {
     expected, maxEvents
   } of testCases) {
-    const timer = Timing.builder().maxEvents(maxEvents)
-      .build();
+    const timer = Timing.create({ 'maxEvents': maxEvents });
 
-    timer.event(TimingEvent.create().component('GraphAdapter')
-      .operation('query')
-      .build());
-    timer.event(TimingEvent.create().component('GraphAdapter')
-      .operation('insert')
-      .build());
-    timer.event(TimingEvent.create().component('CacheService')
-      .operation('get')
-      .build());
-    timer.event(TimingEvent.create().component('EntityResolver')
-      .operation('resolve')
-      .build());
+    timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
+    timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'insert' }));
+    timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
+    timer.event(TimingEvent.create({ 'component': 'EntityResolver', 'operation': 'resolve' }));
 
     const events = timer.getEvents();
     const eventKeys = Object.keys(events).filter((k) => {
@@ -359,14 +288,12 @@ void it('evicts oldest events once the default maxEvents is exceeded', () => {
   assert.ok(Number.isFinite(DEFAULT_MAX_EVENTS));
   assert.ok(DEFAULT_MAX_EVENTS <= 10_000);
 
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
   const overflowMargin = 5;
   const totalEvents = DEFAULT_MAX_EVENTS + overflowMargin;
 
   for (let i = 0; i < totalEvents; i++) {
-    timer.event(TimingEvent.create().component('TestService')
-      .operation(`event-${i}`)
-      .build());
+    timer.event(TimingEvent.create({ 'component': 'TestService', 'operation': `event-${i}` }));
   }
 
   const events = timer.getEvents();
@@ -381,7 +308,7 @@ void it('evicts oldest events once the default maxEvents is exceeded', () => {
 });
 
 void it('returns events with only initialize event initially', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
   const events = timer.getEvents();
 
   assert.strictEqual(typeof events.durationMs, 'number');
@@ -396,7 +323,7 @@ void it('returns events with only initialize event initially', () => {
 });
 
 void it('continues tracking after getEvents() call', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
   TestClock.busyWait(10);
   const events1 = timer.getEvents();
@@ -410,11 +337,9 @@ void it('continues tracking after getEvents() call', () => {
 });
 
 void it('returns new object on each call', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   const events1 = timer.getEvents();
   const events2 = timer.getEvents();
 
@@ -422,16 +347,12 @@ void it('returns new object on each call', () => {
 });
 
 void it('includes events added after previous call', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   const events1 = timer.getEvents();
 
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
   const events2 = timer.getEvents();
 
   const keys1 = Object.keys(events1).filter((k) => {
@@ -483,9 +404,7 @@ void it('a throwing onInitialize hook throws a HookInvocationError from construc
 
 void it('a throwing onClear hook throws a HookInvocationError from clear()', () => {
   const timer = ThrowingClearTiming.create();
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
 
   assert.throws(() => {
     timer.clear();
@@ -496,9 +415,7 @@ void it('a throwing onEvict hook throws a HookInvocationError from event()', () 
   const timer = ThrowingEvictTiming.create({ 'maxEvents': 1 });
 
   assert.throws(() => {
-    timer.event(TimingEvent.create().component('GraphAdapter')
-      .operation('query')
-      .build());
+    timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   }, HookInvocationError);
 });
 
@@ -506,9 +423,7 @@ void it('a throwing onEvent hook throws a HookInvocationError from event()', () 
   const timer = ThrowingEventTiming.create();
 
   assert.throws(() => {
-    timer.event(TimingEvent.create().component('GraphAdapter')
-      .operation('query')
-      .build());
+    timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   }, HookInvocationError);
 });
 
@@ -525,9 +440,7 @@ void it('a throwing onEvent hook produces an error that is specifically a HookIn
   let caught: unknown;
 
   try {
-    timer.event(TimingEvent.create().component('GraphAdapter')
-      .operation('query')
-      .build());
+    timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   } catch (error) {
     caught = error;
   }
@@ -552,9 +465,7 @@ void it('routes a rejection from an async onEvent override to a HookInvocationEr
     // event() itself does not surface the hook's returned promise — the
     // regression under test is that HookInvoker still guards the eventual
     // rejection internally so the process never sees an unhandled rejection.
-    timer.event(TimingEvent.create().component('GraphAdapter')
-      .operation('query')
-      .build());
+    timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
 
     await new Promise((resolve) => { setImmediate(resolve); });
     await new Promise((resolve) => { setImmediate(resolve); });
@@ -566,11 +477,9 @@ void it('routes a rejection from an async onEvent override to a HookInvocationEr
 });
 
 void it('returns JSON-serializable object', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
 
   const events = timer.getEvents();
   const parsed = structuredClone(events);
@@ -580,12 +489,10 @@ void it('returns JSON-serializable object', () => {
 });
 
 void it('includes durationMs for total elapsed time', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
   TestClock.busyWait(10);
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
 
   const events = timer.getEvents();
 
@@ -594,14 +501,10 @@ void it('includes durationMs for total elapsed time', () => {
 });
 
 void it('clears all events and allows new ones', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
 
   const beforeClear = timer.getEvents();
   const keysBeforeClear = Object.keys(beforeClear).filter((k) => {
@@ -620,9 +523,7 @@ void it('clears all events and allows new ones', () => {
   assert.strictEqual(keysAfterClear.length, 0);
 
   TestClock.busyWait(5);
-  timer.event(TimingEvent.create().component('EntityResolver')
-    .operation('resolve')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'EntityResolver', 'operation': 'resolve' }));
   const afterAdd = timer.getEvents();
   const keysAfterAdd = Object.keys(afterAdd).filter((k) => {
     return k !== 'durationMs';
@@ -633,7 +534,7 @@ void it('clears all events and allows new ones', () => {
 });
 
 void it('does not reset the start time', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
   TestClock.busyWait(10);
   const beforeClear = timer.getEvents();
@@ -648,11 +549,9 @@ void it('does not reset the start time', () => {
 });
 
 void it('can be called multiple times', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   timer.clear();
   timer.clear();
   timer.clear();
@@ -666,24 +565,16 @@ void it('can be called multiple times', () => {
 });
 
 void it('tracks stages with cumulative timing', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
   TestClock.busyWait(5);
-  timer.event(TimingEvent.create().component('WorkflowService')
-    .operation('stage1')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'WorkflowService', 'operation': 'stage1' }));
   TestClock.busyWait(10);
-  timer.event(TimingEvent.create().component('WorkflowService')
-    .operation('stage2')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'WorkflowService', 'operation': 'stage2' }));
   TestClock.busyWait(5);
-  timer.event(TimingEvent.create().component('WorkflowService')
-    .operation('stage3')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'WorkflowService', 'operation': 'stage3' }));
   TestClock.busyWait(5);
-  timer.event(TimingEvent.create().component('WorkflowService')
-    .operation('stage4')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'WorkflowService', 'operation': 'stage4' }));
 
   const events = timer.getEvents();
 
@@ -698,7 +589,7 @@ void it('tracks stages with cumulative timing', () => {
 });
 
 void it('handles immediate operations after creation', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
   const events = timer.getEvents();
 
@@ -706,9 +597,7 @@ void it('handles immediate operations after creation', () => {
   assert.ok(events.durationMs >= 0);
   assert.ok(events.durationMs < 5);
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   const events2 = timer.getEvents();
 
   assert.ok(events2['GraphAdapter.query'] !== undefined);
@@ -716,17 +605,11 @@ void it('handles immediate operations after creation', () => {
 });
 
 void it('handles very small time intervals with non-negative values', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .build());
-  timer.event(TimingEvent.create().component('EntityResolver')
-    .operation('resolve')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
+  timer.event(TimingEvent.create({ 'component': 'EntityResolver', 'operation': 'resolve' }));
 
   const events = timer.getEvents();
 
@@ -736,12 +619,10 @@ void it('handles very small time intervals with non-negative values', () => {
 });
 
 void it('provides high-resolution timing', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
   TestClock.busyWait(1);
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
 
   const events = timer.getEvents();
 
@@ -751,14 +632,10 @@ void it('provides high-resolution timing', () => {
 });
 
 void it('produces output suitable for LogBody.context()', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
-  timer.event(TimingEvent.create().component('CacheService')
-    .operation('get')
-    .build());
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
+  timer.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
 
   const ctx = timer.getEvents();
 
@@ -777,9 +654,7 @@ void it('readHrtime is called during event()', () => {
   const traced = new TracedTiming({});
   const countBefore = traced.readCount;
 
-  traced.event(TimingEvent.create().component('TestService')
-    .operation('probe')
-    .build());
+  traced.event(TimingEvent.create({ 'component': 'TestService', 'operation': 'probe' }));
 
   assert.ok(traced.readCount > countBefore, 'readHrtime should be called during event()');
 });
@@ -789,9 +664,7 @@ void it('onEvent hook is called with the event data', () => {
 
   assert.strictEqual(traced.eventCount, 0);
 
-  traced.event(TimingEvent.create().component('TestService')
-    .operation('probe')
-    .build());
+  traced.event(TimingEvent.create({ 'component': 'TestService', 'operation': 'probe' }));
 
   assert.strictEqual(traced.eventCount, 1);
   assert.ok(traced.lastEventData !== undefined);
@@ -805,14 +678,10 @@ void it('onEvict hook is called when maxEvents is exceeded', () => {
 
   assert.strictEqual(traced.evictCount, 0);
 
-  traced.event(TimingEvent.create().component('TestService')
-    .operation('first')
-    .build());
+  traced.event(TimingEvent.create({ 'component': 'TestService', 'operation': 'first' }));
 
   // Cache is now at capacity (initialize + first = 2). Next add triggers eviction.
-  traced.event(TimingEvent.create().component('TestService')
-    .operation('second')
-    .build());
+  traced.event(TimingEvent.create({ 'component': 'TestService', 'operation': 'second' }));
 
   assert.ok(traced.evictCount > 0, 'onEvict should be called when cache overflows');
 });
@@ -865,7 +734,7 @@ void it('onGetEvents hook fires on each getEvents() call with correct event coun
   assert.strictEqual(traced.lastGetEventsEventCount, 1);
 
   // Add one event — cache now has initialize + the new event
-  traced.event(TimingEvent.create().component('TestService').operation('probe').build());
+  traced.event(TimingEvent.create({ 'component': 'TestService', 'operation': 'probe' }));
   traced.getEvents();
   assert.strictEqual(traced.getEventsCount, 2);
   assert.strictEqual(traced.lastGetEventsEventCount, 2);

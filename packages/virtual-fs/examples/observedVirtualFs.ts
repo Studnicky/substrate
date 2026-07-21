@@ -1,42 +1,40 @@
 /** observedVirtualFs — lifecycle hooks demo: subclass and override onCreate/onWrite/onRead/onRename/onDelete. Run: npx tsx examples/observedVirtualFs.ts */
 
 // #region usage
-import { EventRecorder } from '@studnicky/errors/observers';
+import { EventRecorder } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 
 import type { HookEventEntity } from './entities/HookEventEntity.js';
 
 import { VirtualFileSystem } from '../src/index.js';
 
+const recorder = new EventRecorder<HookEventEntity.Type>();
+
 class TracingVfs extends VirtualFileSystem {
-  readonly #recorder = new EventRecorder<HookEventEntity.Type>();
-
-  get events(): HookEventEntity.Type[] { return this.#recorder.events; }
-
   protected override onCreate(path: string): void {
-    this.#recorder.record({ 'hook': 'onCreate', 'path': path }, `[virtual-fs] onCreate path=${path}`);
+    recorder.record({ 'hook': 'onCreate', 'path': path }, `[virtual-fs] onCreate path=${path}`);
   }
 
   protected override onDelete(path: string): void {
-    this.#recorder.record({ 'hook': 'onDelete', 'path': path }, `[virtual-fs] onDelete path=${path}`);
+    recorder.record({ 'hook': 'onDelete', 'path': path }, `[virtual-fs] onDelete path=${path}`);
   }
 
   protected override onRead(path: string): void {
-    this.#recorder.record({ 'hook': 'onRead', 'path': path }, `[virtual-fs] onRead path=${path}`);
+    recorder.record({ 'hook': 'onRead', 'path': path }, `[virtual-fs] onRead path=${path}`);
   }
 
   protected override onRename(oldPath: string, newPath: string): void {
-    this.#recorder.record({ 'hook': 'onRename', 'path': oldPath }, `[virtual-fs] onRename from=${oldPath} to=${newPath}`);
+    recorder.record({ 'hook': 'onRename', 'path': oldPath }, `[virtual-fs] onRename from=${oldPath} to=${newPath}`);
   }
 
   protected override onWrite(path: string): void {
-    this.#recorder.record({ 'hook': 'onWrite', 'path': path }, `[virtual-fs] onWrite path=${path}`);
+    recorder.record({ 'hook': 'onWrite', 'path': path }, `[virtual-fs] onWrite path=${path}`);
   }
 }
 
 // Build without seeding — write the initial file after construction so hooks
 // fire after class field initializers have run (events array is ready).
-const vfs: TracingVfs = TracingVfs.builder().build() as TracingVfs;
+const vfs = TracingVfs.create();
 
 // Write initial file → onCreate
 vfs.writeFileSync('/log/init.txt', 'bootstrap', 'utf8');
@@ -66,11 +64,11 @@ console.log('--- hook trace complete ---');
 // #endregion usage
 
 // Assertions
-const creates = vfs.events.filter((e) => { return e.hook === 'onCreate'; });
-const writes = vfs.events.filter((e) => { return e.hook === 'onWrite'; });
-const reads = vfs.events.filter((e) => { return e.hook === 'onRead'; });
-const renames = vfs.events.filter((e) => { return e.hook === 'onRename'; });
-const deletes = vfs.events.filter((e) => { return e.hook === 'onDelete'; });
+const creates = recorder.events.filter((e) => { return e.hook === 'onCreate'; });
+const writes = recorder.events.filter((e) => { return e.hook === 'onWrite'; });
+const reads = recorder.events.filter((e) => { return e.hook === 'onRead'; });
+const renames = recorder.events.filter((e) => { return e.hook === 'onRename'; });
+const deletes = recorder.events.filter((e) => { return e.hook === 'onDelete'; });
 
 // writeFileSync('/log/init.txt') → onCreate; writeFileSync('/log/new.txt') → onCreate; mkdirSync('/log/sub') → onCreate
 assert.ok(creates.length >= 3, `onCreate fired at least 3 times (got ${creates.length})`);

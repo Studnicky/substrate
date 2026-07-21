@@ -42,17 +42,6 @@ console.log(buf.shift()); // undefined — empty buffer returns undefined
 console.log(buf.length); // 0
 ```
 
-### Builder API
-
-Use the fluent builder to configure before creating:
-
-```ts
-const buf = CircularBuffer.builder<number>()
-  .withCapacity(16)
-  .withOverflow('grow')
-  .build();
-```
-
 ### Grow mode (opt-in)
 
 Pass `overflow: 'grow'` to preserve every item — the buffer doubles capacity instead of evicting:
@@ -105,6 +94,8 @@ buf.push('c'); // triggers onEvict('a') and onPush('c')
 
 console.log(buf.evictedItems); // ['a']
 ```
+
+`CircularBufferOptionsEntity` owns construction data. `CircularBufferStateEntity` owns the schema-derived non-negative integer `length` field composed by `CircularBufferInterface`.
 
 ## Documentation
 

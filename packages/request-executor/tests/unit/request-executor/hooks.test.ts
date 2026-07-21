@@ -9,11 +9,15 @@ import { deepEqual, equal } from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { after, before, it } from 'node:test';
 
-import type { RequestContextType, ResponseContextType } from '@studnicky/fetch/types';
-import type { RetryConfigInterface, RetryContextType } from '@studnicky/retry';
+import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
 
-import { FetchClient } from '@studnicky/fetch';
-import { ErrorClassificationEntity, Retry } from '@studnicky/retry';
+import {
+  FetchClient,
+  type RequestContextInterface,
+  type ResponseContextInterface,
+} from '@studnicky/fetch';
+import { Retry } from '@studnicky/retry';
 
 import { RequestExecutor } from '../../../src/index.js';
 
@@ -64,12 +68,12 @@ class TrackingFetchClient extends FetchClient {
     return new this(config);
   }
 
-  protected override async onRequest(context: RequestContextType): Promise<RequestContextType> {
+  protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     this.requestPaths.push(context.metadata.path);
     return context;
   }
 
-  protected override async onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+  protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     this.responseStatuses.push(context.response.status);
     return context;
   }
@@ -79,7 +83,7 @@ class TrackingRetry extends Retry {
   readonly attempts: number[] = [];
   readonly scheduledRetries: number[] = [];
 
-  constructor(config?: Partial<RetryConfigInterface>) {
+  constructor(config?: RetryConfigInterface) {
     super(config ?? {});
   }
 
@@ -91,7 +95,7 @@ class TrackingRetry extends Retry {
     this.attempts.push(attemptNumber);
   }
 
-  protected override onRetryScheduled(context: RetryContextType): void {
+  protected override onRetryScheduled(context: RetryContextInterface): void {
     this.scheduledRetries.push(context.attemptNumber);
   }
 }

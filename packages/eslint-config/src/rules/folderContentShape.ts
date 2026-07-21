@@ -1,4 +1,5 @@
 import type { Rule } from 'eslint';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import path from 'node:path';
 
@@ -134,16 +135,14 @@ class FolderCategory {
   }
 }
 
-// json-schema-uninexpressible: shapes a raw ESLint AST node whose `parent` is
-// `unknown` (an arbitrary, mutually-recursive AST node), which JSON Schema
-// cannot express
-type TopLevelDeclarationNodeType = {
-  readonly 'id'?: { readonly 'name': string };
-  readonly 'parent': unknown;
-};
-
 class TopLevelScope {
-  public static isTopLevel(rawNode: TopLevelDeclarationNodeType): boolean {
+  public static getName(rawNode: unknown): string | undefined {
+    if (!ObjectGuard.isObject(rawNode) || !ObjectGuard.isObject(rawNode.id)) { return undefined; }
+    return typeof rawNode.id.name === 'string' ? rawNode.id.name : undefined;
+  }
+
+  public static isTopLevel(rawNode: unknown): boolean {
+    if (!ObjectGuard.isObject(rawNode)) { return false; }
     const { parent } = rawNode;
     if (!ObjectGuard.isObject(parent)) { return false; }
 
@@ -317,20 +316,6 @@ class FolderShapeHelpers {
     return node.declaration;
   }
 }
-
-type ProgramExitNodeType = Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0];
-
-// json-schema-uninexpressible: internal AST-scan accumulator local to this
-// rule's implementation, never serialized or crossing a validated boundary —
-// there is no schema for it to derive from
-type NamespaceMembersType = {
-  'hasSchema': boolean;
-  'hasSchemaAsConst': boolean;
-  'hasType': boolean;
-  'hasTypeFromSchema': boolean;
-  'hasValidate': boolean;
-  'hasValidateTypeGuard': boolean;
-};
 
 class SchemaMemberGuards {
   static isConstTypeAnnotation(typeAnnotation: unknown): boolean {
@@ -517,8 +502,8 @@ class SchemaMemberGuards {
 }
 
 class NamespaceScanner {
-  static scanBody(bodyNode: unknown): NamespaceMembersType {
-    const result: NamespaceMembersType = {
+  static scanBody(bodyNode: unknown) {
+    const result = {
       'hasSchema': false,
       'hasSchemaAsConst': false,
       'hasType': false,
@@ -570,10 +555,9 @@ class NamespaceScanner {
 }
 
 class EntityNamespaceCheck {
-  static run(context: Rule.RuleContext, program: ProgramExitNodeType, expectedName: string): void {
-    const body = Array.isArray((program as unknown as { 'body': unknown }).body)
-      ? (program as unknown as { 'body': unknown[] }).body
-      : [];
+  static run(context: Rule.RuleContext, program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], expectedName: string): void {
+    const rawProgram: unknown = program;
+    const body = ObjectGuard.isObject(rawProgram) && Array.isArray(rawProgram.body) ? rawProgram.body : [];
 
     const namespaceExports = body.filter((stmt) => {
       if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') { return false; }
@@ -621,12 +605,14 @@ class EntityNamespaceCheck {
  */
 class RegexLiteralCheck {
   static isRegexLiteral(node: Rule.Node): boolean {
-    const rawNode = node as unknown as Record<string, unknown>;
+    const rawNode: unknown = node;
+    if (!ObjectGuard.isObject(rawNode)) { return false; }
     return rawNode.type === 'Literal' && ObjectGuard.isObject(rawNode.regex);
   }
 
   static isInlineRegExpConstruction(node: Rule.Node): boolean {
-    const rawNode = node as unknown as Record<string, unknown>;
+    const rawNode: unknown = node;
+    if (!ObjectGuard.isObject(rawNode)) { return false; }
     if (rawNode.type !== 'NewExpression') { return false; }
 
     const callee: unknown = rawNode.callee;
@@ -648,8 +634,10 @@ class RegexLiteralCheck {
 }
 
 class ConstantsCountCheck {
-  static run(context: Rule.RuleContext, program: ProgramExitNodeType, physicalFilename: string): void {
-    const programBody: unknown = (program as unknown as { 'body': unknown }).body;
+  static run(context: Rule.RuleContext, program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], physicalFilename: string): void {
+    const rawProgram: unknown = program;
+    if (!ObjectGuard.isObject(rawProgram)) { return; }
+    const programBody: unknown = rawProgram.body;
     if (!Array.isArray(programBody)) { return; }
 
     const constNames: string[] = [];
@@ -703,16 +691,31 @@ class ConstantsCountCheck {
   }
 }
 
-type FileCategoryType =
-  | { readonly 'kind': 'constants' }
-  | { readonly 'kind': 'declaration'; readonly 'underInterfacesFolder': boolean; readonly 'underTypesFolder': boolean }
-  | { readonly 'expectedName': string; readonly 'kind': 'entity' }
-  | { readonly 'kind': 'none' };
+namespace FileCategoryEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'expectedName': { 'type': 'string' },
+      'kind': { 'enum': ['constants', 'declaration', 'entity', 'none'] },
+      'underInterfacesFolder': { 'type': 'boolean' },
+      'underTypesFolder': { 'type': 'boolean' }
+    },
+    'required': ['expectedName', 'kind', 'underInterfacesFolder', 'underTypesFolder'],
+    'type': 'object'
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
+}
 
 class FileCategoryResolver {
-  static resolve(filename: string): FileCategoryType {
+  static resolve(filename: string): FileCategoryEntity.Type {
     if (!FolderCategory.isEmptyFilename(filename) && FolderCategory.isEntityFile(filename)) {
-      return { 'expectedName': FolderShapeHelpers.getEntityBaseName(filename), 'kind': 'entity' };
+      return {
+        'expectedName': FolderShapeHelpers.getEntityBaseName(filename),
+        'kind': 'entity',
+        'underInterfacesFolder': false,
+        'underTypesFolder': false
+      };
     }
 
     if (!FolderCategory.isDeclarationExemptPath(filename)) {
@@ -720,15 +723,15 @@ class FileCategoryResolver {
       const underTypesFolder = FolderCategory.isUnderFolder(filename, 'types');
 
       if (underInterfacesFolder || underTypesFolder) {
-        return { 'kind': 'declaration', 'underInterfacesFolder': underInterfacesFolder, 'underTypesFolder': underTypesFolder };
+        return { 'expectedName': '', 'kind': 'declaration', 'underInterfacesFolder': underInterfacesFolder, 'underTypesFolder': underTypesFolder };
       }
     }
 
     if (!FolderCategory.isConstantsExemptPath(filename)) {
-      return { 'kind': 'constants' };
+      return { 'expectedName': '', 'kind': 'constants', 'underInterfacesFolder': false, 'underTypesFolder': false };
     }
 
-    return { 'kind': 'none' };
+    return { 'expectedName': '', 'kind': 'none', 'underInterfacesFolder': false, 'underTypesFolder': false };
   }
 }
 
@@ -757,10 +760,9 @@ export const folderContentShape: Rule.RuleModule = {
       const visitTSTypeAliasDeclaration: NonNullable<Rule.RuleListener['TSTypeAliasDeclaration']> = (node: Rule.Node) => {
         if (!underInterfacesFolder) { return; }
 
-        const rawNode = node as unknown as TopLevelDeclarationNodeType;
-        if (!TopLevelScope.isTopLevel(rawNode)) { return; }
+        if (!TopLevelScope.isTopLevel(node)) { return; }
 
-        const name = rawNode.id?.name ?? '(unknown)';
+        const name = TopLevelScope.getName(node) ?? '(unknown)';
 
         context.report({
           'data': { 'name': name },
@@ -772,10 +774,9 @@ export const folderContentShape: Rule.RuleModule = {
       const visitTSInterfaceDeclaration: NonNullable<Rule.RuleListener['TSInterfaceDeclaration']> = (node: Rule.Node) => {
         if (!underTypesFolder) { return; }
 
-        const rawNode = node as unknown as TopLevelDeclarationNodeType;
-        if (!TopLevelScope.isTopLevel(rawNode)) { return; }
+        if (!TopLevelScope.isTopLevel(node)) { return; }
 
-        const name = rawNode.id?.name ?? '(unknown)';
+        const name = TopLevelScope.getName(node) ?? '(unknown)';
 
         context.report({
           'data': { 'name': name },

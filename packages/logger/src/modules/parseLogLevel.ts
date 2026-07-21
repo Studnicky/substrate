@@ -1,8 +1,13 @@
-import type { LogLevelStringType } from '../types/LogLevelStringType.js';
-import type { LogLevelType } from '../types/LogLevelType.js';
+import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
 
 import { LOG_LEVEL_MAP } from '../constants/LOG_LEVEL_MAP.js';
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
+
+const logLevelDispatch = new Map<unknown, LogLevelEntity.Type>();
+for (const [name, value] of Object.entries(LOG_LEVEL_MAP)) {
+  logLevelDispatch.set(name, value);
+  logLevelDispatch.set(value, value);
+}
 
 export class ParseLogLevel {
   /**
@@ -16,17 +21,13 @@ export class ParseLogLevel {
    *
    * @example
    * ```typescript
-   * LogLevel.parse(LOG_LEVEL.DEBUG); // LOG_LEVEL.DEBUG
-   * LogLevel.parse('debug'); // LOG_LEVEL.DEBUG
-   * LogLevel.parse('info'); // LOG_LEVEL.INFO
-   * LogLevel.parse('unknown'); // LOG_LEVEL.INFO (default)
+   * ParseLogLevel.parse(LOG_LEVEL.DEBUG); // LOG_LEVEL.DEBUG
+   * ParseLogLevel.parse('debug'); // LOG_LEVEL.DEBUG
+   * ParseLogLevel.parse('info'); // LOG_LEVEL.INFO
+   * ParseLogLevel.parse('unknown'); // LOG_LEVEL.INFO (default)
    * ```
-   */
-  public static parse(level: LogLevelStringType | LogLevelType): LogLevelType {
-    if (typeof level === 'number') {
-      return level;
-    }
-
-    return (LOG_LEVEL_MAP as Record<string, LogLevelType | undefined>)[level] ?? LOG_LEVEL.INFO;
+  */
+  public static parse(level: unknown): LogLevelEntity.Type {
+    return logLevelDispatch.get(level) ?? LOG_LEVEL.INFO;
   }
 }

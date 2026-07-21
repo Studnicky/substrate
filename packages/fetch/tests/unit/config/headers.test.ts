@@ -10,7 +10,7 @@ const invalidHeaderScenarios: Array<{ description: string; config: object; messa
 
 for (const { description, config, messagePattern } of invalidHeaderScenarios) {
   it(description, () => {
-    throws(() => { FetchClient.create(config as never); }, messagePattern);
+    throws(() => { Reflect.apply(FetchClient.create, FetchClient, [config]); }, messagePattern);
   });
 }
 
@@ -18,8 +18,7 @@ it('rejects non-string header values', () => {
   throws(() => {
     const invalidConfig = { headers: { 'X-Custom': 123 } };
 
-    // @ts-expect-error Testing invalid header value type
-    FetchClient.create(invalidConfig);
+    Reflect.apply(FetchClient.create, FetchClient, [invalidConfig]);
   }, /header value for "X-Custom" must be a string/u);
 });
 

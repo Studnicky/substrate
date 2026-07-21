@@ -1,12 +1,11 @@
 /**
  * KeyedRateLimiter Lifecycle Hooks Unit Tests
  *
- * Verifies a subclass overriding onKeyCreated/onLimitExceeded/onTokenAcquired
- * observes the right events at the right times, on the default TokenBucket
- * (`create()`) path.
+ * Verifies subclass lifecycle observations, owner isolation, and failure
+ * disposition on the default TokenBucket (`create()`) path.
  */
 
-import { deepStrictEqual, doesNotThrow, strictEqual, throws } from 'node:assert/strict';
+import { deepStrictEqual, doesNotThrow, ok, strictEqual, throws } from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { TokenBucketExhaustedError } from '@studnicky/resilience';
@@ -15,6 +14,7 @@ import { KeyedRateLimiter } from '../../../src/index.js';
 
 class TrackingLimiter extends KeyedRateLimiter {
   readonly created: string[] = [];
+  readonly evicted: string[] = [];
   readonly exceeded: string[] = [];
   readonly acquired: Array<{ key: string; count: number }> = [];
 
@@ -26,13 +26,24 @@ class TrackingLimiter extends KeyedRateLimiter {
     this.exceeded.push(key);
   }
 
+  protected override onKeyEvicted(key: string): void {
+    this.evicted.push(key);
+  }
+
   protected override onTokenAcquired(key: string, count: number): void {
     this.acquired.push({ key, count });
   }
 }
 
-const tracked = (config: { burstSize: number; requestsPerSecond: number; clock?: () => number }): TrackingLimiter => {
-  return TrackingLimiter.create(config) as TrackingLimiter;
+const tracked = (config: {
+  burstSize: number;
+  requestsPerSecond: number;
+  clock?: () => number;
+  maxKeys?: number;
+}): TrackingLimiter => {
+  const limiter = TrackingLimiter.create(config);
+  ok(limiter instanceof TrackingLimiter);
+  return limiter;
 };
 
 it('fires onKeyCreated exactly once per genuinely new key', () => {
@@ -79,7 +90,8 @@ it('a throwing onKeyCreated hook does not replace a successful consume()', () =>
     'burstSize': 1,
     'requestsPerSecond': 1,
     'clock': () => 0
-  }) as ThrowingCreatedLimiter;
+  });
+  ok(limiter instanceof ThrowingCreatedLimiter);
 
   doesNotThrow(() => {
     limiter.consume('user-a');
@@ -97,10 +109,10 @@ it('a throwing onTokenAcquired hook does not replace a successful consume()', ()
     'burstSize': 1,
     'requestsPerSecond': 1,
     'clock': () => 0
-  }) as ThrowingAcquiredLimiter;
+  });
+  ok(limiter instanceof ThrowingAcquiredLimiter);
 
-  limiter.consume('user-a');
-  strictEqual(limiter.getCache().has('user-a'), true);
+  doesNotThrow(() => { limiter.consume('user-a'); });
 });
 
 it('a throwing onLimitExceeded hook does not replace the underlying exhaustion error', () => {
@@ -114,7 +126,8 @@ it('a throwing onLimitExceeded hook does not replace the underlying exhaustion e
     'burstSize': 1,
     'requestsPerSecond': 1,
     'clock': () => 0
-  }) as ThrowingExceededLimiter;
+  });
+  ok(limiter instanceof ThrowingExceededLimiter);
 
   limiter.consume('user-a');
 
@@ -144,7 +157,8 @@ it('an async-overridden onKeyCreated that rejects is swallowed by onHookError an
     'burstSize': 1,
     'requestsPerSecond': 1,
     'clock': () => 0
-  }) as AsyncRejectingCreatedLimiter;
+  });
+  ok(limiter instanceof AsyncRejectingCreatedLimiter);
 
   const rejectionEvents: unknown[] = [];
   const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
@@ -154,10 +168,70 @@ it('an async-overridden onKeyCreated that rejects is swallowed by onHookError an
     doesNotThrow(() => {
       limiter.consume('user-a');
     });
-    strictEqual(limiter.getCache().has('user-a'), true);
 
     await new Promise((resolve) => { setImmediate(resolve); });
     await new Promise((resolve) => { setImmediate(resolve); });
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+it('owned delegates retain their limiter owner when two instances use the same key', () => {
+  const first = tracked({ 'burstSize': 2, 'maxKeys': 1, 'requestsPerSecond': 1, 'clock': () => 0 });
+  const second = tracked({ 'burstSize': 2, 'maxKeys': 1, 'requestsPerSecond': 1, 'clock': () => 0 });
+
+  first.consume('shared');
+  second.consume('shared');
+
+  deepStrictEqual(first.acquired, [{ 'count': 1, 'key': 'shared' }]);
+  deepStrictEqual(second.acquired, [{ 'count': 1, 'key': 'shared' }]);
+
+  first.consume('first-only');
+
+  deepStrictEqual(first.evicted, ['shared']);
+  deepStrictEqual(second.evicted, []);
+
+  first.consume('shared');
+  throws(() => { second.consume('shared', 2); }, TokenBucketExhaustedError);
+  deepStrictEqual(first.created, ['shared', 'first-only', 'shared']);
+  deepStrictEqual(second.created, ['shared']);
+});
+
+it('unexpected async rejections from both owned delegates remain isolated and never become unhandled', async () => {
+  class AsyncRejectingOwnedDelegateLimiter extends KeyedRateLimiter {
+    protected override async onKeyEvicted(): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onKeyEvicted boom');
+    }
+
+    protected override async onTokenAcquired(): Promise<void> {
+      await Promise.resolve();
+      throw new Error('async onTokenAcquired boom');
+    }
+  }
+
+  const limiter = AsyncRejectingOwnedDelegateLimiter.create({
+    'burstSize': 1,
+    'maxKeys': 1,
+    'requestsPerSecond': 1,
+    'clock': () => 0
+  });
+  ok(limiter instanceof AsyncRejectingOwnedDelegateLimiter);
+
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    doesNotThrow(() => {
+      limiter.consume('shared');
+      limiter.consume('replacement');
+    });
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
     strictEqual(rejectionEvents.length, 0);
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);

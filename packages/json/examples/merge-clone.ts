@@ -16,7 +16,7 @@ const overlay = MergeCloneFixture.Overlay;
 const merged = Merge.deep(base, overlay);
 
 console.log('merged.b:', merged.b);
-console.log('merged.tags:', (merged as { 'tags': string[] }).tags);
+console.log('merged.tags:', merged.tags);
 
 // ---------------------------------------------------------------------------
 // Clone.deep — structural equality, no shared references
@@ -41,15 +41,13 @@ class ConcatMerge extends Merge {
 const concatResult = ConcatMerge.deep({ 'tags': ['a', 'b'] }, { 'tags': ['c'] });
 const plainResult = Merge.deep({ 'tags': ['a', 'b'] }, { 'tags': ['c'] });
 
-console.log('concatResult.tags:', (concatResult as { 'tags': string[] }).tags);
-console.log('plainResult.tags:', (plainResult as { 'tags': string[] }).tags);
+console.log('concatResult.tags:', concatResult.tags);
+console.log('plainResult.tags:', plainResult.tags);
 // #endregion usage
 
-assert.equal(merged.b.y, 99, 'overlay primitive wins');
-assert.equal(merged.b.x, 10, 'base key preserved');
-assert.equal(merged.b.z, 3, 'overlay key added');
-assert.equal((merged as { 'c': string }).c, 'new', 'overlay top-level key added');
-assert.deepEqual((merged as { 'tags': string[] }).tags, ['beta'], 'arrays replaced atomically');
+assert.deepEqual(merged.b, { 'x': 10, 'y': 99, 'z': 3 }, 'nested objects merge recursively');
+assert.equal(merged.c, 'new', 'overlay top-level key added');
+assert.deepEqual(merged.tags, ['beta'], 'arrays replaced atomically');
 
 assert.deepEqual(copy, original, 'deep clone is structurally equal');
 assert.notEqual(copy, original, 'clone is a different reference');
@@ -58,12 +56,12 @@ assert.notEqual(copy.created, original.created, 'Date is cloned to a new instanc
 assert.equal(copy.created.getTime(), original.created.getTime(), 'Date value is preserved');
 
 assert.deepEqual(
-  (concatResult as { 'tags': string[] }).tags,
+  concatResult.tags,
   ['a', 'b', 'c'],
   'ConcatMerge concatenates arrays'
 );
 assert.deepEqual(
-  (plainResult as { 'tags': string[] }).tags,
+  plainResult.tags,
   ['c'],
   'Merge.deep still replaces arrays atomically'
 );

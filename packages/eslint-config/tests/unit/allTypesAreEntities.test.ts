@@ -1,9 +1,12 @@
+import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { allTypesAreEntities } from '../../src/rules/allTypesAreEntities.js';
+
+const repoRoot = resolve(import.meta.dirname, '../../../..');
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -12,11 +15,38 @@ const ruleTester = new RuleTester({
   languageOptions: {
     parser,
     parserOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module'
+      projectService: {
+        allowDefaultProject: [
+          '*.ts',
+          'eslint.config.mjs',
+          'packages/eslint-config/src/rules/*.ts',
+          'packages/retry/eslint.config.mjs',
+          'packages/retry/src/entities/*.ts',
+          'packages/retry/src/models/*.ts',
+          'packages/retry/src/types/*.ts',
+          'packages/retry/tests/unit/*.test.ts'
+        ],
+        maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20
+      },
+      tsconfigRootDir: repoRoot
     }
   }
 });
+
+const schemaImports = "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';";
+
+const topLevelCanonicalSource = [
+  schemaImports,
+  "const CanonicalSchema = { type: 'string' } as const satisfies JSONSchema;"
+].join('\n');
+
+const exactEntitySource = [
+  schemaImports,
+  'export namespace CanonicalEntity {',
+  "  export const Schema = { type: 'string' } as const satisfies JSONSchema;",
+  '  export type Type = FromSchema<typeof Schema>;',
+  '}'
+].join('\n');
 
 type ValidScenarioType = {
   readonly code: string;
@@ -33,69 +63,129 @@ type InvalidScenarioType = {
 
 const validScenarios: ValidScenarioType[] = [
   {
-    code: 'export type Type = { a: string };',
-    filename: '/project/packages/retry/src/entities/RetryConfigEntity.ts',
-    name: 'type alias inside an entities/*.ts file — exempt path'
+    code: exactEntitySource,
+    filename: 'packages/retry/src/entities/TypePlacementRuleFixtureEntity.ts',
+    name: 'exact schema-derived entity namespace Type form is valid'
   },
   {
-    code: 'export type FooType = { a: string };',
-    filename: '/project/packages/foo/src/types/Foo.ts',
-    name: 'type alias inside src/types/ — exempt path'
+    code: exactEntitySource,
+    filename: 'packages/retry/tests/unit/entity-form.test.ts',
+    name: 'the exact entity form remains valid in a test because semantics, not path, decide'
   },
   {
-    code: 'type FooType = { a: string };',
-    filename: '/project/packages/foo/tests/unit/foo.test.ts',
-    name: 'type alias inside tests/ — exempt path'
+    code: 'type HandlerType = (value: string) => void;',
+    filename: 'packages/retry/src/models/Handler.ts',
+    name: 'interface-contract alias is left to the declaration-kind rule'
   },
   {
-    code: 'type SourceCodeLike = { getCommentsBefore: (node: unknown) => readonly unknown[] };',
-    filename: '/project/packages/eslint-config/src/rules/someRule.ts',
-    name: 'type alias inside the eslint-config package itself — exempt path'
+    code: 'type InvalidDataType = { value: string };',
+    filename: 'packages/retry/src/models/InvalidData.ts',
+    name: 'invalid inline data alias is left to the schema rule'
   },
   {
-    code: 'export namespace RetryConfigEntity { export type Type = { a: string }; }',
-    filename: '/project/packages/foo/src/models/RetryConfig.ts',
-    name: 'type alias declared inside a TS namespace — not flagged regardless of path'
+    code: 'type IdType = string;',
+    filename: 'packages/retry/src/models/Id.ts',
+    name: 'primitive forwarding alias is left to the aliasing rule'
   },
   {
-    code: [
-      '// json-schema-uninexpressible: function types cannot be expressed in JSON Schema',
-      'type Handler = (x: number) => void;'
-    ].join('\n'),
-    filename: '/project/packages/foo/src/models/Handler.ts',
-    name: 'type alias with a json-schema-uninexpressible directive comment — exempt'
+    code: [exactEntitySource, 'type RenameType = CanonicalEntity.Type;'].join('\n'),
+    filename: 'packages/retry/src/models/Rename.ts',
+    name: 'naked canonical rename is left to the aliasing rule'
   },
   {
-    code: [
-      '// json-schema-uninexpressible: function types cannot be expressed in JSON Schema',
-      'export type Handler = (x: number) => void;'
-    ].join('\n'),
-    filename: '/project/packages/foo/src/models/Handler.ts',
-    name: 'exported type alias with directive comment above the export wrapper — exempt'
+    code: 'type ForwardingType<T> = Array<T>;',
+    filename: 'packages/retry/src/models/Forwarding.ts',
+    name: 'generic forwarding alias is left to the aliasing rule'
   }
 ];
 
 const invalidScenarios: InvalidScenarioType[] = [
   {
-    code: 'type FooType = { a: string };',
+    code: [topLevelCanonicalSource, 'type FooType = FromSchema<typeof CanonicalSchema>;'].join('\n'),
     errors: [{ messageId: 'forbidden-type-alias' }],
-    filename: '/project/packages/foo/src/models/Foo.ts',
-    name: 'free-standing type alias outside all exempt paths — forbidden'
+    filename: 'packages/retry/src/entities/FooEntity.ts',
+    name: 'entities path does not exempt a top-level canonical alias'
   },
   {
-    code: 'export type FooType = string | number;',
+    code: [topLevelCanonicalSource, 'export type FooType = FromSchema<typeof CanonicalSchema>;'].join('\n'),
     errors: [{ messageId: 'forbidden-type-alias' }],
-    filename: '/project/packages/foo/src/models/Foo.ts',
-    name: 'exported free-standing union type alias outside exempt paths — forbidden'
+    filename: 'packages/retry/src/types/Foo.ts',
+    name: 'src types path does not exempt a top-level canonical alias'
+  },
+  {
+    code: [topLevelCanonicalSource, 'type TestType = FromSchema<typeof CanonicalSchema>;'].join('\n'),
+    errors: [{ messageId: 'forbidden-type-alias' }],
+    filename: 'packages/retry/tests/unit/foo.test.ts',
+    name: 'test path does not exempt a top-level canonical alias'
+  },
+  {
+    code: [topLevelCanonicalSource, 'type RuleType = FromSchema<typeof CanonicalSchema>;'].join('\n'),
+    errors: [{ messageId: 'forbidden-type-alias' }],
+    filename: 'packages/eslint-config/src/rules/someRule.ts',
+    name: 'eslint-config package path does not exempt a top-level canonical alias'
+  },
+  {
+    code: [topLevelCanonicalSource, 'type ConfigType = FromSchema<typeof CanonicalSchema>;'].join('\n'),
+    errors: [{ messageId: 'forbidden-type-alias' }],
+    filename: 'packages/retry/eslint.config.mjs',
+    name: 'config path does not exempt a top-level canonical alias'
   },
   {
     code: [
-      '// not a directive comment',
-      'type FooType = { a: string };'
+      schemaImports,
+      'export namespace CanonicalData {',
+      "  export const Schema = { type: 'string' } as const satisfies JSONSchema;",
+      '  export type Type = FromSchema<typeof Schema>;',
+      '}'
     ].join('\n'),
     errors: [{ messageId: 'forbidden-type-alias' }],
-    filename: '/project/packages/foo/src/models/Foo.ts',
-    name: 'non-directive comment above the alias does not exempt it'
+    filename: 'packages/retry/src/models/NonEntityNamespace.ts',
+    name: 'an arbitrary namespace does not exempt a canonical alias'
+  },
+  {
+    code: [
+      schemaImports,
+      'export namespace CanonicalEntity {',
+      "  export const Schema = { type: 'string' } as const satisfies JSONSchema;",
+      '  export type ValueType = FromSchema<typeof Schema>;',
+      '}'
+    ].join('\n'),
+    errors: [{ messageId: 'forbidden-type-alias' }],
+    filename: 'packages/retry/src/models/WrongEntityMember.ts',
+    name: 'an entity namespace accepts only its Type member'
+  },
+  {
+    code: [
+      exactEntitySource,
+      'export namespace CollectionEntity {',
+      "  export const Schema = { type: 'array' } as const satisfies JSONSchema;",
+      '  export type Type = CanonicalEntity.Type[];',
+      '}'
+    ].join('\n'),
+    errors: [{ messageId: 'forbidden-type-alias' }],
+    filename: 'packages/retry/src/models/CompositionEntity.ts',
+    name: 'canonical composition is not a direct schema-derived entity Type'
+  },
+  {
+    code: [
+      topLevelCanonicalSource,
+      'export namespace BorrowedSchemaEntity {',
+      '  export type Type = FromSchema<typeof CanonicalSchema>;',
+      '}'
+    ].join('\n'),
+    errors: [{ messageId: 'forbidden-type-alias' }],
+    filename: 'packages/retry/src/models/BorrowedSchemaEntity.ts',
+    name: 'entity Type must derive from the Schema owned by its namespace'
+  },
+  {
+    code: [
+      topLevelCanonicalSource,
+      '// json-schema-uninexpressible: comments do not alter the rule',
+      'type FooType = FromSchema<typeof CanonicalSchema>;'
+    ].join('\n'),
+    errors: [{ messageId: 'forbidden-type-alias' }],
+    filename: 'packages/retry/src/models/FooComment.ts',
+    name: 'comment before a canonical alias is inert'
   }
 ];
 

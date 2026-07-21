@@ -51,27 +51,22 @@ import {
 
 import { BaseError } from '../../src/errors/BaseError.js';
 import { DomainErrorArgs } from '../../src/errors/DomainErrorArgs.js';
-import type { BaseErrorArgumentsType } from '../../src/types/BaseErrorArgumentsType.js';
+import type { BaseErrorArgumentsInterface } from '../../src/interfaces/BaseErrorArgumentsInterface.js';
 
 // Stand-in for `FileLockError` (packages/file-lock/src/errors/FileLockError.ts) —
 // an abstract pass-through domain base that exists solely for `instanceof` checks.
 abstract class StubFileLockError extends BaseError {
-  protected constructor(args: Readonly<BaseErrorArgumentsType>) {
+  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
     super(args);
   }
 }
-
-type StubFileLockTimeoutFieldsType = {
-  'path': string;
-  'timeoutMs': number;
-};
 
 class StubFileLockTimeoutError extends StubFileLockError {
   readonly path!: string;
   readonly timeoutMs!: number;
 
   constructor(path: string, timeoutMs: number) {
-    const fields: StubFileLockTimeoutFieldsType = { path, timeoutMs };
+    const fields = { path, timeoutMs };
     super(DomainErrorArgs.build(fields, {
       'code': 'fileLock.timeout',
       'message': (f) => {return `Timed out acquiring lock on "${f.path}" after ${String(f.timeoutMs)}ms`;},

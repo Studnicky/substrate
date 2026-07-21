@@ -6,9 +6,7 @@
  * Serializes request bodies to a form suitable for the native/undici fetch API
  * and determines whether a JSON Content-Type header should be auto-set.
  *
- * Shared between `FetchClient` and `HttpMethods` so both entry points
- * (the configured client and the standalone static methods) serialize
- * bodies identically.
+ * Used by `FetchClient` to serialize body-bearing requests consistently.
  */
 export class BodySerializer {
   /**
@@ -30,7 +28,8 @@ export class BodySerializer {
    * Serializes body to a form suitable for the native fetch API
    * - undefined/null: no body
    * - string: passed as-is
-   * - Buffer/ArrayBuffer/ArrayBufferView: passed as-is (binary)
+   * - ArrayBuffer: passed as-is
+   * - ArrayBufferView: copied into a detached Uint8Array of the visible byte range
    * - any other value: JSON.stringify
    */
   static serialize(body: unknown): ArrayBuffer | string | Uint8Array | undefined {
@@ -42,12 +41,13 @@ export class BodySerializer {
       return body;
     }
 
-    if (body instanceof Buffer || body instanceof ArrayBuffer) {
+    if (body instanceof ArrayBuffer) {
       return body;
     }
 
     if (ArrayBuffer.isView(body)) {
-      return body as Uint8Array;
+      const visibleBytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
+      return Uint8Array.from(visibleBytes);
     }
 
     return JSON.stringify(body);

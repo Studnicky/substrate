@@ -21,12 +21,8 @@ export class ValidateHeaders {
       throw new ConfigurationError('headers must be an object');
     }
 
-    const headersObj = val as Record<string, unknown>;
-
-    for (const [
-      key,
-      value
-    ] of Object.entries(headersObj)) {
+    for (const key of Object.keys(val)) {
+      const value: unknown = Reflect.get(val, key);
       if (typeof value !== 'string') {
         throw new ConfigurationError(`header value for "${key}" must be a string`);
       }

@@ -5,6 +5,5 @@
  */
 
 export { BoundaryKit } from './BoundaryKit.js';
-export { BoundaryKitBuilder } from './BoundaryKitBuilder.js';
 export { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
-export type { BoundaryKitConfigType } from './types/BoundaryKitConfigType.js';
+export type { BoundaryKitConfigInterface } from './interfaces/BoundaryKitConfigInterface.js';

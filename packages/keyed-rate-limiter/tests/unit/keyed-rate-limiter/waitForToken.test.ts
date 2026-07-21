@@ -2,7 +2,7 @@
  * KeyedRateLimiter#waitForToken Unit Tests
  */
 
-import { ok, rejects, strictEqual } from 'node:assert/strict';
+import { ok, rejects, throws } from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { KeyedRateLimiter } from '../../../src/index.js';
@@ -11,9 +11,8 @@ it('resolves immediately when the key has tokens available', async () => {
   const limiter = KeyedRateLimiter.create({ 'burstSize': 5, 'clock': () => 0, 'requestsPerSecond': 10 });
 
   await limiter.waitForToken('user-a');
-
-  const bucket = limiter.getCache().get('user-a');
-  strictEqual(bucket?.available, 4);
+  limiter.consume('user-a', 4);
+  throws(() => { limiter.consume('user-a'); });
 });
 
 it('blocks on the same key until refilled, without affecting other keys', async () => {

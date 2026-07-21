@@ -6,15 +6,13 @@
 import { Coalesce } from '@studnicky/concurrency';
 import { Mutex } from '@studnicky/mutex';
 
-import type { KeyedWorkGateConfigType } from './types/KeyedWorkGateConfigType.js';
+import type { KeyedWorkGateConfigInterface } from './interfaces/KeyedWorkGateConfigInterface.js';
 
-import { KeyedWorkGateBuilder } from './KeyedWorkGateBuilder.js';
 
-// json-schema-uninexpressible: generic type parameter K, and fields are live class instances (Coalesce, Mutex) carrying behavior, not plain data
-type KeyedWorkGateDepsType<K extends PropertyKey> = {
+interface KeyedWorkGateDepsInterface<K extends PropertyKey> {
   'coalesce': Coalesce<unknown>;
   'mutex': Mutex<K>;
-};
+}
 
 /**
  * Composes `@studnicky/mutex`'s `Mutex` and `@studnicky/concurrency`'s `Coalesce` into two
@@ -22,19 +20,19 @@ type KeyedWorkGateDepsType<K extends PropertyKey> = {
  * (`runSerialized`).
  *
  * `KeyedWorkGate` has no lifecycle hooks of its own. Observability is delegated entirely to
- * the composed primitives (subclass `Mutex`/`Coalesce` and pass instances in); the getters
- * expose every composed instance so a `KeyedWorkGate` subclass can still reach them.
+ * caller-supplied `Mutex` and `Coalesce` instances, which callers retain and inspect directly.
  *
  * @example Direct composition
  * ```typescript
  * const gate = KeyedWorkGate.create<string>({
  *   mutex: { enableCoalescing: false, timeout: 5000 }
  * });
+ * const acceptsUser = (value: unknown): value is User => value instanceof User;
  *
  * // Concurrent calls with the same key share one execution
  * const [a, b] = await Promise.all([
- *   gate.runSingleFlight('user1', () => fetchUser('user1')),
- *   gate.runSingleFlight('user1', () => fetchUser('user1'))
+ *   gate.runSingleFlight('user1', () => fetchUser('user1'), acceptsUser),
+ *   gate.runSingleFlight('user1', () => fetchUser('user1'), acceptsUser)
  * ]);
  * ```
  *
@@ -48,7 +46,9 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    * @param config - Composition configuration
    * @returns New KeyedWorkGate instance
    */
-  static create<K extends PropertyKey = string>(config: KeyedWorkGateConfigType<K> = {}): KeyedWorkGate<K> {
+  static create<K extends PropertyKey = string>(
+    config: KeyedWorkGateConfigInterface<K> = {}
+  ): KeyedWorkGate<K> {
     const result = new this<K>({
       'coalesce': KeyedWorkGate.#resolveCoalesce(config.coalesce),
       'mutex': KeyedWorkGate.#resolveMutex<K>(config.mutex)
@@ -56,15 +56,9 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
     return result;
   }
 
-  static builder<K extends PropertyKey = string>(): KeyedWorkGateBuilder<K> {
-    const result = KeyedWorkGateBuilder.create<K>((config) => {
-      const gate = KeyedWorkGate.create<K>(config);
-      return gate;
-    });
-    return result;
-  }
-
-  static #resolveCoalesce(value: KeyedWorkGateConfigType<PropertyKey>['coalesce']): Coalesce<unknown> {
+  static #resolveCoalesce(
+    value: KeyedWorkGateConfigInterface<PropertyKey>['coalesce']
+  ): Coalesce<unknown> {
     if (value instanceof Coalesce) {
       return value;
     }
@@ -72,7 +66,7 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
     return result;
   }
 
-  static #resolveMutex<K extends PropertyKey>(value: KeyedWorkGateConfigType<K>['mutex']): Mutex<K> {
+  static #resolveMutex<K extends PropertyKey>(value: KeyedWorkGateConfigInterface<K>['mutex']): Mutex<K> {
     if (value instanceof Mutex) {
       return value;
     }
@@ -83,17 +77,9 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
   readonly #coalesce: Coalesce<unknown>;
   readonly #mutex: Mutex<K>;
 
-  protected constructor(deps: KeyedWorkGateDepsType<K>) {
+  protected constructor(deps: KeyedWorkGateDepsInterface<K>) {
     this.#coalesce = deps.coalesce;
     this.#mutex = deps.mutex;
-  }
-
-  getCoalesce(): Coalesce<unknown> {
-    return this.#coalesce;
-  }
-
-  getMutex(): Mutex<K> {
-    return this.#mutex;
   }
 
   /**
@@ -122,19 +108,26 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    * @param key - Coalesce join-key and mutex lock key (coalesce keys are string; `key` is
    *   stringified via `String(key)`)
    * @param fn - The function to execute at most once per concurrent same-key group
+   * @param acceptsResult - Runtime predicate applied independently for every joined caller
    * @returns The shared result for every caller in the coalesced group
    */
-  async runSingleFlight<T>(key: K, fn: () => Promise<T>): Promise<T> {
+  async runSingleFlight<T>(
+    key: K,
+    fn: () => Promise<unknown>,
+    acceptsResult: (value: unknown) => value is T
+  ): Promise<T> {
     const coalesceKey = String(key);
 
     const result = await this.#coalesce.run(coalesceKey, async () => {
-      const value = await this.#mutex.runExclusive(key, fn);
+      const value = await this.runSerialized(key, fn, acceptsResult);
       return value;
     });
 
-    // Coalesce<unknown> erases the per-call result type; the factory above always resolves
-    // with exactly what `fn` produced, so this narrows back to T.
-    return result as T;
+    if (!acceptsResult(result)) {
+      throw new TypeError(`KeyedWorkGate result for key ${String(key)} does not satisfy the requested type`);
+    }
+
+    return result;
   }
 
   /**
@@ -143,10 +136,15 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    *
    * @param key - Mutex lock key
    * @param fn - The function to execute exclusively
+   * @param acceptsResult - Runtime predicate proving the returned result type
    * @returns The result of this specific call to `fn`
    */
-  async runSerialized<T>(key: K, fn: () => Promise<T>): Promise<T> {
-    const result = await this.#mutex.runExclusive(key, fn);
+  async runSerialized<T>(
+    key: K,
+    fn: () => Promise<unknown>,
+    acceptsResult: (value: unknown) => value is T
+  ): Promise<T> {
+    const result = await this.#mutex.runExclusive(key, fn, acceptsResult);
     return result;
   }
 }

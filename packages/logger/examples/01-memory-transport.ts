@@ -18,13 +18,13 @@ const logger = Logger.create({
   'transports': [memory]
 });
 
-const body = LogBody.create()
-  .component('example')
-  .operation('run')
-  .status('success')
-  .message('Example executed')
-  .context({ 'step': 1 })
-  .build();
+const body = LogBody.create({
+  'component': 'example',
+  'context': { 'step': 1 },
+  'message': 'Example executed',
+  'operation': 'run',
+  'status': 'success'
+});
 
 logger.info(body);
 
@@ -32,14 +32,14 @@ console.log('records after info:', memory.records().length);
 console.log('captured message:', memory.records()[0]?.data.message);
 
 // Error entry via LogFault
-const fault = LogFault.create()
-  .component('example')
-  .operation('run')
-  .status('failed')
-  .name('ExampleError')
-  .message('Something went wrong')
-  .context({ 'code': 'E001' })
-  .build();
+const fault = LogFault.create({
+  'component': 'example',
+  'context': { 'code': 'E001' },
+  'message': 'Something went wrong',
+  'name': 'ExampleError',
+  'operation': 'run',
+  'status': 'failed'
+});
 
 logger.error(fault);
 

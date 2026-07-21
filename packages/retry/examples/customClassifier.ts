@@ -1,9 +1,11 @@
 /** customClassifier — subclass Retry, override classifyError for a domain error. Run: npx tsx examples/customClassifier.ts */
 
+// #region usage
+import type { ErrorClassificationEntity } from '@studnicky/errors';
+
 import assert from 'node:assert/strict';
 
-// #region usage
-import type { ErrorClassificationEntity , RetryConfigInterface} from '../src/index.js';
+import type { RetryConfigInterface } from '../src/index.js';
 
 import { Retry } from '../src/index.js';
 import { CustomClassifierFixtures } from './fixtures/customClassifierFixtures.js';
@@ -19,7 +21,7 @@ class DatabaseError extends Error {
 }
 
 class DatabaseRetry extends Retry {
-  constructor(config?: Partial<RetryConfigInterface>) {
+  constructor(config?: RetryConfigInterface) {
     super(config ?? {});
   }
 

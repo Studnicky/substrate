@@ -179,7 +179,7 @@ it('no highWaterMark configured: onOverflow never fires, buffer grows unbounded'
 });
 
 it('highWaterMark configured: onOverflow fires at configured depth without dropping items', async () => {
-  const ch = OverflowChannel.create<number>({ 'highWaterMark': 3 }) as OverflowChannel<number>;
+  const ch = new OverflowChannel<number>({ 'highWaterMark': 3 });
 
   await ch.publish('k', 1);
   assert.equal(ch.overflowEvents.length, 0);
@@ -196,18 +196,26 @@ it('highWaterMark configured: onOverflow fires at configured depth without dropp
   assert.deepEqual(items, [1, 2, 3, 4]);
 });
 
-it('a throwing onEnqueue hook rejects publish() with HookInvocationError but the item still lands in the buffer', async () => {
-  class ThrowingEnqueueChannel<T> extends Channel<T> {
+it('a throwing onEnqueue hook rolls the item back and a later publish wakes the waiting subscriber', async () => {
+  class RejectFirstEnqueueChannel<T> extends Channel<T> {
+    #enqueueCount = 0;
+
     protected override onEnqueue(): void {
-      throw new Error('hook boom');
+      this.#enqueueCount += 1;
+      if (this.#enqueueCount === 1) {
+        throw new Error('hook boom');
+      }
     }
   }
 
-  const ch = ThrowingEnqueueChannel.create<number>();
+  const ch = new RejectFirstEnqueueChannel<number>();
+  const subscriber = ch.subscribe('k');
+  const next = subscriber.next();
   await assert.rejects(() => ch.publish('k', 1), HookInvocationError);
+  await ch.publish('k', 2);
 
-  const items = await collectN(ch.subscribe('k'), 1);
-  assert.deepEqual(items, [1]);
+  assert.deepEqual(await next, { 'done': false, 'value': 2 });
+  await subscriber.return(undefined);
 });
 
 it('a throwing onDequeue hook rejects subscribe() with HookInvocationError after the item is dequeued', async () => {
@@ -225,7 +233,11 @@ it('a throwing onDequeue hook rejects subscribe() with HookInvocationError after
 
 it('an async-overridden onEnqueue hook that rejects is routed safely through HookInvoker without an unhandled rejection', async () => {
   class AsyncRejectingEnqueueChannel<T> extends Channel<T> {
+    #enqueueCount = 0;
+
     protected override async onEnqueue(): Promise<void> {
+      this.#enqueueCount += 1;
+      if (this.#enqueueCount !== 1) { return; }
       await new Promise((resolve) => { setImmediate(resolve); });
       throw new Error('async hook boom');
     }
@@ -236,14 +248,42 @@ it('an async-overridden onEnqueue hook that rejects is routed safely through Hoo
   process.on('unhandledRejection', onUnhandledRejection);
 
   try {
-    const ch = AsyncRejectingEnqueueChannel.create<number>();
+    const ch = new AsyncRejectingEnqueueChannel<number>();
+    const subscriber = ch.subscribe('k');
+    const next = subscriber.next();
     await assert.rejects(() => ch.publish('k', 1), HookInvocationError);
+    await ch.publish('k', 2);
 
     await new Promise((resolve) => { setImmediate(resolve); });
     assert.equal(rejectionEvents.length, 0);
+    assert.deepEqual(await next, { 'done': false, 'value': 2 });
+    await subscriber.return(undefined);
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }
+});
+
+it('an async onOverflow rejection rolls back its item and preserves progress for the next publish', async () => {
+  class RejectFirstOverflowChannel<T> extends Channel<T> {
+    #overflowCount = 0;
+
+    protected override async onOverflow(): Promise<void> {
+      this.#overflowCount += 1;
+      if (this.#overflowCount !== 1) { return; }
+      await new Promise((resolve) => { setImmediate(resolve); });
+      throw new Error('overflow hook boom');
+    }
+  }
+
+  const ch = new RejectFirstOverflowChannel<number>({ 'highWaterMark': 1 });
+  const subscriber = ch.subscribe('k');
+  const next = subscriber.next();
+
+  await assert.rejects(() => ch.publish('k', 1), HookInvocationError);
+  await ch.publish('k', 2);
+
+  assert.deepEqual(await next, { 'done': false, 'value': 2 });
+  await subscriber.return(undefined);
 });
 
 it('FIFO order survives the CircularBuffer swap under high volume', async () => {

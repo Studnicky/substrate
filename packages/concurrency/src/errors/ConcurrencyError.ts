@@ -3,11 +3,11 @@
  *
  * @module
  */
-import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
 
 /** Abstract base for all concurrency-domain errors. */
 export abstract class ConcurrencyError extends BaseError {
-  protected constructor(args: Readonly<BaseErrorArgumentsType>) {
+  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
     super(args);
   }
 }

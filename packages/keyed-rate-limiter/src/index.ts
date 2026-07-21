@@ -1,6 +1,9 @@
+export { KeyedRateLimiterRegistryOptionsEntity } from './entities/KeyedRateLimiterRegistryOptionsEntity.js';
+export { RateLimitRequestEntity } from './entities/RateLimitRequestEntity.js';
 export { KeyedRateLimiterConfigError, KeyedRateLimiterError } from './errors/index.js';
+export type {
+  KeyedRateLimiterCreateConfigInterface,
+  KeyedRateLimiterStrategyConfigInterface,
+  RateLimiterStrategyInterface
+} from './interfaces/index.js';
 export { KeyedRateLimiter } from './KeyedRateLimiter.js';
-export { KeyedRateLimiterBuilder } from './KeyedRateLimiterBuilder.js';
-export type { RateLimiterStrategyType } from './RateLimiterStrategyType.js';
-export type { KeyedRateLimiterCreateConfigType } from './types/KeyedRateLimiterCreateConfigType.js';
-export type { KeyedRateLimiterStrategyConfigType } from './types/KeyedRateLimiterStrategyConfigType.js';

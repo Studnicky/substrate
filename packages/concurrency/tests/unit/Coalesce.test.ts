@@ -53,15 +53,13 @@ const coalesceScenarios: Array<{ description: string; exec: () => Promise<void> 
     description: 'isInflight returns true while in-flight, false after resolution',
     exec: async () => {
       const coalesce = Coalesce.create<string>();
-
-      let resolve!: (v: string) => void;
-      const factory = (): Promise<string> =>
-        new Promise((res) => { resolve = res; });
+      const deferred = Promise.withResolvers<string>();
+      const factory = (): Promise<string> => deferred.promise;
 
       const pending = coalesce.run('k', factory);
       assert.equal(coalesce.isInflight('k'), true);
 
-      resolve('done');
+      deferred.resolve('done');
       await pending;
 
       assert.equal(coalesce.isInflight('k'), false);
@@ -129,6 +127,35 @@ it('onCoalesceStart fires once for leader, onCoalesceJoin fires for each joiner'
   assert.deepEqual(c.joinEvents, ['k', 'k']);
 });
 
+it('reserves the shared completion while onCoalesceStart is pending and invokes the factory only after it completes', async () => {
+  const startGate = Promise.withResolvers<void>();
+  let factoryCalls = 0;
+
+  class PendingStartCoalesce<T> extends Coalesce<T> {
+    protected override onCoalesceStart(): Promise<void> {
+      return startGate.promise;
+    }
+  }
+
+  const c = new PendingStartCoalesce<string>();
+  const factory = async (): Promise<string> => {
+    factoryCalls += 1;
+    return 'shared';
+  };
+
+  const leader = c.run('k', factory);
+  const joiner = c.run('k', factory);
+
+  assert.equal(c.isInflight('k'), true);
+  assert.equal(factoryCalls, 0);
+
+  startGate.resolve();
+
+  assert.deepEqual(await Promise.all([leader, joiner]), ['shared', 'shared']);
+  assert.equal(factoryCalls, 1);
+  assert.equal(c.isInflight('k'), false);
+});
+
 it('onCoalesceSettled fires with success=true on resolution', async () => {
   const c = new ObservedCoalesce<number>();
   await c.run('k', () => Promise.resolve(42));
@@ -163,10 +190,8 @@ it('no timeout configured: run() waits indefinitely, behaves exactly as before',
 
 it('timeout configured on a slow factory rejects the timed-out caller with CoalesceTimeoutError and fires onTimeout', async () => {
   const c = new ObservedTimeoutCoalesce<string>({ 'timeout': 20 });
-
-  let resolveFactory!: (v: string) => void;
-  const factory = (): Promise<string> =>
-    new Promise((resolve) => { resolveFactory = resolve; });
+  const deferred = Promise.withResolvers<string>();
+  const factory = (): Promise<string> => deferred.promise;
 
   const pending = c.run('k', factory);
 
@@ -182,17 +207,15 @@ it('timeout configured on a slow factory rejects the timed-out caller with Coale
   // the underlying factory is still legitimately running; entry not evicted by the timeout
   assert.equal(c.isInflight('k'), true);
 
-  resolveFactory('eventual-result');
+  deferred.resolve('eventual-result');
   await new Promise((resolve) => { setTimeout(resolve, 5); });
   assert.equal(c.isInflight('k'), false);
 });
 
 it('a second caller joining after the first times out still receives the real result once the factory settles, proving the shared in-flight promise was undisturbed', async () => {
   const c = new ObservedTimeoutCoalesce<string>({ 'timeout': 20 });
-
-  let resolveFactory!: (v: string) => void;
-  const factory = (): Promise<string> =>
-    new Promise((resolve) => { resolveFactory = resolve; });
+  const deferred = Promise.withResolvers<string>();
+  const factory = (): Promise<string> => deferred.promise;
 
   const firstCaller = c.run('k', factory);
 
@@ -204,35 +227,84 @@ it('a second caller joining after the first times out still receives the real re
   const secondCaller = c.run('k', factory);
 
   // factory settles well within the second caller's fresh deadline
-  resolveFactory('shared-result');
+  deferred.resolve('shared-result');
 
   const secondResult = await secondCaller;
   assert.equal(secondResult, 'shared-result');
   assert.equal(c.timeoutEvents.length, 1);
 });
 
-it('a throwing onCoalesceStart hook rejects run() with HookInvocationError; the factory still runs and the in-flight entry still clears', async () => {
-  class ThrowingStartCoalesce<T> extends Coalesce<T> {
-    protected override onCoalesceStart(): void {
-      throw new Error('hook boom');
+it('an async onTimeout rejection rejects only that caller with HookInvocationError and never becomes unhandled', async () => {
+  class RejectingTimeoutCoalesce<T> extends Coalesce<T> {
+    protected override async onTimeout(): Promise<void> {
+      await new Promise((resolve) => { setImmediate(resolve); });
+      throw new Error('timeout hook boom');
     }
   }
 
-  const c = new ThrowingStartCoalesce<string>();
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const c = new RejectingTimeoutCoalesce<string>({ 'timeout': 5 });
+    const deferred = Promise.withResolvers<string>();
+    const pending = c.run('k', () => deferred.promise);
+
+    await assert.rejects(pending, (error: unknown) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.equal(error.hookName, 'onTimeout');
+      return true;
+    });
+    assert.equal(c.isInflight('k'), true);
+
+    deferred.resolve('eventual-result');
+    await new Promise((resolve) => { setImmediate(resolve); });
+    assert.equal(c.isInflight('k'), false);
+    assert.deepEqual(rejectionEvents, []);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+it('a rejecting onCoalesceStart hook rejects the reserved leader and joiner without invoking the factory', async () => {
+  const startGate = Promise.withResolvers<void>();
+
+  class RejectingStartCoalesce<T> extends Coalesce<T> {
+    readonly settledEvents: boolean[] = [];
+
+    protected override onCoalesceStart(): Promise<void> {
+      return startGate.promise;
+    }
+
+    protected override onCoalesceSettled(_key: string, success: boolean): void {
+      this.settledEvents.push(success);
+    }
+  }
+
+  const c = new RejectingStartCoalesce<string>();
   let calls = 0;
   const factory = async (): Promise<string> => {
     calls += 1;
     return 'ok';
   };
 
-  await assert.rejects(() => c.run('k', factory), HookInvocationError);
-  assert.equal(calls, 1);
+  const leader = c.run('k', factory);
+  const joiner = c.run('k', factory);
 
-  // the underlying factory promise (already started before the hook threw)
-  // settles independently of the rejected leader call — give its .finally()
-  // cleanup a tick to run.
-  await new Promise((resolve) => { setImmediate(resolve); });
+  assert.equal(c.isInflight('k'), true);
+  assert.equal(calls, 0);
+
+  startGate.reject(new Error('hook boom'));
+
+  await Promise.all([
+    assert.rejects(leader, HookInvocationError),
+    assert.rejects(joiner, HookInvocationError)
+  ]);
+
+  assert.equal(calls, 0);
   assert.equal(c.isInflight('k'), false);
+  assert.deepEqual(c.settledEvents, [false]);
 });
 
 it('a throwing onCoalesceSettled hook replaces the factory outcome with HookInvocationError for every caller sharing the in-flight promise', async () => {

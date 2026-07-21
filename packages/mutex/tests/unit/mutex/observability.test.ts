@@ -6,7 +6,7 @@
  */
 
 import {
-  ok, strictEqual
+  ok, rejects, strictEqual
 } from 'node:assert/strict';
 import { it } from 'node:test';
 import {
@@ -15,6 +15,7 @@ import {
 
 import { HookInvocationError } from '@studnicky/errors';
 
+import { LockTimeoutError } from '../../../src/errors/index.js';
 import { Mutex } from '../../../src/mutex/index.js';
 
 // ---------------------------------------------------------------------------
@@ -66,8 +67,12 @@ class HookErrorRecordingMutex extends Mutex<string> {
     throw new Error('beforeAcquire boom');
   }
 
+  getHookErrorCount(): number {
+    return this.hooks.hookErrorCount;
+  }
+
   getHookErrors(): readonly HookInvocationError[] {
-    return this.hookErrors;
+    return this.hooks.getHookErrors();
   }
 }
 
@@ -107,6 +112,62 @@ class AllHooksMutex extends Mutex<string> {
   protected override beforeRelease(_key: string, holdTimeMs: number): void {
     this.released.push(holdTimeMs);
     this.totalHoldTime += holdTimeMs;
+  }
+}
+
+class AsyncRejectingHooksMutex extends Mutex<string> {
+  protected override async beforeAcquire(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('beforeAcquire async boom');
+  }
+
+  protected override async afterAcquire(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('afterAcquire async boom');
+  }
+
+  protected override async onContended(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('onContended async boom');
+  }
+
+  protected override async beforeRelease(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('beforeRelease async boom');
+  }
+
+  protected override async afterRelease(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('afterRelease async boom');
+  }
+
+  protected override async onTimeout(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('onTimeout async boom');
+  }
+
+  protected override async onAcquireWait(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('onAcquireWait async boom');
+  }
+
+  protected override async onRelease(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('onRelease async boom');
+  }
+
+  protected override async onQueueDrain(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('onQueueDrain async boom');
+  }
+
+  protected override async onEnterKey(): Promise<void> {
+    await Promise.resolve();
+    throw new Error('onEnterKey async boom');
+  }
+
+  getHookErrors(): readonly HookInvocationError[] {
+    return this.hooks.getHookErrors();
   }
 }
 
@@ -289,14 +350,17 @@ it('records a HookInvocationError via the consolidated HookInvoking mechanism wh
 
   const errors = mutex.getHookErrors();
 
+  strictEqual(mutex.getHookErrorCount(), 1);
   strictEqual(errors.length, 1);
   const err = errors[0];
 
   ok(err !== undefined, 'Expected a recorded hook error');
   ok(err instanceof HookInvocationError);
   strictEqual(err.hookName, 'beforeAcquire');
-  ok(err.cause instanceof Error);
-  strictEqual((err.cause as Error).message, 'beforeAcquire boom');
+  const { cause } = err;
+
+  ok(cause instanceof Error);
+  strictEqual(cause.message, 'beforeAcquire boom');
 
   release();
 });
@@ -315,6 +379,53 @@ it('continues processing queue if afterAcquire throws', async () => {
   strictEqual(mutex.acquireKeys.length, 2);
   strictEqual(mutex.acquireKeys[0], 'acquired-key1');
   strictEqual(mutex.acquireKeys[1], 'acquired-key1');
+});
+
+it('guards async-rejecting onContended and representative fire sites without unhandled rejections', async () => {
+  const unhandledRejections: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const mutex = new AsyncRejectingHooksMutex({ 'timeout': 20 });
+    const releaseLeader = await mutex.acquire('queued');
+    const pendingWaiter = mutex.acquire('queued');
+
+    releaseLeader();
+    const releaseWaiter = await pendingWaiter;
+
+    releaseWaiter();
+
+    const releaseTimeoutLeader = await mutex.acquire('timeout');
+
+    await rejects(() => mutex.acquire('timeout'), LockTimeoutError);
+    releaseTimeoutLeader();
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(mutex.isComplete(), true);
+    strictEqual(unhandledRejections.length, 0);
+
+    const hookNames = new Set(mutex.getHookErrors().map((error) => error.hookName));
+
+    for (const hookName of [
+      'afterAcquire',
+      'afterRelease',
+      'beforeAcquire',
+      'beforeRelease',
+      'onAcquireWait',
+      'onContended',
+      'onEnterKey',
+      'onQueueDrain',
+      'onRelease',
+      'onTimeout'
+    ]) {
+      strictEqual(hookNames.has(hookName), true, `expected an async rejection recorded for ${hookName}`);
+    }
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -482,11 +593,7 @@ it('onQueueDrain fires when last timed-out waiter leaves the queue', async () =>
   const mutex = new QueueDrainTrackingMutex({ 'timeout': 30 });
   const release1 = await mutex.acquire('key1');
 
-  try {
-    await mutex.acquire('key1');
-  } catch {
-    // expected timeout
-  }
+  await rejects(() => mutex.acquire('key1'), LockTimeoutError);
 
   strictEqual(mutex.queueDrainEvents.length, 1);
   strictEqual(mutex.queueDrainEvents[0], 'key1');

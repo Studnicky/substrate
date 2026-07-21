@@ -1,33 +1,47 @@
-import type { FsmStepType } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm';
 
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
 
-import type { PaginatorEventType, PaginatorNextCursorType } from './types/PaginatorEventType.js';
-import type { PaginatorStateType } from './types/PaginatorStateType.js';
+import type { PaginatorIdleStateEntity } from './entities/PaginatorIdleStateEntity.js';
+import type { PaginatorResetEventEntity } from './entities/PaginatorResetEventEntity.js';
+import type { PaginatorExhaustedStateInterface } from './interfaces/PaginatorExhaustedStateInterface.js';
+import type { PaginatorHasMoreStateInterface } from './interfaces/PaginatorHasMoreStateInterface.js';
+import type { PaginatorPageReceivedEventInterface } from './interfaces/PaginatorPageReceivedEventInterface.js';
 
 /**
  * Internal reducer for `Paginator`. Pure state transitions with no side
  * effects — `idle` → `hasMore` → `exhausted`, with `reset` returning to
  * `idle` from any state. Not exported from the package barrel; consumers
- * only ever see `Paginator` and its state/event types.
+ * only ever see `Paginator` and its variant contracts.
  */
 export abstract class PaginatorMachine<TPage, TCursor> extends StateMachine<
-  PaginatorStateType<TPage, TCursor>,
-  PaginatorEventType<TPage, TCursor>,
+  PaginatorIdleStateEntity.Type
+  | PaginatorHasMoreStateInterface<TPage, TCursor>
+  | PaginatorExhaustedStateInterface<TPage>,
+  PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<TPage, TCursor>,
   never
 > {
   protected constructor() {
     super();
   }
 
-  override getInitialState(): PaginatorStateType<TPage, TCursor> {
+  override getInitialState(): PaginatorIdleStateEntity.Type
+  | PaginatorHasMoreStateInterface<TPage, TCursor>
+  | PaginatorExhaustedStateInterface<TPage> {
     return { 'variant': 'idle' };
   }
 
   override reduce(
-    state: PaginatorStateType<TPage, TCursor>,
-    event: PaginatorEventType<TPage, TCursor>
-  ): FsmStepType<PaginatorStateType<TPage, TCursor>, never> {
+    state: PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<TPage, TCursor>
+    | PaginatorExhaustedStateInterface<TPage>,
+    event: PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<TPage, TCursor>
+  ): FsmStepInterface<
+    PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<TPage, TCursor>
+    | PaginatorExhaustedStateInterface<TPage>,
+    never
+  > {
     if (event.type === 'reset') {
       return { 'effects': [], 'state': { 'variant': 'idle' } };
     }
@@ -43,19 +57,17 @@ export abstract class PaginatorMachine<TPage, TCursor> extends StateMachine<
           'reason': 'Paginator is exhausted: no more pages can be received after exhaustion',
           'stateVariant': state.variant
         });
-      default:
-        return this.assertUnreachableState(state);
     }
-  }
 
-  private assertUnreachableState(state: never): never {
-    throw new Error(`Unhandled PaginatorStateType variant: ${JSON.stringify(state)}`);
+    throw new Error(`Unhandled paginator state variant: ${JSON.stringify(state)}`);
   }
 
   private receivePage(
     priorPages: TPage[],
-    event: { readonly 'nextCursor': PaginatorNextCursorType<TCursor>; readonly 'page': TPage; readonly 'type': 'pageReceived'; }
-  ): PaginatorStateType<TPage, TCursor> {
+    event: PaginatorPageReceivedEventInterface<TPage, TCursor>
+  ): PaginatorIdleStateEntity.Type
+  | PaginatorHasMoreStateInterface<TPage, TCursor>
+  | PaginatorExhaustedStateInterface<TPage> {
     priorPages.push(event.page);
 
     return event.nextCursor.exhausted

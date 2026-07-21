@@ -1,5 +1,5 @@
 /**
- * ContextScope Unit Tests
+ * Context.initialize() scope contract tests
  *
  * Thorough testing of the three-phase lifecycle:
  * created → active → terminated
@@ -13,7 +13,6 @@
  * - Error handling and edge cases
  */
 
-import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   deepStrictEqual, ok, strictEqual, throws
 } from 'node:assert/strict';
@@ -22,10 +21,8 @@ import {
 } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
-import { HookInvocationError } from '@studnicky/errors';
 
-import { Context, ContextScope } from '../../../src/context/index.js';
-import type { ContextScopeOptionsInterface } from '../../../src/context/index.js';
+import { Context } from '../../../src/context/index.js';
 
 // Test fixture — hangs off a class per standards
 class Fixture {
@@ -34,7 +31,7 @@ class Fixture {
   }
 }
 
-void describe('ContextScope Lifecycle', () => {
+void describe('Context.initialize() scope lifecycle', () => {
   void describe('state transitions', () => {
     void it('scope starts in active state (created → active at construction)', () => {
       const context = Context.create({ name: 'test' });
@@ -42,7 +39,7 @@ void describe('ContextScope Lifecycle', () => {
 
       // Can execute immediately — confirms active state
       const result = scope.execute(() => {
-        return context.get<string>('key');
+        return context.get('key');
       });
 
       strictEqual(result, 'value');
@@ -120,7 +117,7 @@ void describe('ContextScope Lifecycle', () => {
       });
 
       scope.execute(() => {
-        strictEqual(context.get<string>('fromFirst'), 'value1');
+        strictEqual(context.get('fromFirst'), 'value1');
         context.set('fromSecond', 'value2');
       });
 
@@ -186,7 +183,7 @@ void describe('ContextScope Lifecycle', () => {
 
       await scope.execute(async () => {
         await setTimeout(5);
-        strictEqual(context.get<number>('step'), 1);
+        strictEqual(context.get('step'), 1);
         context.set('step', 2);
         context.set('async2', 'done');
       });
@@ -210,7 +207,7 @@ void describe('ContextScope Lifecycle', () => {
         await Promise.resolve();
         await Promise.resolve();
         await Promise.resolve();
-        strictEqual(context.get<string>('id'), 'promise-test');
+        strictEqual(context.get('id'), 'promise-test');
       });
     });
 
@@ -220,9 +217,9 @@ void describe('ContextScope Lifecycle', () => {
 
       await scope.execute(async () => {
         await setTimeout(10);
-        strictEqual(context.get<string>('id'), 'timeout-test');
+        strictEqual(context.get('id'), 'timeout-test');
         await setTimeout(10);
-        strictEqual(context.get<string>('id'), 'timeout-test');
+        strictEqual(context.get('id'), 'timeout-test');
       });
     });
 
@@ -233,13 +230,13 @@ void describe('ContextScope Lifecycle', () => {
       await scope.execute(async () => {
         const results = await Promise.all([
           Promise.resolve().then(() => {
-            return context.get<string>('id');
+            return context.get('id');
           }),
           setTimeout(5).then(() => {
-            return context.get<string>('id');
+            return context.get('id');
           }),
           setTimeout(10).then(() => {
-            return context.get<string>('id');
+            return context.get('id');
           })
         ]);
 
@@ -256,12 +253,12 @@ void describe('ContextScope Lifecycle', () => {
       const scope = context.initialize({ depth: 0 });
 
       async function level3(): Promise<void> {
-        strictEqual(context.get<number>('depth'), 2);
+        strictEqual(context.get('depth'), 2);
         context.set('depth', 3);
       }
 
       async function level2(): Promise<void> {
-        strictEqual(context.get<number>('depth'), 1);
+        strictEqual(context.get('depth'), 1);
         context.set('depth', 2);
         await setTimeout(5);
         await level3();
@@ -275,7 +272,7 @@ void describe('ContextScope Lifecycle', () => {
 
       await scope.execute(async () => {
         await level1();
-        strictEqual(context.get<number>('depth'), 3);
+        strictEqual(context.get('depth'), 3);
       });
     });
 
@@ -288,7 +285,7 @@ void describe('ContextScope Lifecycle', () => {
 
         await setTimeout(10);
 
-        strictEqual(context.get<boolean>('before'), true);
+        strictEqual(context.get('before'), true);
         context.set('after', true);
       });
 
@@ -314,15 +311,15 @@ void describe('ContextScope Lifecycle', () => {
       await Promise.all([
         scope1.execute(async () => {
           await setTimeout(15);
-          results.push(`1:${context.get<string>('id')}`);
+          results.push(`1:${context.get('id')}`);
         }),
         scope2.execute(async () => {
           await setTimeout(10);
-          results.push(`2:${context.get<string>('id')}`);
+          results.push(`2:${context.get('id')}`);
         }),
         scope3.execute(async () => {
           await setTimeout(5);
-          results.push(`3:${context.get<string>('id')}`);
+          results.push(`3:${context.get('id')}`);
         })
       ]);
 
@@ -341,11 +338,11 @@ void describe('ContextScope Lifecycle', () => {
         scope1.execute(async () => {
           context.set('value', 'modified-by-1');
           await setTimeout(20);
-          strictEqual(context.get<string>('value'), 'modified-by-1');
+          strictEqual(context.get('value'), 'modified-by-1');
         }),
         scope2.execute(async () => {
           await setTimeout(10);
-          strictEqual(context.get<string>('value'), 'original');
+          strictEqual(context.get('value'), 'original');
           context.set('value', 'modified-by-2');
         })
       ]);
@@ -436,7 +433,11 @@ void describe('ContextScope Lifecycle', () => {
       obj.nested = 'mutated';
 
       // Snapshot still has reference to same object (shallow copy)
-      strictEqual((final.obj as typeof obj).nested, 'mutated');
+      const finalObject = final.obj;
+      if (finalObject === null || typeof finalObject !== 'object') {
+        throw new TypeError('Expected object context value');
+      }
+      strictEqual(Reflect.get(finalObject, 'nested'), 'mutated');
     });
 
     void it('prevents execute after terminate', () => {
@@ -509,7 +510,8 @@ void describe('ContextScope Lifecycle', () => {
         });
         throw new Error('Should have thrown');
       } catch (error) {
-        strictEqual((error as Error).message, 'async test error');
+        if (!(error instanceof Error)) { throw new TypeError('Expected Error'); }
+        strictEqual(error.message, 'async test error');
       }
     });
 
@@ -529,7 +531,7 @@ void describe('ContextScope Lifecycle', () => {
 
       // Second execute still works
       scope.execute(() => {
-        strictEqual(context.get<boolean>('beforeError'), true);
+        strictEqual(context.get('beforeError'), true);
         context.set('afterError', true);
       });
 
@@ -569,7 +571,7 @@ void describe('ContextScope Lifecycle', () => {
         description: 'handles undefined values',
         initial: { undef: undefined },
         checkInExecute: (context) => {
-          strictEqual(context.get<undefined>('undef'), undefined);
+          strictEqual(context.get('undef'), undefined);
           strictEqual(context.has('undef'), true);
         },
         checkInFinal: (final) => {
@@ -581,7 +583,7 @@ void describe('ContextScope Lifecycle', () => {
         description: 'handles null values',
         initial: { nul: null },
         checkInExecute: (context) => {
-          strictEqual(context.get<null>('nul'), null);
+          strictEqual(context.get('nul'), null);
         },
         checkInFinal: (final) => {
           strictEqual(final.nul, null);
@@ -591,7 +593,7 @@ void describe('ContextScope Lifecycle', () => {
         description: 'handles Symbol keys via string conversion',
         initial: { 'Symbol(test)': 'value' },
         checkInExecute: (context) => {
-          strictEqual(context.get<string>('Symbol(test)'), 'value');
+          strictEqual(context.get('Symbol(test)'), 'value');
         },
         checkInFinal: (_final) => { /* key presence verified in execute */ }
       },
@@ -599,7 +601,7 @@ void describe('ContextScope Lifecycle', () => {
         description: 'handles empty string key',
         initial: { '': 'empty-key-value' },
         checkInExecute: (context) => {
-          strictEqual(context.get<string>(''), 'empty-key-value');
+          strictEqual(context.get(''), 'empty-key-value');
         },
         checkInFinal: (_final) => { /* key presence verified in execute */ }
       },
@@ -607,7 +609,7 @@ void describe('ContextScope Lifecycle', () => {
         description: 'handles very long key names',
         initial: { ['a'.repeat(10_000)]: 'value' },
         checkInExecute: (context) => {
-          strictEqual(context.get<string>('a'.repeat(10_000)), 'value');
+          strictEqual(context.get('a'.repeat(10_000)), 'value');
         },
         checkInFinal: (_final) => { /* key presence verified in execute */ }
       }
@@ -644,15 +646,17 @@ void describe('ContextScope Lifecycle', () => {
       const scope = context.initialize({ complex });
 
       scope.execute(() => {
-        const retrieved = context.get<typeof complex>('complex');
+        const retrieved = context.get('complex');
 
-        strictEqual(retrieved.nested.deep.value, true);
-        strictEqual(retrieved.array.length, 3);
+        strictEqual(retrieved, complex);
+        strictEqual(complex.nested.deep.value, true);
+        strictEqual(complex.array.length, 3);
       });
 
       const final = scope.terminate();
 
-      strictEqual((final.complex as typeof complex).nested.deep.value, true);
+      strictEqual(final.complex, complex);
+      strictEqual(complex.nested.deep.value, true);
     });
 
     void it('handles function values', () => {
@@ -661,9 +665,10 @@ void describe('ContextScope Lifecycle', () => {
       const scope = context.initialize({ fn: Fixture.doubleNumber });
 
       scope.execute(() => {
-        const retrieved = context.get<typeof Fixture.doubleNumber>('fn');
+        const retrieved = context.get('fn');
 
-        strictEqual(retrieved(5), 10);
+        if (typeof retrieved !== 'function') { throw new TypeError('Expected callable context value'); }
+        strictEqual(Reflect.apply(retrieved, undefined, [5]), 10);
       });
     });
 
@@ -679,307 +684,12 @@ void describe('ContextScope Lifecycle', () => {
 
       scope.execute(() => {
         strictEqual(context.keys().length, 1000);
-        strictEqual(context.get<number>('key500'), 500);
+        strictEqual(context.get('key500'), 500);
       });
 
       const final = scope.terminate();
 
       strictEqual(Object.keys(final).length, 1000);
-    });
-  });
-
-  void describe('subclass hook extension', () => {
-    void it('onExit fires before onEnter on FSM transition', () => {
-      const log: string[] = [];
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onExit(from: string, to: string): void {
-          log.push(`exit:${from}→${to}`);
-        }
-
-        protected override onEnter(to: string, from: string): void {
-          log.push(`enter:${to}←${from}`);
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      // construction fires created→active; clear log so we only see terminate transition
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-      log.length = 0;
-      scope.terminate();
-      deepStrictEqual(log, ['exit:active→terminated', 'enter:terminated←active']);
-    });
-
-    void it('onError fires with the thrown error, scope remains usable', () => {
-      const errors: unknown[] = [];
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onError(error: unknown): void {
-          errors.push(error);
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-      const err = new Error('bang');
-      throws(() => {
-        scope.execute(() => { throw err; });
-      }, { message: 'bang' });
-      strictEqual(errors.length, 1);
-      strictEqual(errors[0], err);
-      // Scope still usable after fn threw
-      const ran: boolean[] = [];
-      scope.execute(() => { ran.push(true); });
-      strictEqual(ran.length, 1);
-      scope.terminate();
-    });
-
-    void it('onError does not fire on clean execute', () => {
-      const errors: unknown[] = [];
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onError(error: unknown): void {
-          errors.push(error);
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-      scope.execute(() => { return 42; });
-      strictEqual(errors.length, 0);
-      scope.terminate();
-    });
-
-    void it('onError fires (not onAfterExecute) when an async fn rejects', async () => {
-      const afterCount: number[] = [];
-      const errors: unknown[] = [];
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onAfterExecute(): void {
-          afterCount.push(1);
-        }
-
-        protected override onError(error: unknown): void {
-          errors.push(error);
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-      const err = new Error('async boom');
-
-      await scope.execute(async () => {
-        await setTimeout(5);
-        throw err;
-      }).catch(() => {
-        // Rejection propagates to the caller as expected; hooks are asserted below.
-      });
-
-      strictEqual(afterCount.length, 0);
-      strictEqual(errors.length, 1);
-      strictEqual(errors[0], err);
-      scope.terminate();
-    });
-
-    void it('onAfterExecute fires only after an async fn resolves, not before', async () => {
-      const afterCount: number[] = [];
-      const errors: unknown[] = [];
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onAfterExecute(): void {
-          afterCount.push(1);
-        }
-
-        protected override onError(error: unknown): void {
-          errors.push(error);
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-
-      const pending = scope.execute(async () => {
-        await setTimeout(5);
-        return 'done';
-      });
-
-      // Hook has not fired yet — the promise has not resolved.
-      strictEqual(afterCount.length, 0);
-
-      const result = await pending;
-
-      strictEqual(result, 'done');
-      strictEqual(afterCount.length, 1);
-      strictEqual(errors.length, 0);
-      scope.terminate();
-    });
-
-    void it('onDispose fires after store clear, before onTerminate', () => {
-      const log: string[] = [];
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onDispose(): void {
-          log.push('dispose');
-        }
-
-        protected override onTerminate(snapshot: Record<string, unknown>): Record<string, unknown> {
-          log.push('terminate');
-          return snapshot;
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-      scope.terminate();
-      deepStrictEqual(log, ['dispose', 'terminate']);
-    });
-
-    void it('onAfterExecute does not fire when fn throws', () => {
-      const afterCount: number[] = [];
-      const errCount: unknown[] = [];
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onAfterExecute(): void {
-          afterCount.push(1);
-        }
-
-        protected override onError(e: unknown): void {
-          errCount.push(e);
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-      throws(() => {
-        scope.execute(() => { throw new Error('fail'); });
-      });
-      strictEqual(afterCount.length, 0);
-      strictEqual(errCount.length, 1);
-      scope.terminate();
-    });
-
-    void it('a throwing onBeforeExecute hook surfaces a HookInvocationError before fn runs', () => {
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onBeforeExecute(): void {
-          throw new Error('onBeforeExecute boom');
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-      let caught: unknown;
-
-      try {
-        scope.execute(() => 42);
-      } catch (error) {
-        caught = error;
-      }
-
-      ok(caught instanceof HookInvocationError);
-      strictEqual((caught as HookInvocationError).hookName, 'onBeforeExecute');
-      scope.terminate();
-    });
-
-    void it('a throwing onAfterExecute hook surfaces a HookInvocationError after fn has already run', () => {
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onAfterExecute(): void {
-          throw new Error('onAfterExecute boom');
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-      let caught: unknown;
-
-      try {
-        scope.execute(() => 42);
-      } catch (error) {
-        caught = error;
-      }
-
-      ok(caught instanceof HookInvocationError);
-      strictEqual((caught as HookInvocationError).hookName, 'onAfterExecute');
-      scope.terminate();
-    });
-
-    void it('a throwing onTerminatedAccess hook surfaces a HookInvocationError instead of ContextError', () => {
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onTerminatedAccess(): void {
-          throw new Error('onTerminatedAccess boom');
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'name': 'test', 'storage': als });
-      scope.terminate();
-      let caught: unknown;
-
-      try {
-        scope.execute(() => 42);
-      } catch (error) {
-        caught = error;
-      }
-
-      ok(caught instanceof HookInvocationError);
-      strictEqual((caught as HookInvocationError).hookName, 'onTerminatedAccess');
-    });
-
-    void it('a throwing onDispose hook surfaces a HookInvocationError instead of the terminate() snapshot', () => {
-      class TracedScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): TracedScope {
-          return new TracedScope(options);
-        }
-
-        protected override onDispose(): void {
-          throw new Error('onDispose boom');
-        }
-      }
-
-      const als = new AsyncLocalStorage<Map<string, unknown>>();
-      const scope = TracedScope.create({ 'initial': { 'requestId': 'abc' }, 'name': 'test', 'storage': als });
-      let caught: unknown;
-
-      try {
-        scope.terminate();
-      } catch (error) {
-        caught = error;
-      }
-
-      ok(caught instanceof HookInvocationError);
-      strictEqual((caught as HookInvocationError).hookName, 'onDispose');
     });
   });
 
@@ -1063,7 +773,7 @@ void describe('ContextScope Lifecycle', () => {
       };
 
       const validationMiddleware: Middleware = () => {
-        if (context.get<boolean>('authenticated')) {
+        if (context.get('authenticated') === true) {
           context.set('validated', true);
         }
       };
@@ -1088,7 +798,8 @@ void describe('ContextScope Lifecycle', () => {
 
     void it('parallel operations with shared context', async () => {
       const context = Context.create({ name: 'parallel' });
-      const scope = context.initialize({ results: [] as string[] });
+      const results: string[] = [];
+      const scope = context.initialize({ results: results });
 
       await scope.execute(async () => {
         // Start multiple parallel operations
@@ -1122,41 +833,5 @@ void describe('ContextScope Lifecycle', () => {
     });
   });
 
-  void describe('async hook safety (HookInvoker regression)', () => {
-    void it('an async onBeforeExecute override that rejects is routed through onHookError, not left as an unhandled rejection', async () => {
-      class AsyncRejectingScope extends ContextScope {
-        static override create(options: ContextScopeOptionsInterface): AsyncRejectingScope {
-          return new AsyncRejectingScope(options);
-        }
 
-        protected override async onBeforeExecute(): Promise<void> {
-          await setTimeout(5);
-          throw new Error('onBeforeExecute boom');
-        }
-      }
-
-      const unhandled: unknown[] = [];
-      const onUnhandledRejection = (reason: unknown): void => { unhandled.push(reason); };
-      process.on('unhandledRejection', onUnhandledRejection);
-
-      try {
-        const als = new AsyncLocalStorage<Map<string, unknown>>();
-        const scope = AsyncRejectingScope.create({ 'name': 'async-before-execute', 'storage': als });
-
-        // `hooks.invoke` for onBeforeExecute is fired without being awaited by
-        // `execute()` itself — this call must not throw synchronously and must
-        // not leak an unhandled rejection once the override's promise settles.
-        scope.execute(() => 'ok');
-
-        // Give the rejected hook promise time to settle and, if the fix
-        // regressed, time for the unhandled rejection to surface.
-        await setTimeout(20);
-
-        strictEqual(unhandled.length, 0);
-        scope.terminate();
-      } finally {
-        process.off('unhandledRejection', onUnhandledRejection);
-      }
-    });
-  });
 });

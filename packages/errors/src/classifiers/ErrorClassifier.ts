@@ -1,8 +1,6 @@
 import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
 import type { ErrorClassifierInterface } from '../interfaces/index.js';
 
-import { matchers } from './matchers.js';
-
 /**
  * Abstract base class for error classification
  *
@@ -14,16 +12,12 @@ import { matchers } from './matchers.js';
  * ```typescript
  * class HttpErrorClassifier extends ErrorClassifier {
  *   classify(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
- *     if ('status' in error) {
- *       const status = (error as { status: number }).status;
- *
- *       if (status === 429) {
+ *     if (this.hasProperty(error, 'status', 429)) {
  *         return { retryable: true, reason: 'Rate limited' };
- *       }
+ *     }
  *
- *       if (status >= 500) {
+ *     if (this.hasProperty(error, 'status', matchers.number.gte(500))) {
  *         return { retryable: true, reason: 'Server error' };
- *       }
  *     }
  *
  *     return { retryable: false };
@@ -55,49 +49,6 @@ import { matchers } from './matchers.js';
  * ```
  */
 export abstract class ErrorClassifier implements ErrorClassifierInterface {
-  static readonly ARRAY_MATCHERS = matchers.array;
-  static readonly BOOLEAN_MATCHERS = matchers.boolean;
-  static readonly DATABASE_MATCHERS = matchers.database;
-  static readonly HTTP_MATCHERS = matchers.http;
-  static readonly INSTANCE_MATCHERS = matchers.instance;
-  static readonly LOGIC_MATCHERS = matchers.logic;
-  static readonly NETWORK_MATCHERS = matchers.network;
-  /**
-   * Composable matcher utilities for flexible property checking
-   *
-   * These matchers can be used with hasProperty() for expressive error classification.
-   *
-   * @example Using matchers
-   * ```typescript
-   * class HttpErrorClassifier extends ErrorClassifier {
-   *   classify(error: Error): ErrorClassificationEntity.Type {
-   *     const { HTTP_MATCHERS, NETWORK_MATCHERS, LOGIC_MATCHERS } = ErrorClassifier;
-   *
-   *     // Use domain-specific matchers
-   *     if (this.hasProperty(error, 'status', HTTP_MATCHERS.isServerError)) {
-   *       return this.retryable('Server error');
-   *     }
-   *
-   *     // Compose with logical operators
-   *     if (this.hasProperty(error, 'status', LOGIC_MATCHERS.or(HTTP_MATCHERS.isRateLimited, HTTP_MATCHERS.isGatewayError))) {
-   *       return this.retryable('Retryable HTTP error');
-   *     }
-   *
-   *     // Use network matchers
-   *     if (this.hasProperty(error, 'code', NETWORK_MATCHERS.isConnectionError)) {
-   *       return this.retryable('Connection error');
-   *     }
-   *
-   *     return this.nonRetryable('Unknown error');
-   *   }
-   * }
-   * ```
-   */
-  static readonly NUMBER_MATCHERS = matchers.number;
-  static readonly OBJECT_MATCHERS = matchers.object;
-  static readonly PROTO_MATCHERS = matchers.proto;
-  static readonly STRING_MATCHERS = matchers.string;
-
   protected constructor() {}
 
   /**
@@ -182,24 +133,23 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
    * ```
    */
   protected hasProperty<T>(error: Error, propertyName: string, predicate: (value: T) => boolean): boolean;
-  protected hasProperty<T>(
+  protected hasProperty(
     error: Error,
     propertyName: string,
-    matcher?: ((value: T) => boolean) | T | T[]
+    matcher?: unknown
   ): boolean {
     if (!(propertyName in error)) {
       return false;
     }
 
-    type ErrorWithDynamicProperty = Error & Record<string, unknown>;
-    const value = (error as ErrorWithDynamicProperty)[propertyName] as T;
+    const value: unknown = Reflect.get(error, propertyName);
 
     if (matcher === undefined) {
       return true;
     }
 
     if (typeof matcher === 'function') {
-      return (matcher as (value: T) => boolean)(value);
+      return Boolean(Reflect.apply(matcher, undefined, [value]));
     }
 
     if (Array.isArray(matcher)) {

@@ -45,13 +45,11 @@ Subclass `Batch` and override its protected lifecycle hooks to observe each stag
 
 `batch` never calls any logger or metrics library. Overriding the protected lifecycle hooks is the only observability seam.
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/batch` | `Batch` |
-| `@studnicky/batch/batch` | `Batch` (direct subpath) |
-| `@studnicky/batch/constants` | Default batch configuration constants |
+Import `Batch`, `BatchStatsEntity`, and `BatchError` from `@studnicky/batch`. The package root is the only public code entrypoint; batching constants are implementation details.
+
+`BatchError.retryable` uses the canonical `ErrorClassificationEntity.Type['retryable']` field. Import `ErrorClassificationEntity` directly from `@studnicky/errors`; `@studnicky/batch` does not proxy-export dependency functionality.
 
 ## Try it
 

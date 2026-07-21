@@ -5,16 +5,14 @@ import {
 
 import {
   AbortError,
-  HttpMethods,
+  FetchClient,
   TimeoutError
 } from '../../../src/index.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 
-const {
-  fetch: fetchWithTimeout, get
-} = HttpMethods;
+const client = FetchClient.create();
 
 void describe('Abort Controller Feature', () => {
   let testUrl: string;
@@ -36,7 +34,7 @@ void describe('Abort Controller Feature', () => {
       }, 10);
 
       try {
-        await fetchWithTimeout(`${testUrl}/delay`, { signal: controller.signal });
+        await client.get(`${testUrl}/delay`, { signal: controller.signal });
         assert.fail('Should have thrown AbortError');
       } catch (error) {
         assert.ok(error instanceof AbortError);
@@ -53,7 +51,7 @@ void describe('Abort Controller Feature', () => {
 
       await assert.rejects(
         async () => {
-          await fetchWithTimeout(`${testUrl}/delay`, {
+          await client.get(`${testUrl}/delay`, {
             signal: controller.signal,
             timeout: 100
           });
@@ -71,7 +69,7 @@ void describe('Abort Controller Feature', () => {
 
       await assert.rejects(
         async () => {
-          await fetchWithTimeout(`${testUrl}/delay`, {
+          await client.get(`${testUrl}/delay`, {
             signal: controller.signal,
             timeout: 5000
           });
@@ -91,7 +89,7 @@ void describe('Abort Controller Feature', () => {
 
       await assert.rejects(
         async () => {
-          await get(`${testUrl}/delay`, { signal: controller.signal });
+          await client.get(`${testUrl}/delay`, { signal: controller.signal });
         },
         AbortError
       );

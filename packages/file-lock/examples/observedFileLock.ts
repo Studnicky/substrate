@@ -1,7 +1,7 @@
 /** observedFileLock — subclass with console.log trace on every lifecycle hook. Run: npx tsx examples/observedFileLock.ts */
 
 // #region usage
-import { EventRecorder } from '@studnicky/errors/observers';
+import { EventRecorder } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';

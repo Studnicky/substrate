@@ -17,7 +17,6 @@ import {
 } from '../constants/index.js';
 import { SampleBufferOptionsEntity } from '../entities/SampleBufferOptionsEntity.js';
 import { SampleBufferError } from '../errors/index.js';
-import { SampleBufferBuilder } from './SampleBufferBuilder.js';
 
 /**
  * Fixed-capacity circular buffer for numeric samples
@@ -55,14 +54,6 @@ import { SampleBufferBuilder } from './SampleBufferBuilder.js';
  * ```
  */
 export class SampleBuffer implements SampleBufferInterface {
-  static builder(): SampleBufferBuilder {
-    const result = SampleBufferBuilder.create((options) => {
-      const buffer = SampleBuffer.create(options);
-      return buffer;
-    });
-    return result;
-  }
-
   static create(options: SampleBufferOptionsEntity.Type): SampleBuffer {
     return new this(options);
   }
@@ -255,12 +246,18 @@ export class SampleBuffer implements SampleBufferInterface {
     // Handle edge cases
     if (pct <= EMPTY_LENGTH) {
       result = sorted[FIRST_ARRAY_INDEX]!;
-      this.#firePercentile(pct, result);
+      this.hooks.invoke('onPercentile', () => {
+        const hookResult = this.onPercentile(pct, result);
+        return hookResult;
+      });
       return result;
     }
     if (pct >= PERCENTILE_MAX) {
       result = sorted.at(LAST_ARRAY_INDEX)!;
-      this.#firePercentile(pct, result);
+      this.hooks.invoke('onPercentile', () => {
+        const hookResult = this.onPercentile(pct, result);
+        return hookResult;
+      });
       return result;
     }
 
@@ -271,7 +268,10 @@ export class SampleBuffer implements SampleBufferInterface {
 
     if (lowerIndex === upperIndex) {
       result = sorted[lowerIndex]!;
-      this.#firePercentile(pct, result);
+      this.hooks.invoke('onPercentile', () => {
+        const hookResult = this.onPercentile(pct, result);
+        return hookResult;
+      });
       return result;
     }
 
@@ -280,15 +280,11 @@ export class SampleBuffer implements SampleBufferInterface {
     const upperValue = sorted[upperIndex]!;
 
     result = lowerValue + fraction * (upperValue - lowerValue);
-    this.#firePercentile(pct, result);
-    return result;
-  }
-
-  #firePercentile(pct: number, result: number): void {
     this.hooks.invoke('onPercentile', () => {
       const hookResult = this.onPercentile(pct, result);
       return hookResult;
     });
+    return result;
   }
 
   /**
@@ -307,7 +303,10 @@ export class SampleBuffer implements SampleBufferInterface {
       // Buffer not full - append
       this.#samples[this.count] = value;
       this.count++;
-      this.#firePush(value, false);
+      this.hooks.invoke('onPush', () => {
+        const result = this.onPush(value, false);
+        return result;
+      });
     } else {
       // Buffer full - overwrite oldest (at head position)
       this.hooks.invoke('onOverflow', () => {
@@ -321,14 +320,10 @@ export class SampleBuffer implements SampleBufferInterface {
       });
       this.#samples[this.head] = value;
       this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
-      this.#firePush(value, true);
+      this.hooks.invoke('onPush', () => {
+        const result = this.onPush(value, true);
+        return result;
+      });
     }
-  }
-
-  #firePush(value: number, evicted: boolean): void {
-    this.hooks.invoke('onPush', () => {
-      const result = this.onPush(value, evicted);
-      return result;
-    });
   }
 }

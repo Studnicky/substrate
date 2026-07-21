@@ -1,6 +1,7 @@
 /**
- * basic-pipeline — create a Pipeline<T>, register stages, run a context
- * through all stages, and use the removal function to unregister a stage.
+ * basic-pipeline — construct a Pipeline<T> with a fixed stage array and run
+ * a context through all stages. A different stage array constructs a
+ * different fixed composition.
  *
  * Run: npx tsx packages/pipeline/examples/basic-pipeline.ts
  */
@@ -12,33 +13,34 @@ import type { NumCtxTypeEntity } from './entities/NumCtxTypeEntity.js';
 
 import { Pipeline } from '../src/index.js';
 
-const pipeline = Pipeline.create<NumCtxTypeEntity.Type>();
+class NumStages {
+  static double(ctx: NumCtxTypeEntity.Type): NumCtxTypeEntity.Type { return { 'value': ctx.value * 2 }; }
+  static addTen(ctx: NumCtxTypeEntity.Type): NumCtxTypeEntity.Type { return { 'value': ctx.value + 10 }; }
+  static timesThree(ctx: NumCtxTypeEntity.Type): NumCtxTypeEntity.Type { return { 'value': ctx.value * 3 }; }
+}
 
-// Stage 0: multiply by 2
-const removeDouble = pipeline.add((ctx) => { return { 'value': ctx.value * 2 }; });
+// Three-stage pipeline: double, then add ten, then multiply by three
+const threeStagePipeline = Pipeline.create<NumCtxTypeEntity.Type>([
+  NumStages.double, NumStages.addTen, NumStages.timesThree
+]);
 
-// Stage 1: add 10
-pipeline.add((ctx) => { return { 'value': ctx.value + 10 }; });
+// Two-stage pipeline: add ten, then multiply by three — a different fixed
+// composition constructed from a different stage array
+const twoStagePipeline = Pipeline.create<NumCtxTypeEntity.Type>([NumStages.addTen, NumStages.timesThree]);
 
-// Stage 2: multiply by 3
-pipeline.add((ctx) => { return { 'value': ctx.value * 3 }; });
-
-console.log(`Stages registered: ${pipeline.stages.length}`);
+console.log(`Three-stage pipeline stages: ${threeStagePipeline.stages.length}`);
+console.log(`Two-stage pipeline stages: ${twoStagePipeline.stages.length}`);
 
 class PipelineRunDemo {
-  // Runs the 3-stage pipeline, removes the doubling stage, then re-runs — returning
-  // both results so the caller ends up with a single top-level binding.
+  // Runs both fixed pipelines against the same input, returning both
+  // results so the caller ends up with a single top-level binding.
   static async run(): Promise<{ 'withDouble': number; 'withoutDouble': number }> {
-    // Run: (5 * 2 + 10) * 3 = 60
-    const result = await pipeline.run({ 'value': 5 });
+    // (5 * 2 + 10) * 3 = 60
+    const result = await threeStagePipeline.run({ 'value': 5 });
     console.log(`Result with 3 stages: ${result.value}`);
 
-    // Remove stage 0 (the doubling stage) using the unsubscribe function
-    removeDouble();
-    console.log(`Stages after removal: ${pipeline.stages.length}`);
-
-    // Re-run without the double stage: (5 + 10) * 3 = 45
-    const resultWithout = await pipeline.run({ 'value': 5 });
+    // (5 + 10) * 3 = 45
+    const resultWithout = await twoStagePipeline.run({ 'value': 5 });
     console.log(`Result without double stage: ${resultWithout.value}`);
 
     return { 'withDouble': result.value, 'withoutDouble': resultWithout.value };

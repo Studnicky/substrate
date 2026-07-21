@@ -1,4 +1,6 @@
-import { type FromSchema, Guard, type JsonSchemaObjectType } from '@studnicky/types';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { Guard } from '@studnicky/types';
 
 /**
  * Error classification result.
@@ -24,7 +26,7 @@ export namespace ErrorClassificationEntity {
     'required': ['retryable'],
     'title': 'ErrorClassification',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
@@ -34,10 +36,9 @@ export namespace ErrorClassificationEntity {
    * circular workspace reference.
    */
   export function validate(candidate: unknown): candidate is Type {
-    const record = Guard.asRecord(candidate);
-    if (record === undefined) { return false; }
-    if (typeof record.retryable !== 'boolean') { return false; }
-    if (record.reason !== undefined && typeof record.reason !== 'string') { return false; }
+    if (!Guard.isObject(candidate)) { return false; }
+    if (typeof candidate.retryable !== 'boolean') { return false; }
+    if (candidate.reason !== undefined && typeof candidate.reason !== 'string') { return false; }
     return true;
   }
 }

@@ -5,7 +5,7 @@ import {
 import { it } from 'node:test';
 
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
-import type { RetryCallStateType } from '../../../src/types/RetryCallStateType.js';
+import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 
 import { HookInvocationError, HookInvoker } from '@studnicky/errors';
 import { Retry } from '../../../src/retry/index.js';
@@ -22,7 +22,7 @@ it('Retry swallows a throwing enterCall hook via the consolidated hook-invocatio
       super(config ?? {});
     }
 
-    protected override enterCall(_to: RetryCallStateType, _from: RetryCallStateType): void {
+    protected override enterCall(_to: RetryCallStateEntity.Type, _from: RetryCallStateEntity.Type): void {
       throw new Error('enterCall boom');
     }
   }
@@ -31,4 +31,37 @@ it('Retry swallows a throwing enterCall hook via the consolidated hook-invocatio
   const result = await retry.execute(async () => 'ok');
 
   strictEqual(result, 'ok');
+});
+
+it('Retry guards an async-rejecting enterCall hook without changing the successful result', async () => {
+  const unhandledRejections: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  class RejectingEnterCallRetry extends Retry {
+    constructor(config?: Partial<RetryConfigInterface>) {
+      super(config ?? {});
+    }
+
+    protected override async enterCall(
+      _to: RetryCallStateEntity.Type,
+      _from: RetryCallStateEntity.Type
+    ): Promise<void> {
+      await Promise.resolve();
+      throw new Error('enterCall async boom');
+    }
+  }
+
+  try {
+    const retry = new RejectingEnterCallRetry({ 'maxRetries': 1 });
+    const result = await retry.execute(async () => 'ok');
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    strictEqual(result, 'ok');
+    strictEqual(unhandledRejections.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
 });

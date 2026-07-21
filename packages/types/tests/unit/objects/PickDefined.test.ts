@@ -23,6 +23,14 @@ void it('PickDefined.from drops undefined-valued keys from a mixed record', () =
 void it('PickDefined.from returns an empty object when every value is undefined', () => {
   const result = PickDefined.from({ clock: undefined, deadlineMs: undefined });
   assert.deepEqual(result, {});
+  assert.equal('clock' in result, false);
+  assert.equal('deadlineMs' in result, false);
+});
+
+void it('PickDefined.from models an always-undefined input property as absent', () => {
+  const result: { 'value'?: never } = PickDefined.from({ value: undefined });
+  assert.deepEqual(result, {});
+  assert.equal('value' in result, false);
 });
 
 void it('PickDefined.from returns an empty object for an empty record', () => {

@@ -3,9 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { AcquireWaitEventEntity } from '../src/entities/AcquireWaitEventEntity.js';
-import type { QueueDrainEventEntity } from '../src/entities/QueueDrainEventEntity.js';
-import type { ReleaseEventEntity } from '../src/entities/ReleaseEventEntity.js';
+import type { AcquireWaitEventEntity, QueueDrainEventEntity, ReleaseEventEntity } from '../src/index.js';
 
 import { Mutex } from '../src/index.js';
 

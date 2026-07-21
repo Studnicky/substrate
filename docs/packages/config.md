@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/config'
-description: Configuration validation utilities and type guards.
+description: Configuration validation and clamping utilities.
 ---
 
 # @studnicky/config
 
-> Configuration validation utilities and type guards.
+> Configuration validation and clamping utilities.
 
 ## Install
 
@@ -21,35 +21,15 @@ Validate required fields and check types in a configuration object. All assertio
 
 <<< ../../packages/config/examples/validate-config.ts#usage
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/config` | `ConfigValidation`, `Guard`, `ConfigurationError`, `ensureError` |
-| `@studnicky/config/errors` | `ConfigurationError`, `ensureError` |
-| `@studnicky/config/validation` | `ConfigValidation`, `Guard` |
+Import `ConfigValidation`, `ClampedConfig`, `ClampEventEntity`, `ClampRuleEntity`, and `ConfigurationError` from `@studnicky/config`. The package root is the only public code entrypoint.
 
 ## Try it
 
-<RunnableExample src="packages/config/examples/validate-config" title="Config validation and type guards" />
+<RunnableExample src="packages/config/examples/validate-config" title="Config validation" />
 
-The output shows fields passing validation, guard results for `isPositiveInteger`/`isObject`/`isFunction`, and the `ConfigurationError` messages thrown for wrong types and unknown keys.
-
-## ensureError
-
-`ensureError` converts any caught value to a typed `Error`. Use it to safely handle `unknown` catches without unsafe casts:
-
-<!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates ensureError -->
-```ts
-import { ensureError } from '@studnicky/config';
-
-try {
-  await doWork();
-} catch (thrown) {
-  const err = ensureError(thrown); // always an Error
-  log.error(err.message);
-}
-```
+The output shows fields passing validation and the `ConfigurationError` messages thrown for wrong types and unknown keys.
 
 ## Extending
 
@@ -63,14 +43,14 @@ try {
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 ```ts
-import { ClampedConfig, type ClampRuleType } from '@studnicky/config';
+import { ClampedConfig, ClampRuleEntity } from '@studnicky/config';
 
 interface WorkerConfig {
   timeoutMs: number;
   concurrency: number;
 }
 
-const rules: Readonly<Record<string, ClampRuleType>> = {
+const rules: Record<string, ClampRuleEntity.Type> = {
   timeoutMs: { min: 100, max: 5000, reason: 'timeout must stay within safe bounds' },
   concurrency: { min: 1, max: 8, reason: 'concurrency must stay within pool capacity' },
 };
@@ -84,10 +64,10 @@ Override the protected `onClamp` static method to observe clamp events — loggi
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 ```ts
-import { ClampedConfig, type ClampEventType } from '@studnicky/config';
+import { ClampEventEntity, ClampedConfig } from '@studnicky/config';
 
 class LoggingClampedConfig extends ClampedConfig {
-  protected static override onClamp(event: ClampEventType): void {
+  protected static override onClamp(event: ClampEventEntity.Type): void {
     console.warn(`[config] clamped ${event.field}: ${event.raw} -> ${event.clamped} (${event.reason})`);
   }
 }

@@ -24,5 +24,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `Signal.never()` returning a cached, never-aborting `AbortSignal` sentinel — eliminates repeated `new AbortController().signal` boilerplate.
-- `Signal.compose({ signal?, deadlineMs? })` composing caller signal and/or timeout into a single `AbortSignal`. Returns the caller signal directly when no deadline is supplied, a timeout signal when no caller signal is supplied, `AbortSignal.any([...])` when both are given, and the never sentinel when neither is provided.
-- `Signal.timeout(ms)` as a thin, named wrapper over `AbortSignal.timeout` for call-site clarity.
+- `Signal#create().compose({ signal?, deadlineMs? })` composes caller signal and/or timeout into a single `AbortSignal`. It returns the caller signal directly when no deadline is supplied, a timeout signal when no caller signal is supplied, `AbortSignal.any([...])` when both are given, and the never sentinel when neither is provided.

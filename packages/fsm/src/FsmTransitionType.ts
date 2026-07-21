@@ -1,4 +1,0 @@
-import type { FsmStepType } from './FsmStepType.js';
-
-export type FsmTransitionType<TState, TEvent, TEffect = never> =
-  (state: TState, event: TEvent) => FsmStepType<TState, TEffect>;

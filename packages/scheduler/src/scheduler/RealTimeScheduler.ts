@@ -6,37 +6,26 @@
  * @module
  */
 
-import { HookInvoker } from '@studnicky/errors';
+import type { HookInvoker } from '@studnicky/errors';
 
-import type { ScheduledTaskType } from '../types/ScheduledTaskType.js';
-import type { SchedulerProviderType } from '../types/SchedulerProviderType.js';
+import type { SchedulerLogEntryEntity } from '../entities/SchedulerLogEntryEntity.js';
+import type { SchedulerTaskDataEntity } from '../entities/SchedulerTaskDataEntity.js';
+import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
+import type { SchedulerProviderInterface } from '../interfaces/SchedulerProviderInterface.js';
 
 import { CancellableTask } from './CancellableTask.js';
-import { RealTimeSchedulerBuilder } from './RealTimeSchedulerBuilder.js';
+import { SchedulerHookInvoker } from './SchedulerHookInvoker.js';
 
-/**
- * A broken lifecycle hook must never abort scheduler machinery: swallow the
- * failure instead of `HookInvoker`'s default (throwing) behavior.
- */
-class SwallowingHookInvoker extends HookInvoker {
-  protected override onHookError<T>(_hookName: string, _cause: unknown): T {
-    const result = undefined as T;
-    return result;
-  }
-}
-
-// json-schema-uninexpressible: 'handle' is a ReturnType<typeof setTimeout> — an opaque Node.js runtime
-// timer handle object, not a JSON-serializable data shape.
 /** Internal record kept per active timer. */
-type ActiveTimerType = {
+interface ActiveTimerInterface {
   readonly 'handle': ReturnType<typeof setTimeout>;
-  readonly 'id': string;
-  readonly 'variant': 'interval' | 'timeout';
-};
+  readonly 'id': SchedulerLogEntryEntity.Type['id'];
+  readonly 'variant': SchedulerTaskDataEntity.Type['variant'];
+}
 
 /**
  * Real-time `SchedulerProvider` using `setTimeout` and `setInterval`.
- * Instantiate once per scheduler context; inject as a `SchedulerProviderType`.
+ * Instantiate once per scheduler context; inject as a `SchedulerProviderInterface`.
  *
  * Subclass extension seams:
  * - `generateId()` — override to control task ID generation
@@ -46,10 +35,10 @@ type ActiveTimerType = {
  * - Lifecycle hooks: `onSchedule`, `onFire`, `onFireError`, `onDrift`, `onMiss`,
  *   `onCancel`, `onCancelAll`, `onIdle`
  */
-export class RealTimeScheduler implements SchedulerProviderType {
-  protected readonly hooks: HookInvoker = new SwallowingHookInvoker();
+export class RealTimeScheduler implements SchedulerProviderInterface {
+  protected readonly hooks: HookInvoker = new SchedulerHookInvoker();
   /** Map from task ID to active timer. */
-  readonly #timers: Map<string, ActiveTimerType>;
+  readonly #timers: Map<string, ActiveTimerInterface>;
   #idCounter: number;
 
   /**
@@ -63,12 +52,6 @@ export class RealTimeScheduler implements SchedulerProviderType {
   /** Creates a new `RealTimeScheduler` instance. */
   static create(): RealTimeScheduler {
     return new this();
-  }
-
-  /** Returns a `RealTimeSchedulerBuilder` pre-wired to create `RealTimeScheduler` instances. */
-  static builder(): RealTimeSchedulerBuilder {
-    const result = RealTimeSchedulerBuilder.create(() => { const instance = RealTimeScheduler.create(); return instance; });
-    return result;
   }
 
   /** Returns a unique task ID. Override to customise the ID format. */
@@ -185,7 +168,7 @@ export class RealTimeScheduler implements SchedulerProviderType {
    * final, terminal stage invokes `fire`/`onFire`/`onDrift` — intermediate stages just
    * re-arm the next stage.
    */
-  public scheduleAt(atMs: number, fire: () => Promise<void> | void): ScheduledTaskType {
+  public scheduleAt(atMs: number, fire: () => Promise<void> | void): ScheduledTaskInterface {
     const id = this.generateId();
     const scheduleNowMs = Date.now();
     const rawDelayMs = atMs - scheduleNowMs;
@@ -254,7 +237,7 @@ export class RealTimeScheduler implements SchedulerProviderType {
         }
       }, stageDelayMs);
 
-      const activeTimer: ActiveTimerType = {
+      const activeTimer: ActiveTimerInterface = {
         'handle': handle,
         'id': id,
         'variant': 'timeout'
@@ -290,7 +273,7 @@ export class RealTimeScheduler implements SchedulerProviderType {
   /**
    * Schedules `fire` to run repeatedly every `intervalMs` milliseconds.
    */
-  public scheduleEvery(intervalMs: number, fire: () => Promise<void> | void): ScheduledTaskType {
+  public scheduleEvery(intervalMs: number, fire: () => Promise<void> | void): ScheduledTaskInterface {
     const id = this.generateId();
     const atMs = Date.now() + intervalMs;
     const timers = this.#timers;
@@ -322,7 +305,7 @@ export class RealTimeScheduler implements SchedulerProviderType {
       }
     }, intervalMs);
 
-    const activeTimer: ActiveTimerType = {
+    const activeTimer: ActiveTimerInterface = {
       'handle': handle,
       'id': id,
       'variant': 'interval'

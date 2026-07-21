@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
-import { bracketMatching, HighlightStyle, indentOnInput, syntaxHighlighting } from '@codemirror/language';
-import { javascript } from '@codemirror/lang-javascript';
-import { EditorState } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers } from '@codemirror/view';
-import { tags } from '@lezer/highlight';
+import type { EditorView } from '@codemirror/view';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-import { getExampleSource, runExample } from '../utils/playgroundRuntime';
+import { ExampleSources } from '../utils/ExampleSources';
 
 // A genuinely runnable code example. The CodeMirror editor is prefilled with
 // the verbatim source of a real .ts example (resolved from its repo path).
@@ -22,8 +17,8 @@ interface OutputLineInterface {
   readonly text: string;
 }
 
-const original = computed(() => { return getExampleSource(props.src) ?? ''; });
-const code = ref(original.value);
+const original = await ExampleSources.get(props.src) ?? '';
+const code = ref(original);
 const output = ref<OutputLineInterface[]>([]);
 const errorText = ref<string | null>(null);
 const running = ref(false);
@@ -35,29 +30,7 @@ const cmReady = ref(false);
 
 let view: EditorView | undefined;
 let observer: IntersectionObserver | undefined;
-
-// Mid-tone token colors chosen to read on both light and dark VitePress
-// backgrounds — no theme observer needed.
-const highlightStyle = HighlightStyle.define([
-  { color: '#8a64d6', tag: tags.keyword },
-  { color: '#1a8055', tag: [tags.string, tags.special(tags.string)] },
-  { color: '#7d7d7d', fontStyle: 'italic', tag: [tags.comment, tags.lineComment, tags.blockComment] },
-  { color: '#b5811f', tag: [tags.number, tags.bool, tags.null] },
-  { color: '#2b78c4', tag: [tags.function(tags.variableName), tags.function(tags.propertyName)] },
-  { color: '#b5530a', tag: [tags.typeName, tags.className, tags.namespace] },
-  { color: '#a52d6e', tag: [tags.propertyName, tags.attributeName] }
-]);
-
-const baseTheme = EditorView.theme({
-  '&': { backgroundColor: 'var(--vp-code-block-bg, var(--vp-c-bg-alt))', color: 'var(--vp-c-text-1)', fontSize: '0.82rem' },
-  '&.cm-focused': { outline: 'none' },
-  '.cm-activeLine': { backgroundColor: 'transparent' },
-  '.cm-activeLineGutter': { backgroundColor: 'transparent' },
-  '.cm-content': { fontFamily: 'var(--vp-font-family-mono)' },
-  '.cm-cursor': { borderLeftColor: 'var(--vp-c-brand-1)' },
-  '.cm-gutters': { backgroundColor: 'transparent', border: 'none', color: 'var(--vp-c-text-3, var(--vp-c-text-2))' },
-  '.cm-scroller': { fontFamily: 'var(--vp-font-family-mono)', lineHeight: '1.6', maxHeight: '32rem' }
-});
+let editorLoading = false;
 
 function format(value: unknown): string {
   if (typeof value === 'string') {
@@ -90,34 +63,78 @@ function makeConsole(sink: OutputLineInterface[]): Console {
   };
 }
 
-function mountEditor(): void {
-  if (cmReady.value || !editorHost.value) {
+async function mountEditor(): Promise<void> {
+  if (cmReady.value || editorLoading || !editorHost.value) {
     return;
   }
-  cmReady.value = true;
+  editorLoading = true;
 
-  view = new EditorView({
-    parent: editorHost.value,
-    state: EditorState.create({
-      doc: original.value,
-      extensions: [
-        lineNumbers(),
-        history(),
-        bracketMatching(),
-        indentOnInput(),
-        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-        javascript({ typescript: true }),
-        syntaxHighlighting(highlightStyle),
-        baseTheme,
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            code.value = update.state.doc.toString();
-            edited.value = code.value !== original.value;
-          }
-        })
-      ]
-    })
-  });
+  try {
+    const [commands, language, javascriptLanguage, state, viewModule, highlight] = await Promise.all([
+      import('@codemirror/commands'),
+      import('@codemirror/language'),
+      import('@codemirror/lang-javascript'),
+      import('@codemirror/state'),
+      import('@codemirror/view'),
+      import('@lezer/highlight')
+    ]);
+
+    if (editorHost.value === null) {
+      return;
+    }
+
+    // Mid-tone token colors read on both light and dark VitePress backgrounds.
+    const highlightStyle = language.HighlightStyle.define([
+      { color: '#8a64d6', tag: highlight.tags.keyword },
+      { color: '#1a8055', tag: [highlight.tags.string, highlight.tags.special(highlight.tags.string)] },
+      { color: '#7d7d7d', fontStyle: 'italic', tag: [highlight.tags.comment, highlight.tags.lineComment, highlight.tags.blockComment] },
+      { color: '#b5811f', tag: [highlight.tags.number, highlight.tags.bool, highlight.tags.null] },
+      { color: '#2b78c4', tag: [highlight.tags.function(highlight.tags.variableName), highlight.tags.function(highlight.tags.propertyName)] },
+      { color: '#b5530a', tag: [highlight.tags.typeName, highlight.tags.className, highlight.tags.namespace] },
+      { color: '#a52d6e', tag: [highlight.tags.propertyName, highlight.tags.attributeName] }
+    ]);
+
+    const baseTheme = viewModule.EditorView.theme({
+      '&': { backgroundColor: 'var(--vp-code-block-bg, var(--vp-c-bg-alt))', color: 'var(--vp-c-text-1)', fontSize: '0.82rem' },
+      '&.cm-focused': { outline: 'none' },
+      '.cm-activeLine': { backgroundColor: 'transparent' },
+      '.cm-activeLineGutter': { backgroundColor: 'transparent' },
+      '.cm-content': { fontFamily: 'var(--vp-font-family-mono)' },
+      '.cm-cursor': { borderLeftColor: 'var(--vp-c-brand-1)' },
+      '.cm-gutters': { backgroundColor: 'transparent', border: 'none', color: 'var(--vp-c-text-3, var(--vp-c-text-2))' },
+      '.cm-scroller': { fontFamily: 'var(--vp-font-family-mono)', lineHeight: '1.6', maxHeight: '32rem' }
+    });
+
+    view = new viewModule.EditorView({
+      parent: editorHost.value,
+      state: state.EditorState.create({
+        doc: original,
+        extensions: [
+          viewModule.lineNumbers(),
+          commands.history(),
+          language.bracketMatching(),
+          language.indentOnInput(),
+          viewModule.keymap.of([...commands.defaultKeymap, ...commands.historyKeymap, commands.indentWithTab]),
+          javascriptLanguage.javascript({ typescript: true }),
+          language.syntaxHighlighting(highlightStyle),
+          baseTheme,
+          viewModule.EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              code.value = update.state.doc.toString();
+              edited.value = code.value !== original;
+            }
+          })
+        ]
+      })
+    });
+    cmReady.value = true;
+  } finally {
+    editorLoading = false;
+  }
+}
+
+function reportEditorError(caught: unknown): void {
+  errorText.value = format(caught);
 }
 
 // Lazy-mount: only instantiate CodeMirror once the example scrolls near the
@@ -125,14 +142,14 @@ function mountEditor(): void {
 // Until then the source renders as a static <pre> (also SSR-visible).
 onMounted(() => {
   if (!root.value || typeof IntersectionObserver === 'undefined') {
-    mountEditor();
+    mountEditor().catch(reportEditorError);
     return;
   }
 
   observer = new IntersectionObserver((entries) => {
     if (entries.some((entry) => { return entry.isIntersecting; })) {
-      mountEditor();
       observer?.disconnect();
+      mountEditor().catch(reportEditorError);
     }
   }, { rootMargin: '300px' });
 
@@ -153,6 +170,7 @@ async function run(): Promise<void> {
   const sink: OutputLineInterface[] = [];
 
   try {
+    const { runExample } = await import('../utils/playgroundRuntime');
     await runExample(code.value, props.src, makeConsole(sink));
     output.value = [...sink];
   } catch (caught) {
@@ -164,7 +182,7 @@ async function run(): Promise<void> {
 }
 
 function reset(): void {
-  view?.dispatch({ changes: { from: 0, insert: original.value, to: view.state.doc.length } });
+  view?.dispatch({ changes: { from: 0, insert: original, to: view.state.doc.length } });
   output.value = [];
   errorText.value = null;
   hasRun.value = false;

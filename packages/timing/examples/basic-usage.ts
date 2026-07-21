@@ -5,36 +5,24 @@ import assert from 'node:assert/strict';
 // #region usage
 import { Timing, TIMING_STATUS, TimingEvent } from '../src/index.js';
 
-const timing = Timing.builder().maxEvents(50).build();
+const timing = Timing.create({ 'maxEvents': 50 });
 
 // Record a plain component.operation event
 timing.event(
-  TimingEvent.create().component('GraphAdapter').operation('query').build()
+  TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' })
 );
 
 // Record component.operation.status events
 timing.event(
-  TimingEvent.create()
-    .component('CacheService')
-    .operation('get')
-    .status(TIMING_STATUS.START)
-    .build()
+  TimingEvent.create({ 'component': 'CacheService', 'operation': 'get', 'status': TIMING_STATUS.START })
 );
 
 timing.event(
-  TimingEvent.create()
-    .component('CacheService')
-    .operation('get')
-    .status(TIMING_STATUS.COMPLETE)
-    .build()
+  TimingEvent.create({ 'component': 'CacheService', 'operation': 'get', 'status': TIMING_STATUS.COMPLETE })
 );
 
 timing.event(
-  TimingEvent.create()
-    .component('CacheService')
-    .operation('get')
-    .status(TIMING_STATUS.HIT)
-    .build()
+  TimingEvent.create({ 'component': 'CacheService', 'operation': 'get', 'status': TIMING_STATUS.HIT })
 );
 
 const events = timing.getEvents();

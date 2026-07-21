@@ -3,17 +3,13 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { HealthCheckResultType, HealthStatusType } from '../src/index.js';
+import type { HealthCheckResultInterface, HealthStatusEntity } from '../src/index.js';
 
 import { HealthRegistry } from '../src/index.js';
 
 class TelemetryHealthRegistry extends HealthRegistry {
-  static override create(): TelemetryHealthRegistry {
-    return new TelemetryHealthRegistry();
-  }
-
   readonly registeredChecks: string[] = [];
-  readonly checkResults: { 'name': string; 'status': HealthStatusType }[] = [];
+  readonly checkResults: { 'name': string; 'status': HealthStatusEntity.Type }[] = [];
   readonly timeouts: { 'name': string; 'timeoutMs': number }[] = [];
 
   protected override onCheckRegistered(name: string): void {
@@ -21,7 +17,7 @@ class TelemetryHealthRegistry extends HealthRegistry {
     this.registeredChecks.push(name);
   }
 
-  protected override onCheckResult(name: string, status: HealthStatusType, metadata?: unknown): void {
+  protected override onCheckResult(name: string, status: HealthStatusEntity.Type, metadata?: unknown): void {
     console.log(`[health] '${name}' -> ${status}${metadata !== undefined ? ` (${JSON.stringify(metadata)})` : ''}`);
     this.checkResults.push({ 'name': name, 'status': status });
   }
@@ -31,7 +27,7 @@ class TelemetryHealthRegistry extends HealthRegistry {
     this.timeouts.push({ 'name': name, 'timeoutMs': timeoutMs });
   }
 
-  protected override onAggregate(overall: HealthStatusType, results: ReadonlyMap<string, HealthCheckResultType>): void {
+  protected override onAggregate(overall: HealthStatusEntity.Type, results: ReadonlyMap<string, HealthCheckResultInterface>): void {
     console.log(`[health] overall: ${overall} (${String(results.size)} checks)`);
   }
 }

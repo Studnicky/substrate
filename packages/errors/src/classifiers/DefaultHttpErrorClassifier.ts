@@ -6,9 +6,9 @@ import {
   HTTP_REQUEST_TIMEOUT,
   HttpStatus
 } from '../constants/index.js';
-import { errorTypeGuards } from '../validation/errorTypeGuards.js';
-import { DefaultHttpErrorClassifierBuilder } from './DefaultHttpErrorClassifierBuilder.js';
+import { ErrorWithStatusEntity } from '../entities/ErrorWithStatusEntity.js';
 import { ErrorClassifier } from './ErrorClassifier.js';
+import { matchers } from './matchers.js';
 
 /**
  * Default HTTP error classifier
@@ -30,15 +30,6 @@ import { ErrorClassifier } from './ErrorClassifier.js';
 export class DefaultHttpErrorClassifier extends ErrorClassifier implements ErrorClassifierInterface {
   static create(): DefaultHttpErrorClassifier {
     const result = new this();
-    return result;
-  }
-
-  static builder(): DefaultHttpErrorClassifierBuilder {
-    const factory = (): DefaultHttpErrorClassifier => {
-      const result = DefaultHttpErrorClassifier.create();
-      return result;
-    };
-    const result = DefaultHttpErrorClassifierBuilder.create(factory);
     return result;
   }
 
@@ -65,22 +56,18 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
    * ```
    */
   classify(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
-    const {
-      HTTP_MATCHERS, NETWORK_MATCHERS
-    } = ErrorClassifier;
-
-    if (errorTypeGuards.isErrorWithStatus(error)) {
+    if (ErrorWithStatusEntity.validate(error)) {
       const status = error.status;
 
       if (status === HttpStatus.TOO_MANY_REQUESTS) {
         return this.retryable('Rate limited');
       }
 
-      if (this.hasProperty(error, 'status', HTTP_MATCHERS.isGatewayError)) {
+      if (this.hasProperty(error, 'status', matchers.http.isGatewayError)) {
         return this.retryable(`Gateway error (${status})`);
       }
 
-      if (this.hasProperty(error, 'status', HTTP_MATCHERS.isServerError)) {
+      if (this.hasProperty(error, 'status', matchers.http.isServerError)) {
         return this.retryable(`Server error (${status})`);
       }
 
@@ -88,13 +75,13 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
         return this.retryable('Request timeout');
       }
 
-      if (this.hasProperty(error, 'status', HTTP_MATCHERS.isClientError)) {
+      if (this.hasProperty(error, 'status', matchers.http.isClientError)) {
         return this.nonRetryable(`Client error (${status})`);
       }
     }
 
-    if (this.hasProperty(error, 'code', NETWORK_MATCHERS.isConnectionError)
-        || this.hasProperty(error, 'code', NETWORK_MATCHERS.isTimeout)) {
+    if (this.hasProperty(error, 'code', matchers.network.isConnectionError)
+        || this.hasProperty(error, 'code', matchers.network.isTimeout)) {
       return this.retryable('Network error');
     }
 

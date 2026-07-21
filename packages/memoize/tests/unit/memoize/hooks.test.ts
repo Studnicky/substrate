@@ -5,7 +5,7 @@
  * and the original call arguments.
  */
 
-import { deepStrictEqual } from 'node:assert/strict';
+import { deepStrictEqual, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
 import { Memoize } from '../../../src/index.js';
@@ -26,7 +26,7 @@ it('fires onMemoMiss then onMemoHit with key and args', async () => {
   const memo = TrackedMemoize.create(
     (id: string, revision: number) => `${id}@${revision}`,
     { 'keyFn': (id: string, revision: number) => `${id}:${revision}`, 'capacity': 10 }
-  ) as TrackedMemoize;
+  );
 
   await memo.call('order-1', 3);
   await memo.call('order-1', 3);
@@ -35,6 +35,28 @@ it('fires onMemoMiss then onMemoHit with key and args', async () => {
     'miss:order-1:3:["order-1",3]',
     'hit:order-1:3:["order-1",3]'
   ]);
+});
+
+it('fires onMemoMiss before invoking the wrapped function', async () => {
+  const events: string[] = [];
+
+  class TrackedMemoize extends Memoize<[string], string> {
+    protected override onMemoMiss(): void {
+      events.push('miss');
+    }
+  }
+
+  const memo = TrackedMemoize.create(
+    (id: string) => {
+      events.push('function');
+      return `value:${id}`;
+    },
+    { 'keyFn': (id: string) => id, 'capacity': 10 }
+  );
+
+  await memo.call('a');
+
+  deepStrictEqual(events, ['miss', 'function']);
 });
 
 it('a throwing onMemoHit hook does not replace a cached return value', async () => {
@@ -47,7 +69,7 @@ it('a throwing onMemoHit hook does not replace a cached return value', async () 
   const memo = ThrowingHitMemoize.create(
     (id: string) => `value:${id}`,
     { 'keyFn': (id: string) => id, 'capacity': 10 }
-  ) as ThrowingHitMemoize;
+  );
 
   await memo.call('a');
   const value = await memo.call('a');
@@ -68,7 +90,7 @@ it(
     const memo = ThrowingMissMemoize.create(
       (id: string) => `value:${id}`,
       { 'keyFn': (id: string) => id, 'capacity': 10 }
-    ) as ThrowingMissMemoize;
+    );
 
     const first = await memo.call('a');
     deepStrictEqual(first, 'value:a');
@@ -77,6 +99,59 @@ it(
     deepStrictEqual(second, 'value:a');
   }
 );
+
+it('unexpected async hit, miss, and coalesced overrides preserve results without unhandled rejections', async () => {
+  const events: string[] = [];
+  const rejectionEvents: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  class AsyncRejectingHooksMemoize extends Memoize<[string], string> {
+    protected override async onMemoHit(): Promise<void> {
+      events.push('hit');
+      await Promise.resolve();
+      throw new Error('onMemoHit async boom');
+    }
+
+    protected override async onMemoMiss(): Promise<void> {
+      events.push('miss');
+      await Promise.resolve();
+      throw new Error('onMemoMiss async boom');
+    }
+
+    protected override async onMemoCoalesced(): Promise<void> {
+      events.push('coalesced');
+      await Promise.resolve();
+      throw new Error('onMemoCoalesced async boom');
+    }
+  }
+
+  let resolveFactory: (value: string) => void = () => {};
+  const pending = new Promise<string>((resolve) => { resolveFactory = resolve; });
+  const memo = AsyncRejectingHooksMemoize.create(
+    async () => pending,
+    { 'keyFn': (id: string) => id, 'capacity': 10 }
+  );
+
+  try {
+    const leader = memo.call('a');
+    const follower = memo.call('a');
+    resolveFactory('value:a');
+
+    const [leaderResult, followerResult] = await Promise.all([leader, follower]);
+    strictEqual(leaderResult, 'value:a');
+    strictEqual(followerResult, 'value:a');
+    strictEqual(await memo.call('a'), 'value:a');
+
+    await new Promise((resolve) => { setImmediate(resolve); });
+    await new Promise((resolve) => { setImmediate(resolve); });
+
+    deepStrictEqual(events, ['miss', 'coalesced', 'hit']);
+    strictEqual(rejectionEvents.length, 0);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
 
 it(
   'an async onMemoMiss hook whose returned promise rejects does not hang the triggering call or a subsequent call',
@@ -92,7 +167,7 @@ it(
     const memo = RejectingMissMemoize.create(
       (id: string) => `value:${id}`,
       { 'keyFn': (id: string) => id, 'capacity': 10 }
-    ) as RejectingMissMemoize;
+    );
 
     const first = await memo.call('a');
     deepStrictEqual(first, 'value:a');

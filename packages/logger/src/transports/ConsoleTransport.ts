@@ -1,13 +1,14 @@
+import type { ConsoleTransportOptionsEntity } from '../entities/ConsoleTransportOptionsEntity.js';
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
-import type { ConsoleTransportOptionsType } from './ConsoleTransportOptionsType.js';
 import type { TransportInterface } from './TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
 import { SafeStringify } from '../modules/safeStringify.js';
-import { ConsoleTransportBuilder } from './ConsoleTransportBuilder.js';
 
-type ConsoleFn = (message: string, record: LogRecordEntity.Type) => void;
+interface ConsoleFunctionInterface {
+  (message: string, record: LogRecordEntity.Type): void;
+}
 
 /**
  * Dispatch map from numeric log level to the corresponding console method.
@@ -16,7 +17,7 @@ type ConsoleFn = (message: string, record: LogRecordEntity.Type) => void;
  * NOTE: This is the ONLY file in the package permitted to use `console`.
  * All other modules route output through this transport.
  */
-const consoleDispatch = new Map<number, ConsoleFn>([
+const consoleDispatch = new Map<number, ConsoleFunctionInterface>([
   [LOG_LEVEL.DEBUG, (msg, rec) => { console.debug(msg, rec); }],
   [LOG_LEVEL.ERROR, (msg, rec) => { console.error(msg, rec); }],
   [LOG_LEVEL.INFO, (msg, rec) => { console.info(msg, rec); }],
@@ -45,18 +46,13 @@ export class ConsoleTransport implements TransportInterface {
    * @param options - Optional configuration for this transport
    * @returns A new ConsoleTransport instance
    */
-  static create(options: ConsoleTransportOptionsType = {}): ConsoleTransport {
+  static create(options: ConsoleTransportOptionsEntity.Type = {}): ConsoleTransport {
     return new this(options);
-  }
-
-  static builder(): ConsoleTransportBuilder {
-    const result = ConsoleTransportBuilder.create((options) => { const result = ConsoleTransport.create(options); return result; });
-    return result;
   }
 
   readonly #minLevel: number;
 
-  protected constructor(options: ConsoleTransportOptionsType = {}) {
+  protected constructor(options: ConsoleTransportOptionsEntity.Type = {}) {
     this.#minLevel = ResolveMinLevel.from(options);
   }
 

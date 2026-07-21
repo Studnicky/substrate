@@ -1,5 +1,6 @@
+import type { AsyncLocalStorage } from 'node:async_hooks';
+
 import { HookInvoker } from '@studnicky/errors';
-import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
  * ContextScope - An initialized context ready for execution.
@@ -7,13 +8,10 @@ import { AsyncLocalStorage } from 'node:async_hooks';
  * Returned from `Context.initialize()`. Manages the execute/terminate lifecycle
  * with an explicit FSM: created → active → terminated.
  */
+import type { ContextScopeStateEntity } from '../entities/ContextScopeStateEntity.js';
 import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
-import type { ContextScopeOptionsInterface } from './ContextScopeOptionsInterface.js';
 
-import { ContextConfigError, ContextError } from '../errors/ContextError.js';
-import { ContextScopeBuilder } from './ContextScopeBuilder.js';
-
-type ContextScopeState = 'active' | 'created' | 'terminated';
+import { ContextError } from '../errors/ContextError.js';
 
 /**
  * An initialized context scope returned from Context.initialize().
@@ -82,30 +80,9 @@ type ContextScopeState = 'active' | 'created' | 'terminated';
  * ```
  */
 export class ContextScope implements ContextScopeInterface {
-  /**
-   * Create a new ContextScope.
-   *
-   * @param options - Name, storage, and optional initial values
-   * @returns New ContextScope in the active state
-   */
-  static create(options: ContextScopeOptionsInterface): ContextScope {
-    return new this(options);
-  }
-
-  /**
-   * Create a fluent builder for constructing a ContextScope.
-   *
-   * @returns A new ContextScopeBuilder
-   */
-  static builder(): ContextScopeBuilder {
-    // Factory closure so `create` retains its `this` binding when the builder calls it.
-    const result = ContextScopeBuilder.create((options) => { const scope = ContextScope.create(options); return scope; });
-    return result;
-  }
-
   readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
   readonly #store: Map<string, unknown>;
-  #state: ContextScopeState = 'created';
+  #state: ContextScopeStateEntity.Type = 'created';
 
   /**
    * The name of this scope, used in error messages.
@@ -114,19 +91,15 @@ export class ContextScope implements ContextScopeInterface {
 
   protected readonly hooks: HookInvoker = new HookInvoker();
 
-  protected constructor(options: ContextScopeOptionsInterface) {
-    if (typeof options.name !== 'string' || options.name.length === 0) {
-      throw new ContextConfigError('name must be a non-empty string');
-    }
-
-    if (!(options.storage instanceof AsyncLocalStorage)) {
-      throw new ContextConfigError('storage must be an AsyncLocalStorage instance');
-    }
-
-    this.name = options.name;
-    this.#storage = options.storage;
-    this.#store = options.initial !== undefined
-      ? new Map<string, unknown>(Object.entries(options.initial))
+  constructor(
+    name: string,
+    storage: AsyncLocalStorage<Map<string, unknown>>,
+    initial?: Record<string, unknown>
+  ) {
+    this.name = name;
+    this.#storage = storage;
+    this.#store = initial !== undefined
+      ? new Map<string, unknown>(Object.entries(initial))
       : new Map<string, unknown>();
     // FSM: created → active
     this.transition('active');
@@ -136,7 +109,7 @@ export class ContextScope implements ContextScopeInterface {
    * Transition the FSM to a new state.
    * Subclasses can override onExit() and onEnter() to react to transitions.
    */
-  protected transition(to: ContextScopeState): void {
+  protected transition(to: ContextScopeStateEntity.Type): void {
     const from = this.#state;
 
     if (!this.guard(from, to)) {
@@ -163,7 +136,7 @@ export class ContextScope implements ContextScopeInterface {
    *
    * All other transitions are illegal.
    */
-  protected guard(from: ContextScopeState, to: ContextScopeState): boolean {
+  protected guard(from: ContextScopeStateEntity.Type, to: ContextScopeStateEntity.Type): boolean {
     if (from === 'created' && to === 'active') {return true;}
     if (from === 'active' && to === 'terminated') {return true;}
 
@@ -179,18 +152,18 @@ export class ContextScope implements ContextScopeInterface {
    * @param _from - The state being left
    * @param _to - The state being entered
    */
-  protected onExit(_from: ContextScopeState, _to: ContextScopeState): void {}
+  protected onExit(_from: ContextScopeStateEntity.Type, _to: ContextScopeStateEntity.Type): void {}
 
   /**
    * Hook called when the FSM enters a new state.
    * Subclasses override to react to state changes.
    */
-  protected onEnter(_to: ContextScopeState, _from: ContextScopeState): void {}
+  protected onEnter(_to: ContextScopeStateEntity.Type, _from: ContextScopeStateEntity.Type): void {}
 
   /**
    * The current FSM state.
    */
-  protected get state(): ContextScopeState {
+  protected get state(): ContextScopeStateEntity.Type {
     const result = this.#state;
     return result;
   }

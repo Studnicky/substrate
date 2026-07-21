@@ -8,26 +8,33 @@ import {
 } from 'node:test';
 
 import { DEFAULT_DISPATCHER_CONFIG } from '../../src/constants/DEFAULT_DISPATCHER_CONFIG.js';
+import { DispatcherAgent } from '../../src/config/DispatcherAgent.js';
+import { validateDispatcher } from '../../src/config/schemas/validateDispatcher.js';
 import { FetchClient } from '../../src/modules/FetchClient.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
+
+const createDispatcher = (config: Parameters<typeof DispatcherAgent.create>[0]): UndiciDispatcher => {
+  validateDispatcher(config);
+  return UndiciDispatcher.create(DispatcherAgent.create(config));
+};
 
 void describe('pool configuration validation and merging', () => {
   void describe('validation', () => {
     void it('should reject invalid connections before creating dispatcher', () => {
       assert.throws(() => {
-        UndiciDispatcher.create({ connections: -5 });
+        createDispatcher({ connections: -5 });
       }, /must be at least 1/u);
     });
 
     void it('should reject unknown keys', () => {
       assert.throws(() => {
-        UndiciDispatcher.create({ invalidKey: true } as never);
+        createDispatcher({ invalidKey: true } as never);
       }, /not declared in the schema/u);
     });
 
     void it('should accept valid config', () => {
       assert.doesNotThrow(() => {
-        UndiciDispatcher.create({ connections: 20 });
+        createDispatcher({ connections: 20 });
       });
     });
 
@@ -91,14 +98,14 @@ void describe('pool configuration validation and merging', () => {
 
   void describe('dispatcher creation', () => {
     void it('should create dispatcher with empty config', () => {
-      const dispatcher = UndiciDispatcher.create({});
+      const dispatcher = createDispatcher({});
 
       assert.ok(dispatcher instanceof UndiciDispatcher);
     });
 
     void it('should create dispatcher with all options', () => {
       assert.doesNotThrow(() => {
-        UndiciDispatcher.create({
+        createDispatcher({
           allowH2: true,
           autoSelectFamily: true,
           autoSelectFamilyAttemptTimeout: 400,
@@ -122,18 +129,6 @@ void describe('pool configuration validation and merging', () => {
       });
     });
 
-    void it('should expose agent via getAgent()', () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 10 });
-
-      assert.ok(dispatcher.getAgent() !== undefined);
-    });
-
-    void it('should expose abort signal via getSignal()', () => {
-      const dispatcher = UndiciDispatcher.create({});
-
-      assert.ok(dispatcher.getSignal() instanceof AbortSignal);
-      assert.strictEqual(dispatcher.getSignal().aborted, false);
-    });
   });
 
   void describe('FetchClient integration', () => {

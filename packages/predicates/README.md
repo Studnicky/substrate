@@ -6,6 +6,8 @@
 
 A static predicate library that covers every primitive check needed for JSON Schema draft 2020-12 validation. All methods live on a single class — no instantiation required. Checks span type inference, string bounds (Unicode code-point aware), numeric constraints with epsilon tolerance, array uniqueness, object property rules, enum and const equality, coercion, and content encoding/media-type validation.
 
+`@studnicky/predicates` is the sole public code entrypoint.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -37,7 +39,7 @@ Predicates.matchesAnyType(['string', 'null'], null); // true
 // String bounds — Unicode code-point aware
 Predicates.satisfiesMinLength('hello', 3);   // true
 Predicates.satisfiesMaxLength('hi', 10);     // true
-Predicates.satisfiesPattern('abc', /^a/);    // true
+Predicates.checkPattern('abc', /^a/);        // true
 Predicates.codePointLength('👋');            // 1
 
 // Numeric constraints

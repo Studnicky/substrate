@@ -6,17 +6,47 @@ import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
 import { HookInvoker } from '@studnicky/errors';
 
-import type { MemoizeOptionsType } from './types/MemoizeOptionsType.js';
+import type { CacheLookupEntity } from './entities/CacheLookupEntity.js';
+import type { MemoizeOptionsInterface } from './interfaces/MemoizeOptionsInterface.js';
 
-import { MemoizeBuilder } from './MemoizeBuilder.js';
+class MemoizeHookInvoker extends HookInvoker {
+  protected override onHookError(_hookName: string, _cause: unknown): void {}
+}
 
-// json-schema-uninexpressible: generic type parameters (TArgs, TResult), live class instances (LruCache, Coalesce), and function-type fields (fn, keyFn) — none are plain JSON-serializable data
-type MemoizeDepsType<TArgs extends unknown[], TResult> = {
+interface CacheLookupInterface<T> {
+  readonly 'found': CacheLookupEntity.Type['found'];
+  readonly 'value': T | undefined;
+}
+
+class MemoizeCacheLookup {
+  static isHit<T>(
+    lookup: CacheLookupInterface<T>
+  ): lookup is CacheLookupInterface<T> & { readonly 'found': true; readonly 'value': T } {
+    if (!lookup.found) {
+      return false;
+    }
+    return Object.hasOwn(lookup, 'value');
+  }
+}
+
+interface MemoizeDepsInterface<TArgs extends unknown[], TResult> {
   'cache': LruCache<string, TResult>;
-  'coalesce': Coalesce<TResult>;
   'fn': (...args: TArgs) => TResult | Promise<TResult>;
   'keyFn': (...args: TArgs) => string;
-};
+}
+
+interface MemoizeSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class MemoizeInstance {
+  static belongsTo<TInstance>(
+    constructor: MemoizeSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
 
 /**
  * Composes `@studnicky/cache` (`LruCache`) and `@studnicky/concurrency`
@@ -60,6 +90,42 @@ type MemoizeDepsType<TArgs extends unknown[], TResult> = {
  * ```
  */
 export class Memoize<TArgs extends unknown[], TResult> {
+  static readonly #OwnedCoalesce = class MemoizeCoalesce<
+    TOwnerArgs extends unknown[],
+    TOwnerResult
+  > extends Coalesce<TOwnerResult> {
+    readonly #owner: Memoize<TOwnerArgs, TOwnerResult>;
+
+    constructor(owner: Memoize<TOwnerArgs, TOwnerResult>) {
+      super();
+      this.#owner = owner;
+    }
+
+    protected override onCoalesceStart(key: string): void {
+      super.onCoalesceStart(key);
+      const args = this.#owner.#pendingArgsByKey.get(key);
+      if (args === undefined) {
+        return;
+      }
+      this.#owner.hooks.invoke('onMemoMiss', () => {
+        const hookResult = this.#owner.onMemoMiss(key, args);
+        return hookResult;
+      });
+    }
+
+    protected override onCoalesceJoin(key: string): void {
+      super.onCoalesceJoin(key);
+      const args = this.#owner.#pendingArgsByKey.get(key);
+      if (args === undefined) {
+        return;
+      }
+      this.#owner.hooks.invoke('onMemoCoalesced', () => {
+        const hookResult = this.#owner.onMemoCoalesced(key, args);
+        return hookResult;
+      });
+    }
+  };
+
   /**
    * Creates a new Memoize wrapping `fn`.
    *
@@ -67,63 +133,32 @@ export class Memoize<TArgs extends unknown[], TResult> {
    * @param options - `{ keyFn, capacity, ttlMs?, staleMs? }` — `keyFn` is required
    * @returns New Memoize instance
    */
-  static create<TArgs extends unknown[], TResult>(
+  static create<
+    TArgs extends unknown[],
+    TResult,
+    TInstance extends Memoize<TArgs, TResult> = Memoize<TArgs, TResult>
+  >(
+    this: MemoizeSubclassInterface<TInstance>,
     fn: (...args: TArgs) => TResult | Promise<TResult>,
-    options: MemoizeOptionsType<TArgs>
-  ): Memoize<TArgs, TResult> {
+    options: MemoizeOptionsInterface<TArgs>
+  ): TInstance {
     const cache = LruCache.create<string, TResult>({
       'capacity': options.capacity,
       ...(options.staleMs !== undefined ? { 'staleMs': options.staleMs } : {}),
       ...(options.ttlMs !== undefined ? { 'ttlMs': options.ttlMs } : {})
     });
 
-    const Ctor = this as unknown as new (deps: MemoizeDepsType<TArgs, TResult>) => Memoize<TArgs, TResult>;
-
-    const memoRefBox: { 'current'?: Memoize<TArgs, TResult> } = {};
-
-    const coalesce = new (class extends Coalesce<TResult> {
-      constructor() {
-        super();
-      }
-
-      protected override onCoalesceStart(key: string): void {
-        super.onCoalesceStart(key);
-        const memo = memoRefBox.current!;
-        const args = memo.#pendingArgsByKey.get(key)!;
-        void memo.#invokeHookSafely('onMemoMiss', () => {
-          const hookResult = memo.onMemoMiss(key, args);
-          return hookResult;
-        });
-      }
-
-      protected override onCoalesceJoin(key: string): void {
-        super.onCoalesceJoin(key);
-        const memo = memoRefBox.current!;
-        const args = memo.#pendingArgsByKey.get(key)!;
-        void memo.#invokeHookSafely('onMemoCoalesced', () => {
-          const hookResult = memo.onMemoCoalesced(key, args);
-          return hookResult;
-        });
-      }
-    })();
-
-    const result = new Ctor({
+    const deps: MemoizeDepsInterface<TArgs, TResult> = {
       'cache': cache,
-      'coalesce': coalesce,
       'fn': fn,
       'keyFn': options.keyFn
-    });
+    };
+    const result: unknown = Reflect.construct(this, [deps]);
 
-    memoRefBox.current = result;
+    if (!MemoizeInstance.belongsTo(this, result)) {
+      throw new TypeError('Memoize.create() did not construct the requested subclass.');
+    }
 
-    return result;
-  }
-
-  static builder<TArgs extends unknown[], TResult>(): MemoizeBuilder<TArgs, TResult> {
-    const result = MemoizeBuilder.create<TArgs, TResult>((fn, options) => {
-      const memo = Memoize.create<TArgs, TResult>(fn, options);
-      return memo;
-    });
     return result;
   }
 
@@ -131,22 +166,7 @@ export class Memoize<TArgs extends unknown[], TResult> {
   readonly #coalesce: Coalesce<TResult>;
   readonly #fn: (...args: TArgs) => TResult | Promise<TResult>;
   readonly #keyFn: (...args: TArgs) => string;
-  protected readonly hooks: HookInvoker = new HookInvoker();
-  /**
-   * Runs `hookName` through the composed `HookInvoker#invoke` — which
-   * `await`s `fn`, so it catches both a synchronous throw and a rejected
-   * `Promise` from an `async` override — and discards a failure rather than
-   * letting `invoke`'s default `onHookError` rethrow it as a
-   * `HookInvocationError`: a broken hook must never corrupt `call()`'s cache
-   * or coalesce bookkeeping.
-   */
-  async #invokeHookSafely(hookName: string, fn: () => unknown): Promise<void> {
-    try {
-      await this.hooks.invoke(hookName, fn);
-    } catch {
-      // Discarded — see method doc: hooks must never break memoization bookkeeping.
-    }
-  }
+  protected readonly hooks: HookInvoker = new MemoizeHookInvoker();
 
   /**
    * Per-key arguments for calls currently entering the composed `Coalesce`,
@@ -162,9 +182,9 @@ export class Memoize<TArgs extends unknown[], TResult> {
    */
   readonly #pendingArgsByKey = new Map<string, TArgs>();
 
-  protected constructor(deps: MemoizeDepsType<TArgs, TResult>) {
+  protected constructor(deps: MemoizeDepsInterface<TArgs, TResult>) {
     this.#cache = deps.cache;
-    this.#coalesce = deps.coalesce;
+    this.#coalesce = new Memoize.#OwnedCoalesce<TArgs, TResult>(this);
     this.#fn = deps.fn;
     this.#keyFn = deps.keyFn;
   }
@@ -181,9 +201,9 @@ export class Memoize<TArgs extends unknown[], TResult> {
     const key = this.#keyFn(...args);
 
     const cached = this.#cache.tryGet(key);
-    if (cached.found) {
-      const value = cached.value as TResult;
-      await this.#invokeHookSafely('onMemoHit', () => {
+    if (MemoizeCacheLookup.isHit(cached)) {
+      const value = cached.value;
+      await this.hooks.invokeAsync('onMemoHit', () => {
         const hookResult = this.onMemoHit(key, args);
         return hookResult;
       });
@@ -217,23 +237,11 @@ export class Memoize<TArgs extends unknown[], TResult> {
     this.#cache.clear();
   }
 
-  /** The composed `LruCache` instance — never a copy or wrapper. */
-  getCache(): LruCache<string, TResult> {
-    return this.#cache;
-  }
-
-  /** The composed `Coalesce` instance — never a copy or wrapper. */
-  getCoalesce(): Coalesce<TResult> {
-    return this.#coalesce;
-  }
-
   // ---------------------------------------------------------------------------
   // Lifecycle hooks — no-op by default. Observe memoization semantics
   // (hit/miss/coalesced) without coupling this class to any logging/metrics
-  // library. Overrides must not throw or block; every hook is invoked through
-  // `#invokeHookSafely`, which discards both a synchronous throw and a
-  // rejection from an `async` override, so a broken hook can never corrupt
-  // `call()`'s cache or coalesce bookkeeping.
+  // library. Hook failures are swallowed by the composed invoker so they
+  // cannot corrupt `call()`'s cache or coalesce bookkeeping.
   // ---------------------------------------------------------------------------
 
   /** Fires when `call()` returns a cached result for `key` without re-invoking the wrapped function. */

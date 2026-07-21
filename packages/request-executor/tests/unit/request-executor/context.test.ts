@@ -52,13 +52,16 @@ it('round-trips a value set/get inside fn through the composed Context instance'
 
   await executor.execute(async (client, signal) => {
     context.set('requestId', 'req-abc-123');
-    observedRequestId = context.get<string>('requestId');
+    const requestId = context.get('requestId');
+    if (typeof requestId !== 'string') {
+      throw new TypeError('Expected requestId context value to be a string');
+    }
+    observedRequestId = requestId;
 
     return client.get('/', { signal });
   });
 
   equal(observedRequestId, 'req-abc-123');
-  equal(executor.getContext(), context);
 });
 
 it('seeds contextInitial values reachable from fn', async () => {
@@ -74,7 +77,11 @@ it('seeds contextInitial values reachable from fn', async () => {
 
   await executor.execute(
     async (client, signal) => {
-      observedSeed = context.get<number>('seed');
+      const seed = context.get('seed');
+      if (typeof seed !== 'number') {
+        throw new TypeError('Expected seed context value to be a number');
+      }
+      observedSeed = seed;
       return client.get('/', { signal });
     },
     { 'contextInitial': { 'seed': 42 } }

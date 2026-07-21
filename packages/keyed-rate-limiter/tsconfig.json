@@ -20,6 +20,9 @@
       "path": "../errors"
     },
     {
+      "path": "../json"
+    },
+    {
       "path": "../resilience"
     }
   ]

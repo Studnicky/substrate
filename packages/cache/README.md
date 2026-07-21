@@ -10,6 +10,8 @@ Each entry can carry its own TTL, overriding the cache-level default. This makes
 
 Entries can also carry an optional `staleMs` threshold, shorter than `ttlMs`: once past it, `get()` still serves the (still-live) value but fires `onStale` instead of `onHit`, so a subclass can flag aging data without evicting it early. `deleteWhere(predicate)` removes every entry matching a `(key, value) => boolean` predicate in one call, firing `onDelete` for each removal.
 
+`@studnicky/cache` is the sole public code entrypoint. It exports `LruCacheOptionsEntity` for construction data and `LruCacheNodeTimingEntity` for the schema-derived expiry and staleness fields composed by cache nodes.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -33,40 +35,16 @@ const cache = LruCache.create<string, number>({ capacity: 100 });
 cache.set('hits', 42);
 const hits = cache.get('hits'); // 42
 
-// 2. Via builder — fluent API
-const built = LruCache.builder<string, number>()
-  .withCapacity(100)
-  .build();
-
-built.set('hits', 42);
-
-// 3. Default TTL — all entries expire after 5 seconds unless overridden
+// 2. Default TTL — all entries expire after 5 seconds unless overridden
 const ttlCache = LruCache.create<string, string>({ capacity: 50, ttlMs: 5_000 });
 
 ttlCache.set('session', 'abc123');
 const session = ttlCache.get('session'); // 'abc123' (within 5s)
 
-// Via builder with TTL
-const ttlBuilt = LruCache.builder<string, string>()
-  .withCapacity(50)
-  .withTtlMs(5_000)
-  .build();
-
-// 4. Per-entry TTL override — this entry expires after 1 second regardless of cache default
+// 3. Per-entry TTL override — this entry expires after 1 second regardless of cache default
 ttlCache.set('shortLived', 'temp', 1_000);
 
-// 5. Bulk insert — entries are inserted in argument order; the last entry is MRU
-const batch = LruCache.create<string, number>({ capacity: 3 });
-batch.setMany([['a', 1], ['b', 2], ['c', 3]]);
-// Adding more entries evicts the oldest-by-arg-order first ('a', then 'b')
-batch.setMany([['d', 4], ['e', 5]]);
-// batch.get('a') === undefined (evicted); batch.get('e') === 5
-
-// Batch TTL applies to every entry in the call
-const timed = LruCache.create<string, string>({ capacity: 10 });
-timed.setMany([['x', 'one'], ['y', 'two']], 5_000); // both expire in 5 s
-
-// 6. has, delete, clear, size
+// 4. has, delete, clear, size
 const store = LruCache.create<string, boolean>({ capacity: 10 });
 
 store.set('flag', true);
@@ -81,7 +59,7 @@ store.set('b', true);
 store.clear();
 store.size;           // 0
 
-// 7. staleMs — soft staleness marker, shorter than ttlMs
+// 5. staleMs — soft staleness marker, shorter than ttlMs
 // The entry stays live and servable past staleMs (still promoted to MRU on read),
 // but get() fires onStale instead of onHit so a subclass can flag it as aging.
 class ObservedCache extends LruCache<string, string> {
@@ -102,7 +80,7 @@ staleCache.set('page', 'v1');
 // Per-entry staleMs override (ttlMs, staleMs) — mirrors the per-entry TTL override
 staleCache.set('short-stale', 'v1', 10_000, 500); // 10s ttl, 500ms stale threshold
 
-// 8. deleteWhere — bulk/predicate invalidation
+// 6. deleteWhere — bulk/predicate invalidation
 // Removes every entry for which the predicate returns true, firing onDelete for each.
 const tagged = LruCache.create<string, { tag: string }>({ capacity: 100 });
 tagged.set('a', { tag: 'stale-group' });

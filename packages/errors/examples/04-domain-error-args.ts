@@ -2,29 +2,23 @@
 
 import assert from 'node:assert/strict';
 
-import type { BaseErrorArgumentsType } from '../src/index.js';
+import type { BaseErrorArgumentsInterface } from '../src/index.js';
 
 // #region usage
 import { BaseError, DomainErrorArgs } from '../src/index.js';
 
 abstract class RateLimitError extends BaseError {
-  protected constructor(args: Readonly<BaseErrorArgumentsType>) {
+  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
     super(args);
   }
 }
-
-// json-schema-uninexpressible: minimal demo-only fields type for a runnable doc example, not a shipped domain shape
-type RateLimitExceededFieldsType = {
-  'limit': number;
-  'route': string;
-};
 
 class RateLimitExceededError extends RateLimitError {
   readonly limit!: number;
   readonly route!: string;
 
   constructor(route: string, limit: number) {
-    const fields: RateLimitExceededFieldsType = { 'limit': limit, 'route': route };
+    const fields = { 'limit': limit, 'route': route };
     super(DomainErrorArgs.build(fields, {
       'code': 'rateLimit.exceeded',
       'message': (f) => { const result = `Rate limit of ${String(f.limit)} exceeded for "${f.route}"`; return result; },

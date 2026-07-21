@@ -1,7 +1,6 @@
+import { Guard } from '@studnicky/types';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-
-import { Guard } from '../../../src/index.js';
 
 void describe('Guard', () => {
   void describe('isObject', () => {
@@ -19,20 +18,6 @@ void describe('Guard', () => {
     }
   });
 
-  void describe('asRecord', () => {
-    const scenarios: Array<{ description: string; input: unknown; expected: Record<string, unknown> | undefined }> = [
-      { description: 'returns record for a plain object', input: { x: 1 }, expected: { x: 1 } },
-      { description: 'returns undefined for null', input: null, expected: undefined },
-      { description: 'returns undefined for an array', input: [1], expected: undefined },
-    ];
-
-    for (const { description, input, expected } of scenarios) {
-      void it(description, () => {
-        assert.deepStrictEqual(Guard.asRecord(input), expected);
-      });
-    }
-  });
-
   void describe('isString', () => {
     const scenarios: Array<{ description: string; input: unknown; expected: boolean }> = [
       { description: 'returns true for a string', input: 'hello', expected: true },
@@ -43,19 +28,6 @@ void describe('Guard', () => {
     for (const { description, input, expected } of scenarios) {
       void it(description, () => {
         assert.strictEqual(Guard.isString(input), expected);
-      });
-    }
-  });
-
-  void describe('asString', () => {
-    const scenarios: Array<{ description: string; input: unknown; expected: string | undefined }> = [
-      { description: 'returns string for a string value', input: 'hi', expected: 'hi' },
-      { description: 'returns undefined for a non-string', input: 99, expected: undefined },
-    ];
-
-    for (const { description, input, expected } of scenarios) {
-      void it(description, () => {
-        assert.strictEqual(Guard.asString(input), expected);
       });
     }
   });

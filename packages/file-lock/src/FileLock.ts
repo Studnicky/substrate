@@ -1,47 +1,29 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
-import { HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 
-import type { FileLockCreateOptionsType } from './FileLockCreateOptionsType.js';
+import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
+import type { FileLockCreateOptionsInterface } from './FileLockCreateOptionsInterface.js';
 import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
 
 import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from './constants/FileLockDefaults.js';
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockConfigError } from './errors/FileLockConfigError.js';
-import { FileLockBuilder } from './FileLockBuilder.js';
 import { FileLockTimeoutError } from './FileLockTimeoutError.js';
 import { LockPathHelpers } from './LockPathHelpers.js';
 import { NodeFileSystem } from './NodeFileSystem.js';
 import { NodeOwnerToken } from './NodeOwnerToken.js';
 
-// json-schema-uninexpressible: `fs` is a FileSystemInterface — a behavioral interface of methods (existsSync, readFileSync, etc.), not plain data
-type FileLockInternalOptions = {
+interface FileLockInternalOptionsInterface {
   readonly 'fs': FileSystemInterface;
-  readonly 'lockPath': string;
-  readonly 'originalPath': string;
-};
-
-/**
- * Routes `FileLock`'s hook-invocation failures to the owning instance's
- * `#hookErrors` array via a constructor callback, since a private field
- * can't be reached across class boundaries. Hoisted to module scope so V8
- * compiles this class once rather than per `FileLock` instantiation.
- */
-class FileLockHookInvoker extends HookInvoker {
-  constructor(private readonly onError: (hookName: string, cause: unknown) => void) {
-    super();
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.onError(hookName, cause);
-    return undefined as T;
-  }
+  readonly 'lockPath': FileLockPathStateEntity.Type['lockPath'];
+  readonly 'originalPath': FileLockPathStateEntity.Type['originalPath'];
 }
 
 /**
  * Process-level advisory file lock using atomic rename.
  *
- * Acquire a lock via `FileLock.create` or `FileLock.builder()`. While held,
+ * Acquire a lock via `FileLock.create`. While held,
  * the target file is renamed to a PID-scoped lock path. Call `release()` (or
  * `using`) to rename it back.
  *
@@ -62,16 +44,12 @@ class FileLockHookInvoker extends HookInvoker {
  * ```
  */
 export class FileLock {
-  static builder(): FileLockBuilder {
-    // Factory closure so `create` retains its `this` binding when the builder calls it.
-    const result = FileLockBuilder.create((options) => {
-      const lock = FileLock.create(options);
-      return lock;
-    });
-    return result;
-  }
+  /** Swallows hook failures after the composed invoker records them. */
+  static readonly #OwnedHookInvoker = class FileLockHookInvoker extends HookInvoker {
+    protected override onHookError(_hookName: string, _cause: unknown): void {}
+  };
 
-  static async create(options: FileLockCreateOptionsType): Promise<FileLock> {
+  static async create(options: FileLockCreateOptionsInterface): Promise<FileLock> {
     const schemaOptions: FileLockOptionsEntity.Type = {
       'path': options.path,
       ...(options.pollMs !== undefined ? { 'pollMs': options.pollMs } : {}),
@@ -99,35 +77,18 @@ export class FileLock {
     return instance;
   }
 
-  /**
-   * Alias for `FileLock.create({ path, ...options })`.
-   * Uses `this.create()` so subclasses retain their prototype through this alias.
-   */
-  static async acquire(path: string, options?: Omit<FileLockCreateOptionsType, 'path'>): Promise<FileLock> {
-    const result = await this.create({ 'path': path, ...options });
-    return result;
-  }
-
   readonly #fs: FileSystemInterface;
   readonly #lockPath: string;
   readonly #originalPath: string;
   #released = false;
 
-  /**
-   * Errors raised by lifecycle hook overrides, recorded by `onHookError`
-   * instead of aborting the acquire/release flow that triggered them.
-   */
-  readonly #hookErrors: { 'cause': unknown; 'hookName': string, }[] = [];
-
   protected readonly hooks: HookInvoker;
 
-  protected constructor(options: FileLockInternalOptions) {
+  protected constructor(options: FileLockInternalOptionsInterface) {
     this.#fs = options.fs;
     this.#originalPath = options.originalPath;
     this.#lockPath = options.lockPath;
-    this.hooks = new FileLockHookInvoker((hookName, cause) => {
-      this.#hookErrors.push({ 'cause': cause, 'hookName': hookName });
-    });
+    this.hooks = new FileLock.#OwnedHookInvoker();
   }
 
   // ---------------------------------------------------------------------------
@@ -214,8 +175,7 @@ export class FileLock {
    */
   static #isContentionError(error: unknown): boolean {
     if (!(error instanceof Error)) { return false; }
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT') { return true; }
+    if ('code' in error && error.code === 'ENOENT') { return true; }
     return error.message.startsWith('ENOENT');
   }
 
@@ -261,13 +221,13 @@ export class FileLock {
 
   /** Count of hook failures recorded by `onHookError` since construction. */
   get hookErrorCount(): number {
-    const result = this.#hookErrors.length;
+    const result = this.hooks.hookErrorCount;
     return result;
   }
 
-  /** Returns a defensive copy of every hook failure recorded since construction. */
-  getHookErrors(): readonly { 'cause': unknown; 'hookName': string, }[] {
-    const result = [...this.#hookErrors];
+  /** Returns detached diagnostics for every hook failure recorded since construction. */
+  getHookErrors(): readonly HookInvocationError[] {
+    const result = this.hooks.getHookErrors();
     return result;
   }
 

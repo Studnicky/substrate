@@ -187,11 +187,7 @@ it('a throwing onAcquire hook rejects acquire() with HookInvocationError', async
 
   const sem = ThrowingAcquireSemaphore.create({ 'permits': 1 });
   await assert.rejects(() => sem.acquire(), HookInvocationError);
-
-  // the permit was already decremented before the hook fired, and acquire()
-  // rejected instead of returning a release function — the permit is lost,
-  // a deliberate consequence of hooks now propagating real errors.
-  assert.equal(sem.available, 0);
+  assert.equal(sem.available, 1);
 });
 
 it('a throwing onContended hook rejects the waiting acquire() with HookInvocationError', async () => {
@@ -208,6 +204,11 @@ it('a throwing onContended hook rejects the waiting acquire() with HookInvocatio
   await assert.rejects(() => pendingSecond, HookInvocationError);
 
   await releaseFirst();
+  assert.equal(sem.available, 1);
+
+  const releaseThird = await sem.acquire();
+  await releaseThird();
+  assert.equal(sem.available, 1);
 });
 
 it('an async-overridden onAcquire hook that rejects is routed safely through HookInvoker without an unhandled rejection', async () => {
@@ -231,6 +232,121 @@ it('an async-overridden onAcquire hook that rejects is routed safely through Hoo
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }
+});
+
+it('an async onAcquire rejection restores its reserved permit and grants the next queued caller', async () => {
+  class RejectFirstAcquireSemaphore extends Semaphore {
+    readonly entered = Promise.withResolvers<void>();
+    readonly finish = Promise.withResolvers<void>();
+    #acquireCount = 0;
+
+    constructor() {
+      super({ 'permits': 1 });
+    }
+
+    protected override async onAcquire(): Promise<void> {
+      this.#acquireCount += 1;
+      if (this.#acquireCount !== 1) { return; }
+      this.entered.resolve();
+      await this.finish.promise;
+      throw new Error('first acquire hook failed');
+    }
+  }
+
+  const sem = new RejectFirstAcquireSemaphore();
+  const first = sem.acquire();
+  await sem.entered.promise;
+
+  const second = sem.acquire();
+  sem.finish.resolve();
+
+  await assert.rejects(first, HookInvocationError);
+  const releaseSecond = await second;
+  assert.equal(sem.available, 0);
+
+  await releaseSecond();
+  assert.equal(sem.available, 1);
+});
+
+it('an async onAcquireWait rejection cancels the head waiter without letting a later waiter bypass FIFO', async () => {
+  class RejectFirstWaitSemaphore extends Semaphore {
+    readonly entered = Promise.withResolvers<void>();
+    readonly finish = Promise.withResolvers<void>();
+    #waitCount = 0;
+
+    constructor() {
+      super({ 'permits': 1 });
+    }
+
+    protected override async onAcquireWait(): Promise<void> {
+      this.#waitCount += 1;
+      if (this.#waitCount !== 1) { return; }
+      this.entered.resolve();
+      await this.finish.promise;
+      throw new Error('wait hook failed');
+    }
+  }
+
+  const sem = new RejectFirstWaitSemaphore();
+  const releaseFirst = await sem.acquire();
+  const second = sem.acquire();
+  await sem.entered.promise;
+  const secondRejected = assert.rejects(second, HookInvocationError);
+
+  let thirdAcquired = false;
+  const third = sem.acquire().then((release) => {
+    thirdAcquired = true;
+    return release;
+  });
+  await flushMicrotasks();
+  await releaseFirst();
+  assert.equal(thirdAcquired, false);
+
+  sem.finish.resolve();
+  await secondRejected;
+  const releaseThird = await third;
+  assert.equal(thirdAcquired, true);
+  assert.equal(sem.available, 0);
+
+  await releaseThird();
+  assert.equal(sem.available, 1);
+});
+
+it('an async onContended rejection cancels the head waiter and transfers the released permit to the next waiter', async () => {
+  class RejectFirstContendedSemaphore extends Semaphore {
+    readonly entered = Promise.withResolvers<void>();
+    readonly finish = Promise.withResolvers<void>();
+    #contendedCount = 0;
+
+    constructor() {
+      super({ 'permits': 1 });
+    }
+
+    protected override async onContended(): Promise<void> {
+      this.#contendedCount += 1;
+      if (this.#contendedCount !== 1) { return; }
+      this.entered.resolve();
+      await this.finish.promise;
+      throw new Error('contended hook failed');
+    }
+  }
+
+  const sem = new RejectFirstContendedSemaphore();
+  const releaseFirst = await sem.acquire();
+  const second = sem.acquire();
+  await sem.entered.promise;
+  const secondRejected = assert.rejects(second, HookInvocationError);
+
+  const third = sem.acquire();
+  await releaseFirst();
+  sem.finish.resolve();
+
+  await secondRejected;
+  const releaseThird = await third;
+  assert.equal(sem.available, 0);
+
+  await releaseThird();
+  assert.equal(sem.available, 1);
 });
 
 it('FIFO order survives the CircularBuffer swap: queued acquirers are granted permits in arrival order', async () => {

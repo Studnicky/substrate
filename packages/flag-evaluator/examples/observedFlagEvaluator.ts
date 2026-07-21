@@ -6,10 +6,6 @@ import assert from 'node:assert/strict';
 import { FlagEvaluator } from '../src/index.js';
 
 class TelemetryFlagEvaluator extends FlagEvaluator {
-  static override create(): TelemetryFlagEvaluator {
-    return new TelemetryFlagEvaluator();
-  }
-
   readonly evaluations: { 'flag': string; 'result': boolean }[] = [];
   readonly defaults: string[] = [];
   readonly ruleMismatches: string[] = [];

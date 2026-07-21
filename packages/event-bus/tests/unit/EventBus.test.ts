@@ -12,17 +12,12 @@
 import { deepStrictEqual, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { HookInvoker } from '@studnicky/errors';
+
 import { EventBus } from '../../src/EventBus.js';
-import { EventBusBuilder } from '../../src/EventBusBuilder.js';
 import type { BusQueueOptionsEntity } from '../../src/entities/BusQueueOptionsEntity.js';
 
-/**
- * Hook firing now relays through several async layers (BusQueue's own
- * HookInvoking.invokeHook, the per-subscription BusQueue subclass override,
- * then EventBus's own HookInvoking.invokeHook) before an EventBus-level hook
- * observes a value — each layer costs a real microtask tick. A couple of
- * `await Promise.resolve()` calls is not enough headroom; flush generously.
- */
+/** Allows scheduled queue work and its asynchronous hooks to settle. */
 async function flushMicrotasks(times = 20): Promise<void> {
   for (let i = 0; i < times; i += 1) {
     await Promise.resolve();
@@ -243,6 +238,59 @@ class ObservedBus extends EventBus<HookTopics> {
   }
 }
 
+class RecordingHookInvoker extends HookInvoker {
+  readonly hookNames: string[] = [];
+  readonly causes: unknown[] = [];
+
+  protected override onHookError(hookName: string, cause: unknown): void {
+    this.hookNames.push(hookName);
+    this.causes.push(cause);
+  }
+}
+
+class RejectingLifecycleBus extends EventBus<HookTopics> {
+  static override create(): RejectingLifecycleBus {
+    return new RejectingLifecycleBus();
+  }
+
+  readonly subscribeFailure = new Error('subscribe hook rejected');
+  readonly unsubscribeFailure = new Error('unsubscribe hook rejected');
+  readonly recordingHooks = new RecordingHookInvoker();
+  protected override readonly hooks = this.recordingHooks;
+
+  protected override async onSubscribe(): Promise<void> {
+    throw this.subscribeFailure;
+  }
+
+  protected override async onUnsubscribe(): Promise<void> {
+    throw this.unsubscribeFailure;
+  }
+}
+
+class RejectingQueueHooksBus extends EventBus<HookTopics> {
+  static override create(): RejectingQueueHooksBus {
+    return new RejectingQueueHooksBus();
+  }
+
+  readonly enqueueFailure = new Error('enqueue hook rejected');
+  readonly dequeueFailure = new Error('dequeue hook rejected');
+  readonly deliverFailure = new Error('deliver hook rejected');
+  readonly recordingHooks = new RecordingHookInvoker();
+  protected override readonly hooks = this.recordingHooks;
+
+  protected override async onEnqueue(): Promise<void> {
+    throw this.enqueueFailure;
+  }
+
+  protected override async onDequeue(): Promise<void> {
+    throw this.dequeueFailure;
+  }
+
+  protected override async onDeliver(): Promise<void> {
+    throw this.deliverFailure;
+  }
+}
+
 void it('onPublish fires once per publish call', async () => {
   const bus = ObservedBus.create();
   bus.subscribe('order:created', async (_p) => {});
@@ -281,6 +329,58 @@ void it('onUnsubscribe fires when unsubscribe fn is called', async () => {
   await bus.close();
 });
 
+await it('async-rejecting subscription lifecycle hooks are recorded and swallowed without unhandled rejections', async () => {
+  const bus = RejectingLifecycleBus.create();
+  const unhandledRejections: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    const unsubscribe = bus.subscribe('order:created', async (_payload) => {});
+    strictEqual(typeof unsubscribe, 'function');
+
+    const unsubscribeResult = unsubscribe();
+    strictEqual(unsubscribeResult, undefined);
+
+    await new Promise<void>((resolve) => { setImmediate(resolve); });
+
+    deepStrictEqual(bus.recordingHooks.hookNames, ['onSubscribe', 'onUnsubscribe']);
+    deepStrictEqual(bus.recordingHooks.causes, [bus.subscribeFailure, bus.unsubscribeFailure]);
+    strictEqual(unhandledRejections.length, 0);
+    await bus.close();
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+await it('async-rejecting owned queue hooks use the owner invoker without blocking delivery', async () => {
+  const bus = RejectingQueueHooksBus.create();
+  const received: string[] = [];
+  const unhandledRejections: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+  process.on('unhandledRejection', onUnhandledRejection);
+
+  try {
+    bus.subscribe('order:created', async (payload) => { received.push(payload.id); });
+
+    await bus.publish('order:created', { 'id': 'owned' });
+    await bus.drain();
+    await new Promise<void>((resolve) => { setImmediate(resolve); });
+
+    deepStrictEqual(received, ['owned']);
+    deepStrictEqual(bus.recordingHooks.hookNames, ['onEnqueue', 'onDequeue', 'onDeliver']);
+    deepStrictEqual(bus.recordingHooks.causes, [
+      bus.enqueueFailure,
+      bus.dequeueFailure,
+      bus.deliverFailure,
+    ]);
+    strictEqual(unhandledRejections.length, 0);
+    await bus.close();
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
 void it('onDeliver fires once per successful handler invocation', async () => {
   const bus = ObservedBus.create();
   bus.subscribe('order:created', async (_p) => {});
@@ -293,6 +393,36 @@ void it('onDeliver fires once per successful handler invocation', async () => {
   strictEqual(bus.deliverEvents.length, 2);
   deepStrictEqual(bus.deliverEvents[0], { 'topic': 'order:created', 'payload': { 'id': 'x' } });
   await bus.close();
+});
+
+await it('owned subscription queues keep hook ownership isolated across bus instances', async () => {
+  const first = ObservedBus.create();
+  const second = ObservedBus.create();
+  const received: string[] = [];
+  const sharedHandler = async (payload: { 'id': string }): Promise<void> => {
+    received.push(payload.id);
+  };
+
+  first.subscribe('order:created', sharedHandler);
+  second.subscribe('order:created', sharedHandler);
+
+  await Promise.all([
+    first.publish('order:created', { 'id': 'first' }),
+    second.publish('order:created', { 'id': 'second' }),
+  ]);
+  await Promise.all([first.drain(), second.drain()]);
+
+  deepStrictEqual(received, ['first', 'second']);
+  deepStrictEqual(first.enqueueEvents, ['order:created']);
+  deepStrictEqual(second.enqueueEvents, ['order:created']);
+  deepStrictEqual(first.deliverEvents, [
+    { 'topic': 'order:created', 'payload': { 'id': 'first' } },
+  ]);
+  deepStrictEqual(second.deliverEvents, [
+    { 'topic': 'order:created', 'payload': { 'id': 'second' } },
+  ]);
+
+  await Promise.all([first.close(), second.close()]);
 });
 
 void it('onHandlerError fires when a subscriber handler throws', async () => {
@@ -381,6 +511,73 @@ void it('hooks fire in correct order: subscribe → publish → enqueue → dequ
   await bus.close();
 });
 
+await it('publish delivery waits for pending enqueue and overflow hooks in order', async () => {
+  const enqueueGate = Promise.withResolvers<void>();
+  const enqueueStarted = Promise.withResolvers<void>();
+  const overflowGate = Promise.withResolvers<void>();
+  const overflowStarted = Promise.withResolvers<void>();
+  const order: string[] = [];
+
+  class PendingAdmissionBus extends EventBus<HookTopics> {
+    static override create(): PendingAdmissionBus {
+      return new PendingAdmissionBus({ 'highWaterMark': 1 });
+    }
+
+    protected override onPublish(): void {
+      order.push('publish');
+    }
+
+    protected override async onEnqueue(): Promise<void> {
+      order.push('enqueue:start');
+      enqueueStarted.resolve();
+      await enqueueGate.promise;
+      order.push('enqueue:end');
+    }
+
+    protected override async onOverflow(): Promise<void> {
+      order.push('overflow:start');
+      overflowStarted.resolve();
+      await overflowGate.promise;
+      order.push('overflow:end');
+    }
+
+    protected override onDequeue(): void {
+      order.push('dequeue');
+    }
+
+    protected override onDeliver(): void {
+      order.push('deliver');
+    }
+  }
+
+  const bus = PendingAdmissionBus.create();
+  bus.subscribe('order:created', async () => { order.push('handler'); });
+
+  const publish = bus.publish('order:created', { 'id': 'pending' });
+  await enqueueStarted.promise;
+  deepStrictEqual(order, ['publish', 'enqueue:start']);
+
+  enqueueGate.resolve();
+  await overflowStarted.promise;
+  deepStrictEqual(order, ['publish', 'enqueue:start', 'enqueue:end', 'overflow:start']);
+
+  overflowGate.resolve();
+  await publish;
+  await bus.drain();
+
+  deepStrictEqual(order, [
+    'publish',
+    'enqueue:start',
+    'enqueue:end',
+    'overflow:start',
+    'overflow:end',
+    'dequeue',
+    'handler',
+    'deliver',
+  ]);
+  await bus.close();
+});
+
 // ── highWaterMark configuration ─────────────────────────────────────────────
 
 interface HwmTopics {
@@ -457,6 +654,25 @@ void it('EventBus.create({ highWaterMark: 3 }) forwards the value to subscriber 
   await bus.close();
 });
 
+void it('EventBus.create() snapshots caller-owned configuration', async () => {
+  const config = { 'highWaterMark': 3 };
+  const bus = OverflowObservedBus.create(config);
+  config.highWaterMark = 1;
+
+  const blocked = Promise.withResolvers<void>();
+  bus.subscribe('x', async () => { await blocked.promise; });
+
+  const publish = bus.publish('x', 'first');
+  await flushMicrotasks();
+
+  strictEqual(bus.overflowDepths.length, 0, 'caller mutation must not change the configured high-water mark');
+
+  blocked.resolve();
+  await publish;
+  await bus.drain();
+  await bus.close();
+});
+
 void it('the same publish depth (3) does NOT overflow the default-configured bus, proving the value is actually forwarded', async () => {
   const bus = OverflowObservedBus.create();
 
@@ -483,47 +699,6 @@ void it('the same publish depth (3) does NOT overflow the default-configured bus
   await Promise.all([p1, p2, p3]);
   await bus.drain();
   await bus.close();
-});
-
-void it('EventBus.builder().withHighWaterMark(N).build() produces a bus whose subscriber queues honor N', async () => {
-  class BuilderOverflowBus extends EventBus<HwmTopics> {
-    static override create(config?: BusQueueOptionsEntity.Type): BuilderOverflowBus {
-      return new BuilderOverflowBus(config);
-    }
-
-    readonly overflowDepths: number[] = [];
-    protected override onOverflow<K extends keyof HwmTopics>(_topic: K, depth: number): void {
-      this.overflowDepths.push(depth);
-    }
-  }
-
-  const result = EventBusBuilder.create<HwmTopics>((config) => BuilderOverflowBus.create(config))
-    .withHighWaterMark(3)
-    .build() as BuilderOverflowBus;
-
-  let resolveBlock!: () => void;
-  const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
-  let first = true;
-
-  result.subscribe('x', async (_payload) => {
-    if (first) {
-      first = false;
-      await blockFirst;
-    }
-  });
-
-  const p1 = result.publish('x', '1');
-  const p2 = result.publish('x', '2');
-  const p3 = result.publish('x', '3');
-
-  await flushMicrotasks();
-
-  strictEqual(result.overflowDepths.length >= 1, true, 'onOverflow should fire once queue depth reaches builder-configured hwm 3');
-
-  resolveBlock();
-  await Promise.all([p1, p2, p3]);
-  await result.drain();
-  await result.close();
 });
 
 void it('a throwing onPublish hook does not replace publish() or prevent delivery', async () => {

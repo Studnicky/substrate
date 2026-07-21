@@ -1,3 +1,6 @@
+import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
+import type { LogLevelNameEntity } from '../entities/LogLevelNameEntity.js';
+
 import { LOG_LEVEL } from './LOG_LEVEL.js';
 
 /**
@@ -12,7 +15,7 @@ import { LOG_LEVEL } from './LOG_LEVEL.js';
  * const debugLevel = LOG_LEVEL_MAP['debug']; // LOG_LEVEL.DEBUG (1)
  * ```
  */
-export const LOG_LEVEL_MAP: Record<'debug' | 'error' | 'info' | 'silent' | 'trace' | 'warn', (typeof LOG_LEVEL)[keyof typeof LOG_LEVEL]> = {
+export const LOG_LEVEL_MAP: Record<LogLevelNameEntity.Type, LogLevelEntity.Type> = {
   'debug': LOG_LEVEL.DEBUG,
   'error': LOG_LEVEL.ERROR,
   'info': LOG_LEVEL.INFO,

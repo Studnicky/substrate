@@ -20,26 +20,27 @@ void describe('Clone subclass extension', () => {
   void it('cloneObject override is called for the root object', () => {
     const result = TaggedClone.deep({ a: 1 });
 
-    assert.strictEqual((result as Record<string, unknown>)['__tag'], 'cloned');
-    assert.strictEqual((result as Record<string, unknown>)['a'], 1);
+    assert.strictEqual(Reflect.get(result, '__tag'), 'cloned');
+    assert.strictEqual(result.a, 1);
   });
 
   void it('cloneObject override propagates through nested objects via recursion', () => {
-    const result = TaggedClone.deep({ a: 1, nested: { b: 2 } }) as Record<string, unknown>;
+    const result = TaggedClone.deep({ a: 1, nested: { b: 2 } });
 
     // Root gets tagged
-    assert.strictEqual(result['__tag'], 'cloned');
+    assert.strictEqual(Reflect.get(result, '__tag'), 'cloned');
 
     // Nested object also gets tagged because cloneValue calls this.cloneObject
-    const nested = result['nested'] as Record<string, unknown>;
+    const nested: unknown = result.nested;
 
-    assert.strictEqual(nested['__tag'], 'cloned');
-    assert.strictEqual(nested['b'], 2);
+    assert.ok(nested !== null && typeof nested === 'object');
+    assert.strictEqual(Reflect.get(nested, '__tag'), 'cloned');
+    assert.strictEqual(Reflect.get(nested, 'b'), 2);
   });
 
   void it('static Clone.deep is unaffected by the subclass override', () => {
-    const result = Clone.deep({ a: 1, nested: { b: 2 } }) as Record<string, unknown>;
+    const result = Clone.deep({ a: 1, nested: { b: 2 } });
 
-    assert.strictEqual(result['__tag'], undefined);
+    assert.strictEqual(Reflect.get(result, '__tag'), undefined);
   });
 });

@@ -1,4 +1,4 @@
-import type { LogMetadataType } from '../../src/types/LogMetadataType.js';
+import type { LogMetadataInterface } from '../../src/interfaces/LogMetadataInterface.js';
 
 import assert from 'node:assert/strict';
 import {
@@ -12,10 +12,10 @@ import { MemoryTransport } from '../../src/transports/MemoryTransport.js';
 
 import { TestFactory } from './TestFactory.js';
 
-void describe('LogMetadataType', () => {
+void describe('LogMetadataInterface', () => {
   void describe('type compatibility', () => {
     void it('should accept record of unknown values', () => {
-      const metadata: LogMetadataType = {
+      const metadata: LogMetadataInterface = {
         boolean: true,
         null: null,
         number: 42,
@@ -31,15 +31,17 @@ void describe('LogMetadataType', () => {
     });
 
     void it('should accept nested objects', () => {
-      const metadata: LogMetadataType = { nested: { deep: { value: 123 } } };
-      const nested = metadata.nested as Record<string, unknown>;
-      const deep = nested.deep as Record<string, unknown>;
+      const metadata: LogMetadataInterface = { nested: { deep: { value: 123 } } };
+      const nested = metadata.nested;
+      assert.ok(typeof nested === 'object' && nested !== null);
+      const deep = Reflect.get(nested, 'deep');
+      assert.ok(typeof deep === 'object' && deep !== null);
 
-      assert.strictEqual(deep.value, 123);
+      assert.strictEqual(Reflect.get(deep, 'value'), 123);
     });
 
     void it('should accept arrays', () => {
-      const metadata: LogMetadataType = {
+      const metadata: LogMetadataInterface = {
         tags: [
           'tag1',
           'tag2',
@@ -47,15 +49,16 @@ void describe('LogMetadataType', () => {
         ]
       };
 
-      assert.ok(Array.isArray(metadata.tags));
-      assert.strictEqual((metadata.tags as unknown[]).length, 3);
+      const tags = metadata.tags;
+      assert.ok(Array.isArray(tags));
+      assert.strictEqual(tags.length, 3);
     });
   });
 
   void describe('Logger with metadata', () => {
     void it('should include metadata in child loggers', () => {
       const logger = Logger.create();
-      const metadata: LogMetadataType = {
+      const metadata: LogMetadataInterface = {
         requestId: '123',
         userId: '456'
       };
@@ -90,7 +93,7 @@ void describe('LogMetadataType', () => {
         'level': LOG_LEVEL.TRACE,
         'transports': [memory]
       });
-      const metadata: LogMetadataType = {
+      const metadata: LogMetadataInterface = {
         context: {
           request: {
             method: 'GET',

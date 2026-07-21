@@ -4,6 +4,3 @@
 
 /** Error thrown when building a timing event fails validation */
 export { TimingBuildError } from './TimingBuildError.js';
-
-/** Error thrown when timing configuration is invalid */
-export { ConfigurationError } from '@studnicky/config';

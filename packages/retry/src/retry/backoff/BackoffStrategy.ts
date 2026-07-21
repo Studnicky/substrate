@@ -1,6 +1,6 @@
-import { Guard } from '@studnicky/config';
+import { Guard } from '@studnicky/types';
 
-import type { BackoffStrategyType } from '../../types/BackoffStrategyType.js';
+import type { BackoffStrategyInterface } from '../../interfaces/BackoffStrategyInterface.js';
 
 import {
   EXPONENTIAL_BASE, JITTER_BASE, LINEAR_INCREMENT
@@ -40,11 +40,11 @@ export class BackoffStrategy {
   }
 
   /** Wraps a strategy capping its output at ceilingMs. */
-  static withCeiling(strategy: BackoffStrategyType, ceilingMs: number): BackoffStrategyType {
+  static withCeiling(strategy: BackoffStrategyInterface, ceilingMs: number): BackoffStrategyInterface {
     return (attempt, base) => { const result = Math.min(ceilingMs, strategy(attempt, base)); return result; };
   }
 
-  static isValid(value: unknown): value is BackoffStrategyType {
+  static isValid(value: unknown): value is BackoffStrategyInterface {
     const result = Guard.isFunction(value);
     return result;
   }

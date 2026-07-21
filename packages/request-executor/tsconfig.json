@@ -17,6 +17,9 @@
       "path": "../fetch"
     },
     {
+      "path": "../json"
+    },
+    {
       "path": "../retry"
     },
     {

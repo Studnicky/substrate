@@ -55,10 +55,8 @@ void describe('Path', () => {
       const result = Path.get(obj, 'items[*]');
 
       assert.ok(result !== null && typeof result === 'object');
-      const sentinel = result as { isWildcard: boolean; array: unknown[] };
-
-      assert.strictEqual(sentinel.isWildcard, true);
-      assert.deepStrictEqual(sentinel.array, obj.items);
+      assert.strictEqual(Reflect.get(result, 'isWildcard'), true);
+      assert.deepStrictEqual(Reflect.get(result, 'array'), obj.items);
     });
 
     void describe('bracket-quoted key safety', () => {

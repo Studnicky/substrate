@@ -54,33 +54,3 @@ void it('accepts valid configuration', () => {
   doesNotThrow(() => { Throttle.create({ concurrencyLimit: 5 }); });
   doesNotThrow(() => { Throttle.create(); });
 });
-
-// ── updateConfig validation ───────────────────────────────────────────────────
-
-const invalidUpdateScenarios: Array<{ description: string; value: number }> = [
-  { description: 'zero', value: 0 },
-  { description: 'non-integer', value: 1.5 },
-];
-
-for (const { description, value } of invalidUpdateScenarios) {
-  void it(`updateConfig throws ConfigurationError for ${description} concurrencyLimit`, () => {
-    const throttle = Throttle.create();
-    throws(() => throttle.updateConfig({ concurrencyLimit: value }), ConfigurationError);
-  });
-}
-
-void it('accepts valid updates', () => {
-  const throttle = Throttle.create();
-
-  doesNotThrow(() => { throttle.updateConfig({ concurrencyLimit: 10 }); });
-});
-
-void it('allows partial config updates', () => {
-  const throttle = Throttle.create({ concurrencyLimit: 5 });
-
-  throttle.updateConfig({ concurrencyLimit: 10 });
-
-  const stats = throttle.getStats();
-
-  strictEqual(stats.concurrencyLimit, 10);
-});

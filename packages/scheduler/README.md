@@ -63,7 +63,7 @@ scheduler.cancelAll();
 
 ### Delay
 
-`Delay.sleep`/`Delay.value` resolve a `Promise` after a scheduled delay. They accept an optional `scheduler` and `clock`, so tests can inject a `VirtualScheduler` + `VirtualClockProvider` pair (sharing a `VirtualTimeCounter`) to resolve deterministically as virtual time advances, instead of waiting on real timers.
+`Delay.sleep(ms, { clock?, scheduler?, signal? })` is the scheduler-aware sleep API. `clock` and `scheduler` default to real-time providers; tests can inject a `VirtualScheduler` + `VirtualClockProvider` pair sharing a `VirtualTimeCounter` to resolve deterministically as virtual time advances. A native `AbortSignal` makes a pre-aborted call reject with its exact `signal.reason` without scheduling, or cancels a pending scheduled task and rejects with that same reason.
 
 ```ts
 import { Delay } from '@studnicky/scheduler';
@@ -72,7 +72,23 @@ import { Delay } from '@studnicky/scheduler';
 await Delay.sleep(1000);
 
 // Resolves with a value after the delay — useful for backoff/race compositions.
-const result = await Delay.value(1000, 'retry-token');
+await Delay.sleep(1000);
+```
+
+```ts
+import { Delay } from '@studnicky/scheduler';
+
+const controller = new AbortController();
+const reason = new Error('request cancelled');
+const sleeping = Delay.sleep(1000, { signal: controller.signal });
+
+controller.abort(reason);
+
+try {
+  await sleeping;
+} catch (error) {
+  console.log(error === reason); // true
+}
 ```
 
 ```ts
@@ -88,6 +104,8 @@ const promise = Delay.sleep(1000, { scheduler, clock });
 scheduler.advance(1000);
 await promise; // resolves with no real wall-clock wait
 ```
+
+Passing `signal` in the same options object keeps cancellation deterministic too: aborting cancels the virtual scheduled task, and later `advance()` calls do not fire it.
 
 ## Extending
 
@@ -108,6 +126,10 @@ class TaskRunner {
   }
 }
 ```
+
+`PendingTaskInterface` is the root-exported task record accepted and returned by the public `MinimumHeap` primitive.
+
+`SchedulerTaskDataEntity` owns the serializable due time, interval, and timer variant fields composed by scheduler contracts. `SchedulerLogEntryEntity` owns the task identifier and lifecycle event fields used by logging schedulers.
 
 Both classes expose protected extension seams for subclassing:
 

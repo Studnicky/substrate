@@ -28,7 +28,9 @@ const falsyScenarios: Array<{ description: string; value: unknown }> = [
   { description: 'JsonObject.is returns false for a Map', value: new Map() },
   { description: 'JsonObject.is returns false for a non-empty Map', value: new Map([['a', 1]]) },
   { description: 'JsonObject.is returns false for a Set', value: new Set() },
-  { description: 'JsonObject.is returns false for a non-empty Set', value: new Set([1]) }
+  { description: 'JsonObject.is returns false for a non-empty Set', value: new Set([1]) },
+  { description: 'JsonObject.is returns false for a Date', value: new Date(0) },
+  { description: 'JsonObject.is returns false for a regular expression', value: /value/u }
 ];
 
 for (const { description, value } of falsyScenarios) {

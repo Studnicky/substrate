@@ -19,7 +19,7 @@ describe('WorkerPool pooling', () => {
 
     const concurrency = 2;
     const itemCount = 8;
-    const pool = ObservingPool.create({ 'concurrency': concurrency, 'workerPath': WORKER_PATH }) as ObservingPool;
+    const pool = ObservingPool.create({ 'concurrency': concurrency, 'workerPath': WORKER_PATH });
 
     const items: ItemType[] = Array.from({ 'length': itemCount }, (_unused, index) => ({ 'ms': 5, 'value': `item-${String(index)}` }));
 

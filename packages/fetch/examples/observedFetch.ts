@@ -4,8 +4,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 
 // #region usage
-import type { RequestContextType } from '../src/types/RequestContextType.js';
-import type { ResponseContextType } from '../src/types/ResponseContextType.js';
+import type { RequestContextInterface, ResponseContextInterface } from '../src/index.js';
 
 import { FetchClient } from '../src/index.js';
 
@@ -40,17 +39,17 @@ class ObservedFetch extends FetchClient {
 
   readonly hookLog: string[] = [];
 
-  protected override onRequest(context: RequestContextType): Promise<RequestContextType> {
+  protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     console.log(`[fetch] onRequest url=${context.url}`);
     this.hookLog.push('onRequest');
     // Stamp a correlation header on every outgoing request
     const headers: Record<string, string> = context.options.headers ?? {};
     headers['X-Observed'] = 'true';
-    const result: RequestContextType = { ...context, 'options': { ...context.options, 'headers': headers } };
+    const result: RequestContextInterface = { ...context, 'options': { ...context.options, 'headers': headers } };
     return Promise.resolve(result);
   }
 
-  protected override onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+  protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     console.log(`[fetch] onResponse status=${context.response.status}`);
     this.hookLog.push('onResponse');
     return Promise.resolve(context);

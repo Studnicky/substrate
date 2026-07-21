@@ -5,8 +5,6 @@
 
 import { ConfigurationError } from '@studnicky/config';
 
-import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
-
 import { MAX_PRECISION, VALID_TIME_UNITS } from '../constants/index.js';
 
 /**
@@ -70,13 +68,12 @@ export class TimingValidator {
       throw ConfigurationError.create('precision must be an object');
     }
 
-    const config = value as TimingOptionsEntity.PrecisionConfigType;
     const validTimeUnits = new Set<string>(VALID_TIME_UNITS);
 
     for (const [
       key,
       val
-    ] of Object.entries(config)) {
+    ] of Object.entries(value)) {
       if (!validTimeUnits.has(key)) {
         throw ConfigurationError.create(`precision contains invalid time unit "${key}". Valid units: ${VALID_TIME_UNITS.join(', ')}`);
       }

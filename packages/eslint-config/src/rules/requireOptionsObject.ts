@@ -1,71 +1,61 @@
-import type { JSSyntaxElement, Rule } from 'eslint';
+import type { Rule } from 'eslint';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-// json-schema-uninexpressible: ESLint rule-options shape validated at runtime by this rule's own meta.schema, not this package's entity/data layer
-type OptionsType = {
-  readonly 'minOptionals'?: number;
-};
+import { ObjectGuard } from './shared/ObjectGuard.js';
+
+namespace RequireOptionsObjectOptionsEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'minOptionals': {
+        'default': 2,
+        'description': 'Minimum number of optional parameters to trigger the rule.',
+        'minimum': 2,
+        'type': 'number'
+      }
+    },
+    'type': 'object'
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
+}
 
 const DEFAULT_MIN_OPTIONALS = 2;
 
-// json-schema-uninexpressible: raw parser AST-node narrowing shape for a single AST node kind, used only to cast/narrow untyped param nodes; never serialized
-type AssignmentPatternNode = {
-  readonly 'left': { readonly 'type': string };
-  readonly 'type': 'AssignmentPattern';
-};
-
-// json-schema-uninexpressible: raw parser AST-node narrowing shape for a single AST node kind, used only to cast/narrow untyped param nodes; never serialized
-type IdentifierNode = {
-  readonly 'optional'?: boolean;
-  readonly 'type': 'Identifier';
-  readonly 'typeAnnotation'?: { readonly 'typeAnnotation': { readonly 'type': string } } | null;
-};
-
-// json-schema-uninexpressible: raw parser AST-node narrowing shape for a single AST node kind, used only to cast/narrow untyped param nodes; never serialized
-type ObjectPatternNode = { readonly 'type': 'ObjectPattern' };
-// json-schema-uninexpressible: raw parser AST-node narrowing shape for a single AST node kind, used only to cast/narrow untyped param nodes; never serialized
-type RestElementNode = { readonly 'type': 'RestElement' };
-
-type ParamType = AssignmentPatternNode | IdentifierNode | ObjectPatternNode | RestElementNode | { readonly 'type': string };
-
-// json-schema-uninexpressible: raw parser AST-node narrowing shape used only to cast/narrow an untyped function-like node's params; never serialized
-type FunctionLikeNode = {
-  readonly 'id'?: { readonly 'name': string } | null;
-  readonly 'params': readonly ParamType[];
-};
-
-type ParentNode = JSSyntaxElement & {
-  readonly 'id'?: { readonly 'name': string; readonly 'type': string };
-  readonly 'key'?: { readonly 'name': string; readonly 'type': string };
-};
+interface TypeScriptRuleListenerInterface extends Rule.RuleListener {
+  'TSCallSignatureDeclaration': (node: Rule.Node) => void;
+  'TSConstructSignatureDeclaration': (node: Rule.Node) => void;
+  'TSFunctionType': (node: Rule.Node) => void;
+  'TSMethodSignature': (node: Rule.Node) => void;
+}
 
 class ParamInspector {
-  public static isOptional(param: ParamType): boolean {
+  public static isOptional(param: unknown): boolean {
+    if (!ObjectGuard.isObject(param)) { return false; }
     if (param.type === 'RestElement') { return false; }
     if (param.type === 'ObjectPattern') { return false; }
     if (param.type === 'AssignmentPattern') { return true; }
     if (param.type === 'Identifier') {
-      const p = param as IdentifierNode;
-      return p.optional === true;
+      return param.optional === true;
     }
     return false;
   }
 
-  public static isOptionsObject(param: ParamType): boolean {
+  public static isOptionsObject(param: unknown): boolean {
+    if (!ObjectGuard.isObject(param)) { return false; }
     if (param.type === 'AssignmentPattern') {
-      const p = param as AssignmentPatternNode;
-      return p.left.type === 'ObjectPattern';
+      return ObjectGuard.isObject(param.left) && param.left.type === 'ObjectPattern';
     }
     if (param.type === 'Identifier') {
-      const p = param as IdentifierNode;
-      const ann = p.typeAnnotation;
-      if (ann === undefined || ann === null) { return false; }
+      const ann = param.typeAnnotation;
+      if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return false; }
       return ann.typeAnnotation.type === 'TSTypeLiteral';
     }
     return false;
   }
 
   public static check(
-    params: readonly ParamType[],
+    params: readonly unknown[],
     context: Rule.RuleContext,
     node: Rule.Node,
     name: string,
@@ -85,83 +75,95 @@ class ParamInspector {
 
 class FunctionName {
   public static fromParent(node: Rule.Node): string {
-    const parent = node.parent as unknown as ParentNode;
-    if (parent.type === 'VariableDeclarator' && parent.id?.type === 'Identifier') {
-      return parent.id.name;
+    const parent: unknown = node.parent;
+    if (!ObjectGuard.isObject(parent)) { return '(anonymous)'; }
+    if (parent.type === 'VariableDeclarator' && ObjectGuard.isObject(parent.id) && parent.id.type === 'Identifier') {
+      return typeof parent.id.name === 'string' ? parent.id.name : '(anonymous)';
     }
-    if ((parent.type === 'MethodDefinition' || parent.type === 'Property') && parent.key?.type === 'Identifier') {
-      return parent.key.name;
+    if (
+      (parent.type === 'MethodDefinition' || parent.type === 'Property')
+      && ObjectGuard.isObject(parent.key)
+      && parent.key.type === 'Identifier'
+    ) {
+      return typeof parent.key.name === 'string' ? parent.key.name : '(anonymous)';
     }
     return '(anonymous)';
   }
 }
 
-class RuleHandlers {
-  public static onArrowFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
-    const n = node as unknown as FunctionLikeNode;
-    const name = FunctionName.fromParent(node);
-    ParamInspector.check(n.params, context, node, name, minOptionals);
+class FunctionNodeProperties {
+  public static getIdentifierName(node: unknown): string | undefined {
+    if (!ObjectGuard.isObject(node) || !ObjectGuard.isObject(node.id)) { return undefined; }
+    if (node.id.type !== 'Identifier' || typeof node.id.name !== 'string') { return undefined; }
+    return node.id.name;
   }
 
-  public static onFunctionDeclaration(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
-    const n = node as unknown as FunctionLikeNode;
-    const name = n.id?.name ?? '(anonymous)';
-    ParamInspector.check(n.params, context, node, name, minOptionals);
+  public static getMethodName(node: unknown): string | undefined {
+    if (!ObjectGuard.isObject(node) || !ObjectGuard.isObject(node.key)) { return undefined; }
+    if (node.key.type !== 'Identifier' || typeof node.key.name !== 'string') { return undefined; }
+    return node.key.name;
   }
 
-  public static onFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
-    const n = node as unknown as FunctionLikeNode;
-    const name = FunctionName.fromParent(node);
-    ParamInspector.check(n.params, context, node, name, minOptionals);
+  public static getParams(node: unknown): readonly unknown[] {
+    if (!ObjectGuard.isObject(node) || !Array.isArray(node.params)) { return []; }
+    return node.params;
   }
 }
 
-// json-schema-uninexpressible: raw parser AST-node narrowing shape used only to cast/narrow an untyped node's params; never serialized
-type TSNodeWithParams = {
-  readonly 'key'?: { readonly 'name'?: string; readonly 'type': string };
-  readonly 'params': readonly ParamType[];
-};
+class RuleHandlers {
+  public static onArrowFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+    const name = FunctionName.fromParent(node);
+    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, name, minOptionals);
+  }
+
+  public static onFunctionDeclaration(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+    const name = FunctionNodeProperties.getIdentifierName(node) ?? '(anonymous)';
+    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, name, minOptionals);
+  }
+
+  public static onFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+    const name = FunctionName.fromParent(node);
+    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, name, minOptionals);
+  }
+
+  public static onTypeScriptSignature(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, '(anonymous)', minOptionals);
+  }
+
+  public static onTypeScriptMethod(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+    const name = FunctionNodeProperties.getMethodName(node) ?? '(anonymous)';
+    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, name, minOptionals);
+  }
+}
 
 class MinOptionals {
-  static get(rawOptions: OptionsType | undefined): number {
-    return rawOptions?.minOptionals ?? DEFAULT_MIN_OPTIONALS;
+  static get(rawOptions: unknown): number {
+    if (!ObjectGuard.isObject(rawOptions)) { return DEFAULT_MIN_OPTIONALS; }
+    const value = rawOptions.minOptionals;
+    return typeof value === 'number' && Number.isInteger(value) && value >= 2
+      ? value
+      : DEFAULT_MIN_OPTIONALS;
   }
 }
 
 export const requireOptionsObject: Rule.RuleModule = {
   'create': (context) => {
-    const [firstOption] = (context.options as readonly unknown[]);
-    const rawOptions = firstOption as OptionsType | undefined;
-    const minOptionals = MinOptionals.get(rawOptions);
+    const minOptionals = MinOptionals.get(context.options.at(0));
 
     const arrowFunctionHandler = (node: Rule.Node): void => { RuleHandlers.onArrowFunctionExpression(node, context, minOptionals); };
     const functionDeclarationHandler = (node: Rule.Node): void => { RuleHandlers.onFunctionDeclaration(node, context, minOptionals); };
     const functionExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onFunctionExpression(node, context, minOptionals); };
+    const typeScriptMethodHandler = (node: Rule.Node): void => { RuleHandlers.onTypeScriptMethod(node, context, minOptionals); };
+    const typeScriptSignatureHandler = (node: Rule.Node): void => { RuleHandlers.onTypeScriptSignature(node, context, minOptionals); };
 
-    const listener: Rule.RuleListener = {
+    const listener: TypeScriptRuleListenerInterface = {
       'ArrowFunctionExpression': arrowFunctionHandler,
       'FunctionDeclaration': functionDeclarationHandler,
-      'FunctionExpression': functionExpressionHandler
-    };
-
-    const tsListener = listener as Record<string, (node: Rule.Node) => void>;
-
-    tsListener.TSCallSignatureDeclaration = (node) => {
-      const n = node as unknown as TSNodeWithParams;
-      ParamInspector.check(n.params, context, node, '(anonymous)', minOptionals);
-    };
-    tsListener.TSConstructSignatureDeclaration = (node) => {
-      const n = node as unknown as TSNodeWithParams;
-      ParamInspector.check(n.params, context, node, '(anonymous)', minOptionals);
-    };
-    tsListener.TSMethodSignature = (node) => {
-      const n = node as unknown as TSNodeWithParams;
-      const name = n.key?.type === 'Identifier' ? (n.key.name ?? '(anonymous)') : '(anonymous)';
-      ParamInspector.check(n.params, context, node, name, minOptionals);
-    };
-    tsListener.TSFunctionType = (node) => {
-      const n = node as unknown as TSNodeWithParams;
-      ParamInspector.check(n.params, context, node, '(anonymous)', minOptionals);
+      'FunctionExpression': functionExpressionHandler,
+      'TSCallSignatureDeclaration': typeScriptSignatureHandler,
+      'TSConstructSignatureDeclaration': typeScriptSignatureHandler,
+      'TSFunctionType': typeScriptSignatureHandler,
+      'TSMethodSignature': typeScriptMethodHandler
     };
 
     return listener;
@@ -174,20 +176,7 @@ export const requireOptionsObject: Rule.RuleModule = {
     'messages': {
       'requireOptionsObject': "Callable '{{name}}' has {{count}} optional parameters. Collect them into a single trailing options object: '{{name}}(required, options?: { fieldA?, fieldB? })'."
     },
-    'schema': [
-      {
-        'additionalProperties': false,
-        'properties': {
-          'minOptionals': {
-            'default': 2,
-            'description': 'Minimum number of optional parameters to trigger the rule.',
-            'minimum': 2,
-            'type': 'number'
-          }
-        },
-        'type': 'object'
-      }
-    ],
+    'schema': [RequireOptionsObjectOptionsEntity.Schema],
     'type': 'suggestion'
   }
 };

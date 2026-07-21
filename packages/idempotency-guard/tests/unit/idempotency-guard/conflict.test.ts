@@ -11,7 +11,7 @@ import { it } from 'node:test';
 import { IdempotencyConflictError, IdempotencyGuard } from '../../../src/index.js';
 
 it('throws IdempotencyConflictError when the same key is reused with a different payload', async () => {
-  const guard = IdempotencyGuard.create({ 'capacity': 10, 'ttlMs': 60_000 });
+  const guard = IdempotencyGuard.create<string>({ 'capacity': 10, 'ttlMs': 60_000 });
   let calls = 0;
 
   await guard.run('order-3', { 'amount': 500 }, async () => {
@@ -33,7 +33,7 @@ it('throws IdempotencyConflictError when the same key is reused with a different
 });
 
 it('sets the conflicting key on IdempotencyConflictError', async () => {
-  const guard = IdempotencyGuard.create({ 'capacity': 10, 'ttlMs': 60_000 });
+  const guard = IdempotencyGuard.create<string>({ 'capacity': 10, 'ttlMs': 60_000 });
 
   await guard.run('order-4', { 'amount': 500 }, async () => { return 'ok'; });
 

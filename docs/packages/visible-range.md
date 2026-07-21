@@ -21,34 +21,13 @@ Given a scroll offset, a viewport size, an item-size accessor (fixed or per-inde
 
 <<< ../../packages/visible-range/examples/observedVisibleRange.ts#usage
 
-## Builder
+## Construction
 
-`VisibleRange.builder()` returns a `VisibleRangeBuilder` — a fluent alternative to `VisibleRange.create()` for callers assembling config incrementally:
-
-<!-- inline-ts-ok: conceptual builder-chain snippet, not backed by a runnable example file -->
-```typescript
-import { VisibleRange } from '@studnicky/visible-range';
-
-const range = VisibleRange.builder()
-  .withCount(1000)
-  .withItemSize(40)
-  .withOverscan(2)
-  .build();
-```
-
-| Method | Description |
-|------|--------------|
-| `withCount(value)` | Total item count. |
-| `withItemSize(value)` | Fixed size shared by every item. Mutually exclusive with `withEstimateSize()`. |
-| `withEstimateSize(value)` | Per-index size estimator. Mutually exclusive with `withItemSize()`. |
-| `withOverscan(value)` | Extra items included on either side of the visible range. |
-| `build(): VisibleRange` | Constructs the `VisibleRange` instance. |
-
-`build()` applies the same validation as `VisibleRange.create()` — supplying neither `withItemSize()`/`withEstimateSize()`, or supplying both, throws a `VisibleRangeError`.
+`VisibleRange.create({ count, itemSize, overscan? })` selects fixed-size arithmetic. `VisibleRange.create({ count, estimateSize, overscan? })` selects variable-size arithmetic. Exactly one sizing strategy is required.
 
 ## Errors
 
-`VisibleRangeError` (from `@studnicky/errors`' `BaseError`) is thrown when a config is invalid or ambiguous, both via `VisibleRange.create()` and `VisibleRangeBuilder.build()`:
+`VisibleRangeError` is the root-exported package error thrown when `VisibleRange.create()` receives invalid or ambiguous config:
 
 <!-- inline-ts-ok: conceptual error-handling snippet, not backed by a runnable example file -->
 ```typescript
@@ -74,8 +53,10 @@ Subclass `VisibleRange` and override the protected hook to inject trace logging,
 
 | Hook | When it fires | Args |
 |------|--------------|------|
-| `onRangeChange(range)` | At the end of `getRange()`, only when the computed range differs from the previously computed range. The first call always fires. | `range: VisibleRangeType` |
+| `onRangeChange(range)` | At the end of `getRange()`, only when the computed range differs from the preceding range. The first call always fires. | `range: VisibleRangeEntity.Type` |
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
+
+Import `VisibleRange`, `VisibleRangeEntity`, `VisibleRangeConfigInterface`, and `VisibleRangeError` from `@studnicky/visible-range`. The package root is the only public code entrypoint.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/visible-range)

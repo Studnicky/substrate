@@ -3,9 +3,6 @@
 import { LruCache } from '@studnicky/cache';
 import { DataType } from '@studnicky/json';
 
-import type { CoerceToBooleanResultType } from './CoerceToBooleanResultType.js';
-import type { CoerceToNumberResultType } from './CoerceToNumberResultType.js';
-
 import {
   MULTIPLE_OF_EPSILON_FACTOR,
   PATTERN_CACHE_CAPACITY,
@@ -177,7 +174,7 @@ export class Predicates {
   }
 
   /** Coerce string to boolean; returns true/false for recognised literals, undefined otherwise. */
-  static coerceToBoolean(value: string): CoerceToBooleanResultType {
+  static coerceToBoolean(value: string): boolean | undefined {
     if (value === 'true' || value === '1') {
       return true;
     }
@@ -189,7 +186,7 @@ export class Predicates {
   }
 
   /** Coerce string to finite number; returns undefined for Infinity, NaN, or non-numeric. */
-  static coerceToNumber(value: string): CoerceToNumberResultType {
+  static coerceToNumber(value: string): number | undefined {
     const coerced = Number(value);
 
     return Number.isFinite(coerced) ? coerced : undefined;
@@ -284,11 +281,6 @@ export class Predicates {
     return Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * MULTIPLE_OF_EPSILON_FACTOR;
   }
 
-  static satisfiesMultipleOf(value: number, divisor: number): boolean {
-    const result = Predicates.checkMultipleOf(value, divisor);
-    return result;
-  }
-
   static checkPattern(value: string, pattern: RegExp | string): boolean {
     if (pattern instanceof RegExp) {
       return pattern.test(value);
@@ -327,11 +319,6 @@ export class Predicates {
     }
 
     return Predicates.codePointLengthAtMost(value, maximum);
-  }
-
-  static satisfiesPattern(value: string, regex: RegExp): boolean {
-    const result = regex.test(value);
-    return result;
   }
 
   /** Only base64/base64url are actively checked; unknown encodings return true per spec. */

@@ -1,4 +1,4 @@
-import type { ErrorClassifierFunctionType, ErrorClassifierInterface } from '@studnicky/errors';
+import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors';
 
 import type { CircuitBreakerOptionsEntity } from '../entities/CircuitBreakerOptionsEntity.js';
 
@@ -12,5 +12,5 @@ export interface CircuitBreakerOptionsInterface extends CircuitBreakerOptionsEnt
    * the same `@studnicky/errors` classifier family `@studnicky/retry`'s `Retry`
    * class uses.
    */
-  readonly 'errorClassifier'?: ErrorClassifierFunctionType | ErrorClassifierInterface;
+  readonly 'errorClassifier'?: ErrorClassifierFunctionInterface | ErrorClassifierInterface;
 }

@@ -3,7 +3,7 @@
  * Routes validation failures through fetch's own ConfigurationError
  * instead of @studnicky/config's, preserving fetch's public error type.
  */
-import { ConfigValidation } from '@studnicky/config/validation';
+import { ConfigValidation } from '@studnicky/config';
 
 import { ConfigurationError } from '../../errors/index.js';
 

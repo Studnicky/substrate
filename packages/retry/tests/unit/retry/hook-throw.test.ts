@@ -6,7 +6,7 @@ import { it } from 'node:test';
 
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { ErrorClassificationEntity } from '@studnicky/errors';
-import type { RetryCallStateType } from '../../../src/types/RetryCallStateType.js';
+import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 
 import { Retry } from '../../../src/retry/index.js';
 import {
@@ -89,6 +89,65 @@ it('a throwing onRetryableError hook does not replace a later successful retry',
   strictEqual(attempts, 2);
 });
 
+it('a throwing onRetryScheduled hook does not prevent the scheduled retry', async () => {
+  class ThrowingRetryScheduledRetry extends Retry {
+    constructor(config?: Partial<RetryConfigInterface>) {
+      super(config ?? {});
+    }
+
+    protected override onRetryScheduled(): void {
+      throw new Error('onRetryScheduled boom');
+    }
+  }
+
+  const retry = new ThrowingRetryScheduledRetry({
+    'errorClassifier': new RetryableClassifier(),
+    'maxRetries': 1
+  });
+  let attempts = 0;
+
+  const result = await retry.execute(async () => {
+    attempts += 1;
+    if (attempts === 1) {
+      throw new Error('transient');
+    }
+    return 'recovered';
+  });
+
+  strictEqual(result, 'recovered');
+  strictEqual(attempts, 2);
+});
+
+it('an async-rejecting onRetryScheduled hook does not prevent the scheduled retry', async () => {
+  class RejectingRetryScheduledRetry extends Retry {
+    constructor(config?: Partial<RetryConfigInterface>) {
+      super(config ?? {});
+    }
+
+    protected override async onRetryScheduled(): Promise<void> {
+      await Promise.resolve();
+      throw new Error('onRetryScheduled async boom');
+    }
+  }
+
+  const retry = new RejectingRetryScheduledRetry({
+    'errorClassifier': new RetryableClassifier(),
+    'maxRetries': 1
+  });
+  let attempts = 0;
+
+  const result = await retry.execute(async () => {
+    attempts += 1;
+    if (attempts === 1) {
+      throw new Error('transient');
+    }
+    return 'recovered';
+  });
+
+  strictEqual(result, 'recovered');
+  strictEqual(attempts, 2);
+});
+
 it('a throwing onGiveUp hook does not replace the canonical non-retryable failure', async () => {
   class ThrowingGiveUpRetry extends Retry {
     constructor(config?: Partial<RetryConfigInterface>) {
@@ -117,7 +176,7 @@ it('a throwing enterCall hook does not replace a successful execute() result', a
       super(config ?? {});
     }
 
-    protected override enterCall(_to: RetryCallStateType, _from: RetryCallStateType): void {
+    protected override enterCall(_to: RetryCallStateEntity.Type, _from: RetryCallStateEntity.Type): void {
       throw new Error('enterCall boom');
     }
   }

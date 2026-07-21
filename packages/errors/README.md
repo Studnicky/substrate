@@ -44,7 +44,6 @@ Subclass `ModuleError` to define domain-specific error classes with fixed defaul
 
 ```typescript
 import { ModuleError } from '@studnicky/errors';
-import type { ModuleErrorOptionsInterface } from '@studnicky/errors';
 
 export class DatabaseError extends ModuleError {
   static override create(
@@ -95,70 +94,103 @@ class RateLimitExceededError extends RateLimitError {
 }
 ```
 
-`DomainErrorArgs.build(fields, options)` computes `code`, `message`, and the other `BaseErrorArgumentsType` fields for `super()`, dropping any `cause`/`correlationId`/`metadata`/`retryable` left undefined. Field assignment stays with the caller — `Object.assign(this, fields)` after `super()` — since `this` isn't available before `super()` runs. It works with any error base whose constructor accepts `BaseErrorArgumentsType`-shaped args, not just `BaseError` or `ModuleError` directly, and leaves the `extends` chain untouched so `instanceof` checks against the domain base still hold.
+`DomainErrorArgs.build(fields, options)` accepts `DomainErrorOptionsInterface<TFields>` and returns `BaseErrorArgumentsInterface`, dropping any `cause`/`correlationId`/`metadata`/`retryable` left undefined. Field assignment stays with the caller — `Object.assign(this, fields)` after `super()` — since `this` is unavailable before `super()` runs. It works with any error base whose constructor accepts `BaseErrorArgumentsInterface` and leaves the `extends` chain untouched so `instanceof` checks against the domain base still hold.
+
+## Classifier, module, and validation contracts
+
+`ErrorClassifierFunctionInterface` is the callable classifier contract: `(error: Error, attemptNumber: number) => ErrorClassificationEntity.Type`. Class-based classifiers implement `ErrorClassifierInterface`. Both contracts return the schema-derived classification owned by `ErrorClassificationEntity`.
+
+`ModuleError.create(message, options)` accepts `ModuleErrorCreateOptionsInterface`. Its required `scenario` selects a key from `ErrorDefaults`; `cause`, `context`, `retryable`, and `statusCode` are optional overrides. The protected `ModuleError` constructor accepts `ModuleErrorOptionsInterface`, the resolved contract with a required `code` and explicit context, retry, and status fields.
+
+`ValidationErrorArgumentsEntity` owns the `Schema`, derived `Type`, and runtime `validate` guard for `ValidationError.create()`. Consumers refer to `ValidationErrorArgumentsEntity.Type` directly when they need the construction-argument type.
+
+`ErrorDiagnosticEntity` owns the serializable `message`, `name`, and optional `stack` fields shared by error contracts. Example event payloads follow the same rule: the event-recorder example defines `CacheEventEntity` and records `CacheEventEntity.Type` values.
+
+## Public construction and serialization types
+
+Construction contracts are interfaces exported from the package root. JSON value types remain owned by their declaration module:
+
+```typescript
+import type { JSONSchema7Object, JSONSchema7Type } from 'json-schema';
+
+import type {
+  BaseError,
+  BaseErrorArgumentsInterface,
+  DomainErrorOptionsInterface
+} from '@studnicky/errors';
+
+const metadata: Readonly<Record<string, JSONSchema7Type>> = {
+  requestId: 'req-123'
+};
+
+const args: BaseErrorArgumentsInterface = {
+  code: 'request.failed',
+  message: 'Request failed',
+  metadata
+};
+
+const options: DomainErrorOptionsInterface<{ requestId: string }> = {
+  code: 'request.failed',
+  message: (fields) => `Request ${fields.requestId} failed`,
+  metadata
+};
+
+declare const error: BaseError;
+const serialized: JSONSchema7Object = error.toSerializedError();
+```
+
+Import `JSONSchema7Type` and `JSONSchema7Object` from the module specifier `json-schema` when a public signature uses them. Their TypeScript declarations come from the package's direct `@types/json-schema` dependency. `@studnicky/errors` does not proxy these types.
 
 ## HookInvoker
 
-`HookInvoker` safely invokes a consumer-supplied lifecycle hook, sync or async, without forcing async contagion on a synchronous caller and without letting a broken hook produce an unhandled rejection or corrupt caller state. Consumer-supplied hooks are unknown implementations — even one typed to return `void` can structurally be an `async` override in TypeScript — so `invoke()` never assumes a hook stays synchronous just because its declared signature says so. It calls `fn` directly without `await`ing at the call site, so a genuinely synchronous hook never touches the Promise machinery; only a thenable result gets chained through a guaranteed `.catch` that routes failure to `onHookError` and can never surface as an unhandled rejection.
+`HookInvoker` safely invokes a consumer-supplied lifecycle hook, sync or async, without letting a broken hook produce an unhandled rejection or corrupt caller state. `invoke(hookName, fn): void` enters `fn` synchronously and always returns `undefined`; when `fn` returns a thenable, the invoker guards its completion internally. `invokeAsync(hookName, fn): Promise<void>` enters the same path and is the only API that exposes completion to callers that need to wait. Neither method returns a hook-produced business value.
 
-A class composes a `HookInvoker` as a field and calls `invoke` from its own methods — it never extends `HookInvoker` directly. Composition, not inheritance, keeps the mechanism available to a class that already extends something else, and matches this codebase's [[no-interceptors-lifecycle-hooks]] convention of protected lifecycle hooks over injected interceptor chains:
-
-```typescript
-import { HookInvoker } from '@studnicky/errors';
-
-// Hoisted to module scope, per the delegate-class idiom (e.g. `Paginator`'s
-// `PaginatorMachineDelegate`): overrides `onHookError` to record a failure
-// instead of letting it throw, so a broken observer hook can never abort or
-// revert a mutation that already completed.
-class EntityStoreHookInvoker extends HookInvoker {
-  constructor(private readonly onError: (hookName: string, cause: unknown) => void) {
-    super();
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.onError(hookName, cause);
-    return undefined as T;
-  }
-}
-
-class EntityStore<TEntity> {
-  readonly #hookErrors: { hookName: string; cause: unknown }[] = [];
-  protected readonly hooks: HookInvoker;
-
-  constructor() {
-    this.hooks = new EntityStoreHookInvoker((hookName, cause) => {
-      this.#hookErrors.push({ hookName, cause });
-    });
-  }
-
-  get hookErrorCount(): number {
-    return this.#hookErrors.length;
-  }
-
-  getHookErrors(): readonly { hookName: string; cause: unknown }[] {
-    return [...this.#hookErrors];
-  }
-}
-```
-
-The base `onHookError` implementation always throws a `HookInvocationError` carrying the hook's name and the original thrown value as `cause` — this is the disposition a caller gets with no subclass at all, e.g. `Pipeline`'s `hooks: HookInvoker` field, which lets a broken stage hook propagate rather than recording it. That same base disposition also accepts an optional `timeoutMs`, bounding how long an async hook may run before the race is treated as a failure and routed to `onHookError` with a `HookTimeoutError` cause instead — distinct from `HookInvocationError`, since the hook produced no outcome at all:
+A class composes a `HookInvoker` as a field and calls `invoke` from its own methods. Composition keeps the mechanism available to a class that already extends something else. The constructor consumes `HookInvokerOptionsEntity.Type` directly; `HookInvokerOptionsEntity` exports its schema, derived type, and runtime validator:
 
 ```typescript
 import { HookInvoker } from '@studnicky/errors';
 
-const hooks = new HookInvoker({ timeoutMs: 5_000 });
+class ObservedStore {
+  static readonly #OwnedHookInvoker = class StoreHookInvoker extends HookInvoker {
+    protected override onHookError(_hookName: string, _cause: unknown): void {}
+  };
+
+  readonly #hooks = new ObservedStore.#OwnedHookInvoker();
+
+  get hookErrorCount(): number { return this.#hooks.hookErrorCount; }
+  getHookErrors() { return this.#hooks.getHookErrors(); }
+
+  store(): void {
+    this.#hooks.invoke('onStored', () => { console.log('stored'); });
+  }
+
+  async index(): Promise<void> {
+    await this.#hooks.invokeAsync('onIndexed', async () => { await Promise.resolve(); });
+  }
+}
 ```
 
-An optional `detectReentrancy: true` makes a synchronous, same-call-stack reentrant call to `invoke` throw `ReentrantHookInvocationError` immediately instead of recursing — a hook override calling back into whatever triggered it is a bug in the override, not something the invoking class can safely absorb.
+`HookInvoker` snapshots and records each complete hook-error graph once before applying its disposition, so later mutation of the originally thrown error, its cause, arrays, or plain objects cannot alter stored diagnostics. `hookErrorCount` reports the invoker-owned diagnostic count and `getHookErrors()` returns another fresh `HookInvocationError`, nested `Error`, and cause projection on every read. An owning class delegates its diagnostic surface to those two members and never retains a second error array. The protected `onHookError(hookName, cause): void | Promise<void>` method controls failure disposition only. Its base implementation throws a `HookInvocationError` carrying the hook name and original thrown value as `cause`. An override may swallow the failure by completing normally, or propagate a failure by throwing or rejecting; it cannot fabricate a replacement value for the hook or invoking business operation. A synchronous terminal failure reached by `invoke` propagates synchronously. For asynchronous completion, `invoke` observes the terminal failure internally while `invokeAsync` rejects with it. The same disposition applies to an optional `timeoutMs`, which bounds async hook completion and routes a timeout to `onHookError` with a `HookTimeoutError` cause:
+
+```typescript
+import type { HookInvokerOptionsEntity } from '@studnicky/errors';
+
+import { HookInvoker } from '@studnicky/errors';
+
+const hookOptions: HookInvokerOptionsEntity.Type = { timeoutMs: 5_000 };
+const hooks = new HookInvoker(hookOptions);
+```
+
+An optional `detectReentrancy: true` makes a synchronous, same-call-stack reentrant call to `invoke` throw `ReentrantHookInvocationError` immediately instead of recursing — a hook override calling back into whatever triggered it is a bug in the override, not something the invoking class can safely absorb. Await `invokeAsync`; `invoke` deliberately has no observable completion.
 
 `HookInvoker` produces three error types: `HookInvocationError` (a hook threw or rejected), `HookTimeoutError` (an async hook neither resolved nor rejected within `timeoutMs`), and `ReentrantHookInvocationError` (a hook re-entered its own call stack synchronously). All three extend `BaseError` and carry the failing `hookName`.
 
 ## EventRecorder
 
-`EventRecorder` collapses the "push to an array, then `console.log` a trace line" ceremony that lifecycle-hook overrides duplicate into a single `record()` call. It's reached via the `@studnicky/errors/observers` subpath rather than the package root, and stays intentionally minimal — no config, no pluggable sinks — since it's meant for demo/observability glue, not a general event bus:
+`EventRecorder` collapses the "record an event, then `console.log` a trace line" ceremony that lifecycle-hook overrides duplicate into a single `record()` call. It snapshots recorded data and returns detached event projections so observers cannot mutate recorder state. It stays intentionally minimal — no config, no pluggable sinks — since it's meant for demo/observability glue, not a general event bus:
 
 ```typescript
-import { EventRecorder } from '@studnicky/errors/observers';
+import { EventRecorder } from '@studnicky/errors';
 
 class TracingCache {
   #recorder = new EventRecorder<{ event: string; key: string }>();
@@ -173,6 +205,10 @@ class TracingCache {
   }
 }
 ```
+
+## Public entrypoint
+
+`@studnicky/errors` is the sole public code entrypoint. It exports error classes, classifiers, entity namespaces, guards, constants, public interfaces, and `EventRecorder`.
 
 ## Documentation
 

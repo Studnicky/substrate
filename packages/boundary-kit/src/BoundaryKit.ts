@@ -6,9 +6,10 @@ import { CircuitBreaker } from '@studnicky/resilience';
 import { Retry } from '@studnicky/retry';
 import { Throttle } from '@studnicky/throttle';
 
-import type { BoundaryKitConfigType } from './types/BoundaryKitConfigType.js';
+import type { BoundaryKitConfigInterface } from './interfaces/BoundaryKitConfigInterface.js';
+import type { BoundaryKitDepsInterface } from './interfaces/BoundaryKitDepsInterface.js';
 
-import { BoundaryKitBuilder } from './BoundaryKitBuilder.js';
+import { BOUNDARY_KIT_DEFAULTS } from './constants/BOUNDARY_KIT_DEFAULTS.js';
 import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
 
 /**
@@ -20,18 +21,6 @@ import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
  * is a reasonable general-purpose boundary default; a consumer with a stricter SLA
  * supplies its own `circuitBreaker` config or instance.
  */
-const DEFAULT_CIRCUIT_BREAKER_OPTIONS = {
-  'failureThreshold': 5,
-  'resetTimeoutMs': 30_000
-} as const;
-
-// json-schema-uninexpressible: fields are live class instances (CircuitBreaker, Retry, Throttle) carrying behavior/methods, not plain JSON-serializable data
-type BoundaryKitDepsType = {
-  'circuitBreaker': CircuitBreaker;
-  'retry': Retry;
-  'throttle': Throttle;
-};
-
 /**
  * Composes `@studnicky/throttle`, `@studnicky/resilience`'s `CircuitBreaker`, and
  * `@studnicky/retry` into the fixed composition order `throttle → circuitBreaker → retry → fn`.
@@ -51,8 +40,7 @@ type BoundaryKitDepsType = {
  *
  * `BoundaryKit` has no lifecycle hooks of its own. Observability is delegated entirely to
  * the composed primitives (subclass `Throttle`/`CircuitBreaker`/`Retry` and pass instances
- * in); the getters expose every composed instance so a `BoundaryKit` subclass can still
- * reach them.
+ * in); callers retain those original references for direct observation.
  *
  * @example Direct composition
  * ```typescript
@@ -72,7 +60,7 @@ export class BoundaryKit {
    * @param config - Composition configuration
    * @returns New BoundaryKit instance
    */
-  static create(config: BoundaryKitConfigType = {}): BoundaryKit {
+  static create(config: BoundaryKitConfigInterface = {}): BoundaryKit {
     const result = new this({
       'circuitBreaker': BoundaryKit.#resolveCircuitBreaker(config.circuitBreaker),
       'retry': BoundaryKit.#resolveRetry(config.retry),
@@ -81,23 +69,15 @@ export class BoundaryKit {
     return result;
   }
 
-  static builder(): BoundaryKitBuilder {
-    const result = BoundaryKitBuilder.create((config) => {
-      const kit = BoundaryKit.create(config);
-      return kit;
-    });
-    return result;
-  }
-
-  static #resolveCircuitBreaker(value: BoundaryKitConfigType['circuitBreaker']): CircuitBreaker {
+  static #resolveCircuitBreaker(value: BoundaryKitConfigInterface['circuitBreaker']): CircuitBreaker {
     if (value instanceof CircuitBreaker) {
       return value;
     }
-    const result = CircuitBreaker.create(value ?? DEFAULT_CIRCUIT_BREAKER_OPTIONS);
+    const result = CircuitBreaker.create(value ?? BOUNDARY_KIT_DEFAULTS.circuitBreakerOptions);
     return result;
   }
 
-  static #resolveRetry(value: BoundaryKitConfigType['retry']): Retry {
+  static #resolveRetry(value: BoundaryKitConfigInterface['retry']): Retry {
     if (value instanceof Retry) {
       return value;
     }
@@ -105,7 +85,7 @@ export class BoundaryKit {
     return result;
   }
 
-  static #resolveThrottle(value: BoundaryKitConfigType['throttle']): Throttle {
+  static #resolveThrottle(value: BoundaryKitConfigInterface['throttle']): Throttle {
     if (value instanceof Throttle) {
       return value;
     }
@@ -117,7 +97,7 @@ export class BoundaryKit {
   readonly #retry: Retry;
   readonly #throttle: Throttle;
 
-  protected constructor(deps: BoundaryKitDepsType) {
+  protected constructor(deps: BoundaryKitDepsInterface) {
     this.#throttle = deps.throttle;
     this.#circuitBreaker = deps.circuitBreaker;
     this.#retry = deps.retry;
@@ -137,15 +117,14 @@ export class BoundaryKit {
    * @throws {BoundaryKitAbortedError} When the composed `Throttle` discards the call via
    *   its detach-and-abandon abort behavior, WITHOUT `fn` ever running — tracked
    *   explicitly (not inferred from an `undefined` result, which `Throttle#execute()`
-   *   also produces whenever `fn` itself legitimately resolves `undefined`/`void`; see
-   *   `getThrottle()` to observe abort state directly)
+   *   also produces whenever `fn` itself legitimately resolves `undefined`/`void`)
    */
   async execute<T>(fn: () => Promise<T>): Promise<T> {
-    let ran = false;
+    let completion: readonly [T] | undefined;
 
     const runRetryable = async (): Promise<T> => {
       const result = await this.#retry.execute(fn);
-      ran = true;
+      completion = [result];
       return result;
     };
 
@@ -154,24 +133,12 @@ export class BoundaryKit {
       return result;
     };
 
-    const result = await this.#throttle.execute(runProtected);
+    await this.#throttle.execute(runProtected);
 
-    if (!ran) {
+    if (completion === undefined) {
       throw new BoundaryKitAbortedError();
     }
 
-    return result as T;
-  }
-
-  getCircuitBreaker(): CircuitBreaker {
-    return this.#circuitBreaker;
-  }
-
-  getRetry(): Retry {
-    return this.#retry;
-  }
-
-  getThrottle(): Throttle {
-    return this.#throttle;
+    return completion[0];
   }
 }

@@ -9,9 +9,11 @@ import {
 } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import {
-  ConfigurationError, Throttle
-} from '../../../src/throttle/index.js';
+import { ConfigurationError } from '@studnicky/config';
+import { ThrottleConfigEntity } from '../../../src/entities/ThrottleConfigEntity.js';
+import { ValidatedAdaptiveConfigEntity } from '../../../src/entities/ValidatedAdaptiveConfigEntity.js';
+import { ValidatedThrottleConfigEntity } from '../../../src/entities/ValidatedThrottleConfigEntity.js';
+import { Throttle } from '../../../src/throttle/index.js';
 
 // ── Valid config ──────────────────────────────────────────────────────────────
 
@@ -71,11 +73,32 @@ void it('accepts disabled adaptive config without other fields', () => {
   }
 });
 
+void it('validates the fully defaulted disabled adaptive configuration', () => {
+  const disabledConfig = {
+    'adjustmentInterval': 1000,
+    'enabled': false,
+    'maxConcurrency': 100,
+    'minConcurrency': 1,
+    'sampleWindow': 100,
+    'scaleDownThreshold': 1.5,
+    'scaleUpThreshold': 0.8,
+    'stepSize': 1,
+    'targetLatencyMs': 0
+  };
+
+  strictEqual(ValidatedAdaptiveConfigEntity.validate(disabledConfig), true);
+  strictEqual(ValidatedThrottleConfigEntity.validate({ 'adaptive': disabledConfig, 'concurrencyLimit': 10 }), true);
+  throws(
+    () => { return ValidatedAdaptiveConfigEntity.validate({ ...disabledConfig, 'enabled': true }); },
+    ConfigurationError
+  );
+});
+
 // ── Structural validation ─────────────────────────────────────────────────────
 
 void it('rejects non-object adaptive config', () => {
   throws(
-    () => { return Throttle.create({ adaptive: 'invalid' as never }); },
+    () => { return ThrottleConfigEntity.validate({ 'adaptive': 'invalid' }); },
     ConfigurationError
   );
 });
@@ -83,8 +106,7 @@ void it('rejects non-object adaptive config', () => {
 void it('rejects missing enabled flag', () => {
   throws(
     () => {
-      // @ts-expect-error Testing invalid config - missing enabled
-      return Throttle.create({ adaptive: { targetLatencyMs: 200 } });
+      return ThrottleConfigEntity.validate({ 'adaptive': { 'targetLatencyMs': 200 } });
     },
     ConfigurationError
   );
@@ -93,8 +115,7 @@ void it('rejects missing enabled flag', () => {
 void it('rejects non-boolean enabled', () => {
   throws(
     () => {
-      // @ts-expect-error Testing invalid config - enabled must be boolean
-      return Throttle.create({ adaptive: { enabled: 'yes' } });
+      return ThrottleConfigEntity.validate({ 'adaptive': { 'enabled': 'yes' } });
     },
     ConfigurationError
   );

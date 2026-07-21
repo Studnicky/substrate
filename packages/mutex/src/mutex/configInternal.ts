@@ -25,7 +25,11 @@ class ConfigValidator {
   static validate(userConfig?: Partial<MutexConfigEntity.Type>): MutexConfigEntity.Type {
     try {
       if (userConfig !== undefined) {
-        const configObj = userConfig as Record<string, unknown>;
+        const configObj: Record<string, unknown> = {};
+
+        for (const key of Object.keys(userConfig)) {
+          configObj[key] = Reflect.get(userConfig, key);
+        }
 
         ConfigValidation.assertNoUnknownKeys(configObj, MUTEX_CONFIG_KEYS);
         ConfigValidation.assertBoolean(configObj.enableCoalescing, 'enableCoalescing');

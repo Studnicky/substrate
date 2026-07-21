@@ -1,7 +1,6 @@
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
-import { NoOpTimingBuilder } from './NoOpTimingBuilder.js';
 
 /**
  * No-operation timing tracker that discards all events.
@@ -20,10 +19,7 @@ import { NoOpTimingBuilder } from './NoOpTimingBuilder.js';
  * const timing = NoOpTiming.create();
  *
  * // All timing calls are ignored
- * timing.event(TimingEvent.create()
- *   .component('GraphAdapter')
- *   .operation('query')
- *   .build());
+ * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
  *
  * timing.getEvents(); // Returns { durationMs: 0 }
  * ```
@@ -31,8 +27,6 @@ import { NoOpTimingBuilder } from './NoOpTimingBuilder.js';
 export class NoOpTiming implements TimingInterface {
   /**
    * Creates a new NoOpTiming instance.
-   * Use `NoOpTiming.builder().build()` for a consistent builder API.
-   *
    * @returns A new NoOpTiming instance
    *
    * @example
@@ -41,34 +35,11 @@ export class NoOpTiming implements TimingInterface {
    *
    * const timing = NoOpTiming.create();
    *
-   * timing.event(TimingEvent.create()
-   *   .component('GraphAdapter')
-   *   .operation('query')
-   *   .build()); // Does nothing
+   * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' })); // Does nothing
    * ```
    */
   static create(): NoOpTiming {
     return new this();
-  }
-
-  /**
-   * Creates a new NoOpTimingBuilder for a uniform builder API.
-   *
-   * @returns A new NoOpTimingBuilder instance
-   *
-   * @example
-   * ```typescript
-   * import { NoOpTiming } from '@studnicky/timing';
-   *
-   * const timing = NoOpTiming.builder().build();
-   * ```
-   */
-  static builder(): NoOpTimingBuilder {
-    const result = NoOpTimingBuilder.create(() => {
-      const instance = NoOpTiming.create();
-      return instance;
-    });
-    return result;
   }
 
   /**

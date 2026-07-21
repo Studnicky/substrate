@@ -1,235 +1,114 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
-
 import { LogFault } from '../../src/index.js';
 
-void it('creates a new builder instance', () => {
-  const builder = LogFault.create();
-
-  assert.ok(builder instanceof LogFault);
-});
-
-void it('builds fault with all required fields', () => {
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .name('TimeoutError')
-    .message('Query exceeded timeout')
-    .context({ query: 'SELECT...' })
-    .build();
+void it('creates an immutable fault from one configuration object', () => {
+  const context = { 'details': { 'attempt': 1 }, 'query': 'SELECT...' };
+  const fault = LogFault.create({
+    'component': 'graph',
+    'context': context,
+    'message': 'Query exceeded timeout',
+    'name': 'TimeoutError',
+    'operation': 'query',
+    'status': 'failed'
+  });
 
   assert.strictEqual(fault.event, 'graph.query');
   assert.strictEqual(fault.status, 'failed');
   assert.strictEqual(fault.name, 'TimeoutError');
   assert.strictEqual(fault.message, 'Query exceeded timeout');
   assert.strictEqual(fault.context.query, 'SELECT...');
+  assert.strictEqual(Object.isFrozen(fault), true);
+  assert.strictEqual(Object.isFrozen(fault.context), true);
+  assert.strictEqual(Object.isFrozen(fault.context.details), true);
+  context.details.attempt = 2;
+  assert.strictEqual(fault.context.details.attempt, 1);
 });
 
-const missingFieldScenarios: Array<{ description: string; build: () => unknown; expectedMessage: string }> = [
+const missingFieldScenarios: Array<{
+  readonly 'config': Readonly<Record<string, unknown>>;
+  readonly 'description': string;
+  readonly 'expectedMessage': string;
+}> = [
   {
-    build: () => LogFault.create().operation('query').status('failed').name('Error').message('Something failed').context({}).build(),
-    description: 'throws when component is missing',
-    expectedMessage: 'LogFault: component is required'
+    'config': { 'context': {}, 'message': 'Failed', 'name': 'Error', 'operation': 'query', 'status': 'failed' },
+    'description': 'throws when component is missing',
+    'expectedMessage': 'LogFault: component is required'
   },
   {
-    build: () => LogFault.create().component('graph').status('failed').name('Error').message('Something failed').context({}).build(),
-    description: 'throws when operation is missing',
-    expectedMessage: 'LogFault: operation is required'
+    'config': { 'component': 'graph', 'context': {}, 'message': 'Failed', 'name': 'Error', 'status': 'failed' },
+    'description': 'throws when operation is missing',
+    'expectedMessage': 'LogFault: operation is required'
   },
   {
-    build: () => LogFault.create().component('graph').operation('query').name('Error').message('Something failed').context({}).build(),
-    description: 'throws when status is missing',
-    expectedMessage: 'LogFault: status is required'
+    'config': { 'component': 'graph', 'context': {}, 'message': 'Failed', 'name': 'Error', 'operation': 'query' },
+    'description': 'throws when status is missing',
+    'expectedMessage': 'LogFault: status is required'
   },
   {
-    build: () => LogFault.create().component('graph').operation('query').status('failed').message('Something failed').context({}).build(),
-    description: 'throws when name is missing',
-    expectedMessage: 'LogFault: name is required'
+    'config': { 'component': 'graph', 'message': 'Failed', 'name': 'Error', 'operation': 'query', 'status': 'failed' },
+    'description': 'throws when context is missing',
+    'expectedMessage': 'LogFault: context is required (use empty object {} if no context needed)'
   },
   {
-    build: () => LogFault.create().component('graph').operation('query').status('failed').name('Error').context({}).build(),
-    description: 'throws when message is missing',
-    expectedMessage: 'LogFault: message is required'
+    'config': { 'component': 'graph', 'context': {}, 'message': 'Failed', 'operation': 'query', 'status': 'failed' },
+    'description': 'throws when name is missing',
+    'expectedMessage': 'LogFault: name is required'
   },
   {
-    build: () => LogFault.create().component('graph').operation('query').status('failed').name('Error').message('Something failed').build(),
-    description: 'throws when context is missing',
-    expectedMessage: 'LogFault: context is required (use empty object {} if no context needed)'
+    'config': { 'component': 'graph', 'context': {}, 'name': 'Error', 'operation': 'query', 'status': 'failed' },
+    'description': 'throws when message is missing',
+    'expectedMessage': 'LogFault: message is required'
   }
 ];
 
-for (const { description, build, expectedMessage } of missingFieldScenarios) {
+for (const { config, description, expectedMessage } of missingFieldScenarios) {
   void it(description, () => {
-    assert.throws(build, { message: expectedMessage, name: 'LogBuildError' });
+    assert.throws(
+      () => Reflect.apply(LogFault.create, LogFault, [config]),
+      { 'message': expectedMessage, 'name': 'LogBuildError' }
+    );
   });
 }
 
-void it('allows empty context object', () => {
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .name('Error')
-    .message('Something failed')
-    .context({})
-    .build();
-
-  assert.strictEqual(fault.event, 'graph.query');
-});
-
-void it('chains timing fields', () => {
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('timeout')
-    .name('TimeoutError')
-    .message('Query timeout')
-    .context({})
-    .duration(30_000)
-    .build();
-
-  assert.strictEqual(fault.durationMs, 30_000);
-});
-
-void it('chains cause as string', () => {
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .name('TimeoutError')
-    .message('Query timeout')
-    .context({})
-    .cause('Connection pool exhausted')
-    .build();
+void it('accepts optional fault fields', () => {
+  const fault = LogFault.create({
+    'cause': 'Connection pool exhausted',
+    'component': 'graph',
+    'context': {},
+    'durationMs': 30_000,
+    'message': 'Query timeout',
+    'name': 'TimeoutError',
+    'operation': 'query',
+    'stack': 'Error: Query timeout\n    at foo.js:10:5',
+    'status': 'timeout'
+  });
 
   assert.strictEqual(fault.cause, 'Connection pool exhausted');
+  assert.strictEqual(fault.durationMs, 30_000);
+  assert.strictEqual(fault.stack, 'Error: Query timeout\n    at foo.js:10:5');
 });
 
-void it('chains cause as Error', () => {
-  const underlyingError = new Error('Connection refused');
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .name('TimeoutError')
-    .message('Query timeout')
-    .context({})
-    .cause(underlyingError)
-    .build();
+void it('accepts explicitly mapped Error fields', () => {
+  const sourceError = new Error('Wrapper error', { 'cause': new Error('Root cause') });
+  const sourceCause = sourceError.cause;
+  const cause = sourceCause instanceof Error
+    ? sourceCause.message
+    : sourceCause === undefined ? undefined : String(sourceCause);
+  const fault = LogFault.create({
+    ...(cause !== undefined && { 'cause': cause }),
+    'component': 'graph',
+    'context': {},
+    'message': sourceError.message,
+    'name': sourceError.name,
+    'operation': 'query',
+    ...(sourceError.stack !== undefined && { 'stack': sourceError.stack }),
+    'status': 'failed'
+  });
 
-  assert.strictEqual(fault.cause, 'Connection refused');
-});
-
-void it('chains stack trace', () => {
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .name('Error')
-    .message('Something failed')
-    .context({})
-    .stack('Error: Something failed\n    at foo.js:10:5')
-    .build();
-
-  assert.strictEqual(fault.stack, 'Error: Something failed\n    at foo.js:10:5');
-});
-
-void it('merges multiple context calls', () => {
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .name('Error')
-    .message('Failed')
-    .context({ query: 'SELECT...' })
-    .context({ attemptCount: 3 })
-    .build();
-
-  assert.strictEqual(fault.context.query, 'SELECT...');
-  assert.strictEqual(fault.context.attemptCount, 3);
-});
-
-void it('extracts name and message from Error via fromError()', () => {
-  const sourceError = new TypeError('Cannot read property x');
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .fromError(sourceError)
-    .context({})
-    .build();
-
-  assert.strictEqual(fault.name, 'TypeError');
-  assert.strictEqual(fault.message, 'Cannot read property x');
-});
-
-void it('extracts stack from Error via fromError()', () => {
-  const sourceError = new Error('Test error');
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .fromError(sourceError)
-    .context({})
-    .build();
-
-  assert.ok(fault.stack !== undefined);
-  assert.ok(fault.stack.includes('Test error'));
-});
-
-void it('extracts cause from Error with Error cause via fromError()', () => {
-  const causeError = new Error('Root cause');
-  const sourceError = new Error('Wrapper error', { cause: causeError });
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .fromError(sourceError)
-    .context({})
-    .build();
-
+  assert.strictEqual(fault.name, 'Error');
+  assert.strictEqual(fault.message, 'Wrapper error');
   assert.strictEqual(fault.cause, 'Root cause');
-});
-
-void it('extracts cause from Error with string cause via fromError()', () => {
-  const sourceError = new Error('Wrapper error', { cause: 'String cause' });
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .fromError(sourceError)
-    .context({})
-    .build();
-
-  assert.strictEqual(fault.cause, 'String cause');
-});
-
-void it('returns frozen object', () => {
-  const fault = LogFault.create()
-    .component('graph')
-    .operation('query')
-    .status('failed')
-    .name('Error')
-    .message('Something failed')
-    .context({})
-    .build();
-
-  assert.strictEqual(Object.isFrozen(fault), true);
-});
-
-void it('a throwing onFieldSet hook surfaces as HookInvocationError', () => {
-  class ThrowingFieldSetFault extends LogFault {
-    constructor() { super(); }
-
-    protected override onFieldSet(): void {
-      throw new Error('onFieldSet boom');
-    }
-  }
-
-  assert.throws(() => {
-    new ThrowingFieldSetFault().component('graph');
-  }, HookInvocationError);
+  assert.ok(fault.stack?.includes('Wrapper error'));
 });

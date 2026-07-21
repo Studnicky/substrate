@@ -69,9 +69,19 @@ it('a merged caller signal + deadlineMs aborts the in-flight fetch', async () =>
     ),
     (error: unknown) => {
       // maxRetries: 0 means Retry#execute wraps the single failed attempt in a
-      // MaxRetriesExceededError, with the original AbortError as its `cause`.
+      // MaxRetriesExceededError. Depending on whether cancellation wins before or
+      // during transport setup, the canonical AbortError may be nested in its cause chain.
       ok(error instanceof Error);
-      ok(error.cause instanceof AbortError);
+      let current: unknown = error;
+      let foundAbort = false;
+      while (current instanceof Error) {
+        if (current instanceof AbortError || current.name === 'AbortError') {
+          foundAbort = true;
+          break;
+        }
+        current = current.cause;
+      }
+      ok(foundAbort);
       return true;
     }
   );

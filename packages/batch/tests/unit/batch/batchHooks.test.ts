@@ -9,6 +9,8 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { HookInvocationError } from '@studnicky/errors';
+
 import type { BatchStatsEntity } from '../../../src/entities/BatchStatsEntity.js';
 import { Batch } from '../../../src/batch/Batch.js';
 import { collectBatches } from '../../helpers/index.js';
@@ -342,7 +344,8 @@ it('a throwing completion hook does not replace processSettled() completion stat
 it('a throwing onItemSuccess/onItemError hook does not abort processing of subsequent items, and the failure is recorded', async () => {
   class FlakyHooksBatch extends Batch<number> {
     public constructor() { super(); }
-    public readonly recordedHookErrors: readonly unknown[] = this.hookErrors;
+    public get recordedHookErrorCount(): number { return this.hooks.hookErrorCount; }
+    public get recordedHookErrors(): readonly HookInvocationError[] { return this.hooks.getHookErrors(); }
 
     protected override onItemSuccess(index: number): void {
       if (index === 0) { throw new Error(`onItemSuccess boom for index ${index}`); }
@@ -375,13 +378,15 @@ it('a throwing onItemSuccess/onItemError hook does not abort processing of subse
   assert.strictEqual(results[3]?.status, 'fulfilled');
 
   // Both hook failures were recorded rather than swallowed silently or aborting the batch.
+  assert.strictEqual(batch.recordedHookErrorCount, 2);
   assert.strictEqual(batch.recordedHookErrors.length, 2);
 });
 
 it('an async onItemSuccess override that rejects is routed to onHookError (record-and-continue) without ever producing an unhandled rejection', async () => {
   class AsyncRejectingBatch extends Batch<number> {
     public constructor() { super(); }
-    public readonly recordedHookErrors: readonly unknown[] = this.hookErrors;
+    public get recordedHookErrorCount(): number { return this.hooks.hookErrorCount; }
+    public get recordedHookErrors(): readonly HookInvocationError[] { return this.hooks.getHookErrors(); }
 
     protected override async onItemSuccess(_index: number, _result: number): Promise<void> {
       await Promise.resolve();
@@ -406,8 +411,47 @@ it('an async onItemSuccess override that rejects is routed to onHookError (recor
     await new Promise((resolve) => { setImmediate(resolve); });
 
     assert.strictEqual(rejectionEvents.length, 0, 'no unhandled rejection is produced');
+    assert.strictEqual(batch.recordedHookErrorCount, 3, 'the invoker records each async hook failure once');
     assert.strictEqual(batch.recordedHookErrors.length, 3, 'each async hook failure is recorded, one per item');
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }
+});
+
+it('records hook failures only on the batch instance that produced them', async () => {
+  class IsolatedFailureBatch extends Batch<number> {
+    public constructor() { super(); }
+
+    public getRecordedHookErrorCount(): number {
+      return this.hooks.hookErrorCount;
+    }
+
+    public getRecordedHookErrors(): readonly HookInvocationError[] {
+      return this.hooks.getHookErrors();
+    }
+
+    protected override onItemSuccess(_index: number, result: number): void {
+      throw new Error(`hook failure for ${String(result)}`);
+    }
+  }
+
+  const first = new IsolatedFailureBatch();
+  const second = new IsolatedFailureBatch();
+
+  await collectBatches(first.process([1], async (value) => value));
+  await collectBatches(second.process([2], async (value) => value));
+
+  const firstError = first.getRecordedHookErrors()[0];
+  const secondError = second.getRecordedHookErrors()[0];
+
+  assert.equal(first.getRecordedHookErrorCount(), 1);
+  assert.equal(second.getRecordedHookErrorCount(), 1);
+  assert.ok(firstError instanceof HookInvocationError);
+  assert.ok(secondError instanceof HookInvocationError);
+  assert.equal(firstError.hookName, 'onItemSuccess');
+  assert.equal(secondError.hookName, 'onItemSuccess');
+  assert.ok(firstError.cause instanceof Error);
+  assert.ok(secondError.cause instanceof Error);
+  assert.equal(firstError.cause.message, 'hook failure for 1');
+  assert.equal(secondError.cause.message, 'hook failure for 2');
 });

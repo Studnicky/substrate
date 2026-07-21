@@ -8,6 +8,7 @@ import { it } from 'node:test';
 import { EntityStore } from '../../src/EntityStore.js';
 
 type UserType = { id: string; name: string };
+type NestedUserType = { id: string; profile: { name: string }; roles: string[] };
 
 const selectId = (entity: UserType): string => { return entity.id; };
 
@@ -51,6 +52,44 @@ it('upsertMany with an empty array is a no-op', async () => {
   await store.upsertMany([]);
 
   assert.equal(store.size, 0);
+});
+
+it('snapshots caller-owned entities on every retention path', async () => {
+  const nestedSelectId = (entity: NestedUserType): string => { return entity.id; };
+  const store = EntityStore.create<NestedUserType>({ 'selectId': nestedSelectId });
+  const upserted = { 'id': 'upserted', 'profile': { 'name': 'Alice' }, 'roles': ['admin'] };
+
+  await store.upsertOne(upserted);
+  upserted.profile.name = 'mutated';
+  upserted.roles.push('owner');
+
+  assert.deepEqual(store.getById('upserted'), {
+    'id': 'upserted',
+    'profile': { 'name': 'Alice' },
+    'roles': ['admin']
+  });
+
+  const batched = { 'id': 'batched', 'profile': { 'name': 'Bob' }, 'roles': ['reader'] };
+  await store.upsertMany([batched]);
+  batched.profile.name = 'mutated';
+  batched.roles.push('writer');
+
+  assert.deepEqual(store.getById('batched'), {
+    'id': 'batched',
+    'profile': { 'name': 'Bob' },
+    'roles': ['reader']
+  });
+
+  const replacement = { 'id': 'replacement', 'profile': { 'name': 'Carol' }, 'roles': ['editor'] };
+  await store.setAll([replacement]);
+  replacement.profile.name = 'mutated';
+  replacement.roles.push('publisher');
+
+  assert.deepEqual(store.getById('replacement'), {
+    'id': 'replacement',
+    'profile': { 'name': 'Carol' },
+    'roles': ['editor']
+  });
 });
 
 // --- removeOne / removeMany ---
@@ -148,6 +187,20 @@ it('getAll respects sortComparer when configured', async () => {
   assert.deepEqual(ids, ['a', 'b', 'c']);
 });
 
+it('getAll returns a defensive sorted snapshot', async () => {
+  const store = EntityStore.create<UserType>({
+    'selectId': selectId,
+    'sortComparer': (a, b) => { return a.name.localeCompare(b.name); }
+  });
+  await store.upsertOne({ id: 'b', name: 'Bob' });
+  await store.upsertOne({ id: 'a', name: 'Alice' });
+
+  const snapshot = store.getAll();
+  Reflect.set(snapshot, 0, { id: 'tampered', name: 'Tampered' });
+
+  assert.deepEqual(store.getAll().map((entity) => entity.id), ['a', 'b']);
+});
+
 it('getAll caches the sorted snapshot until the next mutation', async () => {
   let calls = 0;
   const comparer = (a: UserType, b: UserType): number => {
@@ -169,6 +222,29 @@ it('getAll caches the sorted snapshot until the next mutation', async () => {
   await store.upsertOne({ id: 'b', name: 'Bob' });
   store.getAll();
   assert.ok(calls > callsAfterFirstGetAll);
+});
+
+it('getAll and getById return deeply detached entities', async () => {
+  const nestedSelectId = (entity: NestedUserType): string => { return entity.id; };
+  const store = EntityStore.create<NestedUserType>({ 'selectId': nestedSelectId });
+  await store.upsertOne({ 'id': 'a', 'profile': { 'name': 'Alice' }, 'roles': ['admin'] });
+
+  const byId = store.getById('a');
+  assert.notEqual(byId, undefined);
+  byId.profile.name = 'tampered';
+  byId.roles.push('owner');
+
+  const all = store.getAll();
+  const first = all[0];
+  assert.notEqual(first, undefined);
+  first.profile.name = 'tampered again';
+  first.roles.push('writer');
+
+  assert.deepEqual(store.getById('a'), {
+    'id': 'a',
+    'profile': { 'name': 'Alice' },
+    'roles': ['admin']
+  });
 });
 
 // --- getById / getIds / size ---
@@ -409,6 +485,35 @@ it('getHookErrors returns a defensive copy', async () => {
   assert.equal(store.hookErrorCount, 1);
 });
 
+it('getHookErrors records one failure and deeply detaches nested diagnostics', async () => {
+  const cause = new Error('hook boom', { 'cause': { 'attempts': [1] } });
+
+  class ThrowingUpsertStore extends EntityStore<UserType, string> {
+    protected override onUpsert(): void {
+      throw cause;
+    }
+  }
+
+  const store = new ThrowingUpsertStore({ 'selectId': selectId });
+  await store.upsertOne({ 'id': 'a', 'name': 'Alice' });
+
+  assert.equal(store.hookErrorCount, 1);
+  const firstCause = store.getHookErrors()[0]?.cause;
+  assert.ok(firstCause instanceof Error);
+  firstCause.message = 'mutated';
+  const firstDetails = firstCause.cause;
+  assert.ok(firstDetails !== null && typeof firstDetails === 'object');
+  const firstAttempts = Reflect.get(firstDetails, 'attempts');
+  assert.ok(Array.isArray(firstAttempts));
+  firstAttempts.push(2);
+
+  const secondCause = store.getHookErrors()[0]?.cause;
+  assert.ok(secondCause instanceof Error);
+  assert.equal(secondCause.message, 'hook boom');
+  assert.deepEqual(secondCause.cause, { 'attempts': [1] });
+  assert.equal(store.hookErrorCount, 1);
+});
+
 // ---------------------------------------------------------------------------
 // Regression: `this.hooks.invoke('onX', () => { this.onX(...); })` call sites
 // must return the hook's own result so HookInvoker can detect an async
@@ -442,4 +547,30 @@ it('an async-overridden onUpsert that rejects is routed through onHookError, rec
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }
+});
+
+it('records hook failures only on the entity-store instance that produced them', async () => {
+  class IsolatedFailureStore extends EntityStore<UserType, string> {
+    protected override onUpsert(id: string): void {
+      throw new Error(`hook failure for ${id}`);
+    }
+  }
+
+  const first = new IsolatedFailureStore({ 'selectId': selectId });
+  const second = new IsolatedFailureStore({ 'selectId': selectId });
+
+  await first.upsertOne({ 'id': 'first', 'name': 'First' });
+  await second.upsertOne({ 'id': 'second', 'name': 'Second' });
+
+  const firstError = first.getHookErrors()[0];
+  const secondError = second.getHookErrors()[0];
+
+  assert.equal(first.hookErrorCount, 1);
+  assert.equal(second.hookErrorCount, 1);
+  assert.equal(firstError?.hookName, 'onUpsert');
+  assert.equal(secondError?.hookName, 'onUpsert');
+  assert.ok(firstError?.cause instanceof Error);
+  assert.ok(secondError?.cause instanceof Error);
+  assert.equal(firstError.cause.message, 'hook failure for first');
+  assert.equal(secondError.cause.message, 'hook failure for second');
 });

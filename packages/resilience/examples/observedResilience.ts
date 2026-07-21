@@ -3,12 +3,13 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { CircuitBreakerOptionsInterface } from '../src/interfaces/CircuitBreakerOptionsInterface.js';
-import type { DeadLetterQueueOptionsInterface } from '../src/interfaces/DeadLetterQueueOptionsInterface.js';
-
-import { CircuitBreaker } from '../src/CircuitBreaker.js';
-import { CircuitBreakerOpenError } from '../src/CircuitBreakerOpenError.js';
-import { DeadLetterQueue } from '../src/DeadLetterQueue.js';
+import {
+  CircuitBreaker,
+  CircuitBreakerOpenError,
+  type CircuitBreakerOptionsInterface,
+  DeadLetterQueue,
+  type DeadLetterQueueOptionsInterface
+} from '../src/index.js';
 
 // --- Observed CircuitBreaker ---
 class TracedBreaker extends CircuitBreaker {

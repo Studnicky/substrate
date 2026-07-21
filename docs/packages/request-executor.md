@@ -25,30 +25,24 @@ pnpm add @studnicky/request-executor
 
 | Config key | Accepts | Default |
 |------------|---------|---------|
-| `fetchClient` | `FetchClient` instance or `ClientConfigType` | `FetchClient.create({})` |
-| `retry` | `Retry` instance or `Partial<RetryConfigInterface>` | `Retry.create({})` |
+| `fetchClient` | `FetchClient` instance or `ClientConfigInterface` from `@studnicky/fetch` | `FetchClient.create({})` |
+| `retry` | `Retry` instance or `RetryConfigInterface` from `@studnicky/retry` | `Retry.create({})` |
 | `signal` | `Signal` instance | `Signal.create()` |
 | `timing` | `Timing` instance | `undefined` — no span recorded |
 | `context` | `Context` instance | `undefined` — no scope wrapping |
 | `deadlineMs` | Default deadline (ms) for calls that don't pass their own | `undefined` |
 
-| Getter | Returns |
-|--------|---------|
-| `getFetchClient()` | The composed `FetchClient` instance |
-| `getRetry()` | The composed `Retry` instance |
-| `getSignal()` | The composed `Signal` instance |
-| `getTiming()` | The composed `Timing` instance, or `undefined` |
-| `getContext()` | The composed `Context` instance, or `undefined` |
+`RequestExecutor` exposes no collaborator getters. Callers retain references to any `FetchClient`, `Retry`, `Signal`, `Timing`, or `Context` instances supplied to `RequestExecutor.create(config)` when they need those primitives' hooks or state. The executor never re-exposes a stage a wrapped primitive already owns.
 
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper. A caller who subclassed `FetchClient` for auth headers, `Retry` for custom backoff or classification, or `Timing`/`Context` for correlation keeps full access to those subclasses' own hooks; `RequestExecutor` never re-exposes a stage a wrapped primitive's hook already covers (no redundant "before request" hook, no redundant "before attempt" hook).
+Import `RequestExecutor`, `RequestExecutorConfigInterface`, `RequestExecutorDepsInterface`, and `RequestExecutorExecuteOptionsInterface` from `@studnicky/request-executor`. The package root is the only public code entrypoint. Import dependency-owned configuration and context contracts directly from their owning package roots.
 
 ## Composition order
 
 `context` scope wraps the whole call → `timing` span brackets the retry loop → `retry` loop wraps the caller's `fn` → the composed cancellation `AbortSignal` threads into whatever call `fn` makes.
 
-## When to stop using this and move to Dagonizer
+## When this composition tips into orchestration
 
-`RequestExecutor` executes exactly one call (with its own internal retry attempts). It has no concept of a node, a graph, or a dependency between multiple calls. Once a workflow needs to coordinate the *outcome* of one `RequestExecutor#execute()` call to decide whether or how to run a second one — branching, fan-out across dependent requests, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration and belongs in Dagonizer, not in a loop of `RequestExecutor` calls glued together by hand.
+`RequestExecutor` executes exactly one call (with its own internal retry attempts). It has no concept of a node, a graph, or a dependency between multiple calls. Once a workflow needs to coordinate the *outcome* of one `RequestExecutor#execute()` call to decide whether or how to run a second one — branching, fan-out across dependent requests, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration, not a loop of `RequestExecutor` calls glued together by hand.
 
 ## Documentation
 

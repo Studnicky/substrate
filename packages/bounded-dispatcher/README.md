@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/bounded-dispatcher)
 
-Composes three substrate primitives into the "bounded work dispatch" pattern: `dispatch()` acquires a `Semaphore` permit before running the caller's `fn`, publishes `'dispatch'` lifecycle events (`start` / `success` / `error`) onto a composed `EventBus` around the call, and releases the permit once `fn` settles. `scheduleDispatch()` layers a `scheduler`-driven delayed dispatch on top, returning the scheduler's own cancellable task handle. Correct backpressure forwarding across these three primitives — acquiring before publishing `start`, releasing exactly once regardless of outcome, publishing `success`/`error` before the permit frees the next waiter — is exactly the wiring a consumer would otherwise get subtly wrong by hand.
+Composes three substrate primitives into the "bounded work dispatch" pattern: `dispatch()` acquires a `Semaphore` permit before running the caller's `fn`, initiates non-blocking `'dispatch'` lifecycle publications (`start` / `success` / `error`) on a composed `EventBus` around the call, and releases the permit once `fn` settles. `scheduleDispatch()` layers a `scheduler`-driven delayed dispatch on top, returning the scheduler's own cancellable task handle. Event-bus backpressure never extends the permit hold or lowers the configured work concurrency.
 
 ## Install
 
@@ -30,28 +30,28 @@ const results = await Promise.all(
 );
 ```
 
-`permits` is shorthand for `Semaphore.create({ permits })`. `bus` accepts either a pre-built `EventBus` instance or `BusQueueOptionsEntity.Type` config (e.g. `{ highWaterMark: 4 }`) passed straight to `EventBus.create()`. `scheduler` accepts a pre-built `SchedulerProviderType` — defaults to `RealTimeScheduler.create()`; pass a `VirtualScheduler` for deterministic test fixtures.
+`permits` is shorthand for `Semaphore.create({ permits })`. `bus` accepts either a pre-built `EventBus` instance or `BusQueueOptionsEntity.Type` config (e.g. `{ highWaterMark: 4 }`) passed straight to `EventBus.create()`. `scheduler` accepts a pre-built `SchedulerProviderInterface` — defaults to `RealTimeScheduler.create()`; pass a `VirtualScheduler` for deterministic test fixtures.
 
-## Transparency
+## Observability
 
 `BoundedDispatcher` introduces no hook of its own. Permit-level observability stays on `Semaphore`'s existing hooks (`onAcquire`, `onAcquireWait`, `onContended`, `onRelease`, `onReleaseDelegated`); dispatch-level observability is the `'dispatch'` topic on the composed `EventBus`:
 
 | Getter | Returns |
 |--------|---------|
-| `getSemaphore()` | The composed `Semaphore` instance |
 | `getBus()` | The composed `EventBus` instance |
-| `getScheduler()` | The composed `SchedulerProviderType` instance |
+| `hookErrorCount` | Number of rejected lifecycle publications recorded since construction |
+| `getHookErrors()` | Deeply defensive snapshots of rejected publications as `HookInvocationError` records |
 
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper — so a caller who subclassed `Semaphore` for custom queueing behavior, or `EventBus` for custom delivery hooks, keeps full access to those subclasses' own hooks.
+`getBus()` returns the exact event-bus instance passed to `create()`, so callers can subscribe to typed dispatch events and retain access to an `EventBus` subclass's delivery hooks.
 
 ### The `'dispatch'` topic
 
-`dispatch()` publishes onto the `'dispatch'` topic in this order:
+`dispatch()` initiates publication onto the `'dispatch'` topic in this lifecycle order:
 
 1. `{ phase: 'start' }` — before `fn` runs
 2. `{ phase: 'success', result }` — after `fn` resolves, or `{ phase: 'error', error }` after `fn` rejects
 
-The permit is released after the terminal event is published, but always before `dispatch()`'s returned promise settles. Subscribe on `getBus()`:
+Publication completion is not awaited. The permit is released when `fn` settles, and a slow or backpressured subscriber cannot delay the next waiter. A rejected publication never replaces the work result or error; `hookErrorCount` and `getHookErrors()` expose the failure with its exact cause. Subscribe on `getBus()`:
 
 ```typescript
 dispatcher.getBus().subscribe('dispatch', (event) => {
@@ -59,13 +59,15 @@ dispatcher.getBus().subscribe('dispatch', (event) => {
 });
 ```
 
-A caller's own topic map merges onto the same bus alongside `'dispatch'` — pass `BoundedDispatcher.create<MyTopicMapType>()` to keep both typed on one bus.
+A caller's own topic map merges onto the same bus alongside `'dispatch'` — pass `BoundedDispatcher.create<MyTopicMapInterface>()` to keep both typed on one bus.
+
+`BoundedDispatcherStartEventEntity`, `BoundedDispatcherSuccessEventEntity`, and `BoundedDispatcherErrorEventEntity` own the schema-derived phase discriminants composed by the runtime event interfaces. The event interfaces retain their runtime `result` and `error` fields.
 
 ## Extending
 
-Subclass `BoundedDispatcher` to add convenience behavior that reaches the composed instances through the getters — `BoundedDispatcher` has no lifecycle hooks of its own to override. Subclass the composed primitives themselves (`Semaphore`, `EventBus`) to observe permit or delivery stages directly; those hooks fire exactly as they would standalone.
+Subclass `BoundedDispatcher` to add higher-level dispatch behavior. Observe delivery through `getBus()` and retain explicit ownership of caller-supplied primitives when their lifecycle hooks are needed; those hooks fire exactly as they would standalone.
 
-See `examples/observedBoundedDispatcher.ts` for the full runnable version, including a subclass that tallies completed/failed dispatches from the `'dispatch'` topic.
+See `examples/observedBoundedDispatcher.ts` for the full runnable version, including a subscription that tallies completed and failed dispatches from the `'dispatch'` topic.
 
 ## Documentation
 

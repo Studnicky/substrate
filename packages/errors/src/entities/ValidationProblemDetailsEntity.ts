@@ -1,4 +1,6 @@
-import { type FromSchema, Guard, type JsonSchemaObjectType } from '@studnicky/types';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { Guard } from '@studnicky/types';
 
 import { ValidationViolationEntity } from './ValidationViolationEntity.js';
 
@@ -21,7 +23,7 @@ export namespace ValidationProblemDetailsEntity {
     'required': ['detail', 'errors', 'status', 'title', 'type'],
     'title': 'ValidationProblemDetails',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
@@ -31,14 +33,13 @@ export namespace ValidationProblemDetailsEntity {
    * circular workspace reference.
    */
   export function validate(candidate: unknown): candidate is Type {
-    const record = Guard.asRecord(candidate);
-    if (record === undefined) { return false; }
-    if (typeof record.detail !== 'string') { return false; }
-    if (typeof record.status !== 'number') { return false; }
-    if (typeof record.title !== 'string') { return false; }
-    if (typeof record.type !== 'string') { return false; }
-    if (!Array.isArray(record.errors)) { return false; }
-    for (const item of record.errors) {
+    if (!Guard.isObject(candidate)) { return false; }
+    if (typeof candidate.detail !== 'string') { return false; }
+    if (typeof candidate.status !== 'number') { return false; }
+    if (typeof candidate.title !== 'string') { return false; }
+    if (typeof candidate.type !== 'string') { return false; }
+    if (!Array.isArray(candidate.errors)) { return false; }
+    for (const item of candidate.errors) {
       if (!ValidationViolationEntity.validate(item)) { return false; }
     }
     return true;

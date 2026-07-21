@@ -2,7 +2,7 @@
 
 // #region usage
 import type { CircuitBreakerOptionsInterface } from '@studnicky/resilience';
-import type { RetryConfigInterface, RetryContextType } from '@studnicky/retry';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
 import type { ThrottleConfigEntity } from '@studnicky/throttle';
 
 import { CircuitBreaker } from '@studnicky/resilience';
@@ -16,7 +16,7 @@ import { BoundaryKit } from '../src/index.js';
  * Advanced usage: BoundaryKit has no hooks of its own — observability is delegated
  * entirely to the composed primitives. Subclass Throttle/CircuitBreaker/Retry directly
  * and pass the pre-built instances in; their own hooks keep firing exactly as they
- * would standalone, and the kit's getters return those exact subclass instances back.
+ * would standalone. Retain those original references for direct observation.
  */
 class TelemetryThrottle extends Throttle {
   readonly acquisitions: number[] = [];
@@ -47,11 +47,11 @@ class TelemetryCircuitBreaker extends CircuitBreaker {
 class TelemetryRetry extends Retry {
   readonly scheduledRetries: number[] = [];
 
-  constructor(config?: Partial<RetryConfigInterface>) {
+  constructor(config?: RetryConfigInterface) {
     super(config ?? {});
   }
 
-  protected override onRetryScheduled(context: RetryContextType): void {
+  protected override onRetryScheduled(context: RetryContextInterface): void {
     console.log(`[retry] attempt ${String(context.attemptNumber)} scheduled retry`);
     this.scheduledRetries.push(context.attemptNumber);
   }
@@ -115,11 +115,6 @@ class ObservedBoundaryKitExample {
     assert.deepEqual(retry.scheduledRetries, [0]);
     assert.deepEqual(throttle.acquisitions, [1]);
     assert.equal(circuitBreaker.rejections.length, 0);
-
-    // The kit's getters return the exact pre-built subclassed instances passed in.
-    assert.equal(observedKit.getThrottle(), throttle);
-    assert.equal(observedKit.getCircuitBreaker(), circuitBreaker);
-    assert.equal(observedKit.getRetry(), retry);
 
     console.log('observedBoundaryKit: all assertions passed');
   }

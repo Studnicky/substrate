@@ -1,4 +1,4 @@
-import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
 
 /**
  * Configuration validation error. Extends `BaseError` so consumers get
@@ -20,7 +20,7 @@ export class ConfigurationError extends BaseError {
     return result;
   }
 
-  protected constructor(args: Readonly<BaseErrorArgumentsType>) {
+  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
     super(args);
   }
 }

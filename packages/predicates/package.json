@@ -11,10 +11,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./predicates": {
-      "types": "./dist/Predicates.d.ts",
-      "import": "./dist/Predicates.js"
     }
   },
   "files": [
@@ -25,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
   "license": "MIT",

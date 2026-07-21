@@ -245,14 +245,21 @@ it('a throwing onRefill hook does not replace the refilled token state', () => {
   ok(bucket.available >= 4);
 });
 
-it('an async-overridden onTokenAcquired hook that rejects is routed to hookErrors without producing an unhandled rejection', async () => {
+it('async hook failures remain isolated to their owning TokenBucket instances', async () => {
   class AsyncRejectingAcquiredBucket extends TokenBucket {
-    get recordedHookErrors(): HookInvocationError[] { const result = this.hookErrors;
+    readonly #cause: Error;
+
+    constructor(options: TokenBucketOptionsInterface, cause: Error) {
+      super(options);
+      this.#cause = cause;
+    }
+
+    get recordedHookErrors(): readonly HookInvocationError[] { const result = this.hooks.getHookErrors();
       return result; }
 
     protected override async onTokenAcquired(_count: number): Promise<void> {
       await Promise.resolve();
-      throw new Error('async onTokenAcquired boom');
+      throw this.#cause;
     }
   }
 
@@ -261,14 +268,34 @@ it('an async-overridden onTokenAcquired hook that rejects is routed to hookError
   process.on('unhandledRejection', onUnhandledRejection);
 
   try {
-    const bucket = new AsyncRejectingAcquiredBucket({ requestsPerSecond: 10, burstSize: 5, clock: frozenClock });
-    bucket.consume();
+    const firstCause = new Error('first async onTokenAcquired boom');
+    const secondCause = new Error('second async onTokenAcquired boom');
+    const first = new AsyncRejectingAcquiredBucket(
+      { requestsPerSecond: 10, burstSize: 5, clock: frozenClock },
+      firstCause
+    );
+    const second = new AsyncRejectingAcquiredBucket(
+      { requestsPerSecond: 10, burstSize: 5, clock: frozenClock },
+      secondCause
+    );
+    first.consume();
+    second.consume();
 
     await new Promise((resolve) => { setImmediate(resolve); });
 
     strictEqual(rejectionEvents.length, 0);
-    strictEqual(bucket.recordedHookErrors.length, 1);
-    strictEqual(bucket.recordedHookErrors[0]?.hookName, 'onTokenAcquired');
+    strictEqual(first.available, 4);
+    const firstErrors = first.recordedHookErrors;
+    const secondErrors = second.recordedHookErrors;
+    strictEqual(firstErrors.length, 1);
+    strictEqual(firstErrors[0]?.hookName, 'onTokenAcquired');
+    ok(firstErrors[0]?.cause instanceof Error);
+    strictEqual(firstErrors[0].cause.message, firstCause.message);
+    strictEqual(second.available, 4);
+    strictEqual(secondErrors.length, 1);
+    strictEqual(secondErrors[0]?.hookName, 'onTokenAcquired');
+    ok(secondErrors[0]?.cause instanceof Error);
+    strictEqual(secondErrors[0].cause.message, secondCause.message);
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }

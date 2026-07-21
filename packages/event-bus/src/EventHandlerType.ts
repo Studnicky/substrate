@@ -1,9 +1,0 @@
-/**
- * Handler for a subscribed topic. Receives the published payload and the
- * subscription's AbortSignal as arguments.
- *
- * The signal aborts when the subscriber is unsubscribed, when a caller-supplied
- * signal aborts, or when the bus is closed. Callbacks can pass it to fetch(),
- * or check signal.aborted to cancel long-running async work.
- */
-export type EventHandlerType<T> = (payload: T, signal: AbortSignal) => Promise<void> | void;

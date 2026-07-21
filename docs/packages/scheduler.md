@@ -27,16 +27,21 @@ Use `scheduleEvery` for repeating tasks and `cancelAll` to stop all pending task
 
 <<< ../../packages/scheduler/examples/interval-tasks.ts#usage
 
-## Subpath exports
+### Scheduler-aware sleep
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/scheduler` | `RealTimeScheduler`, `VirtualScheduler` |
-| `@studnicky/scheduler/interfaces` | `SchedulerProviderType`, `ScheduledTaskType` |
+`Delay.sleep(ms, { clock?, scheduler?, signal? })` resolves through the selected scheduler. A native `AbortSignal` rejects with its exact `signal.reason`: a pre-aborted signal schedules nothing, while an abort during the delay cancels the pending scheduled task.
+
+With a `VirtualScheduler` and `VirtualClockProvider` sharing one counter, completion stays deterministic without wall-clock timers. Passing a native `AbortController.signal` in the same options object makes cancellation deterministic too; advancing virtual time after abort does not fire the cancelled task.
+
+<<< ../../packages/scheduler/examples/delay.ts#usage
+
+## Public API
+
+Import `Delay`, `MinimumHeap`, `RealTimeScheduler`, `VirtualScheduler`, `SchedulerError`, `PendingTaskInterface`, `ScheduledTaskInterface`, and `SchedulerProviderInterface` from `@studnicky/scheduler`. The package root is the only public code entrypoint. Construct schedulers through `RealTimeScheduler.create()` or `VirtualScheduler.create({ counter })`; construct the heap through `MinimumHeap.create()`.
 
 ## Extending
 
-Both schedulers expose protected hooks for every lifecycle event. The `di-provider` example demonstrates the injectable `SchedulerProviderType` pattern with a `LoggingScheduler` subclass that records `schedule` and `fire` events:
+Both schedulers expose protected hooks for every lifecycle event. The `di-provider` example demonstrates the injectable `SchedulerProviderInterface` pattern with a `LoggingScheduler` subclass that records `schedule` and `fire` events:
 
 <<< ../../packages/scheduler/examples/di-provider.ts#usage
 
@@ -78,10 +83,6 @@ Both `VirtualScheduler` and `RealTimeScheduler` expose the same set of protected
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 ## Try it
-
-The builder demo constructs a `VirtualScheduler` via `VirtualScheduler.builder().withCounter(...).build()`. Watch how `scheduleAt` fires the one-shot exactly once and `scheduleEvery` fires the interval four times as virtual time advances 200 ms in a single `advance()` call.
-
-<RunnableExample src="packages/scheduler/examples/builderScheduler" title="VirtualScheduler builder" />
 
 The hooks demo subclasses `VirtualScheduler` and overrides nine protected lifecycle methods. Observe the full trace: every `scheduleAt`/`scheduleEvery` call emits `schedule`; each `advance()` emits `advance` then `runUntil`; the failing task triggers both `fire` and `fireError`; the interval task emits `reschedule` after each fire; and `cancelAll` followed by `idle` appear at the end.
 

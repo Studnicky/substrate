@@ -10,7 +10,7 @@ const invalidParamScenarios: Array<{ description: string; config: object; messag
 
 for (const { description, config, messagePattern } of invalidParamScenarios) {
   it(description, () => {
-    throws(() => { FetchClient.create(config as never); }, messagePattern);
+    throws(() => { Reflect.apply(FetchClient.create, FetchClient, [config]); }, messagePattern);
   });
 }
 
@@ -18,8 +18,7 @@ it('rejects invalid param value types', () => {
   throws(() => {
     const invalidConfig = { params: { invalid: { nested: 'object' } } };
 
-    // @ts-expect-error Testing invalid param value type
-    FetchClient.create(invalidConfig);
+    Reflect.apply(FetchClient.create, FetchClient, [invalidConfig]);
   }, /param value for "invalid" must be string, number, boolean, or array of these types/u);
 });
 

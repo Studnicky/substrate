@@ -15,6 +15,8 @@ pnpm add @studnicky/resilience
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
+`@studnicky/resilience` is the sole public code entrypoint. Construct each primitive through its root-exported `create(options)` factory.
+
 ## Usage
 
 ### CircuitBreaker
@@ -25,7 +27,7 @@ Tracks failures and opens the circuit after a threshold, then probes with limite
 
 ### TokenBucket
 
-Leaky-bucket rate limiter; `consume` throws immediately when exhausted, `waitForToken` blocks until tokens refill.
+Token-bucket rate limiter; `consume` throws immediately when exhausted, `waitForToken` blocks until tokens refill.
 
 <<< ../../packages/resilience/examples/token-bucket.ts#usage
 
@@ -75,19 +77,17 @@ Subclass any primitive and override protected hooks to add logging, metrics, or 
 
 | Hook | When it fires | Args |
 |------|--------------|------|
-| `onYield(entry)` | Immediately before each entry is yielded from `generate()` | `entry: DlqEntryType<T>` |
+| `onYield(entry)` | Immediately before each entry is yielded from `generate()` | `entry: DlqEntryInterface<T>` |
 | `onWait(intervalMs)` | Before each inter-entry delay | `intervalMs: number` |
 | `onDone()` | When the generator finishes (DLQ closed or aborted) | — |
+
+`CircuitBreaker`, `DeadLetterQueue`, `DeadLetterQueueRetryGenerator`, and `TokenBucket` each use an owner-bound, instance-local hook recorder. A lifecycle hook that throws or rejects adds a `HookInvocationError` to that instance's protected `hookErrors` array; the entry's `cause` is the exact thrown or rejected value. Subclasses can inspect `hookErrors`, and the classes expose no public hook-error getter. Hook failures do not replace the primitive's canonical result or error.
 
 <<< ../../packages/resilience/examples/observedResilience.ts#usage
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 ## Try it
-
-The builder demo constructs a `CircuitBreaker` via `CircuitBreaker.builder().withName().withFailureThreshold().withResetTimeoutMs().withSuccessThreshold().withClock().build()` and walks the breaker through all three states: closed, open (fast-rejection), and half-open probe back to closed. No real timers are used — the clock is a deterministic function.
-
-<RunnableExample src="packages/resilience/examples/builderResilience" title="CircuitBreaker builder" />
 
 The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overrides their lifecycle hooks. Watch the full scenario: two failures trigger `onFailure`, `onTrip`, and `onOpen`; a rejected call triggers `onReject`; advancing the virtual clock into half-open triggers `onHalfOpen`, `onSuccess`, and `onClose`; and DLQ drain emits `onDequeue` for every item recovered from the queue.
 
@@ -99,36 +99,51 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 |--------|------|-------------|
 | `CircuitBreaker` | class | Three-state async circuit breaker |
 | `CircuitBreakerOpenError` | class | Thrown when the circuit is open |
-| `CircuitBreakerOptionsType` | type | `{ failureThreshold, resetTimeoutMs, successThreshold?, name?, clock? }` |
-| `CircuitStateType` | type | `'closed' \| 'open' \| 'halfOpen'` |
+| `CircuitBreakerOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for serializable circuit-breaker options |
+| `CircuitBreakerOptionsInterface` | interface | Circuit-breaker options plus runtime `clock` and error-classifier contracts |
+| `CircuitStateEntity` | namespace | JSON Schema, derived `Type`, and validator for `closed`, `halfOpen`, and `open` states |
 | `TokenBucket` | class | Token bucket rate limiter |
 | `TokenBucketExhaustedError` | class | Thrown by `consume()` when no tokens remain |
-| `TokenBucketOptionsType` | type | `{ requestsPerSecond, burstSize, clock? }` |
+| `TokenBucketOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for serializable token-bucket options |
+| `TokenBucketOptionsInterface` | interface | Token-bucket options plus the runtime `clock` contract |
 | `DeadLetterQueue<T>` | class | Bounded FIFO DLQ with async-generator drain |
-| `DlqEntryType<T>` | type | `{ id, item, reason, error?, enqueuedAtMs }` |
-| `DeadLetterQueueOptionsType` | type | `{ capacity?, clock?, signal? }` |
+| `DlqEntryInterface<T>` | interface | Runtime queue entry containing caller-owned `T` and an `Error \| undefined` value |
+| `DeadLetterQueueOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for serializable queue options |
+| `DeadLetterQueueOptionsInterface` | interface | Queue options plus runtime `clock` and `AbortSignal` contracts |
 | `DeadLetterQueueRetryGenerator<T>` | class | Re-yields DLQ entries with a configurable pause |
-| `DeadLetterQueueRetryGeneratorOptionsType` | type | `{ intervalMs }` |
+| `DeadLetterQueueRetryGeneratorOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for `intervalMs` |
+| `DeadLetterQueueRetryGeneratorOptionsInterface<T>` | interface | Retry timing options plus the live `DeadLetterQueue<T>` instance |
 | `DlqFullError` | class | Thrown by `enqueue` when at capacity |
 | `DlqClosedError` | class | Thrown by `enqueue` after `close()` |
 | `DlqAbortedError` | class | Thrown by `enqueue` after signal abort |
+| `ResilienceConfigError` | class | Thrown when resilience configuration is invalid |
+| `ResilienceError` | class | Base error for the package |
+
+### Declaration boundaries
+
+Entity namespaces own JSON-compatible data. Each entity exposes `Schema`, a schema-derived `Type`, and `validate`. `CircuitStateEntity.Type` is the canonical circuit-state data type.
+
+Interfaces describe contracts that include runtime values or access policy. `DlqEntryInterface<T>` remains a runtime contract because the payload is caller-defined and `error` is an `Error` instance. Retry-generator options compose the schema-owned `DeadLetterQueueRetryGeneratorOptionsEntity.Type` with a live queue through `DeadLetterQueueRetryGeneratorOptionsInterface<T>`.
+
+Entity source files import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`. `@studnicky/resilience` declares both owner packages directly and does not acquire dependency-owned declarations through a substrate proxy export.
+
+All classes, errors, entity namespaces, and type-only interfaces listed above are imported from `@studnicky/resilience`.
 
 ### `CircuitBreaker`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | `execute` | `<T>(fn: () => Promise<T>) => Promise<T>` | Runs `fn`; throws `CircuitBreakerOpenError` when open |
-| `state` | `CircuitStateType` | Current circuit state |
-| `reset` | `() => void` | Forces circuit closed |
+| `state` | `get state(): CircuitStateEntity.Type` | Current circuit state |
+| `reset` | `() => void` | Restores the closed state and clears failure counters |
 | `forceOpen` | `() => void` | Forces circuit open |
-| `forceClosed` | `() => void` | Alias for `reset` |
 
 ### `TokenBucket`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | `consume` | `(tokens?: number) => void` | Consumes tokens; throws `TokenBucketExhaustedError` if insufficient |
-| `waitForToken` | `(tokens?, signal?) => Promise<void>` | Waits until tokens are available, then consumes |
+| `waitForToken` | `(options?: { tokens?: number; signal?: AbortSignal }) => Promise<void>` | Waits until tokens are available, then consumes |
 | `available` | `number` | Current token count (triggers a refill calculation) |
 
 ### `DeadLetterQueue<T>`
@@ -136,9 +151,9 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | `enqueue` | `(item, reason, error?) => void` | Adds item; throws on full, closed, or aborted |
-| `drain` | `() => AsyncGenerator<DlqEntryType<T>>` | Yields all entries; suspends when queue is empty |
+| `drain` | `() => AsyncGenerator<DlqEntryInterface<T>>` | Yields all entries; suspends when queue is empty |
 | `close` | `() => void` | Signals drain to stop after the current entries |
 | `abort` | `() => void` | Immediately stops drain |
-| `size` | `number` | Current entry count |
+| `size` | `get size(): number` | Current entry count |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/resilience)

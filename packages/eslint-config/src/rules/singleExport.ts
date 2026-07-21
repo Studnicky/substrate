@@ -3,6 +3,8 @@ import type { Rule } from 'eslint';
 import path from 'node:path';
 import { type Program, type Symbol, SymbolFlags, type Type, type TypeChecker } from 'typescript';
 
+import { ObjectGuard } from './shared/ObjectGuard.js';
+
 const INDEX_FILES = new Set([
   'index.cts',
   'index.mts',
@@ -17,8 +19,6 @@ const RESTRICTED_TOPOLOGY_NAMES = [
   'interfaces',
   'types'
 ] as const;
-
-type RestrictedTopologyName = (typeof RESTRICTED_TOPOLOGY_NAMES)[number];
 
 const WORD_REGEX = /[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+/gv;
 
@@ -183,44 +183,51 @@ class CaseConverter {
   }
 }
 
-type ExportKind =
-  | 'const-function'
-  | 'const-value'
-  | 'enum'
-  | 'error-class'
-  | 'function'
-  | 'interface'
-  | 'namespace'
-  | 'other'
-  | 'other-class'
-  | 'type'
-  | 'type-reexport';
+enum ExportKind {
+  'ConstFunction' = 'const-function',
+  'ConstValue' = 'const-value',
+  'Enum' = 'enum',
+  'ErrorClass' = 'error-class',
+  'Function' = 'function',
+  'Interface' = 'interface',
+  'Namespace' = 'namespace',
+  'Other' = 'other',
+  'OtherClass' = 'other-class',
+  'Type' = 'type',
+  'TypeReexport' = 'type-reexport'
+}
 
-type ParserServicesType = {
+interface ParserServicesInterface {
   readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
   readonly 'getTypeAtLocation': (node: unknown) => Type;
   readonly 'program': Program;
-};
+}
 
-// json-schema-uninexpressible: wraps 'ParserServicesType', which itself references externally-defined 'typescript' package types (Program/Symbol/Type) one level of local-alias indirection removed — not a domain shape we own
-type SourceCodeServicesAccessorType = {
-  readonly 'parserServices'?: ParserServicesType;
-};
+interface SourceCodeServicesAccessorInterface {
+  readonly 'parserServices'?: ParserServicesInterface;
+}
 
-class ContextHelpers {
-  public static getServices(context: Rule.RuleContext): ParserServicesType | undefined {
-    const result = (context.sourceCode as unknown as SourceCodeServicesAccessorType).parserServices;
-    return result;
+class ParserServicesGuard {
+  public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
+    if (!ObjectGuard.isObject(value)) { return false; }
+    if (typeof value.getSymbolAtLocation !== 'function' || typeof value.getTypeAtLocation !== 'function') {
+      return false;
+    }
+    return ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
   }
 }
 
-type CheckerWithAssignable = TypeChecker & {
-  readonly 'isTypeAssignableTo': (a: Type, b: Type) => boolean;
-};
+class ContextHelpers {
+  public static getServices(context: Rule.RuleContext): ParserServicesInterface | undefined {
+    const sourceCode: SourceCodeServicesAccessorInterface = context.sourceCode;
+    const services: unknown = sourceCode.parserServices;
+    return ParserServicesGuard.hasTypeInformation(services) ? services : undefined;
+  }
+}
 
 class TypeCheckerHelpers {
   public static isAssignable(checker: TypeChecker, a: Type, b: Type): boolean {
-    const result = (checker as unknown as CheckerWithAssignable).isTypeAssignableTo(a, b);
+    const result = checker.isTypeAssignableTo(a, b);
     return result;
   }
 
@@ -232,7 +239,7 @@ class TypeCheckerHelpers {
    */
   public static isErrorClass(
     classNode: unknown,
-    services: ParserServicesType | undefined
+    services: ParserServicesInterface | undefined
   ): boolean {
     if (services?.program === undefined || services.program === null) {
       return false;
@@ -253,83 +260,73 @@ class TypeCheckerHelpers {
 }
 
 class ExportClassifier {
-  public static classify(node: Rule.Node, services: ParserServicesType | undefined): ExportKind {
+  public static classify(node: Rule.Node, services: ParserServicesInterface | undefined): ExportKind {
     if (node.type !== 'ExportNamedDeclaration') {
-      return 'other';
+      return ExportKind.Other;
     }
-    const exportNode = node as unknown as {
-      'declaration'?: {
-        'body'?: unknown;
-        'declarations'?: {
-          'id'?: { 'name'?: string; 'type'?: string; };
-          'init'?: { 'type'?: string; };
-        }[];
-        'id'?: { 'name'?: string; 'type'?: string; };
-        'kind'?: string;
-        'type'?: string;
-      } | null;
-      'exportKind'?: string;
-      'specifiers'?: unknown[];
-    };
+    const exportNode: unknown = node;
+    if (!ObjectGuard.isObject(exportNode)) { return ExportKind.Other; }
 
     // Type-only re-export: export type { Foo } from '...' or export type { Foo }
     if (exportNode.exportKind === 'type') {
-      return 'type-reexport';
+      return ExportKind.TypeReexport;
     }
 
-    const decl = exportNode.declaration;
+    const decl: unknown = exportNode.declaration;
 
-    if (decl === null || decl === undefined) {
-      return 'other';
+    if (!ObjectGuard.isObject(decl)) {
+      return ExportKind.Other;
     }
 
     const declType = decl.type ?? '';
 
     if (declType === 'TSTypeAliasDeclaration') {
-      return 'type';
+      return ExportKind.Type;
     }
 
     if (declType === 'TSInterfaceDeclaration') {
-      return 'interface';
+      return ExportKind.Interface;
     }
 
     if (declType === 'TSEnumDeclaration') {
-      return 'enum';
+      return ExportKind.Enum;
     }
 
     if (declType === 'TSModuleDeclaration') {
-      return 'namespace';
+      return ExportKind.Namespace;
     }
 
     if (declType === 'FunctionDeclaration') {
-      return 'function';
+      return ExportKind.Function;
     }
 
     if (declType === 'ClassDeclaration') {
       if (TypeCheckerHelpers.isErrorClass(decl, services)) {
-        return 'error-class';
+        return ExportKind.ErrorClass;
       }
 
-      return 'other-class';
+      return ExportKind.OtherClass;
     }
 
     if (declType === 'VariableDeclaration' && decl.kind === 'const') {
-      for (const declarator of decl.declarations ?? []) {
-        const initType = declarator.init?.type ?? '';
+      const declarations: readonly unknown[] = Array.isArray(decl.declarations) ? decl.declarations : [];
+      for (const declarator of declarations) {
+        if (!ObjectGuard.isObject(declarator) || !ObjectGuard.isObject(declarator.init)) { continue; }
+        const initType = declarator.init.type;
 
         if (initType === 'ArrowFunctionExpression' || initType === 'FunctionExpression') {
-          return 'const-function';
+          return ExportKind.ConstFunction;
         }
       }
 
-      return 'const-value';
+      return ExportKind.ConstValue;
     }
 
-    return 'other';
+    return ExportKind.Other;
   }
 
   public static isEnumOrConstValueKind(kind: ExportKind): boolean {
-    return kind === 'const-value' || kind === 'enum';
+    return kind === ExportKind.ConstValue || kind === ExportKind.Enum;
   }
 }
 
@@ -393,7 +390,7 @@ class ExportNames {
 }
 
 class RestrictedTopology {
-  public static get(fileName: string): RestrictedTopologyName | undefined {
+  public static get(fileName: string): (typeof RESTRICTED_TOPOLOGY_NAMES)[number] | undefined {
     const normalized = fileName.split(path.sep).join('/');
     const base = CaseConverter.getFileBase(fileName);
 
@@ -514,7 +511,7 @@ export const singleExport: Rule.RuleModule = {
         return;
       }
 
-      if (exportKinds.includes('enum') && exportKinds.every(ExportClassifier.isEnumOrConstValueKind)) {
+      if (exportKinds.includes(ExportKind.Enum) && exportKinds.every(ExportClassifier.isEnumOrConstValueKind)) {
         return;
       }
 

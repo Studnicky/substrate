@@ -9,6 +9,9 @@ import { describe, it } from 'node:test';
 
 import { KeyedWorkGate } from '../../../src/index.js';
 
+const acceptsNumber = (value: unknown): value is number => typeof value === 'number';
+const acceptsString = (value: unknown): value is string => typeof value === 'string';
+
 void describe('runSingleFlight — same-key collapsing', () => {
   void it('runs fn exactly once for concurrent same-key callers and shares the result', async () => {
     const gate = KeyedWorkGate.create<string>();
@@ -21,9 +24,9 @@ void describe('runSingleFlight — same-key collapsing', () => {
     };
 
     const [a, b, c] = await Promise.all([
-      gate.runSingleFlight('user1', fn),
-      gate.runSingleFlight('user1', fn),
-      gate.runSingleFlight('user1', fn)
+      gate.runSingleFlight('user1', fn, acceptsString),
+      gate.runSingleFlight('user1', fn, acceptsString),
+      gate.runSingleFlight('user1', fn, acceptsString)
     ]);
 
     assert.equal(calls, 1);
@@ -41,12 +44,24 @@ void describe('runSingleFlight — same-key collapsing', () => {
       return calls;
     };
 
-    const first = await gate.runSingleFlight('user1', fn);
-    const second = await gate.runSingleFlight('user1', fn);
+    const first = await gate.runSingleFlight('user1', fn, acceptsNumber);
+    const second = await gate.runSingleFlight('user1', fn, acceptsNumber);
 
     assert.equal(calls, 2);
     assert.equal(first, 1);
     assert.equal(second, 2);
+  });
+
+  void it('validates the shared result independently for callers requesting different types', async () => {
+    const gate = KeyedWorkGate.create<string>();
+    const stringResult = gate.runSingleFlight('user1', async () => {
+      await delay(20);
+      return 'shared-result';
+    }, acceptsString);
+    const numberResult = gate.runSingleFlight('user1', async () => 42, acceptsNumber);
+
+    assert.equal(await stringResult, 'shared-result');
+    await assert.rejects(numberResult, TypeError);
   });
 });
 
@@ -60,7 +75,7 @@ void describe('runSingleFlight — mutex fall-through', () => {
       await delay(40);
       order.push('single-flight-end');
       return 'leader';
-    });
+    }, acceptsString);
 
     // Give the single-flight leader time to acquire the mutex first.
     await delay(10);
@@ -70,7 +85,7 @@ void describe('runSingleFlight — mutex fall-through', () => {
       await delay(10);
       order.push('serialized-end');
       return 'serialized';
-    });
+    }, acceptsString);
 
     await Promise.all([leader, serialized]);
 
@@ -94,13 +109,13 @@ void describe('runSingleFlight — key isolation', () => {
         await delay(40);
         order.push('user1-end');
         return 'user1';
-      }),
+      }, acceptsString),
       gate.runSingleFlight('user2', async () => {
         order.push('user2-start');
         await delay(10);
         order.push('user2-end');
         return 'user2';
-      })
+      }, acceptsString)
     ]);
 
     // user2 has the shorter delay; if the two keys blocked each other, user2 could not

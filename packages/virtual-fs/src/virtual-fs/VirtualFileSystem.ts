@@ -1,18 +1,16 @@
-import type { ClockProviderType } from '@studnicky/clock';
+import type { ClockProviderInterface } from '@studnicky/clock';
 
 import { HookInvoker } from '@studnicky/errors';
 
 import type { EntryEntity } from '../entities/EntryEntity.js';
+import type { MkdirOptionsEntity } from '../entities/MkdirOptionsEntity.js';
 import type { FileSystemInterface } from '../interfaces/FileSystemInterface.js';
 import type { StatResultInterface } from '../interfaces/StatResultInterface.js';
-import type { VirtualFileSystemOptionsType } from '../types/VirtualFileSystemOptionsType.js';
+import type { VirtualFileSystemOptionsInterface } from '../interfaces/VirtualFileSystemOptionsInterface.js';
 
 import { VirtualFileSystemError } from '../errors/VirtualFileSystemError.js';
-import { VirtualFileSystemBuilder } from './VirtualFileSystemBuilder.js';
 
-type EntryKindType = EntryEntity.Type['kind'];
-
-const DEFAULT_CLOCK: ClockProviderType = {
+const DEFAULT_CLOCK: ClockProviderInterface = {
   'hrtime': () => { return BigInt(Date.now()) * 1_000_000n; },
   'now': () => {
     const result = Date.now();
@@ -21,10 +19,10 @@ const DEFAULT_CLOCK: ClockProviderType = {
 };
 
 class StatResult implements StatResultInterface {
-  readonly mtimeMs: number;
-  private readonly kind: EntryKindType;
+  readonly mtimeMs: EntryEntity.Type['mtimeMs'];
+  private readonly kind: EntryEntity.Type['kind'];
 
-  constructor(kind: EntryKindType, mtimeMs: number) {
+  constructor(kind: EntryEntity.Type['kind'], mtimeMs: EntryEntity.Type['mtimeMs']) {
     this.kind = kind;
     this.mtimeMs = mtimeMs;
   }
@@ -39,19 +37,12 @@ class StatResult implements StatResultInterface {
 }
 
 export class VirtualFileSystem implements FileSystemInterface {
-  static builder(): VirtualFileSystemBuilder {
-    const result = VirtualFileSystemBuilder.create((options) => {
-      return new this(options);
-    });
-    return result;
-  }
-
-  static create(options?: VirtualFileSystemOptionsType): VirtualFileSystem {
+  static create(options?: VirtualFileSystemOptionsInterface): VirtualFileSystem {
     const result = new this(options ?? {});
     return result;
   }
 
-  static splitPath(path: string): { 'name': string; 'parent': string } {
+  static #splitPath(path: string): { 'name': string; 'parent': string } {
     const separatorIndex = path.lastIndexOf('/');
     const name = path.slice(separatorIndex + 1);
     const parent = separatorIndex === 0 ? '/' : path.slice(0, separatorIndex);
@@ -61,12 +52,12 @@ export class VirtualFileSystem implements FileSystemInterface {
   protected readonly hooks: HookInvoker = new HookInvoker();
 
   readonly #children: Map<string, Set<string>>;
-  readonly #clock: ClockProviderType;
+  readonly #clock: ClockProviderInterface;
   readonly #entries: Map<string, EntryEntity.Type>;
   readonly #files: Map<string, string>;
 
   #indexAdd(path: string): void {
-    const { name, parent } = VirtualFileSystem.splitPath(path);
+    const { name, parent } = VirtualFileSystem.#splitPath(path);
     let siblings = this.#children.get(parent);
     if (siblings === undefined) {
       siblings = new Set<string>();
@@ -76,14 +67,14 @@ export class VirtualFileSystem implements FileSystemInterface {
   }
 
   #indexRemove(path: string): void {
-    const { name, parent } = VirtualFileSystem.splitPath(path);
+    const { name, parent } = VirtualFileSystem.#splitPath(path);
     const siblings = this.#children.get(parent);
     if (siblings !== undefined) {
       siblings.delete(name);
     }
   }
 
-  protected constructor(options: VirtualFileSystemOptionsType) {
+  protected constructor(options: VirtualFileSystemOptionsInterface) {
     this.#children = new Map<string, Set<string>>();
     this.#clock = options.clock ?? DEFAULT_CLOCK;
     this.#entries = new Map<string, EntryEntity.Type>();
@@ -119,7 +110,7 @@ export class VirtualFileSystem implements FileSystemInterface {
     return this.#files.has(path) || this.#entries.has(path);
   }
 
-  mkdirSync(path: string, options?: { 'recursive'?: boolean }): void {
+  mkdirSync(path: string, options?: MkdirOptionsEntity.Type): void {
     const recursive = options?.recursive === true;
     const existingEntry = this.#entries.get(path);
 
@@ -269,7 +260,7 @@ export class VirtualFileSystem implements FileSystemInterface {
         this.#files.delete(oldPath);
       }
 
-      const kind: EntryKindType = oldEntry !== undefined ? oldEntry.kind : 'file';
+      const kind: EntryEntity.Type['kind'] = oldEntry !== undefined ? oldEntry.kind : 'file';
       this.#entries.set(newPath, { 'kind': kind, 'mtimeMs': mtimeMs });
       this.#entries.delete(oldPath);
       this.#indexRemove(oldPath);
@@ -290,7 +281,7 @@ export class VirtualFileSystem implements FileSystemInterface {
       throw new VirtualFileSystemError(`ENOENT: no such file or directory, stat '${path}'`);
     }
 
-    const kind: EntryKindType = entry !== undefined ? entry.kind : 'file';
+    const kind: EntryEntity.Type['kind'] = entry !== undefined ? entry.kind : 'file';
     const mtimeMs: number = entry !== undefined ? entry.mtimeMs : this.#clock.now();
 
     return new StatResult(kind, mtimeMs);
