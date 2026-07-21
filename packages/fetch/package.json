@@ -69,7 +69,7 @@
     "@studnicky/types": "workspace:*",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1",
-    "undici": "^8.7.0"
+    "undici": "^8.8.0"
   },
   "devDependencies": {
     "@studnicky/timing": "workspace:*"
