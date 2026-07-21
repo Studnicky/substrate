@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/health-registry",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Named async health-check registry with worst-status-wins aggregation",
   "type": "module",
   "sideEffects": false,

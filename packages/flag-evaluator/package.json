@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/flag-evaluator",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Local deterministic feature-flag evaluation with percentage rollout and observability hooks",
   "type": "module",
   "sideEffects": false,

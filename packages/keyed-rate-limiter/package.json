@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/keyed-rate-limiter",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Per-key rate limiting composing cache and resilience: lazily creates one rate-limiting strategy per key, evicting idle keys via LRU+TTL",
   "type": "module",
   "sideEffects": false,

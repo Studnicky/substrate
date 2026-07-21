@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/idempotency-guard",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Idempotency key guard composing cache, concurrency, and json: dedupes concurrent calls, replays cached results within a TTL window, rejects key reuse with a different payload",
   "type": "module",
   "sideEffects": false,

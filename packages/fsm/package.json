@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/fsm",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "Pure reducer FSM with async effect interpreter and actor registry",
   "type": "module",
   "sideEffects": false,
