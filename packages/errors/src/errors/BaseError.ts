@@ -14,10 +14,11 @@
  *
  * @module
  */
-import type { JsonValueType } from '@studnicky/types';
+import type { JSONSchema7Object, JSONSchema7Type } from 'json-schema';
 
-import type { BaseErrorArgumentsType } from '../types/BaseErrorArgumentsType.js';
-import type { SerializedErrorType } from '../types/SerializedErrorType.js';
+import { JsonValue } from '@studnicky/types';
+
+import type { BaseErrorArgumentsInterface } from '../interfaces/BaseErrorArgumentsInterface.js';
 
 import {
   CAUSE_CHAIN_DEPTH_LIMIT,
@@ -26,7 +27,8 @@ import {
 
 /**
  * Abstract base class for all errors in the system.
- * Subclasses must call `super(args)` and register their code via `ErrorCodeRegistry`.
+ * Subclasses call `super(args)` with their stable error code. Built-in package
+ * errors register their codes internally to detect definition collisions.
  */
 export abstract class BaseError extends Error {
   /** Registered error code (dotted camelCase, e.g. `'errors.validationFailed'`). */
@@ -34,19 +36,22 @@ export abstract class BaseError extends Error {
   /** Optional correlation ID for distributed tracing. */
   public readonly correlationId: string | undefined;
   /** Structured metadata dictionary attached to this error instance. */
-  public readonly metadata: Readonly<Record<string, JsonValueType>> | undefined;
+  public readonly metadata: Readonly<Record<string, JSONSchema7Type>> | undefined;
   /** Whether this error represents a transient condition that may succeed on retry. */
   public readonly retryable: boolean;
   /** Unix millisecond timestamp at time of construction. */
   public readonly timestamp: number;
 
-  protected constructor(args: Readonly<BaseErrorArgumentsType>) {
+  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
     super(args.message, { 'cause': args.cause });
     // Property write order: name first (shadows Error.prototype.name).
     this.name = new.target.name;
     this.code = args.code;
     const metaEntries = args.metadata !== undefined ? Object.entries(args.metadata) : [];
-    const meta: Record<string, JsonValueType> = Object.fromEntries(metaEntries);
+    const meta: Record<string, JSONSchema7Type> = {};
+    for (const [key, value] of metaEntries) {
+      meta[key] = JsonValue.from(value);
+    }
     this.metadata = metaEntries.length > 0 ? Object.freeze(meta) : undefined;
     this.timestamp = Date.now();
     this.correlationId = args.correlationId;
@@ -57,7 +62,7 @@ export abstract class BaseError extends Error {
    * Finds the first cause of a specific `BaseError` subclass in the cause chain.
    * Returns `undefined` if not found.
    */
-  public static findCauseOfType<TError extends BaseError>(
+  public static findCauseOfType<TError extends Error>(
     error: Readonly<BaseError>,
     ctor: new (...argumentList: never[]) => TError
   ): TError | undefined {
@@ -106,7 +111,7 @@ export abstract class BaseError extends Error {
    */
   public static hasCauseOfType(
     error: Readonly<BaseError>,
-    ctor: new (...argumentList: never[]) => BaseError
+    ctor: new (...argumentList: never[]) => Error
   ): boolean {
     let current: unknown = error;
     let depth = 0;
@@ -138,10 +143,10 @@ export abstract class BaseError extends Error {
   }
 
   /** Serializes a single cause node at the given depth. */
-  protected static serializeCause(error: unknown, depth: number): SerializedErrorType {
+  protected static serializeCause(error: unknown, depth: number): JSONSchema7Object {
     if (error instanceof BaseError) {
       const causeRaw = error.cause;
-      let causeValue: SerializedErrorType | string | null = null;
+      let causeValue: JSONSchema7Type = null;
 
       if (causeRaw !== undefined && causeRaw !== null) {
         if (depth >= CAUSE_CHAIN_DEPTH_LIMIT) {
@@ -154,7 +159,7 @@ export abstract class BaseError extends Error {
       return {
         'cause': causeValue,
         'code': error.code,
-        'context': error.metadata,
+        'context': error.metadata === undefined ? null : { ...error.metadata },
         'correlationId': error.correlationId ?? null,
         'message': error.message,
         'timestamp': error.timestamp
@@ -163,7 +168,7 @@ export abstract class BaseError extends Error {
 
     if (error instanceof Error) {
       const causeRaw = error.cause;
-      let causeValue: SerializedErrorType | string | null = null;
+      let causeValue: JSONSchema7Type = null;
 
       if (causeRaw !== undefined && causeRaw !== null) {
         if (depth >= CAUSE_CHAIN_DEPTH_LIMIT) {
@@ -176,7 +181,7 @@ export abstract class BaseError extends Error {
       return {
         'cause': causeValue,
         'code': 'native.error',
-        'context': undefined,
+        'context': null,
         'correlationId': null,
         'message': error.message,
         'timestamp': 0
@@ -187,7 +192,7 @@ export abstract class BaseError extends Error {
     return {
       'cause': null,
       'code': 'native.primitive',
-      'context': undefined,
+      'context': null,
       'correlationId': null,
       'message': String(error),
       'timestamp': 0
@@ -221,22 +226,22 @@ export abstract class BaseError extends Error {
   /**
    * Serializes this error (and its cause chain) to a plain JSON-compatible object.
    * Circular cause chains are truncated at `CAUSE_CHAIN_DEPTH_LIMIT`.
-   * Every field is always present; absent optional fields use `null` or `undefined`.
+   * Every field is always present; absent optional fields use `null`.
    *
    * Returns `Record<string, unknown>` so subclasses may override with richer
    * serialization while still satisfying the base contract.
    */
   public toJSON(): Record<string, unknown> {
-    const base = BaseError.serializeCause(this, 0) as unknown as Record<string, unknown>;
+    const base = BaseError.serializeCause(this, 0);
     const extra = this.serializeExtra();
     return { ...base, ...extra };
   }
 
   /**
-   * Serializes this error to a `SerializedErrorType` object.
+   * Serializes this error to the canonical recursive JSON object type.
    * Equivalent to `toJSON()` with the precise return type.
    */
-  public toSerializedError(): SerializedErrorType {
+  public toSerializedError(): JSONSchema7Object {
     const result = BaseError.serializeCause(this, 0);
     return result;
   }

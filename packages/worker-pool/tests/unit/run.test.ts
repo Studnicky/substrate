@@ -72,7 +72,7 @@ describe('WorkerPool#run', () => {
       }
     }
 
-    const pool = ObservingPool.create({ 'concurrency': 2, 'workerPath': WORKER_PATH }) as ObservingPool;
+    const pool = ObservingPool.create({ 'concurrency': 2, 'workerPath': WORKER_PATH });
 
     // Chunk 1 = [a, b] both succeed; chunk 2 = [c (errors), d] — Promise.all in chunk 2 rejects
     // on c, but the whole call rejects only after chunk 1 has already fully resolved. Whether

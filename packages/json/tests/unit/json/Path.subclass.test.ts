@@ -21,7 +21,7 @@ void describe('Path subclass extension', () => {
     const obj: Record<string, unknown> = {};
 
     // Simulate an object that has a custom key starting with double-underscore
-    (obj as Record<string, unknown>)['__secret'] = 'hidden';
+    obj['__secret'] = 'hidden';
 
     const result = Path.get(obj, '__secret');
 
@@ -31,7 +31,7 @@ void describe('Path subclass extension', () => {
   void it('OpenPath.get traverses the same key the base blocked', () => {
     const obj: Record<string, unknown> = {};
 
-    (obj as Record<string, unknown>)['__secret'] = 'hidden';
+    obj['__secret'] = 'hidden';
 
     const result = OpenPath.get(obj, '__secret');
 

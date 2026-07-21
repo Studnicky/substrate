@@ -4,11 +4,12 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 /**
  * Context implementation using AsyncLocalStorage.
  */
+import type { ContextLookupEntity } from '../entities/ContextLookupEntity.js';
 import type { ContextInterface } from '../interfaces/ContextInterface.js';
+import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
 
 import { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import { ContextConfigError, ContextError } from '../errors/ContextError.js';
-import { ContextBuilder } from './ContextBuilder.js';
 import { ContextScope } from './ContextScope.js';
 
 /**
@@ -37,28 +38,12 @@ import { ContextScope } from './ContextScope.js';
  * @example Reading values anywhere in async chain
  * ```typescript
  * function logMessage(msg: string): void {
- *   const logger = requestContext.get<Logger>('logger');
- *   logger.info(msg);
+ *   const logger = requestContext.get('logger');
+ *   if (logger instanceof Logger) logger.info(msg);
  * }
  * ```
  */
 export class Context implements ContextInterface {
-  /**
-   * Create a fluent builder for constructing a Context instance.
-   *
-   * @returns A new ContextBuilder
-   *
-   * @example
-   * ```typescript
-   * const context = Context.builder().name('request').build();
-   * ```
-   */
-  static builder(): ContextBuilder {
-    // Factory closure so `create` retains its `this` binding when the builder calls it.
-    const result = ContextBuilder.create((config) => { const result = Context.create(config); return result; });
-    return result;
-  }
-
   /**
    * Create a new Context instance.
    *
@@ -77,10 +62,10 @@ export class Context implements ContextInterface {
   }
 
   /**
-   * Shared, never-written-to store returned by getStore() when no context is
+   * Shared, never-written-to store returned by #getStore() when no context is
    * active and onMissingContext() opts into lenient mode.
    *
-   * Safe to share across calls and instances because getStore() only backs
+   * Safe to share across calls and instances because #getStore() only backs
    * read-only accessors (get, has, keys, snapshot). Mutating accessors (set,
    * delete) go through getMutableStore() instead, which allocates a fresh,
    * isolated Map so that writes made outside an active context stay inert
@@ -118,7 +103,7 @@ export class Context implements ContextInterface {
    * @returns The current context Map
    * @throws {ContextError} If no active context exists and onMissingContext returns false
    */
-  protected getStore(): Map<string, unknown> {
+  #getStore(): Map<string, unknown> {
     const store = this.#storage.getStore();
 
     if (store === undefined) {
@@ -133,7 +118,7 @@ export class Context implements ContextInterface {
   /**
    * Retrieves the current context store from AsyncLocalStorage for a mutating operation.
    *
-   * Identical fallback semantics to getStore(), except the lenient-mode fallback
+   * Identical fallback semantics to the read accessors, except the lenient-mode fallback
    * allocates a fresh, isolated Map so that writes made outside an active context
    * are discarded rather than persisted into a store visible to other callers.
    *
@@ -155,7 +140,7 @@ export class Context implements ContextInterface {
   /**
    * Hook called when a store access is attempted outside an active context.
    *
-   * Return true to suppress the throw (getStore returns an empty Map).
+   * Return true to suppress the throw (read accessors return empty results).
    * Return false (default) to let the ContextError propagate.
    *
    * Subclasses override to implement lenient-mode or logging behavior.
@@ -172,11 +157,11 @@ export class Context implements ContextInterface {
    * setup on the new scope.
    *
    * @param initial - The initial values passed to initialize()
-   * @param scope - The newly created ContextScope
+   * @param scope - The newly created context scope
    */
   protected onInitialize(
     _initial: Record<string, unknown> | undefined,
-    _scope: ContextScope
+    _scope: ContextScopeInterface
   ): void {}
 
   /**
@@ -228,19 +213,18 @@ export class Context implements ContextInterface {
    * Gets a value from the context by key.
    * Throws if key doesn't exist.
    *
-   * @typeParam T - The expected type of the value
    * @param key - The key to retrieve
-   * @returns The value
+   * @returns The stored value as `unknown`; callers narrow from runtime evidence
    * @throws {ContextError} If no context is active or key doesn't exist
    */
-  get<T>(key: string): T {
-    const store = this.getStore();
+  get(key: string): unknown {
+    const store = this.#getStore();
 
     if (!store.has(key)) {
       throw new ContextError(`Key '${key}' not found in ${this.name} context`);
     }
 
-    const value = store.get(key) as T;
+    const value = store.get(key);
     this.hooks.invoke('onGet', () => {
       const hookResult = this.onGet(key, value);
       return hookResult;
@@ -256,18 +240,18 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   has(key: string): boolean {
-    const result = this.getStore().has(key);
+    const result = this.#getStore().has(key);
     return result;
   }
 
   /**
    * Initialize a new context scope with optional initial values.
    *
-   * Returns a ContextScope that can be used to execute code within
+   * Returns a context scope that can be used to execute code within
    * the context and terminate when done.
    *
    * @param initial - Optional initial key-value pairs
-   * @returns A new ContextScope ready for execution
+   * @returns A new context scope ready for execution
    *
    * @example
    * ```typescript
@@ -276,9 +260,8 @@ export class Context implements ContextInterface {
    * const state = scope.terminate();
    * ```
    */
-  initialize(initial?: Record<string, unknown>): ContextScope {
-    const options = { 'initial': initial, 'name': this.name, 'storage': this.#storage };
-    const scope = ContextScope.create(options);
+  initialize(initial?: Record<string, unknown>): ContextScopeInterface {
+    const scope = new ContextScope(this.name, this.#storage, initial);
 
     this.hooks.invoke('onInitialize', () => {
       const hookResult = this.onInitialize(initial, scope);
@@ -304,7 +287,7 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   keys(): string[] {
-    const store = this.getStore();
+    const store = this.#getStore();
     return [...store.keys()];
   }
 
@@ -331,22 +314,24 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   snapshot(): Record<string, unknown> {
-    const result = Object.fromEntries(this.getStore());
+    const result = Object.fromEntries(this.#getStore());
     return result;
   }
 
   /**
-   * Gets a value from the context by key, or undefined if not found or not active.
+   * Gets a presence-aware value from the context without throwing.
    *
-   * Unlike `get()`, this never throws — returns undefined both when no active
-   * context exists and when the key is not present.
+   * Unlike `get()`, this never throws. `found` distinguishes a missing key
+   * from a key whose stored value is explicitly `undefined`.
    *
-   * @typeParam T - The expected type of the value
    * @param key - The key to retrieve
-   * @returns The value, or undefined
+   * @returns Presence and the stored value as `unknown`
    */
-  tryGet<T>(key: string): T | undefined {
-    const result = this.#storage.getStore()?.get(key) as T | undefined;
-    return result;
+  tryGet(key: string): ContextLookupEntity.Type {
+    const store = this.#storage.getStore();
+    if (store?.has(key) !== true) {
+      return { 'found': false, 'value': undefined };
+    }
+    return { 'found': true, 'value': store.get(key) };
   }
 }

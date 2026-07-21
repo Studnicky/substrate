@@ -12,7 +12,11 @@
 import { deepStrictEqual, strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import type { PaginatorStateType } from '../../../src/index.js';
+import type {
+  PaginatorExhaustedStateInterface,
+  PaginatorHasMoreStateInterface,
+  PaginatorIdleStateEntity
+} from '../../../src/index.js';
 
 import { Paginator } from '../../../src/index.js';
 
@@ -28,11 +32,11 @@ import { Paginator } from '../../../src/index.js';
 class ReentrantNextPaginator extends Paginator<string, number> {
   private reentered = false;
 
-  static tracked(): ReentrantNextPaginator {
-    return new ReentrantNextPaginator();
-  }
-
-  protected override onEnterState(_state: PaginatorStateType<string, number>): void {
+  protected override onEnterState(
+    _state: PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<string, number>
+    | PaginatorExhaustedStateInterface<string>
+  ): void {
     if (this.reentered) {
       return;
     }
@@ -49,13 +53,16 @@ class ReentrantNextPaginator extends Paginator<string, number> {
  * on the call stack.
  */
 class ReentrantResetPaginator extends Paginator<string, number> {
+  enterCount = 0;
   private reentered = false;
 
-  static tracked(): ReentrantResetPaginator {
-    return new ReentrantResetPaginator();
-  }
+  protected override onEnterState(
+    _state: PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<string, number>
+    | PaginatorExhaustedStateInterface<string>
+  ): void {
+    this.enterCount++;
 
-  protected override onEnterState(_state: PaginatorStateType<string, number>): void {
     if (this.reentered) {
       return;
     }
@@ -64,8 +71,33 @@ class ReentrantResetPaginator extends Paginator<string, number> {
   }
 }
 
+class CrossInstanceReentrantPaginator extends Paginator<string, number> {
+  readonly enters: string[] = [];
+  private name = 'unconfigured';
+  private reentered = false;
+  private target: CrossInstanceReentrantPaginator | undefined;
+
+  configure(name: string, target?: CrossInstanceReentrantPaginator): void {
+    this.name = name;
+    this.target = target;
+  }
+
+  protected override onEnterState(
+    state: PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<string, number>
+    | PaginatorExhaustedStateInterface<string>
+  ): void {
+    this.enters.push(`${this.name}:${state.variant}`);
+
+    if (!this.reentered && this.target !== undefined) {
+      this.reentered = true;
+      this.target.next(`${this.name}-delegated-page`, { 'cursor': 2, 'exhausted': false });
+    }
+  }
+}
+
 it('does not lose a page when a hook override reentrantly calls next() with the same variant (hasMore -> hasMore)', () => {
-  const paginator = ReentrantNextPaginator.tracked();
+  const paginator = ReentrantNextPaginator.create();
 
   paginator.next('page-1', { 'cursor': 2, 'exhausted': false });
 
@@ -86,7 +118,7 @@ it('does not lose a page when a hook override reentrantly calls next() with the 
 });
 
 it('reentrant, variant-changing reset() from onEnterState resolves without throwing or corrupting state', () => {
-  const paginator = ReentrantResetPaginator.tracked();
+  const paginator = ReentrantResetPaginator.create();
 
   // idle -> hasMore fires onEnterState, which reentrantly calls reset()
   // (hasMore -> idle) — a variant-changing reentrant call, which fires a
@@ -97,4 +129,19 @@ it('reentrant, variant-changing reset() from onEnterState resolves without throw
 
   deepStrictEqual(paginator.pages, []);
   strictEqual(paginator.hasNext(), true);
+  strictEqual(paginator.enterCount, 1, 'same-instance nested hook dispatch is stopped by reentrancy detection');
+});
+
+it('allows a hook to transition a second paginator because machine and reentrancy ownership are instance-local', () => {
+  const target = CrossInstanceReentrantPaginator.create();
+  const source = CrossInstanceReentrantPaginator.create();
+  target.configure('target');
+  source.configure('source', target);
+
+  source.next('source-page', { 'cursor': 2, 'exhausted': false });
+
+  deepStrictEqual(source.pages, ['source-page']);
+  deepStrictEqual(target.pages, ['source-delegated-page']);
+  deepStrictEqual(source.enters, ['source:hasMore']);
+  deepStrictEqual(target.enters, ['target:hasMore']);
 });

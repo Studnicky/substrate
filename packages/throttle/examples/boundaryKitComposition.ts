@@ -19,7 +19,7 @@ const throttle = Throttle.create({ 'concurrencyLimit': 2 });
 
 // The kit's entire value-add would have been this composition order — nothing here is
 // hidden: retry, circuitBreaker, and throttle stay reachable as plain local variables,
-// each with its own hooks, getStats()/state, and updateConfig() untouched.
+// each with its own hooks and getStats()/state behavior.
 class ThroughBoundary {
   static run<T>(fn: () => Promise<T>): Promise<T | undefined> {
     const result = throttle.execute(() => { const result = circuitBreaker.execute(() => { const result = retry.execute(fn); return result; }); return result; });

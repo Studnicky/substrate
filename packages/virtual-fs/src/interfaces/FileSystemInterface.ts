@@ -1,8 +1,9 @@
+import type { MkdirOptionsEntity } from '../entities/MkdirOptionsEntity.js';
 import type { StatResultInterface } from './StatResultInterface.js';
 
 export interface FileSystemInterface {
   existsSync(path: string): boolean;
-  mkdirSync(path: string, options?: { 'recursive'?: boolean }): void;
+  mkdirSync(path: string, options?: MkdirOptionsEntity.Type): void;
   readdirSync(path: string): string[];
   readFileSync(path: string, encoding: 'utf8'): string;
   renameSync(oldPath: string, newPath: string): void;

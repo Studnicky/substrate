@@ -13,9 +13,11 @@ description: High-resolution operation timing tracker using process.hrtime.bigin
 pnpm add @studnicky/timing
 ```
 
+`@studnicky/timing` is the sole public code entrypoint.
+
 ## Usage
 
-Build a `Timing` instance with the builder, then record `component.operation` and `component.operation.status` events. Elapsed milliseconds are collected in a flat map keyed by event name:
+Create a `Timing` instance with `Timing.create(options?)`, then record frozen `component.operation[.status]` data with `TimingEvent.create({ component, operation, status? })`. Elapsed milliseconds are collected in a flat map keyed by event name:
 
 <<< ../../packages/timing/examples/basic-usage.ts#usage
 
@@ -27,11 +29,11 @@ Build a `Timing` instance with the builder, then record `component.operation` an
 
 ## Try it
 
-### Builder
+### Direct factory
 
-`Timing.builder().maxEvents(50).build()` constructs the tracker. Press Execute to record a `GraphAdapter.query` event plus three `CacheService.get` events with `start`, `complete`, and `hit` statuses. The output map shows each event key with its elapsed-milliseconds value relative to instance creation.
+`Timing.create({ maxEvents: 50 })` constructs the tracker. The example records a `GraphAdapter.query` event plus three `CacheService.get` events with `start`, `complete`, and `hit` statuses. The output map shows each event key with its elapsed-milliseconds value relative to instance creation.
 
-<RunnableExample src="packages/timing/examples/basic-usage" title="Basic timing — builder, events, elapsed-ms output" />
+<RunnableExample src="packages/timing/examples/basic-usage" title="Basic timing — direct factory, events, elapsed-ms output" />
 
 ### Lifecycle hooks
 
@@ -39,16 +41,9 @@ Build a `Timing` instance with the builder, then record `component.operation` an
 
 <RunnableExample src="packages/timing/examples/observedTiming" title="Observed timing — lifecycle hook trace" />
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/timing` | `Timing`, `TimingEvent`, `NoOpTiming`, `TIMING_STATUS`, `ConfigurationError`, `TimingBuildError` |
-| `@studnicky/timing/builders` | Builder classes |
-| `@studnicky/timing/constants` | `TIMING_STATUS` |
-| `@studnicky/timing/errors` | Error classes |
-| `@studnicky/timing/interfaces` | Interface types |
-| `@studnicky/timing/types` | Type aliases |
+The package root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TimingInterface`, `TIMING_STATUS`, schema-backed timing entities, `TimingBuildError`, and `TimingValidator`.
 
 ## Extending
 
@@ -61,7 +56,7 @@ Build a `Timing` instance with the builder, then record `component.operation` an
 | Hook | When it fires | Args |
 |------|---------------|------|
 | `onInitialize` | After the instance is fully initialized | `startTime: bigint` |
-| `onEvent` | After an event is added to the cache | `data: TimingEventDataType, timestamp: bigint` |
+| `onEvent` | After an event is added to the cache | `data: TimingEventDataEntity.Type, timestamp: bigint` |
 | `onEvict` | Before an event is evicted from the cache | `name: string` |
 | `onClear` | Before the cache is cleared | _(none)_ |
 | `onGetEvents` | At the start of each `getEvents()` call | `eventCount: number` |

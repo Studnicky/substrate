@@ -108,9 +108,15 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/boundary-kit:
     dependencies:
@@ -126,24 +132,24 @@ importers:
       '@studnicky/throttle':
         specifier: workspace:*
         version: link:../throttle
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
 
   packages/bounded-dispatcher:
     dependencies:
       '@studnicky/concurrency':
         specifier: workspace:*
         version: link:../concurrency
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/event-bus':
         specifier: workspace:*
         version: link:../event-bus
       '@studnicky/scheduler':
         specifier: workspace:*
         version: link:../scheduler
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
     devDependencies:
       '@studnicky/clock':
         specifier: workspace:*
@@ -157,9 +163,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/circular-buffer:
     dependencies:
@@ -169,9 +178,15 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/clock:
     dependencies:
@@ -181,9 +196,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/concurrency:
     dependencies:
@@ -196,9 +214,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
     devDependencies:
       '@studnicky/event-bus':
         specifier: workspace:*
@@ -218,6 +239,12 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/context:
     dependencies:
@@ -227,9 +254,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/entity-store:
     dependencies:
@@ -239,15 +269,24 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/errors:
     dependencies:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/eslint-config:
     dependencies:
@@ -260,6 +299,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: '>=8.0.0'
         version: 8.64.0(eslint@10.7.0)(typescript@6.0.3)
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
     devDependencies:
       '@stylistic/eslint-plugin':
         specifier: ^5.10.0
@@ -303,9 +345,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/fetch:
     dependencies:
@@ -321,6 +366,12 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
       undici:
         specifier: ^8.7.0
         version: 8.7.0
@@ -337,12 +388,15 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
       '@studnicky/virtual-fs':
         specifier: workspace:*
         version: link:../virtual-fs
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/flag-evaluator:
     dependencies:
@@ -352,9 +406,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/fsm:
     dependencies:
@@ -367,9 +424,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
     devDependencies:
       '@studnicky/clock':
         specifier: workspace:*
@@ -389,9 +449,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/idempotency-guard:
     dependencies:
@@ -407,9 +470,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/json:
     dependencies:
@@ -419,12 +485,18 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
       ajv-formats:
         specifier: ^3.0.1
         version: 3.0.1(ajv@8.20.0)
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/keyed-rate-limiter:
     dependencies:
@@ -434,9 +506,18 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
       '@studnicky/resilience':
         specifier: workspace:*
         version: link:../resilience
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/keyed-work-gate:
     dependencies:
@@ -458,9 +539,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/memoize:
     dependencies:
@@ -473,6 +557,15 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/mutex:
     dependencies:
@@ -485,9 +578,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
     devDependencies:
       '@studnicky/concurrency':
         specifier: workspace:*
@@ -504,9 +600,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/pipeline:
     dependencies:
@@ -516,9 +615,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/predicates:
     dependencies:
@@ -534,25 +636,40 @@ importers:
       '@studnicky/fsm':
         specifier: workspace:*
         version: link:../fsm
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
       '@studnicky/scheduler':
         specifier: workspace:*
         version: link:../scheduler
-      '@studnicky/signal':
-        specifier: workspace:*
-        version: link:../signal
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
     devDependencies:
       '@studnicky/clock':
         specifier: workspace:*
         version: link:../clock
+      '@studnicky/signal':
+        specifier: workspace:*
+        version: link:../signal
 
   packages/request-executor:
     dependencies:
       '@studnicky/context':
         specifier: workspace:*
         version: link:../context
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/fetch':
         specifier: workspace:*
         version: link:../fetch
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
       '@studnicky/retry':
         specifier: workspace:*
         version: link:../retry
@@ -562,9 +679,12 @@ importers:
       '@studnicky/timing':
         specifier: workspace:*
         version: link:../timing
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/resilience:
     dependencies:
@@ -580,6 +700,12 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/retry:
     dependencies:
@@ -595,6 +721,12 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
     devDependencies:
       '@studnicky/logger':
         specifier: workspace:*
@@ -611,9 +743,15 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/scheduler:
     dependencies:
@@ -626,9 +764,12 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/signal:
     dependencies:
@@ -650,18 +791,24 @@ importers:
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/system:
     dependencies:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/throttle:
     dependencies:
@@ -686,6 +833,12 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
     devDependencies:
       '@studnicky/resilience':
         specifier: workspace:*
@@ -705,15 +858,18 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
-
-  packages/types:
-    dependencies:
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
+
+  packages/types:
+    dependencies:
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
 
   packages/virtual-fs:
     dependencies:
@@ -726,9 +882,15 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/visible-range:
     dependencies:
@@ -738,9 +900,15 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/worker-pool:
     dependencies:
@@ -759,9 +927,12 @@ importers:
       '@studnicky/system':
         specifier: workspace:*
         version: link:../system
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
 packages:
 

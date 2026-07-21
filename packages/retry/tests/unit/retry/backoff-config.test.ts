@@ -13,12 +13,13 @@ import {
 } from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
-import type { RetryContextType } from '../../../src/types/index.js';
+import type { RetryContextInterface } from '../../../src/interfaces/RetryContextInterface.js';
 
 import {
   BackoffStrategy,
-  DefaultHttpErrorClassifier,
   Retry
 } from '../../../src/retry/index.js';
 
@@ -35,7 +36,7 @@ class RecordingRetry extends Retry {
 
   readonly recordedDelays: number[] = [];
 
-  protected override async onRetryScheduled(context: RetryContextType): Promise<void> {
+  protected override async onRetryScheduled(context: RetryContextInterface): Promise<void> {
     await super.onRetryScheduled(context);
     this.recordedDelays.push(context.delayMs);
     context.delayMs = 0;
@@ -53,7 +54,7 @@ class OverridingRetry extends Retry {
 
   readonly overrideDelays: number[] = [];
 
-  protected override onRetryScheduled(context: RetryContextType): void {
+  protected override onRetryScheduled(context: RetryContextInterface): void {
     context.delayMs = 0;
     this.overrideDelays.push(context.delayMs);
   }

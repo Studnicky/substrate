@@ -78,9 +78,7 @@ const corrected = list.getRange();
 
 Supplying neither `itemSize` nor `estimateSize`, or supplying both, throws a `VisibleRangeError`.
 
-### `VisibleRange.builder(): VisibleRangeBuilder`
-
-Fluent alternative: `VisibleRange.builder().withCount(1000).withItemSize(40).withOverscan(2).build()`.
+`VisibleRangeConfigDataEntity` owns the serializable count, fixed-size, and overscan fields. `VisibleRangeResolvedConfigEntity` owns the serializable mode and normalized configuration state retained alongside the variable-size estimator contract.
 
 ### Instance methods
 
@@ -96,18 +94,18 @@ Fluent alternative: `VisibleRange.builder().withCount(1000).withItemSize(40).wit
 Subclass `VisibleRange` and override `onRangeChange` to add telemetry without coupling the base class to a metrics library. The hook fires from `getRange()` only when the computed range differs from the previously computed range — the very first call always fires.
 
 ```typescript
-import type { VisibleRangeType } from '@studnicky/visible-range';
+import type { VisibleRangeEntity } from '@studnicky/visible-range';
 
 import { VisibleRange } from '@studnicky/visible-range';
 
 class InstrumentedVisibleRange extends VisibleRange {
-  protected override onRangeChange(range: VisibleRangeType): void {
+  protected override onRangeChange(range: VisibleRangeEntity.Type): void {
     metrics.gauge('visible-range.start', range.start);
     metrics.gauge('visible-range.end', range.end);
   }
 }
 
-const range = InstrumentedVisibleRange.create({ count: 1000, itemSize: 40 }) as InstrumentedVisibleRange;
+const range = InstrumentedVisibleRange.create({ count: 1000, itemSize: 40 });
 ```
 
 Available hooks: `onRangeChange`.

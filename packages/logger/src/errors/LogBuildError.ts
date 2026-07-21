@@ -1,9 +1,9 @@
 import { LoggerError } from './LoggerError.js';
 
 /**
- * Error thrown when a log builder fails validation.
+ * Error thrown when log-entry configuration fails validation.
  *
- * Thrown when required fields are missing from LogBody or LogFault builders.
+ * Thrown when required fields are missing from `LogBody.create()` or `LogFault.create()`.
  *
  * @example
  * ```typescript

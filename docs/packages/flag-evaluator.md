@@ -34,6 +34,8 @@ Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `
 | `list()` | The names of every currently registered flag |
 | `evaluate(name, context)` | Resolves a boolean decision for `name` given `context: { targetingKey?, ...arbitrary }` |
 
+`FlagContextEntity` owns the optional schema-derived `targetingKey` field. `FlagContextInterface` composes that field and remains open to application-specific context values.
+
 ## Hooks
 
 | Hook | Fires |

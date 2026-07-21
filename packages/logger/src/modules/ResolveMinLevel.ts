@@ -1,5 +1,5 @@
-import type { LogLevelStringType } from '../types/LogLevelStringType.js';
-import type { LogLevelType } from '../types/LogLevelType.js';
+import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
+import type { LogLevelOptionsInterface } from '../interfaces/LogLevelOptionsInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
@@ -13,7 +13,7 @@ export class ResolveMinLevel {
    * @returns The resolved LOG_LEVEL value, defaulting to LOG_LEVEL.TRACE
    * @throws ConfigurationError if `level` is neither a string nor a number
    */
-  public static from(options: { 'level'?: LogLevelStringType | LogLevelType }): LogLevelType {
+  public static from(options: LogLevelOptionsInterface): LogLevelEntity.Type {
     if (options.level !== undefined
       && typeof options.level !== 'string'
       && typeof options.level !== 'number') {

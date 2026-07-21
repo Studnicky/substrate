@@ -1,9 +1,8 @@
-import { ConfigValidation } from '@studnicky/config';
+import { ConfigurationError, ConfigValidation } from '@studnicky/config';
 
 import type { RetryConfigInterface } from '../../interfaces/index.js';
 
 import { RETRY_CONFIG_KEYS } from '../../constants/index.js';
-import { ConfigurationError } from '../../errors/index.js';
 import {
   backoffStrategy,
   errorClassifier,
@@ -30,7 +29,10 @@ class RetryConfigValidator {
   static validate(config?: RetryConfigInterface): RetryConfigInterface {
     try {
       const userConfig = config ?? {};
-      const configObj = userConfig as Record<string, unknown>;
+      const configObj: Record<string, unknown> = {};
+      for (const key of Object.keys(userConfig)) {
+        configObj[key] = Reflect.get(userConfig, key);
+      }
 
       ConfigValidation.assertNoUnknownKeys(configObj, RETRY_CONFIG_KEYS);
 

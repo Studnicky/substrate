@@ -8,9 +8,18 @@ import {
   TimeoutError,
   UndiciDispatcher
 } from '../../../src/index.js';
+import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
+import { validateDispatcher } from '../../../src/config/schemas/validateDispatcher.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
+
+const createManagedDispatcher = (config: Parameters<typeof DispatcherAgent.create>[0]) => {
+  validateDispatcher(config);
+  const agent = DispatcherAgent.create(config);
+  const dispatcher = UndiciDispatcher.create(agent);
+  return { agent, dispatcher };
+};
 
 void describe('Connection Pool Error Scenarios', () => {
   let testUrl: string;
@@ -63,7 +72,7 @@ void describe('Connection Pool Error Scenarios', () => {
       void it(`rejects ${scenario.description}`, () => {
         assert.throws(
           () => {
-            UndiciDispatcher.create(scenario.config);
+            validateDispatcher(scenario.config);
           },
           (error: unknown) => {
             assert.ok(error instanceof Error);
@@ -78,10 +87,10 @@ void describe('Connection Pool Error Scenarios', () => {
 
   void describe('Pool exhaustion scenarios', () => {
     void it('handles many concurrent requests with small pool', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 2 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 2 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const requests = Array.from({ length: 10 }, async () => {
@@ -99,14 +108,14 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('queues requests when pool is full', async () => {
-      const dispatcher = UndiciDispatcher.create({
+      const { agent, dispatcher } = createManagedDispatcher({
         connections: 1,
         pipelining: 1
       });
 
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const startTime = Date.now();
@@ -129,10 +138,10 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('handles mixed success and timeout with limited connections', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 2 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 2 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const requests = [
@@ -163,10 +172,10 @@ void describe('Connection Pool Error Scenarios', () => {
 
   void describe('Network errors with connection pool', () => {
     void it('handles connection refused with pool', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 5 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 5 });
       const client = FetchClient.create({
         baseURL: 'http://127.0.0.1:59999',
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       await assert.rejects(
@@ -190,10 +199,10 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('handles DNS resolution failure with pool', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 5 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 5 });
       const client = FetchClient.create({
         baseURL: 'https://this-domain-does-not-exist-12345.com',
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       await assert.rejects(
@@ -217,16 +226,16 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('isolates network errors between concurrent requests', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 5 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 5 });
 
       const goodClient = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const badClient = FetchClient.create({
         baseURL: 'http://127.0.0.1:1',
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const results = await Promise.allSettled([
@@ -247,15 +256,15 @@ void describe('Connection Pool Error Scenarios', () => {
 
   void describe('Pool cleanup after errors', () => {
     void it('pool remains functional after network error', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 2 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 2 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const badClient = FetchClient.create({
         baseURL: 'http://127.0.0.1:1',
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       await assert.rejects(
@@ -273,10 +282,10 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('pool remains functional after timeout', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 2 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 2 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       await assert.rejects(
@@ -294,10 +303,10 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('pool handles multiple sequential errors', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 2 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 2 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       for (let i = 0; i < 5; i++) {
@@ -319,10 +328,10 @@ void describe('Connection Pool Error Scenarios', () => {
 
   void describe('Multiple concurrent failures', () => {
     void it('handles many concurrent timeouts', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 5 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 5 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const requests = Array.from({ length: 10 }, async () => {
@@ -342,10 +351,10 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('handles many concurrent network errors', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 5 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 5 });
       const client = FetchClient.create({
         baseURL: 'http://127.0.0.1:1',
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const requests = Array.from({ length: 10 }, async () => {
@@ -365,10 +374,10 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('handles mixed errors and successes concurrently', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 5 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 5 });
       const goodClient = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const requests = [
@@ -401,10 +410,10 @@ void describe('Connection Pool Error Scenarios', () => {
 
   void describe('Dispatcher health monitoring during errors', () => {
     void it('reports unhealthy state when pool is saturated', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 1 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 1 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const slowRequests = [
@@ -426,10 +435,10 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('health check works after errors', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 2 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 2 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       await assert.rejects(
@@ -449,14 +458,14 @@ void describe('Connection Pool Error Scenarios', () => {
 
   void describe('Keep-alive timeout edge cases', () => {
     void it('creates dispatcher with very short keep-alive', async () => {
-      const dispatcher = UndiciDispatcher.create({
+      const { agent, dispatcher } = createManagedDispatcher({
         connections: 2,
         keepAliveTimeout: 100
       });
 
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const response = await client.get('/posts/1');
@@ -475,14 +484,14 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('creates dispatcher with very long keep-alive', async () => {
-      const dispatcher = UndiciDispatcher.create({
+      const { agent, dispatcher } = createManagedDispatcher({
         connections: 2,
         keepAliveTimeout: 300_000
       });
 
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const response = await client.get('/posts/1');
@@ -499,14 +508,14 @@ void describe('Connection Pool Error Scenarios', () => {
 
   void describe('Pipelining edge cases', () => {
     void it('creates dispatcher with pipelining disabled', async () => {
-      const dispatcher = UndiciDispatcher.create({
+      const { agent, dispatcher } = createManagedDispatcher({
         connections: 2,
         pipelining: 0
       });
 
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const requests = [
@@ -523,14 +532,14 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('creates dispatcher with high pipelining value', async () => {
-      const dispatcher = UndiciDispatcher.create({
+      const { agent, dispatcher } = createManagedDispatcher({
         connections: 1,
         pipelining: 10
       });
 
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       const requests = Array.from({ length: 10 }, async () => {
@@ -550,10 +559,10 @@ void describe('Connection Pool Error Scenarios', () => {
 
   void describe('Dispatcher cleanup', () => {
     void it('close() waits for established connections', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 2 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 2 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       // Start requests and wait for them to establish connections
@@ -576,10 +585,10 @@ void describe('Connection Pool Error Scenarios', () => {
     // The race condition between request start and destroy() is inherently non-deterministic.
 
     void it('destroy() with timeout waits before aborting', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 2 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 2 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       // Make a fast request first to warm up the connection
@@ -598,10 +607,10 @@ void describe('Connection Pool Error Scenarios', () => {
     });
 
     void it('destroy() with zero timeout does not wait', async () => {
-      const dispatcher = UndiciDispatcher.create({ connections: 2 });
+      const { agent, dispatcher } = createManagedDispatcher({ connections: 2 });
       const client = FetchClient.create({
         baseURL: testUrl,
-        options: { dispatcher: dispatcher.getAgent() }
+        options: { dispatcher: agent }
       });
 
       // Make a fast request first to warm up the connection

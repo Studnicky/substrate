@@ -2,10 +2,11 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { HealthRegistry } from '../../src/HealthRegistry.js';
+import type { HealthCheckInterface } from '../../src/interfaces/HealthCheckInterface.js';
 
-const healthy = async () => ({ 'status': 'healthy' as const });
-const degraded = async () => ({ 'status': 'degraded' as const, 'metadata': { 'reason': 'slow' } });
-const unhealthy = async () => ({ 'status': 'unhealthy' as const, 'metadata': { 'reason': 'down' } });
+const healthy: HealthCheckInterface = async () => ({ 'status': 'healthy' });
+const degraded: HealthCheckInterface = async () => ({ 'status': 'degraded', 'metadata': { 'reason': 'slow' } });
+const unhealthy: HealthCheckInterface = async () => ({ 'status': 'unhealthy', 'metadata': { 'reason': 'down' } });
 
 describe('HealthRegistry', () => {
   let registry: HealthRegistry;
@@ -82,6 +83,29 @@ describe('HealthRegistry', () => {
     assert.equal(status, 'unhealthy');
     assert.equal(results.get('slow')?.status, 'unhealthy');
     assert.ok(results.get('slow')?.metadata !== undefined);
+  });
+
+  it('a timed-out check that rejects later remains owned by the timeout race', async () => {
+    const rejectionEvents: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      registry.register('late-rejection', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        throw new Error('late health failure');
+      }, { 'timeoutMs': 1 });
+
+      const { status, results } = await registry.evaluate();
+      assert.equal(status, 'unhealthy');
+      assert.equal(results.get('late-rejection')?.status, 'unhealthy');
+
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(rejectionEvents.length, 0);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
   });
 
   it('unregister removes a check so it no longer participates in evaluate()', async () => {

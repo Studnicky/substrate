@@ -9,6 +9,7 @@ import { it } from 'node:test';
 
 import { CircuitBreaker } from '../../src/CircuitBreaker.js';
 import { CircuitBreakerOpenError } from '../../src/CircuitBreakerOpenError.js';
+import { CircuitStateEntity } from '../../src/entities/CircuitStateEntity.js';
 import { ResilienceConfigError } from '../../src/errors/ResilienceConfigError.js';
 import type { CircuitBreakerOptionsInterface } from '../../src/interfaces/CircuitBreakerOptionsInterface.js';
 
@@ -30,6 +31,13 @@ for (const { description, config } of invalidConfigs) {
 it('starts in closed state', () => {
   const cb = CircuitBreaker.create({ failureThreshold: 2, resetTimeoutMs: 100 });
   strictEqual(cb.state, 'closed');
+});
+
+it('validates every circuit state and rejects unsupported states', () => {
+  for (const state of ['closed', 'halfOpen', 'open']) {
+    strictEqual(CircuitStateEntity.validate(state), true);
+  }
+  strictEqual(CircuitStateEntity.validate('half-open'), false);
 });
 
 it('trips to open after failureThreshold failures', async () => {
@@ -136,12 +144,6 @@ const stateControlScenarios: Array<{
     description: 'reset() returns to closed from open',
     setup: async (cb) => { await rejects(() => cb.execute(fail)); },
     action: (cb) => { cb.reset(); },
-    expectedState: 'closed',
-  },
-  {
-    description: 'forceClosed() closes from open',
-    setup: async (cb) => { await rejects(() => cb.execute(fail)); },
-    action: (cb) => { cb.forceClosed(); },
     expectedState: 'closed',
   },
   {
@@ -388,14 +390,21 @@ it('a throwing onTrip hook does not replace the original failure or the open tra
   strictEqual(cb.state, 'open');
 });
 
-it('an async-overridden onSuccess hook that rejects is routed to hookErrors without producing an unhandled rejection', async () => {
+it('async hook failures remain isolated to their owning CircuitBreaker instances', async () => {
   class AsyncRejectingSuccessBreaker extends CircuitBreaker {
-    get recordedHookErrors(): HookInvocationError[] { const result = this.hookErrors;
+    readonly #cause: Error;
+
+    constructor(cause: Error) {
+      super({ failureThreshold: 2, resetTimeoutMs: 100 });
+      this.#cause = cause;
+    }
+
+    get recordedHookErrors(): readonly HookInvocationError[] { const result = this.hooks.getHookErrors();
       return result; }
 
     protected override async onSuccess(): Promise<void> {
       await Promise.resolve();
-      throw new Error('async onSuccess boom');
+      throw this.#cause;
     }
   }
 
@@ -404,15 +413,26 @@ it('an async-overridden onSuccess hook that rejects is routed to hookErrors with
   process.on('unhandledRejection', onUnhandledRejection);
 
   try {
-    const cb = new AsyncRejectingSuccessBreaker({ failureThreshold: 2, resetTimeoutMs: 100 });
-    const result = await cb.execute(succeed);
+    const firstCause = new Error('first async onSuccess boom');
+    const secondCause = new Error('second async onSuccess boom');
+    const first = new AsyncRejectingSuccessBreaker(firstCause);
+    const second = new AsyncRejectingSuccessBreaker(secondCause);
+    const results = await Promise.all([first.execute(succeed), second.execute(succeed)]);
 
-    strictEqual(result, 'ok');
+    deepStrictEqual(results, ['ok', 'ok']);
     await new Promise((resolve) => { setImmediate(resolve); });
 
     strictEqual(rejectionEvents.length, 0);
-    strictEqual(cb.recordedHookErrors.length, 1);
-    strictEqual(cb.recordedHookErrors[0]?.hookName, 'onSuccess');
+    const firstErrors = first.recordedHookErrors;
+    const secondErrors = second.recordedHookErrors;
+    strictEqual(firstErrors.length, 1);
+    strictEqual(firstErrors[0]?.hookName, 'onSuccess');
+    ok(firstErrors[0]?.cause instanceof Error);
+    strictEqual(firstErrors[0].cause.message, firstCause.message);
+    strictEqual(secondErrors.length, 1);
+    strictEqual(secondErrors[0]?.hookName, 'onSuccess');
+    ok(secondErrors[0]?.cause instanceof Error);
+    strictEqual(secondErrors[0].cause.message, secondCause.message);
   } finally {
     process.off('unhandledRejection', onUnhandledRejection);
   }

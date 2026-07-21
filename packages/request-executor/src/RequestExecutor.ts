@@ -10,20 +10,9 @@ import { Retry } from '@studnicky/retry';
 import { Signal } from '@studnicky/signal';
 import { TIMING_STATUS, TimingEvent } from '@studnicky/timing';
 
-import type { RequestExecutorConfigType } from './types/RequestExecutorConfigType.js';
-import type { RequestExecutorExecuteOptionsType } from './types/RequestExecutorExecuteOptionsType.js';
-
-import { RequestExecutorBuilder } from './RequestExecutorBuilder.js';
-
-// json-schema-uninexpressible: composes live class instances (Context, FetchClient, Retry, Signal, Timing) — not a serializable data shape
-type RequestExecutorDepsType = {
-  'context'?: Context | undefined;
-  'deadlineMs'?: number | undefined;
-  'fetchClient': FetchClient;
-  'retry': Retry;
-  'signal': Signal;
-  'timing'?: Timing | undefined;
-};
+import type { RequestExecutorConfigInterface } from './interfaces/RequestExecutorConfigInterface.js';
+import type { RequestExecutorDepsInterface } from './interfaces/RequestExecutorDepsInterface.js';
+import type { RequestExecutorExecuteOptionsInterface } from './interfaces/RequestExecutorExecuteOptionsInterface.js';
 
 /**
  * Composes `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, `@studnicky/timing`,
@@ -34,9 +23,8 @@ type RequestExecutorDepsType = {
  * and — if a `Context` was composed — runs the entire call inside a fresh context scope.
  *
  * `RequestExecutor` has no lifecycle hooks of its own. Observability is delegated entirely to
- * the composed primitives (subclass `FetchClient`/`Retry`/`Timing`/`Context` and pass instances
- * in); the getters expose every composed instance so a `RequestExecutor` subclass can still
- * reach them.
+ * the composed primitives: callers retain explicit ownership of subclassed
+ * `FetchClient`/`Retry`/`Timing`/`Context` instances passed in through configuration.
  *
  * @example Direct composition
  * ```typescript
@@ -56,7 +44,7 @@ export class RequestExecutor {
    * @param config - Composition configuration
    * @returns New RequestExecutor instance
    */
-  static create(config: RequestExecutorConfigType = {}): RequestExecutor {
+  static create(config: RequestExecutorConfigInterface = {}): RequestExecutor {
     const result = new this({
       'context': config.context,
       'deadlineMs': config.deadlineMs,
@@ -68,15 +56,7 @@ export class RequestExecutor {
     return result;
   }
 
-  static builder(): RequestExecutorBuilder {
-    const result = RequestExecutorBuilder.create((config) => {
-      const executor = RequestExecutor.create(config);
-      return executor;
-    });
-    return result;
-  }
-
-  static #resolveFetchClient(value: RequestExecutorConfigType['fetchClient']): FetchClient {
+  static #resolveFetchClient(value: RequestExecutorConfigInterface['fetchClient']): FetchClient {
     if (value instanceof FetchClient) {
       return value;
     }
@@ -84,7 +64,7 @@ export class RequestExecutor {
     return result;
   }
 
-  static #resolveRetry(value: RequestExecutorConfigType['retry']): Retry {
+  static #resolveRetry(value: RequestExecutorConfigInterface['retry']): Retry {
     if (value instanceof Retry) {
       return value;
     }
@@ -99,7 +79,7 @@ export class RequestExecutor {
   readonly #signal: Signal;
   readonly #timing: Timing | undefined;
 
-  protected constructor(deps: RequestExecutorDepsType) {
+  protected constructor(deps: RequestExecutorDepsInterface) {
     this.#fetchClient = deps.fetchClient;
     this.#retry = deps.retry;
     this.#signal = deps.signal;
@@ -119,7 +99,7 @@ export class RequestExecutor {
    */
   async execute<T>(
     fn: (client: FetchClient, signal: AbortSignal) => Promise<T>,
-    options?: RequestExecutorExecuteOptionsType
+    options?: RequestExecutorExecuteOptionsInterface
   ): Promise<T> {
     const deadlineMs = options?.deadlineMs ?? this.#deadlineMs;
     const composedSignal = await this.#signal.compose({
@@ -128,7 +108,10 @@ export class RequestExecutor {
     });
 
     const runRetryable = (): Promise<T> => {
-      const result = this.#retry.execute(() => { const result = fn(this.#fetchClient, composedSignal); return result; });
+      const result = this.#retry.execute((): Promise<T> => {
+        const result = fn(this.#fetchClient, composedSignal);
+        return result;
+      });
       return result;
     };
 
@@ -145,35 +128,22 @@ export class RequestExecutor {
     const scope = this.#context.initialize(options?.contextInitial);
 
     try {
-      const result = await scope.execute(() => { const result = runTimed(); return result; });
+      const result = await scope.execute((): Promise<T> => {
+        const result = runTimed();
+        return result;
+      });
       return result;
     } finally {
       scope.terminate();
     }
   }
 
-  getContext(): Context | undefined {
-    return this.#context;
-  }
-
-  getFetchClient(): FetchClient {
-    return this.#fetchClient;
-  }
-
-  getRetry(): Retry {
-    return this.#retry;
-  }
-
-  getSignal(): Signal {
-    return this.#signal;
-  }
-
-  getTiming(): Timing | undefined {
-    return this.#timing;
-  }
-
   #emit(status: (typeof TIMING_STATUS)[keyof typeof TIMING_STATUS]): void {
-    this.#timing?.event(TimingEvent.create().component('RequestExecutor').operation('execute').status(status).build());
+    this.#timing?.event(TimingEvent.create({
+      'component': 'RequestExecutor',
+      'operation': 'execute',
+      'status': status
+    }));
   }
 
   async #runWithTiming<T>(fn: () => Promise<T>): Promise<T> {

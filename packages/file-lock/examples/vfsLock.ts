@@ -1,4 +1,4 @@
-/** vfsLock — builder demo injecting VirtualFileSystem as the lock backend. Run: npx tsx examples/vfsLock.ts */
+/** vfsLock — inject VirtualFileSystem as the lock backend. Run: npx tsx examples/vfsLock.ts */
 
 // #region usage
 import { VirtualFileSystem } from '@studnicky/virtual-fs';
@@ -6,20 +6,20 @@ import assert from 'node:assert/strict';
 
 import { FileLock } from '../src/index.js';
 
-const vfs = VirtualFileSystem.builder()
-  .seed('/queue/jobs.json', '{"jobs":[]}')
-  .build();
+const vfs = VirtualFileSystem.create({
+  'seed': new Map([['/queue/jobs.json', '{"jobs":[]}']])
+});
 
 // Ensure the parent directory entry exists so FileLock can readdirSync it
 // when checking for existing lock files during contention detection.
 vfs.mkdirSync('/queue', { 'recursive': true });
 
-const lock = await FileLock.builder()
-  .withFileSystem(vfs)
-  .withPath('/queue/jobs.json')
-  .withPollMs(10)
-  .withTimeoutMs(1000)
-  .build();
+const lock = await FileLock.create({
+  'fileSystem': vfs,
+  'path': '/queue/jobs.json',
+  'pollMs': 10,
+  'timeoutMs': 1000
+});
 
 console.log('lock acquired');
 

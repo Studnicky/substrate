@@ -2,13 +2,13 @@
  * Reusable client configuration fixtures for tests
  */
 
-import type { ClientConfigType } from '../../src/types/ClientConfigType.js';
+import type { ClientConfigInterface } from '../../src/interfaces/ClientConfigInterface.js';
 
 export const basicClientConfig = {
   baseURL: 'https://api.example.com',
   headers: { 'User-Agent': 'test-agent' },
   timeout: 5000
-} as const satisfies ClientConfigType;
+} as const satisfies ClientConfigInterface;
 
 export const clientConfigWithHeaders = {
   baseURL: 'https://api.example.com',
@@ -17,7 +17,7 @@ export const clientConfigWithHeaders = {
     'Content-Type': 'application/json',
     'X-Custom-Header': 'custom-value'
   }
-} as const satisfies ClientConfigType;
+} as const satisfies ClientConfigInterface;
 
 export const clientConfigWithParams = {
   baseURL: 'https://api.example.com',
@@ -25,12 +25,12 @@ export const clientConfigWithParams = {
     clientId: 'test-key',
     version: 'v1'
   }
-} as const satisfies ClientConfigType;
+} as const satisfies ClientConfigInterface;
 
 export const clientConfigWithTimeout = {
   baseURL: 'https://api.example.com',
   timeout: 3000
-} as const satisfies ClientConfigType;
+} as const satisfies ClientConfigInterface;
 
 export const clientConfigWithMetadata = {
   baseURL: 'https://api.example.com',
@@ -38,7 +38,7 @@ export const clientConfigWithMetadata = {
     environment: 'test',
     service: 'test-service'
   }
-} as const satisfies ClientConfigType;
+} as const satisfies ClientConfigInterface;
 
 export const clientConfigWithDispatcher = {
   baseURL: 'https://api.example.com',
@@ -46,7 +46,7 @@ export const clientConfigWithDispatcher = {
     connections: 20,
     pipelining: 10
   }
-} as const satisfies ClientConfigType;
+} as const satisfies ClientConfigInterface;
 
 export const clientConfigComplete = {
   baseURL: 'https://api.example.com',
@@ -60,4 +60,4 @@ export const clientConfigComplete = {
   },
   params: { clientId: 'test-key' },
   timeout: 5000
-} as const satisfies ClientConfigType;
+} as const satisfies ClientConfigInterface;

@@ -1,41 +1,58 @@
 import type { Rule } from 'eslint';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 import type { Program, Symbol, Type } from 'typescript';
 
+import { ObjectGuard } from './shared/ObjectGuard.js';
 import { TrivialExpression } from './shared/TrivialExpression.js';
 
-type ModeType = 'any' | 'structural' | 'typed';
+namespace StaticMethodVerbsOptionsEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'mode': {
+        'default': 'structural',
+        'description': 'Detection mode: "any" flags every module-scope function; "structural" exempts trivial pass-through bodies (already covered by inline-trivial-logic); "typed" flags only functions whose return type is a named type/interface (requires type-aware parser services).',
+        'enum': ['any', 'structural', 'typed'],
+        'type': 'string'
+      }
+    },
+    'type': 'object'
+  } as const satisfies JSONSchema;
 
-// json-schema-uninexpressible: ESLint rule-options shape validated at runtime by this rule's own meta.schema, not this package's entity/data layer
-type OptionsType = {
-  readonly 'mode'?: ModeType;
-};
+  export type Type = FromSchema<typeof Schema>;
+}
 
-const DEFAULT_MODE: ModeType = 'structural';
+const DEFAULT_MODE = 'structural';
 
 const TRIVIAL_OPTS = { 'allowLiterals': false, 'allowMemberExpressions': false };
 
-type ParserServicesType = {
+interface ParserServicesInterface {
   readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
   readonly 'getTypeAtLocation': (node: unknown) => Type;
   readonly 'program': Program;
-};
+}
 
-// json-schema-uninexpressible: wraps 'ParserServicesType', which itself references externally-defined 'typescript' package types (Program/Symbol/Type) one level of local-alias indirection removed — not a domain shape we own
-type SourceCodeServicesAccessorType = {
-  readonly 'parserServices'?: ParserServicesType;
-};
+interface SourceCodeServicesAccessorInterface {
+  readonly 'parserServices'?: ParserServicesInterface;
+}
 
-class ContextHelpers {
-  public static getServices(context: Rule.RuleContext): ParserServicesType | undefined {
-    const result = (context.sourceCode as unknown as SourceCodeServicesAccessorType).parserServices;
-    return result;
+class ParserServicesGuard {
+  public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
+    if (!ObjectGuard.isObject(value)) { return false; }
+    if (typeof value.getSymbolAtLocation !== 'function' || typeof value.getTypeAtLocation !== 'function') {
+      return false;
+    }
+    return ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
   }
 }
 
-// json-schema-uninexpressible: raw AST-node narrowing shape with 'unknown'-typed 'body' array entries (arbitrary AST nodes), which JSON Schema cannot express
-type FunctionLikeNodeType = {
-  readonly 'body': { readonly 'body'?: readonly unknown[]; readonly 'type': string };
-};
+class ContextHelpers {
+  public static getServices(context: Rule.RuleContext): ParserServicesInterface | undefined {
+    const sourceCode: SourceCodeServicesAccessorInterface = context.sourceCode;
+    const services: unknown = sourceCode.parserServices;
+    return ParserServicesGuard.hasTypeInformation(services) ? services : undefined;
+  }
+}
 
 class AstHelpers {
   public static isModuleScope(node: Rule.Node): boolean {
@@ -48,8 +65,8 @@ class AstHelpers {
   }
 
   public static isFunctionInit(init: unknown): boolean {
-    if (init === null || init === undefined || typeof init !== 'object') { return false; }
-    const t = (init as { 'type'?: unknown }).type;
+    if (!ObjectGuard.isObject(init)) { return false; }
+    const t = init.type;
     return t === 'ArrowFunctionExpression' || t === 'FunctionExpression';
   }
 
@@ -65,18 +82,18 @@ class AstHelpers {
   public static isBlockBodyTrivial(body: readonly unknown[]): boolean {
     if (body.length !== 1) { return false; }
     const [statement] = body;
-    if (statement === undefined || typeof statement !== 'object') { return false; }
-    const statementType = (statement as { 'type'?: unknown }).type;
+    if (!ObjectGuard.isObject(statement)) { return false; }
+    const statementType = statement.type;
     if (statementType !== 'ReturnStatement') { return false; }
-    const argument = (statement as { 'argument'?: unknown }).argument;
+    const argument = statement.argument;
     return TrivialExpression.isTrivial(argument, TRIVIAL_OPTS);
   }
 
-  public static isStructurallyExempt(node: Rule.Node): boolean {
-    const rawNode = node as unknown as FunctionLikeNodeType;
-    const { body } = rawNode;
+  public static isStructurallyExempt(node: unknown): boolean {
+    if (!ObjectGuard.isObject(node) || !ObjectGuard.isObject(node.body)) { return false; }
+    const { body } = node;
     if (body.type === 'BlockStatement') {
-      return AstHelpers.isBlockBodyTrivial(body.body ?? []);
+      return AstHelpers.isBlockBodyTrivial(Array.isArray(body.body) ? body.body : []);
     }
     return TrivialExpression.isTrivial(body, TRIVIAL_OPTS);
   }
@@ -84,11 +101,11 @@ class AstHelpers {
 
 export const staticMethodVerbs: Rule.RuleModule = {
   'create': (context) => {
-    const options = context.options as unknown[] | undefined;
-    const rawOptions = Array.isArray(options)
-      ? (options.at(0) as OptionsType | undefined)
-      : undefined;
-    const mode: ModeType = rawOptions?.mode ?? DEFAULT_MODE;
+    const rawOptions: unknown = context.options.at(0);
+    const rawMode = ObjectGuard.isObject(rawOptions) ? rawOptions.mode : undefined;
+    const mode = rawMode === 'any' || rawMode === 'structural' || rawMode === 'typed'
+      ? rawMode
+      : DEFAULT_MODE;
 
     const services = mode === 'typed' ? ContextHelpers.getServices(context) : undefined;
     const checker = services?.program !== undefined ? services.program.getTypeChecker() : undefined;
@@ -105,7 +122,7 @@ export const staticMethodVerbs: Rule.RuleModule = {
       });
     };
 
-    const shouldReport = (node: Rule.Node): boolean => {
+    const shouldReport = (node: unknown): boolean => {
       if (mode === 'any') { return true; }
       if (mode === 'structural') { return !AstHelpers.isStructurallyExempt(node); }
       // 'typed'
@@ -132,9 +149,12 @@ export const staticMethodVerbs: Rule.RuleModule = {
         if (declarator.id.type !== 'Identifier') { return; }
         const name = declarator.id.name;
         if (!AstHelpers.isFunctionInit(declarator.init)) { return; }
-        const initNode = declarator.init as unknown as Rule.Node;
-        if (!shouldReport(initNode)) { return; }
-        report(declarator as unknown as Rule.Node, name);
+        if (!shouldReport(declarator.init)) { return; }
+        context.report({
+          'data': { 'name': name },
+          'messageId': 'freestandingFunction',
+          'node': declarator
+        });
       });
     };
 
@@ -151,20 +171,7 @@ export const staticMethodVerbs: Rule.RuleModule = {
     'messages': {
       'freestandingFunction': "Freestanding function '{{name}}' at module scope is forbidden. Convert it to a static method on a class."
     },
-    'schema': [
-      {
-        'additionalProperties': false,
-        'properties': {
-          'mode': {
-            'default': 'structural',
-            'description': 'Detection mode: "any" flags every module-scope function; "structural" exempts trivial pass-through bodies (already covered by inline-trivial-logic); "typed" flags only functions whose return type is a named type/interface (requires type-aware parser services).',
-            'enum': ['any', 'structural', 'typed'],
-            'type': 'string'
-          }
-        },
-        'type': 'object'
-      }
-    ],
+    'schema': [StaticMethodVerbsOptionsEntity.Schema],
     'type': 'problem'
   }
 };

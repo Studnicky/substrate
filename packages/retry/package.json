@@ -11,30 +11,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./backoff": {
-      "types": "./dist/retry/backoff/index.d.ts",
-      "import": "./dist/retry/backoff/index.js"
-    },
-    "./constants": {
-      "types": "./dist/constants/index.d.ts",
-      "import": "./dist/constants/index.js"
-    },
-    "./errors": {
-      "types": "./dist/errors/index.d.ts",
-      "import": "./dist/errors/index.js"
-    },
-    "./interfaces": {
-      "types": "./dist/interfaces/index.d.ts",
-      "import": "./dist/interfaces/index.js"
-    },
-    "./matchers": {
-      "types": "./dist/retry/core/matchers.d.ts",
-      "import": "./dist/retry/core/matchers.js"
-    },
-    "./types": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/types/index.js"
     }
   },
   "files": [
@@ -45,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist coverage test-reports",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
@@ -82,7 +58,9 @@
     "@studnicky/config": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/types": "workspace:*"
+    "@studnicky/types": "workspace:*",
+    "ajv": "^8.20.0",
+    "json-schema-to-ts": "^3.1.1"
   },
   "peerDependencies": {
     "@studnicky/logger": "workspace:*",

@@ -14,7 +14,7 @@ import {
 import { it } from 'node:test';
 
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
-import type { RetryCallStateType } from '../../../src/types/RetryCallStateType.js';
+import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 
 import { Retry } from '../../../src/retry/index.js';
 import { NonRetryableError } from '../../../src/errors/index.js';
@@ -105,8 +105,7 @@ it('a hung onGiveUp hook with hookTimeoutMs configured is swallowed and does not
 });
 
 // ---------------------------------------------------------------------------
-// (c) With hookTimeoutMs unset, existing behavior is completely unchanged —
-// including RetryCallFsm's separate, untouched enterCall swallow-catch.
+// (c) With hookTimeoutMs unset, awaited hooks retain their unbounded behavior.
 // ---------------------------------------------------------------------------
 
 it('a hung onAttempt hook with hookTimeoutMs unset hangs execute() forever (unchanged prior behavior)', async () => {
@@ -136,7 +135,7 @@ it('a throwing enterCall hook is still swallowed via RetryCallFsm when hookTimeo
       super(config ?? {});
     }
 
-    protected override enterCall(_to: RetryCallStateType, _from: RetryCallStateType): void {
+    protected override enterCall(_to: RetryCallStateEntity.Type, _from: RetryCallStateEntity.Type): void {
       throw new Error('enterCall boom');
     }
   }
@@ -145,4 +144,40 @@ it('a throwing enterCall hook is still swallowed via RetryCallFsm when hookTimeo
   const result = await retry.execute(async () => 'ok');
 
   strictEqual(result, 'ok');
+});
+
+it('a hung onRetryScheduled hook is bounded and the scheduled retry proceeds', async () => {
+  class HangingRetryScheduledRetry extends Retry {
+    constructor(config?: Partial<RetryConfigInterface>) {
+      super(config ?? {});
+    }
+
+    protected override onRetryScheduled(): Promise<void> {
+      return new Promise<void>(() => {});
+    }
+  }
+
+  const retry = new HangingRetryScheduledRetry({
+    'errorClassifier': () => ({ 'retryable': true }),
+    'hookTimeoutMs': HOOK_TIMEOUT_MS,
+    'maxRetries': 1
+  });
+  let attempts = 0;
+  const startedAt = Date.now();
+
+  const result = await retry.execute(async () => {
+    attempts += 1;
+    if (attempts === 1) {
+      throw new Error('transient');
+    }
+    return 'recovered';
+  });
+  const elapsedMs = Date.now() - startedAt;
+
+  strictEqual(result, 'recovered');
+  strictEqual(attempts, 2);
+  ok(
+    elapsedMs < GENEROUS_UPPER_BOUND_MS,
+    `expected retry to proceed within ${GENEROUS_UPPER_BOUND_MS}ms of the configured ${HOOK_TIMEOUT_MS}ms hook timeout, took ${elapsedMs}ms`
+  );
 });

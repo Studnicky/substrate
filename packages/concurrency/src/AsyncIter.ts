@@ -2,17 +2,37 @@
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
 
+import type { AsyncIterDoneDiscriminantEntity } from './entities/AsyncIterDoneDiscriminantEntity.js';
+import type { AsyncIterErrorDiscriminantEntity } from './entities/AsyncIterErrorDiscriminantEntity.js';
+import type { AsyncIterValueDiscriminantEntity } from './entities/AsyncIterValueDiscriminantEntity.js';
+
+interface QueueDoneEntryInterface {
+  readonly 'variant': AsyncIterDoneDiscriminantEntity.Type['variant'];
+}
+
+interface QueueErrorEntryInterface {
+  readonly 'error': unknown;
+  readonly 'variant': AsyncIterErrorDiscriminantEntity.Type['variant'];
+}
+
+interface QueueValueEntryInterface<T> {
+  readonly 'value': T;
+  readonly 'variant': AsyncIterValueDiscriminantEntity.Type['variant'];
+}
+
 export class AsyncIter {
   /** FIFO merge of N async iterables in arrival order. */
   static async *merge<T>(...sources: AsyncIterable<T>[]): AsyncGenerator<T> {
     if (sources.length === 0) { return; }
 
-    type QueueEntry = { 'value': T; 'variant': 'value'; } | { 'variant': 'done' } | { 'error': unknown; 'variant': 'error'; };
-
-    const queue = CircularBuffer.create<QueueEntry>({ 'overflow': 'grow' });
+    const queue = CircularBuffer.create<
+      QueueDoneEntryInterface | QueueErrorEntryInterface | QueueValueEntryInterface<T>
+    >({ 'overflow': 'grow' });
     let notify: (() => void) | null = null;
 
-    function enqueue(entry: QueueEntry): void {
+    function enqueue(
+      entry: QueueDoneEntryInterface | QueueErrorEntryInterface | QueueValueEntryInterface<T>
+    ): void {
       queue.push(entry);
       if (notify !== null) { const n = notify; notify = null; n(); }
     }

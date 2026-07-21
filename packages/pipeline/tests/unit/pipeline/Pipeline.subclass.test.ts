@@ -61,10 +61,11 @@ class BracketPipeline extends Pipeline<number> {
 void describe('Pipeline subclass extension', () => {
   void describe('beforeStage / afterStage hooks', () => {
     void it('fires before and after each registered stage in order', async () => {
-      const pipeline = TracingPipeline.create<number>();
-      pipeline.add((n) => n + 1);
-      pipeline.add((n) => n * 2);
-      pipeline.add((n) => n - 3);
+      const pipeline = TracingPipeline.create<number>([
+        (n) => n + 1,
+        (n) => n * 2,
+        (n) => n - 3,
+      ]);
 
       await pipeline.run(5);
 
@@ -79,15 +80,14 @@ void describe('Pipeline subclass extension', () => {
     });
 
     void it('does not fire when pipeline has no stages', async () => {
-      const pipeline = TracingPipeline.create<string>();
+      const pipeline = TracingPipeline.create<string>([]);
       await pipeline.run('hello');
 
       assert.strictEqual(pipeline.trace.length, 0);
     });
 
     void it('fires once before and once after for a single stage', async () => {
-      const pipeline = TracingPipeline.create<number>();
-      pipeline.add((n) => n + 1);
+      const pipeline = TracingPipeline.create<number>([(n) => n + 1]);
       await pipeline.run(0);
 
       assert.strictEqual(pipeline.trace.length, 2);
@@ -98,10 +98,11 @@ void describe('Pipeline subclass extension', () => {
     });
 
     void it('base pipeline produces correct result with tracing hooks active', async () => {
-      const pipeline = TracingPipeline.create<number>();
-      pipeline.add((n) => n + 1);  // 5 → 6
-      pipeline.add((n) => n * 2);  // 6 → 12
-      pipeline.add((n) => n - 3);  // 12 → 9
+      const pipeline = TracingPipeline.create<number>([
+        (n) => n + 1,  // 5 → 6
+        (n) => n * 2,  // 6 → 12
+        (n) => n - 3,  // 12 → 9
+      ]);
 
       const result = await pipeline.run(5);
       assert.strictEqual(result, 9);
@@ -117,9 +118,10 @@ void describe('Pipeline subclass extension', () => {
         }
       }
 
-      const pipeline = CaptureBefore.create();
-      pipeline.add((n) => n + 10); // 0 → 10
-      pipeline.add((n) => n + 10); // 10 → 20
+      const pipeline = CaptureBefore.create([
+        (n) => n + 10, // 0 → 10
+        (n) => n + 10, // 10 → 20
+      ]);
 
       await pipeline.run(0);
 
@@ -137,9 +139,10 @@ void describe('Pipeline subclass extension', () => {
         }
       }
 
-      const pipeline = CaptureAfter.create();
-      pipeline.add((n) => n + 5);   // 0 → 5
-      pipeline.add((n) => n * 3);   // 5 → 15
+      const pipeline = CaptureAfter.create([
+        (n) => n + 5,   // 0 → 5
+        (n) => n * 3,   // 5 → 15
+      ]);
 
       await pipeline.run(0);
 
@@ -165,16 +168,14 @@ void describe('Pipeline subclass extension', () => {
 
     for (const { description, check } of bracketHookCalledScenarios) {
       void it(description, async () => {
-        const pipeline = BracketPipeline.create();
-        pipeline.add((n) => n);
+        const pipeline = BracketPipeline.create([(n) => n]);
         await pipeline.run(5);
         assert.strictEqual(check(pipeline), true);
       });
     }
 
     void it('onRunStart receives the original ctx value', async () => {
-      const pipeline = BracketPipeline.create();
-      pipeline.add((n) => n); // identity
+      const pipeline = BracketPipeline.create([(n) => n]); // identity
 
       await pipeline.run(5);
       assert.strictEqual(pipeline.runStartCtx, 5);
@@ -182,12 +183,11 @@ void describe('Pipeline subclass extension', () => {
 
     void it('onRunStart return value is passed to first stage', async () => {
       // BracketPipeline adds 1000 in onRunStart
-      const pipeline = BracketPipeline.create();
       let stageInput = -1;
-      pipeline.add((n) => {
+      const pipeline = BracketPipeline.create([(n) => {
         stageInput = n;
         return n;
-      });
+      }]);
 
       await pipeline.run(0);
       assert.strictEqual(stageInput, 1000);
@@ -196,8 +196,7 @@ void describe('Pipeline subclass extension', () => {
     void it('onRunComplete return value is the resolved value of run()', async () => {
       // BracketPipeline adds 1000 in onRunStart, subtracts 1000 in onRunComplete
       // so the net effect is zero
-      const pipeline = BracketPipeline.create();
-      pipeline.add((n) => n + 5);
+      const pipeline = BracketPipeline.create([(n) => n + 5]);
 
       const result = await pipeline.run(10);
       // onRunStart: 10 → 1010; stage: 1010 → 1015; onRunComplete: 1015 → 15
@@ -205,7 +204,7 @@ void describe('Pipeline subclass extension', () => {
     });
 
     void it('both hooks are called even when pipeline has no stages', async () => {
-      const pipeline = BracketPipeline.create();
+      const pipeline = BracketPipeline.create([]);
       await pipeline.run(7);
 
       assert.strictEqual(pipeline.runStartCalled, true);
@@ -221,14 +220,9 @@ void describe('Pipeline subclass extension', () => {
         }
       }
 
-      const pipeline = InspectPipeline.create<number>();
-      pipeline.add((n) => n + 1);
-      pipeline.add((n) => n * 2);
+      const pipeline = InspectPipeline.create<number>([(n) => n + 1, (n) => n * 2]);
 
       assert.strictEqual(pipeline.fnCount(), 2);
-
-      pipeline.clear();
-      assert.strictEqual(pipeline.fnCount(), 0);
     });
   });
 });
@@ -262,10 +256,11 @@ class ObservingPipeline<T> extends Pipeline<T> {
 
 void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks', () => {
   void it('onStageStart fires for each stage in index order', async () => {
-    const pipeline = ObservingPipeline.create<number>();
-    pipeline.add((n) => n + 1);
-    pipeline.add((n) => n + 2);
-    pipeline.add((n) => n + 3);
+    const pipeline = ObservingPipeline.create<number>([
+      (n) => n + 1,
+      (n) => n + 2,
+      (n) => n + 3,
+    ]);
 
     await pipeline.run(0);
 
@@ -276,9 +271,10 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
   });
 
   void it('onStageSuccess fires after each successful stage with the output ctx', async () => {
-    const pipeline = ObservingPipeline.create<number>();
-    pipeline.add((n) => n + 10); // 0 → 10
-    pipeline.add((n) => n * 3); // 10 → 30
+    const pipeline = ObservingPipeline.create<number>([
+      (n) => n + 10, // 0 → 10
+      (n) => n * 3, // 10 → 30
+    ]);
 
     await pipeline.run(0);
 
@@ -294,8 +290,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = ShiftingPipeline.create();
-    pipeline.add((n) => n);
+    const pipeline = ShiftingPipeline.create([(n) => n]);
 
     await pipeline.run(5);
 
@@ -317,8 +312,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = OrderPipeline.create();
-    pipeline.add((n) => n);
+    const pipeline = OrderPipeline.create([(n) => n]);
 
     await pipeline.run(1);
 
@@ -326,12 +320,12 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
   });
 
   void it('onStageError fires when a stage throws, with correct index and error', async () => {
-    const pipeline = ObservingPipeline.create<number>();
     const thrownError = new Error('stage 1 fails');
-
-    pipeline.add((n) => n + 1);
-    pipeline.add((_n) => { throw thrownError; });
-    pipeline.add((n) => n + 3);
+    const pipeline = ObservingPipeline.create<number>([
+      (n) => n + 1,
+      (_n) => { throw thrownError; },
+      (n) => n + 3,
+    ]);
 
     await assert.rejects(() => { return pipeline.run(0); });
 
@@ -341,9 +335,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
   });
 
   void it('onStageError does not fire for successful stages', async () => {
-    const pipeline = ObservingPipeline.create<number>();
-    pipeline.add((n) => n + 1);
-    pipeline.add((n) => n + 2);
+    const pipeline = ObservingPipeline.create<number>([(n) => n + 1, (n) => n + 2]);
 
     await pipeline.run(0);
 
@@ -351,8 +343,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
   });
 
   void it('onRunError fires when any stage throws', async () => {
-    const pipeline = ObservingPipeline.create<number>();
-    pipeline.add((_n) => { throw new Error('fail'); });
+    const pipeline = ObservingPipeline.create<number>([(_n) => { throw new Error('fail'); }]);
 
     await assert.rejects(() => { return pipeline.run(0); });
 
@@ -360,8 +351,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
   });
 
   void it('onRunError receives the PipelineError (wrapped)', async () => {
-    const pipeline = ObservingPipeline.create<number>();
-    pipeline.add((_n) => { throw new Error('original'); });
+    const pipeline = ObservingPipeline.create<number>([(_n) => { throw new Error('original'); }]);
 
     await assert.rejects(() => { return pipeline.run(0); });
 
@@ -381,8 +371,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = OrderedErrorPipeline.create();
-    pipeline.add((_n) => { throw new Error('fail'); });
+    const pipeline = OrderedErrorPipeline.create([(_n) => { throw new Error('fail'); }]);
 
     await assert.rejects(() => { return pipeline.run(0); });
 
@@ -390,9 +379,10 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
   });
 
   void it('onStageStart fires for erroring stage but onStageSuccess does not, for successful stages onStageSuccess fires', async () => {
-    const pipeline = ObservingPipeline.create<number>();
-    pipeline.add((n) => n + 1); // stage 0 — succeeds
-    pipeline.add((_n) => { throw new Error('fail at stage 1'); }); // stage 1 — fails
+    const pipeline = ObservingPipeline.create<number>([
+      (n) => n + 1, // stage 0 — succeeds
+      (_n) => { throw new Error('fail at stage 1'); }, // stage 1 — fails
+    ]);
 
     await assert.rejects(() => { return pipeline.run(0); });
 
@@ -407,7 +397,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
   });
 
   void it('onStageStart and onStageSuccess do not fire when pipeline has no stages', async () => {
-    const pipeline = ObservingPipeline.create<number>();
+    const pipeline = ObservingPipeline.create<number>([]);
 
     await pipeline.run(0);
 
@@ -422,8 +412,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = ThrowingStartPipeline.create();
-    pipeline.add((n) => n + 1);
+    const pipeline = ThrowingStartPipeline.create([(n) => n + 1]);
 
     await assert.rejects(() => pipeline.run(1), HookInvocationError);
   });
@@ -435,8 +424,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = ThrowingSuccessPipeline.create();
-    pipeline.add((n) => n + 1);
+    const pipeline = ThrowingSuccessPipeline.create([(n) => n + 1]);
 
     await assert.rejects(() => pipeline.run(1), HookInvocationError);
   });
@@ -448,8 +436,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = ThrowingStageErrorPipeline.create();
-    pipeline.add(() => { throw new Error('stage failed'); });
+    const pipeline = ThrowingStageErrorPipeline.create([() => { throw new Error('stage failed'); }]);
 
     await assert.rejects(() => pipeline.run(1), HookInvocationError);
   });
@@ -461,8 +448,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = ThrowingRunErrorPipeline.create();
-    pipeline.add(() => { throw new Error('stage failed'); });
+    const pipeline = ThrowingRunErrorPipeline.create([() => { throw new Error('stage failed'); }]);
 
     await assert.rejects(() => pipeline.run(1), HookInvocationError);
   });
@@ -476,8 +462,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = ThrowingBeforeStagePipeline.create();
-    pipeline.add((n) => n + 1);
+    const pipeline = ThrowingBeforeStagePipeline.create([(n) => n + 1]);
 
     await assert.rejects(() => { return pipeline.run(0); }, (err: unknown) => { return err === rawError; });
 
@@ -493,8 +478,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = ThrowingAfterStagePipeline.create();
-    pipeline.add((n) => n + 1);
+    const pipeline = ThrowingAfterStagePipeline.create([(n) => n + 1]);
 
     await assert.rejects(() => { return pipeline.run(0); }, (err: unknown) => { return err === rawError; });
 
@@ -510,8 +494,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = ThrowingRunStartPipeline.create();
-    pipeline.add((n) => n + 1);
+    const pipeline = ThrowingRunStartPipeline.create([(n) => n + 1]);
 
     await assert.rejects(() => { return pipeline.run(0); }, (err: unknown) => { return err === rawError; });
 
@@ -527,8 +510,7 @@ void describe('onStageStart / onStageSuccess / onStageError / onRunError hooks',
       }
     }
 
-    const pipeline = ThrowingRunCompletePipeline.create();
-    pipeline.add((n) => n + 1);
+    const pipeline = ThrowingRunCompletePipeline.create([(n) => n + 1]);
 
     await assert.rejects(() => { return pipeline.run(0); }, (err: unknown) => { return err === rawError; });
 

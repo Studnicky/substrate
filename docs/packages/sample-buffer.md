@@ -13,6 +13,8 @@ description: Fixed-capacity numeric sample buffer with percentile calculation.
 pnpm add @studnicky/sample-buffer
 ```
 
+`@studnicky/sample-buffer` is the sole public code entrypoint.
+
 ## Usage
 
 Create a `SampleBuffer` with a fixed capacity, push numeric samples into it, and read back percentiles. When full, the oldest sample is evicted to make room for each new one:
@@ -21,26 +23,15 @@ Create a `SampleBuffer` with a fixed capacity, push numeric samples into it, and
 
 ## Try it
 
-### Builder
-
-`SampleBuffer.builder().withCapacity(5).build()` constructs the buffer through the fluent builder. Press Execute to fill the capacity-5 buffer, compute p50 and p95, then push two more samples past capacity (oldest two are evicted, length holds at 5) and clear.
-
-<RunnableExample src="packages/sample-buffer/examples/builder-sample-buffer" title="Builder — fluent sample buffer construction" />
-
 ### Lifecycle hooks
 
 `TracedSampleBuffer` subclasses `SampleBuffer` and overrides seven hooks: `onOverflow`, `onEvict`, `onPush`, `onComputeStart`, `onComputeComplete`, `onPercentile`, and `onClear`. With capacity=3 and 5 pushes, watch two overflow+eviction pairs fire. The first `percentile(50)` triggers `computeStart` and `computeComplete`; the second call is a cache hit so those hooks do not fire again.
 
 <RunnableExample src="packages/sample-buffer/examples/observedSampleBuffer" title="Observed sample buffer — lifecycle hook trace" />
 
-## Subpath exports
+## Public API
 
-| Subpath | Contents |
-|---------|----------|
-| `@studnicky/sample-buffer` | `SampleBuffer` |
-| `@studnicky/sample-buffer/sample-buffer` | `SampleBuffer` (direct subpath) |
-| `@studnicky/sample-buffer/interfaces` | `SampleBufferInterface` |
-| `@studnicky/sample-buffer/constants` | Default capacity constants |
+The package root exports `SampleBuffer`, `SampleBufferInterface`, `SampleBufferOptionsEntity`, and `SampleBufferError`. Construct buffers with `SampleBuffer.create({ capacity })`.
 
 ## Extending
 

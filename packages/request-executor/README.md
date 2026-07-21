@@ -6,6 +6,8 @@
 
 Composes five substrate primitives into the "one-shot request execution" pattern: a caller-supplied `AbortSignal` and/or `deadlineMs` are merged via `Signal#compose()`, the call runs through the `Retry` loop, an optional `Timing` instance brackets the whole retry loop with a single span, and — when a `Context` is composed — the entire call runs inside a fresh `ContextScope`. `RequestExecutor` does not perform HTTP calls itself; the caller's `fn` receives the composed `FetchClient` and the composed `AbortSignal` and decides which verb to call.
 
+`RequestDeadlineEntity` is the package-root schema contract shared by executor defaults, resolved dependencies, and per-call overrides. Its validator accepts an omitted deadline or a non-negative `deadlineMs`, matching `Signal#compose()`.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -34,43 +36,56 @@ const response = await executor.execute((client, signal) => client.get('/users',
 
 Each composed primitive accepts either a pre-built instance (subclassed or not) or the config shape passed straight to that primitive's own `create()`. `signal`, `timing`, and `context` accept instances only — pass a `Signal`, `Timing`, or `Context` instance directly.
 
-## Transparency
+## Observability
 
-`RequestExecutor` introduces no hook of its own — every observable stage is already covered by the composed primitive it delegates to:
-
-| Getter | Returns |
-|--------|---------|
-| `getFetchClient()` | The composed `FetchClient` instance |
-| `getRetry()` | The composed `Retry` instance |
-| `getSignal()` | The composed `Signal` instance |
-| `getTiming()` | The composed `Timing` instance, or `undefined` if none was supplied |
-| `getContext()` | The composed `Context` instance, or `undefined` if none was supplied |
-
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper — so a caller who subclassed `FetchClient` for auth headers, `Retry` for custom backoff, or `Timing`/`Context` for correlation keeps full access to those subclasses' own hooks.
+`RequestExecutor` introduces no hook of its own. Callers retain explicit ownership of configured `FetchClient`, `Retry`, `Signal`, `Timing`, and `Context` instances when they need their lifecycle hooks, statistics, or domain-specific behavior. The executor exposes only the composed request behavior through `execute()`.
 
 ## Extending
 
-Subclass `RequestExecutor` to add convenience behavior that reaches the composed instances through the getters — `RequestExecutor` has no lifecycle hooks of its own to override. Subclass the composed primitives themselves (`FetchClient`, `Retry`, `Timing`, `Context`) to observe or transform request/response/attempt/event stages; those hooks fire exactly as they would standalone.
+Subclass the composed primitives (`FetchClient`, `Retry`, `Timing`, `Context`) to observe or transform request/response/attempt/event stages; those hooks fire exactly as they would standalone. A `RequestExecutor` subclass that needs one of those dependencies explicitly owns it through the resolved constructor contract.
 
 ```typescript
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
+import type { RequestExecutorDepsInterface } from '@studnicky/request-executor';
+
 import { Retry } from '@studnicky/retry';
 import { RequestExecutor } from '@studnicky/request-executor';
 
 class TelemetryRetry extends Retry {
   readonly scheduledRetries: number[] = [];
 
-  protected override onRetryScheduled(context: RetryContextType): void {
+  constructor(config?: RetryConfigInterface) {
+    super(config ?? {});
+  }
+
+  protected override onRetryScheduled(context: RetryContextInterface): void {
     this.scheduledRetries.push(context.attemptNumber);
   }
 }
 
 class ReportingRequestExecutor extends RequestExecutor {
+  readonly #retry: TelemetryRetry;
+
+  protected constructor(deps: RequestExecutorDepsInterface) {
+    super(deps);
+    if (!(deps.retry instanceof TelemetryRetry)) {
+      throw new TypeError('ReportingRequestExecutor requires TelemetryRetry');
+    }
+    this.#retry = deps.retry;
+  }
+
   static tracked(retry: TelemetryRetry): ReportingRequestExecutor {
-    return RequestExecutor.create({ retry }) as ReportingRequestExecutor;
+    const executor = this.create({ retry });
+
+    if (!(executor instanceof ReportingRequestExecutor)) {
+      throw new Error('RequestExecutor subclass factory returned the wrong instance type');
+    }
+
+    return executor;
   }
 
   report(): { retries: number; totalRequests: number } {
-    const stats = this.getRetry().getStats();
+    const stats = this.#retry.getStats();
     return { retries: stats.totalRetries, totalRequests: stats.totalRequests };
   }
 }

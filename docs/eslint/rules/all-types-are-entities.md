@@ -1,54 +1,63 @@
 ---
 title: '@studnicky/all-types-are-entities'
-description: 'Disallows free-standing type aliases outside entity namespaces.'
+description: "Requires canonical pure-data aliases to use the exact schema-derived '*Entity.Type' form."
 ---
 
 # @studnicky/all-types-are-entities
 
-Disallows free-standing `type` alias declarations outside entity namespaces. Data types must live inside an entity namespace (`export namespace XxxEntity { export const Schema = ...; export type Type = FromSchema<typeof Schema>; export const validate = ...; }`) under an `entities/` directory, so every shape stays tied to a runtime-validated JSON Schema. Paths under `entities/`, `src/types/`, `tests/`, `eslint-config/`, and `eslint.config.mjs` are exempt, as are aliases declared inside a `TSModuleDeclaration` (namespace). A `// json-schema-uninexpressible: <reason>` comment (at least 10 characters of reason) immediately before the declaration also exempts it.
+Owns the declaration form for aliases already verified as canonical pure data.
+
+The only accepted alias is an exported `Type` member inside an `*Entity` namespace, derived directly from the exported `Schema` value in that same namespace. File paths, package names, test files, arbitrary namespaces, and source comments do not change the result.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
-## ✗ Incorrect
+## Required form
 
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// free-standing type alias outside all exempt paths
-type FooType = { a: string };
+| Component | Requirement |
+|---|---|
+| Namespace | An exported name ending in `Entity`, such as `UserEntity` |
+| Schema | An exported `Schema` value in that namespace satisfying `JSONSchema` |
+| Type | The exact declaration `export type Type = FromSchema<typeof Schema>` in the same namespace |
+
+The rule verifies the syntax and ownership of this relationship:
+
+- the namespace name ends in `Entity`;
+- `Type` and `Schema` are exported members of the same namespace; and
+- `Type` is exactly `FromSchema<typeof Schema>` with verified schema provenance.
+
+A canonical composition remains JSON-Schema-expressible data, so it belongs in a composed schema rather than a free-standing alias. For example, `export type DomainEventType = UserCreatedEntity.Type | UserDeletedEntity.Type` is invalid.
+
+The example is invalid in every path, including `src/types`, `tests`, configuration packages, and arbitrary namespaces.
+
+## Diagnostic ownership
+
+[`type-alias-invariants`](./type-alias-invariants.md) owns invalid provenance, alias identity, declaration kind, naming, and readonly output. This rule reports only canonical pure-data aliases whose declaration is not the exact entity form, preventing duplicate diagnostics for callable, inline, unresolved, or otherwise invalid aliases.
+
+Classification and ownership checks resolve through TypeScript symbols and verified schema provenance. Unresolved provenance, structural similarity, near matches, and broader or narrower shapes do not establish canonical identity.
+
+## Configuration
+
+The rule takes no options and recognizes no comment, declaration-name, member-name, package, or path exemptions. Enable or disable the complete rule through flat configuration:
+
+```js
+export default [
+  {
+    files: ['src/**/*.ts'],
+    rules: {
+      '@studnicky/all-types-are-entities': 'error'
+    }
+  },
+  {
+    files: ['generated/**/*.ts'],
+    rules: {
+      '@studnicky/all-types-are-entities': 'off'
+    }
+  }
+];
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// exported free-standing union type alias — still forbidden
-export type FooType = string | number;
-```
+## Related rules
 
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// a non-directive comment does not exempt the alias
-// not a directive comment
-type FooType = { a: string };
-```
-
-## ✓ Correct
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// declared inside an entities/*.ts file — exempt path
-export type Type = { a: string };
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// declared inside a TS namespace — not flagged regardless of path
-export namespace RetryConfigEntity {
-  export type Type = { a: string };
-}
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// explicit exemption for a shape JSON Schema cannot express
-// json-schema-uninexpressible: function types cannot be expressed in JSON Schema
-type Handler = (x: number) => void;
-```
+- [`type-alias-invariants`](./type-alias-invariants.md) owns alias identity, declaration kind, canonical source, naming, and readonly output.
+- [`interface-must-be-contract`](./interface-must-be-contract.md) rejects interfaces containing only pure data.
+- [`interfaces-compose-named-types`](./interfaces-compose-named-types.md) requires named entity references for pure-data portions of contract interfaces.

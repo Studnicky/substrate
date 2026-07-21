@@ -6,7 +6,6 @@ import type { ValidationReportOptionsEntity } from '../entities/ValidationReport
 import type { ValidationViolationEntity } from '../entities/ValidationViolationEntity.js';
 
 import { ValidationError } from './ValidationError.js';
-import { ValidationErrorsBuilder } from './ValidationErrorsBuilder.js';
 
 const DEFAULT_PROBLEM_TYPE = 'https://problems.studnicky.dev/validation';
 
@@ -15,27 +14,12 @@ const DEFAULT_PROBLEM_TYPE = 'https://problems.studnicky.dev/validation';
  *
  * NOT a thrown error — returned by validators. Use `ValidationError` for single-violation boundary exceptions.
  *
- * Construct via `ValidationErrors.create(items)` or `ValidationErrors.builder().addViolation(v).build()`.
+ * Construct via `ValidationErrors.create(items)`.
  */
 export class ValidationErrors implements Iterable<ValidationViolationEntity.Type> {
   /** Creates a `ValidationErrors` from an array of violations. */
   public static create(items: readonly ValidationViolationEntity.Type[]): ValidationErrors {
     const result = new this(items);
-    return result;
-  }
-
-  /** Returns a fluent builder for assembling a `ValidationErrors` incrementally. */
-  public static builder(): ValidationErrorsBuilder {
-    const result = ValidationErrorsBuilder.create((items) => {
-      const instance = ValidationErrors.create(items);
-      return instance;
-    });
-    return result;
-  }
-
-  /** Creates a `ValidationErrors` from an array of violations. */
-  public static of(violations: ValidationViolationEntity.Type[]): ValidationErrors {
-    const result = ValidationErrors.create(violations);
     return result;
   }
 
@@ -72,26 +56,39 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
     return result;
   }
 
-  /** The raw ordered list of validation violations. */
-  public readonly items: readonly ValidationViolationEntity.Type[];
+  readonly #items: readonly Readonly<ValidationViolationEntity.Type>[];
+
+  /** Detached ordered validation violations. */
+  public get items(): readonly ValidationViolationEntity.Type[] {
+    const result: ValidationViolationEntity.Type[] = [];
+    for (const item of this.#items) {
+      result.push({ 'keyword': item.keyword, 'message': item.message, 'path': item.path });
+    }
+    return result;
+  }
 
   protected constructor(items: readonly ValidationViolationEntity.Type[]) {
+    const typedItems = items;
     if (!Array.isArray(items)) {
       throw ValidationError.create({ 'message': 'items must be an array', 'path': 'items' });
     }
-    this.items = items;
+    const snapshot: ValidationViolationEntity.Type[] = [];
+    for (const item of typedItems) {
+      snapshot.push({ 'keyword': item.keyword, 'message': item.message, 'path': item.path });
+    }
+    this.#items = snapshot;
   }
 
   /** Compact rollup of deduplicated, sorted paths and keywords; safe for metric labels. */
   public aggregate(): ValidationAggregateViewEntity.Type {
     const pathSet = new Set<string>();
     const keywordSet = new Set<string>();
-    for (const item of this.items) {
+    for (const item of this.#items) {
       pathSet.add(item.path);
       keywordSet.add(item.keyword);
     }
     return {
-      'count': this.items.length,
+      'count': this.#items.length,
       'keywords': [...keywordSet].sort(),
       'paths': [...pathSet].sort()
     };
@@ -99,7 +96,7 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
 
   /** RFC 7807 Problem Details payload; defaults: type validation URI, title 'Validation failed', status 422. */
   public report(options?: ValidationReportOptionsEntity.Type): ValidationProblemDetailsEntity.Type {
-    const count = this.items.length;
+    const count = this.#items.length;
     const detail = count === 1 ? '1 validation error' : `${count} validation errors`;
     return {
       'detail': detail,
@@ -112,13 +109,13 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
 
   /** Number of violations in this collection. */
   public get length(): number {
-    const result = this.items.length;
+    const result = this.#items.length;
     return result;
   }
 
   /** `true` when there are no violations. */
   public get ok(): boolean {
-    return this.items.length === 0;
+    return this.#items.length === 0;
   }
 
   public [Symbol.iterator](): Iterator<ValidationViolationEntity.Type> {

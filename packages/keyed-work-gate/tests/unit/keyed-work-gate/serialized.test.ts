@@ -10,6 +10,9 @@ import { describe, it } from 'node:test';
 
 import { KeyedWorkGate } from '../../../src/index.js';
 
+const acceptsNumber = (value: unknown): value is number => typeof value === 'number';
+const acceptsString = (value: unknown): value is string => typeof value === 'string';
+
 void describe('runSerialized — same-key exclusion', () => {
   void it('runs every same-key call, never overlapping (proven via a shared counter)', async () => {
     const gate = KeyedWorkGate.create<string>();
@@ -29,9 +32,9 @@ void describe('runSerialized — same-key exclusion', () => {
     };
 
     const results = await Promise.all([
-      gate.runSerialized('user1', () => fn(0)),
-      gate.runSerialized('user1', () => fn(1)),
-      gate.runSerialized('user1', () => fn(2))
+      gate.runSerialized('user1', () => fn(0), acceptsNumber),
+      gate.runSerialized('user1', () => fn(1), acceptsNumber),
+      gate.runSerialized('user1', () => fn(2), acceptsNumber)
     ]);
 
     assert.equal(calls, 3);
@@ -52,13 +55,13 @@ void describe('runSerialized — key isolation', () => {
         await delay(40);
         order.push('user1-end');
         return 'user1';
-      }),
+      }, acceptsString),
       gate.runSerialized('user2', async () => {
         order.push('user2-start');
         await delay(10);
         order.push('user2-end');
         return 'user2';
-      })
+      }, acceptsString)
     ]);
 
     assert.ok(order.indexOf('user2-end') < order.indexOf('user1-end'));

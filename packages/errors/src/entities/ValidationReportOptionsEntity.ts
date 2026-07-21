@@ -1,4 +1,6 @@
-import { type FromSchema, Guard, type JsonSchemaObjectType } from '@studnicky/types';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { Guard } from '@studnicky/types';
 
 /** Overrides applied when generating an RFC 7807 Problem Details payload. */
 export namespace ValidationReportOptionsEntity {
@@ -22,7 +24,7 @@ export namespace ValidationReportOptionsEntity {
     },
     'title': 'ValidationReportOptions',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
@@ -32,11 +34,10 @@ export namespace ValidationReportOptionsEntity {
    * circular workspace reference.
    */
   export function validate(candidate: unknown): candidate is Type {
-    const record = Guard.asRecord(candidate);
-    if (record === undefined) { return false; }
-    if (record.status !== undefined && typeof record.status !== 'number') { return false; }
-    if (record.title !== undefined && typeof record.title !== 'string') { return false; }
-    if (record.type !== undefined && typeof record.type !== 'string') { return false; }
+    if (!Guard.isObject(candidate)) { return false; }
+    if (candidate.status !== undefined && typeof candidate.status !== 'number') { return false; }
+    if (candidate.title !== undefined && typeof candidate.title !== 'string') { return false; }
+    if (candidate.type !== undefined && typeof candidate.type !== 'string') { return false; }
     return true;
   }
 }

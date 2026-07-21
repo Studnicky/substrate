@@ -15,26 +15,19 @@ export interface TimingInterface {
   /**
    * Records an event using TimingEventDataEntity.Type.
    *
-   * @param data - Event data from TimingEvent.create().build()
+   * @param data - Immutable event data from TimingEvent.create()
    *
    * @example
    * ```typescript
    * import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
    *
-   * const timing = Timing.create().build();
+   * const timing = Timing.create();
    *
    * // Without status
-   * timing.event(TimingEvent.create()
-   *   .component('GraphAdapter')
-   *   .operation('query')
-   *   .build());
+   * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
    *
    * // With status
-   * timing.event(TimingEvent.create()
-   *   .component('DatabaseAdapter')
-   *   .operation('connect')
-   *   .status(TIMING_STATUS.START)
-   *   .build());
+   * timing.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.START }));
    * ```
    */
   event(data: TimingEventDataEntity.Type): void;

@@ -20,21 +20,27 @@ import { ObjectGuard } from './shared/ObjectGuard.js';
 
 const SUBSETTING_UTILITY_NAMES = new Set(['Omit', 'Partial', 'Pick']);
 
-type ParserServicesType = {
+interface ParserServicesInterface {
   readonly 'getTypeAtLocation': (node: unknown) => Type;
   readonly 'program': Program;
-};
+}
 
-// json-schema-uninexpressible: wraps ParserServicesType, whose members are function-typed —
-// function types have no JSON Schema equivalent
-type SourceCodeServicesAccessorType = {
-  readonly 'parserServices'?: ParserServicesType;
-};
+interface SourceCodeServicesAccessorInterface {
+  readonly 'parserServices'?: ParserServicesInterface;
+}
+
+class ParserServicesGuard {
+  public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
+    if (!ObjectGuard.isObject(value) || typeof value.getTypeAtLocation !== 'function') { return false; }
+    return ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+  }
+}
 
 class ContextHelpers {
-  public static getServices(context: Rule.RuleContext): ParserServicesType | undefined {
-    const result = (context.sourceCode as unknown as SourceCodeServicesAccessorType).parserServices;
-    return result;
+  public static getServices(context: Rule.RuleContext): ParserServicesInterface | undefined {
+    const sourceCode: SourceCodeServicesAccessorInterface = context.sourceCode;
+    const services: unknown = sourceCode.parserServices;
+    return ParserServicesGuard.hasTypeInformation(services) ? services : undefined;
   }
 }
 
@@ -56,7 +62,7 @@ class SubsettingUtilityMatch {
 }
 
 class CanonicalTypeResolution {
-  public static isCanonicalOwnedType(typeArgNode: unknown, services: ParserServicesType): boolean {
+  public static isCanonicalOwnedType(typeArgNode: unknown, services: ParserServicesInterface): boolean {
     if (!ObjectGuard.isObject(typeArgNode)) { return false; }
     if (AstHelpers.getNodeType(typeArgNode) !== 'TSTypeReference') { return false; }
 
@@ -91,7 +97,8 @@ export const wholeCanonicalTypes: Rule.RuleModule = {
     if (services === undefined || checker === undefined) { return {}; }
 
     const onTSTypeReference = (node: Rule.Node): void => {
-      const rawNode = node as unknown as Record<string, unknown>;
+      const rawNode: unknown = node;
+      if (!ObjectGuard.isObject(rawNode)) { return; }
       const utilityName = SubsettingUtilityMatch.getUtilityName(rawNode);
       if (utilityName === undefined) { return; }
 

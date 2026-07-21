@@ -15,9 +15,10 @@ pnpm add @studnicky/boundary-kit
 
 ## Usage
 
-`BoundaryKit` composes calls in the fixed order `throttle → circuitBreaker → retry → fn`. Default construction resolves every composed primitive, including `CircuitBreaker` (which has no zero-arg default of its own), and pre-built subclassed primitives pass straight through with their own hooks intact:
-
-<<< ../../packages/boundary-kit/examples/observedBoundaryKit.ts#usage
+`BoundaryKit` composes calls in the fixed order `throttle → circuitBreaker → retry → fn`.
+Import `BoundaryKit` from `@studnicky/boundary-kit`, call
+`BoundaryKit.create({ circuitBreaker, retry, throttle })`, then pass the operation to
+`boundary.execute(fn)`. Omitted configuration fields resolve to package defaults.
 
 ## Transparency contract
 
@@ -25,17 +26,11 @@ pnpm add @studnicky/boundary-kit
 
 | Config key | Accepts | Default |
 |------------|---------|---------|
-| `throttle` | `Throttle` instance or `Partial<ThrottleConfigEntity.Type>` | `Throttle.create()` |
+| `throttle` | `Throttle` instance or `ThrottleConfigEntity.Type` | `Throttle.create()` |
 | `circuitBreaker` | `CircuitBreaker` instance or `CircuitBreakerOptionsInterface` | `{ failureThreshold: 5, resetTimeoutMs: 30_000 }` |
-| `retry` | `Retry` instance or `Partial<RetryConfigInterface>` | `Retry.create()` |
+| `retry` | `Retry` instance or `RetryConfigInterface` | `Retry.create()` |
 
-| Getter | Returns |
-|--------|---------|
-| `getThrottle()` | The composed `Throttle` instance |
-| `getCircuitBreaker()` | The composed `CircuitBreaker` instance |
-| `getRetry()` | The composed `Retry` instance |
-
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper. A caller who subclassed `Throttle` for adaptive concurrency, `CircuitBreaker` for custom error classification, or `Retry` for custom backoff keeps full access to those subclasses' own hooks; `BoundaryKit` never re-exposes a stage a wrapped primitive's hook already covers (no redundant "before call" hook, no redundant "on failure" hook).
+A caller can pass pre-built subclass instances and retain those references for direct access to their hooks and state. `BoundaryKit` adds no redundant "before call" or "on failure" hook because the composed primitives already own those lifecycle stages.
 
 ## Composition order
 
@@ -43,11 +38,11 @@ Throttle bounds concurrency first, so the circuit breaker and retry never observ
 
 ## Aborted throttle calls
 
-`Throttle#execute()` resolves `undefined` (rather than rejecting) when the throttle discards a call via its detach-and-abandon abort behavior. Since `BoundaryKit#execute()` cannot return `undefined` as `T`, it surfaces that discard as a rejected `BoundaryKitAbortedError` instead of silently returning `undefined`.
+`BoundaryKit#execute()` tracks whether the inner operation completes separately from its resolved value. An operation that legitimately resolves `undefined` or returns `void` completes normally with that value. `BoundaryKitAbortedError` is reserved for a throttle discard caused by detach-and-abandon abort behavior, where the inner operation never runs.
 
-## When to stop using this and move to Dagonizer
+## When this composition tips into orchestration
 
-`BoundaryKit` protects exactly one call (with its own internal throttle/circuit/retry state). It has no concept of a node, a graph, or a dependency between multiple calls. Once a workflow needs to coordinate the *outcome* of one `BoundaryKit#execute()` call to decide whether or how to run a second one — branching, fan-out across dependent calls, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration and belongs in Dagonizer, not in a loop of `BoundaryKit` calls glued together by hand.
+`BoundaryKit` protects exactly one call (with its own internal throttle/circuit/retry state). It has no concept of a node, a graph, or a dependency between multiple calls. Once a workflow needs to coordinate the *outcome* of one `BoundaryKit#execute()` call to decide whether or how to run a second one — branching, fan-out across dependent calls, checkpoint/resume, or cross-call retry budgets — that is workflow orchestration, not a loop of `BoundaryKit` calls glued together by hand.
 
 ## Documentation
 

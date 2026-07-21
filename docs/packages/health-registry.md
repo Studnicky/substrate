@@ -15,7 +15,7 @@ pnpm add @studnicky/health-registry
 
 ## Usage
 
-Register named async check functions, each resolving to `{ status, metadata? }`. `evaluate()` runs every registered check in parallel via `Promise.allSettled`, applies each check's own configured `timeoutMs` (composed via `@studnicky/signal`), and folds a rejecting or timed-out check into the results as `'unhealthy'` instead of crashing the evaluation of the other checks:
+Register named async check functions, each resolving to `{ status, metadata? }`. `evaluate()` runs every registered check in parallel via `Promise.allSettled`; a configured `timeoutMs` races that check against a local timer with `Promise.race`. A rejecting or timed-out check is folded into the results as `'unhealthy'` instead of crashing the evaluation of the other checks:
 
 <<< ../../packages/health-registry/examples/observedHealthRegistry.ts#usage
 

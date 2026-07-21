@@ -5,7 +5,7 @@ description: Shared ESLint flat config for @studnicky packages.
 
 # @studnicky/eslint-config
 
-Standard ESLint plugin for TypeScript projects. Ships two namespaced rule sets — `plugin` (22 `@studnicky` rules) and `v8Plugin` (24 `@studnicky/v8` rules) — plus individual rule modules.
+Standard ESLint plugin for TypeScript projects. Ships two namespaced rule sets — `plugin` (22 `@studnicky` rules) and `v8Plugin` (27 `@studnicky/v8` rules) — plus domain-grouped suites.
 
 ## Install
 
@@ -42,20 +42,16 @@ export default [
 ];
 ```
 
-## Subpath exports
+## Public API
 
-| Subpath | Exports |
-|---------|---------|
-| `@studnicky/eslint-config` | `plugin`, `v8Plugin`, and all individual rule modules |
-| `@studnicky/eslint-config/plugin` | `plugin` (the `@studnicky` ESLint plugin object) |
-| `@studnicky/eslint-config/v8` | `v8Plugin` (the `@studnicky/v8` ESLint plugin object) |
+Import `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `v8Suite`, and `HexagonalSuite` from `@studnicky/eslint-config`. Individual rule objects are available through `plugin.rules[ruleId]` and `v8Plugin.rules[ruleId]`.
 
 ## Rule reference
 
-Full documentation for all 46 custom rules is in the **ESLint Plugins** section:
+Full documentation for all 49 custom rules is in the **ESLint Plugins** section:
 
-- [ESLint Plugins Overview](/eslint/) — install, factory usage, and rule tables
+- [ESLint Plugins Overview](/eslint/) — install, plugin registration, and rule tables
 - [Configuration rules](/eslint/) — 22 `@studnicky` structural and semantic rules
-- [V8 performance rules](/eslint/) — 24 `@studnicky/v8` optimization rules
+- [V8 performance rules](/eslint/) — 27 `@studnicky/v8` optimization rules
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/eslint-config)

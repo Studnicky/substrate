@@ -2,7 +2,7 @@
  * Dispatcher configuration validation
  */
 
-import type { ValidatorFnType } from '../../types/ValidatorFnType.js';
+import type { ValidatorFnInterface } from '../../interfaces/ValidatorFnInterface.js';
 
 import {
   MAX_DISPATCHER_CONNECTIONS, MAX_PIPELINING
@@ -162,12 +162,8 @@ class DispatcherValidator {
       throw new ConfigurationError('dispatcher must be an object');
     }
 
-    const dispatcher = val as Record<string, unknown>;
-
-    for (const [
-      key,
-      value
-    ] of Object.entries(dispatcher)) {
+    for (const key of Object.keys(val)) {
+      const value: unknown = Reflect.get(val, key);
       const validator = VALIDATORS[key];
 
       if (validator === undefined) {
@@ -181,7 +177,7 @@ class DispatcherValidator {
 /**
  * Dispatcher property validators dispatch map
  */
-const VALIDATORS: Record<string, ValidatorFnType> = {
+const VALIDATORS: Record<string, ValidatorFnInterface> = {
   'allowH2': (value: unknown) => {
     const result = DispatcherValidator.boolean(value, 'dispatcher.allowH2');
     return result;

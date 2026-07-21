@@ -1,7 +1,7 @@
 /**
  * Custom transport implementing TransportInterface.
  *
- * Demonstrates: TransportInterface, ResolveMinLevel.from() for constructor-time
+ * Demonstrates: TransportInterface, ParseLogLevel.parse() for constructor-time
  * level resolution, and batching records before flush.
  *
  * Run: npx tsx packages/logger/examples/04-custom-transport.ts
@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import type { LogRecordEntity, TransportInterface } from '../src/index.js';
 
 // #region usage
-import { LogBody, Logger, ResolveMinLevel } from '../src/index.js';
+import { LogBody, Logger, ParseLogLevel } from '../src/index.js';
 
 class BufferedTransport implements TransportInterface {
   readonly #batch: LogRecordEntity.Type[] = [];
@@ -23,7 +23,7 @@ class BufferedTransport implements TransportInterface {
   constructor(sink: (batch: readonly LogRecordEntity.Type[]) => void, options: { 'batchSize'?: number; 'level'?: string } = {}) {
     this.#sink = sink;
     this.#batchSize = options.batchSize ?? 2;
-    this.#minLevel = ResolveMinLevel.from(options);
+    this.#minLevel = ParseLogLevel.parse(options.level ?? 'trace');
   }
 
   write(record: LogRecordEntity.Type): void {
@@ -52,13 +52,13 @@ const logger = Logger.create({
   'transports': [buffered]
 });
 
-const body = LogBody.create()
-  .component('worker')
-  .operation('process')
-  .status('success')
-  .message('Job processed')
-  .context({ 'jobId': 'j-1' })
-  .build();
+const body = LogBody.create({
+  'component': 'worker',
+  'context': { 'jobId': 'j-1' },
+  'message': 'Job processed',
+  'operation': 'process',
+  'status': 'success'
+});
 
 logger.info(body);
 

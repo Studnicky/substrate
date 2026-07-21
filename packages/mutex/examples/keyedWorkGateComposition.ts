@@ -24,15 +24,15 @@ const coalesce = Coalesce.create<unknown>({ 'timeout': 100 });
 // itself runs under mutex-guarded exclusive access (so a non-coalesced caller reaching the
 // same key via Serialized still can't interleave with it).
 class SingleFlight {
-  static run<T>(key: string, fn: () => Promise<T>): Promise<T> {
-    const result = coalesce.run(key, () => { const result = mutex.runExclusive(key, fn); return result; }) as Promise<T>;
+  static run(key: string, fn: () => Promise<unknown>): Promise<unknown> {
+    const result = coalesce.run(key, () => { const result = mutex.runExclusive(key, fn); return result; });
     return result;
   }
 }
 
 // Serialized: no coalescing — every call actually runs `fn`, but exclusively per key.
 class Serialized {
-  static run<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  static run(key: string, fn: () => Promise<unknown>): Promise<unknown> {
     const result = mutex.runExclusive(key, fn);
     return result;
   }

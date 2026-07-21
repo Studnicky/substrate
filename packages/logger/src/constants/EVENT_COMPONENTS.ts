@@ -1,3 +1,5 @@
+import type { EventComponentEntity } from '../entities/EventComponentEntity.js';
+
 /**
  * Event component prefixes for categorization.
  */
@@ -17,4 +19,4 @@ export const EVENT_COMPONENTS = {
   'SCHEMA': 'schema',
   'TIMING': 'timing',
   'WORKFLOW': 'workflow'
-} as const;
+} as const satisfies Record<string, EventComponentEntity.Type>;

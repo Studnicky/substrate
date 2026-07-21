@@ -141,17 +141,6 @@ describe('RealTimeScheduler', () => {
   });
 
   describe('unhappy path', () => {
-    it('cancel() on a fired task is a no-op (does not throw)', () => {
-      const sched = RealTimeScheduler.create();
-      const atMs = Date.now() - 1;
-      const task = sched.scheduleAt(atMs, () => {
-        return;
-      });
-
-      task.cancel();
-      assert.ok(true);
-    });
-
     it('scheduleAt: rejected Promise from fire is silently caught', async () => {
       const sched = RealTimeScheduler.create();
       const atMs = Date.now() - 1;
@@ -244,6 +233,21 @@ describe('RealTimeScheduler', () => {
       task.cancel();
 
       assert.strictEqual(sched.cancelCount, 1);
+      sched.cancelAll();
+    });
+
+    it('cancel after a timeout callback fires does not invoke onCancel', async () => {
+      const sched = new AuditScheduler();
+      let callbackCount = 0;
+      const task = sched.scheduleAt(Date.now() - 1, () => { callbackCount++; });
+
+      await setTimeoutPromise(FLUSH_DELAY_MS);
+      task.cancel();
+      task.cancel();
+
+      assert.strictEqual(callbackCount, 1);
+      assert.strictEqual(sched.fireCount, 1);
+      assert.strictEqual(sched.cancelCount, 0);
       sched.cancelAll();
     });
 
@@ -437,9 +441,8 @@ describe('RealTimeScheduler', () => {
       let receivedError: HookInvocationError | undefined;
 
       class RecordingHookInvoker extends HookInvoker {
-        protected override onHookError<T>(hookName: string, cause: unknown): T {
+        protected override onHookError(hookName: string, cause: unknown): void {
           receivedError = new HookInvocationError(hookName, cause);
-          return undefined as T;
         }
       }
 
@@ -549,10 +552,9 @@ describe('RealTimeScheduler', () => {
       const recordedCauses: unknown[] = [];
 
       class RecordingSwallowingInvoker extends HookInvoker {
-        protected override onHookError<T>(hookName: string, cause: unknown): T {
+        protected override onHookError(hookName: string, cause: unknown): void {
           recordedHookNames.push(hookName);
           recordedCauses.push(cause);
-          return undefined as T;
         }
       }
 

@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/signal",
   "version": "7.0.1",
-  "description": "AbortSignal composition: compose, timeout sentinel, and never-aborting reference",
+  "description": "AbortSignal composition for caller signals, deadlines, and a never-aborting reference",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",

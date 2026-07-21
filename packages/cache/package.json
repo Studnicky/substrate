@@ -11,10 +11,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./lru-cache": {
-      "types": "./dist/LruCache.d.ts",
-      "import": "./dist/LruCache.js"
     }
   },
   "files": [
@@ -25,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
   "license": "MIT",
@@ -55,6 +51,7 @@
   "dependencies": {
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/types": "workspace:*"
+    "ajv": "^8.20.0",
+    "json-schema-to-ts": "^3.1.1"
   }
 }

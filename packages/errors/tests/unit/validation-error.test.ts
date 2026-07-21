@@ -3,6 +3,7 @@
  */
 
 import {
+  deepStrictEqual,
   ok,
   strictEqual
 } from 'node:assert/strict';
@@ -61,6 +62,25 @@ void describe('ValidationError', () => {
     void it('leaves violations undefined when not provided', () => {
       const err = ValidationError.create({ message: 'bad', path: '/x' });
       strictEqual(err.violations, undefined);
+    });
+
+    void it('detaches nested violations at construction and projection boundaries', () => {
+      const violations = [{ 'details': { 'limit': 3 }, 'message': 'too long', 'path': '/name' }];
+      const err = ValidationError.create({ message: 'invalid', path: '/name', violations });
+
+      violations[0]!.details.limit = 4;
+      deepStrictEqual(err.violations, [
+        { 'details': { 'limit': 3 }, 'message': 'too long', 'path': '/name' }
+      ]);
+
+      const projection = err.violations?.[0];
+      if (projection?.details !== undefined) {
+        Reflect.set(projection.details, 'limit', 5);
+      }
+
+      deepStrictEqual(err.violations, [
+        { 'details': { 'limit': 3 }, 'message': 'too long', 'path': '/name' }
+      ]);
     });
   });
 

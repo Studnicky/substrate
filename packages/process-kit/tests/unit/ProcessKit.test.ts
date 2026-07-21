@@ -1,33 +1,28 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { EffectHandlerMapType, FsmStepType } from '@studnicky/fsm';
+import type { EffectHandlerInterface, FsmStepInterface } from '@studnicky/fsm';
 
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
 import { VirtualTimeCounter } from '@studnicky/clock';
 import { VirtualScheduler } from '@studnicky/scheduler';
-import { Signal } from '@studnicky/signal';
 
 import { ProcessKit } from '../../src/ProcessKit.js';
+import type { JobEffectEntity } from './entities/JobEffectEntity.js';
+import type { JobEventEntity } from './entities/JobEventEntity.js';
+import type { JobStateEntity } from './entities/JobStateEntity.js';
 
-type JobState =
-  | { readonly 'variant': 'active' }
-  | { readonly 'variant': 'done' }
-  | { readonly 'variant': 'idle' };
+class JobMachine extends StateMachine<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type> {
+  currentState: JobStateEntity.Type = { 'variant': 'idle' };
 
-type JobEvent =
-  | { readonly 'type': 'finish' }
-  | { readonly 'type': 'reject' }
-  | { readonly 'type': 'start' };
-
-type JobEffect = { readonly 'variant': 'log'; readonly 'message': string };
-
-class JobMachine extends StateMachine<JobState, JobEvent, JobEffect> {
   static make(): JobMachine { return new JobMachine(); }
 
-  getInitialState(): JobState { return { 'variant': 'idle' }; }
+  getInitialState(): JobStateEntity.Type { return { 'variant': 'idle' }; }
 
-  reduce(state: JobState, event: JobEvent): FsmStepType<JobState, JobEffect> {
+  reduce(
+    state: JobStateEntity.Type,
+    event: JobEventEntity.Type
+  ): FsmStepInterface<JobStateEntity.Type, JobEffectEntity.Type> {
     if (state.variant === 'idle' && event.type === 'start') {
       return { 'effects': [{ 'message': 'started', 'variant': 'log' }], 'state': { 'variant': 'active' } };
     }
@@ -41,14 +36,18 @@ class JobMachine extends StateMachine<JobState, JobEvent, JobEffect> {
     });
   }
 
-  protected override isTerminated(state: JobState): boolean {
+  protected override isTerminated(state: JobStateEntity.Type): boolean {
     return state.variant === 'done';
+  }
+
+  protected override onEnterState(state: JobStateEntity.Type): void {
+    this.currentState = state;
   }
 }
 
 describe('ProcessKit', () => {
   it('start()/dispatch()/stop() drive a small idle -> active -> done machine', async () => {
-    const kit = ProcessKit.create<JobState, JobEvent, JobEffect>({ 'machine': JobMachine.make() });
+    const kit = ProcessKit.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({ 'machine': JobMachine.make() });
 
     kit.start();
     const afterStart = await kit.dispatch({ 'type': 'start' });
@@ -62,11 +61,11 @@ describe('ProcessKit', () => {
 
   it('effect handlers observe effects returned alongside a transition', async () => {
     const logged: string[] = [];
-    const handlers: EffectHandlerMapType<JobEffect, JobEvent> = {
-      'log': (effect) => { logged.push(effect.message); }
+    const handler: EffectHandlerInterface<JobEffectEntity.Type, JobEventEntity.Type> = (effect) => {
+      logged.push(effect.message);
     };
 
-    const kit = ProcessKit.create<JobState, JobEvent, JobEffect>({ 'handlers': handlers, 'machine': JobMachine.make() });
+    const kit = ProcessKit.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({ 'handler': handler, 'machine': JobMachine.make() });
     kit.start();
     await kit.dispatch({ 'type': 'start' });
 
@@ -78,22 +77,23 @@ describe('ProcessKit', () => {
     const counter = VirtualTimeCounter.create({ 'startMs': 0 });
     const scheduler = VirtualScheduler.create({ 'counter': counter });
 
-    const kit = ProcessKit.create<JobState, JobEvent, JobEffect>({ 'machine': JobMachine.make(), 'scheduler': scheduler });
+    const machine = JobMachine.make();
+    const kit = ProcessKit.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({ 'machine': machine, 'scheduler': scheduler });
     kit.start();
     await kit.dispatch({ 'type': 'start' });
-    assert.deepEqual(kit.getInterpreter().getState(), { 'variant': 'active' });
+    assert.deepEqual(machine.currentState, { 'variant': 'active' });
 
     kit.scheduleDispatch(counter.nowMs() + 100, { 'type': 'finish' });
 
     // Before the scheduled time arrives, state is unchanged.
     scheduler.advance(50);
-    assert.deepEqual(kit.getInterpreter().getState(), { 'variant': 'active' });
+    assert.deepEqual(machine.currentState, { 'variant': 'active' });
 
     // At/after the scheduled time, the scheduled callback drives the interpreter's public
     // send() — the effect-handler dispatch() capability has no reach here since this fires
     // well outside the drain cycle that scheduled it.
     scheduler.advance(50);
-    assert.deepEqual(kit.getInterpreter().getState(), { 'variant': 'done' });
+    assert.deepEqual(machine.currentState, { 'variant': 'done' });
 
     kit.stop();
   });
@@ -102,7 +102,8 @@ describe('ProcessKit', () => {
     const counter = VirtualTimeCounter.create({ 'startMs': 0 });
     const scheduler = VirtualScheduler.create({ 'counter': counter });
 
-    const kit = ProcessKit.create<JobState, JobEvent, JobEffect>({ 'machine': JobMachine.make(), 'scheduler': scheduler });
+    const machine = JobMachine.make();
+    const kit = ProcessKit.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({ 'machine': machine, 'scheduler': scheduler });
     kit.start();
     await kit.dispatch({ 'type': 'start' });
 
@@ -112,11 +113,11 @@ describe('ProcessKit', () => {
     scheduler.advance(200);
     // The scheduled 'finish' dispatch was cancelled by stop() — state stays 'active', and the
     // interpreter is stopped besides.
-    assert.deepEqual(kit.getInterpreter().getState(), { 'variant': 'active' });
+    assert.deepEqual(machine.currentState, { 'variant': 'active' });
   });
 
   it('a rejected transition surfaces TransitionRejectedError and does not wedge the interpreter', async () => {
-    const kit = ProcessKit.create<JobState, JobEvent, JobEffect>({ 'machine': JobMachine.make() });
+    const kit = ProcessKit.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({ 'machine': JobMachine.make() });
     kit.start();
 
     let rejected = false;
@@ -128,33 +129,9 @@ describe('ProcessKit', () => {
     }
     assert.equal(rejected, true);
 
-    // Before the EffectInterpreter#drain() try/finally fix, #draining stayed stuck true after
-    // a rejection, so this dispatch() would silently no-op. It must still drive the machine.
+    // A rejected entry releases the interpreter drain loop so this dispatch still transitions.
     const afterRecovery = await kit.dispatch({ 'type': 'start' });
     assert.deepEqual(afterRecovery, { 'variant': 'active' });
   });
 
-  it('getters return the exact composed instances', () => {
-    const machine = JobMachine.make();
-    const scheduler = VirtualScheduler.create({ 'counter': VirtualTimeCounter.create({ 'startMs': 0 }) });
-    const signal = Signal.create();
-
-    const kit = ProcessKit.create<JobState, JobEvent, JobEffect>({
-      'machine': machine,
-      'scheduler': scheduler,
-      'signal': signal
-    });
-
-    assert.equal(kit.getMachine(), machine);
-    assert.equal(kit.getScheduler(), scheduler);
-    assert.equal(kit.getSignal(), signal);
-    assert.equal(typeof kit.getInterpreter().start, 'function');
-  });
-
-  it('create() defaults scheduler to a RealTimeScheduler and signal to Signal.create() when omitted', () => {
-    const kit = ProcessKit.create<JobState, JobEvent, JobEffect>({ 'machine': JobMachine.make() });
-
-    assert.equal(typeof kit.getScheduler().scheduleAt, 'function');
-    assert.ok(kit.getSignal() instanceof Signal);
-  });
 });

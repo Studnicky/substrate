@@ -24,9 +24,6 @@
     },
     {
       "path": "../signal"
-    },
-    {
-      "path": "../types"
     }
   ]
 }

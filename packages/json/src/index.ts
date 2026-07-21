@@ -7,7 +7,7 @@
  * - Draft      — Proxy-based "mutate a draft, get an immutable result" primitive
  * - Frozen     — cycle-safe deep freeze
  * - Hash       — FNV-1a 32-bit hash for JSON-compatible values
- * - Merge      — V8-monomorphic deep merge with type inference
+ * - Merge      — V8-monomorphic deep merge
  * - Patch      — RFC-6902 JSON Patch (add/remove/replace/move/copy/test)
  * - JsonError  — abstract base error for all json package errors
  * - PatchError — error thrown when a patch operation fails
@@ -17,9 +17,17 @@
  * - SchemaValidator — compile a JSON Schema 2020-12 into a type-guard predicate (Ajv-backed)
  */
 
+export { DraftNodeStateEntity } from './entities/DraftNodeStateEntity.js';
+export { PatchApplyResultStatusEntity } from './entities/PatchApplyResultStatusEntity.js';
+export { PatchOperationCoreEntity } from './entities/PatchOperationCoreEntity.js';
 export { PathGetOptionsEntity } from './entities/PathGetOptionsEntity.js';
-export { JsonError } from './errors/index.js';
-export { PatchError } from './errors/index.js';
+export { PathWildcardResultEntity } from './entities/PathWildcardResultEntity.js';
+export { FrozenMutationError, JsonError, PatchError } from './errors/index.js';
+export type {
+  PatchApplyResultInterface,
+  PatchOperationInterface,
+  PathWildcardResultInterface
+} from './interfaces/index.js';
 export { Clone } from './json/index.js';
 export { DataType } from './json/index.js';
 export { Draft } from './json/index.js';
@@ -31,12 +39,3 @@ export { Path } from './json/index.js';
 export { Sort } from './json/index.js';
 export { StructuralHash } from './json/index.js';
 export { SchemaValidator } from './schema/index.js';
-export type {
-  DeepMergeType,
-  DraftProduceResultType,
-  PatchApplyResultType,
-  PatchOperationType,
-  PatchOpVariantType,
-  PathWildcardResultType
-} from './types/index.js';
-export type { ValidateFunction } from 'ajv';

@@ -8,6 +8,8 @@
 
 The file must exist at the given path before calling `create`. If the file is absent or already locked by another process, `create` throws `FileLockTimeoutError` after the configured timeout. The `FileLock` instance exposes `read` and `write` for operating on the locked file, and `release` (or `Symbol.dispose`) to return it to its original path.
 
+Serializable configuration and retained path state are canonicalized by `FileLockOptionsEntity` and `FileLockPathStateEntity`, both exported from the package root with runtime validators. `FileLockCreateOptionsInterface` adds only the live filesystem and owner-token contracts while indexing its data fields from `FileLockOptionsEntity.Type`.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
@@ -68,24 +70,6 @@ try {
 }
 ```
 
-### Builder API
-
-```typescript
-import { FileLock } from '@studnicky/file-lock';
-
-const lock = await FileLock.builder()
-  .withPath('/data/config.json')
-  .withPollMs(50)
-  .withTimeoutMs(3000)
-  .build();
-
-try {
-  lock.write('updated');
-} finally {
-  lock.release();
-}
-```
-
 ### Handling lock contention
 
 ```typescript
@@ -109,7 +93,7 @@ try {
 
 ## Hook failures
 
-A hook override that throws or rejects does not abort acquisition or release — the failure is recorded instead of propagating, backed internally by `@studnicky/errors`'s `HookInvoker`. Inspect recorded failures via `hookErrorCount`/`getHookErrors()`:
+A hook override that throws or rejects does not abort acquisition or release — the failure is recorded instead of propagating, backed internally by `@studnicky/errors`'s `HookInvoker`. Inspect the count via `hookErrorCount`; `getHookErrors()` returns detached errors and nested causes:
 
 ```typescript
 class FaultyLock extends FileLock {

@@ -1,40 +1,51 @@
-/**
- * Getter unit tests
- *
- * `getCache()`/`getCoalesce()` return the exact composed instances (Layer
- * Transparency Rule), not copies or wrappers.
- */
+/** Memoization behavior at the owned cache and coalescing boundaries. */
 
 import { strictEqual } from 'node:assert/strict';
 import { it } from 'node:test';
 
-import { Coalesce } from '@studnicky/concurrency';
-import { LruCache } from '@studnicky/cache';
-
 import { Memoize } from '../../../src/index.js';
 
-it('getCache() returns the composed LruCache and reflects call() writes', async () => {
-  const memo = Memoize.create((id: string) => `value:${id}`, { 'keyFn': (id: string) => id, 'capacity': 10 });
+it('replays a successful result without re-invoking the wrapped function', async () => {
+  let calls = 0;
+  const memo = Memoize.create((id: string) => {
+    calls += 1;
+    return `value:${id}`;
+  }, { 'keyFn': (id: string) => id, 'capacity': 10 });
 
-  await memo.call('a');
+  strictEqual(await memo.call('a'), 'value:a');
+  strictEqual(await memo.call('a'), 'value:a');
 
-  const cache = memo.getCache();
-  strictEqual(cache instanceof LruCache, true);
-  strictEqual(cache.size, 1);
-  strictEqual(cache.get('a'), 'value:a');
+  strictEqual(calls, 1);
 });
 
-it('getCoalesce() returns the composed Coalesce instance', () => {
-  const memo = Memoize.create((id: string) => `value:${id}`, { 'keyFn': (id: string) => id, 'capacity': 10 });
+it('coalesces concurrent calls sharing a derived key', async () => {
+  let calls = 0;
+  const memo = Memoize.create(async (id: string) => {
+    calls += 1;
+    await Promise.resolve();
+    return `value:${id}`;
+  }, { 'keyFn': (id: string) => id, 'capacity': 10 });
 
-  const coalesce = memo.getCoalesce();
-  strictEqual(coalesce instanceof Coalesce, true);
-  strictEqual(coalesce.isInflight('a'), false);
+  const results = await Promise.all([memo.call('a'), memo.call('a')]);
+
+  strictEqual(results[0], 'value:a');
+  strictEqual(results[1], 'value:a');
+  strictEqual(calls, 1);
 });
 
-it('getCache() and getCoalesce() return the exact same instance across calls', () => {
-  const memo = Memoize.create((id: string) => `value:${id}`, { 'keyFn': (id: string) => id, 'capacity': 10 });
+it('invalidate and clear cause subsequent calls to recompute', async () => {
+  let calls = 0;
+  const memo = Memoize.create((id: string) => {
+    calls += 1;
+    return `value:${id}:${calls}`;
+  }, { 'keyFn': (id: string) => id, 'capacity': 10 });
 
-  strictEqual(memo.getCache(), memo.getCache());
-  strictEqual(memo.getCoalesce(), memo.getCoalesce());
+  strictEqual(await memo.call('a'), 'value:a:1');
+  memo.invalidate('a');
+  strictEqual(await memo.call('a'), 'value:a:2');
+  strictEqual(await memo.call('b'), 'value:b:3');
+  memo.clear();
+  strictEqual(await memo.call('b'), 'value:b:4');
+
+  strictEqual(calls, 4);
 });

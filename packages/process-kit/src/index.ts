@@ -1,9 +1,8 @@
 /**
  * @studnicky/process-kit
  *
- * Composes fsm, scheduler, and signal into a reducer-with-effects process pattern.
+ * Composes fsm and scheduler into a reducer-with-effects process pattern.
  */
 
+export type { ProcessKitConfigInterface } from './interfaces/ProcessKitConfigInterface.js';
 export { ProcessKit } from './ProcessKit.js';
-export { ProcessKitBuilder } from './ProcessKitBuilder.js';
-export type { ProcessKitConfigType } from './types/ProcessKitConfigType.js';

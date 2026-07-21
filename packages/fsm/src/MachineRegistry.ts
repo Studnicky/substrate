@@ -1,56 +1,35 @@
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import type { RegisteredInterpreterInterface } from './RegisteredInterpreterInterface.js';
 
-import type { EffectInterpreter } from './EffectInterpreter.js';
-
+import { FsmHookInvoker } from './FsmHookInvoker.js';
 import { MachineAlreadyRegisteredError } from './MachineAlreadyRegisteredError.js';
 
-type BoundedInterpreter = EffectInterpreter<{ readonly 'variant': string }, { readonly 'type': string }, { readonly 'variant': string }>;
-
-/**
- * Records a `MachineRegistry`'s hook failures instead of letting
- * `HookInvoker`'s default (throwing) behavior propagate — a broken observer
- * hook must never be able to unwind a registration/unregistration/lookup
- * that already completed.
- */
-class MachineRegistryHookInvoker extends HookInvoker {
-  readonly #onError: (hookName: string, cause: unknown) => void;
-
-  constructor(onError: (hookName: string, cause: unknown) => void) {
-    super();
-    this.#onError = onError;
+/** Named interpreter registry whose lifecycle hook failures cannot unwind completed operations. */
+export class MachineRegistry<
+  TState extends { readonly 'variant': string },
+  TEvent extends { readonly 'type': string }
+> {
+  static create<
+    S extends { readonly 'variant': string },
+    E extends { readonly 'type': string }
+  >(): MachineRegistry<S, E> {
+    return new MachineRegistry<S, E>();
   }
 
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.#onError(hookName, cause);
-    return undefined as T;
-  }
-}
+  readonly #registry = new Map<string, RegisteredInterpreterInterface<TState, TEvent>>();
 
-export class MachineRegistry {
-  static create(): MachineRegistry {
-    return new MachineRegistry();
-  }
-
-  readonly #registry = new Map<string, BoundedInterpreter>();
-
-  /** Errors raised by lifecycle hook overrides, recorded by `onHookError` instead of aborting registry operations. */
-  readonly #hookErrors: HookInvocationError[] = [];
-
-  protected readonly hooks: HookInvoker;
+  protected readonly hooks: FsmHookInvoker;
 
   protected constructor() {
-    this.hooks = new MachineRegistryHookInvoker((hookName, cause) => {
-      this.#hookErrors.push(new HookInvocationError(hookName, cause));
-    });
+    this.hooks = new FsmHookInvoker();
   }
 
-  /** Count of hook failures recorded by `onHookError` since construction. */
+  /** Count of lifecycle hook failures captured since construction. */
   get hookErrorCount(): number {
-    const result = this.#hookErrors.length;
+    const result = this.hooks.hookErrorCount;
     return result;
   }
 
-  register(name: string, interpreter: BoundedInterpreter): void {
+  register(name: string, interpreter: RegisteredInterpreterInterface<TState, TEvent>): void {
     if (this.#registry.has(name)) { throw new MachineAlreadyRegisteredError(name); }
     this.#registry.set(name, interpreter);
     this.hooks.invoke('onRegister', () => {
@@ -67,7 +46,7 @@ export class MachineRegistry {
     });
   }
 
-  get(name: string): BoundedInterpreter | undefined {
+  get(name: string): RegisteredInterpreterInterface<TState, TEvent> | undefined {
     const result = this.#registry.get(name);
     if (result === undefined) {
       this.hooks.invoke('onResolveMiss', () => {

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { setTimeout } from 'node:timers/promises';
 
-import type { ThrottleStateType } from '../src/types/ThrottleStateType.js';
+import type { ThrottleStateEntity } from '../src/index.js';
 
 import { Throttle } from '../src/index.js';
 
@@ -26,7 +26,7 @@ class TracingThrottle extends Throttle {
   readonly drainStartEvents: { 'activeCount': number; 'queuedCount': number }[] = [];
   readonly drainCompleteEvents: { 'totalExecuted': number }[] = [];
 
-  protected override onEnter(to: ThrottleStateType, from: ThrottleStateType): void {
+  protected override onEnter(to: ThrottleStateEntity.Type, from: ThrottleStateEntity.Type): void {
     console.log(`[throttle] fsm transition: ${from} → ${to}`);
   }
 

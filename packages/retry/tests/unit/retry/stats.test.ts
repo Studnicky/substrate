@@ -121,7 +121,7 @@ it('getStats() returns a frozen stats object', () => {
   const stats = retry.getStats();
 
   try {
-    (stats as unknown as Record<string, number>).totalRequests = 999;
+    Reflect.set(stats, 'totalRequests', 999);
   } catch {
     // may throw in strict mode
   }

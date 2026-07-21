@@ -1,5 +1,3 @@
-import type { LogLevelType } from '../../src/types/LogLevelType.js';
-
 import assert from 'node:assert/strict';
 import {
   describe,
@@ -101,31 +99,31 @@ void describe('parseLogLevel utility', () => {
 
   void describe('default behavior for invalid input', () => {
     void it('should return INFO for empty string', () => {
-      const result = ParseLogLevel.parse('' as 'info');
+      const result = ParseLogLevel.parse('');
 
       assert.strictEqual(result, LOG_LEVEL.INFO);
     });
 
     void it('should return INFO for invalid string', () => {
-      const result = ParseLogLevel.parse('invalid' as 'info');
+      const result = ParseLogLevel.parse('invalid');
 
       assert.strictEqual(result, LOG_LEVEL.INFO);
     });
 
     void it('should return INFO for uppercase string', () => {
-      const result = ParseLogLevel.parse('DEBUG' as 'debug');
+      const result = ParseLogLevel.parse('DEBUG');
 
       assert.strictEqual(result, LOG_LEVEL.INFO);
     });
 
     void it('should return INFO for mixed case string', () => {
-      const result = ParseLogLevel.parse('Info' as 'info');
+      const result = ParseLogLevel.parse('Info');
 
       assert.strictEqual(result, LOG_LEVEL.INFO);
     });
 
     void it('should return INFO for string with spaces', () => {
-      const result = ParseLogLevel.parse(' info ' as 'info');
+      const result = ParseLogLevel.parse(' info ');
 
       assert.strictEqual(result, LOG_LEVEL.INFO);
     });
@@ -214,11 +212,11 @@ void describe('parseLogLevel utility', () => {
 
   void describe('edge case inputs', () => {
     void it('should handle numeric inputs outside valid range', () => {
-      const result1 = ParseLogLevel.parse(-1 as LogLevelType);
-      const result2 = ParseLogLevel.parse(999 as LogLevelType);
+      const result1 = ParseLogLevel.parse(-1);
+      const result2 = ParseLogLevel.parse(999);
 
-      assert.strictEqual(result1, -1);
-      assert.strictEqual(result2, 999);
+      assert.strictEqual(result1, LOG_LEVEL.INFO);
+      assert.strictEqual(result2, LOG_LEVEL.INFO);
     });
 
     void it('should default to INFO for any unrecognized string', () => {
@@ -231,7 +229,7 @@ void describe('parseLogLevel utility', () => {
       ];
 
       for (const testCase of testCases) {
-        const result = ParseLogLevel.parse(testCase as 'info');
+        const result = ParseLogLevel.parse(testCase);
 
         assert.strictEqual(result, LOG_LEVEL.INFO);
       }

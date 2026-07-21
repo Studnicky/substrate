@@ -1,5 +1,5 @@
 /**
- * Reducer-with-effects process pattern composing @studnicky/fsm, /scheduler, and /signal
+ * Reducer-with-effects process pattern composing @studnicky/fsm and /scheduler
  *
  * ---------------------------------------------------------------------------
  * ORCHESTRATION-BOUNDARY GUARDRAILS — read before extending this class.
@@ -22,38 +22,30 @@
  * ---------------------------------------------------------------------------
  */
 
-import type { StateMachine } from '@studnicky/fsm';
-import type { ScheduledTaskType, SchedulerProviderType } from '@studnicky/scheduler';
+import type { ScheduledTaskInterface, SchedulerProviderInterface } from '@studnicky/scheduler';
 
 import { EffectInterpreter } from '@studnicky/fsm';
 import { RealTimeScheduler } from '@studnicky/scheduler';
-import { Signal } from '@studnicky/signal';
 
-import type { ProcessKitConfigType } from './types/ProcessKitConfigType.js';
+import type { ProcessKitConfigInterface } from './interfaces/ProcessKitConfigInterface.js';
 
-import { ProcessKitBuilder } from './ProcessKitBuilder.js';
-
-// json-schema-uninexpressible: generic type parameters (TState, TEvent, TEffect) and fields that are live class instances (EffectInterpreter, StateMachine, Signal) plus SchedulerProviderType (method-bearing interface), not plain data
-type ProcessKitDepsType<
+interface ProcessKitDepsInterface<
   TState extends { readonly 'variant': string },
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
-> = {
-  'interpreter': EffectInterpreter<TState, TEvent, TEffect>;
-  'machine': StateMachine<TState, TEvent, TEffect>;
-  'scheduler': SchedulerProviderType;
-  'signal': Signal;
-};
+> {
+  readonly 'interpreter': EffectInterpreter<TState, TEvent, TEffect>;
+  readonly 'scheduler': SchedulerProviderInterface;
+}
 
 /**
- * Composes `@studnicky/fsm` (`StateMachine` + `EffectInterpreter`), `@studnicky/scheduler`,
- * and `@studnicky/signal` into the "local process as explicit state plus scheduled
+ * Composes `@studnicky/fsm` (`StateMachine` + `EffectInterpreter`) and
+ * `@studnicky/scheduler` into the "local process as explicit state plus scheduled
  * transitions" pattern.
  *
- * `ProcessKit` has no lifecycle hooks of its own — every observable stage is already covered
- * by the composed primitive it delegates to: `StateMachine`'s 6 hooks, `EffectInterpreter`'s
- * 9 hooks, and `RealTimeScheduler`/`VirtualScheduler`'s own hooks, all reachable through the
- * getters below.
+ * `ProcessKit` has no lifecycle hooks of its own. `dispatch()` returns the settled process
+ * state, `scheduleDispatch()` returns a cancellable task handle, and callers retain ownership
+ * of configured machines and schedulers when they need their lifecycle hooks.
  *
  * @example Direct composition
  * ```typescript
@@ -78,43 +70,25 @@ export class ProcessKit<
     S extends { readonly 'variant': string },
     E extends { readonly 'type': string },
     Ef extends { readonly 'variant': string } = never
-  >(config: ProcessKitConfigType<S, E, Ef>): ProcessKit<S, E, Ef> {
+  >(config: ProcessKitConfigInterface<S, E, Ef>): ProcessKit<S, E, Ef> {
     const interpreter = EffectInterpreter.create<S, E, Ef>({
-      'handlers': config.handlers,
+      'handler': config.handler,
       'machine': config.machine
     });
 
     const result = new ProcessKit<S, E, Ef>({
       'interpreter': interpreter,
-      'machine': config.machine,
-      'scheduler': config.scheduler ?? RealTimeScheduler.create(),
-      'signal': config.signal ?? Signal.create()
-    });
-    return result;
-  }
-
-  static builder<
-    S extends { readonly 'variant': string },
-    E extends { readonly 'type': string },
-    Ef extends { readonly 'variant': string } = never
-  >(): ProcessKitBuilder<S, E, Ef> {
-    const result = ProcessKitBuilder.create<S, E, Ef>((config) => {
-      const kit = ProcessKit.create<S, E, Ef>(config);
-      return kit;
+      'scheduler': config.scheduler ?? RealTimeScheduler.create()
     });
     return result;
   }
 
   readonly #interpreter: EffectInterpreter<TState, TEvent, TEffect>;
-  readonly #machine: StateMachine<TState, TEvent, TEffect>;
-  readonly #scheduler: SchedulerProviderType;
-  readonly #signal: Signal;
+  readonly #scheduler: SchedulerProviderInterface;
 
-  protected constructor(deps: ProcessKitDepsType<TState, TEvent, TEffect>) {
-    this.#machine = deps.machine;
+  protected constructor(deps: ProcessKitDepsInterface<TState, TEvent, TEffect>) {
     this.#interpreter = deps.interpreter;
     this.#scheduler = deps.scheduler;
-    this.#signal = deps.signal;
   }
 
   /**
@@ -162,24 +136,9 @@ export class ProcessKit<
    * @param event - Event to dispatch when the scheduled time arrives
    * @returns The scheduled task handle, cancellable via `.cancel()`
    */
-  scheduleDispatch(atMs: number, event: TEvent): ScheduledTaskType {
+  scheduleDispatch(atMs: number, event: TEvent): ScheduledTaskInterface {
     const result = this.#scheduler.scheduleAt(atMs, async () => { await this.dispatch(event); });
     return result;
   }
 
-  getInterpreter(): EffectInterpreter<TState, TEvent, TEffect> {
-    return this.#interpreter;
-  }
-
-  getMachine(): StateMachine<TState, TEvent, TEffect> {
-    return this.#machine;
-  }
-
-  getScheduler(): SchedulerProviderType {
-    return this.#scheduler;
-  }
-
-  getSignal(): Signal {
-    return this.#signal;
-  }
 }

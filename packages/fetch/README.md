@@ -4,7 +4,11 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/fetch)
 
-`@studnicky/fetch` wraps the native `fetch` API with a configured client, fluent request builder, and composable interceptor pipeline. Every observable behavior — telemetry, logging, tracing — is added by subclassing, not by configuring flags.
+`@studnicky/fetch` wraps the native `fetch` API with a configured client and direct HTTP verb methods. Timeout, abort, body serialization, and dispatcher behavior all use the same request path. Observable behavior such as telemetry, logging, and tracing is added through lifecycle hooks.
+
+`@studnicky/fetch` is the sole public code entrypoint.
+
+`FetchClient` owns an enabled connection-pool Agent internally. Direct `UndiciDispatcher` use accepts a caller-owned `undici` `Agent`; retain that Agent for request dispatch and use `UndiciDispatcher` for health checks and lifecycle management.
 
 ## Install
 
@@ -29,13 +33,9 @@ const api = FetchClient.create({
   timeout: 5000
 });
 
-// Fluent request builder
-const response = await api
-  .request('/users')
-  .queryString('page', 1)
-  .queryString('limit', 20)
-  .header('X-Request-Source', 'dashboard')
-  .get();
+const response = await api.get('/users?page=1&limit=20', {
+  headers: { 'X-Request-Source': 'dashboard' }
+});
 
 const users = await response.json();
 ```
@@ -61,8 +61,10 @@ class TracedClient extends FetchClient {
   }
 }
 
-const api = new TracedClient({ baseURL: 'https://api.example.com' });
+const api = TracedClient.create({ baseURL: 'https://api.example.com' });
 ```
+
+`FetchRequestOptionsEntity` owns the schema-expressible request fields shared by `FetchOptionsInterface` and `BodyRequestOptionsInterface`. `ClientConfigDataEntity` owns the schema-expressible client settings. The interfaces compose those entity fields with runtime-only values such as headers, signals, dispatchers, metadata, and request-ID generators.
 
 ## Documentation
 

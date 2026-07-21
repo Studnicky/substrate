@@ -11,22 +11,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./circuit-breaker": {
-      "types": "./dist/CircuitBreaker.d.ts",
-      "import": "./dist/CircuitBreaker.js"
-    },
-    "./token-bucket": {
-      "types": "./dist/TokenBucket.d.ts",
-      "import": "./dist/TokenBucket.js"
-    },
-    "./dead-letter-queue": {
-      "types": "./dist/DeadLetterQueue.d.ts",
-      "import": "./dist/DeadLetterQueue.js"
-    },
-    "./dead-letter-queue/retry": {
-      "types": "./dist/DeadLetterQueueRetryGenerator.d.ts",
-      "import": "./dist/DeadLetterQueueRetryGenerator.js"
     }
   },
   "files": [
@@ -37,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "node --import tsx --test \"tests/**/*.test.ts\""
   },
   "license": "MIT",
@@ -68,6 +52,8 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/types": "workspace:*"
+    "@studnicky/types": "workspace:*",
+    "ajv": "^8.20.0",
+    "json-schema-to-ts": "^3.1.1"
   }
 }

@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/logger)
 
-`@studnicky/logger` provides a typed `LoggerInterface` with a pluggable transport system and structured log builders. Every log entry is constructed via the `LogBody` or `LogFault` builder — required fields are enforced at build time. Correlation IDs flow from child loggers, not from the builders.
+`@studnicky/logger` provides a typed `LoggerInterface` with a pluggable transport system and immutable structured log data. Every log entry is created directly through `LogBody.create(...)` or `LogFault.create(...)`; required fields are enforced by the configuration type and at runtime. Correlation IDs flow from child loggers.
 
 ## Install
 
@@ -26,32 +26,37 @@ import { Logger, ConsoleTransport, LogBody, LogFault } from '@studnicky/logger';
 const logger = Logger.create({
   level: 'info',
   metadata: { service: 'api' },
-  transports: [new ConsoleTransport()]
+  transports: [ConsoleTransport.create()]
 });
 
 // Structured info log
-const body = LogBody.create()
-  .component('users')
-  .operation('create')
-  .status('success')
-  .message('User created')
-  .context({ userId: 'u-123' })
-  .duration(12)
-  .build();
+const body = LogBody.create({
+  component: 'users',
+  context: { userId: 'u-123' },
+  durationMs: 12,
+  message: 'User created',
+  operation: 'create',
+  status: 'success'
+});
 
 logger.info(body);
 
 // Error log from a caught exception
 try {
   throw new Error('Database timeout');
-} catch (err) {
-  const fault = LogFault.create()
-    .component('users')
-    .operation('create')
-    .status('failed')
-    .fromError(err as Error)
-    .context({ userId: 'u-123' })
-    .build();
+} catch (cause) {
+  if (!(cause instanceof Error)) throw cause;
+
+  const fault = LogFault.create({
+    cause: cause.cause instanceof Error ? cause.cause.message : undefined,
+    component: 'users',
+    context: { userId: 'u-123' },
+    message: cause.message,
+    name: cause.name,
+    operation: 'create',
+    stack: cause.stack,
+    status: 'failed'
+  });
 
   logger.error(fault);
 }
@@ -63,53 +68,52 @@ requestLogger.info(body);
 
 ## Transport architecture
 
-The `Logger` core emits `LogRecordType` records to each configured transport. A Logger with no transports is valid and silent.
+The `Logger` core emits `LogRecordEntity.Type` records to each configured transport. A Logger with no transports is valid and silent.
 
 ```typescript
+import pino from 'pino';
+
 import {
   Logger,
   ConsoleTransport,
   MemoryTransport,
   FunctionTransport,
-  NoOpTransport
+  ParseLogLevel
 } from '@studnicky/logger';
+import type { LogRecordEntity, TransportInterface } from '@studnicky/logger';
 
 // Fan-out: console (warn+) and memory capture for tests
-const memory = new MemoryTransport();
+const memory = MemoryTransport.create();
 const logger = Logger.create({
   level: 'debug',
   transports: [
-    new ConsoleTransport({ level: 'warn' }), // only warn and above
-    memory                                    // all records at or above global floor
+    ConsoleTransport.create({ level: 'warn' }), // only warn and above
+    memory                                       // all records at or above global floor
   ]
 });
 
 logger.info(body);  // reaches memory only
 logger.warn(body);  // reaches both
 
-// Assert captured records in tests
+// Assert a snapshot of captured records in tests
 const records = memory.records();
 records[0]?.level;    // LOG_LEVEL.WARN
 records[0]?.metadata; // { service: 'api' }
-records[0]?.data;     // LogBodyDataType
+records[0]?.data;     // LogBodyDataEntity.Type or LogFaultDataEntity.Type
 memory.clear();
 
 // Bridge to an external logger via FunctionTransport
-import pino from 'pino';
 const pinoLogger = pino();
 const bridged = Logger.create({
-  transports: [new FunctionTransport((r) => pinoLogger.info(r.metadata, r.data.message))]
+  transports: [FunctionTransport.create((record) => pinoLogger.info(record.metadata, record.data.message))]
 });
 
 // Implement your own transport
-import { ResolveMinLevel } from '@studnicky/logger';
-import type { TransportInterface, LogRecordEntity } from '@studnicky/logger';
-
 class RemoteTransport implements TransportInterface {
   #minLevel: number;
 
   constructor(options: { level?: string } = {}) {
-    this.#minLevel = ResolveMinLevel.from(options);
+    this.#minLevel = ParseLogLevel.parse(options.level ?? 'trace');
   }
 
   write(record: LogRecordEntity.Type): void {
@@ -127,11 +131,13 @@ Each transport accepts an optional `level` option that adds an independent filte
 const logger = Logger.create({
   level: 'debug',
   transports: [
-    new ConsoleTransport({ level: 'debug' }), // debug and above
-    new ConsoleTransport({ level: 'warn' }),   // warn and above only
+    ConsoleTransport.create({ level: 'debug' }), // debug and above
+    ConsoleTransport.create({ level: 'warn' }), // warn and above only
   ]
 });
 ```
+
+Entity namespaces own serializable logger data. Use `LogBodyConfigEntity.Type` and `LogFaultConfigEntity.Type` for direct construction input, `LogDataEntity.Type` for the schema-defined body-or-fault union, and `LogRecordEntity.Type`, `LogBodyDataEntity.Type`, `LogFaultDataEntity.Type`, `LogLevelEntity.Type`, and `LogStatusEntity.Type` for normalized data from `@studnicky/logger`. `CloudWatchLogSchemaFieldsEntity` owns the CloudWatch envelope fields and `LoggerHookEventKindEntity` owns observed hook discriminants. Entity implementations import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`, with both packages declared as direct dependencies.
 
 ## Hook failures
 

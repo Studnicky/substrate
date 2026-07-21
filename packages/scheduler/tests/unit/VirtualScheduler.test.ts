@@ -151,6 +151,59 @@ describe('VirtualTimeCounter', () => {
 });
 
 // ---------------------------------------------------------------------------
+// MinimumHeap tests
+// ---------------------------------------------------------------------------
+
+describe('MinimumHeap', () => {
+  it('snapshots inserted tasks so caller mutation cannot corrupt ordering or removal data', () => {
+    const first: {
+      atMs: number;
+      fire: () => void;
+      id: string;
+      intervalMs: number;
+      variant: 'timeout';
+    } = {
+      'atMs': 10,
+      'fire': (): void => {},
+      'id': 'first',
+      'intervalMs': 0,
+      'variant': 'timeout'
+    };
+    const second: {
+      atMs: number;
+      fire: () => void;
+      id: string;
+      intervalMs: number;
+      variant: 'timeout';
+    } = {
+      'atMs': 20,
+      'fire': (): void => {},
+      'id': 'second',
+      'intervalMs': 0,
+      'variant': 'timeout'
+    };
+    const heap = MinimumHeap.create();
+
+    heap.insert(first);
+    heap.insert(second);
+    first.atMs = 100;
+    first.id = 'mutated';
+    second.atMs = 1;
+
+    assert.strictEqual(heap.peekAtMs(), 10);
+    const removed = heap.removeMinimum();
+    assert.deepStrictEqual(removed, {
+      'atMs': 10,
+      'fire': first.fire,
+      'id': 'first',
+      'intervalMs': 0,
+      'variant': 'timeout'
+    });
+    assert.strictEqual(heap.peekAtMs(), 20);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // VirtualScheduler tests
 // ---------------------------------------------------------------------------
 
@@ -558,6 +611,32 @@ describe('VirtualScheduler', () => {
       });
     }
 
+    it('repeated task cancellation invokes onCancel once and never fires', () => {
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new AuditVirtualScheduler(counter);
+      const task = sched.scheduleAt(TASK_OFFSET_50, () => { return; });
+
+      task.cancel();
+      task.cancel();
+      sched.advance(ADVANCE_PASS);
+
+      assert.strictEqual(sched.cancelCount, 1);
+      assert.strictEqual(sched.fireCount, 0);
+    });
+
+    it('cancellation after a task fires is an observable no-op', () => {
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const sched = new AuditVirtualScheduler(counter);
+      const task = sched.scheduleAt(TASK_OFFSET_50, () => { return; });
+
+      sched.advance(ADVANCE_PASS);
+      task.cancel();
+      task.cancel();
+
+      assert.strictEqual(sched.fireCount, 1);
+      assert.strictEqual(sched.cancelCount, 0);
+    });
+
     it('virtualCounter getter is accessible from subclass', () => {
       class CounterAccessor extends VirtualScheduler {
         public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
@@ -840,9 +919,8 @@ describe('VirtualScheduler', () => {
       let receivedError: HookInvocationError | undefined;
 
       class RecordingHookInvoker extends HookInvoker {
-        protected override onHookError<T>(hookName: string, cause: unknown): T {
+        protected override onHookError(hookName: string, cause: unknown): void {
           receivedError = new HookInvocationError(hookName, cause);
-          return undefined as T;
         }
       }
 
@@ -914,10 +992,9 @@ describe('VirtualScheduler', () => {
       const recordedCauses: unknown[] = [];
 
       class RecordingSwallowingInvoker extends HookInvoker {
-        protected override onHookError<T>(hookName: string, cause: unknown): T {
+        protected override onHookError(hookName: string, cause: unknown): void {
           recordedHookNames.push(hookName);
           recordedCauses.push(cause);
-          return undefined as T;
         }
       }
 

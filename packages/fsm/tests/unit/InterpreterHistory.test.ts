@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { StateMachine } from '../../src/StateMachine.js';
 import { InterpreterHistory } from '../../src/InterpreterHistory.js';
-import type { FsmStepType } from '../../src/FsmStepType.js';
+import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
 
 type ToggleState = { readonly variant: 'a' } | { readonly variant: 'b' };
 type ToggleEvent = { readonly type: 'toggle' };
@@ -10,7 +10,7 @@ type ToggleEffect = { readonly variant: 'log'; readonly message: string };
 
 class ToggleMachine extends StateMachine<ToggleState, ToggleEvent, ToggleEffect> {
   getInitialState(): ToggleState { return { variant: 'a' }; }
-  reduce(state: ToggleState, _event: ToggleEvent): FsmStepType<ToggleState, ToggleEffect> {
+  reduce(state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState, ToggleEffect> {
     const next: ToggleState = state.variant === 'a' ? { variant: 'b' } : { variant: 'a' };
     return { state: next, effects: [{ variant: 'log', message: `now ${next.variant}` }] };
   }
@@ -60,11 +60,35 @@ describe('InterpreterHistory', () => {
 
     const records = history.history();
     assert.equal(records.length, 3);
-    assert.deepEqual(records[0], { event: { type: 'toggle' }, from: { variant: 'a' }, to: { variant: 'b' }, timestamp: records[0]?.timestamp });
+    const firstRecord = records[0];
+    if (firstRecord === undefined) {
+      throw new Error('Expected the first transition record');
+    }
+    assert.deepEqual(firstRecord.event, { type: 'toggle' });
+    assert.deepEqual(firstRecord.from, { variant: 'a' });
+    assert.deepEqual(firstRecord.to, { variant: 'b' });
+    assert.equal(typeof firstRecord.timestamp, 'number');
     assert.deepEqual(records[1]?.from, { variant: 'b' });
     assert.deepEqual(records[1]?.to, { variant: 'a' });
     assert.deepEqual(records[2]?.from, { variant: 'a' });
     assert.deepEqual(records[2]?.to, { variant: 'b' });
+  });
+
+  it('does not record a successful send when the state variant does not change', async () => {
+    class SameVariantMachine extends StateMachine<ToggleState, ToggleEvent> {
+      getInitialState(): ToggleState { return { variant: 'a' }; }
+
+      reduce(state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState> {
+        return { state, effects: [] };
+      }
+    }
+
+    const history = InterpreterHistory.create({ capacity: 5, machine: new SameVariantMachine(), machineId: 'same-variant' });
+    history.start();
+    await history.send({ type: 'toggle' });
+
+    assert.deepEqual(history.getState(), { variant: 'a' });
+    assert.deepEqual(history.history(), []);
   });
 
   it('evicts the oldest record once capacity is exceeded', async () => {
@@ -82,28 +106,18 @@ describe('InterpreterHistory', () => {
     assert.deepEqual(records[1]?.to, { variant: 'b' });
   });
 
-  it('history() returns a snapshot — mutating it does not affect internal state', async () => {
+  it('history() returns a readonly snapshot isolated from later transitions', async () => {
     const history = InterpreterHistory.create({ capacity: 5, machine: new ToggleMachine(), machineId: 'snapshot' });
     history.start();
     await history.send({ type: 'toggle' });
 
-    const records = history.history();
-    records.push({ event: { type: 'toggle' }, from: { variant: 'a' }, to: { variant: 'b' }, timestamp: 0 });
-    records.pop();
-    records.pop();
+    const snapshot = history.history();
+    await history.send({ type: 'toggle' });
 
-    assert.equal(history.history().length, 1);
+    assert.equal(snapshot.length, 1);
+    assert.equal(history.history().length, 2);
   });
 
-  // history() implements its snapshot by rotating every record through the
-  // internal CircularBuffer's shift()/push(), which are not pure operations
-  // from CircularBuffer's hook perspective (onShift/onPush fire on each call).
-  // CircularBuffer's public API (packages/circular-buffer/src/circular-buffer/CircularBuffer.ts)
-  // exposes no non-mutating read method (no toArray/iterator/entries/peek), so
-  // a genuinely hook-silent read cannot be implemented from InterpreterHistory
-  // without an upstream CircularBuffer API addition. This test locks in the
-  // array-identity/order/isolation contract that a corrected implementation
-  // must also satisfy.
   it('history() returns a fresh, order-stable array on each call, independent of prior calls', async () => {
     const history = InterpreterHistory.create({ capacity: 5, machine: new ToggleMachine(), machineId: 'repeated-read' });
     history.start();
@@ -116,13 +130,37 @@ describe('InterpreterHistory', () => {
 
     assert.notEqual(first, second);
     assert.deepEqual(first, second);
-
-    first.push({ event: { type: 'toggle' }, from: { variant: 'a' }, to: { variant: 'b' }, timestamp: 0 });
-    first.pop();
-    first.pop();
-
     assert.equal(second.length, 3);
     assert.deepEqual(history.history(), second);
+  });
+
+  it('history() deeply isolates returned records from retained history', async () => {
+    type NestedState = { readonly variant: 'a' | 'b'; details: { value: number } };
+    type NestedEvent = { readonly type: 'toggle'; details: { value: number } };
+
+    class NestedMachine extends StateMachine<NestedState, NestedEvent> {
+      getInitialState(): NestedState { return { 'details': { 'value': 1 }, 'variant': 'a' }; }
+      reduce(): FsmStepInterface<NestedState> {
+        return { 'effects': [], 'state': { 'details': { 'value': 2 }, 'variant': 'b' } };
+      }
+    }
+
+    const history = InterpreterHistory.create({ 'capacity': 2, 'machine': new NestedMachine(), 'machineId': 'nested-history' });
+    history.start();
+    await history.send({ 'details': { 'value': 3 }, 'type': 'toggle' });
+
+    const snapshot = history.history()[0];
+    if (snapshot === undefined) {
+      throw new Error('Expected a history snapshot');
+    }
+    snapshot.from.details.value = 99;
+    snapshot.to.details.value = 98;
+    snapshot.event.details.value = 97;
+
+    const retained = history.history()[0];
+    assert.equal(retained?.from.details.value, 1);
+    assert.equal(retained?.to.details.value, 2);
+    assert.equal(retained?.event.details.value, 3);
   });
 
   it('behaves as a fully-functional EffectInterpreter — start/send/stop work identically to the base class', async () => {
@@ -130,7 +168,7 @@ describe('InterpreterHistory', () => {
     const history = InterpreterHistory.create({
       capacity: 5,
       machine: new ToggleMachine(),
-      handlers: { log: (effect) => { logged.push(effect.message); } },
+      handler: (effect) => { logged.push(effect.message); },
       machineId: 'functional',
     });
     history.start();

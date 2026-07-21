@@ -3,8 +3,10 @@
  *
  * @module
  */
-import { SchemaValidator, type ValidateFunction } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 export namespace VirtualTimeCounterOptionsEntity {
   export const Schema = {
@@ -13,7 +15,7 @@ export namespace VirtualTimeCounterOptionsEntity {
       'startMs': { 'type': 'number' }
     },
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   /** Construction options for {@link VirtualTimeCounter}. */
   export type Type = FromSchema<typeof Schema>;

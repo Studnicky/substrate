@@ -19,9 +19,12 @@ import {
 } from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { JSONSchema7Type } from 'json-schema';
+
+import { Guard } from '@studnicky/types';
+
 import { CAUSE_CHAIN_DEPTH_LIMIT, CAUSE_DEPTH_SENTINEL } from '../../src/constants/index.js';
 import { BaseError } from '../../src/errors/BaseError.js';
-import { ErrorCodeRegistry } from '../../src/errors/ErrorCodeRegistry.js';
 
 // Concrete test subclass — registers its code at construction time.
 class TestError extends BaseError {
@@ -29,7 +32,7 @@ class TestError extends BaseError {
     cause: unknown;
     code: string;
     correlationId: string;
-    metadata: Record<string, import('@studnicky/types').JsonValueType>;
+    metadata: Record<string, JSONSchema7Type>;
     retryable: boolean;
   }>) {
     super({
@@ -42,11 +45,6 @@ class TestError extends BaseError {
     });
   }
 }
-
-// Register codes used by tests.
-ErrorCodeRegistry.register({ code: 'test.generic', description: 'Generic test error.', retryable: false });
-ErrorCodeRegistry.register({ code: 'test.retryable', description: 'Retryable test error.', retryable: true });
-ErrorCodeRegistry.register({ code: 'test.withMeta', description: 'Error with metadata.', retryable: false });
 
 class RetryableError extends BaseError {
   public constructor(message: string) {
@@ -143,30 +141,32 @@ void describe('BaseError', () => {
 
     void it('serializes code and message', () => {
       const err = new TestError('serialize me');
-      const json = err.toJSON() as { code: string; message: string };
+      const json = err.toJSON();
       strictEqual(json.code, 'test.generic');
       strictEqual(json.message, 'serialize me');
     });
 
     void it('includes correlationId as null when absent', () => {
       const err = new TestError('msg');
-      const json = err.toJSON() as { correlationId: string | null };
+      const json = err.toJSON();
       strictEqual(json.correlationId, null);
     });
 
     void it('includes correlationId value when present', () => {
       const err = new TestError('msg', { correlationId: 'trace-xyz' });
-      const json = err.toJSON() as { correlationId: string | null };
+      const json = err.toJSON();
       strictEqual(json.correlationId, 'trace-xyz');
     });
 
     void it('serializes cause chain recursively', () => {
       const root = new TestError('root');
       const top = new TestError('top', { cause: root });
-      const json = top.toJSON() as { cause: { code: string; message: string; cause: null } };
-      strictEqual(json.cause.code, 'test.generic');
-      strictEqual(json.cause.message, 'root');
-      strictEqual(json.cause.cause, null);
+      const json = top.toJSON();
+      const cause = json.cause;
+      ok(Guard.isObject(cause));
+      strictEqual(cause.code, 'test.generic');
+      strictEqual(cause.message, 'root');
+      strictEqual(cause.cause, null);
     });
 
     void it('uses sentinel string when chain exceeds depth limit', () => {
@@ -180,12 +180,12 @@ void describe('BaseError', () => {
       let node: unknown = json;
       let found = false;
       while (node !== null && node !== undefined) {
-        const rec = node as { cause: unknown };
-        if (typeof rec.cause === 'string' && rec.cause === CAUSE_DEPTH_SENTINEL) {
+        if (!Guard.isObject(node)) { break; }
+        if (typeof node.cause === 'string' && node.cause === CAUSE_DEPTH_SENTINEL) {
           found = true;
           break;
         }
-        node = rec.cause;
+        node = node.cause;
       }
       ok(found, 'Should find cause depth sentinel in serialized chain');
     });
@@ -193,16 +193,20 @@ void describe('BaseError', () => {
     void it('serializes a native Error cause with code native.error', () => {
       const native = new Error('native cause');
       const err = new TestError('wrapper', { cause: native });
-      const json = err.toJSON() as { cause: { code: string; message: string } };
-      strictEqual(json.cause.code, 'native.error');
-      strictEqual(json.cause.message, 'native cause');
+      const json = err.toJSON();
+      const cause = json.cause;
+      ok(Guard.isObject(cause));
+      strictEqual(cause.code, 'native.error');
+      strictEqual(cause.message, 'native cause');
     });
 
     void it('serializes a primitive cause with code native.primitive', () => {
       const err = new TestError('wrapper', { cause: 'string cause' });
-      const json = err.toJSON() as { cause: { code: string; message: string } };
-      strictEqual(json.cause.code, 'native.primitive');
-      strictEqual(json.cause.message, 'string cause');
+      const json = err.toJSON();
+      const cause = json.cause;
+      ok(Guard.isObject(cause));
+      strictEqual(cause.code, 'native.primitive');
+      strictEqual(cause.message, 'string cause');
     });
 
     void it('produces JSON-serializable output (JSON.stringify roundtrip)', () => {
@@ -211,14 +215,15 @@ void describe('BaseError', () => {
         metadata: { n: 42 }
       });
       const json = err.toJSON();
-      const roundtrip = JSON.parse(JSON.stringify(json)) as Record<string, unknown>;
+      const roundtrip: unknown = JSON.parse(JSON.stringify(json));
+      ok(Guard.isObject(roundtrip));
       strictEqual(roundtrip['message'], 'serialize');
       strictEqual(roundtrip['code'], 'test.generic');
     });
   });
 
   void describe('toSerializedError()', () => {
-    void it('returns SerializedErrorType shape', () => {
+    void it('returns canonical JSON object data', () => {
       const err = new TestError('typed serial');
       const serial = err.toSerializedError();
       strictEqual(typeof serial.code, 'string');
@@ -301,64 +306,5 @@ void describe('BaseError', () => {
         strictEqual(BaseError.toMessage(input), expected);
       });
     }
-  });
-});
-
-void describe('ErrorCodeRegistry', () => {
-  void it('registers and retrieves a code', () => {
-    ErrorCodeRegistry.register({
-      code: 'test.registryCheck',
-      description: 'Registry test.',
-      retryable: true
-    });
-    const descriptor = ErrorCodeRegistry.describe('test.registryCheck');
-    ok(descriptor !== undefined);
-    strictEqual(descriptor.code, 'test.registryCheck');
-    strictEqual(descriptor.retryable, true);
-  });
-
-  const isRegisteredScenarios: Array<{ description: string; input: string; expected: boolean }> = [
-    { description: 'isRegistered returns true for registered code', expected: true, input: 'test.generic' },
-    { description: 'isRegistered returns false for unknown code', expected: false, input: 'unknown.code.xyz' },
-    { description: 'isRegistered returns false for empty string', expected: false, input: '' }
-  ];
-
-  for (const { description, input, expected } of isRegisteredScenarios) {
-    void it(description, () => {
-      strictEqual(ErrorCodeRegistry.isRegistered(input), expected);
-    });
-  }
-
-  void it('describe returns undefined for unknown code', () => {
-    strictEqual(ErrorCodeRegistry.describe('unknown.code.xyz'), undefined);
-  });
-
-  void it('list returns all registered codes', () => {
-    const list = ErrorCodeRegistry.list();
-    ok(list.length > 0);
-    ok(list.some((d) => d.code === 'test.generic'));
-  });
-
-  void describe('reset()', () => {
-    // Use a before/after isolated scope to avoid polluting other tests.
-    let codeWasPresent = false;
-
-    void it('removes all codes after reset', () => {
-      // Register a unique code, then reset, check it is gone.
-      ErrorCodeRegistry.register({ code: 'test.toBeReset', description: 'Reset test.', retryable: false });
-      codeWasPresent = ErrorCodeRegistry.isRegistered('test.toBeReset');
-      ErrorCodeRegistry.reset();
-      strictEqual(ErrorCodeRegistry.isRegistered('test.toBeReset'), false);
-
-      // Re-register the codes our tests rely on after reset.
-      ErrorCodeRegistry.register({ code: 'test.generic', description: 'Generic test error.', retryable: false });
-      ErrorCodeRegistry.register({ code: 'test.retryable', description: 'Retryable test error.', retryable: true });
-      ErrorCodeRegistry.register({ code: 'test.withMeta', description: 'Error with metadata.', retryable: false });
-      ErrorCodeRegistry.register({ code: 'test.registryCheck', description: 'Registry test.', retryable: true });
-    });
-
-    void it('codeWasPresent was true before reset', () => {
-      ok(codeWasPresent);
-    });
   });
 });

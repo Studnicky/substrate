@@ -1,6 +1,0 @@
-import type { VALID_TIME_UNITS } from '../constants/index.js';
-
-/**
- * Type representing valid time unit strings.
- */
-export type TimeUnitType = typeof VALID_TIME_UNITS[number];

@@ -1,3 +1,5 @@
+import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
+
 /**
  * Standard log levels in order of severity.
  *
@@ -21,4 +23,4 @@ export const LOG_LEVEL = {
   'TRACE': 0,
   /** Warning messages for potentially harmful situations */
   'WARN': 3
-} as const;
+} as const satisfies Record<string, LogLevelEntity.Type>;

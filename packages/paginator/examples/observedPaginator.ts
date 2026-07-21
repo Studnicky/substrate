@@ -3,7 +3,13 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { PaginatorEventType, PaginatorStateType } from '../src/index.js';
+import type {
+  PaginatorExhaustedStateInterface,
+  PaginatorHasMoreStateInterface,
+  PaginatorIdleStateEntity,
+  PaginatorPageReceivedEventInterface,
+  PaginatorResetEventEntity
+} from '../src/index.js';
 import type { TransitionRecordEntity } from './entities/TransitionRecordEntity.js';
 
 import { Paginator } from '../src/index.js';
@@ -11,36 +17,44 @@ import { Paginator } from '../src/index.js';
 class TelemetryPaginator<TPage, TCursor> extends Paginator<TPage, TCursor> {
   readonly transitions: TransitionRecordEntity.Type[] = [];
 
-  static tracked<TPage, TCursor>(): TelemetryPaginator<TPage, TCursor> {
-    return new TelemetryPaginator<TPage, TCursor>();
-  }
-
   protected override onTransition(
-    from: PaginatorStateType<TPage, TCursor>,
-    to: PaginatorStateType<TPage, TCursor>,
-    event: PaginatorEventType<TPage, TCursor>
+    from: PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<TPage, TCursor>
+    | PaginatorExhaustedStateInterface<TPage>,
+    to: PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<TPage, TCursor>
+    | PaginatorExhaustedStateInterface<TPage>,
+    event: PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<TPage, TCursor>
   ): void {
     console.log(`[paginator] ${from.variant} --${event.type}--> ${to.variant}`);
     this.transitions.push({ 'event': event.type, 'from': from.variant, 'to': to.variant });
   }
 
-  protected override onEnterState(state: PaginatorStateType<TPage, TCursor>): void {
+  protected override onEnterState(
+    state: PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<TPage, TCursor>
+    | PaginatorExhaustedStateInterface<TPage>
+  ): void {
     console.log(`[paginator] entered ${state.variant}`);
   }
 
-  protected override onExitState(state: PaginatorStateType<TPage, TCursor>): void {
+  protected override onExitState(
+    state: PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<TPage, TCursor>
+    | PaginatorExhaustedStateInterface<TPage>
+  ): void {
     console.log(`[paginator] exited ${state.variant}`);
   }
 }
 
-const paginator = TelemetryPaginator.tracked<string, number>();
+const paginator = TelemetryPaginator.create();
 
 // idle -> hasMore
-paginator.next('page-1', 2);
+paginator.next('page-1', { 'cursor': 2, 'exhausted': false });
 // hasMore -> hasMore (no transition hooks fire — same variant)
-paginator.next('page-2', 3);
+paginator.next('page-2', { 'cursor': 3, 'exhausted': false });
 // hasMore -> exhausted
-paginator.next('page-3', undefined);
+paginator.next('page-3', { 'exhausted': true });
 // exhausted -> idle
 paginator.reset();
 

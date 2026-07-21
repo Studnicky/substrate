@@ -3,7 +3,12 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { WorkerEnvelopeType } from '../src/index.js';
+import type {
+  WorkerErrorEnvelopeInterface,
+  WorkerLogEnvelopeInterface,
+  WorkerProgressEnvelopeInterface,
+  WorkerResultEnvelopeInterface
+} from '../src/index.js';
 import type { ItemEntity } from './entities/ItemEntity.js';
 
 import { WorkerPool } from '../src/index.js';
@@ -13,7 +18,14 @@ class TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {
   readonly progressEvents: number[] = [];
   readonly errors: { 'index': number; 'message': string }[] = [];
 
-  protected override onMessage(envelope: WorkerEnvelopeType<ItemEntity.Type, number>, index: number): void {
+  protected override onMessage(
+    envelope:
+      | WorkerErrorEnvelopeInterface
+      | WorkerLogEnvelopeInterface
+      | WorkerProgressEnvelopeInterface
+      | WorkerResultEnvelopeInterface<number>,
+    index: number
+  ): void {
     if (envelope.type === 'log') {
       console.log(`[worker ${String(index)}] ${envelope.message}`);
       this.logs.push(envelope.message);
@@ -31,7 +43,7 @@ class TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {
 const pool = TelemetryWorkerPool.create({
   'concurrency': 2,
   'workerPath': new URL('./observedWorkerPoolWorker.mjs', import.meta.url).pathname
-}) as TelemetryWorkerPool;
+});
 
 const results = await pool.run([{ 'n': 5 }, { 'n': 10 }, { 'n': 15 }]);
 

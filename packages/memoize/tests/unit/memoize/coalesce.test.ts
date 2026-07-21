@@ -57,7 +57,7 @@ it('fires onMemoCoalesced for the joining caller and onMemoMiss for the leader',
       return `${id}:${result}`;
     },
     { 'keyFn': (id: string) => id, 'capacity': 10 }
-  ) as TrackedMemoize;
+  );
 
   const callA = memo.call('x');
   const callB = memo.call('x');
@@ -66,6 +66,48 @@ it('fires onMemoCoalesced for the joining caller and onMemoMiss for the leader',
   await Promise.all([callA, callB]);
 
   deepStrictEqual(events, ['miss:x', 'coalesced:x']);
+});
+
+it('dispatches leader and joining hooks to the owning subclass instance', async () => {
+  class TrackedMemoize extends Memoize<[string, string], string> {
+    readonly events: string[] = [];
+
+    protected override onMemoMiss(key: string, args: [string, string]): void {
+      this.events.push(`miss:${key}:${args[1]}`);
+    }
+
+    protected override onMemoCoalesced(key: string, args: [string, string]): void {
+      this.events.push(`coalesced:${key}:${args[1]}`);
+    }
+  }
+
+  let resolveA: (value: string) => void = () => {};
+  let resolveB: (value: string) => void = () => {};
+  const pendingA = new Promise<string>((resolve) => { resolveA = resolve; });
+  const pendingB = new Promise<string>((resolve) => { resolveB = resolve; });
+  const memoA = TrackedMemoize.create(
+    async (key: string, caller: string) => `${caller}:${await pendingA}`,
+    { 'keyFn': (key: string) => key, 'capacity': 10 }
+  );
+  const memoB = TrackedMemoize.create(
+    async (key: string, caller: string) => `${caller}:${await pendingB}`,
+    { 'keyFn': (key: string) => key, 'capacity': 10 }
+  );
+
+  const leaderA = memoA.call('shared', 'leader-a');
+  const leaderB = memoB.call('shared', 'leader-b');
+  const followerA = memoA.call('shared', 'follower-a');
+  const followerB = memoB.call('shared', 'follower-b');
+
+  resolveA('result-a');
+  resolveB('result-b');
+
+  deepStrictEqual(
+    await Promise.all([leaderA, followerA, leaderB, followerB]),
+    ['leader-a:result-a', 'leader-a:result-a', 'leader-b:result-b', 'leader-b:result-b']
+  );
+  deepStrictEqual(memoA.events, ['miss:shared:leader-a', 'coalesced:shared:follower-a']);
+  deepStrictEqual(memoB.events, ['miss:shared:leader-b', 'coalesced:shared:follower-b']);
 });
 
 it(
@@ -87,7 +129,7 @@ it(
         return `${id}:${result}`;
       },
       { 'keyFn': (id: string) => id, 'capacity': 10 }
-    ) as ThrowingCoalescedMemoize;
+    );
 
     const callA = memo.call('x');
     const callB = memo.call('x');
@@ -127,7 +169,7 @@ it('does not cross-contaminate hook args across concurrent calls for distinct ke
       return `${id}@${revision}:${result}`;
     },
     { 'keyFn': (id: string) => id, 'capacity': 10 }
-  ) as TrackedMemoize;
+  );
 
   // Concurrent leader+follower calls for TWO distinct keys, interleaved so
   // each key's follower call is issued while the other key's leader call is
@@ -179,7 +221,7 @@ it(
         return `${id}:${result}`;
       },
       { 'keyFn': (id: string) => id, 'capacity': 10 }
-    ) as RejectingCoalescedMemoize;
+    );
 
     const callA = memo.call('x');
     const callB = memo.call('x');

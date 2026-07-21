@@ -1,28 +1,28 @@
-import { BaseError, type BaseErrorArgumentsType } from '@studnicky/errors';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
 
 /**
- * Error thrown when building a timing event fails validation.
+ * Error thrown when timing event configuration fails validation.
  *
  * @public
  *
  * @example
  * ```typescript
  * try {
- *   TimingEvent.create().build(); // Missing required fields
+ *   TimingEvent.create({ component: 'GraphAdapter', operation: 'query' });
  * } catch (error) {
  *   if (error instanceof TimingBuildError) {
- *     console.error('Build failed:', error.message);
+ *     console.error('Configuration failed:', error.message);
  *   }
  * }
  * ```
  */
 export class TimingBuildError extends BaseError {
-  /** Fixed error code for all timing build failures. */
+  /** Fixed error code for timing event configuration failures. */
   public static readonly errorCode = 'timing.buildFailed';
 
   /**
    * Creates a new TimingBuildError.
-   * @param message - Description of the build validation failure
+   * @param message - Description of the configuration validation failure
    * @param cause   - Optional underlying cause
    */
   public static create(message: string, cause?: unknown): TimingBuildError {
@@ -30,7 +30,7 @@ export class TimingBuildError extends BaseError {
     return result;
   }
 
-  protected constructor(args: Readonly<BaseErrorArgumentsType>) {
+  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
     super(args);
   }
 }

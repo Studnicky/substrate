@@ -12,4 +12,3 @@ export type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingW
 
 export { SlidingWindowExhaustedError } from './SlidingWindowExhaustedError.js';
 export { SlidingWindowLimiter } from './SlidingWindowLimiter.js';
-export { SlidingWindowLimiterBuilder } from './SlidingWindowLimiterBuilder.js';

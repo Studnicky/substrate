@@ -5,123 +5,104 @@
  * Paths must be JSON Pointer strings (RFC-6901): `/foo/bar`, `/items/0`.
  *
  * Subclass `Patch` and override any `protected` step to customise patch
- * behaviour. Static factories delegate through `this.make()` so a subclass
- * factory returns the subclass type.
- *
- * The default singleton `patch` is sufficient for most uses (prefer `Patch`
- * static factories for one-shot operations).
+ * behaviour.
  */
 
-import type { PatchOperationType } from '../types/index.js';
+import { JsonObject, JsonValue } from '@studnicky/types';
+
+import type { PatchOperationInterface } from '../interfaces/PatchOperationInterface.js';
 
 import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
+import { PatchOperationCoreEntity } from '../entities/PatchOperationCoreEntity.js';
 import { PatchError } from '../errors/PatchError.js';
-import { ARRAY_INDEX_PATTERN, VALID_OPS } from './constants/PatchConstants.js';
+import { ARRAY_INDEX_PATTERN } from './constants/PatchConstants.js';
 import { DataType } from './DataType.js';
 
 export class Patch {
-  public readonly operations: readonly PatchOperationType[];
+  readonly #operations: readonly PatchOperationInterface[];
+
+  private static readonly operationKeys = new Set(['from', 'op', 'path', 'value']);
+
+  /** Validate and normalize an unknown operation into its canonical wire contract. */
+  private static parseOperation(candidate: unknown): PatchOperationInterface | undefined {
+    if (!JsonObject.is(candidate)) {
+      return undefined;
+    }
+
+    for (const key of Object.keys(candidate)) {
+      if (!Patch.operationKeys.has(key)) {
+        return undefined;
+      }
+    }
+
+    const coreCandidate = {
+      ...(Reflect.has(candidate, 'from') ? { 'from': Reflect.get(candidate, 'from') } : {}),
+      'op': Reflect.get(candidate, 'op'),
+      'path': Reflect.get(candidate, 'path')
+    };
+
+    if (!PatchOperationCoreEntity.validate(coreCandidate)) {
+      return undefined;
+    }
+
+    if (!Reflect.has(candidate, 'value')) {
+      return coreCandidate;
+    }
+
+    const value: unknown = Reflect.get(candidate, 'value');
+    if (!JsonValue.is(value)) {
+      return undefined;
+    }
+
+    return { ...coreCandidate, 'value': value };
+  }
 
   /**
    * Canonical entry point — validates operations and returns a `Patch` instance.
    *
-   * Subclasses inherit this as `SubClass.create(...)` and receive the subclass
-   * type because `new this(...)` resolves to the receiver's concrete class.
+   * Subclasses inherit this as `SubClass.create(...)`; `new this(...)` resolves
+   * to the receiver's concrete class.
    */
-  public static create(operations: PatchOperationType | readonly PatchOperationType[] = []): Patch {
+  public static create(operations: unknown = []): Patch {
     return new this(operations);
   }
 
-  protected constructor(operations: PatchOperationType | readonly PatchOperationType[] = []) {
-    const ops: readonly PatchOperationType[] = Array.isArray(operations)
-      ? (operations as readonly PatchOperationType[])
-      : [operations as PatchOperationType];
-
-    const opsLen = ops.length;
+  protected constructor(operations: unknown = []) {
+    const candidates = Array.isArray(operations) ? Array.from<unknown>(operations) : [operations];
+    const ops: PatchOperationInterface[] = [];
+    const opsLen = candidates.length;
     for (let i = 0; i < opsLen; i += 1) {
-      const operation = ops[i]!;
-      if (!VALID_OPS.has(operation.op)) {
+      const candidate = candidates[i];
+
+      const operation = Patch.parseOperation(candidate);
+      if (operation === undefined) {
+        const operationName: unknown = candidate !== null && typeof candidate === 'object'
+          ? Reflect.get(candidate, 'op')
+          : candidate;
+        const operationPath: unknown = candidate !== null && typeof candidate === 'object'
+          ? Reflect.get(candidate, 'path')
+          : undefined;
+
         throw new PatchError(
-          `Invalid patch operation "${String(operation.op)}"; must be one of: ${[...VALID_OPS].join(', ')}`,
-          String(operation.op),
-          operation.path
+          `Invalid patch operation "${String(operationName)}"`,
+          String(operationName),
+          typeof operationPath === 'string' ? operationPath : ''
         );
       }
+
+      ops.push(operation);
     }
 
-    this.operations = ops;
+    this.#operations = structuredClone(ops);
   }
 
-  // ---------------------------------------------------------------------------
-  // Protected factory seam — subclasses override to return their own type
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Create a new `Patch` instance from a list of operations.
-   *
-   * Subclasses override this to return an instance of the subclass, enabling
-   * static factory methods (`add`, `remove`, etc.) to return the correct type
-   * when called on the subclass constructor.
-   */
-  protected static make(ops: PatchOperationType | readonly PatchOperationType[]): Patch {
-    const result = new this(ops);
-    return result;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Static factory methods
-  // ---------------------------------------------------------------------------
-
-  /** Create a patch that adds `value` at `path`. */
-  public static add(path: string, value: unknown): Patch {
-    const result = this.make({ 'op': 'add', 'path': path, 'value': value });
-    return result;
-  }
-
-  /** Combine multiple patches into a single patch. */
-  public static combine(...patches: readonly Patch[]): Patch {
-    const ops = patches.flatMap((p) => {
-      const patchOps: PatchOperationType[] = [...p.operations];
-      return patchOps;
+  /** Return a deeply isolated projection of the patch operations. */
+  public get operations(): readonly PatchOperationInterface[] {
+    const operations = this.#operations.map((operation) => {
+      const snapshot = structuredClone(operation);
+      return snapshot;
     });
-
-    return this.make(ops);
-  }
-
-  /** Create a patch that copies a value from `from` to `path`. */
-  public static copy(from: string, path: string): Patch {
-    const result = this.make({ 'from': from, 'op': 'copy', 'path': path });
-    return result;
-  }
-
-  /** Deserialize a patch from a plain-object representation. */
-  public static fromPlain(plain: { readonly 'operations': readonly PatchOperationType[] }): Patch {
-    const result = this.make(plain.operations);
-    return result;
-  }
-
-  /** Create a patch that moves a value from `from` to `path`. */
-  public static move(from: string, path: string): Patch {
-    const result = this.make({ 'from': from, 'op': 'move', 'path': path });
-    return result;
-  }
-
-  /** Create a patch that removes the value at `path`. */
-  public static remove(path: string): Patch {
-    const result = this.make({ 'op': 'remove', 'path': path });
-    return result;
-  }
-
-  /** Create a patch that replaces the value at `path` with `value`. */
-  public static replace(path: string, value: unknown): Patch {
-    const result = this.make({ 'op': 'replace', 'path': path, 'value': value });
-    return result;
-  }
-
-  /** Create a patch that tests the value at `path` equals `value`. */
-  public static test(path: string, value: unknown): Patch {
-    const result = this.make({ 'op': 'test', 'path': path, 'value': value });
-    return result;
+    return operations;
   }
 
   // ---------------------------------------------------------------------------
@@ -134,8 +115,9 @@ export class Patch {
    * Throws `PatchError` if any operation cannot be applied.
    */
   public apply(target: Record<string, unknown>): Record<string, unknown> {
-    for (const op of this.operations) {
-      this.applyOperation(target, op);
+    for (const op of this.#operations) {
+      const operation = structuredClone(op);
+      this.applyOperation(target, operation);
     }
 
     return target;
@@ -143,24 +125,12 @@ export class Patch {
 
   /** Return `true` when the patch has no operations. */
   public isEmpty(): boolean {
-    return this.operations.length === 0;
-  }
-
-  /** Return a copy of the operations array. */
-  public getOperations(): PatchOperationType[] {
-    const ops: PatchOperationType[] = [...this.operations];
-    return ops;
-  }
-
-  /** Serialize to a plain object. */
-  public toPlain(): { readonly 'operations': readonly PatchOperationType[] } {
-    const plain = { 'operations': this.operations };
-    return plain;
+    return this.#operations.length === 0;
   }
 
   /** Human-readable summary of operations. */
   public toString(): string {
-    const result = this.operations
+    const result = this.#operations
       .map((op) => { const result = this.describeOp(op); return result; })
       .join(', ');
     return result;
@@ -193,18 +163,14 @@ export class Patch {
     for (let i = 0; i < partsLen; i++) {
       const part = parts[i]!;
 
-      if (current === null || current === undefined) {
+      if (current === null || typeof current !== 'object') {
         throw new PatchError(`Path not found: ${path}`, 'getValue', path);
       }
-      if (typeof current !== 'object') {
-        throw new PatchError(`Path not found: ${path}`, 'getValue', path);
-      }
-      const asRecord = current as Record<string, unknown>;
 
-      if (!(part in asRecord)) {
+      if (!Reflect.has(current, part)) {
         throw new PatchError(`Path not found: ${path}`, 'getValue', path);
       }
-      current = asRecord[part];
+      current = Reflect.get(current, part);
     }
 
     return current;
@@ -243,12 +209,10 @@ export class Patch {
         throw new PatchError(`Intermediate path not traversable: ${path}`, 'setValue', path);
       }
 
-      const asRecord = current as Record<string, unknown>;
-
-      if (!(part in asRecord)) {
-        asRecord[part] = {};
+      if (!Reflect.has(current, part)) {
+        Reflect.set(current, part, {});
       }
-      current = asRecord[part];
+      current = Reflect.get(current, part);
     }
 
     const lastPart = parts.at(-1);
@@ -261,7 +225,7 @@ export class Patch {
       throw new PatchError(`Cannot set on non-object at: ${path}`, 'setValue', path);
     }
 
-    (current as Record<string, unknown>)[lastPart] = value;
+    Reflect.set(current, lastPart, value);
   }
 
   /** Remove the value at `path` from `target`. */
@@ -285,12 +249,10 @@ export class Patch {
         throw new PatchError(`Path not found: ${path}`, 'removeValue', path);
       }
 
-      const asRecord = current as Record<string, unknown>;
-
-      if (!(part in asRecord)) {
+      if (!Reflect.has(current, part)) {
         throw new PatchError(`Path not found: ${path}`, 'removeValue', path);
       }
-      current = asRecord[part];
+      current = Reflect.get(current, part);
     }
 
     const lastPart = parts.at(-1);
@@ -310,14 +272,12 @@ export class Patch {
 
       current.splice(parseInt(lastPart, 10), 1);
     } else {
-      const asRecord = current as Record<string, unknown>;
-
-      Reflect.deleteProperty(asRecord, lastPart);
+      Reflect.deleteProperty(current, lastPart);
     }
   }
 
   /** Apply a single RFC-6902 `add` operation. */
-  private applyAdd(target: Record<string, unknown>, op: PatchOperationType): void {
+  private applyAdd(target: Record<string, unknown>, op: PatchOperationInterface): void {
     this.setValue(target, op.path, op.value);
   }
 
@@ -331,7 +291,7 @@ export class Patch {
   private resolveReplaceTarget(
     target: Record<string, unknown>,
     path: string
-  ): { 'container': Record<string, unknown>; 'key': string } | undefined {
+  ): { 'container': object; 'key': string } | undefined {
     const parts = this.parsePath(path);
 
     if (parts.length === 0) {
@@ -351,12 +311,10 @@ export class Patch {
         throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
       }
 
-      const asRecord = current as Record<string, unknown>;
-
-      if (!(part in asRecord)) {
+      if (!Reflect.has(current, part)) {
         throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
       }
-      current = asRecord[part];
+      current = Reflect.get(current, part);
     }
 
     const lastPart = parts.at(-1);
@@ -369,32 +327,30 @@ export class Patch {
       throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
     }
 
-    const container = current as Record<string, unknown>;
-
-    if (!(lastPart in container)) {
+    if (!Reflect.has(current, lastPart)) {
       throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
     }
 
-    return { 'container': container, 'key': lastPart };
+    return { 'container': current, 'key': lastPart };
   }
 
   /** Apply a single RFC-6902 `replace` operation. */
-  private applyReplace(target: Record<string, unknown>, op: PatchOperationType): void {
+  private applyReplace(target: Record<string, unknown>, op: PatchOperationInterface): void {
     const resolved = this.resolveReplaceTarget(target, op.path);
 
     if (resolved === undefined) {
       return;
     }
-    resolved.container[resolved.key] = op.value;
+    Reflect.set(resolved.container, resolved.key, op.value);
   }
 
   /** Apply a single RFC-6902 `remove` operation. */
-  private applyRemove(target: Record<string, unknown>, op: PatchOperationType): void {
+  private applyRemove(target: Record<string, unknown>, op: PatchOperationInterface): void {
     this.removeValue(target, op.path);
   }
 
   /** Apply a single RFC-6902 `copy` operation. */
-  private applyCopy(target: Record<string, unknown>, op: PatchOperationType): void {
+  private applyCopy(target: Record<string, unknown>, op: PatchOperationInterface): void {
     if (op.from === undefined) {
       throw new PatchError('copy operation requires "from"', op.op, op.path);
     }
@@ -404,7 +360,7 @@ export class Patch {
   }
 
   /** Apply a single RFC-6902 `move` operation. */
-  private applyMove(target: Record<string, unknown>, op: PatchOperationType): void {
+  private applyMove(target: Record<string, unknown>, op: PatchOperationInterface): void {
     if (op.from === undefined) {
       throw new PatchError('move operation requires "from"', op.op, op.path);
     }
@@ -415,7 +371,7 @@ export class Patch {
   }
 
   /** Apply a single RFC-6902 `test` operation. */
-  private applyTest(target: Record<string, unknown>, op: PatchOperationType): void {
+  private applyTest(target: Record<string, unknown>, op: PatchOperationInterface): void {
     const actual = this.getValue(target, op.path);
 
     if (!DataType.deepEqual(actual, op.value)) {
@@ -429,7 +385,7 @@ export class Patch {
 
   private static readonly operationAppliers: Record<
     string,
-    (self: Patch, target: Record<string, unknown>, op: PatchOperationType) => void
+    (self: Patch, target: Record<string, unknown>, op: PatchOperationInterface) => void
   > = {
     'add': (self, target, op) => { self.applyAdd(target, op); },
     'copy': (self, target, op) => { self.applyCopy(target, op); },
@@ -440,7 +396,7 @@ export class Patch {
   };
 
   /** Apply a single RFC-6902 operation to `target`. */
-  protected applyOperation(target: Record<string, unknown>, op: PatchOperationType): void {
+  protected applyOperation(target: Record<string, unknown>, op: PatchOperationInterface): void {
     const applier = Patch.operationAppliers[op.op];
 
     if (applier === undefined) {
@@ -450,7 +406,7 @@ export class Patch {
   }
 
   /** Produce a human-readable description of a single operation. */
-  protected describeOp(op: PatchOperationType): string {
+  protected describeOp(op: PatchOperationInterface): string {
     switch (op.op) {
       case 'add':
         return `ADD ${op.path} = ${JSON.stringify(op.value)}`;

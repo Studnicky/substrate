@@ -7,11 +7,10 @@
 
 import { HookInvoker } from '@studnicky/errors';
 
-import type { ClockProviderType } from '../types/ClockProviderType.js';
+import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
 
 import { ClockError } from '../errors/ClockError.js';
-import { VirtualClockProviderBuilder } from './VirtualClockProviderBuilder.js';
 
 /** Named constant: nanoseconds per millisecond, as BigInt. */
 const NS_PER_MS = 1_000_000n;
@@ -21,15 +20,7 @@ const NS_PER_MS = 1_000_000n;
  * `now()` returns the counter's current epoch-ms.
  * `hrtime()` returns the same value converted to nanoseconds.
  */
-export class VirtualClockProvider implements ClockProviderType {
-  static builder(): VirtualClockProviderBuilder {
-    const result = VirtualClockProviderBuilder.create((counter) => {
-      const provider = VirtualClockProvider.create(counter);
-      return provider;
-    });
-    return result;
-  }
-
+export class VirtualClockProvider implements ClockProviderInterface {
   static create(counter: Readonly<VirtualTimeCounter>): VirtualClockProvider {
     return new this(counter);
   }
@@ -52,8 +43,10 @@ export class VirtualClockProvider implements ClockProviderType {
     return (
       typeof counter === 'object' &&
       counter !== null &&
-      typeof (counter as VirtualTimeCounter).nowMs === 'function' &&
-      typeof (counter as VirtualTimeCounter).advance === 'function'
+      'nowMs' in counter &&
+      typeof counter.nowMs === 'function' &&
+      'advance' in counter &&
+      typeof counter.advance === 'function'
     );
   }
 

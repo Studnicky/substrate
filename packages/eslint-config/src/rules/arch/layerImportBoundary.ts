@@ -1,16 +1,14 @@
 import type { Rule } from 'eslint';
 
-import type { LayerOptionsType } from '../../types/LayerOptionsType.js';
-
-import { layerOptionsSchema } from '../layers/layerOptionsSchema.js';
+import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
 import { ImportSourceValue } from '../shared/importSourceValue.js';
 
 export const layerImportBoundary: Rule.RuleModule = {
   'create': (context) => {
-    const options = (context.options as unknown[]).at(0) as LayerOptionsType | undefined;
+    const options: unknown = context.options.at(0);
 
-    if (options === undefined) { return {}; }
+    if (!LayerOptionsEntity.validate(options)) { return {}; }
 
     const filename = context.physicalFilename;
     const sourceLayer = LayerResolver.layerForPath(filename, options);
@@ -47,7 +45,7 @@ export const layerImportBoundary: Rule.RuleModule = {
     'messages': {
       'crossLayerImport': "Layer '{{sourceLayer}}' may not import from layer '{{targetLayer}}' (import '{{specifier}}'). Check the allowed-imports matrix for this architecture."
     },
-    'schema': [layerOptionsSchema],
+    'schema': [LayerOptionsEntity.Schema],
     'type': 'problem'
   }
 };

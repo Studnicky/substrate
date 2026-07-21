@@ -1,14 +1,14 @@
 import { CircularBuffer, type CircularBufferOptionsEntity } from '@studnicky/circular-buffer';
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { Clone } from '@studnicky/json';
 
-import type { EffectHandlerMapType } from './EffectHandlerMapType.js';
+import type { EffectHandlerInterface } from './EffectHandlerInterface.js';
 import type { StateMachine } from './StateMachine.js';
 
-import { EffectInterpreterBuilder } from './EffectInterpreterBuilder.js';
 import { FsmConfigError } from './errors/FsmConfigError.js';
 import { InterpreterNotRunningError } from './errors/InterpreterNotRunningError.js';
 import { InterpreterNotStartedError } from './errors/InterpreterNotStartedError.js';
 import { MailboxCapacityExceededError } from './errors/MailboxCapacityExceededError.js';
+import { FsmHookInvoker } from './FsmHookInvoker.js';
 
 /** Default mailbox capacity when `mailboxCapacity` is not supplied. */
 const DEFAULT_MAILBOX_CAPACITY = 1024;
@@ -18,7 +18,7 @@ interface EffectInterpreterCreateOptionsInterface<
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
-  readonly 'handlers'?: EffectHandlerMapType<TEffect, TEvent> | undefined;
+  readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;
   readonly 'machineId'?: string | undefined;
   readonly 'mailboxCapacity'?: number | undefined;
@@ -29,7 +29,7 @@ interface EffectInterpreterConstructorOptionsInterface<
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
-  readonly 'handlers'?: EffectHandlerMapType<TEffect, TEvent> | undefined;
+  readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect>;
   readonly 'machineId'?: string | undefined;
   readonly 'mailboxCapacity'?: number | undefined;
@@ -62,26 +62,6 @@ class MailboxBuffer<TEvent> extends CircularBuffer<MailboxEntryInterface<TEvent>
   }
 }
 
-/**
- * Records an `EffectInterpreter`'s hook failures instead of letting
- * `HookInvoker`'s default (throwing) behavior propagate — a broken
- * observer/lifecycle/effect hook must never be able to abort the mailbox
- * drain loop or replace an already-committed state transition.
- */
-class EffectInterpreterHookInvoker extends HookInvoker {
-  readonly #onError: (hookName: string, cause: unknown) => void;
-
-  constructor(onError: (hookName: string, cause: unknown) => void) {
-    super();
-    this.#onError = onError;
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.#onError(hookName, cause);
-    return undefined as T;
-  }
-}
-
 export class EffectInterpreter<
   TState extends { readonly 'variant': string },
   TEvent extends { readonly 'type': string },
@@ -102,67 +82,52 @@ export class EffectInterpreter<
       throw new FsmConfigError('mailboxCapacity must be a positive integer');
     }
     return new EffectInterpreter<S, E, Ef>({
-      'handlers': options.handlers,
+      'handler': options.handler,
       'machine': options.machine,
       'machineId': options.machineId,
       'mailboxCapacity': options.mailboxCapacity
     });
   }
 
-  static builder<
-    S extends { readonly 'variant': string },
-    E extends { readonly 'type': string },
-    Ef extends { readonly 'variant': string } = never
-  >(): EffectInterpreterBuilder<S, E, Ef> {
-    const result = EffectInterpreterBuilder.create<S, E, Ef>((opts) => {
-      const instance = EffectInterpreter.create<S, E, Ef>(opts);
-      return instance;
-    });
-    return result;
-  }
-
   readonly #machine: StateMachine<TState, TEvent, TEffect>;
-  readonly #handlers: EffectHandlerMapType<TEffect, TEvent>;
+  readonly #handler: EffectHandlerInterface<TEffect, TEvent> | undefined;
   readonly #machineId: string;
   readonly #observers = new Set<(state: TState) => void>();
   readonly #mailbox: MailboxBuffer<TEvent>;
-  /** Errors raised by lifecycle hook overrides, recorded by `onHookError` instead of aborting the mailbox drain loop. */
-  readonly #hookErrors: HookInvocationError[] = [];
   #currentState: TState | undefined = undefined;
   #running = false;
   #draining = false;
 
-  protected readonly hooks: HookInvoker;
+  protected readonly hooks: FsmHookInvoker;
 
   protected constructor(options: EffectInterpreterConstructorOptionsInterface<TState, TEvent, TEffect>) {
-    this.hooks = new EffectInterpreterHookInvoker((hookName, cause) => {
-      this.#hookErrors.push(new HookInvocationError(hookName, cause));
-    });
+    this.hooks = new FsmHookInvoker();
     this.#machine = options.machine;
-    this.#handlers = options.handlers ?? ({});
+    this.#handler = options.handler;
     this.#machineId = options.machineId ?? crypto.randomUUID();
     this.#mailbox = MailboxBuffer.createMailbox<TEvent>({
       'capacity': options.mailboxCapacity ?? DEFAULT_MAILBOX_CAPACITY
     });
   }
 
-  /** Count of hook failures recorded by `onHookError` since construction. */
+  /** Count of lifecycle hook failures captured since construction. */
   get hookErrorCount(): number {
-    const result = this.#hookErrors.length;
+    const result = this.hooks.hookErrorCount;
     return result;
   }
 
   start(): void {
     if (this.#running) { return; }
-    this.#currentState = this.#machine.getInitialState();
+    const initialState = Clone.deep(this.#machine.getInitialState());
+    this.#currentState = initialState;
     this.#running = true;
     this.#notifyObservers();
-    this.hooks.invoke('onStart', () => { const result = this.onStart(this.#currentState!);
+    this.hooks.invoke('onStart', () => { const result = this.onStart(Clone.deep(initialState));
       return result; });
   }
 
   stop(): void {
-    const state = this.#currentState;
+    const state = this.#currentState === undefined ? undefined : Clone.deep(this.#currentState);
     this.#running = false;
     this.hooks.invoke('onStop', () => { const result = this.onStop(state);
       return result; });
@@ -172,7 +137,7 @@ export class EffectInterpreter<
     if (this.#currentState === undefined) {
       throw new InterpreterNotStartedError(`EffectInterpreter '${this.#machineId}' not started — call start() first`);
     }
-    return this.#currentState;
+    return Clone.deep(this.#currentState);
   }
 
   async send(event: TEvent): Promise<void> {
@@ -182,7 +147,7 @@ export class EffectInterpreter<
     this.hooks.invoke('onEnqueue', () => { const result = this.onEnqueue(event);
       return result; });
     const settlement = new Promise<void>((resolve, reject) => {
-      this.#mailbox.push({ 'event': event, 'reject': reject, 'resolve': resolve });
+      this.#mailbox.push({ 'event': Clone.deep(event), 'reject': reject, 'resolve': resolve });
     });
     if (!this.#draining) { void this.#drain(); }
     await settlement;
@@ -258,25 +223,26 @@ export class EffectInterpreter<
     if (currentState === undefined) {
       throw new InterpreterNotStartedError(`EffectInterpreter '${this.#machineId}' not started — call start() first`);
     }
-    const step = this.#machine.transition(currentState, event);
+    const step = this.#machine.transition(Clone.deep(currentState), Clone.deep(event));
     const prevState = currentState;
-    this.#currentState = step.state;
-    if (prevState.variant !== step.state.variant) {
-      this.hooks.invoke('onExitState', () => { const result = this.onExitState(prevState);
+    const nextState = Clone.deep(step.state);
+    this.#currentState = nextState;
+    if (prevState.variant !== nextState.variant) {
+      this.hooks.invoke('onExitState', () => { const result = this.onExitState(Clone.deep(prevState));
         return result; });
-      this.hooks.invoke('onTransition', () => { const result = this.onTransition(prevState, step.state, event);
+      this.hooks.invoke('onTransition', () => { const result = this.onTransition(Clone.deep(prevState), Clone.deep(nextState), Clone.deep(event));
         return result; });
-      this.hooks.invoke('onEnterState', () => { const result = this.onEnterState(step.state);
+      this.hooks.invoke('onEnterState', () => { const result = this.onEnterState(Clone.deep(nextState));
         return result; });
     }
     this.#notifyObservers();
+    const handler = this.#handler;
+    if (handler === undefined) {
+      return;
+    }
     for (const effect of step.effects) {
       if (!this.#running) { break; }
-      const variantKey = effect.variant as keyof EffectHandlerMapType<TEffect, TEvent>;
-      const handler = this.#handlers[variantKey];
-      if (handler !== undefined) {
-        await this.#invokeHandler(effect, handler as (e: TEffect, dispatch: (event: TEvent) => void) => Promise<void> | void);
-      }
+      await this.#invokeHandler(effect, handler);
     }
   }
 
@@ -290,13 +256,13 @@ export class EffectInterpreter<
     }
   }
 
-  async #invokeHandler(effect: TEffect, handler: (e: TEffect, dispatch: (event: TEvent) => void) => Promise<void> | void): Promise<void> {
+  async #invokeHandler(effect: TEffect, handler: EffectHandlerInterface<TEffect, TEvent>): Promise<void> {
     this.hooks.invoke('onEffectStart', () => { const result = this.onEffectStart(effect);
       return result; });
     const dispatch = (event: TEvent): void => {
       this.hooks.invoke('onEnqueue', () => { const result = this.onEnqueue(event);
         return result; });
-      this.#mailbox.unshift({ 'event': event });
+      this.#mailbox.unshift({ 'event': Clone.deep(event) });
     };
     try {
       await handler(effect, dispatch);
@@ -314,7 +280,7 @@ export class EffectInterpreter<
     const state = this.#currentState;
     if (state === undefined) { return; }
     for (const observer of this.#observers) {
-      this.hooks.invoke('onObserver', () => { const result = observer(state);
+      this.hooks.invoke('onObserver', () => { const result = observer(Clone.deep(state));
         return result; });
     }
   }

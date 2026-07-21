@@ -1,2 +1,1 @@
 export { VirtualFileSystem } from './VirtualFileSystem.js';
-export { VirtualFileSystemBuilder } from './VirtualFileSystemBuilder.js';

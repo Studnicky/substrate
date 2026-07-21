@@ -9,7 +9,7 @@
  * diff subtrees via `===`.
  *
  * `Draft.producePatch` runs the same mechanics and additionally returns the
- * RFC-6902 patch (this package's own `PatchOperationType` shape — see
+ * RFC-6902 patch (this package's own `PatchOperationInterface` shape — see
  * `Patch.ts`) describing the difference between `base` and the result.
  * Replaying that patch through `Patch.create(patch).apply(base)` reproduces
  * `next`.
@@ -23,21 +23,15 @@
  * draftability or diffing.
  */
 
-import type { DraftProduceResultType } from '../types/DraftProduceResultType.js';
-import type { PatchOperationType } from '../types/PatchOperationType.js';
+import type { JSONSchema7Type } from 'json-schema';
+
+import { JsonValue } from '@studnicky/types';
+
+import type { DraftNodeInterface } from '../interfaces/DraftNodeInterface.js';
+import type { PatchOperationInterface } from '../interfaces/PatchOperationInterface.js';
 
 import { SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { DataType } from './DataType.js';
-
-// json-schema-uninexpressible: self-referential Map<PropertyKey, DraftNodeType> bookkeeping with unknown fields and a Record|unknown[]|undefined union — not JSON Schema representable
-/** Internal per-node draft bookkeeping — copy-on-write shadow plus memoized children. */
-type DraftNodeType = {
-  'base': unknown;
-  'children': Map<PropertyKey, DraftNodeType>;
-  'copy': Record<PropertyKey, unknown> | unknown[] | undefined;
-  'isArray': boolean;
-  'proxies': Map<PropertyKey, unknown>;
-};
 
 export class Draft {
   // ---------------------------------------------------------------------------
@@ -49,11 +43,20 @@ export class Draft {
     return Array.isArray(value) || DataType.isPlainObject(value);
   }
 
+  /** Return a canonical JSON value or reject a non-JSON draft patch operand. */
+  protected static requireJsonValue(value: unknown): JSONSchema7Type {
+    if (!JsonValue.is(value)) {
+      throw new TypeError('Draft patches require finite, acyclic JSON values');
+    }
+
+    return value;
+  }
+
   /** Create a fresh draft node wrapping `base`. */
-  protected static createNode(base: unknown): DraftNodeType {
+  protected static createNode(base: unknown): DraftNodeInterface {
     return {
       'base': base,
-      'children': new Map<PropertyKey, DraftNodeType>(),
+      'children': new Map<PropertyKey, DraftNodeInterface>(),
       'copy': undefined,
       'isArray': Array.isArray(base),
       'proxies': new Map<PropertyKey, unknown>()
@@ -61,16 +64,22 @@ export class Draft {
   }
 
   /** Copy-on-write: create `node.copy` from `node.base` on first mutation. */
-  protected static ensureCopy(node: DraftNodeType): Record<PropertyKey, unknown> | unknown[] {
-    node.copy ??= node.isArray
-      ? [...(node.base as unknown[])]
-      : { ...(node.base as Record<string, unknown>) };
+  protected static ensureCopy(node: DraftNodeInterface): Record<PropertyKey, unknown> | unknown[] {
+    if (node.copy === undefined) {
+      if (Array.isArray(node.base)) {
+        node.copy = Array.from<unknown>(node.base);
+      } else if (DataType.isRecord(node.base)) {
+        node.copy = { ...node.base };
+      } else {
+        node.copy = {};
+      }
+    }
 
     return node.copy;
   }
 
   /** Return `true` when `node` or any descendant carries a write. */
-  protected static isDirty(node: DraftNodeType): boolean {
+  protected static isDirty(node: DraftNodeInterface): boolean {
     if (node.copy !== undefined) {
       return true;
     }
@@ -85,7 +94,7 @@ export class Draft {
   }
 
   /** Return (creating if needed) the memoized child proxy for `node[key]`. */
-  protected static getChildProxy(node: DraftNodeType, key: PropertyKey, value: unknown): unknown {
+  protected static getChildProxy(node: DraftNodeInterface, key: PropertyKey, value: unknown): unknown {
     const existingChild = node.children.get(key);
 
     if (existingChild !== undefined && existingChild.base === value) {
@@ -102,7 +111,7 @@ export class Draft {
   }
 
   /** Build the `Proxy` handler for a single draft node. */
-  protected static createProxy<T>(node: DraftNodeType): T {
+  protected static createProxy(node: DraftNodeInterface): object {
     const target: Record<PropertyKey, unknown> | unknown[] = node.isArray ? [] : {};
 
     const deletePropertyHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey): boolean => {
@@ -116,7 +125,12 @@ export class Draft {
     };
 
     const getHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey): unknown => {
-      const source = (node.copy ?? node.base) as Record<PropertyKey, unknown>;
+      const source = node.copy ?? node.base;
+
+      if (source === null || typeof source !== 'object') {
+        return undefined;
+      }
+
       const value: unknown = Reflect.get(source, prop, source);
 
       if (typeof prop === 'symbol' || !this.isDraftable(value)) {
@@ -127,7 +141,12 @@ export class Draft {
     };
 
     const getOwnPropertyDescriptorHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey): PropertyDescriptor | undefined => {
-      const source = (node.copy ?? node.base) as Record<PropertyKey, unknown>;
+      const source = node.copy ?? node.base;
+
+      if (source === null || typeof source !== 'object') {
+        return undefined;
+      }
+
       const descriptor = Reflect.getOwnPropertyDescriptor(source, prop);
 
       if (descriptor === undefined) {
@@ -140,12 +159,22 @@ export class Draft {
     };
 
     const hasHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey): boolean => {
-      const source = (node.copy ?? node.base) as object;
+      const source = node.copy ?? node.base;
+
+      if (source === null || typeof source !== 'object') {
+        return false;
+      }
+
       return Reflect.has(source, prop);
     };
 
     const ownKeysHandler = (_target: Record<PropertyKey, unknown> | unknown[]): ArrayLike<string | symbol> => {
-      const source = (node.copy ?? node.base) as object;
+      const source = node.copy ?? node.base;
+
+      if (source === null || typeof source !== 'object') {
+        return [];
+      }
+
       return Reflect.ownKeys(source);
     };
 
@@ -154,7 +183,7 @@ export class Draft {
 
       node.children.delete(prop);
       node.proxies.delete(prop);
-      (copy as Record<PropertyKey, unknown>)[prop as string] = value;
+      Reflect.set(copy, prop, value);
 
       return true;
     };
@@ -168,12 +197,12 @@ export class Draft {
       'set': setHandler
     };
 
-    return new Proxy(target, handler) as T;
+    return new Proxy(target, handler);
   }
 
   /** Recursively resolve a node to its finalized (structurally-shared) value. */
-  protected static finalize<T>(node: DraftNodeType): T {
-    const childEntries: [PropertyKey, DraftNodeType, boolean][] = [];
+  protected static finalize(node: DraftNodeInterface): unknown {
+    const childEntries: [PropertyKey, DraftNodeInterface, boolean][] = [];
     let anyChildDirty = false;
 
     for (const [key, childNode] of node.children.entries()) {
@@ -187,21 +216,27 @@ export class Draft {
     }
 
     if (node.copy === undefined && !anyChildDirty) {
-      return node.base as T;
+      return node.base;
     }
 
-    const source = (node.copy ?? node.base) as Record<PropertyKey, unknown> | unknown[];
-    const result: Record<PropertyKey, unknown> | unknown[] = node.isArray
-      ? [...(source as unknown[])]
-      : { ...(source as Record<PropertyKey, unknown>) };
+    const source = node.copy ?? node.base;
+    let result: Record<PropertyKey, unknown> | unknown[];
+
+    if (Array.isArray(source)) {
+      result = Array.from<unknown>(source);
+    } else if (DataType.isRecord(source)) {
+      result = { ...source };
+    } else {
+      return source;
+    }
 
     for (const [key, childNode, dirty] of childEntries) {
       if (dirty) {
-        (result as Record<PropertyKey, unknown>)[key as string] = this.finalize(childNode);
+        Reflect.set(result, key, this.finalize(childNode));
       }
     }
 
-    return result as T;
+    return result;
   }
 
   /** Escape a JSON Pointer path segment (RFC-6901 `~0`/`~1`). */
@@ -211,7 +246,7 @@ export class Draft {
   }
 
   /** Diff two arbitrary values, dispatching to `diffArray`/`diffObject` or emitting `replace`. */
-  protected static diffValues(base: unknown, next: unknown, path: string, ops: PatchOperationType[]): void {
+  protected static diffValues(base: unknown, next: unknown, path: string, ops: PatchOperationInterface[]): void {
     if (base === next) {
       return;
     }
@@ -226,13 +261,13 @@ export class Draft {
       return;
     }
 
-    ops.push({ 'op': 'replace', 'path': path, 'value': next });
+    ops.push({ 'op': 'replace', 'path': path, 'value': this.requireJsonValue(next) });
   }
 
   /** Diff two arrays index-wise, or emit a single `replace` when the length changed. */
-  protected static diffArray(base: unknown[], next: unknown[], path: string, ops: PatchOperationType[]): void {
+  protected static diffArray(base: unknown[], next: unknown[], path: string, ops: PatchOperationInterface[]): void {
     if (base.length !== next.length) {
-      ops.push({ 'op': 'replace', 'path': path, 'value': next });
+      ops.push({ 'op': 'replace', 'path': path, 'value': this.requireJsonValue(next) });
       return;
     }
 
@@ -247,7 +282,7 @@ export class Draft {
     base: Record<string, unknown>,
     next: Record<string, unknown>,
     path: string,
-    ops: PatchOperationType[]
+    ops: PatchOperationInterface[]
   ): void {
     for (const key of Object.keys(base)) {
       if (!(key in next)) {
@@ -260,7 +295,7 @@ export class Draft {
 
       if (!(key in base)) {
         const value = next[key];
-        ops.push({ 'op': 'add', 'path': childPath, 'value': value });
+        ops.push({ 'op': 'add', 'path': childPath, 'value': this.requireJsonValue(value) });
         continue;
       }
 
@@ -280,23 +315,38 @@ export class Draft {
    * sharing); `base` itself is never mutated. A recipe that writes nothing
    * returns `base` itself (reference identity).
    */
-  public static produce<T>(base: T, recipe: (draft: T) => void): T {
+  public static produce<T>(base: T, recipe: (draft: T) => void): T;
+  public static produce(base: unknown, recipe: (draft: never) => void): unknown;
+  public static produce(base: unknown, recipe: (draft: never) => void): unknown {
     const rootNode = this.createNode(base);
-    const proxy = this.createProxy<T>(rootNode);
+    const proxy = this.createProxy(rootNode);
 
-    recipe(proxy);
+    Reflect.apply(recipe, undefined, [proxy]);
 
-    return this.finalize<T>(rootNode);
+    return this.finalize(rootNode);
   }
 
   /**
    * Same mechanics as `produce`, additionally returning the RFC-6902 patch
-   * (`PatchOperationType[]`) describing the difference between `base` and
+   * (`PatchOperationInterface[]`) describing the difference between `base` and
    * the result. `Patch.create(patch).apply(base)` reproduces `next`.
    */
-  public static producePatch<T>(base: T, recipe: (draft: T) => void): DraftProduceResultType<T> {
-    const next = this.produce(base, recipe);
-    const ops: PatchOperationType[] = [];
+  public static producePatch<T>(
+    base: T,
+    recipe: (draft: T) => void
+  ): { 'next': T; 'patch': PatchOperationInterface[] };
+  public static producePatch(
+    base: unknown,
+    recipe: (draft: never) => void
+  ): { 'next': unknown; 'patch': PatchOperationInterface[] };
+  public static producePatch(
+    base: unknown,
+    recipe: (draft: never) => void
+  ): { 'next': unknown; 'patch': PatchOperationInterface[] } {
+    this.requireJsonValue(base);
+    const next: unknown = Reflect.apply(this.produce, this, [base, recipe]);
+    this.requireJsonValue(next);
+    const ops: PatchOperationInterface[] = [];
 
     this.diffValues(base, next, '', ops);
 

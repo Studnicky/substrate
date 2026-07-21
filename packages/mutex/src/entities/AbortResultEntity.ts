@@ -1,5 +1,7 @@
-import { SchemaValidator, type ValidateFunction } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 export namespace AbortResultEntity {
   export const Schema = {
@@ -11,7 +13,7 @@ export namespace AbortResultEntity {
     },
     'required': ['cancelled', 'completed', 'timedOut'],
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   /**
    * Result of an abort operation on a throttle or similar async primitive.

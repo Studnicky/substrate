@@ -3,13 +3,13 @@ import type ts from 'typescript';
 
 import { ObjectGuard } from './shared/ObjectGuard.js';
 
-type ParserServicesType = {
+interface ParserServicesInterface {
   readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
   readonly 'program'?: ts.Program;
-};
+}
 
 class TypeGuards {
-  static hasTypeServices(value: unknown): value is Required<ParserServicesType> {
+  static hasTypeServices(value: unknown): value is Required<ParserServicesInterface> {
     if (!ObjectGuard.isObject(value)) { return false; }
     if (!('program' in value) || !ObjectGuard.isObject(value.program)) { return false; }
     if (typeof value.program.getTypeChecker !== 'function') { return false; }

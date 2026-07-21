@@ -1,20 +1,20 @@
-import { Guard } from '@studnicky/config';
 import { ErrorClassificationGuard } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
-import type { RetryContextType } from '../../types/RetryContextType.js';
+import type { RetryContextInterface } from '../../interfaces/RetryContextInterface.js';
 
 import { EMPTY_LENGTH } from '../../constants/index.js';
-import { RequestStatsGuard } from './RequestStatsGuard.js';
+import { RequestStatsEntity } from '../../entities/RequestStatsEntity.js';
 
 /**
- * Type guard for RetryContextType
+ * Type guard for RetryContextInterface
  */
 class RetryContextGuard {
   /**
    * @param value - Value to check
-   * @returns True if value is a valid RetryContextType
+   * @returns True if value is a valid RetryContextInterface
    */
-  public static isRetryContext(value: unknown): value is RetryContextType {
+  public static isRetryContext(value: unknown): value is RetryContextInterface {
     if (!Guard.isObject(value)) {
       return false;
     }
@@ -39,7 +39,7 @@ class RetryContextGuard {
       return false;
     }
 
-    if (!RequestStatsGuard.isRequestStats(value.stats)) {
+    if (!RequestStatsEntity.validate(value.stats)) {
       return false;
     }
 

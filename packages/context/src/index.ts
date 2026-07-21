@@ -5,11 +5,8 @@
  */
 
 export { Context } from './context/Context.js';
-export { ContextBuilder } from './context/ContextBuilder.js';
-export { ContextScope } from './context/ContextScope.js';
-export { ContextScopeBuilder } from './context/ContextScopeBuilder.js';
-export type { ContextScopeOptionsInterface } from './context/ContextScopeOptionsInterface.js';
 export { ContextConfigEntity } from './entities/ContextConfigEntity.js';
+export { ContextLookupEntity } from './entities/ContextLookupEntity.js';
 export { ContextConfigError, ContextError } from './errors/ContextError.js';
 export type { ContextInterface } from './interfaces/ContextInterface.js';
 export type { ContextScopeInterface } from './interfaces/ContextScopeInterface.js';

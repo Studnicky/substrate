@@ -327,21 +327,19 @@ it('statSync throws ENOENT for unknown path', () => {
   );
 });
 
-// ── Builder seed ───────────────────────────────────────────────────────────
+// ── Creation options ───────────────────────────────────────────────────────
 
-it('builder seed() pre-populates files', () => {
-  const fs = VirtualFileSystem.builder()
-    .seed('/seeded.txt', 'seeded content')
-    .build();
+it('create() seed pre-populates files', () => {
+  const fs = VirtualFileSystem.create({
+    'seed': new Map([['/seeded.txt', 'seeded content']])
+  });
   assert.strictEqual(fs.readFileSync('/seeded.txt', 'utf8'), 'seeded content');
 });
 
-it('builder withClock() injects clock for deterministic time', () => {
+it('create() injects a clock for deterministic time', () => {
   resetClock();
   _clockMs = 2000;
-  const fs = VirtualFileSystem.builder()
-    .withClock(mockClock)
-    .build();
+  const fs = VirtualFileSystem.create({ 'clock': mockClock });
   fs.writeFileSync('/clocked.txt', 'data', 'utf8');
   const stat = fs.statSync('/clocked.txt');
   assert.strictEqual(stat.mtimeMs, 2000);

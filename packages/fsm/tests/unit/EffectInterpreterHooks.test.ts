@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { StateMachine } from '../../src/StateMachine.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
-import type { FsmStepType } from '../../src/FsmStepType.js';
+import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
 
 type DemoState = { readonly 'variant': 'idle' } | { readonly 'variant': 'active' };
 type DemoEvent = { readonly 'type': 'activate' } | { readonly 'type': 'deactivate' };
@@ -10,7 +10,7 @@ type DemoEffect = { readonly 'message': string; readonly 'variant': 'log' };
 
 class DemoMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
   getInitialState(): DemoState { return { 'variant': 'idle' }; }
-  reduce(state: DemoState, event: DemoEvent): FsmStepType<DemoState, DemoEffect> {
+  reduce(state: DemoState, event: DemoEvent): FsmStepInterface<DemoState, DemoEffect> {
     if (state.variant === 'idle' && event.type === 'activate') {
       return { 'effects': [{ 'message': 'activated', 'variant': 'log' }], 'state': { 'variant': 'active' } };
     }
@@ -23,7 +23,7 @@ class DemoMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
 
 class FailingEffectMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
   getInitialState(): DemoState { return { 'variant': 'idle' }; }
-  reduce(state: DemoState, event: DemoEvent): FsmStepType<DemoState, DemoEffect> {
+  reduce(state: DemoState, event: DemoEvent): FsmStepInterface<DemoState, DemoEffect> {
     if (state.variant === 'idle' && event.type === 'activate') {
       return { 'effects': [{ 'message': 'fail-me', 'variant': 'log' }], 'state': { 'variant': 'active' } };
     }
@@ -38,7 +38,7 @@ interface HookRecord<T> {
 class ObservedInterpreter extends EffectInterpreter<DemoState, DemoEvent, DemoEffect> {
   constructor() {
     const machine = new DemoMachine();
-    super({ 'handlers': { 'log': (_e) => { /* no-op handler */ } }, 'machine': machine, 'machineId': 'observed-test' });
+    super({ 'handler': () => { /* no-op handler */ }, 'machine': machine, 'machineId': 'observed-test' });
   }
 
   readonly starts: HookRecord<{ 'variant': string }>[] = [];
@@ -141,7 +141,7 @@ describe('EffectInterpreter lifecycle hooks', () => {
 
     class OrderedInterpreter extends EffectInterpreter<DemoState, DemoEvent, DemoEffect> {
       constructor() {
-        super({ 'handlers': {}, 'machine': new DemoMachine(), 'machineId': 'ordered-test' });
+        super({ 'machine': new DemoMachine(), 'machineId': 'ordered-test' });
       }
       protected override onExitState(_s: DemoState): void { order.push('exit'); }
       protected override onTransition(_f: DemoState, _t: DemoState, _e: DemoEvent): void { order.push('transition'); }
@@ -182,7 +182,7 @@ describe('EffectInterpreter lifecycle hooks', () => {
 
     class OrderedEffectInterpreter extends EffectInterpreter<DemoState, DemoEvent, DemoEffect> {
       constructor() {
-        super({ 'handlers': { 'log': (_e) => { /* no-op */ } }, 'machine': new DemoMachine(), 'machineId': 'effect-order-test' });
+        super({ 'handler': () => { /* no-op */ }, 'machine': new DemoMachine(), 'machineId': 'effect-order-test' });
       }
       protected override onEffectStart(_e: DemoEffect): void { order.push('start'); }
       protected override onEffectSuccess(_e: DemoEffect): void { order.push('success'); }
@@ -201,9 +201,7 @@ describe('EffectInterpreter lifecycle hooks', () => {
     class ErrorInterpreter extends EffectInterpreter<DemoState, DemoEvent, DemoEffect> {
       constructor() {
         super({
-          'handlers': {
-            'log': (_e) => { throw new Error('handler blew up'); }
-          },
+          'handler': () => { throw new Error('handler blew up'); },
           'machine': machine,
           'machineId': 'error-test'
         });
@@ -227,7 +225,7 @@ describe('EffectInterpreter lifecycle hooks', () => {
       successes = 0;
       constructor() {
         super({
-          'handlers': { 'log': (_e) => { throw new Error('boom'); } },
+          'handler': () => { throw new Error('boom'); },
           'machine': machine,
           'machineId': 'no-success-test'
         });
@@ -244,7 +242,7 @@ describe('EffectInterpreter lifecycle hooks', () => {
   it('a throwing transition hook does not replace a successful send() result', async () => {
     class ThrowingHookInterpreter extends EffectInterpreter<DemoState, DemoEvent, DemoEffect> {
       constructor() {
-        super({ 'handlers': {}, 'machine': new DemoMachine(), 'machineId': 'throwing-hook-test' });
+        super({ 'machine': new DemoMachine(), 'machineId': 'throwing-hook-test' });
       }
 
       protected override onTransition(): void {
@@ -259,10 +257,10 @@ describe('EffectInterpreter lifecycle hooks', () => {
     assert.deepEqual(interp.getState(), { 'variant': 'active' });
   });
 
-  it('an async-overridden onStart hook that rejects is routed through onHookError without an unhandled rejection, because invoke() actually receives its return value', async () => {
+  it('captures a rejected async onStart hook without an unhandled rejection', async () => {
     class AsyncRejectingStartInterpreter extends EffectInterpreter<DemoState, DemoEvent, DemoEffect> {
       constructor() {
-        super({ 'handlers': {}, 'machine': new DemoMachine(), 'machineId': 'async-start-test' });
+        super({ 'machine': new DemoMachine(), 'machineId': 'async-start-test' });
       }
 
       protected override async onStart(_state: DemoState): Promise<void> {

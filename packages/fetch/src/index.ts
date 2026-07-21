@@ -6,21 +6,21 @@
  * - Built-in timeout support and abort controller management
  * - Subclass-overridable onRequest/onResponse lifecycle hooks for request and response transformation
  * - Configured client instances with default settings
- * - Fluent request builder API
  * - Query string utilities
  *
- * Types are exported from subpath entry points:
- * - @studnicky/fetch/interfaces - All interface types
- * - @studnicky/fetch/types - Type aliases (QueryParamsType, QueryValueType)
- * - @studnicky/fetch/errors - Error classes
- * - @studnicky/fetch/constants - Constants (DEFAULT_DISPATCHER_CONFIG)
+ * Public classes, errors, constants, and interface contracts are exported from
+ * the package root.
  */
 
 export { DEFAULT_DISPATCHER_CONFIG } from './constants/DEFAULT_DISPATCHER_CONFIG.js';
+export { ClientConfigDataEntity } from './entities/ClientConfigDataEntity.js';
 export { DestroyOptionsEntity } from './entities/DestroyOptionsEntity.js';
 export { DispatcherConfigEntity } from './entities/DispatcherConfigEntity.js';
 export { DispatcherHealthEntity } from './entities/DispatcherHealthEntity.js';
+export { FetchRequestOptionsEntity } from './entities/FetchRequestOptionsEntity.js';
+export { RequestEventEntity } from './entities/RequestEventEntity.js';
 export { RequestMetadataEntity } from './entities/RequestMetadataEntity.js';
+export { ResponseEventEntity } from './entities/ResponseEventEntity.js';
 export { SocketDispatcherStatsEntity } from './entities/SocketDispatcherStatsEntity.js';
 export {
   AbortError,
@@ -34,10 +34,16 @@ export {
   SocketExhaustionError,
   TimeoutError
 } from './errors/index.js';
+export type {
+  BodyRequestOptionsInterface,
+  ClientConfigInterface,
+  FetchClientInterface,
+  FetchOptionsInterface,
+  QueryParamsInterface,
+  RequestContextInterface,
+  ResponseContextInterface,
+  UndiciDispatcherInterface
+} from './interfaces/index.js';
 export { FetchClient } from './modules/FetchClient.js';
-export { FetchClientBuilder } from './modules/FetchClientBuilder.js';
-export { HttpMethods } from './modules/HttpMethods.js';
-export { RequestBuilder } from './modules/RequestBuilder.js';
 export { UndiciDispatcher } from './modules/UndiciDispatcher.js';
-export { UndiciDispatcherBuilder } from './modules/UndiciDispatcherBuilder.js';
 export { UrlUtils } from './modules/UrlUtils.js';

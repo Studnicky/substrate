@@ -18,28 +18,37 @@ describe('WorkerPool.create', () => {
     assert.deepEqual(results, ['a']);
   });
 
-  it('getSignal() returns the composed Signal instance', () => {
-    const signal = Signal.create();
-    const pool = WorkerPool.create({ 'signal': signal, 'workerPath': WORKER_PATH });
-    assert.equal(pool.getSignal(), signal);
-  });
+  it('uses a caller-supplied Signal for task deadlines', async () => {
+    class TrackingSignal extends Signal {
+      calls = 0;
 
-  it('getSignal() returns a fresh Signal when none is composed', () => {
-    const pool = WorkerPool.create({ 'workerPath': WORKER_PATH });
-    assert.equal(pool.getSignal() instanceof Signal, true);
+      constructor() {
+        super();
+      }
+
+      protected override onCompose(): void {
+        this.calls += 1;
+      }
+    }
+
+    const signal = new TrackingSignal();
+    const pool = WorkerPool.create<{ value: string }, string>({
+      'signal': signal,
+      'timeoutMs': 1000,
+      'workerPath': WORKER_PATH
+    });
+
+    assert.deepEqual(await pool.run([{ 'value': 'a' }]), ['a']);
+    assert.equal(signal.calls, 1);
   });
 });
 
-describe('WorkerPool.builder', () => {
-  it('throws when build() is called without workerPath', () => {
-    assert.throws(() => WorkerPool.builder().build(), /workerPath is required/);
-  });
-
-  it('builds a functioning pool from a fluent chain', async () => {
-    const pool = WorkerPool.builder<{ value: string }, string>()
-      .workerPath(WORKER_PATH)
-      .concurrency(2)
-      .build();
+describe('WorkerPool.create with explicit options', () => {
+  it('builds a functioning pool with bounded concurrency', async () => {
+    const pool = WorkerPool.create<{ value: string }, string>({
+      'concurrency': 2,
+      'workerPath': WORKER_PATH
+    });
 
     const results = await pool.run([{ 'value': 'a' }]);
     assert.deepEqual(results, ['a']);

@@ -1,8 +1,9 @@
-import { SchemaValidator } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { LogBodyDataEntity } from './LogBodyDataEntity.js';
-import { LogFaultDataEntity } from './LogFaultDataEntity.js';
+import { SchemaValidator } from '@studnicky/json';
+
+import { LogDataEntity } from './LogDataEntity.js';
 
 /**
  * Immutable log record assembled at emit time and passed to each transport.
@@ -14,14 +15,10 @@ export namespace LogRecordEntity {
     'additionalProperties': false,
     'description': 'Immutable log record assembled at emit time and passed to each transport.',
     'properties': {
-      'data': {
-        'description': 'Either a standard log body or a fault/error log entry.',
-        'oneOf': [LogBodyDataEntity.Schema, LogFaultDataEntity.Schema]
-      },
+      'data': LogDataEntity.Schema,
       'level': {
         'description': 'Log level numeric value (0 TRACE through 5 SILENT).',
-        'maximum': 5,
-        'minimum': 0,
+        'enum': [0, 1, 2, 3, 4, 5],
         'type': 'integer'
       },
       'metadata': {
@@ -37,9 +34,9 @@ export namespace LogRecordEntity {
     'required': ['data', 'level', 'metadata', 'time'],
     'title': 'LogRecord',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
 }

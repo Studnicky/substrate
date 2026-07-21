@@ -7,14 +7,15 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
-import { CircuitBreakerOpenError } from '@studnicky/resilience';
+import { CircuitBreaker, CircuitBreakerOpenError } from '@studnicky/resilience';
 import { MaxRetriesExceededError } from '@studnicky/retry';
 
 import { BoundaryKit } from '../../../src/index.js';
 
 void it('fails fast without retrying once the circuit breaker trips open', async () => {
+  const circuitBreaker = CircuitBreaker.create({ 'failureThreshold': 2, 'resetTimeoutMs': 60_000 });
   const kit = BoundaryKit.create({
-    'circuitBreaker': { 'failureThreshold': 2, 'resetTimeoutMs': 60_000 },
+    'circuitBreaker': circuitBreaker,
     'retry': {
       'errorClassifier': () => ({ 'reason': 'always retryable', 'retryable': true }),
       'maxRetries': 2
@@ -32,12 +33,12 @@ void it('fails fast without retrying once the circuit breaker trips open', async
   // all fail, retry gives up and throws — circuitBreaker records failure #1.
   await assert.rejects(() => kit.execute(alwaysFails), MaxRetriesExceededError);
   assert.equal(callCount, 3);
-  assert.equal(kit.getCircuitBreaker().state, 'closed');
+  assert.equal(circuitBreaker.state, 'closed');
 
   // Second execute(): same 3 attempts — circuitBreaker records failure #2, trips open.
   await assert.rejects(() => kit.execute(alwaysFails), MaxRetriesExceededError);
   assert.equal(callCount, 6);
-  assert.equal(kit.getCircuitBreaker().state, 'open');
+  assert.equal(circuitBreaker.state, 'open');
 
   // Third execute(): circuit is open. circuitBreaker.execute() rejects BEFORE calling
   // retry.execute(), so fn is never invoked again — callCount must stay at 6.

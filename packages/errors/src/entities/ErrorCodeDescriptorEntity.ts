@@ -1,4 +1,6 @@
-import { type FromSchema, Guard, type JsonSchemaObjectType } from '@studnicky/types';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { Guard } from '@studnicky/types';
 
 /** Describes a registered error code entry in `ErrorCodeRegistry`. */
 export namespace ErrorCodeDescriptorEntity {
@@ -23,7 +25,7 @@ export namespace ErrorCodeDescriptorEntity {
     'required': ['code', 'description', 'retryable'],
     'title': 'ErrorCodeDescriptor',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
@@ -33,11 +35,10 @@ export namespace ErrorCodeDescriptorEntity {
    * circular workspace reference.
    */
   export function validate(candidate: unknown): candidate is Type {
-    const record = Guard.asRecord(candidate);
-    if (record === undefined) { return false; }
-    if (typeof record.code !== 'string') { return false; }
-    if (typeof record.description !== 'string') { return false; }
-    if (typeof record.retryable !== 'boolean') { return false; }
+    if (!Guard.isObject(candidate)) { return false; }
+    if (typeof candidate.code !== 'string') { return false; }
+    if (typeof candidate.description !== 'string') { return false; }
+    if (typeof candidate.retryable !== 'boolean') { return false; }
     return true;
   }
 }

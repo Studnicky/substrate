@@ -8,7 +8,7 @@ description: '@studnicky ESLint plugins — configuration rules and V8 performan
 `@studnicky/eslint-config` ships two custom ESLint plugins:
 
 - **`@studnicky`** — 22 structural and semantic rules that enforce the substrate codebase doctrine.
-- **`@studnicky/v8`** — 24 V8 performance rules that flag patterns preventing V8 from using optimized code paths.
+- **`@studnicky/v8`** — 27 V8 performance rules that flag patterns preventing V8 from using optimized code paths.
 
 Register both plugins in your flat config to enable the rules.
 
@@ -32,13 +32,12 @@ Install peer dependencies:
 pnpm add -D eslint@>=10 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>=8 @typescript-eslint/parser@>=8 @stylistic/eslint-plugin@>=5 eslint-plugin-import-x@>=4 eslint-plugin-perfectionist@>=5 eslint-plugin-regexp@>=3 eslint-plugin-unused-imports@>=4 typescript@>=6
 ```
 
-## Subpath exports
+## Public API
 
-| Subpath | Exports |
-|---------|---------|
-| `@studnicky/eslint-config` | `plugin`, `v8Plugin`, and all individual rule modules |
-| `@studnicky/eslint-config/plugin` | `plugin` (the `@studnicky` ESLint plugin object) |
-| `@studnicky/eslint-config/v8` | `v8Plugin` (the `@studnicky/v8` ESLint plugin object) |
+The package root exports `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `v8Suite`, and
+`HexagonalSuite`. Individual rule implementations stay on their plugin objects: use
+`plugin.rules['single-export']` or `v8Plugin.rules['delete-property']` when programmatic
+rule access is required.
 
 ## Usage
 
@@ -100,14 +99,6 @@ export default [
 ];
 ```
 
-Or import from the dedicated subpath exports:
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-import { plugin } from '@studnicky/eslint-config/plugin';
-import { v8Plugin } from '@studnicky/eslint-config/v8';
-```
-
 ## Configuration rules
 
 22 rules that enforce structural, semantic, and stylistic constraints.
@@ -139,7 +130,7 @@ import { v8Plugin } from '@studnicky/eslint-config/v8';
 
 ## V8 performance rules
 
-24 rules that flag patterns preventing V8 from using optimized code paths.
+27 rules that flag patterns preventing V8 from using optimized code paths.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|
@@ -147,7 +138,10 @@ import { v8Plugin } from '@studnicky/eslint-config/v8';
 | [`@studnicky/v8/array-concat-outside-loops`](/eslint/rules/v8/array-concat-outside-loops) | No | `error` |
 | [`@studnicky/v8/array-from-iterators`](/eslint/rules/v8/array-from-iterators) | No | `error` |
 | [`@studnicky/v8/array-from-map-callback`](/eslint/rules/v8/array-from-map-callback) | No | `error` |
+| [`@studnicky/v8/array-scan-outside-loops`](/eslint/rules/v8/array-scan-outside-loops) | No | `error` |
+| [`@studnicky/v8/array-splice-outside-loops`](/eslint/rules/v8/array-splice-outside-loops) | No | `error` |
 | [`@studnicky/v8/array-spread-outside-loops`](/eslint/rules/v8/array-spread-outside-loops) | No | `error` |
+| [`@studnicky/v8/chained-array-iteration`](/eslint/rules/v8/chained-array-iteration) | No | `error` |
 | [`@studnicky/v8/computed-class-properties`](/eslint/rules/v8/computed-class-properties) | No | `error` |
 | [`@studnicky/v8/computed-object-properties`](/eslint/rules/v8/computed-object-properties) | No | `error` |
 | [`@studnicky/v8/conditional-property-assignment`](/eslint/rules/v8/conditional-property-assignment) | No | `error` |

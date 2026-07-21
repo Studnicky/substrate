@@ -1,9 +1,7 @@
-import type { PendingTaskType } from '../types/PendingTaskType.js';
-
-import { MinimumHeapBuilder } from './MinimumHeapBuilder.js';
+import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
 
 export class MinimumHeap {
-  readonly #heap: PendingTaskType[];
+  readonly #heap: PendingTaskInterface[];
 
   protected constructor() { this.#heap = []; }
 
@@ -12,18 +10,19 @@ export class MinimumHeap {
     return new this();
   }
 
-  /** Returns a `MinimumHeapBuilder` pre-wired to create `MinimumHeap` instances. */
-  static builder(): MinimumHeapBuilder {
-    const result = MinimumHeapBuilder.create(() => { const instance = MinimumHeap.create(); return instance; });
-    return result;
-  }
-
-  public insert(task: Readonly<PendingTaskType>): void {
-    this.#heap.push(task);
+  public insert(task: Readonly<PendingTaskInterface>): void {
+    const retainedTask: PendingTaskInterface = {
+      'atMs': task.atMs,
+      'fire': task.fire,
+      'id': task.id,
+      'intervalMs': task.intervalMs,
+      'variant': task.variant
+    };
+    this.#heap.push(retainedTask);
     this.#bubbleUp(this.#heap.length - 1);
   }
 
-  public removeMinimum(): PendingTaskType | undefined {
+  public removeMinimum(): PendingTaskInterface | undefined {
     const heapLength = this.#heap.length;
     if (heapLength === 0) { return undefined; }
     const [minimum] = this.#heap;

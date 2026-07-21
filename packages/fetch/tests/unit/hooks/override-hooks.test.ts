@@ -12,8 +12,8 @@ import {
   after, before, describe, it
 } from 'node:test';
 
-import type { RequestContextType } from '../../../src/types/RequestContextType.js';
-import type { ResponseContextType } from '../../../src/types/ResponseContextType.js';
+import type { RequestContextInterface } from '../../../src/interfaces/RequestContextInterface.js';
+import type { ResponseContextInterface } from '../../../src/interfaces/ResponseContextInterface.js';
 
 import { FetchClient } from '../../../src/index.js';
 
@@ -71,7 +71,7 @@ void describe('onRequest hook override', () => {
         return new this(config);
       }
 
-      protected override async onRequest(context: RequestContextType): Promise<RequestContextType> {
+      protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
         return {
           ...context,
           'options': {
@@ -101,7 +101,7 @@ void describe('onRequest hook override', () => {
         return new this(config);
       }
 
-      protected override async onRequest(context: RequestContextType): Promise<RequestContextType> {
+      protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
         visitedUrls.push(context.url);
         return { ...context, 'url': context.url.replace('/original-path', '/ok') };
       }
@@ -131,7 +131,7 @@ void describe('onResponse hook override', () => {
         return new this(config);
       }
 
-      protected override async onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+      protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
         // Replace the response with a new one that has an extra header
         const body = await context.response.text();
         const wrapped = new Response(body, {
@@ -158,7 +158,7 @@ void describe('onResponse hook override', () => {
         return new this(config);
       }
 
-      protected override async onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+      protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
         if (!context.response.ok) {
           throw new Error(`HTTP error: ${context.response.status}`);
         }
@@ -197,7 +197,7 @@ void describe('onResponse hook override', () => {
         return new this(config);
       }
 
-      protected override async onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+      protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
         capturedRequestIds.push(context.request.requestId);
         return context;
       }
@@ -223,7 +223,7 @@ void describe('onRequest and onResponse hooks combined', () => {
         return new this(config);
       }
 
-      protected override async onRequest(context: RequestContextType): Promise<RequestContextType> {
+      protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
         log.push('onRequest');
         return {
           ...context,
@@ -234,7 +234,7 @@ void describe('onRequest and onResponse hooks combined', () => {
         };
       }
 
-      protected override async onResponse(context: ResponseContextType): Promise<ResponseContextType> {
+      protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
         log.push('onResponse');
         return context;
       }

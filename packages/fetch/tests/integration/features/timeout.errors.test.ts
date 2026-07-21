@@ -5,14 +5,13 @@ import {
 
 import {
   FetchClient,
-  HttpMethods,
   TimeoutError
 } from '../../../src/index.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 
-const { fetch: fetchWithTimeout } = HttpMethods;
+const client = FetchClient.create();
 
 void describe('Timeout Error Scenarios', () => {
   let testUrl: string;
@@ -29,7 +28,7 @@ void describe('Timeout Error Scenarios', () => {
     void it('handles very small timeout (1ms)', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout(`${testUrl}/posts/1`, { timeout: 1 });
+          await client.get(`${testUrl}/posts/1`, { timeout: 1 });
         },
         (error: unknown) => {
           assert.ok(error instanceof TimeoutError, 'Should throw TimeoutError');
@@ -43,13 +42,13 @@ void describe('Timeout Error Scenarios', () => {
     });
 
     void it('handles moderate timeout (1000ms)', async () => {
-      const response = await fetchWithTimeout(`${testUrl}/posts/1`, { timeout: 1000 });
+      const response = await client.get(`${testUrl}/posts/1`, { timeout: 1000 });
 
       assert.strictEqual(response.status, 200);
     });
 
     void it('handles large timeout (60000ms)', async () => {
-      const response = await fetchWithTimeout(`${testUrl}/posts/1`, { timeout: 60_000 });
+      const response = await client.get(`${testUrl}/posts/1`, { timeout: 60_000 });
 
       assert.strictEqual(response.status, 200);
     });
@@ -147,7 +146,7 @@ void describe('Timeout Error Scenarios', () => {
 
       await assert.rejects(
         async () => {
-          await fetchWithTimeout(`${testUrl}/delay`, { timeout: 100 });
+          await client.get(`${testUrl}/delay`, { timeout: 100 });
         },
         TimeoutError
       );
@@ -159,7 +158,7 @@ void describe('Timeout Error Scenarios', () => {
 
     void it('timeout does not fire for fast requests', async () => {
       const start = Date.now();
-      const response = await fetchWithTimeout(`${testUrl}/posts/1`, { timeout: 5000 });
+      const response = await client.get(`${testUrl}/posts/1`, { timeout: 5000 });
 
       assert.strictEqual(response.status, 200);
 
@@ -171,12 +170,12 @@ void describe('Timeout Error Scenarios', () => {
     void it('subsequent requests after timeout work correctly', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout(`${testUrl}/delay`, { timeout: 50 });
+          await client.get(`${testUrl}/delay`, { timeout: 50 });
         },
         TimeoutError
       );
 
-      const response = await fetchWithTimeout(`${testUrl}/posts/1`, { timeout: 5000 });
+      const response = await client.get(`${testUrl}/posts/1`, { timeout: 5000 });
 
       assert.strictEqual(response.status, 200);
     });
@@ -185,13 +184,13 @@ void describe('Timeout Error Scenarios', () => {
   void describe('Multiple timeouts', () => {
     void it('handles concurrent timeouts correctly', async () => {
       const requests = [
-        fetchWithTimeout(`${testUrl}/delay`, { timeout: 50 }).catch(() => {
+        client.get(`${testUrl}/delay`, { timeout: 50 }).catch(() => {
           return 'timeout1';
         }),
-        fetchWithTimeout(`${testUrl}/delay`, { timeout: 60 }).catch(() => {
+        client.get(`${testUrl}/delay`, { timeout: 60 }).catch(() => {
           return 'timeout2';
         }),
-        fetchWithTimeout(`${testUrl}/posts/1`, { timeout: 5000 }).then(() => {
+        client.get(`${testUrl}/posts/1`, { timeout: 5000 }).then(() => {
           return 'success';
         })
       ];
@@ -249,7 +248,7 @@ void describe('Timeout Error Scenarios', () => {
   void describe('Timeout error details', () => {
     void it('includes URL in error', async () => {
       try {
-        await fetchWithTimeout(`${testUrl}/delay`, { timeout: 50 });
+        await client.get(`${testUrl}/delay`, { timeout: 50 });
         assert.fail('Should have thrown TimeoutError');
       } catch (error) {
         assert.ok(error instanceof TimeoutError);
@@ -262,7 +261,7 @@ void describe('Timeout Error Scenarios', () => {
 
     void it('includes timeout value in error', async () => {
       try {
-        await fetchWithTimeout(`${testUrl}/delay`, { timeout: 123 });
+        await client.get(`${testUrl}/delay`, { timeout: 123 });
         assert.fail('Should have thrown TimeoutError');
       } catch (error) {
         assert.ok(error instanceof TimeoutError);
@@ -275,7 +274,7 @@ void describe('Timeout Error Scenarios', () => {
 
     void it('error name is TimeoutError', async () => {
       try {
-        await fetchWithTimeout(`${testUrl}/delay`, { timeout: 50 });
+        await client.get(`${testUrl}/delay`, { timeout: 50 });
         assert.fail('Should have thrown TimeoutError');
       } catch (error) {
         assert.ok(error instanceof TimeoutError);
@@ -290,7 +289,7 @@ void describe('Timeout Error Scenarios', () => {
     void it('timeout creates implicit AbortController', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout(`${testUrl}/delay`, { timeout: 50 });
+          await client.get(`${testUrl}/delay`, { timeout: 50 });
         },
         TimeoutError
       );
@@ -305,7 +304,7 @@ void describe('Timeout Error Scenarios', () => {
 
       await assert.rejects(
         async () => {
-          await fetchWithTimeout(`${testUrl}/delay`, {
+          await client.get(`${testUrl}/delay`, {
             signal: controller.signal,
             timeout: 5000
           });
@@ -324,7 +323,7 @@ void describe('Timeout Error Scenarios', () => {
     void it('accepts integer timeout values', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout(`${testUrl}/delay`, { timeout: 50 });
+          await client.get(`${testUrl}/delay`, { timeout: 50 });
         },
         TimeoutError
       );
@@ -333,7 +332,7 @@ void describe('Timeout Error Scenarios', () => {
     void it('accepts floating point timeout values', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout(`${testUrl}/delay`, { timeout: 50.5 });
+          await client.get(`${testUrl}/delay`, { timeout: 50.5 });
         },
         TimeoutError
       );

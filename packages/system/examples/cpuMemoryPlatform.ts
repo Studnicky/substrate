@@ -12,9 +12,7 @@ console.log(`  cpu.model         = ${cpu.model}`);
 console.log(`  cpu.logicalCount  = ${cpu.logicalCount}`);
 console.log(`  cpu.physicalCount = ${cpu.physicalCount}`);
 
-console.log('Shorthands:');
-console.log(`  logicalCpuCount    = ${System.logicalCpuCount}`);
-console.log(`  optimalWorkerCount = ${System.optimalWorkerCount}`);
+console.log(`Optimal worker count = ${System.optimalWorkerCount}`);
 
 const mem = System.memory;
 console.log('Memory:');
@@ -26,7 +24,6 @@ console.log('Platform:');
 console.log(`  platform.os             = ${plat.os}`);
 console.log(`  platform.nodeVersion    = ${plat.nodeVersion}`);
 console.log(`  platform.isAppleSilicon = ${plat.isAppleSilicon}`);
-console.log(`  System.isAppleSilicon   = ${System.isAppleSilicon}`);
 // #endregion usage
 
 assert.ok(Number.isInteger(cpu.logicalCount) && cpu.logicalCount > 0, 'logicalCount must be a positive integer');
@@ -34,14 +31,13 @@ assert.ok(Number.isInteger(cpu.physicalCount) && cpu.physicalCount > 0, 'physica
 assert.ok(cpu.physicalCount <= cpu.logicalCount, 'physicalCount must be <= logicalCount');
 assert.ok(typeof cpu.arch === 'string' && cpu.arch.length > 0, 'arch must be a non-empty string');
 assert.ok(typeof cpu.model === 'string' && cpu.model.length > 0, 'model must be a non-empty string');
-assert.equal(System.logicalCpuCount, cpu.logicalCount, 'logicalCpuCount must equal cpu.logicalCount');
 assert.ok(System.optimalWorkerCount >= 1, 'optimalWorkerCount must be >= 1');
-assert.ok(System.optimalWorkerCount <= System.logicalCpuCount, 'optimalWorkerCount must be <= logicalCpuCount');
+assert.ok(System.optimalWorkerCount <= cpu.logicalCount, 'optimalWorkerCount must be <= cpu.logicalCount');
 assert.ok(mem.totalMb > 0, 'totalMb must be > 0');
 assert.ok(mem.freeMb >= 0, 'freeMb must be >= 0');
 assert.ok(mem.freeMb <= mem.totalMb, 'freeMb must be <= totalMb');
 assert.ok(typeof plat.os === 'string' && plat.os.length > 0, 'os must be a non-empty string');
 assert.ok(plat.nodeVersion.startsWith('v'), 'nodeVersion must start with "v"');
-assert.equal(typeof System.isAppleSilicon, 'boolean', 'isAppleSilicon must be boolean');
+assert.equal(typeof plat.isAppleSilicon, 'boolean', 'platform.isAppleSilicon must be boolean');
 
 console.log('cpuMemoryPlatform: all assertions passed');

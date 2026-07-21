@@ -4,7 +4,10 @@ import {
 } from 'node:test';
 
 import {
-  ConfigurationError, FetchClient
+  type ClientConfigInterface,
+  ConfigurationError,
+  FetchClient,
+  type RequestContextInterface
 } from '../../../src/index.js';
 import {
   startTestServer, stopTestServer
@@ -242,8 +245,8 @@ void describe('FetchClient Constructor', () => {
         }
 
         protected override async onRequest(
-          context: import('../../../src/types/RequestContextType.js').RequestContextType
-        ): Promise<import('../../../src/types/RequestContextType.js').RequestContextType> {
+          context: RequestContextInterface
+        ): Promise<RequestContextInterface> {
           capturedMetadata.push({ ...context.metadata.metadata });
           return context;
         }
@@ -259,6 +262,65 @@ void describe('FetchClient Constructor', () => {
       assert.ok(capturedMetadata[0] !== undefined);
       assert.strictEqual(capturedMetadata[0].service, 'test-service');
       assert.strictEqual(capturedMetadata[0].operation, 'get-post');
+    });
+
+    void it('should detach construction config from caller-owned mutable data', async () => {
+      let capturedContext: RequestContextInterface | undefined;
+
+      class SnapshotClient extends FetchClient {
+        static override create(config: ClientConfigInterface = {}): SnapshotClient {
+          return new this(config);
+        }
+
+        protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
+          capturedContext = context;
+          return context;
+        }
+      }
+
+      const clientHeaders = { 'X-Client': 'initial-client' };
+      const optionHeaders = { 'X-Option': 'initial-option' };
+      const metadataDetails = { version: 1 };
+      const optionMetadataDetails = { enabled: true };
+      const optionJson = { nested: { value: 'initial-json' } };
+      const tags = ['one', 'two'];
+      const config: ClientConfigInterface = {
+        baseURL: testUrl,
+        headers: clientHeaders,
+        metadata: { details: metadataDetails },
+        options: {
+          headers: optionHeaders,
+          json: optionJson,
+          metadata: { details: optionMetadataDetails }
+        },
+        params: { tag: tags }
+      };
+      const client = SnapshotClient.create(config);
+
+      config.baseURL = 'http://127.0.0.1:1';
+      config.headers = { 'X-Client': 'replacement-client' };
+      config.metadata = { details: { version: 3 } };
+      config.options = { headers: { 'X-Option': 'replacement-option' } };
+      config.params = { tag: ['replacement'] };
+      clientHeaders['X-Client'] = 'mutated-client';
+      optionHeaders['X-Option'] = 'mutated-option';
+      metadataDetails.version = 2;
+      optionMetadataDetails.enabled = false;
+      optionJson.nested.value = 'mutated-json';
+      tags.push('three');
+
+      const response = await client.get('/posts/1');
+
+      assert.strictEqual(response.status, 200);
+      assert.ok(capturedContext !== undefined);
+      assert.strictEqual(capturedContext.url, `${testUrl}/posts/1?tag=one&tag=two`);
+      assert.deepStrictEqual(capturedContext.metadata.metadata, { details: { version: 1 } });
+      assert.deepStrictEqual(capturedContext.options.headers, {
+        'X-Client': 'initial-client',
+        'X-Option': 'initial-option'
+      });
+      assert.deepStrictEqual(capturedContext.options.metadata, { details: { enabled: true } });
+      assert.deepStrictEqual(capturedContext.options.json, { nested: { value: 'initial-json' } });
     });
   });
 });

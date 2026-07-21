@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 
-import type { LayerOptionsType } from '../../types/LayerOptionsType.js';
+import type { LayerOptionsEntity } from './LayerOptionsEntity.js';
 
 // Default allow-matrix for the canonical 5-layer hexagonal architecture.
 // 'infrastructure' is resolved dynamically against options.layers (it may import any configured layer).
@@ -75,13 +75,13 @@ class DefaultAllowedImports {
 }
 
 export class LayerResolver {
-  public static layerForPath(filePath: string, options: LayerOptionsType): string | undefined {
+  public static layerForPath(filePath: string, options: LayerOptionsEntity.Type): string | undefined {
     const fileSegments = PathSegments.normalize(filePath);
     const rootSegments = PathSegments.normalize(options.sourceRoot);
     return LayerAfterRoot.find(fileSegments, rootSegments, options.layers);
   }
 
-  public static layerForImport(importSpecifier: string, importingFilePath: string, options: LayerOptionsType): string | undefined {
+  public static layerForImport(importSpecifier: string, importingFilePath: string, options: LayerOptionsEntity.Type): string | undefined {
     const aliasPrefixes = options.aliasPrefixes;
     if (aliasPrefixes !== undefined) {
       const prefixes = Object.keys(aliasPrefixes);
@@ -101,7 +101,7 @@ export class LayerResolver {
     return LayerResolver.layerForPath(resolvedPath, options);
   }
 
-  public static canImport(sourceLayer: string, targetLayer: string, options: LayerOptionsType): boolean {
+  public static canImport(sourceLayer: string, targetLayer: string, options: LayerOptionsEntity.Type): boolean {
     if (!options.layers.includes(sourceLayer) || !options.layers.includes(targetLayer)) { return false; }
     if (sourceLayer === targetLayer) { return true; }
 

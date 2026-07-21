@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import { ConfigurationError } from '@studnicky/config';
 import {
-  ConfigurationError, Timing
+  TimeUnitEntity,
+  Timing,
+  TimingOptionsEntity,
+  TimingPrecisionEntity,
+  TimingStatusEntity
 } from '../../src/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
+import { TimingValidator } from '../../src/validation/TimingValidator.js';
 
 void it('accepts valid maxEvents values', () => {
   const validValues = [
@@ -16,14 +22,13 @@ void it('accepts valid maxEvents values', () => {
 
   for (const maxEvents of validValues) {
     assert.doesNotThrow(() => {
-      Timing.builder().maxEvents(maxEvents)
-        .build();
+      Timing.create({ 'maxEvents': maxEvents });
     });
   }
 
   // Test omitted maxEvents (defaults to no limit)
   assert.doesNotThrow(() => {
-    Timing.builder().build();
+    Timing.create();
   });
 });
 
@@ -56,9 +61,7 @@ void it('rejects invalid maxEvents values', () => {
   } of invalidValues) {
     assert.throws(
       () => {
-        // @ts-expect-error - Testing runtime validation
-        Timing.builder().maxEvents(value)
-          .build();
+        TimingValidator.validateMaxEvents(value);
       },
       ConfigurationError,
       `Should reject ${description}`
@@ -77,22 +80,19 @@ void it('accepts valid precision configurations', () => {
 
   for (const precision of validConfigs) {
     assert.doesNotThrow(() => {
-      Timing.builder().precision(precision)
-        .build();
+      Timing.create({ 'precision': precision });
     });
   }
 
   // Test omitted precision (defaults to standard precision)
   assert.doesNotThrow(() => {
-    Timing.builder().build();
+    Timing.create();
   });
 });
 
 void it('rejects non-object precision', () => {
   assert.throws(() => {
-    // @ts-expect-error - Testing runtime validation
-    Timing.builder().precision('not-an-object')
-      .build();
+    TimingValidator.validatePrecision('not-an-object');
   }, ConfigurationError);
 });
 
@@ -121,9 +121,7 @@ void it('rejects invalid precision values', () => {
   } of invalidPrecisions) {
     assert.throws(
       () => {
-        // @ts-expect-error - Testing runtime validation
-        Timing.builder().precision({ ms: value })
-          .build();
+        TimingValidator.validatePrecision({ 'ms': value });
       },
       ConfigurationError,
       `Should reject ${description}`
@@ -133,21 +131,24 @@ void it('rejects invalid precision values', () => {
 
 void it('rejects invalid time units in precision', () => {
   assert.throws(() => {
-    Timing.builder().precision({
-      // @ts-expect-error - Testing runtime validation
-      invalid: 2
-    })
-      .build();
+    TimingValidator.validatePrecision({ 'invalid': 2 });
   }, ConfigurationError);
 });
 
-void it('applies precision with custom configuration', () => {
-  const timer = Timing.builder().precision({ ms: 1 })
-    .build();
+void it('validates canonical timing entity values', () => {
+  assert.equal(TimeUnitEntity.validate('ms'), true);
+  assert.equal(TimeUnitEntity.validate('days'), false);
+  assert.equal(TimingStatusEntity.validate('complete'), true);
+  assert.equal(TimingStatusEntity.validate('unknown'), false);
+  assert.equal(TimingPrecisionEntity.validate({ 'ms': 3, 's': 6 }), true);
+  assert.equal(TimingPrecisionEntity.validate({ 'invalid': 3 }), false);
+  assert.equal(TimingOptionsEntity.validate({ 'maxEvents': 10, 'precision': { 'ms': 3 } }), true);
+});
 
-  timer.event(TimingEvent.create().component('GraphAdapter')
-    .operation('query')
-    .build());
+void it('applies precision with custom configuration', () => {
+  const timer = Timing.create({ 'precision': { ms: 1 } });
+
+  timer.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
   const events = timer.getEvents();
 
   assert.ok(events.initialize !== undefined);
@@ -162,15 +163,12 @@ void it('applies precision with custom configuration', () => {
 
 void it('accepts valid configuration with all options', () => {
   assert.doesNotThrow(() => {
-    Timing.builder()
-      .maxEvents(100)
-      .precision({ ms: 2 })
-      .build();
+    Timing.create({ 'maxEvents': 100, 'precision': { ms: 2 } });
   });
 });
 
 void it('applies defaults when options not provided', () => {
-  const timer = Timing.builder().build();
+  const timer = Timing.create();
   const events = timer.getEvents();
 
   assert.ok(events.initialize !== undefined);

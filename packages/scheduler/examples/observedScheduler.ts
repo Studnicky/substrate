@@ -1,11 +1,11 @@
 /** observedScheduler — override all lifecycle hooks to emit a debug trace. Run: npx tsx examples/observedScheduler.ts */
 
+import { VirtualTimeCounter } from '@studnicky/clock';
 import assert from 'node:assert/strict';
 
-// #region usage
-import { VirtualTimeCounter } from '../../clock/src/index.js';
 import { VirtualScheduler } from '../src/index.js';
 
+// #region usage
 class ObservedScheduler extends VirtualScheduler {
   readonly events: string[] = [];
 

@@ -38,13 +38,7 @@ Each composed primitive accepts either a pre-built instance (subclassed or not) 
 
 `BoundaryKit` introduces no hook of its own — every observable stage is already covered by the composed primitive it delegates to:
 
-| Getter | Returns |
-|--------|---------|
-| `getThrottle()` | The composed `Throttle` instance |
-| `getCircuitBreaker()` | The composed `CircuitBreaker` instance |
-| `getRetry()` | The composed `Retry` instance |
-
-Every getter returns the exact instance passed to `create()`/`builder()` — never a copy or wrapper — so a caller who subclassed `Throttle`/`CircuitBreaker`/`Retry` for their own hooks (`onAcquire`, `onOpen`, `onGiveUp`, and so on) keeps full access to those subclasses' own hooks.
+Pass pre-built `Throttle`, `CircuitBreaker`, or `Retry` instances to `create()` and retain those original references for direct hook and state observation. `BoundaryKit` does not clone or wrap supplied instances.
 
 ## Composition order
 
@@ -52,11 +46,11 @@ Every getter returns the exact instance passed to `create()`/`builder()` — nev
 
 ## Aborted throttle calls
 
-`Throttle#execute()` resolves `undefined` (rather than rejecting) when the throttle discards a call via its detach-and-abandon abort behavior. `BoundaryKit#execute()` cannot return `undefined` as `T`, so it surfaces that discard as a rejected `BoundaryKitAbortedError` instead.
+`BoundaryKit#execute()` tracks whether the inner operation completes separately from its resolved value. An operation that legitimately resolves `undefined` or returns `void` completes normally with that value. `BoundaryKitAbortedError` is reserved for a throttle discard caused by detach-and-abandon abort behavior, where the inner operation never runs.
 
 ## Extending
 
-Subclass `BoundaryKit` to add convenience behavior that reaches the composed instances through the getters — `BoundaryKit` has no lifecycle hooks of its own to override. Subclass the composed primitives themselves (`Throttle`, `CircuitBreaker`, `Retry`) to observe or transform the acquire/trip/attempt stages; those hooks fire exactly as they would standalone.
+Subclass the composed primitives (`Throttle`, `CircuitBreaker`, `Retry`) to observe or transform the acquire/trip/attempt stages, then pass those instances to `BoundaryKit.create()`. Their hooks fire exactly as they do standalone.
 
 See `examples/observedBoundaryKit.ts` for the full runnable version, including default construction and pre-built subclassed primitives.
 

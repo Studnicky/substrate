@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/config)
 
-`@studnicky/config` provides pure-static assertion classes and type predicates for validating configuration objects at runtime. All assertions skip `undefined`/`null` values and throw `ConfigurationError` on failure, making them safe to compose for partial or fully optional config shapes.
+`@studnicky/config` provides pure-static assertion and clamping classes for validating configuration objects at runtime. Assertions skip `undefined`/`null` values and throw `ConfigurationError` on failure, making them safe to compose for partial or fully optional config shapes.
 
 ## Install
 
@@ -24,18 +24,11 @@ pnpm add @studnicky/config
 import {
   ConfigValidation,
   ConfigurationError,
-  TypeGuards,
 } from '@studnicky/config';
-
-interface ServerConfig {
-  host: string;
-  port: number;
-  debug: boolean;
-}
 
 const KNOWN_KEYS = new Set<string>(['host', 'port', 'debug']);
 
-function validateServerConfig(raw: Record<string, unknown>): ServerConfig {
+function validateServerConfig(raw: Record<string, unknown>): void {
   // Reject unknown keys first
   ConfigValidation.assertNoUnknownKeys(raw, KNOWN_KEYS);
 
@@ -44,11 +37,10 @@ function validateServerConfig(raw: Record<string, unknown>): ServerConfig {
   ConfigValidation.assertNumber(raw['port'], 'port');
   ConfigValidation.assertBoolean(raw['debug'], 'debug');
 
-  return raw as unknown as ServerConfig;
 }
 
 // Valid input — passes silently
-const config = validateServerConfig({ host: 'localhost', port: 3000, debug: false });
+validateServerConfig({ host: 'localhost', port: 3000, debug: false });
 
 // Invalid input — throws ConfigurationError
 try {
@@ -60,17 +52,6 @@ try {
   }
 }
 
-// Type guards for conditional branching
-const raw: unknown = process.env['WORKER_COUNT'];
-if (TypeGuards.isPositiveInteger(Number(raw))) {
-  console.log('Worker count:', raw);
-}
-
-const maybeOptions: unknown = {};
-if (TypeGuards.isObject(maybeOptions)) {
-  // narrowed to Record<string, unknown>
-  console.log('Options keys:', Object.keys(maybeOptions));
-}
 ```
 
 ## Extending
@@ -90,7 +71,9 @@ class AppConfigValidation extends ConfigValidation {
 try {
   AppConfigValidation.assertString(123, 'apiKey');
 } catch (err) {
-  console.error((err as Error).message); // "[app] apiKey must be a string"
+  if (err instanceof Error) {
+    console.error(err.message); // "[app] apiKey must be a string"
+  }
 }
 ```
 
@@ -99,14 +82,14 @@ try {
 `ClampedConfig` is the soft-correction sibling to `ConfigValidation`'s hard-fail assertions: given a flat config object and a declarative table of `{min, max, reason}` per numeric field, `apply` returns a **new** object with out-of-range numeric fields clamped into range instead of throwing. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
 
 ```typescript
-import { ClampedConfig, type ClampRuleType } from '@studnicky/config';
+import { ClampRuleEntity, ClampedConfig } from '@studnicky/config';
 
 interface WorkerConfig {
   timeoutMs: number;
   concurrency: number;
 }
 
-const rules: Readonly<Record<string, ClampRuleType>> = {
+const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
   timeoutMs: { min: 100, max: 5000, reason: 'timeout must stay within safe bounds' },
   concurrency: { min: 1, max: 8, reason: 'concurrency must stay within pool capacity' },
 };
@@ -119,10 +102,10 @@ const clamped = ClampedConfig.apply(raw, rules);
 Override the protected `onClamp` static method to observe clamp events — logging is the caller's responsibility, `ClampedConfig` has no dependency on any logging package:
 
 ```typescript
-import { ClampedConfig, type ClampEventType } from '@studnicky/config';
+import { ClampEventEntity, ClampedConfig } from '@studnicky/config';
 
 class LoggingClampedConfig extends ClampedConfig {
-  protected static override onClamp(event: ClampEventType): void {
+  protected static override onClamp(event: ClampEventEntity.Type): void {
     console.warn(`[config] clamped ${event.field}: ${event.raw} -> ${event.clamped} (${event.reason})`);
   }
 }

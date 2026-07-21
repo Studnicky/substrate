@@ -1,9 +1,10 @@
 /** validate-config — asserting required fields, type guards, and null-skip behaviour. Run: npx tsx packages/config/examples/validate-config.ts */
 
+// #region usage
+import { Guard } from '@studnicky/types';
 import assert from 'node:assert/strict';
 
-// #region usage
-import { ConfigurationError, ConfigValidation, Guard } from '../src/index.js';
+import { ConfigurationError, ConfigValidation } from '../src/index.js';
 import { ValidateConfigFixtures } from './fixtures/ValidateConfigFixtures.js';
 
 const { config } = ValidateConfigFixtures;

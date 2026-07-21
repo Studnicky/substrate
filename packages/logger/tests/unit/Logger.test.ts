@@ -7,12 +7,12 @@ import {
 import { HookInvocationError } from '@studnicky/errors';
 
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
+import type { LogLevelEntity } from '../../src/entities/LogLevelEntity.js';
+import type { LogRecordEntity } from '../../src/entities/LogRecordEntity.js';
 import { ConfigurationError } from '../../src/errors/ConfigurationError.js';
+import type { LogMetadataInterface } from '../../src/interfaces/LogMetadataInterface.js';
 import { Logger } from '../../src/modules/Logger.js';
 import type { TransportInterface } from '../../src/transports/TransportInterface.js';
-import type { LogLevelType } from '../../src/types/LogLevelType.js';
-import type { LogMetadataType } from '../../src/types/LogMetadataType.js';
-import type { LogRecordEntity } from '../../src/entities/LogRecordEntity.js';
 import { FunctionTransport } from '../../src/transports/FunctionTransport.js';
 import { MemoryTransport } from '../../src/transports/MemoryTransport.js';
 import { NoOpTransport } from '../../src/transports/NoOpTransport.js';
@@ -63,9 +63,33 @@ void describe('Logger', () => {
 
     void it('throws ConfigurationError when metadata is not a plain object', () => {
       assert.throws(
-        () => Logger.create({ metadata: 'not-an-object' as unknown as Record<string, unknown> }),
+        () => { Reflect.apply(Logger.create, Logger, [{ 'metadata': 'not-an-object' }]); },
         ConfigurationError
       );
+    });
+
+    void it('snapshots caller-owned metadata and transport arrays', () => {
+      const configuredTransport = MemoryTransport.create();
+      const addedTransport = MemoryTransport.create();
+      const transports: TransportInterface[] = [configuredTransport];
+      const region = { 'name': 'east' };
+      const metadata = { region, 'service': 'api' };
+      const logger = Logger.create({
+        'level': LOG_LEVEL.TRACE,
+        metadata,
+        transports
+      });
+
+      metadata.service = 'mutated';
+      region.name = 'west';
+      transports.push(addedTransport);
+      logger.info(TestFactory.body('owned'));
+
+      assert.deepStrictEqual(configuredTransport.records()[0]?.metadata, {
+        'region': { 'name': 'east' },
+        'service': 'api'
+      });
+      assert.strictEqual(addedTransport.records().length, 0);
     });
   });
 
@@ -279,6 +303,28 @@ void describe('Logger', () => {
       assert.strictEqual(memory.records().length, 2);
     });
 
+    void it('child snapshots caller-owned metadata', () => {
+      const memory = MemoryTransport.create();
+      const parent = Logger.create({
+        'level': LOG_LEVEL.TRACE,
+        'metadata': { 'service': 'api' },
+        'transports': [memory]
+      });
+      const attempt = { 'number': 1 };
+      const metadata = { attempt, 'requestId': 'req-1' };
+      const child = parent.child(metadata);
+
+      metadata.requestId = 'mutated';
+      attempt.number = 2;
+      child.info(TestFactory.body('msg'));
+
+      assert.deepStrictEqual(memory.records()[0]?.metadata, {
+        'attempt': { 'number': 1 },
+        'requestId': 'req-1',
+        'service': 'api'
+      });
+    });
+
     void it('a throwing onChildCreate hook surfaces as HookInvocationError', () => {
       class ThrowingChildLogger extends Logger {
         protected override onChildCreate(): void {
@@ -316,7 +362,8 @@ void describe('Logger', () => {
       assert.ok(record.time >= before);
       assert.ok(record.time <= after);
       assert.deepStrictEqual(record.metadata, { service: 'test' });
-      assert.strictEqual(record.data, body);
+      assert.deepStrictEqual(record.data, body);
+      assert.notStrictEqual(record.data, body);
     });
 
     void it('each level maps to the correct LOG_LEVEL constant', () => {
@@ -361,7 +408,7 @@ void describe('Logger', () => {
 
   void describe('FunctionTransport bridging', () => {
     void it('calls the sink with the assembled record', () => {
-      const captured: unknown[] = [];
+      const captured: LogRecordEntity.Type[] = [];
       const transport = FunctionTransport.create((record) => {
         captured.push(record);
       });
@@ -373,7 +420,7 @@ void describe('Logger', () => {
       logger.info(body);
 
       assert.strictEqual(captured.length, 1);
-      assert.strictEqual((captured[0] as { data: unknown }).data, body);
+      assert.strictEqual(captured[0]?.data, body);
     });
   });
 
@@ -408,13 +455,13 @@ void describe('Logger', () => {
 
   void describe('lifecycle hooks', () => {
     void it('onLog fires after record assembly and before transport fan-out', () => {
-      const loggedLevels: LogLevelType[] = [];
+      const loggedLevels: LogLevelEntity.Type[] = [];
       const loggedRecords: LogRecordEntity.Type[] = [];
 
       class ObservedLogger extends Logger {
         constructor() { super({ 'level': LOG_LEVEL.TRACE }); }
 
-        protected override onLog(level: LogLevelType, record: LogRecordEntity.Type): void {
+        protected override onLog(level: LogLevelEntity.Type, record: LogRecordEntity.Type): void {
           loggedLevels.push(level);
           loggedRecords.push(record);
         }
@@ -435,7 +482,7 @@ void describe('Logger', () => {
       class ObservedLogger extends Logger {
         constructor() { super({ 'level': LOG_LEVEL.TRACE, 'metadata': { 'service': 'test' } }); }
 
-        protected override onLog(_level: LogLevelType, record: LogRecordEntity.Type): void {
+        protected override onLog(_level: LogLevelEntity.Type, record: LogRecordEntity.Type): void {
           captured.push(record);
         }
       }
@@ -451,12 +498,12 @@ void describe('Logger', () => {
     });
 
     void it('onDropped fires when level is below the logger floor', () => {
-      const droppedLevels: LogLevelType[] = [];
+      const droppedLevels: LogLevelEntity.Type[] = [];
 
       class ObservedLogger extends Logger {
         constructor() { super({ 'level': LOG_LEVEL.INFO }); }
 
-        protected override onDropped(level: LogLevelType): void {
+        protected override onDropped(level: LogLevelEntity.Type): void {
           droppedLevels.push(level);
         }
       }
@@ -469,12 +516,12 @@ void describe('Logger', () => {
     });
 
     void it('onDropped does not fire when record meets or exceeds the floor', () => {
-      const droppedLevels: LogLevelType[] = [];
+      const droppedLevels: LogLevelEntity.Type[] = [];
 
       class ObservedLogger extends Logger {
         constructor() { super({ 'level': LOG_LEVEL.INFO }); }
 
-        protected override onDropped(level: LogLevelType): void {
+        protected override onDropped(level: LogLevelEntity.Type): void {
           droppedLevels.push(level);
         }
       }
@@ -487,12 +534,12 @@ void describe('Logger', () => {
     });
 
     void it('onDropped fires for trace and debug when floor is INFO', () => {
-      const droppedLevels: LogLevelType[] = [];
+      const droppedLevels: LogLevelEntity.Type[] = [];
 
       class ObservedLogger extends Logger {
         constructor() { super({ 'level': LOG_LEVEL.INFO }); }
 
-        protected override onDropped(level: LogLevelType): void {
+        protected override onDropped(level: LogLevelEntity.Type): void {
           droppedLevels.push(level);
         }
       }
@@ -530,12 +577,12 @@ void describe('Logger', () => {
     });
 
     void it('onChildCreate fires after child creation with the passed bindings', () => {
-      const capturedBindings: LogMetadataType[] = [];
+      const capturedBindings: LogMetadataInterface[] = [];
 
       class ObservedLogger extends Logger {
         constructor() { super({}); }
 
-        protected override onChildCreate(bindings: LogMetadataType): void {
+        protected override onChildCreate(bindings: LogMetadataInterface): void {
           capturedBindings.push(bindings);
         }
       }
@@ -548,12 +595,12 @@ void describe('Logger', () => {
     });
 
     void it('onChildCreate receives the bindings passed to child(), not the merged metadata', () => {
-      const capturedBindings: LogMetadataType[] = [];
+      const capturedBindings: LogMetadataInterface[] = [];
 
       class ObservedLogger extends Logger {
         constructor() { super({ 'metadata': { 'service': 'api' } }); }
 
-        protected override onChildCreate(bindings: LogMetadataType): void {
+        protected override onChildCreate(bindings: LogMetadataInterface): void {
           capturedBindings.push(bindings);
         }
       }
@@ -587,8 +634,9 @@ void describe('Logger', () => {
       logger.info(TestFactory.body('boom'));
 
       assert.strictEqual(errors.length, 1);
-      assert.ok(errors[0] instanceof Error);
-      assert.strictEqual((errors[0] as Error).message, 'transport boom');
+      const [firstError] = errors;
+      assert.ok(firstError instanceof Error);
+      assert.strictEqual(firstError.message, 'transport boom');
       assert.strictEqual(capturedTransports.length, 1);
     });
 
@@ -633,8 +681,10 @@ void describe('Logger', () => {
       assert.strictEqual(errors.length, 2);
     });
 
-    void it('a throwing onTransportError hook is recorded instead of propagating', () => {
+    void it('throwing onTransportError hook records are isolated between logger instances', () => {
       class ThrowingTransportErrorLogger extends Logger {
+        readonly hookFailure = new Error('onTransportError boom');
+
         constructor() {
           const throwing = FunctionTransport.create(() => {
             throw new Error('transport boom');
@@ -643,22 +693,77 @@ void describe('Logger', () => {
         }
 
         protected override onTransportError(): void {
-          throw new Error('onTransportError boom');
+          throw this.hookFailure;
         }
       }
 
-      const logger = new ThrowingTransportErrorLogger();
+      const first = new ThrowingTransportErrorLogger();
+      const second = new ThrowingTransportErrorLogger();
 
       assert.doesNotThrow(() => {
-        logger.info(TestFactory.body('boom'));
+        first.info(TestFactory.body('first'));
       });
 
+      const firstSnapshot = first.getHookErrors();
+      assert.strictEqual(first.hookErrorCount, 1);
+      assert.strictEqual(second.hookErrorCount, 0);
+      assert.strictEqual(firstSnapshot.length, 1);
+      assert.strictEqual(firstSnapshot[0]?.hookName, 'onTransportError');
+      assert.ok(firstSnapshot[0]?.cause instanceof Error);
+      assert.notStrictEqual(firstSnapshot[0].cause, first.hookFailure);
+      assert.strictEqual(firstSnapshot[0].cause.message, first.hookFailure.message);
+
+      assert.doesNotThrow(() => {
+        second.info(TestFactory.body('second'));
+      });
+
+      assert.strictEqual(first.hookErrorCount, 1);
+      assert.strictEqual(second.hookErrorCount, 1);
+      assert.strictEqual(firstSnapshot.length, 1);
+      const secondSnapshot = second.getHookErrors();
+      assert.strictEqual(secondSnapshot.length, 1);
+      assert.strictEqual(secondSnapshot[0]?.hookName, 'onTransportError');
+      assert.ok(secondSnapshot[0]?.cause instanceof Error);
+      assert.notStrictEqual(secondSnapshot[0].cause, second.hookFailure);
+      assert.strictEqual(secondSnapshot[0].cause.message, second.hookFailure.message);
+    });
+
+    void it('getHookErrors records one failure and deeply detaches nested diagnostics', () => {
+      const hookFailure = new Error('onTransportError boom', {
+        'cause': { 'transports': ['primary'] }
+      });
+
+      class ThrowingTransportErrorLogger extends Logger {
+        protected override onTransportError(): void {
+          throw hookFailure;
+        }
+      }
+
+      const throwingTransport = FunctionTransport.create(() => {
+        throw new Error('transport boom');
+      });
+      const logger = ThrowingTransportErrorLogger.create({
+        'level': LOG_LEVEL.TRACE,
+        'transports': [throwingTransport]
+      });
+
+      logger.info(TestFactory.body('diagnostic'));
+
       assert.strictEqual(logger.hookErrorCount, 1);
-      const [entry] = logger.getHookErrors();
-      assert.ok(entry);
-      assert.strictEqual(entry.hookName, 'onTransportError');
-      assert.ok(entry.cause instanceof Error);
-      assert.strictEqual((entry.cause as Error).message, 'onTransportError boom');
+      const firstCause = logger.getHookErrors()[0]?.cause;
+      assert.ok(firstCause instanceof Error);
+      firstCause.message = 'mutated';
+      const firstDetails = firstCause.cause;
+      assert.ok(firstDetails !== null && typeof firstDetails === 'object');
+      const firstTransports = Reflect.get(firstDetails, 'transports');
+      assert.ok(Array.isArray(firstTransports));
+      firstTransports.push('secondary');
+
+      const secondCause = logger.getHookErrors()[0]?.cause;
+      assert.ok(secondCause instanceof Error);
+      assert.strictEqual(secondCause.message, 'onTransportError boom');
+      assert.deepStrictEqual(secondCause.cause, { 'transports': ['primary'] });
+      assert.strictEqual(logger.hookErrorCount, 1);
     });
 
     void it('one failing transport with a failing onTransportError override does not block delivery to other transports', () => {
@@ -688,6 +793,50 @@ void describe('Logger', () => {
       assert.strictEqual(logger.getHookErrors()[0]?.hookName, 'onTransportError');
     });
 
+    void it('records an async onTransportError rejection without blocking later transport delivery', async () => {
+      const deliveries: string[] = [];
+      const hookFailure = new Error('async onTransportError boom');
+      const rejectionEvents: unknown[] = [];
+      const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+
+      class AsyncRejectingTransportErrorLogger extends Logger {
+        protected override async onTransportError(): Promise<void> {
+          await Promise.resolve();
+          throw hookFailure;
+        }
+      }
+
+      const throwingTransport = FunctionTransport.create(() => {
+        throw new Error('transport write failure');
+      });
+      const laterTransport = FunctionTransport.create(() => { deliveries.push('later'); });
+
+      process.on('unhandledRejection', onUnhandledRejection);
+      try {
+        const logger = AsyncRejectingTransportErrorLogger.create({
+          'level': LOG_LEVEL.TRACE,
+          'transports': [throwingTransport, laterTransport]
+        });
+
+        logger.info(TestFactory.body('async-fan-out'));
+        assert.deepStrictEqual(deliveries, ['later']);
+
+        await new Promise((resolve) => { setImmediate(resolve); });
+        await new Promise((resolve) => { setImmediate(resolve); });
+
+        assert.strictEqual(rejectionEvents.length, 0);
+        assert.strictEqual(logger.hookErrorCount, 1);
+        const [entry] = logger.getHookErrors();
+        assert.ok(entry);
+        assert.strictEqual(entry.hookName, 'onTransportError');
+        assert.ok(entry.cause instanceof Error);
+        assert.notStrictEqual(entry.cause, hookFailure);
+        assert.strictEqual(entry.cause.message, hookFailure.message);
+      } finally {
+        process.off('unhandledRejection', onUnhandledRejection);
+      }
+    });
+
     void it('HookInvocationError carries the failing hook name and the original cause', () => {
       class ThrowingLogLogger extends Logger {
         protected override onLog(): void {
@@ -703,8 +852,9 @@ void describe('Logger', () => {
       } catch (error) {
         assert.ok(error instanceof HookInvocationError);
         assert.strictEqual(error.hookName, 'onLog');
-        assert.ok(error.cause instanceof Error);
-        assert.strictEqual((error.cause as Error).message, 'onLog boom');
+        const cause = error.cause;
+        assert.ok(cause instanceof Error);
+        assert.strictEqual(cause.message, 'onLog boom');
       }
     });
   });

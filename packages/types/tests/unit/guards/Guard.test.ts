@@ -3,42 +3,6 @@ import { it } from 'node:test';
 
 import { Guard } from '../../../src/guards/Guard.js';
 
-// Guard.asRecord — identity check
-void it('Guard.asRecord returns the value when it is a record', () => {
-  const obj = { key: 'value' };
-  assert.strictEqual(Guard.asRecord(obj), obj);
-});
-
-const asRecordUndefinedScenarios: Array<{ description: string; value: unknown }> = [
-  { description: 'Guard.asRecord returns undefined for null', value: null },
-  { description: 'Guard.asRecord returns undefined for array', value: [] },
-  { description: 'Guard.asRecord returns undefined for string', value: 'text' },
-  { description: 'Guard.asRecord returns undefined for number', value: 0 },
-];
-for (const { description, value } of asRecordUndefinedScenarios) {
-  void it(description, () => { assert.strictEqual(Guard.asRecord(value), undefined); });
-}
-
-// Guard.asString — truthy cases
-const asStringTruthyScenarios: Array<{ description: string; value: unknown; expected: string }> = [
-  { description: 'Guard.asString returns the string for non-empty string', value: 'hello', expected: 'hello' },
-  { description: 'Guard.asString returns the string for empty string', value: '', expected: '' },
-];
-for (const { description, value, expected } of asStringTruthyScenarios) {
-  void it(description, () => { assert.strictEqual(Guard.asString(value), expected); });
-}
-
-// Guard.asString — undefined cases
-const asStringUndefinedScenarios: Array<{ description: string; value: unknown }> = [
-  { description: 'Guard.asString returns undefined for number', value: 42 },
-  { description: 'Guard.asString returns undefined for null', value: null },
-  { description: 'Guard.asString returns undefined for boolean', value: true },
-  { description: 'Guard.asString returns undefined for undefined', value: undefined },
-];
-for (const { description, value } of asStringUndefinedScenarios) {
-  void it(description, () => { assert.strictEqual(Guard.asString(value), undefined); });
-}
-
 // Guard.asNumber — truthy cases
 const asNumberTruthyScenarios: Array<{ description: string; value: unknown; expected: number }> = [
   { description: 'Guard.asNumber returns the number for 42', value: 42, expected: 42 },
@@ -191,15 +155,6 @@ const isObjectScenarios: Array<{ description: string; value: unknown; expected: 
 for (const { description, value, expected } of isObjectScenarios) {
   void it(description, () => { assert.equal(Guard.isObject(value), expected); });
 }
-
-// Guard.asRecord — Map/Set exclusion
-void it('Guard.asRecord returns undefined for a Map', () => {
-  assert.strictEqual(Guard.asRecord(new Map()), undefined);
-});
-
-void it('Guard.asRecord returns undefined for a Set', () => {
-  assert.strictEqual(Guard.asRecord(new Set()), undefined);
-});
 
 // Guard.isNonNegativeInteger
 const isNonNegativeIntegerScenarios: Array<{ description: string; value: unknown; expected: boolean }> = [

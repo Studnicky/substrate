@@ -1,5 +1,7 @@
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
 import { SchemaValidator } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
 
 /**
  * Correlation fields for tracing operations across the stack.
@@ -36,9 +38,9 @@ export namespace CorrelationFieldsEntity {
     'required': ['requestId'],
     'title': 'CorrelationFields',
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
 }

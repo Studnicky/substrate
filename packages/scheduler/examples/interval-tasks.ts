@@ -5,12 +5,12 @@
  *
  * Run: npx tsx packages/scheduler/examples/interval-tasks.ts
  */
+import { VirtualTimeCounter } from '@studnicky/clock';
 import assert from 'node:assert/strict';
 
-// #region usage
-import { VirtualTimeCounter } from '../../clock/src/index.js';
 import { VirtualScheduler } from '../src/index.js';
 
+// #region usage
 // --- Part 1: interval fires the expected number of times ---
 
 const counter = VirtualTimeCounter.create({ 'startMs': 0 });

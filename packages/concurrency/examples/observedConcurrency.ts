@@ -3,9 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import { Channel } from '../src/Channel.js';
-import { Coalesce } from '../src/Coalesce.js';
-import { Semaphore } from '../src/Semaphore.js';
+import { Channel, Coalesce, Semaphore } from '../src/index.js';
 
 class ObservedSemaphore extends Semaphore {
   readonly acquireEvents: number[] = [];

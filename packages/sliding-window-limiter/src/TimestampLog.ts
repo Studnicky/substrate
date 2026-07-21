@@ -11,11 +11,6 @@
 import { CircularBuffer } from '@studnicky/circular-buffer';
 
 export class TimestampLog extends CircularBuffer<number> {
-  /** Construct a TimestampLog with the given fixed capacity. */
-  static make(capacity: number): TimestampLog {
-    return new this({ 'capacity': capacity });
-  }
-
   /** Returns the oldest (front) timestamp without removing it, or undefined if empty. */
   peek(): number | undefined {
     if (this.length === 0) {

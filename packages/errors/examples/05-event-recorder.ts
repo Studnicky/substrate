@@ -2,21 +2,20 @@
 
 import assert from 'node:assert/strict';
 
-// #region usage
-// Published as a subpath export: import { EventRecorder } from '@studnicky/errors/observers';
-import { EventRecorder } from '../src/observers/index.js';
+import type { CacheEventEntity } from './entities/CacheEventEntity.js';
 
-// json-schema-uninexpressible: minimal demo-only event type for a runnable doc example, not a shipped domain shape
-type CacheEventType = { 'event': 'hit' | 'miss'; 'key': string };
+// #region usage
+// Published at the package root: import { EventRecorder } from '@studnicky/errors';
+import { EventRecorder } from '../src/index.js';
 
 class TracingCache {
   readonly #store = new Map<string, number>();
-  readonly #recorder = new EventRecorder<CacheEventType>();
+  readonly #recorder = new EventRecorder<CacheEventEntity.Type>();
 
-  get events(): CacheEventType[] { return this.#recorder.events; }
+  get events(): readonly CacheEventEntity.Type[] { return this.#recorder.events; }
 
   protected onAccess(key: string, hit: boolean): void {
-    const event: CacheEventType = { 'event': hit ? 'hit' : 'miss', 'key': key };
+    const event: CacheEventEntity.Type = { 'event': hit ? 'hit' : 'miss', 'key': key };
     this.#recorder.record(event, `[cache] ${event.event} key=${key}`);
   }
 

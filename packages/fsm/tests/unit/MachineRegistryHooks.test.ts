@@ -3,22 +3,20 @@ import assert from 'node:assert/strict';
 import { StateMachine } from '../../src/StateMachine.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MachineRegistry } from '../../src/MachineRegistry.js';
-import type { FsmStepType } from '../../src/FsmStepType.js';
+import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
 
 type SimpleState = { readonly 'variant': 'idle' };
 type SimpleEvent = { readonly 'type': 'noop' };
 
 class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
   getInitialState(): SimpleState { return { 'variant': 'idle' }; }
-  reduce(state: SimpleState, _event: SimpleEvent): FsmStepType<SimpleState> {
+  reduce(state: SimpleState, _event: SimpleEvent): FsmStepInterface<SimpleState> {
     return { 'effects': [], 'state': state };
   }
 }
 
-type BoundedInterpreter = EffectInterpreter<{ readonly 'variant': string }, { readonly 'type': string }, { readonly 'variant': string }>;
-
-class ObservedRegistry extends MachineRegistry {
-  static override create(): ObservedRegistry {
+class ObservedRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
+  static make(): ObservedRegistry {
     return new ObservedRegistry();
   }
 
@@ -39,15 +37,15 @@ class ObservedRegistry extends MachineRegistry {
   }
 }
 
-function makeInterpreter(): BoundedInterpreter {
-  return EffectInterpreter.create({ 'machine': new SimpleMachine() }) as BoundedInterpreter;
+function makeInterpreter(): EffectInterpreter<SimpleState, SimpleEvent> {
+  return EffectInterpreter.create({ 'machine': new SimpleMachine() });
 }
 
 describe('MachineRegistry lifecycle hooks', () => {
   let registry: ObservedRegistry;
 
   beforeEach(() => {
-    registry = ObservedRegistry.create();
+    registry = ObservedRegistry.make();
   });
 
   it('onRegister fires with the registered id', () => {
@@ -101,8 +99,8 @@ describe('MachineRegistry lifecycle hooks', () => {
   it('hooks fire in correct order across a full register → get-miss → unregister cycle', () => {
     const order: string[] = [];
 
-    class OrderedRegistry extends MachineRegistry {
-      static override create(): OrderedRegistry {
+    class OrderedRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
+      static make(): OrderedRegistry {
         return new OrderedRegistry();
       }
 
@@ -111,7 +109,7 @@ describe('MachineRegistry lifecycle hooks', () => {
       protected override onResolveMiss(_id: string): void { order.push('miss'); }
     }
 
-    const orderedRegistry = OrderedRegistry.create();
+    const orderedRegistry = OrderedRegistry.make();
     orderedRegistry.register('cycle', makeInterpreter());
     orderedRegistry.get('unknown-for-miss');
     orderedRegistry.unregister('cycle');
@@ -120,8 +118,8 @@ describe('MachineRegistry lifecycle hooks', () => {
   });
 
   it('a throwing onRegister hook does not replace a completed registration', () => {
-    class ThrowingRegisterRegistry extends MachineRegistry {
-      static override create(): ThrowingRegisterRegistry {
+    class ThrowingRegisterRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
+      static make(): ThrowingRegisterRegistry {
         return new ThrowingRegisterRegistry();
       }
 
@@ -130,7 +128,7 @@ describe('MachineRegistry lifecycle hooks', () => {
       }
     }
 
-    const throwingRegistry = ThrowingRegisterRegistry.create();
+    const throwingRegistry = ThrowingRegisterRegistry.make();
     const interpreter = makeInterpreter();
 
     assert.doesNotThrow(() => {
@@ -140,8 +138,8 @@ describe('MachineRegistry lifecycle hooks', () => {
   });
 
   it('a throwing onResolveMiss hook does not replace an undefined lookup', () => {
-    class ThrowingMissRegistry extends MachineRegistry {
-      static override create(): ThrowingMissRegistry {
+    class ThrowingMissRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
+      static make(): ThrowingMissRegistry {
         return new ThrowingMissRegistry();
       }
 
@@ -150,7 +148,7 @@ describe('MachineRegistry lifecycle hooks', () => {
       }
     }
 
-    const throwingRegistry = ThrowingMissRegistry.create();
+    const throwingRegistry = ThrowingMissRegistry.make();
 
     assert.doesNotThrow(() => {
       assert.equal(throwingRegistry.get('missing'), undefined);
@@ -158,8 +156,8 @@ describe('MachineRegistry lifecycle hooks', () => {
   });
 
   it('a throwing onUnregister hook does not replace a completed deletion', () => {
-    class ThrowingUnregisterRegistry extends MachineRegistry {
-      static override create(): ThrowingUnregisterRegistry {
+    class ThrowingUnregisterRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
+      static make(): ThrowingUnregisterRegistry {
         return new ThrowingUnregisterRegistry();
       }
 
@@ -168,7 +166,7 @@ describe('MachineRegistry lifecycle hooks', () => {
       }
     }
 
-    const throwingRegistry = ThrowingUnregisterRegistry.create();
+    const throwingRegistry = ThrowingUnregisterRegistry.make();
     throwingRegistry.register('gone', makeInterpreter());
 
     assert.doesNotThrow(() => {
@@ -177,9 +175,9 @@ describe('MachineRegistry lifecycle hooks', () => {
     assert.equal(throwingRegistry.has('gone'), false);
   });
 
-  it('an async-overridden onRegister hook that rejects is routed through onHookError without an unhandled rejection, because invoke() actually receives its return value', async () => {
-    class AsyncRejectingRegisterRegistry extends MachineRegistry {
-      static override create(): AsyncRejectingRegisterRegistry {
+  it('captures a rejected async onRegister hook without an unhandled rejection', async () => {
+    class AsyncRejectingRegisterRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
+      static make(): AsyncRejectingRegisterRegistry {
         return new AsyncRejectingRegisterRegistry();
       }
 
@@ -194,7 +192,7 @@ describe('MachineRegistry lifecycle hooks', () => {
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
-      const asyncRegistry = AsyncRejectingRegisterRegistry.create();
+      const asyncRegistry = AsyncRejectingRegisterRegistry.make();
       const interpreter = makeInterpreter();
 
       // register() never awaits invoke()'s return — this call is synchronous.

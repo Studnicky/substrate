@@ -5,14 +5,14 @@ import {
 
 import {
   AbortError,
-  HttpMethods,
+  FetchClient,
   TimeoutError
 } from '../../../src/index.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 
-const { fetch: fetchWithTimeout } = HttpMethods;
+const client = FetchClient.create();
 
 void describe('Error Handling', () => {
   let testUrl: string;
@@ -28,7 +28,7 @@ void describe('Error Handling', () => {
   void describe('TimeoutError', () => {
     void it('should have correct properties', async () => {
       try {
-        await fetchWithTimeout(`${testUrl}/posts/1`, { timeout: 1 });
+        await client.get(`${testUrl}/posts/1`, { timeout: 1 });
         assert.fail('Should have thrown TimeoutError');
       } catch (error) {
         assert.ok(error instanceof TimeoutError);
@@ -42,7 +42,7 @@ void describe('Error Handling', () => {
 
     void it('should be instance of Error', async () => {
       try {
-        await fetchWithTimeout(`${testUrl}/posts/1`, { timeout: 1 });
+        await client.get(`${testUrl}/posts/1`, { timeout: 1 });
         assert.fail('Should have thrown');
       } catch (error) {
         assert.ok(error instanceof Error);
@@ -60,7 +60,7 @@ void describe('Error Handling', () => {
       }, 10);
 
       try {
-        await fetchWithTimeout(`${testUrl}/delay`, { signal: controller.signal });
+        await client.get(`${testUrl}/delay`, { signal: controller.signal });
         assert.fail('Should have thrown AbortError');
       } catch (error) {
         assert.ok(error instanceof AbortError);
@@ -78,7 +78,7 @@ void describe('Error Handling', () => {
       }, 10);
 
       try {
-        await fetchWithTimeout(`${testUrl}/delay`, { signal: controller.signal });
+        await client.get(`${testUrl}/delay`, { signal: controller.signal });
         assert.fail('Should have thrown');
       } catch (error) {
         assert.ok(error instanceof Error);
@@ -91,7 +91,7 @@ void describe('Error Handling', () => {
     void it('should propagate network errors', async () => {
       await assert.rejects(
         async () => {
-          await fetchWithTimeout('https://invalid-domain-that-does-not-exist-12345.com');
+          await client.get('https://invalid-domain-that-does-not-exist-12345.com');
         },
         (error: unknown) => {
           assert.ok(error instanceof Error);
@@ -106,7 +106,7 @@ void describe('Error Handling', () => {
 
   void describe('HTTP status errors', () => {
     void it('should return 404 response without throwing', async () => {
-      const response = await fetchWithTimeout(`${testUrl}/posts/999999`);
+      const response = await client.get(`${testUrl}/posts/999999`);
 
       assert.strictEqual(response.status, 404);
       assert.strictEqual(response.ok, false);

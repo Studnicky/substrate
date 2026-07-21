@@ -1,6 +1,7 @@
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
 import { ConfigurationError } from '@studnicky/config';
 import { SchemaValidator } from '@studnicky/json';
-import { type FromSchema, type JsonSchemaObjectType } from '@studnicky/types';
 
 export namespace AdaptiveConfigEntity {
   export const Schema = {
@@ -53,11 +54,9 @@ export namespace AdaptiveConfigEntity {
     },
     'required': ['enabled'],
     'type': 'object'
-  } as const satisfies JsonSchemaObjectType;
+  } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
-
-  export type AdaptiveConfigInputType = Partial<Omit<Required<Type>, 'enabled'>> & Pick<Required<Type>, 'enabled'>;
 
   const compiledValidate = SchemaValidator.compile<Type>(Schema);
 

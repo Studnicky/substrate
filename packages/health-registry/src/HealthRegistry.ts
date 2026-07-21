@@ -1,36 +1,16 @@
 /** Named async health-check registry with worst-status-wins aggregation */
 
-import { HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 
 import type { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
-import type { HealthCheckResultType } from './types/HealthCheckResultType.js';
-import type { HealthCheckType } from './types/HealthCheckType.js';
-import type { HealthEvaluationType } from './types/HealthEvaluationType.js';
-import type { HealthStatusType } from './types/HealthStatusType.js';
-import type { HookErrorEntryType } from './types/HookErrorEntryType.js';
+import type { HealthStatusEntity } from './entities/HealthStatusEntity.js';
+import type { HealthCheckInterface } from './interfaces/HealthCheckInterface.js';
+import type { HealthCheckResultInterface } from './interfaces/HealthCheckResultInterface.js';
+import type { HealthEvaluationInterface } from './interfaces/HealthEvaluationInterface.js';
 
-type HealthCheckOptionsType = HealthCheckOptionsEntity.Type;
-
-// json-schema-uninexpressible: 'check' is a function type (HealthCheckType), not representable in JSON Schema
-type HealthCheckEntryType = {
-  readonly 'check': HealthCheckType;
+interface HealthCheckEntryInterface {
+  readonly 'check': HealthCheckInterface;
   readonly 'timeoutMs': number | undefined;
-};
-
-/**
- * Delegates hook-error handling back to the owning `HealthRegistry`'s
- * `#hookErrors`. Hoisted to module scope so V8 compiles this class once
- * rather than per `HealthRegistry` instantiation.
- */
-class HealthRegistryHookInvoker extends HookInvoker {
-  constructor(private readonly onFailure: (hookName: string, cause: unknown) => void) {
-    super();
-  }
-
-  protected override onHookError<T>(hookName: string, cause: unknown): T {
-    this.onFailure(hookName, cause);
-    return undefined as T;
-  }
 }
 
 /**
@@ -65,29 +45,43 @@ class HealthRegistryHookInvoker extends HookInvoker {
  * ```
  */
 export class HealthRegistry {
-  static create(): HealthRegistry {
-    return new HealthRegistry();
+  private static isConstructed<TInstance extends HealthRegistry>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
   }
 
-  readonly #registry = new Map<string, HealthCheckEntryType>();
-  readonly #hookErrors: HookErrorEntryType[] = [];
+  static readonly #OwnedHookInvoker = class HealthRegistryHookInvoker extends HookInvoker {
+    protected override onHookError(): void {}
+  };
+
+  static create<TInstance extends HealthRegistry>(
+    this: Function & { readonly 'prototype': TInstance }
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, []);
+    if (!HealthRegistry.isConstructed(result, this)) {
+      throw new TypeError('HealthRegistry.create() must construct a HealthRegistry instance');
+    }
+    return result;
+  }
+
+  readonly #registry = new Map<string, HealthCheckEntryInterface>();
   protected readonly hooks: HookInvoker;
 
   protected constructor() {
-    this.hooks = new HealthRegistryHookInvoker((hookName, cause) => {
-      this.#hookErrors.push({ 'cause': cause, 'hookName': hookName });
-    });
+    this.hooks = new HealthRegistry.#OwnedHookInvoker();
   }
 
   /** Count of hook failures recorded by `onHookError` since construction. */
   get hookErrorCount(): number {
-    const result = this.#hookErrors.length;
+    const result = this.hooks.hookErrorCount;
     return result;
   }
 
   /** Returns a defensive copy of every hook failure recorded since construction. */
-  getHookErrors(): readonly HookErrorEntryType[] {
-    const result = [...this.#hookErrors];
+  getHookErrors(): readonly HookInvocationError[] {
+    const result = this.hooks.getHookErrors();
     return result;
   }
 
@@ -98,8 +92,8 @@ export class HealthRegistry {
    * @param check - Async function resolving to a status and optional metadata
    * @param options - Per-check options; `timeoutMs` bounds how long the check may run
    */
-  register(name: string, check: HealthCheckType, options?: HealthCheckOptionsType): void {
-    const entry: HealthCheckEntryType = {
+  register(name: string, check: HealthCheckInterface, options?: HealthCheckOptionsEntity.Type): void {
+    const entry: HealthCheckEntryInterface = {
       'check': check,
       'timeoutMs': options?.timeoutMs
     };
@@ -130,19 +124,25 @@ export class HealthRegistry {
    *
    * @returns The worst-status-wins overall status and a map of every check's own result
    */
-  async evaluate(): Promise<HealthEvaluationType> {
+  async evaluate(): Promise<HealthEvaluationInterface> {
     const entries = [...this.#registry.entries()];
 
     const settled = await Promise.allSettled(
       entries.map(([name, entry]) => { const result = this.#runCheck(name, entry); return result; })
     );
 
-    const results = new Map<string, HealthCheckResultType>();
-    entries.forEach(([name], index) => {
-      const outcome = settled[index]!;
-      const result: HealthCheckResultType = outcome.status === 'fulfilled'
-        ? outcome.value
-        : { 'metadata': { 'error': outcome.reason as unknown }, 'status': 'unhealthy' };
+    const results = new Map<string, HealthCheckResultInterface>();
+    settled.forEach((outcome, index) => {
+      const entry = entries[index];
+      if (entry === undefined) { return; }
+      const [name] = entry;
+      let result: HealthCheckResultInterface;
+      if (outcome.status === 'fulfilled') {
+        result = outcome.value;
+      } else {
+        const reason: unknown = outcome.reason;
+        result = { 'metadata': { 'error': reason }, 'status': 'unhealthy' };
+      }
       results.set(name, result);
     });
 
@@ -155,7 +155,7 @@ export class HealthRegistry {
     return { 'results': results, 'status': overall };
   }
 
-  static #aggregate(results: ReadonlyMap<string, HealthCheckResultType>): HealthStatusType {
+  static #aggregate(results: ReadonlyMap<string, HealthCheckResultInterface>): HealthStatusEntity.Type {
     let hasDegraded = false;
     for (const result of results.values()) {
       if (result.status === 'unhealthy') {
@@ -168,8 +168,8 @@ export class HealthRegistry {
     return hasDegraded ? 'degraded' : 'healthy';
   }
 
-  async #runCheck(name: string, entry: HealthCheckEntryType): Promise<HealthCheckResultType> {
-    let result: HealthCheckResultType;
+  async #runCheck(name: string, entry: HealthCheckEntryInterface): Promise<HealthCheckResultInterface> {
+    let result: HealthCheckResultInterface;
 
     try {
       result = entry.timeoutMs !== undefined
@@ -186,14 +186,11 @@ export class HealthRegistry {
     return result;
   }
 
-  async #runWithTimeout(name: string, check: HealthCheckType, timeoutMs: number): Promise<HealthCheckResultType> {
+  async #runWithTimeout(name: string, check: HealthCheckInterface, timeoutMs: number): Promise<HealthCheckResultInterface> {
     const checkPromise = check();
-    // A check that loses the race may still reject later; swallow so it never
-    // surfaces as an unhandled rejection once the timeout branch has already settled.
-    checkPromise.catch(() => {});
 
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeoutPromise = new Promise<HealthCheckResultType>((resolve) => {
+    const timeoutPromise = new Promise<HealthCheckResultInterface>((resolve) => {
       timer = setTimeout(() => {
         this.hooks.invoke('onCheckTimeout', () => {
           const result = this.onCheckTimeout(name, timeoutMs);
@@ -221,10 +218,10 @@ export class HealthRegistry {
   protected onCheckRegistered(_name: string): void {}
 
   /** Fires once per check as it settles during `evaluate()` — success, rejection, or timeout. */
-  protected onCheckResult(_name: string, _status: HealthStatusType, _metadata?: unknown): void {}
+  protected onCheckResult(_name: string, _status: HealthStatusEntity.Type, _metadata?: unknown): void {}
 
   /** Fires once per `evaluate()` call, after every registered check has settled. */
-  protected onAggregate(_overall: HealthStatusType, _results: ReadonlyMap<string, HealthCheckResultType>): void {}
+  protected onAggregate(_overall: HealthStatusEntity.Type, _results: ReadonlyMap<string, HealthCheckResultInterface>): void {}
 
   /** Fires when a check exceeds its configured `timeoutMs`, in addition to `onCheckResult`. */
   protected onCheckTimeout(_name: string, _timeoutMs: number): void {}

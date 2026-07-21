@@ -1,3 +1,4 @@
+import type { CpuSnapshotEntity } from '../../entities/CpuSnapshotEntity.js';
 import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
 import type { NavigatorCompatEntity } from '../../entities/NavigatorCompatEntity.js';
 import type { SystemProviderInterface } from '../../interfaces/SystemProviderInterface.js';
@@ -5,9 +6,42 @@ import type { SystemProviderInterface } from '../../interfaces/SystemProviderInt
 import { GpuDetector } from '../../modules/browser/GpuDetector.js';
 
 export class SystemProvider implements SystemProviderInterface {
+  static #navigator(): NavigatorCompatEntity.Type {
+    const navigatorValue: unknown = Reflect.get(globalThis, 'navigator');
+    if (typeof navigatorValue !== 'object' || navigatorValue === null) {
+      return {
+        'deviceMemory': 0,
+        'hardwareConcurrency': 1,
+        'userAgent': '',
+        'userAgentData': { 'platform': '' }
+      };
+    }
+
+    const deviceMemoryValue: unknown = Reflect.get(navigatorValue, 'deviceMemory');
+    const hardwareConcurrencyValue: unknown = Reflect.get(navigatorValue, 'hardwareConcurrency');
+    const userAgentValue: unknown = Reflect.get(navigatorValue, 'userAgent');
+    const userAgentDataValue: unknown = Reflect.get(navigatorValue, 'userAgentData');
+    const platformValue: unknown = typeof userAgentDataValue === 'object' && userAgentDataValue !== null
+      ? Reflect.get(userAgentDataValue, 'platform')
+      : undefined;
+
+    return {
+      'deviceMemory': typeof deviceMemoryValue === 'number' && Number.isFinite(deviceMemoryValue)
+        ? deviceMemoryValue
+        : 0,
+      'hardwareConcurrency': typeof hardwareConcurrencyValue === 'number'
+        && Number.isInteger(hardwareConcurrencyValue)
+        && hardwareConcurrencyValue > 0
+        ? hardwareConcurrencyValue
+        : 1,
+      'userAgent': typeof userAgentValue === 'string' ? userAgentValue : '',
+      'userAgentData': { 'platform': typeof platformValue === 'string' ? platformValue : '' }
+    };
+  }
+
   arch(): string {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
-    const raw = nav?.userAgentData?.platform ?? nav?.userAgent ?? '';
+    const nav = SystemProvider.#navigator();
+    const raw = nav.userAgentData?.platform ?? nav.userAgent ?? '';
     const lower = raw.toLowerCase();
 
     if (lower.includes('mac') || lower.includes('iphone') || lower.includes('ipad')) {
@@ -19,7 +53,7 @@ export class SystemProvider implements SystemProviderInterface {
     return result;
   }
 
-  cpuInfo(): { 'logicalCount': number; 'model': string; 'physicalCount': number } {
+  cpuInfo(): CpuSnapshotEntity.Type {
     const logicalCount = this.logicalCpuCount();
 
     return {
@@ -45,8 +79,8 @@ export class SystemProvider implements SystemProviderInterface {
   }
 
   logicalCpuCount(): number {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
-    const result = nav?.hardwareConcurrency ?? 1;
+    const nav = SystemProvider.#navigator();
+    const result = nav.hardwareConcurrency ?? 1;
     return result;
   }
 
@@ -62,8 +96,8 @@ export class SystemProvider implements SystemProviderInterface {
   }
 
   platform(): string {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
-    const raw = nav?.userAgentData?.platform ?? nav?.userAgent ?? '';
+    const nav = SystemProvider.#navigator();
+    const raw = nav.userAgentData?.platform ?? nav.userAgent ?? '';
     const lower = raw.toLowerCase();
 
     if (lower.includes('mac') || lower.includes('iphone') || lower.includes('ipad')) {
@@ -86,14 +120,14 @@ export class SystemProvider implements SystemProviderInterface {
   }
 
   runtimeVersion(): string {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
-    const result = nav?.userAgent ?? 'unknown';
+    const nav = SystemProvider.#navigator();
+    const result = nav.userAgent ?? 'unknown';
     return result;
   }
 
   totalMb(): number {
-    const nav = (globalThis as unknown as { 'navigator'?: NavigatorCompatEntity.Type }).navigator;
-    const gb = nav?.deviceMemory;
+    const nav = SystemProvider.#navigator();
+    const gb = nav.deviceMemory;
 
     if (gb === undefined) {
       const result = 0;
