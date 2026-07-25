@@ -3,30 +3,30 @@
     {
       "name": "constructor-invalid-agent",
       "description": "UndiciDispatcher.create rejects non-Agent values",
-      "kind": "constructor-invalid-agent",
+      "shape": "constructor-invalid-agent",
       "input": {
         "agent": {}
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "message": "dispatcher agent must be an undici Agent"
       }
     },
     {
       "name": "health-no-stats",
       "description": "UndiciDispatcher.checkDispatcherHealth returns healthy when stats are absent",
-      "kind": "health-no-stats",
+      "shape": "health-no-stats",
       "input": {
         "origin": "https://example.test"
       },
       "expected": {
-        "kind": "healthy"
+        "shape": "healthy"
       }
     },
     {
       "name": "health-invalid-stats",
       "description": "UndiciDispatcher.checkDispatcherHealth returns healthy when stats are invalid",
-      "kind": "health-invalid-stats",
+      "shape": "health-invalid-stats",
       "input": {
         "origin": "https://example.test",
         "stats": {
@@ -36,13 +36,13 @@
         }
       },
       "expected": {
-        "kind": "healthy"
+        "shape": "healthy"
       }
     },
     {
       "name": "health-ok",
       "description": "UndiciDispatcher.checkDispatcherHealth returns healthy for low queue ratio",
-      "kind": "health-ok",
+      "shape": "health-ok",
       "input": {
         "origin": "https://example.test",
         "stats": {
@@ -55,14 +55,14 @@
         }
       },
       "expected": {
-        "kind": "health",
+        "shape": "health",
         "healthy": true
       }
     },
     {
       "name": "health-pressure",
       "description": "UndiciDispatcher.checkDispatcherHealth reports pressure",
-      "kind": "health-pressure",
+      "shape": "health-pressure",
       "input": {
         "origin": "https://example.test",
         "stats": {
@@ -75,7 +75,7 @@
         }
       },
       "expected": {
-        "kind": "health",
+        "shape": "health",
         "healthy": false,
         "recommendationIncludes": "under pressure"
       }
@@ -83,7 +83,7 @@
     {
       "name": "health-overload",
       "description": "UndiciDispatcher.checkDispatcherHealth reports overload",
-      "kind": "health-overload",
+      "shape": "health-overload",
       "input": {
         "origin": "https://example.test",
         "stats": {
@@ -96,7 +96,7 @@
         }
       },
       "expected": {
-        "kind": "health",
+        "shape": "health",
         "healthy": false,
         "recommendationIncludes": "overloaded"
       }
@@ -104,7 +104,7 @@
     {
       "name": "get-stats-freeze",
       "description": "UndiciDispatcher.getStats returns frozen nested stats",
-      "kind": "get-stats-freeze",
+      "shape": "get-stats-freeze",
       "input": {
         "origin": "https://example.test",
         "stats": {
@@ -119,59 +119,59 @@
         }
       },
       "expected": {
-        "kind": "frozen"
+        "shape": "frozen"
       }
     },
     {
       "name": "close-agent",
       "description": "UndiciDispatcher.close calls the underlying agent",
-      "kind": "close-agent",
+      "shape": "close-agent",
       "input": {
         "agent": {}
       },
       "expected": {
-        "kind": "called"
+        "shape": "called"
       }
     },
     {
       "name": "destroy-agent",
       "description": "UndiciDispatcher.destroy calls the underlying agent",
-      "kind": "destroy-agent",
+      "shape": "destroy-agent",
       "input": {
         "agent": {}
       },
       "expected": {
-        "kind": "called"
+        "shape": "called"
       }
     },
     {
       "name": "destroy-agent-delay",
       "description": "UndiciDispatcher.destroy waits before destroying when timeout is positive",
-      "kind": "destroy-agent-delay",
+      "shape": "destroy-agent-delay",
       "input": {
         "timeout": 1,
         "agent": {}
       },
       "expected": {
-        "kind": "called"
+        "shape": "called"
       }
     },
     {
       "name": "destroy-agent-zero",
       "description": "UndiciDispatcher.destroy skips the delay when timeout is zero",
-      "kind": "destroy-agent-zero",
+      "shape": "destroy-agent-zero",
       "input": {
         "timeout": 0,
         "agent": {}
       },
       "expected": {
-        "kind": "called"
+        "shape": "called"
       }
     },
     {
       "name": "test-dispatcher-health",
       "description": "UndiciDispatcher.checkDispatcherHealth delegates to TestDispatcher",
-      "kind": "test-dispatcher-health",
+      "shape": "test-dispatcher-health",
       "input": {
         "origin": "https://example.test",
         "testDispatcher": {
@@ -180,13 +180,13 @@
         }
       },
       "expected": {
-        "kind": "healthy"
+        "shape": "healthy"
       }
     },
     {
       "name": "test-dispatcher-close",
       "description": "UndiciDispatcher.close delegates to TestDispatcher",
-      "kind": "test-dispatcher-close",
+      "shape": "test-dispatcher-close",
       "input": {
         "testDispatcher": {
           "connections": 2,
@@ -194,13 +194,13 @@
         }
       },
       "expected": {
-        "kind": "called"
+        "shape": "called"
       }
     },
     {
       "name": "test-dispatcher-destroy",
       "description": "UndiciDispatcher.destroy delegates to TestDispatcher",
-      "kind": "test-dispatcher-destroy",
+      "shape": "test-dispatcher-destroy",
       "input": {
         "testDispatcher": {
           "connections": 2,
@@ -208,7 +208,7 @@
         }
       },
       "expected": {
-        "kind": "called"
+        "shape": "called"
       }
     }
   ]

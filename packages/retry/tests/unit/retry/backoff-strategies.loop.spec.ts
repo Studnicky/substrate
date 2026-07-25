@@ -6,7 +6,7 @@ import scenarioGroups from './backoff-strategies.scenarios.json';
 
 type StrategyName = 'constant' | 'exponential' | 'linear';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'ceiling'
   | 'constant'
   | 'decorrelated-range'
@@ -31,7 +31,7 @@ type ScenarioInput = {
 };
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: ScenarioKind; name: string };
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: ScenarioShape; name: string };
 
 const strategyMap: Record<StrategyName, (attempt: number, baseDelay: number) => number> = {
   'constant': BackoffStrategy.constant,
@@ -57,7 +57,7 @@ function readSampleCount(scenarioCase: ScenarioCase): number {
   return sampleCount;
 }
 
-const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => void> = {
   'ceiling': (scenarioCase) => {
     const strategy = strategyMap[scenarioCase.input.strategy ?? 'constant'];
     const capped = BackoffStrategy.withCeiling(strategy, Number(scenarioCase.input.ceiling));
@@ -110,7 +110,7 @@ const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => void> = {
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('BackoffStrategy', () => {

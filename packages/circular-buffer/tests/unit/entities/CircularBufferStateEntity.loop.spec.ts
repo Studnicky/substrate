@@ -5,7 +5,7 @@ import { CircularBufferStateEntity } from '../../../src/index.js';
 import scenarioGroups from './CircularBufferStateEntity.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: { validationResults: boolean[] }; input: { validations: { expected: boolean; value: Record<string, unknown> }[] }; kind: 'invalid-lengths' | 'valid-length'; name: string };
+  | { description: string; expected: { validationResults: boolean[] }; input: { validations: { expected: boolean; value: Record<string, unknown> }[] }; shape: 'invalid-lengths' | 'valid-length'; name: string };
 
 function runCase(scenarioCase: ScenarioCase): void {
   const results = scenarioCase.input.validations.map((validation) => {

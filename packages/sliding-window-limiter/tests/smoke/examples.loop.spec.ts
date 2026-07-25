@@ -9,7 +9,7 @@ type ScenarioCase = {
   description: string;
   expected: { importsWithoutThrow: true };
   input: { file: string };
-  kind: 'imports-example';
+  shape: 'imports-example';
   name: string;
 };
 

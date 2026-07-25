@@ -54,7 +54,10 @@ void describe('type-alias-invariants', () => {
       { filename: scenarioGroups.severity.disabledFilename }
     );
 
-    assert.equal(warning.length, scenarioGroups.severity.expectedWarningCount);
+    assert.deepEqual(
+      warning.map((message) => { return message.messageId; }),
+      scenarioGroups.severity.expectedMessageIds
+    );
     assert.equal(warning.at(0)?.severity, scenarioGroups.severity.expectedWarningSeverity);
     assert.deepEqual(disabled, []);
   });

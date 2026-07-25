@@ -13,7 +13,7 @@ type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: ScenarioInput;
-  kind: string;
+  shape: string;
   name: string;
 };
 
@@ -114,9 +114,9 @@ function keyedRateLimiterConfig(input: ScenarioInput, clock?: () => number): Key
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { expected, input, kind } = scenarioCase;
+  const { expected, input, shape } = scenarioCase;
 
-  const runnerMap: Record<ScenarioCase['kind'], () => Promise<void> | void> = {
+  const runnerMap: Record<ScenarioCase['shape'], () => Promise<void> | void> = {
     'entities-valid': () => {
       assert.equal(KeyedRateLimiterRegistryOptionsEntity.validate(registryInput(input)), expected.accepted);
       assert.equal(RateLimitRequestEntity.validate(rateLimitRequestInput(input)), expected.accepted);
@@ -328,7 +328,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
   };
 
-  await runnerMap[kind]();
+  await runnerMap[shape]();
 }
 
 void describe('keyed-rate-limiter', () => {

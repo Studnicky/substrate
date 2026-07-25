@@ -11,30 +11,30 @@ import scenarioGroups from './batchHooks.scenarios.json';
 type ScenarioInput = Record<string, unknown> & { batch?: { maxConcurrent?: number } };
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-batch-start' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-item-start' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-item-success' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-item-error' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-item-settled' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-item-success-order' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-item-error-order' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-concurrency-saturated' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-batch-complete' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'on-batch-complete-abort' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-settled-batch-start' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-settled-item-success-error' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-settled-item-settled' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-settled-batch-complete' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-settled-saturation' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-settled-indices' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-settled-all-fail' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'throwing-success-hook' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'throwing-complete-hook' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'continue-on-hook-error' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'async-hook-error-safe' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'hook-errors-owned-by-instance' };
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-batch-start' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-start' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-success' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-error' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-settled' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-success-order' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-error-order' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-concurrency-saturated' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-batch-complete' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-batch-complete-abort' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-batch-start' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-item-success-error' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-item-settled' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-batch-complete' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-saturation' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-indices' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-all-fail' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'throwing-success-hook' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'throwing-complete-hook' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'continue-on-hook-error' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'async-hook-error-safe' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'hook-errors-owned-by-instance' };
 
-type ScenarioKind = ScenarioCase['kind'];
+type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
 class RecordingBatch<TResult = unknown> extends Batch<TResult> {
@@ -71,7 +71,7 @@ function assertErrorMessageIncludes(error: unknown, expectedMessage: string): vo
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'on-batch-start': async ({ expected, input }) => {
     const rec = createRecordingBatch<number>(input);
     await collectBatches(rec.process(input.items as number[], async (n) => n));
@@ -366,7 +366,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Batch hooks', () => {

@@ -17,14 +17,14 @@ type ScenarioCase =
       description: string;
       expected: { message: string };
       input: { capacity: number; machineId: string };
-      kind: 'missing-machine' | 'empty-machine-id' | 'non-positive-capacity' | 'non-integer-capacity';
+      shape: 'missing-machine' | 'empty-machine-id' | 'non-positive-capacity' | 'non-integer-capacity';
       name: string;
     }
   | {
       description: string;
       expected: { historyLength: 0; initialState: ToggleState };
       input: { capacity: number; machineId: string };
-      kind: 'history-empty-before-transitions';
+      shape: 'history-empty-before-transitions';
       name: string;
     }
   | {
@@ -34,14 +34,14 @@ type ScenarioCase =
         records: Array<{ from: ToggleState; to: ToggleState }>;
       };
       input: { capacity: number; machineId: string; steps: number };
-      kind: 'records-transitions-in-order';
+      shape: 'records-transitions-in-order';
       name: string;
     }
   | {
       description: string;
       expected: { historyLength: 0; state: ToggleState };
       input: { capacity: number; machineId: string };
-      kind: 'no-record-for-unchanged-state';
+      shape: 'no-record-for-unchanged-state';
       name: string;
     }
   | {
@@ -51,21 +51,21 @@ type ScenarioCase =
         records: Array<{ from: ToggleState; to: ToggleState }>;
       };
       input: { capacity: number; machineId: string; steps: number };
-      kind: 'evicts-oldest-when-capacity-exceeded';
+      shape: 'evicts-oldest-when-capacity-exceeded';
       name: string;
     }
   | {
       description: string;
       expected: { finalLength: number; snapshotLength: number };
       input: { capacity: number; machineId: string; steps: number };
-      kind: 'snapshot-isolated-from-later-transitions';
+      shape: 'snapshot-isolated-from-later-transitions';
       name: string;
     }
   | {
       description: string;
       expected: { length: number; sameReference: false };
       input: { capacity: number; machineId: string; steps: number };
-      kind: 'fresh-array-each-call';
+      shape: 'fresh-array-each-call';
       name: string;
     }
   | {
@@ -77,14 +77,14 @@ type ScenarioCase =
         machineId: string;
         replacementValues: { event: number; from: number; to: number };
       };
-      kind: 'deeply-isolated-history-records';
+      shape: 'deeply-isolated-history-records';
       name: string;
     }
   | {
       description: string;
       expected: { finalState: ToggleState; initialState: ToggleState; logged: string[] };
       input: { capacity: number; machineId: string; message: string };
-      kind: 'fully-functional-effect-interpreter';
+      shape: 'fully-functional-effect-interpreter';
       name: string;
     };
 
@@ -115,7 +115,7 @@ function createSameVariantMachine(): StateMachine<ToggleState, ToggleEvent> {
   return new SameVariantMachine();
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'empty-machine-id': async (scenarioCase) => {
     assert.throws(
       () => InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: new ToggleMachine(), machineId: scenarioCase.input.machineId }),
@@ -239,7 +239,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('InterpreterHistory', () => {

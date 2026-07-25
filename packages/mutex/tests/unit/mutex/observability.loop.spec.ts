@@ -29,7 +29,7 @@ type ScenarioData = {
   name: string;
 };
 
-type ScenarioKind =
+type ScenarioShape =
   | 'afterAcquire-error-does-not-stop-queue'
   | 'afterAcquire-immediate'
   | 'afterAcquire-separate-keys'
@@ -55,9 +55,25 @@ type ScenarioKind =
   | 'onTimeout-throw-does-not-replace-error'
   | 'tracks-all-metrics';
 
-type ScenarioCase = ScenarioData & { kind: ScenarioKind };
+type ScenarioCase = ScenarioData & { shape: ScenarioShape };
 type ReleaseFunction = () => void;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+type AnyErrorConstructor = new (...args: never[]) => Error;
+
+const mutexErrorTypes = {
+  'LockTimeoutError': LockTimeoutError
+} satisfies Record<string, AnyErrorConstructor>;
+
+function isMutexErrorTypeName(value: string): value is keyof typeof mutexErrorTypes {
+  return Object.hasOwn(mutexErrorTypes, value);
+}
+
+function mutexErrorTypeInput(value: string): (typeof mutexErrorTypes)[keyof typeof mutexErrorTypes] {
+  if (!isMutexErrorTypeName(value)) {
+    throw new Error(`Unknown mutex error type name: ${value}`);
+  }
+  return mutexErrorTypes[value];
+}
 
 class AcquireTrackingMutex extends Mutex<string> {
   readonly acquireEvents: Array<{ key: string; waitTimeMs: number }> = [];
@@ -269,6 +285,13 @@ function readNumber(value: unknown, label: string): number {
   return value;
 }
 
+function readBoolean(value: unknown, label: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new Error(`${label} must be a boolean`);
+  }
+  return value;
+}
+
 function readString(value: unknown, label: string): string {
   if (typeof value !== 'string') {
     throw new Error(`${label} must be a string`);
@@ -331,7 +354,7 @@ async function waitForHookRejections(): Promise<void> {
   await new Promise((resolve) => { setImmediate(resolve); });
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'afterAcquire-error-does-not-stop-queue': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const mutex = new ThrowingQueueMutex();
@@ -340,6 +363,10 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
     release();
     await releaseQueuedInOrder(pending);
     assert.deepStrictEqual(mutex.acquireKeys, scenarioCase.expected.acquiredKeys);
+    assert.strictEqual(
+      mutex.acquireKeys.length === pending.length + 1,
+      readBoolean(scenarioCase.expected.queueContinues, 'Scenario expected.queueContinues')
+    );
   },
   'afterAcquire-immediate': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
@@ -588,8 +615,9 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
     const mutex = new ThrowingTimeoutHookMutex(mutexConfig(scenarioCase));
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
+    const errorType = mutexErrorTypeInput(readString(scenarioCase.expected.errorName, 'Scenario expected.errorName'));
     for (const waiter of pending) {
-      await assert.rejects(waiter, LockTimeoutError);
+      await assert.rejects(waiter, errorType);
     }
     release();
   },
@@ -609,7 +637,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 const scenarioEntries: ScenarioCase[] = Object.values(scenarioGroups).flat();

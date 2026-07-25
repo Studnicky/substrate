@@ -3,7 +3,7 @@
     {
       "name": "onCreate-new-files",
       "description": "onCreate fires once for each new file written",
-      "kind": "onCreate-new-files",
+      "shape": "onCreate-new-files",
       "input": {
         "files": [
           { "path": "/a.txt", "content": "a" },
@@ -17,7 +17,7 @@
     {
       "name": "onCreate-recursive-mkdir",
       "description": "onCreate fires for each directory segment in recursive mkdirSync",
-      "kind": "onCreate-recursive-mkdir",
+      "shape": "onCreate-recursive-mkdir",
       "input": {
         "path": "/x/y/z"
       },
@@ -28,7 +28,7 @@
     {
       "name": "onCreate-no-overwrite",
       "description": "onCreate does not fire on overwrite",
-      "kind": "onCreate-no-overwrite",
+      "shape": "onCreate-no-overwrite",
       "input": {
         "path": "/f.txt",
         "first": "first",
@@ -41,7 +41,7 @@
     {
       "name": "onWrite-update-only",
       "description": "onWrite fires on update but not on initial write",
-      "kind": "onWrite-update-only",
+      "shape": "onWrite-update-only",
       "input": {
         "path": "/f.txt",
         "first": "first",
@@ -54,7 +54,7 @@
     {
       "name": "onRead-readFileSync",
       "description": "onRead fires on readFileSync",
-      "kind": "onRead-readFileSync",
+      "shape": "onRead-readFileSync",
       "input": {
         "path": "/r.txt",
         "content": "data"
@@ -66,7 +66,7 @@
     {
       "name": "onRead-readdirSync",
       "description": "onRead fires on readdirSync",
-      "kind": "onRead-readdirSync",
+      "shape": "onRead-readdirSync",
       "input": {
         "path": "/"
       },
@@ -77,7 +77,7 @@
     {
       "name": "onDelete-unlinkSync",
       "description": "onDelete fires once after unlinkSync",
-      "kind": "onDelete-unlinkSync",
+      "shape": "onDelete-unlinkSync",
       "input": {
         "path": "/d.txt",
         "content": "bye"
@@ -89,7 +89,7 @@
     {
       "name": "onDelete-not-before-unlink",
       "description": "onDelete does not fire before unlinkSync",
-      "kind": "onDelete-not-before-unlink",
+      "shape": "onDelete-not-before-unlink",
       "input": {
         "path": "/d.txt",
         "content": "data"
@@ -101,7 +101,7 @@
     {
       "name": "onRename-paths",
       "description": "onRename fires with correct old and new paths",
-      "kind": "onRename-paths",
+      "shape": "onRename-paths",
       "input": {
         "from": "/src.txt",
         "to": "/dst.txt",
@@ -116,7 +116,7 @@
     {
       "name": "full-trace",
       "description": "FullTraceFs tracks all hooks independently",
-      "kind": "full-trace",
+      "shape": "full-trace",
       "input": {
         "path": "/f.txt",
         "contentA": "first",
@@ -134,7 +134,7 @@
     {
       "name": "subclass-create-instance",
       "description": "subclass static create() returns subclass instance",
-      "kind": "subclass-create-instance",
+      "shape": "subclass-create-instance",
       "input": {
         "factory": "FullTraceFs.create"
       },
@@ -146,7 +146,7 @@
     {
       "name": "throwing-create-hook",
       "description": "a throwing onCreate hook still leaves the write applied, then throws HookInvocationError",
-      "kind": "throwing-create-hook",
+      "shape": "throwing-create-hook",
       "input": {
         "path": "/created.txt",
         "content": "hello"
@@ -159,7 +159,7 @@
     {
       "name": "throwing-write-hook",
       "description": "a throwing onWrite hook still leaves the overwrite applied, then throws HookInvocationError",
-      "kind": "throwing-write-hook",
+      "shape": "throwing-write-hook",
       "input": {
         "path": "/file.txt",
         "first": "first",
@@ -173,7 +173,7 @@
     {
       "name": "throwing-read-hook",
       "description": "a throwing onRead hook still returns the read outcome via the thrown cause, but propagates HookInvocationError",
-      "kind": "throwing-read-hook",
+      "shape": "throwing-read-hook",
       "input": {
         "path": "/read.txt",
         "content": "content"
@@ -185,7 +185,7 @@
     {
       "name": "throwing-rename-hook",
       "description": "a throwing onRename hook still leaves the rename applied, then throws HookInvocationError",
-      "kind": "throwing-rename-hook",
+      "shape": "throwing-rename-hook",
       "input": {
         "from": "/old.txt",
         "to": "/new.txt",
@@ -200,7 +200,7 @@
     {
       "name": "throwing-delete-hook",
       "description": "a throwing onDelete hook still leaves the unlink applied, then throws HookInvocationError",
-      "kind": "throwing-delete-hook",
+      "shape": "throwing-delete-hook",
       "input": {
         "path": "/gone.txt",
         "content": "content"
@@ -213,7 +213,7 @@
     {
       "name": "hook-cause-chains",
       "description": "a throwing hook chains the original error as cause",
-      "kind": "hook-cause-chains",
+      "shape": "hook-cause-chains",
       "input": {
         "path": "/chained.txt",
         "content": "data"
@@ -225,7 +225,7 @@
     {
       "name": "async-create-hook",
       "description": "an async-rejecting hook override is routed through the default onHookError disposition without ever surfacing as an unhandled rejection",
-      "kind": "async-create-hook",
+      "shape": "async-create-hook",
       "input": {
         "path": "/async.txt",
         "content": "data"

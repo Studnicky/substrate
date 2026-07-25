@@ -37,7 +37,7 @@ const typedRuleTester = new RuleTester({
 void describe('static-method-verbs', () => {
   for (const run of scenarioGroups.runs) {
     void it(run.name, () => {
-      const tester = run.kind === 'typed' ? typedRuleTester : ruleTester;
+      const tester = run.shape === 'typed' ? typedRuleTester : ruleTester;
       tester.run(run.ruleName, staticMethodVerbs, {
         invalid: run.invalid,
         valid: run.valid

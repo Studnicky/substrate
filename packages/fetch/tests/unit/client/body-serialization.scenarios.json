@@ -1381,7 +1381,7 @@
         "method": "POST",
         "path": "/posts",
         "body": {
-          "__kind": "undefined"
+          "__shape": "undefined"
         }
       },
       "expect": {
@@ -1395,7 +1395,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         },
         "expect": {
@@ -1419,7 +1419,7 @@
         "method": "POST",
         "path": "/posts",
         "body": {
-          "__kind": "buffer",
+          "__shape": "buffer",
           "text": "test buffer content"
         }
       },
@@ -1434,7 +1434,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__kind": "buffer",
+            "__shape": "buffer",
             "text": "test buffer content"
           }
         },
@@ -1459,7 +1459,7 @@
         "method": "POST",
         "path": "/posts",
         "body": {
-          "__kind": "array-buffer",
+          "__shape": "array-buffer",
           "text": "test arraybuffer content"
         }
       },
@@ -1474,7 +1474,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__kind": "array-buffer",
+            "__shape": "array-buffer",
             "text": "test arraybuffer content"
           }
         },
@@ -1499,7 +1499,7 @@
         "method": "POST",
         "path": "/posts",
         "body": {
-          "__kind": "uint8-array",
+          "__shape": "uint8-array",
           "text": "test uint8array content"
         }
       },
@@ -1514,7 +1514,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__kind": "uint8-array",
+            "__shape": "uint8-array",
             "text": "test uint8array content"
           }
         },
@@ -1539,7 +1539,7 @@
         "method": "POST",
         "path": "/posts",
         "body": {
-          "__kind": "buffer",
+          "__shape": "buffer",
           "text": ""
         }
       },
@@ -1554,7 +1554,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__kind": "buffer",
+            "__shape": "buffer",
             "text": ""
           }
         },
@@ -1579,7 +1579,7 @@
         "method": "POST",
         "path": "/posts",
         "body": {
-          "__kind": "filled-buffer",
+          "__shape": "filled-buffer",
           "fill": "a",
           "length": 1048576
         }
@@ -1595,7 +1595,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__kind": "filled-buffer",
+            "__shape": "filled-buffer",
             "fill": "a",
             "length": 1048576
           }
@@ -1739,7 +1739,7 @@
         "path": "/posts",
         "body": {
           "createdAt": {
-            "__kind": "date",
+            "__shape": "date",
             "iso": "2026-07-22T12:34:56.000Z"
           }
         }
@@ -1757,7 +1757,7 @@
           "path": "/posts",
           "body": {
             "createdAt": {
-              "__kind": "date",
+              "__shape": "date",
               "iso": "2026-07-22T12:34:56.000Z"
             }
           }
@@ -2173,7 +2173,7 @@
         "method": "POST",
         "path": "/posts",
         "body": {
-          "__kind": "circular",
+          "__shape": "circular",
           "name": "test"
         }
       },
@@ -2188,7 +2188,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__kind": "circular",
+            "__shape": "circular",
             "name": "test"
           }
         },
@@ -2213,7 +2213,7 @@
         "method": "POST",
         "path": "/posts",
         "body": {
-          "__kind": "symbol-properties",
+          "__shape": "symbol-properties",
           "name": "test"
         }
       },
@@ -2229,7 +2229,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__kind": "symbol-properties",
+            "__shape": "symbol-properties",
             "name": "test"
           }
         },
@@ -2256,7 +2256,7 @@
         "method": "POST",
         "path": "/posts",
         "body": {
-          "__kind": "function-properties",
+          "__shape": "function-properties",
           "data": "test"
         }
       },
@@ -2272,7 +2272,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__kind": "function-properties",
+            "__shape": "function-properties",
             "data": "test"
           }
         },
@@ -2300,7 +2300,7 @@
         "path": "/posts",
         "body": {
           "bigNumber": {
-            "__kind": "bigint",
+            "__shape": "bigint",
             "value": "9007199254740991"
           },
           "name": "test"
@@ -2318,7 +2318,7 @@
           "path": "/posts",
           "body": {
             "bigNumber": {
-              "__kind": "bigint",
+              "__shape": "bigint",
               "value": "9007199254740991"
             },
             "name": "test"
@@ -2347,7 +2347,7 @@
         "body": {
           "defined": "value",
           "undefined": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       },
@@ -2365,7 +2365,7 @@
           "body": {
             "defined": "value",
             "undefined": {
-              "__kind": "undefined"
+              "__shape": "undefined"
             }
           }
         },

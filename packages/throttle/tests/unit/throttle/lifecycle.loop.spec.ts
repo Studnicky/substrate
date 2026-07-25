@@ -8,7 +8,7 @@ import { Throttle } from '../../../src/throttle/index.js';
 type AbortResult = { cancelled: number; completed: number; timedOut: boolean };
 type ExpectedAbortResult = Partial<AbortResult>;
 
-type ScenarioKind =
+type ScenarioShape =
   | 'abort-after-abort-is-idempotent'
   | 'abort-cancels-active-and-queued'
   | 'abort-during-draining-cancels-active-and-queued'
@@ -62,7 +62,7 @@ type ScenarioCase = {
     settleMs?: number;
     throttle: ThrottleConfigInput;
   };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -185,7 +185,7 @@ function settleMs(input: ScenarioCase['input']): number {
   return input.settleMs ?? 0;
 }
 
-const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void>> = {
   'abort-timeout-timed-out': async (scenarioCase) => {
     const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
     let release!: () => void;
@@ -563,7 +563,7 @@ const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<vo
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle lifecycle', () => {

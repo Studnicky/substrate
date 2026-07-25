@@ -3,77 +3,77 @@
     {
       "name": "on-register",
       "description": "onRegister fires with the registered id",
-      "kind": "on-register",
+      "shape": "on-register",
       "input": { "id": "hook-test" },
       "expected": { "hookErrorCount": 0, "registerCalls": ["hook-test"] }
     },
     {
       "name": "duplicate-no-register-hook",
       "description": "onRegister does not fire when registration throws",
-      "kind": "duplicate-no-register-hook",
+      "shape": "duplicate-no-register-hook",
       "input": { "id": "dup", "duplicateId": "dup" },
       "expected": { "hookErrorCount": 0, "registerCalls": [] }
     },
     {
       "name": "on-unregister",
       "description": "onUnregister fires with the unregistered id",
-      "kind": "on-unregister",
+      "shape": "on-unregister",
       "input": { "id": "gone" },
       "expected": { "hookErrorCount": 0, "unregisterCalls": ["gone"] }
     },
     {
       "name": "on-unregister-missing",
       "description": "onUnregister fires for a missing id",
-      "kind": "on-unregister-missing",
+      "shape": "on-unregister-missing",
       "input": { "missingId": "never-existed" },
       "expected": { "hookErrorCount": 0, "unregisterCalls": ["never-existed"] }
     },
     {
       "name": "on-resolve-miss",
       "description": "onResolveMiss fires when get returns undefined",
-      "kind": "on-resolve-miss",
+      "shape": "on-resolve-miss",
       "input": { "missingId": "missing" },
       "expected": { "hookErrorCount": 0, "missCalls": ["missing"] }
     },
     {
       "name": "on-resolve-hit-no-hook",
       "description": "onResolveMiss does not fire when get returns a registered interpreter",
-      "kind": "on-resolve-hit-no-hook",
+      "shape": "on-resolve-hit-no-hook",
       "input": { "id": "present" },
       "expected": { "hookErrorCount": 0, "missCalls": [] }
     },
     {
       "name": "hook-order",
       "description": "hooks fire in register then miss then unregister order",
-      "kind": "hook-order",
+      "shape": "hook-order",
       "input": { "id": "cycle", "missingId": "unknown-for-miss" },
       "expected": { "hookErrorCount": 0, "order": ["register", "miss", "unregister"] }
     },
     {
       "name": "throwing-on-register",
       "description": "a throwing onRegister hook does not replace a completed registration",
-      "kind": "throwing-on-register",
+      "shape": "throwing-on-register",
       "input": { "id": "stable" },
       "expected": { "hookErrorCount": 1, "valuePreserved": true }
     },
     {
       "name": "throwing-on-resolve-miss",
       "description": "a throwing onResolveMiss hook does not replace an undefined lookup",
-      "kind": "throwing-on-resolve-miss",
+      "shape": "throwing-on-resolve-miss",
       "input": { "missingId": "missing" },
       "expected": { "hookErrorCount": 1, "valueUndefined": true }
     },
     {
       "name": "throwing-on-unregister",
       "description": "a throwing onUnregister hook does not replace a completed deletion",
-      "kind": "throwing-on-unregister",
+      "shape": "throwing-on-unregister",
       "input": { "id": "gone" },
       "expected": { "hookErrorCount": 1, "removed": true }
     },
     {
       "name": "async-rejecting-register",
       "description": "rejected async onRegister hooks are captured without an unhandled rejection",
-      "kind": "async-rejecting-register",
+      "shape": "async-rejecting-register",
       "input": { "id": "async-hook-test" },
       "expected": { "hookErrorCount": 1, "rejectionEvents": 0, "valuePreserved": true }
     }

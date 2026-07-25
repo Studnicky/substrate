@@ -15,7 +15,7 @@ type ScenarioCase =
       description: string;
       expected: { result: boolean };
       input: ScenarioInput;
-      kind:
+      shape:
         | 'accept-valid-context'
         | 'reject-bad-attempt-number'
         | 'reject-bad-classification'
@@ -59,7 +59,7 @@ function assertRetryContext(scenarioCase: ScenarioCase): void {
   assert.strictEqual(RetryContextGuard.isRetryContext(resolveContextInput(scenarioCase.input)), scenarioCase.expected.result);
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'accept-valid-context': assertRetryContext,
   'reject-bad-attempt-number': assertRetryContext,
   'reject-bad-classification': assertRetryContext,
@@ -72,7 +72,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('RetryContextGuard', () => {

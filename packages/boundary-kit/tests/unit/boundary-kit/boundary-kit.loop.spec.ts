@@ -10,7 +10,7 @@ import { BoundaryKitAbortedError } from '../../../src/errors/BoundaryKitAbortedE
 import scenarioGroups from './boundary-kit.scenarios.json';
 
 type RetryClassifierDescriptor = {
-  kind: 'constant';
+  shape: 'constant';
   reason: string;
   retryable: boolean;
 };
@@ -45,14 +45,14 @@ type ScenarioCase =
           config: BoundaryKitConfigDescriptor;
         };
       };
-      kind: 'plain-config';
+      shape: 'plain-config';
       name: string;
     }
   | {
       description: string;
       expected: { callCount: number; result: string };
       input: { boundaryKit: { failuresBeforeSuccess: number } };
-      kind: 'default-retry';
+      shape: 'default-retry';
       name: string;
     }
   | {
@@ -63,7 +63,7 @@ type ScenarioCase =
           prebuiltConfig: Required<BoundaryKitConfigDescriptor>;
         };
       };
-      kind: 'prebuilt-instances';
+      shape: 'prebuilt-instances';
       name: string;
     }
   | {
@@ -76,7 +76,7 @@ type ScenarioCase =
           workDelayMs: number;
         };
       };
-      kind: 'throttle-bound';
+      shape: 'throttle-bound';
       name: string;
     }
   | {
@@ -87,7 +87,7 @@ type ScenarioCase =
           config: Required<Pick<BoundaryKitConfigDescriptor, 'circuitBreaker' | 'retry'>>;
         };
       };
-      kind: 'circuit-breaker-open';
+      shape: 'circuit-breaker-open';
       name: string;
     }
   | {
@@ -99,7 +99,7 @@ type ScenarioCase =
           abortConfig: Required<Pick<BoundaryKitConfigDescriptor, 'throttle'>>;
         };
       };
-      kind: 'undefined-result-vs-abort';
+      shape: 'undefined-result-vs-abort';
       name: string;
     };
 
@@ -140,7 +140,7 @@ class SubclassedRetry extends Retry {
 }
 
 const retryClassifierMap: Record<
-  RetryClassifierDescriptor['kind'],
+  RetryClassifierDescriptor['shape'],
   (descriptor: RetryClassifierDescriptor) => NonNullable<RetryConfigInterface['errorClassifier']>
 > = {
   constant: (descriptor) => () => ({ reason: descriptor.reason, retryable: descriptor.retryable })
@@ -151,7 +151,7 @@ function materializeRetryConfig(config: RetryConfigDescriptor): RetryConfigInter
 
   return {
     ...serializableConfig,
-    ...(errorClassifier === undefined ? {} : { errorClassifier: retryClassifierMap[errorClassifier.kind](errorClassifier) })
+    ...(errorClassifier === undefined ? {} : { errorClassifier: retryClassifierMap[errorClassifier.shape](errorClassifier) })
   };
 }
 
@@ -216,7 +216,7 @@ function createExecuteBatch<T>(batch: BatchInput, execute: () => Promise<T>): Pr
   return Array.from({ length: batch.callCount }, () => execute());
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'plain-config': async (scenarioCase) => {
     const kit = BoundaryKit.create(materializeBoundaryKitConfig(scenarioCase.input.boundaryKit.config));
 
@@ -340,7 +340,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('BoundaryKit', () => {

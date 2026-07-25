@@ -352,16 +352,11 @@ class SchemaMemberGuards {
     return false;
   }
 
-  static isFromSchemaRef(typeAnnotation: unknown): boolean {
+  static isSchemaDerivedRef(typeAnnotation: unknown): boolean {
     if (!ObjectGuard.isObject(typeAnnotation) || AstHelpers.getNodeType(typeAnnotation) !== 'TSTypeReference') { return false; }
-    const { typeName } = typeAnnotation;
-    if (!ObjectGuard.isObject(typeName)) { return false; }
-    // Handle both plain Identifier and qualified name (e.g. Ns.FromSchema)
-    const fromSchemaName =
-      typeName.name === 'FromSchema' ||
-      (ObjectGuard.isObject(typeName.right) && (typeName.right).name === 'FromSchema');
-    if (!fromSchemaName) { return false; }
-    // Check type arguments/parameters contains exactly one TSTypeQuery for `typeof Schema`
+    if (!ObjectGuard.isObject(typeAnnotation.typeName)) { return false; }
+    // The deriving type is whatever the package uses to turn a schema value into a type.
+    // Its identity carries no weight; the `typeof Schema` argument is what binds the type to the value.
     let typeParams: Record<string, unknown> | undefined;
     if (ObjectGuard.isObject(typeAnnotation.typeParameters)) {
       typeParams = typeAnnotation.typeParameters;
@@ -370,12 +365,16 @@ class SchemaMemberGuards {
     }
     if (!ObjectGuard.isObject(typeParams)) { return false; }
     const { params } = typeParams;
-    if (!Array.isArray(params) || params.length !== 1) { return false; }
-    const arg: unknown = params[0];
-    if (!ObjectGuard.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeQuery') { return false; }
-    const { exprName } = arg;
-    if (!ObjectGuard.isObject(exprName)) { return false; }
-    return (exprName).name === 'Schema';
+    if (!Array.isArray(params)) { return false; }
+
+    const paramsLength = params.length;
+    for (let index = 0; index < paramsLength; index++) {
+      const arg: unknown = params[index];
+      if (!ObjectGuard.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeQuery') { continue; }
+      const { exprName } = arg;
+      if (ObjectGuard.isObject(exprName) && exprName.name === 'Schema') { return true; }
+    }
+    return false;
   }
 
   static isTypeFromSchema(decl: unknown): boolean {
@@ -383,13 +382,13 @@ class SchemaMemberGuards {
     const { typeAnnotation } = decl;
     if (!ObjectGuard.isObject(typeAnnotation)) { return false; }
     // Plain: `type Type = FromSchema<typeof Schema>`
-    if (SchemaMemberGuards.isFromSchemaRef(typeAnnotation)) { return true; }
+    if (SchemaMemberGuards.isSchemaDerivedRef(typeAnnotation)) { return true; }
     // Intersection: `type Type = FromSchema<typeof Schema> & { ... }`
-    // Accept when the first member of the intersection is FromSchema<typeof Schema>
+    // Accept when the first member of the intersection derives from the schema
     if (AstHelpers.getNodeType(typeAnnotation) === 'TSIntersectionType') {
       const { types } = typeAnnotation;
       if (!Array.isArray(types) || types.length < 2) { return false; }
-      return SchemaMemberGuards.isFromSchemaRef(types[0]);
+      return SchemaMemberGuards.isSchemaDerivedRef(types[0]);
     }
     return false;
   }
@@ -696,11 +695,11 @@ namespace FileCategoryEntity {
     'additionalProperties': false,
     'properties': {
       'expectedName': { 'type': 'string' },
-      'kind': { 'enum': ['constants', 'declaration', 'entity', 'none'] },
+      'shape': { 'enum': ['constants', 'declaration', 'entity', 'none'] },
       'underInterfacesFolder': { 'type': 'boolean' },
       'underTypesFolder': { 'type': 'boolean' }
     },
-    'required': ['expectedName', 'kind', 'underInterfacesFolder', 'underTypesFolder'],
+    'required': ['expectedName', 'shape', 'underInterfacesFolder', 'underTypesFolder'],
     'type': 'object'
   } as const satisfies JSONSchema;
 
@@ -712,7 +711,7 @@ class FileCategoryResolver {
     if (!FolderCategory.isEmptyFilename(filename) && FolderCategory.isEntityFile(filename)) {
       return {
         'expectedName': FolderShapeHelpers.getEntityBaseName(filename),
-        'kind': 'entity',
+        'shape': 'entity',
         'underInterfacesFolder': false,
         'underTypesFolder': false
       };
@@ -723,15 +722,15 @@ class FileCategoryResolver {
       const underTypesFolder = FolderCategory.isUnderFolder(filename, 'types');
 
       if (underInterfacesFolder || underTypesFolder) {
-        return { 'expectedName': '', 'kind': 'declaration', 'underInterfacesFolder': underInterfacesFolder, 'underTypesFolder': underTypesFolder };
+        return { 'expectedName': '', 'shape': 'declaration', 'underInterfacesFolder': underInterfacesFolder, 'underTypesFolder': underTypesFolder };
       }
     }
 
     if (!FolderCategory.isConstantsExemptPath(filename)) {
-      return { 'expectedName': '', 'kind': 'constants', 'underInterfacesFolder': false, 'underTypesFolder': false };
+      return { 'expectedName': '', 'shape': 'constants', 'underInterfacesFolder': false, 'underTypesFolder': false };
     }
 
-    return { 'expectedName': '', 'kind': 'none', 'underInterfacesFolder': false, 'underTypesFolder': false };
+    return { 'expectedName': '', 'shape': 'none', 'underInterfacesFolder': false, 'underTypesFolder': false };
   }
 }
 
@@ -752,9 +751,9 @@ export const folderContentShape: Rule.RuleModule = {
       ? {}
       : { 'Literal': visitLiteralForRegex, 'NewExpression': visitNewExpressionForRegex };
 
-    if (category.kind === 'none') { return regexListeners; }
+    if (category.shape === 'none') { return regexListeners; }
 
-    if (category.kind === 'declaration') {
+    if (category.shape === 'declaration') {
       const { underInterfacesFolder, underTypesFolder } = category;
 
       const visitTSTypeAliasDeclaration: NonNullable<Rule.RuleListener['TSTypeAliasDeclaration']> = (node: Rule.Node) => {
@@ -792,7 +791,7 @@ export const folderContentShape: Rule.RuleModule = {
       };
     }
 
-    if (category.kind === 'entity') {
+    if (category.shape === 'entity') {
       const { expectedName } = category;
 
       const onProgramExit: NonNullable<Rule.RuleListener['Program:exit']> = (program) => {

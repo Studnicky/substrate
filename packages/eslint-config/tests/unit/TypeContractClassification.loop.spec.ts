@@ -134,7 +134,6 @@ function assertAliasOutcome(
     evidence?: boolean;
     fixable?: boolean;
     reason?: string;
-    readonlyLength?: number;
     readonlyReasons?: readonly string[];
   }
 ): void {
@@ -147,9 +146,6 @@ function assertAliasOutcome(
   }
   if (expected.evidence) {
     assert.ok(actual.evidence.pos >= 0, name);
-  }
-  if (expected.readonlyLength !== undefined) {
-    assert.equal(actual.readonlyOutput.length, expected.readonlyLength, name);
   }
   if (expected.readonlyReasons !== undefined) {
     assert.deepEqual(
@@ -182,7 +178,7 @@ type ScenarioCase =
       description: string;
       expected: { classification: string; reason: string };
       input: { aliasName: string; files: Record<string, string>; namespaceName: string };
-      kind: 'entity-direct';
+      shape: 'entity-direct';
       name: string;
     }
   | {
@@ -191,7 +187,7 @@ type ScenarioCase =
         assertions: Array<{ classification: string; name: string; reason?: string }>;
       };
       input: { files: Record<string, string> };
-      kind: 'composition-provenance';
+      shape: 'composition-provenance';
       name: string;
     }
   | {
@@ -200,16 +196,16 @@ type ScenarioCase =
         assertions: Array<{ classification: string; name: string; reason?: string }>;
       };
       input: { files: Record<string, string> };
-      kind: 'owner-direct';
+      shape: 'owner-direct';
       name: string;
     }
   | {
       description: string;
       expected: {
-        assertions: Array<{ classification?: string; evidence?: boolean; fixable?: boolean; name: string; reason?: string; readonlyLength?: number; readonlyReasons?: readonly string[] }>;
+        assertions: Array<{ classification?: string; evidence?: boolean; fixable?: boolean; name: string; reason?: string; readonlyReasons?: readonly string[] }>;
       };
       input: { files: Record<string, string> };
-      kind: 'alias-cycles';
+      shape: 'alias-cycles';
       name: string;
     }
   | {
@@ -217,7 +213,7 @@ type ScenarioCase =
       expected: {
         assertions: {
           intrinsic: Array<{ classification: string; fixable: false; name: string; readonlyReasons: readonly string[]; reason: string }>;
-          shadowed: Array<{ name: string; readonlyLength: 0 }>;
+          shadowed: Array<{ name: string; readonlyReasons: readonly string[] }>;
         };
       };
       input: {
@@ -226,7 +222,7 @@ type ScenarioCase =
           shadowed: Record<string, string>;
         };
       };
-      kind: 'readonly-intrinsics';
+      shape: 'readonly-intrinsics';
       name: string;
     }
   | {
@@ -235,7 +231,7 @@ type ScenarioCase =
         assertions: Array<{ fixable: boolean; name: string; readonlyReasons: readonly string[] }>;
       };
       input: { files: Record<string, string> };
-      kind: 'explicit-readonly';
+      shape: 'explicit-readonly';
       name: string;
     }
   | {
@@ -244,7 +240,7 @@ type ScenarioCase =
         assertions: Array<{ fixable: boolean; name: string; readonlyReasons: readonly string[] }>;
       };
       input: { files: Record<string, string> };
-      kind: 'exposed-defaults';
+      shape: 'exposed-defaults';
       name: string;
     }
   | {
@@ -254,7 +250,7 @@ type ScenarioCase =
         excluded: readonly string[];
       };
       input: { files: Record<string, string> };
-      kind: 'readonly-exclusions';
+      shape: 'readonly-exclusions';
       name: string;
     }
   | {
@@ -263,21 +259,21 @@ type ScenarioCase =
         assertions: Array<{ fixable: boolean; name: string; readonlyReasons: readonly string[] }>;
       };
       input: { files: Record<string, string> };
-      kind: 'readonly-indirection';
+      shape: 'readonly-indirection';
       name: string;
     }
   | {
       description: string;
       expected: {
-        aliasAssertions: Array<{ classification?: string; name: string; reason?: string; readonlyLength?: number }>;
+        aliasAssertions: Array<{ classification?: string; name: string; reason?: string; readonlyReasons?: readonly string[] }>;
         interfaceAssertions: Array<{ classification?: string; name: string; reason?: string }>;
       };
       input: { files: Record<string, string> };
-      kind: 'interface-matrix';
+      shape: 'interface-matrix';
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['kind'], (scenario: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenario: ScenarioCase) => void> = {
   'alias-cycles': (scenario) => {
     const program = programFromFiles(scenario.input.files);
     for (const expected of scenario.expected.assertions) {
@@ -340,7 +336,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenario: ScenarioCase) => void> 
   'readonly-exclusions': (scenario) => {
     const program = programFromFiles(scenario.input.files);
     for (const name of scenario.expected.excluded) {
-      assertAliasOutcome(program, name, { readonlyLength: 0 });
+      assertAliasOutcome(program, name, { readonlyReasons: [] });
     }
     for (const expected of scenario.expected.assertions) {
       assertAliasOutcome(program, expected.name, expected);
@@ -367,7 +363,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenario: ScenarioCase) => void> 
 void describe('TypeContractClassification', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
-      runnerMap[scenario.kind](scenario);
+      runnerMap[scenario.shape](scenario);
     });
   }
 });

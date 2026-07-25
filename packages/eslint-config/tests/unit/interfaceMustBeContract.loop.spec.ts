@@ -23,12 +23,6 @@ const ruleTester = new RuleTester({
 
 void describe('interface-must-be-contract', () => {
   void it('validates interface contract classifications', () => {
-    ruleTester.run('interface-must-be-contract', interfaceMustBeContract, {
-      invalid: [],
-      valid: [{
-        code: scenarioGroups.cases[0].input.code,
-        name: scenarioGroups.cases[0].name
-      }]
-    });
+    ruleTester.run('interface-must-be-contract', interfaceMustBeContract, scenarioGroups);
   });
 });

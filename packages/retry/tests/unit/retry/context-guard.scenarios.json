@@ -3,63 +3,63 @@
     {
       "name": "reject-non-object",
       "description": "rejects non-object retry context",
-      "kind": "reject-non-object",
+      "shape": "reject-non-object",
       "input": { "source": "direct", "value": null },
       "expected": { "result": false }
     },
     {
       "name": "reject-bad-attempt-number",
       "description": "rejects negative attemptNumber",
-      "kind": "reject-bad-attempt-number",
+      "shape": "reject-bad-attempt-number",
       "input": { "source": "valid-context", "override": { "attemptNumber": -1 } },
       "expected": { "result": false }
     },
     {
       "name": "reject-bad-classification",
       "description": "rejects missing classification",
-      "kind": "reject-bad-classification",
+      "shape": "reject-bad-classification",
       "input": { "source": "valid-context", "override": { "classification": null } },
       "expected": { "result": false }
     },
     {
       "name": "reject-bad-elapsed-ms",
       "description": "rejects negative elapsedMs",
-      "kind": "reject-bad-elapsed-ms",
+      "shape": "reject-bad-elapsed-ms",
       "input": { "source": "valid-context", "override": { "elapsedMs": -1 } },
       "expected": { "result": false }
     },
     {
       "name": "reject-bad-error",
       "description": "rejects non-error error field",
-      "kind": "reject-bad-error",
+      "shape": "reject-bad-error",
       "input": { "source": "valid-context", "override": { "error": "boom" } },
       "expected": { "result": false }
     },
     {
       "name": "reject-bad-max-retries",
       "description": "rejects negative maxRetries",
-      "kind": "reject-bad-max-retries",
+      "shape": "reject-bad-max-retries",
       "input": { "source": "valid-context", "override": { "maxRetries": -1 } },
       "expected": { "result": false }
     },
     {
       "name": "reject-bad-stats",
       "description": "rejects invalid stats snapshot",
-      "kind": "reject-bad-stats",
+      "shape": "reject-bad-stats",
       "input": { "source": "valid-context", "override": { "stats": { "totalRequests": -1 } } },
       "expected": { "result": false }
     },
     {
       "name": "reject-bad-state",
       "description": "rejects non-object state",
-      "kind": "reject-bad-state",
+      "shape": "reject-bad-state",
       "input": { "source": "valid-context", "override": { "state": null } },
       "expected": { "result": false }
     },
     {
       "name": "accept-valid-context",
       "description": "accepts a valid retry context",
-      "kind": "accept-valid-context",
+      "shape": "accept-valid-context",
       "input": { "source": "valid-context" },
       "expected": { "result": true }
     }

@@ -11,20 +11,20 @@ import { LogStatus } from '../../src/modules/LogStatus.js';
 import scenarioGroups from './LogStatus.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'status-lifecycle-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'status-success-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'status-failure-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'status-retry-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'status-categories-lifecycle' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'status-categories-success' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'status-categories-failure' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'status-categories-retry' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'is-success-true' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'is-success-false' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'is-failure-true' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'is-failure-false' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'is-lifecycle-true' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'is-lifecycle-false' };
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-lifecycle-values' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-success-values' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-failure-values' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-retry-values' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-categories-lifecycle' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-categories-success' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-categories-failure' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-categories-retry' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-success-true' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-success-false' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-failure-true' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-failure-false' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-lifecycle-true' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-lifecycle-false' };
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
@@ -44,7 +44,7 @@ function assertPredicate(
   }
 }
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'is-failure-false': (scenarioCase) => {
     assertPredicate(scenarioCase, LogStatus.isFailure, false);
   },
@@ -110,7 +110,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('LogStatus', () => {

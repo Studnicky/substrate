@@ -10,7 +10,7 @@
     {
       "description": "returns false for null",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": false
     },
@@ -42,7 +42,7 @@
     {
       "description": "returns false for undefined",
       "input": {
-        "kind": "undefined"
+        "shape": "undefined"
       },
       "outcome": false
     }
@@ -56,7 +56,7 @@
     {
       "description": "returns false for NaN",
       "input": {
-        "kind": "nan"
+        "shape": "nan"
       },
       "outcome": false
     },
@@ -76,7 +76,7 @@
       "description": "returns undefined for a non-number",
       "input": "seven",
       "outcome": {
-        "kind": "undefined"
+        "shape": "undefined"
       }
     }
   ],
@@ -106,14 +106,14 @@
     {
       "description": "returns true for an arrow function",
       "input": {
-        "kind": "function"
+        "shape": "function"
       },
       "outcome": true
     },
     {
       "description": "returns true for a named function",
       "input": {
-        "kind": "namedFunction"
+        "shape": "namedFunction"
       },
       "outcome": true
     },
@@ -125,7 +125,7 @@
     {
       "description": "returns false for null",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": false
     }
@@ -134,10 +134,10 @@
     {
       "description": "returns null for null",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     },
     {
@@ -149,16 +149,16 @@
       "description": "returns undefined for a number",
       "input": 42,
       "outcome": {
-        "kind": "undefined"
+        "shape": "undefined"
       }
     },
     {
       "description": "returns undefined for undefined",
       "input": {
-        "kind": "undefined"
+        "shape": "undefined"
       },
       "outcome": {
-        "kind": "undefined"
+        "shape": "undefined"
       }
     }
   ],
@@ -171,7 +171,7 @@
         },
         "skip",
         {
-          "kind": "null"
+          "shape": "null"
         },
         {
           "b": 2
@@ -192,7 +192,7 @@
         "a": 1
       },
       "outcome": {
-        "kind": "undefined"
+        "shape": "undefined"
       }
     },
     {
@@ -200,12 +200,12 @@
       "input": [
         "a",
         {
-          "kind": "null"
+          "shape": "null"
         },
         42
       ],
       "outcome": {
-        "kind": "undefined"
+        "shape": "undefined"
       }
     }
   ],

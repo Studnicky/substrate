@@ -3,7 +3,7 @@
     {
       "name": "on-message-envelopes",
       "description": "onMessage fires for every envelope type",
-      "kind": "on-message-envelopes",
+      "shape": "on-message-envelopes",
       "input": {
         "workerPool": {
           "concurrency": 1,
@@ -18,7 +18,7 @@
     {
       "name": "error-envelope-and-hook",
       "description": "onMessage and onWorkerError both fire when a worker posts an error envelope",
-      "kind": "error-envelope-and-hook",
+      "shape": "error-envelope-and-hook",
       "input": {
         "workerPool": {
           "concurrency": 1,
@@ -34,7 +34,7 @@
     {
       "name": "throwing-on-message",
       "description": "a throwing onMessage hook does not prevent the worker result from resolving",
-      "kind": "throwing-on-message",
+      "shape": "throwing-on-message",
       "input": {
         "workerPool": {
           "concurrency": 1,
@@ -51,7 +51,7 @@
     {
       "name": "async-rejecting-on-message",
       "description": "an async-rejecting onMessage override is routed to getHookErrors() without an unhandled rejection",
-      "kind": "async-rejecting-on-message",
+      "shape": "async-rejecting-on-message",
       "input": {
         "workerPool": {
           "concurrency": 1,
@@ -69,7 +69,7 @@
     {
       "name": "hook-errors-instance-local",
       "description": "records hook failures only on the worker-pool instance that owns the invoker",
-      "kind": "hook-errors-instance-local",
+      "shape": "hook-errors-instance-local",
       "input": {
         "workerPool": {
           "concurrency": 1,

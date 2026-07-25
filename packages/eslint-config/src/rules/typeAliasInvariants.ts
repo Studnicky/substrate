@@ -19,7 +19,7 @@ import { TypeContractClassification } from './shared/TypeContractClassification.
  * 3. noAliasing — disallow naked type re-aliases and import aliases.
  * 4. derivedFromSchema — retain only verified schema-derived pure-data aliases.
  *
- * Declaration-kind and canonical-purity verdicts precede naming and readonly checks.
+ * Declaration-shape and canonical-purity verdicts precede naming and readonly checks.
  * Precise alias-identity diagnostics refine invalid pure-data provenance without
  * relying on structural-similarity heuristics.
  */

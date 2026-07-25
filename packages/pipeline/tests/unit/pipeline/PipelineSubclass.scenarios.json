@@ -3,13 +3,13 @@
     {
       "name": "before-after-order",
       "description": "before and after each registered stage fire in order",
-      "kind": "before-after-order",
+      "shape": "before-after-order",
       "input": {
         "ctx": 5,
         "stages": [
-          { "kind": "add", "value": 1 },
-          { "kind": "mul", "value": 2 },
-          { "kind": "sub", "value": 3 }
+          { "shape": "add", "value": 1 },
+          { "shape": "mul", "value": 2 },
+          { "shape": "sub", "value": 3 }
         ]
       },
       "expected": {
@@ -26,7 +26,7 @@
     {
       "name": "no-hooks-no-stages",
       "description": "before and after hooks do not fire when pipeline has no stages",
-      "kind": "no-hooks-no-stages",
+      "shape": "no-hooks-no-stages",
       "input": {
         "ctx": "hello",
         "stages": []
@@ -38,11 +38,11 @@
     {
       "name": "single-stage-before-after",
       "description": "before and after fire once for a single stage",
-      "kind": "single-stage-before-after",
+      "shape": "single-stage-before-after",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ]
       },
       "expected": {
@@ -55,13 +55,13 @@
     {
       "name": "tracing-pipeline-result",
       "description": "base pipeline produces the correct result with tracing hooks active",
-      "kind": "tracing-pipeline-result",
+      "shape": "tracing-pipeline-result",
       "input": {
         "ctx": 5,
         "stages": [
-          { "kind": "add", "value": 1 },
-          { "kind": "mul", "value": 2 },
-          { "kind": "sub", "value": 3 }
+          { "shape": "add", "value": 1 },
+          { "shape": "mul", "value": 2 },
+          { "shape": "sub", "value": 3 }
         ]
       },
       "expected": {
@@ -71,12 +71,12 @@
     {
       "name": "before-stage-gets-prior-output",
       "description": "beforeStage receives ctx from prior stage output",
-      "kind": "before-stage-gets-prior-output",
+      "shape": "before-stage-gets-prior-output",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 10 },
-          { "kind": "add", "value": 10 }
+          { "shape": "add", "value": 10 },
+          { "shape": "add", "value": 10 }
         ]
       },
       "expected": {
@@ -86,12 +86,12 @@
     {
       "name": "after-stage-gets-stage-output",
       "description": "afterStage receives ctx from stage output",
-      "kind": "after-stage-gets-stage-output",
+      "shape": "after-stage-gets-stage-output",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 5 },
-          { "kind": "mul", "value": 3 }
+          { "shape": "add", "value": 5 },
+          { "shape": "mul", "value": 3 }
         ]
       },
       "expected": {
@@ -101,11 +101,11 @@
     {
       "name": "run-start-before-stages",
       "description": "onRunStart is called before any stage",
-      "kind": "run-start-before-stages",
+      "shape": "run-start-before-stages",
       "input": {
         "ctx": 5,
         "stages": [
-          { "kind": "identity" }
+          { "shape": "identity" }
         ]
       },
       "expected": {
@@ -115,11 +115,11 @@
     {
       "name": "run-complete-after-stages",
       "description": "onRunComplete is called after all stages",
-      "kind": "run-complete-after-stages",
+      "shape": "run-complete-after-stages",
       "input": {
         "ctx": 5,
         "stages": [
-          { "kind": "identity" }
+          { "shape": "identity" }
         ]
       },
       "expected": {
@@ -129,11 +129,11 @@
     {
       "name": "run-start-original-value",
       "description": "onRunStart receives the original ctx value",
-      "kind": "run-start-original-value",
+      "shape": "run-start-original-value",
       "input": {
         "ctx": 5,
         "stages": [
-          { "kind": "identity" }
+          { "shape": "identity" }
         ]
       },
       "expected": {
@@ -143,11 +143,11 @@
     {
       "name": "run-start-return-passed-to-first-stage",
       "description": "onRunStart return value is passed to the first stage",
-      "kind": "run-start-return-passed-to-first-stage",
+      "shape": "run-start-return-passed-to-first-stage",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "identity" }
+          { "shape": "identity" }
         ]
       },
       "expected": {
@@ -157,11 +157,11 @@
     {
       "name": "run-complete-return-value",
       "description": "onRunComplete return value is the resolved value of run",
-      "kind": "run-complete-return-value",
+      "shape": "run-complete-return-value",
       "input": {
         "ctx": 10,
         "stages": [
-          { "kind": "add", "value": 5 }
+          { "shape": "add", "value": 5 }
         ]
       },
       "expected": {
@@ -171,7 +171,7 @@
     {
       "name": "hooks-called-with-no-stages",
       "description": "both bracket hooks are called even when the pipeline has no stages",
-      "kind": "hooks-called-with-no-stages",
+      "shape": "hooks-called-with-no-stages",
       "input": {
         "ctx": 7,
         "stages": []
@@ -184,11 +184,11 @@
     {
       "name": "protected-fns-length",
       "description": "subclass can read the protected stages array length",
-      "kind": "protected-fns-length",
+      "shape": "protected-fns-length",
       "input": {
         "stages": [
-          { "kind": "add", "value": 1 },
-          { "kind": "mul", "value": 2 }
+          { "shape": "add", "value": 1 },
+          { "shape": "mul", "value": 2 }
         ]
       },
       "expected": {
@@ -198,13 +198,13 @@
     {
       "name": "stage-start-order",
       "description": "onStageStart fires for each stage in index order",
-      "kind": "stage-start-order",
+      "shape": "stage-start-order",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 1 },
-          { "kind": "add", "value": 2 },
-          { "kind": "add", "value": 3 }
+          { "shape": "add", "value": 1 },
+          { "shape": "add", "value": 2 },
+          { "shape": "add", "value": 3 }
         ]
       },
       "expected": {
@@ -214,12 +214,12 @@
     {
       "name": "stage-success-output",
       "description": "onStageSuccess fires after each successful stage with the output ctx",
-      "kind": "stage-success-output",
+      "shape": "stage-success-output",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 10 },
-          { "kind": "mul", "value": 3 }
+          { "shape": "add", "value": 10 },
+          { "shape": "mul", "value": 3 }
         ]
       },
       "expected": {
@@ -229,11 +229,11 @@
     {
       "name": "stage-start-after-before-stage",
       "description": "onStageStart sees the ctx returned by beforeStage",
-      "kind": "stage-start-after-before-stage",
+      "shape": "stage-start-after-before-stage",
       "input": {
         "ctx": 5,
         "stages": [
-          { "kind": "identity" }
+          { "shape": "identity" }
         ]
       },
       "expected": {
@@ -243,11 +243,11 @@
     {
       "name": "stage-success-before-after-stage",
       "description": "onStageSuccess fires before afterStage",
-      "kind": "stage-success-before-after-stage",
+      "shape": "stage-success-before-after-stage",
       "input": {
         "ctx": 1,
         "stages": [
-          { "kind": "identity" }
+          { "shape": "identity" }
         ]
       },
       "expected": {
@@ -260,13 +260,13 @@
     {
       "name": "stage-error-on-throw",
       "description": "onStageError fires when a stage throws",
-      "kind": "stage-error-on-throw",
+      "shape": "stage-error-on-throw",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 1 },
-          { "kind": "throw", "message": "stage 1 fails" },
-          { "kind": "add", "value": 3 }
+          { "shape": "add", "value": 1 },
+          { "shape": "throw", "message": "stage 1 fails" },
+          { "shape": "add", "value": 3 }
         ]
       },
       "expected": {
@@ -277,12 +277,12 @@
     {
       "name": "stage-error-not-on-success",
       "description": "onStageError does not fire for successful stages",
-      "kind": "stage-error-not-on-success",
+      "shape": "stage-error-not-on-success",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 1 },
-          { "kind": "add", "value": 2 }
+          { "shape": "add", "value": 1 },
+          { "shape": "add", "value": 2 }
         ]
       },
       "expected": {
@@ -292,11 +292,11 @@
     {
       "name": "run-error-on-throw",
       "description": "onRunError fires when any stage throws",
-      "kind": "run-error-on-throw",
+      "shape": "run-error-on-throw",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "throw", "message": "fail" }
+          { "shape": "throw", "message": "fail" }
         ]
       },
       "expected": {
@@ -306,11 +306,11 @@
     {
       "name": "run-error-contains-pipeline-error",
       "description": "onRunError receives the wrapped PipelineError",
-      "kind": "run-error-contains-pipeline-error",
+      "shape": "run-error-contains-pipeline-error",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "throw", "message": "original" }
+          { "shape": "throw", "message": "original" }
         ]
       },
       "expected": {
@@ -320,11 +320,11 @@
     {
       "name": "stage-error-before-run-error",
       "description": "onStageError fires before onRunError",
-      "kind": "stage-error-before-run-error",
+      "shape": "stage-error-before-run-error",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "throw", "message": "fail" }
+          { "shape": "throw", "message": "fail" }
         ]
       },
       "expected": {
@@ -337,7 +337,7 @@
     {
       "name": "no-stage-hooks-with-empty-pipeline",
       "description": "stage hooks do not fire when the pipeline has no stages",
-      "kind": "no-stage-hooks-with-empty-pipeline",
+      "shape": "no-stage-hooks-with-empty-pipeline",
       "input": {
         "ctx": 0,
         "stages": []
@@ -350,11 +350,11 @@
     {
       "name": "throwing-on-stage-start",
       "description": "a throwing onStageStart hook propagates as HookInvocationError",
-      "kind": "throwing-on-stage-start",
+      "shape": "throwing-on-stage-start",
       "input": {
         "ctx": 1,
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ]
       },
       "expected": {
@@ -364,11 +364,11 @@
     {
       "name": "throwing-on-stage-success",
       "description": "a throwing onStageSuccess hook propagates as HookInvocationError",
-      "kind": "throwing-on-stage-success",
+      "shape": "throwing-on-stage-success",
       "input": {
         "ctx": 1,
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ]
       },
       "expected": {
@@ -378,11 +378,11 @@
     {
       "name": "throwing-on-stage-error",
       "description": "a throwing onStageError hook propagates as HookInvocationError",
-      "kind": "throwing-on-stage-error",
+      "shape": "throwing-on-stage-error",
       "input": {
         "ctx": 1,
         "stages": [
-          { "kind": "throw", "message": "stage failed" }
+          { "shape": "throw", "message": "stage failed" }
         ]
       },
       "expected": {
@@ -392,11 +392,11 @@
     {
       "name": "throwing-on-run-error",
       "description": "a throwing onRunError hook propagates as HookInvocationError",
-      "kind": "throwing-on-run-error",
+      "shape": "throwing-on-run-error",
       "input": {
         "ctx": 1,
         "stages": [
-          { "kind": "throw", "message": "stage failed" }
+          { "shape": "throw", "message": "stage failed" }
         ]
       },
       "expected": {
@@ -406,11 +406,11 @@
     {
       "name": "before-stage-throw-does-not-trigger-run-error",
       "description": "a throw from beforeStage does not trigger onRunError",
-      "kind": "before-stage-throw-does-not-trigger-run-error",
+      "shape": "before-stage-throw-does-not-trigger-run-error",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ]
       },
       "expected": {
@@ -421,11 +421,11 @@
     {
       "name": "after-stage-throw-does-not-trigger-run-error",
       "description": "a throw from afterStage does not trigger onRunError",
-      "kind": "after-stage-throw-does-not-trigger-run-error",
+      "shape": "after-stage-throw-does-not-trigger-run-error",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ]
       },
       "expected": {
@@ -436,11 +436,11 @@
     {
       "name": "on-run-start-throw-does-not-trigger-run-error",
       "description": "a throw from onRunStart does not trigger onRunError",
-      "kind": "on-run-start-throw-does-not-trigger-run-error",
+      "shape": "on-run-start-throw-does-not-trigger-run-error",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ]
       },
       "expected": {
@@ -451,11 +451,11 @@
     {
       "name": "on-run-complete-throw-does-not-trigger-run-error",
       "description": "a throw from onRunComplete does not trigger onRunError",
-      "kind": "on-run-complete-throw-does-not-trigger-run-error",
+      "shape": "on-run-complete-throw-does-not-trigger-run-error",
       "input": {
         "ctx": 0,
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ]
       },
       "expected": {

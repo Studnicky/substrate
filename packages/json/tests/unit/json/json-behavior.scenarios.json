@@ -3,7 +3,7 @@
     {
       "name": "json-draft-top-level",
       "description": "Draft.produce mutates a top-level field",
-      "kind": "draft-top-level",
+      "shape": "draft-top-level",
       "input": {
         "json": {
           "base": {
@@ -25,7 +25,7 @@
     {
       "name": "json-draft-untouched",
       "description": "Draft.produce leaves the base untouched",
-      "kind": "draft-untouched",
+      "shape": "draft-untouched",
       "input": {
         "json": {
           "base": {
@@ -54,7 +54,7 @@
     {
       "name": "json-draft-sibling-sharing",
       "description": "Draft.produce preserves untouched sibling references",
-      "kind": "draft-sibling-sharing",
+      "shape": "draft-sibling-sharing",
       "input": {
         "json": {
           "base": {
@@ -86,7 +86,7 @@
     {
       "name": "json-draft-array-push",
       "description": "Draft.produce supports array push",
-      "kind": "draft-array-push",
+      "shape": "draft-array-push",
       "input": {
         "json": {
           "base": {
@@ -120,7 +120,7 @@
     {
       "name": "json-draft-array-splice",
       "description": "Draft.produce supports array splice",
-      "kind": "draft-array-splice",
+      "shape": "draft-array-splice",
       "input": {
         "json": {
           "base": {
@@ -157,7 +157,7 @@
     {
       "name": "json-draft-array-index",
       "description": "Draft.produce supports array index assignment",
-      "kind": "draft-array-index",
+      "shape": "draft-array-index",
       "input": {
         "json": {
           "base": {
@@ -184,7 +184,7 @@
     {
       "name": "json-draft-noop-base",
       "description": "Draft.produce returns the same reference for a no-op recipe",
-      "kind": "draft-noop-base",
+      "shape": "draft-noop-base",
       "input": {
         "json": {
           "base": {
@@ -202,7 +202,7 @@
     {
       "name": "json-draft-noop-read",
       "description": "Draft.produce returns the same reference when only reading",
-      "kind": "draft-noop-read",
+      "shape": "draft-noop-read",
       "input": {
         "json": {
           "base": {
@@ -220,7 +220,7 @@
     {
       "name": "json-draft-proxy-memo",
       "description": "Draft.produce memoizes nested proxies",
-      "kind": "draft-proxy-memo",
+      "shape": "draft-proxy-memo",
       "input": {
         "json": {
           "base": {
@@ -237,7 +237,7 @@
     {
       "name": "json-draft-pass-through",
       "description": "Draft.produce passes through non-plain values",
-      "kind": "draft-pass-through",
+      "shape": "draft-pass-through",
       "input": {
         "json": {
           "base": {
@@ -257,7 +257,7 @@
     {
       "name": "json-draft-deep-sharing",
       "description": "Draft.produce preserves structural sharing for deeply nested writes",
-      "kind": "draft-deep-sharing",
+      "shape": "draft-deep-sharing",
       "input": {
         "json": {
           "base": {
@@ -307,7 +307,7 @@
     {
       "name": "json-draft-delete",
       "description": "Draft.produce supports deleting a property",
-      "kind": "draft-delete",
+      "shape": "draft-delete",
       "input": {
         "json": {
           "base": {
@@ -326,7 +326,7 @@
     {
       "name": "json-draft-patch-roundtrip",
       "description": "Draft.producePatch round-trips through Patch.apply",
-      "kind": "draft-patch-roundtrip",
+      "shape": "draft-patch-roundtrip",
       "input": {
         "json": {
           "base": {
@@ -359,7 +359,7 @@
     {
       "name": "json-draft-patch-remove",
       "description": "Draft.producePatch round-trips a property removal",
-      "kind": "draft-patch-remove",
+      "shape": "draft-patch-remove",
       "input": {
         "json": {
           "base": {
@@ -376,7 +376,7 @@
     {
       "name": "json-draft-patch-add",
       "description": "Draft.producePatch round-trips a property addition",
-      "kind": "draft-patch-add",
+      "shape": "draft-patch-add",
       "input": {
         "json": {
           "base": {
@@ -393,7 +393,7 @@
     {
       "name": "json-draft-patch-empty",
       "description": "Draft.producePatch returns an empty patch for a no-op",
-      "kind": "draft-patch-empty",
+      "shape": "draft-patch-empty",
       "input": {
         "json": {
           "base": {
@@ -408,7 +408,7 @@
     {
       "name": "json-draft-proxy-reflection",
       "description": "Draft proxies support reflection traps while preserving copy-on-write behavior",
-      "kind": "draft-proxy-reflection",
+      "shape": "draft-proxy-reflection",
       "input": {
         "json": {
           "base": {
@@ -439,10 +439,10 @@
     {
       "name": "json-draft-patch-invalid-value",
       "description": "Draft.producePatch rejects non-JSON patch values produced by a recipe",
-      "kind": "draft-patch-invalid-value",
+      "shape": "draft-patch-invalid-value",
       "input": {
         "json": {
-          "invalidValueKind": "function"
+          "invalidValueShape": "function"
         }
       },
       "expected": {
@@ -452,7 +452,7 @@
     {
       "name": "json-draft-patch-escaped-keys",
       "description": "Draft.producePatch escapes slash and tilde path segments",
-      "kind": "draft-patch-escaped-keys",
+      "shape": "draft-patch-escaped-keys",
       "input": {
         "json": {
           "base": {
@@ -483,7 +483,7 @@
     {
       "name": "json-patch-add",
       "description": "Patch add operation adds values and creates intermediate objects",
-      "kind": "patch-add",
+      "shape": "patch-add",
       "input": {
         "json": {
           "operations": [
@@ -515,7 +515,7 @@
     {
       "name": "json-patch-create-errors",
       "description": "Patch.create rejects invalid operations and values",
-      "kind": "patch-create-errors",
+      "shape": "patch-create-errors",
       "input": {
         "json": {
           "invalidOperations": [
@@ -532,7 +532,7 @@
               "path": "/a"
             }
           ],
-          "invalidValueKinds": [
+          "invalidValueShapes": [
             "function",
             "symbol",
             "bigint",
@@ -549,7 +549,7 @@
     {
       "name": "json-patch-replace",
       "description": "Patch replace operation replaces existing values and rejects missing paths",
-      "kind": "patch-replace",
+      "shape": "patch-replace",
       "input": {
         "json": {
           "target": {
@@ -582,7 +582,7 @@
     {
       "name": "json-patch-remove",
       "description": "Patch remove operation removes properties and rejects bad array paths",
-      "kind": "patch-remove",
+      "shape": "patch-remove",
       "input": {
         "json": {
           "target": {
@@ -613,7 +613,7 @@
     {
       "name": "json-patch-copy",
       "description": "Patch copy operation copies values",
-      "kind": "patch-copy",
+      "shape": "patch-copy",
       "input": {
         "json": {
           "target": {
@@ -636,7 +636,7 @@
     {
       "name": "json-patch-move",
       "description": "Patch move operation moves values",
-      "kind": "patch-move",
+      "shape": "patch-move",
       "input": {
         "json": {
           "target": {
@@ -658,7 +658,7 @@
     {
       "name": "json-patch-test",
       "description": "Patch test operation validates equality",
-      "kind": "patch-test",
+      "shape": "patch-test",
       "input": {
         "json": {
           "target": {
@@ -682,7 +682,7 @@
     {
       "name": "json-patch-multiple",
       "description": "Patch applies multiple operations sequentially",
-      "kind": "patch-multiple",
+      "shape": "patch-multiple",
       "input": {
         "json": {
           "target": {
@@ -715,7 +715,7 @@
     {
       "name": "json-patch-empty",
       "description": "Patch.isEmpty reports empty and non-empty patches",
-      "kind": "patch-empty",
+      "shape": "patch-empty",
       "input": {
         "json": {
           "empty": [],
@@ -734,7 +734,7 @@
     {
       "name": "json-patch-to-string",
       "description": "Patch.toString returns a readable description",
-      "kind": "patch-to-string",
+      "shape": "patch-to-string",
       "input": {
         "json": {
           "operations": [
@@ -760,7 +760,7 @@
     {
       "name": "json-patch-operations",
       "description": "Patch.operations isolates input and projected operations",
-      "kind": "patch-operations",
+      "shape": "patch-operations",
       "input": {
         "json": {
           "value": {
@@ -788,7 +788,7 @@
     {
       "name": "json-patch-path-parsing",
       "description": "Patch handles nested and escaped JSON Pointer paths",
-      "kind": "patch-path-parsing",
+      "shape": "patch-path-parsing",
       "input": {
         "json": {
           "nested": {
@@ -817,7 +817,7 @@
     {
       "name": "json-patch-subclass",
       "description": "Patch subclass factories preserve the subclass type",
-      "kind": "patch-subclass",
+      "shape": "patch-subclass",
       "input": {
         "json": {
           "operation": {
@@ -837,7 +837,7 @@
     {
       "name": "json-patch-root-and-errors",
       "description": "Patch root paths are no-ops for in-place mutation and invalid paths report PatchError",
-      "kind": "patch-root-and-errors",
+      "shape": "patch-root-and-errors",
       "input": {
         "json": {
           "copyMissingFrom": {
@@ -873,7 +873,7 @@
     {
       "name": "json-patch-array-remove-numeric",
       "description": "Patch remove splices array elements when the path segment is numeric",
-      "kind": "patch-array-remove-numeric",
+      "shape": "patch-array-remove-numeric",
       "input": {
         "json": {
           "operation": {
@@ -901,7 +901,7 @@
     {
       "name": "json-patch-to-string-all-ops",
       "description": "Patch.toString renders copy, move, replace, and test operations",
-      "kind": "patch-to-string-all-ops",
+      "shape": "patch-to-string-all-ops",
       "input": {
         "json": {
           "operations": [
@@ -940,7 +940,7 @@
     {
       "name": "json-path-access",
       "description": "Path.toAccess converts JSON Pointer paths to access notation",
-      "kind": "path-access",
+      "shape": "path-access",
       "input": {
         "json": {
           "pointers": [
@@ -973,7 +973,7 @@
     {
       "name": "json-path-get",
       "description": "Path.get resolves nested values and rejects unsafe paths",
-      "kind": "path-get",
+      "shape": "path-get",
       "input": {
         "json": {
           "object": {
@@ -1006,7 +1006,7 @@
     {
       "name": "json-path-subclass",
       "description": "Path subclass overrides relax the safe-property guard",
-      "kind": "path-subclass",
+      "shape": "path-subclass",
       "input": {
         "json": {
           "object": {

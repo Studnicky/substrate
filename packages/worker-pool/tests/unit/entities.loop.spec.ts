@@ -24,7 +24,7 @@ type ValidationName =
 type ValidationCase = { entity: ValidationName; expected: boolean; value: Record<string, unknown> };
 
 type ScenarioCase =
-  | { description: string; expected: { validationResults: boolean[] }; input: { validations: ValidationCase[] }; kind: 'rejects-invalid' | 'validates-everything'; name: string };
+  | { description: string; expected: { validationResults: boolean[] }; input: { validations: ValidationCase[] }; shape: 'rejects-invalid' | 'validates-everything'; name: string };
 
 const validatorMap: Record<ValidationName, (value: Record<string, unknown>) => boolean> = {
   'WorkerErrorEnvelopeEntity': (value) => WorkerErrorEnvelopeEntity.validate(value),
@@ -48,7 +48,7 @@ function assertEntityValidations(scenarioCase: ScenarioCase): boolean[] {
   return results;
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'rejects-invalid': (scenarioCase) => {
     const results = assertEntityValidations(scenarioCase);
     assert.equal(results.every((value) => value === false), true);
@@ -60,7 +60,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('worker-pool entities', () => {

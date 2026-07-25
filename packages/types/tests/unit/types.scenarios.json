@@ -20,23 +20,23 @@
         "description": "returns undefined for string",
         "input": "42",
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
         "description": "returns undefined for null",
         "input": {
-          "kind": "null"
+          "shape": "null"
         },
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
         "description": "returns undefined for boolean",
         "input": true,
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       }
     ],
@@ -49,40 +49,40 @@
       {
         "description": "returns null when value is null",
         "input": {
-          "kind": "null"
+          "shape": "null"
         },
         "outcome": {
-          "kind": "null"
+          "shape": "null"
         }
       },
       {
         "description": "returns undefined for number",
         "input": 42,
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
         "description": "returns undefined for boolean",
         "input": true,
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
         "description": "returns undefined for undefined",
         "input": {
-          "kind": "undefined"
+          "shape": "undefined"
         },
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
         "description": "returns undefined for object",
         "input": {},
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       }
     ],
@@ -98,7 +98,7 @@
             "b": 2
           },
           {
-            "kind": "null"
+            "shape": "null"
           },
           42
         ],
@@ -117,23 +117,23 @@
           "a": 1
         },
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
         "description": "returns undefined for non-array input (string)",
         "input": "string",
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
         "description": "returns undefined for non-array input (null)",
         "input": {
-          "kind": "null"
+          "shape": "null"
         },
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
@@ -143,18 +143,18 @@
           2,
           "str",
           {
-            "kind": "null"
+            "shape": "null"
           }
         ],
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
         "description": "returns undefined for empty array",
         "input": [],
         "outcome": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       {
@@ -202,14 +202,14 @@
       {
         "description": "returns false for null",
         "input": {
-          "kind": "null"
+          "shape": "null"
         },
         "outcome": false
       },
       {
         "description": "returns false for undefined",
         "input": {
-          "kind": "undefined"
+          "shape": "undefined"
         },
         "outcome": false
       },
@@ -238,7 +238,7 @@
       {
         "description": "returns false for NaN",
         "input": {
-          "kind": "nan"
+          "shape": "nan"
         },
         "outcome": false
       },
@@ -250,7 +250,7 @@
       {
         "description": "returns false for null",
         "input": {
-          "kind": "null"
+          "shape": "null"
         },
         "outcome": false
       },
@@ -284,7 +284,7 @@
       {
         "description": "returns false for null",
         "input": {
-          "kind": "null"
+          "shape": "null"
         },
         "outcome": false
       }
@@ -293,14 +293,14 @@
       {
         "description": "returns true for arrow function",
         "input": {
-          "kind": "function"
+          "shape": "function"
         },
         "outcome": true
       },
       {
         "description": "returns true for named function",
         "input": {
-          "kind": "namedFunction"
+          "shape": "namedFunction"
         },
         "outcome": true
       },
@@ -317,7 +317,7 @@
       {
         "description": "returns false for null",
         "input": {
-          "kind": "null"
+          "shape": "null"
         },
         "outcome": false
       }
@@ -338,7 +338,7 @@
       {
         "description": "returns false for null",
         "input": {
-          "kind": "null"
+          "shape": "null"
         },
         "outcome": false
       },
@@ -365,28 +365,28 @@
       {
         "description": "returns false for Map",
         "input": {
-          "kind": "map"
+          "shape": "map"
         },
         "outcome": false
       },
       {
         "description": "returns false for non-empty Map",
         "input": {
-          "kind": "mapWithEntry"
+          "shape": "mapWithEntry"
         },
         "outcome": false
       },
       {
         "description": "returns false for Set",
         "input": {
-          "kind": "set"
+          "shape": "set"
         },
         "outcome": false
       },
       {
         "description": "returns false for non-empty Set",
         "input": {
-          "kind": "setWithEntry"
+          "shape": "setWithEntry"
         },
         "outcome": false
       }
@@ -471,7 +471,7 @@
       "description": "map returns a fresh empty Map",
       "method": "map",
       "outcome": {
-        "kind": "map"
+        "shape": "map"
       }
     },
     {
@@ -483,7 +483,7 @@
       "description": "set returns a fresh empty Set",
       "method": "set",
       "outcome": {
-        "kind": "set"
+        "shape": "set"
       }
     },
     {
@@ -513,7 +513,7 @@
       "description": "isString returns false for null",
       "method": "isString",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": false
     },
@@ -521,7 +521,7 @@
       "description": "isString returns false for undefined",
       "method": "isString",
       "input": {
-        "kind": "undefined"
+        "shape": "undefined"
       },
       "outcome": false
     },
@@ -549,7 +549,7 @@
       "description": "isObject returns false for null",
       "method": "isObject",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": false
     },
@@ -563,7 +563,7 @@
       "description": "isObject returns false for empty Map",
       "method": "isObject",
       "input": {
-        "kind": "map"
+        "shape": "map"
       },
       "outcome": false
     },
@@ -571,7 +571,7 @@
       "description": "isObject returns false for empty Set",
       "method": "isObject",
       "input": {
-        "kind": "set"
+        "shape": "set"
       },
       "outcome": false
     },
@@ -611,7 +611,7 @@
       "description": "isArray returns false for null",
       "method": "isArray",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": false
     },
@@ -625,7 +625,7 @@
       "description": "isMap returns true for empty Map",
       "method": "isMap",
       "input": {
-        "kind": "map"
+        "shape": "map"
       },
       "outcome": true
     },
@@ -633,7 +633,7 @@
       "description": "isMap returns false for non-empty Map",
       "method": "isMap",
       "input": {
-        "kind": "mapWithEntry"
+        "shape": "mapWithEntry"
       },
       "outcome": false
     },
@@ -647,7 +647,7 @@
       "description": "isMap returns false for null",
       "method": "isMap",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": false
     },
@@ -655,7 +655,7 @@
       "description": "isMap returns false for empty Set",
       "method": "isMap",
       "input": {
-        "kind": "set"
+        "shape": "set"
       },
       "outcome": false
     },
@@ -663,7 +663,7 @@
       "description": "isSet returns true for empty Set",
       "method": "isSet",
       "input": {
-        "kind": "set"
+        "shape": "set"
       },
       "outcome": true
     },
@@ -671,7 +671,7 @@
       "description": "isSet returns false for non-empty Set",
       "method": "isSet",
       "input": {
-        "kind": "setWithEntry"
+        "shape": "setWithEntry"
       },
       "outcome": false
     },
@@ -685,7 +685,7 @@
       "description": "isSet returns false for null",
       "method": "isSet",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": false
     },
@@ -693,7 +693,7 @@
       "description": "isSet returns false for empty Map",
       "method": "isSet",
       "input": {
-        "kind": "map"
+        "shape": "map"
       },
       "outcome": false
     }
@@ -709,7 +709,7 @@
     {
       "description": "rejects null",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": false
     },
@@ -721,28 +721,28 @@
     {
       "description": "rejects Map",
       "input": {
-        "kind": "map"
+        "shape": "map"
       },
       "outcome": false
     },
     {
       "description": "rejects Set",
       "input": {
-        "kind": "set"
+        "shape": "set"
       },
       "outcome": false
     },
     {
       "description": "rejects a regular expression",
       "input": {
-        "kind": "regex"
+        "shape": "regex"
       },
       "outcome": false
     },
     {
       "description": "accepts a plain object with null prototype",
       "input": {
-        "kind": "nullPrototypeObject"
+        "shape": "nullPrototypeObject"
       },
       "outcome": true
     }
@@ -756,7 +756,7 @@
           1,
           "two",
           {
-            "kind": "null"
+            "shape": "null"
           },
           true
         ]
@@ -768,7 +768,7 @@
       "method": "is",
       "input": {
         "value": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       "outcome": false
@@ -777,7 +777,7 @@
       "description": "rejects class instances",
       "method": "is",
       "input": {
-        "kind": "date"
+        "shape": "date"
       },
       "outcome": false
     },
@@ -785,7 +785,7 @@
       "description": "rejects cyclic data",
       "method": "is",
       "input": {
-        "kind": "cyclicObject"
+        "shape": "cyclicObject"
       },
       "outcome": false
     },
@@ -793,10 +793,10 @@
       "description": "passes null through",
       "method": "from",
       "input": {
-        "kind": "null"
+        "shape": "null"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     },
     {
@@ -830,7 +830,7 @@
         1,
         "two",
         {
-          "kind": "null"
+          "shape": "null"
         },
         true
       ],
@@ -838,7 +838,7 @@
         1,
         "two",
         {
-          "kind": "null"
+          "shape": "null"
         },
         true
       ]
@@ -848,24 +848,24 @@
       "method": "from",
       "input": [
         {
-          "kind": "undefined"
+          "shape": "undefined"
         },
         {
-          "kind": "function"
+          "shape": "function"
         },
         {
-          "kind": "symbol"
+          "shape": "symbol"
         }
       ],
       "outcome": [
         {
-          "kind": "null"
+          "shape": "null"
         },
         {
-          "kind": "null"
+          "shape": "null"
         },
         {
-          "kind": "null"
+          "shape": "null"
         }
       ]
     },
@@ -897,11 +897,11 @@
       "description": "replaces a cyclic branch with null",
       "method": "from",
       "input": {
-        "kind": "cyclicObject"
+        "shape": "cyclicObject"
       },
       "outcome": {
         "self": {
-          "kind": "null"
+          "shape": "null"
         }
       }
     },
@@ -909,10 +909,10 @@
       "description": "replaces class instances with null",
       "method": "from",
       "input": {
-        "kind": "date"
+        "shape": "date"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     },
     {
@@ -946,19 +946,19 @@
       "method": "from",
       "input": {
         "fn": {
-          "kind": "function"
+          "shape": "function"
         },
         "sym": {
-          "kind": "symbol"
+          "shape": "symbol"
         },
         "n": 1
       },
       "outcome": {
         "fn": {
-          "kind": "null"
+          "shape": "null"
         },
         "sym": {
-          "kind": "null"
+          "shape": "null"
         },
         "n": 1
       }
@@ -967,70 +967,70 @@
       "description": "coerces undefined to null",
       "method": "from",
       "input": {
-        "kind": "undefined"
+        "shape": "undefined"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     },
     {
       "description": "coerces a function to null",
       "method": "from",
       "input": {
-        "kind": "function"
+        "shape": "function"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     },
     {
       "description": "coerces a symbol to null",
       "method": "from",
       "input": {
-        "kind": "symbol"
+        "shape": "symbol"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     },
     {
       "description": "coerces a bigint to null",
       "method": "from",
       "input": {
-        "kind": "bigint"
+        "shape": "bigint"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     },
     {
       "description": "coerces NaN to null",
       "method": "from",
       "input": {
-        "kind": "nan"
+        "shape": "nan"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     },
     {
       "description": "coerces Infinity to null",
       "method": "from",
       "input": {
-        "kind": "infinity"
+        "shape": "infinity"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     },
     {
       "description": "coerces -Infinity to null",
       "method": "from",
       "input": {
-        "kind": "negativeInfinity"
+        "shape": "negativeInfinity"
       },
       "outcome": {
-        "kind": "null"
+        "shape": "null"
       }
     }
   ],
@@ -1052,14 +1052,14 @@
         "burstSize": 10,
         "requestsPerSecond": 5,
         "clock": {
-          "kind": "function"
+          "shape": "function"
         }
       },
       "outcome": {
         "burstSize": 10,
         "requestsPerSecond": 5,
         "clock": {
-          "kind": "function"
+          "shape": "function"
         }
       }
     },
@@ -1069,7 +1069,7 @@
         "burstSize": 10,
         "requestsPerSecond": 5,
         "clock": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       "outcome": {
@@ -1081,10 +1081,10 @@
       "description": "returns an empty object when every value is undefined",
       "input": {
         "clock": {
-          "kind": "undefined"
+          "shape": "undefined"
         },
         "deadlineMs": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       "outcome": {}
@@ -1093,7 +1093,7 @@
       "description": "models an always-undefined input property as absent",
       "input": {
         "value": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       "outcome": {}
@@ -1108,7 +1108,7 @@
       "input": {
         "requestsPerSecond": 5,
         "clock": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       "outcome": {
@@ -1122,7 +1122,7 @@
         "label": "",
         "enabled": false,
         "clock": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       },
       "outcome": {

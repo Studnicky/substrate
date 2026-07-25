@@ -11,7 +11,7 @@
           "staleAt": 1
         }
       },
-      "kind": "valid-timestamps",
+      "shape": "valid-timestamps",
       "name": "valid-timestamps"
     },
     {
@@ -34,7 +34,7 @@
           }
         ]
       },
-      "kind": "invalid-timestamps",
+      "shape": "invalid-timestamps",
       "name": "invalid-timestamps"
     }
   ]

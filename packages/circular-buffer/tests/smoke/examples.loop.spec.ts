@@ -11,7 +11,7 @@ type ScenarioCase = {
   description: string;
   expected: { importsWithoutThrow: true };
   input: { fileName: string };
-  kind: 'example-file';
+  shape: 'example-file';
   name: string;
 };
 

@@ -12,9 +12,9 @@ import {
 } from '../../helpers/test-server/index.js';
 
 type RuntimeTag =
-  | { __kind: 'infinity' }
-  | { __kind: 'nan' }
-  | { __kind: 'undefined' };
+  | { __shape: 'infinity' }
+  | { __shape: 'nan' }
+  | { __shape: 'undefined' };
 
 type RuntimeValue =
   | null
@@ -26,8 +26,8 @@ type RuntimeValue =
   | { [key: string]: RuntimeValue };
 
 type RequestSignal =
-  | { delayMs: number; kind: 'abort-after-ms' }
-  | { kind: 'already-aborted' };
+  | { delayMs: number; shape: 'abort-after-ms' }
+  | { shape: 'already-aborted' };
 
 type RequestDefinition = {
   signal?: RequestSignal;
@@ -36,9 +36,9 @@ type RequestDefinition = {
 };
 
 type RequestExpectation =
-  | { kind: 'rejects'; error: 'AbortError' | 'Error' | 'TimeoutError' | 'TypeError'; messageIncludes?: readonly string[]; timeoutMs?: number; urlIncludes?: string }
-  | { kind: 'status'; status: number }
-  | { kind: 'status-or-404' };
+  | { shape: 'rejects'; error: 'AbortError' | 'Error' | 'TimeoutError' | 'TypeError'; messageIncludes?: readonly string[]; timeoutMs?: number; urlIncludes?: string }
+  | { shape: 'status'; status: number }
+  | { shape: 'status-or-404' };
 
 type SequencedStep = {
   expect: RequestExpectation;
@@ -52,11 +52,11 @@ type ScenarioCase = {
   };
   description: string;
   expect:
-    | { kind: 'create-ok' }
-    | { kind: 'create-throws'; messageIncludes: readonly string[] }
+    | { shape: 'create-ok' }
+    | { shape: 'create-throws'; messageIncludes: readonly string[] }
     | RequestExpectation
-    | { kind: 'parallel'; steps: readonly SequencedStep[] }
-    | { kind: 'sequence'; steps: readonly SequencedStep[] };
+    | { shape: 'parallel'; steps: readonly SequencedStep[] }
+    | { shape: 'sequence'; steps: readonly SequencedStep[] };
   name: string;
   request?: RequestDefinition;
 };
@@ -83,17 +83,17 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (value !== null && typeof value === 'object') {
-    if ('__kind' in value) {
-      if (value.__kind === 'undefined') {
+    if ('__shape' in value) {
+      if (value.__shape === 'undefined') {
         return undefined;
       }
-      if (value.__kind === 'infinity') {
+      if (value.__shape === 'infinity') {
         return Number.POSITIVE_INFINITY;
       }
-      if (value.__kind === 'nan') {
+      if (value.__shape === 'nan') {
         return Number.NaN;
       }
-      throw new Error(`Unknown runtime tag: ${value.__kind satisfies never}`);
+      throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -111,7 +111,7 @@ function materializeSignal(signal: RequestSignal | undefined): AbortSignal | und
     return undefined;
   }
 
-  if (signal.kind === 'already-aborted') {
+  if (signal.shape === 'already-aborted') {
     const controller = new AbortController();
     controller.abort();
     return controller.signal;
@@ -173,7 +173,7 @@ async function inspectRequest(clientInstance: ReturnType<typeof FetchClient.crea
   }
 }
 
-function assertRejectedExpectation(error: unknown, expectation: Extract<RequestExpectation, { kind: 'rejects' }>): void {
+function assertRejectedExpectation(error: unknown, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
   assert.ok(error instanceof Error);
 
   if (expectation.error === 'TimeoutError') {
@@ -203,13 +203,13 @@ async function assertRequestExpectation(
   result: Awaited<ReturnType<typeof inspectRequest>>,
   expectation: RequestExpectation
 ): Promise<void> {
-  if (expectation.kind === 'status') {
+  if (expectation.shape === 'status') {
     assert.ok(result.ok, `expected successful response, received ${result.ok ? 'response' : result.error}`);
     assert.strictEqual(result.response.status, expectation.status);
     return;
   }
 
-  if (expectation.kind === 'status-or-404') {
+  if (expectation.shape === 'status-or-404') {
     assert.ok(result.ok, `expected successful response, received ${result.ok ? 'response' : result.error}`);
     assert.ok(result.response.status === 200 || result.response.status === 404);
     return;
@@ -253,7 +253,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     })
   };
 
-  if (scenarioCase.expect.kind === 'create-throws') {
+  if (scenarioCase.expect.shape === 'create-throws') {
     assert.throws(() => {
       FetchClient.create(clientConfig as never);
     }, (error: Error) => {
@@ -265,7 +265,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     return;
   }
 
-  if (scenarioCase.expect.kind === 'create-ok') {
+  if (scenarioCase.expect.shape === 'create-ok') {
     assert.doesNotThrow(() => {
       FetchClient.create(clientConfig as never);
     });
@@ -274,8 +274,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   const clientInstance = FetchClient.create(clientConfig as never);
 
-  if (scenarioCase.expect.kind === 'sequence' || scenarioCase.expect.kind === 'parallel') {
-    await runRequestGroup(clientInstance, scenarioCase.expect.steps, scenarioCase.expect.kind);
+  if (scenarioCase.expect.shape === 'sequence' || scenarioCase.expect.shape === 'parallel') {
+    await runRequestGroup(clientInstance, scenarioCase.expect.steps, scenarioCase.expect.shape);
     return;
   }
 

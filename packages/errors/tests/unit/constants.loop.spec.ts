@@ -14,7 +14,7 @@ type ScenarioCase =
       description: string;
       expected: Record<string, unknown>;
       input: Record<string, unknown>;
-      kind: 'error-code-values' | 'http-status-client' | 'http-status-server';
+      shape: 'error-code-values' | 'http-status-client' | 'http-status-server';
       name: string;
     }
   | {
@@ -25,7 +25,7 @@ type ScenarioCase =
         statusCode: number;
       };
       input: { scenario: keyof typeof ErrorDefaults };
-      kind: 'defaults';
+      shape: 'defaults';
       name: string;
     }
   | {
@@ -49,14 +49,14 @@ type ScenarioCase =
           };
         };
       };
-      kind: 'module-error-authentication' | 'retryable' | 'integration-context-override' | 'integration-cause-override' | 'integration-retryable-override' | 'integration-status-code-override';
+      shape: 'module-error-authentication' | 'retryable' | 'integration-context-override' | 'integration-cause-override' | 'integration-retryable-override' | 'integration-status-code-override';
       name: string;
     };
 
-type ScenarioRunner<K extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: K }>) => void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
 
 type RunnerMap = {
-  [K in ScenarioCase['kind']]: ScenarioRunner<K>;
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
 function createScenarioModuleError(scenarioCase: Extract<ScenarioCase, { input: { error: unknown } }>): ModuleError {
@@ -157,8 +157,8 @@ const runnerMap: RunnerMap = {
   'retryable': runRetryable
 };
 
-function runCase<K extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: K }>): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Error constants', () => {

@@ -10,69 +10,69 @@ type ScenarioCase =
       description: string;
       expected: { status: number };
       input: { request: { timeout?: number; url: string } };
-      kind: 'completes-without-timeout';
+      shape: 'completes-without-timeout';
       name: string;
     }
   | {
       description: string;
       expected: { errorName: 'TimeoutError' };
       input: { request: { timeout: number; url: string } };
-      kind: 'times-out-fast-request';
+      shape: 'times-out-fast-request';
       name: string;
     }
   | {
       description: string;
       expected: { errorName: 'TimeoutError'; timeoutMs: number; urlIncludes: string };
       input: { request: { timeout: number; url: string } };
-      kind: 'reports-timeout-details';
+      shape: 'reports-timeout-details';
       name: string;
     }
   | {
       description: string;
       expected: { status: number };
       input: { request: { timeout: number; url: string } };
-      kind: 'clears-timeout-after-success';
+      shape: 'clears-timeout-after-success';
       name: string;
     }
   | {
       description: string;
       expected: { errorName: 'TimeoutError' };
       input: { request: { timeout: number; url: string } };
-      kind: 'supports-timeout-in-get';
+      shape: 'supports-timeout-in-get';
       name: string;
     }
   | {
       description: string;
       expected: { status: number };
       input: { request: { timeout: number; url: string } };
-      kind: 'works-with-fast-requests';
+      shape: 'works-with-fast-requests';
       name: string;
     }
   | {
       description: string;
       expected: { status: number };
       input: { clientTimeout: number; request: { url: string } };
-      kind: 'applies-default-timeout';
+      shape: 'applies-default-timeout';
       name: string;
     }
   | {
       description: string;
       expected: { status: number };
       input: { clientTimeout: number; request: { timeout: number; url: string } };
-      kind: 'request-overrides-default-timeout';
+      shape: 'request-overrides-default-timeout';
       name: string;
     };
 
-type ScenarioRunner<Kind extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => Promise<void>;
-type RunnerMap = { [Kind in ScenarioCase['kind']]: ScenarioRunner<Kind> };
-type CompletesWithoutTimeoutScenario = Extract<ScenarioCase, { kind: 'completes-without-timeout' }>;
-type TimesOutFastRequestScenario = Extract<ScenarioCase, { kind: 'times-out-fast-request' }>;
-type ReportsTimeoutDetailsScenario = Extract<ScenarioCase, { kind: 'reports-timeout-details' }>;
-type ClearsTimeoutAfterSuccessScenario = Extract<ScenarioCase, { kind: 'clears-timeout-after-success' }>;
-type SupportsTimeoutInGetScenario = Extract<ScenarioCase, { kind: 'supports-timeout-in-get' }>;
-type WorksWithFastRequestsScenario = Extract<ScenarioCase, { kind: 'works-with-fast-requests' }>;
-type AppliesDefaultTimeoutScenario = Extract<ScenarioCase, { kind: 'applies-default-timeout' }>;
-type RequestOverridesDefaultTimeoutScenario = Extract<ScenarioCase, { kind: 'request-overrides-default-timeout' }>;
+type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
+type CompletesWithoutTimeoutScenario = Extract<ScenarioCase, { shape: 'completes-without-timeout' }>;
+type TimesOutFastRequestScenario = Extract<ScenarioCase, { shape: 'times-out-fast-request' }>;
+type ReportsTimeoutDetailsScenario = Extract<ScenarioCase, { shape: 'reports-timeout-details' }>;
+type ClearsTimeoutAfterSuccessScenario = Extract<ScenarioCase, { shape: 'clears-timeout-after-success' }>;
+type SupportsTimeoutInGetScenario = Extract<ScenarioCase, { shape: 'supports-timeout-in-get' }>;
+type WorksWithFastRequestsScenario = Extract<ScenarioCase, { shape: 'works-with-fast-requests' }>;
+type AppliesDefaultTimeoutScenario = Extract<ScenarioCase, { shape: 'applies-default-timeout' }>;
+type RequestOverridesDefaultTimeoutScenario = Extract<ScenarioCase, { shape: 'request-overrides-default-timeout' }>;
 
 const client = FetchClient.create();
 
@@ -154,8 +154,8 @@ const runnerMap: RunnerMap = {
   'works-with-fast-requests': runWorksWithFastRequestsScenario
 };
 
-async function runCase<Kind extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Timeout Feature', () => {

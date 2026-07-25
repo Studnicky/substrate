@@ -17,7 +17,7 @@ type RuntimeValue =
   | { [key: string]: RuntimeValue };
 
 type ExpectedOutcome = {
-  kind: 'defaults' | 'dispatcher' | 'fetch-client' | 'ok' | 'throws';
+  shape: 'defaults' | 'dispatcher' | 'fetch-client' | 'ok' | 'throws';
   messageIncludes?: readonly string[];
   values?: Record<string, unknown>;
 };
@@ -93,7 +93,7 @@ const operationMap: Record<ScenarioOperation, OperationFactory> = {
   }
 };
 
-const expectedOutcomeMap: Record<ExpectedOutcome['kind'], ExpectedOutcomeRunner> = {
+const expectedOutcomeMap: Record<ExpectedOutcome['shape'], ExpectedOutcomeRunner> = {
   defaults: (scenarioCase) => {
     assert.ok(scenarioCase.expected.values !== undefined);
 
@@ -124,7 +124,7 @@ const expectedOutcomeMap: Record<ExpectedOutcome['kind'], ExpectedOutcomeRunner>
 
 function runCase(scenarioCase: ScenarioCase): void {
   const action = operationMap[scenarioCase.operation](scenarioCase);
-  expectedOutcomeMap[scenarioCase.expected.kind](scenarioCase, action);
+  expectedOutcomeMap[scenarioCase.expected.shape](scenarioCase, action);
 }
 
 void describe('pool configuration validation and merging', () => {

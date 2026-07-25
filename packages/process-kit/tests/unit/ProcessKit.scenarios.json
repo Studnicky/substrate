@@ -2,7 +2,7 @@
   "cases": [
     {
       "description": "start()/dispatch()/stop() drive a small idle -> active -> done machine",
-      "kind": "drive",
+      "shape": "drive",
       "name": "start()/dispatch()/stop() drive a small idle -> active -> done machine",
       "input": {
         "events": {
@@ -17,7 +17,7 @@
     },
     {
       "description": "effect handlers observe effects returned alongside a transition",
-      "kind": "effects",
+      "shape": "effects",
       "name": "effect handlers observe effects returned alongside a transition",
       "input": {
         "events": { "start": { "type": "start" } }
@@ -28,7 +28,7 @@
     },
     {
       "description": "scheduleDispatch() advances state at the right virtual time via the public send() path",
-      "kind": "scheduled",
+      "shape": "scheduled",
       "name": "scheduleDispatch() advances state at the right virtual time via the public send() path",
       "input": {
         "events": {
@@ -51,7 +51,7 @@
     },
     {
       "description": "stop() cancels every task tracked by the composed scheduler",
-      "kind": "stop-cancels",
+      "shape": "stop-cancels",
       "name": "stop() cancels every task tracked by the composed scheduler",
       "input": {
         "events": {
@@ -74,7 +74,7 @@
     },
     {
       "description": "a rejected transition surfaces TransitionRejectedError and does not wedge the interpreter",
-      "kind": "rejection",
+      "shape": "rejection",
       "name": "a rejected transition surfaces TransitionRejectedError and does not wedge the interpreter",
       "input": {
         "events": {

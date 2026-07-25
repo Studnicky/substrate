@@ -8,7 +8,7 @@ import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 
-type RuntimeTag = { __kind: 'undefined' };
+type RuntimeTag = { __shape: 'undefined' };
 type RuntimeValue =
   | null
   | boolean
@@ -24,8 +24,8 @@ type ScenarioCase = {
   };
   description: string;
   expect:
-    | { kind: 'ok'; status: number }
-    | { errorType?: 'TypeError'; kind: 'reject'; messageIncludes?: readonly string[] };
+    | { shape: 'ok'; status: number }
+    | { errorType?: 'TypeError'; shape: 'reject'; messageIncludes?: readonly string[] };
   name: string;
   request?:
     | { body?: RuntimeValue; headers?: Record<string, string>; method: 'GET' | 'POST'; path: string }
@@ -51,11 +51,11 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (value !== null && typeof value === 'object') {
-    if ('__kind' in value) {
-      if (value.__kind === 'undefined') {
+    if ('__shape' in value) {
+      if (value.__shape === 'undefined') {
         return undefined;
       }
-      throw new Error(`Unknown runtime tag: ${value.__kind satisfies never}`);
+      throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -83,7 +83,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     ...(scenarioCase.clientConfig === undefined ? {} : (scenarioCase.clientConfig.headers === undefined ? {} : { headers: materializeRuntimeValue(scenarioCase.clientConfig.headers) as never }))
   };
 
-  if (scenarioCase.expect.kind === 'reject') {
+  if (scenarioCase.expect.shape === 'reject') {
     if (request === undefined) {
       assert.throws(() => {
         FetchClient.create(clientConfig as never);

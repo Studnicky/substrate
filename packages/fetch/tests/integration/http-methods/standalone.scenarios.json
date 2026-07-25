@@ -8,7 +8,7 @@
         "path": "/posts/1"
       },
       "expected": {
-        "kind": "json",
+        "shape": "json",
         "id": 1,
         "status": 200
       }
@@ -26,7 +26,7 @@
         "path": "/posts"
       },
       "expected": {
-        "kind": "json",
+        "shape": "json",
         "status": 201,
         "title": "test"
       }
@@ -40,7 +40,7 @@
         "path": "/posts"
       },
       "expected": {
-        "kind": "json",
+        "shape": "json",
         "status": 201
       }
     },
@@ -58,7 +58,7 @@
         "path": "/posts/1"
       },
       "expected": {
-        "kind": "json",
+        "shape": "json",
         "status": 200,
         "title": "updated"
       }
@@ -74,7 +74,7 @@
         "path": "/posts/1"
       },
       "expected": {
-        "kind": "json",
+        "shape": "json",
         "status": 200,
         "title": "Test Post"
       }
@@ -87,7 +87,7 @@
         "path": "/posts/1"
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -99,7 +99,7 @@
         "path": "/posts/1"
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -111,7 +111,7 @@
         "path": "/posts/1"
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     }

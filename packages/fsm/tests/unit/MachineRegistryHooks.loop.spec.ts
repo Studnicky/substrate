@@ -22,7 +22,7 @@ type ScenarioCase =
       input: {
         id: string;
       };
-      kind: 'on-register';
+      shape: 'on-register';
       name: string;
     }
   | {
@@ -35,7 +35,7 @@ type ScenarioCase =
         duplicateId: string;
         id: string;
       };
-      kind: 'duplicate-no-register-hook';
+      shape: 'duplicate-no-register-hook';
       name: string;
     }
   | {
@@ -47,7 +47,7 @@ type ScenarioCase =
       input: {
         id: string;
       };
-      kind: 'on-unregister';
+      shape: 'on-unregister';
       name: string;
     }
   | {
@@ -59,7 +59,7 @@ type ScenarioCase =
       input: {
         missingId: string;
       };
-      kind: 'on-unregister-missing';
+      shape: 'on-unregister-missing';
       name: string;
     }
   | {
@@ -71,7 +71,7 @@ type ScenarioCase =
       input: {
         missingId: string;
       };
-      kind: 'on-resolve-miss';
+      shape: 'on-resolve-miss';
       name: string;
     }
   | {
@@ -83,7 +83,7 @@ type ScenarioCase =
       input: {
         id: string;
       };
-      kind: 'on-resolve-hit-no-hook';
+      shape: 'on-resolve-hit-no-hook';
       name: string;
     }
   | {
@@ -96,7 +96,7 @@ type ScenarioCase =
         id: string;
         missingId: string;
       };
-      kind: 'hook-order';
+      shape: 'hook-order';
       name: string;
     }
   | {
@@ -108,7 +108,7 @@ type ScenarioCase =
       input: {
         id: string;
       };
-      kind: 'throwing-on-register';
+      shape: 'throwing-on-register';
       name: string;
     }
   | {
@@ -120,7 +120,7 @@ type ScenarioCase =
       input: {
         missingId: string;
       };
-      kind: 'throwing-on-resolve-miss';
+      shape: 'throwing-on-resolve-miss';
       name: string;
     }
   | {
@@ -132,7 +132,7 @@ type ScenarioCase =
       input: {
         id: string;
       };
-      kind: 'throwing-on-unregister';
+      shape: 'throwing-on-unregister';
       name: string;
     }
   | {
@@ -145,7 +145,7 @@ type ScenarioCase =
       input: {
         id: string;
       };
-      kind: 'async-rejecting-register';
+      shape: 'async-rejecting-register';
       name: string;
     };
 
@@ -183,7 +183,7 @@ function makeInterpreter(): EffectInterpreter<SimpleState, SimpleEvent> {
   return EffectInterpreter.create({ machine: new SimpleMachine() });
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
   'async-rejecting-register': async (scenarioCase) => {
     class AsyncRejectingRegisterRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
       static make(): AsyncRejectingRegisterRegistry {
@@ -341,7 +341,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 void describe('MachineRegistry lifecycle hooks', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
-      await runnerMap[scenario.kind](scenario);
+      await runnerMap[scenario.shape](scenario);
     });
   }
 });

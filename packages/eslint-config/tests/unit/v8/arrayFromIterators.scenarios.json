@@ -2,141 +2,149 @@
   "listenerCases": [
     {
       "expected": {
-        "reportCount": 1
+        "messageIds": [
+          "forbidden"
+        ]
       },
       "input": {
         "callExpression": {
           "callee": {
-            "kind": "arrayFrom"
+            "shape": "arrayFrom"
           },
           "firstArgument": {
             "constructorName": "Set",
-            "kind": "newExpression"
+            "shape": "newExpression"
           },
           "parent": {
-            "kind": "none"
+            "shape": "none"
           }
         },
         "parserServices": {
-          "kind": "empty"
+          "shape": "empty"
         }
       },
       "name": "reports map and set constructors without type services"
     },
     {
       "expected": {
-        "reportCount": 1
+        "messageIds": [
+          "forbidden"
+        ]
       },
       "input": {
         "callExpression": {
           "callee": {
-            "kind": "arrayFrom"
+            "shape": "arrayFrom"
           },
           "firstArgument": {
-            "kind": "tracked"
+            "shape": "tracked"
           },
           "parent": {
-            "kind": "none"
+            "shape": "none"
           }
         },
         "parserServices": {
           "hasTsNode": true,
           "isArrayType": false,
-          "kind": "typed"
+          "shape": "typed"
         }
       },
       "name": "reports non-arrays through typed parser services"
     },
     {
       "expected": {
-        "reportCount": 0
+        "messageIds": []
       },
       "input": {
         "callExpression": {
           "callee": {
-            "kind": "arrayFrom"
+            "shape": "arrayFrom"
           },
           "firstArgument": {
-            "kind": "tracked"
+            "shape": "tracked"
           },
           "parent": {
-            "kind": "none"
+            "shape": "none"
           }
         },
         "parserServices": {
           "hasTsNode": true,
           "isArrayType": true,
-          "kind": "typed"
+          "shape": "typed"
         }
       },
       "name": "does not report arrays through typed parser services"
     },
     {
       "expected": {
-        "reportCount": 0
+        "messageIds": []
       },
       "input": {
         "callExpression": {
           "callee": {
-            "kind": "nullish"
+            "shape": "nullish"
           },
           "firstArgument": {
-            "kind": "plainObject"
+            "shape": "plainObject"
           },
           "parent": {
-            "kind": "none"
+            "shape": "none"
           }
         },
         "parserServices": {
-          "kind": "empty"
+          "shape": "empty"
         }
       },
       "name": "ignores malformed callee shapes"
     },
     {
       "expected": {
-        "reportCount": 1
+        "messageIds": [
+          "forbidden"
+        ]
       },
       "input": {
         "callExpression": {
           "callee": {
-            "kind": "arrayFrom"
+            "shape": "arrayFrom"
           },
           "firstArgument": {
             "constructorName": "Set",
-            "kind": "newExpression"
+            "shape": "newExpression"
           },
           "parent": {
-            "kind": "node",
+            "shape": "node",
             "nodeType": "ForOfStatement"
           }
         },
         "parserServices": {
-          "kind": "empty"
+          "shape": "empty"
         }
       },
       "name": "reports Array.from on a Set inside a loop without type services"
     },
     {
       "expected": {
-        "reportCount": 1
+        "messageIds": [
+          "forbidden"
+        ]
       },
       "input": {
         "callExpression": {
           "callee": {
-            "kind": "arrayFrom"
+            "shape": "arrayFrom"
           },
           "firstArgument": {
             "constructorName": "Map",
-            "kind": "newExpression"
+            "shape": "newExpression"
           },
           "parent": {
-            "kind": "node",
+            "shape": "node",
             "nodeType": "WhileStatement"
           }
         },
         "parserServices": {
-          "kind": "empty"
+          "shape": "empty"
         }
       },
       "name": "reports Array.from on a Map inside a loop without type services"

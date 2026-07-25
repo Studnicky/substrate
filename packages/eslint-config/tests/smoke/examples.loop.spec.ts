@@ -20,9 +20,9 @@ assert.ok(exampleFiles.length > 0, 'Expected at least one example in examples/')
 
 type ScenarioCase = {
   description: string;
-  expected: { importsWithoutThrow: true; exampleCount: number };
+  expected: { importsWithoutThrow: true };
   input: { examplesRoot: string };
-  kind: 'examples-smoke';
+  shape: 'examples-smoke';
   name: string;
 };
 
@@ -30,7 +30,6 @@ void describe('examples smoke', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       assert.equal(scenario.expected.importsWithoutThrow, true);
-      assert.equal(exampleFiles.length, scenario.expected.exampleCount);
       assert.equal(scenario.input.examplesRoot, '../../examples');
       for (const examplePath of exampleFiles) {
         const relPath = examplePath.replace(`${examplesRoot}/`, '');

@@ -3,7 +3,7 @@
     {
       "name": "retry-backoff-config-exponential",
       "description": "backoffStrategy config computes delayMs via BackoffStrategy.exponential across attempts",
-      "kind": "backoff-config-exponential",
+      "shape": "backoff-config-exponential",
       "input": {
         "retry": {
           "backoffStrategy": {
@@ -21,7 +21,7 @@
     {
       "name": "retry-backoff-config-default-delay",
       "description": "no backoffStrategy config leaves delayMs at 0",
-      "kind": "backoff-config-default",
+      "shape": "backoff-config-default",
       "input": {
         "retry": {
           "maxRetries": 2
@@ -35,7 +35,7 @@
     {
       "name": "retry-backoff-config-override",
       "description": "subclass overriding onRetryScheduled without super bypasses backoffStrategy config entirely",
-      "kind": "backoff-config-override",
+      "shape": "backoff-config-override",
       "input": {
         "retry": {
           "backoffStrategy": {
@@ -53,49 +53,49 @@
     {
       "name": "retry-config-guard-bad-type",
       "description": "rejects an invalid config (bad maxRetries type) without constructing a classifier",
-      "kind": "config-guard-bad-type",
+      "shape": "config-guard-bad-type",
       "input": { "retry": { "maxRetries": "not-a-number" } },
       "expected": { "result": false, "classifierCalls": 0 }
     },
     {
       "name": "retry-config-guard-unknown-key",
       "description": "rejects an invalid config (unknown key) without constructing a classifier",
-      "kind": "config-guard-unknown-key",
+      "shape": "config-guard-unknown-key",
       "input": { "retry": { "notARealKey": true } },
       "expected": { "result": false, "classifierCalls": 0 }
     },
     {
       "name": "retry-config-guard-valid",
       "description": "accepts a valid config without constructing a classifier",
-      "kind": "config-guard-valid",
+      "shape": "config-guard-valid",
       "input": { "retry": { "maxRetries": 3 } },
       "expected": { "result": true, "classifierCalls": 0 }
     },
     {
       "name": "retry-backoff-strategy-non-object",
       "description": "rejects a non-object backoffStrategy config",
-      "kind": "backoff-strategy-non-object",
+      "shape": "backoff-strategy-non-object",
       "input": { "retry": { "backoffStrategy": "bad", "maxRetries": 1 } },
       "expected": { "result": false }
     },
     {
       "name": "retry-backoff-strategy-missing-fn",
       "description": "rejects a backoffStrategy config without strategy",
-      "kind": "backoff-strategy-missing-fn",
+      "shape": "backoff-strategy-missing-fn",
       "input": { "retry": { "backoffStrategy": { "baseDelayMs": 1 }, "maxRetries": 1 } },
       "expected": { "result": false }
     },
     {
       "name": "retry-backoff-strategy-bad-delay",
       "description": "rejects a backoffStrategy config with non-number baseDelayMs",
-      "kind": "backoff-strategy-bad-delay",
+      "shape": "backoff-strategy-bad-delay",
       "input": { "retry": { "backoffStrategy": { "baseDelayMs": "bad", "strategy": "noop" }, "maxRetries": 1 } },
       "expected": { "result": false }
     },
     {
       "name": "retry-backoff-decorrelated-attempt-0-100",
       "description": "decorrelatedJitter attempt 0 baseDelay 100 returns 100",
-      "kind": "decorrelated-jitter-0",
+      "shape": "decorrelated-jitter-0",
       "input": {
         "attempt": 0,
         "baseDelay": 100
@@ -105,7 +105,7 @@
     {
       "name": "retry-backoff-decorrelated-attempt-0-50",
       "description": "decorrelatedJitter attempt 0 baseDelay 50 returns 50",
-      "kind": "decorrelated-jitter-0",
+      "shape": "decorrelated-jitter-0",
       "input": {
         "attempt": 0,
         "baseDelay": 50
@@ -115,7 +115,7 @@
     {
       "name": "retry-backoff-decorrelated-attempt-0-500",
       "description": "decorrelatedJitter attempt 0 baseDelay 500 returns 500",
-      "kind": "decorrelated-jitter-0",
+      "shape": "decorrelated-jitter-0",
       "input": {
         "attempt": 0,
         "baseDelay": 500
@@ -125,7 +125,7 @@
     {
       "name": "retry-backoff-decorrelated-lower-bound",
       "description": "decorrelatedJitter returns a value >= baseDelayMs for attempt > 0",
-      "kind": "decorrelated-jitter-lower-bound",
+      "shape": "decorrelated-jitter-lower-bound",
       "input": {
         "baseDelay": 100,
         "batch": { "sampleCount": 200 }
@@ -135,7 +135,7 @@
     {
       "name": "retry-backoff-decorrelated-upper-bound",
       "description": "decorrelatedJitter returns a value <= 32 * baseDelayMs (max cap)",
-      "kind": "decorrelated-jitter-upper-bound",
+      "shape": "decorrelated-jitter-upper-bound",
       "input": {
         "baseDelay": 100,
         "batch": { "sampleCount": 420 }
@@ -145,7 +145,7 @@
     {
       "name": "retry-backoff-decorrelated-varying",
       "description": "decorrelatedJitter produces varying results for the same attempt (randomized)",
-      "kind": "decorrelated-jitter-varying",
+      "shape": "decorrelated-jitter-varying",
       "input": {
         "attempt": 2,
         "baseDelay": 100,
@@ -156,14 +156,14 @@
     {
       "name": "retry-entity-backoff-config",
       "description": "validates backoff configuration data",
-      "kind": "entity-backoff-config",
+      "shape": "entity-backoff-config",
       "input": { "value": { "baseDelayMs": 25 } },
       "expected": { "valid": true, "invalid": false }
     },
     {
       "name": "retry-entity-retry-context",
       "description": "validates retry context data",
-      "kind": "entity-retry-context",
+      "shape": "entity-retry-context",
       "input": { "value": { "abort": false, "attemptNumber": 1, "delayMs": 25, "elapsedMs": 100 } },
       "expected": { "valid": true, "invalid": false }
     }

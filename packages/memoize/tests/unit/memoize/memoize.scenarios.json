@@ -3,7 +3,7 @@
     {
       "name": "memoize-entities",
       "description": "validates cache lookup state",
-      "kind": "entities",
+      "shape": "entities",
       "input": {
         "memoize": {}
       },
@@ -16,11 +16,11 @@
     {
       "name": "memoize-hit-cache",
       "description": "returns the cached result without re-invoking fn for a repeat key",
-      "kind": "hit-cache",
+      "shape": "hit-cache",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity",
+          "keyFnShape": "identity",
           "staleMs": 1,
           "ttlMs": 10
         }
@@ -34,11 +34,11 @@
     {
       "name": "memoize-different-keys",
       "description": "invokes fn independently for args that derive different keys",
-      "kind": "different-keys",
+      "shape": "different-keys",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         }
       },
       "expected": {
@@ -52,11 +52,11 @@
     {
       "name": "memoize-sync-fn",
       "description": "memoizes a synchronous function correctly",
-      "kind": "sync-fn",
+      "shape": "sync-fn",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "number-string"
+          "keyFnShape": "number-string"
         }
       },
       "expected": {
@@ -70,11 +70,11 @@
     {
       "name": "memoize-ttl-stale-options",
       "description": "constructs memoize with ttl and stale options enabled",
-      "kind": "ttl-stale-options",
+      "shape": "ttl-stale-options",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity",
+          "keyFnShape": "identity",
           "ttlMs": 1000,
           "staleMs": 500
         }
@@ -88,11 +88,11 @@
     {
       "name": "memoize-create-rejects-foreign-construction",
       "description": "rejects a subclass constructor that does not return the requested instance",
-      "kind": "create-rejects-foreign-construction",
+      "shape": "create-rejects-foreign-construction",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         }
       },
       "expected": {}
@@ -100,11 +100,11 @@
     {
       "name": "memoize-config-error",
       "description": "constructs the memoize config error type",
-      "kind": "config-error",
+      "shape": "config-error",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         }
       },
       "expected": {}
@@ -112,11 +112,11 @@
     {
       "name": "memoize-invalidate-recomputes",
       "description": "invalidate forces the next matching call to re-invoke fn",
-      "kind": "invalidate-recomputes",
+      "shape": "invalidate-recomputes",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         }
       },
       "expected": {
@@ -128,11 +128,11 @@
     {
       "name": "memoize-invalidate-preserves-other-keys",
       "description": "invalidate leaves other keys cached",
-      "kind": "invalidate-preserves-other-keys",
+      "shape": "invalidate-preserves-other-keys",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         }
       },
       "expected": {
@@ -142,11 +142,11 @@
     {
       "name": "memoize-clear-recomputes-all",
       "description": "clear forces every subsequent call to re-invoke fn",
-      "kind": "clear-recomputes-all",
+      "shape": "clear-recomputes-all",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         }
       },
       "expected": {
@@ -156,11 +156,11 @@
     {
       "name": "memoize-coalesce-shared-call",
       "description": "shares one fn invocation across concurrent calls with the same key",
-      "kind": "coalesce-shared-call",
+      "shape": "coalesce-shared-call",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -177,11 +177,11 @@
     {
       "name": "memoize-miss-before-fn",
       "description": "fires onMemoMiss before invoking the wrapped function",
-      "kind": "miss-before-fn",
+      "shape": "miss-before-fn",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         }
       },
       "expected": {
@@ -194,11 +194,11 @@
     {
       "name": "memoize-hit-and-miss-hooks",
       "description": "fires onMemoMiss then onMemoHit with key and args",
-      "kind": "hit-and-miss-hooks",
+      "shape": "hit-and-miss-hooks",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "compound"
+          "keyFnShape": "compound"
         }
       },
       "expected": {
@@ -211,11 +211,11 @@
     {
       "name": "memoize-throwing-hit-hook",
       "description": "a throwing onMemoHit hook does not replace a cached return value",
-      "kind": "throwing-hit-hook",
+      "shape": "throwing-hit-hook",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         }
       },
       "expected": {
@@ -225,11 +225,11 @@
     {
       "name": "memoize-throwing-miss-hook",
       "description": "a throwing onMemoMiss hook does not hang the triggering call or a subsequent call",
-      "kind": "throwing-miss-hook",
+      "shape": "throwing-miss-hook",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -243,11 +243,11 @@
     {
       "name": "memoize-async-hooks-safe",
       "description": "unexpected async hit, miss, and coalesced overrides preserve results without unhandled rejections",
-      "kind": "async-hooks-safe",
+      "shape": "async-hooks-safe",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -268,11 +268,11 @@
     {
       "name": "memoize-coalesced-hooks",
       "description": "fires onMemoCoalesced for the joining caller and onMemoMiss for the leader",
-      "kind": "coalesced-hooks",
+      "shape": "coalesced-hooks",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -288,11 +288,11 @@
     {
       "name": "memoize-isolated-hook-ownership",
       "description": "dispatches leader and joining hooks to the owning subclass instance",
-      "kind": "isolated-hook-ownership",
+      "shape": "isolated-hook-ownership",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -312,11 +312,11 @@
     {
       "name": "memoize-throwing-coalesced-hook",
       "description": "a throwing onMemoCoalesced hook does not hang the joining caller or a subsequent call for the same key",
-      "kind": "throwing-coalesced-hook",
+      "shape": "throwing-coalesced-hook",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -333,11 +333,11 @@
     {
       "name": "memoize-rejecting-coalesced-hook",
       "description": "an async onMemoCoalesced hook whose returned promise rejects does not hang the joining caller or a subsequent call",
-      "kind": "rejecting-coalesced-hook",
+      "shape": "rejecting-coalesced-hook",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -354,11 +354,11 @@
     {
       "name": "memoize-per-key-hook-args",
       "description": "does not cross-contaminate hook args across concurrent calls for distinct keys",
-      "kind": "per-key-hook-args",
+      "shape": "per-key-hook-args",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "batch": {
           "callCount": 4
@@ -396,11 +396,11 @@
     {
       "name": "memoize-rejecting-miss-hook",
       "description": "an async onMemoMiss hook whose returned promise rejects does not hang the triggering call or a subsequent call",
-      "kind": "rejecting-miss-hook",
+      "shape": "rejecting-miss-hook",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         }
       },
       "expected": {
@@ -411,11 +411,11 @@
     {
       "name": "memoize-undefined-result-cache",
       "description": "caches an explicit undefined result instead of treating the cache lookup as a miss",
-      "kind": "undefined-result-cache",
+      "shape": "undefined-result-cache",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "key": "empty"
       },
@@ -427,11 +427,11 @@
     {
       "name": "memoize-failure-recomputes-after-rejection",
       "description": "does not cache a rejected computation and caches the later successful retry",
-      "kind": "failure-recomputes-after-rejection",
+      "shape": "failure-recomputes-after-rejection",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "failureMessage": "memoize compute failed",
         "failuresBeforeSuccess": 1,
@@ -453,11 +453,11 @@
     {
       "name": "memoize-coalesced-failure-recomputes",
       "description": "shares a rejected in-flight call, clears the failed pending state, and caches a later successful retry",
-      "kind": "coalesced-failure-recomputes",
+      "shape": "coalesced-failure-recomputes",
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnKind": "identity"
+          "keyFnShape": "identity"
         },
         "batch": {
           "callCount": 2

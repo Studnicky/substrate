@@ -10,33 +10,33 @@ type ScenarioCase =
       description: string;
       expected: { code: string; message: string; retryable: boolean; status: number; statusText: string; url: string };
       input: { body: string; status: number; statusText: string; url: string };
-      kind: 'client-error';
+      shape: 'client-error';
       name: string;
     }
   | {
       description: string;
       expected: { code: string; message: string; retryable: boolean; status: number; statusText: string; url: string };
       input: { body: string; status: number; statusText: string; url: string };
-      kind: 'server-error';
+      shape: 'server-error';
       name: string;
     }
   | {
       description: string;
       expected: { caughtName: 'HTTPError'; retryable: boolean; status: number; statusText: string; url: string };
       input: { body: string; status: number; statusText: string; url: string };
-      kind: 'catchable';
+      shape: 'catchable';
       name: string;
     }
   | {
       description: string;
       expected: { responseUrl: string; status: number; statusText: string; url: string };
       input: { body: string; status: number; statusText: string; url: string };
-      kind: 'response-properties';
+      shape: 'response-properties';
       name: string;
     };
 
-type ScenarioRunner<Kind extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => void;
-type RunnerMap = { [Kind in ScenarioCase['kind']]: ScenarioRunner<Kind> };
+type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
 
 function createResponse(scenarioCase: ScenarioCase): Response {
   return new Response(scenarioCase.input.body, {
@@ -99,8 +99,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<Kind extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('fetch http error', () => {

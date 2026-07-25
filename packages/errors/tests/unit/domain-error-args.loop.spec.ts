@@ -48,10 +48,10 @@ interface ScenarioInputInterface {
   error: StubFileLockErrorInputInterface;
 }
 
-type ScenarioKind = 'assigns-fields' | 'forwards-code-retryable' | 'includes-optional-fields' | 'message-callback' | 'name-resolves' | 'omits-optional-fields' | 'preserves-instanceof' | 'same-fields-object';
+type ScenarioShape = 'assigns-fields' | 'forwards-code-retryable' | 'includes-optional-fields' | 'message-callback' | 'name-resolves' | 'omits-optional-fields' | 'preserves-instanceof' | 'same-fields-object';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInputInterface; kind: ScenarioKind; name: string };
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInputInterface; shape: ScenarioShape; name: string };
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
@@ -136,10 +136,10 @@ const runnerMap = {
     assert.strictEqual(received, fields);
     assert.strictEqual(Boolean(expected.sameObject), true);
   }
-} satisfies Record<ScenarioKind, ScenarioRunner>;
+} satisfies Record<ScenarioShape, ScenarioRunner>;
 
 async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.kind](scenario);
+  await runnerMap[scenario.shape](scenario);
 }
 
 void describe('DomainErrorArgs.build()', () => {

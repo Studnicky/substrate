@@ -55,46 +55,46 @@ type ScenarioCase =
       description: string;
       expected: { results: string[] };
       input: { items: ItemType[]; workerPool: WorkerPoolInputInterface };
-      kind: 'result-order';
+      shape: 'result-order';
       name: string;
     }
   | {
       description: string;
       expected: { itemCount: number; observedMaxGreaterThanOne: true; observedMaxLessThanOrEqualConcurrency: true };
       input: { batch: BoundedConcurrencyBatchInputInterface; workerPool: WorkerPoolInputInterface };
-      kind: 'bounded-concurrency';
+      shape: 'bounded-concurrency';
       name: string;
     }
   | {
       description: string;
       expected: { observedResults: string[] };
       input: { items: ItemType[]; workerPool: WorkerPoolInputInterface };
-      kind: 'error-fail-fast';
+      shape: 'error-fail-fast';
       name: string;
     }
   | {
       description: string;
       expected: { createdWorkerCount: number; results: string[] };
       input: { items: Array<{ exit?: boolean; value: string }>; workerPool: WorkerPoolInputInterface };
-      kind: 'exit-retry';
+      shape: 'exit-retry';
       name: string;
     }
   | {
       description: string;
       expected: { runRejectedMessageIncludes: string };
       input: { items: Array<{ value: string }>; workerPool: WorkerPoolInputInterface };
-      kind: 'exit-retry-fails';
+      shape: 'exit-retry-fails';
       name: string;
     }
   | {
       description: string;
       expected: { runRejectedMessageIncludes: string };
       input: { items: Array<{ ms?: number; value: string }>; workerPool: WorkerPoolInputInterface };
-      kind: 'timeout-rejects';
+      shape: 'timeout-rejects';
       name: string;
     }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'result-order': async (scenarioCase) => {
     const pool = WorkerPool.create<ItemType, string>(resolvePoolConfig(scenarioCase.input.workerPool));
     assert.deepStrictEqual(await pool.run(scenarioCase.input.items), scenarioCase.expected.results);
@@ -187,7 +187,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool#run', () => {

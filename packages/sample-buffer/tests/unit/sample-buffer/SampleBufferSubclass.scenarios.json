@@ -3,7 +3,7 @@
     {
       "name": "on-evict-empty",
       "description": "onEvict is not called when buffer is not full",
-      "kind": "on-evict",
+      "shape": "on-evict",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [1, 2, 3]
@@ -15,7 +15,7 @@
     {
       "name": "on-evict-overwrite",
       "description": "onEvict is called with the overwritten value when buffer is full",
-      "kind": "on-evict",
+      "shape": "on-evict",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushItems": [100, 200, 300, 400]
@@ -27,7 +27,7 @@
     {
       "name": "on-evict-order",
       "description": "onEvict receives values in FIFO eviction order",
-      "kind": "on-evict",
+      "shape": "on-evict",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushItems": [10, 20, 30, 40, 50, 60]
@@ -39,7 +39,7 @@
     {
       "name": "on-evict-before-overwrite",
       "description": "onEvict is called before the value is overwritten",
-      "kind": "on-evict-before-overwrite",
+      "shape": "on-evict-before-overwrite",
       "input": {
         "sampleBuffer": { "capacity": 2 },
         "values": [77, 88, 99]
@@ -51,7 +51,7 @@
     {
       "name": "on-push-empty",
       "description": "onPush is called with evicted=false when buffer is not full",
-      "kind": "on-push",
+      "shape": "on-push",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [42, 43]
@@ -66,7 +66,7 @@
     {
       "name": "on-push-full",
       "description": "onPush is called with evicted=true when buffer was full",
-      "kind": "on-push",
+      "shape": "on-push",
       "input": {
         "sampleBuffer": { "capacity": 2 },
         "pushItems": [1, 2, 3]
@@ -82,7 +82,7 @@
     {
       "name": "on-push-value",
       "description": "onPush receives the pushed value",
-      "kind": "on-push",
+      "shape": "on-push",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushItems": [100]
@@ -96,7 +96,7 @@
     {
       "name": "on-push-length-update",
       "description": "onPush is called at end of push",
-      "kind": "on-push-length-update",
+      "shape": "on-push-length-update",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "value": 99
@@ -108,7 +108,7 @@
     {
       "name": "on-clear-once",
       "description": "onClear is called once per clear invocation",
-      "kind": "on-clear",
+      "shape": "on-clear",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [1],
@@ -121,7 +121,7 @@
     {
       "name": "on-clear-multiple",
       "description": "onClear is called on each of multiple clear calls",
-      "kind": "on-clear",
+      "shape": "on-clear",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [1, 2],
@@ -134,7 +134,7 @@
     {
       "name": "on-clear-empty",
       "description": "onClear is called even on an empty buffer",
-      "kind": "on-clear",
+      "shape": "on-clear",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [],
@@ -147,7 +147,7 @@
     {
       "name": "on-clear-before-reset",
       "description": "onClear is called before state is reset",
-      "kind": "on-clear-before-reset",
+      "shape": "on-clear-before-reset",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [1, 2]
@@ -159,7 +159,7 @@
     {
       "name": "on-percentile-called",
       "description": "onPercentile is called with the pct and result",
-      "kind": "on-percentile-called",
+      "shape": "on-percentile-called",
       "input": {
         "sampleBuffer": { "capacity": 10 },
         "pushItems": [10, 20, 30],
@@ -174,7 +174,7 @@
     {
       "name": "on-percentile-empty",
       "description": "onPercentile is not called when buffer is empty",
-      "kind": "on-percentile-absent-when-empty",
+      "shape": "on-percentile-absent-when-empty",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pct": 50
@@ -186,7 +186,7 @@
     {
       "name": "on-percentile-result",
       "description": "onPercentile result matches return value",
-      "kind": "on-percentile-result-matches-return",
+      "shape": "on-percentile-result-matches-return",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [10, 20, 30],
@@ -199,7 +199,7 @@
     {
       "name": "on-percentile-edge-cases",
       "description": "onPercentile is called for p0 and p100 edge cases",
-      "kind": "on-percentile-edge-cases",
+      "shape": "on-percentile-edge-cases",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [5, 15],
@@ -212,7 +212,7 @@
     {
       "name": "on-overflow-empty",
       "description": "onOverflow is not called when buffer is not full",
-      "kind": "on-overflow-not-full",
+      "shape": "on-overflow-not-full",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushItems": [1, 2]
@@ -224,7 +224,7 @@
     {
       "name": "on-overflow-full",
       "description": "onOverflow is called when buffer is full",
-      "kind": "on-overflow-full",
+      "shape": "on-overflow-full",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushItems": [1, 2, 3, 4]
@@ -237,7 +237,7 @@
     {
       "name": "on-overflow-before-evict",
       "description": "onOverflow is called before onEvict",
-      "kind": "on-overflow-before-on-evict",
+      "shape": "on-overflow-before-on-evict",
       "input": {
         "sampleBuffer": { "capacity": 2 },
         "pushItems": [10, 20, 30]
@@ -249,7 +249,7 @@
     {
       "name": "on-overflow-incoming",
       "description": "onOverflow receives the incoming value",
-      "kind": "on-overflow-incoming-value",
+      "shape": "on-overflow-incoming-value",
       "input": {
         "sampleBuffer": { "capacity": 2 },
         "pushItems": [10, 20, 30]
@@ -261,7 +261,7 @@
     {
       "name": "compute-empty",
       "description": "onComputeStart is not called when buffer is empty",
-      "kind": "on-compute-start-empty",
+      "shape": "on-compute-start-empty",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pct": 50
@@ -273,7 +273,7 @@
     {
       "name": "compute-cache-miss",
       "description": "onComputeStart fires once per cache miss",
-      "kind": "on-compute-start-cache-miss",
+      "shape": "on-compute-start-cache-miss",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [1, 2, 3],
@@ -287,7 +287,7 @@
     {
       "name": "compute-length",
       "description": "onComputeStart receives the current sample count",
-      "kind": "on-compute-start-length",
+      "shape": "on-compute-start-length",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [1, 2, 3],
@@ -300,7 +300,7 @@
     {
       "name": "compute-sorted",
       "description": "onComputeComplete fires once per cache miss with sorted result",
-      "kind": "on-compute-complete-sorted",
+      "shape": "on-compute-complete-sorted",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pushItems": [30, 10, 20],
@@ -313,7 +313,7 @@
     {
       "name": "compute-empty-complete",
       "description": "onComputeComplete is not called when buffer is empty",
-      "kind": "on-compute-complete-empty",
+      "shape": "on-compute-complete-empty",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "pct": 50
@@ -325,7 +325,7 @@
     {
       "name": "compute-after-invalidation",
       "description": "onComputeStart fires again after cache invalidation",
-      "kind": "on-compute-start-after-invalidation",
+      "shape": "on-compute-start-after-invalidation",
       "input": {
         "sampleBuffer": { "capacity": 5 },
         "initialPushItems": [1, 2, 3],
@@ -339,7 +339,7 @@
     {
       "name": "inspect-fields",
       "description": "subclass can read count, capacity, head, sortedCache",
-      "kind": "inspect-protected-fields",
+      "shape": "inspect-protected-fields",
       "input": {
         "sampleBuffer": { "capacity": 4 },
         "pushItems": [1, 2]
@@ -356,7 +356,7 @@
     {
       "name": "throwing-on-push",
       "description": "a throwing onPush hook raises HookInvocationError",
-      "kind": "throwing-on-push",
+      "shape": "throwing-on-push",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushValue": 10,
@@ -370,7 +370,7 @@
     {
       "name": "throwing-on-overflow",
       "description": "a throwing onOverflow hook raises HookInvocationError",
-      "kind": "throwing-on-overflow",
+      "shape": "throwing-on-overflow",
       "input": {
         "sampleBuffer": { "capacity": 2 },
         "primingPushItems": [10, 20],
@@ -388,7 +388,7 @@
     {
       "name": "throwing-on-evict",
       "description": "a throwing onEvict hook raises HookInvocationError",
-      "kind": "throwing-on-evict",
+      "shape": "throwing-on-evict",
       "input": {
         "sampleBuffer": { "capacity": 2 },
         "primingPushItems": [10, 20],
@@ -406,7 +406,7 @@
     {
       "name": "throwing-on-clear",
       "description": "a throwing onClear hook raises HookInvocationError",
-      "kind": "throwing-on-clear",
+      "shape": "throwing-on-clear",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushItems": [1, 2],
@@ -420,7 +420,7 @@
     {
       "name": "throwing-on-percentile",
       "description": "a throwing onPercentile hook raises HookInvocationError",
-      "kind": "throwing-on-percentile",
+      "shape": "throwing-on-percentile",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushItems": [10, 20, 30],
@@ -433,7 +433,7 @@
     {
       "name": "throwing-on-compute-start",
       "description": "a throwing onComputeStart hook raises HookInvocationError",
-      "kind": "throwing-on-compute-start",
+      "shape": "throwing-on-compute-start",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushItems": [30, 10, 20],
@@ -446,7 +446,7 @@
     {
       "name": "hook-cause",
       "description": "HookInvocationError carries the failing hook name and original cause",
-      "kind": "hook-invocation-error-cause",
+      "shape": "hook-invocation-error-cause",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushValue": 10
@@ -459,7 +459,7 @@
     {
       "name": "async-push-safe",
       "description": "an async-rejecting onPush override is routed safely",
-      "kind": "async-push-rejection-safe",
+      "shape": "async-push-rejection-safe",
       "input": {
         "sampleBuffer": { "capacity": 1 },
         "pushItems": [10, 20],
@@ -474,7 +474,7 @@
     {
       "name": "async-percentile-safe",
       "description": "async-rejecting onPercentile overrides stay guarded across edge cases",
-      "kind": "async-percentile-rejection-safe",
+      "shape": "async-percentile-rejection-safe",
       "input": {
         "sampleBuffer": { "capacity": 3 },
         "pushItems": [10, 20, 30],

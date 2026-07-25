@@ -3,7 +3,7 @@
     {
       "name": "validate registry bounds and rate-limit requests",
       "description": "validate registry bounds and rate-limit requests",
-      "kind": "entities-valid",
+      "shape": "entities-valid",
       "input": {
         "rateLimitRequest": {
           "key": "user-1",
@@ -21,7 +21,7 @@
     {
       "name": "reject invalid bounds and token counts",
       "description": "reject invalid bounds and token counts",
-      "kind": "entities-invalid",
+      "shape": "entities-invalid",
       "input": {
         "rateLimitRequest": {
           "key": "user-1",
@@ -38,7 +38,7 @@
     {
       "name": "two different keys have fully independent limits",
       "description": "two different keys have fully independent limits",
-      "kind": "consume-independent-keys",
+      "shape": "consume-independent-keys",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 1,
@@ -52,7 +52,7 @@
     {
       "name": "repeated consume() on the same key past its limit throws",
       "description": "repeated consume() on the same key past its limit throws",
-      "kind": "consume-same-key-exhausts",
+      "shape": "consume-same-key-exhausts",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 2,
@@ -66,7 +66,7 @@
     {
       "name": "consume(key, tokens) consumes the requested count in one call",
       "description": "consume(key, tokens) consumes the requested count in one call",
-      "kind": "consume-requested-tokens",
+      "shape": "consume-requested-tokens",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 5,
@@ -80,7 +80,7 @@
     {
       "name": "the same key creates its strategy exactly once across calls",
       "description": "the same key creates its strategy exactly once across calls",
-      "kind": "consume-strategy-created-once",
+      "shape": "consume-strategy-created-once",
       "input": {},
       "expected": {
         "factoryCalls": 1,
@@ -90,7 +90,7 @@
     {
       "name": "create() applies maxKeys while composing the limiter",
       "description": "create() applies maxKeys while composing the limiter",
-      "kind": "getters-eviction-on-max-keys",
+      "shape": "getters-eviction-on-max-keys",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 5,
@@ -107,7 +107,7 @@
     {
       "name": "accepts a hand-written fake strategy that structurally matches the interface",
       "description": "accepts a hand-written fake strategy that structurally matches the interface",
-      "kind": "generic-fake-strategy",
+      "shape": "generic-fake-strategy",
       "input": {
         "keyedRateLimiter": {
           "allowance": 2
@@ -120,7 +120,7 @@
     {
       "name": "waitForToken works through the generic strategy path too",
       "description": "waitForToken works through the generic strategy path too",
-      "kind": "generic-wait-for-token",
+      "shape": "generic-wait-for-token",
       "input": {
         "keyedRateLimiter": {
           "allowance": 1
@@ -133,7 +133,7 @@
     {
       "name": "maxKeys/keyIdleTtlMs bound the generic strategy path via the same LruCache",
       "description": "maxKeys/keyIdleTtlMs bound the generic strategy path via the same LruCache",
-      "kind": "generic-cache-boundary",
+      "shape": "generic-cache-boundary",
       "input": {
         "keyedRateLimiter": {
           "allowance": 5,
@@ -157,7 +157,7 @@
     {
       "name": "resolves immediately when the key has tokens available",
       "description": "resolves immediately when the key has tokens available",
-      "kind": "wait-immediate",
+      "shape": "wait-immediate",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 5,
@@ -172,7 +172,7 @@
     {
       "name": "blocks on the same key until refilled, without affecting other keys",
       "description": "blocks on the same key until refilled, without affecting other keys",
-      "kind": "wait-refills-and-isolates",
+      "shape": "wait-refills-and-isolates",
       "input": {
         "keyedRateLimiter": {
           "advanceTimeMs": 2,
@@ -187,7 +187,7 @@
     {
       "name": "rejects when the passed AbortSignal is aborted while waiting",
       "description": "rejects when the passed AbortSignal is aborted while waiting",
-      "kind": "wait-abort-signal",
+      "shape": "wait-abort-signal",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 1,
@@ -201,7 +201,7 @@
     {
       "name": "fires onKeyEvicted when the LRU cache evicts a key past capacity",
       "description": "fires onKeyEvicted when the LRU cache evicts a key past capacity",
-      "kind": "evicts-idle-key-at-capacity",
+      "shape": "evicts-idle-key-at-capacity",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 1,
@@ -223,7 +223,7 @@
     {
       "name": "a fresh strategy is created for a key after it is evicted for capacity",
       "description": "a fresh strategy is created for a key after it is evicted for capacity",
-      "kind": "recreates-strategy-after-eviction",
+      "shape": "recreates-strategy-after-eviction",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 1,
@@ -247,7 +247,7 @@
     {
       "name": "idle key past keyIdleTtlMs is lazily expired and rebuilt fresh on next consume()",
       "description": "idle key past keyIdleTtlMs is lazily expired and rebuilt fresh on next consume()",
-      "kind": "idle-key-expires-and-rebuilds",
+      "shape": "idle-key-expires-and-rebuilds",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 1,
@@ -269,7 +269,7 @@
     {
       "name": "a throwing onKeyEvicted hook does not replace the underlying eviction behavior",
       "description": "a throwing onKeyEvicted hook does not replace the underlying eviction behavior",
-      "kind": "throwing-on-key-evicted",
+      "shape": "throwing-on-key-evicted",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 1,
@@ -284,7 +284,7 @@
     {
       "name": "onTokenAcquired fires for the default TokenBucket path",
       "description": "onTokenAcquired fires for the default TokenBucket path",
-      "kind": "on-token-acquired",
+      "shape": "on-token-acquired",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 2,

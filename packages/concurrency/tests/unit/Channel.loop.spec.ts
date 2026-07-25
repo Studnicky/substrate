@@ -8,21 +8,21 @@ import { ChannelError } from '../../src/errors/ChannelError.js';
 import scenarioGroups from './Channel.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: { items: readonly number[] }; input: { items: readonly number[]; key: string }; kind: 'buffered-publish'; name: string }
-  | { description: string; expected: { items: readonly string[] }; input: { items: readonly string[]; key: string }; kind: 'live-subscribe'; name: string }
-  | { description: string; expected: { items: readonly number[] }; input: { items: readonly number[]; key: string }; kind: 'close-terminates'; name: string }
-  | { description: string; expected: { left: readonly string[]; right: readonly string[] }; input: { left: string; leftItem: string; key: string; right: string; rightItem: string }; kind: 'independent-keys'; name: string }
-  | { description: string; expected: { items: readonly unknown[] }; input: { item: number; key: string }; kind: 'publish-after-close'; name: string }
-  | { description: string; expected: { errorName: string }; input: { key: string }; kind: 'duplicate-subscribe'; name: string }
-  | { description: string; expected: { entries: ReadonlyArray<{ item: string; key: string }>; count: number }; input: { items: readonly string[]; key: string }; kind: 'onEnqueue-hooks'; name: string }
-  | { description: string; expected: { entries: ReadonlyArray<{ item: number; key: string }>; count: number }; input: { items: readonly number[]; key: string }; kind: 'onDequeue-hooks'; name: string }
-  | { description: string; expected: { count: number; entry: { item: string; key: string } }; input: { item: string; key: string }; kind: 'onPublishDropped-hooks'; name: string }
-  | { description: string; expected: { before: number; after: number }; input: Record<string, never>; kind: 'onClose-hooks'; name: string }
-  | { description: string; expected: { items: readonly number[]; overflowCount: number }; input: { count: number; key: string }; kind: 'no-high-water-mark'; name: string }
-  | { description: string; expected: { items: readonly number[]; overflowDepths: readonly number[] }; input: { channel: { highWaterMark: number }; items: readonly number[]; key: string }; kind: 'high-water-mark'; name: string }
-  | { description: string; expected: { nextValue: number }; input: { first: number; key: string; second: number }; kind: 'enqueue-rollback'; name: string }
-  | { description: string; expected: { errorName: string; item: number; key: string }; input: { item: number; key: string }; kind: 'dequeue-hook-error'; name: string }
-  | { description: string; expected: { nextValue: number; rejectionCount: number }; input: { first: number; key: string; second: number }; kind: 'async-enqueue-hook'; name: string };
+  | { description: string; expected: { items: readonly number[] }; input: { items: readonly number[]; key: string }; shape: 'buffered-publish'; name: string }
+  | { description: string; expected: { items: readonly string[] }; input: { items: readonly string[]; key: string }; shape: 'live-subscribe'; name: string }
+  | { description: string; expected: { items: readonly number[] }; input: { items: readonly number[]; key: string }; shape: 'close-terminates'; name: string }
+  | { description: string; expected: { left: readonly string[]; right: readonly string[] }; input: { left: string; leftItem: string; key: string; right: string; rightItem: string }; shape: 'independent-keys'; name: string }
+  | { description: string; expected: { items: readonly unknown[] }; input: { item: number; key: string }; shape: 'publish-after-close'; name: string }
+  | { description: string; expected: { errorName: string }; input: { key: string }; shape: 'duplicate-subscribe'; name: string }
+  | { description: string; expected: { entries: ReadonlyArray<{ item: string; key: string }>; count: number }; input: { items: readonly string[]; key: string }; shape: 'onEnqueue-hooks'; name: string }
+  | { description: string; expected: { entries: ReadonlyArray<{ item: number; key: string }>; count: number }; input: { items: readonly number[]; key: string }; shape: 'onDequeue-hooks'; name: string }
+  | { description: string; expected: { count: number; entry: { item: string; key: string } }; input: { item: string; key: string }; shape: 'onPublishDropped-hooks'; name: string }
+  | { description: string; expected: { before: number; after: number }; input: Record<string, never>; shape: 'onClose-hooks'; name: string }
+  | { description: string; expected: { items: readonly number[]; overflowCount: number }; input: { count: number; key: string }; shape: 'no-high-water-mark'; name: string }
+  | { description: string; expected: { items: readonly number[]; overflowDepths: readonly number[] }; input: { channel: { highWaterMark: number }; items: readonly number[]; key: string }; shape: 'high-water-mark'; name: string }
+  | { description: string; expected: { nextValue: number }; input: { first: number; key: string; second: number }; shape: 'enqueue-rollback'; name: string }
+  | { description: string; expected: { errorName: string; item: number; key: string }; input: { item: number; key: string }; shape: 'dequeue-hook-error'; name: string }
+  | { description: string; expected: { nextValue: number; rejectionCount: number }; input: { first: number; key: string; second: number }; shape: 'async-enqueue-hook'; name: string };
 
 async function collectN<T>(gen: AsyncGenerator<T>, n: number): Promise<T[]> {
   const items: T[] = [];
@@ -62,7 +62,7 @@ class OverflowChannel<T> extends Channel<T> {
   }
 }
 
-const scenarioRunners: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'buffered-publish': async (scenarioCase) => {
     const input = scenarioCase.input as { items: readonly number[]; key: string };
     const expected = scenarioCase.expected as { items: readonly number[] };
@@ -297,7 +297,7 @@ const scenarioRunners: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase)
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await scenarioRunners[scenarioCase.kind](scenarioCase);
+  await scenarioRunners[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Channel', () => {

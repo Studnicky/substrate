@@ -34,11 +34,11 @@ type ScenarioCase = {
   description: string;
   expected?: Record<string, unknown>;
   input: ScenarioInput;
-  kind: string;
+  shape: string;
   name: string;
 };
 
-type HeapTaskFireKind = 'noop';
+type HeapTaskFireShape = 'noop';
 type HeapTaskVariant = 'interval' | 'timeout';
 type MutableHeapTask = {
   atMs: number;
@@ -49,7 +49,7 @@ type MutableHeapTask = {
 };
 type HeapTaskDescriptor = {
   atMs: number;
-  fire: HeapTaskFireKind;
+  fire: HeapTaskFireShape;
   id: string;
   intervalMs: number;
   mutation?: {
@@ -63,7 +63,7 @@ const heapTaskFireDispatch = {
   noop: (): (() => void) => {
     return (): void => { return; };
   }
-} satisfies Record<HeapTaskFireKind, () => () => void>;
+} satisfies Record<HeapTaskFireShape, () => () => void>;
 const heapTaskMutationDispatch = {
   atMs: (task: MutableHeapTask, mutation: NonNullable<HeapTaskDescriptor['mutation']>): void => {
     if (mutation.atMs !== undefined) {
@@ -931,15 +931,15 @@ const scenarioRunners = {
   }
 } satisfies Record<string, ScenarioRunner>;
 
-type ScenarioKind = keyof typeof scenarioRunners;
+type ScenarioShape = keyof typeof scenarioRunners;
 
-function isScenarioKind(kind: string): kind is ScenarioKind {
-  return Object.hasOwn(scenarioRunners, kind);
+function isScenarioShape(shape: string): shape is ScenarioShape {
+  return Object.hasOwn(scenarioRunners, shape);
 }
 
-function scenarioRunner(kind: string): ScenarioRunner {
-  assert.ok(isScenarioKind(kind), `Unknown VirtualScheduler scenario kind: ${kind}`);
-  return scenarioRunners[kind];
+function scenarioRunner(shape: string): ScenarioRunner {
+  assert.ok(isScenarioShape(shape), `Unknown VirtualScheduler scenario shape: ${shape}`);
+  return scenarioRunners[shape];
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
@@ -947,7 +947,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   const batch = scenarioCase.input.batch ?? {};
   const expected = scenarioCase.expected ?? {};
 
-  await scenarioRunner(scenarioCase.kind)({ batch, expected, input });
+  await scenarioRunner(scenarioCase.shape)({ batch, expected, input });
 }
 
 void describe('VirtualScheduler', () => {

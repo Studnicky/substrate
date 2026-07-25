@@ -60,6 +60,14 @@ function clientConfig(scenarioCase: ScenarioCase): Parameters<typeof FetchClient
   return { baseURL: scenarioCase.input.baseURL };
 }
 
+function headerInput(scenarioCase: ScenarioCase): string {
+  const { header } = scenarioCase.expected;
+  if (header === undefined) {
+    throw new Error(`${scenarioCase.name} must define expected.header`);
+  }
+  return header;
+}
+
 const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'request-header-injection': async (scenarioCase) => {
     class HeaderInjectClient extends FetchClient {
@@ -86,9 +94,10 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
     try {
       const response = await client.get('/echo-headers');
       const data = await response.json() as { headers: Record<string, string> };
+      const headerName = headerInput(scenarioCase).toLowerCase();
       assert.strictEqual(response.status, 200);
-      assert.strictEqual(data.headers['x-injected'], scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
-      assert.strictEqual('x-injected' in data.headers, true);
+      assert.strictEqual(data.headers[headerName], scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
+      assert.strictEqual(headerName in data.headers, true);
     } finally {
       await client.destroy();
     }
@@ -125,8 +134,9 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
     try {
       const response = await client.get('/echo-headers');
       const data = await response.json() as { headers: Record<string, string> };
+      const headerName = headerInput(scenarioCase).toLowerCase();
       assert.strictEqual(response.status, 200);
-      assert.strictEqual(data.headers['x-injected'], scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
+      assert.strictEqual(data.headers[headerName], scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
     } finally {
       await client.destroy();
     }

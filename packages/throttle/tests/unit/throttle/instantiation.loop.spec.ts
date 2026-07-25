@@ -9,35 +9,35 @@ type ScenarioCase =
       description: string;
       expected: { concurrencyLimit: number };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'create-with-config';
+      shape: 'create-with-config';
       name: string;
     }
   | {
       description: string;
       expected: { concurrencyLimit: number };
       input: { throttle: Record<string, never> };
-      kind: 'create-with-default';
+      shape: 'create-with-default';
       name: string;
     }
   | {
       description: string;
       expected: { result: string };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'execute-created-throttle';
+      shape: 'execute-created-throttle';
       name: string;
     }
   | {
       description: string;
       expected: { result: string };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'chain-execute-after-create';
+      shape: 'chain-execute-after-create';
       name: string;
     }
   | {
       description: string;
       expected: { result: number };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'execute-closure-arguments';
+      shape: 'execute-closure-arguments';
       name: string;
     };
 
@@ -55,10 +55,10 @@ class ThrottleTestHelpers {
   }
 }
 
-type ScenarioKind = ScenarioCase['kind'];
+type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     'chain-execute-after-create': async (scenarioCase) => {
       const result = await Throttle.create(scenarioCase.input.throttle).execute(ThrottleTestHelpers.chainedResult);
       assert.strictEqual(result, scenarioCase.expected.result);
@@ -85,7 +85,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle instantiation', () => {

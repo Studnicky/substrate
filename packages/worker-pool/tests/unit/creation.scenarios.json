@@ -3,7 +3,7 @@
     {
       "name": "missing-worker-path",
       "description": "throws when workerPath is missing",
-      "kind": "missing-worker-path",
+      "shape": "missing-worker-path",
       "input": {
         "workerPool": { "workerPath": "" }
       },
@@ -12,7 +12,7 @@
     {
       "name": "default-concurrency",
       "description": "runs successfully when concurrency is omitted",
-      "kind": "default-concurrency",
+      "shape": "default-concurrency",
       "input": {
         "workerPool": {
           "workerPath": "../fixtures/echoWorker.mjs"
@@ -24,14 +24,14 @@
     {
       "name": "caller-supplied-signal",
       "description": "uses a caller-supplied Signal for task deadlines",
-      "kind": "caller-supplied-signal",
+      "shape": "caller-supplied-signal",
       "input": {
         "workerPool": {
           "timeoutMs": 1000,
           "workerPath": "../fixtures/echoWorker.mjs"
         },
         "items": [{ "value": "a" }],
-        "signal": { "kind": "tracking" }
+        "signal": { "shape": "tracking" }
       },
       "expected": {
         "composeCalls": 1,
@@ -41,7 +41,7 @@
     {
       "name": "explicit-bounded-concurrency",
       "description": "builds a functioning pool with bounded concurrency",
-      "kind": "explicit-bounded-concurrency",
+      "shape": "explicit-bounded-concurrency",
       "input": {
         "workerPool": {
           "batch": { "concurrency": 2 },
@@ -55,7 +55,7 @@
     {
       "name": "foreign-construction",
       "description": "rejects a subclass constructor that does not return a worker pool instance",
-      "kind": "foreign-construction",
+      "shape": "foreign-construction",
       "input": {
         "workerPool": {
           "batch": { "concurrency": 1 },

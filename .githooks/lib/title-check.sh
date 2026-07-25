@@ -3,7 +3,7 @@ set -eu
 
 check_commit_subject() {
   subject="$1"
-  if printf '%s' "$subject" | grep -Eq '^(feat|fix|chore|docs|refactor|perf|test|ci|build|revert)(\([^)]+\))?: .+'; then
+  if printf '%s' "$subject" | grep -Eq '^(feat|fix|chore|docs|refactor|perf|test|ci|build|revert)(\([^)]+\))?!?: .+'; then
     return 0
   fi
   echo "title-check: invalid commit subject '$subject'" >&2
@@ -22,14 +22,14 @@ check_pr_title() {
       return 1
       ;;
     main:hotfix/*)
-      if printf '%s\n' "$title" | grep -Eq '^(hotfix|fix)(\([^)]+\))?: .+'; then
+      if printf '%s\n' "$title" | grep -Eq '^(hotfix|fix)(\([^)]+\))?!?: .+'; then
         return 0
       fi
       echo "title-check: hotfix PR titles must use conventional hotfix/fix format" >&2
       return 1
       ;;
     *)
-      if printf '%s\n' "$title" | grep -Eq '^(feat|fix|chore|docs|refactor|perf|test|ci|build|revert)(\([^)]+\))?: .+'; then
+      if printf '%s\n' "$title" | grep -Eq '^(feat|fix|chore|docs|refactor|perf|test|ci|build|revert)(\([^)]+\))?!?: .+'; then
         return 0
       fi
       echo "title-check: PR title must use conventional commit format" >&2

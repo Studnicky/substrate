@@ -3,56 +3,56 @@
     {
       "name": "validate-states",
       "description": "Throttle state entity validates canonical and unsupported states",
-      "kind": "validate-states",
+      "shape": "validate-states",
       "input": { "states": ["aborted", "active", "draining", "idle"], "invalidState": "stopped" },
       "expected": { "validStates": true, "invalidState": false }
     },
     {
       "name": "starts-idle",
       "description": "Throttle starts in the idle state",
-      "kind": "starts-idle",
+      "shape": "starts-idle",
       "input": { "throttle": { "concurrencyLimit": 2 } },
       "expected": { "currentState": "idle", "transitionCount": 0 }
     },
     {
       "name": "idle-to-active",
       "description": "Throttle transitions idle to active when the first slot is acquired",
-      "kind": "idle-to-active",
+      "shape": "idle-to-active",
       "input": { "throttle": { "concurrencyLimit": 2 } },
       "expected": { "from": "idle", "to": "active" }
     },
     {
       "name": "active-to-idle",
       "description": "Throttle transitions active to idle when the last operation finishes",
-      "kind": "active-to-idle",
+      "shape": "active-to-idle",
       "input": { "throttle": { "concurrencyLimit": 2 } },
       "expected": { "from": "active", "to": "idle", "currentState": "idle" }
     },
     {
       "name": "idle-to-draining",
       "description": "Throttle transitions idle to draining when drain is called on an empty throttle",
-      "kind": "idle-to-draining",
+      "shape": "idle-to-draining",
       "input": { "throttle": { "concurrencyLimit": 2 } },
       "expected": { "from": "idle", "to": "draining", "currentState": "draining" }
     },
     {
       "name": "abort-transitions-to-aborted",
       "description": "Throttle transitions to aborted after abort is called",
-      "kind": "abort-transitions-to-aborted",
+      "shape": "abort-transitions-to-aborted",
       "input": { "throttle": { "concurrencyLimit": 2 } },
       "expected": { "to": "aborted", "currentState": "aborted" }
     },
     {
       "name": "double-abort-no-second-transition",
       "description": "Throttle does not add a second aborted transition when abort is called twice",
-      "kind": "double-abort-no-second-transition",
+      "shape": "double-abort-no-second-transition",
       "input": { "throttle": { "concurrencyLimit": 2 } },
       "expected": { "abortedTransitionCount": 1 }
     },
     {
       "name": "illegal-transition-throws",
       "description": "Throttle throws on an illegal transition",
-      "kind": "illegal-transition-throws",
+      "shape": "illegal-transition-throws",
       "input": { "throttle": { "concurrencyLimit": 2 }, "illegalFrom": "idle", "illegalTo": "active" },
       "expected": { "errorMessage": "Illegal state transition" }
     }

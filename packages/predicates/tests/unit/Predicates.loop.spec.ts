@@ -9,7 +9,7 @@ type ScenarioCase = {
   description: string;
   expected: { result: unknown };
   input: { predicates: Record<string, unknown> };
-  kind: string;
+  shape: string;
   name: string;
 };
 
@@ -196,10 +196,10 @@ const predicateRunners: Record<string, PredicateRunner> = {
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  const operation = scenarioCase.kind.split(':')[0];
+  const operation = scenarioCase.shape.split(':')[0];
   const runner = predicateRunners[operation];
   if (runner === undefined) {
-    throw new Error(`Unknown Predicates scenario kind: ${scenarioCase.kind}`);
+    throw new Error(`Unknown Predicates scenario shape: ${scenarioCase.shape}`);
   }
 
   runner(scenarioCase.input.predicates, scenarioCase.expected);

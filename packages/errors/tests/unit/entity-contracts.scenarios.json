@@ -3,329 +3,329 @@
     {
       "name": "error-with-code-valid",
       "description": "accepts errors with a string code",
-      "kind": "error-with-code-valid",
+      "shape": "error-with-code-valid",
       "input": { "value": { "code": "EFAIL" } },
       "expected": { "valid": true }
     },
     {
       "name": "error-with-code-invalid",
       "description": "rejects values without a string code",
-      "kind": "error-with-code-invalid",
+      "shape": "error-with-code-invalid",
       "input": { "value": { "code": 123 } },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-code-invalid-non-object",
       "description": "rejects non-object values for code diagnostics",
-      "kind": "error-with-code-invalid",
+      "shape": "error-with-code-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-status-valid",
       "description": "accepts errors with a numeric status",
-      "kind": "error-with-status-valid",
+      "shape": "error-with-status-valid",
       "input": { "value": { "status": 503 } },
       "expected": { "valid": true }
     },
     {
       "name": "error-with-status-invalid",
       "description": "rejects values without a numeric status",
-      "kind": "error-with-status-invalid",
+      "shape": "error-with-status-invalid",
       "input": { "value": { "status": "503" } },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-status-invalid-non-object",
       "description": "rejects non-object values for HTTP status diagnostics",
-      "kind": "error-with-status-invalid",
+      "shape": "error-with-status-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-status-code-valid",
       "description": "accepts errors with a numeric statusCode",
-      "kind": "error-with-status-code-valid",
+      "shape": "error-with-status-code-valid",
       "input": { "value": { "statusCode": 503 } },
       "expected": { "valid": true }
     },
     {
       "name": "error-with-status-code-invalid",
       "description": "rejects values without a numeric statusCode",
-      "kind": "error-with-status-code-invalid",
+      "shape": "error-with-status-code-invalid",
       "input": { "value": { "statusCode": "503" } },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-status-code-invalid-non-object",
       "description": "rejects non-object values for statusCode diagnostics",
-      "kind": "error-with-status-code-invalid",
+      "shape": "error-with-status-code-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-address-valid",
       "description": "accepts values with a string address",
-      "kind": "error-with-address-valid",
+      "shape": "error-with-address-valid",
       "input": { "value": { "address": "127.0.0.1" } },
       "expected": { "valid": true }
     },
     {
       "name": "error-with-address-invalid",
       "description": "rejects values without a string address",
-      "kind": "error-with-address-invalid",
+      "shape": "error-with-address-invalid",
       "input": { "value": { "address": 127001 } },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-address-invalid-non-object",
       "description": "rejects non-object values for address diagnostics",
-      "kind": "error-with-address-invalid",
+      "shape": "error-with-address-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-errno-valid",
       "description": "accepts values with a numeric errno",
-      "kind": "error-with-errno-valid",
+      "shape": "error-with-errno-valid",
       "input": { "value": { "errno": 5 } },
       "expected": { "valid": true }
     },
     {
       "name": "error-with-errno-invalid",
       "description": "rejects values without a numeric errno",
-      "kind": "error-with-errno-invalid",
+      "shape": "error-with-errno-invalid",
       "input": { "value": { "errno": "5" } },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-errno-invalid-non-object",
       "description": "rejects non-object values for errno diagnostics",
-      "kind": "error-with-errno-invalid",
+      "shape": "error-with-errno-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-hostname-valid",
       "description": "accepts values with a string hostname",
-      "kind": "error-with-hostname-valid",
+      "shape": "error-with-hostname-valid",
       "input": { "value": { "hostname": "localhost" } },
       "expected": { "valid": true }
     },
     {
       "name": "error-with-hostname-invalid",
       "description": "rejects values without a string hostname",
-      "kind": "error-with-hostname-invalid",
+      "shape": "error-with-hostname-invalid",
       "input": { "value": { "hostname": true } },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-hostname-invalid-non-object",
       "description": "rejects non-object values for hostname diagnostics",
-      "kind": "error-with-hostname-invalid",
+      "shape": "error-with-hostname-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-port-valid",
       "description": "accepts values with a numeric port",
-      "kind": "error-with-port-valid",
+      "shape": "error-with-port-valid",
       "input": { "value": { "port": 8080 } },
       "expected": { "valid": true }
     },
     {
       "name": "error-with-port-invalid",
       "description": "rejects values without a numeric port",
-      "kind": "error-with-port-invalid",
+      "shape": "error-with-port-invalid",
       "input": { "value": { "port": "8080" } },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-port-invalid-non-object",
       "description": "rejects non-object values for port diagnostics",
-      "kind": "error-with-port-invalid",
+      "shape": "error-with-port-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-retry-after-valid",
       "description": "accepts values with a numeric retryAfter",
-      "kind": "error-with-retry-after-valid",
+      "shape": "error-with-retry-after-valid",
       "input": { "value": { "retryAfter": 30 } },
       "expected": { "valid": true }
     },
     {
       "name": "error-with-retry-after-invalid",
       "description": "rejects values without a numeric retryAfter",
-      "kind": "error-with-retry-after-invalid",
+      "shape": "error-with-retry-after-invalid",
       "input": { "value": { "retryAfter": "30" } },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-retry-after-invalid-non-object",
       "description": "rejects non-object values for retryAfter diagnostics",
-      "kind": "error-with-retry-after-invalid",
+      "shape": "error-with-retry-after-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-syscall-valid",
       "description": "accepts values with a string syscall",
-      "kind": "error-with-syscall-valid",
+      "shape": "error-with-syscall-valid",
       "input": { "value": { "syscall": "connect" } },
       "expected": { "valid": true }
     },
     {
       "name": "error-with-syscall-invalid",
       "description": "rejects values without a string syscall",
-      "kind": "error-with-syscall-invalid",
+      "shape": "error-with-syscall-invalid",
       "input": { "value": { "syscall": 1 } },
       "expected": { "valid": false }
     },
     {
       "name": "error-with-syscall-invalid-non-object",
       "description": "rejects non-object values for syscall diagnostics",
-      "kind": "error-with-syscall-invalid",
+      "shape": "error-with-syscall-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-diagnostic-valid",
       "description": "accepts canonical error diagnostics",
-      "kind": "error-diagnostic-valid",
+      "shape": "error-diagnostic-valid",
       "input": { "value": { "message": "connection failed", "name": "ConnectionError", "stack": "ConnectionError: connection failed" } },
       "expected": { "valid": true }
     },
     {
       "name": "error-diagnostic-valid-no-stack",
       "description": "accepts diagnostics without an optional stack",
-      "kind": "error-diagnostic-valid-no-stack",
+      "shape": "error-diagnostic-valid-no-stack",
       "input": { "value": { "message": "connection failed", "name": "ConnectionError" } },
       "expected": { "valid": true }
     },
     {
       "name": "error-diagnostic-invalid",
       "description": "rejects missing and malformed diagnostic fields",
-      "kind": "error-diagnostic-invalid",
+      "shape": "error-diagnostic-invalid",
       "input": { "missingMessage": { "name": "Error" }, "missingName": { "message": "missing name" }, "badStack": { "message": "bad stack", "name": "Error", "stack": 1 } },
       "expected": { "missingMessage": false, "missingName": false, "badStack": false }
     },
     {
       "name": "error-classification-valid",
       "description": "accepts a minimal error classification",
-      "kind": "error-classification-valid",
+      "shape": "error-classification-valid",
       "input": { "value": { "retryable": true } },
       "expected": { "valid": true }
     },
     {
       "name": "error-classification-invalid",
       "description": "rejects malformed error classifications",
-      "kind": "error-classification-invalid",
+      "shape": "error-classification-invalid",
       "input": { "value": { "retryable": "yes" } },
       "expected": { "valid": false }
     },
     {
       "name": "error-classification-invalid-non-object",
       "description": "rejects non-object classifications",
-      "kind": "error-classification-invalid",
+      "shape": "error-classification-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "error-classification-invalid-reason",
       "description": "rejects classifications with a malformed optional reason",
-      "kind": "error-classification-invalid",
+      "shape": "error-classification-invalid",
       "input": { "value": { "reason": 7, "retryable": true } },
       "expected": { "valid": false }
     },
     {
       "name": "error-code-descriptor-valid",
       "description": "accepts a minimal error code descriptor",
-      "kind": "error-code-descriptor-valid",
+      "shape": "error-code-descriptor-valid",
       "input": { "value": { "code": "errors.example", "description": "Example code", "retryable": false } },
       "expected": { "valid": true }
     },
     {
       "name": "error-code-descriptor-invalid",
       "description": "rejects malformed error code descriptors",
-      "kind": "error-code-descriptor-invalid",
+      "shape": "error-code-descriptor-invalid",
       "input": { "value": { "code": "errors.example", "description": 123, "retryable": false } },
       "expected": { "valid": false }
     },
     {
       "name": "violation-detail-valid",
       "description": "accepts structured violation details",
-      "kind": "violation-detail-valid",
+      "shape": "violation-detail-valid",
       "input": { "value": { "details": { "limit": 3 }, "message": "too long", "path": "/name" } },
       "expected": { "valid": true }
     },
     {
       "name": "violation-detail-valid-no-details",
       "description": "accepts violation details without optional details",
-      "kind": "violation-detail-valid",
+      "shape": "violation-detail-valid",
       "input": { "value": { "message": "too long", "path": "/name" } },
       "expected": { "valid": true }
     },
     {
       "name": "violation-detail-invalid",
       "description": "rejects malformed violation details",
-      "kind": "violation-detail-invalid",
+      "shape": "violation-detail-invalid",
       "input": { "value": { "details": 123, "message": "too long", "path": "/name" } },
       "expected": { "valid": false }
     },
     {
       "name": "violation-detail-invalid-non-object",
       "description": "rejects non-object violation details",
-      "kind": "violation-detail-invalid",
+      "shape": "violation-detail-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "violation-detail-invalid-missing-message",
       "description": "rejects violation details without a message",
-      "kind": "violation-detail-invalid",
+      "shape": "violation-detail-invalid",
       "input": { "value": { "path": "/name" } },
       "expected": { "valid": false }
     },
     {
       "name": "violation-detail-invalid-missing-path",
       "description": "rejects violation details without a path",
-      "kind": "violation-detail-invalid",
+      "shape": "violation-detail-invalid",
       "input": { "value": { "message": "too long" } },
       "expected": { "valid": false }
     },
     {
       "name": "aggregate-view-valid",
       "description": "accepts canonical validation aggregate views",
-      "kind": "aggregate-view-valid",
+      "shape": "aggregate-view-valid",
       "input": { "value": { "count": 2, "keywords": ["required", "format"], "paths": ["/email", "/profile"] } },
       "expected": { "valid": true }
     },
     {
       "name": "aggregate-view-invalid",
       "description": "rejects malformed validation aggregate views",
-      "kind": "aggregate-view-invalid",
+      "shape": "aggregate-view-invalid",
       "input": { "value": { "count": 2, "keywords": ["required", 1], "paths": ["/email", "/profile"] } },
       "expected": { "valid": false }
     },
     {
       "name": "report-options-valid",
       "description": "accepts canonical validation report options",
-      "kind": "report-options-valid",
+      "shape": "report-options-valid",
       "input": { "value": { "status": 400, "title": "Bad Request", "type": "https://example.test/problem" } },
       "expected": { "valid": true }
     },
     {
       "name": "report-options-invalid",
       "description": "rejects malformed validation report options",
-      "kind": "report-options-invalid",
+      "shape": "report-options-invalid",
       "input": { "value": { "status": "400", "title": "Bad Request", "type": "https://example.test/problem" } },
       "expected": { "valid": false }
     },
     {
       "name": "problem-details-valid",
       "description": "accepts RFC 7807 validation problem details",
-      "kind": "problem-details-valid",
+      "shape": "problem-details-valid",
       "input": {
         "value": {
           "detail": "1 validation error",
@@ -340,7 +340,7 @@
     {
       "name": "problem-details-valid-empty-errors",
       "description": "accepts validation problem details with an empty errors array",
-      "kind": "problem-details-valid-empty-errors",
+      "shape": "problem-details-valid-empty-errors",
       "input": {
         "value": {
           "detail": "no validation errors",
@@ -355,7 +355,7 @@
     {
       "name": "problem-details-invalid",
       "description": "rejects malformed problem details payloads",
-      "kind": "problem-details-invalid",
+      "shape": "problem-details-invalid",
       "input": {
         "value": {
           "detail": "1 validation error",
@@ -370,14 +370,14 @@
     {
       "name": "problem-details-invalid-non-object",
       "description": "rejects non-object problem details payloads",
-      "kind": "problem-details-invalid",
+      "shape": "problem-details-invalid",
       "input": { "value": null },
       "expected": { "valid": false }
     },
     {
       "name": "problem-details-invalid-missing-detail",
       "description": "rejects problem details without a detail string",
-      "kind": "problem-details-invalid",
+      "shape": "problem-details-invalid",
       "input": {
         "value": {
           "errors": [{ "keyword": "required", "message": "required", "path": "/name" }],
@@ -391,7 +391,7 @@
     {
       "name": "problem-details-invalid-missing-title",
       "description": "rejects problem details without a title string",
-      "kind": "problem-details-invalid",
+      "shape": "problem-details-invalid",
       "input": {
         "value": {
           "detail": "1 validation error",
@@ -405,7 +405,7 @@
     {
       "name": "problem-details-invalid-missing-type",
       "description": "rejects problem details without a type string",
-      "kind": "problem-details-invalid",
+      "shape": "problem-details-invalid",
       "input": {
         "value": {
           "detail": "1 validation error",
@@ -419,7 +419,7 @@
     {
       "name": "problem-details-invalid-errors-not-array",
       "description": "rejects problem details whose errors field is not an array",
-      "kind": "problem-details-invalid",
+      "shape": "problem-details-invalid",
       "input": {
         "value": {
           "detail": "1 validation error",
@@ -434,7 +434,7 @@
     {
       "name": "problem-details-invalid-item",
       "description": "rejects problem details with a malformed violation item",
-      "kind": "problem-details-invalid-item",
+      "shape": "problem-details-invalid-item",
       "input": {
         "value": {
           "detail": "1 validation error",
@@ -449,21 +449,21 @@
     {
       "name": "validation-arguments-valid",
       "description": "accepts canonical validation error arguments",
-      "kind": "validation-arguments-valid",
+      "shape": "validation-arguments-valid",
       "input": { "value": { "correlationId": "request-42", "message": "Must be an email address", "path": "/email", "violations": [{ "details": { "format": "email" }, "message": "Invalid format", "path": "/email" }] } },
       "expected": { "valid": true }
     },
     {
       "name": "validation-arguments-invalid-top-level",
       "description": "rejects an undeclared top-level property",
-      "kind": "validation-arguments-invalid-top-level",
+      "shape": "validation-arguments-invalid-top-level",
       "input": { "value": { "message": "Invalid value", "path": "/value", "unexpected": true } },
       "expected": { "valid": false }
     },
     {
       "name": "validation-arguments-invalid-violation",
       "description": "rejects a malformed violation",
-      "kind": "validation-arguments-invalid-violation",
+      "shape": "validation-arguments-invalid-violation",
       "input": { "value": { "message": "Invalid value", "path": "/value", "violations": [{ "message": "Missing violation path" }] } },
       "expected": { "valid": false }
     }

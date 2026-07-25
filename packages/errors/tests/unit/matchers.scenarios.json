@@ -3,7 +3,7 @@
     {
       "name": "immutable-matcher-route",
       "description": "exposes one immutable matcher route",
-      "kind": "immutable-matcher-route",
+      "shape": "immutable-matcher-route",
       "expected": {
         "frozen": true,
         "hasClassifierConstants": false,
@@ -19,7 +19,7 @@
     {
       "name": "negative-matcher-route",
       "description": "drives false branches across matcher helpers",
-      "kind": "negative-matcher-route",
+      "shape": "negative-matcher-route",
       "expected": {
         "and": false,
         "contains": false,
@@ -63,7 +63,7 @@
     {
       "name": "number-matchers",
       "description": "covers numeric matcher branches",
-      "kind": "number-matchers",
+      "shape": "number-matchers",
       "expected": {
         "greaterThan": true,
         "gte": true,
@@ -79,7 +79,7 @@
     {
       "name": "string-matchers",
       "description": "covers string matcher branches",
-      "kind": "string-matchers",
+      "shape": "string-matchers",
       "expected": {
         "contains": true,
         "containsIgnoreCase": true,
@@ -98,7 +98,7 @@
     {
       "name": "boolean-matchers",
       "description": "covers boolean matcher branches",
-      "kind": "boolean-matchers",
+      "shape": "boolean-matchers",
       "expected": {
         "isFalse": true,
         "isTrue": true
@@ -110,7 +110,7 @@
     {
       "name": "array-matchers",
       "description": "covers array matcher branches",
-      "kind": "array-matchers",
+      "shape": "array-matchers",
       "expected": {
         "contains": true,
         "containsAll": true,
@@ -125,7 +125,7 @@
     {
       "name": "object-matchers",
       "description": "covers object matcher branches",
-      "kind": "object-matchers",
+      "shape": "object-matchers",
       "expected": {
         "hasAllProperties": true,
         "hasAnyProperty": true,
@@ -141,7 +141,7 @@
     {
       "name": "logic-matchers",
       "description": "covers logical combinator branches",
-      "kind": "logic-matchers",
+      "shape": "logic-matchers",
       "expected": {
         "and": true,
         "not": true,
@@ -154,7 +154,7 @@
     {
       "name": "empty-variadics",
       "description": "covers empty variadic matcher inputs",
-      "kind": "empty-variadics",
+      "shape": "empty-variadics",
       "expected": {
         "and": true,
         "containsAll": true,
@@ -170,7 +170,7 @@
     {
       "name": "network-matchers",
       "description": "covers network matcher branches",
-      "kind": "network-matchers",
+      "shape": "network-matchers",
       "expected": {
         "connectionError": true,
         "dnsError": false,
@@ -183,7 +183,7 @@
     {
       "name": "network-matchers dns",
       "description": "covers the dns-specific positive branch",
-      "kind": "network-matchers",
+      "shape": "network-matchers",
       "expected": {
         "connectionError": true,
         "dnsError": true,
@@ -196,7 +196,7 @@
     {
       "name": "http-matchers",
       "description": "covers common HTTP status matcher branches",
-      "kind": "http-matchers",
+      "shape": "http-matchers",
       "expected": {
         "isAuthError": false,
         "isClientError": true,
@@ -215,7 +215,7 @@
     {
       "name": "database-matchers",
       "description": "covers database matcher branches",
-      "kind": "database-matchers",
+      "shape": "database-matchers",
       "expected": {
         "connectionError": true,
         "constraintViolation": true,
@@ -234,7 +234,7 @@
     {
       "name": "instance-matchers",
       "description": "covers instance matcher branches",
-      "kind": "instance-matchers",
+      "shape": "instance-matchers",
       "expected": {
         "isError": true,
         "named": true,
@@ -249,7 +249,7 @@
     {
       "name": "proto-matchers",
       "description": "covers prototype matcher branches",
-      "kind": "proto-matchers",
+      "shape": "proto-matchers",
       "expected": {
         "hasAllMethods": true,
         "hasAnyMethod": true,

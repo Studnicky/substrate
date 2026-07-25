@@ -21,7 +21,7 @@ type ScenarioCase =
       description: string;
       expected: { validationResults: boolean[] };
       input: { validations: { entity: ValidationName; expected: boolean; value: Record<string, unknown> }[] };
-      kind: 'history-timestamp-validation' | 'hook-error-count-validation';
+      shape: 'history-timestamp-validation' | 'hook-error-count-validation';
       name: string;
     };
 

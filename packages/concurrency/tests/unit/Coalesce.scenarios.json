@@ -3,91 +3,91 @@
     {
       "name": "shared-factory",
       "description": "concurrent calls for the same key share one factory invocation",
-      "kind": "shared-factory",
+      "shape": "shared-factory",
       "input": { "calls": 3, "delayMs": 10, "key": "key", "result": "result" },
       "expected": { "callCount": 1, "result": "result" }
     },
     {
       "name": "independent-keys",
       "description": "different keys run independent factory calls",
-      "kind": "independent-keys",
+      "shape": "independent-keys",
       "input": { "keyA": "key-a", "keyB": "key-b", "valueA": 1, "valueB": 2 },
       "expected": { "callCount": 2, "resultA": 1, "resultB": 2 }
     },
     {
       "name": "inflight-state",
       "description": "isInflight returns true while in-flight, false after resolution",
-      "kind": "inflight-state",
+      "shape": "inflight-state",
       "input": { "key": "k", "result": "done" },
       "expected": { "inflightBefore": true, "inflightAfter": false }
     },
     {
       "name": "factory-error-cleanup",
       "description": "factory error propagates and entry is cleaned up",
-      "kind": "factory-error-cleanup",
+      "shape": "factory-error-cleanup",
       "input": { "key": "k", "message": "factory-error" },
       "expected": { "inflightAfter": false }
     },
     {
       "name": "factory-throw",
       "description": "factory throw propagates and entry is cleaned up",
-      "kind": "factory-throw",
+      "shape": "factory-throw",
       "input": { "key": "k", "message": "factory-throw" },
       "expected": { "inflightAfter": false }
     },
     {
       "name": "sequential-calls",
       "description": "sequential calls after resolution each trigger a new factory call",
-      "kind": "sequential-calls",
+      "shape": "sequential-calls",
       "input": { "key": "k", "result1": 1, "result2": 2 },
       "expected": { "callCount": 2 }
     },
     {
       "name": "coalesce-start-hooks",
       "description": "onCoalesceStart fires once for leader, onCoalesceJoin fires for each joiner",
-      "kind": "coalesce-start-hooks",
+      "shape": "coalesce-start-hooks",
       "input": { "key": "k" },
       "expected": { "joinCount": 2, "startCount": 1 }
     },
     {
       "name": "start-gate",
       "description": "reserves the shared completion while onCoalesceStart is pending and invokes the factory only after it completes",
-      "kind": "start-gate",
+      "shape": "start-gate",
       "input": { "key": "k" },
       "expected": { "factoryCalls": 1, "inflight": true }
     },
     {
       "name": "settled-success",
       "description": "onCoalesceSettled fires with success=true on resolution",
-      "kind": "settled-success",
+      "shape": "settled-success",
       "input": { "key": "k", "result": 42 },
       "expected": { "success": true }
     },
     {
       "name": "settled-failure",
       "description": "onCoalesceSettled fires with success=false on rejection",
-      "kind": "settled-failure",
+      "shape": "settled-failure",
       "input": { "key": "k", "message": "fail" },
       "expected": { "success": false }
     },
     {
       "name": "join-hook-rejects",
       "description": "a rejecting onCoalesceJoin hook rejects the joiner without disturbing the leader's in-flight result",
-      "kind": "join-hook-rejects",
+      "shape": "join-hook-rejects",
       "input": { "key": "k", "message": "join failed" },
       "expected": { "settledEvents": [true] }
     },
     {
       "name": "no-timeout",
       "description": "no timeout configured: run() waits indefinitely, behaves exactly as before",
-      "kind": "no-timeout",
+      "shape": "no-timeout",
       "input": { "delayMs": 50, "key": "k", "result": "slow-result" },
       "expected": { "result": "slow-result" }
     },
     {
       "name": "timeout-rejects",
       "description": "timeout configured on a slow factory rejects the timed-out caller with CoalesceTimeoutError and fires onTimeout",
-      "kind": "timeout-rejects",
+      "shape": "timeout-rejects",
       "input": { "coalesce": { "timeout": 20 }, "key": "k", "result": "eventual-result" },
       "expected": {
         "inflightAfterTimeout": true,
@@ -97,28 +97,28 @@
     {
       "name": "timeout-second-caller",
       "description": "a second caller joining after the first times out still receives the real result once the factory settles, proving the shared in-flight promise was undisturbed",
-      "kind": "timeout-second-caller",
+      "shape": "timeout-second-caller",
       "input": { "coalesce": { "timeout": 20 }, "key": "k", "result": "shared-result" },
       "expected": { "timeoutEvents": 1 }
     },
     {
       "name": "async-timeout-hook",
       "description": "an async onTimeout rejection rejects only that caller with HookInvocationError and never becomes unhandled",
-      "kind": "async-timeout-hook",
+      "shape": "async-timeout-hook",
       "input": { "coalesce": { "timeout": 5 }, "key": "k" },
       "expected": { "hookName": "onTimeout", "unhandledRejections": 0 }
     },
     {
       "name": "rejecting-start-hook",
       "description": "a rejecting onCoalesceStart hook rejects the reserved leader and joiner without invoking the factory",
-      "kind": "rejecting-start-hook",
+      "shape": "rejecting-start-hook",
       "input": { "key": "k", "message": "hook boom" },
       "expected": { "settledEvents": [false], "inflightAfter": false }
     },
     {
       "name": "throwing-settled-hook",
       "description": "a throwing onCoalesceSettled hook replaces the factory outcome with HookInvocationError for every caller sharing the in-flight promise",
-      "kind": "throwing-settled-hook",
+      "shape": "throwing-settled-hook",
       "input": { "factoryMessage": "factory-error", "firstKey": "resolve", "secondKey": "reject", "settledMessage": "hook boom" },
       "expected": { "inflightAfter": false }
     }

@@ -172,11 +172,11 @@ The inline object is callable contract structure, not a pure-data portion.
 
 The rule does not convert an interface to a type alias because correct remediation requires a schema and runtime validation boundary. Choose one of these outcomes:
 
-1. define canonical data in an entity namespace with `FromSchema<typeof Schema>`;
+1. define canonical data in an entity namespace with a schema-derived `Type`, such as `FromSchema<typeof Schema>`;
 2. compose existing canonical entity types in `src/types/`; or
 3. keep the interface and express its actual runtime, callable, nominal, or readonly access contract.
 
-Schema, derivation, validation, and dependency-owned JSON types keep direct provenance at their use sites: `JSONSchema` and `FromSchema` come from `json-schema-to-ts`, `ValidateFunction` comes from `ajv`, and `JSONSchema7Type` comes from `json-schema` with declarations supplied by `@types/json-schema`. Each consuming package declares the dependency whose functionality it uses.
+Schema derivation is recognized structurally, not by package: `FromSchema` from `json-schema-to-ts`, TypeBox's `Static`, Zod's `z.infer`, and a project-local equivalent are all valid. Validation and other dependency-owned JSON types keep direct provenance at their use sites: `ValidateFunction` comes from `ajv`, and `JSONSchema7Type` comes from `json-schema` with declarations supplied by `@types/json-schema`. Each consuming package declares the dependency whose functionality it uses.
 
 ## Scoped exceptions
 

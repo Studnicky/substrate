@@ -8,19 +8,19 @@ type ScenarioCase =
   | {
       description: string;
       expected: { value: string };
-      input: { kind: 'basename-bare-relative' | 'basename-nested'; path: string };
-      kind: 'basename-bare-relative' | 'basename-nested';
+      input: { shape: 'basename-bare-relative' | 'basename-nested'; path: string };
+      shape: 'basename-bare-relative' | 'basename-nested';
       name: string;
     }
   | {
       description: string;
       expected: { value: string };
-      input: { kind: 'dirname-absolute-multi' | 'dirname-absolute-single' | 'dirname-bare-relative' | 'dirname-relative-directory'; path: string };
-      kind: 'dirname-absolute-multi' | 'dirname-absolute-single' | 'dirname-bare-relative' | 'dirname-relative-directory';
+      input: { shape: 'dirname-absolute-multi' | 'dirname-absolute-single' | 'dirname-bare-relative' | 'dirname-relative-directory'; path: string };
+      shape: 'dirname-absolute-multi' | 'dirname-absolute-single' | 'dirname-bare-relative' | 'dirname-relative-directory';
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'dirname-bare-relative': (scenarioCase) => {
     assert.strictEqual(LockPathHelpers.dirname(scenarioCase.input.path), scenarioCase.expected.value);
   },
@@ -42,7 +42,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('LockPathHelpers', () => {

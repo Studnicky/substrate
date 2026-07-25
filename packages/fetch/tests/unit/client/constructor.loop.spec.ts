@@ -10,7 +10,7 @@ import {
 
 import scenarioGroups from './constructor.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'valid-no-config'
   | 'valid-baseURL'
   | 'valid-headers'
@@ -47,15 +47,15 @@ type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: ScenarioInput;
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
 type ConfigRuntimeTag =
-  | { kind: 'static-request-id'; value: unknown }
-  | { kind: 'throwing-request-id'; message: string };
+  | { shape: 'static-request-id'; value: unknown }
+  | { shape: 'throwing-request-id'; message: string };
 
-type ExpectedRuntimeTag = { kind: 'undefined' };
+type ExpectedRuntimeTag = { shape: 'undefined' };
 type ConfigRuntimeTagMaterializer = (value: ConfigRuntimeTag) => unknown;
 type ExpectedRuntimeTagMaterializer = (value: ExpectedRuntimeTag) => unknown;
 type ScenarioRunner = (scenarioCase: ScenarioCase, config: ClientConfigInterface) => Promise<void> | void;
@@ -94,10 +94,10 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
 }
 
 function isConfigRuntimeTag(value: Record<string, unknown>): value is ConfigRuntimeTag {
-  return typeof value.kind === 'string' && value.kind in configRuntimeTagMap;
+  return typeof value.shape === 'string' && value.shape in configRuntimeTagMap;
 }
 
-const configRuntimeTagMap: Record<ConfigRuntimeTag['kind'], ConfigRuntimeTagMaterializer> = {
+const configRuntimeTagMap: Record<ConfigRuntimeTag['shape'], ConfigRuntimeTagMaterializer> = {
   'static-request-id': (value) => {
     return () => value.value;
   },
@@ -106,7 +106,7 @@ const configRuntimeTagMap: Record<ConfigRuntimeTag['kind'], ConfigRuntimeTagMate
   }
 };
 
-const expectedRuntimeTagMap: Record<ExpectedRuntimeTag['kind'], ExpectedRuntimeTagMaterializer> = {
+const expectedRuntimeTagMap: Record<ExpectedRuntimeTag['shape'], ExpectedRuntimeTagMaterializer> = {
   undefined: () => undefined
 };
 
@@ -118,7 +118,7 @@ function materializeConfigValue(value: unknown): unknown {
   if (value !== null && typeof value === 'object') {
     const record = value as Record<string, unknown>;
     if (isConfigRuntimeTag(record)) {
-      return configRuntimeTagMap[record.kind](record);
+      return configRuntimeTagMap[record.shape](record);
     }
 
     return Object.fromEntries(
@@ -130,19 +130,19 @@ function materializeConfigValue(value: unknown): unknown {
 }
 
 function isExpectedRuntimeTag(value: unknown): value is ExpectedRuntimeTag {
-  const record = value as { kind?: unknown };
+  const record = value as { shape?: unknown };
   return (
     value !== null &&
     typeof value === 'object' &&
     !Array.isArray(value) &&
-    typeof record.kind === 'string' &&
-    record.kind in expectedRuntimeTagMap
+    typeof record.shape === 'string' &&
+    record.shape in expectedRuntimeTagMap
   );
 }
 
 function materializeExpectedValue(value: unknown): unknown {
   if (isExpectedRuntimeTag(value)) {
-    return expectedRuntimeTagMap[value.kind](value);
+    return expectedRuntimeTagMap[value.shape](value);
   }
 
   return value;
@@ -331,7 +331,7 @@ async function runPreserveNonPlainJsonBehavior(scenarioCase: ScenarioCase): Prom
   let capturedContext: RequestContextInterface | undefined;
 
   class JsonBox {
-    readonly kind = 'boxed-json' as const;
+    readonly shape = 'boxed-json' as const;
     value: string;
 
     constructor(value: string) {
@@ -367,7 +367,7 @@ async function runPreserveNonPlainJsonBehavior(scenarioCase: ScenarioCase): Prom
   assert.ok(capturedContext !== undefined);
   assert.ok(capturedContext.options.json instanceof JsonBox);
   assert.strictEqual(capturedContext.options.json, boxedJson);
-  assert.strictEqual(capturedContext.options.json.kind, expectedJson.kind);
+  assert.strictEqual(capturedContext.options.json.shape, expectedJson.shape);
   assert.strictEqual(capturedContext.options.json.value, expectedJson.value);
 }
 
@@ -403,7 +403,7 @@ async function runPreserveNullPrototypeJsonBehavior(scenarioCase: ScenarioCase):
   assert.deepStrictEqual(capturedContext.options.json, scenarioCase.expected.json);
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'behavior-baseURL': runBaseUrlBehavior,
   'behavior-custom-requestIdGenerator': runCustomRequestIdBehavior,
   'behavior-default-timeout': runDefaultTimeoutBehavior,
@@ -434,7 +434,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   const config = materializeConfigValue(scenarioCase.input.fetchClient) as ClientConfigInterface;
-  await runnerMap[scenarioCase.kind](scenarioCase, config);
+  await runnerMap[scenarioCase.shape](scenarioCase, config);
 }
 
 void describe('FetchClient Constructor', () => {

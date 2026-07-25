@@ -3,7 +3,7 @@
     {
       "name": "default-construction",
       "description": "CircularBufferError applies its default code and retryability",
-      "kind": "default-construction",
+      "shape": "default-construction",
       "input": {
         "message": "invalid capacity"
       },
@@ -16,7 +16,7 @@
     {
       "name": "with-args",
       "description": "CircularBufferError preserves caller metadata and correlation id",
-      "kind": "with-args",
+      "shape": "with-args",
       "input": {
         "message": "invalid capacity",
         "args": {
@@ -41,7 +41,7 @@
     {
       "name": "with-cause",
       "description": "CircularBufferError preserves an explicit cause",
-      "kind": "with-cause",
+      "shape": "with-cause",
       "input": {
         "message": "invalid capacity",
         "args": {

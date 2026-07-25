@@ -18,7 +18,7 @@ type ScenarioCase =
         numberValue: string;
         stringValue: string;
       };
-      kind: 'immutable-matcher-route';
+      shape: 'immutable-matcher-route';
       name: string;
     }
   | {
@@ -62,14 +62,14 @@ type ScenarioCase =
         objectValue: Record<string, unknown>;
         stringValue: string;
       };
-      kind: 'negative-matcher-route';
+      shape: 'negative-matcher-route';
       name: string;
     }
   | {
       description: string;
       expected: Record<string, boolean>;
       input: Record<string, unknown>;
-      kind: 'array-matchers' | 'boolean-matchers' | 'database-matchers' | 'empty-variadics' | 'http-matchers' | 'instance-matchers' | 'logic-matchers' | 'network-matchers' | 'number-matchers' | 'object-matchers' | 'proto-matchers' | 'string-matchers';
+      shape: 'array-matchers' | 'boolean-matchers' | 'database-matchers' | 'empty-variadics' | 'http-matchers' | 'instance-matchers' | 'logic-matchers' | 'network-matchers' | 'number-matchers' | 'object-matchers' | 'proto-matchers' | 'string-matchers';
       name: string;
     };
 
@@ -129,6 +129,12 @@ const runnerMap = {
     assert.strictEqual(matchers.http.isSuccess(status), scenario.expected.isSuccess);
   },
   'immutable-matcher-route': (scenario) => {
+    assert.strictEqual(Object.isFrozen(matchers), scenario.expected.frozen);
+    assert.strictEqual(
+      Object.hasOwn(ErrorClassifier, 'NUMBER_MATCHERS') || Object.hasOwn(ErrorClassifier, 'HTTP_MATCHERS'),
+      scenario.expected.hasClassifierConstants
+    );
+    assert.strictEqual(Object.hasOwn(matchers.instance, 'isType'), scenario.expected.hasInstanceIsType);
     assert.strictEqual(matchers.isType<string>('string')(scenario.input.stringValue), scenario.expected.stringMatch);
     assert.strictEqual(matchers.isType<number>('number')(scenario.input.numberValue), scenario.expected.numberMatch);
   },
@@ -276,11 +282,11 @@ const runnerMap = {
     assert.strictEqual(matchers.string.startsWith('Connection')(value), scenario.expected.startsWith);
     assert.strictEqual(matchers.string.startsWithIgnoreCase('connection')(value), scenario.expected.startsWithIgnoreCase);
   }
-} satisfies Record<ScenarioCase['kind'], ScenarioRunner>;
+} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 function runCase(scenario: ScenarioCase): void {
   assertMatcherSurface();
-  runnerMap[scenario.kind](scenario);
+  runnerMap[scenario.shape](scenario);
 }
 
 void describe('matchers', () => {

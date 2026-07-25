@@ -3,7 +3,7 @@
     {
       "name": "scheduleAt-returns-task",
       "description": "returns a ScheduledTask with id and atMs",
-      "kind": "scheduleAt-returns-task",
+      "shape": "scheduleAt-returns-task",
       "input": {
         "scheduler": {
           "delayMs": 10000
@@ -17,7 +17,7 @@
     {
       "name": "backend-overrides",
       "description": "custom timer backend hooks and clearTimer are invoked",
-      "kind": "backend-overrides",
+      "shape": "backend-overrides",
       "input": {
         "batch": {
           "taskCount": 2
@@ -35,7 +35,7 @@
     {
       "name": "scheduleEvery-returns-task",
       "description": "returns a ScheduledTask with atMs and id",
-      "kind": "scheduleEvery-returns-task",
+      "shape": "scheduleEvery-returns-task",
       "input": {
         "scheduler": {
           "intervalMs": 5000
@@ -49,7 +49,7 @@
     {
       "name": "cancelAll-clears-multiple",
       "description": "clears multiple tasks without error",
-      "kind": "cancelAll-clears-multiple",
+      "shape": "cancelAll-clears-multiple",
       "input": {
         "batch": {
           "taskCount": 3
@@ -66,7 +66,7 @@
     {
       "name": "cancel-before-fire",
       "description": "cancel() before fire prevents double-cancel error",
-      "kind": "cancel-before-fire",
+      "shape": "cancel-before-fire",
       "input": {
         "scheduler": {
           "delayMs": 10000
@@ -79,7 +79,7 @@
     {
       "name": "cancelAll-interval-task",
       "description": "scheduleEvery interval task cancel via cancelAll",
-      "kind": "cancelAll-interval-task",
+      "shape": "cancelAll-interval-task",
       "input": {
         "scheduler": {
           "intervalMs": 5000
@@ -93,7 +93,7 @@
     {
       "name": "cancelAll-empty",
       "description": "cancelAll on empty scheduler is a no-op",
-      "kind": "cancelAll-empty",
+      "shape": "cancelAll-empty",
       "input": {
         "batch": {
           "taskCount": 0
@@ -108,7 +108,7 @@
     {
       "name": "unique-task-ids",
       "description": "task IDs are unique across multiple schedules",
-      "kind": "unique-task-ids",
+      "shape": "unique-task-ids",
       "input": {
         "batch": {
           "taskCount": 5
@@ -124,7 +124,7 @@
     {
       "name": "rejecting-scheduleAt",
       "description": "rejected Promise from fire is silently caught for scheduleAt",
-      "kind": "rejecting-scheduleAt",
+      "shape": "rejecting-scheduleAt",
       "input": {
         "scheduler": {
           "pastMsOffset": -1,
@@ -138,7 +138,7 @@
     {
       "name": "rejecting-scheduleEvery",
       "description": "rejected Promise from fire is silently caught for scheduleEvery",
-      "kind": "rejecting-scheduleEvery",
+      "shape": "rejecting-scheduleEvery",
       "input": {
         "scheduler": {
           "intervalMs": 1,
@@ -152,7 +152,7 @@
     {
       "name": "onSchedule-called",
       "description": "onSchedule is called when scheduleAt or scheduleEvery is called",
-      "kind": "onSchedule-called",
+      "shape": "onSchedule-called",
       "input": {
         "scheduler": {
           "delayMs": 10000
@@ -165,7 +165,7 @@
     {
       "name": "onCancel-called",
       "description": "onCancel is called when task is cancelled",
-      "kind": "onCancel-called",
+      "shape": "onCancel-called",
       "input": {
         "scheduler": {
           "delayMs": 10000
@@ -178,7 +178,7 @@
     {
       "name": "cancel-after-fire",
       "description": "cancel after a timeout callback fires does not invoke onCancel",
-      "kind": "cancel-after-fire",
+      "shape": "cancel-after-fire",
       "input": {
         "scheduler": {
           "delayMs": -1,
@@ -194,7 +194,7 @@
     {
       "name": "onCancelAll-called",
       "description": "onCancelAll is called when cancelAll is called",
-      "kind": "onCancelAll-called",
+      "shape": "onCancelAll-called",
       "input": {
         "scheduler": {
           "delayMs": 10000
@@ -207,7 +207,7 @@
     {
       "name": "custom-id",
       "description": "generateId override returns custom IDs",
-      "kind": "custom-id",
+      "shape": "custom-id",
       "input": {
         "scheduler": {
           "delayMs": 10000
@@ -220,7 +220,7 @@
     {
       "name": "onMiss-past-scheduleAt",
       "description": "onMiss fires when scheduleAt receives a past atMs",
-      "kind": "onMiss-past-scheduleAt",
+      "shape": "onMiss-past-scheduleAt",
       "input": {
         "scheduler": {
           "pastMsOffset": -1
@@ -233,7 +233,7 @@
     {
       "name": "onMiss-future-scheduleAt",
       "description": "onMiss does NOT fire for a future scheduleAt",
-      "kind": "onMiss-future-scheduleAt",
+      "shape": "onMiss-future-scheduleAt",
       "input": {
         "scheduler": {
           "futureMsOffset": 10000
@@ -246,7 +246,7 @@
     {
       "name": "onFireError-sync",
       "description": "onFireError fires when a scheduled task throws synchronously",
-      "kind": "onFireError-sync",
+      "shape": "onFireError-sync",
       "input": {
         "scheduler": {
           "pastMsOffset": -1,
@@ -260,7 +260,7 @@
     {
       "name": "onFireError-async",
       "description": "onFireError fires when a scheduled task rejects asynchronously",
-      "kind": "onFireError-async",
+      "shape": "onFireError-async",
       "input": {
         "scheduler": {
           "pastMsOffset": -1,
@@ -274,7 +274,7 @@
     {
       "name": "onIdle-after-cancelAll",
       "description": "onIdle fires after cancelAll clears all tasks",
-      "kind": "onIdle-after-cancelAll",
+      "shape": "onIdle-after-cancelAll",
       "input": {
         "scheduler": {
           "delayMs": 10000
@@ -287,7 +287,7 @@
     {
       "name": "onIdle-empty-cancelAll",
       "description": "onIdle fires on cancelAll even when no tasks were scheduled",
-      "kind": "onIdle-empty-cancelAll",
+      "shape": "onIdle-empty-cancelAll",
       "input": {
         "batch": {
           "idleCount": 1
@@ -301,7 +301,7 @@
     {
       "name": "onDrift-captured",
       "description": "onDrift fires when scheduleAt resolves later than the requested time",
-      "kind": "onDrift-captured",
+      "shape": "onDrift-captured",
       "input": {
         "scheduler": {
           "atMs": 10,
@@ -316,7 +316,7 @@
     {
       "name": "chained-timeout-fire",
       "description": "scheduleAt chains through intermediate stages and still fires once for a far-future atMs",
-      "kind": "chained-timeout-fire",
+      "shape": "chained-timeout-fire",
       "input": {
         "batch": {
           "chainStageCount": 3
@@ -333,7 +333,7 @@
     {
       "name": "chained-timeout-cancel",
       "description": "cancel() during an intermediate chained stage prevents the eventual fire",
-      "kind": "chained-timeout-cancel",
+      "shape": "chained-timeout-cancel",
       "input": {
         "batch": {
           "chainStageCount": 3
@@ -350,7 +350,7 @@
     {
       "name": "async-onFire-rejection-guarded",
       "description": "an async onFire override that rejects is routed to onHookError without an unhandled rejection",
-      "kind": "async-onFire-rejection-guarded",
+      "shape": "async-onFire-rejection-guarded",
       "input": {
         "scheduler": {
           "pastMsOffset": -1,
@@ -364,7 +364,7 @@
     {
       "name": "scheduleEvery-sync-throw",
       "description": "scheduleEvery routes synchronous callback throws to onFireError",
-      "kind": "scheduleEvery-sync-throw",
+      "shape": "scheduleEvery-sync-throw",
       "input": {
         "scheduler": {
           "intervalMs": 1,
@@ -378,7 +378,7 @@
     {
       "name": "scheduleEvery-async-reject",
       "description": "scheduleEvery routes async callback rejections to onFireError",
-      "kind": "scheduleEvery-async-reject",
+      "shape": "scheduleEvery-async-reject",
       "input": {
         "scheduler": {
           "intervalMs": 1,

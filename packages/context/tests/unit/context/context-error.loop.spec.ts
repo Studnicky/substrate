@@ -18,13 +18,13 @@ type ScenarioCase =
           message: string;
         };
       };
-      kind: 'construction';
+      shape: 'construction';
       name: string;
     };
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void>;
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'construction': async (scenarioCase) => {
     const error = new ContextError(scenarioCase.input.error.message);
     assert.strictEqual(error.code, scenarioCase.expected.code);
@@ -35,7 +35,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Context errors', () => {

@@ -14,7 +14,7 @@ import scenarioGroups from './adaptive-config.scenarios.json';
 
 type AdjustmentDirection = 'down' | 'none' | 'up';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'adaptive-adjust-hook-throws'
   | 'adaptive-no-change'
   | 'adaptive-scales-down'
@@ -89,7 +89,7 @@ interface ScenarioCase {
   description: string;
   expected: ScenarioExpectedInterface;
   input: ScenarioInputInterface;
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 }
 
@@ -315,7 +315,7 @@ function assertDefaultMaxConcurrency(scenarioCase: ScenarioCase): void {
   assert.strictEqual(stats.adaptive.maxConcurrency, scenarioCase.expected.maxConcurrency);
 }
 
-const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void> | void> = {
   'adaptive-adjust-hook-throws': assertAdaptiveRuntimeHookThrows,
   'adaptive-no-change': assertAdaptiveRuntimeObserved,
   'adaptive-scales-down': assertAdaptiveRuntimeObserved,
@@ -350,7 +350,7 @@ const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<vo
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle adaptive config', () => {

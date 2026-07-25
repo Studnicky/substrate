@@ -15,13 +15,13 @@ type ScenarioCase =
           retryable: boolean;
         };
       };
-      kind: 'constructor-throws' | 'register-duplicate' | 'register-unique';
+      shape: 'constructor-throws' | 'register-duplicate' | 'register-unique';
       name: string;
     };
 
 type ScenarioRunner = (scenario: ScenarioCase) => void;
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'constructor-throws': (scenario) => {
     assert.throws(() => {
       Reflect.construct(ErrorCodeRegistry, []);
@@ -48,14 +48,20 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
   'register-unique': (scenario) => {
     const descriptor = scenario.input.descriptor;
     assert.ok(descriptor);
-    assert.doesNotThrow(() => {
-      ErrorCodeRegistry.register(descriptor);
-    });
+    if (scenario.expected.registered) {
+      assert.doesNotThrow(() => {
+        ErrorCodeRegistry.register(descriptor);
+      });
+    } else {
+      assert.throws(() => {
+        ErrorCodeRegistry.register(descriptor);
+      });
+    }
   }
 };
 
 function runCase(scenario: ScenarioCase): void {
-  runnerMap[scenario.kind](scenario);
+  runnerMap[scenario.shape](scenario);
 }
 
 void describe('ErrorCodeRegistry', () => {

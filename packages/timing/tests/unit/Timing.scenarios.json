@@ -3,7 +3,7 @@
     {
       "name": "creates-instance",
       "description": "creates instance with expected interface",
-      "kind": "creates-instance",
+      "shape": "creates-instance",
       "input": {
         "expectMethods": [
           "event",
@@ -19,7 +19,7 @@
     {
       "name": "starts-immediately",
       "description": "starts timing immediately with initialize event",
-      "kind": "starts-immediately",
+      "shape": "starts-immediately",
       "input": {
         "busyWaitMs": 10
       },
@@ -31,7 +31,7 @@
     {
       "name": "accepts-config-options",
       "description": "accepts configuration options via create",
-      "kind": "accepts-config-options",
+      "shape": "accepts-config-options",
       "input": {
         "timing": {
           "options": [
@@ -48,7 +48,7 @@
     {
       "name": "constructor-wraps-error",
       "description": "wraps unexpected constructor errors as ConfigurationError",
-      "kind": "constructor-wraps-error",
+      "shape": "constructor-wraps-error",
       "input": {
         "errorMessage": "clock boom"
       },
@@ -59,7 +59,7 @@
     {
       "name": "component-operation-events",
       "description": "records events with component.operation format",
-      "kind": "component-operation-events",
+      "shape": "component-operation-events",
       "input": {
         "events": [
           { "component": "GraphAdapter", "operation": "query" },
@@ -76,7 +76,7 @@
     {
       "name": "increasing-elapsed-times",
       "description": "records events with increasing elapsed times",
-      "kind": "increasing-elapsed-times",
+      "shape": "increasing-elapsed-times",
       "input": {
         "busyWaitMs": [
           5,
@@ -100,7 +100,7 @@
     {
       "name": "same-name-events",
       "description": "stores multiple events with the same name",
-      "kind": "same-name-events",
+      "shape": "same-name-events",
       "input": {
         "busyWaitMs": 5,
         "event": {
@@ -118,7 +118,7 @@
     {
       "name": "optional-status",
       "description": "records events with optional status parameter",
-      "kind": "optional-status",
+      "shape": "optional-status",
       "input": {
         "events": [
           { "component": "DatabaseAdapter", "operation": "connect", "status": "start" },
@@ -135,7 +135,7 @@
     {
       "name": "domain-status",
       "description": "records events with domain-specific status",
-      "kind": "domain-status",
+      "shape": "domain-status",
       "input": {
         "events": [
           { "component": "CacheService", "operation": "get", "status": "hit" },
@@ -154,7 +154,7 @@
     {
       "name": "mixes-status-and-plain",
       "description": "mixes events with and without status",
-      "kind": "mixes-status-and-plain",
+      "shape": "mixes-status-and-plain",
       "input": {
         "events": [
           { "component": "GraphAdapter", "operation": "query" },
@@ -175,7 +175,7 @@
     {
       "name": "timing-status-constants",
       "description": "works with TIMING_STATUS constants",
-      "kind": "timing-status-constants",
+      "shape": "timing-status-constants",
       "input": {
         "events": [
           { "component": "DatabaseAdapter", "operation": "connect", "status": "start" },
@@ -196,7 +196,7 @@
     {
       "name": "evicts-when-max-events-exceeded",
       "description": "evicts oldest events when maxEvents exceeded",
-      "kind": "evicts-when-max-events-exceeded",
+      "shape": "evicts-when-max-events-exceeded",
       "input": {
         "timing": { "maxEvents": 3 },
         "events": [
@@ -221,7 +221,7 @@
     {
       "name": "maintains-most-recent-events",
       "description": "maintains most recent events across various limits",
-      "kind": "maintains-most-recent-events",
+      "shape": "maintains-most-recent-events",
       "input": {
         "cases": [
           {
@@ -259,7 +259,7 @@
     {
       "name": "evicts-default-max-events",
       "description": "evicts oldest events once the default maxEvents is exceeded",
-      "kind": "evicts-default-max-events",
+      "shape": "evicts-default-max-events",
       "input": {
         "event": {
           "component": "TestService",
@@ -276,7 +276,7 @@
     {
       "name": "initial-only-initialize",
       "description": "returns events with only initialize event initially",
-      "kind": "initial-only-initialize",
+      "shape": "initial-only-initialize",
       "input": {
         "observeInitialize": true
       },
@@ -290,7 +290,7 @@
     {
       "name": "continues-after-get-events",
       "description": "continues tracking after getEvents() call",
-      "kind": "continues-after-get-events",
+      "shape": "continues-after-get-events",
       "input": {
         "waitBeforeFirstMs": 10,
         "waitBeforeSecondMs": 10
@@ -302,7 +302,7 @@
     {
       "name": "returns-new-object",
       "description": "returns new object on each call",
-      "kind": "returns-new-object",
+      "shape": "returns-new-object",
       "input": {
         "event": {
           "component": "GraphAdapter",
@@ -316,7 +316,7 @@
     {
       "name": "includes-later-events",
       "description": "includes events added after previous call",
-      "kind": "includes-later-events",
+      "shape": "includes-later-events",
       "input": {
         "firstEvent": {
           "component": "GraphAdapter",
@@ -334,7 +334,7 @@
     {
       "name": "throwing-onInitialize",
       "description": "a throwing onInitialize hook throws a HookInvocationError from construction",
-      "kind": "throwing-onInitialize",
+      "shape": "throwing-onInitialize",
       "input": {
         "errorMessage": "onInitialize boom"
       },
@@ -345,7 +345,7 @@
     {
       "name": "throwing-onClear",
       "description": "a throwing onClear hook throws a HookInvocationError from clear()",
-      "kind": "throwing-onClear",
+      "shape": "throwing-onClear",
       "input": {
         "event": {
           "component": "GraphAdapter",
@@ -360,7 +360,7 @@
     {
       "name": "throwing-onEvict",
       "description": "a throwing onEvict hook throws a HookInvocationError from event()",
-      "kind": "throwing-onEvict",
+      "shape": "throwing-onEvict",
       "input": {
         "errorMessage": "onEvict boom",
         "event": {
@@ -376,7 +376,7 @@
     {
       "name": "throwing-onEvent",
       "description": "a throwing onEvent hook throws a HookInvocationError from event()",
-      "kind": "throwing-onEvent",
+      "shape": "throwing-onEvent",
       "input": {
         "event": {
           "component": "GraphAdapter",
@@ -391,7 +391,7 @@
     {
       "name": "throwing-onGetEvents",
       "description": "a throwing onGetEvents hook throws a HookInvocationError from getEvents()",
-      "kind": "throwing-onGetEvents",
+      "shape": "throwing-onGetEvents",
       "input": {
         "errorMessage": "onGetEvents boom"
       },
@@ -402,7 +402,7 @@
     {
       "name": "hook-error-instance",
       "description": "a throwing onEvent hook produces an error that is specifically a HookInvocationError instance",
-      "kind": "hook-error-instance",
+      "shape": "hook-error-instance",
       "input": {
         "errorMessage": "onEvent boom",
         "event": {
@@ -417,7 +417,7 @@
     {
       "name": "async-onEvent-unhandled",
       "description": "routes a rejection from an async onEvent override to a HookInvocationError without an unhandled rejection",
-      "kind": "async-onEvent-unhandled",
+      "shape": "async-onEvent-unhandled",
       "input": {
         "errorMessage": "async onEvent boom",
         "event": {
@@ -433,7 +433,7 @@
     {
       "name": "json-serializable",
       "description": "returns JSON-serializable object",
-      "kind": "json-serializable",
+      "shape": "json-serializable",
       "input": {
         "event": {
           "component": "GraphAdapter",
@@ -447,7 +447,7 @@
     {
       "name": "includes-duration",
       "description": "includes durationMs for total elapsed time",
-      "kind": "includes-duration",
+      "shape": "includes-duration",
       "input": {
         "busyWaitMs": 10,
         "event": {
@@ -462,7 +462,7 @@
     {
       "name": "clear-all-and-reuse",
       "description": "clears all events and allows new ones",
-      "kind": "clear-all-and-reuse",
+      "shape": "clear-all-and-reuse",
       "input": {
         "beforeEvents": [
           { "component": "GraphAdapter", "operation": "query" },
@@ -486,7 +486,7 @@
     {
       "name": "clear-keeps-start-time",
       "description": "does not reset the start time",
-      "kind": "clear-keeps-start-time",
+      "shape": "clear-keeps-start-time",
       "input": {
         "waitBeforeClearMs": 10,
         "waitAfterClearMs": 10
@@ -498,7 +498,7 @@
     {
       "name": "clear-multiple-times",
       "description": "can be called multiple times",
-      "kind": "clear-multiple-times",
+      "shape": "clear-multiple-times",
       "input": {
         "batch": {
           "clearCount": 3
@@ -515,7 +515,7 @@
     {
       "name": "cumulative-timing",
       "description": "tracks stages with cumulative timing",
-      "kind": "cumulative-timing",
+      "shape": "cumulative-timing",
       "input": {
         "stageWaitMs": [
           5,
@@ -547,7 +547,7 @@
     {
       "name": "immediate-operations",
       "description": "handles immediate operations after creation",
-      "kind": "immediate-operations",
+      "shape": "immediate-operations",
       "input": {
         "event": {
           "component": "GraphAdapter",
@@ -562,7 +562,7 @@
     {
       "name": "non-negative-values",
       "description": "handles very small time intervals with non-negative values",
-      "kind": "non-negative-values",
+      "shape": "non-negative-values",
       "input": {
         "events": [
           { "component": "GraphAdapter", "operation": "query" },
@@ -577,7 +577,7 @@
     {
       "name": "high-resolution-timing",
       "description": "provides high-resolution timing",
-      "kind": "high-resolution-timing",
+      "shape": "high-resolution-timing",
       "input": {
         "busyWaitMs": 1,
         "event": {
@@ -592,7 +592,7 @@
     {
       "name": "logbody-context",
       "description": "produces output suitable for LogBody.context()",
-      "kind": "logbody-context",
+      "shape": "logbody-context",
       "input": {
         "events": [
           { "component": "GraphAdapter", "operation": "query" },
@@ -611,7 +611,7 @@
     {
       "name": "read-hrtime-called",
       "description": "readHrtime is called during event()",
-      "kind": "read-hrtime-called",
+      "shape": "read-hrtime-called",
       "input": {
         "event": {
           "component": "TestService",
@@ -625,7 +625,7 @@
     {
       "name": "onEvent-hook-called",
       "description": "onEvent hook is called with the event data",
-      "kind": "onEvent-hook-called",
+      "shape": "onEvent-hook-called",
       "input": {
         "event": {
           "component": "TestService",
@@ -640,7 +640,7 @@
     {
       "name": "onEvict-hook-called",
       "description": "onEvict hook is called when maxEvents is exceeded",
-      "kind": "onEvict-hook-called",
+      "shape": "onEvict-hook-called",
       "input": {
         "timing": { "maxEvents": 2 },
         "events": [
@@ -655,7 +655,7 @@
     {
       "name": "onClear-hook-called",
       "description": "onClear hook is called when clear() is invoked",
-      "kind": "onClear-hook-called",
+      "shape": "onClear-hook-called",
       "input": {
         "batch": {
           "clearCount": 1
@@ -668,7 +668,7 @@
     {
       "name": "maxEvents-accessible",
       "description": "maxEvents and startTime are accessible from subclass",
-      "kind": "maxEvents-accessible",
+      "shape": "maxEvents-accessible",
       "input": {
         "timing": { "maxEvents": 42 }
       },
@@ -680,7 +680,7 @@
     {
       "name": "maxEvents-defaults",
       "description": "maxEvents defaults to DEFAULT_MAX_EVENTS when not specified",
-      "kind": "maxEvents-defaults",
+      "shape": "maxEvents-defaults",
       "input": {
         "defaultMaxEvents": 1000
       },
@@ -691,7 +691,7 @@
     {
       "name": "convert-time",
       "description": "convertTime is accessible from subclass and converts correctly",
-      "kind": "convert-time",
+      "shape": "convert-time",
       "input": {
         "ns": 1000000,
         "unit": "ms"
@@ -703,7 +703,7 @@
     {
       "name": "onInitialize-hook-fires",
       "description": "onInitialize hook fires once at construction with a bigint startTime",
-      "kind": "onInitialize-hook-fires",
+      "shape": "onInitialize-hook-fires",
       "input": {
         "construct": true
       },
@@ -715,7 +715,7 @@
     {
       "name": "onGetEvents-hook-fires",
       "description": "onGetEvents hook fires on each getEvents() call with correct event count",
-      "kind": "onGetEvents-hook-fires",
+      "shape": "onGetEvents-hook-fires",
       "input": {
         "events": [
           { "component": "TestService", "operation": "probe" }

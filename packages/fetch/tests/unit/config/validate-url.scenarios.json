@@ -3,18 +3,18 @@
     {
       "name": "valid",
       "description": "ValidateURL accepts a valid URL string",
-      "kind": "valid",
+      "shape": "valid",
       "input": {
         "value": "https://api.example.com/users"
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
       "name": "empty",
       "description": "ValidateURL rejects an empty baseURL",
-      "kind": "empty",
+      "shape": "empty",
       "input": {
         "value": ""
       },
@@ -25,7 +25,7 @@
     {
       "name": "invalid",
       "description": "ValidateURL rejects a malformed URL string",
-      "kind": "invalid",
+      "shape": "invalid",
       "input": {
         "value": "not-a-valid-url"
       },
@@ -36,7 +36,7 @@
     {
       "name": "non-string",
       "description": "ValidateURL rejects non-string values",
-      "kind": "non-string",
+      "shape": "non-string",
       "input": {
         "value": 123
       },

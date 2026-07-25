@@ -5,8 +5,8 @@ import { FetchClient } from '../../../src/index.js';
 import scenarioGroups from './config.scenarios.json';
 
 type RuntimeTag =
-  | { kind: 'infinity' }
-  | { kind: 'undefined' };
+  | { shape: 'infinity' }
+  | { shape: 'undefined' };
 
 type RuntimeValue =
   | RuntimeTag
@@ -18,8 +18,8 @@ type RuntimeValue =
   | { [key: string]: RuntimeValue };
 
 type ExpectedOutcome =
-  | { kind: 'ok'; messageIncludes?: readonly string[] }
-  | { kind: 'throws'; messageIncludes: readonly string[] };
+  | { shape: 'ok'; messageIncludes?: readonly string[] }
+  | { shape: 'throws'; messageIncludes: readonly string[] };
 
 type ScenarioCase = {
   description: string;
@@ -27,20 +27,20 @@ type ScenarioCase = {
   input: {
     fetchClient: RuntimeValue;
   };
-  kind: string;
+  shape: string;
   name: string;
 };
 
 type ExpectedOutcomeRunner = (config: unknown, expected: ExpectedOutcome) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 
-const runtimeTagMap: Record<RuntimeTag['kind'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
   infinity: () => Number.POSITIVE_INFINITY,
   undefined: () => undefined
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && 'kind' in value;
+  return value !== null && typeof value === 'object' && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -51,7 +51,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.kind](value);
+    return runtimeTagMap[value.shape](value);
   }
 
   if (value !== null && typeof value === 'object') {
@@ -71,7 +71,7 @@ function createFetchClient(config: unknown): unknown {
   return Reflect.apply(FetchClient.create, FetchClient, [config]);
 }
 
-const expectedOutcomeMap: Record<ExpectedOutcome['kind'], ExpectedOutcomeRunner> = {
+const expectedOutcomeMap: Record<ExpectedOutcome['shape'], ExpectedOutcomeRunner> = {
   ok: (config) => {
     assert.doesNotThrow(() => {
       createFetchClient(config);
@@ -93,7 +93,7 @@ const expectedOutcomeMap: Record<ExpectedOutcome['kind'], ExpectedOutcomeRunner>
 
 function runCase(scenarioCase: ScenarioCase): void {
   const config = materializeRuntimeValue(scenarioCase.input.fetchClient);
-  expectedOutcomeMap[scenarioCase.expected.kind](config, scenarioCase.expected);
+  expectedOutcomeMap[scenarioCase.expected.shape](config, scenarioCase.expected);
 }
 
 void describe('fetch config', () => {

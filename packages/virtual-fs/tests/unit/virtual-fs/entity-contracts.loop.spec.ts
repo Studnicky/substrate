@@ -11,7 +11,7 @@ type ScenarioCase =
       description: string;
       expected: { validationResults: boolean[] };
       input: { validations: { expected: boolean; value: Record<string, unknown> }[] };
-      kind: 'non-boolean-recursive-values' | 'recursive-directory-options';
+      shape: 'non-boolean-recursive-values' | 'recursive-directory-options';
       name: string;
     };
 

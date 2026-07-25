@@ -5,6 +5,7 @@ import {
   type InterfaceDeclaration,
   isArrayTypeNode,
   isAsExpression,
+  isCallExpression,
   isCallSignatureDeclaration,
   isConditionalTypeNode,
   isConstructorTypeNode,
@@ -22,6 +23,7 @@ import {
   isMethodSignature,
   isNamedTupleMember,
   isNamespaceImport,
+  isObjectLiteralExpression,
   isOptionalTypeNode,
   isParenthesizedTypeNode,
   isPropertySignature,
@@ -39,16 +41,19 @@ import {
   isVariableDeclaration,
   ModifierFlags,
   type Node,
+  NodeFlags,
   type Program,
   SignatureKind,
   type Symbol,
   SymbolFlags,
   SyntaxKind,
+  type Type,
   type TypeAliasDeclaration,
   type TypeChecker,
   TypeFlags,
   type TypeNode,
   type TypeParameterDeclaration,
+  type TypeQueryNode,
   type TypeReferenceNode
 } from 'typescript';
 
@@ -56,7 +61,7 @@ namespace TypeContractMetadataEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'aliasClassification': { 'enum': ['interfaceContract', 'pureDataCanonical', 'pureDataInvalid'] },
+      'aliasClassification': { 'enum': ['interfaceContract', 'pureDataCanonical', 'pureDataInvalid', 'typeFunction'] },
       'aliasReason': {
         'enum': ['any', 'bigint', 'brand', 'callable', 'canonicalComposition', 'classInstance', 'conditional', 'constructor', 'cycle', 'depth', 'fromSchema', 'indexedAccess', 'inlineObject', 'interfaceReference', 'mapped', 'nakedRename', 'never', 'nonJson', 'primitiveForwarding', 'symbol', 'typeParameter', 'undefined', 'unknown', 'unresolvedReference']
       },
@@ -112,6 +117,29 @@ interface ContractEvidenceInterface {
 interface InterfaceContractEvidenceInterface {
   readonly 'node': Node;
   readonly 'reason': TypeContractMetadataEntity.Type['interfaceContractReason'];
+}
+
+namespace SchemaDerivationMetadataEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'valid': { 'type': 'boolean' }
+    },
+    'required': ['valid'],
+    'type': 'object'
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
+}
+
+interface SchemaDerivationShapeInterface {
+  readonly 'derivingReference': TypeReferenceNode | undefined;
+  readonly 'valueQuery': TypeQueryNode;
+}
+
+interface SchemaValueAuthoringInterface {
+  readonly 'builderCallee': Symbol | undefined;
+  readonly 'valid': SchemaDerivationMetadataEntity.Type['valid'];
 }
 
 const MAX_DEPTH = 100;
@@ -260,6 +288,19 @@ export class TypeContractClassification {
     const nextVisiting = new Set(visiting);
     if (symbol !== undefined) { nextVisiting.add(symbol); }
 
+    if (
+      declaration.typeParameters !== undefined
+      && declaration.typeParameters.length > 0
+      && (isConditionalTypeNode(declaration.type) || isMappedTypeNode(declaration.type) || isIndexedAccessTypeNode(declaration.type))
+    ) {
+      return {
+        'classification': 'typeFunction',
+        'evidence': declaration.type,
+        'readonlyOutput': readonlyOutput,
+        'reason': this.typeFunctionReason(declaration.type)
+      };
+    }
+
     const contract = this.findAliasContract(declaration.type, nextVisiting, depth + 1);
     if (contract !== undefined) {
       return {
@@ -304,6 +345,10 @@ export class TypeContractClassification {
 
     if (isTypeOperatorNode(node) && node.operator === SyntaxKind.ReadonlyKeyword) {
       return this.classifyDataNode(node.type, root, visiting, depth + 1);
+    }
+
+    if (this.isSchemaDerivedApplication(node)) {
+      return this.classifySchemaDerivedApplication(node);
     }
 
     if (isUnionTypeNode(node) || isIntersectionTypeNode(node)) {
@@ -369,9 +414,6 @@ export class TypeContractClassification {
     }
 
     if (isTypeReferenceNode(node)) {
-      if (this.isFromSchemaReference(node)) {
-        return { 'canonicalRoot': true, 'evidence': node, 'reason': 'fromSchema', 'valid': true };
-      }
       if (this.isFromSchemaNamedReference(node)) {
         return { 'canonicalRoot': false, 'evidence': node, 'reason': 'unresolvedReference', 'valid': false };
       }
@@ -644,7 +686,7 @@ export class TypeContractClassification {
 
     if (!isTypeReferenceNode(node)) { return; }
 
-    if (this.isFromSchemaReference(node)) { return; }
+    if (this.isSchemaDerivedApplication(node)) { return; }
 
     if (this.isIntrinsic(node, 'Readonly') || this.isIntrinsic(node, 'ReadonlyArray')) {
       this.addReadonlyEvidence(result, seen, node, 'intrinsicReadonly', false);
@@ -674,6 +716,8 @@ export class TypeContractClassification {
     depth: number
   ): ContractEvidenceInterface | undefined {
     if (depth > MAX_DEPTH) { return { 'node': node, 'reason': 'nonJson' }; }
+
+    if (this.isSchemaDerivedApplication(node)) { return undefined; }
 
     if (isFunctionTypeNode(node)) { return { 'node': node, 'reason': 'callable' }; }
     if (isConstructorTypeNode(node)) { return { 'node': node, 'reason': 'constructor' }; }
@@ -745,7 +789,6 @@ export class TypeContractClassification {
     }
 
     if (isTypeReferenceNode(node)) {
-      if (this.isFromSchemaReference(node)) { return undefined; }
       if (this.isFromSchemaNamedReference(node)) { return undefined; }
       if (
         this.isIntrinsic(node, 'Array')
@@ -781,7 +824,10 @@ export class TypeContractClassification {
       const alias = this.aliasDeclarationForSymbol(symbol);
       if (alias !== undefined && symbol !== undefined && !visiting.has(symbol)) {
         const nested = this.classifyAlias(alias, visiting, depth + 1);
-        if (nested.classification === 'interfaceContract') {
+        // A type-level function carries its computation into every reference. The declaration is
+        // exempt from the interface remedy; a reference to it composes the same contract portion
+        // an inline conditional, mapped, or indexed body would.
+        if (nested.classification === 'interfaceContract' || nested.classification === 'typeFunction') {
           const reason = nested.reason;
           if (
             reason === 'any'
@@ -965,7 +1011,7 @@ export class TypeContractClassification {
         if (readonlyOutput.length > 0) { return { 'node': node, 'reason': 'readonly' }; }
 
         const nested = this.classifyAlias(alias, visiting, depth + 1);
-        if (nested.classification === 'interfaceContract') {
+        if (nested.classification === 'interfaceContract' || nested.classification === 'typeFunction') {
           if (nested.reason === 'callable') { return { 'node': node, 'reason': 'callable' }; }
           if (nested.reason === 'constructor') { return { 'node': node, 'reason': 'constructor' }; }
           if (nested.reason === 'brand') { return { 'node': node, 'reason': 'brand' }; }
@@ -1062,6 +1108,71 @@ export class TypeContractClassification {
       || (flags & TypeFlags.Undefined) !== 0
     ) {
       return { 'node': node, 'reason': 'nonJson' };
+    }
+
+    return undefined;
+  }
+
+  private findResolvedTypeContract(
+    type: Type,
+    evidenceNode: Node,
+    seen: Set<Type>,
+    depth: number
+  ): ContractEvidenceInterface | undefined {
+    if (seen.has(type)) { return undefined; }
+    seen.add(type);
+    if (depth > MAX_DEPTH) { return { 'node': evidenceNode, 'reason': 'nonJson' }; }
+
+    if (type.getCallSignatures().length > 0) { return { 'node': evidenceNode, 'reason': 'callable' }; }
+    if (type.getConstructSignatures().length > 0) { return { 'node': evidenceNode, 'reason': 'constructor' }; }
+
+    const typeSymbol = this.resolveSymbol(type.aliasSymbol ?? type.getSymbol());
+    if (typeSymbol !== undefined && (typeSymbol.flags & SymbolFlags.Class) !== 0) {
+      return { 'node': evidenceNode, 'reason': 'classInstance' };
+    }
+
+    const flags = type.flags;
+    if ((flags & TypeFlags.Any) !== 0) { return { 'node': evidenceNode, 'reason': 'any' }; }
+    if ((flags & TypeFlags.Unknown) !== 0) { return { 'node': evidenceNode, 'reason': 'unknown' }; }
+    if ((flags & TypeFlags.ESSymbol) !== 0 || (flags & TypeFlags.UniqueESSymbol) !== 0) {
+      return { 'node': evidenceNode, 'reason': 'symbol' };
+    }
+    if ((flags & TypeFlags.BigIntLike) !== 0) { return { 'node': evidenceNode, 'reason': 'bigint' }; }
+    if ((flags & TypeFlags.Never) !== 0) { return { 'node': evidenceNode, 'reason': 'never' }; }
+    if ((flags & TypeFlags.Void) !== 0 || (flags & TypeFlags.Undefined) !== 0) {
+      return { 'node': evidenceNode, 'reason': 'undefined' };
+    }
+
+    if (type.isUnion() || type.isIntersection()) {
+      const constituents = type.types;
+      const length = constituents.length;
+      for (let index = 0; index < length; index++) {
+        const constituent = constituents[index];
+        if (constituent === undefined) { continue; }
+        const evidence = this.findResolvedTypeContract(constituent, evidenceNode, seen, depth + 1);
+        if (evidence !== undefined) { return evidence; }
+      }
+      return undefined;
+    }
+
+    if ((flags & TypeFlags.Object) === 0) { return undefined; }
+
+    const elementType = type.getNumberIndexType();
+    if (elementType !== undefined) {
+      const evidence = this.findResolvedTypeContract(elementType, evidenceNode, seen, depth + 1);
+      if (evidence !== undefined) { return evidence; }
+    }
+
+    const properties = type.getProperties();
+    const propertyLength = properties.length;
+    for (let index = 0; index < propertyLength; index++) {
+      const property = properties[index];
+      if (property === undefined) { continue; }
+      const declaration = property.valueDeclaration ?? (property.getDeclarations() ?? [])[0];
+      if (declaration === undefined) { continue; }
+      const propertyType = this.checker.getTypeOfSymbolAtLocation(property, declaration);
+      const evidence = this.findResolvedTypeContract(propertyType, declaration, seen, depth + 1);
+      if (evidence !== undefined) { return evidence; }
     }
 
     return undefined;
@@ -1169,6 +1280,145 @@ export class TypeContractClassification {
     return isTypeOperatorNode(node)
       && node.operator === SyntaxKind.UniqueKeyword
       && node.type.kind === SyntaxKind.SymbolKeyword;
+  }
+
+  private classifySchemaDerivedApplication(node: TypeNode): DataNodeResultInterface {
+    const resolved = this.checker.getTypeFromTypeNode(node);
+    const contract = this.findResolvedTypeContract(resolved, node, new Set(), 0);
+    if (contract !== undefined) {
+      return { 'canonicalRoot': false, 'evidence': node, 'reason': contract.reason, 'valid': false };
+    }
+    return { 'canonicalRoot': true, 'evidence': node, 'reason': 'fromSchema', 'valid': true };
+  }
+
+  private isSchemaDerivedApplication(node: TypeNode): boolean {
+    const shape = this.schemaDerivationShape(node);
+    if (shape === undefined) { return false; }
+
+    const valueSymbol = this.resolveEntityNameSymbol(shape.valueQuery.exprName);
+    if (valueSymbol === undefined) { return false; }
+
+    // Value-first authoring binds the type to the value on every path. A schema constrained by a
+    // dependency-owned `JSONSchema` is stronger evidence of a schema, never a waiver of that binding.
+    const authoring = this.evaluateSchemaValueAuthoring(valueSymbol);
+    if (!authoring.valid) { return false; }
+
+    if (this.isFromSchemaReference(node)) { return true; }
+    if (shape.derivingReference === undefined) { return true; }
+    return this.isSchemaDerivingFunction(shape.derivingReference, authoring.builderCallee);
+  }
+
+  private schemaDerivationShape(node: TypeNode): SchemaDerivationShapeInterface | undefined {
+    if (isTypeReferenceNode(node)) {
+      const typeArguments = node.typeArguments;
+      if (typeArguments === undefined) { return undefined; }
+      const valueQuery = typeArguments.find(isTypeQueryNode);
+      if (valueQuery === undefined) { return undefined; }
+      return { 'derivingReference': node, 'valueQuery': valueQuery };
+    }
+
+    if (isTypeQueryNode(node) && isQualifiedName(node.exprName)) {
+      return { 'derivingReference': undefined, 'valueQuery': node };
+    }
+
+    if (isIndexedAccessTypeNode(node) && isTypeQueryNode(node.objectType)) {
+      return { 'derivingReference': undefined, 'valueQuery': node.objectType };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * A qualified value query names the schema either at its right (`typeof Namespace.Schema`) or at
+   * its left (`typeof Schema.inferred`, where the tail is a property of the schema value). The whole
+   * name wins when it denotes a variable; otherwise the search walks left to the owning binding.
+   */
+  private resolveEntityNameSymbol(name: Node): Symbol | undefined {
+    const resolved = this.resolveSymbol(this.checker.getSymbolAtLocation(name));
+    const declarations = resolved?.getDeclarations() ?? [];
+    if (declarations.some(isVariableDeclaration)) { return resolved; }
+    if (isQualifiedName(name)) { return this.resolveEntityNameSymbol(name.left); }
+    return resolved;
+  }
+
+  private evaluateSchemaValueAuthoring(valueSymbol: Symbol): SchemaValueAuthoringInterface {
+    const declarations = valueSymbol.getDeclarations() ?? [];
+    const declaration = declarations.find(isVariableDeclaration);
+    if (declaration === undefined) { return { 'builderCallee': undefined, 'valid': false }; }
+    if ((declaration.parent.flags & NodeFlags.Const) === 0) { return { 'builderCallee': undefined, 'valid': false }; }
+    if (declaration.type !== undefined) { return { 'builderCallee': undefined, 'valid': false }; }
+
+    const initializer = declaration.initializer;
+    if (initializer === undefined) { return { 'builderCallee': undefined, 'valid': false }; }
+
+    if (this.isConstAssertedObjectLiteral(initializer)) {
+      return { 'builderCallee': undefined, 'valid': true };
+    }
+
+    if (isCallExpression(initializer)) {
+      const calleeSymbol = this.resolveSymbol(this.checker.getSymbolAtLocation(initializer.expression));
+      return { 'builderCallee': calleeSymbol, 'valid': true };
+    }
+
+    return { 'builderCallee': undefined, 'valid': false };
+  }
+
+  private isConstAssertedObjectLiteral(node: Node): boolean {
+    const target = isSatisfiesExpression(node) ? node.expression : node;
+    return isAsExpression(target) && isConstTypeReference(target.type) && isObjectLiteralExpression(target.expression);
+  }
+
+  private isSchemaDerivingFunction(reference: TypeReferenceNode, builderCallee: Symbol | undefined): boolean {
+    const derivingSymbol = this.resolveSymbol(this.checker.getSymbolAtLocation(reference.typeName));
+    if (derivingSymbol === undefined) { return false; }
+
+    if (this.hasSchemaDerivationTag(derivingSymbol)) { return true; }
+    if (builderCallee !== undefined && this.sharePackageRoot(derivingSymbol, builderCallee)) { return true; }
+
+    const declarations = derivingSymbol.getDeclarations() ?? [];
+    return declarations.some((declaration) => {return (
+      (isTypeAliasDeclaration(declaration) && (declaration.typeParameters?.length ?? 0) > 0)
+      || declaration.getSourceFile().isDeclarationFile
+    );});
+  }
+
+  private hasSchemaDerivationTag(symbol: Symbol): boolean {
+    const result = symbol.getJsDocTags().some((tag) => {return tag.name === 'schemaDerivation';});
+    return result;
+  }
+
+  private sharePackageRoot(first: Symbol, second: Symbol): boolean {
+    const firstRoot = this.packageRootForSymbol(first);
+    const secondRoot = this.packageRootForSymbol(second);
+    return firstRoot !== undefined && firstRoot === secondRoot;
+  }
+
+  private packageRootForSymbol(symbol: Symbol): string | undefined {
+    const declarations = symbol.getDeclarations() ?? [];
+    const declaration = declarations[0];
+    if (declaration === undefined) { return undefined; }
+    return this.packageRootForPath(declaration.getSourceFile().fileName.split('\\').join('/'));
+  }
+
+  private packageRootForPath(filename: string): string {
+    const segments = filename.split('/node_modules/');
+    if (segments.length > 1) {
+      const afterNodeModules = segments[segments.length - 1] ?? filename;
+      const parts = afterNodeModules.split('/');
+      const first = parts[0];
+      const second = parts[1];
+      if (first !== undefined && first.startsWith('@') && second !== undefined) { return `${first}/${second}`; }
+      return first ?? afterNodeModules;
+    }
+
+    const lastSlash = filename.lastIndexOf('/');
+    return lastSlash === -1 ? filename : filename.slice(0, lastSlash);
+  }
+
+  private typeFunctionReason(node: TypeNode): TypeContractMetadataEntity.Type['aliasReason'] {
+    if (isConditionalTypeNode(node)) { return 'conditional'; }
+    if (isMappedTypeNode(node)) { return 'mapped'; }
+    return 'indexedAccess';
   }
 
   private readonlyOutputForAlias(

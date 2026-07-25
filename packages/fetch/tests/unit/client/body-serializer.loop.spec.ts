@@ -9,46 +9,46 @@ type ScenarioCase =
       description: string;
       expected: { decision: boolean };
       input: { body: unknown };
-      kind: 'needs-json-content-type-array';
+      shape: 'needs-json-content-type-array';
       name: string;
     }
   | {
       description: string;
       expected: { decision: boolean };
       input: { body: unknown };
-      kind: 'needs-json-content-type-buffer';
+      shape: 'needs-json-content-type-buffer';
       name: string;
     }
   | {
       description: string;
       expected: { decision: boolean };
       input: { body: unknown };
-      kind: 'needs-json-content-type-object';
+      shape: 'needs-json-content-type-object';
       name: string;
     }
   | {
       description: string;
       expected: { decision: boolean };
       input: { body: unknown };
-      kind: 'needs-json-content-type-primitive';
+      shape: 'needs-json-content-type-primitive';
       name: string;
     }
   | {
       description: string;
       expected: { bytes: number[]; constructorName: 'Uint8Array' };
-      input: { kind: 'data-view-visible-range'; source: number[]; view: { byteLength: number; byteOffset: number } };
-      kind: 'data-view-visible-range';
+      input: { shape: 'data-view-visible-range'; source: number[]; view: { byteLength: number; byteOffset: number } };
+      shape: 'data-view-visible-range';
       name: string;
     }
   | {
       description: string;
       expected: { bytes: number[]; constructorName: 'Uint8Array'; remainsDetachedAfterSourceMutation: true };
-      input: { kind: 'typed-array-byte-range'; source: number[]; typedArray: 'Uint16Array' };
-      kind: 'typed-array-byte-range';
+      input: { shape: 'typed-array-byte-range'; source: number[]; typedArray: 'Uint16Array' };
+      shape: 'typed-array-byte-range';
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'needs-json-content-type-array': (scenarioCase) => {
     assert.equal(BodySerializer.needsJsonContentType(materializeBody(scenarioCase.input.body)), scenarioCase.expected.decision);
   },
@@ -91,7 +91,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 function materializeBody(body: unknown): unknown {
@@ -106,11 +106,11 @@ function materializeBody(body: unknown): unknown {
   if (typeof body === 'object') {
     const record = body as Record<string, unknown>;
 
-    if (record.kind === 'buffer' && Array.isArray(record.bytes)) {
+    if (record.shape === 'buffer' && Array.isArray(record.bytes)) {
       return Buffer.from(record.bytes as number[]);
     }
 
-    if (record.kind === 'undefined') {
+    if (record.shape === 'undefined') {
       return undefined;
     }
   }

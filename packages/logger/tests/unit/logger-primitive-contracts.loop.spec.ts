@@ -14,7 +14,7 @@ import {
   LogDataEntity,
   LogFault,
   LoggerError,
-  LoggerHookEventKindEntity
+  LoggerHookEventShapeEntity
 } from '../../src/index.js';
 import { ParseLogLevel } from '../../src/modules/parseLogLevel.js';
 import { SafeStringify } from '../../src/modules/safeStringify.js';
@@ -46,70 +46,70 @@ type ScenarioCase =
       description: string;
       expected: { values: Record<string, number> };
       input: Record<string, never>;
-      kind: 'level-values';
+      shape: 'level-values';
       name: string;
     }
   | {
       description: string;
       expected: { ordered: true };
       input: Record<string, never>;
-      kind: 'level-order';
+      shape: 'level-order';
       name: string;
     }
   | {
       description: string;
       expected: { resolved: Record<string, number> };
       input: Record<string, never>;
-      kind: 'level-map';
+      shape: 'level-map';
       name: string;
     }
   | {
       description: string;
       expected: { values: number[] };
       input: Record<string, never>;
-      kind: 'parse-numeric';
+      shape: 'parse-numeric';
       name: string;
     }
   | {
       description: string;
       expected: { values: Record<string, number> };
       input: Record<string, never>;
-      kind: 'parse-string';
+      shape: 'parse-string';
       name: string;
     }
   | {
       description: string;
       expected: { values: Record<string, number> };
       input: Record<string, never>;
-      kind: 'parse-invalid-string';
+      shape: 'parse-invalid-string';
       name: string;
     }
   | {
       description: string;
       expected: { outputs: string[] };
       input: Record<string, never>;
-      kind: 'safe-stringify-basic';
+      shape: 'safe-stringify-basic';
       name: string;
     }
   | {
       description: string;
       expected: { result1Contains: string[]; result2Contains: string[] };
       input: Record<string, never>;
-      kind: 'safe-stringify-circular';
+      shape: 'safe-stringify-circular';
       name: string;
     }
   | {
       description: string;
       expected: { contains: string[]; parsed: { array: number[]; boolean: boolean; nested: { key: string }; nullValue: null; number: number; string: string } };
       input: Record<string, never>;
-      kind: 'safe-stringify-types';
+      shape: 'safe-stringify-types';
       name: string;
     }
   | {
       description: string;
-      expected: { logDataValid: true; logDataInvalid: false; cloudwatchValid: true; hookKindValid: true; hookKindInvalid: false };
+      expected: { logDataValid: true; logDataInvalid: false; cloudwatchValid: true; hookShapeValid: true; hookShapeInvalid: false };
       input: Record<string, never>;
-      kind: 'entity-composition';
+      shape: 'entity-composition';
       name: string;
     }
   | {
@@ -123,7 +123,7 @@ type ScenarioCase =
         status: string;
       };
       input: { fault: FaultConfigInput };
-      kind: 'log-fault-basic';
+      shape: 'log-fault-basic';
       name: string;
     }
   | {
@@ -134,7 +134,7 @@ type ScenarioCase =
         stack: string;
       };
       input: { fault: FaultConfigInput };
-      kind: 'log-fault-optional-fields';
+      shape: 'log-fault-optional-fields';
       name: string;
     }
   | {
@@ -144,7 +144,7 @@ type ScenarioCase =
         name: 'LogBuildError';
       };
       input: { fault: FaultConfigInput };
-      kind: 'log-fault-missing-field';
+      shape: 'log-fault-missing-field';
       name: string;
     }
   | {
@@ -159,7 +159,7 @@ type ScenarioCase =
         error: { cause: string; message: string; name: string };
         fault: FaultConfigInput;
       };
-      kind: 'log-fault-from-error-fields';
+      shape: 'log-fault-from-error-fields';
       name: string;
     }
   | {
@@ -184,7 +184,7 @@ type ScenarioCase =
           level: number;
         };
       };
-      kind: 'console-transport-dispatch';
+      shape: 'console-transport-dispatch';
       name: string;
     }
   | {
@@ -194,7 +194,7 @@ type ScenarioCase =
         name: 'ConfigurationError';
       };
       input: { transport: { level: Record<string, never> } };
-      kind: 'console-transport-invalid-level';
+      shape: 'console-transport-invalid-level';
       name: string;
     }
   | {
@@ -207,7 +207,7 @@ type ScenarioCase =
         symbolObject: string;
       };
       input: Record<string, never>;
-      kind: 'safe-stringify-json-edges';
+      shape: 'safe-stringify-json-edges';
       name: string;
     }
   | {
@@ -221,7 +221,7 @@ type ScenarioCase =
         }>;
       };
       input: Record<string, never>;
-      kind: 'error-constructors';
+      shape: 'error-constructors';
       name: string;
     };
 
@@ -287,7 +287,7 @@ function createConsoleRecord(
   };
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'level-values': (scenarioCase) => {
     assert.strictEqual(LOG_LEVEL.TRACE, scenarioCase.expected.values.TRACE);
     assert.strictEqual(LOG_LEVEL.DEBUG, scenarioCase.expected.values.DEBUG);
@@ -413,9 +413,9 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
       service: 'api',
       time: '2026-07-19T00:00:00.000Z'
     }), scenarioCase.expected.cloudwatchValid);
-    assert.equal(LoggerHookEventKindEntity.validate('transportError'), scenarioCase.expected.hookKindValid);
+    assert.equal(LoggerHookEventShapeEntity.validate('transportError'), scenarioCase.expected.hookShapeValid);
     assert.equal(LogDataEntity.validate({ message: 'missing fields' }), scenarioCase.expected.logDataInvalid);
-    assert.equal(LoggerHookEventKindEntity.validate('unknown'), scenarioCase.expected.hookKindInvalid);
+    assert.equal(LoggerHookEventShapeEntity.validate('unknown'), scenarioCase.expected.hookShapeInvalid);
   },
   'log-fault-basic': (scenarioCase) => {
     const context = structuredClone(scenarioCase.input.fault.context ?? {});
@@ -554,7 +554,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('logger primitive contracts', () => {

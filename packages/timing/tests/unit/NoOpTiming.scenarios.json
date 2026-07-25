@@ -3,7 +3,7 @@
     {
       "name": "create-clear-event-get-events",
       "description": "NoOpTiming create, event, clear, and getEvents behave as no-ops",
-      "kind": "create-clear-event-get-events",
+      "shape": "create-clear-event-get-events",
       "input": {
         "event": {
           "component": "GraphAdapter",
@@ -19,7 +19,7 @@
     {
       "name": "get-events-empty",
       "description": "NoOpTiming getEvents returns only durationMs",
-      "kind": "get-events-empty",
+      "shape": "get-events-empty",
       "input": {},
       "expected": {
         "empty": true,

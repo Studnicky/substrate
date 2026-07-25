@@ -13,7 +13,7 @@ type ScenarioCase =
     description: string;
     expected: Record<string, unknown>;
     input: { sampleBuffer: { capacity: number } } & Record<string, unknown>;
-    kind:
+    shape:
       | 'on-evict'
       | 'on-evict-before-overwrite'
       | 'on-push'
@@ -102,9 +102,9 @@ class ThrowingClearBuffer extends SampleBuffer { override onClear(): void { thro
 class ThrowingPercentileBuffer extends SampleBuffer { override onPercentile(): void { throw new Error('onPercentile boom'); } }
 class ThrowingComputeBuffer extends SampleBuffer { override onComputeStart(): void { throw new Error('onComputeStart boom'); } }
 
-type ScenarioKind = ScenarioCase['kind'];
+type ScenarioShape = ScenarioCase['shape'];
 type RunnerResult = Promise<void> | void;
-type RunnerMap = { [K in ScenarioKind]: (scenarioCase: ScenarioCase & { kind: K }) => RunnerResult };
+type RunnerMap = { [K in ScenarioShape]: (scenarioCase: ScenarioCase & { shape: K }) => RunnerResult };
 
 const runnerMap: RunnerMap = {
   'on-evict': (scenarioCase) => {
@@ -573,12 +573,12 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function dispatchCase<K extends ScenarioKind>(kind: K, scenarioCase: ScenarioCase & { kind: K }): RunnerResult {
-  return runnerMap[kind](scenarioCase);
+function dispatchCase<K extends ScenarioShape>(shape: K, scenarioCase: ScenarioCase & { shape: K }): RunnerResult {
+  return runnerMap[shape](scenarioCase);
 }
 
-function runCase<K extends ScenarioKind>(scenarioCase: ScenarioCase & { kind: K }): RunnerResult {
-  return dispatchCase(scenarioCase.kind, scenarioCase);
+function runCase<K extends ScenarioShape>(scenarioCase: ScenarioCase & { shape: K }): RunnerResult {
+  return dispatchCase(scenarioCase.shape, scenarioCase);
 }
 
 void describe('SampleBuffer subclass extension', () => {

@@ -29,7 +29,7 @@ type ScenarioCase =
       input: {
         checks: [];
       };
-      kind: 'empty-registry-healthy';
+      shape: 'empty-registry-healthy';
       name: string;
     }
   | {
@@ -41,7 +41,7 @@ type ScenarioCase =
       input: {
         checks: HealthCheckDefinitionInterface[];
       };
-      kind: 'all-healthy';
+      shape: 'all-healthy';
       name: string;
     }
   | {
@@ -53,7 +53,7 @@ type ScenarioCase =
       input: {
         checks: HealthCheckDefinitionInterface[];
       };
-      kind: 'one-degraded';
+      shape: 'one-degraded';
       name: string;
     }
   | {
@@ -65,7 +65,7 @@ type ScenarioCase =
       input: {
         checks: HealthCheckDefinitionInterface[];
       };
-      kind: 'one-unhealthy';
+      shape: 'one-unhealthy';
       name: string;
     }
   | {
@@ -77,7 +77,7 @@ type ScenarioCase =
       input: {
         checks: HealthCheckDefinitionInterface[];
       };
-      kind: 'rejecting-check-unhealthy';
+      shape: 'rejecting-check-unhealthy';
       name: string;
     }
   | {
@@ -89,7 +89,7 @@ type ScenarioCase =
       input: {
         checks: HealthCheckDefinitionInterface[];
       };
-      kind: 'timeout-check-unhealthy';
+      shape: 'timeout-check-unhealthy';
       name: string;
     }
   | {
@@ -102,7 +102,7 @@ type ScenarioCase =
       input: {
         checks: HealthCheckDefinitionInterface[];
       };
-      kind: 'timed-out-late-rejection-owned';
+      shape: 'timed-out-late-rejection-owned';
       name: string;
     }
   | {
@@ -115,7 +115,7 @@ type ScenarioCase =
         checks: HealthCheckDefinitionInterface[];
         unregister: string;
       };
-      kind: 'unregister-removes-check';
+      shape: 'unregister-removes-check';
       name: string;
     }
   | {
@@ -129,7 +129,7 @@ type ScenarioCase =
       input: {
         name: string;
       };
-      kind: 'has-and-list-reflect-registration';
+      shape: 'has-and-list-reflect-registration';
       name: string;
     }
   | {
@@ -140,7 +140,7 @@ type ScenarioCase =
       input: {
         checks: HealthCheckDefinitionInterface[];
       };
-      kind: 're-register-replaces-check';
+      shape: 're-register-replaces-check';
       name: string;
     };
 
@@ -181,7 +181,7 @@ function createCheckOptions(def: HealthCheckDefinitionInterface): { timeoutMs: n
   return def.timeoutMs === undefined ? undefined : { timeoutMs: def.timeoutMs };
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
   'all-healthy': async (scenarioCase) => {
     const registry = HealthRegistry.create();
     for (const check of scenarioCase.input.checks) {
@@ -286,7 +286,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 void describe('HealthRegistry', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
-      await runnerMap[scenario.kind](scenario);
+      await runnerMap[scenario.shape](scenario);
     });
   }
 });

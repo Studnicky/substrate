@@ -12,60 +12,60 @@ type ScenarioCase =
       description: string;
       expected: { concurrencyLimit: 10 };
       input: { throttle: JsonThrottleConfig };
-      kind: 'default-config' | 'missing-concurrency-limit-uses-default';
+      shape: 'default-config' | 'missing-concurrency-limit-uses-default';
       name: string;
     }
   | {
       description: string;
       expected: { concurrencyLimit: number };
       input: { throttle: JsonThrottleConfig };
-      kind: 'custom-concurrency-limit';
+      shape: 'custom-concurrency-limit';
       name: string;
     }
   | {
       description: string;
       expected: { errorName: string };
       input: { throttle: JsonThrottleConfig };
-      kind: 'invalid-concurrency-limit';
+      shape: 'invalid-concurrency-limit';
       name: string;
     }
   | {
       description: string;
       expected: { errorName: string };
       input: { throttle: JsonThrottleConfig };
-      kind: 'invalid-concurrency-limit-nan';
+      shape: 'invalid-concurrency-limit-nan';
       name: string;
     }
   | {
       description: string;
       expected: { accepted: true; defaultAccepted: true };
       input: { throttle: JsonThrottleConfig };
-      kind: 'accepts-valid-configuration';
+      shape: 'accepts-valid-configuration';
       name: string;
     };
 
 import scenarioGroups from './configuration.scenarios.json';
 
-type ConcurrencyLimitKind = 'missing' | 'nan-token' | 'number';
+type ConcurrencyLimitShape = 'missing' | 'nan-token' | 'number';
 type ThrottleConfigResolver = (config: JsonThrottleConfig) => Parameters<typeof Throttle.create>[0];
 
-const concurrencyLimitKind = (config: JsonThrottleConfig): ConcurrencyLimitKind => {
+const concurrencyLimitShape = (config: JsonThrottleConfig): ConcurrencyLimitShape => {
   if (config.concurrencyLimit === 'NaN') return 'nan-token';
   if (config.concurrencyLimit === undefined) return 'missing';
   return 'number';
 };
 
-const throttleConfigResolverMap: Record<ConcurrencyLimitKind, ThrottleConfigResolver> = {
+const throttleConfigResolverMap: Record<ConcurrencyLimitShape, ThrottleConfigResolver> = {
   missing: () => ({}),
   'nan-token': () => ({ concurrencyLimit: Number.NaN }),
   number: (config) => ({ concurrencyLimit: config.concurrencyLimit })
 };
 
 function resolveThrottleConfig(config: JsonThrottleConfig): Parameters<typeof Throttle.create>[0] {
-  return throttleConfigResolverMap[concurrencyLimitKind(config)](config);
+  return throttleConfigResolverMap[concurrencyLimitShape(config)](config);
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'accepts-valid-configuration': (scenarioCase) => {
     assert.doesNotThrow(() => { Throttle.create(resolveThrottleConfig(scenarioCase.input.throttle)); });
     assert.doesNotThrow(() => { Throttle.create(); });
@@ -99,7 +99,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 void describe('Throttle configuration', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
-      await runnerMap[scenarioCase.kind](scenarioCase);
+      await runnerMap[scenarioCase.shape](scenarioCase);
     });
   }
 });

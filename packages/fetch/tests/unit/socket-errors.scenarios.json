@@ -3,7 +3,7 @@
     {
       "name": "url-only",
       "description": "SocketExhaustionError creates an error with URL only",
-      "kind": "url-only",
+      "shape": "url-only",
       "input": {
         "url": "https://api.example.com/data"
       },
@@ -18,7 +18,7 @@
     {
       "name": "with-stats",
       "description": "SocketExhaustionError creates an error with dispatcher stats",
-      "kind": "with-stats",
+      "shape": "with-stats",
       "input": {
         "url": "https://api.example.com/data",
         "stats": {
@@ -48,7 +48,7 @@
     {
       "name": "message-includes-stats",
       "description": "SocketExhaustionError includes stats in the error message",
-      "kind": "message-includes-stats",
+      "shape": "message-includes-stats",
       "input": {
         "url": "https://test.com/api",
         "stats": {
@@ -73,7 +73,7 @@
     {
       "name": "catchable",
       "description": "SocketExhaustionError is catchable as Error",
-      "kind": "catchable",
+      "shape": "catchable",
       "input": {
         "url": "https://test.com/api",
         "stats": {
@@ -93,7 +93,7 @@
     {
       "name": "property-types",
       "description": "SocketExhaustionError exposes the correct property types",
-      "kind": "property-types",
+      "shape": "property-types",
       "input": {
         "url": "https://api.com/test",
         "stats": {
@@ -117,7 +117,7 @@
     {
       "name": "preserve-through-throw",
       "description": "SocketExhaustionError preserves its properties through throw and catch",
-      "kind": "preserve-through-throw",
+      "shape": "preserve-through-throw",
       "input": {
         "url": "https://api.com/test",
         "stats": {

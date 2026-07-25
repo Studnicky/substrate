@@ -28,14 +28,14 @@ type ScenarioCase =
       description: string;
       expected: { accepted: true };
       input: { values: Array<Record<string, unknown>> };
-      kind: 'entity-validates-deadlines';
+      shape: 'entity-validates-deadlines';
       name: string;
     }
   | {
       description: string;
       expected: { accepted: false };
       input: { values: Array<Record<string, unknown>> };
-      kind: 'entity-rejects-negative-deadline';
+      shape: 'entity-rejects-negative-deadline';
       name: string;
     }
   | {
@@ -48,7 +48,7 @@ type ScenarioCase =
         requestPath: string;
         requestExecutor: ScenarioRequestExecutorInputInterface;
       };
-      kind: 'create-plain-config';
+      shape: 'create-plain-config';
       name: string;
     }
   | {
@@ -58,28 +58,28 @@ type ScenarioCase =
         requestExecutor: ScenarioRequestExecutorInputInterface;
         retryFailOnceMessage: string;
       };
-      kind: 'create-with-instances';
+      shape: 'create-with-instances';
       name: string;
     }
   | {
       description: string;
       expected: { responseStatus: number; responseText: string };
       input: { fetchResponseText: string; fetchUrl: string };
-      kind: 'defaults-real-primitives';
+      shape: 'defaults-real-primitives';
       name: string;
     }
   | {
       description: string;
       expected: { observedRequestId: string };
       input: { contextValue: string; fetchResponseText: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      kind: 'context-roundtrip';
+      shape: 'context-roundtrip';
       name: string;
     }
   | {
       description: string;
       expected: { observedSeed: number };
       input: { contextSeed: number; fetchResponseText: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      kind: 'context-seeded-values';
+      shape: 'context-seeded-values';
       name: string;
     }
   | {
@@ -90,35 +90,35 @@ type ScenarioCase =
         fetchPath: string;
         requestExecutor: ScenarioRequestExecutorInputInterface;
       };
-      kind: 'cancellation-merged-signal';
+      shape: 'cancellation-merged-signal';
       name: string;
     }
   | {
       description: string;
       expected: { responseStatus: number; signalAborted: false };
       input: { fetchDelayMs: number; fetchPath: string; requestExecutor: ScenarioRequestExecutorInputInterface; responseText: string };
-      kind: 'cancellation-default-signal';
+      shape: 'cancellation-default-signal';
       name: string;
     }
   | {
       description: string;
       expected: { responseStatus: number; signalAborted: false };
       input: { fetchDelayMs: number; fetchPath: string; requestExecutor: ScenarioRequestExecutorInputInterface; responseText: string };
-      kind: 'cancellation-deadline-only';
+      shape: 'cancellation-deadline-only';
       name: string;
     }
   | {
       description: string;
       expected: { completeEvents: number; responseStatus: number; startEvents: number };
       input: { fetchFailures: number; fetchPath: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      kind: 'timing-brackets-retry-loop';
+      shape: 'timing-brackets-retry-loop';
       name: string;
     }
   | {
       description: string;
       expected: { errorEvents: number; errorMessage: string; startEvents: number };
       input: { errorMessage: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      kind: 'timing-brackets-error';
+      shape: 'timing-brackets-error';
       name: string;
     }
   | {
@@ -132,7 +132,7 @@ type ScenarioCase =
         responseText: string;
       };
       input: { fetchFailures: number; fetchPath: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      kind: 'hooks-fire-through-executor';
+      shape: 'hooks-fire-through-executor';
       name: string;
     };
 
@@ -218,7 +218,7 @@ function requireContextFromScenario(input: ScenarioRequestExecutorInputInterface
   return Context.create(input.context);
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'entity-validates-deadlines': async (scenarioCase) => {
     for (const value of scenarioCase.input.values) {
       assert.equal(RequestDeadlineEntity.validate(value), true);
@@ -535,7 +535,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('RequestExecutor', () => {

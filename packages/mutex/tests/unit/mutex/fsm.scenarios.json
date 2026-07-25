@@ -3,42 +3,42 @@
     {
       "name": "validate-states",
       "description": "Mutex key state entity validates supported states",
-      "kind": "validate-states",
+      "shape": "validate-states",
       "input": { "invalidState": "waiting", "states": ["locked", "queued", "unlocked"] },
       "expected": { "invalidState": false, "validStates": true }
     },
     {
       "name": "unlocked-to-locked",
       "description": "Mutex records unlocked to locked transitions",
-      "kind": "unlocked-to-locked",
+      "shape": "unlocked-to-locked",
       "input": { "key": "alpha" },
       "expected": { "from": "unlocked", "key": "alpha", "to": "locked" }
     },
     {
       "name": "locked-to-queued",
       "description": "Mutex records locked to queued transitions",
-      "kind": "locked-to-queued",
+      "shape": "locked-to-queued",
       "input": { "key": "beta" },
       "expected": { "from": "locked", "key": "beta", "to": "queued" }
     },
     {
       "name": "queued-to-locked",
       "description": "Mutex records queued to locked transitions",
-      "kind": "queued-to-locked",
+      "shape": "queued-to-locked",
       "input": { "key": "gamma" },
       "expected": { "from": "queued", "key": "gamma", "to": "locked" }
     },
     {
       "name": "locked-to-unlocked",
       "description": "Mutex records locked to unlocked transitions",
-      "kind": "locked-to-unlocked",
+      "shape": "locked-to-unlocked",
       "input": { "key": "delta" },
       "expected": { "from": "locked", "key": "delta", "to": "unlocked" }
     },
     {
       "name": "illegal-transition-throws",
       "description": "Mutex rejects illegal state transitions",
-      "kind": "illegal-transition-throws",
+      "shape": "illegal-transition-throws",
       "input": { "key": "epsilon" },
       "expected": { "errorPattern": "Illegal state transition" }
     }

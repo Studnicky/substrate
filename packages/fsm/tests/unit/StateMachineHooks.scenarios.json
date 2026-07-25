@@ -3,7 +3,7 @@
     {
       "name": "transition-hook",
       "description": "onTransition fires with the expected from/to/event",
-      "kind": "transition-hook",
+      "shape": "transition-hook",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": {
         "transition": { "event": "advance", "from": "red", "to": "green" }
@@ -12,35 +12,35 @@
     {
       "name": "enter-hook",
       "description": "onEnterState fires with the new state",
-      "kind": "enter-hook",
+      "shape": "enter-hook",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": { "variant": "green" }
     },
     {
       "name": "exit-hook",
       "description": "onExitState fires with the old state",
-      "kind": "exit-hook",
+      "shape": "exit-hook",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": { "variant": "red" }
     },
     {
       "name": "hook-order",
       "description": "hooks fire in exit to transition to enter order",
-      "kind": "hook-order",
+      "shape": "hook-order",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": { "order": ["exit", "transition", "enter"] }
     },
     {
       "name": "unchanged-no-hooks",
       "description": "unchanged transitions do not fire lifecycle hooks",
-      "kind": "unchanged-no-hooks",
+      "shape": "unchanged-no-hooks",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": { "hookCount": 0 }
     },
     {
       "name": "multiple-transitions",
       "description": "multiple transitions fire hooks each time",
-      "kind": "multiple-transitions",
+      "shape": "multiple-transitions",
       "input": {
         "event": { "type": "advance" },
         "states": [{ "variant": "red" }, { "variant": "green" }, { "variant": "amber" }]
@@ -58,7 +58,7 @@
     {
       "name": "transition-rejected-hook",
       "description": "onTransitionRejected fires when reducer throws",
-      "kind": "transition-rejected-hook",
+      "shape": "transition-rejected-hook",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": {
         "event": "advance",
@@ -70,28 +70,28 @@
     {
       "name": "successful-transition-no-rejection",
       "description": "successful transitions do not trigger rejection hooks",
-      "kind": "successful-transition-no-rejection",
+      "shape": "successful-transition-no-rejection",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": { "rejectionCount": 0 }
     },
     {
       "name": "throwing-transition-hook",
       "description": "a throwing onTransition hook does not replace the returned step",
-      "kind": "throwing-transition-hook",
+      "shape": "throwing-transition-hook",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": { "hookCount": 1, "state": "green", "toEffects": [] }
     },
     {
       "name": "throwing-rejection-hook",
       "description": "a throwing onTransitionRejected hook does not replace the reducer error",
-      "kind": "throwing-rejection-hook",
+      "shape": "throwing-rejection-hook",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": { "hookCount": 1 }
     },
     {
       "name": "async-rejection",
       "description": "async lifecycle hook rejections are captured without an unhandled rejection",
-      "kind": "async-rejection",
+      "shape": "async-rejection",
       "input": { "state": { "variant": "red" }, "event": { "type": "advance" } },
       "expected": { "hookCount": 1, "rejectionEvents": 0, "state": "green" }
     }

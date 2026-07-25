@@ -10,8 +10,8 @@ import {
 import scenarioGroups from './entity-contracts.scenarios.json';
 
 type ScenarioCase =
-  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'abort-options' }
-  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'active-operation-state' }
+  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'abort-options' }
+  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'active-operation-state' }
   | {
       description: string;
       expected: {
@@ -22,11 +22,11 @@ type ScenarioCase =
         aborted: { message: string; timeoutMs: number };
         draining: { message: string };
       };
-      kind: 'error-constructors';
+      shape: 'error-constructors';
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'abort-options': (scenarioCase) => {
     const { expected, input } = scenarioCase;
     assert.equal(ThrottleAbortOptionsEntity.validate(input.valid), Boolean(expected.valid));
@@ -49,7 +49,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle entity contracts', () => {

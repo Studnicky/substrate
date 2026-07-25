@@ -17,13 +17,13 @@ The only accepted alias is an exported `Type` member inside an `*Entity` namespa
 |---|---|
 | Namespace | An exported name ending in `Entity`, such as `UserEntity` |
 | Schema | An exported `Schema` value in that namespace satisfying `JSONSchema` |
-| Type | The exact declaration `export type Type = FromSchema<typeof Schema>` in the same namespace |
+| Type | The exact declaration `export type Type = F<typeof Schema>` in the same namespace, for a verified schema-deriving `F` |
 
 The rule verifies the syntax and ownership of this relationship:
 
 - the namespace name ends in `Entity`;
 - `Type` and `Schema` are exported members of the same namespace; and
-- `Type` is exactly `FromSchema<typeof Schema>` with verified schema provenance.
+- `Type` is exactly `F<typeof Schema>` with verified schema provenance — `F`'s name and origin package carry no weight, only its structure and the resolved result do.
 
 A canonical composition remains JSON-Schema-expressible data, so it belongs in a composed schema rather than a free-standing alias. For example, `export type DomainEventType = UserCreatedEntity.Type | UserDeletedEntity.Type` is invalid.
 
@@ -31,7 +31,7 @@ The example is invalid in every path, including `src/types`, `tests`, configurat
 
 ## Diagnostic ownership
 
-[`type-alias-invariants`](./type-alias-invariants.md) owns invalid provenance, alias identity, declaration kind, naming, and readonly output. This rule reports only canonical pure-data aliases whose declaration is not the exact entity form, preventing duplicate diagnostics for callable, inline, unresolved, or otherwise invalid aliases.
+[`type-alias-invariants`](./type-alias-invariants.md) owns invalid provenance, alias identity, declaration shape, naming, and readonly output. This rule reports only canonical pure-data aliases whose declaration is not the exact entity form, preventing duplicate diagnostics for callable, inline, unresolved, or otherwise invalid aliases.
 
 Classification and ownership checks resolve through TypeScript symbols and verified schema provenance. Unresolved provenance, structural similarity, near matches, and broader or narrower shapes do not establish canonical identity.
 
@@ -58,6 +58,6 @@ export default [
 
 ## Related rules
 
-- [`type-alias-invariants`](./type-alias-invariants.md) owns alias identity, declaration kind, canonical source, naming, and readonly output.
+- [`type-alias-invariants`](./type-alias-invariants.md) owns alias identity, declaration shape, canonical source, naming, and readonly output.
 - [`interface-must-be-contract`](./interface-must-be-contract.md) rejects interfaces containing only pure data.
 - [`interfaces-compose-named-types`](./interfaces-compose-named-types.md) requires named entity references for pure-data portions of contract interfaces.

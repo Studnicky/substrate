@@ -33,31 +33,31 @@ type ScenarioCase =
       input: {
         events: { finish: JobEventEntity.Type; start: JobEventEntity.Type };
       };
-      kind: 'drive';
+      shape: 'drive';
     })
   | (ScenarioCaseBaseInterface & {
       expected: { logged: string[] };
       input: {
         events: { start: JobEventEntity.Type };
       };
-      kind: 'effects';
+      shape: 'effects';
     })
   | (ScenarioCaseBaseInterface & {
       expected: { afterAdvance: JobStateEntity.Type; afterFirstAdvance: JobStateEntity.Type; afterStart: JobStateEntity.Type; scheduledAtMs: number };
       input: ScheduledScenarioInputInterface;
-      kind: 'scheduled';
+      shape: 'scheduled';
     })
   | (ScenarioCaseBaseInterface & {
       expected: { afterAdvance: JobStateEntity.Type; afterStop: JobStateEntity.Type; scheduledAtMs: number };
       input: ScheduledScenarioInputInterface;
-      kind: 'stop-cancels';
+      shape: 'stop-cancels';
     })
   | (ScenarioCaseBaseInterface & {
       expected: { afterRecovery: JobStateEntity.Type; rejectionName: string; rejectedEvent: JobEventEntity.Type };
       input: {
         events: { rejected: JobEventEntity.Type; recovery: JobEventEntity.Type };
       };
-      kind: 'rejection';
+      shape: 'rejection';
     });
 
 class JobMachine extends StateMachine<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type> {
@@ -98,7 +98,7 @@ function materializeVirtualScheduler(input: ScheduledScenarioInputInterface['sch
   return { counter, scheduler: VirtualScheduler.create({ counter }) };
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   drive: async (scenarioCase) => {
     const kit = ProcessKit.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({
       machine: JobMachine.make()
@@ -170,7 +170,11 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
       machine: JobMachine.make()
     });
     kit.start();
-    await assert.rejects(() => kit.dispatch(scenarioCase.input.events.rejected), TransitionRejectedError);
+    await assert.rejects(() => kit.dispatch(scenarioCase.input.events.rejected), (error: unknown) => {
+      assert.ok(error instanceof TransitionRejectedError);
+      assert.equal(error.eventType, scenarioCase.expected.rejectedEvent.type);
+      return true;
+    });
     const afterRecovery = await kit.dispatch(scenarioCase.input.events.recovery);
     assert.deepStrictEqual(afterRecovery, scenarioCase.expected.afterRecovery);
     assert.equal(scenarioCase.expected.rejectionName, 'TransitionRejectedError');
@@ -178,7 +182,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('ProcessKit', () => {

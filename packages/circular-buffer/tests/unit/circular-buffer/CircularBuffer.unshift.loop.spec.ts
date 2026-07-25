@@ -11,82 +11,82 @@ type ScenarioCase =
       description: string;
       expected: { length: number };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'unshift-adds-item';
+      shape: 'unshift-adds-item';
       name: string;
     }
   | {
       description: string;
       expected: { length: number; shifted: number };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'unshift-empty-then-shift';
+      shape: 'unshift-empty-then-shift';
       name: string;
     }
   | {
       description: string;
       expected: { shifted: number[] };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'unshift-then-shift-order';
+      shape: 'unshift-then-shift-order';
       name: string;
     }
   | {
       description: string;
       expected: { shifted: number[] };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'multiple-unshifts-reverse-order';
+      shape: 'multiple-unshifts-reverse-order';
       name: string;
     }
   | {
       description: string;
       expected: { length: number; shifted: number[] };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'overwrite-mode-unshift-evicts-tail';
+      shape: 'overwrite-mode-unshift-evicts-tail';
       name: string;
     }
   | {
       description: string;
       expected: { evictLog: number[]; overflowLog: number[] };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'overwrite-mode-unshift-fires-hooks';
+      shape: 'overwrite-mode-unshift-fires-hooks';
       name: string;
     }
   | {
       description: string;
       expected: { length: number; shifted: number[] };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'grow-mode-unshift-grows';
+      shape: 'grow-mode-unshift-grows';
       name: string;
     }
   | {
       description: string;
       expected: { newCapacity: number; oldCapacity: number };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'grow-mode-unshift-fires-onGrow';
+      shape: 'grow-mode-unshift-fires-onGrow';
       name: string;
     }
   | {
       description: string;
       expected: { pushCount: number };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'onPush-fires-for-unshift';
+      shape: 'onPush-fires-for-unshift';
       name: string;
     }
   | {
       description: string;
       expected: { shifted: string[] };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'mixed-push-unshift-shift-order';
+      shape: 'mixed-push-unshift-shift-order';
       name: string;
     }
   | {
       description: string;
       expected: { shifted: number[] };
       input: { options: CircularBufferOptionsEntity.Type };
-      kind: 'interleaved-wraparound-order';
+      shape: 'interleaved-wraparound-order';
       name: string;
     };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const runnerMap: Record<ScenarioCase['kind'], (scenario: ScenarioCase) => void> = {
+  const runnerMap: Record<ScenarioCase['shape'], (scenario: ScenarioCase) => void> = {
     'grow-mode-unshift-fires-onGrow': (scenario) => {
       class GrowLogBuffer<T> extends CircularBuffer<T> {
         readonly growLog: Array<{ oldCapacity: number; newCapacity: number }> = [];
@@ -215,7 +215,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
   };
 
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('CircularBuffer unshift', () => {

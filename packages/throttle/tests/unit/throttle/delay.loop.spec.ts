@@ -9,42 +9,42 @@ type ScenarioCase =
       description: string;
       expected: { resolved: true };
       input: { timeoutMs: number };
-      kind: 'delay-resolves-without-signal';
+      shape: 'delay-resolves-without-signal';
       name: string;
     }
   | {
       description: string;
       expected: { resolved: true };
       input: { timeoutMs: number };
-      kind: 'delay-resolves-with-never-aborted-signal';
+      shape: 'delay-resolves-with-never-aborted-signal';
       name: string;
     }
   | {
       description: string;
       expected: { abortErrorName: 'AbortError' };
       input: { timeoutMs: number };
-      kind: 'delay-rejects-already-aborted';
+      shape: 'delay-rejects-already-aborted';
       name: string;
     }
   | {
       description: string;
       expected: { abortErrorName: 'AbortError' };
       input: { timeoutMs: number };
-      kind: 'delay-rejects-before-timeout';
+      shape: 'delay-rejects-before-timeout';
       name: string;
     }
   | {
       description: string;
       expected: { abortListenerAddCount: 1; abortListenerRemoveCount: 1 };
       input: { timeoutMs: number };
-      kind: 'delay-removes-abort-listener';
+      shape: 'delay-removes-abort-listener';
       name: string;
     };
 
-type ScenarioKind = ScenarioCase['kind'];
+type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     'delay-rejects-already-aborted': async (scenarioCase) => {
       const controller = new AbortController();
       controller.abort();
@@ -92,7 +92,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle delay', () => {

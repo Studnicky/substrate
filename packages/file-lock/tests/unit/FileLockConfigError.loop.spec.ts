@@ -4,17 +4,17 @@ import { describe, it } from 'node:test';
 import { FileLockConfigError } from '../../src/errors/FileLockConfigError.js';
 import scenarioGroups from './FileLockConfigError.scenarios.json';
 
-type ScenarioKind = 'constructs-with-code';
+type ScenarioShape = 'constructs-with-code';
 
 type ScenarioCase = {
   description: string;
   expected: { code: string; message: string };
   input: { message: string };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
-const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => void> = {
   'constructs-with-code': (scenarioCase) => {
     const error = new FileLockConfigError(scenarioCase.input.message);
 
@@ -24,7 +24,7 @@ const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => void> = {
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('FileLockConfigError', () => {

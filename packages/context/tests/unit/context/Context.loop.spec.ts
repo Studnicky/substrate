@@ -11,7 +11,7 @@ import type { ContextConfigEntity } from '../../../src/entities/ContextConfigEnt
 import type { ContextScopeInterface } from '../../../src/interfaces/index.js';
 import scenarioGroups from './Context.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'async-on-set-safe'
   | 'async-propagation'
   | 'concurrent-isolation'
@@ -68,7 +68,7 @@ type ScenarioData = {
   description: string;
   expected: Record<string, unknown>;
   input: ScenarioInput;
-  kind: string;
+  shape: string;
   name: string;
 };
 
@@ -839,19 +839,19 @@ const runnerMap = {
     );
     return;
   },
-} satisfies Record<ScenarioKind, ScenarioRunner>;
+} satisfies Record<ScenarioShape, ScenarioRunner>;
 
-function isScenarioKind(kind: string): kind is ScenarioKind {
-  return Object.hasOwn(runnerMap, kind);
+function isScenarioShape(shape: string): shape is ScenarioShape {
+  return Object.hasOwn(runnerMap, shape);
 }
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  const { kind } = scenarioCase;
-  if (!isScenarioKind(kind)) {
-    throw new TypeError(`Unsupported scenario kind: ${kind}`);
+  const { shape } = scenarioCase;
+  if (!isScenarioShape(shape)) {
+    throw new TypeError(`Unsupported scenario shape: ${shape}`);
   }
 
-  return runnerMap[kind](scenarioCase);
+  return runnerMap[shape](scenarioCase);
 }
 
 void describe('Context', () => {

@@ -26,7 +26,7 @@
           { "entity": "WorkerResultEnvelopeDiscriminantEntity", "expected": true, "value": { "type": "result", "value": 42 } }
         ]
       },
-      "kind": "validates-everything",
+      "shape": "validates-everything",
       "name": "validates-everything"
     },
     {
@@ -47,7 +47,7 @@
           { "entity": "WorkerResultEnvelopeDiscriminantEntity", "expected": false, "value": { "type": "error" } }
         ]
       },
-      "kind": "rejects-invalid",
+      "shape": "rejects-invalid",
       "name": "rejects-invalid"
     }
   ]

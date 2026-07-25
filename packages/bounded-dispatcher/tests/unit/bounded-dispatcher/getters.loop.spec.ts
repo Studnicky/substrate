@@ -8,20 +8,20 @@ import type { BoundedDispatcherTopicMapInterface } from '../../../src/index.js';
 import { BoundedDispatcher } from '../../../src/index.js';
 
 type ScenarioCase =
-  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'getBus-default' }
-  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'getBus-preserves-instance' };
+  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'getBus-default' }
+  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'getBus-preserves-instance' };
 
 import scenarioGroups from './getters.scenarios.json';
 
 type ScenarioRunner = (scenario: ScenarioCase) => void;
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'getBus-default': (scenario) => {
     const dispatcher = BoundedDispatcher.create();
     const { expected, input } = scenario;
     assert.ok(dispatcher.getBus() instanceof EventBus);
-    assert.strictEqual(dispatcher.getBus().constructor.name, String(expected.busKind));
-    assert.strictEqual(input.busKind, expected.busKind);
+    assert.strictEqual(dispatcher.getBus().constructor.name, String(expected.busShape));
+    assert.strictEqual(input.busShape, expected.busShape);
   },
   'getBus-preserves-instance': (scenario) => {
     const bus = EventBus.create<BoundedDispatcherTopicMapInterface>();
@@ -34,7 +34,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 function runCase(scenario: ScenarioCase): void {
-  runnerMap[scenario.kind](scenario);
+  runnerMap[scenario.shape](scenario);
 }
 
 void describe('BoundedDispatcher getBus()', () => {

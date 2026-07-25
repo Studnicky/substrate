@@ -3,7 +3,7 @@
     {
       "name": "factory-scenario-defaults",
       "description": "creates error with scenario defaults",
-      "kind": "factory-scenario-defaults",
+      "shape": "factory-scenario-defaults",
       "input": {
         "message": "Test error",
         "scenario": "INTERNAL"
@@ -20,7 +20,7 @@
     {
       "name": "factory-merge-user-options",
       "description": "merges user options over scenario defaults",
-      "kind": "factory-merge-user-options",
+      "shape": "factory-merge-user-options",
       "input": {
         "message": "Test error",
         "scenario": "DATABASE",
@@ -49,7 +49,7 @@
     {
       "name": "factory-reject-empty-message",
       "description": "validates empty message",
-      "kind": "factory-reject-empty-message",
+      "shape": "factory-reject-empty-message",
       "input": {
         "message": "",
         "scenario": "INTERNAL"
@@ -62,7 +62,7 @@
     {
       "name": "factory-reject-empty-code",
       "description": "validates empty code",
-      "kind": "factory-reject-empty-code",
+      "shape": "factory-reject-empty-code",
       "input": {
         "message": "Test"
       },
@@ -74,7 +74,7 @@
     {
       "name": "factory-reject-invalid-scenario",
       "description": "validates invalid scenario",
-      "kind": "factory-reject-invalid-scenario",
+      "shape": "factory-reject-invalid-scenario",
       "input": {
         "message": "Test",
         "scenario": "INVALID"
@@ -87,7 +87,7 @@
     {
       "name": "constructor-defaults-omitted-options",
       "description": "uses constructor defaults when a subclass passes undefined optional module options",
-      "kind": "constructor-defaults-omitted-options",
+      "shape": "constructor-defaults-omitted-options",
       "input": {
         "code": "MINIMAL_ERROR",
         "message": "Minimal failure"
@@ -101,7 +101,7 @@
     {
       "name": "scenario-connection-defaults",
       "description": "CONNECTION scenario has correct defaults",
-      "kind": "scenario-defaults",
+      "shape": "scenario-defaults",
       "scenario": "CONNECTION",
       "input": {
         "scenario": "CONNECTION"
@@ -117,7 +117,7 @@
     {
       "name": "scenario-authentication-defaults",
       "description": "AUTHENTICATION scenario has correct defaults",
-      "kind": "scenario-defaults",
+      "shape": "scenario-defaults",
       "scenario": "AUTHENTICATION",
       "input": {
         "scenario": "AUTHENTICATION"
@@ -133,7 +133,7 @@
     {
       "name": "scenario-not-found-defaults",
       "description": "NOT_FOUND scenario has correct defaults",
-      "kind": "scenario-defaults",
+      "shape": "scenario-defaults",
       "scenario": "NOT_FOUND",
       "input": {
         "scenario": "NOT_FOUND"
@@ -149,7 +149,7 @@
     {
       "name": "scenario-retryable-overrides",
       "description": "allows overriding scenario retryable",
-      "kind": "scenario-retryable-overrides",
+      "shape": "scenario-retryable-overrides",
       "input": {
         "scenario": "CONNECTION",
         "retryable": false
@@ -163,7 +163,7 @@
     {
       "name": "context-stores-arbitrary-data",
       "description": "stores arbitrary context data",
-      "kind": "context-stores-arbitrary-data",
+      "shape": "context-stores-arbitrary-data",
       "input": {
         "context": {
           "operation": "createUser",
@@ -186,16 +186,16 @@
     {
       "name": "context-handles-undefined",
       "description": "handles undefined context",
-      "kind": "context-handles-undefined",
+      "shape": "context-handles-undefined",
       "input": {
         "context": {
-          "__kind": "undefined"
+          "__shape": "undefined"
         }
       },
       "expected": {
         "result": {
           "context": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       }
@@ -203,7 +203,7 @@
     {
       "name": "context-empty-object",
       "description": "handles empty context object",
-      "kind": "context-empty-object",
+      "shape": "context-empty-object",
       "input": {
         "context": {}
       },
@@ -216,7 +216,7 @@
     {
       "name": "context-null-prototype",
       "description": "detaches null-prototype and nested array context values",
-      "kind": "context-null-prototype",
+      "shape": "context-null-prototype",
       "input": {
         "context": {
           "items": [
@@ -232,7 +232,7 @@
           ],
           "meta": {
             "flags": {
-              "__kind": "null-prototype"
+              "__shape": "null-prototype"
             }
           }
         }
@@ -261,7 +261,7 @@
     {
       "name": "context-preserves-collaborator-instance",
       "description": "keeps non-plain collaborator instances by reference while snapshotting context records",
-      "kind": "context-preserves-collaborator-instance",
+      "shape": "context-preserves-collaborator-instance",
       "input": {
         "context": {
           "collaborator": {
@@ -279,7 +279,7 @@
     {
       "name": "context-detaches-projections",
       "description": "detaches nested construction context and each public projection",
-      "kind": "context-detaches-projections",
+      "shape": "context-detaches-projections",
       "input": {
         "context": {
           "request": {
@@ -301,7 +301,7 @@
     {
       "name": "http-uses-scenario-code",
       "description": "uses scenario status code",
-      "kind": "http-uses-scenario-code",
+      "shape": "http-uses-scenario-code",
       "input": {
         "scenario": "NOT_FOUND"
       },
@@ -314,7 +314,7 @@
     {
       "name": "http-allows-status-override",
       "description": "allows overriding status code",
-      "kind": "http-allows-status-override",
+      "shape": "http-allows-status-override",
       "input": {
         "scenario": "INTERNAL",
         "statusCode": 503
@@ -328,7 +328,7 @@
     {
       "name": "retryable-transient",
       "description": "marks transient errors as retryable",
-      "kind": "retryable-transient",
+      "shape": "retryable-transient",
       "input": {
         "scenario": "TIMEOUT"
       },
@@ -341,7 +341,7 @@
     {
       "name": "retryable-permanent",
       "description": "marks permanent errors as non-retryable",
-      "kind": "retryable-permanent",
+      "shape": "retryable-permanent",
       "input": {
         "scenario": "VALIDATION"
       },
@@ -354,7 +354,7 @@
     {
       "name": "cause-stores-single",
       "description": "stores single cause",
-      "kind": "cause-stores-single",
+      "shape": "cause-stores-single",
       "input": {
         "cause": {
           "message": "Root cause"
@@ -371,7 +371,7 @@
     {
       "name": "cause-builds-chain",
       "description": "builds multi-level cause chain",
-      "kind": "cause-builds-chain",
+      "shape": "cause-builds-chain",
       "input": {
         "root": "Root cause",
         "middle": "Middle error",
@@ -387,16 +387,16 @@
     {
       "name": "cause-handles-undefined",
       "description": "handles undefined cause",
-      "kind": "cause-handles-undefined",
+      "shape": "cause-handles-undefined",
       "input": {
         "cause": {
-          "__kind": "undefined"
+          "__shape": "undefined"
         }
       },
       "expected": {
         "result": {
           "cause": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       }
@@ -404,7 +404,7 @@
     {
       "name": "chain-single",
       "description": "returns single error for no causes",
-      "kind": "chain-single",
+      "shape": "chain-single",
       "input": {
         "message": "Test"
       },
@@ -417,7 +417,7 @@
     {
       "name": "chain-nested",
       "description": "returns full chain for nested causes",
-      "kind": "chain-nested",
+      "shape": "chain-nested",
       "input": {
         "root": "Root",
         "middle": "Middle",
@@ -432,7 +432,7 @@
     {
       "name": "chain-deep",
       "description": "handles deep cause chains",
-      "kind": "chain-deep",
+      "shape": "chain-deep",
       "input": {
         "depth": 5
       },
@@ -445,7 +445,7 @@
     {
       "name": "chain-circular",
       "description": "does not hang on a circular cause chain",
-      "kind": "chain-circular",
+      "shape": "chain-circular",
       "input": {
         "circular": true
       },
@@ -458,7 +458,7 @@
     {
       "name": "find-cause-match",
       "description": "finds matching cause in chain",
-      "kind": "find-cause-match",
+      "shape": "find-cause-match",
       "input": {
         "type": "ValidationError"
       },
@@ -471,7 +471,7 @@
     {
       "name": "find-cause-missing",
       "description": "returns undefined when type not found",
-      "kind": "find-cause-missing",
+      "shape": "find-cause-missing",
       "input": {
         "type": "MissingError"
       },
@@ -484,7 +484,7 @@
     {
       "name": "find-cause-first-match",
       "description": "finds first matching type",
-      "kind": "find-cause-first-match",
+      "shape": "find-cause-first-match",
       "input": {
         "type": "ModuleError"
       },
@@ -498,7 +498,7 @@
     {
       "name": "find-cause-subclass",
       "description": "can find ModuleError subclass",
-      "kind": "find-cause-subclass",
+      "shape": "find-cause-subclass",
       "input": {
         "type": "ModuleError"
       },
@@ -512,7 +512,7 @@
     {
       "name": "find-cause-circular",
       "description": "does not hang on a circular cause chain",
-      "kind": "find-cause-circular",
+      "shape": "find-cause-circular",
       "input": {
         "circular": true
       },
@@ -526,7 +526,7 @@
     {
       "name": "has-cause-true",
       "description": "returns true when type exists in chain",
-      "kind": "has-cause-true",
+      "shape": "has-cause-true",
       "input": {
         "type": "ValidationError"
       },
@@ -539,7 +539,7 @@
     {
       "name": "has-cause-false",
       "description": "returns false when type not in chain",
-      "kind": "has-cause-false",
+      "shape": "has-cause-false",
       "input": {
         "type": "MissingError"
       },
@@ -552,7 +552,7 @@
     {
       "name": "has-cause-empty",
       "description": "returns false for error with no causes",
-      "kind": "has-cause-empty",
+      "shape": "has-cause-empty",
       "input": {
         "type": "MissingError"
       },
@@ -565,7 +565,7 @@
     {
       "name": "has-cause-deep",
       "description": "checks entire cause chain",
-      "kind": "has-cause-deep",
+      "shape": "has-cause-deep",
       "input": {
         "type": "ValidationError",
         "depth": 5
@@ -579,7 +579,7 @@
     {
       "name": "has-cause-circular",
       "description": "does not hang on a circular cause chain",
-      "kind": "has-cause-circular",
+      "shape": "has-cause-circular",
       "input": {
         "circular": true
       },
@@ -592,7 +592,7 @@
     {
       "name": "json-basic",
       "description": "serializes basic properties",
-      "kind": "json-basic",
+      "shape": "json-basic",
       "input": {
         "scenario": "INTERNAL"
       },
@@ -611,7 +611,7 @@
     {
       "name": "json-optional-context",
       "description": "includes optional properties when defined",
-      "kind": "json-optional-context",
+      "shape": "json-optional-context",
       "input": {
         "context": {
           "requestId": "req-1"
@@ -628,10 +628,10 @@
     {
       "name": "json-excludes-undefined",
       "description": "excludes undefined optional properties",
-      "kind": "json-excludes-undefined",
+      "shape": "json-excludes-undefined",
       "input": {
         "context": {
-          "__kind": "undefined"
+          "__shape": "undefined"
         }
       },
       "expected": {
@@ -643,7 +643,7 @@
     {
       "name": "json-native-cause",
       "description": "serializes native Error cause",
-      "kind": "json-native-cause",
+      "shape": "json-native-cause",
       "input": {
         "cause": {
           "message": "Root"
@@ -660,7 +660,7 @@
     {
       "name": "json-primitive-cause",
       "description": "serializes primitive cause values",
-      "kind": "json-primitive-cause",
+      "shape": "json-primitive-cause",
       "input": {
         "cause": "primitive cause"
       },
@@ -673,7 +673,7 @@
     {
       "name": "json-native-primitive-cause",
       "description": "serializes numeric primitive cause values",
-      "kind": "json-native-primitive-cause",
+      "shape": "json-native-primitive-cause",
       "input": {
         "cause": 42
       },
@@ -686,7 +686,7 @@
     {
       "name": "json-module-cause",
       "description": "recursively serializes ModuleError cause",
-      "kind": "json-module-cause",
+      "shape": "json-module-cause",
       "input": {
         "cause": {
           "message": "Module cause"
@@ -703,7 +703,7 @@
     {
       "name": "json-deep-chain",
       "description": "handles deep cause chain serialization",
-      "kind": "json-deep-chain",
+      "shape": "json-deep-chain",
       "input": {
         "depth": 5
       },
@@ -716,7 +716,7 @@
     {
       "name": "json-depth-sentinel",
       "description": "uses sentinel string when ModuleError chain exceeds depth limit",
-      "kind": "json-depth-sentinel",
+      "shape": "json-depth-sentinel",
       "input": {
         "depth": 10
       },
@@ -729,7 +729,7 @@
     {
       "name": "json-safe",
       "description": "produces JSON-safe output",
-      "kind": "json-safe",
+      "shape": "json-safe",
       "input": {
         "safe": true
       },
@@ -742,7 +742,7 @@
     {
       "name": "subclass-custom",
       "description": "supports custom error subclasses",
-      "kind": "subclass-custom",
+      "shape": "subclass-custom",
       "input": {
         "scenario": "CONNECTION"
       },
@@ -755,7 +755,7 @@
     {
       "name": "subclass-overrides-defaults",
       "description": "allows subclass to override defaults",
-      "kind": "subclass-overrides-defaults",
+      "shape": "subclass-overrides-defaults",
       "input": {
         "scenario": "CONNECTION"
       },
@@ -768,7 +768,7 @@
     {
       "name": "subclass-serialization-name",
       "description": "preserves subclass name in serialization",
-      "kind": "subclass-serialization-name",
+      "shape": "subclass-serialization-name",
       "input": {
         "scenario": "CONNECTION"
       },
@@ -781,7 +781,7 @@
     {
       "name": "instanceof-error",
       "description": "is instance of Error",
-      "kind": "instanceof-error",
+      "shape": "instanceof-error",
       "input": {
         "scenario": "INTERNAL"
       },
@@ -794,7 +794,7 @@
     {
       "name": "instanceof-module-error",
       "description": "is instance of ModuleError",
-      "kind": "instanceof-module-error",
+      "shape": "instanceof-module-error",
       "input": {
         "scenario": "INTERNAL"
       },
@@ -807,7 +807,7 @@
     {
       "name": "instanceof-subclass",
       "description": "subclass is instance of both ModuleError and Error",
-      "kind": "instanceof-subclass",
+      "shape": "instanceof-subclass",
       "input": {
         "scenario": "CONNECTION"
       },
@@ -820,7 +820,7 @@
     {
       "name": "stack-trace",
       "description": "has stack trace",
-      "kind": "stack-trace",
+      "shape": "stack-trace",
       "input": {
         "scenario": "INTERNAL"
       },
@@ -833,7 +833,7 @@
     {
       "name": "stack-trace-disabled",
       "description": "has stack trace when stack capture is unavailable",
-      "kind": "stack-trace-disabled",
+      "shape": "stack-trace-disabled",
       "input": {
         "scenario": "INTERNAL"
       },

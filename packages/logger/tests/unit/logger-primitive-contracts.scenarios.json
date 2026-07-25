@@ -3,7 +3,7 @@
     {
       "name": "level-values",
       "description": "LOG_LEVEL values are stable",
-      "kind": "level-values",
+      "shape": "level-values",
       "input": {
         "values": {
           "TRACE": 0,
@@ -28,7 +28,7 @@
     {
       "name": "level-order",
       "description": "levels are ordered by severity",
-      "kind": "level-order",
+      "shape": "level-order",
       "input": {
         "ordered": true
       },
@@ -39,7 +39,7 @@
     {
       "name": "level-map",
       "description": "LOG_LEVEL_MAP resolves lowercase names",
-      "kind": "level-map",
+      "shape": "level-map",
       "input": {
         "resolved": {
           "trace": 0,
@@ -64,7 +64,7 @@
     {
       "name": "parse-numeric",
       "description": "parseLogLevel passes through numeric levels",
-      "kind": "parse-numeric",
+      "shape": "parse-numeric",
       "input": {
         "values": [
           0,
@@ -89,7 +89,7 @@
     {
       "name": "parse-string",
       "description": "parseLogLevel parses lowercase names",
-      "kind": "parse-string",
+      "shape": "parse-string",
       "input": {
         "values": {
           "trace": 0,
@@ -114,7 +114,7 @@
     {
       "name": "parse-invalid-string",
       "description": "parseLogLevel falls back to INFO for invalid inputs",
-      "kind": "parse-invalid-string",
+      "shape": "parse-invalid-string",
       "input": {
         "values": {
           "empty": 2,
@@ -141,7 +141,7 @@
     {
       "name": "safe-stringify-basic",
       "description": "safeStringify handles basic JSON shapes",
-      "kind": "safe-stringify-basic",
+      "shape": "safe-stringify-basic",
       "input": {
         "outputs": [
           "{\"name\":\"test\",\"value\":42}",
@@ -164,7 +164,7 @@
     {
       "name": "safe-stringify-circular",
       "description": "safeStringify handles circular references",
-      "kind": "safe-stringify-circular",
+      "shape": "safe-stringify-circular",
       "input": {
         "result1Contains": [
           "\"name\":\"test\"",
@@ -191,7 +191,7 @@
     {
       "name": "safe-stringify-types",
       "description": "safeStringify handles nested types and symbols",
-      "kind": "safe-stringify-types",
+      "shape": "safe-stringify-types",
       "input": {
         "contains": [
           "\"value\":\"deep\"",
@@ -236,7 +236,7 @@
     {
       "name": "safe-stringify-json-edges",
       "description": "safeStringify handles dates, primitive values, empty containers, and symbol-keyed properties",
-      "kind": "safe-stringify-json-edges",
+      "shape": "safe-stringify-json-edges",
       "input": {},
       "expected": {
         "dateContains": "2024-01-01T00:00:00.000Z",
@@ -254,7 +254,7 @@
     {
       "name": "log-fault-basic",
       "description": "LogFault creates an immutable fault from one configuration object",
-      "kind": "log-fault-basic",
+      "shape": "log-fault-basic",
       "input": {
         "fault": {
           "component": "graph",
@@ -282,7 +282,7 @@
     {
       "name": "log-fault-optional-fields",
       "description": "LogFault includes optional cause, duration, and stack fields when present",
-      "kind": "log-fault-optional-fields",
+      "shape": "log-fault-optional-fields",
       "input": {
         "fault": {
           "cause": "Connection pool exhausted",
@@ -305,7 +305,7 @@
     {
       "name": "log-fault-missing-component",
       "description": "LogFault rejects configs without component",
-      "kind": "log-fault-missing-field",
+      "shape": "log-fault-missing-field",
       "input": {
         "fault": {
           "context": {},
@@ -323,7 +323,7 @@
     {
       "name": "log-fault-missing-operation",
       "description": "LogFault rejects configs without operation",
-      "kind": "log-fault-missing-field",
+      "shape": "log-fault-missing-field",
       "input": {
         "fault": {
           "component": "graph",
@@ -341,7 +341,7 @@
     {
       "name": "log-fault-missing-status",
       "description": "LogFault rejects configs without status",
-      "kind": "log-fault-missing-field",
+      "shape": "log-fault-missing-field",
       "input": {
         "fault": {
           "component": "graph",
@@ -359,7 +359,7 @@
     {
       "name": "log-fault-missing-context",
       "description": "LogFault rejects configs without context",
-      "kind": "log-fault-missing-field",
+      "shape": "log-fault-missing-field",
       "input": {
         "fault": {
           "component": "graph",
@@ -377,7 +377,7 @@
     {
       "name": "log-fault-missing-name",
       "description": "LogFault rejects configs without error name",
-      "kind": "log-fault-missing-field",
+      "shape": "log-fault-missing-field",
       "input": {
         "fault": {
           "component": "graph",
@@ -395,7 +395,7 @@
     {
       "name": "log-fault-missing-message",
       "description": "LogFault rejects configs without message",
-      "kind": "log-fault-missing-field",
+      "shape": "log-fault-missing-field",
       "input": {
         "fault": {
           "component": "graph",
@@ -413,7 +413,7 @@
     {
       "name": "log-fault-from-error-fields",
       "description": "LogFault accepts explicitly mapped Error fields and cause message",
-      "kind": "log-fault-from-error-fields",
+      "shape": "log-fault-from-error-fields",
       "input": {
         "error": {
           "cause": "Root cause",
@@ -437,7 +437,7 @@
     {
       "name": "console-transport-dispatch",
       "description": "ConsoleTransport dispatches each log level to the matching console method and applies metadata prefixing",
-      "kind": "console-transport-dispatch",
+      "shape": "console-transport-dispatch",
       "input": {
         "body": {
           "component": "console",
@@ -513,7 +513,7 @@
     {
       "name": "console-transport-invalid-level",
       "description": "ConsoleTransport rejects non-string and non-number level options",
-      "kind": "console-transport-invalid-level",
+      "shape": "console-transport-invalid-level",
       "input": {
         "transport": {
           "level": {}
@@ -527,7 +527,7 @@
     {
       "name": "error-constructors",
       "description": "logger error constructors preserve names, messages, code, and cause wiring",
-      "kind": "error-constructors",
+      "shape": "error-constructors",
       "input": {},
       "expected": {
         "code": "logger.error",
@@ -563,20 +563,20 @@
     {
       "name": "entity-composition",
       "description": "logger entity composition contracts are enforced",
-      "kind": "entity-composition",
+      "shape": "entity-composition",
       "input": {
         "logDataValid": true,
         "logDataInvalid": false,
         "cloudwatchValid": true,
-        "hookKindValid": true,
-        "hookKindInvalid": false
+        "hookShapeValid": true,
+        "hookShapeInvalid": false
       },
       "expected": {
         "logDataValid": true,
         "logDataInvalid": false,
         "cloudwatchValid": true,
-        "hookKindValid": true,
-        "hookKindInvalid": false
+        "hookShapeValid": true,
+        "hookShapeInvalid": false
       }
     }
   ]

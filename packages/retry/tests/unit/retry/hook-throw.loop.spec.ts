@@ -10,7 +10,7 @@ import { Retry } from '../../../src/retry/index.js';
 import scenarioGroups from './hook-throw.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'enter-call' | 'on-attempt' | 'on-give-up-exhausted' | 'on-give-up-non-retryable' | 'on-retry-scheduled' | 'on-retry-scheduled-async' | 'on-retryable-error' | 'on-success'; name: string };
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'enter-call' | 'on-attempt' | 'on-give-up-exhausted' | 'on-give-up-non-retryable' | 'on-retry-scheduled' | 'on-retry-scheduled-async' | 'on-retryable-error' | 'on-success'; name: string };
 
 type RetryScenarioInput = Record<string, unknown> & {
   batch?: { failureCountBeforeSuccess?: number };
@@ -56,7 +56,7 @@ async function executeUntilConfiguredSuccess(retry: Retry, input: RetryScenarioI
   return { attempts, result };
 }
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'enter-call': async (scenario) => {
     const { expected, input } = scenario;
 
@@ -113,7 +113,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
       () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
       MaxRetriesExceededError
     );
-    assert.strictEqual(expected.errorKind, 'MaxRetriesExceededError');
+    assert.strictEqual(expected.errorShape, 'MaxRetriesExceededError');
   },
   'on-give-up-non-retryable': async (scenario) => {
     const { expected, input } = scenario;
@@ -137,7 +137,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
       () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
       NonRetryableError
     );
-    assert.strictEqual(expected.errorKind, 'NonRetryableError');
+    assert.strictEqual(expected.errorShape, 'NonRetryableError');
   },
   'on-retry-scheduled': async (scenario) => {
     const { expected, input } = scenario;
@@ -226,7 +226,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.kind](scenario);
+  await runnerMap[scenario.shape](scenario);
 }
 
 void describe('Retry hook throws', () => {

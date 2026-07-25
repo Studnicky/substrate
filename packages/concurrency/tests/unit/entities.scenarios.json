@@ -26,7 +26,7 @@
           { "entity": "DispatchCompletedEventEntity", "expected": true, "value": { "key": "task-1", "result": "done" } }
         ]
       },
-      "kind": "valid-contracts",
+      "shape": "valid-contracts",
       "name": "valid-contracts"
     },
     {
@@ -45,7 +45,7 @@
           { "entity": "DispatchCompletedEventEntity", "expected": false, "value": { "key": "", "result": "done" } }
         ]
       },
-      "kind": "invalid-contracts",
+      "shape": "invalid-contracts",
       "name": "invalid-contracts"
     }
   ]
