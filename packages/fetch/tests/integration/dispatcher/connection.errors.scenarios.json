@@ -3,7 +3,7 @@
     {
       "name": "invalid-connections-negative",
       "description": "validateDispatcher rejects negative connections",
-      "kind": "invalid-config",
+      "shape": "invalid-config",
       "input": {
         "dispatcher": {
           "connections": -1
@@ -16,7 +16,7 @@
     {
       "name": "invalid-connections-zero",
       "description": "validateDispatcher rejects zero connections",
-      "kind": "invalid-config",
+      "shape": "invalid-config",
       "input": {
         "dispatcher": {
           "connections": 0
@@ -29,7 +29,7 @@
     {
       "name": "invalid-connections-string",
       "description": "validateDispatcher rejects non-numeric connections",
-      "kind": "invalid-config",
+      "shape": "invalid-config",
       "input": {
         "dispatcher": {
           "connections": "invalid"
@@ -42,7 +42,7 @@
     {
       "name": "invalid-pipelining-negative",
       "description": "validateDispatcher rejects negative pipelining",
-      "kind": "invalid-config",
+      "shape": "invalid-config",
       "input": {
         "dispatcher": {
           "pipelining": -1
@@ -55,7 +55,7 @@
     {
       "name": "invalid-keep-alive-timeout-negative",
       "description": "validateDispatcher rejects negative keepAliveTimeout",
-      "kind": "invalid-config",
+      "shape": "invalid-config",
       "input": {
         "dispatcher": {
           "keepAliveTimeout": -1000
@@ -68,7 +68,7 @@
     {
       "name": "invalid-keep-alive-max-timeout-negative",
       "description": "validateDispatcher rejects negative keepAliveMaxTimeout",
-      "kind": "invalid-config",
+      "shape": "invalid-config",
       "input": {
         "dispatcher": {
           "keepAliveMaxTimeout": -1000
@@ -81,11 +81,11 @@
     {
       "name": "invalid-connections-infinity",
       "description": "validateDispatcher rejects infinite connections",
-      "kind": "invalid-config",
+      "shape": "invalid-config",
       "input": {
         "dispatcher": {
           "connections": {
-            "__kind": "infinity"
+            "__shape": "infinity"
           }
         }
       },
@@ -96,11 +96,11 @@
     {
       "name": "invalid-connections-nan",
       "description": "validateDispatcher rejects NaN connections",
-      "kind": "invalid-config",
+      "shape": "invalid-config",
       "input": {
         "dispatcher": {
           "connections": {
-            "__kind": "nan"
+            "__shape": "nan"
           }
         }
       },
@@ -111,7 +111,7 @@
     {
       "name": "many-concurrent-requests",
       "description": "a small pool still serves many concurrent requests",
-      "kind": "many-concurrent-requests",
+      "shape": "many-concurrent-requests",
       "input": {
         "batch": {
           "requestCount": 10
@@ -138,7 +138,7 @@
     {
       "name": "queue-requests-when-pool-is-full",
       "description": "a full pool queues requests",
-      "kind": "queue-requests-when-pool-is-full",
+      "shape": "queue-requests-when-pool-is-full",
       "input": {
         "dispatcher": {
           "connections": 1,
@@ -152,7 +152,7 @@
     {
       "name": "mixed-success-timeout-with-limited-connections",
       "description": "mixed success and timeout requests complete with limited connections",
-      "kind": "mixed-success-timeout-with-limited-connections",
+      "shape": "mixed-success-timeout-with-limited-connections",
       "input": {
         "dispatcher": {
           "connections": 2
@@ -170,7 +170,7 @@
     {
       "name": "network-refused",
       "description": "connection refused errors surface through the pool",
-      "kind": "network-refused",
+      "shape": "network-refused",
       "input": {
         "dispatcher": {
           "connections": 5
@@ -183,7 +183,7 @@
     {
       "name": "dns-failure",
       "description": "DNS resolution failures surface through the pool",
-      "kind": "dns-failure",
+      "shape": "dns-failure",
       "input": {
         "dispatcher": {
           "connections": 5
@@ -196,7 +196,7 @@
     {
       "name": "isolates-network-errors",
       "description": "network errors stay isolated from successful requests",
-      "kind": "isolates-network-errors",
+      "shape": "isolates-network-errors",
       "input": {
         "dispatcher": {
           "connections": 5
@@ -214,7 +214,7 @@
     {
       "name": "pool-after-network-error",
       "description": "the pool stays functional after a network error",
-      "kind": "pool-after-network-error",
+      "shape": "pool-after-network-error",
       "input": {
         "dispatcher": {
           "connections": 2
@@ -227,7 +227,7 @@
     {
       "name": "pool-after-timeout",
       "description": "the pool stays functional after a timeout",
-      "kind": "pool-after-timeout",
+      "shape": "pool-after-timeout",
       "input": {
         "dispatcher": {
           "connections": 2
@@ -240,7 +240,7 @@
     {
       "name": "sequential-errors",
       "description": "the pool handles multiple sequential timeouts",
-      "kind": "sequential-errors",
+      "shape": "sequential-errors",
       "input": {
         "repeats": 5,
         "dispatcher": {
@@ -254,7 +254,7 @@
     {
       "name": "many-concurrent-timeouts",
       "description": "the pool handles many concurrent timeouts",
-      "kind": "many-concurrent-timeouts",
+      "shape": "many-concurrent-timeouts",
       "input": {
         "batch": {
           "requestCount": 10
@@ -281,7 +281,7 @@
     {
       "name": "many-concurrent-network-errors",
       "description": "the pool handles many concurrent network errors",
-      "kind": "many-concurrent-network-errors",
+      "shape": "many-concurrent-network-errors",
       "input": {
         "batch": {
           "requestCount": 10
@@ -308,7 +308,7 @@
     {
       "name": "mixed-errors-successes",
       "description": "the pool handles mixed errors and successes concurrently",
-      "kind": "mixed-errors-successes",
+      "shape": "mixed-errors-successes",
       "input": {
         "dispatcher": {
           "connections": 5
@@ -328,7 +328,7 @@
     {
       "name": "saturated-health",
       "description": "dispatcher health reports a saturated pool",
-      "kind": "saturated-health",
+      "shape": "saturated-health",
       "input": {
         "dispatcher": {
           "connections": 1
@@ -341,7 +341,7 @@
     {
       "name": "health-after-errors",
       "description": "dispatcher health still works after errors",
-      "kind": "health-after-errors",
+      "shape": "health-after-errors",
       "input": {
         "dispatcher": {
           "connections": 2
@@ -354,7 +354,7 @@
     {
       "name": "keep-alive-short",
       "description": "short keep-alive timeout causes a reconnect between requests",
-      "kind": "keep-alive-short",
+      "shape": "keep-alive-short",
       "input": {
         "waitMs": 150,
         "dispatcher": {
@@ -369,7 +369,7 @@
     {
       "name": "keep-alive-long",
       "description": "long keep-alive timeout keeps the connection warm between requests",
-      "kind": "keep-alive-long",
+      "shape": "keep-alive-long",
       "input": {
         "dispatcher": {
           "connections": 2,
@@ -383,7 +383,7 @@
     {
       "name": "pipelining-disabled",
       "description": "pipelining disabled still completes requests",
-      "kind": "pipelining-disabled",
+      "shape": "pipelining-disabled",
       "input": {
         "dispatcher": {
           "connections": 1,
@@ -400,7 +400,7 @@
     {
       "name": "pipelining-high",
       "description": "higher pipelining serves concurrent requests",
-      "kind": "pipelining-high",
+      "shape": "pipelining-high",
       "input": {
         "batch": {
           "requestCount": 10
@@ -428,7 +428,7 @@
     {
       "name": "close-waits",
       "description": "close waits for in-flight requests",
-      "kind": "close-waits",
+      "shape": "close-waits",
       "input": {
         "dispatcher": {
           "connections": 2
@@ -441,7 +441,7 @@
     {
       "name": "destroy-timeout-waits",
       "description": "destroy with timeout waits before closing",
-      "kind": "destroy-timeout-waits",
+      "shape": "destroy-timeout-waits",
       "input": {
         "dispatcher": {
           "connections": 2
@@ -457,7 +457,7 @@
     {
       "name": "destroy-zero-no-wait",
       "description": "destroy with zero timeout returns immediately",
-      "kind": "destroy-zero-no-wait",
+      "shape": "destroy-zero-no-wait",
       "input": {
         "dispatcher": {
           "connections": 2
@@ -473,7 +473,7 @@
     {
       "name": "client-destroy-passes-timeout",
       "description": "FetchClient.destroy forwards the timeout to dispatcher destroy",
-      "kind": "client-destroy-passes-timeout",
+      "shape": "client-destroy-passes-timeout",
       "input": {
         "destroy": {
           "timeout": 100

@@ -11,59 +11,59 @@ import scenarioGroups from './undici-dispatcher.scenarios.json';
 type ScenarioCase =
   | {
       description: string;
-      expected: { kind: 'throws'; message: string };
+      expected: { shape: 'throws'; message: string };
       input: { agent: unknown };
-      kind: 'constructor-invalid-agent';
+      shape: 'constructor-invalid-agent';
       name: string;
     }
   | {
       description: string;
-      expected: { kind: 'healthy' };
+      expected: { shape: 'healthy' };
       input: { stats: Record<string, unknown>; origin: string };
-      kind: 'health-no-stats' | 'health-invalid-stats';
+      shape: 'health-no-stats' | 'health-invalid-stats';
       name: string;
     }
   | {
       description: string;
-      expected: { kind: 'health'; healthy: boolean; recommendationIncludes?: string };
+      expected: { shape: 'health'; healthy: boolean; recommendationIncludes?: string };
       input: { stats: { connected: number; pending: number }; origin: string };
-      kind: 'health-pressure' | 'health-overload' | 'health-ok';
+      shape: 'health-pressure' | 'health-overload' | 'health-ok';
       name: string;
     }
   | {
       description: string;
-      expected: { kind: 'frozen' };
+      expected: { shape: 'frozen' };
       input: { stats: Record<string, { connected: number; pending: number }>; origin: string };
-      kind: 'get-stats-freeze';
+      shape: 'get-stats-freeze';
       name: string;
     }
   | {
       description: string;
-      expected: { kind: 'called' };
+      expected: { shape: 'called' };
       input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
-      kind: 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero';
+      shape: 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero';
       name: string;
     }
   | {
       description: string;
-      expected: { kind: 'healthy' };
+      expected: { shape: 'healthy' };
       input: { origin: string; testDispatcher: Parameters<typeof TestDispatcher.create>[0] };
-      kind: 'test-dispatcher-health';
+      shape: 'test-dispatcher-health';
       name: string;
     }
   | {
       description: string;
-      expected: { kind: 'called' };
+      expected: { shape: 'called' };
       input: { testDispatcher: Parameters<typeof TestDispatcher.create>[0] };
-      kind: 'test-dispatcher-close' | 'test-dispatcher-destroy';
+      shape: 'test-dispatcher-close' | 'test-dispatcher-destroy';
       name: string;
     };
 
-type ScenarioRunner<Kind extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => Promise<void>;
-type RunnerMap = { [Kind in ScenarioCase['kind']]: ScenarioRunner<Kind> };
-type HealthScenario = Extract<ScenarioCase, { kind: 'health-ok' | 'health-overload' | 'health-pressure' }>;
-type AgentOperationScenario = Extract<ScenarioCase, { kind: 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero' }>;
-type TestDispatcherScenario = Extract<ScenarioCase, { kind: 'test-dispatcher-close' | 'test-dispatcher-destroy' | 'test-dispatcher-health' }>;
+type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
+type HealthScenario = Extract<ScenarioCase, { shape: 'health-ok' | 'health-overload' | 'health-pressure' }>;
+type AgentOperationScenario = Extract<ScenarioCase, { shape: 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero' }>;
+type TestDispatcherScenario = Extract<ScenarioCase, { shape: 'test-dispatcher-close' | 'test-dispatcher-destroy' | 'test-dispatcher-health' }>;
 type AgentCallCounts = {
   closeCalls: number;
   destroyCalls: number;
@@ -196,8 +196,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-async function runCase<Kind extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('undici dispatcher', () => {

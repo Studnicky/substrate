@@ -3,98 +3,98 @@
     {
       "name": "audit-name",
       "description": "name is AuditError",
-      "kind": "audit-name",
+      "shape": "audit-name",
       "input": { "auditId": "a1", "message": "check failed", "policy": "SOC2" },
       "expected": { "name": "AuditError" }
     },
     {
       "name": "audit-instanceof",
       "description": "is instanceof BaseError and Error",
-      "kind": "audit-instanceof",
+      "shape": "audit-instanceof",
       "input": { "auditId": "a1", "message": "check failed", "policy": "SOC2" },
       "expected": { "baseError": true, "error": true, "instanceOf": true }
     },
     {
       "name": "audit-json-extra",
       "description": "toJSON includes extra fields from serializeExtra()",
-      "kind": "audit-json-extra",
+      "shape": "audit-json-extra",
       "input": { "auditId": "a42", "message": "rule violation", "policy": "PCI" },
       "expected": { "auditId": "a42", "policy": "PCI" }
     },
     {
       "name": "audit-json-base",
       "description": "toJSON still includes base fields",
-      "kind": "audit-json-base",
+      "shape": "audit-json-base",
       "input": { "auditId": "a1", "message": "check failed", "policy": "SOC2" },
       "expected": { "code": "audit.failed" }
     },
     {
       "name": "audit-user-message",
       "description": "toUserMessage uses formatUserMessage() override",
-      "kind": "audit-user-message",
+      "shape": "audit-user-message",
       "input": { "auditId": "a99", "message": "access denied", "policy": "HIPAA" },
       "expected": { "message": "[Audit a99] access denied (policy: HIPAA)" }
     },
     {
       "name": "audit-json-independent",
       "description": "toJSON and toUserMessage are independent",
-      "kind": "audit-json-independent",
+      "shape": "audit-json-independent",
       "input": { "auditId": "a1", "message": "check failed", "policy": "SOC2" },
       "expected": { "jsonHasAuditId": true, "messagePrefix": "[Audit" }
     },
     {
       "name": "network-name",
       "description": "name is NetworkModuleError",
-      "kind": "network-name",
+      "shape": "network-name",
       "input": { "message": "Connection refused" },
       "expected": { "name": "NetworkModuleError" }
     },
     {
       "name": "network-instanceof",
       "description": "is instanceof ModuleError, BaseError, and Error",
-      "kind": "network-instanceof",
+      "shape": "network-instanceof",
       "input": { "message": "Connection refused" },
       "expected": { "baseError": true, "error": true, "moduleError": true, "networkModuleError": true }
     },
     {
       "name": "network-cause-chain",
       "description": "BaseError.getCauseChain() works on subclass instance",
-      "kind": "network-cause-chain",
+      "shape": "network-cause-chain",
       "input": { "causeMessage": "socket hung up", "message": "Connection refused" },
       "expected": { "chainLength": 2 }
     },
     {
       "name": "network-find-cause",
       "description": "BaseError.findCauseOfType() works on subclass instance",
-      "kind": "network-find-cause",
+      "shape": "network-find-cause",
       "input": { "causeMessage": "bad address", "message": "Connection refused" },
       "expected": { "found": true, "name": "TypeError" }
     },
     {
       "name": "network-has-cause",
       "description": "BaseError.hasCauseOfType() works on subclass instance",
-      "kind": "network-has-cause",
+      "shape": "network-has-cause",
       "input": { "causeMessage": "port out of range", "message": "Connection refused" },
       "expected": { "rangeError": true, "typeError": false }
     },
     {
       "name": "network-json-name",
       "description": "toJSON includes name as NetworkModuleError",
-      "kind": "network-json-name",
+      "shape": "network-json-name",
       "input": { "message": "Connection refused" },
       "expected": { "name": "NetworkModuleError" }
     },
     {
       "name": "network-json-status-code",
       "description": "toJSON includes statusCode from CONNECTION scenario",
-      "kind": "network-json-status-code",
+      "shape": "network-json-status-code",
       "input": { "message": "Connection refused" },
       "expected": { "statusCode": 503 }
     },
     {
       "name": "network-json-context",
       "description": "toJSON includes context when provided",
-      "kind": "network-json-context",
+      "shape": "network-json-context",
       "input": { "context": { "host": "db.example.com", "port": 5432 }, "message": "Connection refused" },
       "expected": { "context": { "host": "db.example.com", "port": 5432 } }
     }

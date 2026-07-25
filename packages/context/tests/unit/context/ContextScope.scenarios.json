@@ -3,7 +3,7 @@
     {
       "name": "active-on-construction",
       "description": "scope starts active after initialize",
-      "kind": "active-on-construction",
+      "shape": "active-on-construction",
       "input": {
         "context": {
           "name": "test"
@@ -21,7 +21,7 @@
     {
       "name": "multi-execute-before-terminate",
       "description": "scope can execute multiple times before terminate",
-      "kind": "multi-execute-before-terminate",
+      "shape": "multi-execute-before-terminate",
       "input": {
         "context": {
           "name": "test"
@@ -45,7 +45,7 @@
     {
       "name": "terminated-scope-throws",
       "description": "terminated scope throws on execute",
-      "kind": "terminated-scope-throws",
+      "shape": "terminated-scope-throws",
       "input": {
         "context": {
           "name": "test"
@@ -61,7 +61,7 @@
     {
       "name": "terminate-once",
       "description": "terminate can only be called once",
-      "kind": "terminate-once",
+      "shape": "terminate-once",
       "input": {
         "context": {
           "name": "test"
@@ -77,7 +77,7 @@
     {
       "name": "persist-values-across-executes",
       "description": "values set in first execute persist to second execute",
-      "kind": "persist-values-across-executes",
+      "shape": "persist-values-across-executes",
       "input": {
         "context": {
           "name": "test"
@@ -97,7 +97,7 @@
     {
       "name": "overwrite-later-values",
       "description": "modifications in later execute overwrite earlier values",
-      "kind": "overwrite-later-values",
+      "shape": "overwrite-later-values",
       "input": {
         "context": {
           "name": "test"
@@ -115,7 +115,7 @@
     {
       "name": "delete-affects-later-executes",
       "description": "deletions in one execute affect subsequent executes",
-      "kind": "delete-affects-later-executes",
+      "shape": "delete-affects-later-executes",
       "input": {
         "context": {
           "name": "test"
@@ -136,7 +136,7 @@
     {
       "name": "async-accumulates-state",
       "description": "accumulates state through async execute calls",
-      "kind": "async-accumulates-state",
+      "shape": "async-accumulates-state",
       "input": {
         "context": {
           "name": "test"
@@ -158,7 +158,7 @@
     {
       "name": "promise-resolve-propagation",
       "description": "context propagates through Promise.resolve",
-      "kind": "promise-resolve-propagation",
+      "shape": "promise-resolve-propagation",
       "input": {
         "context": {
           "name": "test"
@@ -176,7 +176,7 @@
     {
       "name": "timeout-propagation",
       "description": "context propagates through setTimeout",
-      "kind": "timeout-propagation",
+      "shape": "timeout-propagation",
       "input": {
         "context": {
           "name": "test"
@@ -194,7 +194,7 @@
     {
       "name": "promise-all-propagation",
       "description": "context propagates through Promise.all",
-      "kind": "promise-all-propagation",
+      "shape": "promise-all-propagation",
       "input": {
         "context": {
           "name": "test"
@@ -216,7 +216,7 @@
     {
       "name": "nested-async-functions",
       "description": "context propagates through nested async functions",
-      "kind": "nested-async-functions",
+      "shape": "nested-async-functions",
       "input": {
         "context": {
           "name": "test"
@@ -234,7 +234,7 @@
     {
       "name": "mutations-visible-after-await",
       "description": "mutations within async operations are visible after await",
-      "kind": "mutations-visible-after-await",
+      "shape": "mutations-visible-after-await",
       "input": {
         "context": {
           "name": "test"
@@ -254,7 +254,7 @@
     {
       "name": "separate-scopes-isolated",
       "description": "separate scopes have isolated stores",
-      "kind": "separate-scopes-isolated",
+      "shape": "separate-scopes-isolated",
       "input": {
         "context": {
           "name": "test"
@@ -284,7 +284,7 @@
     {
       "name": "mutations-in-one-scope-not-others",
       "description": "mutations in one scope do not affect concurrent scopes",
-      "kind": "mutations-in-one-scope-not-others",
+      "shape": "mutations-in-one-scope-not-others",
       "input": {
         "context": {
           "name": "test"
@@ -303,7 +303,7 @@
     {
       "name": "independent-key-sets",
       "description": "each scope maintains independent key sets",
-      "kind": "independent-key-sets",
+      "shape": "independent-key-sets",
       "input": {
         "context": {
           "name": "test"
@@ -326,7 +326,7 @@
     {
       "name": "snapshot-complete",
       "description": "returns complete snapshot of all values",
-      "kind": "snapshot-complete",
+      "shape": "snapshot-complete",
       "input": {
         "context": {
           "name": "test"
@@ -350,7 +350,7 @@
     {
       "name": "snapshot-clears-store",
       "description": "clears internal store after terminate",
-      "kind": "snapshot-clears-store",
+      "shape": "snapshot-clears-store",
       "input": {
         "context": {
           "name": "test"
@@ -369,7 +369,7 @@
     {
       "name": "snapshot-independent-copy",
       "description": "snapshot is independent copy",
-      "kind": "snapshot-independent-copy",
+      "shape": "snapshot-independent-copy",
       "input": {
         "context": {
           "name": "test"
@@ -389,7 +389,7 @@
     {
       "name": "prevent-execute-after-terminate",
       "description": "prevents execute after terminate",
-      "kind": "prevent-execute-after-terminate",
+      "shape": "prevent-execute-after-terminate",
       "input": {
         "context": {
           "name": "my-scope"
@@ -405,7 +405,7 @@
     {
       "name": "immediate-terminate-with-values",
       "description": "can terminate immediately after initialize with initial values",
-      "kind": "immediate-terminate-with-values",
+      "shape": "immediate-terminate-with-values",
       "input": {
         "context": {
           "name": "test"
@@ -427,7 +427,7 @@
     {
       "name": "immediate-terminate-empty",
       "description": "returns empty object when initialized without values and no execute",
-      "kind": "immediate-terminate-empty",
+      "shape": "immediate-terminate-empty",
       "input": {
         "context": {
           "name": "test"
@@ -443,7 +443,7 @@
     {
       "name": "execute-errors-propagate",
       "description": "errors in execute propagate to caller",
-      "kind": "execute-errors-propagate",
+      "shape": "execute-errors-propagate",
       "input": {
         "context": {
           "name": "test"
@@ -459,7 +459,7 @@
     {
       "name": "async-execute-errors-propagate",
       "description": "async errors in execute propagate to caller",
-      "kind": "async-execute-errors-propagate",
+      "shape": "async-execute-errors-propagate",
       "input": {
         "context": {
           "name": "test"
@@ -475,7 +475,7 @@
     {
       "name": "scope-reusable-after-error",
       "description": "scope remains usable after error in execute",
-      "kind": "scope-reusable-after-error",
+      "shape": "scope-reusable-after-error",
       "input": {
         "context": {
           "name": "test"
@@ -493,7 +493,7 @@
     {
       "name": "terminate-after-error",
       "description": "can terminate after error in execute",
-      "kind": "terminate-after-error",
+      "shape": "terminate-after-error",
       "input": {
         "context": {
           "name": "test"
@@ -513,7 +513,7 @@
     {
       "name": "undefined-values",
       "description": "handles undefined values",
-      "kind": "undefined-values",
+      "shape": "undefined-values",
       "input": {
         "context": {
           "name": "test"
@@ -532,7 +532,7 @@
     {
       "name": "null-values",
       "description": "handles null values",
-      "kind": "null-values",
+      "shape": "null-values",
       "input": {
         "context": {
           "name": "test"
@@ -552,7 +552,7 @@
     {
       "name": "symbol-key-string",
       "description": "handles Symbol keys via string conversion",
-      "kind": "symbol-key-string",
+      "shape": "symbol-key-string",
       "input": {
         "context": {
           "name": "test"
@@ -570,7 +570,7 @@
     {
       "name": "empty-string-key",
       "description": "handles empty string key",
-      "kind": "empty-string-key",
+      "shape": "empty-string-key",
       "input": {
         "context": {
           "name": "test"
@@ -588,7 +588,7 @@
     {
       "name": "long-key-name",
       "description": "handles very long key names",
-      "kind": "long-key-name",
+      "shape": "long-key-name",
       "input": {
         "context": {
           "name": "test"
@@ -605,7 +605,7 @@
     {
       "name": "complex-object-values",
       "description": "handles complex object values",
-      "kind": "complex-object-values",
+      "shape": "complex-object-values",
       "input": {
         "context": {
           "name": "test"
@@ -636,7 +636,7 @@
     {
       "name": "function-values",
       "description": "handles function values",
-      "kind": "function-values",
+      "shape": "function-values",
       "input": {
         "context": {
           "name": "test"
@@ -654,7 +654,7 @@
     {
       "name": "many-keys",
       "description": "handles many keys",
-      "kind": "many-keys",
+      "shape": "many-keys",
       "input": {
         "context": {
           "name": "test"
@@ -671,7 +671,7 @@
     {
       "name": "request-handling-pattern",
       "description": "request handling pattern",
-      "kind": "request-handling-pattern",
+      "shape": "request-handling-pattern",
       "input": {
         "context": {
           "name": "request"
@@ -694,7 +694,7 @@
     {
       "name": "middleware-chain-pattern",
       "description": "middleware chain pattern",
-      "kind": "middleware-chain-pattern",
+      "shape": "middleware-chain-pattern",
       "input": {
         "context": {
           "name": "middleware"
@@ -718,7 +718,7 @@
     {
       "name": "parallel-operations-pattern",
       "description": "parallel operations with shared context",
-      "kind": "parallel-operations-pattern",
+      "shape": "parallel-operations-pattern",
       "input": {
         "context": {
           "name": "parallel"

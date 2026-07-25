@@ -6,7 +6,7 @@ import { ValidateMetadata } from '../../../src/config/schemas/validateMetadata.j
 import scenarioGroups from './metadata.scenarios.json';
 
 type RuntimeTag =
-  | { __kind: 'undefined' };
+  | { __shape: 'undefined' };
 
 type RuntimeValue =
   | boolean
@@ -19,7 +19,7 @@ type RuntimeValue =
 
 type ScenarioCase = {
   description: string;
-  expected: { kind: 'ok'; messageIncludes?: readonly string[] } | { kind: 'throws'; messageIncludes: readonly string[] };
+  expected: { shape: 'ok'; messageIncludes?: readonly string[] } | { shape: 'throws'; messageIncludes: readonly string[] };
   input: {
     metadata: RuntimeValue;
   };
@@ -29,12 +29,12 @@ type ScenarioCase = {
 type ExpectedOutcomeRunner = (config: unknown, expected: ScenarioCase['expected']) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 
-const runtimeTagMap: Record<RuntimeTag['__kind'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['__shape'], RuntimeTagMaterializer> = {
   undefined: () => undefined
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && '__kind' in value;
+  return value !== null && typeof value === 'object' && '__shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -43,7 +43,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.__kind](value);
+    return runtimeTagMap[value.__shape](value);
   }
 
   if (value !== null && typeof value === 'object') {
@@ -59,7 +59,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   return value;
 }
 
-const expectedOutcomeMap: Record<ScenarioCase['expected']['kind'], ExpectedOutcomeRunner> = {
+const expectedOutcomeMap: Record<ScenarioCase['expected']['shape'], ExpectedOutcomeRunner> = {
   ok: (config) => {
     assert.doesNotThrow(() => {
       ValidateMetadata.validate(config);
@@ -80,7 +80,7 @@ const expectedOutcomeMap: Record<ScenarioCase['expected']['kind'], ExpectedOutco
 
 function runCase(scenarioCase: ScenarioCase): void {
   const config = materializeRuntimeValue(scenarioCase.input.metadata);
-  expectedOutcomeMap[scenarioCase.expected.kind](config, scenarioCase.expected);
+  expectedOutcomeMap[scenarioCase.expected.shape](config, scenarioCase.expected);
 }
 
 void describe('fetch metadata validation', () => {

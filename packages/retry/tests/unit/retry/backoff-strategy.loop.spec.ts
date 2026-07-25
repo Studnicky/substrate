@@ -13,7 +13,7 @@ type ScenarioCase =
     description: string;
     expected: { accepted?: true; errorName?: 'ConfigurationError' };
     input: { backoffStrategy?: { baseDelayMs?: unknown; strategyResult: number }; source: BackoffStrategyInputSource; value?: unknown };
-    kind:
+    shape:
       | 'accepts-empty'
       | 'accepts-null'
       | 'accepts-valid'
@@ -50,7 +50,7 @@ function assertRejected(scenarioCase: ScenarioCase): void {
   assert.strictEqual(scenarioCase.expected.errorName, 'ConfigurationError');
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'accepts-empty': assertAccepted,
   'accepts-null': assertAccepted,
   'accepts-valid': assertAccepted,
@@ -61,7 +61,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Retry backoffStrategy schema', () => {

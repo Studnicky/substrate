@@ -3,7 +3,7 @@
     {
       "name": "handler-order",
       "description": "calls handler for each enqueued item in order",
-      "kind": "handler-order",
+      "shape": "handler-order",
       "input": {
         "items": [1, 2, 3]
       },
@@ -14,7 +14,7 @@
     {
       "name": "drain-empty-immediate",
       "description": "drain resolves immediately on an empty queue",
-      "kind": "drain-empty-immediate",
+      "shape": "drain-empty-immediate",
       "input": {},
       "expected": {
         "size": 0
@@ -23,7 +23,7 @@
     {
       "name": "missing-handler",
       "description": "create rejects a missing handler at the factory boundary",
-      "kind": "missing-handler",
+      "shape": "missing-handler",
       "input": {
         "options": {}
       },
@@ -34,7 +34,7 @@
     {
       "name": "size-before-drain",
       "description": "size reflects queue depth before drain",
-      "kind": "size-before-drain",
+      "shape": "size-before-drain",
       "input": {
         "items": [1, 2, 3]
       },
@@ -45,7 +45,7 @@
     {
       "name": "drain-empties",
       "description": "drain resolves when queue empties",
-      "kind": "drain-empties",
+      "shape": "drain-empties",
       "input": {
         "items": ["a", "b"]
       },
@@ -57,7 +57,7 @@
     {
       "name": "on-error-continues",
       "description": "onError is called when handler throws, delivery continues",
-      "kind": "on-error-continues",
+      "shape": "on-error-continues",
       "input": {
         "items": [1, 2, 3],
         "throwOn": 2,
@@ -72,7 +72,7 @@
     {
       "name": "async-on-error-swallowed",
       "description": "an async-rejecting onError callback is swallowed before onHandlerError and queue progress continues",
-      "kind": "async-on-error-swallowed",
+      "shape": "async-on-error-swallowed",
       "input": {
         "items": [1, 2],
         "throwOn": 1,
@@ -88,7 +88,7 @@
     {
       "name": "abort-signal-cancels",
       "description": "AbortSignal cancels queue: enqueue becomes no-op after abort",
-      "kind": "abort-signal-cancels",
+      "shape": "abort-signal-cancels",
       "input": {
         "items": [1, 2, 3],
         "abortBeforeEnqueue": [2, 3]
@@ -100,7 +100,7 @@
     {
       "name": "abort-initially-cancelled",
       "description": "an already-aborted signal cancels queue admission immediately",
-      "kind": "abort-initially-cancelled",
+      "shape": "abort-initially-cancelled",
       "input": {
         "item": 1
       },
@@ -113,7 +113,7 @@
     {
       "name": "abort-releases-pending",
       "description": "abort releases an item waiting on its admission hook without delivery",
-      "kind": "abort-releases-pending",
+      "shape": "abort-releases-pending",
       "input": {
         "items": [1],
         "abortWhilePending": true
@@ -126,7 +126,7 @@
     {
       "name": "abort-releases-drain-waiter",
       "description": "abort resolves a pending drain waiter after active work is cancelled",
-      "kind": "abort-releases-drain-waiter",
+      "shape": "abort-releases-drain-waiter",
       "input": {
         "items": [1]
       },
@@ -137,7 +137,7 @@
     {
       "name": "on-drop-noop",
       "description": "drop path remains safe when the queue is already cancelled",
-      "kind": "on-drop-noop",
+      "shape": "on-drop-noop",
       "input": {
         "item": 1
       },
@@ -149,7 +149,7 @@
     {
       "name": "high-water-mark-validation",
       "description": "highWaterMark validation rejects invalid inputs",
-      "kind": "high-water-mark-validation",
+      "shape": "high-water-mark-validation",
       "input": {
         "values": [0, -1, 1.5]
       },
@@ -160,7 +160,7 @@
     {
       "name": "on-enqueue-hook",
       "description": "onEnqueue hook fires with correct depth when item is added",
-      "kind": "on-enqueue-hook",
+      "shape": "on-enqueue-hook",
       "input": {
         "items": [10, 20]
       },
@@ -171,7 +171,7 @@
     {
       "name": "throwing-dequeue-hook",
       "description": "a throwing dequeue hook does not interrupt current or later queue work",
-      "kind": "throwing-dequeue-hook",
+      "shape": "throwing-dequeue-hook",
       "input": {
         "items": [1, 2],
         "errorMessage": "dequeue hook boom"
@@ -184,7 +184,7 @@
     {
       "name": "rejecting-enqueue-hook",
       "description": "a rejecting enqueue hook cancels only its duplicate item and concurrent enqueue recovers",
-      "kind": "rejecting-enqueue-hook",
+      "shape": "rejecting-enqueue-hook",
       "input": {
         "errorMessage": "hook boom",
         "items": [1, 1]
@@ -196,7 +196,7 @@
     {
       "name": "admission-hook-on-hook-error",
       "description": "a throwing admission hook is routed through onHookError and its item is not delivered",
-      "kind": "admission-hook-on-hook-error",
+      "shape": "admission-hook-on-hook-error",
       "input": {
         "items": [1],
         "errorMessage": "enqueue hook boom"
@@ -209,7 +209,7 @@
     {
       "name": "rejecting-overflow-hook",
       "description": "a rejecting overflow hook cancels only its item and later overflow work progresses",
-      "kind": "rejecting-overflow-hook",
+      "shape": "rejecting-overflow-hook",
       "input": {
         "errorMessage": "overflow hook boom",
         "items": [1, 2],
@@ -222,7 +222,7 @@
     {
       "name": "single-drain-loop",
       "description": "two synchronous enqueue calls in the same tick do not spawn concurrent drain loops",
-      "kind": "single-drain-loop",
+      "shape": "single-drain-loop",
       "input": {
         "items": [1, 2]
       },
@@ -234,7 +234,7 @@
     {
       "name": "fifo-order",
       "description": "FIFO order is preserved end-to-end after the CircularBuffer swap, across many enqueues",
-      "kind": "fifo-order",
+      "shape": "fifo-order",
       "input": {
         "total": 500
       },
@@ -247,7 +247,7 @@
     {
       "name": "overflow-hook-fires",
       "description": "onOverflow hook fires when queue reaches highWaterMark",
-      "kind": "overflow-hook-fires",
+      "shape": "overflow-hook-fires",
       "input": {
         "flushMicrotasks": 3,
         "items": [1, 2, 3],
@@ -260,7 +260,7 @@
     {
       "name": "admission-and-overflow-order",
       "description": "waits for onEnqueue and onOverflow completion before delivering the item",
-      "kind": "admission-and-overflow-order",
+      "shape": "admission-and-overflow-order",
       "input": {
         "items": [1],
         "highWaterMark": 1
@@ -278,7 +278,7 @@
     {
       "name": "handler-error-hook",
       "description": "onHandlerError hook fires when handler throws",
-      "kind": "handler-error-hook",
+      "shape": "handler-error-hook",
       "input": {
         "items": [1],
         "errorMessage": "handler error"

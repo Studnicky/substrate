@@ -3,14 +3,14 @@
     {
       "name": "real-time-sleep",
       "description": "sleep resolves after roughly ms in real time",
-      "kind": "real-time-sleep",
+      "shape": "real-time-sleep",
       "input": { "sleepMs": 20 },
       "expected": { "elapsedMsAtLeast": 15 }
     },
     {
       "name": "virtual-sleep",
       "description": "sleep resolves without real delay when driven by a VirtualScheduler",
-      "kind": "virtual-sleep",
+      "shape": "virtual-sleep",
       "input": {
         "scheduler": {
           "counter": {
@@ -24,7 +24,7 @@
     {
       "name": "real-time-abort",
       "description": "sleep rejects and cancels a pending RealTimeScheduler task when aborted",
-      "kind": "real-time-abort",
+      "shape": "real-time-abort",
       "input": {
         "abortMs": 10000,
         "reasonMessage": "real-time delay aborted",
@@ -35,7 +35,7 @@
     {
       "name": "virtual-zero",
       "description": "sleep resolves immediately for ms=0 with a VirtualScheduler",
-      "kind": "virtual-zero",
+      "shape": "virtual-zero",
       "input": {
         "scheduler": {
           "counter": {
@@ -49,14 +49,14 @@
     {
       "name": "default-scheduler",
       "description": "defaults to RealTimeScheduler and RealTimeClockProvider when no options are given",
-      "kind": "default-scheduler",
+      "shape": "default-scheduler",
       "input": { "sleepMs": 0 },
       "expected": { "resolved": true, "sleepMs": 0 }
     },
     {
       "name": "pre-aborted",
       "description": "pre-aborted sleep rejects with the exact reason without scheduling",
-      "kind": "pre-aborted",
+      "shape": "pre-aborted",
       "input": {
         "reasonMessage": "already aborted",
         "scheduler": {
@@ -71,7 +71,7 @@
     {
       "name": "abort-during-clock",
       "description": "abort during clock.now rejects with the exact reason without scheduling",
-      "kind": "abort-during-clock",
+      "shape": "abort-during-clock",
       "input": {
         "reasonMessage": "clock aborted delay",
         "scheduler": {
@@ -86,7 +86,7 @@
     {
       "name": "abort-during-schedule",
       "description": "abort during onSchedule cancels the returned task before later advancement",
-      "kind": "abort-during-schedule",
+      "shape": "abort-during-schedule",
       "input": {
         "reasonMessage": "schedule hook aborted delay",
         "scheduler": {
@@ -101,7 +101,7 @@
     {
       "name": "pending-abort",
       "description": "pending abort cancels the virtual task and later advancement stays inert",
-      "kind": "pending-abort",
+      "shape": "pending-abort",
       "input": {
         "reasonMessage": "pending delay aborted",
         "scheduler": {
@@ -116,7 +116,7 @@
     {
       "name": "late-abort",
       "description": "abort after completion is inert",
-      "kind": "late-abort",
+      "shape": "late-abort",
       "input": {
         "reasonMessage": "late abort",
         "scheduler": {
@@ -131,7 +131,7 @@
     {
       "name": "schedule-failure",
       "description": "scheduleAt failure removes the abort listener and preserves the error",
-      "kind": "schedule-failure",
+      "shape": "schedule-failure",
       "input": {
         "schedulerErrorMessage": "scheduleAt failed",
         "sleepMs": 500

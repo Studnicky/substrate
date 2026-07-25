@@ -13,84 +13,84 @@ type ScenarioCase =
       description: string;
       expected: { registeredCalls: string[] };
       input: { checks: Array<{ name: string; status: HealthStatusEntity.Type }> };
-      kind: 'on-check-registered';
+      shape: 'on-check-registered';
       name: string;
     }
   | {
       description: string;
       expected: { resultCalls: Array<{ metadata?: unknown; name: string; status: HealthStatusEntity.Type }> };
       input: { checks: Array<{ metadata?: unknown; name: string; status: HealthStatusEntity.Type }> };
-      kind: 'on-check-result';
+      shape: 'on-check-result';
       name: string;
     }
   | {
       description: string;
       expected: { resultCalls: Array<{ name: string; status: 'unhealthy' }> };
       input: { errorMessage: string; name: string };
-      kind: 'rejecting-check-result';
+      shape: 'rejecting-check-result';
       name: string;
     }
   | {
       description: string;
       expected: { resultStatus: 'unhealthy'; timeoutCalls: Array<{ name: string; timeoutMs: number }> };
       input: { delayMs: number; name: string; status: 'healthy'; timeoutMs: number };
-      kind: 'timeout-plus-result';
+      shape: 'timeout-plus-result';
       name: string;
     }
   | {
       description: string;
       expected: { resultStatus: 'healthy'; timeoutCount: 0 };
       input: { delayMs: number; name: string; status: 'healthy'; timeoutMs: number };
-      kind: 'no-timeout-after-fast-result';
+      shape: 'no-timeout-after-fast-result';
       name: string;
     }
   | {
       description: string;
       expected: { aggregateCalls: Array<{ overall: HealthStatusEntity.Type; size: number }>; aggregateCount: number };
       input: { checks: Array<{ name: string; status: HealthStatusEntity.Type }> };
-      kind: 'on-aggregate-after-settle';
+      shape: 'on-aggregate-after-settle';
       name: string;
     }
   | {
       description: string;
       expected: { order: string[] };
       input: { name: string; status: 'healthy' };
-      kind: 'hook-order';
+      shape: 'hook-order';
       name: string;
     }
   | {
       description: string;
       expected: { resultStatus: 'healthy' };
       input: { name: string; status: 'healthy' };
-      kind: 'throwing-on-check-result';
+      shape: 'throwing-on-check-result';
       name: string;
     }
   | {
       description: string;
       expected: { resultStatus: 'degraded' };
       input: { name: string; status: 'degraded' };
-      kind: 'throwing-on-aggregate';
+      shape: 'throwing-on-aggregate';
       name: string;
     }
   | {
       description: string;
       expected: { errorCount: 1; hookName: 'onCheckRegistered' };
       input: { firstCause: string; secondCause: string };
-      kind: 'hook-errors-owned-by-instance';
+      shape: 'hook-errors-owned-by-instance';
       name: string;
     }
   | {
       description: string;
       expected: { errorCount: 1; message: string; nestedChecks: string[] };
       input: { causeMessage: string; mutateChecks: string[]; nestedChecks: string[] };
-      kind: 'deeply-detached-hook-errors';
+      shape: 'deeply-detached-hook-errors';
       name: string;
     }
   | {
       description: string;
       expected: { hookErrorCount: 1; hookName: 'onAggregate'; rejectionCount: 0; resultStatus: 'healthy' };
       input: { name: string; status: 'healthy'; waitMs: number };
-      kind: 'async-aggregate-rejection';
+      shape: 'async-aggregate-rejection';
       name: string;
     };
 
@@ -131,7 +131,7 @@ async function runCheckSet(
   await registry.evaluate();
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
     'async-aggregate-rejection': async (scenarioCase) => {
       class AsyncRejectingAggregateRegistry extends HealthRegistry {
         protected override async onAggregate(): Promise<void> {
@@ -330,7 +330,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('HealthRegistry lifecycle hooks', () => {

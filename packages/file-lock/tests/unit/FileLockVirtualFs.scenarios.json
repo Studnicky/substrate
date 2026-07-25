@@ -18,7 +18,7 @@
         ],
         "lockPath": "/data.json"
       },
-      "kind": "virtual-fs-mutual-exclusion",
+      "shape": "virtual-fs-mutual-exclusion",
       "name": "virtual-fs-mutual-exclusion"
     },
     {
@@ -38,7 +38,7 @@
         "lockPath": "/config.json",
         "updatedContents": "{\"version\":2}"
       },
-      "kind": "virtual-fs-read-write",
+      "shape": "virtual-fs-read-write",
       "name": "virtual-fs-read-write"
     }
   ]

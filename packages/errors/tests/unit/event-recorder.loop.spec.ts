@@ -5,22 +5,22 @@ import { EventRecorder } from '../../src/index.js';
 import scenarioGroups from './event-recorder.scenarios.json';
 
 interface RecordedEventInterface {
-  kind: string;
+  shape: string;
   nested: { value: number };
 }
 
-type ScenarioKind = 'detaches-recorded-events';
+type ScenarioShape = 'detaches-recorded-events';
 
 type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: { recorder: { event: RecordedEventInterface } };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
 function runCase(scenario: ScenarioCase): void {
-  scenarioRunners[scenario.kind](scenario);
+  scenarioRunners[scenario.shape](scenario);
 }
 
 type ScenarioRunner = (scenario: ScenarioCase) => void;
@@ -45,7 +45,7 @@ const scenarioRunners = {
 
     assert.deepStrictEqual(recorder.events[0], expected.detachedProjection);
   }
-} satisfies Record<ScenarioKind, ScenarioRunner>;
+} satisfies Record<ScenarioShape, ScenarioRunner>;
 
 void describe('EventRecorder', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {

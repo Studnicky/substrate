@@ -19,119 +19,119 @@ type ScenarioCase =
       description: string;
       expected: { aborted: false };
       input: Record<string, never>;
-      kind: 'never-aborts';
+      shape: 'never-aborts';
       name: string;
     }
   | {
       description: string;
       expected: { sameInstance: true };
       input: Record<string, never>;
-      kind: 'never-same-instance';
+      shape: 'never-same-instance';
       name: string;
     }
   | {
       description: string;
       expected: { aborted: false };
       input: { aborted: false; composeOptions: SerializableComposeOptions };
-      kind: 'compose-empty-options';
+      shape: 'compose-empty-options';
       name: string;
     }
   | {
       description: string;
       expected: { sameSignal: true };
       input: { composeOptions: { signalId: 'provided' } };
-      kind: 'compose-provided-signal';
+      shape: 'compose-provided-signal';
       name: string;
     }
   | {
       description: string;
       expected: { abortedAfterAbort: true; initialAborted: false };
       input: { composeOptions: { deadlineMs: number; signalId: 'abort-controller' } };
-      kind: 'compose-signal-deadline-abort';
+      shape: 'compose-signal-deadline-abort';
       name: string;
     }
   | {
       description: string;
       expected: { abortedAfterWait: true; initialAborted: false };
       input: { composeOptions: { deadlineMs: number }; waitMs: number };
-      kind: 'compose-deadline-fires';
+      shape: 'compose-deadline-fires';
       name: string;
     }
   | {
       description: string;
       expected: { errorMessageIncludes: string };
       input: { composeOptions: { deadlineMs: number } };
-      kind: 'compose-invalid-deadline';
+      shape: 'compose-invalid-deadline';
       name: string;
     }
   | {
       description: string;
       expected: { sameAsNever: true };
       input: { composeOptions: SerializableComposeOptions; sameAsNever: true };
-      kind: 'instance-empty-options';
+      shape: 'instance-empty-options';
       name: string;
     }
   | {
       description: string;
       expected: { sameSignal: true };
       input: { composeOptions: { signalId: 'provided' } };
-      kind: 'instance-provided-signal';
+      shape: 'instance-provided-signal';
       name: string;
     }
   | {
       description: string;
       expected: { callCount: 1; resultMatches: true };
       input: { composeOptions: SerializableComposeOptions };
-      kind: 'on-compose-signal-only' | 'on-compose-deadline-only' | 'on-compose-empty-options';
+      shape: 'on-compose-signal-only' | 'on-compose-deadline-only' | 'on-compose-empty-options';
       name: string;
     }
   | {
       description: string;
       expected: { causeMessage: string; hookName: 'onCompose' };
       input: { composeOptions: SerializableComposeOptions; message: string };
-      kind: 'throwing-on-compose-surfaces';
+      shape: 'throwing-on-compose-surfaces';
       name: string;
     }
   | {
       description: string;
       expected: { causeMessage: string; hookName: 'onCompose' };
       input: { composeOptions: SerializableComposeOptions; message: string };
-      kind: 'async-on-compose-rejection-surfaces';
+      shape: 'async-on-compose-rejection-surfaces';
       name: string;
     }
   | {
       description: string;
       expected: { aborted: false };
       input: { composeOptions: SerializableComposeOptions; message: string };
-      kind: 'swallowing-hook-invoker';
+      shape: 'swallowing-hook-invoker';
       name: string;
     }
   | {
       description: string;
       expected: { outcome: 'timeout' };
       input: { waitMs: number };
-      kind: 'race-timeout-no-signal';
+      shape: 'race-timeout-no-signal';
       name: string;
     }
   | {
       description: string;
       expected: { abortListenerCountAfter: 0; abortListenerCountBefore: 1; outcome: 'timeout' };
       input: { waitMs: number };
-      kind: 'race-timeout-removes-listener';
+      shape: 'race-timeout-removes-listener';
       name: string;
     }
   | {
       description: string;
       expected: { outcome: 'aborted' };
       input: Record<string, never>;
-      kind: 'race-timeout-already-aborted';
+      shape: 'race-timeout-already-aborted';
       name: string;
     }
   | {
       description: string;
       expected: { code: 'signal.invalidConfig' };
       input: { message: string };
-      kind: 'signal-error-construction';
+      shape: 'signal-error-construction';
       name: string;
     };
 
@@ -171,7 +171,7 @@ function materializeComposeOptions(input: SerializableComposeOptions, runtime?: 
   return options;
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'never-aborts': async (scenarioCase) => {
     const sig = Signal.never();
     assert.equal(scenarioCase.input.aborted, scenarioCase.expected.aborted);
@@ -287,6 +287,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
         assert.ok(err instanceof HookInvocationError);
         assert.equal(err.hookName, scenarioCase.expected.hookName);
         assert.equal(err.cause, originalError);
+        assert.equal(originalError.message, scenarioCase.expected.causeMessage);
         return true;
       }
     );
@@ -308,6 +309,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
         assert.ok(err instanceof HookInvocationError);
         assert.equal(err.hookName, scenarioCase.expected.hookName);
         assert.equal(err.cause, originalError);
+        assert.equal(originalError.message, scenarioCase.expected.causeMessage);
         return true;
       }
     );
@@ -362,7 +364,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Signal', () => {

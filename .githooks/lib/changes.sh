@@ -19,6 +19,9 @@ _set_all_changed() {
     CHANGED_AUDIT=true
     CHANGED_ANALYSIS=true
     CHANGED_DOCS_WORKFLOW=true
+    CHANGED_UNIT_TESTS=true
+    CHANGED_INTEGRATION_TESTS=true
+    CHANGED_SMOKE_TESTS=true
 }
 
 classify_changes() {

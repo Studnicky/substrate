@@ -29,22 +29,22 @@ type ScenarioCase =
   | (ScenarioBaseInterface & {
       expected: { seenTypes: string[] };
       input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      kind: 'on-message-envelopes';
+      shape: 'on-message-envelopes';
     })
   | (ScenarioBaseInterface & {
       expected: { seenErrors: string[]; seenTypes: string[] };
       input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      kind: 'error-envelope-and-hook';
+      shape: 'error-envelope-and-hook';
     })
   | (ScenarioBaseInterface & {
       expected: { hookErrorCount: number; hookErrorMessages: string[]; results: string[] };
       input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      kind: 'throwing-on-message';
+      shape: 'throwing-on-message';
     })
   | (ScenarioBaseInterface & {
       expected: { hookErrorCount: number; hookErrorMessages: string[]; rejectionEvents: unknown[]; results: string[] };
       input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      kind: 'async-rejecting-on-message';
+      shape: 'async-rejecting-on-message';
     })
   | (ScenarioBaseInterface & {
       expected: {
@@ -58,7 +58,7 @@ type ScenarioCase =
         secondResults: string[];
       };
       input: { firstItems: ItemInterface[]; secondItems: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      kind: 'hook-errors-instance-local';
+      shape: 'hook-errors-instance-local';
     });
 
 function resolveWorkerPath(relativePath: string): string {
@@ -91,7 +91,7 @@ async function captureUnhandledRejections(scenarioName: string, action: () => Pr
   }
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'on-message-envelopes': async (scenarioCase) => {
     const seenTypes: string[] = [];
 
@@ -162,7 +162,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
     }
 
     const pool = AsyncRejectingMessagePool.create(resolvePoolConfig(scenarioCase.input.workerPool));
-    const rejectionEvents = await captureUnhandledRejections(scenarioCase.kind, async () => {
+    const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
       assert.deepStrictEqual(await pool.run(scenarioCase.input.items), scenarioCase.expected.results);
       assert.equal(pool.getHookErrorCount(), scenarioCase.expected.hookErrorCount);
       assert.deepStrictEqual(pool.getHookErrors().map(({ hookName, cause }) => ({
@@ -220,7 +220,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool hooks', () => {

@@ -3,42 +3,42 @@
     {
       "name": "missing-machine",
       "description": "create rejects a missing machine",
-      "kind": "missing-machine",
+      "shape": "missing-machine",
       "input": { "capacity": 1, "machineId": "x" },
       "expected": { "message": "machine is required" }
     },
     {
       "name": "empty-machine-id",
       "description": "create rejects an empty machineId",
-      "kind": "empty-machine-id",
+      "shape": "empty-machine-id",
       "input": { "capacity": 1, "machineId": "" },
       "expected": { "message": "machineId must not be empty" }
     },
     {
       "name": "non-positive-capacity",
       "description": "create rejects a non-positive capacity",
-      "kind": "non-positive-capacity",
+      "shape": "non-positive-capacity",
       "input": { "capacity": 0, "machineId": "x" },
       "expected": { "message": "capacity must be a positive integer" }
     },
     {
       "name": "non-integer-capacity",
       "description": "create rejects a non-integer capacity",
-      "kind": "non-integer-capacity",
+      "shape": "non-integer-capacity",
       "input": { "capacity": 1.5, "machineId": "x" },
       "expected": { "message": "capacity must be a positive integer" }
     },
     {
       "name": "history-empty-before-transitions",
       "description": "history is empty before any transitions",
-      "kind": "history-empty-before-transitions",
+      "shape": "history-empty-before-transitions",
       "input": { "capacity": 5, "machineId": "empty" },
       "expected": { "historyLength": 0, "initialState": { "variant": "a" } }
     },
     {
       "name": "records-transitions-in-order",
       "description": "records transitions in order",
-      "kind": "records-transitions-in-order",
+      "shape": "records-transitions-in-order",
       "input": { "capacity": 5, "machineId": "ordered", "steps": 3 },
       "expected": {
         "length": 3,
@@ -52,14 +52,14 @@
     {
       "name": "no-record-for-unchanged-state",
       "description": "unchanged state does not produce a history record",
-      "kind": "no-record-for-unchanged-state",
+      "shape": "no-record-for-unchanged-state",
       "input": { "capacity": 5, "machineId": "same-variant" },
       "expected": { "historyLength": 0, "state": { "variant": "a" } }
     },
     {
       "name": "evicts-oldest-when-capacity-exceeded",
       "description": "oldest record is evicted when capacity is exceeded",
-      "kind": "evicts-oldest-when-capacity-exceeded",
+      "shape": "evicts-oldest-when-capacity-exceeded",
       "input": { "capacity": 2, "machineId": "bounded", "steps": 3 },
       "expected": {
         "length": 2,
@@ -72,21 +72,21 @@
     {
       "name": "snapshot-isolated-from-later-transitions",
       "description": "history snapshots remain isolated from later transitions",
-      "kind": "snapshot-isolated-from-later-transitions",
+      "shape": "snapshot-isolated-from-later-transitions",
       "input": { "capacity": 5, "machineId": "snapshot", "steps": 2 },
       "expected": { "finalLength": 2, "snapshotLength": 1 }
     },
     {
       "name": "fresh-array-each-call",
       "description": "history returns a fresh order-stable array on each call",
-      "kind": "fresh-array-each-call",
+      "shape": "fresh-array-each-call",
       "input": { "capacity": 5, "machineId": "repeated-read", "steps": 3 },
       "expected": { "length": 3, "sameReference": false }
     },
     {
       "name": "deeply-isolated-history-records",
       "description": "history records remain deeply isolated from mutation",
-      "kind": "deeply-isolated-history-records",
+      "shape": "deeply-isolated-history-records",
       "input": {
         "capacity": 2,
         "eventDetails": { "value": 3 },
@@ -102,7 +102,7 @@
     {
       "name": "fully-functional-effect-interpreter",
       "description": "InterpreterHistory behaves as a full EffectInterpreter",
-      "kind": "fully-functional-effect-interpreter",
+      "shape": "fully-functional-effect-interpreter",
       "input": { "capacity": 5, "machineId": "functional", "message": "now b" },
       "expected": { "finalState": { "variant": "b" }, "initialState": { "variant": "a" }, "logged": ["now b"] }
     }

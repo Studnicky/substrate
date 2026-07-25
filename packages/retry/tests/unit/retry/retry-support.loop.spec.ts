@@ -17,7 +17,7 @@ import type {
 } from '../../../src/index.js';
 import scenarioGroups from './retry-support.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'backoff-config-default'
   | 'backoff-config-exponential'
   | 'backoff-config-override'
@@ -54,7 +54,7 @@ type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: RetrySupportInput;
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -146,7 +146,7 @@ function assertBackoffStrategyRejected(scenarioCase: ScenarioCase): void {
   assert.equal(expected.result, false);
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'backoff-config-default': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const retry = new RecordingRetry({
@@ -251,7 +251,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Retry support', () => {

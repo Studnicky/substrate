@@ -12,7 +12,7 @@
           "variant": "interval"
         }
       },
-      "kind": "valid-task-data",
+      "shape": "valid-task-data",
       "name": "valid-task-data"
     },
     {
@@ -27,7 +27,7 @@
           "variant": "interval"
         }
       },
-      "kind": "invalid-interval",
+      "shape": "invalid-interval",
       "name": "invalid-interval"
     }
   ]

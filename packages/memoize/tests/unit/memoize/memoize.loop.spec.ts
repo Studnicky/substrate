@@ -9,7 +9,7 @@ import {
 import type { MemoizeOptionsInterface } from '../../../src/index.js';
 import scenarioGroups from './memoize.scenarios.json' with { type: 'json' };
 
-type ScenarioKind =
+type ScenarioShape =
   | 'async-hooks-safe'
   | 'clear-recomputes-all'
   | 'coalesce-shared-call'
@@ -36,11 +36,11 @@ type ScenarioKind =
   | 'ttl-stale-options'
   | 'undefined-result-cache';
 
-type KeyFnKind = 'compound' | 'identity' | 'number-string';
+type KeyFnShape = 'compound' | 'identity' | 'number-string';
 
 type MemoizeConfigInput = {
   capacity: number;
-  keyFnKind: KeyFnKind;
+  keyFnShape: KeyFnShape;
   staleMs?: number;
   ttlMs?: number;
 };
@@ -62,7 +62,7 @@ type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: ScenarioInput;
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -72,7 +72,7 @@ const keyFnMap = {
   compound: (id: string, revision: number): string => `${id}:${revision}`,
   identity: (id: string): string => id,
   'number-string': (value: number): string => String(value)
-} satisfies Record<KeyFnKind, (...args: never[]) => string>;
+} satisfies Record<KeyFnShape, (...args: never[]) => string>;
 
 function memoizeOptions<TArgs extends unknown[]>(
   config: MemoizeConfigInput,
@@ -157,7 +157,7 @@ async function waitForHookRejections(): Promise<void> {
   await new Promise((resolve) => { setImmediate(resolve); });
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'async-hooks-safe': async (scenarioCase) => {
     const events: string[] = [];
     const rejectionEvents: unknown[] = [];
@@ -691,7 +691,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Memoize', () => {

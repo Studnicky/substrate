@@ -11,64 +11,64 @@ import { ModuleError } from '../../src/errors/ModuleError.js';
 import scenarioGroups from './module-error.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; kind: 'factory-scenario-defaults' }
-  | { description: string; kind: 'factory-merge-user-options' }
-  | { description: string; kind: 'factory-reject-empty-message' }
-  | { description: string; kind: 'factory-reject-empty-code' }
-  | { description: string; kind: 'factory-reject-invalid-scenario' }
-  | { description: string; expected: { result: { retryable: boolean } }; input: { code: string; message: string }; kind: 'constructor-defaults-omitted-options' }
-  | { description: string; kind: 'scenario-defaults'; scenario: 'CONNECTION' | 'AUTHENTICATION' | 'NOT_FOUND' }
-  | { description: string; kind: 'scenario-retryable-overrides' }
-  | { description: string; expected: { result: { context: Record<string, unknown> } }; input: { context: Record<string, unknown> }; kind: 'context-stores-arbitrary-data' }
-  | { description: string; kind: 'context-handles-undefined' }
-  | { description: string; kind: 'context-empty-object' }
-  | { description: string; kind: 'context-null-prototype' }
-  | { description: string; expected: { result: { label: string; sameInstance: boolean } }; input: { context: { collaborator: { label: string } } }; kind: 'context-preserves-collaborator-instance' }
-  | { description: string; kind: 'context-detaches-projections' }
-  | { description: string; kind: 'http-uses-scenario-code' }
-  | { description: string; kind: 'http-allows-status-override' }
-  | { description: string; kind: 'retryable-transient' }
-  | { description: string; kind: 'retryable-permanent' }
-  | { description: string; kind: 'cause-stores-single' }
-  | { description: string; kind: 'cause-builds-chain' }
-  | { description: string; kind: 'cause-handles-undefined' }
-  | { description: string; kind: 'chain-single' }
-  | { description: string; kind: 'chain-nested' }
-  | { description: string; kind: 'chain-deep' }
-  | { description: string; kind: 'chain-circular' }
-  | { description: string; kind: 'find-cause-match' }
-  | { description: string; kind: 'find-cause-missing' }
-  | { description: string; kind: 'find-cause-first-match' }
-  | { description: string; kind: 'find-cause-subclass' }
-  | { description: string; kind: 'find-cause-circular' }
-  | { description: string; kind: 'has-cause-true' }
-  | { description: string; kind: 'has-cause-false' }
-  | { description: string; kind: 'has-cause-empty' }
-  | { description: string; kind: 'has-cause-deep' }
-  | { description: string; kind: 'has-cause-circular' }
-  | { description: string; kind: 'json-basic' }
-  | { description: string; kind: 'json-optional-context' }
-  | { description: string; kind: 'json-excludes-undefined' }
-  | { description: string; kind: 'json-native-cause' }
-  | { description: string; kind: 'json-primitive-cause' }
-  | { description: string; kind: 'json-native-primitive-cause' }
-  | { description: string; kind: 'json-module-cause' }
-  | { description: string; kind: 'json-deep-chain' }
-  | { description: string; kind: 'json-depth-sentinel' }
-  | { description: string; kind: 'json-safe' }
-  | { description: string; kind: 'subclass-custom' }
-  | { description: string; kind: 'subclass-overrides-defaults' }
-  | { description: string; kind: 'subclass-serialization-name' }
-  | { description: string; kind: 'instanceof-error' }
-  | { description: string; kind: 'instanceof-module-error' }
-  | { description: string; kind: 'instanceof-subclass' }
-  | { description: string; kind: 'stack-trace-disabled' }
-  | { description: string; kind: 'stack-trace' };
+  | { description: string; shape: 'factory-scenario-defaults' }
+  | { description: string; shape: 'factory-merge-user-options' }
+  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-message' }
+  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-code' }
+  | { description: string; expected: { errorName: string }; shape: 'factory-reject-invalid-scenario' }
+  | { description: string; expected: { result: { retryable: boolean } }; input: { code: string; message: string }; shape: 'constructor-defaults-omitted-options' }
+  | { description: string; shape: 'scenario-defaults'; scenario: 'CONNECTION' | 'AUTHENTICATION' | 'NOT_FOUND' }
+  | { description: string; shape: 'scenario-retryable-overrides' }
+  | { description: string; expected: { result: { context: Record<string, unknown> } }; input: { context: Record<string, unknown> }; shape: 'context-stores-arbitrary-data' }
+  | { description: string; shape: 'context-handles-undefined' }
+  | { description: string; shape: 'context-empty-object' }
+  | { description: string; shape: 'context-null-prototype' }
+  | { description: string; expected: { result: { label: string; sameInstance: boolean } }; input: { context: { collaborator: { label: string } } }; shape: 'context-preserves-collaborator-instance' }
+  | { description: string; shape: 'context-detaches-projections' }
+  | { description: string; shape: 'http-uses-scenario-code' }
+  | { description: string; shape: 'http-allows-status-override' }
+  | { description: string; shape: 'retryable-transient' }
+  | { description: string; shape: 'retryable-permanent' }
+  | { description: string; shape: 'cause-stores-single' }
+  | { description: string; shape: 'cause-builds-chain' }
+  | { description: string; shape: 'cause-handles-undefined' }
+  | { description: string; shape: 'chain-single' }
+  | { description: string; shape: 'chain-nested' }
+  | { description: string; shape: 'chain-deep' }
+  | { description: string; shape: 'chain-circular' }
+  | { description: string; shape: 'find-cause-match' }
+  | { description: string; shape: 'find-cause-missing' }
+  | { description: string; shape: 'find-cause-first-match' }
+  | { description: string; shape: 'find-cause-subclass' }
+  | { description: string; shape: 'find-cause-circular' }
+  | { description: string; shape: 'has-cause-true' }
+  | { description: string; shape: 'has-cause-false' }
+  | { description: string; shape: 'has-cause-empty' }
+  | { description: string; shape: 'has-cause-deep' }
+  | { description: string; shape: 'has-cause-circular' }
+  | { description: string; shape: 'json-basic' }
+  | { description: string; shape: 'json-optional-context' }
+  | { description: string; shape: 'json-excludes-undefined' }
+  | { description: string; shape: 'json-native-cause' }
+  | { description: string; shape: 'json-primitive-cause' }
+  | { description: string; shape: 'json-native-primitive-cause' }
+  | { description: string; shape: 'json-module-cause' }
+  | { description: string; shape: 'json-deep-chain' }
+  | { description: string; shape: 'json-depth-sentinel' }
+  | { description: string; shape: 'json-safe' }
+  | { description: string; shape: 'subclass-custom' }
+  | { description: string; shape: 'subclass-overrides-defaults' }
+  | { description: string; shape: 'subclass-serialization-name' }
+  | { description: string; shape: 'instanceof-error' }
+  | { description: string; shape: 'instanceof-module-error' }
+  | { description: string; shape: 'instanceof-subclass' }
+  | { description: string; shape: 'stack-trace-disabled' }
+  | { description: string; shape: 'stack-trace' };
 
-type ScenarioRunner<K extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: K }>) => void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
 
 type RunnerMap = {
-  [K in ScenarioCase['kind']]: ScenarioRunner<K>;
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
 class TestError extends Error {
@@ -149,16 +149,16 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(error.retryable, true);
   },
 
-  'factory-reject-empty-message': () => {
+  'factory-reject-empty-message': (scenarioCase) => {
     assert.throws(() => {
       ModuleError.create('', { scenario: 'INTERNAL' });
     }, {
       message: /Validation failed at "message"/u,
-      name: 'ValidationError'
+      name: scenarioCase.expected.errorName
     });
   },
 
-  'factory-reject-empty-code': () => {
+  'factory-reject-empty-code': (scenarioCase) => {
     class EmptyCodeError extends ModuleError {
       static create(message: string): EmptyCodeError {
         return new EmptyCodeError(message, {
@@ -171,16 +171,16 @@ const runnerMap: RunnerMap = {
       EmptyCodeError.create('Test');
     }, {
       message: /Validation failed at "code"/u,
-      name: 'ValidationError'
+      name: scenarioCase.expected.errorName
     });
   },
 
-  'factory-reject-invalid-scenario': () => {
+  'factory-reject-invalid-scenario': (scenarioCase) => {
     assert.throws(() => {
       Reflect.apply(ModuleError.create, ModuleError, ['Test', { scenario: 'INVALID' }]);
     }, {
       message: /Validation failed at "scenario"/u,
-      name: 'ValidationError'
+      name: scenarioCase.expected.errorName
     });
   },
 
@@ -591,8 +591,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: K }>): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('ModuleError', () => {

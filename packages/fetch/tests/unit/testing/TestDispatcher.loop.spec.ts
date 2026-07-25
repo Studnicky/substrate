@@ -40,18 +40,18 @@ type ScenarioCase = {
     };
     url: string;
   };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
-type BodyScenarioKind =
+type BodyScenarioShape =
   | 'post-arraybuffer'
   | 'post-dataview'
   | 'post-string'
   | 'post-uint8array';
 
-type ScenarioKind =
-  | BodyScenarioKind
+type ScenarioShape =
+  | BodyScenarioShape
   | 'delete-post'
   | 'enotfound'
   | 'enetunreach'
@@ -85,7 +85,7 @@ async function withDispatcher(scenarioCase: ScenarioCase, runner: (dispatcher: T
   }
 }
 
-const requestBodyMap: Record<BodyScenarioKind, (scenarioCase: ScenarioCase) => unknown> = {
+const requestBodyMap: Record<BodyScenarioShape, (scenarioCase: ScenarioCase) => unknown> = {
   'post-arraybuffer': (scenarioCase) => {
     return new Uint8Array(scenarioCase.input.bodyBuffer ?? []).buffer;
   },
@@ -191,10 +191,10 @@ async function runHeadRouteCase(scenarioCase: ScenarioCase): Promise<void> {
   });
 }
 
-async function runBodyEchoCase(scenarioCase: ScenarioCase, bodyKind: BodyScenarioKind): Promise<void> {
+async function runBodyEchoCase(scenarioCase: ScenarioCase, bodyShape: BodyScenarioShape): Promise<void> {
   await withDispatcher(scenarioCase, async (dispatcher) => {
     const init = { ...scenarioCase.input.init };
-    init.body = requestBodyMap[bodyKind](scenarioCase);
+    init.body = requestBodyMap[bodyShape](scenarioCase);
 
     const response = await dispatcher.fetch(scenarioCase.input.url, init);
     assert.strictEqual(response.status, scenarioCase.expected.status);
@@ -213,7 +213,7 @@ async function runBlobCase(scenarioCase: ScenarioCase): Promise<void> {
   });
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'delete-post': runJsonRouteCase,
   'enotfound': runNetworkErrorCase,
   'enetunreach': runNetworkErrorCase,
@@ -245,7 +245,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('fetch test dispatcher', () => {

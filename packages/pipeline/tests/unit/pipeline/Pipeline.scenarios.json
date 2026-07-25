@@ -3,74 +3,74 @@
     {
       "name": "empty-pipeline-returns-input",
       "description": "returns input unchanged when pipeline is empty",
-      "kind": "empty-pipeline-returns-input",
+      "shape": "empty-pipeline-returns-input",
       "input": { "value": "hello" },
       "expected": { "value": "hello" }
     },
     {
       "name": "single-stage-applies",
       "description": "constructs with a single stage",
-      "kind": "single-stage-applies",
+      "shape": "single-stage-applies",
       "input": { "value": 0 },
       "expected": { "value": 1 }
     },
     {
       "name": "multiple-stages-apply-all",
       "description": "constructs with multiple stages",
-      "kind": "multiple-stages-apply-all",
+      "shape": "multiple-stages-apply-all",
       "input": { "value": 0 },
       "expected": { "value": 2 }
     },
     {
       "name": "single-async-stage-applies",
       "description": "applies a single async transform",
-      "kind": "single-async-stage-applies",
+      "shape": "single-async-stage-applies",
       "input": { "value": "hello" },
       "expected": { "value": "hello world" }
     },
     {
       "name": "mixed-sync-async-stages",
       "description": "chains async and sync transforms",
-      "kind": "mixed-sync-async-stages",
+      "shape": "mixed-sync-async-stages",
       "input": { "value": "start" },
       "expected": { "value": "start async sync" }
     },
     {
       "name": "object-context-pass-through",
       "description": "passes object context through transforms",
-      "kind": "object-context-pass-through",
+      "shape": "object-context-pass-through",
       "input": { "value": { "count": 0, "label": "test" } },
       "expected": { "value": { "count": 1, "label": "test!" } }
     },
     {
       "name": "does-not-mutate-original-input",
       "description": "does not mutate the original input",
-      "kind": "does-not-mutate-original-input",
+      "shape": "does-not-mutate-original-input",
       "input": { "value": [1, 2, 3] },
       "expected": { "original": [1, 2, 3], "value": [1, 2, 3, 99] }
     },
     {
       "name": "throwing-lifecycle-hook-rejects-run",
       "description": "a throwing lifecycle hook rejects run with HookInvocationError",
-      "kind": "throwing-lifecycle-hook-rejects-run",
+      "shape": "throwing-lifecycle-hook-rejects-run",
       "input": { "value": 0 },
       "expected": { "hookName": "onStageStart" }
     },
     {
       "name": "stages-is-defensive-snapshot",
       "description": "stages returns a defensive snapshot",
-      "kind": "stages-is-defensive-snapshot",
+      "shape": "stages-is-defensive-snapshot",
       "input": { "value": 0 },
       "expected": { "value": 1 }
     },
     {
       "name": "hook-timeout-resolving-has-no-effect",
       "description": "a resolving hook succeeds with hookTimeoutMs set",
-      "kind": "hook-timeout-resolving-has-no-effect",
+      "shape": "hook-timeout-resolving-has-no-effect",
       "input": {
         "options": { "hookTimeoutMs": 200 },
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ],
         "value": 0
       },
@@ -79,11 +79,11 @@
     {
       "name": "hook-timeout-hanging-rejects",
       "description": "a hanging hook rejects with HookTimeoutError",
-      "kind": "hook-timeout-hanging-rejects",
+      "shape": "hook-timeout-hanging-rejects",
       "input": {
         "options": { "hookTimeoutMs": 25 },
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ],
         "value": 0
       },
@@ -92,10 +92,10 @@
     {
       "name": "hook-timeout-unset-resolving-has-no-effect",
       "description": "a resolving hook succeeds with hookTimeoutMs unset",
-      "kind": "hook-timeout-unset-resolving-has-no-effect",
+      "shape": "hook-timeout-unset-resolving-has-no-effect",
       "input": {
         "stages": [
-          { "kind": "add", "value": 1 }
+          { "shape": "add", "value": 1 }
         ],
         "value": 0
       },

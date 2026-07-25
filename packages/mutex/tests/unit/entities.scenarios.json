@@ -14,7 +14,7 @@
           { "expected": true, "value": { "queuedAt": 1 } }
         ]
       },
-      "kind": "non-negative",
+      "shape": "non-negative",
       "name": "validates non-negative enqueue timestamps"
     },
     {
@@ -29,7 +29,7 @@
           { "expected": false, "value": { "queuedAt": -1 } }
         ]
       },
-      "kind": "negative",
+      "shape": "negative",
       "name": "rejects negative enqueue timestamps"
     }
   ]

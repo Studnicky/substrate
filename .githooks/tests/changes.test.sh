@@ -32,6 +32,12 @@ repo=$(make_repo)
 rm -rf "$repo"
 pass_count=$((pass_count + 1))
 
+_set_all_changed
+assert_eq "all unit tests" "true" "$CHANGED_UNIT_TESTS"
+assert_eq "all integration tests" "true" "$CHANGED_INTEGRATION_TESTS"
+assert_eq "all smoke tests" "true" "$CHANGED_SMOKE_TESTS"
+pass_count=$((pass_count + 1))
+
 repo=$(make_repo)
 (
   cd "$repo" || exit 1

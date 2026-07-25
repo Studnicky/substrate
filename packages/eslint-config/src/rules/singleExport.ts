@@ -183,7 +183,7 @@ class CaseConverter {
   }
 }
 
-enum ExportKind {
+enum ExportShape {
   'ConstFunction' = 'const-function',
   'ConstValue' = 'const-value',
   'Enum' = 'enum',
@@ -260,52 +260,52 @@ class TypeCheckerHelpers {
 }
 
 class ExportClassifier {
-  public static classify(node: Rule.Node, services: ParserServicesInterface | undefined): ExportKind {
+  public static classify(node: Rule.Node, services: ParserServicesInterface | undefined): ExportShape {
     if (node.type !== 'ExportNamedDeclaration') {
-      return ExportKind.Other;
+      return ExportShape.Other;
     }
     const exportNode: unknown = node;
-    if (!ObjectGuard.isObject(exportNode)) { return ExportKind.Other; }
+    if (!ObjectGuard.isObject(exportNode)) { return ExportShape.Other; }
 
     // Type-only re-export: export type { Foo } from '...' or export type { Foo }
     if (exportNode.exportKind === 'type') {
-      return ExportKind.TypeReexport;
+      return ExportShape.TypeReexport;
     }
 
     const decl: unknown = exportNode.declaration;
 
     if (!ObjectGuard.isObject(decl)) {
-      return ExportKind.Other;
+      return ExportShape.Other;
     }
 
     const declType = decl.type ?? '';
 
     if (declType === 'TSTypeAliasDeclaration') {
-      return ExportKind.Type;
+      return ExportShape.Type;
     }
 
     if (declType === 'TSInterfaceDeclaration') {
-      return ExportKind.Interface;
+      return ExportShape.Interface;
     }
 
     if (declType === 'TSEnumDeclaration') {
-      return ExportKind.Enum;
+      return ExportShape.Enum;
     }
 
     if (declType === 'TSModuleDeclaration') {
-      return ExportKind.Namespace;
+      return ExportShape.Namespace;
     }
 
     if (declType === 'FunctionDeclaration') {
-      return ExportKind.Function;
+      return ExportShape.Function;
     }
 
     if (declType === 'ClassDeclaration') {
       if (TypeCheckerHelpers.isErrorClass(decl, services)) {
-        return ExportKind.ErrorClass;
+        return ExportShape.ErrorClass;
       }
 
-      return ExportKind.OtherClass;
+      return ExportShape.OtherClass;
     }
 
     if (declType === 'VariableDeclaration' && decl.kind === 'const') {
@@ -315,18 +315,18 @@ class ExportClassifier {
         const initType = declarator.init.type;
 
         if (initType === 'ArrowFunctionExpression' || initType === 'FunctionExpression') {
-          return ExportKind.ConstFunction;
+          return ExportShape.ConstFunction;
         }
       }
 
-      return ExportKind.ConstValue;
+      return ExportShape.ConstValue;
     }
 
-    return ExportKind.Other;
+    return ExportShape.Other;
   }
 
-  public static isEnumOrConstValueKind(kind: ExportKind): boolean {
-    return kind === ExportKind.ConstValue || kind === ExportKind.Enum;
+  public static isEnumOrConstValueShape(shape: ExportShape): boolean {
+    return shape === ExportShape.ConstValue || shape === ExportShape.Enum;
   }
 }
 
@@ -432,7 +432,7 @@ export const singleExport: Rule.RuleModule = {
     }
 
     const services = ContextHelpers.getServices(context);
-    const exportKinds: ExportKind[] = [];
+    const exportShapes: ExportShape[] = [];
     const exportNames: string[] = [];
     let reportedDefault = false;
     let firstExportNode: Rule.Node | undefined = undefined;
@@ -459,7 +459,7 @@ export const singleExport: Rule.RuleModule = {
         return;
       }
       firstExportNode ??= node;
-      exportKinds.push(ExportClassifier.classify(node, services));
+      exportShapes.push(ExportClassifier.classify(node, services));
       exportNames.push(...ExportNames.extract(node));
     };
 
@@ -511,7 +511,7 @@ export const singleExport: Rule.RuleModule = {
         return;
       }
 
-      if (exportKinds.includes(ExportKind.Enum) && exportKinds.every(ExportClassifier.isEnumOrConstValueKind)) {
+      if (exportShapes.includes(ExportShape.Enum) && exportShapes.every(ExportClassifier.isEnumOrConstValueShape)) {
         return;
       }
 

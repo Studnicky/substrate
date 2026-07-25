@@ -6,7 +6,7 @@ import type { ClampRuleEntity } from '../../../src/entities/ClampRuleEntity.js';
 import { ClampedConfig } from '../../../src/validation/clampedConfig.js';
 import scenarioGroups from './clampedConfig.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'absent-field-untouched'
   | 'async-throwing-hook-is-contained'
   | 'clamp-above-max'
@@ -42,7 +42,7 @@ type ScenarioCase = {
   readonly description: string;
   readonly expected: ScenarioExpected;
   readonly input: ClampInput;
-  readonly kind: ScenarioKind;
+  readonly shape: ScenarioShape;
   readonly name: string;
 };
 
@@ -129,7 +129,7 @@ function assertClampedResult(scenarioCase: ScenarioCase): void {
   assert.deepStrictEqual(applyClamp(scenarioCase.input.config, scenarioCase.input.rules), scenarioCase.expected.result);
 }
 
-const scenarioRunners: Record<ScenarioKind, ScenarioRunner> = {
+const scenarioRunners: Record<ScenarioShape, ScenarioRunner> = {
   'absent-field-untouched': assertClampedResult,
   'async-throwing-hook-is-contained': async (scenarioCase): Promise<void> => {
     let hookInvoked = false;
@@ -209,7 +209,7 @@ const scenarioRunners: Record<ScenarioKind, ScenarioRunner> = {
 void describe('ClampedConfig', () => {
   for (const scenario of typedScenarioGroups.cases) {
     void it(scenario.name, async () => {
-      await scenarioRunners[scenario.kind](scenario);
+      await scenarioRunners[scenario.shape](scenario);
     });
   }
 });

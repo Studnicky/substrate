@@ -32,14 +32,14 @@ type ScenarioCase =
         };
       };
       input: unknown;
-      kind: 'aggregate-dedup' | 'aggregate-empty' | 'construction-empty' | 'construction-invalid' | 'construction-non-empty' | 'create-from-array' | 'detaches-source' | 'fallback-message' | 'for-of' | 'from-empty-array' | 'from-null' | 'from-undefined' | 'maps-ajv' | 'merge' | 'merge-empty' | 'report-default' | 'report-empty' | 'report-overrides' | 'report-plural' | 'report-title' | 'spread';
+      shape: 'aggregate-dedup' | 'aggregate-empty' | 'construction-empty' | 'construction-invalid' | 'construction-non-empty' | 'create-from-array' | 'detaches-source' | 'fallback-message' | 'for-of' | 'from-empty-array' | 'from-null' | 'from-undefined' | 'maps-ajv' | 'merge' | 'merge-empty' | 'report-default' | 'report-empty' | 'report-overrides' | 'report-plural' | 'report-title' | 'spread';
       name: string;
     };
 
-type ScenarioRunner<K extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: K }>) => void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
 
 type RunnerMap = {
-  [K in ScenarioCase['kind']]: ScenarioRunner<K>;
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
 function materialize(value: unknown): unknown {
@@ -47,17 +47,17 @@ function materialize(value: unknown): unknown {
     return value.map((entry) => materialize(entry));
   }
 
-  if (value !== null && typeof value === 'object' && 'kind' in value && (value as { kind?: string }).kind === 'undefined') {
+  if (value !== null && typeof value === 'object' && 'shape' in value && (value as { shape?: string }).shape === 'undefined') {
     return undefined;
   }
 
   if (value !== null && typeof value === 'object') {
     const record = value as Record<string, unknown>;
-    if (record.kind === 'null') {
+    if (record.shape === 'null') {
       return null;
     }
 
-    if (record.kind === 'empty-array') {
+    if (record.shape === 'empty-array') {
       return [];
     }
 
@@ -236,8 +236,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: K }>): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('ValidationErrors', () => {

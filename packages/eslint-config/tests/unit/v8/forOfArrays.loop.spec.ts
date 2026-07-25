@@ -6,6 +6,7 @@ import parser from '@typescript-eslint/parser';
 import { RuleTester } from 'eslint';
 
 import { forOfArrays } from '../../../src/rules/v8/forOfArrays.js';
+import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
 import scenarioFile from './forOfArrays.scenarios.json';
 
 RuleTester.describe = describe;
@@ -29,16 +30,16 @@ interface ParserServicesInput {
   readonly hasTsNode?: boolean;
   readonly isArrayType?: boolean;
   readonly isTupleType?: boolean;
-  readonly kind: string;
+  readonly shape: string;
 }
 
 interface RightInput {
-  readonly kind: string;
+  readonly shape: string;
 }
 
 interface ListenerScenario {
   readonly expected: {
-    readonly reportCount: number;
+    readonly messageIds: readonly string[];
   };
   readonly input: {
     readonly parserServices: ParserServicesInput;
@@ -82,9 +83,15 @@ const rightFactories: Record<string, RightFactory> = {
   object: () => ({})
 };
 
-function requireFixtureFactory<T>(factory: T | undefined, kind: string): T {
-  assert.notEqual(factory, undefined, `Unsupported scenario fixture kind: ${kind}`);
+function requireFixtureFactory<T>(factory: T | undefined, shape: string): T {
+  assert.notEqual(factory, undefined, `Unsupported scenario fixture shape: ${shape}`);
   return factory;
+}
+
+function toMessageId(report: unknown): string {
+  if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
+  const { messageId } = report;
+  return typeof messageId === 'string' ? messageId : '<no-messageId>';
 }
 
 void describe('for-of-arrays', () => {
@@ -96,13 +103,13 @@ void describe('for-of-arrays', () => {
     void it(scenarioCase.name, () => {
       const reports: unknown[] = [];
       const rightFactory = requireFixtureFactory(
-        rightFactories[scenarioCase.input.right.kind],
-        scenarioCase.input.right.kind
+        rightFactories[scenarioCase.input.right.shape],
+        scenarioCase.input.right.shape
       );
       const right = rightFactory(scenarioCase.input.right);
       const parserServicesFactory = requireFixtureFactory(
-        parserServicesFactories[scenarioCase.input.parserServices.kind],
-        scenarioCase.input.parserServices.kind
+        parserServicesFactories[scenarioCase.input.parserServices.shape],
+        scenarioCase.input.parserServices.shape
       );
       const listeners = forOfArrays.create({
         report(descriptor) {
@@ -117,7 +124,7 @@ void describe('for-of-arrays', () => {
         right
       } as never);
 
-      assert.equal(reports.length, scenarioCase.expected.reportCount);
+      assert.deepEqual(reports.map(toMessageId), scenarioCase.expected.messageIds);
     });
   }
 });

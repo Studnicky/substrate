@@ -12,7 +12,7 @@ function fixtureFunction(): void {
   return undefined;
 }
 
-type ScenarioInputKind =
+type ScenarioInputShape =
   | 'function'
   | 'infinity'
   | 'nan'
@@ -25,7 +25,7 @@ type ScenarioInputKind =
 
 type ScenarioInputToken = {
   readonly errorMessage?: string;
-  readonly kind: ScenarioInputKind;
+  readonly shape: ScenarioInputShape;
   readonly method?: string;
   readonly thrownValue?: string;
 };
@@ -39,7 +39,7 @@ type ScenarioInput =
   | { readonly [key: string]: ScenarioInput }
   | ScenarioInputToken;
 
-type ScenarioOutcome = 'returns' | { readonly kind?: 'throwsError'; readonly message: string };
+type ScenarioOutcome = 'returns' | { readonly shape?: 'throwsError'; readonly message: string };
 
 type ScenarioCase = {
   readonly description: string;
@@ -74,9 +74,9 @@ type AssertionContext = {
 };
 
 type NormalizedOutcome =
-  | { readonly kind: 'configuration-error'; readonly message: string }
-  | { readonly kind: 'returns' }
-  | { readonly kind: 'throwsError'; readonly message: string };
+  | { readonly shape: 'configuration-error'; readonly message: string }
+  | { readonly shape: 'returns' }
+  | { readonly shape: 'throwsError'; readonly message: string };
 
 type OutcomeContext = {
   readonly invoke: () => void;
@@ -119,7 +119,7 @@ function requiredNumber(value: number | undefined, label: string): number {
 }
 
 function requiredMessage(outcome: NormalizedOutcome): string {
-  if (outcome.kind === 'returns') {
+  if (outcome.shape === 'returns') {
     throw new Error('message outcome is required');
   }
   return outcome.message;
@@ -132,7 +132,7 @@ function requiredRecord(value: unknown, label: string): Record<string, unknown> 
   return value;
 }
 
-const inputMaterializers: Record<ScenarioInputKind, (value: ScenarioInputToken) => unknown> = {
+const inputMaterializers: Record<ScenarioInputShape, (value: ScenarioInputToken) => unknown> = {
   'function': (): (() => void) => fixtureFunction,
   'infinity': (): number => Infinity,
   'nan': (): number => NaN,
@@ -160,8 +160,8 @@ const inputMaterializers: Record<ScenarioInputKind, (value: ScenarioInputToken) 
 };
 
 function isScenarioInputToken(value: object): value is ScenarioInputToken {
-  const kind = 'kind' in value ? value.kind : undefined;
-  return typeof kind === 'string' && Object.hasOwn(inputMaterializers, kind);
+  const shape = 'shape' in value ? value.shape : undefined;
+  return typeof shape === 'string' && Object.hasOwn(inputMaterializers, shape);
 }
 
 function materialize(value: ScenarioInput): unknown {
@@ -172,17 +172,17 @@ function materialize(value: ScenarioInput): unknown {
     return value.map((entry) => materialize(entry));
   }
   if (isScenarioInputToken(value)) {
-    return inputMaterializers[value.kind](value);
+    return inputMaterializers[value.shape](value);
   }
   return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, materialize(entry)]));
 }
 
 function normalizeOutcome(outcome: ScenarioOutcome): NormalizedOutcome {
   if (outcome === 'returns') {
-    return { 'kind': 'returns' };
+    return { 'shape': 'returns' };
   }
   return {
-    'kind': outcome.kind ?? 'configuration-error',
+    'shape': outcome.shape ?? 'configuration-error',
     'message': outcome.message
   };
 }
@@ -229,7 +229,7 @@ const configAssertions: Record<ScenarioGroupName, ConfigAssertion> = {
   }
 };
 
-const outcomeAssertions: Record<NormalizedOutcome['kind'], OutcomeAssertion> = {
+const outcomeAssertions: Record<NormalizedOutcome['shape'], OutcomeAssertion> = {
   'configuration-error': ({ invoke, outcome }): void => {
     assert.throws(invoke, (err: unknown) => {
       assert.ok(err instanceof ConfigurationError);
@@ -265,7 +265,7 @@ for (const groupName of scenarioGroupNames) {
         };
         const outcome = normalizeOutcome(scenario.outcome);
 
-        outcomeAssertions[outcome.kind]({
+        outcomeAssertions[outcome.shape]({
           'invoke': () => {
             configAssertions[groupName](context);
           },

@@ -8,7 +8,7 @@ import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 
-type RuntimeTag = { __kind: 'undefined' };
+type RuntimeTag = { __shape: 'undefined' };
 type RuntimeValue =
   | null
   | boolean
@@ -23,9 +23,9 @@ type RequestDefinition = {
 };
 
 type RequestExpectation =
-  | { kind: 'rejects'; error: 'AbortError' | 'Error' | 'TypeError'; messageIncludes?: readonly string[] }
-  | { kind: 'status'; status: number }
-  | { kind: 'status-or-404' };
+  | { shape: 'rejects'; error: 'AbortError' | 'Error' | 'TypeError'; messageIncludes?: readonly string[] }
+  | { shape: 'status'; status: number }
+  | { shape: 'status-or-404' };
 
 type ScenarioCase = {
   clientConfig?: {
@@ -33,8 +33,8 @@ type ScenarioCase = {
   };
   description: string;
   expect:
-    | { kind: 'create-ok' }
-    | { kind: 'create-throws'; messageIncludes: readonly string[] }
+    | { shape: 'create-ok' }
+    | { shape: 'create-throws'; messageIncludes: readonly string[] }
     | RequestExpectation;
   name: string;
   request?: RequestDefinition;
@@ -62,11 +62,11 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (value !== null && typeof value === 'object') {
-    if ('__kind' in value) {
-      if (value.__kind === 'undefined') {
+    if ('__shape' in value) {
+      if (value.__shape === 'undefined') {
         return undefined;
       }
-      throw new Error(`Unknown runtime tag: ${value.__kind satisfies never}`);
+      throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -100,7 +100,7 @@ async function inspectRequest(clientInstance: ReturnType<typeof FetchClient.crea
   }
 }
 
-function assertRejectedExpectation(error: unknown, expectation: Extract<RequestExpectation, { kind: 'rejects' }>): void {
+function assertRejectedExpectation(error: unknown, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
   assert.ok(error instanceof Error);
 
   if (expectation.error === 'AbortError') {
@@ -120,13 +120,13 @@ async function assertRequestExpectation(
   result: Awaited<ReturnType<typeof inspectRequest>>,
   expectation: RequestExpectation
 ): Promise<void> {
-  if (expectation.kind === 'status') {
+  if (expectation.shape === 'status') {
     assert.ok(result.ok, `expected successful response, received ${result.ok ? 'response' : result.error}`);
     assert.strictEqual(result.response.status, expectation.status);
     return;
   }
 
-  if (expectation.kind === 'status-or-404') {
+  if (expectation.shape === 'status-or-404') {
     assert.ok(result.ok, `expected successful response, received ${result.ok ? 'response' : result.error}`);
     assert.ok(result.response.status === 200 || result.response.status === 404);
     return;
@@ -141,7 +141,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       baseURL: materializeRuntimeValue(scenarioCase.clientConfig.baseURL) as never
     });
 
-  if (scenarioCase.expect.kind === 'create-throws') {
+  if (scenarioCase.expect.shape === 'create-throws') {
     assert.throws(() => {
       FetchClient.create(clientConfig as never);
     }, (error: Error) => {
@@ -153,7 +153,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     return;
   }
 
-  if (scenarioCase.expect.kind === 'create-ok') {
+  if (scenarioCase.expect.shape === 'create-ok') {
     assert.doesNotThrow(() => {
       FetchClient.create(clientConfig as never);
     });

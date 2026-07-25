@@ -158,7 +158,7 @@ export default [
 | `@studnicky/require-options-object` | Require 2+ optional parameters to be collected into a single trailing options object |
 | `@studnicky/single-export` | Enforce one named export per regular file, with restricted-topology exemptions and SCREAMING_SNAKE_CASE constant modules |
 | `@studnicky/static-method-verbs` | Disallow freestanding functions at module scope; convert to static class methods |
-| `@studnicky/type-alias-invariants` | Enforce alias identity, verified schema-derived data provenance, contract declaration kind, naming, and mutable data output in diagnostic-precedence order |
+| `@studnicky/type-alias-invariants` | Enforce alias identity, verified schema-derived data provenance, contract declaration shape, naming, and mutable data output in diagnostic-precedence order |
 | `@studnicky/whole-canonical-types` | Disallow deriving `Partial`/`Pick`/`Omit` subset views from canonical, codebase-owned named types/interfaces — define an explicit type instead |
 
 **`@studnicky/v8` namespace** (27 rules via root-exported `v8Plugin`):

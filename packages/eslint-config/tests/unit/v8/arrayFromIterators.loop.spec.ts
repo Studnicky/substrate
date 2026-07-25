@@ -6,6 +6,7 @@ import parser from '@typescript-eslint/parser';
 import { RuleTester } from 'eslint';
 
 import { arrayFromIterators } from '../../../src/rules/v8/arrayFromIterators.js';
+import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
 import scenarioFile from './arrayFromIterators.scenarios.json';
 
 RuleTester.describe = describe;
@@ -26,28 +27,28 @@ const ruleTester = new RuleTester({
 });
 
 interface CalleeInput {
-  readonly kind: string;
+  readonly shape: string;
 }
 
 interface FirstArgumentInput {
   readonly constructorName?: string;
-  readonly kind: string;
+  readonly shape: string;
 }
 
 interface ParentInput {
-  readonly kind: string;
+  readonly shape: string;
   readonly nodeType?: string;
 }
 
 interface ParserServicesInput {
   readonly hasTsNode?: boolean;
   readonly isArrayType?: boolean;
-  readonly kind: string;
+  readonly shape: string;
 }
 
 interface ListenerScenario {
   readonly expected: {
-    readonly reportCount: number;
+    readonly messageIds: readonly string[];
   };
   readonly input: {
     readonly callExpression: {
@@ -112,9 +113,15 @@ const parserServicesFactories: Record<string, ParserServicesFactory> = {
   }
 };
 
-function requireFixtureFactory<T>(factory: T | undefined, kind: string): T {
-  assert.notEqual(factory, undefined, `Unsupported scenario fixture kind: ${kind}`);
+function requireFixtureFactory<T>(factory: T | undefined, shape: string): T {
+  assert.notEqual(factory, undefined, `Unsupported scenario fixture shape: ${shape}`);
   return factory;
+}
+
+function toMessageId(report: unknown): string {
+  if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
+  const { messageId } = report;
+  return typeof messageId === 'string' ? messageId : '<no-messageId>';
 }
 
 void describe('array-from-iterators', () => {
@@ -127,24 +134,24 @@ void describe('array-from-iterators', () => {
       const reports: unknown[] = [];
       const trackedArgument = {};
       const firstArgumentFactory = requireFixtureFactory(
-        firstArgumentFactories[scenarioCase.input.callExpression.firstArgument.kind],
-        scenarioCase.input.callExpression.firstArgument.kind
+        firstArgumentFactories[scenarioCase.input.callExpression.firstArgument.shape],
+        scenarioCase.input.callExpression.firstArgument.shape
       );
       const firstArgument = firstArgumentFactory(
         scenarioCase.input.callExpression.firstArgument,
         trackedArgument
       );
       const calleeFactory = requireFixtureFactory(
-        calleeFactories[scenarioCase.input.callExpression.callee.kind],
-        scenarioCase.input.callExpression.callee.kind
+        calleeFactories[scenarioCase.input.callExpression.callee.shape],
+        scenarioCase.input.callExpression.callee.shape
       );
       const parentFactory = requireFixtureFactory(
-        parentFactories[scenarioCase.input.callExpression.parent.kind],
-        scenarioCase.input.callExpression.parent.kind
+        parentFactories[scenarioCase.input.callExpression.parent.shape],
+        scenarioCase.input.callExpression.parent.shape
       );
       const parserServicesFactory = requireFixtureFactory(
-        parserServicesFactories[scenarioCase.input.parserServices.kind],
-        scenarioCase.input.parserServices.kind
+        parserServicesFactories[scenarioCase.input.parserServices.shape],
+        scenarioCase.input.parserServices.shape
       );
       const listeners = arrayFromIterators.create({
         report(descriptor) {
@@ -165,7 +172,7 @@ void describe('array-from-iterators', () => {
         type: 'CallExpression'
       } as never);
 
-      assert.equal(reports.length, scenarioCase.expected.reportCount);
+      assert.deepEqual(reports.map(toMessageId), scenarioCase.expected.messageIds);
     });
   }
 });

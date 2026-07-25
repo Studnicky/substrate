@@ -6,7 +6,7 @@ import scenarioGroups from './retry-stats.scenarios.json';
 
 type RetryClassifierMode = 'default' | 'non-retryable' | 'retryable';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'failed-requests-increment'
   | 'initial'
   | 'reset-stats-accumulates'
@@ -17,7 +17,7 @@ type ScenarioKind =
   | 'total-retries-counted';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: { calls?: string[]; classifier: RetryClassifierMode; errorMessage?: string; mutatedTotalRequests?: number; result?: string; retry?: { maxRetries: number } }; kind: ScenarioKind; name: string };
+  | { description: string; expected: Record<string, unknown>; input: { calls?: string[]; classifier: RetryClassifierMode; errorMessage?: string; mutatedTotalRequests?: number; result?: string; retry?: { maxRetries: number } }; shape: ScenarioShape; name: string };
 
 const retryFactoryMap: Record<RetryClassifierMode, (input: ScenarioCase['input']) => Retry> = {
   'default': (input) => Retry.create(input.retry),
@@ -35,7 +35,7 @@ function createScenarioRetry(input: ScenarioCase['input']): Retry {
   return retryFactoryMap[input.classifier](input);
 }
 
-const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void> | void> = {
   'failed-requests-increment': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const retry = createScenarioRetry(input);
@@ -118,7 +118,7 @@ const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<vo
 };
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Retry stats', () => {

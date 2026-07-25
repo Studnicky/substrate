@@ -7,7 +7,7 @@ import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 import type { CircularBufferOptionsEntity } from '../../../src/entities/CircularBufferOptionsEntity.js';
 import scenarioGroups from './CircularBuffer.subclass.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'async-rejecting-onPush-guarded'
   | 'base-class-operates-correctly-after-grow'
   | 'create-returns-subclass'
@@ -103,7 +103,7 @@ type ScenarioCase = {
   description: string;
   expected: ScenarioExpected;
   input: ScenarioInput;
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -607,10 +607,10 @@ const runnerMap = {
   'throwing-onOverflow': runThrowingOnOverflow,
   'throwing-onPush': runThrowingOnPush,
   'throwing-onShift': runThrowingOnShift
-} satisfies Record<ScenarioKind, ScenarioRunner>;
+} satisfies Record<ScenarioShape, ScenarioRunner>;
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('CircularBuffer subclass', () => {

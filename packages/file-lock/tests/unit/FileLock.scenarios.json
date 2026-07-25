@@ -3,7 +3,7 @@
     {
       "name": "timeout-missing-file",
       "description": "create() times out when the file does not exist",
-      "kind": "timeout-missing-file",
+      "shape": "timeout-missing-file",
       "input": {
         "fileLock": {
           "timeoutMs": 100
@@ -17,7 +17,7 @@
     {
       "name": "acquire-success-restores-path",
       "description": "create() succeeds when the file exists and is not locked",
-      "kind": "acquire-success-restores-path",
+      "shape": "acquire-success-restores-path",
       "input": {
         "path": "test-acquire.txt",
         "content": "hello"
@@ -30,7 +30,7 @@
     {
       "name": "contention-times-out",
       "description": "create() times out when trying to acquire a lock already held",
-      "kind": "contention-times-out",
+      "shape": "contention-times-out",
       "input": {
         "path": "test-contention.txt",
         "content": "content",
@@ -45,7 +45,7 @@
     {
       "name": "read-after-create",
       "description": "read() returns file content after create()",
-      "kind": "read-after-create",
+      "shape": "read-after-create",
       "input": {
         "path": "test-read.txt",
         "content": "content-to-read"
@@ -57,7 +57,7 @@
     {
       "name": "write-then-release-restores-new-content",
       "description": "write() followed by release() restores the original path with new content",
-      "kind": "write-then-release-restores-new-content",
+      "shape": "write-then-release-restores-new-content",
       "input": {
         "path": "test-write.txt",
         "originalContent": "original",
@@ -70,7 +70,7 @@
     {
       "name": "release-idempotent",
       "description": "release() is idempotent",
-      "kind": "release-idempotent",
+      "shape": "release-idempotent",
       "input": {
         "path": "test-idempotent.txt",
         "content": "data"
@@ -82,7 +82,7 @@
     {
       "name": "symbol-dispose-releases",
       "description": "Symbol.dispose triggers release()",
-      "kind": "symbol-dispose-releases",
+      "shape": "symbol-dispose-releases",
       "input": {
         "path": "test-dispose.txt",
         "content": "dispose-me"
@@ -95,7 +95,7 @@
     {
       "name": "poll-and-timeout-options",
       "description": "create() respects pollMs and timeoutMs",
-      "kind": "poll-and-timeout-options",
+      "shape": "poll-and-timeout-options",
       "input": {
         "path": "test-create-opts.txt",
         "content": "content",
@@ -111,7 +111,7 @@
     {
       "name": "hook-acquire-start-and-acquire",
       "description": "onAcquireStart fires once and onAcquire fires once on success",
-      "kind": "hook-acquire-start-and-acquire",
+      "shape": "hook-acquire-start-and-acquire",
       "input": {
         "path": "hook-acquire.txt",
         "content": "hook-test"
@@ -124,7 +124,7 @@
     {
       "name": "hook-release-original-path",
       "description": "onRelease fires once with the original path",
-      "kind": "hook-release-original-path",
+      "shape": "hook-release-original-path",
       "input": {
         "path": "hook-release.txt",
         "content": "data"
@@ -136,7 +136,7 @@
     {
       "name": "hook-idempotent-release",
       "description": "onRelease fires only once for idempotent release()",
-      "kind": "hook-idempotent-release",
+      "shape": "hook-idempotent-release",
       "input": {
         "path": "hook-idempotent-release.txt",
         "content": "data"
@@ -148,7 +148,7 @@
     {
       "name": "hook-timeout",
       "description": "onTimeout fires once when the file does not exist",
-      "kind": "hook-timeout",
+      "shape": "hook-timeout",
       "input": {
         "path": "hook-timeout-nofile.txt",
         "fileLock": {
@@ -162,7 +162,7 @@
     {
       "name": "hook-contention-wait-and-timeout",
       "description": "onAcquireWait and onContended fire on each contended poll",
-      "kind": "hook-contention-wait-and-timeout",
+      "shape": "hook-contention-wait-and-timeout",
       "input": {
         "path": "hook-contention.txt",
         "content": "content",
@@ -180,7 +180,7 @@
     {
       "name": "hook-order",
       "description": "onAcquireStart fires before onAcquireWait which fires before onTimeout",
-      "kind": "hook-order",
+      "shape": "hook-order",
       "input": {
         "path": "hook-order.txt",
         "content": "held",
@@ -192,8 +192,8 @@
       "expected": {
         "order": [
           "onAcquireStart",
-          "onAcquireWait",
           "onContended",
+          "onAcquireWait",
           "onTimeout"
         ]
       }
@@ -201,7 +201,7 @@
     {
       "name": "throwing-onAcquire-does-not-orphan-lock",
       "description": "A throwing onAcquire hook does not orphan the renamed lock file",
-      "kind": "throwing-onAcquire-does-not-orphan-lock",
+      "shape": "throwing-onAcquire-does-not-orphan-lock",
       "input": {
         "path": "hook-throw-acquire.txt",
         "content": "data",
@@ -214,7 +214,7 @@
     {
       "name": "async-rejecting-onAcquire-guarded",
       "description": "An async-rejecting onAcquire override is routed through onHookError",
-      "kind": "async-rejecting-onAcquire-guarded",
+      "shape": "async-rejecting-onAcquire-guarded",
       "input": {
         "path": "hook-async-reject-acquire.txt",
         "content": "data"
@@ -226,7 +226,7 @@
     {
       "name": "hook-errors-isolated-per-instance",
       "description": "Hook failures are recorded only on the file-lock instance that produced them",
-      "kind": "hook-errors-isolated-per-instance",
+      "shape": "hook-errors-isolated-per-instance",
       "input": {
         "first": {
           "path": "hook-isolation-first.txt",
@@ -249,7 +249,7 @@
     {
       "name": "symbol-dispose-hook",
       "description": "Symbol.dispose triggers onRelease once",
-      "kind": "symbol-dispose-hook",
+      "shape": "symbol-dispose-hook",
       "input": {
         "path": "hook-dispose.txt",
         "content": "dispose-hook"
@@ -261,7 +261,7 @@
     {
       "name": "bare-relative-filename-contention",
       "description": "Bare relative filenames detect contention correctly",
-      "kind": "bare-relative-filename-contention",
+      "shape": "bare-relative-filename-contention",
       "input": {
         "filename": "queue.json",
         "content": "content",
@@ -277,7 +277,7 @@
     {
       "name": "genuine-fs-error-routes-to-onError",
       "description": "A genuine filesystem error rejects immediately via onError",
-      "kind": "genuine-fs-error-routes-to-onError",
+      "shape": "genuine-fs-error-routes-to-onError",
       "input": {
         "path": "/data.json",
         "fileSystemError": {

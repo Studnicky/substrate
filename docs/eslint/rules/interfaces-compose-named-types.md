@@ -13,7 +13,7 @@ The rule examines inline object literals and mapped types inside interface prope
 
 ## Rule boundary
 
-The rule runs after interface declaration-kind classification:
+The rule runs after interface declaration-shape classification:
 
 1. [`interface-must-be-contract`](./interface-must-be-contract.md) owns an interface that contains only pure data.
 2. This rule skips that pure-data interface to avoid a second root diagnostic.
@@ -153,7 +153,7 @@ export namespace SessionStateEntity {
 
 The contract interface references `SessionStateEntity.Type`; it does not reproduce the data shape inline.
 
-The schema and type derivation may occupy separate files. Each use site imports its own symbol directly from `json-schema-to-ts`: `JSONSchema` for the schema constraint and `FromSchema` for the derived type. Compiled validators import `ValidateFunction` from `ajv`; public JSON value signatures import `JSONSchema7Type` from `json-schema`, backed by the package's direct `@types/json-schema` declaration dependency.
+The schema and type derivation may occupy separate files. `JSONSchema` and `FromSchema` (used above) come from `json-schema-to-ts`, but the deriving type is recognized structurally, not by name or package — TypeBox's `Static`, Zod's `z.infer`, or a project-local schema-to-type function are equally valid. Compiled validators import `ValidateFunction` from `ajv`; public JSON value signatures import `JSONSchema7Type` from `json-schema`, backed by the package's direct `@types/json-schema` declaration dependency.
 
 ## Scoped exceptions
 
@@ -179,5 +179,5 @@ export default [
 ## Related rules
 
 - [`interface-must-be-contract`](./interface-must-be-contract.md) owns pure-data interface declarations.
-- [`type-alias-invariants`](./type-alias-invariants.md) verifies canonical alias provenance and declaration kind.
+- [`type-alias-invariants`](./type-alias-invariants.md) verifies canonical alias provenance and declaration shape.
 - [`all-types-are-entities`](./all-types-are-entities.md) owns canonical alias placement.

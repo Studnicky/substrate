@@ -18,7 +18,34 @@ run_hook_suite_diagram() {
   CI_SUITE_BASE_REF="${1:-origin/develop}" bash scripts/ci-suite.sh diagram-blast-radius
 }
 
+is_release_backmerge() {
+  backmerge_branch="$1"
+  backmerge_base_ref="$2"
+
+  case "$backmerge_branch" in
+    chore/*backmerge*) ;;
+    *) return 1 ;;
+  esac
+
+  backmerge_main_sha=$(git rev-parse --verify origin/main 2>/dev/null) || return 1
+  git rev-parse --verify "$backmerge_base_ref" >/dev/null 2>&1 || return 1
+
+  git rev-list --parents "${backmerge_base_ref}..HEAD" | awk -v main_sha="$backmerge_main_sha" '
+    NF >= 3 {
+      for (parent_index = 2; parent_index <= NF; parent_index += 1) {
+        if ($parent_index == main_sha) {
+          found = 1
+        }
+      }
+    }
+    END {
+      exit found ? 0 : 1
+    }
+  '
+}
+
 run_hook_suite_release_gates() {
+  base_ref="${1:-origin/develop}"
   branch=$(git rev-parse --abbrev-ref HEAD)
   case "$branch" in
     release/*|hotfix/*)
@@ -26,7 +53,12 @@ run_hook_suite_release_gates() {
       bash scripts/release-suite.sh publish-gates "$version"
       ;;
     *)
-      bash scripts/release-suite.sh changeset-status "${1:-origin/develop}"
+      if is_release_backmerge "$branch" "$base_ref"; then
+        version=$(node -p "require('./package.json').version")
+        bash scripts/release-suite.sh verify-backmerge "$version" "$base_ref"
+      else
+        bash scripts/release-suite.sh changeset-status "$base_ref"
+      fi
       ;;
   esac
 }

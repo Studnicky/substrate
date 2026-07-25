@@ -2,7 +2,7 @@
   "cases": [
     {
       "description": "upsertOne inserts a new entity",
-      "kind": "upsert-one-inserts",
+      "shape": "upsert-one-inserts",
       "name": "upsertOne inserts a new entity",
       "input": {
         "entity": {
@@ -20,7 +20,7 @@
     },
     {
       "description": "upsertOne overwrites an existing entity with the same id",
-      "kind": "upsert-one-overwrites",
+      "shape": "upsert-one-overwrites",
       "name": "upsertOne overwrites an existing entity with the same id",
       "input": {
         "initial": {
@@ -42,7 +42,7 @@
     },
     {
       "description": "upsertMany batch-inserts every entity",
-      "kind": "upsert-many-batch",
+      "shape": "upsert-many-batch",
       "name": "upsertMany batch-inserts every entity",
       "input": {
         "entities": [
@@ -70,7 +70,7 @@
     },
     {
       "description": "upsertMany with an empty array is a no-op",
-      "kind": "upsert-many-empty",
+      "shape": "upsert-many-empty",
       "name": "upsertMany with an empty array is a no-op",
       "input": {
         "entities": []
@@ -81,7 +81,7 @@
     },
     {
       "description": "snapshots caller-owned entities on every retention path",
-      "kind": "snapshot-retention-paths",
+      "shape": "snapshot-retention-paths",
       "name": "snapshots caller-owned entities on every retention path",
       "input": {
         "upserted": {
@@ -158,7 +158,7 @@
     },
     {
       "description": "removeOne returns true and removes an existing entity",
-      "kind": "remove-one-removes",
+      "shape": "remove-one-removes",
       "name": "removeOne returns true and removes an existing entity",
       "input": {
         "entity": {
@@ -173,7 +173,7 @@
     },
     {
       "description": "removeOne returns false for a missing id",
-      "kind": "remove-one-missing",
+      "shape": "remove-one-missing",
       "name": "removeOne returns false for a missing id",
       "input": {
         "id": "missing"
@@ -184,7 +184,7 @@
     },
     {
       "description": "removeMany returns the count of entities actually removed",
-      "kind": "remove-many-count",
+      "shape": "remove-many-count",
       "name": "removeMany returns the count of entities actually removed",
       "input": {
         "entities": [
@@ -210,7 +210,7 @@
     },
     {
       "description": "removeMany with an empty array returns 0",
-      "kind": "remove-many-empty",
+      "shape": "remove-many-empty",
       "name": "removeMany with an empty array returns 0",
       "input": {
         "ids": []
@@ -221,7 +221,7 @@
     },
     {
       "description": "setAll replaces the entire collection",
-      "kind": "set-all-replaces",
+      "shape": "set-all-replaces",
       "name": "setAll replaces the entire collection",
       "input": {
         "initial": [
@@ -258,7 +258,7 @@
     },
     {
       "description": "setAll with an empty array clears the collection",
-      "kind": "set-all-empty",
+      "shape": "set-all-empty",
       "name": "setAll with an empty array clears the collection",
       "input": {
         "initial": [
@@ -275,7 +275,7 @@
     },
     {
       "description": "getAll falls back to insertion order when no sortComparer is configured",
-      "kind": "get-all-insertion-order",
+      "shape": "get-all-insertion-order",
       "name": "getAll falls back to insertion order when no sortComparer is configured",
       "input": {
         "entities": [
@@ -303,7 +303,7 @@
     },
     {
       "description": "getAll respects sortComparer when configured",
-      "kind": "get-all-sorted",
+      "shape": "get-all-sorted",
       "name": "getAll respects sortComparer when configured",
       "input": {
         "entities": [
@@ -331,7 +331,7 @@
     },
     {
       "description": "getAll returns a defensive sorted snapshot",
-      "kind": "get-all-defensive-snapshot",
+      "shape": "get-all-defensive-snapshot",
       "name": "getAll returns a defensive sorted snapshot",
       "input": {
         "entities": [
@@ -359,7 +359,7 @@
     },
     {
       "description": "getAll caches the sorted snapshot until the next mutation",
-      "kind": "get-all-cache-invalidated",
+      "shape": "get-all-cache-invalidated",
       "name": "getAll caches the sorted snapshot until the next mutation",
       "input": {
         "entities": [
@@ -385,7 +385,7 @@
     },
     {
       "description": "getAll and getById return deeply detached entities",
-      "kind": "deep-detached-getters",
+      "shape": "deep-detached-getters",
       "name": "getAll and getById return deeply detached entities",
       "input": {
         "entity": {
@@ -422,7 +422,7 @@
     },
     {
       "description": "getById/getIds/size reflect a mix of operations",
-      "kind": "ids-size-reflect-operations",
+      "shape": "ids-size-reflect-operations",
       "name": "getById/getIds/size reflect a mix of operations",
       "input": {
         "initial": 0,
@@ -478,7 +478,7 @@
     },
     {
       "description": "onUpsert fires on insert and on overwrite of the same id",
-      "kind": "hooks-upsert-overwrite",
+      "shape": "hooks-upsert-overwrite",
       "name": "onUpsert fires on insert and on overwrite of the same id",
       "input": {
         "entities": [
@@ -515,7 +515,7 @@
     },
     {
       "description": "onUpsert fires once per entity from upsertMany",
-      "kind": "hooks-upsert-many",
+      "shape": "hooks-upsert-many",
       "name": "onUpsert fires once per entity from upsertMany",
       "input": {
         "entities": [
@@ -539,7 +539,7 @@
     },
     {
       "description": "onRemove fires only when something was actually removed",
-      "kind": "hooks-remove-only-when-exists",
+      "shape": "hooks-remove-only-when-exists",
       "name": "onRemove fires only when something was actually removed",
       "input": {
         "entity": {
@@ -560,7 +560,7 @@
     },
     {
       "description": "onRemove fires once per entity actually removed from removeMany",
-      "kind": "hooks-remove-many",
+      "shape": "hooks-remove-many",
       "name": "onRemove fires once per entity actually removed from removeMany",
       "input": {
         "entities": [
@@ -586,7 +586,7 @@
     },
     {
       "description": "onReplaceAll fires once from setAll with the new collection count",
-      "kind": "hooks-replace-all-count",
+      "shape": "hooks-replace-all-count",
       "name": "onReplaceAll fires once from setAll with the new collection count",
       "input": {
         "initial": [
@@ -621,7 +621,7 @@
     },
     {
       "description": "onReplaceAll fires with count 0 when setAll is called with an empty array",
-      "kind": "hooks-replace-all-empty",
+      "shape": "hooks-replace-all-empty",
       "name": "onReplaceAll fires with count 0 when setAll is called with an empty array",
       "input": {
         "initial": [
@@ -643,7 +643,7 @@
     },
     {
       "description": "a subclass overriding all three hooks observes every event",
-      "kind": "hooks-all-overridden",
+      "shape": "hooks-all-overridden",
       "name": "a subclass overriding all three hooks observes every event",
       "input": {
         "steps": [
@@ -681,7 +681,7 @@
     },
     {
       "description": "a throwing onUpsert hook does not replace the completed store mutation",
-      "kind": "throwing-on-upsert-preserves-store",
+      "shape": "throwing-on-upsert-preserves-store",
       "name": "a throwing onUpsert hook does not replace the completed store mutation",
       "input": {
         "entity": {
@@ -703,7 +703,7 @@
     },
     {
       "description": "a throwing onRemove hook does not replace the completed removal",
-      "kind": "throwing-on-remove-preserves-removal",
+      "shape": "throwing-on-remove-preserves-removal",
       "name": "a throwing onRemove hook does not replace the completed removal",
       "input": {
         "entity": {
@@ -722,7 +722,7 @@
     },
     {
       "description": "a throwing onReplaceAll hook does not replace the completed collection swap",
-      "kind": "throwing-on-replace-all-preserves-swap",
+      "shape": "throwing-on-replace-all-preserves-swap",
       "name": "a throwing onReplaceAll hook does not replace the completed collection swap",
       "input": {
         "initial": {
@@ -748,7 +748,7 @@
     },
     {
       "description": "a throwing onUpsert hook in upsertMany does not abort remaining entities, and is recorded",
-      "kind": "hook-failure-recorded-batch-continues",
+      "shape": "hook-failure-recorded-batch-continues",
       "name": "a throwing onUpsert hook in upsertMany does not abort remaining entities, and is recorded",
       "input": {
         "entities": [
@@ -792,7 +792,7 @@
     },
     {
       "description": "getHookErrors returns a defensive copy",
-      "kind": "hook-errors-defensive-copy",
+      "shape": "hook-errors-defensive-copy",
       "name": "getHookErrors returns a defensive copy",
       "input": {
         "entity": {
@@ -810,7 +810,7 @@
     },
     {
       "description": "getHookErrors records one failure and deeply detaches nested diagnostics",
-      "kind": "hook-errors-deeply-detached",
+      "shape": "hook-errors-deeply-detached",
       "name": "getHookErrors records one failure and deeply detaches nested diagnostics",
       "input": {
         "entity": {
@@ -845,7 +845,7 @@
     },
     {
       "description": "an async-overridden onUpsert that rejects is routed through onHookError, recorded, and never surfaces as an unhandled rejection",
-      "kind": "async-rejection-routed-no-unhandled",
+      "shape": "async-rejection-routed-no-unhandled",
       "name": "an async-overridden onUpsert that rejects is routed through onHookError, recorded, and never surfaces as an unhandled rejection",
       "input": {
         "entity": {
@@ -869,7 +869,7 @@
     },
     {
       "description": "records hook failures only on the entity-store instance that produced them",
-      "kind": "hook-failures-isolated-per-instance",
+      "shape": "hook-failures-isolated-per-instance",
       "name": "records hook failures only on the entity-store instance that produced them",
       "input": {
         "first": {

@@ -8,7 +8,7 @@
       "input": {
         "entrypoint": "../../examples/draft.ts"
       },
-      "kind": "draft",
+      "shape": "draft",
       "name": "json-smoke-draft"
     },
     {
@@ -19,7 +19,7 @@
       "input": {
         "entrypoint": "../../examples/merge-clone.ts"
       },
-      "kind": "merge-clone",
+      "shape": "merge-clone",
       "name": "json-smoke-merge-clone"
     },
     {
@@ -30,7 +30,7 @@
       "input": {
         "entrypoint": "../../examples/patch-datatype.ts"
       },
-      "kind": "patch-datatype",
+      "shape": "patch-datatype",
       "name": "json-smoke-patch-datatype"
     },
     {
@@ -41,7 +41,7 @@
       "input": {
         "entrypoint": "../../examples/path-sort-hash.ts"
       },
-      "kind": "path-sort-hash",
+      "shape": "path-sort-hash",
       "name": "json-smoke-path-sort-hash"
     }
   ]

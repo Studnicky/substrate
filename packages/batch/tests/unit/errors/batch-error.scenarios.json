@@ -3,7 +3,7 @@
     {
       "name": "construction",
       "description": "BatchError uses the batch.invalidConfig code and preserves supplied context",
-      "kind": "construction",
+      "shape": "construction",
       "input": {
         "error": {
           "message": "maxConcurrent must be a positive integer",
@@ -30,7 +30,7 @@
     {
       "name": "construction-without-args",
       "description": "BatchError fills in default fields when optional args are omitted",
-      "kind": "construction",
+      "shape": "construction",
       "input": {
         "error": {
           "message": "maxConcurrent must be a positive integer"

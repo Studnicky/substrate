@@ -3,7 +3,7 @@
     {
       "name": "create-static",
       "description": "creates a context with static create",
-      "kind": "create-static",
+      "shape": "create-static",
       "input": {
         "context": {
           "name": "test"
@@ -16,7 +16,7 @@
     {
       "name": "invalid-name-empty",
       "description": "create throws when name is empty string",
-      "kind": "invalid-name",
+      "shape": "invalid-name",
       "input": {
         "context": {
           "name": ""
@@ -29,7 +29,7 @@
     {
       "name": "invalid-name-nonstring",
       "description": "create throws when name is not a string",
-      "kind": "invalid-name",
+      "shape": "invalid-name",
       "input": {
         "context": {
           "name": 0
@@ -42,7 +42,7 @@
     {
       "name": "initialize-empty",
       "description": "initializes with empty store when no initial values",
-      "kind": "initialize-scope",
+      "shape": "initialize-scope",
       "input": {
         "context": {
           "name": "test"
@@ -65,7 +65,7 @@
     {
       "name": "initialize-provided",
       "description": "initializes with provided values",
-      "kind": "initialize-scope",
+      "shape": "initialize-scope",
       "input": {
         "context": {
           "name": "test"
@@ -87,7 +87,7 @@
     {
       "name": "execute-runs-callback",
       "description": "runs callback within context",
-      "kind": "execute-callback",
+      "shape": "execute-callback",
       "input": {
         "context": {
           "name": "test"
@@ -105,7 +105,7 @@
     {
       "name": "execute-return-result",
       "description": "returns callback result",
-      "kind": "execute-return-result",
+      "shape": "execute-return-result",
       "input": {
         "context": {
           "name": "test"
@@ -123,7 +123,7 @@
     {
       "name": "execute-async-result",
       "description": "returns async callback result",
-      "kind": "execute-async",
+      "shape": "execute-async",
       "input": {
         "context": {
           "name": "test"
@@ -141,7 +141,7 @@
     {
       "name": "execute-multiple",
       "description": "allows multiple execute calls on same scope",
-      "kind": "execute-multiple",
+      "shape": "execute-multiple",
       "input": {
         "context": {
           "name": "test"
@@ -159,7 +159,7 @@
     {
       "name": "execute-after-terminated",
       "description": "throws after scope terminated",
-      "kind": "execute-after-terminated",
+      "shape": "execute-after-terminated",
       "input": {
         "context": {
           "name": "test"
@@ -175,7 +175,7 @@
     {
       "name": "terminate-snapshot",
       "description": "returns snapshot of all values",
-      "kind": "terminate-snapshot",
+      "shape": "terminate-snapshot",
       "input": {
         "context": {
           "name": "test"
@@ -197,7 +197,7 @@
     {
       "name": "terminate-clears",
       "description": "clears store after terminate",
-      "kind": "terminate-clears",
+      "shape": "terminate-clears",
       "input": {
         "context": {
           "name": "test"
@@ -216,7 +216,7 @@
     {
       "name": "terminate-twice",
       "description": "throws if called twice",
-      "kind": "terminate-twice",
+      "shape": "terminate-twice",
       "input": {
         "context": {
           "name": "test"
@@ -232,7 +232,7 @@
     {
       "name": "set-adds-values",
       "description": "set adds values to the store",
-      "kind": "set-get",
+      "shape": "set-get",
       "input": {
         "context": {
           "name": "test"
@@ -250,7 +250,7 @@
     {
       "name": "set-overwrites",
       "description": "set overwrites existing values",
-      "kind": "set-get",
+      "shape": "set-get",
       "input": {
         "context": {
           "name": "test"
@@ -268,7 +268,7 @@
     {
       "name": "tryget-missing",
       "description": "tryGet reports a missing key",
-      "kind": "tryget-missing",
+      "shape": "tryget-missing",
       "input": {
         "context": {
           "name": "test"
@@ -285,7 +285,7 @@
     {
       "name": "tryget-present",
       "description": "tryGet reports a present value",
-      "kind": "tryget-present",
+      "shape": "tryget-present",
       "input": {
         "context": {
           "name": "test"
@@ -304,7 +304,7 @@
     {
       "name": "tryget-undefined",
       "description": "tryGet distinguishes stored undefined from absent key",
-      "kind": "tryget-undefined",
+      "shape": "tryget-undefined",
       "input": {
         "context": {
           "name": "test"
@@ -322,7 +322,7 @@
     {
       "name": "get-throws",
       "description": "get throws when key not found",
-      "kind": "get-throws",
+      "shape": "get-throws",
       "input": {
         "context": {
           "name": "my-context"
@@ -339,7 +339,7 @@
     {
       "name": "has-missing",
       "description": "has returns false for missing keys",
-      "kind": "has-check",
+      "shape": "has-check",
       "expected": {
         "result": false
       },
@@ -356,7 +356,7 @@
     {
       "name": "has-existing",
       "description": "has returns true for existing keys",
-      "kind": "has-check",
+      "shape": "has-check",
       "expected": {
         "result": true
       },
@@ -375,7 +375,7 @@
     {
       "name": "delete-removes",
       "description": "delete removes keys",
-      "kind": "delete-removes",
+      "shape": "delete-removes",
       "input": {
         "context": {
           "name": "test"
@@ -394,7 +394,7 @@
     {
       "name": "delete-missing",
       "description": "delete returns false for missing keys",
-      "kind": "delete-missing",
+      "shape": "delete-missing",
       "input": {
         "context": {
           "name": "test"
@@ -411,7 +411,7 @@
     {
       "name": "keys-returns",
       "description": "keys returns all keys",
-      "kind": "keys-returns",
+      "shape": "keys-returns",
       "input": {
         "context": {
           "name": "test"
@@ -435,7 +435,7 @@
     {
       "name": "snapshot-copy",
       "description": "returns a copy of all data",
-      "kind": "snapshot-copy",
+      "shape": "snapshot-copy",
       "input": {
         "context": {
           "name": "test"
@@ -457,7 +457,7 @@
     {
       "name": "snapshot-independent",
       "description": "snapshot is independent of context",
-      "kind": "snapshot-independent",
+      "shape": "snapshot-independent",
       "input": {
         "context": {
           "name": "test"
@@ -476,7 +476,7 @@
     {
       "name": "is-active-outside",
       "description": "returns false outside execute",
-      "kind": "is-active-outside",
+      "shape": "is-active-outside",
       "input": {
         "context": {
           "name": "test"
@@ -489,7 +489,7 @@
     {
       "name": "is-active-inside",
       "description": "returns true within execute",
-      "kind": "is-active-inside",
+      "shape": "is-active-inside",
       "input": {
         "context": {
           "name": "test"
@@ -502,7 +502,7 @@
     {
       "name": "outside-get-throws",
       "description": "get throws outside execute",
-      "kind": "outside-get-throws",
+      "shape": "outside-get-throws",
       "input": {
         "context": {
           "name": "my-context"
@@ -518,7 +518,7 @@
     {
       "name": "outside-set-throws",
       "description": "set throws outside execute",
-      "kind": "outside-set-throws",
+      "shape": "outside-set-throws",
       "input": {
         "context": {
           "name": "my-context"
@@ -535,7 +535,7 @@
     {
       "name": "outside-tryget",
       "description": "tryGet reports absence outside execute",
-      "kind": "outside-tryget",
+      "shape": "outside-tryget",
       "input": {
         "context": {
           "name": "my-context"
@@ -551,7 +551,7 @@
     {
       "name": "lenient-read-accessors",
       "description": "lenient context read accessors reflect an empty store",
-      "kind": "lenient-read-accessors",
+      "shape": "lenient-read-accessors",
       "input": {
         "context": {
           "name": "lenient"
@@ -566,7 +566,7 @@
     {
       "name": "lenient-set-no-leak",
       "description": "lenient set outside active context does not leak",
-      "kind": "lenient-set-no-leak",
+      "shape": "lenient-set-no-leak",
       "input": {
         "context": {
           "name": "lenient"
@@ -583,7 +583,7 @@
     {
       "name": "lenient-delete-no-corruption",
       "description": "lenient delete outside active context does not corrupt store",
-      "kind": "lenient-delete-no-corruption",
+      "shape": "lenient-delete-no-corruption",
       "input": {
         "context": {
           "name": "lenient"
@@ -601,7 +601,7 @@
     {
       "name": "async-propagation",
       "description": "propagates context through async operations",
-      "kind": "async-propagation",
+      "shape": "async-propagation",
       "input": {
         "context": {
           "name": "test"
@@ -619,7 +619,7 @@
     {
       "name": "mutations-persist-async-chain",
       "description": "mutations persist through async chain",
-      "kind": "mutations-persist-async-chain",
+      "shape": "mutations-persist-async-chain",
       "input": {
         "context": {
           "name": "test"
@@ -635,7 +635,7 @@
     {
       "name": "concurrent-isolation",
       "description": "isolates concurrent contexts",
-      "kind": "concurrent-isolation",
+      "shape": "concurrent-isolation",
       "input": {
         "context": {
           "name": "test"
@@ -659,7 +659,7 @@
     {
       "name": "concurrent-mutation-isolation",
       "description": "mutations in one context do not affect another",
-      "kind": "concurrent-mutation-isolation",
+      "shape": "concurrent-mutation-isolation",
       "input": {
         "context": {
           "name": "test"
@@ -681,7 +681,7 @@
     {
       "name": "concurrent-key-sets",
       "description": "each scope maintains independent key sets",
-      "kind": "concurrent-key-sets",
+      "shape": "concurrent-key-sets",
       "input": {
         "context": {
           "name": "test"
@@ -707,7 +707,7 @@
     {
       "name": "nested-scope-isolation",
       "description": "nested scopes create isolated inner context",
-      "kind": "nested-scope-isolation",
+      "shape": "nested-scope-isolation",
       "input": {
         "context": {
           "name": "test"
@@ -729,7 +729,7 @@
     {
       "name": "inner-context-no-inherit",
       "description": "inner context does not inherit outer values",
-      "kind": "inner-context-no-inherit",
+      "shape": "inner-context-no-inherit",
       "input": {
         "context": {
           "name": "test"
@@ -747,7 +747,7 @@
     {
       "name": "multiple-contexts",
       "description": "supports multiple independent contexts",
-      "kind": "multiple-contexts",
+      "shape": "multiple-contexts",
       "input": {
         "contexts": {
           "first": {
@@ -780,7 +780,7 @@
     {
       "name": "full-lifecycle",
       "description": "complete initialize execute terminate flow",
-      "kind": "full-lifecycle",
+      "shape": "full-lifecycle",
       "input": {
         "context": {
           "name": "request"
@@ -810,7 +810,7 @@
     {
       "name": "subclass-on-initialize",
       "description": "SeededContext.onInitialize seeds a default key",
-      "kind": "subclass-on-initialize",
+      "shape": "subclass-on-initialize",
       "input": {
         "context": {
           "name": "seeded"
@@ -826,7 +826,7 @@
     {
       "name": "subclass-on-initialize-with-caller",
       "description": "SeededContext seeds key alongside caller-provided initial values",
-      "kind": "subclass-on-initialize-with-caller",
+      "shape": "subclass-on-initialize-with-caller",
       "input": {
         "context": {
           "name": "seeded"
@@ -845,7 +845,7 @@
     {
       "name": "subclass-on-set",
       "description": "onSet fires after set with key and value",
-      "kind": "subclass-on-set",
+      "shape": "subclass-on-set",
       "input": {
         "context": {
           "name": "traced"
@@ -870,7 +870,7 @@
     {
       "name": "subclass-on-get",
       "description": "onGet fires after get with key and value",
-      "kind": "subclass-on-get",
+      "shape": "subclass-on-get",
       "input": {
         "context": {
           "name": "traced"
@@ -897,7 +897,7 @@
     {
       "name": "subclass-on-delete",
       "description": "onDelete fires after delete with key and existence flag",
-      "kind": "subclass-on-delete",
+      "shape": "subclass-on-delete",
       "input": {
         "context": {
           "name": "traced"
@@ -924,7 +924,7 @@
     {
       "name": "subclass-on-get-tryget",
       "description": "onGet does not fire for tryGet",
-      "kind": "subclass-on-get-tryget",
+      "shape": "subclass-on-get-tryget",
       "input": {
         "context": {
           "name": "traced"
@@ -942,7 +942,7 @@
     {
       "name": "throwing-on-initialize",
       "description": "a throwing onInitialize hook surfaces a HookInvocationError",
-      "kind": "throwing-on-initialize",
+      "shape": "throwing-on-initialize",
       "input": {
         "context": {
           "name": "throwing-init"
@@ -961,7 +961,7 @@
     {
       "name": "throwing-on-set",
       "description": "a throwing onSet hook surfaces a HookInvocationError after storage",
-      "kind": "throwing-on-set",
+      "shape": "throwing-on-set",
       "input": {
         "context": {
           "name": "throwing-set"
@@ -980,7 +980,7 @@
     {
       "name": "throwing-on-get",
       "description": "a throwing onGet hook surfaces a HookInvocationError",
-      "kind": "throwing-on-get",
+      "shape": "throwing-on-get",
       "input": {
         "context": {
           "name": "throwing-get"
@@ -1000,7 +1000,7 @@
     {
       "name": "throwing-on-delete",
       "description": "a throwing onDelete hook surfaces a HookInvocationError after removal",
-      "kind": "throwing-on-delete",
+      "shape": "throwing-on-delete",
       "input": {
         "context": {
           "name": "throwing-delete"
@@ -1020,7 +1020,7 @@
     {
       "name": "async-on-set-safe",
       "description": "an async onSet override that rejects is routed through onHookError",
-      "kind": "async-on-set-safe",
+      "shape": "async-on-set-safe",
       "input": {
         "context": {
           "name": "async-set"
@@ -1038,7 +1038,7 @@
     {
       "name": "config-validation",
       "description": "create throws when config has unknown properties",
-      "kind": "config-validation",
+      "shape": "config-validation",
       "input": {
         "context": {
           "extra": 1,

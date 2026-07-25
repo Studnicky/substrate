@@ -24,8 +24,12 @@ HOOK
 #!/bin/bash
 echo "real pre-push"
 HOOK
+        cat > .githooks/post-checkout <<'HOOK'
+#!/bin/bash
+echo "real post-checkout"
+HOOK
         echo '# helper' > .githooks/lib/_helpers.sh
-        chmod +x .githooks/pre-commit .githooks/pre-push
+        chmod +x .githooks/pre-commit .githooks/pre-push .githooks/post-checkout
         git add -A
         git commit -q -m baseline
     )
@@ -61,6 +65,36 @@ assert_local_hooks_path_is_cleared() {
     pass_count=$((pass_count + 1))
 }
 
+assert_missing_post_checkout_is_tolerated() {
+    local repo
+    repo=$(make_repo_with_hooks)
+    (
+        cd "$repo" || exit 1
+        env -u CI -u GITHUB_ACTIONS bash "$INSTALLER" >/dev/null
+        rm .githooks/post-checkout
+        .git/hooks/post-checkout >/tmp/post-checkout-forwarder.out 2>&1
+    )
+    rm -rf "$repo"
+    pass_count=$((pass_count + 1))
+}
+
+assert_missing_pre_push_fails() {
+    local repo
+    repo=$(make_repo_with_hooks)
+    (
+        cd "$repo" || exit 1
+        env -u CI -u GITHUB_ACTIONS bash "$INSTALLER" >/dev/null
+        rm .githooks/pre-push
+        if .git/hooks/pre-push >/tmp/pre-push-forwarder.out 2>&1; then
+            fail "install-hooks missing pre-push" "pre-push forwarder succeeded without a tracked target"
+        fi
+    )
+    rm -rf "$repo"
+    pass_count=$((pass_count + 1))
+}
+
 assert_install
 assert_local_hooks_path_is_cleared
+assert_missing_post_checkout_is_tolerated
+assert_missing_pre_push_fails
 test_main

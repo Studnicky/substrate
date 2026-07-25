@@ -5,7 +5,7 @@ import { CircularBufferError } from '../../../src/errors/CircularBufferError.js'
 
 import scenarioGroups from './CircularBufferError.scenarios.json';
 
-type ScenarioKind = 'default-construction' | 'with-args' | 'with-cause';
+type ScenarioShape = 'default-construction' | 'with-args' | 'with-cause';
 
 type ScenarioCase = {
   description: string;
@@ -24,7 +24,7 @@ type ScenarioCase = {
     };
     message: string;
   };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -62,10 +62,10 @@ const runnerMap = {
   'default-construction': assertDefaultConstruction,
   'with-args': assertWithArgs,
   'with-cause': assertWithCause
-} satisfies Record<ScenarioKind, ScenarioRunner>;
+} satisfies Record<ScenarioShape, ScenarioRunner>;
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('CircularBufferError', () => {

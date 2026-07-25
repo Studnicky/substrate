@@ -8,7 +8,7 @@
       "input": {
         "entrypoint": "basicThrottle.ts"
       },
-      "kind": "basicThrottle",
+      "shape": "basicThrottle",
       "name": "runs basicThrottle without throwing"
     },
     {
@@ -19,7 +19,7 @@
       "input": {
         "entrypoint": "boundaryKitComposition.ts"
       },
-      "kind": "boundaryKitComposition",
+      "shape": "boundaryKitComposition",
       "name": "runs boundaryKitComposition without throwing"
     },
     {
@@ -30,7 +30,7 @@
       "input": {
         "entrypoint": "drainThrottle.ts"
       },
-      "kind": "drainThrottle",
+      "shape": "drainThrottle",
       "name": "runs drainThrottle without throwing"
     },
     {
@@ -41,7 +41,7 @@
       "input": {
         "entrypoint": "observedThrottle.ts"
       },
-      "kind": "observedThrottle",
+      "shape": "observedThrottle",
       "name": "runs observedThrottle without throwing"
     }
   ]

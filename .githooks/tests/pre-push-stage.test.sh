@@ -50,4 +50,31 @@ HOOK
 rm -rf "$repo"
 pass_count=$((pass_count + 1))
 
+repo=$(make_repo release/1.0.0)
+(
+  cd "$repo" || exit 1
+  mkdir -p .githooks scripts
+  cp -R "$REPO_ROOT/.githooks/lib" .githooks/lib
+  cp "$REPO_ROOT/.githooks/pre-push" .githooks/pre-push
+  chmod +x .githooks/pre-push
+
+  cat > scripts/hook-suite.sh <<'HOOK'
+#!/bin/sh
+printf '%s\n' "$1" >> hook-suite.calls
+exit 0
+HOOK
+  chmod +x scripts/hook-suite.sh
+
+  local_sha=$(git rev-parse HEAD)
+  if ! printf 'refs/tags/v1.0.0 %s refs/tags/v1.0.0 0000000000000000000000000000000000000000\n' "$local_sha" | .githooks/pre-push >/tmp/pre-push-tag.out 2>&1; then
+    fail "pre-push tag-only" "$(cat /tmp/pre-push-tag.out)"
+  fi
+
+  assert_contains "tag-only unit tests" "test-unit" "$(cat hook-suite.calls)"
+  assert_contains "tag-only integration tests" "test-integration" "$(cat hook-suite.calls)"
+  assert_contains "tag-only smoke tests" "test-smoke" "$(cat hook-suite.calls)"
+)
+rm -rf "$repo"
+pass_count=$((pass_count + 1))
+
 test_main

@@ -8,13 +8,13 @@ type ScenarioCase = {
   description: string;
   expected: { invoked: true; ms: number };
   input: { ms: number };
-  kind: 'forwards-to-global-settimeout';
+  shape: 'forwards-to-global-settimeout';
   name: string;
 };
 
 const originalSetTimeout = globalThis.setTimeout;
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'forwards-to-global-settimeout': async (scenarioCase) => {
     let receivedMs = -1;
 
@@ -40,7 +40,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('delay utility', () => {

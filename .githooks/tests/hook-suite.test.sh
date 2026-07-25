@@ -57,5 +57,37 @@ assert_hook_suite_dispatches_shared_presets() {
   pass_count=$((pass_count + 1))
 }
 
+assert_hook_suite_backmerge_verifies_lockstep() {
+  local repo base_sha main_sha out
+
+  repo=$(make_repo)
+  (
+    cd "$repo" || exit 1
+    stub_cmd "$repo" bash 'printf "%s\n" "$*"'
+    stub_cmd "$repo" node 'printf "%s\n" "1.0.0"'
+    printf '%s\n' '{"name":"root","version":"1.0.0"}' > package.json
+
+    base_sha=$(git rev-parse HEAD)
+    git update-ref refs/remotes/origin/develop "$base_sha"
+
+    git switch -q -c main
+    printf '%s\n' release > release.txt
+    git add release.txt
+    git commit -q -m "release"
+    main_sha=$(git rev-parse HEAD)
+    git update-ref refs/remotes/origin/main "$main_sha"
+
+    git switch -q -c chore/v1.0.0-backmerge "$base_sha"
+    git merge -q --no-ff "$main_sha" -m "chore: sync main to develop"
+
+    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
+    assert_contains "hook backmerge release gates" "scripts/release-suite.sh verify-backmerge 1.0.0 origin/develop" "$out"
+    assert_not_contains "hook backmerge skips changeset status" "changeset-status" "$out"
+  )
+  rm -rf "$repo"
+  pass_count=$((pass_count + 1))
+}
+
 assert_hook_suite_dispatches_shared_presets
+assert_hook_suite_backmerge_verifies_lockstep
 test_main

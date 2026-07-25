@@ -7,23 +7,23 @@ import { CoalesceTimeoutError } from '../../src/errors/CoalesceTimeoutError.js';
 import scenarioGroups from './Coalesce.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'shared-factory'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'independent-keys'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'inflight-state'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'factory-error-cleanup'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'factory-throw'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'sequential-calls'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'coalesce-start-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'start-gate'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'settled-success'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'settled-failure'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'join-hook-rejects'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'no-timeout'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: { coalesce: { timeout: number }; key: string; result: string }; kind: 'timeout-rejects'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: { coalesce: { timeout: number }; key: string; result: string }; kind: 'timeout-second-caller'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: { coalesce: { timeout: number }; key: string }; kind: 'async-timeout-hook'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'rejecting-start-hook'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'throwing-settled-hook'; name: string };
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'shared-factory'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'independent-keys'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'inflight-state'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'factory-error-cleanup'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'factory-throw'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'sequential-calls'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'coalesce-start-hooks'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'start-gate'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'settled-success'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'settled-failure'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'join-hook-rejects'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'no-timeout'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: { coalesce: { timeout: number }; key: string; result: string }; shape: 'timeout-rejects'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: { coalesce: { timeout: number }; key: string; result: string }; shape: 'timeout-second-caller'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: { coalesce: { timeout: number }; key: string }; shape: 'async-timeout-hook'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'rejecting-start-hook'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-settled-hook'; name: string };
 
 class ObservedCoalesce<T> extends Coalesce<T> {
   readonly startEvents: string[] = [];
@@ -46,7 +46,7 @@ function assertErrorMessageIncludes(error: unknown, expectedMessage: string): vo
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
-const scenarioRunners: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'shared-factory': async (scenarioCase) => {
     const input = scenarioCase.input as { calls: number; delayMs: number; key: string; result: string };
     const expected = scenarioCase.expected as { result: string; callCount: number };
@@ -320,7 +320,7 @@ const scenarioRunners: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase)
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await scenarioRunners[scenarioCase.kind](scenarioCase);
+  await scenarioRunners[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Coalesce', () => {

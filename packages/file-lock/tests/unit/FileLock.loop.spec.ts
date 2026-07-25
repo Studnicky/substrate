@@ -17,30 +17,30 @@ type ScenarioCaseBase = {
 };
 
 type ScenarioCase =
-  | (ScenarioCaseBase & { kind: 'timeout-missing-file' })
-  | (ScenarioCaseBase & { kind: 'acquire-success-restores-path' })
-  | (ScenarioCaseBase & { kind: 'contention-times-out' })
-  | (ScenarioCaseBase & { kind: 'read-after-create' })
-  | (ScenarioCaseBase & { kind: 'write-then-release-restores-new-content' })
-  | (ScenarioCaseBase & { kind: 'release-idempotent' })
-  | (ScenarioCaseBase & { kind: 'symbol-dispose-releases' })
-  | (ScenarioCaseBase & { kind: 'poll-and-timeout-options' })
-  | (ScenarioCaseBase & { kind: 'hook-acquire-start-and-acquire' })
-  | (ScenarioCaseBase & { kind: 'hook-release-original-path' })
-  | (ScenarioCaseBase & { kind: 'hook-idempotent-release' })
-  | (ScenarioCaseBase & { kind: 'hook-timeout' })
-  | (ScenarioCaseBase & { kind: 'hook-contention-wait-and-timeout' })
-  | (ScenarioCaseBase & { kind: 'hook-order' })
-  | (ScenarioCaseBase & { kind: 'throwing-onAcquire-does-not-orphan-lock' })
-  | (ScenarioCaseBase & { kind: 'async-rejecting-onAcquire-guarded' })
-  | (ScenarioCaseBase & { kind: 'hook-errors-isolated-per-instance' })
-  | (ScenarioCaseBase & { kind: 'symbol-dispose-hook' })
-  | (ScenarioCaseBase & { kind: 'bare-relative-filename-contention' })
-  | (ScenarioCaseBase & { kind: 'genuine-fs-error-routes-to-onError' });
+  | (ScenarioCaseBase & { shape: 'timeout-missing-file' })
+  | (ScenarioCaseBase & { shape: 'acquire-success-restores-path' })
+  | (ScenarioCaseBase & { shape: 'contention-times-out' })
+  | (ScenarioCaseBase & { shape: 'read-after-create' })
+  | (ScenarioCaseBase & { shape: 'write-then-release-restores-new-content' })
+  | (ScenarioCaseBase & { shape: 'release-idempotent' })
+  | (ScenarioCaseBase & { shape: 'symbol-dispose-releases' })
+  | (ScenarioCaseBase & { shape: 'poll-and-timeout-options' })
+  | (ScenarioCaseBase & { shape: 'hook-acquire-start-and-acquire' })
+  | (ScenarioCaseBase & { shape: 'hook-release-original-path' })
+  | (ScenarioCaseBase & { shape: 'hook-idempotent-release' })
+  | (ScenarioCaseBase & { shape: 'hook-timeout' })
+  | (ScenarioCaseBase & { shape: 'hook-contention-wait-and-timeout' })
+  | (ScenarioCaseBase & { shape: 'hook-order' })
+  | (ScenarioCaseBase & { shape: 'throwing-onAcquire-does-not-orphan-lock' })
+  | (ScenarioCaseBase & { shape: 'async-rejecting-onAcquire-guarded' })
+  | (ScenarioCaseBase & { shape: 'hook-errors-isolated-per-instance' })
+  | (ScenarioCaseBase & { shape: 'symbol-dispose-hook' })
+  | (ScenarioCaseBase & { shape: 'bare-relative-filename-contention' })
+  | (ScenarioCaseBase & { shape: 'genuine-fs-error-routes-to-onError' });
 
-type ScenarioKind = ScenarioCase['kind'];
-type ScenarioRunner<Kind extends ScenarioKind> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => Promise<void>;
-type ScenarioRunnerMap = { readonly [Kind in ScenarioKind]: ScenarioRunner<Kind> };
+type ScenarioShape = ScenarioCase['shape'];
+type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
+type ScenarioRunnerMap = { readonly [Shape in ScenarioShape]: ScenarioRunner<Shape> };
 
 type FileLockScenarioConfig = {
   pollMs?: number;
@@ -81,6 +81,14 @@ class FaultyFileSystem implements FileSystemInterface {
 
 function getFileLockConfig(scenarioCase: ScenarioCase): FileLockScenarioConfig {
   return (scenarioCase.input.fileLock ?? {}) as FileLockScenarioConfig;
+}
+
+function requireStringArray(value: unknown, context: string): string[] {
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
+    return value;
+  }
+
+  throw new TypeError(`Expected string array for ${context}`);
 }
 
 beforeEach(() => {
@@ -130,7 +138,7 @@ const runnerMap: ScenarioRunnerMap = {
         path: FileLockTestHelpers.makePath(scenarioCase.input.path as string),
         timeoutMs: getFileLockConfig(scenarioCase).timeoutMs
       }),
-      (error: unknown) => error instanceof FileLockTimeoutError
+      (error: unknown) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
   },
   'acquire-success-restores-path': async (scenarioCase) => {
@@ -147,7 +155,7 @@ const runnerMap: ScenarioRunnerMap = {
     const lock = await FileLock.create({ path });
     await assert.rejects(
       FileLock.create({ path, timeoutMs: getFileLockConfig(scenarioCase).timeoutMs }),
-      (error: unknown) => error instanceof FileLockTimeoutError
+      (error: unknown) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
     lock.release();
   },
@@ -188,7 +196,7 @@ const runnerMap: ScenarioRunnerMap = {
     const firstLock = await FileLock.create({ path });
     await assert.rejects(
       FileLock.create({ path, ...getFileLockConfig(scenarioCase) }),
-      (error: unknown) => error instanceof FileLockTimeoutError
+      (error: unknown) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
     firstLock.release();
   },
@@ -232,7 +240,7 @@ const runnerMap: ScenarioRunnerMap = {
     } catch (error) {
       caughtError = error;
     }
-    assert.ok(caughtError instanceof FileLockTimeoutError);
+    assert.equal(caughtError instanceof FileLockTimeoutError, Boolean(scenarioCase.expected.timedOut));
     assert.ok(lock === undefined);
   },
   'hook-contention-wait-and-timeout': async (scenarioCase) => {
@@ -282,9 +290,9 @@ const runnerMap: ScenarioRunnerMap = {
       OrderingFileLock.create({ path, ...getFileLockConfig(scenarioCase) }),
       (e: unknown) => e instanceof FileLockTimeoutError
     );
-    assert.strictEqual(capturedHooks[0], 'onAcquireStart');
-    assert.ok(capturedHooks.indexOf('onAcquireStart') < capturedHooks.indexOf('onAcquireWait'));
-    assert.ok(capturedHooks.indexOf('onAcquireWait') < capturedHooks.lastIndexOf('onTimeout'));
+    const order = requireStringArray(scenarioCase.expected.order, 'hook-order expected order');
+    const distinctOrder = capturedHooks.filter((hook, index) => capturedHooks.indexOf(hook) === index);
+    assert.deepEqual(distinctOrder, order);
     holder.release();
   },
   'throwing-onAcquire-does-not-orphan-lock': async (scenarioCase) => {
@@ -299,7 +307,7 @@ const runnerMap: ScenarioRunnerMap = {
     const lock = await ThrowingAcquireHookLock.create({ path });
     assert.ok(!existsSync(path));
     lock.release();
-    assert.ok(existsSync(path));
+    assert.equal(existsSync(path), !scenarioCase.expected.orphaned);
   },
   'async-rejecting-onAcquire-guarded': async (scenarioCase) => {
     const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
@@ -419,8 +427,8 @@ const runnerMap: ScenarioRunnerMap = {
   },
 };
 
-function runCase<Kind extends ScenarioKind>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): Promise<void> {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('FileLock', () => {

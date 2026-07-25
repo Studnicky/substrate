@@ -20,18 +20,18 @@ type TimingEventFixture = {
 };
 
 type ScenarioBase<
-  Kind extends string,
+  Shape extends string,
   Input extends Record<string, unknown>,
   Expected extends Record<string, unknown>
 > = {
   description: string;
   expected: Expected;
   input: Input;
-  kind: Kind;
+  shape: Shape;
   name: string;
 };
 
-type ScenarioCaseByKind = {
+type ScenarioCaseByShape = {
   'accepts-config-options': ScenarioBase<'accepts-config-options', { timing: { options: TimingOptionsEntity.Type[] } }, { createdCount: number }>;
   'async-onEvent-unhandled': ScenarioBase<'async-onEvent-unhandled', { errorMessage: string; event: TimingEventFixture; settleTicks: number }, { unhandledRejections: number }>;
   'clear-all-and-reuse': ScenarioBase<'clear-all-and-reuse', { afterEvent: TimingEventFixture; batch: { clearCount: number }; beforeEvents: TimingEventFixture[]; waitAfterClearMs: number }, { afterAddCount: number; afterClearCount: number; beforeCount: number }>;
@@ -78,10 +78,10 @@ type ScenarioCaseByKind = {
   'timing-status-constants': ScenarioBase<'timing-status-constants', { events: TimingEventFixture[] }, { keys: string[] }>;
 };
 
-type ScenarioKind = keyof ScenarioCaseByKind;
-type ScenarioCase = ScenarioCaseByKind[ScenarioKind];
-type ScenarioRunner<Kind extends ScenarioKind> = (scenarioCase: ScenarioCaseByKind[Kind]) => Promise<void> | void;
-type RunnerMap = { [Kind in ScenarioKind]: ScenarioRunner<Kind> };
+type ScenarioShape = keyof ScenarioCaseByShape;
+type ScenarioCase = ScenarioCaseByShape[ScenarioShape];
+type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: ScenarioCaseByShape[Shape]) => Promise<void> | void;
+type RunnerMap = { [Shape in ScenarioShape]: ScenarioRunner<Shape> };
 
 class TestClock {
   static busyWait(ms: number): void {
@@ -694,8 +694,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<Kind extends ScenarioKind>(scenarioCase: ScenarioCaseByKind[Kind]): Promise<void> | void {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseByShape[Shape]): Promise<void> | void {
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Timing', () => {

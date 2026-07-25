@@ -1,11 +1,17 @@
 {
-  "cases": [
+  "valid": [
     {
-      "name": "interfaces-compose-named-types",
-      "description": "ensures inline data in interfaces is composed through named types",
-      "kind": "interfaces-compose-named-types",
-      "input": { "code": "interface ServiceInterface { run(): void; }" },
-      "expected": { "validCount": 1, "invalidCount": 0 }
+      "code": "interface ServiceInterface { run(): void; }",
+      "name": "a method signature carries no inline data to compose"
+    },
+    {
+      "code": "interface FetchOptionsInterface {\n  (): void;\n  readonly 'headers'?: Record<string, string>;\n}",
+      "name": "a generic mapped type-level function member is not inline pure data"
+    },
+    {
+      "code": "interface SchedulerInterface {\n  (): void;\n  readonly 'handle': ReturnType<typeof setTimeout>;\n}",
+      "name": "a generic conditional type-level function member is not inline pure data"
     }
-  ]
+  ],
+  "invalid": []
 }

@@ -9,7 +9,7 @@ type ValidationName = 'FileLockOptionsEntity' | 'FileLockPathStateEntity';
 type ValidationCase = { entity: ValidationName; expected: boolean; value: Record<string, unknown> };
 
 type ScenarioCase =
-  | { description: string; expected: { validationResults: boolean[] }; input: { validations: ValidationCase[] }; kind: 'reject-incomplete-path-state' | 'valid-entities'; name: string };
+  | { description: string; expected: { validationResults: boolean[] }; input: { validations: ValidationCase[] }; shape: 'reject-incomplete-path-state' | 'valid-entities'; name: string };
 
 const validatorMap: Record<ValidationName, (value: Record<string, unknown>) => boolean> = {
   'FileLockOptionsEntity': (value) => FileLockOptionsEntity.validate(value),

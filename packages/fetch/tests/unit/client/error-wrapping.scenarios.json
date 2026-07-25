@@ -3,7 +3,7 @@
     {
       "name": "wrap-no-code",
       "description": "wrapUndiciError returns undefined when the error has no code",
-      "kind": "wrap-no-code",
+      "shape": "wrap-no-code",
       "input": {
         "url": "https://example.test/ok",
         "fetchClient": {
@@ -11,13 +11,13 @@
         }
       },
       "expected": {
-        "kind": "undefined"
+        "shape": "undefined"
       }
     },
     {
       "name": "wrap-unknown-code",
       "description": "wrapUndiciError returns undefined for unknown error codes",
-      "kind": "wrap-unknown-code",
+      "shape": "wrap-unknown-code",
       "input": {
         "errorCode": "UND_ERR_SOMETHING_ELSE",
         "url": "https://example.test/ok",
@@ -26,13 +26,13 @@
         }
       },
       "expected": {
-        "kind": "undefined"
+        "shape": "undefined"
       }
     },
     {
       "name": "handle-no-dispatcher",
       "description": "handleSocketExhaustion returns undefined when dispatcher is absent",
-      "kind": "handle-no-dispatcher",
+      "shape": "handle-no-dispatcher",
       "input": {
         "errorCode": "UND_ERR_CONNECT_TIMEOUT",
         "url": "https://example.test/ok",
@@ -41,13 +41,13 @@
         }
       },
       "expected": {
-        "kind": "undefined"
+        "shape": "undefined"
       }
     },
     {
       "name": "handle-invalid-origin",
       "description": "handleSocketExhaustion returns undefined when origin extraction fails",
-      "kind": "handle-invalid-origin",
+      "shape": "handle-invalid-origin",
       "input": {
         "errorCode": "UND_ERR_CONNECT_TIMEOUT",
         "url": "not-a-valid-url",
@@ -60,13 +60,13 @@
         }
       },
       "expected": {
-        "kind": "undefined"
+        "shape": "undefined"
       }
     },
     {
       "name": "handle-dispatcher-health",
       "description": "handleSocketExhaustion creates a SocketExhaustionError when health stats are available",
-      "kind": "handle-dispatcher-health",
+      "shape": "handle-dispatcher-health",
       "input": {
         "errorCode": "UND_ERR_CONNECT_TIMEOUT",
         "url": "https://example.test/ok",
@@ -79,13 +79,13 @@
         }
       },
       "expected": {
-        "kind": "socket-exhaustion"
+        "shape": "socket-exhaustion"
       }
     },
     {
       "name": "wrap-connect-timeout",
       "description": "wrapUndiciError maps connect timeout errors",
-      "kind": "wrap-connect-timeout",
+      "shape": "wrap-connect-timeout",
       "input": {
         "errorCode": "UND_ERR_CONNECT_TIMEOUT",
         "url": "not-a-valid-url",
@@ -98,14 +98,14 @@
         }
       },
       "expected": {
-        "kind": "error",
+        "shape": "error",
         "errorName": "ConnectTimeoutError"
       }
     },
     {
       "name": "wrap-body-timeout",
       "description": "wrapUndiciError maps body timeout errors",
-      "kind": "wrap-body-timeout",
+      "shape": "wrap-body-timeout",
       "input": {
         "errorCode": "UND_ERR_BODY_TIMEOUT",
         "url": "https://example.test/ok",
@@ -118,14 +118,14 @@
         }
       },
       "expected": {
-        "kind": "error",
+        "shape": "error",
         "errorName": "BodyTimeoutError"
       }
     },
     {
       "name": "wrap-headers-timeout",
       "description": "wrapUndiciError maps headers timeout errors",
-      "kind": "wrap-headers-timeout",
+      "shape": "wrap-headers-timeout",
       "input": {
         "errorCode": "UND_ERR_HEADERS_TIMEOUT",
         "url": "https://example.test/ok",
@@ -138,14 +138,14 @@
         }
       },
       "expected": {
-        "kind": "error",
+        "shape": "error",
         "errorName": "HeadersTimeoutError"
       }
     },
     {
       "name": "wrap-socket-error",
       "description": "wrapUndiciError maps socket errors",
-      "kind": "wrap-socket-error",
+      "shape": "wrap-socket-error",
       "input": {
         "errorCode": "UND_ERR_SOCKET",
         "url": "https://example.test/ok",
@@ -158,7 +158,7 @@
         }
       },
       "expected": {
-        "kind": "error",
+        "shape": "error",
         "errorName": "SocketError"
       }
     }

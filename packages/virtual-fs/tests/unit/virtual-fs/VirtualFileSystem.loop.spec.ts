@@ -7,22 +7,22 @@ import { VirtualFileSystem } from '../../../src/virtual-fs/VirtualFileSystem.js'
 import scenarioGroups from './VirtualFileSystem.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
-  [Kind in ScenarioKind]: ScenarioMetadata<Kind> & ScenarioCaseByKind[Kind];
-}[ScenarioKind];
+  [Shape in ScenarioShape]: ScenarioMetadata<Shape> & ScenarioCaseByShape[Shape];
+}[ScenarioShape];
 
-type ScenarioCaseOf<Kind extends ScenarioKind> = Extract<ScenarioCase, { kind: Kind }>;
+type ScenarioCaseOf<Shape extends ScenarioShape> = Extract<ScenarioCase, { shape: Shape }>;
 
-type ScenarioHandler<Kind extends ScenarioKind> = (scenarioCase: ScenarioCaseOf<Kind>) => void;
+type ScenarioHandler<Shape extends ScenarioShape> = (scenarioCase: ScenarioCaseOf<Shape>) => void;
 
 type ScenarioHandlers = {
-  [Kind in ScenarioKind]: ScenarioHandler<Kind>;
+  [Shape in ScenarioShape]: ScenarioHandler<Shape>;
 };
 
-type ScenarioKind = keyof ScenarioCaseByKind;
+type ScenarioShape = keyof ScenarioCaseByShape;
 
-type ScenarioMetadata<Kind extends string> = {
+type ScenarioMetadata<Shape extends string> = {
   description: string;
-  kind: Kind;
+  shape: Shape;
   name: string;
 };
 
@@ -34,7 +34,7 @@ type TextFileInput = {
   path: string;
 };
 
-interface ScenarioCaseByKind {
+interface ScenarioCaseByShape {
   'create-clock-deterministic': {
     expected: { mtimeMs: number };
     input: TextFileInput & { clockMs: number };
@@ -203,11 +203,11 @@ interface ScenarioCaseByKind {
     expected: { errorCode: string };
     input: { from: string; to: string };
   };
-  'stat-dir-kind': {
+  'stat-dir-shape': {
     expected: { isDirectory: boolean; isFile: boolean };
     input: { path: string };
   };
-  'stat-file-kind': {
+  'stat-file-shape': {
     expected: { isDirectory: boolean; isFile: boolean };
     input: TextFileInput;
   };
@@ -556,7 +556,7 @@ const scenarioHandlers: ScenarioHandlers = {
       fs.renameSync(input.from, input.to);
     }, expected.errorCode);
   },
-  'stat-dir-kind': (scenarioCase) => {
+  'stat-dir-shape': (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const fs = VirtualFileSystem.create();
     fs.mkdirSync(input.path);
@@ -564,7 +564,7 @@ const scenarioHandlers: ScenarioHandlers = {
     assert.strictEqual(stat.isDirectory(), expected.isDirectory);
     assert.strictEqual(stat.isFile(), expected.isFile);
   },
-  'stat-file-kind': (scenarioCase) => {
+  'stat-file-shape': (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const fs = VirtualFileSystem.create();
     fs.writeFileSync(input.path, input.content, input.encoding);
@@ -626,8 +626,8 @@ const scenarioHandlers: ScenarioHandlers = {
   }
 };
 
-function runCase<Kind extends ScenarioKind>(scenarioCase: ScenarioCaseOf<Kind>): void {
-  scenarioHandlers[scenarioCase.kind](scenarioCase);
+function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseOf<Shape>): void {
+  scenarioHandlers[scenarioCase.shape](scenarioCase);
 }
 
 const scenarios = scenarioGroups.cases as ScenarioCase[];

@@ -11,8 +11,8 @@ import {
 type ScenarioCase = {
   description: string;
   expected:
-    | { kind: 'ok'; status: number; text?: string }
-    | { id?: number; kind: 'json'; status: number; title?: string };
+    | { shape: 'ok'; status: number; text?: string }
+    | { id?: number; shape: 'json'; status: number; title?: string };
   name: string;
   input: {
     body?: Record<string, unknown> | string;
@@ -51,7 +51,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   assert.strictEqual(response.status, scenarioCase.expected.status);
 
-  if (scenarioCase.expected.kind === 'ok') {
+  if (scenarioCase.expected.shape === 'ok') {
     if (scenarioCase.expected.text !== undefined) {
       assert.strictEqual(await response.text(), scenarioCase.expected.text);
     }

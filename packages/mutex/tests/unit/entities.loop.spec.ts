@@ -9,7 +9,7 @@ type ScenarioCase =
       description: string;
       expected: { validationResults: boolean[] };
       input: { validations: { expected: boolean; value: Record<string, unknown> }[] };
-      kind: 'negative' | 'non-negative';
+      shape: 'negative' | 'non-negative';
       name: string;
     };
 

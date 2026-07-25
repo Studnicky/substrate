@@ -3,7 +3,7 @@
     {
       "name": "completes-without-timeout",
       "description": "request completes without timing out",
-      "kind": "completes-without-timeout",
+      "shape": "completes-without-timeout",
       "input": {
         "request": {
           "url": "/posts/1"
@@ -16,7 +16,7 @@
     {
       "name": "times-out-fast-request",
       "description": "request times out when it takes too long",
-      "kind": "times-out-fast-request",
+      "shape": "times-out-fast-request",
       "input": {
         "request": {
           "timeout": 1,
@@ -30,7 +30,7 @@
     {
       "name": "reports-timeout-details",
       "description": "timeout error carries timeout details",
-      "kind": "reports-timeout-details",
+      "shape": "reports-timeout-details",
       "input": {
         "request": {
           "timeout": 1,
@@ -46,7 +46,7 @@
     {
       "name": "clears-timeout-after-success",
       "description": "timeout clears after a successful request",
-      "kind": "clears-timeout-after-success",
+      "shape": "clears-timeout-after-success",
       "input": {
         "request": {
           "timeout": 5000,
@@ -60,7 +60,7 @@
     {
       "name": "supports-timeout-in-get",
       "description": "GET supports timeout",
-      "kind": "supports-timeout-in-get",
+      "shape": "supports-timeout-in-get",
       "input": {
         "request": {
           "timeout": 100,
@@ -74,7 +74,7 @@
     {
       "name": "works-with-fast-requests",
       "description": "timeout works with fast requests",
-      "kind": "works-with-fast-requests",
+      "shape": "works-with-fast-requests",
       "input": {
         "request": {
           "timeout": 5000,
@@ -88,7 +88,7 @@
     {
       "name": "applies-default-timeout",
       "description": "client default timeout applies",
-      "kind": "applies-default-timeout",
+      "shape": "applies-default-timeout",
       "input": {
         "clientTimeout": 5000,
         "request": {
@@ -102,7 +102,7 @@
     {
       "name": "request-overrides-default-timeout",
       "description": "request timeout overrides default timeout",
-      "kind": "request-overrides-default-timeout",
+      "shape": "request-overrides-default-timeout",
       "input": {
         "clientTimeout": 100,
         "request": {

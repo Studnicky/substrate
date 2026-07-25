@@ -14,7 +14,7 @@ interface ItemInterface {
 }
 
 interface DeferredSignalInputInterface {
-  kind: 'deferred-compose';
+  shape: 'deferred-compose';
 }
 
 interface BatchConfigInputInterface {
@@ -33,56 +33,56 @@ type ScenarioCase =
       description: string;
       expected: { timedOutIndexes: number[] };
       input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      kind: 'worker-timeout';
+      shape: 'worker-timeout';
       name: string;
     }
   | {
       description: string;
       expected: { errorMessageIncludes: string };
       input: { items: Array<{ value: string }>; workerPool: WorkerPoolInputInterface };
-      kind: 'signal-already-aborted';
+      shape: 'signal-already-aborted';
       name: string;
     }
   | {
       description: string;
       expected: { results: string[] };
       input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      kind: 'within-timeout';
+      shape: 'within-timeout';
       name: string;
     }
   | {
       description: string;
       expected: { messagesAfterCompose: number; messagesAfterRun: number; results: string[] };
       input: { items: Array<{ value: string }>; signal: DeferredSignalInputInterface; workerPool: WorkerPoolInputInterface };
-      kind: 'awaits-signal-composition';
+      shape: 'awaits-signal-composition';
       name: string;
     }
   | {
       description: string;
       expected: { errorMessageIncludes: string };
-      input: { items: Array<{ value: string }>; signal: { kind: 'rejecting-compose' }; workerPool: WorkerPoolInputInterface };
-      kind: 'signal-compose-rejects';
+      input: { items: Array<{ value: string }>; signal: { shape: 'rejecting-compose' }; workerPool: WorkerPoolInputInterface };
+      shape: 'signal-compose-rejects';
       name: string;
     }
   | {
       description: string;
       expected: { errorMessageIncludes: string };
-      input: { items: Array<{ value: string }>; signal: { kind: 'rejecting-compose-string' }; workerPool: WorkerPoolInputInterface };
-      kind: 'signal-compose-rejects-string';
+      input: { items: Array<{ value: string }>; signal: { shape: 'rejecting-compose-string' }; workerPool: WorkerPoolInputInterface };
+      shape: 'signal-compose-rejects-string';
       name: string;
     }
   | {
       description: string;
       expected: { errorMessageIncludes: string };
-      input: { items: Array<{ value: string }>; signal: { kind: 'deferred-compose' }; workerPool: WorkerPoolInputInterface };
-      kind: 'compose-after-exit';
+      input: { items: Array<{ value: string }>; signal: { shape: 'deferred-compose' }; workerPool: WorkerPoolInputInterface };
+      shape: 'compose-after-exit';
       name: string;
     }
   | {
       description: string;
       expected: { results: string[] };
-      input: { items: Array<{ exitAfterResult?: boolean; value: string }>; signal: { kind: 'deferred-compose' }; workerPool: WorkerPoolInputInterface };
-      kind: 'compose-after-exit-queued';
+      input: { items: Array<{ exitAfterResult?: boolean; value: string }>; signal: { shape: 'deferred-compose' }; workerPool: WorkerPoolInputInterface };
+      shape: 'compose-after-exit-queued';
       name: string;
     }
 
@@ -100,7 +100,7 @@ function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigIn
   return resolved;
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'worker-timeout': async (scenarioCase) => {
     const timedOutIndexes: number[] = [];
 
@@ -311,7 +311,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool timeout', () => {

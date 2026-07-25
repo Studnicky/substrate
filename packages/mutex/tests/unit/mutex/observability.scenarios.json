@@ -3,7 +3,7 @@
     {
       "name": "afterAcquire-immediate",
       "description": "Mutex fires afterAcquire when lock is acquired immediately",
-      "kind": "afterAcquire-immediate",
+      "shape": "afterAcquire-immediate",
       "input": {
         "key": "key1"
       },
@@ -15,7 +15,7 @@
     {
       "name": "afterAcquire-waiting",
       "description": "Mutex fires afterAcquire after waiting for a held lock",
-      "kind": "afterAcquire-waiting",
+      "shape": "afterAcquire-waiting",
       "input": {
         "key": "key1",
         "batch": {
@@ -31,7 +31,7 @@
     {
       "name": "afterAcquire-separate-keys",
       "description": "Mutex tracks afterAcquire independently for separate keys",
-      "kind": "afterAcquire-separate-keys",
+      "shape": "afterAcquire-separate-keys",
       "input": {
         "keys": [
           "key1",
@@ -48,7 +48,7 @@
     {
       "name": "beforeRelease-fires",
       "description": "Mutex fires beforeRelease when a lock is released",
-      "kind": "beforeRelease-fires",
+      "shape": "beforeRelease-fires",
       "input": {
         "key": "key1",
         "holdMs": 50
@@ -61,7 +61,7 @@
     {
       "name": "beforeRelease-tracks-hold-time",
       "description": "Mutex tracks hold time across release cycles",
-      "kind": "beforeRelease-tracks-hold-time",
+      "shape": "beforeRelease-tracks-hold-time",
       "input": {
         "key": "key1",
         "holdMs": [
@@ -77,7 +77,7 @@
     {
       "name": "onTimeout-fires",
       "description": "Mutex fires onTimeout when acquisition times out",
-      "kind": "onTimeout-fires",
+      "shape": "onTimeout-fires",
       "input": {
         "key": "key1",
         "mutex": {
@@ -95,7 +95,7 @@
     {
       "name": "onContended-fires",
       "description": "Mutex fires onContended when a waiter queues",
-      "kind": "onContended-fires",
+      "shape": "onContended-fires",
       "input": {
         "key": "key1",
         "batch": {
@@ -110,7 +110,7 @@
     {
       "name": "afterRelease-fires",
       "description": "Mutex fires afterRelease after a lock is fully released",
-      "kind": "afterRelease-fires",
+      "shape": "afterRelease-fires",
       "input": {
         "key": "key1"
       },
@@ -123,7 +123,7 @@
     {
       "name": "hook-errors-do-not-break-locking",
       "description": "Mutex remains functional when release hooks throw",
-      "kind": "hook-errors-do-not-break-locking",
+      "shape": "hook-errors-do-not-break-locking",
       "input": {
         "key": "key1"
       },
@@ -135,7 +135,7 @@
     {
       "name": "beforeAcquire-error-is-recorded",
       "description": "Mutex records hook errors when beforeAcquire throws",
-      "kind": "beforeAcquire-error-is-recorded",
+      "shape": "beforeAcquire-error-is-recorded",
       "input": {
         "key": "key1"
       },
@@ -147,7 +147,7 @@
     {
       "name": "afterAcquire-error-does-not-stop-queue",
       "description": "Mutex continues queue processing when afterAcquire throws",
-      "kind": "afterAcquire-error-does-not-stop-queue",
+      "shape": "afterAcquire-error-does-not-stop-queue",
       "input": {
         "key": "key1",
         "batch": {
@@ -165,7 +165,7 @@
     {
       "name": "async-hook-rejections-are-recorded",
       "description": "Mutex records async hook rejections without unhandled rejections",
-      "kind": "async-hook-rejections-are-recorded",
+      "shape": "async-hook-rejections-are-recorded",
       "input": {
         "mutex": {
           "timeout": 20
@@ -197,7 +197,7 @@
     {
       "name": "tracks-all-metrics",
       "description": "Mutex tracks all metrics in a single subclass",
-      "kind": "tracks-all-metrics",
+      "shape": "tracks-all-metrics",
       "input": {
         "keys": [
           "key1",
@@ -213,7 +213,7 @@
     {
       "name": "onAcquireWait-not-immediate",
       "description": "Mutex does not fire onAcquireWait for immediate acquisition",
-      "kind": "onAcquireWait-not-immediate",
+      "shape": "onAcquireWait-not-immediate",
       "input": {
         "key": "key1"
       },
@@ -224,7 +224,7 @@
     {
       "name": "onAcquireWait-queued",
       "description": "Mutex fires onAcquireWait for queued acquisition",
-      "kind": "onAcquireWait-queued",
+      "shape": "onAcquireWait-queued",
       "input": {
         "key": "key1",
         "batch": {
@@ -238,7 +238,7 @@
     {
       "name": "onAcquireWait-per-waiter",
       "description": "Mutex fires onAcquireWait once per queued waiter",
-      "kind": "onAcquireWait-per-waiter",
+      "shape": "onAcquireWait-per-waiter",
       "input": {
         "key": "key1",
         "batch": {
@@ -252,7 +252,7 @@
     {
       "name": "onRelease-every-release",
       "description": "Mutex fires onRelease for every release",
-      "kind": "onRelease-every-release",
+      "shape": "onRelease-every-release",
       "input": {
         "key": "key1"
       },
@@ -263,7 +263,7 @@
     {
       "name": "onRelease-handoff",
       "description": "Mutex fires onRelease when handing to the next waiter",
-      "kind": "onRelease-handoff",
+      "shape": "onRelease-handoff",
       "input": {
         "key": "key1",
         "batch": {
@@ -277,7 +277,7 @@
     {
       "name": "onQueueDrain-normal",
       "description": "Mutex fires onQueueDrain when the queue drains normally",
-      "kind": "onQueueDrain-normal",
+      "shape": "onQueueDrain-normal",
       "input": {
         "key": "key1",
         "batch": {
@@ -291,7 +291,7 @@
     {
       "name": "onQueueDrain-timeout",
       "description": "Mutex fires onQueueDrain when a timed-out waiter leaves the queue",
-      "kind": "onQueueDrain-timeout",
+      "shape": "onQueueDrain-timeout",
       "input": {
         "key": "key1",
         "mutex": {
@@ -308,7 +308,7 @@
     {
       "name": "onQueueDrain-not-early",
       "description": "Mutex delays onQueueDrain until the last queued waiter leaves",
-      "kind": "onQueueDrain-not-early",
+      "shape": "onQueueDrain-not-early",
       "input": {
         "key": "key1",
         "batch": {
@@ -322,7 +322,7 @@
     {
       "name": "onRelease-throw-does-not-replace-release",
       "description": "Mutex keeps release behavior when onRelease throws",
-      "kind": "onRelease-throw-does-not-replace-release",
+      "shape": "onRelease-throw-does-not-replace-release",
       "input": {
         "key": "key1"
       },
@@ -333,7 +333,7 @@
     {
       "name": "onQueueDrain-throw-does-not-replace-handoff",
       "description": "Mutex keeps queue handoff when onQueueDrain throws",
-      "kind": "onQueueDrain-throw-does-not-replace-handoff",
+      "shape": "onQueueDrain-throw-does-not-replace-handoff",
       "input": {
         "key": "key1",
         "batch": {
@@ -347,7 +347,7 @@
     {
       "name": "onTimeout-throw-does-not-replace-error",
       "description": "Mutex keeps LockTimeoutError behavior when onTimeout throws",
-      "kind": "onTimeout-throw-does-not-replace-error",
+      "shape": "onTimeout-throw-does-not-replace-error",
       "input": {
         "key": "key1",
         "mutex": {

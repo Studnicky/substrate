@@ -3,7 +3,7 @@
     {
       "name": "paginator-creation-pages-empty",
       "description": "Paginator.create() starts with no pages accumulated",
-      "kind": "creation-pages-empty",
+      "shape": "creation-pages-empty",
       "input": {
         "paginator": {
           "initialPages": []
@@ -16,7 +16,7 @@
     {
       "name": "paginator-creation-has-next",
       "description": "Paginator.create() reports hasNext() before any page arrives",
-      "kind": "creation-has-next",
+      "shape": "creation-has-next",
       "input": {
         "paginator": {
           "initialPages": []
@@ -29,7 +29,7 @@
     {
       "name": "paginator-accumulation-single-page",
       "description": "next() accumulates a single page and keeps hasNext() true when a cursor remains",
-      "kind": "accumulation-single-page",
+      "shape": "accumulation-single-page",
       "input": {
         "paginator": {
           "pages": [
@@ -51,7 +51,7 @@
     {
       "name": "paginator-accumulation-multiple-pages",
       "description": "next() accumulates multiple pages in receipt order",
-      "kind": "accumulation-multiple-pages",
+      "shape": "accumulation-multiple-pages",
       "input": {
         "paginator": {
           "pages": [
@@ -87,7 +87,7 @@
     {
       "name": "paginator-accumulation-pages-defensive-snapshot",
       "description": "pages returns a defensive snapshot",
-      "kind": "accumulation-pages-defensive-snapshot",
+      "shape": "accumulation-pages-defensive-snapshot",
       "input": {
         "paginator": {
           "pages": [
@@ -108,7 +108,7 @@
     {
       "name": "paginator-accumulation-nested-pages-detached",
       "description": "nested retained pages stay detached from caller mutation",
-      "kind": "accumulation-nested-pages-detached",
+      "shape": "accumulation-nested-pages-detached",
       "input": {
         "paginator": {
           "page": {
@@ -146,7 +146,7 @@
     {
       "name": "paginator-accumulation-many-pages",
       "description": "next() accumulates many pages without dropping or reordering entries",
-      "kind": "accumulation-many-pages",
+      "shape": "accumulation-many-pages",
       "input": {
         "paginator": {
           "batch": {
@@ -188,7 +188,7 @@
     {
       "name": "paginator-exhaustion-first-page",
       "description": "an exhausted first page marks the source exhausted",
-      "kind": "exhaustion-first-page",
+      "shape": "exhaustion-first-page",
       "input": {
         "paginator": {
           "pages": [
@@ -209,7 +209,7 @@
     {
       "name": "paginator-exhaustion-later-page",
       "description": "an exhausted later page marks the source exhausted",
-      "kind": "exhaustion-later-page",
+      "shape": "exhaustion-later-page",
       "input": {
         "paginator": {
           "pages": [
@@ -238,7 +238,7 @@
     {
       "name": "paginator-exhaustion-after-exhaustion-throws",
       "description": "next() throws after the source is exhausted",
-      "kind": "exhaustion-after-exhaustion-throws",
+      "shape": "exhaustion-after-exhaustion-throws",
       "input": {
         "paginator": {
           "pages": [
@@ -257,7 +257,7 @@
     {
       "name": "paginator-exhaustion-undefined-cursor",
       "description": "a legitimate undefined cursor mid-stream does not imply exhaustion",
-      "kind": "exhaustion-undefined-cursor",
+      "shape": "exhaustion-undefined-cursor",
       "input": {
         "paginator": {
           "pages": [
@@ -267,7 +267,7 @@
           "nextCursors": [
             {
               "cursor": {
-                "kind": "undefined"
+                "shape": "undefined"
               },
               "exhausted": false
             },
@@ -289,7 +289,7 @@
     {
       "name": "paginator-hooks-record-transitions",
       "description": "hook overrides observe the expected transition ordering and payloads",
-      "kind": "hooks-record-transitions",
+      "shape": "hooks-record-transitions",
       "input": {
         "paginator": {
           "page": "page-1",
@@ -323,7 +323,7 @@
     {
       "name": "paginator-hooks-skip-hasmore-self-transition",
       "description": "hasMore to hasMore does not fire the transition hooks again",
-      "kind": "hooks-skip-hasmore-self-transition",
+      "shape": "hooks-skip-hasmore-self-transition",
       "input": {
         "paginator": {
           "pages": [
@@ -351,7 +351,7 @@
     {
       "name": "paginator-hooks-record-exhausted-reset",
       "description": "reset records exhausted to idle",
-      "kind": "hooks-record-exhausted-reset",
+      "shape": "hooks-record-exhausted-reset",
       "input": {
         "paginator": {
           "pages": [
@@ -381,7 +381,7 @@
     {
       "name": "paginator-hooks-rejected-after-exhaustion",
       "description": "hook rejection is reported after exhaustion",
-      "kind": "hooks-rejected-after-exhaustion",
+      "shape": "hooks-rejected-after-exhaustion",
       "input": {
         "paginator": {
           "pages": [
@@ -407,7 +407,7 @@
     {
       "name": "paginator-hooks-retain-detached-cursor-snapshot",
       "description": "cursor snapshots stay detached from caller mutation",
-      "kind": "hooks-retain-detached-cursor-snapshot",
+      "shape": "hooks-retain-detached-cursor-snapshot",
       "input": {
         "paginator": {
           "page": "page-1",
@@ -431,7 +431,7 @@
     {
       "name": "paginator-hook-error-throwing-enter",
       "description": "throwing hook overrides surface as HookInvocationError",
-      "kind": "hook-error-throwing-enter",
+      "shape": "hook-error-throwing-enter",
       "input": {
         "paginator": {
           "page": "page-1",
@@ -449,7 +449,7 @@
     {
       "name": "paginator-hook-error-async-rejection",
       "description": "async hook rejection is staged and surfaced on the next call",
-      "kind": "hook-error-async-rejection",
+      "shape": "hook-error-async-rejection",
       "input": {
         "paginator": {
           "pages": [
@@ -475,7 +475,7 @@
     {
       "name": "paginator-hook-error-owning-instance-isolation",
       "description": "hook failures stay isolated to their owning paginator instance",
-      "kind": "hook-error-owning-instance-isolation",
+      "shape": "hook-error-owning-instance-isolation",
       "input": {
         "paginator": {
           "failing": {
@@ -537,7 +537,7 @@
     {
       "name": "paginator-reentrancy-next",
       "description": "reentrant next() retains all pages in order",
-      "kind": "reentrancy-next",
+      "shape": "reentrancy-next",
       "input": {
         "paginator": {
           "pages": [
@@ -573,7 +573,7 @@
     {
       "name": "paginator-reentrancy-reset",
       "description": "reentrant reset() resolves without corrupting state",
-      "kind": "reentrancy-reset",
+      "shape": "reentrancy-reset",
       "input": {
         "paginator": {
           "pages": [
@@ -594,7 +594,7 @@
     {
       "name": "paginator-reentrancy-cross-instance",
       "description": "a hook can transition a second paginator because ownership is instance-local",
-      "kind": "reentrancy-cross-instance",
+      "shape": "reentrancy-cross-instance",
       "input": {
         "paginator": {
           "sourceName": "source",
@@ -626,7 +626,7 @@
     {
       "name": "paginator-discriminant-narrowing",
       "description": "discriminant helpers narrow state, event, and cursor payloads",
-      "kind": "discriminant-narrowing",
+      "shape": "discriminant-narrowing",
       "input": {
         "paginator": {
           "cursorAvailable": {

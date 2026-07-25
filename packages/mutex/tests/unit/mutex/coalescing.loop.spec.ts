@@ -16,77 +16,77 @@ type ScenarioCase =
       description: string;
       expected: { executionCount: 1; results: readonly ['result', 'result', 'result'] };
       input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string; result: string };
-      kind: 'shares-result';
+      shape: 'shares-result';
       name: string;
     }
   | {
       description: string;
       expected: { numberResult: number; rejectedType: 'TypeError' };
       input: ScenarioInputWithMutex & { delayMs: number; key: string; numberResult: number; stringResult: string };
-      kind: 'validates-each-caller-result';
+      shape: 'validates-each-caller-result';
       name: string;
     }
   | {
       description: string;
       expected: { executionCount: 3; results: readonly ['result-1', 'result-2', 'result-3'] };
       input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string };
-      kind: 'no-share-by-default';
+      shape: 'no-share-by-default';
       name: string;
     }
   | {
       description: string;
       expected: { executionCounts: { key1: 1; key2: 1 }; results: readonly ['key1-result', 'key1-result', 'key2-result', 'key2-result'] };
       input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; keys: readonly ['key1', 'key2'] };
-      kind: 'coalesces-per-key';
+      shape: 'coalesces-per-key';
       name: string;
     }
   | {
       description: string;
       expected: { executionCount: 2; results: readonly [1, 2] };
       input: ScenarioInputWithMutex & { key: string };
-      kind: 'allows-new-execution-after-complete';
+      shape: 'allows-new-execution-after-complete';
       name: string;
     }
   | {
       description: string;
       expected: { executionCount: 1; rejectionMessage: string };
       input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; errorMessage: string; key: string };
-      kind: 'propagates-errors';
+      shape: 'propagates-errors';
       name: string;
     }
   | {
       description: string;
       expected: { callCount: 2; result: string };
       input: ScenarioInputWithMutex & { firstErrorMessage: string; key: string; successResult: string };
-      kind: 'allows-retry-after-error';
+      shape: 'allows-retry-after-error';
       name: string;
     }
   | {
       description: string;
       expected: { coalescedCount: number; totalExecuted: number };
       input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string };
-      kind: 'stats-coalescedCount-enabled' | 'stats-coalescedCount-disabled';
+      shape: 'stats-coalescedCount-enabled' | 'stats-coalescedCount-disabled';
       name: string;
     }
   | {
       description: string;
       expected: { coalescedCount: 2 };
       input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string };
-      kind: 'stats-coalescedCount-joined';
+      shape: 'stats-coalescedCount-joined';
       name: string;
     }
   | {
       description: string;
       expected: { firstResult: string; secondResult: string };
       input: ScenarioInputWithMutex & { delayMs: number; key: string };
-      kind: 'clear-allows-new-operations';
+      shape: 'clear-allows-new-operations';
       name: string;
     }
   | {
       description: string;
       expected: { calls: 2; results: readonly ['result-1', 'result-2'] };
       input: ScenarioInputWithMutex & { key: string };
-      kind: 'clear-resets-coalescing-state';
+      shape: 'clear-resets-coalescing-state';
       name: string;
     };
 
@@ -115,7 +115,7 @@ function createExclusiveCallBatch<T>(
   return Array.from({ length: callerCount }, () => run());
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'allows-new-execution-after-complete': async (scenarioCase) => {
     const mutex = createScenarioMutex(scenarioCase.input);
     let executionCount = 0;
@@ -304,7 +304,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Mutex coalescing', () => {

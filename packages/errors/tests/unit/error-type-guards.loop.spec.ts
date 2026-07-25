@@ -12,10 +12,10 @@ type ScenarioCase = {
 };
 
 function materializeError(error: unknown): unknown {
-  if (error !== null && typeof error === 'object' && 'kind' in error && (error as { kind?: string }).kind === 'native-error') {
+  if (error !== null && typeof error === 'object' && 'shape' in error && (error as { shape?: string }).shape === 'native-error') {
     const nativeError = new Error('native error');
     Object.assign(nativeError, error);
-    delete (nativeError as { kind?: unknown }).kind;
+    delete (nativeError as { shape?: unknown }).shape;
     return nativeError;
   }
 

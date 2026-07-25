@@ -1,7 +1,7 @@
 {
   "runs": [
     {
-      "kind": "plain",
+      "shape": "plain",
       "name": "single-export rule cases",
       "ruleName": "single-export",
       "valid": [
@@ -325,7 +325,7 @@
       ]
     },
     {
-      "kind": "type-aware",
+      "shape": "type-aware",
       "name": "single-export type-aware Error classification cases",
       "ruleName": "single-export",
       "valid": [

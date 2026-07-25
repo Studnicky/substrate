@@ -3,7 +3,7 @@
     {
       "name": "component-prefixes",
       "description": "EVENT_COMPONENTS exposes all component prefixes",
-      "kind": "component-prefixes",
+      "shape": "component-prefixes",
       "input": {
         "components": {
           "API": "api",
@@ -46,7 +46,7 @@
     {
       "name": "create-graph-query",
       "description": "creates event from component and operation",
-      "kind": "create-graph-query",
+      "shape": "create-graph-query",
       "input": {
         "component": "graph",
         "operation": "query"
@@ -56,7 +56,7 @@
     {
       "name": "create-query-planner",
       "description": "works with complex operation names",
-      "kind": "create-query-planner",
+      "shape": "create-query-planner",
       "input": {
         "component": "queryPlanner",
         "operation": "createPlan"
@@ -66,7 +66,7 @@
     {
       "name": "create-constant-component",
       "description": "works with EVENT_COMPONENTS constants",
-      "kind": "create-constant-component",
+      "shape": "create-constant-component",
       "input": {
         "component": "cache",
         "operation": "get"
@@ -76,7 +76,7 @@
     {
       "name": "parse-graph-query",
       "description": "parses event into component and operation",
-      "kind": "parse-graph-query",
+      "shape": "parse-graph-query",
       "input": {
         "event": "graph.query"
       },
@@ -88,7 +88,7 @@
     {
       "name": "parse-query-planner",
       "description": "handles complex operation names",
-      "kind": "parse-query-planner",
+      "shape": "parse-query-planner",
       "input": {
         "event": "queryPlanner.createPlan"
       },
@@ -100,7 +100,7 @@
     {
       "name": "parse-multiple-dots",
       "description": "handles events with multiple dots",
-      "kind": "parse-multiple-dots",
+      "shape": "parse-multiple-dots",
       "input": {
         "event": "custom.nested.operation"
       },
@@ -112,7 +112,7 @@
     {
       "name": "parse-standalone",
       "description": "handles events without dots",
-      "kind": "parse-standalone",
+      "shape": "parse-standalone",
       "input": {
         "event": "standalone"
       },

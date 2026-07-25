@@ -28,7 +28,7 @@
   "direct": [
     {
       "description": "sets the message correctly",
-      "kind": "message",
+      "shape": "message",
       "message": "maxEvents must be positive",
       "outcome": {
         "message": "maxEvents must be positive"
@@ -36,7 +36,7 @@
     },
     {
       "description": "toJSON includes code and message",
-      "kind": "json",
+      "shape": "json",
       "message": "bad value",
       "outcome": {
         "code": "config.invalid",
@@ -45,7 +45,7 @@
     },
     {
       "description": "accepts a cause and threads it through the chain",
-      "kind": "cause",
+      "shape": "cause",
       "message": "wrapped",
       "causeMessage": "original",
       "outcome": {

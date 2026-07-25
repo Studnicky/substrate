@@ -3,7 +3,7 @@
     {
       "name": "final-shutdown-rejection",
       "description": "reports final shutdown termination rejection, records rejecting error hooks, and preserves results",
-      "kind": "final-shutdown-rejection",
+      "shape": "final-shutdown-rejection",
       "input": {
         "workerPool": {
           "concurrency": 1,
@@ -22,7 +22,7 @@
     {
       "name": "timeout-shutdown-rejection",
       "description": "reports timeout-path termination rejection and still cleans up for a later run",
-      "kind": "timeout-shutdown-rejection",
+      "shape": "timeout-shutdown-rejection",
       "input": {
         "workerPool": {
           "concurrency": 1,
@@ -44,7 +44,7 @@
     {
       "name": "error-shutdown-rejection",
       "description": "reports worker-error-path termination rejection and a later run still progresses",
-      "kind": "error-shutdown-rejection",
+      "shape": "error-shutdown-rejection",
       "input": {
         "workerPool": {
           "concurrency": 1,

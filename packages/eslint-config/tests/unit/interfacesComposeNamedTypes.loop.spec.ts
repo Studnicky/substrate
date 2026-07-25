@@ -23,9 +23,6 @@ const ruleTester = new RuleTester({
 
 void describe('interfaces-compose-named-types', () => {
   void it('validates interface composition rules', () => {
-    ruleTester.run('interfaces-compose-named-types', interfacesComposeNamedTypes, {
-      invalid: [],
-      valid: [{ code: scenarioGroups.cases[0].input.code, name: scenarioGroups.cases[0].name }]
-    });
+    ruleTester.run('interfaces-compose-named-types', interfacesComposeNamedTypes, scenarioGroups);
   });
 });

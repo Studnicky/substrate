@@ -3,7 +3,7 @@
     {
       "name": "shares-result",
       "description": "Mutex shares result when coalescing is enabled",
-      "kind": "shares-result",
+      "shape": "shares-result",
       "input": {
         "batch": { "callerCount": 3 },
         "delayMs": 50,
@@ -16,7 +16,7 @@
     {
       "name": "validates-each-caller-result",
       "description": "Mutex validates each caller result when same-key callers request different types",
-      "kind": "validates-each-caller-result",
+      "shape": "validates-each-caller-result",
       "input": {
         "delayMs": 25,
         "key": "shared-key",
@@ -29,14 +29,14 @@
     {
       "name": "no-share-by-default",
       "description": "Mutex does not share result when coalescing is disabled by default",
-      "kind": "no-share-by-default",
+      "shape": "no-share-by-default",
       "input": { "batch": { "callerCount": 3 }, "delayMs": 10, "key": "key1" },
       "expected": { "executionCount": 3, "results": ["result-1", "result-2", "result-3"] }
     },
     {
       "name": "coalesces-per-key",
       "description": "Mutex coalesces per key independently",
-      "kind": "coalesces-per-key",
+      "shape": "coalesces-per-key",
       "input": {
         "delayMs": 50,
         "keys": ["key1", "key2"],
@@ -51,14 +51,14 @@
     {
       "name": "allows-new-execution-after-complete",
       "description": "Mutex allows new execution after previous completes",
-      "kind": "allows-new-execution-after-complete",
+      "shape": "allows-new-execution-after-complete",
       "input": { "key": "key1", "mutex": { "enableCoalescing": true } },
       "expected": { "executionCount": 2, "results": [1, 2] }
     },
     {
       "name": "propagates-errors",
       "description": "Mutex propagates errors to all coalesced callers",
-      "kind": "propagates-errors",
+      "shape": "propagates-errors",
       "input": {
         "batch": { "callerCount": 3 },
         "delayMs": 50,
@@ -71,7 +71,7 @@
     {
       "name": "allows-retry-after-error",
       "description": "Mutex allows retry after error with coalescing",
-      "kind": "allows-retry-after-error",
+      "shape": "allows-retry-after-error",
       "input": {
         "firstErrorMessage": "First call fails",
         "key": "key1",
@@ -83,21 +83,21 @@
     {
       "name": "stats-coalescedCount-enabled",
       "description": "Mutex tracks coalescedCount in stats when coalescing is enabled",
-      "kind": "stats-coalescedCount-enabled",
+      "shape": "stats-coalescedCount-enabled",
       "input": { "batch": { "callerCount": 3 }, "delayMs": 50, "key": "key1", "mutex": { "enableCoalescing": true } },
       "expected": { "coalescedCount": 2, "totalExecuted": 1 }
     },
     {
       "name": "stats-coalescedCount-disabled",
       "description": "Mutex does not increment coalescedCount when coalescing is disabled",
-      "kind": "stats-coalescedCount-disabled",
+      "shape": "stats-coalescedCount-disabled",
       "input": { "batch": { "callerCount": 2 }, "delayMs": 10, "key": "key1", "mutex": { "enableCoalescing": false } },
       "expected": { "coalescedCount": 0, "totalExecuted": 2 }
     },
     {
       "name": "stats-coalescedCount-joined",
       "description": "Mutex coalescedCount increments for each joined request",
-      "kind": "stats-coalescedCount-joined",
+      "shape": "stats-coalescedCount-joined",
       "input": {
         "batch": { "callerCount": 3 },
         "delayMs": 50,
@@ -109,14 +109,14 @@
     {
       "name": "clear-allows-new-operations",
       "description": "Mutex allows new operations after clear() is called",
-      "kind": "clear-allows-new-operations",
+      "shape": "clear-allows-new-operations",
       "input": { "delayMs": 10, "key": "key1", "mutex": { "enableCoalescing": true } },
       "expected": { "firstResult": "first-result", "secondResult": "second-result" }
     },
     {
       "name": "clear-resets-coalescing-state",
       "description": "Mutex resets coalescing state after clear",
-      "kind": "clear-resets-coalescing-state",
+      "shape": "clear-resets-coalescing-state",
       "input": { "key": "key1", "mutex": { "enableCoalescing": true } },
       "expected": { "calls": 2, "results": ["result-1", "result-2"] }
     }

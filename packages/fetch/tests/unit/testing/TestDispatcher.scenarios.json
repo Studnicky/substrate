@@ -3,7 +3,7 @@
     {
       "name": "queued-request-aborts-before-dispatch",
       "description": "TestDispatcher rejects a queued request that aborts before it reaches dispatch",
-      "kind": "queued-request-aborts-before-dispatch",
+      "shape": "queued-request-aborts-before-dispatch",
       "input": {
         "longUrl": "http://127.0.0.1:41234/delay?ms=50",
         "queuedUrl": "http://127.0.0.1:41234/echo",
@@ -31,7 +31,7 @@
     {
       "name": "signal-aborted-before-wait",
       "description": "TestDispatcher rejects when the signal is already aborted",
-      "kind": "signal-aborted-before-wait",
+      "shape": "signal-aborted-before-wait",
       "input": {
         "url": "http://127.0.0.1:41234/echo",
         "testDispatcher": {
@@ -48,7 +48,7 @@
     {
       "name": "invalid-protocol",
       "description": "TestDispatcher rejects unsupported protocols",
-      "kind": "invalid-protocol",
+      "shape": "invalid-protocol",
       "input": {
         "url": "ftp://example.test/resource",
         "testDispatcher": {
@@ -65,7 +65,7 @@
     {
       "name": "enetunreach",
       "description": "TestDispatcher rejects unreachable networks",
-      "kind": "enetunreach",
+      "shape": "enetunreach",
       "input": {
         "url": "http://192.0.2.10/ok",
         "testDispatcher": {
@@ -82,7 +82,7 @@
     {
       "name": "enotfound",
       "description": "TestDispatcher rejects missing domains",
-      "kind": "enotfound",
+      "shape": "enotfound",
       "input": {
         "url": "http://does-not-exist.test/ok",
         "testDispatcher": {
@@ -99,7 +99,7 @@
     {
       "name": "ok",
       "description": "TestDispatcher returns text for /ok",
-      "kind": "ok",
+      "shape": "ok",
       "input": {
         "url": "http://127.0.0.1:41234/ok",
         "testDispatcher": {
@@ -116,7 +116,7 @@
     {
       "name": "text-response",
       "description": "TestDispatcher returns text for unsupported paths",
-      "kind": "text-response",
+      "shape": "text-response",
       "input": {
         "url": "http://127.0.0.1:41234/unhandled",
         "testDispatcher": {
@@ -133,7 +133,7 @@
     {
       "name": "url-echo",
       "description": "TestDispatcher echoes query parameters",
-      "kind": "url-echo",
+      "shape": "url-echo",
       "input": {
         "url": "http://127.0.0.1:41234/echo?x=1&y=two",
         "testDispatcher": {
@@ -155,7 +155,7 @@
     {
       "name": "post-echo",
       "description": "TestDispatcher echoes POST bodies and headers",
-      "kind": "post-echo",
+      "shape": "post-echo",
       "input": {
         "url": "http://127.0.0.1:41234/echo",
         "init": {
@@ -186,7 +186,7 @@
     {
       "name": "post-string",
       "description": "TestDispatcher reads plain string request bodies",
-      "kind": "post-string",
+      "shape": "post-string",
       "input": {
         "url": "http://127.0.0.1:41234/echo",
         "body": "plain-text",
@@ -215,7 +215,7 @@
     {
       "name": "post-uint8array",
       "description": "TestDispatcher reads Uint8Array request bodies",
-      "kind": "post-uint8array",
+      "shape": "post-uint8array",
       "input": {
         "url": "http://127.0.0.1:41234/echo",
         "bodyBuffer": [
@@ -248,7 +248,7 @@
     {
       "name": "post-arraybuffer",
       "description": "TestDispatcher reads ArrayBuffer request bodies",
-      "kind": "post-arraybuffer",
+      "shape": "post-arraybuffer",
       "input": {
         "url": "http://127.0.0.1:41234/echo",
         "bodyBuffer": [
@@ -281,7 +281,7 @@
     {
       "name": "post-dataview",
       "description": "TestDispatcher reads DataView request bodies",
-      "kind": "post-dataview",
+      "shape": "post-dataview",
       "input": {
         "url": "http://127.0.0.1:41234/echo",
         "bodyBuffer": [
@@ -314,7 +314,7 @@
     {
       "name": "post-blob",
       "description": "TestDispatcher rejects Blob request bodies",
-      "kind": "post-blob",
+      "shape": "post-blob",
       "input": {
         "url": "http://127.0.0.1:41234/echo",
         "body": "blob-body",
@@ -334,7 +334,7 @@
     {
       "name": "post-posts",
       "description": "TestDispatcher creates a post record",
-      "kind": "post-posts",
+      "shape": "post-posts",
       "input": {
         "url": "http://127.0.0.1:41234/posts",
         "init": {
@@ -358,7 +358,7 @@
     {
       "name": "put-post",
       "description": "TestDispatcher updates a post with PUT",
-      "kind": "put-post",
+      "shape": "put-post",
       "input": {
         "url": "http://127.0.0.1:41234/posts/1",
         "init": {
@@ -382,7 +382,7 @@
     {
       "name": "patch-post",
       "description": "TestDispatcher updates a post with PATCH",
-      "kind": "patch-post",
+      "shape": "patch-post",
       "input": {
         "url": "http://127.0.0.1:41234/posts/1",
         "init": {
@@ -406,7 +406,7 @@
     {
       "name": "delete-post",
       "description": "TestDispatcher deletes a post",
-      "kind": "delete-post",
+      "shape": "delete-post",
       "input": {
         "url": "http://127.0.0.1:41234/posts/1",
         "init": {
@@ -426,7 +426,7 @@
     {
       "name": "head-post",
       "description": "TestDispatcher serves HEAD responses for posts",
-      "kind": "head-post",
+      "shape": "head-post",
       "input": {
         "url": "http://127.0.0.1:41234/posts/1",
         "init": {
@@ -446,7 +446,7 @@
     {
       "name": "not-found",
       "description": "TestDispatcher returns JSON 404 for unknown routes",
-      "kind": "not-found",
+      "shape": "not-found",
       "input": {
         "url": "http://127.0.0.1:41234/unknown",
         "testDispatcher": {

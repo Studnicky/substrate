@@ -3,7 +3,7 @@
     {
       "name": "validates omitted and non-negative deadlines",
       "description": "validates omitted and non-negative deadlines",
-      "kind": "entity-validates-deadlines",
+      "shape": "entity-validates-deadlines",
       "input": {
         "values": [{}, { "deadlineMs": 0 }]
       },
@@ -12,7 +12,7 @@
     {
       "name": "rejects negative deadlines",
       "description": "rejects negative deadlines",
-      "kind": "entity-rejects-negative-deadline",
+      "shape": "entity-rejects-negative-deadline",
       "input": {
         "values": [{ "deadlineMs": -1 }]
       },
@@ -21,7 +21,7 @@
     {
       "name": "builds callable FetchClient and Retry dependencies from plain config",
       "description": "builds callable FetchClient and Retry dependencies from plain config",
-      "kind": "create-plain-config",
+      "shape": "create-plain-config",
       "input": {
         "fetchInputUrl": "https://example.test/resource",
         "fetchMethod": "GET",
@@ -42,7 +42,7 @@
     {
       "name": "executes through the caller-owned instances",
       "description": "executes through the caller-owned instances",
-      "kind": "create-with-instances",
+      "shape": "create-with-instances",
       "input": {
         "requestExecutor": {
           "deadlineMs": 1000,
@@ -60,7 +60,7 @@
     {
       "name": "produces a working, callable instance with real default primitives",
       "description": "produces a working, callable instance with real default primitives",
-      "kind": "defaults-real-primitives",
+      "shape": "defaults-real-primitives",
       "input": {
         "fetchResponseText": "ok",
         "fetchUrl": "https://example.test/"
@@ -73,7 +73,7 @@
     {
       "name": "round-trips a value set/get inside fn through the composed Context instance",
       "description": "round-trips a value set/get inside fn through the composed Context instance",
-      "kind": "context-roundtrip",
+      "shape": "context-roundtrip",
       "input": {
         "contextValue": "req-abc-123",
         "fetchResponseText": "ok",
@@ -90,7 +90,7 @@
     {
       "name": "seeds contextInitial values reachable from fn",
       "description": "seeds contextInitial values reachable from fn",
-      "kind": "context-seeded-values",
+      "shape": "context-seeded-values",
       "input": {
         "contextSeed": 42,
         "fetchResponseText": "ok",
@@ -107,7 +107,7 @@
     {
       "name": "a merged caller signal + deadlineMs aborts the in-flight fetch",
       "description": "a merged caller signal + deadlineMs aborts the in-flight fetch",
-      "kind": "cancellation-merged-signal",
+      "shape": "cancellation-merged-signal",
       "input": {
         "abortAfterMs": 10,
         "fetchPath": "/delay?ms=200",
@@ -124,7 +124,7 @@
     {
       "name": "composes the AbortSignal from Signal#compose (never-aborting sentinel when no options given)",
       "description": "composes the AbortSignal from Signal#compose (never-aborting sentinel when no options given)",
-      "kind": "cancellation-default-signal",
+      "shape": "cancellation-default-signal",
       "input": {
         "fetchDelayMs": 10,
         "fetchPath": "/delay?ms=10",
@@ -142,7 +142,7 @@
     {
       "name": "cancellation-deadline-only",
       "description": "composes a deadline-only AbortSignal when no caller signal is supplied",
-      "kind": "cancellation-deadline-only",
+      "shape": "cancellation-deadline-only",
       "input": {
         "fetchDelayMs": 10,
         "fetchPath": "/delay?ms=10",
@@ -161,7 +161,7 @@
     {
       "name": "captures one start/complete Timing span across all retry attempts",
       "description": "captures one start/complete Timing span across all retry attempts",
-      "kind": "timing-brackets-retry-loop",
+      "shape": "timing-brackets-retry-loop",
       "input": {
         "fetchFailures": 1,
         "fetchPath": "/flaky",
@@ -179,7 +179,7 @@
     {
       "name": "timing-brackets-error",
       "description": "records timing start and complete counts when the executor callback throws",
-      "kind": "timing-brackets-error",
+      "shape": "timing-brackets-error",
       "input": {
         "errorMessage": "boom",
         "requestExecutor": {
@@ -196,7 +196,7 @@
     {
       "name": "fires subclass FetchClient and Retry hooks through the composed execute() call",
       "description": "fires subclass FetchClient and Retry hooks through the composed execute() call",
-      "kind": "hooks-fire-through-executor",
+      "shape": "hooks-fire-through-executor",
       "input": {
         "fetchFailures": 2,
         "fetchPath": "/flaky",

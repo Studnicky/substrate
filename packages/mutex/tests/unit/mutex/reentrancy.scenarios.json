@@ -11,7 +11,7 @@
       "input": {
         "key": "key1"
       },
-      "kind": "beforeAcquire-reentrant-same-key",
+      "shape": "beforeAcquire-reentrant-same-key",
       "name": "beforeAcquire-reentrant-same-key"
     },
     {
@@ -30,7 +30,7 @@
         },
         "key": "key1"
       },
-      "kind": "onRelease-reentrant-same-key",
+      "shape": "onRelease-reentrant-same-key",
       "name": "onRelease-reentrant-same-key"
     },
     {
@@ -49,7 +49,7 @@
           "key2"
         ]
       },
-      "kind": "different-keys-unaffected",
+      "shape": "different-keys-unaffected",
       "name": "different-keys-unaffected"
     }
   ]

@@ -16,7 +16,7 @@
           { "entity": "BoundedDispatcherErrorEventEntity", "expected": true, "value": { "phase": "error" } }
         ]
       },
-      "kind": "entities-valid-phases",
+      "shape": "entities-valid-phases",
       "name": "validate their canonical phase discriminants"
     },
     {
@@ -35,7 +35,7 @@
           { "entity": "BoundedDispatcherErrorEventEntity", "expected": false, "value": { "error": "runtime", "phase": "error" } }
         ]
       },
-      "kind": "entities-reject-invalid",
+      "shape": "entities-reject-invalid",
       "name": "reject mismatched phases and extra data"
     }
   ]

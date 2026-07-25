@@ -45,6 +45,24 @@ class ObservedBreaker extends CircuitBreaker {
 class TransientError extends Error {}
 class RealError extends Error {}
 
+type AnyErrorConstructor = new (...args: never[]) => Error;
+
+const resilienceErrorTypes = {
+  'RealError': RealError,
+  'TransientError': TransientError
+} satisfies Record<string, AnyErrorConstructor>;
+
+function isResilienceErrorTypeName(value: string): value is keyof typeof resilienceErrorTypes {
+  return Object.hasOwn(resilienceErrorTypes, value);
+}
+
+function resilienceErrorTypeInput(value: string): (typeof resilienceErrorTypes)[keyof typeof resilienceErrorTypes] {
+  if (!isResilienceErrorTypeName(value)) {
+    throw new TypeError(`Unknown resilience error type name: ${value}`);
+  }
+  return resilienceErrorTypes[value];
+}
+
 class ClassifyingBreaker extends CircuitBreaker {
   protected override classifyError(error: unknown): ErrorClassificationEntity.Type {
     return { 'retryable': error instanceof TransientError };
@@ -80,14 +98,17 @@ class ObservedBucket extends TokenBucket {
 
 class ThrowingAcquiredBucket extends TokenBucket {
   protected override onTokenAcquired(): void { throw new Error('onTokenAcquired boom'); }
+  get hookErrorCount(): number { return this.hooks.hookErrorCount; }
 }
 
 class ThrowingDepletedBucket extends TokenBucket {
   protected override onTokenDepleted(): void { throw new Error('onTokenDepleted boom'); }
+  get hookErrorCount(): number { return this.hooks.hookErrorCount; }
 }
 
 class ThrowingRefillBucket extends TokenBucket {
   protected override onRefill(): void { throw new Error('onRefill boom'); }
+  get hookErrorCount(): number { return this.hooks.hookErrorCount; }
 }
 
 class AsyncRejectingAcquiredBucket extends TokenBucket {
@@ -245,6 +266,26 @@ function recordInput(input: ScenarioInput, key: string): ScenarioInput {
   return record;
 }
 
+function unknownArrayInput(input: ScenarioInput, key: string): unknown[] {
+  const value = input[key];
+  if (!Array.isArray(value)) {
+    throw new TypeError(`Expected array resilience scenario input: ${key}`);
+  }
+  return value;
+}
+
+function assertNumberOrAtLeast(actual: number, raw: unknown, key: string): void {
+  if (typeof raw === 'number') {
+    assert.equal(actual, raw);
+    return;
+  }
+  if (typeof raw === 'string' && raw.startsWith('>=')) {
+    assert.ok(actual >= Number(raw.slice(2)));
+    return;
+  }
+  throw new TypeError(`Expected number or ">=" threshold string for resilience scenario input: ${key}`);
+}
+
 function recordArrayInput(input: ScenarioInput, key: string): ScenarioInput[] {
   const value = input[key];
   if (!Array.isArray(value)) {
@@ -298,21 +339,17 @@ function tokenBucketOptions(
 type DlqEnqueueErrorScenario = 'full' | 'closed' | 'aborted';
 
 type DlqEnqueueErrorCase = {
-  readonly errorType: typeof DlqAbortedError | typeof DlqClosedError | typeof DlqFullError;
   readonly setup: (dlq: DeadLetterQueue<string>) => void;
 };
 
 const dlqEnqueueErrorCases = {
   'aborted': {
-    errorType: DlqAbortedError,
     setup: (dlq: DeadLetterQueue<string>): void => { dlq.abort(); }
   },
   'closed': {
-    errorType: DlqClosedError,
     setup: (dlq: DeadLetterQueue<string>): void => { dlq.close(); }
   },
   'full': {
-    errorType: DlqFullError,
     setup: (dlq: DeadLetterQueue<string>): void => {
       dlq.enqueue('a', 'r1');
       dlq.enqueue('b', 'r2');
@@ -329,6 +366,23 @@ function dlqEnqueueErrorScenarioInput(value: string): DlqEnqueueErrorScenario {
     throw new TypeError(`Unknown DLQ enqueue-error scenario: ${value}`);
   }
   return value;
+}
+
+const dlqErrorTypes = {
+  'DlqAbortedError': DlqAbortedError,
+  'DlqClosedError': DlqClosedError,
+  'DlqFullError': DlqFullError
+} satisfies Record<string, AnyErrorConstructor>;
+
+function isDlqErrorTypeName(value: string): value is keyof typeof dlqErrorTypes {
+  return Object.hasOwn(dlqErrorTypes, value);
+}
+
+function dlqErrorTypeInput(value: string): (typeof dlqErrorTypes)[keyof typeof dlqErrorTypes] {
+  if (!isDlqErrorTypeName(value)) {
+    throw new TypeError(`Unknown DLQ error type name: ${value}`);
+  }
+  return dlqErrorTypes[value];
 }
 
 type CircuitBreakerAction = 'fail' | 'success';
@@ -353,7 +407,7 @@ function circuitBreakerActionInput(value: string): CircuitBreakerAction {
   return value;
 }
 
-type ScenarioKind =
+type ScenarioShape =
   | 'cb-invalid-failure-threshold'
   | 'cb-invalid-reset-timeout'
   | 'cb-starts-closed'
@@ -471,20 +525,29 @@ const scenarioHandlers = {
     await circuitBreakerActions[circuitBreakerActionInput(finalAction)](cb);
     assert.equal(cb.state, stringInput(expected, 'finalState'));
   },
-  'cb-open-error': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'cb-open-error': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const cb = CircuitBreaker.create(circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     assert.equal(cb.state, 'open');
-    await assert.rejects(() => cb.execute(succeed), (err: unknown) => err instanceof CircuitBreakerOpenError);
+    if (booleanInput(expected, 'openError')) {
+      await assert.rejects(() => cb.execute(succeed), (err: unknown) => err instanceof CircuitBreakerOpenError);
+    } else {
+      await cb.execute(succeed);
+    }
   },
   'cb-open-error-name': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     const cb = CircuitBreaker.create(circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
-    await assert.rejects(
-      () => cb.execute(succeed),
-      (err: unknown) => err instanceof CircuitBreakerOpenError && err.message.includes(stringInput(expected, 'messageIncludes'))
-    );
+    if (booleanInput(expected, 'openError')) {
+      await assert.rejects(
+        () => cb.execute(succeed),
+        (err: unknown) => err instanceof CircuitBreakerOpenError && err.message.includes(stringInput(expected, 'messageIncludes'))
+      );
+    } else {
+      await cb.execute(succeed);
+    }
   },
   'cb-halfopen-transition': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const clock = numberArrayInput(input, 'clock');
@@ -526,22 +589,24 @@ const scenarioHandlers = {
     await assert.rejects(() => cb.execute(fail));
     assert.equal(cb.state, 'open');
   },
-  'cb-reset-control': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'cb-reset-control': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const cb = CircuitBreaker.create(circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     cb.reset();
-    assert.equal(cb.state, 'closed');
+    assert.equal(cb.state, stringInput(expected, 'stateAfterReset'));
   },
   'cb-force-open': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const cb = CircuitBreaker.create(circuitBreakerOptions(input));
     cb.forceOpen();
     assert.equal(cb.state, 'open');
   },
-  'cb-reset-success': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'cb-reset-success': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const cb = CircuitBreaker.create(circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     cb.reset();
-    assert.equal(await cb.execute(succeed), 'ok');
+    assert.equal(await cb.execute(succeed), stringInput(expected, 'result'));
   },
   'cb-observed-success': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const cb = new ObservedBreaker(circuitBreakerOptions(input));
@@ -617,12 +682,13 @@ const scenarioHandlers = {
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     assert.equal(cb.state, 'open');
   },
-  'cb-config-classifier-retryable': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'cb-config-classifier-retryable': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const classifier = (error: Error): ErrorClassificationEntity.Type => ({ 'retryable': error instanceof TransientError });
     const cb = CircuitBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
-    await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
-    await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
-    await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
+    for (let count = 0; count < numberInput(expected, 'retryableFailures'); count += 1) {
+      await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
+    }
     assert.equal(cb.state, 'closed');
   },
   'cb-config-classifier-failing': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
@@ -633,10 +699,12 @@ const scenarioHandlers = {
     await assert.rejects(() => cb.execute(async () => { throw new RealError('real'); }));
     assert.equal(cb.state, 'open');
   },
-  'cb-config-classifier-throws-original': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'cb-config-classifier-throws-original': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const classifier = (): ErrorClassificationEntity.Type => ({ 'retryable': true });
     const cb = CircuitBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
-    await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }), (err: unknown) => err instanceof TransientError);
+    const thrownType = resilienceErrorTypeInput(stringInput(expected, 'thrown'));
+    await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }), (err: unknown) => err instanceof thrownType);
     assert.equal(cb.state, 'closed');
   },
   'cb-subclass-classifier': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
@@ -655,7 +723,8 @@ const scenarioHandlers = {
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     assert.equal(cb.state, 'open');
   },
-  'cb-hook-swallows': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'cb-hook-swallows': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const successBreaker = new ThrowingSuccessBreaker(circuitBreakerOptions(input));
     assert.equal(await successBreaker.execute(succeed), 'ok');
     assert.equal(successBreaker.state, 'closed');
@@ -669,7 +738,7 @@ const scenarioHandlers = {
       failureThreshold: numberInput(input, 'tripFailureThreshold')
     }));
     await assert.rejects(() => tripBreaker.execute(fail), (error: unknown) => error instanceof Error && (error as Error).message === 'failure');
-    assert.equal(tripBreaker.state, 'open');
+    assert.equal(tripBreaker.state, stringInput(expected, 'openState'));
   },
   'cb-async-hook-isolation': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
@@ -712,18 +781,26 @@ const scenarioHandlers = {
       bucket.consume(tokens);
     }
     assert.equal(bucket.available, numberInput(expected, 'available'));
+    assert.equal(bucket.available < 1, booleanInput(expected, 'exhausted'));
   },
-  'tb-consume-exhausted': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'tb-consume-exhausted': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const bucket = TokenBucket.create(tokenBucketOptions(input));
     bucket.consume();
     bucket.consume();
     assert.throws(() => { bucket.consume(); }, TokenBucketExhaustedError);
+    assert.equal(bucket.available < 1, booleanInput(expected, 'exhausted'));
   },
-  'tb-consume-multi': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'tb-consume-multi': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const bucket = TokenBucket.create(tokenBucketOptions(input));
     const consume = numberArrayInput(input, 'consume');
     bucket.consume(consume[0]);
-    assert.throws(() => { bucket.consume(consume[1]); }, TokenBucketExhaustedError);
+    if (booleanInput(expected, 'exhaustedOnSecondConsume')) {
+      assert.throws(() => { bucket.consume(consume[1]); }, TokenBucketExhaustedError);
+    } else {
+      assert.doesNotThrow(() => { bucket.consume(consume[1]); });
+    }
   },
   'tb-available': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const clock = (): number => numberInput(input, 'clock');
@@ -733,36 +810,41 @@ const scenarioHandlers = {
     bucket2.consume(numberArrayInput(input, 'consume')[0]);
     assert.equal(bucket2.available, 3);
   },
-  'tb-refill': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'tb-refill': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
     const bucket = TokenBucket.create(tokenBucketOptions(input, { clock: () => time }));
     bucket.consume(numberArrayInput(input, 'consume')[0]);
-    assert.equal(bucket.available, 0);
+    assert.equal(bucket.available, numberInput(expected, 'availableAfterConsume'));
     time = clock[1] ?? time;
-    assert.ok(bucket.available >= 4);
+    assert.ok(bucket.available >= numberInput(expected, 'availableAfterRefillAt500Ms'));
   },
-  'tb-cap': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'tb-cap': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
     const bucket = TokenBucket.create(tokenBucketOptions(input, { clock: () => time }));
     time = clock[1] ?? time;
-    assert.equal(bucket.available, 5);
+    assert.equal(bucket.available, numberInput(expected, 'availableAtCap'));
   },
-  'tb-wait-immediate': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'tb-wait-immediate': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const bucket = TokenBucket.create(tokenBucketOptions(input, { clock: () => numberInput(input, 'clock') }));
     await bucket.waitForToken();
-    assert.equal(bucket.available, 4);
+    assert.equal(bucket.available, numberInput(expected, 'availableAfterWait'));
   },
-  'tb-wait-refill': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'tb-wait-refill': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
     const bucket = TokenBucket.create(tokenBucketOptions(input, { clock: () => time }));
     bucket.consume();
     const advance = new Promise<void>((resolve) => { setImmediate(() => { time = clock[1] ?? time; resolve(); }); });
-    const wait = bucket.waitForToken();
+    let completed = false;
+    const wait = bucket.waitForToken().then(() => { completed = true; });
     await Promise.all([advance, wait]);
-    assert.ok(true);
+    assert.equal(completed, booleanInput(expected, 'completed'));
   },
   'tb-wait-abort': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const controller = new AbortController();
@@ -831,16 +913,18 @@ const scenarioHandlers = {
     await bucket.waitForToken();
     assert.ok(bucket.events.some((e) => e.type === 'acquired'));
   },
-  'tb-hook-swallows': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'tb-hook-swallows': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
+    const available = unknownArrayInput(expected, 'available');
     const acquired = ThrowingAcquiredBucket.create(tokenBucketOptions(input, { clock: () => numberInput(input, 'clock') }));
     acquired.consume(numberInput(input, 'consume'));
-    assert.equal(acquired.available, 1);
+    assertNumberOrAtLeast(acquired.available, available[0], 'available[0]');
     const waitBucket = ThrowingAcquiredBucket.create(tokenBucketOptions(input, {
       burstSize: numberInput(input, 'waitBurstSize'),
       clock: () => numberInput(input, 'clock')
     }));
     await waitBucket.waitForToken({ 'tokens': numberInput(input, 'waitTokens') });
-    assert.equal(waitBucket.available, 0);
+    assertNumberOrAtLeast(waitBucket.available, available[1], 'available[1]');
     const depleted = ThrowingDepletedBucket.create(tokenBucketOptions(input, {
       burstSize: numberInput(input, 'depletedBurstSize'),
       clock: () => numberInput(input, 'clock')
@@ -855,7 +939,11 @@ const scenarioHandlers = {
     }));
     refill.consume(numberInput(input, 'refillBurstSize'));
     time = refillClock[1] ?? time;
-    assert.ok(refill.available >= 4);
+    assertNumberOrAtLeast(refill.available, available[2], 'available[2]');
+    assert.equal(
+      acquired.hookErrorCount > 0 && waitBucket.hookErrorCount > 0 && depleted.hookErrorCount > 0 && refill.hookErrorCount > 0,
+      booleanInput(expected, 'errorsSwallowed')
+    );
   },
   'tb-async-hook-isolation': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
@@ -898,11 +986,15 @@ const scenarioHandlers = {
     dlq2.enqueue(stringInput(input, 'secondItem'), stringInput(input, 'secondReason'), err);
     assert.equal(dlq2.size, numberInput(expected, 'sizeWithError'));
   },
-  'dlq-enqueue-errors': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    for (const scenario of stringArrayInput(input, 'scenarios')) {
-      const { setup, errorType } = dlqEnqueueErrorCases[dlqEnqueueErrorScenarioInput(scenario)];
+  'dlq-enqueue-errors': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
+    const scenarios = stringArrayInput(input, 'scenarios');
+    const errors = stringArrayInput(expected, 'errors');
+    for (const [index, scenario] of scenarios.entries()) {
+      const { setup } = dlqEnqueueErrorCases[dlqEnqueueErrorScenarioInput(scenario)];
       const dlq = DeadLetterQueue.create<string>({ capacity: numberInput(input, 'capacity') });
       setup(dlq);
+      const errorType = dlqErrorTypeInput(stringArrayItem(errors, 'errors', index));
       assert.throws(() => { dlq.enqueue('c', 'r3'); }, errorType);
     }
   },
@@ -988,8 +1080,7 @@ const scenarioHandlers = {
     assert.equal(entry.reason, stringInput(expected, 'reason'));
     assert.equal(entry.error, err);
     assert.equal(entry.enqueuedAtMs, numberInput(expected, 'enqueuedAtMs'));
-    assert.ok(typeof entry.id === 'string');
-    assert.ok(entry.id.length > 0);
+    assert.equal(typeof entry.id === 'string' && entry.id.length > 0, booleanInput(expected, 'hasId'));
   },
   'dlq-single-consumer': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
@@ -1099,7 +1190,11 @@ const scenarioHandlers = {
     assert.equal(closeDlq.closed, booleanInput(expected, 'closed'));
     const abortDlq = new ThrowingAbortDlq<string>();
     abortDlq.abort();
-    assert.throws(() => { abortDlq.enqueue(item, reason); }, DlqAbortedError);
+    if (booleanInput(expected, 'abortedRejects')) {
+      assert.throws(() => { abortDlq.enqueue(item, reason); }, DlqAbortedError);
+    } else {
+      assert.doesNotThrow(() => { abortDlq.enqueue(item, reason); });
+    }
   },
   'dlq-async-hook-isolation': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
@@ -1183,6 +1278,7 @@ const scenarioHandlers = {
     let count = 0;
     for await (const _entry of doneGenerator.generate()) { count += 1; }
     assert.equal(count, 0);
+    assert.equal(yielded.length > 0 && waited.length > 0 && count === 0, booleanInput(expected, 'waitYieldDone'));
   },
   'dlqr-async-hook-isolation': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
@@ -1228,18 +1324,18 @@ const scenarioHandlers = {
     assert.equal(DlqEntryMetadataEntity.validate(recordInput(input, 'valid')), booleanInput(expected, 'valid'));
     assert.equal(DlqEntryMetadataEntity.validate(recordInput(input, 'invalid')), booleanInput(expected, 'invalid'));
   }
-} satisfies Record<ScenarioKind, ScenarioHandler>;
+} satisfies Record<ScenarioShape, ScenarioHandler>;
 
-function isScenarioKind(kind: string): kind is ScenarioKind {
-  return Object.hasOwn(scenarioHandlers, kind);
+function isScenarioShape(shape: string): shape is ScenarioShape {
+  return Object.hasOwn(scenarioHandlers, shape);
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { kind } = scenarioCase;
-  if (!isScenarioKind(kind)) {
-    throw new Error(`Unhandled resilience scenario kind: ${kind}`);
+  const { shape } = scenarioCase;
+  if (!isScenarioShape(shape)) {
+    throw new Error(`Unhandled resilience scenario shape: ${shape}`);
   }
-  await scenarioHandlers[kind](scenarioCase, scenarioCase.input.resilience);
+  await scenarioHandlers[shape](scenarioCase, scenarioCase.input.resilience);
 }
 void describe('Resilience', () => {
   for (const scenarioCase of scenarioGroups.cases) {

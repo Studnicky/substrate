@@ -18,10 +18,10 @@ import { IdempotencyConflictError, IdempotencyGuard, IdempotencyGuardEntryMetada
 import scenarioGroups from './idempotency-guard.scenarios.json';
 
 type ScenarioFixture = (typeof scenarioGroups.cases)[number];
-type ScenarioKind = ScenarioFixture['kind'];
-type ScenarioFor<TKind extends ScenarioKind> = Extract<ScenarioFixture, { kind: TKind }>;
-type ScenarioRunner<TKind extends ScenarioKind> = (scenario: ScenarioFor<TKind>) => Promise<void> | void;
-type ScenarioRunnerMap = { [TKind in ScenarioKind]: ScenarioRunner<TKind> };
+type ScenarioShape = ScenarioFixture['shape'];
+type ScenarioFor<TShape extends ScenarioShape> = Extract<ScenarioFixture, { shape: TShape }>;
+type ScenarioRunner<TShape extends ScenarioShape> = (scenario: ScenarioFor<TShape>) => Promise<void> | void;
+type ScenarioRunnerMap = { [TShape in ScenarioShape]: ScenarioRunner<TShape> };
 type GuardOptions = ScenarioFixture['input']['idempotencyGuard'];
 type GuardFactory<TResult> = () => TResult | Promise<TResult>;
 
@@ -202,11 +202,11 @@ function assertDiagnosticPattern(diagnostic: string, pattern: string): void {
   assert.equal(predicate(diagnostic), true);
 }
 
-function createTraceLogger(kind: string): { log: (message: string) => void; snapshot: () => string } {
+function createTraceLogger(shape: string): { log: (message: string) => void; snapshot: () => string } {
   const lines: string[] = [];
   return {
     log(message: string): void {
-      const line = `${kind}: ${message}`;
+      const line = `${shape}: ${message}`;
       lines.push(line);
       if (process.env.SUBSTATE_TEST_TRACE === '1') {
         console.error('%s', line);
@@ -238,7 +238,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'coalesce-shares-one-execution': async (scenario) => {
-    const trace = createTraceLogger(scenario.kind);
+    const trace = createTraceLogger(scenario.shape);
     const guard = createGuard<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     let calls = 0;
@@ -573,7 +573,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-async-replay-safe': async (scenario) => {
-    const trace = createTraceLogger(scenario.kind);
+    const trace = createTraceLogger(scenario.shape);
 
     class AsyncRejectingReplayGuard extends IdempotencyGuard<string> {
       static tracked(options: GuardOptions): AsyncRejectingReplayGuard {
@@ -635,7 +635,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-async-overrides-safe': async (scenario) => {
-    const trace = createTraceLogger(scenario.kind);
+    const trace = createTraceLogger(scenario.shape);
     const events: string[] = [];
     const rejectionEvents: unknown[] = [];
     const onUnhandledRejection = (reason: unknown): void => {
@@ -711,7 +711,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'race-concurrent-different-payload': async (scenario) => {
-    const trace = createTraceLogger(scenario.kind);
+    const trace = createTraceLogger(scenario.shape);
     const guard = createGuard<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     let leaderCalls = 0;
@@ -760,8 +760,8 @@ const scenarioRunners: ScenarioRunnerMap = {
   }
 };
 
-async function runScenario<TKind extends ScenarioKind>(scenario: ScenarioFor<TKind>): Promise<void> {
-  await scenarioRunners[scenario.kind](scenario);
+async function runScenario<TShape extends ScenarioShape>(scenario: ScenarioFor<TShape>): Promise<void> {
+  await scenarioRunners[scenario.shape](scenario);
 }
 
 void describe('idempotency-guard', () => {

@@ -5,7 +5,14 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { inlineFunctions } from '../../../src/rules/v8/inlineFunctions.js';
+import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
 import scenarioGroups from './inlineFunctions.scenarios.json';
+
+function toMessageId(report: unknown): string {
+  if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
+  const { messageId } = report;
+  return typeof messageId === 'string' ? messageId : '<no-messageId>';
+}
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -52,6 +59,6 @@ void describe('inline-functions', () => {
       value: { type: 'FunctionExpression' }
     } as never);
 
-    assert.equal(reports.length, 1);
+    assert.deepEqual(reports.map(toMessageId), ['forbidden']);
   });
 });

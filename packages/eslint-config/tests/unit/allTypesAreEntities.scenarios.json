@@ -13,7 +13,7 @@
     {
       "code": "type HandlerType = (value: string) => void;",
       "filename": "packages/retry/src/models/Handler.ts",
-      "name": "interface-contract alias is left to the declaration-kind rule"
+      "name": "interface-contract alias is left to the declaration-shape rule"
     },
     {
       "code": "type InvalidDataType = { value: string };",

@@ -30,21 +30,21 @@ type ScenarioCase =
       description: string;
       expected: TerminationFailureExpectationInterface & { results: string[] };
       input: { item: ItemInterface; terminateFailureMessage: string; workerPool: WorkerPoolInputInterface };
-      kind: 'final-shutdown-rejection';
+      shape: 'final-shutdown-rejection';
       name: string;
     }
   | {
       description: string;
       expected: TerminationFailureExpectationInterface & { laterResults: string[]; runRejectedMessageIncludes: string };
       input: { laterItem: ItemInterface; terminateFailureMessage: string; timeoutItem: ItemInterface; workerPool: WorkerPoolInputInterface };
-      kind: 'timeout-shutdown-rejection';
+      shape: 'timeout-shutdown-rejection';
       name: string;
     }
   | {
       description: string;
       expected: TerminationFailureExpectationInterface & { laterResults: string[]; runRejectedMessageIncludes: string };
       input: { crashItem: ItemInterface; laterItem: ItemInterface; terminateFailureMessage: string; workerPool: WorkerPoolInputInterface };
-      kind: 'error-shutdown-rejection';
+      shape: 'error-shutdown-rejection';
       name: string;
     };
 
@@ -83,7 +83,7 @@ function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigIn
   return resolved;
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'final-shutdown-rejection': async (scenarioCase) => {
     const originalTerminate = Worker.prototype.terminate;
     const terminationFailure = new Error(scenarioCase.input.terminateFailureMessage);
@@ -109,7 +109,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 
     try {
       const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
-      const rejectionEvents = await captureUnhandledRejections(scenarioCase.kind, async () => {
+      const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
         const results = await pool.run([scenarioCase.input.item]);
         assert.deepStrictEqual(results, scenarioCase.expected.results);
       });
@@ -153,7 +153,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
         ...resolvePoolConfig(scenarioCase.input.workerPool)
       });
 
-      const rejectionEvents = await captureUnhandledRejections(scenarioCase.kind, async () => {
+      const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
         await assert.rejects(pool.run([scenarioCase.input.timeoutItem]), (error: unknown) => {
           assert.ok(error instanceof Error);
           assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
@@ -199,7 +199,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
       const pool = ObservingPool.create({
         ...resolvePoolConfig(scenarioCase.input.workerPool)
       });
-      const rejectionEvents = await captureUnhandledRejections(scenarioCase.kind, async () => {
+      const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
         await assert.rejects(pool.run([scenarioCase.input.crashItem]), (error: unknown) => {
           assert.ok(error instanceof Error);
           assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
@@ -219,7 +219,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool termination rejection disposition', () => {

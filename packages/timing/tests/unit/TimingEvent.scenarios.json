@@ -3,7 +3,7 @@
     {
       "name": "component-operation-format",
       "description": "returns event data with component.operation format",
-      "kind": "component-operation-format",
+      "shape": "component-operation-format",
       "input": {
         "component": "GraphAdapter",
         "operation": "query"
@@ -15,7 +15,7 @@
     {
       "name": "includes-status",
       "description": "includes an optional status in the event name",
-      "kind": "includes-status",
+      "shape": "includes-status",
       "input": {
         "component": "DatabaseAdapter",
         "operation": "connect",
@@ -28,7 +28,7 @@
     {
       "name": "domain-specific-status",
       "description": "works with domain-specific status constants",
-      "kind": "domain-specific-status",
+      "shape": "domain-specific-status",
       "input": {
         "component": "CacheService",
         "operation": "get",
@@ -41,7 +41,7 @@
     {
       "name": "immutable-event-data",
       "description": "returns immutable event data",
-      "kind": "immutable-event-data",
+      "shape": "immutable-event-data",
       "input": {
         "component": "GraphAdapter",
         "operation": "query"
@@ -53,7 +53,7 @@
     {
       "name": "missing-component",
       "description": "throws when component is missing",
-      "kind": "missing-component",
+      "shape": "missing-component",
       "input": {
         "operation": "query"
       },
@@ -64,7 +64,7 @@
     {
       "name": "missing-operation",
       "description": "throws when operation is missing",
-      "kind": "missing-operation",
+      "shape": "missing-operation",
       "input": {
         "component": "GraphAdapter"
       },
@@ -75,7 +75,7 @@
     {
       "name": "independent-event-values",
       "description": "creates independent event values from independent configurations",
-      "kind": "independent-event-values",
+      "shape": "independent-event-values",
       "input": {
         "first": {
           "component": "GraphAdapter",

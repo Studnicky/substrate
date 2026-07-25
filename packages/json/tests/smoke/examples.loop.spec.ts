@@ -7,7 +7,7 @@ type ScenarioCase = {
   description: string;
   expected: { importsWithoutThrow: true };
   input: { entrypoint: string };
-  kind: string;
+  shape: string;
   name: string;
 };
 
@@ -15,7 +15,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   assert.equal(scenarioCase.expected.importsWithoutThrow, true);
   await assert.doesNotReject(async () => {
     await import(new URL(scenarioCase.input.entrypoint, import.meta.url).href);
-  }, `Example ${scenarioCase.kind} threw`);
+  }, `Example ${scenarioCase.shape} threw`);
 }
 
 void describe('JSON smoke', () => {

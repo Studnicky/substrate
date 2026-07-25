@@ -27,7 +27,7 @@
     {
       "name": "code-guard-native-error",
       "description": "recognizes a native Error with a string code",
-      "input": { "guard": "isErrorWithCode", "error": { "kind": "native-error", "code": "ECONNRESET" } },
+      "input": { "guard": "isErrorWithCode", "error": { "shape": "native-error", "code": "ECONNRESET" } },
       "expected": { "result": true }
     },
     {

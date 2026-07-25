@@ -11,7 +11,7 @@ type ScenarioCase =
       description: string;
       expected: { reason: string; retryable: boolean };
       input: Record<string, unknown>;
-      kind: 'client-error' | 'gateway-error' | 'network-code' | 'network-message' | 'rate-limited' | 'request-timeout' | 'server-error' | 'unknown-early' | 'unknown-late';
+      shape: 'client-error' | 'gateway-error' | 'network-code' | 'network-message' | 'rate-limited' | 'request-timeout' | 'server-error' | 'unknown-early' | 'unknown-late';
       name: string;
     };
 

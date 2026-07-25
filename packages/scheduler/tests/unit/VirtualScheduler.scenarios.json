@@ -3,7 +3,7 @@
     {
       "name": "virtual-timecounter",
       "description": "VirtualTimeCounter handles advances and start bounds",
-      "kind": "virtual-timecounter",
+      "shape": "virtual-timecounter",
       "input": {
         "scheduler": {
           "counterAdvanceScenarios": [
@@ -63,7 +63,7 @@
     {
       "name": "minimum-heap",
       "description": "MinimumHeap snapshots inserted tasks",
-      "kind": "minimum-heap",
+      "shape": "minimum-heap",
       "input": {
         "scheduler": {
           "tasks": [
@@ -105,7 +105,7 @@
     {
       "name": "minimum-heap-drain-order",
       "description": "MinimumHeap drains tasks in ascending atMs order after upward swaps",
-      "kind": "minimum-heap-drain-order",
+      "shape": "minimum-heap-drain-order",
       "input": {
         "scheduler": {
           "tasks": [
@@ -159,7 +159,7 @@
     {
       "name": "scheduleAt",
       "description": "scheduleAt returns tasks and respects atMs",
-      "kind": "scheduleAt",
+      "shape": "scheduleAt",
       "input": {
         "scheduler": {
           "runs": [
@@ -194,7 +194,7 @@
     {
       "name": "scheduleEvery",
       "description": "scheduleEvery fires at the expected cadence",
-      "kind": "scheduleEvery",
+      "shape": "scheduleEvery",
       "input": {
         "scheduler": {
           "runs": [
@@ -228,7 +228,7 @@
     {
       "name": "cancelAll-runAll",
       "description": "cancelAll and runAll handle cancellation and draining",
-      "kind": "cancelAll-runAll",
+      "shape": "cancelAll-runAll",
       "input": {
         "batch": {
           "cancelAllTaskCount": 3,
@@ -254,7 +254,7 @@
     {
       "name": "edge-cases",
       "description": "edge cases around cancellation, invalid intervals, and runUntil",
-      "kind": "edge-cases",
+      "shape": "edge-cases",
       "input": {
         "batch": {
           "skipCount": 3
@@ -293,7 +293,7 @@
     {
       "name": "unhappy-path",
       "description": "rejected task promises and zero/negative advances are swallowed",
-      "kind": "unhappy-path",
+      "shape": "unhappy-path",
       "input": {
         "scheduler": {
           "advanceCounterStartMs": 100,
@@ -322,7 +322,7 @@
     {
       "name": "virtual-fire-error-loop",
       "description": "sync throws and explicit Promise rejections are routed through onFireError in runUntil and runAll loops",
-      "kind": "virtual-fire-error-loop",
+      "shape": "virtual-fire-error-loop",
       "input": {
         "scheduler": {
           "atMs": 50,
@@ -342,7 +342,7 @@
     {
       "name": "subclass-seams",
       "description": "subclass hooks, custom heap, and async hook rejection behavior",
-      "kind": "subclass-seams",
+      "shape": "subclass-seams",
       "input": {
         "batch": {
           "repeatCancelCount": 2
@@ -435,7 +435,7 @@
     {
       "name": "invalid-constructor",
       "description": "rejects invalid VirtualTimeCounter instances",
-      "kind": "invalid-constructor",
+      "shape": "invalid-constructor",
       "expected": {},
       "input": {
         "scheduler": {}
@@ -444,7 +444,7 @@
     {
       "name": "invalid-interval",
       "description": "rejects non-positive scheduleEvery intervals",
-      "kind": "invalid-interval",
+      "shape": "invalid-interval",
       "expected": {},
       "input": {
         "scheduler": {

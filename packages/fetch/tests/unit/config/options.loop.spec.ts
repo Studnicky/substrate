@@ -4,8 +4,8 @@ import { describe, it } from 'node:test';
 import { ValidateOptions } from '../../../src/config/schemas/validateOptions.js';
 
 type RuntimeTag =
-  | { __kind: 'abort-signal' }
-  | { __kind: 'undefined' };
+  | { __shape: 'abort-signal' }
+  | { __shape: 'undefined' };
 
 type RuntimeValue =
   | null
@@ -18,7 +18,7 @@ type RuntimeValue =
 
 type ScenarioCase = {
   description: string;
-  expected: { kind: 'ok'; messageIncludes?: readonly string[] } | { kind: 'throws'; messageIncludes: readonly string[] };
+  expected: { shape: 'ok'; messageIncludes?: readonly string[] } | { shape: 'throws'; messageIncludes: readonly string[] };
   input: {
     options: RuntimeValue;
   };
@@ -30,13 +30,13 @@ import scenarioGroups from './options.scenarios.json';
 type ExpectedOutcomeRunner = (config: unknown, expected: ScenarioCase['expected']) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 
-const runtimeTagMap: Record<RuntimeTag['__kind'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['__shape'], RuntimeTagMaterializer> = {
   'abort-signal': () => new AbortController().signal,
   undefined: () => undefined
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && '__kind' in value;
+  return value !== null && typeof value === 'object' && '__shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -45,7 +45,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.__kind](value);
+    return runtimeTagMap[value.__shape](value);
   }
 
   if (value !== null && typeof value === 'object') {
@@ -61,7 +61,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   return value;
 }
 
-const expectedOutcomeMap: Record<ScenarioCase['expected']['kind'], ExpectedOutcomeRunner> = {
+const expectedOutcomeMap: Record<ScenarioCase['expected']['shape'], ExpectedOutcomeRunner> = {
   ok: (config) => {
     assert.doesNotThrow(() => {
       ValidateOptions.validate(config);
@@ -82,7 +82,7 @@ const expectedOutcomeMap: Record<ScenarioCase['expected']['kind'], ExpectedOutco
 
 function runCase(scenarioCase: ScenarioCase): void {
   const config = materializeRuntimeValue(scenarioCase.input.options);
-  expectedOutcomeMap[scenarioCase.expected.kind](config, scenarioCase.expected);
+  expectedOutcomeMap[scenarioCase.expected.shape](config, scenarioCase.expected);
 }
 
 void describe('fetch options validation', () => {

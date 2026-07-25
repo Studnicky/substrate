@@ -22,7 +22,7 @@ type ScenarioCase =
       input: {
         name: string;
       };
-      kind: 'register-get-roundtrip';
+      shape: 'register-get-roundtrip';
       name: string;
     }
   | {
@@ -33,7 +33,7 @@ type ScenarioCase =
       input: {
         name: string;
       };
-      kind: 'duplicate-register-throws';
+      shape: 'duplicate-register-throws';
       name: string;
     }
   | {
@@ -44,7 +44,7 @@ type ScenarioCase =
       input: {
         name: string;
       };
-      kind: 'unregister-removes-entry';
+      shape: 'unregister-removes-entry';
       name: string;
     }
   | {
@@ -56,7 +56,7 @@ type ScenarioCase =
         name: string;
         registered: boolean;
       };
-      kind: 'has-check';
+      shape: 'has-check';
       name: string;
     }
   | {
@@ -67,7 +67,7 @@ type ScenarioCase =
       input: {
         names: string[];
       };
-      kind: 'list-returns-all-registered';
+      shape: 'list-returns-all-registered';
       name: string;
     }
   | {
@@ -78,7 +78,7 @@ type ScenarioCase =
       input: {
         name: string;
       };
-      kind: 'instances-isolated';
+      shape: 'instances-isolated';
       name: string;
     };
 
@@ -96,7 +96,7 @@ class Fixture {
   }
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'duplicate-register-throws': (scenarioCase) => {
     const registry = MachineRegistry.create<SimpleState, SimpleEvent>();
     registry.register(scenarioCase.input.name, Fixture.interpreter());
@@ -151,7 +151,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 void describe('MachineRegistry', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
-      runnerMap[scenario.kind](scenario);
+      runnerMap[scenario.shape](scenario);
     });
   }
 });

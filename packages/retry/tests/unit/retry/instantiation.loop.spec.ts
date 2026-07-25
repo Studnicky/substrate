@@ -18,22 +18,22 @@ type RetryScenarioInput = Record<string, unknown> & {
 };
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'create-max-retries-5' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'create-defaults' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'create-error-classifier-and-max-retries' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'execute-retries-until-success' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'factory-equivalent' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'retry-error-snapshots' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'retry-error-empty' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'non-retryable-original-error-fallback' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'max-retries-empty-errors-fallback' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'retry-error-projections-are-detached' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'retry-error-snapshot-cycles' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'retry-error-snapshot-clone-fallback' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'retry-error-rejects-non-error-diagnostics' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'retry-error-preserves-error-name' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'retry-error-preserves-history-error-name' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'derived-errors-expose-detached-diagnostics' };
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'create-max-retries-5' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'create-defaults' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'create-error-classifier-and-max-retries' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'execute-retries-until-success' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'factory-equivalent' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-snapshots' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-empty' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'non-retryable-original-error-fallback' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'max-retries-empty-errors-fallback' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-projections-are-detached' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-snapshot-cycles' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-snapshot-clone-fallback' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-rejects-non-error-diagnostics' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-preserves-error-name' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-preserves-history-error-name' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'derived-errors-expose-detached-diagnostics' };
 
 type AttemptOutcome = 'failure' | 'success';
 
@@ -62,7 +62,7 @@ async function executeUntilConfiguredSuccess(retry: Retry, input: RetryScenarioI
   return { attempts, result };
 }
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'create-max-retries-5': (scenario) => {
     const { expected, input } = scenario;
     assert.ok(Retry.create(input.retry) instanceof Retry);
@@ -272,7 +272,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.kind](scenario);
+  await runnerMap[scenario.shape](scenario);
 }
 
 void describe('Retry instantiation', () => {

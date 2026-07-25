@@ -14,7 +14,7 @@
           { "entity": "FileLockPathStateEntity", "expected": true, "value": { "lockPath": "/tmp/data.json.lock.owner", "originalPath": "/tmp/data.json" } }
         ]
       },
-      "kind": "valid-entities",
+      "shape": "valid-entities",
       "name": "valid-entities"
     },
     {
@@ -29,7 +29,7 @@
           { "entity": "FileLockPathStateEntity", "expected": false, "value": { "lockPath": "/tmp/data.json.lock.owner" } }
         ]
       },
-      "kind": "reject-incomplete-path-state",
+      "shape": "reject-incomplete-path-state",
       "name": "reject-incomplete-path-state"
     }
   ]

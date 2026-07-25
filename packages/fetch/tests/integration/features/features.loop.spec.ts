@@ -10,42 +10,42 @@ type ScenarioCase =
       description: string;
       expected: { status: number };
       input: { fetchClient: Record<string, unknown>; request: { options?: Record<string, unknown>; url: string } };
-      kind: 'baseURL-prepend-relative' | 'baseURL-keep-absolute' | 'baseURL-trailing-slash' | 'baseURL-path-without-leading-slash' | 'headers-apply-defaults' | 'headers-merge-default-and-request' | 'headers-override-defaults';
+      shape: 'baseURL-prepend-relative' | 'baseURL-keep-absolute' | 'baseURL-trailing-slash' | 'baseURL-path-without-leading-slash' | 'headers-apply-defaults' | 'headers-merge-default-and-request' | 'headers-override-defaults';
       name: string;
     }
   | {
       description: string;
       expected: { itemsLengthAtMost: number };
       input: { fetchClient: Record<string, unknown>; request: { url: string } };
-      kind: 'params-apply-defaults-with-baseURL';
+      shape: 'params-apply-defaults-with-baseURL';
       name: string;
     }
   | {
       description: string;
       expected: { query: Record<string, string> };
       input: { fetchClient: Record<string, unknown>; request: { url: string } };
-      kind: 'params-apply-defaults-without-baseURL';
+      shape: 'params-apply-defaults-without-baseURL';
       name: string;
     }
   | {
       description: string;
       expected: { abortErrorName: 'AbortError'; urlIncludes: string };
       input: { fetchClient: Record<string, unknown> };
-      kind: 'abort-details' | 'abort-in-get' | 'abort-first';
+      shape: 'abort-details' | 'abort-in-get' | 'abort-first';
       name: string;
     }
   | {
       description: string;
       expected: { timeoutErrorName: 'TimeoutError' };
       input: { fetchClient: Record<string, unknown> };
-      kind: 'timeout-first';
+      shape: 'timeout-first';
       name: string;
     };
 
-type ScenarioRunner<Kind extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => Promise<void>;
-type RunnerMap = { [Kind in ScenarioCase['kind']]: ScenarioRunner<Kind> };
+type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
 type StatusScenario = Extract<ScenarioCase, {
-  kind:
+  shape:
     | 'baseURL-prepend-relative'
     | 'baseURL-keep-absolute'
     | 'baseURL-trailing-slash'
@@ -54,12 +54,12 @@ type StatusScenario = Extract<ScenarioCase, {
     | 'headers-merge-default-and-request'
     | 'headers-override-defaults';
 }>;
-type ParamsWithBaseURLScenario = Extract<ScenarioCase, { kind: 'params-apply-defaults-with-baseURL' }>;
-type ParamsWithoutBaseURLScenario = Extract<ScenarioCase, { kind: 'params-apply-defaults-without-baseURL' }>;
-type AbortDetailsScenario = Extract<ScenarioCase, { kind: 'abort-details' }>;
-type TimeoutFirstScenario = Extract<ScenarioCase, { kind: 'timeout-first' }>;
-type AbortFirstScenario = Extract<ScenarioCase, { kind: 'abort-first' }>;
-type AbortInGetScenario = Extract<ScenarioCase, { kind: 'abort-in-get' }>;
+type ParamsWithBaseURLScenario = Extract<ScenarioCase, { shape: 'params-apply-defaults-with-baseURL' }>;
+type ParamsWithoutBaseURLScenario = Extract<ScenarioCase, { shape: 'params-apply-defaults-without-baseURL' }>;
+type AbortDetailsScenario = Extract<ScenarioCase, { shape: 'abort-details' }>;
+type TimeoutFirstScenario = Extract<ScenarioCase, { shape: 'timeout-first' }>;
+type AbortFirstScenario = Extract<ScenarioCase, { shape: 'abort-first' }>;
+type AbortInGetScenario = Extract<ScenarioCase, { shape: 'abort-in-get' }>;
 
 const testClient = FetchClient.create();
 let testUrl: string;
@@ -182,8 +182,8 @@ const runnerMap: RunnerMap = {
   'timeout-first': runTimeoutFirstScenario
 };
 
-async function runCase<Kind extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('fetch integration features', () => {

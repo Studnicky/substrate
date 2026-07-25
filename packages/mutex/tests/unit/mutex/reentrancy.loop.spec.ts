@@ -11,25 +11,25 @@ type ScenarioCase =
       description: string;
       expected: { complete: boolean; hookErrorCount: number; hookName: 'beforeAcquire'; lockedAfterOuterRelease: boolean };
       input: { key: string };
-      kind: 'beforeAcquire-reentrant-same-key';
+      shape: 'beforeAcquire-reentrant-same-key';
       name: string;
     }
   | {
       description: string;
       expected: { complete: boolean; hookErrorCount: number; hookName: 'onRelease'; lockedAfterFirstRelease: boolean; lockedAfterSecondRelease: boolean; lockedAfterThirdRelease: boolean };
       input: { batch: { pendingCount: number }; key: string };
-      kind: 'onRelease-reentrant-same-key';
+      shape: 'onRelease-reentrant-same-key';
       name: string;
     }
   | {
       description: string;
       expected: { complete: boolean; hookErrorCount: number; keys: string[] };
       input: { keys: string[] };
-      kind: 'different-keys-unaffected';
+      shape: 'different-keys-unaffected';
       name: string;
     };
 
-type ScenarioKind = ScenarioCase['kind'];
+type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
 class ReentrantBeforeAcquireMutex extends Mutex<string> {
@@ -84,7 +84,7 @@ class DifferentKeysMutex extends Mutex<string> {
   }
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'beforeAcquire-reentrant-same-key': async (scenarioCase) => {
       const mutex = new ReentrantBeforeAcquireMutex();
       const outerRelease = await mutex.acquire(scenarioCase.input.key);
@@ -145,7 +145,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Mutex reentrancy', () => {

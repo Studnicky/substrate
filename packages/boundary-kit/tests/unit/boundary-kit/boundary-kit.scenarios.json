@@ -3,7 +3,7 @@
     {
       "name": "boundary-kit-plain-config",
       "description": "creates from plain config and executes successfully",
-      "kind": "plain-config",
+      "shape": "plain-config",
       "input": {
         "boundaryKit": {
           "config": {
@@ -18,14 +18,14 @@
     {
       "name": "boundary-kit-default-retry",
       "description": "creates with default primitives and retries a flaky function until success",
-      "kind": "default-retry",
+      "shape": "default-retry",
       "input": { "boundaryKit": { "failuresBeforeSuccess": 2 } },
       "expected": { "callCount": 3, "result": "ok" }
     },
     {
       "name": "boundary-kit-prebuilt-instances",
       "description": "uses pre-built subclass instances directly",
-      "kind": "prebuilt-instances",
+      "shape": "prebuilt-instances",
       "input": {
         "boundaryKit": {
           "prebuiltConfig": {
@@ -40,7 +40,7 @@
     {
       "name": "boundary-kit-throttle-bound",
       "description": "respects the throttle concurrency bound across concurrent execute calls",
-      "kind": "throttle-bound",
+      "shape": "throttle-bound",
       "input": {
         "batch": { "callCount": 6 },
         "boundaryKit": {
@@ -55,14 +55,14 @@
     {
       "name": "boundary-kit-circuit-breaker-open",
       "description": "fails fast without retrying once the circuit breaker trips open",
-      "kind": "circuit-breaker-open",
+      "shape": "circuit-breaker-open",
       "input": {
         "boundaryKit": {
           "config": {
             "circuitBreaker": { "failureThreshold": 2, "resetTimeoutMs": 60000 },
             "retry": {
               "errorClassifier": {
-                "kind": "constant",
+                "shape": "constant",
                 "reason": "always retryable",
                 "retryable": true
               },
@@ -81,7 +81,7 @@
     {
       "name": "boundary-kit-undefined-result-vs-abort",
       "description": "distinguishes legitimate undefined results from aborted queued calls",
-      "kind": "undefined-result-vs-abort",
+      "shape": "undefined-result-vs-abort",
       "input": {
         "boundaryKit": {
           "abortConfig": {

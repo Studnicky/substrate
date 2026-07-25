@@ -11,70 +11,70 @@ type ScenarioCase =
       description: string;
       expected: { frozen: false; objectKeys: number };
       input: { dispatcher: { connections: number } };
-      kind: 'empty-stats' | 'stats-object-after-requests' | 'structure-after-get-stats';
+      shape: 'empty-stats' | 'stats-object-after-requests' | 'structure-after-get-stats';
       name: string;
     }
   | {
       description: string;
       expected: { frozen: true };
       input: { dispatcher: { connections: number } };
-      kind: 'frozen-stats-object' | 'deeply-frozen-stats';
+      shape: 'frozen-stats-object' | 'deeply-frozen-stats';
       name: string;
     }
   | {
       description: string;
       expected: { healthy: true; queueRatio: '__UNDEFINED__'; recommendation: '__UNDEFINED__'; stats: '__UNDEFINED__' };
       input: { dispatcher: { connections: number }; origin: string };
-      kind: 'healthy-non-existent-origin';
+      shape: 'healthy-non-existent-origin';
       name: string;
     }
   | {
       description: string;
       expected: { healthy: true; objectKeys: number };
       input: { dispatcher: { connections: number }; origin: string };
-      kind: 'healthy-new-dispatcher';
+      shape: 'healthy-new-dispatcher';
       name: string;
     }
   | {
       description: string;
       expected: { healthy: boolean; queueRatio: number; recommendationIncludes: string };
       input: { origin: string; path: string; queuedPath?: string; testDispatcher: { connections: number; enabled: boolean } };
-      kind: 'test-transport-overloaded' | 'test-transport-pressure';
+      shape: 'test-transport-overloaded' | 'test-transport-pressure';
       name: string;
     }
   | {
       description: string;
       expected: { healthyType: 'boolean'; queueRatioType: 'number-or-undefined'; recommendationType: 'string-or-undefined'; statsType: 'object-or-undefined' };
       input: { dispatcher: { connections: number }; origin: string };
-      kind: 'health-interface-shape';
+      shape: 'health-interface-shape';
       name: string;
     }
   | {
       description: string;
       expected: { closed: true };
       input: { dispatcher: { connections: number } };
-      kind: 'close-after-idle';
+      shape: 'close-after-idle';
       name: string;
     }
   | {
       description: string;
       expected: { destroyedAfterWait: true };
       input: { destroy: { timeout: number }; dispatcher: { connections: number } };
-      kind: 'destroy-with-timeout';
+      shape: 'destroy-with-timeout';
       name: string;
     }
   | {
       description: string;
       expected: { message: string };
       input: Record<string, never>;
-      kind: 'reject-invalid-agent';
+      shape: 'reject-invalid-agent';
       name: string;
     }
   | {
       description: string;
       expected: { healthy: true; statsKeys: number };
       input: { dispatcher: { connections: number }; origin: string };
-      kind: 'test-transport-delegates';
+      shape: 'test-transport-delegates';
       name: string;
     };
 
@@ -83,7 +83,16 @@ function createDispatcher(config: { connections: number }): UndiciDispatcher {
   return UndiciDispatcher.create(agent);
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+function matchesTypeDescriptor(value: unknown, descriptor: string): boolean {
+  const orUndefinedSuffix = '-or-undefined';
+  if (descriptor.endsWith(orUndefinedSuffix)) {
+    const base = descriptor.slice(0, -orUndefinedSuffix.length);
+    return value === undefined || typeof value === base;
+  }
+  return typeof value === descriptor;
+}
+
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'empty-stats': async (scenarioCase) => {
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const stats = dispatcher.getStats();
@@ -142,12 +151,9 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
     assert.equal(typeof health.healthy, scenarioCase.expected.healthyType);
-    assert.equal(health.stats === undefined || typeof health.stats === 'object', true);
-    assert.equal(health.queueRatio === undefined || typeof health.queueRatio === 'number', true);
-    assert.equal(health.recommendation === undefined || typeof health.recommendation === 'string', true);
-    assert.equal(typeof health.queueRatio === 'number' || health.queueRatio === undefined, true);
-    assert.equal(typeof health.recommendation === 'string' || health.recommendation === undefined, true);
-    assert.equal(typeof health.stats === 'object' || health.stats === undefined, true);
+    assert.equal(matchesTypeDescriptor(health.queueRatio, scenarioCase.expected.queueRatioType), true);
+    assert.equal(matchesTypeDescriptor(health.recommendation, scenarioCase.expected.recommendationType), true);
+    assert.equal(matchesTypeDescriptor(health.stats, scenarioCase.expected.statsType), true);
     await dispatcher.destroy();
   },
   'test-transport-pressure': async (scenarioCase) => {
@@ -251,7 +257,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('dispatcher health monitoring', () => {

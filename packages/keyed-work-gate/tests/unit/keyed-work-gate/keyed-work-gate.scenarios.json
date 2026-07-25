@@ -3,63 +3,63 @@
     {
       "name": "plain-config-single-flight",
       "description": "KeyedWorkGate.create() builds delegates from plain config",
-      "kind": "plain-config-single-flight",
+      "shape": "plain-config-single-flight",
       "input": { "config": { "coalesce": { "timeout": 1000 }, "mutex": { "timeout": 5000 } }, "key": "same" },
       "expected": { "result": [1, 1], "runs": 1 }
     },
     {
       "name": "composed-instances",
       "description": "KeyedWorkGate.create() uses caller-supplied delegates",
-      "kind": "composed-instances",
+      "shape": "composed-instances",
       "input": { "config": { "coalesce": { "timeout": 500 }, "mutex": { "timeout": 2000 } }, "key": "key" },
       "expected": { "coalesceIsInflight": false, "mutexIsLocked": false, "result": "done" }
     },
     {
       "name": "default-serialize-same-key",
       "description": "Default delegate behavior serializes same-key calls",
-      "kind": "default-serialize-same-key",
+      "shape": "default-serialize-same-key",
       "input": { "key": "key" },
       "expected": { "order": ["first", "second"], "results": [1, 2] }
     },
     {
       "name": "same-key-serialized-exclusion",
       "description": "Same-key runSerialized calls never overlap",
-      "kind": "same-key-serialized-exclusion",
+      "shape": "same-key-serialized-exclusion",
       "input": { "delayMs": 15, "key": "user1" },
       "expected": { "calls": 3, "completionOrder": [0, 1, 2], "maxActive": 1, "results": [0, 1, 2] }
     },
     {
       "name": "different-keys-do-not-block",
       "description": "Different keys do not block each other",
-      "kind": "different-keys-do-not-block",
+      "shape": "different-keys-do-not-block",
       "input": { "key1": "user1", "key1DelayMs": 40, "key2": "user2", "key2DelayMs": 10 },
       "expected": { "order": ["user1-start", "user2-start", "user2-end", "user1-end"] }
     },
     {
       "name": "single-flight-shares-result",
       "description": "runSingleFlight collapses concurrent same-key callers and shares the result",
-      "kind": "single-flight-shares-result",
+      "shape": "single-flight-shares-result",
       "input": { "delayMs": 30, "key": "user1" },
       "expected": { "calls": 1, "values": ["shared-result", "shared-result", "shared-result"] }
     },
     {
       "name": "single-flight-reruns-after-settle",
       "description": "runSingleFlight runs again after a prior group settles",
-      "kind": "single-flight-reruns-after-settle",
+      "shape": "single-flight-reruns-after-settle",
       "input": { "key": "user1" },
       "expected": { "calls": 2, "first": 1, "second": 2 }
     },
     {
       "name": "single-flight-validates-result",
       "description": "runSingleFlight validates the shared result independently for each caller",
-      "kind": "single-flight-validates-result",
+      "shape": "single-flight-validates-result",
       "input": { "delayMs": 20, "key": "user1" },
       "expected": { "rejectedName": "TypeError", "resolved": "shared-result" }
     },
     {
       "name": "single-flight-holds-mutex-against-serialized",
       "description": "The single-flight leader still holds the mutex against concurrent runSerialized calls",
-      "kind": "single-flight-holds-mutex-against-serialized",
+      "shape": "single-flight-holds-mutex-against-serialized",
       "input": { "key": "user1", "leaderDelayMs": 40, "serializedDelayMs": 10, "waitBeforeSerializedMs": 10 },
       "expected": { "order": ["single-flight-start", "single-flight-end", "serialized-start", "serialized-end"] }
     }

@@ -9,7 +9,7 @@
       },
       "expect": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "timeoutMs": 1
       },
       "input": {
@@ -19,13 +19,13 @@
         },
         "expect": {
           "error": "TimeoutError",
-          "kind": "rejects",
+          "shape": "rejects",
           "timeoutMs": 1
         }
       },
       "expected": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "timeoutMs": 1
       }
     },
@@ -37,7 +37,7 @@
         "url": "__TEST_URL__/posts/1"
       },
       "expect": {
-        "kind": "status",
+        "shape": "status",
         "status": 200
       },
       "input": {
@@ -46,12 +46,12 @@
           "url": "__TEST_URL__/posts/1"
         },
         "expect": {
-          "kind": "status",
+          "shape": "status",
           "status": 200
         }
       },
       "expected": {
-        "kind": "status",
+        "shape": "status",
         "status": 200
       }
     },
@@ -63,7 +63,7 @@
         "url": "__TEST_URL__/posts/1"
       },
       "expect": {
-        "kind": "status",
+        "shape": "status",
         "status": 200
       },
       "input": {
@@ -72,12 +72,12 @@
           "url": "__TEST_URL__/posts/1"
         },
         "expect": {
-          "kind": "status",
+          "shape": "status",
           "status": 200
         }
       },
       "expected": {
-        "kind": "status",
+        "shape": "status",
         "status": 200
       }
     },
@@ -88,7 +88,7 @@
         "timeout": -1
       },
       "expect": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "positive"
         ]
@@ -98,14 +98,14 @@
           "timeout": -1
         },
         "expect": {
-          "kind": "create-throws",
+          "shape": "create-throws",
           "messageIncludes": [
             "positive"
           ]
         }
       },
       "expected": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "positive"
         ]
@@ -116,11 +116,11 @@
       "description": "FetchClient rejects an infinite timeout",
       "clientConfig": {
         "timeout": {
-          "__kind": "infinity"
+          "__shape": "infinity"
         }
       },
       "expect": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "finite"
         ]
@@ -128,18 +128,18 @@
       "input": {
         "clientConfig": {
           "timeout": {
-            "__kind": "infinity"
+            "__shape": "infinity"
           }
         },
         "expect": {
-          "kind": "create-throws",
+          "shape": "create-throws",
           "messageIncludes": [
             "finite"
           ]
         }
       },
       "expected": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "finite"
         ]
@@ -152,7 +152,7 @@
         "timeout": "1000"
       },
       "expect": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "number"
         ]
@@ -162,14 +162,14 @@
           "timeout": "1000"
         },
         "expect": {
-          "kind": "create-throws",
+          "shape": "create-throws",
           "messageIncludes": [
             "number"
           ]
         }
       },
       "expected": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "number"
         ]
@@ -182,7 +182,7 @@
         "timeout": {}
       },
       "expect": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "number"
         ]
@@ -192,14 +192,14 @@
           "timeout": {}
         },
         "expect": {
-          "kind": "create-throws",
+          "shape": "create-throws",
           "messageIncludes": [
             "number"
           ]
         }
       },
       "expected": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "number"
         ]
@@ -212,18 +212,18 @@
         "timeout": null
       },
       "expect": {
-        "kind": "create-ok"
+        "shape": "create-ok"
       },
       "input": {
         "clientConfig": {
           "timeout": null
         },
         "expect": {
-          "kind": "create-ok"
+          "shape": "create-ok"
         }
       },
       "expected": {
-        "kind": "create-ok"
+        "shape": "create-ok"
       }
     },
     {
@@ -231,24 +231,24 @@
       "description": "FetchClient accepts an undefined timeout",
       "clientConfig": {
         "timeout": {
-          "__kind": "undefined"
+          "__shape": "undefined"
         }
       },
       "expect": {
-        "kind": "create-ok"
+        "shape": "create-ok"
       },
       "input": {
         "clientConfig": {
           "timeout": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         },
         "expect": {
-          "kind": "create-ok"
+          "shape": "create-ok"
         }
       },
       "expected": {
-        "kind": "create-ok"
+        "shape": "create-ok"
       }
     },
     {
@@ -256,11 +256,11 @@
       "description": "FetchClient rejects NaN timeout",
       "clientConfig": {
         "timeout": {
-          "__kind": "nan"
+          "__shape": "nan"
         }
       },
       "expect": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "finite"
         ]
@@ -268,18 +268,18 @@
       "input": {
         "clientConfig": {
           "timeout": {
-            "__kind": "nan"
+            "__shape": "nan"
           }
         },
         "expect": {
-          "kind": "create-throws",
+          "shape": "create-throws",
           "messageIncludes": [
             "finite"
           ]
         }
       },
       "expected": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "finite"
         ]
@@ -293,7 +293,7 @@
         "timeout": 0
       },
       "expect": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "positive"
         ]
@@ -304,14 +304,14 @@
           "timeout": 0
         },
         "expect": {
-          "kind": "create-throws",
+          "shape": "create-throws",
           "messageIncludes": [
             "positive"
           ]
         }
       },
       "expected": {
-        "kind": "create-throws",
+        "shape": "create-throws",
         "messageIncludes": [
           "positive"
         ]
@@ -326,7 +326,7 @@
       },
       "expect": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "timeoutMs": 100
       },
       "input": {
@@ -336,13 +336,13 @@
         },
         "expect": {
           "error": "TimeoutError",
-          "kind": "rejects",
+          "shape": "rejects",
           "timeoutMs": 100
         }
       },
       "expected": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "timeoutMs": 100
       }
     },
@@ -354,7 +354,7 @@
         "url": "__TEST_URL__/posts/1"
       },
       "expect": {
-        "kind": "status",
+        "shape": "status",
         "status": 200
       },
       "input": {
@@ -363,12 +363,12 @@
           "url": "__TEST_URL__/posts/1"
         },
         "expect": {
-          "kind": "status",
+          "shape": "status",
           "status": 200
         }
       },
       "expected": {
-        "kind": "status",
+        "shape": "status",
         "status": 200
       }
     },
@@ -376,12 +376,12 @@
       "name": "subsequent-after-timeout",
       "description": "FetchClient continues working after a timeout",
       "expect": {
-        "kind": "sequence",
+        "shape": "sequence",
         "steps": [
           {
             "expect": {
               "error": "TimeoutError",
-              "kind": "rejects",
+              "shape": "rejects",
               "timeoutMs": 50
             },
             "request": {
@@ -391,7 +391,7 @@
           },
           {
             "expect": {
-              "kind": "status",
+              "shape": "status",
               "status": 200
             },
             "request": {
@@ -403,12 +403,12 @@
       },
       "input": {
         "expect": {
-          "kind": "sequence",
+          "shape": "sequence",
           "steps": [
             {
               "expect": {
                 "error": "TimeoutError",
-                "kind": "rejects",
+                "shape": "rejects",
                 "timeoutMs": 50
               },
               "request": {
@@ -418,7 +418,7 @@
             },
             {
               "expect": {
-                "kind": "status",
+                "shape": "status",
                 "status": 200
               },
               "request": {
@@ -430,12 +430,12 @@
         }
       },
       "expected": {
-        "kind": "sequence",
+        "shape": "sequence",
         "steps": [
           {
             "expect": {
               "error": "TimeoutError",
-              "kind": "rejects",
+              "shape": "rejects",
               "timeoutMs": 50
             },
             "request": {
@@ -445,7 +445,7 @@
           },
           {
             "expect": {
-              "kind": "status",
+              "shape": "status",
               "status": 200
             },
             "request": {
@@ -460,12 +460,12 @@
       "name": "concurrent-timeouts",
       "description": "FetchClient handles concurrent requests with mixed results",
       "expect": {
-        "kind": "parallel",
+        "shape": "parallel",
         "steps": [
           {
             "expect": {
               "error": "TimeoutError",
-              "kind": "rejects",
+              "shape": "rejects",
               "timeoutMs": 50
             },
             "request": {
@@ -476,7 +476,7 @@
           {
             "expect": {
               "error": "TimeoutError",
-              "kind": "rejects",
+              "shape": "rejects",
               "timeoutMs": 60
             },
             "request": {
@@ -486,7 +486,7 @@
           },
           {
             "expect": {
-              "kind": "status",
+              "shape": "status",
               "status": 200
             },
             "request": {
@@ -498,12 +498,12 @@
       },
       "input": {
         "expect": {
-          "kind": "parallel",
+          "shape": "parallel",
           "steps": [
             {
               "expect": {
                 "error": "TimeoutError",
-                "kind": "rejects",
+                "shape": "rejects",
                 "timeoutMs": 50
               },
               "request": {
@@ -514,7 +514,7 @@
             {
               "expect": {
                 "error": "TimeoutError",
-                "kind": "rejects",
+                "shape": "rejects",
                 "timeoutMs": 60
               },
               "request": {
@@ -524,7 +524,7 @@
             },
             {
               "expect": {
-                "kind": "status",
+                "shape": "status",
                 "status": 200
               },
               "request": {
@@ -536,12 +536,12 @@
         }
       },
       "expected": {
-        "kind": "parallel",
+        "shape": "parallel",
         "steps": [
           {
             "expect": {
               "error": "TimeoutError",
-              "kind": "rejects",
+              "shape": "rejects",
               "timeoutMs": 50
             },
             "request": {
@@ -552,7 +552,7 @@
           {
             "expect": {
               "error": "TimeoutError",
-              "kind": "rejects",
+              "shape": "rejects",
               "timeoutMs": 60
             },
             "request": {
@@ -562,7 +562,7 @@
           },
           {
             "expect": {
-              "kind": "status",
+              "shape": "status",
               "status": 200
             },
             "request": {
@@ -580,12 +580,12 @@
         "baseURL": "__TEST_URL__"
       },
       "expect": {
-        "kind": "sequence",
+        "shape": "sequence",
         "steps": [
           {
             "expect": {
               "error": "TimeoutError",
-              "kind": "rejects",
+              "shape": "rejects",
               "timeoutMs": 50
             },
             "request": {
@@ -595,7 +595,7 @@
           },
           {
             "expect": {
-              "kind": "status",
+              "shape": "status",
               "status": 200
             },
             "request": {
@@ -610,12 +610,12 @@
           "baseURL": "__TEST_URL__"
         },
         "expect": {
-          "kind": "sequence",
+          "shape": "sequence",
           "steps": [
             {
               "expect": {
                 "error": "TimeoutError",
-                "kind": "rejects",
+                "shape": "rejects",
                 "timeoutMs": 50
               },
               "request": {
@@ -625,7 +625,7 @@
             },
             {
               "expect": {
-                "kind": "status",
+                "shape": "status",
                 "status": 200
               },
               "request": {
@@ -637,12 +637,12 @@
         }
       },
       "expected": {
-        "kind": "sequence",
+        "shape": "sequence",
         "steps": [
           {
             "expect": {
               "error": "TimeoutError",
-              "kind": "rejects",
+              "shape": "rejects",
               "timeoutMs": 50
             },
             "request": {
@@ -652,7 +652,7 @@
           },
           {
             "expect": {
-              "kind": "status",
+              "shape": "status",
               "status": 200
             },
             "request": {
@@ -675,7 +675,7 @@
       },
       "expect": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "timeoutMs": 50
       },
       "input": {
@@ -688,13 +688,13 @@
         },
         "expect": {
           "error": "TimeoutError",
-          "kind": "rejects",
+          "shape": "rejects",
           "timeoutMs": 50
         }
       },
       "expected": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "timeoutMs": 50
       }
     },
@@ -710,7 +710,7 @@
         "url": "/posts/1"
       },
       "expect": {
-        "kind": "status",
+        "shape": "status",
         "status": 200
       },
       "input": {
@@ -723,12 +723,12 @@
           "url": "/posts/1"
         },
         "expect": {
-          "kind": "status",
+          "shape": "status",
           "status": 200
         }
       },
       "expected": {
-        "kind": "status",
+        "shape": "status",
         "status": 200
       }
     },
@@ -741,7 +741,7 @@
       },
       "expect": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "urlIncludes": "/delay"
       },
       "input": {
@@ -751,13 +751,13 @@
         },
         "expect": {
           "error": "TimeoutError",
-          "kind": "rejects",
+          "shape": "rejects",
           "urlIncludes": "/delay"
         }
       },
       "expected": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "urlIncludes": "/delay"
       }
     },
@@ -770,7 +770,7 @@
       },
       "expect": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "timeoutMs": 123
       },
       "input": {
@@ -780,13 +780,13 @@
         },
         "expect": {
           "error": "TimeoutError",
-          "kind": "rejects",
+          "shape": "rejects",
           "timeoutMs": 123
         }
       },
       "expected": {
         "error": "TimeoutError",
-        "kind": "rejects",
+        "shape": "rejects",
         "timeoutMs": 123
       }
     },
@@ -799,7 +799,7 @@
       },
       "expect": {
         "error": "TimeoutError",
-        "kind": "rejects"
+        "shape": "rejects"
       },
       "input": {
         "request": {
@@ -808,12 +808,12 @@
         },
         "expect": {
           "error": "TimeoutError",
-          "kind": "rejects"
+          "shape": "rejects"
         }
       },
       "expected": {
         "error": "TimeoutError",
-        "kind": "rejects"
+        "shape": "rejects"
       }
     },
     {
@@ -825,7 +825,7 @@
       },
       "expect": {
         "error": "TimeoutError",
-        "kind": "rejects"
+        "shape": "rejects"
       },
       "input": {
         "request": {
@@ -834,12 +834,12 @@
         },
         "expect": {
           "error": "TimeoutError",
-          "kind": "rejects"
+          "shape": "rejects"
         }
       },
       "expected": {
         "error": "TimeoutError",
-        "kind": "rejects"
+        "shape": "rejects"
       }
     },
     {
@@ -848,32 +848,32 @@
       "request": {
         "signal": {
           "delayMs": 100,
-          "kind": "abort-after-ms"
+          "shape": "abort-after-ms"
         },
         "timeout": 5000,
         "url": "__TEST_URL__/delay"
       },
       "expect": {
         "error": "AbortError",
-        "kind": "rejects"
+        "shape": "rejects"
       },
       "input": {
         "request": {
           "signal": {
             "delayMs": 100,
-            "kind": "abort-after-ms"
+            "shape": "abort-after-ms"
           },
           "timeout": 5000,
           "url": "__TEST_URL__/delay"
         },
         "expect": {
           "error": "AbortError",
-          "kind": "rejects"
+          "shape": "rejects"
         }
       },
       "expected": {
         "error": "AbortError",
-        "kind": "rejects"
+        "shape": "rejects"
       }
     },
     {
@@ -885,7 +885,7 @@
       },
       "expect": {
         "error": "TimeoutError",
-        "kind": "rejects"
+        "shape": "rejects"
       },
       "input": {
         "request": {
@@ -894,12 +894,12 @@
         },
         "expect": {
           "error": "TimeoutError",
-          "kind": "rejects"
+          "shape": "rejects"
         }
       },
       "expected": {
         "error": "TimeoutError",
-        "kind": "rejects"
+        "shape": "rejects"
       }
     },
     {
@@ -911,7 +911,7 @@
       },
       "expect": {
         "error": "TimeoutError",
-        "kind": "rejects"
+        "shape": "rejects"
       },
       "input": {
         "request": {
@@ -920,12 +920,12 @@
         },
         "expect": {
           "error": "TimeoutError",
-          "kind": "rejects"
+          "shape": "rejects"
         }
       },
       "expected": {
         "error": "TimeoutError",
-        "kind": "rejects"
+        "shape": "rejects"
       }
     }
   ]

@@ -3,7 +3,7 @@
     {
       "name": "default-config",
       "description": "DispatcherAgent.create uses defaults when config is empty",
-      "kind": "default-config",
+      "shape": "default-config",
       "input": {
         "dispatcherAgent": {}
       },
@@ -14,7 +14,7 @@
     {
       "name": "sparse-config",
       "description": "DispatcherAgent.create preserves sparse config values",
-      "kind": "sparse-config",
+      "shape": "sparse-config",
       "input": {
         "dispatcherAgent": {
           "connections": 1,
@@ -28,7 +28,7 @@
     {
       "name": "comprehensive-config",
       "description": "DispatcherAgent.create accepts a comprehensive dispatcher config",
-      "kind": "comprehensive-config",
+      "shape": "comprehensive-config",
       "input": {
         "dispatcherAgent": {
           "allowH2": true,

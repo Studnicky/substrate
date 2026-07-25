@@ -19,7 +19,7 @@ type ScenarioCase = {
   description: string;
   expected: { validationResults: boolean[] };
   input: { validations: ValidationCase[] };
-  kind: 'entities-reject-invalid' | 'entities-valid-phases';
+  shape: 'entities-reject-invalid' | 'entities-valid-phases';
   name: string;
 };
 

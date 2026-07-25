@@ -12,7 +12,7 @@
           { "expected": true, "value": { "isFull": true, "length": 4 } }
         ]
       },
-      "kind": "valid-state",
+      "shape": "valid-state",
       "name": "valid-state"
     },
     {
@@ -27,7 +27,7 @@
           { "expected": false, "value": { "isFull": false, "length": -1 } }
         ]
       },
-      "kind": "invalid-length",
+      "shape": "invalid-length",
       "name": "invalid-length"
     },
     {
@@ -44,7 +44,7 @@
         "message": "bad config",
         "retryable": true
       },
-      "kind": "error-args",
+      "shape": "error-args",
       "name": "error-args"
     }
   ]

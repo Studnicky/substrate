@@ -9,7 +9,7 @@
       "input": {
         "ms": 5
       },
-      "kind": "forwards-to-global-settimeout",
+      "shape": "forwards-to-global-settimeout",
       "name": "forwards-to-global-settimeout"
     }
   ]

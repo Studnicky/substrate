@@ -21,7 +21,7 @@
           }
         ]
       },
-      "kind": "request-options-valid",
+      "shape": "request-options-valid",
       "name": "request-options-valid"
     },
     {
@@ -40,7 +40,7 @@
           }
         ]
       },
-      "kind": "request-options-invalid",
+      "shape": "request-options-invalid",
       "name": "request-options-invalid"
     },
     {
@@ -64,7 +64,7 @@
           }
         ]
       },
-      "kind": "client-config-valid",
+      "shape": "client-config-valid",
       "name": "client-config-valid"
     },
     {
@@ -83,7 +83,7 @@
           }
         ]
       },
-      "kind": "client-config-invalid",
+      "shape": "client-config-invalid",
       "name": "client-config-invalid"
     }
   ]

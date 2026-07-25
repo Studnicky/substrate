@@ -3,7 +3,7 @@
     {
       "name": "json-clone-deep-number",
       "description": "Clone.deep clones number by value",
-      "kind": "clone-deep-number",
+      "shape": "clone-deep-number",
       "input": {
         "json": {
           "value": 42
@@ -16,7 +16,7 @@
     {
       "name": "json-clone-deep-string",
       "description": "Clone.deep clones string by value",
-      "kind": "clone-deep-string",
+      "shape": "clone-deep-string",
       "input": {
         "json": {
           "value": "hello"
@@ -29,7 +29,7 @@
     {
       "name": "json-clone-deep-null",
       "description": "Clone.deep clones null by value",
-      "kind": "clone-deep-null",
+      "shape": "clone-deep-null",
       "input": {
         "json": {
           "value": null
@@ -42,7 +42,7 @@
     {
       "name": "json-clone-deep-array",
       "description": "Clone.deep clones arrays without sharing references",
-      "kind": "clone-deep-array",
+      "shape": "clone-deep-array",
       "input": {
         "json": {
           "value": [
@@ -74,7 +74,7 @@
     {
       "name": "json-clone-deep-nested-object",
       "description": "Clone.deep clones nested objects",
-      "kind": "clone-deep-nested-object",
+      "shape": "clone-deep-nested-object",
       "input": {
         "json": {
           "value": {
@@ -98,11 +98,11 @@
     {
       "name": "json-clone-deep-map",
       "description": "Clone.deep clones Map values deeply",
-      "kind": "clone-deep-map",
+      "shape": "clone-deep-map",
       "input": {
         "json": {
           "value": {
-            "__kind": "map",
+            "__shape": "map",
             "entries": [
               [
                 "key",
@@ -122,11 +122,11 @@
     {
       "name": "json-clone-deep-set",
       "description": "Clone.deep clones Set values",
-      "kind": "clone-deep-set",
+      "shape": "clone-deep-set",
       "input": {
         "json": {
           "value": {
-            "__kind": "set",
+            "__shape": "set",
             "values": [
               1,
               2,
@@ -147,7 +147,7 @@
     {
       "name": "json-clone-deep-date",
       "description": "Clone.deep clones Date objects",
-      "kind": "clone-deep-date",
+      "shape": "clone-deep-date",
       "input": {
         "json": {
           "value": "2024-06-01"
@@ -161,7 +161,7 @@
     {
       "name": "json-clone-deep-isolation",
       "description": "Clone.deep mutations to the clone do not affect the original",
-      "kind": "clone-deep-isolation",
+      "shape": "clone-deep-isolation",
       "input": {
         "json": {
           "value": {
@@ -179,7 +179,7 @@
     {
       "name": "json-clone-shallow",
       "description": "Clone.shallow preserves nested references",
-      "kind": "clone-shallow",
+      "shape": "clone-shallow",
       "input": {
         "json": {
           "value": {
@@ -197,7 +197,7 @@
     {
       "name": "json-clone-subclass-root",
       "description": "Clone subclass override tags the root object",
-      "kind": "clone-subclass-root",
+      "shape": "clone-subclass-root",
       "input": {
         "json": {
           "value": {
@@ -212,7 +212,7 @@
     {
       "name": "json-clone-subclass-nested",
       "description": "Clone subclass override propagates through nested objects",
-      "kind": "clone-subclass-nested",
+      "shape": "clone-subclass-nested",
       "input": {
         "json": {
           "value": {
@@ -231,7 +231,7 @@
     {
       "name": "json-clone-subclass-base",
       "description": "base Clone.deep ignores subclass override",
-      "kind": "clone-subclass-base",
+      "shape": "clone-subclass-base",
       "input": {
         "json": {
           "value": {
@@ -249,7 +249,7 @@
     {
       "name": "json-data-deepequal-true",
       "description": "DataType.deepEqual accepts identical primitives",
-      "kind": "data-deepequal-true",
+      "shape": "data-deepequal-true",
       "input": {
         "json": {
           "values": [
@@ -267,7 +267,7 @@
     {
       "name": "json-data-deepequal-false",
       "description": "DataType.deepEqual rejects different primitives",
-      "kind": "data-deepequal-false",
+      "shape": "data-deepequal-false",
       "input": {
         "json": {
           "values": [
@@ -287,7 +287,7 @@
     {
       "name": "json-data-deepequal-special",
       "description": "DataType.deepEqual handles arrays, objects, dates, regexps, sets, maps, and mixed types",
-      "kind": "data-deepequal-special",
+      "shape": "data-deepequal-special",
       "input": {
         "json": {
           "values": [
@@ -315,7 +315,7 @@
     {
       "name": "json-data-plain-object",
       "description": "DataType.isPlainObject recognizes plain objects and rejects non-plain values",
-      "kind": "data-plain-object",
+      "shape": "data-plain-object",
       "input": {
         "json": {
           "values": [
@@ -334,7 +334,7 @@
     {
       "name": "json-data-record",
       "description": "DataType.isRecord recognizes objects and maps while rejecting non-records",
-      "kind": "data-record",
+      "shape": "data-record",
       "input": {
         "json": {
           "values": [
@@ -355,7 +355,7 @@
     {
       "name": "json-data-cycle",
       "description": "DataType.hasCycle detects cyclic and acyclic structures",
-      "kind": "data-cycle",
+      "shape": "data-cycle",
       "input": {
         "json": {
           "values": [
@@ -374,7 +374,7 @@
     {
       "name": "json-data-deepequal-negative-branches",
       "description": "DataType.deepEqual rejects mixed dates, regexps, sets, maps, arrays, and object key shapes",
-      "kind": "data-deepequal-negative-branches",
+      "shape": "data-deepequal-negative-branches",
       "input": {
         "json": {
           "checks": [
@@ -398,7 +398,7 @@
     {
       "name": "json-frozen-flat",
       "description": "Frozen.deepFreeze freezes a flat object",
-      "kind": "frozen-flat",
+      "shape": "frozen-flat",
       "input": {
         "json": {
           "value": {
@@ -414,7 +414,7 @@
     {
       "name": "json-frozen-nested",
       "description": "Frozen.deepFreeze deeply freezes nested objects and arrays",
-      "kind": "frozen-nested",
+      "shape": "frozen-nested",
       "input": {
         "json": {
           "value": {
@@ -433,7 +433,7 @@
     {
       "name": "json-frozen-reference",
       "description": "Frozen.deepFreeze returns the same reference",
-      "kind": "frozen-reference",
+      "shape": "frozen-reference",
       "input": {
         "json": {
           "value": {
@@ -448,7 +448,7 @@
     {
       "name": "json-frozen-cycle",
       "description": "Frozen.deepFreeze handles circular references",
-      "kind": "frozen-cycle",
+      "shape": "frozen-cycle",
       "input": {
         "json": {
           "value": {
@@ -464,7 +464,7 @@
     {
       "name": "json-frozen-primitives",
       "description": "Frozen.deepFreeze passes through primitives unchanged",
-      "kind": "frozen-primitives",
+      "shape": "frozen-primitives",
       "input": {
         "json": {
           "values": [
@@ -481,7 +481,7 @@
     {
       "name": "json-frozen-map-set",
       "description": "Frozen.deepFreeze preserves read access while blocking mutation",
-      "kind": "frozen-map-set",
+      "shape": "frozen-map-set",
       "input": {
         "json": {
           "map": {
@@ -506,7 +506,7 @@
     {
       "name": "json-frozen-map-values",
       "description": "Frozen.deepFreeze deeply freezes values reachable from a Map",
-      "kind": "frozen-map-values",
+      "shape": "frozen-map-values",
       "input": {
         "json": {
           "map": {
@@ -528,7 +528,7 @@
     {
       "name": "json-frozen-set-values",
       "description": "Frozen.deepFreeze deeply freezes values reachable from a Set",
-      "kind": "frozen-set-values",
+      "shape": "frozen-set-values",
       "input": {
         "json": {
           "setValues": [
@@ -546,7 +546,7 @@
     {
       "name": "json-frozen-subclass-skip",
       "description": "Frozen subclasses can skip freezing selected object shapes while still freezing children",
-      "kind": "frozen-subclass-skip",
+      "shape": "frozen-subclass-skip",
       "input": {
         "json": {
           "value": {
@@ -565,7 +565,7 @@
     {
       "name": "json-hash-hex",
       "description": "Hash.value returns an 8-char hex string",
-      "kind": "hash-hex",
+      "shape": "hash-hex",
       "input": {
         "json": {
           "value": {
@@ -580,7 +580,7 @@
     {
       "name": "json-hash-identical",
       "description": "Hash.value produces the same hash for identical values",
-      "kind": "hash-identical",
+      "shape": "hash-identical",
       "input": {
         "json": {
           "values": [
@@ -600,7 +600,7 @@
     {
       "name": "json-hash-order",
       "description": "Hash.value is insensitive to object and set/map insertion order",
-      "kind": "hash-order",
+      "shape": "hash-order",
       "input": {
         "json": {
           "values": [
@@ -622,7 +622,7 @@
     {
       "name": "json-hash-different",
       "description": "Hash.value produces different hashes for different values",
-      "kind": "hash-different",
+      "shape": "hash-different",
       "input": {
         "json": {
           "values": [
@@ -642,7 +642,7 @@
     {
       "name": "json-hash-primitive",
       "description": "Hash.value returns a string for primitive inputs",
-      "kind": "hash-primitive",
+      "shape": "hash-primitive",
       "input": {
         "json": {
           "value": 42
@@ -655,7 +655,7 @@
     {
       "name": "json-hash-nested",
       "description": "Hash.value handles nested structures",
-      "kind": "hash-nested",
+      "shape": "hash-nested",
       "input": {
         "json": {
           "value": {
@@ -674,9 +674,9 @@
       }
     },
     {
-      "name": "json-hash-distinct-kinds",
+      "name": "json-hash-distinct-shapes",
       "description": "Hash.value distinguishes Map, Set, Date, and plain objects",
-      "kind": "hash-distinct-kinds",
+      "shape": "hash-distinct-shapes",
       "input": {
         "json": {
           "values": [
@@ -694,7 +694,7 @@
     {
       "name": "json-structural-hash-metadata",
       "description": "StructuralHash ignores metadata-only schema differences",
-      "kind": "structural-hash-metadata",
+      "shape": "structural-hash-metadata",
       "input": {
         "json": {
           "schema": {
@@ -709,7 +709,7 @@
     {
       "name": "json-structural-hash-different",
       "description": "StructuralHash distinguishes structurally different schemas",
-      "kind": "structural-hash-different",
+      "shape": "structural-hash-different",
       "input": {
         "json": {
           "schema": {
@@ -724,8 +724,8 @@
     },
     {
       "name": "json-hash-edge-values",
-      "description": "Hash.value distinguishes booleans and non-JSON JavaScript input kinds",
-      "kind": "hash-edge-values",
+      "description": "Hash.value distinguishes booleans and non-JSON JavaScript input shapes",
+      "shape": "hash-edge-values",
       "input": {
         "json": {
           "values": [
@@ -744,7 +744,7 @@
     {
       "name": "json-merge-primitives",
       "description": "Merge.deep handles primitive, object, array, and atomic overlay cases",
-      "kind": "merge-primitives",
+      "shape": "merge-primitives",
       "input": {
         "json": {
           "left": 1,
@@ -758,7 +758,7 @@
     {
       "name": "json-merge-isolation",
       "description": "Merge.deep isolates inputs and outputs from later mutation",
-      "kind": "merge-isolation",
+      "shape": "merge-isolation",
       "input": {
         "json": {
           "left": {
@@ -776,7 +776,7 @@
     {
       "name": "json-merge-hidden-class",
       "description": "Merge.deep preserves a canonical key write order",
-      "kind": "merge-hidden-class",
+      "shape": "merge-hidden-class",
       "input": {
         "json": {
           "left": {
@@ -794,7 +794,7 @@
     {
       "name": "json-sort-functions",
       "description": "Sort comparators handle natural and length-based ordering",
-      "kind": "sort-functions",
+      "shape": "sort-functions",
       "input": {
         "json": {
           "values": [
@@ -820,7 +820,7 @@
     {
       "name": "json-entities-core",
       "description": "JSON internal entities validate their core payloads",
-      "kind": "entities-core",
+      "shape": "entities-core",
       "input": {
         "json": {
           "entities": [
@@ -843,7 +843,7 @@
     {
       "name": "json-schema-validator",
       "description": "SchemaValidator compiles idempotently and formats Ajv validation errors",
-      "kind": "schema-validator",
+      "shape": "schema-validator",
       "input": {
         "json": {
           "schema": {

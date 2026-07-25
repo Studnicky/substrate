@@ -3,35 +3,35 @@
     {
       "name": "reject-zero",
       "description": "rejects zero permits",
-      "kind": "reject-zero",
+      "shape": "reject-zero",
       "input": { "semaphore": { "permits": 0 } },
       "expected": { "errorName": "SemaphoreError" }
     },
     {
       "name": "reject-fractional",
       "description": "rejects fractional permits",
-      "kind": "reject-fractional",
+      "shape": "reject-fractional",
       "input": { "semaphore": { "permits": 1.5 } },
       "expected": { "errorName": "SemaphoreError" }
     },
     {
       "name": "reject-negative",
       "description": "rejects negative permits",
-      "kind": "reject-negative",
+      "shape": "reject-negative",
       "input": { "semaphore": { "permits": -1 } },
       "expected": { "errorName": "SemaphoreError" }
     },
     {
       "name": "getter-reflects-permits",
       "description": "permits getter reflects constructor value",
-      "kind": "getter-reflects-permits",
+      "shape": "getter-reflects-permits",
       "input": { "semaphore": { "permits": 3 } },
       "expected": { "permits": 3 }
     },
     {
       "name": "acquire-release-cycle",
       "description": "acquire and release cycle decrements and restores available",
-      "kind": "acquire-release-cycle",
+      "shape": "acquire-release-cycle",
       "input": { "semaphore": { "permits": 2 } },
       "expected": {
         "availableInitial": 2,
@@ -44,14 +44,14 @@
     {
       "name": "double-release-safe",
       "description": "double-release is safe (idempotent)",
-      "kind": "double-release-safe",
+      "shape": "double-release-safe",
       "input": { "semaphore": { "permits": 1 } },
       "expected": { "availableAfterAcquire": 0, "availableAfterRelease": 1 }
     },
     {
       "name": "queue-waiters",
       "description": "queues waiters when all permits are taken",
-      "kind": "queue-waiters",
+      "shape": "queue-waiters",
       "input": { "semaphore": { "permits": 1 } },
       "expected": {
         "availableAfterFirstRelease": 0,
@@ -62,98 +62,98 @@
     {
       "name": "withPermit-runs",
       "description": "withPermit runs callback under permit and releases on return",
-      "kind": "withPermit-runs",
+      "shape": "withPermit-runs",
       "input": { "semaphore": { "permits": 1 } },
       "expected": { "availableAfter": 1, "inside": true }
     },
     {
       "name": "withPermit-throws",
       "description": "withPermit releases permit even when callback throws",
-      "kind": "withPermit-throws",
+      "shape": "withPermit-throws",
       "input": { "message": "boom", "semaphore": { "permits": 1 } },
       "expected": { "availableAfter": 1 }
     },
     {
       "name": "onAcquire-hooks",
       "description": "onAcquire fires with correct permitsBefore when permit available immediately",
-      "kind": "onAcquire-hooks",
+      "shape": "onAcquire-hooks",
       "input": { "semaphore": { "permits": 2 } },
       "expected": { "acquireEvents": [2, 1] }
     },
     {
       "name": "onAcquireWait-hooks",
       "description": "onAcquireWait and onContended fire when all permits taken",
-      "kind": "onAcquireWait-hooks",
+      "shape": "onAcquireWait-hooks",
       "input": { "semaphore": { "permits": 1 } },
       "expected": { "acquireWaitEvents": 1, "contendedEvents": [1] }
     },
     {
       "name": "onAcquireWait-multiwaiter",
       "description": "onAcquireWait and onContended observe a second queued waiter",
-      "kind": "onAcquireWait-multiwaiter",
+      "shape": "onAcquireWait-multiwaiter",
       "input": { "semaphore": { "permits": 1 } },
       "expected": { "acquireWaitEvents": 2, "contendedEvents": [1, 2] }
     },
     {
       "name": "onRelease-hooks",
       "description": "onRelease fires with correct permitsAfter on normal release",
-      "kind": "onRelease-hooks",
+      "shape": "onRelease-hooks",
       "input": { "semaphore": { "permits": 2 } },
       "expected": { "releaseEvents": [1, 2] }
     },
     {
       "name": "onReleaseDelegated-hooks",
       "description": "onReleaseDelegated fires when queued waiter gets the permit",
-      "kind": "onReleaseDelegated-hooks",
+      "shape": "onReleaseDelegated-hooks",
       "input": { "semaphore": { "permits": 1 } },
       "expected": { "releaseDelegatedEvents": 1, "releaseEvents": 0 }
     },
     {
       "name": "throwing-onAcquire",
       "description": "a throwing onAcquire hook rejects acquire() with HookInvocationError",
-      "kind": "throwing-onAcquire",
+      "shape": "throwing-onAcquire",
       "input": { "message": "hook boom", "semaphore": { "permits": 1 } },
       "expected": { "availableAfter": 1, "hookName": "onAcquire" }
     },
     {
       "name": "throwing-onContended",
       "description": "a throwing onContended hook rejects the waiting acquire() with HookInvocationError",
-      "kind": "throwing-onContended",
+      "shape": "throwing-onContended",
       "input": { "message": "hook boom", "semaphore": { "permits": 1 } },
       "expected": { "availableAfter": 1, "hookName": "onContended" }
     },
     {
       "name": "async-onAcquire-reject",
       "description": "an async-overridden onAcquire hook that rejects is routed safely through HookInvoker without an unhandled rejection",
-      "kind": "async-onAcquire-reject",
+      "shape": "async-onAcquire-reject",
       "input": { "message": "async hook boom", "semaphore": { "permits": 1 } },
       "expected": { "hookName": "onAcquire", "unhandledRejections": 0 }
     },
     {
       "name": "async-onAcquire-reserve",
       "description": "an async onAcquire rejection restores its reserved permit and grants the next queued caller",
-      "kind": "async-onAcquire-reserve",
+      "shape": "async-onAcquire-reserve",
       "input": { "firstMessage": "first acquire hook failed", "secondMessage": "second acquire ok", "semaphore": { "permits": 1 } },
       "expected": { "availableAfterFirstFailure": 0, "availableAfterSecondRelease": 1 }
     },
     {
       "name": "async-onAcquireWait-reject",
       "description": "an async onAcquireWait rejection cancels the head waiter without letting a later waiter bypass FIFO",
-      "kind": "async-onAcquireWait-reject",
+      "shape": "async-onAcquireWait-reject",
       "input": { "message": "wait hook failed", "semaphore": { "permits": 1 } },
       "expected": { "availableAfter": 1, "hookName": "onAcquireWait", "thirdAcquiredBeforeResolve": false }
     },
     {
       "name": "async-onContended-reject",
       "description": "an async onContended rejection cancels the head waiter and transfers the released permit to the next waiter",
-      "kind": "async-onContended-reject",
+      "shape": "async-onContended-reject",
       "input": { "message": "contended hook failed", "semaphore": { "permits": 1 } },
       "expected": { "availableAfter": 1, "hookName": "onContended" }
     },
     {
       "name": "fifo-swap",
       "description": "FIFO order survives the CircularBuffer swap: queued acquirers are granted permits in arrival order",
-      "kind": "fifo-swap",
+      "shape": "fifo-swap",
       "input": { "order": [1, 2, 3], "semaphore": { "permits": 1 } },
       "expected": { "availableAfter": 0, "order": [1, 2, 3] }
     }

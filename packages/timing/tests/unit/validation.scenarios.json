@@ -3,77 +3,77 @@
     {
       "name": "accepts-valid-max-events",
       "description": "accepts valid maxEvents values",
-      "kind": "accepts-valid-max-events",
+      "shape": "accepts-valid-max-events",
       "input": { "values": [1, 10, 1000, 1000000] },
       "expected": { "accepted": true }
     },
     {
       "name": "rejects-invalid-max-events",
       "description": "rejects invalid maxEvents values",
-      "kind": "rejects-invalid-max-events",
+      "shape": "rejects-invalid-max-events",
       "input": { "values": [10.5, 0, -1, "not-a-number"] },
       "expected": { "errorNames": ["ConfigurationError", "ConfigurationError", "ConfigurationError", "ConfigurationError"] }
     },
     {
       "name": "accepts-valid-precision",
       "description": "accepts valid precision configurations",
-      "kind": "accepts-valid-precision",
+      "shape": "accepts-valid-precision",
       "input": { "values": [{ "ms": 2, "s": 4 }, {}] },
       "expected": { "accepted": true }
     },
     {
       "name": "accepts-empty-precision",
       "description": "accepts an empty precision object",
-      "kind": "accepts-empty-precision",
+      "shape": "accepts-empty-precision",
       "input": {},
       "expected": { "accepted": true }
     },
     {
       "name": "accepts-null-max-events",
       "description": "accepts null maxEvents",
-      "kind": "accepts-null-max-events",
+      "shape": "accepts-null-max-events",
       "input": {},
       "expected": { "accepted": true }
     },
     {
       "name": "accepts-undefined-max-events",
       "description": "accepts undefined maxEvents",
-      "kind": "accepts-undefined-max-events",
+      "shape": "accepts-undefined-max-events",
       "input": {},
       "expected": { "accepted": true }
     },
     {
       "name": "rejects-non-object-precision",
       "description": "rejects non-object precision",
-      "kind": "rejects-non-object-precision",
+      "shape": "rejects-non-object-precision",
       "input": { "value": "not-an-object" },
       "expected": { "errorName": "ConfigurationError" }
     },
     {
       "name": "rejects-array-precision",
       "description": "rejects array precision",
-      "kind": "rejects-array-precision",
+      "shape": "rejects-array-precision",
       "input": { "value": [] },
       "expected": { "errorName": "ConfigurationError" }
     },
     {
       "name": "rejects-invalid-precision",
       "description": "rejects invalid precision values",
-      "kind": "rejects-invalid-precision",
+      "shape": "rejects-invalid-precision",
       "input": { "values": [{ "ms": "not-a-number" }, { "ms": 2.5 }, { "ms": -1 }, { "ms": 21 }] },
       "expected": { "errorNames": ["ConfigurationError", "ConfigurationError", "ConfigurationError", "ConfigurationError"] }
     },
     {
       "name": "rejects-invalid-time-units",
       "description": "rejects invalid time units in precision",
-      "kind": "rejects-invalid-time-units",
+      "shape": "rejects-invalid-time-units",
       "input": { "value": { "invalid": 2 } },
       "expected": { "errorName": "ConfigurationError" }
     },
     {
       "name": "validates-entities",
       "description": "validates canonical timing entity values",
-      "kind": "validates-entities",
+      "shape": "validates-entities",
       "input": {
         "cases": [
           { "entity": "TimeUnitEntity", "value": "ms" },
@@ -90,7 +90,7 @@
     {
       "name": "applies-precision",
       "description": "applies precision with custom configuration",
-      "kind": "applies-precision",
+      "shape": "applies-precision",
       "input": {
         "event": {
           "component": "GraphAdapter",
@@ -103,14 +103,14 @@
     {
       "name": "accepts-all-options",
       "description": "accepts valid configuration with all options",
-      "kind": "accepts-all-options",
+      "shape": "accepts-all-options",
       "input": { "timing": { "maxEvents": 100, "precision": { "ms": 2 } } },
       "expected": { "accepted": true }
     },
     {
       "name": "applies-defaults",
       "description": "applies defaults when options not provided",
-      "kind": "applies-defaults",
+      "shape": "applies-defaults",
       "input": { "hasInitialize": true },
       "expected": { "hasInitialize": true }
     }

@@ -3,11 +3,14 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
 
-/** Lifecycle event kinds emitted by an observed logger. */
-export namespace LoggerHookEventKindEntity {
+export namespace JobStateEntity {
   export const Schema = {
-    'enum': ['childCreate', 'dropped', 'log', 'transportError'],
-    'type': 'string'
+    'additionalProperties': false,
+    'properties': {
+      'variant': { 'enum': ['active', 'done', 'idle'], 'type': 'string' }
+    },
+    'required': ['variant'],
+    'type': 'object'
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;

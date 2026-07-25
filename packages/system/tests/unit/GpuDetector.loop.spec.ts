@@ -21,7 +21,7 @@ type ScenarioCase = {
     readonly commands?: Record<string, CommandOutcomeInterface>;
     readonly platform: NodeJS.Platform;
   };
-  readonly kind: 'detect';
+  readonly shape: 'detect';
   readonly name: string;
 };
 

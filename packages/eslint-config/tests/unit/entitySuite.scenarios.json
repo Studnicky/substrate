@@ -3,7 +3,7 @@
     {
       "name": "preserves-entity-rules",
       "description": "keeps entity rules strict and disables the conflicting function-type preference",
-      "kind": "preserves-entity-rules",
+      "shape": "preserves-entity-rules",
       "input": {
         "rules": {
           "@studnicky/all-types-are-entities": "error",
@@ -32,7 +32,7 @@
     {
       "name": "blocks-inline-disable",
       "description": "does not allow inline comments to disable entity rules",
-      "kind": "blocks-inline-disable",
+      "shape": "blocks-inline-disable",
       "input": {
         "code": "/* eslint-disable @studnicky/interface-must-be-contract */ interface PureDataInterface { value: string; }",
         "filename": "PureDataInterface.ts"
@@ -53,7 +53,7 @@
     {
       "name": "overrides-prefer-function-type",
       "description": "overrides an earlier function-type preference for a minimal callable interface",
-      "kind": "overrides-prefer-function-type",
+      "shape": "overrides-prefer-function-type",
       "input": {
         "code": "export interface CallableInterface { (): Promise<void>; }",
         "filename": "CallableInterface.ts"
@@ -65,7 +65,7 @@
     {
       "name": "assigns-owning-rule",
       "description": "assigns each entity declaration defect to its exact owning rule",
-      "kind": "assigns-owning-rule",
+      "shape": "assigns-owning-rule",
       "input": {
         "scenarios": [
           {

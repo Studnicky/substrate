@@ -3,7 +3,7 @@
     {
       "name": "rate-limited",
       "description": "classifies HTTP 429 as retryable rate-limited",
-      "kind": "rate-limited",
+      "shape": "rate-limited",
       "attemptNumber": 0,
       "input": { "status": 429 },
       "expected": { "reason": "Rate limited", "retryable": true }
@@ -11,7 +11,7 @@
     {
       "name": "gateway-error",
       "description": "classifies HTTP 502 as retryable gateway error",
-      "kind": "gateway-error",
+      "shape": "gateway-error",
       "attemptNumber": 0,
       "input": { "status": 502 },
       "expected": { "reason": "Gateway error (502)", "retryable": true }
@@ -19,7 +19,7 @@
     {
       "name": "server-error",
       "description": "classifies HTTP 500 as retryable server error",
-      "kind": "server-error",
+      "shape": "server-error",
       "attemptNumber": 0,
       "input": { "status": 500 },
       "expected": { "reason": "Server error (500)", "retryable": true }
@@ -27,7 +27,7 @@
     {
       "name": "request-timeout",
       "description": "classifies HTTP 408 as retryable timeout",
-      "kind": "request-timeout",
+      "shape": "request-timeout",
       "attemptNumber": 0,
       "input": { "status": 408 },
       "expected": { "reason": "Request timeout", "retryable": true }
@@ -35,7 +35,7 @@
     {
       "name": "client-error",
       "description": "classifies HTTP 404 as non-retryable client error",
-      "kind": "client-error",
+      "shape": "client-error",
       "attemptNumber": 0,
       "input": { "status": 404 },
       "expected": { "reason": "Client error (404)", "retryable": false }
@@ -43,7 +43,7 @@
     {
       "name": "network-code",
       "description": "classifies a network code as retryable",
-      "kind": "network-code",
+      "shape": "network-code",
       "attemptNumber": 0,
       "input": { "code": "ECONNREFUSED", "message": "connection refused" },
       "expected": { "reason": "Network error", "retryable": true }
@@ -51,7 +51,7 @@
     {
       "name": "network-message",
       "description": "classifies a network-like message as retryable",
-      "kind": "network-message",
+      "shape": "network-message",
       "attemptNumber": 0,
       "input": { "message": "socket hang up" },
       "expected": { "reason": "Network error", "retryable": true }
@@ -59,7 +59,7 @@
     {
       "name": "unknown-early",
       "description": "classifies an unknown early attempt as retryable",
-      "kind": "unknown-early",
+      "shape": "unknown-early",
       "attemptNumber": 0,
       "input": { "message": "unexpected" },
       "expected": { "reason": "Unknown error (will retry)", "retryable": true }
@@ -67,7 +67,7 @@
     {
       "name": "unknown-late",
       "description": "classifies an unknown late attempt as non-retryable",
-      "kind": "unknown-late",
+      "shape": "unknown-late",
       "attemptNumber": 2,
       "input": { "message": "unexpected" },
       "expected": { "reason": "Unknown error", "retryable": false }

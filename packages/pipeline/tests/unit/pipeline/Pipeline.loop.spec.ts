@@ -8,7 +8,7 @@ import { HookInvocationError, HookTimeoutError } from '@studnicky/errors';
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
 import scenarioGroups from './Pipeline.scenarios.json';
 
-type NumberStageSpec = { kind: 'add'; value: number };
+type NumberStageSpec = { shape: 'add'; value: number };
 
 type PipelineOptionsInput = { hookTimeoutMs: number };
 
@@ -23,71 +23,71 @@ type ScenarioCase =
       description: string;
       expected: { value: string };
       input: { value: string };
-      kind: 'empty-pipeline-returns-input' | 'single-async-stage-applies';
+      shape: 'empty-pipeline-returns-input' | 'single-async-stage-applies';
       name: string;
     }
   | {
       description: string;
       expected: { value: number };
       input: { value: number };
-      kind: 'single-stage-applies' | 'multiple-stages-apply-all' | 'stages-is-defensive-snapshot';
+      shape: 'single-stage-applies' | 'multiple-stages-apply-all' | 'stages-is-defensive-snapshot';
       name: string;
     }
   | {
       description: string;
       expected: { value: number };
       input: NumberPipelineInput;
-      kind: 'hook-timeout-resolving-has-no-effect' | 'hook-timeout-unset-resolving-has-no-effect';
+      shape: 'hook-timeout-resolving-has-no-effect' | 'hook-timeout-unset-resolving-has-no-effect';
       name: string;
     }
   | {
       description: string;
       expected: { value: string };
       input: { value: string };
-      kind: 'mixed-sync-async-stages';
+      shape: 'mixed-sync-async-stages';
       name: string;
     }
   | {
       description: string;
       expected: { value: { count: number; label: string } };
       input: { value: { count: number; label: string } };
-      kind: 'object-context-pass-through';
+      shape: 'object-context-pass-through';
       name: string;
     }
   | {
       description: string;
       expected: { original: number[]; value: number[] };
       input: { value: number[] };
-      kind: 'does-not-mutate-original-input';
+      shape: 'does-not-mutate-original-input';
       name: string;
     }
   | {
       description: string;
       expected: { hookName: 'onStageStart' };
       input: { value: number };
-      kind: 'throwing-lifecycle-hook-rejects-run';
+      shape: 'throwing-lifecycle-hook-rejects-run';
       name: string;
     }
   | {
       description: string;
       expected: { causeName: 'HookTimeoutError'; hookName: 'onStageStart' };
       input: NumberPipelineInput & { options: PipelineOptionsInput };
-      kind: 'hook-timeout-hanging-rejects';
+      shape: 'hook-timeout-hanging-rejects';
       name: string;
     };
 
-type ScenarioKind = ScenarioCase['kind'];
+type ScenarioShape = ScenarioCase['shape'];
 
-type ScenarioRunner<K extends ScenarioKind> = (scenarioCase: Extract<ScenarioCase, { kind: K }>) => Promise<void>;
+type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
 
-type RunnerMap = { [K in ScenarioKind]: ScenarioRunner<K> };
+type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
-const numberStageBuilderMap: Record<NumberStageSpec['kind'], (spec: NumberStageSpec) => (ctx: number) => number> = {
+const numberStageBuilderMap: Record<NumberStageSpec['shape'], (spec: NumberStageSpec) => (ctx: number) => number> = {
   add: (spec) => (ctx) => ctx + spec.value
 };
 
 function buildNumberStages(specs: NumberStageSpec[]): Array<(ctx: number) => number> {
-  return specs.map((spec) => numberStageBuilderMap[spec.kind](spec));
+  return specs.map((spec) => numberStageBuilderMap[spec.shape](spec));
 }
 
 function buildPipelineOptions(input: NumberPipelineInput): PipelineOptionsInput | undefined {
@@ -126,6 +126,7 @@ const runnerMap: RunnerMap = {
         assert.ok(err instanceof HookInvocationError);
         assert.strictEqual(err.hookName, scenarioCase.expected.hookName);
         assert.ok(err.cause instanceof HookTimeoutError);
+        assert.strictEqual(err.cause.name, scenarioCase.expected.causeName);
         return true;
       }
     );
@@ -217,8 +218,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-async function runCase<K extends ScenarioKind>(scenarioCase: Extract<ScenarioCase, { kind: K }>): Promise<void> {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+async function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Pipeline', () => {

@@ -3,7 +3,7 @@
     {
       "name": "buildQueryString-object",
       "description": "buildQueryString serializes object values",
-      "kind": "buildQueryString-object",
+      "shape": "buildQueryString-object",
       "input": {
         "params": {
           "limit": 10,
@@ -17,7 +17,7 @@
     {
       "name": "buildQueryString-string",
       "description": "buildQueryString URL-encodes strings",
-      "kind": "buildQueryString-string",
+      "shape": "buildQueryString-string",
       "input": {
         "params": {
           "email": "john@example.com",
@@ -31,7 +31,7 @@
     {
       "name": "buildQueryString-boolean",
       "description": "buildQueryString serializes booleans",
-      "kind": "buildQueryString-boolean",
+      "shape": "buildQueryString-boolean",
       "input": {
         "params": {
           "active": true,
@@ -45,7 +45,7 @@
     {
       "name": "buildQueryString-array",
       "description": "buildQueryString serializes arrays",
-      "kind": "buildQueryString-array",
+      "shape": "buildQueryString-array",
       "input": {
         "params": {
           "tags": [
@@ -61,13 +61,13 @@
     {
       "name": "buildQueryString-skip-null-undefined",
       "description": "buildQueryString skips null and undefined values",
-      "kind": "buildQueryString-skip-null-undefined",
+      "shape": "buildQueryString-skip-null-undefined",
       "input": {
         "params": {
           "filter": null,
           "page": 1,
           "sort": {
-            "kind": "undefined"
+            "shape": "undefined"
           }
         }
       },
@@ -78,7 +78,7 @@
     {
       "name": "buildQueryString-skip-null-array-items",
       "description": "buildQueryString skips nullish array items",
-      "kind": "buildQueryString-skip-null-array-items",
+      "shape": "buildQueryString-skip-null-array-items",
       "input": {
         "params": {
           "tags": [
@@ -86,7 +86,7 @@
             null,
             "ts",
             {
-              "kind": "undefined"
+              "shape": "undefined"
             }
           ]
         }
@@ -98,7 +98,7 @@
     {
       "name": "buildQueryString-empty-object",
       "description": "buildQueryString returns empty output for empty input",
-      "kind": "buildQueryString-empty-object",
+      "shape": "buildQueryString-empty-object",
       "input": {
         "params": {}
       },
@@ -109,7 +109,7 @@
     {
       "name": "buildQueryString-encode-special-chars",
       "description": "buildQueryString encodes special characters",
-      "kind": "buildQueryString-encode-special-chars",
+      "shape": "buildQueryString-encode-special-chars",
       "input": {
         "params": {
           "filter": "a&b=c",
@@ -123,7 +123,7 @@
     {
       "name": "buildQueryString-number",
       "description": "buildQueryString serializes numbers",
-      "kind": "buildQueryString-number",
+      "shape": "buildQueryString-number",
       "input": {
         "params": {
           "id": 123,
@@ -137,7 +137,7 @@
     {
       "name": "buildQueryString-mixed-bool-null-array",
       "description": "buildQueryString skips nullish items in mixed arrays",
-      "kind": "buildQueryString-skip-null-array-items",
+      "shape": "buildQueryString-skip-null-array-items",
       "input": {
         "params": {
           "tags": [
@@ -145,7 +145,7 @@
             null,
             false,
             {
-              "kind": "undefined"
+              "shape": "undefined"
             }
           ]
         }
@@ -157,7 +157,7 @@
     {
       "name": "buildUrl-append-query",
       "description": "buildUrl appends a query string",
-      "kind": "buildUrl-append-query",
+      "shape": "buildUrl-append-query",
       "input": {
         "baseUrl": "/api/users",
         "params": {
@@ -172,7 +172,7 @@
     {
       "name": "buildUrl-existing-query",
       "description": "buildUrl preserves existing query params",
-      "kind": "buildUrl-existing-query",
+      "shape": "buildUrl-existing-query",
       "input": {
         "baseUrl": "/api/users?sort=name",
         "params": {
@@ -186,7 +186,7 @@
     {
       "name": "buildUrl-full-url",
       "description": "buildUrl handles full URLs",
-      "kind": "buildUrl-full-url",
+      "shape": "buildUrl-full-url",
       "input": {
         "baseUrl": "https://api.example.com/users",
         "params": {
@@ -200,7 +200,7 @@
     {
       "name": "buildUrl-no-params",
       "description": "buildUrl returns the original URL without params",
-      "kind": "buildUrl-no-params",
+      "shape": "buildUrl-no-params",
       "input": {
         "baseUrl": "/api/users"
       },
@@ -211,7 +211,7 @@
     {
       "name": "buildUrl-empty-params",
       "description": "buildUrl returns the original URL for empty params",
-      "kind": "buildUrl-empty-params",
+      "shape": "buildUrl-empty-params",
       "input": {
         "baseUrl": "/api/users",
         "params": {}
@@ -223,13 +223,13 @@
     {
       "name": "buildUrl-nullish-only",
       "description": "buildUrl ignores nullish-only params",
-      "kind": "buildUrl-nullish-only",
+      "shape": "buildUrl-nullish-only",
       "input": {
         "baseUrl": "/api/users",
         "params": {
           "filter": null,
           "sort": {
-            "kind": "undefined"
+            "shape": "undefined"
           }
         }
       },
@@ -240,7 +240,7 @@
     {
       "name": "buildUrl-array-params",
       "description": "buildUrl serializes array params",
-      "kind": "buildUrl-array-params",
+      "shape": "buildUrl-array-params",
       "input": {
         "baseUrl": "/api/search",
         "params": {
@@ -258,7 +258,7 @@
     {
       "name": "buildUrl-empty-query-string",
       "description": "buildUrl preserves base URL for params that serialize empty",
-      "kind": "buildUrl-empty-params",
+      "shape": "buildUrl-empty-params",
       "input": {
         "baseUrl": "/api/items",
         "params": {
@@ -272,7 +272,7 @@
     {
       "name": "parseQueryString-basic",
       "description": "parseQueryString parses a basic query string",
-      "kind": "parseQueryString-basic",
+      "shape": "parseQueryString-basic",
       "input": {
         "queryString": "page=1&limit=10"
       },
@@ -286,7 +286,7 @@
     {
       "name": "parseQueryString-leading-question-mark",
       "description": "parseQueryString handles a leading question mark",
-      "kind": "parseQueryString-leading-question-mark",
+      "shape": "parseQueryString-leading-question-mark",
       "input": {
         "queryString": "?page=1&limit=10"
       },
@@ -300,7 +300,7 @@
     {
       "name": "parseQueryString-repeated-keys",
       "description": "parseQueryString groups repeated keys into arrays",
-      "kind": "parseQueryString-repeated-keys",
+      "shape": "parseQueryString-repeated-keys",
       "input": {
         "queryString": "tags=js&tags=ts&tags=py"
       },
@@ -317,7 +317,7 @@
     {
       "name": "parseQueryString-decode-values",
       "description": "parseQueryString decodes URL-encoded values",
-      "kind": "parseQueryString-decode-values",
+      "shape": "parseQueryString-decode-values",
       "input": {
         "queryString": "name=John%20Doe&email=john%40example.com"
       },
@@ -331,7 +331,7 @@
     {
       "name": "parseQueryString-empty-string",
       "description": "parseQueryString handles an empty string",
-      "kind": "parseQueryString-empty-string",
+      "shape": "parseQueryString-empty-string",
       "input": {
         "queryString": ""
       },
@@ -342,7 +342,7 @@
     {
       "name": "parseQueryString-just-question-mark",
       "description": "parseQueryString handles just a question mark",
-      "kind": "parseQueryString-just-question-mark",
+      "shape": "parseQueryString-just-question-mark",
       "input": {
         "queryString": "?"
       },
@@ -353,7 +353,7 @@
     {
       "name": "parseQueryString-keys-without-values",
       "description": "parseQueryString handles keys without values",
-      "kind": "parseQueryString-keys-without-values",
+      "shape": "parseQueryString-keys-without-values",
       "input": {
         "queryString": "debug&verbose"
       },
@@ -367,7 +367,7 @@
     {
       "name": "parseQueryString-mixed-single-and-repeated",
       "description": "parseQueryString handles mixed single and repeated keys",
-      "kind": "parseQueryString-mixed-single-and-repeated",
+      "shape": "parseQueryString-mixed-single-and-repeated",
       "input": {
         "queryString": "page=1&tags=js&tags=ts&active=true"
       },
@@ -385,7 +385,7 @@
     {
       "name": "parseQueryString-empty-value",
       "description": "parseQueryString preserves empty values",
-      "kind": "parseQueryString-basic",
+      "shape": "parseQueryString-basic",
       "input": {
         "queryString": "flag=&page=1"
       },
@@ -399,7 +399,7 @@
     {
       "name": "parseQueryString-duplicate-empty-values",
       "description": "parseQueryString groups repeated empty values",
-      "kind": "parseQueryString-repeated-keys",
+      "shape": "parseQueryString-repeated-keys",
       "input": {
         "queryString": "flag=&flag=two&flag="
       },

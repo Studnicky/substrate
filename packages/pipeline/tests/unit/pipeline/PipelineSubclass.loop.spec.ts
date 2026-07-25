@@ -10,13 +10,13 @@ import { PipelineError } from '../../../src/errors/PipelineError.js';
 import scenarioGroups from './PipelineSubclass.scenarios.json';
 
 type StageSpec =
-  | { kind: 'add'; value: number }
-  | { kind: 'identity' }
-  | { kind: 'mul'; value: number }
-  | { kind: 'sub'; value: number }
-  | { kind: 'throw'; message: string };
+  | { shape: 'add'; value: number }
+  | { shape: 'identity' }
+  | { shape: 'mul'; value: number }
+  | { shape: 'sub'; value: number }
+  | { shape: 'throw'; message: string };
 
-type ScenarioKind =
+type ScenarioShape =
   | 'after-stage-gets-stage-output'
   | 'after-stage-throw-does-not-trigger-run-error'
   | 'before-after-order'
@@ -53,14 +53,14 @@ type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: Record<string, unknown>;
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
 type StageBuilder = (spec: StageSpec) => (ctx: number) => number;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void>;
 
-const stageBuilderMap: Record<StageSpec['kind'], StageBuilder> = {
+const stageBuilderMap: Record<StageSpec['shape'], StageBuilder> = {
   add: (spec) => {
     if (!('value' in spec)) {
       throw new Error('Add stage spec requires a value');
@@ -89,7 +89,7 @@ const stageBuilderMap: Record<StageSpec['kind'], StageBuilder> = {
 };
 
 function buildStage(spec: StageSpec): (ctx: number) => number {
-  return stageBuilderMap[spec.kind](spec);
+  return stageBuilderMap[spec.shape](spec);
 }
 
 function buildStages(specs: StageSpec[]): Array<(ctx: number) => number> {
@@ -152,7 +152,7 @@ class ObservingPipeline<T> extends Pipeline<T> {
   }
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'before-after-order': async (scenarioCase) => {
       const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
       const expected = scenarioCase.expected as { trace: Array<{ hook: string; index: number }> };
@@ -472,7 +472,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Pipeline subclass extension', () => {

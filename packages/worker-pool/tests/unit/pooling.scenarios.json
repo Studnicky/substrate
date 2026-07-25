@@ -29,7 +29,7 @@
           "workerPath": "../fixtures/reusableEchoWorker.mjs"
         }
       },
-      "kind": "reuses-workers",
+      "shape": "reuses-workers",
       "name": "reuses-workers"
     }
   ]

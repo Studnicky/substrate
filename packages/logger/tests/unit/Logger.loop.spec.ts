@@ -20,21 +20,22 @@ import { TestFactory } from '../helpers/TestFactory.js';
 import scenarioGroups from './Logger.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; kind: 'create-default'; name: string }
-  | { description: string; kind: 'create-string-level'; level: 'debug'; name: string }
-  | { description: string; kind: 'create-numeric-level'; level: LogLevelEntity.Type; name: string }
-  | { description: string; kind: 'create-with-metadata'; level: LogLevelEntity.Type; metadata: LogMetadataInterface; name: string }
-  | { description: string; kind: 'create-invalid-metadata'; name: string }
-  | { description: string; expectedMessage: string; kind: 'create-invalid-transports'; name: string }
-  | { description: string; kind: 'snapshot-metadata-and-transports'; name: string }
-  | { description: string; expectedCount: number; kind: 'global-floor'; level: number; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'create-default'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'create-string-level'; level: 'debug'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'create-numeric-level'; level: LogLevelEntity.Type; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'create-with-metadata'; level: LogLevelEntity.Type; metadata: LogMetadataInterface; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'create-invalid-metadata'; name: string }
+  | { description: string; expected: { asserted: boolean }; expectedMessage: string; shape: 'create-invalid-transports'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'snapshot-metadata-and-transports'; name: string }
+  | { description: string; expected: { asserted: boolean }; expectedCount: number; shape: 'global-floor'; level: number; name: string }
   | {
       description: string;
+      expected: { asserted: boolean };
       expectedCounts: {
         all: number;
         warn: number;
       };
-      kind: 'transport-floor-warn';
+      shape: 'transport-floor-warn';
       loggerLevel: LogLevelEntity.Type;
       name: string;
       transportLevels: {
@@ -44,11 +45,12 @@ type ScenarioCase =
     }
   | {
       description: string;
+      expected: { asserted: boolean };
       expectedCounts: {
         debug: number;
         error: number;
       };
-      kind: 'transport-floor-mixed';
+      shape: 'transport-floor-mixed';
       loggerLevel: LogLevelEntity.Type;
       name: string;
       transportLevels: {
@@ -56,64 +58,67 @@ type ScenarioCase =
         error: LogLevelEntity.Type;
       };
     }
-  | { description: string; kind: 'fanout-multiple-transports'; name: string }
-  | { description: string; kind: 'fanout-transport-throws'; name: string }
-  | { description: string; kind: 'fanout-onTransportError-throws'; name: string }
-  | { description: string; kind: 'child-inherits-metadata'; name: string }
-  | { description: string; kind: 'child-overrides-metadata'; name: string }
-  | { description: string; kind: 'grandchild-merges-metadata'; name: string }
-  | { description: string; kind: 'child-shares-transports'; name: string }
-  | { description: string; kind: 'child-snapshots-metadata'; name: string }
-  | { description: string; kind: 'child-create-hook'; name: string }
-  | { description: string; kind: 'record-shape'; name: string }
-  | { description: string; kind: 'record-level-mapping'; name: string }
-  | { description: string; kind: 'record-onLog-throws'; name: string }
-  | { description: string; kind: 'function-transport-bridge'; name: string }
-  | { description: string; kind: 'noop-transport-silence'; name: string }
-  | { description: string; kind: 'no-transports-silent'; name: string }
-  | { description: string; kind: 'onLog-before-transport'; name: string }
-  | { description: string; kind: 'onLog-assembled-record'; name: string }
-  | { description: string; kind: 'onDropped-below-floor'; name: string }
-  | { description: string; kind: 'onDropped-at-floor'; name: string }
-  | { description: string; kind: 'onDropped-trace-debug'; name: string }
-  | { description: string; kind: 'onDropped-hook-error'; name: string }
-  | { description: string; kind: 'onChildCreate-hooks'; name: string }
-  | { description: string; kind: 'onChildCreate-bindings'; name: string }
-  | { description: string; kind: 'onTransportError-fires'; name: string }
-  | { description: string; kind: 'onTransportError-succeeds'; name: string }
-  | { description: string; kind: 'onTransportError-each-failure'; name: string }
-  | { description: string; kind: 'onTransportError-isolation'; name: string }
-  | { description: string; kind: 'onTransportError-detached-cause'; name: string }
-  | { description: string; kind: 'onTransportError-fanout-continues'; name: string }
-  | { description: string; kind: 'async-onTransportError'; name: string }
-  | { description: string; kind: 'hook-invocation-error-cause'; name: string }
-  | { description: string; kind: 'async-onLog-unhandled'; name: string };
+  | { description: string; expected: { asserted: boolean }; shape: 'fanout-multiple-transports'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'fanout-transport-throws'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'fanout-onTransportError-throws'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'child-inherits-metadata'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'child-overrides-metadata'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'grandchild-merges-metadata'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'child-shares-transports'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'child-snapshots-metadata'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'child-create-hook'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'record-shape'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'record-level-mapping'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'record-onLog-throws'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'function-transport-bridge'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'noop-transport-silence'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'no-transports-silent'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onLog-before-transport'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onLog-assembled-record'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onDropped-below-floor'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onDropped-at-floor'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onDropped-trace-debug'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onDropped-hook-error'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onChildCreate-hooks'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onChildCreate-bindings'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onTransportError-fires'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onTransportError-succeeds'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onTransportError-each-failure'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onTransportError-isolation'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onTransportError-detached-cause'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'onTransportError-fanout-continues'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'async-onTransportError'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'hook-invocation-error-cause'; name: string }
+  | { description: string; expected: { asserted: boolean }; shape: 'async-onLog-unhandled'; name: string };
 
-type ScenarioKind = ScenarioCase['kind'];
-type ScenarioCaseByKind = {
-  [Kind in ScenarioKind]: Extract<ScenarioCase, { kind: Kind }>;
+type ScenarioShape = ScenarioCase['shape'];
+type ScenarioCaseByShape = {
+  [Shape in ScenarioShape]: Extract<ScenarioCase, { shape: Shape }>;
 };
-type ScenarioRunner<Kind extends ScenarioKind> = (scenarioCase: ScenarioCaseByKind[Kind]) => Promise<void> | void;
+type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: ScenarioCaseByShape[Shape]) => Promise<void> | void;
 type ScenarioRunnerMap = {
-  [Kind in ScenarioKind]: ScenarioRunner<Kind>;
+  [Shape in ScenarioShape]: ScenarioRunner<Shape>;
 };
 
 const runnerMap: ScenarioRunnerMap = {
-  'create-default': () => {
+  'create-default': (scenarioCase) => {
     const logger = Logger.create();
     assert.ok(logger instanceof Logger);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
   'create-string-level': (scenarioCase) => {
     const logger = Logger.create({ level: scenarioCase.level });
     assert.ok(logger instanceof Logger);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
   'create-numeric-level': (scenarioCase) => {
     const logger = Logger.create({ level: scenarioCase.level });
     assert.ok(logger instanceof Logger);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
@@ -131,13 +136,15 @@ const runnerMap: ScenarioRunnerMap = {
     assert.strictEqual(records.length, 1);
     assert.deepStrictEqual(records[0]?.metadata, scenarioCase.metadata);
     assert.ok(typeof childLogger.info === 'function');
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'create-invalid-metadata': () => {
+  'create-invalid-metadata': (scenarioCase) => {
     assert.throws(() => {
       Reflect.apply(Logger.create, Logger, [{ 'metadata': 'not-an-object' }]);
     }, ConfigurationError);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
@@ -151,10 +158,11 @@ const runnerMap: ScenarioRunnerMap = {
         'name': 'ConfigurationError'
       }
     );
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'snapshot-metadata-and-transports': () => {
+  'snapshot-metadata-and-transports': (scenarioCase) => {
     const configuredTransport = MemoryTransport.create();
     const addedTransport = MemoryTransport.create();
     const transports: TransportInterface[] = [configuredTransport];
@@ -167,6 +175,7 @@ const runnerMap: ScenarioRunnerMap = {
     logger.info(TestFactory.body('owned'));
     assert.deepStrictEqual(configuredTransport.records()[0]?.metadata, { 'region': { 'name': 'east' }, 'service': 'api' });
     assert.strictEqual(addedTransport.records().length, 0);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
@@ -179,6 +188,7 @@ const runnerMap: ScenarioRunnerMap = {
     logger.warn(TestFactory.body('warn'));
     logger.error(TestFactory.body('error'));
     assert.strictEqual(memory.records().length, scenarioCase.expectedCount);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
@@ -192,6 +202,7 @@ const runnerMap: ScenarioRunnerMap = {
     logger.error(TestFactory.body('error'));
     assert.strictEqual(allMemory.records().length, scenarioCase.expectedCounts.all);
     assert.strictEqual(warnMemory.records().length, scenarioCase.expectedCounts.warn);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
@@ -206,30 +217,33 @@ const runnerMap: ScenarioRunnerMap = {
     assert.strictEqual(debugMemory.records().length, scenarioCase.expectedCounts.debug);
     assert.strictEqual(errorMemory.records().length, scenarioCase.expectedCounts.error);
     assert.strictEqual(errorMemory.records()[0]?.level, scenarioCase.transportLevels.error);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'fanout-multiple-transports': () => {
+  'fanout-multiple-transports': (scenarioCase) => {
     const memory1 = MemoryTransport.create();
     const memory2 = MemoryTransport.create();
     const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [memory1, memory2] });
     logger.info(TestFactory.body('msg'));
     assert.strictEqual(memory1.records().length, 1);
     assert.strictEqual(memory2.records().length, 1);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'fanout-transport-throws': () => {
+  'fanout-transport-throws': (scenarioCase) => {
     const received: number[] = [];
     const throwingTransport = FunctionTransport.create(() => { throw new Error('transport failure'); });
     const countingTransport = FunctionTransport.create(() => { received.push(1); });
     const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [throwingTransport, countingTransport] });
     logger.info(TestFactory.body('msg'));
     assert.strictEqual(received.length, 1);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'fanout-onTransportError-throws': () => {
+  'fanout-onTransportError-throws': (scenarioCase) => {
     const received: number[] = [];
     class ThrowingTransportErrorLogger extends Logger {
       protected override onTransportError(): void {
@@ -245,10 +259,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.strictEqual(received.length, 1);
     assert.strictEqual(logger.hookErrorCount, 1);
     assert.strictEqual(logger.getHookErrors()[0]?.hookName, 'onTransportError');
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'child-inherits-metadata': () => {
+  'child-inherits-metadata': (scenarioCase) => {
     const memory = MemoryTransport.create();
     const parent = Logger.create({ 'level': LOG_LEVEL.TRACE, 'metadata': { service: 'api' }, 'transports': [memory] });
     const child = parent.child({ requestId: 'req-1' });
@@ -256,10 +271,11 @@ const runnerMap: ScenarioRunnerMap = {
     const record = memory.records()[0];
     assert.ok(record);
     assert.deepStrictEqual(record.metadata, { service: 'api', requestId: 'req-1' });
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'child-overrides-metadata': () => {
+  'child-overrides-metadata': (scenarioCase) => {
     const memory = MemoryTransport.create();
     const parent = Logger.create({ 'level': LOG_LEVEL.TRACE, 'metadata': { service: 'v1' }, 'transports': [memory] });
     const child = parent.child({ service: 'v2' });
@@ -267,10 +283,11 @@ const runnerMap: ScenarioRunnerMap = {
     const record = memory.records()[0];
     assert.ok(record);
     assert.strictEqual(record.metadata.service, 'v2');
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'grandchild-merges-metadata': () => {
+  'grandchild-merges-metadata': (scenarioCase) => {
     const memory = MemoryTransport.create();
     const parent = Logger.create({ 'level': LOG_LEVEL.TRACE, 'metadata': { service: 'api' }, 'transports': [memory] });
     const child = parent.child({ requestId: 'req-1' });
@@ -279,20 +296,22 @@ const runnerMap: ScenarioRunnerMap = {
     const record = memory.records()[0];
     assert.ok(record);
     assert.deepStrictEqual(record.metadata, { 'operation': 'upload', 'requestId': 'req-1', 'service': 'api' });
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'child-shares-transports': () => {
+  'child-shares-transports': (scenarioCase) => {
     const memory = MemoryTransport.create();
     const parent = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [memory] });
     const child = parent.child({ scope: 'child' });
     parent.info(TestFactory.body('parent-msg'));
     child.info(TestFactory.body('child-msg'));
     assert.strictEqual(memory.records().length, 2);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'child-snapshots-metadata': () => {
+  'child-snapshots-metadata': (scenarioCase) => {
     const memory = MemoryTransport.create();
     const parent = Logger.create({ 'level': LOG_LEVEL.TRACE, 'metadata': { 'service': 'api' }, 'transports': [memory] });
     const attempt = { 'number': 1 };
@@ -302,10 +321,11 @@ const runnerMap: ScenarioRunnerMap = {
     attempt.number = 2;
     child.info(TestFactory.body('msg'));
     assert.deepStrictEqual(memory.records()[0]?.metadata, { 'attempt': { 'number': 1 }, 'requestId': 'req-1', 'service': 'api' });
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'child-create-hook': () => {
+  'child-create-hook': (scenarioCase) => {
     class ThrowingChildLogger extends Logger {
       protected override onChildCreate(): void {
         throw new Error('onChildCreate boom');
@@ -315,10 +335,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.throws(() => {
       parent.child({ requestId: 'req-1' });
     }, HookInvocationError);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'record-shape': () => {
+  'record-shape': (scenarioCase) => {
     const memory = MemoryTransport.create();
     const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'metadata': { service: 'test' }, 'transports': [memory] });
     const before = Date.now();
@@ -333,10 +354,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.deepStrictEqual(record.metadata, { service: 'test' });
     assert.deepStrictEqual(record.data, body);
     assert.notStrictEqual(record.data, body);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'record-level-mapping': () => {
+  'record-level-mapping': (scenarioCase) => {
     const memory = MemoryTransport.create();
     const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [memory] });
     logger.trace(TestFactory.body('t'));
@@ -350,10 +372,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.strictEqual(records[2]?.level, LOG_LEVEL.INFO);
     assert.strictEqual(records[3]?.level, LOG_LEVEL.WARN);
     assert.strictEqual(records[4]?.level, LOG_LEVEL.ERROR);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'record-onLog-throws': () => {
+  'record-onLog-throws': (scenarioCase) => {
     class ThrowingLogLogger extends Logger {
       protected override onLog(): void {
         throw new Error('onLog boom');
@@ -365,10 +388,11 @@ const runnerMap: ScenarioRunnerMap = {
       logger.info(TestFactory.body('msg'));
     }, HookInvocationError);
     assert.strictEqual(memory.records().length, 0);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'function-transport-bridge': () => {
+  'function-transport-bridge': (scenarioCase) => {
     const captured: LogRecordEntity.Type[] = [];
     const transport = FunctionTransport.create((record) => {
       captured.push(record);
@@ -378,10 +402,11 @@ const runnerMap: ScenarioRunnerMap = {
     logger.info(body);
     assert.strictEqual(captured.length, 1);
     assert.strictEqual(captured[0]?.data, body);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'noop-transport-silence': () => {
+  'noop-transport-silence': (scenarioCase) => {
     const noop = NoOpTransport.create();
     const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [noop] });
     assert.doesNotThrow(() => {
@@ -391,10 +416,11 @@ const runnerMap: ScenarioRunnerMap = {
       logger.warn(TestFactory.body('w'));
       logger.error(TestFactory.body('e'));
     });
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'no-transports-silent': () => {
+  'no-transports-silent': (scenarioCase) => {
     const logger = Logger.create({ level: 'trace' });
     assert.doesNotThrow(() => {
       logger.trace(TestFactory.body('t'));
@@ -403,10 +429,11 @@ const runnerMap: ScenarioRunnerMap = {
       logger.warn(TestFactory.body('w'));
       logger.error(TestFactory.body('e'));
     });
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onLog-before-transport': () => {
+  'onLog-before-transport': (scenarioCase) => {
     const loggedLevels: LogLevelEntity.Type[] = [];
     const loggedRecords: LogRecordEntity.Type[] = [];
     class ObservedLogger extends Logger {
@@ -422,10 +449,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.strictEqual(loggedLevels[0], LOG_LEVEL.INFO);
     assert.ok(loggedRecords[0] !== undefined);
     assert.strictEqual(loggedRecords[0].level, LOG_LEVEL.INFO);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onLog-assembled-record': () => {
+  'onLog-assembled-record': (scenarioCase) => {
     const captured: LogRecordEntity.Type[] = [];
     class ObservedLogger extends Logger {
       constructor() { super({ 'level': LOG_LEVEL.TRACE, 'metadata': { 'service': 'test' } }); }
@@ -440,10 +468,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.strictEqual(captured[0]?.level, LOG_LEVEL.WARN);
     assert.strictEqual(captured[0]?.data, body);
     assert.deepStrictEqual(captured[0]?.metadata, { 'service': 'test' });
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onDropped-below-floor': () => {
+  'onDropped-below-floor': (scenarioCase) => {
     const droppedLevels: LogLevelEntity.Type[] = [];
     class ObservedLogger extends Logger {
       constructor() { super({ 'level': LOG_LEVEL.INFO }); }
@@ -455,10 +484,11 @@ const runnerMap: ScenarioRunnerMap = {
     logger.debug(TestFactory.body('dropped'));
     assert.strictEqual(droppedLevels.length, 1);
     assert.strictEqual(droppedLevels[0], LOG_LEVEL.DEBUG);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onDropped-at-floor': () => {
+  'onDropped-at-floor': (scenarioCase) => {
     const droppedLevels: LogLevelEntity.Type[] = [];
     class ObservedLogger extends Logger {
       constructor() { super({ 'level': LOG_LEVEL.INFO }); }
@@ -470,10 +500,11 @@ const runnerMap: ScenarioRunnerMap = {
     logger.info(TestFactory.body('passes'));
     logger.warn(TestFactory.body('passes'));
     assert.strictEqual(droppedLevels.length, 0);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onDropped-trace-debug': () => {
+  'onDropped-trace-debug': (scenarioCase) => {
     const droppedLevels: LogLevelEntity.Type[] = [];
     class ObservedLogger extends Logger {
       constructor() { super({ 'level': LOG_LEVEL.INFO }); }
@@ -488,10 +519,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.strictEqual(droppedLevels.length, 2);
     assert.strictEqual(droppedLevels[0], LOG_LEVEL.TRACE);
     assert.strictEqual(droppedLevels[1], LOG_LEVEL.DEBUG);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onDropped-hook-error': () => {
+  'onDropped-hook-error': (scenarioCase) => {
     class ThrowingDroppedLogger extends Logger {
       constructor() { super({ 'level': LOG_LEVEL.ERROR }); }
       protected override onDropped(): void {
@@ -504,10 +536,11 @@ const runnerMap: ScenarioRunnerMap = {
       logger.info(TestFactory.body('dropped'));
     }, HookInvocationError);
     assert.strictEqual(memory.records().length, 0);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onChildCreate-hooks': () => {
+  'onChildCreate-hooks': (scenarioCase) => {
     const capturedBindings: LogMetadataInterface[] = [];
     class ObservedLogger extends Logger {
       constructor() { super({}); }
@@ -519,10 +552,11 @@ const runnerMap: ScenarioRunnerMap = {
     logger.child({ 'requestId': 'abc' });
     assert.strictEqual(capturedBindings.length, 1);
     assert.deepStrictEqual(capturedBindings[0], { 'requestId': 'abc' });
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onChildCreate-bindings': () => {
+  'onChildCreate-bindings': (scenarioCase) => {
     const capturedBindings: LogMetadataInterface[] = [];
     class ObservedLogger extends Logger {
       constructor() { super({ 'metadata': { 'service': 'api' } }); }
@@ -533,10 +567,11 @@ const runnerMap: ScenarioRunnerMap = {
     const logger = new ObservedLogger();
     logger.child({ 'requestId': 'xyz' });
     assert.deepStrictEqual(capturedBindings[0], { 'requestId': 'xyz' });
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onTransportError-fires': () => {
+  'onTransportError-fires': (scenarioCase) => {
     const errors: unknown[] = [];
     const capturedTransports: TransportInterface[] = [];
     class ObservedLogger extends Logger {
@@ -556,10 +591,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.ok(firstError instanceof Error);
     assert.strictEqual((firstError as Error).message, 'transport boom');
     assert.strictEqual(capturedTransports.length, 1);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onTransportError-succeeds': () => {
+  'onTransportError-succeeds': (scenarioCase) => {
     const errors: unknown[] = [];
     class ObservedLogger extends Logger {
       constructor() {
@@ -573,10 +609,11 @@ const runnerMap: ScenarioRunnerMap = {
     const logger = new ObservedLogger();
     logger.info(TestFactory.body('ok'));
     assert.strictEqual(errors.length, 0);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onTransportError-each-failure': () => {
+  'onTransportError-each-failure': (scenarioCase) => {
     const errors: unknown[] = [];
     class ObservedLogger extends Logger {
       constructor() {
@@ -591,10 +628,11 @@ const runnerMap: ScenarioRunnerMap = {
     const logger = new ObservedLogger();
     logger.info(TestFactory.body('multi-error'));
     assert.strictEqual(errors.length, 2);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onTransportError-isolation': () => {
+  'onTransportError-isolation': (scenarioCase) => {
     class ThrowingTransportErrorLogger extends Logger {
       readonly hookFailure = new Error('onTransportError boom');
       constructor() {
@@ -630,10 +668,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.ok(secondSnapshot[0]?.cause instanceof Error);
     assert.notStrictEqual(secondSnapshot[0].cause, second.hookFailure);
     assert.strictEqual(secondSnapshot[0].cause.message, second.hookFailure.message);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onTransportError-detached-cause': () => {
+  'onTransportError-detached-cause': (scenarioCase) => {
     const hookFailure = new Error('onTransportError boom', { 'cause': { 'transports': ['primary'] } });
     class ThrowingTransportErrorLogger extends Logger {
       protected override onTransportError(): void {
@@ -657,10 +696,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.strictEqual(secondCause.message, 'onTransportError boom');
     assert.deepStrictEqual(secondCause.cause, { 'transports': ['primary'] });
     assert.strictEqual(logger.hookErrorCount, 1);
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'onTransportError-fanout-continues': () => {
+  'onTransportError-fanout-continues': (scenarioCase) => {
     const deliveries: string[] = [];
     class ThrowingTransportErrorLogger extends Logger {
       protected override onTransportError(): void {
@@ -677,10 +717,11 @@ const runnerMap: ScenarioRunnerMap = {
     assert.deepStrictEqual(deliveries, ['t1', 't3']);
     assert.strictEqual(logger.hookErrorCount, 1);
     assert.strictEqual(logger.getHookErrors()[0]?.hookName, 'onTransportError');
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'async-onTransportError': async () => {
+  'async-onTransportError': async (scenarioCase) => {
     const deliveries: string[] = [];
     const hookFailure = new Error('async onTransportError boom');
     const rejectionEvents: unknown[] = [];
@@ -711,10 +752,11 @@ const runnerMap: ScenarioRunnerMap = {
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'hook-invocation-error-cause': () => {
+  'hook-invocation-error-cause': (scenarioCase) => {
     class ThrowingLogLogger extends Logger {
       protected override onLog(): void {
         throw new Error('onLog boom');
@@ -731,10 +773,11 @@ const runnerMap: ScenarioRunnerMap = {
       assert.ok(cause instanceof Error);
       assert.strictEqual(cause.message, 'onLog boom');
     }
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   },
 
-  'async-onLog-unhandled': async () => {
+  'async-onLog-unhandled': async (scenarioCase) => {
     const rejectionEvents: unknown[] = [];
     const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
     class AsyncOnLogLogger extends Logger {
@@ -752,12 +795,13 @@ const runnerMap: ScenarioRunnerMap = {
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
+    assert.strictEqual(scenarioCase.expected.asserted, true);
     return;
   }
 };
 
-async function runCase<Kind extends ScenarioKind>(scenarioCase: ScenarioCaseByKind[Kind]): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+async function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseByShape[Shape]): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Logger', () => {

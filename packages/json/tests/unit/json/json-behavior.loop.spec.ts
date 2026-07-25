@@ -6,7 +6,7 @@ import { PatchError } from '../../../src/errors/PatchError.js';
 
 import scenarioGroups from './json-behavior.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'draft-array-index'
   | 'draft-array-push'
   | 'draft-array-splice'
@@ -52,11 +52,11 @@ type ScenarioCase = {
   description: string;
   expected: JsonObject;
   input: { json: JsonObject };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
-type InvalidPatchValueKind = 'bigint' | 'cycle' | 'function' | 'infinity' | 'nan' | 'symbol';
+type InvalidPatchValueShape = 'bigint' | 'cycle' | 'function' | 'infinity' | 'nan' | 'symbol';
 
 class StrictPatch extends Patch {
   public readonly isStrict = true;
@@ -72,7 +72,7 @@ class Widget {
   public constructor(public readonly id: string) {}
 }
 
-const invalidPatchValueByKind = {
+const invalidPatchValueByShape = {
   bigint: (): bigint => 1n,
   cycle: (): Record<string, unknown> => {
     const value: Record<string, unknown> = {};
@@ -85,7 +85,7 @@ const invalidPatchValueByKind = {
   infinity: (): number => Number.POSITIVE_INFINITY,
   nan: (): number => Number.NaN,
   symbol: (): symbol => Symbol('value')
-} satisfies Record<InvalidPatchValueKind, () => unknown>;
+} satisfies Record<InvalidPatchValueShape, () => unknown>;
 
 const scenarioRunnerMap = {
   'draft-top-level': (scenarioCase) => {
@@ -313,10 +313,10 @@ const scenarioRunnerMap = {
 
   'draft-patch-invalid-value': (scenarioCase) => {
     const input = readJson(scenarioCase);
-    const invalidValueKind = requireInvalidPatchValueKind(requiredValue(input, 'invalidValueKind'));
+    const invalidValueShape = requireInvalidPatchValueShape(requiredValue(input, 'invalidValueShape'));
     assert.throws(
       () => Draft.producePatch({ a: 1 }, (draft: Record<string, unknown>) => {
-        draft.invalid = invalidPatchValueByKind[invalidValueKind]();
+        draft.invalid = invalidPatchValueByShape[invalidValueShape]();
       }),
       TypeError
     );
@@ -350,9 +350,9 @@ const scenarioRunnerMap = {
     for (const operation of requireArray(requiredValue(input, 'invalidOperations'), 'patch invalid operations')) {
       assert.throws(() => Patch.create(operation), PatchError);
     }
-    for (const kind of requireArray(requiredValue(input, 'invalidValueKinds'), 'patch invalid value kinds')) {
+    for (const shape of requireArray(requiredValue(input, 'invalidValueShapes'), 'patch invalid value shapes')) {
       assert.throws(
-        () => Patch.create({ op: 'add', path: '/value', value: invalidPatchValueByKind[requireInvalidPatchValueKind(kind)]() }),
+        () => Patch.create({ op: 'add', path: '/value', value: invalidPatchValueByShape[requireInvalidPatchValueShape(shape)]() }),
         PatchError
       );
     }
@@ -567,7 +567,7 @@ const scenarioRunnerMap = {
     assert.equal(OpenPath.get(obj, 'layer.__inner'), requireJsonObject(obj.layer, 'path subclass layer').__inner);
     assert.equal(scenarioCase.expected.openPath, true);
   }
-} satisfies Record<ScenarioKind, ScenarioRunner>;
+} satisfies Record<ScenarioShape, ScenarioRunner>;
 
 const scenarioCases = scenarioGroups.cases.map(normalizeScenarioCase);
 
@@ -576,17 +576,17 @@ function normalizeScenarioCase(scenarioCase: ImportedScenarioCase): ScenarioCase
     description: scenarioCase.description,
     expected: scenarioCase.expected,
     input: scenarioCase.input,
-    kind: requireScenarioKind(scenarioCase.kind),
+    shape: requireScenarioShape(scenarioCase.shape),
     name: scenarioCase.name
   };
 }
 
-function requireScenarioKind(kind: string): ScenarioKind {
-  if (Object.hasOwn(scenarioRunnerMap, kind)) {
-    return kind;
+function requireScenarioShape(shape: string): ScenarioShape {
+  if (Object.hasOwn(scenarioRunnerMap, shape)) {
+    return shape;
   }
 
-  throw new Error(`Unhandled json behavior scenario kind: ${kind}`);
+  throw new Error(`Unhandled json behavior scenario shape: ${shape}`);
 }
 
 function readJson(scenarioCase: ScenarioCase): JsonObject {
@@ -652,7 +652,7 @@ function applyJsonMutation(target: JsonObject, mutation: JsonObject): void {
   }
 }
 
-function requireInvalidPatchValueKind(value: unknown): InvalidPatchValueKind {
+function requireInvalidPatchValueShape(value: unknown): InvalidPatchValueShape {
   if (
     value === 'bigint'
     || value === 'cycle'
@@ -664,7 +664,7 @@ function requireInvalidPatchValueKind(value: unknown): InvalidPatchValueKind {
     return value;
   }
 
-  throw new TypeError(`Unknown invalid patch value kind: ${String(value)}`);
+  throw new TypeError(`Unknown invalid patch value shape: ${String(value)}`);
 }
 
 function assertContainsAll(text: string, expectedValues: unknown, context: string): void {
@@ -674,7 +674,7 @@ function assertContainsAll(text: string, expectedValues: unknown, context: strin
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await scenarioRunnerMap[scenarioCase.kind](scenarioCase);
+  await scenarioRunnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('JSON behavior', () => {
