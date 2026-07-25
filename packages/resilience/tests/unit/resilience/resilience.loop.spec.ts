@@ -754,15 +754,17 @@ const scenarioHandlers = {
     await bucket.waitForToken();
     assert.equal(bucket.available, 4);
   },
-  'tb-wait-refill': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+  'tb-wait-refill': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
     const bucket = TokenBucket.create(tokenBucketOptions(input, { clock: () => time }));
     bucket.consume();
     const advance = new Promise<void>((resolve) => { setImmediate(() => { time = clock[1] ?? time; resolve(); }); });
-    const wait = bucket.waitForToken();
+    let completed = false;
+    const wait = bucket.waitForToken().then(() => { completed = true; });
     await Promise.all([advance, wait]);
-    assert.ok(true);
+    assert.equal(completed, booleanInput(expected, 'completed'));
   },
   'tb-wait-abort': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const controller = new AbortController();
