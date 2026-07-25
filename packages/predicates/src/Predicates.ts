@@ -1,20 +1,14 @@
 /** Static predicate library for JSON Schema draft 2020-12 validation. */
 
-import { LruCache } from '@studnicky/cache';
 import { DataType } from '@studnicky/json';
 
 import {
   MULTIPLE_OF_EPSILON_FACTOR,
-  PATTERN_CACHE_CAPACITY,
   SUPPORTED_CONTENT_ENCODINGS,
   SUPPORTED_CONTENT_MEDIA_TYPES
 } from './constants/index.js';
 
 export class Predicates {
-  /** Bounded so schemas sourced from untrusted input cannot grow this cache unboundedly. */
-  private static readonly patternCache = LruCache.create<string, RegExp>({
-    'capacity': PATTERN_CACHE_CAPACITY
-  });
   private static readonly coercionHandlers = new Map<string, (value: unknown) => unknown>([
     [
       'array',
@@ -281,21 +275,12 @@ export class Predicates {
     return Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * MULTIPLE_OF_EPSILON_FACTOR;
   }
 
-  static checkPattern(value: string, pattern: RegExp | string): boolean {
-    if (pattern instanceof RegExp) {
-      return pattern.test(value);
-    }
+  static checkPattern(value: string, pattern: RegExp): boolean {
+    pattern.lastIndex = 0;
+    const result = pattern.test(value);
+    pattern.lastIndex = 0;
 
-    const cached = Predicates.patternCache.get(pattern);
-
-    if (cached !== undefined) {
-      return cached.test(value);
-    }
-
-    const regex = new RegExp(pattern, 'u');
-    Predicates.patternCache.set(pattern, regex);
-
-    return regex.test(value);
+    return result;
   }
 
   /** Fast-paths: len<min→false, len>=2*min→true; walks code points only in residual band. */

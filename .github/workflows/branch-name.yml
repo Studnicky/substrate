@@ -1,0 +1,26 @@
+name: branch-name
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+concurrency:
+  group: branch-name-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Validate branch name
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          ref: ${{ github.event.pull_request.base.sha }}
+      - name: Run branch check
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: bash scripts/policy-suite.sh branch "$BRANCH"

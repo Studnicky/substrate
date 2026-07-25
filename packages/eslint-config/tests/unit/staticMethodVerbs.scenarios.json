@@ -1,0 +1,546 @@
+{
+  "runs": [
+    {
+      "kind": "plain",
+      "name": "static-method-verbs (any mode)",
+      "ruleName": "static-method-verbs (any mode)",
+      "valid": [
+        {
+          "code": "class Builder { static of() { function helper() { return 1; } return helper; } }",
+          "name": "nested function - not at module scope",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        },
+        {
+          "code": "class Foo { run() { const local = () => 1; return local(); } }",
+          "name": "arrow inside class method - not at module scope",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        }
+      ],
+      "invalid": [
+        {
+          "code": "export function identity(x) { return x; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "trivial one-line pass-through function IS flagged in any mode",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        },
+        {
+          "code": "export function compute(x) { const y = x + 1; return y; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "non-trivial multi-statement function IS flagged in any mode",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "plain",
+      "name": "static-method-verbs (structural mode)",
+      "ruleName": "static-method-verbs (structural mode)",
+      "valid": [
+        {
+          "code": "export function foo(x: string): string { return x; }",
+          "name": "trivial single-return body - exempt (structural, explicit)",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export function foo(x: string): string { return x; }",
+          "name": "trivial single-return body - exempt (default mode, omitted)"
+        },
+        {
+          "code": "export const foo = (x: string): string => x;",
+          "name": "expression-bodied arrow with trivial body - exempt",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export function foo(x: string): string { return bar(x); }",
+          "name": "single-return argument is a delegating call expression - exempt",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "class Foo { static make() { return {}; } }",
+          "name": "class static method - not freestanding",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "class Builder { static of() { function helper() { const y = {}; return y; } return helper; } }",
+          "name": "nested (non-module-scope) function - never flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        }
+      ],
+      "invalid": [
+        {
+          "code": "export function foo(x: string): string { const y = x; return y; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "multi-statement body - flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export const foo = (x: string) => ({ value: x });",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "expression-bodied arrow constructing an object - flagged (non-trivial)",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export const foo = (x: number) => x + 1;",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "expression-bodied arrow with a binary expression - flagged (non-trivial)",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export function foo(x: string): string { if (x) { throw new Error(x); } return x; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "single statement that is not a ReturnStatement - flagged (real control flow)",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "const foo = (x: number) => ({ value: x });",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "unexported top-level const arrow - still module scope, flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "function foo(x: number) { const y = { value: x }; return y; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "unexported top-level function declaration - still module scope, flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "typed",
+      "name": "static-method-verbs (typed mode)",
+      "ruleName": "static-method-verbs (typed mode)",
+      "valid": [
+        {
+          "code": "export function foo(x: string): string { return x; }",
+          "name": "primitive return type (string) - not flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "export function foo(x: number): number { return x; }",
+          "name": "primitive return type (number) - not flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "export function foo(x: boolean): boolean { return x; }",
+          "name": "primitive return type (boolean) - not flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "export function foo(): void { console.log('x'); }",
+          "name": "void return type - not flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "export function foo(x: string): { value: string } { return { value: x }; }",
+          "name": "inline object-literal return type - no name, not flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        }
+      ],
+      "invalid": [
+        {
+          "code": "type ResultType = { value: string };\nexport function foo(x: string): ResultType { return { value: x }; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "return type is a named type alias - flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "interface ResultI { value: string }\nexport function foo(x: string): ResultI { return { value: x }; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "return type is a named interface - flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "type ResultType = { value: string };\nexport const foo = (x: string): ResultType => ({ value: x });",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "const arrow returning a named type alias - flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "plain",
+      "name": "static-method-verbs (module-scope gating, any mode)",
+      "ruleName": "static-method-verbs (module-scope gating, any mode)",
+      "valid": [
+        {
+          "code": "class Builder { static of() { function helper() { const y = { v: 1 }; return y; } return helper; } }",
+          "name": "nested function inside a class static method - never flagged",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        },
+        {
+          "code": "class Foo { run() { const local = () => ({ v: 1 }); return local(); } }",
+          "name": "nested const arrow inside a method - never flagged",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        }
+      ],
+      "invalid": [
+        {
+          "code": "export function foo() { const y = { v: 1 }; return y; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "exported function declaration - checked",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        },
+        {
+          "code": "export const foo = () => ({ v: 1 });",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "exported const arrow - checked",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        },
+        {
+          "code": "function foo() { const y = { v: 1 }; return y; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "unexported top-level function declaration - checked",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        },
+        {
+          "code": "const foo = () => ({ v: 1 });",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "unexported top-level const arrow - checked",
+          "options": [
+            {
+              "mode": "any"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "plain",
+      "name": "static-method-verbs (module-scope gating, structural mode)",
+      "ruleName": "static-method-verbs (module-scope gating, structural mode)",
+      "valid": [
+        {
+          "code": "class Builder { static of() { function helper() { const y = { v: 1 }; return y; } return helper; } }",
+          "name": "nested function inside a class static method - never flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "class Foo { run() { const local = () => ({ v: 1 }); return local(); } }",
+          "name": "nested const arrow inside a method - never flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        }
+      ],
+      "invalid": [
+        {
+          "code": "export function foo() { const y = { v: 1 }; return y; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "exported function declaration - checked",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export const foo = () => ({ v: 1 });",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "exported const arrow - checked",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "function foo() { const y = { v: 1 }; return y; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "unexported top-level function declaration - checked",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "const foo = () => ({ v: 1 });",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "unexported top-level const arrow - checked",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "typed",
+      "name": "static-method-verbs (module-scope gating, typed mode)",
+      "ruleName": "static-method-verbs (module-scope gating, typed mode)",
+      "valid": [
+        {
+          "code": "class Builder { static of() { function helper() { const y = { v: 1 }; return y; } return helper; } }",
+          "name": "nested function inside a class static method - never flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "class Foo { run() { const local = () => ({ v: 1 }); return local(); } }",
+          "name": "nested const arrow inside a method - never flagged",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        }
+      ],
+      "invalid": [
+        {
+          "code": "export function foo() { const y = { v: 1 }; return y; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "exported function declaration - checked",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "export const foo = () => ({ v: 1 });",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "exported const arrow - checked",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "function foo() { const y = { v: 1 }; return y; }",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "unexported top-level function declaration - checked",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        },
+        {
+          "code": "const foo = () => ({ v: 1 });",
+          "errors": [
+            {
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "unexported top-level const arrow - checked",
+          "options": [
+            {
+              "mode": "typed"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

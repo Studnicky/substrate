@@ -1,0 +1,44 @@
+{
+  "cases": [
+    {
+      "description": "Runs the basic timing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/basic-usage.ts"
+      },
+      "name": "basic-usage"
+    },
+    {
+      "description": "Runs the instrumented timing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/instrumented-timing.ts"
+      },
+      "name": "instrumented-timing"
+    },
+    {
+      "description": "Runs the noop timing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/noop-timing.ts"
+      },
+      "name": "noop-timing"
+    },
+    {
+      "description": "Runs the observed timing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/observedTiming.ts"
+      },
+      "name": "observed-timing"
+    }
+  ]
+}

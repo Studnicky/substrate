@@ -1,0 +1,1025 @@
+{
+  "cases": [
+    {
+      "name": "json-draft-top-level",
+      "description": "Draft.produce mutates a top-level field",
+      "kind": "draft-top-level",
+      "input": {
+        "json": {
+          "base": {
+            "a": 1,
+            "b": 2
+          },
+          "mutation": {
+            "a": 99
+          }
+        }
+      },
+      "expected": {
+        "next": {
+          "a": 99,
+          "b": 2
+        }
+      }
+    },
+    {
+      "name": "json-draft-untouched",
+      "description": "Draft.produce leaves the base untouched",
+      "kind": "draft-untouched",
+      "input": {
+        "json": {
+          "base": {
+            "a": 1,
+            "nested": {
+              "value": 2
+            }
+          },
+          "mutation": {
+            "a": 42,
+            "nested": {
+              "value": 99
+            }
+          }
+        }
+      },
+      "expected": {
+        "base": {
+          "a": 1,
+          "nested": {
+            "value": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "json-draft-sibling-sharing",
+      "description": "Draft.produce preserves untouched sibling references",
+      "kind": "draft-sibling-sharing",
+      "input": {
+        "json": {
+          "base": {
+            "touched": {
+              "x": 1
+            },
+            "untouched": {
+              "y": 2
+            }
+          },
+          "mutation": {
+            "touched": {
+              "x": 100
+            }
+          }
+        }
+      },
+      "expected": {
+        "next": {
+          "touched": {
+            "x": 100
+          },
+          "untouched": {
+            "y": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "json-draft-array-push",
+      "description": "Draft.produce supports array push",
+      "kind": "draft-array-push",
+      "input": {
+        "json": {
+          "base": {
+            "items": [
+              1,
+              2,
+              3
+            ]
+          },
+          "pushValue": 4
+        }
+      },
+      "expected": {
+        "next": {
+          "items": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "base": {
+          "items": [
+            1,
+            2,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "name": "json-draft-array-splice",
+      "description": "Draft.produce supports array splice",
+      "kind": "draft-array-splice",
+      "input": {
+        "json": {
+          "base": {
+            "items": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "splice": {
+            "start": 1,
+            "deleteCount": 2,
+            "values": [
+              "x",
+              "y",
+              "z"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "next": {
+          "items": [
+            1,
+            "x",
+            "y",
+            "z",
+            4
+          ]
+        }
+      }
+    },
+    {
+      "name": "json-draft-array-index",
+      "description": "Draft.produce supports array index assignment",
+      "kind": "draft-array-index",
+      "input": {
+        "json": {
+          "base": {
+            "items": [
+              1,
+              2,
+              3
+            ]
+          },
+          "index": 1,
+          "value": 99
+        }
+      },
+      "expected": {
+        "next": {
+          "items": [
+            1,
+            99,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "name": "json-draft-noop-base",
+      "description": "Draft.produce returns the same reference for a no-op recipe",
+      "kind": "draft-noop-base",
+      "input": {
+        "json": {
+          "base": {
+            "a": 1,
+            "nested": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "expected": {
+        "sameReference": true
+      }
+    },
+    {
+      "name": "json-draft-noop-read",
+      "description": "Draft.produce returns the same reference when only reading",
+      "kind": "draft-noop-read",
+      "input": {
+        "json": {
+          "base": {
+            "a": 1,
+            "nested": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "expected": {
+        "sameReference": true
+      }
+    },
+    {
+      "name": "json-draft-proxy-memo",
+      "description": "Draft.produce memoizes nested proxies",
+      "kind": "draft-proxy-memo",
+      "input": {
+        "json": {
+          "base": {
+            "nested": {
+              "value": 1
+            }
+          }
+        }
+      },
+      "expected": {
+        "memoized": true
+      }
+    },
+    {
+      "name": "json-draft-pass-through",
+      "description": "Draft.produce passes through non-plain values",
+      "kind": "draft-pass-through",
+      "input": {
+        "json": {
+          "base": {
+            "createdAt": "2024-01-01T00:00:00.000Z",
+            "widgetId": "w1",
+            "label": "a"
+          },
+          "nextLabel": "b"
+        }
+      },
+      "expected": {
+        "createdAtPassthrough": true,
+        "widgetPassthrough": true,
+        "label": "b"
+      }
+    },
+    {
+      "name": "json-draft-deep-sharing",
+      "description": "Draft.produce preserves structural sharing for deeply nested writes",
+      "kind": "draft-deep-sharing",
+      "input": {
+        "json": {
+          "base": {
+            "branch": {
+              "deep": {
+                "nested": {
+                  "only": {
+                    "x": 1
+                  }
+                }
+              }
+            },
+            "untouched": {
+              "y": 2
+            }
+          },
+          "mutation": {
+            "branch": {
+              "deep": {
+                "nested": {
+                  "only": {
+                    "x": 100
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "next": {
+          "branch": {
+            "deep": {
+              "nested": {
+                "only": {
+                  "x": 100
+                }
+              }
+            }
+          },
+          "untouched": {
+            "y": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "json-draft-delete",
+      "description": "Draft.produce supports deleting a property",
+      "kind": "draft-delete",
+      "input": {
+        "json": {
+          "base": {
+            "a": 1,
+            "b": 2
+          },
+          "deleteKey": "b"
+        }
+      },
+      "expected": {
+        "next": {
+          "a": 1
+        }
+      }
+    },
+    {
+      "name": "json-draft-patch-roundtrip",
+      "description": "Draft.producePatch round-trips through Patch.apply",
+      "kind": "draft-patch-roundtrip",
+      "input": {
+        "json": {
+          "base": {
+            "count": 1,
+            "meta": {
+              "label": "draft"
+            },
+            "tags": [
+              "a",
+              "b"
+            ]
+          },
+          "mutation": {
+            "count": 2,
+            "meta": {
+              "label": "published"
+            },
+            "tags": [
+              "a",
+              "b",
+              "c"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "roundTrips": true
+      }
+    },
+    {
+      "name": "json-draft-patch-remove",
+      "description": "Draft.producePatch round-trips a property removal",
+      "kind": "draft-patch-remove",
+      "input": {
+        "json": {
+          "base": {
+            "a": 1,
+            "b": 2
+          },
+          "deleteKey": "b"
+        }
+      },
+      "expected": {
+        "roundTrips": true
+      }
+    },
+    {
+      "name": "json-draft-patch-add",
+      "description": "Draft.producePatch round-trips a property addition",
+      "kind": "draft-patch-add",
+      "input": {
+        "json": {
+          "base": {
+            "a": 1
+          },
+          "addKey": "b",
+          "addValue": 2
+        }
+      },
+      "expected": {
+        "roundTrips": true
+      }
+    },
+    {
+      "name": "json-draft-patch-empty",
+      "description": "Draft.producePatch returns an empty patch for a no-op",
+      "kind": "draft-patch-empty",
+      "input": {
+        "json": {
+          "base": {
+            "a": 1
+          }
+        }
+      },
+      "expected": {
+        "patch": []
+      }
+    },
+    {
+      "name": "json-draft-proxy-reflection",
+      "description": "Draft proxies support reflection traps while preserving copy-on-write behavior",
+      "kind": "draft-proxy-reflection",
+      "input": {
+        "json": {
+          "base": {
+            "items": [
+              1,
+              2
+            ],
+            "nested": {
+              "value": 2
+            },
+            "plain": "ok"
+          },
+          "nextNestedValue": 9
+        }
+      },
+      "expected": {
+        "arrayLengthConfigurable": false,
+        "hasNested": true,
+        "keys": [
+          "items",
+          "nested",
+          "plain"
+        ],
+        "nestedDescriptorConfigurable": true,
+        "symbolPassthrough": true
+      }
+    },
+    {
+      "name": "json-draft-patch-invalid-value",
+      "description": "Draft.producePatch rejects non-JSON patch values produced by a recipe",
+      "kind": "draft-patch-invalid-value",
+      "input": {
+        "json": {
+          "invalidValueKind": "function"
+        }
+      },
+      "expected": {
+        "error": "TypeError"
+      }
+    },
+    {
+      "name": "json-draft-patch-escaped-keys",
+      "description": "Draft.producePatch escapes slash and tilde path segments",
+      "kind": "draft-patch-escaped-keys",
+      "input": {
+        "json": {
+          "base": {
+            "a/b": 1,
+            "m~n": 2
+          },
+          "mutations": {
+            "a/b": 10,
+            "m~n": 20
+          }
+        }
+      },
+      "expected": {
+        "patch": [
+          {
+            "op": "replace",
+            "path": "/a~1b",
+            "value": 10
+          },
+          {
+            "op": "replace",
+            "path": "/m~0n",
+            "value": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "json-patch-add",
+      "description": "Patch add operation adds values and creates intermediate objects",
+      "kind": "patch-add",
+      "input": {
+        "json": {
+          "operations": [
+            {
+              "op": "add",
+              "path": "/b",
+              "value": 2
+            },
+            {
+              "op": "add",
+              "path": "/foo/bar",
+              "value": 42
+            }
+          ]
+        }
+      },
+      "expected": {
+        "target": {
+          "a": 1,
+          "b": 2
+        },
+        "nested": {
+          "foo": {
+            "bar": 42
+          }
+        }
+      }
+    },
+    {
+      "name": "json-patch-create-errors",
+      "description": "Patch.create rejects invalid operations and values",
+      "kind": "patch-create-errors",
+      "input": {
+        "json": {
+          "invalidOperations": [
+            {
+              "op": "merge",
+              "path": "/a"
+            },
+            {
+              "op": "add"
+            },
+            {
+              "extra": true,
+              "op": "add",
+              "path": "/a"
+            }
+          ],
+          "invalidValueKinds": [
+            "function",
+            "symbol",
+            "bigint",
+            "nan",
+            "infinity",
+            "cycle"
+          ]
+        }
+      },
+      "expected": {
+        "error": "PatchError"
+      }
+    },
+    {
+      "name": "json-patch-replace",
+      "description": "Patch replace operation replaces existing values and rejects missing paths",
+      "kind": "patch-replace",
+      "input": {
+        "json": {
+          "target": {
+            "a": 1
+          },
+          "replacement": {
+            "path": "/a",
+            "value": 99
+          },
+          "missingPaths": [
+            {
+              "path": "/missing",
+              "value": 1
+            },
+            {
+              "path": "/a/missing",
+              "value": 1
+            },
+            {
+              "path": "/missing/deeper",
+              "value": 1
+            }
+          ]
+        }
+      },
+      "expected": {
+        "replaced": 99
+      }
+    },
+    {
+      "name": "json-patch-remove",
+      "description": "Patch remove operation removes properties and rejects bad array paths",
+      "kind": "patch-remove",
+      "input": {
+        "json": {
+          "target": {
+            "a": 1,
+            "b": 2
+          },
+          "arrayTarget": {
+            "items": [
+              1,
+              2,
+              3
+            ]
+          },
+          "badPath": "/items/bar"
+        }
+      },
+      "expected": {
+        "remaining": {
+          "b": 2
+        },
+        "array": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "json-patch-copy",
+      "description": "Patch copy operation copies values",
+      "kind": "patch-copy",
+      "input": {
+        "json": {
+          "target": {
+            "a": 1
+          },
+          "operation": {
+            "from": "/a",
+            "op": "copy",
+            "path": "/b"
+          }
+        }
+      },
+      "expected": {
+        "target": {
+          "a": 1,
+          "b": 1
+        }
+      }
+    },
+    {
+      "name": "json-patch-move",
+      "description": "Patch move operation moves values",
+      "kind": "patch-move",
+      "input": {
+        "json": {
+          "target": {
+            "a": 1
+          },
+          "operation": {
+            "from": "/a",
+            "op": "move",
+            "path": "/b"
+          }
+        }
+      },
+      "expected": {
+        "target": {
+          "b": 1
+        }
+      }
+    },
+    {
+      "name": "json-patch-test",
+      "description": "Patch test operation validates equality",
+      "kind": "patch-test",
+      "input": {
+        "json": {
+          "target": {
+            "a": 1
+          },
+          "match": {
+            "path": "/a",
+            "value": 1
+          },
+          "mismatch": {
+            "path": "/a",
+            "value": 2
+          }
+        }
+      },
+      "expected": {
+        "match": true,
+        "mismatch": false
+      }
+    },
+    {
+      "name": "json-patch-multiple",
+      "description": "Patch applies multiple operations sequentially",
+      "kind": "patch-multiple",
+      "input": {
+        "json": {
+          "target": {
+            "a": 1
+          },
+          "operations": [
+            {
+              "op": "add",
+              "path": "/b",
+              "value": 2
+            },
+            {
+              "op": "replace",
+              "path": "/a",
+              "value": 10
+            },
+            {
+              "op": "remove",
+              "path": "/b"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "target": {
+          "a": 10
+        }
+      }
+    },
+    {
+      "name": "json-patch-empty",
+      "description": "Patch.isEmpty reports empty and non-empty patches",
+      "kind": "patch-empty",
+      "input": {
+        "json": {
+          "empty": [],
+          "nonEmpty": {
+            "op": "add",
+            "path": "/a",
+            "value": 1
+          }
+        }
+      },
+      "expected": {
+        "empty": true,
+        "nonEmpty": false
+      }
+    },
+    {
+      "name": "json-patch-to-string",
+      "description": "Patch.toString returns a readable description",
+      "kind": "patch-to-string",
+      "input": {
+        "json": {
+          "operations": [
+            {
+              "op": "add",
+              "path": "/a",
+              "value": 1
+            },
+            {
+              "op": "remove",
+              "path": "/b"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "contains": [
+          "ADD",
+          "REMOVE"
+        ]
+      }
+    },
+    {
+      "name": "json-patch-operations",
+      "description": "Patch.operations isolates input and projected operations",
+      "kind": "patch-operations",
+      "input": {
+        "json": {
+          "value": {
+            "nested": {
+              "count": 1
+            }
+          },
+          "operations": [
+            {
+              "op": "add",
+              "path": "/value",
+              "value": {
+                "nested": {
+                  "count": 1
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "isolated": true
+      }
+    },
+    {
+      "name": "json-patch-path-parsing",
+      "description": "Patch handles nested and escaped JSON Pointer paths",
+      "kind": "patch-path-parsing",
+      "input": {
+        "json": {
+          "nested": {
+            "path": "/a/b/c",
+            "value": "deep"
+          },
+          "escaped": {
+            "path": "/a~1b",
+            "value": 99
+          }
+        }
+      },
+      "expected": {
+        "nested": {
+          "a": {
+            "b": {
+              "c": "deep"
+            }
+          }
+        },
+        "escaped": {
+          "a/b": 99
+        }
+      }
+    },
+    {
+      "name": "json-patch-subclass",
+      "description": "Patch subclass factories preserve the subclass type",
+      "kind": "patch-subclass",
+      "input": {
+        "json": {
+          "operation": {
+            "op": "add",
+            "path": "/foo",
+            "value": "bar"
+          },
+          "target": {
+            "key": "value"
+          }
+        }
+      },
+      "expected": {
+        "isStrict": true
+      }
+    },
+    {
+      "name": "json-patch-root-and-errors",
+      "description": "Patch root paths are no-ops for in-place mutation and invalid paths report PatchError",
+      "kind": "patch-root-and-errors",
+      "input": {
+        "json": {
+          "copyMissingFrom": {
+            "op": "copy",
+            "path": "/copy"
+          },
+          "invalidCandidates": [
+            "not-operation",
+            null,
+            42
+          ],
+          "invalidPath": "missing-leading-slash",
+          "missingRemovePath": "/missing/deeper",
+          "moveMissingFrom": {
+            "op": "move",
+            "path": "/move"
+          },
+          "nonObjectRemovePath": "/a/b",
+          "nonTraversableAddPath": "/a/b",
+          "primitiveTestPath": "/a/b",
+          "rootPaths": [
+            "",
+            "/"
+          ]
+        }
+      },
+      "expected": {
+        "rootNoop": {
+          "a": 1
+        }
+      }
+    },
+    {
+      "name": "json-patch-array-remove-numeric",
+      "description": "Patch remove splices array elements when the path segment is numeric",
+      "kind": "patch-array-remove-numeric",
+      "input": {
+        "json": {
+          "operation": {
+            "op": "remove",
+            "path": "/items/1"
+          },
+          "target": {
+            "items": [
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      },
+      "expected": {
+        "target": {
+          "items": [
+            1,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "name": "json-patch-to-string-all-ops",
+      "description": "Patch.toString renders copy, move, replace, and test operations",
+      "kind": "patch-to-string-all-ops",
+      "input": {
+        "json": {
+          "operations": [
+            {
+              "from": "/source",
+              "op": "copy",
+              "path": "/copy"
+            },
+            {
+              "from": "/copy",
+              "op": "move",
+              "path": "/moved"
+            },
+            {
+              "op": "replace",
+              "path": "/name",
+              "value": "next"
+            },
+            {
+              "op": "test",
+              "path": "/name",
+              "value": "next"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "contains": [
+          "COPY",
+          "MOVE",
+          "REPLACE",
+          "TEST"
+        ]
+      }
+    },
+    {
+      "name": "json-path-access",
+      "description": "Path.toAccess converts JSON Pointer paths to access notation",
+      "kind": "path-access",
+      "input": {
+        "json": {
+          "pointers": [
+            "/items/0/quantity",
+            "/a/b/c",
+            "/arr/0",
+            "/arr/0/name",
+            "/foo bar",
+            "/a~1b",
+            "/m~0n",
+            "",
+            "/"
+          ]
+        }
+      },
+      "expected": {
+        "access": [
+          "items[0].quantity",
+          "a.b.c",
+          "arr[0]",
+          "arr[0].name",
+          "[\"foo bar\"]",
+          "[\"a/b\"]",
+          "[\"m~n\"]",
+          "",
+          ""
+        ]
+      }
+    },
+    {
+      "name": "json-path-get",
+      "description": "Path.get resolves nested values and rejects unsafe paths",
+      "kind": "path-get",
+      "input": {
+        "json": {
+          "object": {
+            "user": {
+              "name": "Alice",
+              "address": {
+                "city": "Wonderland"
+              },
+              "tags": [
+                "admin",
+                "user"
+              ]
+            },
+            "items": [
+              {
+                "id": 1
+              },
+              {
+                "id": 2
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "safe": true,
+        "wildcard": true
+      }
+    },
+    {
+      "name": "json-path-subclass",
+      "description": "Path subclass overrides relax the safe-property guard",
+      "kind": "path-subclass",
+      "input": {
+        "json": {
+          "object": {
+            "__secret": "hidden",
+            "layer": {
+              "__inner": 42
+            }
+          }
+        }
+      },
+      "expected": {
+        "openPath": true
+      }
+    }
+  ]
+}

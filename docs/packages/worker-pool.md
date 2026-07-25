@@ -17,7 +17,7 @@ pnpm add @studnicky/worker-pool
 
 ## Usage
 
-Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers, reuses them for later items in that run, terminates the live workers after dispatched work settles, and resolves an ordered results array. `concurrency` defaults to `System.optimalWorkerCount` when omitted:
+Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers, admits up to `batchConcurrency` items into each `Batch#process()` scheduling window, reuses them for later items in that run, terminates the live workers after dispatched work settles, and resolves an ordered results array. `concurrency` defaults to `System.optimalWorkerCount` when omitted, and `batchConcurrency` defaults to `concurrency`:
 
 <<< ../../packages/worker-pool/examples/observedWorkerPool.ts#usage
 
@@ -35,7 +35,7 @@ Each call to `run()` creates its own pool of at most `concurrency` workers. An i
 
 | Method | Description |
 |--------|-------------|
-| `WorkerPool.create(config)` | Creates a pool. `config.workerPath` is required; `concurrency`, `timeoutMs`, and `signal` default |
+| `WorkerPool.create(config)` | Creates a pool. `config.workerPath` is required; `concurrency`, `batchConcurrency`, `timeoutMs`, and `signal` default |
 | `run(items)` | Fans `items` across at most `concurrency` workers and resolves an ordered `TResult[]` |
 | `getHookErrorCount()` | Count of hook failures recorded since construction |
 | `getHookErrors()` | Defensive copy of every hook failure recorded since construction |

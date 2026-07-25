@@ -1,0 +1,57 @@
+name: semgrep
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: semgrep-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-ghas:
+    name: Check GHAS availability
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: read
+    outputs:
+      enabled: ${{ steps.probe.outputs.enabled }}
+    steps:
+      - id: probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/code-scanning/alerts" --silent 2>/dev/null; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  scan:
+    name: Semgrep scan
+    needs: [ check-ghas ]
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: diff
+        uses: ./.github/actions/diff-range
+      - run: sh scripts/security-suite.sh semgrep-sarif-range "${{
+          steps.diff.outputs.range }}" semgrep.sarif
+        env:
+          SECURITY_SUITE_REQUIRE_TOOLS: 'true'
+      - name: Upload SARIF
+        if: always() && needs.check-ghas.outputs.enabled == 'true'
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep

@@ -1,0 +1,85 @@
+{
+  "cases": [
+    {
+      "description": "BodySerializer needs JSON headers for plain arrays",
+      "expected": {
+        "decision": true
+      },
+      "input": {
+        "body": [1, 2, 3]
+      },
+      "kind": "needs-json-content-type-array",
+      "name": "needs-json-content-type-array"
+    },
+    {
+      "description": "BodySerializer skips JSON headers for buffers",
+      "expected": {
+        "decision": false
+      },
+      "input": {
+        "body": {
+          "bytes": [1, 2, 3],
+          "kind": "buffer"
+        }
+      },
+      "kind": "needs-json-content-type-buffer",
+      "name": "needs-json-content-type-buffer"
+    },
+    {
+      "description": "BodySerializer needs JSON headers for plain objects",
+      "expected": {
+        "decision": true
+      },
+      "input": {
+        "body": {
+          "ok": true
+        }
+      },
+      "kind": "needs-json-content-type-object",
+      "name": "needs-json-content-type-object"
+    },
+    {
+      "description": "BodySerializer skips JSON headers for primitives",
+      "expected": {
+        "decision": false
+      },
+      "input": {
+        "body": "text"
+      },
+      "kind": "needs-json-content-type-primitive",
+      "name": "needs-json-content-type-primitive"
+    },
+    {
+      "description": "BodySerializer copies a DataView visible range into a detached Uint8Array",
+      "expected": {
+        "bytes": [1, 2, 3],
+        "constructorName": "Uint8Array"
+      },
+      "input": {
+        "kind": "data-view-visible-range",
+        "source": [99, 1, 2, 3, 99],
+        "view": {
+          "byteLength": 3,
+          "byteOffset": 1
+        }
+      },
+      "kind": "data-view-visible-range",
+      "name": "data-view-visible-range"
+    },
+    {
+      "description": "BodySerializer copies a typed-array byte range without retaining the backing buffer",
+      "expected": {
+        "bytes": [2, 1, 4, 3],
+        "constructorName": "Uint8Array",
+        "remainsDetachedAfterSourceMutation": true
+      },
+      "input": {
+        "kind": "typed-array-byte-range",
+        "source": [258, 772],
+        "typedArray": "Uint16Array"
+      },
+      "kind": "typed-array-byte-range",
+      "name": "typed-array-byte-range"
+    }
+  ]
+}

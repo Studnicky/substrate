@@ -93,7 +93,7 @@ git clone https://github.com/Studnicky/substrate.git
 cd substrate
 pnpm install
 pnpm build
-pnpm test
+pnpm run test:all
 pnpm lint
 pnpm docs:dev
 ```

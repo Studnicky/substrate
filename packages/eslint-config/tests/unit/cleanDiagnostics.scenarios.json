@@ -1,0 +1,132 @@
+{
+  "valid": [
+    {
+      "code": "const x = 1;",
+      "name": "allows normal code with no suppression tokens"
+    },
+    {
+      "code": "// This is a normal comment\nconst x = 1;",
+      "name": "allows regular comment without suppression token"
+    },
+    {
+      "code": "/* This is a block comment */\nconst x = 1;",
+      "name": "allows block comment without suppression tokens"
+    },
+    {
+      "code": "/** @param x - the value */\nfunction fn(x: number) { return x + 1; }",
+      "name": "allows JSDoc comment with no suppression"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "// eslint-disable\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids standalone eslint-disable comment and removes line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "// eslint-disable-next-line no-console\nconsole.log('hi');",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids eslint-disable-next-line and removes comment line",
+      "output": "console.log('hi');"
+    },
+    {
+      "code": "// @ts-ignore\nconst x: number = 'oops';",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids @ts-ignore and removes comment line",
+      "output": "const x: number = 'oops';"
+    },
+    {
+      "code": "// @ts-expect-error\nconst x: number = 'oops';",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids @ts-expect-error and removes comment line",
+      "output": "const x: number = 'oops';"
+    },
+    {
+      "code": "// @ts-nocheck\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids @ts-nocheck and removes comment line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "// tslint:disable\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids tslint:disable and removes comment line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "// tslint:disable-next-line\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids tslint:disable-next-line and removes comment line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "// eslint-enable no-console\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids eslint-enable and removes comment line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "// c8 ignore next\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids c8 ignore and removes comment line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "// c8-ignore next\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids c8-ignore and removes comment line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "/* istanbul ignore entirely */\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids istanbul ignore entirely and removes comment line",
+      "output": "const x = 1;"
+    }
+  ]
+}

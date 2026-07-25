@@ -1,0 +1,209 @@
+import assert from 'node:assert/strict';
+import { Agent } from 'undici';
+import { describe, it } from 'node:test';
+
+import { ConfigurationError } from '../../src/errors/index.js';
+import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
+import { TestDispatcher } from '../../src/testing/TestDispatcher.js';
+
+import scenarioGroups from './undici-dispatcher.scenarios.json';
+
+type ScenarioCase =
+  | {
+      description: string;
+      expected: { kind: 'throws'; message: string };
+      input: { agent: unknown };
+      kind: 'constructor-invalid-agent';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { kind: 'healthy' };
+      input: { stats: Record<string, unknown>; origin: string };
+      kind: 'health-no-stats' | 'health-invalid-stats';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { kind: 'health'; healthy: boolean; recommendationIncludes?: string };
+      input: { stats: { connected: number; pending: number }; origin: string };
+      kind: 'health-pressure' | 'health-overload' | 'health-ok';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { kind: 'frozen' };
+      input: { stats: Record<string, { connected: number; pending: number }>; origin: string };
+      kind: 'get-stats-freeze';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { kind: 'called' };
+      input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
+      kind: 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { kind: 'healthy' };
+      input: { origin: string; testDispatcher: Parameters<typeof TestDispatcher.create>[0] };
+      kind: 'test-dispatcher-health';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { kind: 'called' };
+      input: { testDispatcher: Parameters<typeof TestDispatcher.create>[0] };
+      kind: 'test-dispatcher-close' | 'test-dispatcher-destroy';
+      name: string;
+    };
+
+type ScenarioRunner<Kind extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => Promise<void>;
+type RunnerMap = { [Kind in ScenarioCase['kind']]: ScenarioRunner<Kind> };
+type HealthScenario = Extract<ScenarioCase, { kind: 'health-ok' | 'health-overload' | 'health-pressure' }>;
+type AgentOperationScenario = Extract<ScenarioCase, { kind: 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero' }>;
+type TestDispatcherScenario = Extract<ScenarioCase, { kind: 'test-dispatcher-close' | 'test-dispatcher-destroy' | 'test-dispatcher-health' }>;
+type AgentCallCounts = {
+  closeCalls: number;
+  destroyCalls: number;
+};
+
+function createAgentWithStats(stats: Record<string, unknown>): Agent {
+  const agent = new Agent({});
+  Object.defineProperty(agent, 'stats', {
+    'configurable': true,
+    'get': () => { return stats; }
+  });
+  return agent;
+}
+
+function createDispatcherWithStats(stats: Record<string, unknown>): UndiciDispatcher {
+  return UndiciDispatcher.create(createAgentWithStats(stats));
+}
+
+function createSpyDispatcher(scenarioCase: AgentOperationScenario): {
+  calls: AgentCallCounts;
+  dispatcher: UndiciDispatcher;
+} {
+  const calls = {
+    closeCalls: 0,
+    destroyCalls: 0
+  };
+  const agent = new Agent(scenarioCase.input.agent ?? {});
+  Object.defineProperty(agent, 'close', {
+    'configurable': true,
+    'value': async (): Promise<void> => {
+      calls.closeCalls += 1;
+    }
+  });
+  Object.defineProperty(agent, 'destroy', {
+    'configurable': true,
+    'value': async (): Promise<void> => {
+      calls.destroyCalls += 1;
+    }
+  });
+
+  return {
+    calls,
+    dispatcher: UndiciDispatcher.create(agent)
+  };
+}
+
+function createTestUndiciDispatcher(scenarioCase: TestDispatcherScenario): UndiciDispatcher {
+  const agent = TestDispatcher.create(scenarioCase.input.testDispatcher);
+  return UndiciDispatcher.create(agent);
+}
+
+async function runHealthScenario(scenarioCase: HealthScenario): Promise<void> {
+  const dispatcher = createDispatcherWithStats({ [scenarioCase.input.origin]: scenarioCase.input.stats });
+  const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+  assert.equal(health.healthy, scenarioCase.expected.healthy);
+  assert.equal(typeof health.queueRatio, 'number');
+  assert.equal(health.stats !== undefined, true);
+  if (scenarioCase.expected.recommendationIncludes !== undefined) {
+    assert.equal(health.recommendation?.includes(scenarioCase.expected.recommendationIncludes), true);
+  } else {
+    assert.equal(health.recommendation, undefined);
+  }
+}
+
+const runnerMap: RunnerMap = {
+  'close-agent': async (scenarioCase) => {
+    const { calls, dispatcher } = createSpyDispatcher(scenarioCase);
+    await dispatcher.close();
+    assert.equal(calls.closeCalls, 1);
+  },
+  'constructor-invalid-agent': async (scenarioCase) => {
+    assert.throws(() => {
+      UndiciDispatcher.create(scenarioCase.input.agent as never);
+    }, (error: Error) => {
+      assert.ok(error instanceof ConfigurationError);
+      assert.equal(error.message, scenarioCase.expected.message);
+      return true;
+    });
+  },
+  'destroy-agent': async (scenarioCase) => {
+    const { calls, dispatcher } = createSpyDispatcher(scenarioCase);
+    await dispatcher.destroy(scenarioCase.input.timeout === undefined ? undefined : { 'timeout': scenarioCase.input.timeout });
+    assert.equal(calls.destroyCalls, 1);
+  },
+  'destroy-agent-delay': async (scenarioCase) => {
+    const { calls, dispatcher } = createSpyDispatcher(scenarioCase);
+    const start = Date.now();
+    await dispatcher.destroy({ 'timeout': scenarioCase.input.timeout ?? 1 });
+    assert.equal(calls.destroyCalls, 1);
+    assert.ok(Date.now() - start >= 0);
+  },
+  'destroy-agent-zero': async (scenarioCase) => {
+    const { calls, dispatcher } = createSpyDispatcher(scenarioCase);
+    await dispatcher.destroy({ 'timeout': 0 });
+    assert.equal(calls.destroyCalls, 1);
+  },
+  'get-stats-freeze': async (scenarioCase) => {
+    const dispatcher = createDispatcherWithStats(scenarioCase.input.stats);
+    const stats = dispatcher.getStats();
+    assert.equal(Object.isFrozen(stats), true);
+    assert.equal(Object.isFrozen(stats[scenarioCase.input.origin] as object), true);
+  },
+  'health-invalid-stats': async (scenarioCase) => {
+    const dispatcher = createDispatcherWithStats(scenarioCase.input.stats);
+    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+    assert.deepStrictEqual(health, { 'healthy': true });
+  },
+  'health-no-stats': async (scenarioCase) => {
+    const dispatcher = createDispatcherWithStats({});
+    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+    assert.deepStrictEqual(health, { 'healthy': true });
+  },
+  'health-ok': runHealthScenario,
+  'health-overload': runHealthScenario,
+  'health-pressure': runHealthScenario,
+  'test-dispatcher-close': async (scenarioCase) => {
+    const dispatcher = createTestUndiciDispatcher(scenarioCase);
+    await dispatcher.close();
+    assert.equal(dispatcher instanceof UndiciDispatcher, true);
+  },
+  'test-dispatcher-destroy': async (scenarioCase) => {
+    const dispatcher = createTestUndiciDispatcher(scenarioCase);
+    await dispatcher.destroy();
+    assert.equal(dispatcher instanceof UndiciDispatcher, true);
+  },
+  'test-dispatcher-health': async (scenarioCase) => {
+    const dispatcher = createTestUndiciDispatcher(scenarioCase);
+    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+    assert.equal(typeof health.healthy, 'boolean');
+  }
+};
+
+async function runCase<Kind extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): Promise<void> {
+  await runnerMap[scenarioCase.kind](scenarioCase);
+}
+
+void describe('undici dispatcher', () => {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+    void it(scenario.name, async () => {
+      await runCase(scenario);
+    });
+  }
+});

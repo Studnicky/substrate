@@ -21,7 +21,7 @@ class TelemetryFlagEvaluator extends FlagEvaluator {
   }
 
   protected override onRuleMismatch(flag: string, context: Record<string, unknown>): void {
-    console.log(`[flags] '${flag}' rollout bucket missed for`, context);
+    console.log('[flags] rollout bucket missed for', flag, context);
     this.ruleMismatches.push(flag);
   }
 }

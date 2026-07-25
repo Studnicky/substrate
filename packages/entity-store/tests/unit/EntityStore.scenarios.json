@@ -1,0 +1,898 @@
+{
+  "cases": [
+    {
+      "description": "upsertOne inserts a new entity",
+      "kind": "upsert-one-inserts",
+      "name": "upsertOne inserts a new entity",
+      "input": {
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        }
+      },
+      "expected": {
+        "size": 1,
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        }
+      }
+    },
+    {
+      "description": "upsertOne overwrites an existing entity with the same id",
+      "kind": "upsert-one-overwrites",
+      "name": "upsertOne overwrites an existing entity with the same id",
+      "input": {
+        "initial": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "next": {
+          "id": "a",
+          "name": "Alicia"
+        }
+      },
+      "expected": {
+        "size": 1,
+        "entity": {
+          "id": "a",
+          "name": "Alicia"
+        }
+      }
+    },
+    {
+      "description": "upsertMany batch-inserts every entity",
+      "kind": "upsert-many-batch",
+      "name": "upsertMany batch-inserts every entity",
+      "input": {
+        "entities": [
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "b",
+            "name": "Bob"
+          },
+          {
+            "id": "c",
+            "name": "Carol"
+          }
+        ]
+      },
+      "expected": {
+        "size": 3,
+        "entity": {
+          "id": "b",
+          "name": "Bob"
+        }
+      }
+    },
+    {
+      "description": "upsertMany with an empty array is a no-op",
+      "kind": "upsert-many-empty",
+      "name": "upsertMany with an empty array is a no-op",
+      "input": {
+        "entities": []
+      },
+      "expected": {
+        "size": 0
+      }
+    },
+    {
+      "description": "snapshots caller-owned entities on every retention path",
+      "kind": "snapshot-retention-paths",
+      "name": "snapshots caller-owned entities on every retention path",
+      "input": {
+        "upserted": {
+          "id": "upserted",
+          "profile": {
+            "name": "Alice"
+          },
+          "roles": [
+            "admin"
+          ]
+        },
+        "batched": {
+          "id": "batched",
+          "profile": {
+            "name": "Bob"
+          },
+          "roles": [
+            "reader"
+          ]
+        },
+        "replacement": {
+          "id": "replacement",
+          "profile": {
+            "name": "Carol"
+          },
+          "roles": [
+            "editor"
+          ]
+        },
+        "mutations": {
+          "upserted": {
+            "profileName": "mutated",
+            "role": "owner"
+          },
+          "batched": {
+            "profileName": "mutated",
+            "role": "writer"
+          },
+          "replacement": {
+            "profileName": "mutated",
+            "role": "publisher"
+          }
+        }
+      },
+      "expected": {
+        "upserted": {
+          "id": "upserted",
+          "profile": {
+            "name": "Alice"
+          },
+          "roles": [
+            "admin"
+          ]
+        },
+        "batched": {
+          "id": "batched",
+          "profile": {
+            "name": "Bob"
+          },
+          "roles": [
+            "reader"
+          ]
+        },
+        "replacement": {
+          "id": "replacement",
+          "profile": {
+            "name": "Carol"
+          },
+          "roles": [
+            "editor"
+          ]
+        }
+      }
+    },
+    {
+      "description": "removeOne returns true and removes an existing entity",
+      "kind": "remove-one-removes",
+      "name": "removeOne returns true and removes an existing entity",
+      "input": {
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        }
+      },
+      "expected": {
+        "removed": true,
+        "size": 0
+      }
+    },
+    {
+      "description": "removeOne returns false for a missing id",
+      "kind": "remove-one-missing",
+      "name": "removeOne returns false for a missing id",
+      "input": {
+        "id": "missing"
+      },
+      "expected": {
+        "removed": false
+      }
+    },
+    {
+      "description": "removeMany returns the count of entities actually removed",
+      "kind": "remove-many-count",
+      "name": "removeMany returns the count of entities actually removed",
+      "input": {
+        "entities": [
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "b",
+            "name": "Bob"
+          }
+        ],
+        "ids": [
+          "a",
+          "b",
+          "missing"
+        ]
+      },
+      "expected": {
+        "removed": 2,
+        "size": 0
+      }
+    },
+    {
+      "description": "removeMany with an empty array returns 0",
+      "kind": "remove-many-empty",
+      "name": "removeMany with an empty array returns 0",
+      "input": {
+        "ids": []
+      },
+      "expected": {
+        "removed": 0
+      }
+    },
+    {
+      "description": "setAll replaces the entire collection",
+      "kind": "set-all-replaces",
+      "name": "setAll replaces the entire collection",
+      "input": {
+        "initial": [
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "b",
+            "name": "Bob"
+          }
+        ],
+        "next": [
+          {
+            "id": "c",
+            "name": "Carol"
+          }
+        ]
+      },
+      "expected": {
+        "size": 1,
+        "ids": [
+          "c"
+        ],
+        "missing": [
+          "a",
+          "b"
+        ],
+        "entity": {
+          "id": "c",
+          "name": "Carol"
+        }
+      }
+    },
+    {
+      "description": "setAll with an empty array clears the collection",
+      "kind": "set-all-empty",
+      "name": "setAll with an empty array clears the collection",
+      "input": {
+        "initial": [
+          {
+            "id": "a",
+            "name": "Alice"
+          }
+        ],
+        "next": []
+      },
+      "expected": {
+        "size": 0
+      }
+    },
+    {
+      "description": "getAll falls back to insertion order when no sortComparer is configured",
+      "kind": "get-all-insertion-order",
+      "name": "getAll falls back to insertion order when no sortComparer is configured",
+      "input": {
+        "entities": [
+          {
+            "id": "c",
+            "name": "Carol"
+          },
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "b",
+            "name": "Bob"
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "c",
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "description": "getAll respects sortComparer when configured",
+      "kind": "get-all-sorted",
+      "name": "getAll respects sortComparer when configured",
+      "input": {
+        "entities": [
+          {
+            "id": "c",
+            "name": "Carol"
+          },
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "b",
+            "name": "Bob"
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "description": "getAll returns a defensive sorted snapshot",
+      "kind": "get-all-defensive-snapshot",
+      "name": "getAll returns a defensive sorted snapshot",
+      "input": {
+        "entities": [
+          {
+            "id": "b",
+            "name": "Bob"
+          },
+          {
+            "id": "a",
+            "name": "Alice"
+          }
+        ],
+        "snapshotMutation": {
+          "id": "tampered",
+          "name": "Tampered"
+        }
+      },
+      "expected": {
+        "ids": [
+          "a",
+          "b"
+        ],
+        "defensiveCopy": true
+      }
+    },
+    {
+      "description": "getAll caches the sorted snapshot until the next mutation",
+      "kind": "get-all-cache-invalidated",
+      "name": "getAll caches the sorted snapshot until the next mutation",
+      "input": {
+        "entities": [
+          {
+            "id": "c",
+            "name": "Carol"
+          },
+          {
+            "id": "a",
+            "name": "Alice"
+          }
+        ],
+        "mutation": {
+          "id": "b",
+          "name": "Bob"
+        }
+      },
+      "expected": {
+        "firstGetAllCallsPositive": true,
+        "subsequentGetsStable": true,
+        "mutationInvalidatesCache": true
+      }
+    },
+    {
+      "description": "getAll and getById return deeply detached entities",
+      "kind": "deep-detached-getters",
+      "name": "getAll and getById return deeply detached entities",
+      "input": {
+        "entity": {
+          "id": "a",
+          "profile": {
+            "name": "Alice"
+          },
+          "roles": [
+            "admin"
+          ]
+        },
+        "mutations": {
+          "byId": {
+            "profileName": "tampered",
+            "role": "owner"
+          },
+          "all": {
+            "profileName": "tampered again",
+            "role": "writer"
+          }
+        }
+      },
+      "expected": {
+        "entity": {
+          "id": "a",
+          "profile": {
+            "name": "Alice"
+          },
+          "roles": [
+            "admin"
+          ]
+        }
+      }
+    },
+    {
+      "description": "getById/getIds/size reflect a mix of operations",
+      "kind": "ids-size-reflect-operations",
+      "name": "getById/getIds/size reflect a mix of operations",
+      "input": {
+        "initial": 0,
+        "entities": [
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "b",
+            "name": "Bob"
+          }
+        ],
+        "added": {
+          "id": "c",
+          "name": "Carol"
+        },
+        "removedId": "b"
+      },
+      "expected": {
+        "checkpoints": {
+          "initial": {
+            "size": 0,
+            "ids": []
+          },
+          "afterBatch": {
+            "size": 2,
+            "ids": [
+              "a",
+              "b"
+            ]
+          },
+          "afterAdd": {
+            "size": 3,
+            "ids": [
+              "a",
+              "b",
+              "c"
+            ]
+          }
+        },
+        "size": 2,
+        "ids": [
+          "a",
+          "c"
+        ],
+        "missingId": "b",
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        }
+      }
+    },
+    {
+      "description": "onUpsert fires on insert and on overwrite of the same id",
+      "kind": "hooks-upsert-overwrite",
+      "name": "onUpsert fires on insert and on overwrite of the same id",
+      "input": {
+        "entities": [
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "a",
+            "name": "Alicia"
+          }
+        ]
+      },
+      "expected": {
+        "events": [
+          {
+            "event": "upsert",
+            "id": "a",
+            "entity": {
+              "id": "a",
+              "name": "Alice"
+            }
+          },
+          {
+            "event": "upsert",
+            "id": "a",
+            "entity": {
+              "id": "a",
+              "name": "Alicia"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "description": "onUpsert fires once per entity from upsertMany",
+      "kind": "hooks-upsert-many",
+      "name": "onUpsert fires once per entity from upsertMany",
+      "input": {
+        "entities": [
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "b",
+            "name": "Bob"
+          }
+        ]
+      },
+      "expected": {
+        "upsertCount": 2,
+        "ids": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "description": "onRemove fires only when something was actually removed",
+      "kind": "hooks-remove-only-when-exists",
+      "name": "onRemove fires only when something was actually removed",
+      "input": {
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "missingId": "missing",
+        "presentId": "a"
+      },
+      "expected": {
+        "missingRemoves": 0,
+        "existingRemoves": 1,
+        "event": {
+          "event": "remove",
+          "id": "a"
+        }
+      }
+    },
+    {
+      "description": "onRemove fires once per entity actually removed from removeMany",
+      "kind": "hooks-remove-many",
+      "name": "onRemove fires once per entity actually removed from removeMany",
+      "input": {
+        "entities": [
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "b",
+            "name": "Bob"
+          }
+        ],
+        "ids": [
+          "a",
+          "missing",
+          "b"
+        ]
+      },
+      "expected": {
+        "removed": 2,
+        "removeEvents": 2
+      }
+    },
+    {
+      "description": "onReplaceAll fires once from setAll with the new collection count",
+      "kind": "hooks-replace-all-count",
+      "name": "onReplaceAll fires once from setAll with the new collection count",
+      "input": {
+        "initial": [
+          {
+            "id": "a",
+            "name": "Alice"
+          }
+        ],
+        "next": [
+          {
+            "id": "b",
+            "name": "Bob"
+          },
+          {
+            "id": "c",
+            "name": "Carol"
+          },
+          {
+            "id": "d",
+            "name": "Dave"
+          }
+        ]
+      },
+      "expected": {
+        "replaceEvents": [
+          {
+            "event": "replaceAll",
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "description": "onReplaceAll fires with count 0 when setAll is called with an empty array",
+      "kind": "hooks-replace-all-empty",
+      "name": "onReplaceAll fires with count 0 when setAll is called with an empty array",
+      "input": {
+        "initial": [
+          {
+            "id": "a",
+            "name": "Alice"
+          }
+        ],
+        "next": []
+      },
+      "expected": {
+        "replaceEvents": [
+          {
+            "event": "replaceAll",
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "description": "a subclass overriding all three hooks observes every event",
+      "kind": "hooks-all-overridden",
+      "name": "a subclass overriding all three hooks observes every event",
+      "input": {
+        "steps": [
+          "upsertOne",
+          "upsertMany",
+          "removeOne",
+          "setAll"
+        ],
+        "upsertOne": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "upsertMany": [
+          {
+            "id": "b",
+            "name": "Bob"
+          }
+        ],
+        "removeOne": "a",
+        "setAll": [
+          {
+            "id": "c",
+            "name": "Carol"
+          }
+        ]
+      },
+      "expected": {
+        "events": [
+          "upsert",
+          "upsert",
+          "remove",
+          "replaceAll"
+        ]
+      }
+    },
+    {
+      "description": "a throwing onUpsert hook does not replace the completed store mutation",
+      "kind": "throwing-on-upsert-preserves-store",
+      "name": "a throwing onUpsert hook does not replace the completed store mutation",
+      "input": {
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "failure": {
+          "message": "hook boom"
+        }
+      },
+      "expected": {
+        "size": 1,
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "hookErrorCount": 1
+      }
+    },
+    {
+      "description": "a throwing onRemove hook does not replace the completed removal",
+      "kind": "throwing-on-remove-preserves-removal",
+      "name": "a throwing onRemove hook does not replace the completed removal",
+      "input": {
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "failure": {
+          "message": "hook boom"
+        }
+      },
+      "expected": {
+        "removed": true,
+        "size": 0,
+        "hookErrorCount": 1
+      }
+    },
+    {
+      "description": "a throwing onReplaceAll hook does not replace the completed collection swap",
+      "kind": "throwing-on-replace-all-preserves-swap",
+      "name": "a throwing onReplaceAll hook does not replace the completed collection swap",
+      "input": {
+        "initial": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "next": {
+          "id": "b",
+          "name": "Bob"
+        },
+        "failure": {
+          "message": "hook boom"
+        }
+      },
+      "expected": {
+        "size": 1,
+        "entity": {
+          "id": "b",
+          "name": "Bob"
+        },
+        "hookErrorCount": 1
+      }
+    },
+    {
+      "description": "a throwing onUpsert hook in upsertMany does not abort remaining entities, and is recorded",
+      "kind": "hook-failure-recorded-batch-continues",
+      "name": "a throwing onUpsert hook in upsertMany does not abort remaining entities, and is recorded",
+      "input": {
+        "entities": [
+          {
+            "id": "a",
+            "name": "Alice"
+          },
+          {
+            "id": "b",
+            "name": "Bob"
+          },
+          {
+            "id": "c",
+            "name": "Carol"
+          }
+        ],
+        "failure": {
+          "id": "b",
+          "message": "hook boom for b"
+        }
+      },
+      "expected": {
+        "size": 3,
+        "entities": {
+          "a": {
+            "id": "a",
+            "name": "Alice"
+          },
+          "b": {
+            "id": "b",
+            "name": "Bob"
+          },
+          "c": {
+            "id": "c",
+            "name": "Carol"
+          }
+        },
+        "hookErrorCount": 1,
+        "hookName": "onUpsert"
+      }
+    },
+    {
+      "description": "getHookErrors returns a defensive copy",
+      "kind": "hook-errors-defensive-copy",
+      "name": "getHookErrors returns a defensive copy",
+      "input": {
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "failure": {
+          "message": "hook boom"
+        }
+      },
+      "expected": {
+        "hookErrorCount": 1,
+        "defensiveCopy": true
+      }
+    },
+    {
+      "description": "getHookErrors records one failure and deeply detaches nested diagnostics",
+      "kind": "hook-errors-deeply-detached",
+      "name": "getHookErrors records one failure and deeply detaches nested diagnostics",
+      "input": {
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "cause": {
+          "attempts": [
+            1
+          ]
+        },
+        "failure": {
+          "message": "hook boom"
+        },
+        "mutation": {
+          "message": "mutated",
+          "attempt": 2
+        }
+      },
+      "expected": {
+        "hookErrorCount": 1,
+        "hookName": "onUpsert",
+        "cause": {
+          "message": "hook boom",
+          "details": {
+            "attempts": [
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "an async-overridden onUpsert that rejects is routed through onHookError, recorded, and never surfaces as an unhandled rejection",
+      "kind": "async-rejection-routed-no-unhandled",
+      "name": "an async-overridden onUpsert that rejects is routed through onHookError, recorded, and never surfaces as an unhandled rejection",
+      "input": {
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "failure": {
+          "message": "async onUpsert boom"
+        }
+      },
+      "expected": {
+        "size": 1,
+        "entity": {
+          "id": "a",
+          "name": "Alice"
+        },
+        "hookErrorCount": 1,
+        "hookName": "onUpsert",
+        "unhandledRejections": 0
+      }
+    },
+    {
+      "description": "records hook failures only on the entity-store instance that produced them",
+      "kind": "hook-failures-isolated-per-instance",
+      "name": "records hook failures only on the entity-store instance that produced them",
+      "input": {
+        "first": {
+          "id": "first",
+          "name": "First"
+        },
+        "second": {
+          "id": "second",
+          "name": "Second"
+        },
+        "failureMessagePrefix": "hook failure for"
+      },
+      "expected": {
+        "hookName": "onUpsert",
+        "first": {
+          "hookErrorCount": 1,
+          "message": "hook failure for first"
+        },
+        "second": {
+          "hookErrorCount": 1,
+          "message": "hook failure for second"
+        }
+      }
+    }
+  ]
+}

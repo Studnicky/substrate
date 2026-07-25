@@ -1,0 +1,1053 @@
+{
+  "cases": [
+    {
+      "name": "create-static",
+      "description": "creates a context with static create",
+      "kind": "create-static",
+      "input": {
+        "context": {
+          "name": "test"
+        }
+      },
+      "expected": {
+        "name": "test"
+      }
+    },
+    {
+      "name": "invalid-name-empty",
+      "description": "create throws when name is empty string",
+      "kind": "invalid-name",
+      "input": {
+        "context": {
+          "name": ""
+        }
+      },
+      "expected": {
+        "message": "invalid Context config"
+      }
+    },
+    {
+      "name": "invalid-name-nonstring",
+      "description": "create throws when name is not a string",
+      "kind": "invalid-name",
+      "input": {
+        "context": {
+          "name": 0
+        }
+      },
+      "expected": {
+        "message": "invalid Context config"
+      }
+    },
+    {
+      "name": "initialize-empty",
+      "description": "initializes with empty store when no initial values",
+      "kind": "initialize-scope",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "requestId": "123",
+            "value": 42
+          }
+        }
+      },
+      "expected": {
+        "scope": {
+          "execute": true,
+          "terminate": true
+        },
+        "keys": []
+      }
+    },
+    {
+      "name": "initialize-provided",
+      "description": "initializes with provided values",
+      "kind": "initialize-scope",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "requestId": "123",
+            "value": 42
+          }
+        }
+      },
+      "expected": {
+        "keys": [
+          "requestId",
+          "value"
+        ]
+      }
+    },
+    {
+      "name": "execute-runs-callback",
+      "description": "runs callback within context",
+      "kind": "execute-callback",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "value"
+          }
+        }
+      },
+      "expected": {
+        "value": "value"
+      }
+    },
+    {
+      "name": "execute-return-result",
+      "description": "returns callback result",
+      "kind": "execute-return-result",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "value": 5
+          }
+        }
+      },
+      "expected": {
+        "result": 10
+      }
+    },
+    {
+      "name": "execute-async-result",
+      "description": "returns async callback result",
+      "kind": "execute-async",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "value": 7
+          }
+        }
+      },
+      "expected": {
+        "result": 21
+      }
+    },
+    {
+      "name": "execute-multiple",
+      "description": "allows multiple execute calls on same scope",
+      "kind": "execute-multiple",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "count": 0
+          }
+        }
+      },
+      "expected": {
+        "count": 2
+      }
+    },
+    {
+      "name": "execute-after-terminated",
+      "description": "throws after scope terminated",
+      "kind": "execute-after-terminated",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {}
+        }
+      },
+      "expected": {
+        "message": "test scope has been terminated"
+      }
+    },
+    {
+      "name": "terminate-snapshot",
+      "description": "returns snapshot of all values",
+      "kind": "terminate-snapshot",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "requestId": "123"
+          }
+        }
+      },
+      "expected": {
+        "snapshot": {
+          "requestId": "123",
+          "result": "success",
+          "statusCode": 200
+        }
+      }
+    },
+    {
+      "name": "terminate-clears",
+      "description": "clears store after terminate",
+      "kind": "terminate-clears",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "value"
+          }
+        }
+      },
+      "expected": {
+        "firstValue": "value",
+        "secondThrows": true
+      }
+    },
+    {
+      "name": "terminate-twice",
+      "description": "throws if called twice",
+      "kind": "terminate-twice",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {}
+        }
+      },
+      "expected": {
+        "message": "test scope has already been terminated"
+      }
+    },
+    {
+      "name": "set-adds-values",
+      "description": "set adds values to the store",
+      "kind": "set-get",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "original"
+          }
+        }
+      },
+      "expected": {
+        "value": "value"
+      }
+    },
+    {
+      "name": "set-overwrites",
+      "description": "set overwrites existing values",
+      "kind": "set-get",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "original"
+          }
+        }
+      },
+      "expected": {
+        "value": "value"
+      }
+    },
+    {
+      "name": "tryget-missing",
+      "description": "tryGet reports a missing key",
+      "kind": "tryget-missing",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {},
+          "key": "nonexistent"
+        }
+      },
+      "expected": {
+        "found": false
+      }
+    },
+    {
+      "name": "tryget-present",
+      "description": "tryGet reports a present value",
+      "kind": "tryget-present",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "value"
+          }
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": "value"
+      }
+    },
+    {
+      "name": "tryget-undefined",
+      "description": "tryGet distinguishes stored undefined from absent key",
+      "kind": "tryget-undefined",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {},
+          "key": "key"
+        }
+      },
+      "expected": {
+        "found": true,
+        "valueType": "undefined"
+      }
+    },
+    {
+      "name": "get-throws",
+      "description": "get throws when key not found",
+      "kind": "get-throws",
+      "input": {
+        "context": {
+          "name": "my-context"
+        },
+        "scope": {
+          "initial": {},
+          "key": "nonexistent"
+        }
+      },
+      "expected": {
+        "message": "Key 'nonexistent' not found in my-context context"
+      }
+    },
+    {
+      "name": "has-missing",
+      "description": "has returns false for missing keys",
+      "kind": "has-check",
+      "expected": {
+        "result": false
+      },
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {},
+          "key": "missing"
+        }
+      }
+    },
+    {
+      "name": "has-existing",
+      "description": "has returns true for existing keys",
+      "kind": "has-check",
+      "expected": {
+        "result": true
+      },
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "exists": true
+          },
+          "key": "exists"
+        }
+      }
+    },
+    {
+      "name": "delete-removes",
+      "description": "delete removes keys",
+      "kind": "delete-removes",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "value"
+          },
+          "key": "key"
+        }
+      },
+      "expected": {
+        "removed": true
+      }
+    },
+    {
+      "name": "delete-missing",
+      "description": "delete returns false for missing keys",
+      "kind": "delete-missing",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {},
+          "key": "missing"
+        }
+      },
+      "expected": {
+        "removed": false
+      }
+    },
+    {
+      "name": "keys-returns",
+      "description": "keys returns all keys",
+      "kind": "keys-returns",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "a": 1,
+            "b": 2,
+            "c": 3
+          }
+        }
+      },
+      "expected": {
+        "keys": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "name": "snapshot-copy",
+      "description": "returns a copy of all data",
+      "kind": "snapshot-copy",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "requestId": "123",
+            "value": 42
+          }
+        }
+      },
+      "expected": {
+        "snapshot": {
+          "requestId": "123",
+          "value": 42
+        }
+      }
+    },
+    {
+      "name": "snapshot-independent",
+      "description": "snapshot is independent of context",
+      "kind": "snapshot-independent",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "original"
+          }
+        }
+      },
+      "expected": {
+        "snapshot": "original",
+        "current": "modified"
+      }
+    },
+    {
+      "name": "is-active-outside",
+      "description": "returns false outside execute",
+      "kind": "is-active-outside",
+      "input": {
+        "context": {
+          "name": "test"
+        }
+      },
+      "expected": {
+        "active": false
+      }
+    },
+    {
+      "name": "is-active-inside",
+      "description": "returns true within execute",
+      "kind": "is-active-inside",
+      "input": {
+        "context": {
+          "name": "test"
+        }
+      },
+      "expected": {
+        "active": true
+      }
+    },
+    {
+      "name": "outside-get-throws",
+      "description": "get throws outside execute",
+      "kind": "outside-get-throws",
+      "input": {
+        "context": {
+          "name": "my-context"
+        },
+        "scope": {
+          "key": "key"
+        }
+      },
+      "expected": {
+        "message": "No active my-context context - ensure code runs within execute()"
+      }
+    },
+    {
+      "name": "outside-set-throws",
+      "description": "set throws outside execute",
+      "kind": "outside-set-throws",
+      "input": {
+        "context": {
+          "name": "my-context"
+        },
+        "scope": {
+          "key": "key",
+          "value": "value"
+        }
+      },
+      "expected": {
+        "message": "No active my-context context - ensure code runs within execute()"
+      }
+    },
+    {
+      "name": "outside-tryget",
+      "description": "tryGet reports absence outside execute",
+      "kind": "outside-tryget",
+      "input": {
+        "context": {
+          "name": "my-context"
+        },
+        "scope": {
+          "key": "key"
+        }
+      },
+      "expected": {
+        "found": false
+      }
+    },
+    {
+      "name": "lenient-read-accessors",
+      "description": "lenient context read accessors reflect an empty store",
+      "kind": "lenient-read-accessors",
+      "input": {
+        "context": {
+          "name": "lenient"
+        }
+      },
+      "expected": {
+        "has": false,
+        "keys": [],
+        "snapshot": {}
+      }
+    },
+    {
+      "name": "lenient-set-no-leak",
+      "description": "lenient set outside active context does not leak",
+      "kind": "lenient-set-no-leak",
+      "input": {
+        "context": {
+          "name": "lenient"
+        },
+        "scope": {
+          "key": "key",
+          "value": "value"
+        }
+      },
+      "expected": {
+        "has": false
+      }
+    },
+    {
+      "name": "lenient-delete-no-corruption",
+      "description": "lenient delete outside active context does not corrupt store",
+      "kind": "lenient-delete-no-corruption",
+      "input": {
+        "context": {
+          "name": "lenient"
+        },
+        "scope": {
+          "key": "key"
+        }
+      },
+      "expected": {
+        "removed": false,
+        "has": false,
+        "keys": []
+      }
+    },
+    {
+      "name": "async-propagation",
+      "description": "propagates context through async operations",
+      "kind": "async-propagation",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "requestId": "async-test"
+          }
+        }
+      },
+      "expected": {
+        "requestId": "async-test"
+      }
+    },
+    {
+      "name": "mutations-persist-async-chain",
+      "description": "mutations persist through async chain",
+      "kind": "mutations-persist-async-chain",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {}
+        }
+      },
+      "expected": {
+        "step": 2
+      }
+    },
+    {
+      "name": "concurrent-isolation",
+      "description": "isolates concurrent contexts",
+      "kind": "concurrent-isolation",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial1": {
+            "taskId": "task-1"
+          },
+          "initial2": {
+            "taskId": "task-2"
+          }
+        }
+      },
+      "expected": {
+        "results": [
+          "task1: task-1",
+          "task2: task-2"
+        ]
+      }
+    },
+    {
+      "name": "concurrent-mutation-isolation",
+      "description": "mutations in one context do not affect another",
+      "kind": "concurrent-mutation-isolation",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial1": {
+            "value": 100
+          },
+          "initial2": {
+            "value": 100
+          }
+        }
+      },
+      "expected": {
+        "scope1": 200,
+        "scope2": 100
+      }
+    },
+    {
+      "name": "concurrent-key-sets",
+      "description": "each scope maintains independent key sets",
+      "kind": "concurrent-key-sets",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial1": {
+            "shared": true
+          },
+          "initial2": {
+            "shared": true
+          }
+        }
+      },
+      "expected": {
+        "only1": [
+          "only1"
+        ],
+        "only2": [
+          "only2"
+        ]
+      }
+    },
+    {
+      "name": "nested-scope-isolation",
+      "description": "nested scopes create isolated inner context",
+      "kind": "nested-scope-isolation",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "outer": {
+            "level": "outer"
+          },
+          "inner": {
+            "level": "inner"
+          }
+        }
+      },
+      "expected": {
+        "outer": "outer",
+        "inner": "inner"
+      }
+    },
+    {
+      "name": "inner-context-no-inherit",
+      "description": "inner context does not inherit outer values",
+      "kind": "inner-context-no-inherit",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "outer": {
+            "outerOnly": true
+          }
+        }
+      },
+      "expected": {
+        "hasOuterOnly": false
+      }
+    },
+    {
+      "name": "multiple-contexts",
+      "description": "supports multiple independent contexts",
+      "kind": "multiple-contexts",
+      "input": {
+        "contexts": {
+          "first": {
+            "context": {
+              "name": "context1"
+            },
+            "scope": {
+              "initial": {
+                "id": "first"
+              }
+            }
+          },
+          "second": {
+            "context": {
+              "name": "context2"
+            },
+            "scope": {
+              "initial": {
+                "count": 42
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "context1": "first",
+        "context2": 42
+      }
+    },
+    {
+      "name": "full-lifecycle",
+      "description": "complete initialize execute terminate flow",
+      "kind": "full-lifecycle",
+      "input": {
+        "context": {
+          "name": "request"
+        },
+        "scope": {
+          "initial": {
+            "logger": {
+              "name": "test-logger"
+            },
+            "requestId": "req-123"
+          }
+        }
+      },
+      "expected": {
+        "result": "done",
+        "finalState": {
+          "logger": {
+            "name": "test-logger"
+          },
+          "requestId": "req-123",
+          "result": "success",
+          "statusCode": 200
+        },
+        "terminated": true
+      }
+    },
+    {
+      "name": "subclass-on-initialize",
+      "description": "SeededContext.onInitialize seeds a default key",
+      "kind": "subclass-on-initialize",
+      "input": {
+        "context": {
+          "name": "seeded"
+        },
+        "scope": {
+          "initial": {}
+        }
+      },
+      "expected": {
+        "seeded": "default-value"
+      }
+    },
+    {
+      "name": "subclass-on-initialize-with-caller",
+      "description": "SeededContext seeds key alongside caller-provided initial values",
+      "kind": "subclass-on-initialize-with-caller",
+      "input": {
+        "context": {
+          "name": "seeded"
+        },
+        "scope": {
+          "initial": {
+            "caller": "provided"
+          }
+        }
+      },
+      "expected": {
+        "seeded": "default-value",
+        "caller": "provided"
+      }
+    },
+    {
+      "name": "subclass-on-set",
+      "description": "onSet fires after set with key and value",
+      "kind": "subclass-on-set",
+      "input": {
+        "context": {
+          "name": "traced"
+        },
+        "scope": {
+          "initial": {}
+        }
+      },
+      "expected": {
+        "events": [
+          {
+            "key": "a",
+            "value": 1
+          },
+          {
+            "key": "b",
+            "value": "hello"
+          }
+        ]
+      }
+    },
+    {
+      "name": "subclass-on-get",
+      "description": "onGet fires after get with key and value",
+      "kind": "subclass-on-get",
+      "input": {
+        "context": {
+          "name": "traced"
+        },
+        "scope": {
+          "initial": {
+            "x": 42
+          }
+        }
+      },
+      "expected": {
+        "events": [
+          {
+            "key": "x",
+            "value": 42
+          },
+          {
+            "key": "x",
+            "value": 42
+          }
+        ]
+      }
+    },
+    {
+      "name": "subclass-on-delete",
+      "description": "onDelete fires after delete with key and existence flag",
+      "kind": "subclass-on-delete",
+      "input": {
+        "context": {
+          "name": "traced"
+        },
+        "scope": {
+          "initial": {
+            "toRemove": "yes"
+          }
+        }
+      },
+      "expected": {
+        "events": [
+          {
+            "key": "toRemove",
+            "existed": true
+          },
+          {
+            "key": "missing",
+            "existed": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "subclass-on-get-tryget",
+      "description": "onGet does not fire for tryGet",
+      "kind": "subclass-on-get-tryget",
+      "input": {
+        "context": {
+          "name": "traced"
+        },
+        "scope": {
+          "initial": {
+            "k": 1
+          }
+        }
+      },
+      "expected": {
+        "events": []
+      }
+    },
+    {
+      "name": "throwing-on-initialize",
+      "description": "a throwing onInitialize hook surfaces a HookInvocationError",
+      "kind": "throwing-on-initialize",
+      "input": {
+        "context": {
+          "name": "throwing-init"
+        },
+        "scope": {
+          "initial": {
+            "seed": 1
+          }
+        }
+      },
+      "expected": {
+        "hookName": "onInitialize",
+        "message": "onInitialize boom"
+      }
+    },
+    {
+      "name": "throwing-on-set",
+      "description": "a throwing onSet hook surfaces a HookInvocationError after storage",
+      "kind": "throwing-on-set",
+      "input": {
+        "context": {
+          "name": "throwing-set"
+        },
+        "scope": {
+          "initial": {},
+          "key": "key",
+          "value": "value"
+        }
+      },
+      "expected": {
+        "hookName": "onSet",
+        "message": "onSet boom"
+      }
+    },
+    {
+      "name": "throwing-on-get",
+      "description": "a throwing onGet hook surfaces a HookInvocationError",
+      "kind": "throwing-on-get",
+      "input": {
+        "context": {
+          "name": "throwing-get"
+        },
+        "scope": {
+          "initial": {
+            "key": "value"
+          },
+          "key": "key"
+        }
+      },
+      "expected": {
+        "hookName": "onGet",
+        "message": "onGet boom"
+      }
+    },
+    {
+      "name": "throwing-on-delete",
+      "description": "a throwing onDelete hook surfaces a HookInvocationError after removal",
+      "kind": "throwing-on-delete",
+      "input": {
+        "context": {
+          "name": "throwing-delete"
+        },
+        "scope": {
+          "initial": {
+            "key": "value"
+          },
+          "key": "key"
+        }
+      },
+      "expected": {
+        "hookName": "onDelete",
+        "message": "onDelete boom"
+      }
+    },
+    {
+      "name": "async-on-set-safe",
+      "description": "an async onSet override that rejects is routed through onHookError",
+      "kind": "async-on-set-safe",
+      "input": {
+        "context": {
+          "name": "async-set"
+        },
+        "scope": {
+          "initial": {},
+          "key": "key",
+          "value": "value"
+        }
+      },
+      "expected": {
+        "unhandledRejections": 0
+      }
+    },
+    {
+      "name": "config-validation",
+      "description": "create throws when config has unknown properties",
+      "kind": "config-validation",
+      "input": {
+        "context": {
+          "extra": 1,
+          "name": "x"
+        }
+      },
+      "expected": {
+        "message": "invalid Context config"
+      }
+    }
+  ]
+}

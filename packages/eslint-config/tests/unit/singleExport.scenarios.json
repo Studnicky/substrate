@@ -1,0 +1,351 @@
+{
+  "runs": [
+    {
+      "kind": "plain",
+      "name": "single-export rule cases",
+      "ruleName": "single-export",
+      "valid": [
+        {
+          "code": "export const myModule = 42;",
+          "filename": "/project/src/myModule.ts",
+          "name": "allows single named export matching camelCase filename"
+        },
+        {
+          "code": "export class MyService {}",
+          "filename": "/project/src/MyService.ts",
+          "name": "allows single named export matching PascalCase class filename"
+        },
+        {
+          "code": "export function myHelper(): void {}",
+          "filename": "/project/src/myHelper.ts",
+          "name": "allows single named export matching PascalCase function filename"
+        },
+        {
+          "code": "export function ensureError(value: unknown): Error { return value instanceof Error ? value : new Error(String(value)); }",
+          "filename": "/project/src/ensureError.ts",
+          "name": "allows single lone function export whose name matches filename"
+        },
+        {
+          "code": "export const isActive = (v: unknown): v is boolean => typeof v === \"boolean\";",
+          "filename": "/project/src/isActive.ts",
+          "name": "allows single exported arrow-function const matching filename"
+        },
+        {
+          "code": "export namespace UserEntity { export const x = 1; }",
+          "filename": "/project/src/UserEntity.ts",
+          "name": "allows single namespace export matching filename"
+        },
+        {
+          "code": "const x = 42;",
+          "filename": "/project/src/helper.ts",
+          "name": "allows zero-export file (no exports)"
+        },
+        {
+          "code": "export const MyComponent = () => null;",
+          "filename": "/project/src/MyComponent.tsx",
+          "name": "allows single export from .tsx file matching filename"
+        },
+        {
+          "code": "export const alpha = 1; export const beta = 2;",
+          "filename": "/project/src/index.ts",
+          "name": "allows multiple exports in index.ts (index file exempt)"
+        },
+        {
+          "code": "export const A = 1; export const B = 2;",
+          "filename": "/project/src/index.tsx",
+          "name": "allows multiple exports in index.tsx (index file exempt)"
+        },
+        {
+          "code": "export const A = 1; export const B = 2;",
+          "filename": "/project/src/index.cts",
+          "name": "allows multiple exports in index.cts (index file exempt)"
+        },
+        {
+          "code": "export const A = 1; export const B = 2;",
+          "filename": "/project/src/index.mts",
+          "name": "allows multiple exports in index.mts (index file exempt)"
+        },
+        {
+          "code": "export { alpha } from './alpha.js'; export { beta } from './beta.js'; export { gamma } from './gamma.js';",
+          "filename": "/project/src/index.ts",
+          "name": "allows many named re-exports in index.ts (index file exempt)"
+        },
+        {
+          "code": "export * from './other.js';",
+          "filename": "/project/src/index.ts",
+          "name": "allows export-all re-export in index.ts (index files may re-export freely)"
+        },
+        {
+          "code": "export const UserEntitySchema = {}; export type UserEntity = { id: string }; export function validateUserEntity(): boolean { return true; }",
+          "filename": "/project/src/entities/UserEntity.ts",
+          "name": "allows mixed exports in /entities/ files"
+        },
+        {
+          "code": "export class DomainError extends Error {} export const ERROR_CODE = \"domain\";",
+          "filename": "/project/src/errors/domain.ts",
+          "name": "allows mixed exports in /errors/ files"
+        },
+        {
+          "code": "export interface UserContract { id: string; } export const USER_INTERFACE_VERSION = 1;",
+          "filename": "/project/src/interfaces/user.ts",
+          "name": "allows mixed exports in /interfaces/ files"
+        },
+        {
+          "code": "export type FooResult = string; export type BarResult = number; export interface BazContract { id: string; }",
+          "filename": "/project/src/types/resultTypes.ts",
+          "name": "allows mixed exports in /types/ files"
+        },
+        {
+          "code": "export const MAX_SIZE = 1024; export const DEFAULT_TIMEOUT = 1000;",
+          "filename": "/project/src/constants/storage.ts",
+          "name": "allows mixed exports in /constants/ files"
+        },
+        {
+          "code": "export const DEFAULT_TIMEOUT = 1000; export const MAX_RETRIES = 3;",
+          "filename": "/project/src/http/client.constants.ts",
+          "name": "allows fractal constants modules by filename suffix"
+        },
+        {
+          "code": "export type RequestShape = { id: string }; export interface ResponseShape { ok: boolean; }",
+          "filename": "/project/src/http.contract.types.ts",
+          "name": "allows top-level restricted topology by filename suffix for types"
+        },
+        {
+          "code": "export enum Direction { Up, Down } export const DEFAULT_DIRECTION = Direction.Up; export enum Status { Active, Inactive }",
+          "filename": "/project/src/directionStatus.ts",
+          "name": "allows enum files that export only enums and const values"
+        },
+        {
+          "code": "export class UserRepository {}",
+          "filename": "/project/src/UserRepository.ts",
+          "name": "allows single non-error class export matching filename"
+        }
+      ],
+      "invalid": [
+        {
+          "code": "export type Foo = string; export class FooService {}",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/fooMixed.ts",
+          "name": "forbids one type alias and one class in same regular file (tooMany)"
+        },
+        {
+          "code": "export type Alpha = string; export type Beta = number;",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/payloadShapes.ts",
+          "name": "forbids two type aliases in a regular file"
+        },
+        {
+          "code": "export type { Foo } from './foo.js'; export type { Bar } from './bar.js';",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/reexportedTypes.ts",
+          "name": "forbids type-only re-exports in a regular file"
+        },
+        {
+          "code": "export const CONFIG = { timeout: 3000, retries: 5 }; export const VERSION = \"1.0.0\";",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/appConstants.ts",
+          "name": "forbids multiple const value exports in a regular file"
+        },
+        {
+          "code": "export const maxSize = 1024;",
+          "errors": [
+            {
+              "messageId": "constantsCase"
+            }
+          ],
+          "filename": "/project/src/constants/storage.ts",
+          "name": "forbids lower camel case exports in /constants/ files"
+        },
+        {
+          "code": "export const MAX_SIZE = 1024; export function asKilobytes(value: number): number { return value / 1024; }",
+          "errors": [
+            {
+              "messageId": "constantsCase"
+            }
+          ],
+          "filename": "/project/src/constants/storage.ts",
+          "name": "forbids function exports in /constants/ files unless they use constant naming"
+        },
+        {
+          "code": "export const defaultTimeout = 1000; export const MAX_RETRIES = 3;",
+          "errors": [
+            {
+              "messageId": "constantsCase"
+            }
+          ],
+          "filename": "/project/src/http/client.constants.ts",
+          "name": "forbids lower camel case exports in fractal constants modules"
+        },
+        {
+          "code": "export class NotFoundError extends Error {} export class ValidationError extends Error {}",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/domainErrors.ts",
+          "name": "forbids two Error-extending class exports in a regular file"
+        },
+        {
+          "code": "export enum Direction { Up, Down } export const DEFAULT_DIRECTION = Direction.Up; export function isVertical(): boolean { return true; }",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/directionStatus.ts",
+          "name": "forbids enum files with function exports outside exempt directories"
+        },
+        {
+          "code": "export function parseOne(): void {} export function parseTwo(): void {}",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/parsers.ts",
+          "name": "forbids two function exports in same file (tooMany)"
+        },
+        {
+          "code": "export function buildFoo(): void {} export class FooBuilder {}",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/fooBuilder.ts",
+          "name": "forbids function and class export in same file (tooMany)"
+        },
+        {
+          "code": "export class Parser {} export const DEFAULT_OPTIONS = {};",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/parser.ts",
+          "name": "forbids non-error class and const in same file (tooMany)"
+        },
+        {
+          "code": "export class Alpha {}\nexport class Beta {}",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/alpha.ts",
+          "name": "forbids two non-error class exports in a regular file (tooMany)"
+        },
+        {
+          "code": "export class WrongName {}",
+          "errors": [
+            {
+              "messageId": "mismatch"
+            }
+          ],
+          "filename": "/project/src/rightName.ts",
+          "name": "forbids single class export whose name does not match filename (mismatch)"
+        },
+        {
+          "code": "export class FooService {}",
+          "errors": [
+            {
+              "messageId": "mismatch"
+            }
+          ],
+          "filename": "/project/src/BarService.ts",
+          "name": "forbids single class export not matching filename (mismatch)"
+        },
+        {
+          "code": "export default function myFn() {}",
+          "errors": [
+            {
+              "messageId": "defaultExport"
+            }
+          ],
+          "filename": "/project/src/myFn.ts",
+          "name": "forbids default export"
+        },
+        {
+          "code": "export * from './other.js';",
+          "errors": [
+            {
+              "messageId": "exportAll"
+            }
+          ],
+          "filename": "/project/src/reexport.ts",
+          "name": "forbids export-all re-export in a regular file"
+        },
+        {
+          "code": "export function buildFoo(): void {}",
+          "errors": [
+            {
+              "messageId": "mismatch"
+            }
+          ],
+          "filename": "/project/src/parseFoo.ts",
+          "name": "forbids single export name mismatch in a regular file"
+        },
+        {
+          "code": "export const doFoo = () => {}; export const doBar = () => {};",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/actions.ts",
+          "name": "forbids const-function exports as multiple symbols in regular files"
+        },
+        {
+          "code": "export * from './other.js';",
+          "errors": [
+            {
+              "messageId": "exportAll"
+            }
+          ],
+          "filename": "/project/src/types/reexport.ts",
+          "name": "forbids export-all re-export in exempt directories"
+        }
+      ]
+    },
+    {
+      "kind": "type-aware",
+      "name": "single-export type-aware Error classification cases",
+      "ruleName": "single-export",
+      "valid": [
+        {
+          "code": "export class FooError extends Error {}",
+          "filename": "FooError.ts",
+          "name": "allows single class export directly extending the real global Error"
+        },
+        {
+          "code": "class CustomFailure extends Error {}\nexport class ConnectionProblem extends CustomFailure {}",
+          "filename": "ConnectionProblem.ts",
+          "name": "allows single class export indirectly extending Error through a non-Error-suffixed base"
+        },
+        {
+          "code": "export class ColorError {}",
+          "filename": "ColorError.ts",
+          "name": "allows single class export named with an Error suffix but extending nothing"
+        }
+      ],
+      "invalid": []
+    }
+  ]
+}

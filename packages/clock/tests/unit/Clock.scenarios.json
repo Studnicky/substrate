@@ -1,0 +1,954 @@
+{
+  "cases": [
+    {
+      "name": "now-returns-start-time",
+      "description": "returns injected start time without advance",
+      "kind": "now-returns",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 0
+      },
+      "expected": {
+        "now": 100
+      }
+    },
+    {
+      "name": "now-returns-advanced-time",
+      "description": "returns advanced time after counter advance",
+      "kind": "now-returns",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 100
+      },
+      "expected": {
+        "now": 200
+      }
+    },
+    {
+      "name": "now-returns-zero",
+      "description": "returns zero when start is zero and no advance",
+      "kind": "now-returns",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 0
+          }
+        },
+        "advanceMs": 0
+      },
+      "expected": {
+        "now": 0
+      }
+    },
+    {
+      "name": "hrtime-returns-provider-time",
+      "description": "returns nanoseconds from provider",
+      "kind": "hrtime-returns",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "ns": "100000000"
+      }
+    },
+    {
+      "name": "hrtime-returns-zero",
+      "description": "returns 0n for zero start",
+      "kind": "hrtime-returns",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 0
+          }
+        }
+      },
+      "expected": {
+        "ns": "0"
+      }
+    },
+    {
+      "name": "real-hrtime-positive-with-offset",
+      "description": "hrtime with non-zero offset returns positive bigint",
+      "kind": "real-hrtime-positive",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 500
+          }
+        }
+      },
+      "expected": {
+        "positive": true
+      }
+    },
+    {
+      "name": "real-hrtime-positive-zero-offset",
+      "description": "hrtime with zero offset returns positive bigint",
+      "kind": "real-hrtime-positive",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 0
+          }
+        }
+      },
+      "expected": {
+        "positive": true
+      }
+    },
+    {
+      "name": "real-now-within-range",
+      "description": "RealTimeClockProvider.now stays within Date.now tolerance",
+      "kind": "real-now-within-range",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 0
+          }
+        }
+      },
+      "expected": {
+        "withinTolerance": true
+      }
+    },
+    {
+      "name": "offset-rejects-nan",
+      "description": "rejects NaN offsetMs",
+      "kind": "offset-invalid",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": {
+              "kind": "nan"
+            }
+          }
+        }
+      },
+      "expected": {
+        "message": "invalid RealTimeClockProvider options"
+      }
+    },
+    {
+      "name": "offset-rejects-infinity",
+      "description": "rejects Infinity offsetMs",
+      "kind": "offset-invalid",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": {
+              "kind": "infinity"
+            }
+          }
+        }
+      },
+      "expected": {
+        "message": "invalid RealTimeClockProvider options"
+      }
+    },
+    {
+      "name": "offset-rejects-negative-infinity",
+      "description": "rejects -Infinity offsetMs",
+      "kind": "offset-invalid",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": {
+              "kind": "negative-infinity"
+            }
+          }
+        }
+      },
+      "expected": {
+        "message": "invalid RealTimeClockProvider options"
+      }
+    },
+    {
+      "name": "clock-invalid-provider",
+      "description": "rejects invalid clock provider objects",
+      "kind": "clock-invalid-provider",
+      "input": {
+        "providerFixture": {
+          "kind": "empty-object"
+        }
+      },
+      "expected": {
+        "message": "provider must implement ClockProviderInterface"
+      }
+    },
+    {
+      "name": "real-provider-invalid-options",
+      "description": "rejects invalid real-time provider options",
+      "kind": "real-provider-invalid-options",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": {
+              "kind": "nan"
+            }
+          }
+        }
+      },
+      "expected": {
+        "message": "invalid RealTimeClockProvider options"
+      }
+    },
+    {
+      "name": "virtual-provider-invalid-counter",
+      "description": "rejects invalid virtual clock counters",
+      "kind": "virtual-provider-invalid-counter",
+      "input": {
+        "counterFixture": {
+          "kind": "empty-object"
+        }
+      },
+      "expected": {
+        "message": "counter must be a VirtualTimeCounter instance"
+      }
+    },
+    {
+      "name": "counter-invalid-options",
+      "description": "rejects invalid virtual time counter options",
+      "kind": "counter-invalid-options",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": -1
+          }
+        }
+      },
+      "expected": {
+        "message": "startMs must be a finite non-negative number"
+      }
+    },
+    {
+      "name": "clock-error-with-cause",
+      "description": "constructs ClockError with a cause",
+      "kind": "clock-error-with-cause",
+      "input": {},
+      "expected": {
+        "ok": true
+      }
+    },
+    {
+      "name": "now-monotonic-same-instance",
+      "description": "now is monotonically non-decreasing in the same instance",
+      "kind": "now-monotonic-same-instance",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "monotonic": true
+      }
+    },
+    {
+      "name": "hrtime-monotonic-same-instance",
+      "description": "hrtime is monotonically non-decreasing in the same instance",
+      "kind": "hrtime-monotonic-same-instance",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 1
+      },
+      "expected": {
+        "monotonic": true
+      }
+    },
+    {
+      "name": "two-instances-independent",
+      "description": "two clocks from the same provider track monotonicity independently",
+      "kind": "two-instances-independent",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 500
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "sameResults": true
+      }
+    },
+    {
+      "name": "clamp-backwards-provider-values",
+      "description": "now clamps backwards provider values to the previous result",
+      "kind": "clamp-backwards-provider-values",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 500
+          }
+        },
+        "lowerCounterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "clamped": true
+      }
+    },
+    {
+      "name": "virtual-advance-reflected",
+      "description": "VirtualClockProvider advance is reflected in subsequent now calls",
+      "kind": "virtual-advance-reflected",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 0
+          }
+        },
+        "advanceMs": 100
+      },
+      "expected": {
+        "now": 100
+      }
+    },
+    {
+      "name": "hooked-clock-on-now",
+      "description": "Clock.onNow fires once per now call with the returned value",
+      "kind": "hooked-clock-on-now",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "nowEvents": [
+          100
+        ],
+        "result": 100
+      }
+    },
+    {
+      "name": "hooked-clock-on-now-clamped",
+      "description": "Clock.onNow fires on every now call including clamped values",
+      "kind": "hooked-clock-on-now-clamped",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 500
+          }
+        }
+      },
+      "expected": {
+        "nowEvents": [
+          500,
+          500
+        ]
+      }
+    },
+    {
+      "name": "hooked-clock-on-now-advanced",
+      "description": "Clock.onNow fires with the advanced value after counter advance",
+      "kind": "hooked-clock-on-now-advanced",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "nowEvents": [
+          100,
+          150
+        ]
+      }
+    },
+    {
+      "name": "hooked-clock-on-hrtime",
+      "description": "Clock.onHrtime fires once per hrtime call with the returned value",
+      "kind": "hooked-clock-on-hrtime",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "hrtimeEvents": [
+          100000000
+        ],
+        "result": 100000000
+      }
+    },
+    {
+      "name": "hooked-clock-on-hrtime-repeat",
+      "description": "Clock.onHrtime fires on every hrtime call",
+      "kind": "hooked-clock-on-hrtime-repeat",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "hrtimeEvents": [
+          100000000,
+          150000000
+        ]
+      }
+    },
+    {
+      "name": "clock-async-on-now-rejection-contained",
+      "description": "async onNow rejection is routed through the safety net without an unhandled rejection",
+      "kind": "clock-async-on-now-rejection-contained",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "message": "async onNow boom"
+      },
+      "expected": {
+        "result": 100,
+        "unhandledRejections": 0
+      }
+    },
+    {
+      "name": "real-provider-on-now",
+      "description": "RealTimeClockProvider.onNow fires once per now call with returned value",
+      "kind": "real-provider-on-now",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 0
+          }
+        },
+        "rawMs": 10000
+      },
+      "expected": {
+        "nowEvents": [
+          10000
+        ],
+        "result": 10000
+      }
+    },
+    {
+      "name": "real-provider-on-now-offset",
+      "description": "RealTimeClockProvider.onNow includes the offset in the reported value",
+      "kind": "real-provider-on-now-offset",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 200
+          }
+        },
+        "rawMs": 10000
+      },
+      "expected": {
+        "nowEvents": [
+          10200
+        ],
+        "result": 10200
+      }
+    },
+    {
+      "name": "real-provider-on-hrtime",
+      "description": "RealTimeClockProvider.onHrtime fires once per hrtime call with returned value",
+      "kind": "real-provider-on-hrtime",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 0
+          }
+        },
+        "rawMs": 10000
+      },
+      "expected": {
+        "hrtimeEvents": [
+          10000000000
+        ],
+        "result": 10000000000
+      }
+    },
+    {
+      "name": "real-provider-default-options",
+      "description": "RealTimeClockProvider.create() works with default options",
+      "kind": "real-provider-default-options",
+      "input": {
+        "realProviderOptions": {
+          "kind": "default"
+        }
+      },
+      "expected": {
+        "now": 0
+      }
+    },
+    {
+      "name": "virtual-provider-on-now",
+      "description": "VirtualClockProvider.onNow fires once per now call with virtual time",
+      "kind": "virtual-provider-on-now",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "nowEvents": [
+          100
+        ],
+        "result": 100
+      }
+    },
+    {
+      "name": "virtual-provider-on-now-advance",
+      "description": "VirtualClockProvider.onNow reflects counter advances on subsequent calls",
+      "kind": "virtual-provider-on-now-advance",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "nowEvents": [
+          100,
+          150
+        ]
+      }
+    },
+    {
+      "name": "virtual-provider-on-hrtime",
+      "description": "VirtualClockProvider.onHrtime fires once per hrtime call with ns value",
+      "kind": "virtual-provider-on-hrtime",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "hrtimeEvents": [
+          100000000
+        ],
+        "result": 100000000
+      }
+    },
+    {
+      "name": "virtual-counter-default-options",
+      "description": "VirtualTimeCounter.create() starts at zero with default options",
+      "kind": "virtual-counter-default-options",
+      "input": {
+        "counterOptions": {
+          "kind": "default"
+        }
+      },
+      "expected": {
+        "now": 0
+      }
+    },
+    {
+      "name": "real-provider-throws-on-now",
+      "description": "RealTimeClockProvider raises HookInvocationError from a throwing onNow hook",
+      "kind": "real-provider-throws-on-now",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 0
+          }
+        },
+        "rawMs": 10000
+      },
+      "expected": {
+        "hookError": true
+      }
+    },
+    {
+      "name": "real-provider-throws-on-hrtime",
+      "description": "RealTimeClockProvider raises HookInvocationError from a throwing onHrtime hook",
+      "kind": "real-provider-throws-on-hrtime",
+      "input": {
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 0
+          }
+        },
+        "rawMs": 10000
+      },
+      "expected": {
+        "hookError": true
+      }
+    },
+    {
+      "name": "virtual-provider-throws-on-now",
+      "description": "VirtualClockProvider raises HookInvocationError from a throwing onNow hook",
+      "kind": "virtual-provider-throws-on-now",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "hookError": true
+      }
+    },
+    {
+      "name": "virtual-provider-throws-on-hrtime",
+      "description": "VirtualClockProvider raises HookInvocationError from a throwing onHrtime hook",
+      "kind": "virtual-provider-throws-on-hrtime",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "hookError": true
+      }
+    },
+    {
+      "name": "counter-on-advance",
+      "description": "VirtualTimeCounter.onAdvance fires on positive advance with delta and new value",
+      "kind": "counter-on-advance",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "hookCalls": [
+          50,
+          150
+        ]
+      }
+    },
+    {
+      "name": "counter-on-advance-suppressed",
+      "description": "VirtualTimeCounter.onAdvance does not fire for zero or negative delta",
+      "kind": "counter-on-advance-suppressed",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advances": [
+          0,
+          -1
+        ]
+      },
+      "expected": {
+        "hookCalls": []
+      }
+    },
+    {
+      "name": "counter-on-advance-sequence",
+      "description": "VirtualTimeCounter.onAdvance fires for each positive advance call in sequence",
+      "kind": "counter-on-advance-sequence",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advances": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "hookCalls": [
+          101,
+          103,
+          106
+        ]
+      }
+    },
+    {
+      "name": "counter-on-now-ms",
+      "description": "VirtualTimeCounter.onNowMs fires once per nowMs call with current value",
+      "kind": "counter-on-now-ms",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "values": [
+          100
+        ]
+      }
+    },
+    {
+      "name": "counter-on-now-ms-repeat",
+      "description": "VirtualTimeCounter.onNowMs fires on every nowMs call including after advance",
+      "kind": "counter-on-now-ms-repeat",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "values": [
+          100,
+          150
+        ]
+      }
+    },
+    {
+      "name": "clock-throws-on-now",
+      "description": "Clock raises HookInvocationError from a throwing onNow hook",
+      "kind": "clock-throws-on-now",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "hookError": true
+      }
+    },
+    {
+      "name": "clock-throws-on-hrtime",
+      "description": "Clock raises HookInvocationError from a throwing onHrtime hook",
+      "kind": "clock-throws-on-hrtime",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "hookError": true
+      }
+    },
+    {
+      "name": "counter-throws-on-advance",
+      "description": "VirtualTimeCounter raises HookInvocationError from a throwing onAdvance hook",
+      "kind": "counter-throws-on-advance",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "hookError": true
+      }
+    },
+    {
+      "name": "counter-throws-on-now-ms",
+      "description": "VirtualTimeCounter raises HookInvocationError from a throwing onNowMs hook",
+      "kind": "counter-throws-on-now-ms",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        }
+      },
+      "expected": {
+        "hookError": true
+      }
+    },
+    {
+      "name": "metered-clock-now",
+      "description": "MeteredClock readNow intercepts now calls and monotonicity holds",
+      "kind": "metered-clock-now",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "now": 100
+      }
+    },
+    {
+      "name": "metered-clock-hrtime",
+      "description": "MeteredClock readHrtime intercepts hrtime calls",
+      "kind": "metered-clock-hrtime",
+      "input": {
+        "counterOptions": {
+          "kind": "options",
+          "value": {
+            "startMs": 100
+          }
+        },
+        "advanceMs": 50
+      },
+      "expected": {
+        "hrtime": "100000000"
+      }
+    },
+    {
+      "name": "offset-provider-now",
+      "description": "OffsetRealTimeClockProvider now returns fixed raw value when offset is zero",
+      "kind": "offset-provider-now",
+      "input": {
+        "rawMs": 10000,
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 0
+          }
+        }
+      },
+      "expected": {
+        "now": 10000
+      }
+    },
+    {
+      "name": "offset-provider-offset",
+      "description": "OffsetRealTimeClockProvider offsetMs getter is accessible to subclass",
+      "kind": "offset-provider-offset",
+      "input": {
+        "rawMs": 12345,
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 200
+          }
+        }
+      },
+      "expected": {
+        "now": 12545
+      }
+    },
+    {
+      "name": "traced-virtual-provider-now",
+      "description": "TracedVirtualClockProvider now returns fixed virtual ms",
+      "kind": "traced-virtual-provider-now",
+      "input": {
+        "counterOptions": {
+          "kind": "default"
+        },
+        "virtualMs": 9000
+      },
+      "expected": {
+        "now": 9000
+      }
+    },
+    {
+      "name": "traced-virtual-provider-hrtime",
+      "description": "TracedVirtualClockProvider hrtime returns fixed virtual ns",
+      "kind": "traced-virtual-provider-hrtime",
+      "input": {
+        "counterOptions": {
+          "kind": "default"
+        },
+        "virtualMs": 9000
+      },
+      "expected": {
+        "hrtime": "9000000000"
+      }
+    },
+    {
+      "name": "long-uptime-precision",
+      "description": "RealTimeClockProvider.hrtime preserves nanosecond precision past 104 days of uptime",
+      "kind": "long-uptime-precision",
+      "input": {
+        "rawMs": 9007199310.123,
+        "realProviderOptions": {
+          "kind": "options",
+          "value": {
+            "offsetMs": 0
+          }
+        }
+      },
+      "expected": {
+        "precise": true
+      }
+    }
+  ]
+}

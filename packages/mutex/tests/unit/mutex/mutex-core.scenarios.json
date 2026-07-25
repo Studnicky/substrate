@@ -1,0 +1,1002 @@
+{
+  "cases": [
+    {
+      "name": "config-defaults",
+      "description": "Mutex uses default configuration",
+      "kind": "config-defaults",
+      "input": {
+        "mutex": {}
+      },
+      "expected": {
+        "maxQueueSize": 0,
+        "timeout": 0,
+        "enableCoalescing": false
+      }
+    },
+    {
+      "name": "config-empty",
+      "description": "Mutex accepts an empty config object",
+      "kind": "config-empty",
+      "input": {
+        "mutex": {}
+      },
+      "expected": {
+        "maxQueueSize": 0,
+        "timeout": 0
+      }
+    },
+    {
+      "name": "config-no-limits",
+      "description": "Mutex works with no configuration limits",
+      "kind": "config-no-limits",
+      "input": {
+        "mutex": {},
+        "key": "key1",
+        "result": "success"
+      },
+      "expected": {
+        "runExclusive": "success"
+      }
+    },
+    {
+      "name": "config-full",
+      "description": "Mutex accepts valid full configuration",
+      "kind": "config-full",
+      "input": {
+        "mutex": {
+          "maxQueueSize": 100,
+          "timeout": 5000
+        }
+      },
+      "expected": {
+        "maxQueueSize": 100,
+        "timeout": 5000
+      }
+    },
+    {
+      "name": "config-partial-maxQueue-5",
+      "description": "Mutex accepts partial configuration with only maxQueueSize 5",
+      "kind": "config-partial-maxQueue-5",
+      "input": {
+        "mutex": {
+          "maxQueueSize": 5
+        }
+      },
+      "expected": {
+        "maxQueueSize": 5,
+        "timeout": 0
+      }
+    },
+    {
+      "name": "config-partial-maxQueue-50",
+      "description": "Mutex accepts partial configuration with only maxQueueSize 50",
+      "kind": "config-partial-maxQueue-50",
+      "input": {
+        "mutex": {
+          "maxQueueSize": 50
+        }
+      },
+      "expected": {
+        "maxQueueSize": 50,
+        "timeout": 0
+      }
+    },
+    {
+      "name": "config-partial-timeout",
+      "description": "Mutex accepts partial configuration with only timeout",
+      "kind": "config-partial-timeout",
+      "input": {
+        "mutex": {
+          "timeout": 2000
+        }
+      },
+      "expected": {
+        "maxQueueSize": 0,
+        "timeout": 2000
+      }
+    },
+    {
+      "name": "config-enable-coalescing",
+      "description": "Mutex accepts enableCoalescing",
+      "kind": "config-enable-coalescing",
+      "input": {
+        "mutex": {
+          "enableCoalescing": true
+        }
+      },
+      "expected": {
+        "enableCoalescing": true
+      }
+    },
+    {
+      "name": "config-invalid-maxQueue-negative",
+      "description": "Mutex rejects negative maxQueueSize",
+      "kind": "config-invalid-maxQueue-negative",
+      "input": {
+        "mutex": {
+          "maxQueueSize": -1
+        }
+      },
+      "expected": {
+        "throws": true
+      }
+    },
+    {
+      "name": "config-invalid-timeout-negative",
+      "description": "Mutex rejects negative timeout",
+      "kind": "config-invalid-timeout-negative",
+      "input": {
+        "mutex": {
+          "timeout": -100
+        }
+      },
+      "expected": {
+        "throws": true
+      }
+    },
+    {
+      "name": "config-invalid-maxQueue-float",
+      "description": "Mutex rejects non-integer maxQueueSize",
+      "kind": "config-invalid-maxQueue-float",
+      "input": {
+        "mutex": {
+          "maxQueueSize": 1.5
+        }
+      },
+      "expected": {
+        "throws": true
+      }
+    },
+    {
+      "name": "config-invalid-timeout-float",
+      "description": "Mutex rejects non-integer timeout",
+      "kind": "config-invalid-timeout-float",
+      "input": {
+        "mutex": {
+          "timeout": 100.5
+        }
+      },
+      "expected": {
+        "throws": true
+      }
+    },
+    {
+      "name": "config-invalid-enableCoalescing",
+      "description": "Mutex rejects non-boolean enableCoalescing",
+      "kind": "config-invalid-enableCoalescing",
+      "input": {
+        "mutex": {
+          "enableCoalescing": "true"
+        }
+      },
+      "expected": {
+        "throws": true
+      }
+    },
+    {
+      "name": "config-unknown-key",
+      "description": "Mutex rejects unknown configuration keys",
+      "kind": "config-unknown-key",
+      "input": {
+        "mutex": {
+          "unknownKey": "value"
+        }
+      },
+      "expected": {
+        "throws": true
+      }
+    },
+    {
+      "name": "validateConfig-valid",
+      "description": "configInternal.validateConfig validates and returns config",
+      "kind": "validateConfig-valid",
+      "input": {
+        "mutex": {
+          "maxQueueSize": 100
+        }
+      },
+      "expected": {
+        "maxQueueSize": 100,
+        "timeout": 0
+      }
+    },
+    {
+      "name": "validateConfig-invalid",
+      "description": "configInternal.validateConfig rejects invalid config",
+      "kind": "validateConfig-invalid",
+      "input": {
+        "mutex": {
+          "timeout": -100
+        }
+      },
+      "expected": {
+        "throws": true
+      }
+    },
+    {
+      "name": "config-return-copy",
+      "description": "Mutex returns a copy of configuration",
+      "kind": "config-return-copy",
+      "input": {
+        "mutex": {
+          "maxQueueSize": 10
+        }
+      },
+      "expected": {
+        "sameRef": false,
+        "sameValue": true
+      }
+    },
+    {
+      "name": "config-external-modification",
+      "description": "Mutex does not allow external modification",
+      "kind": "config-external-modification",
+      "input": {
+        "mutex": {
+          "maxQueueSize": 100,
+          "timeout": 5000
+        }
+      },
+      "expected": {
+        "maxQueueSize": 100,
+        "externalMutationIgnored": true
+      }
+    },
+    {
+      "name": "create-no-config",
+      "description": "Mutex.create() creates mutex without configuration",
+      "kind": "create-no-config",
+      "input": {
+        "mutex": {}
+      },
+      "expected": {
+        "created": true
+      }
+    },
+    {
+      "name": "create-partial-config",
+      "description": "Mutex.create() creates mutex with partial configuration",
+      "kind": "create-partial-config",
+      "input": {
+        "mutex": {
+          "maxQueueSize": 50
+        }
+      },
+      "expected": {
+        "created": true,
+        "maxQueueSize": 50
+      }
+    },
+    {
+      "name": "create-functional",
+      "description": "Mutex.create() produces a functional mutex",
+      "kind": "create-functional",
+      "input": {
+        "key": 42
+      },
+      "expected": {
+        "locked": true,
+        "releaseWorks": true
+      }
+    },
+    {
+      "name": "create-string-key",
+      "description": "Mutex supports string keys",
+      "kind": "create-string-key",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "result": "value"
+      }
+    },
+    {
+      "name": "create-number-key",
+      "description": "Mutex supports number keys",
+      "kind": "create-number-key",
+      "input": {
+        "key": 42
+      },
+      "expected": {
+        "result": "answer"
+      }
+    },
+    {
+      "name": "create-composite-key",
+      "description": "Mutex supports composite string keys",
+      "kind": "create-composite-key",
+      "input": {
+        "key": {
+          "entityType": "User",
+          "id": "123"
+        }
+      },
+      "expected": {
+        "result": "data"
+      }
+    },
+    {
+      "name": "acquire-disposable",
+      "description": "Mutex acquires a disposable lock and releases via async disposal",
+      "kind": "acquire-disposable",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {}
+    },
+    {
+      "name": "acquire-release",
+      "description": "Mutex acquires and releases lock",
+      "kind": "acquire-release",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "locked": false,
+        "released": true
+      }
+    },
+    {
+      "name": "sequential-acquisitions",
+      "description": "Mutex handles multiple sequential acquisitions",
+      "kind": "sequential-acquisitions",
+      "input": {
+        "key": "key1",
+        "batch": {
+          "acquireCount": 2
+        }
+      },
+      "expected": {
+        "locked": true,
+        "releaseOrder": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "name": "different-keys",
+      "description": "Mutex distinguishes between different keys",
+      "kind": "different-keys",
+      "input": {
+        "keys": [
+          "key1",
+          "key2"
+        ]
+      },
+      "expected": {
+        "lockedKeys": [
+          "key1",
+          "key2"
+        ],
+        "independent": true
+      }
+    },
+    {
+      "name": "sync-return-string",
+      "description": "Mutex.runExclusive returns string results from sync functions",
+      "kind": "sync-return-string",
+      "input": {
+        "key": "key1",
+        "value": "string-result"
+      },
+      "expected": {
+        "result": "string-result"
+      }
+    },
+    {
+      "name": "sync-return-number",
+      "description": "Mutex.runExclusive returns number results from sync functions",
+      "kind": "sync-return-number",
+      "input": {
+        "key": 42,
+        "value": 123
+      },
+      "expected": {
+        "result": 123
+      }
+    },
+    {
+      "name": "result-validator-rejects",
+      "description": "Mutex.runExclusive rejects a result that fails the validator",
+      "kind": "result-validator-rejects",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "rejected": true
+      }
+    },
+    {
+      "name": "async-exclusive",
+      "description": "Mutex executes async function with exclusive access",
+      "kind": "async-exclusive",
+      "input": {
+        "key": "key1",
+        "delayMs": 20
+      },
+      "expected": {
+        "exclusive": true
+      }
+    },
+    {
+      "name": "async-return-value",
+      "description": "Mutex returns value from async function",
+      "kind": "async-return-value",
+      "input": {
+        "key": "key1",
+        "result": "async-result"
+      },
+      "expected": {
+        "result": "async-result"
+      }
+    },
+    {
+      "name": "releases-on-throw",
+      "description": "Mutex releases lock even if the function throws",
+      "kind": "releases-on-throw",
+      "input": {
+        "key": "key1",
+        "errorMessage": "boom"
+      },
+      "expected": {
+        "released": true,
+        "throws": true
+      }
+    },
+    {
+      "name": "multiple-operations",
+      "description": "Mutex handles multiple sequential operations",
+      "kind": "multiple-operations",
+      "input": {
+        "key": "key1",
+        "batch": {
+          "operationCount": 3
+        },
+        "operations": [
+          "first",
+          "second",
+          "third"
+        ]
+      },
+      "expected": {
+        "results": [
+          "first",
+          "second",
+          "third"
+        ],
+        "totalExecuted": 3
+      }
+    },
+    {
+      "name": "burst-timeout-drains-queue",
+      "description": "Mutex rejects every queued acquisition with its own LockTimeoutError when a burst times out",
+      "kind": "burst-timeout-drains-queue",
+      "input": {
+        "key": "key1",
+        "mutex": {
+          "timeout": 40
+        },
+        "batch": {
+          "queuedCount": 8
+        }
+      },
+      "expected": {
+        "rejects": 8,
+        "drainOrder": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    },
+    {
+      "name": "queued-timeout-unlinks-middle-node",
+      "description": "Mutex removes a timed-out waiter from the middle of the queue",
+      "kind": "queued-timeout-unlinks-middle-node",
+      "input": {
+        "key": "key1",
+        "mutex": {
+          "timeout": 20
+        },
+        "batch": {
+          "queuedCount": 2
+        }
+      },
+      "expected": {
+        "queueSizeAfterTimeout": 1,
+        "queueSizeAfterRelease": 0
+      }
+    },
+    {
+      "name": "isLocked-initial-false",
+      "description": "Mutex.isLocked returns false for an unlocked key",
+      "kind": "isLocked-initial-false",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "locked": false
+      }
+    },
+    {
+      "name": "queue-size-exceeded",
+      "description": "Mutex rejects acquisitions when the queue size limit is exceeded",
+      "kind": "queue-size-exceeded",
+      "input": {
+        "key": "key1",
+        "mutex": {
+          "maxQueueSize": 1
+        },
+        "batch": {
+          "queuedCount": 1,
+          "overflowCount": 1
+        }
+      },
+      "expected": {}
+    },
+    {
+      "name": "isLocked-true",
+      "description": "Mutex.isLocked returns true for a locked key",
+      "kind": "isLocked-true",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "locked": true
+      }
+    },
+    {
+      "name": "isLocked-after-release",
+      "description": "Mutex.isLocked returns false after lock release",
+      "kind": "isLocked-after-release",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "lockedAfterRelease": false
+      }
+    },
+    {
+      "name": "isLocked-multiple-keys",
+      "description": "Mutex.isLocked tracks multiple keys independently",
+      "kind": "isLocked-multiple-keys",
+      "input": {
+        "keys": [
+          "key1",
+          "key2"
+        ]
+      },
+      "expected": {
+        "first": true,
+        "second": true
+      }
+    },
+    {
+      "name": "queueSize-initial-zero",
+      "description": "Mutex.queueSize returns 0 for an unlocked key",
+      "kind": "queueSize-initial-zero",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "queueSize": 0
+      }
+    },
+    {
+      "name": "queueSize-held-empty",
+      "description": "Mutex.queueSize returns 0 when the lock is held but the queue is empty",
+      "kind": "queueSize-held-empty",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "queueSize": 0
+      }
+    },
+    {
+      "name": "queueSize-tracks-queued",
+      "description": "Mutex.queueSize tracks queued operations",
+      "kind": "queueSize-tracks-queued",
+      "input": {
+        "key": "key1",
+        "batch": {
+          "queuedCount": 2
+        }
+      },
+      "expected": {
+        "queueSize": 2
+      }
+    },
+    {
+      "name": "queueSize-decrements",
+      "description": "Mutex.queueSize decrements as the queue processes",
+      "kind": "queueSize-decrements",
+      "input": {
+        "key": "key1",
+        "mutex": {
+          "maxQueueSize": 10,
+          "timeout": 5000
+        },
+        "batch": {
+          "queuedCount": 2
+        }
+      },
+      "expected": {
+        "queueSize": [
+          2,
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "name": "size-initial-zero",
+      "description": "Mutex.size returns 0 initially",
+      "kind": "size-initial-zero",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "size": 0
+      }
+    },
+    {
+      "name": "size-active-locks",
+      "description": "Mutex.size returns the number of active locks",
+      "kind": "size-active-locks",
+      "input": {
+        "keys": [
+          "key1",
+          "key2"
+        ]
+      },
+      "expected": {
+        "size": 2
+      }
+    },
+    {
+      "name": "size-no-queued",
+      "description": "Mutex.size does not count queued operations",
+      "kind": "size-no-queued",
+      "input": {
+        "key": "key1",
+        "batch": {
+          "queuedCount": 1
+        }
+      },
+      "expected": {
+        "size": 1,
+        "queuedCountExcluded": true
+      }
+    },
+    {
+      "name": "clear-clears-all",
+      "description": "Mutex.clear clears all locks",
+      "kind": "clear-clears-all",
+      "input": {
+        "keys": [
+          "key1",
+          "key2"
+        ]
+      },
+      "expected": {
+        "sizeAfterClear": 0
+      }
+    },
+    {
+      "name": "clear-empty",
+      "description": "Mutex.clear clears an empty mutex",
+      "kind": "clear-empty",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "sizeAfterClear": 0
+      }
+    },
+    {
+      "name": "clear-rejects-queued-acquisitions",
+      "description": "Mutex.clear rejects queued acquisitions and clears pending timers",
+      "kind": "clear-rejects-queued-acquisitions",
+      "input": {
+        "key": "key1",
+        "mutex": {
+          "timeout": 50
+        },
+        "batch": {
+          "queuedCount": 2
+        }
+      },
+      "expected": {
+        "lockedAfterClear": false,
+        "queueSizeAfterClear": 0,
+        "queuedRejected": 2
+      }
+    },
+    {
+      "name": "getConfig-current",
+      "description": "Mutex.getConfig returns the current configuration",
+      "kind": "getConfig-current",
+      "input": {
+        "mutex": {
+          "maxQueueSize": 10,
+          "timeout": 1000
+        }
+      },
+      "expected": {
+        "maxQueueSize": 10,
+        "timeout": 1000
+      }
+    },
+    {
+      "name": "getConfig-default",
+      "description": "Mutex.getConfig returns default config when none is provided",
+      "kind": "getConfig-default",
+      "input": {
+        "mutex": {}
+      },
+      "expected": {
+        "maxQueueSize": 0,
+        "timeout": 0
+      }
+    },
+    {
+      "name": "stats-initial",
+      "description": "Mutex.getStats returns correct initial stats",
+      "kind": "stats-initial",
+      "input": {
+        "key": "key1",
+        "mutex": {
+          "maxQueueSize": 100,
+          "timeout": 5000
+        }
+      },
+      "expected": {
+        "activeLocksCount": 0,
+        "maxQueueSize": 100,
+        "queuedCount": 0,
+        "timeout": 5000,
+        "totalExecuted": 0
+      }
+    },
+    {
+      "name": "stats-api-shape",
+      "description": "Mutex provides the same API shape as Throttle",
+      "kind": "stats-api-shape",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "hasActiveLocksCount": true,
+        "hasQueuedCount": true,
+        "hasTotalExecuted": true
+      }
+    },
+    {
+      "name": "stats-active-locks",
+      "description": "Mutex.getStats tracks active locks",
+      "kind": "stats-active-locks",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "activeLocksCount": 1
+      }
+    },
+    {
+      "name": "stats-multiple-active",
+      "description": "Mutex.getStats tracks multiple active locks on different keys",
+      "kind": "stats-multiple-active",
+      "input": {
+        "keys": [
+          "key1",
+          "key2"
+        ]
+      },
+      "expected": {
+        "activeLocksCount": 2
+      }
+    },
+    {
+      "name": "stats-queued",
+      "description": "Mutex.getStats tracks queued operations",
+      "kind": "stats-queued",
+      "input": {
+        "key": "key1",
+        "batch": {
+          "queuedCount": 3
+        }
+      },
+      "expected": {
+        "queuedCount": 3
+      }
+    },
+    {
+      "name": "stats-queued-multi-key",
+      "description": "Mutex.getStats tracks queued operations across multiple keys",
+      "kind": "stats-queued-multi-key",
+      "input": {
+        "keys": [
+          "key1",
+          "key2"
+        ],
+        "batch": {
+          "queuedPerKey": {
+            "key1": 2,
+            "key2": 1
+          }
+        }
+      },
+      "expected": {
+        "activeLocksCount": 2,
+        "queuedCount": 3,
+        "totalExecuted": 2
+      }
+    },
+    {
+      "name": "stats-total-executed",
+      "description": "Mutex.getStats increments totalExecuted correctly",
+      "kind": "stats-total-executed",
+      "input": {
+        "keys": [
+          "key1",
+          "key2"
+        ],
+        "batch": {
+          "operationCount": 3
+        }
+      },
+      "expected": {
+        "totalExecuted": 3,
+        "activeLocksCount": 0,
+        "queuedCount": 0
+      }
+    },
+    {
+      "name": "isComplete-initial-true",
+      "description": "Mutex.isComplete returns true initially",
+      "kind": "isComplete-initial-true",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "complete": true
+      }
+    },
+    {
+      "name": "isComplete-held-false",
+      "description": "Mutex.isComplete returns false when the lock is held",
+      "kind": "isComplete-held-false",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "complete": false
+      }
+    },
+    {
+      "name": "isComplete-after-release-true",
+      "description": "Mutex.isComplete returns true after lock is released",
+      "kind": "isComplete-after-release-true",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "completeAfterRelease": true
+      }
+    },
+    {
+      "name": "isComplete-queued-false",
+      "description": "Mutex.isComplete returns false when operations are queued",
+      "kind": "isComplete-queued-false",
+      "input": {
+        "key": "key1",
+        "batch": {
+          "queuedCount": 1
+        }
+      },
+      "expected": {
+        "complete": false
+      }
+    },
+    {
+      "name": "isComplete-multi-active-false",
+      "description": "Mutex.isComplete returns false with multiple active locks",
+      "kind": "isComplete-multi-active-false",
+      "input": {
+        "keys": [
+          "key1",
+          "key2"
+        ]
+      },
+      "expected": {
+        "complete": false
+      }
+    },
+    {
+      "name": "completeQueue-immediate",
+      "description": "Mutex.completeQueue resolves immediately when already complete",
+      "kind": "completeQueue-immediate",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "resolvedImmediately": true
+      }
+    },
+    {
+      "name": "completeQueue-waits-active",
+      "description": "Mutex.completeQueue waits for an active lock to be released",
+      "kind": "completeQueue-waits-active",
+      "input": {
+        "key": "key1",
+        "delayMs": 50
+      },
+      "expected": {
+        "waitedForRelease": true
+      }
+    },
+    {
+      "name": "completeQueue-waits-queued",
+      "description": "Mutex.completeQueue waits for queued operations to complete",
+      "kind": "completeQueue-waits-queued",
+      "input": {
+        "key": "key1",
+        "batch": {
+          "queuedCount": 3
+        },
+        "delayMs": 20
+      },
+      "expected": {
+        "waitedForQueue": true,
+        "completed": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "completeQueue-waits-multi-key",
+      "description": "Mutex.completeQueue waits for multiple keys to complete",
+      "kind": "completeQueue-waits-multi-key",
+      "input": {
+        "keys": [
+          "key1",
+          "key2",
+          "key3"
+        ],
+        "delaysMs": [
+          30,
+          20,
+          10
+        ]
+      },
+      "expected": {
+        "waitedForAll": true,
+        "completed": 3
+      }
+    },
+    {
+      "name": "completeQueue-multiple-observers",
+      "description": "Mutex.completeQueue supports multiple observers",
+      "kind": "completeQueue-multiple-observers",
+      "input": {
+        "key": "key1",
+        "batch": {
+          "observerCount": 3
+        }
+      },
+      "expected": {
+        "observersNotified": 3,
+        "complete": true
+      }
+    }
+  ]
+}

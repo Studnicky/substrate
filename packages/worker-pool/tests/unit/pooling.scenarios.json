@@ -1,0 +1,36 @@
+{
+  "cases": [
+    {
+      "description": "reuses long-lived workers across a run() call instead of spawning one per item",
+      "expected": {
+        "distinctThreadIdsLessThanItemCount": true,
+        "distinctThreadIdsLessThanOrEqualConcurrency": true,
+        "resultLength": 8,
+        "results": [
+          "item-0",
+          "item-1",
+          "item-2",
+          "item-3",
+          "item-4",
+          "item-5",
+          "item-6",
+          "item-7"
+        ]
+      },
+      "input": {
+        "batch": {
+          "itemCount": 8,
+          "itemMs": 5,
+          "valuePrefix": "item"
+        },
+        "workerPool": {
+          "batch": { "concurrency": 8 },
+          "concurrency": 2,
+          "workerPath": "../fixtures/reusableEchoWorker.mjs"
+        }
+      },
+      "kind": "reuses-workers",
+      "name": "reuses-workers"
+    }
+  ]
+}

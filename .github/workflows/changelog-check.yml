@@ -2,8 +2,8 @@ name: changelog-check
 
 on:
   pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
+    branches: [ main ]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   check:
@@ -13,20 +13,10 @@ jobs:
     # Release and hotfix PRs consume pending changesets via `changeset version`,
     # so no new changeset file is expected on those branches. The publish
     # workflow (on the v* tag) enforces that no changesets remain unconsumed.
-    if: ${{ github.actor != 'dependabot[bot]' && !startsWith(github.head_ref, 'release/') && !startsWith(github.head_ref, 'hotfix/') }}
+    if: ${{ github.actor != 'dependabot[bot]' && !startsWith(github.head_ref,
+      'release/') && !startsWith(github.head_ref, 'hotfix/') }}
     steps:
       - uses: actions/checkout@v7
 
       - name: Verify a changeset was added
-        run: |
-          set -euo pipefail
-
-          PENDING=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
-
-          if [ "$PENDING" -eq 0 ]; then
-            echo "ERROR: No changeset found for this PR."
-            echo "Run 'pnpm changeset' and commit the generated .changeset/*.md file before merging to main."
-            exit 1
-          fi
-
-          echo "Found ${PENDING} pending changeset(s)."
+        run: bash scripts/policy-suite.sh changeset-required

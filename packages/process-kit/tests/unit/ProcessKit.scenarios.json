@@ -1,0 +1,92 @@
+{
+  "cases": [
+    {
+      "description": "start()/dispatch()/stop() drive a small idle -> active -> done machine",
+      "kind": "drive",
+      "name": "start()/dispatch()/stop() drive a small idle -> active -> done machine",
+      "input": {
+        "events": {
+          "start": { "type": "start" },
+          "finish": { "type": "finish" }
+        }
+      },
+      "expected": {
+        "afterStart": { "variant": "active" },
+        "afterFinish": { "variant": "done" }
+      }
+    },
+    {
+      "description": "effect handlers observe effects returned alongside a transition",
+      "kind": "effects",
+      "name": "effect handlers observe effects returned alongside a transition",
+      "input": {
+        "events": { "start": { "type": "start" } }
+      },
+      "expected": {
+        "logged": ["started"]
+      }
+    },
+    {
+      "description": "scheduleDispatch() advances state at the right virtual time via the public send() path",
+      "kind": "scheduled",
+      "name": "scheduleDispatch() advances state at the right virtual time via the public send() path",
+      "input": {
+        "events": {
+          "start": { "type": "start" },
+          "finish": { "type": "finish" }
+        },
+        "scheduler": {
+          "counter": { "startMs": 0 }
+        },
+        "timing": {
+          "scheduleDelayMs": 100,
+          "stepMs": 50
+        }
+      },
+      "expected": {
+        "afterFirstAdvance": { "variant": "active" },
+        "afterAdvance": { "variant": "done" },
+        "scheduledAtMs": 100
+      }
+    },
+    {
+      "description": "stop() cancels every task tracked by the composed scheduler",
+      "kind": "stop-cancels",
+      "name": "stop() cancels every task tracked by the composed scheduler",
+      "input": {
+        "events": {
+          "start": { "type": "start" },
+          "finish": { "type": "finish" }
+        },
+        "scheduler": {
+          "counter": { "startMs": 0 }
+        },
+        "timing": {
+          "scheduleDelayMs": 100,
+          "stepMs": 50
+        }
+      },
+      "expected": {
+        "afterAdvance": { "variant": "active" },
+        "afterStop": { "variant": "active" },
+        "scheduledAtMs": 100
+      }
+    },
+    {
+      "description": "a rejected transition surfaces TransitionRejectedError and does not wedge the interpreter",
+      "kind": "rejection",
+      "name": "a rejected transition surfaces TransitionRejectedError and does not wedge the interpreter",
+      "input": {
+        "events": {
+          "rejected": { "type": "finish" },
+          "recovery": { "type": "start" }
+        }
+      },
+      "expected": {
+        "afterRecovery": { "variant": "active" },
+        "rejectionName": "TransitionRejectedError",
+        "rejectedEvent": { "type": "finish" }
+      }
+    }
+  ]
+}

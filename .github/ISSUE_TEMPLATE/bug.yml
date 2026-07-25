@@ -1,6 +1,6 @@
 name: Bug report
 description: A behavior in @studnicky/substrate that does not match the documented contract
-labels: ["bug"]
+labels: [ "bug" ]
 body:
   - id: summary
     type: textarea
@@ -34,7 +34,8 @@ body:
     type: textarea
     attributes:
       label: Minimal reproduction
-      description: Smallest setup and call that exhibits the issue. Copy-pasteable TypeScript.
+      description: Smallest setup and call that exhibits the issue. Copy-pasteable
+        TypeScript.
       render: ts
     validations:
       required: true
@@ -42,7 +43,8 @@ body:
     type: textarea
     attributes:
       label: Expected behavior
-      description: What should have happened, with reference to the documented contract if possible.
+      description: What should have happened, with reference to the documented
+        contract if possible.
   - id: actual
     type: textarea
     attributes:

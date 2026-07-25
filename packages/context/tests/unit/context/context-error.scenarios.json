@@ -1,0 +1,19 @@
+{
+  "cases": [
+    {
+      "name": "construction",
+      "description": "ContextError preserves the supplied message and default error contract",
+      "kind": "construction",
+      "input": {
+        "error": {
+          "message": "No active request context - ensure code runs within execute()"
+        }
+      },
+      "expected": {
+        "code": "context.error",
+        "message": "No active request context - ensure code runs within execute()",
+        "retryable": false
+      }
+    }
+  ]
+}

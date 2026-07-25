@@ -1,0 +1,466 @@
+{
+  "cases": [
+    {
+      "name": "queued-request-aborts-before-dispatch",
+      "description": "TestDispatcher rejects a queued request that aborts before it reaches dispatch",
+      "kind": "queued-request-aborts-before-dispatch",
+      "input": {
+        "longUrl": "http://127.0.0.1:41234/delay?ms=50",
+        "queuedUrl": "http://127.0.0.1:41234/echo",
+        "abortAfterMs": 5,
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "longStatus": 200,
+        "queuedErrorName": "AbortError",
+        "queuedErrorMessage": "The operation was aborted.",
+        "stats": {
+          "connected": 1,
+          "free": 1,
+          "pending": 0,
+          "queued": 0,
+          "running": 0,
+          "size": 0
+        }
+      }
+    },
+    {
+      "name": "signal-aborted-before-wait",
+      "description": "TestDispatcher rejects when the signal is already aborted",
+      "kind": "signal-aborted-before-wait",
+      "input": {
+        "url": "http://127.0.0.1:41234/echo",
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "queuedErrorName": "AbortError",
+        "queuedErrorMessage": "The operation was aborted."
+      }
+    },
+    {
+      "name": "invalid-protocol",
+      "description": "TestDispatcher rejects unsupported protocols",
+      "kind": "invalid-protocol",
+      "input": {
+        "url": "ftp://example.test/resource",
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "ftp://example.test",
+        "errorCode": "ERR_INVALID_PROTOCOL",
+        "errorMessage": "unsupported protocol ftp:"
+      }
+    },
+    {
+      "name": "enetunreach",
+      "description": "TestDispatcher rejects unreachable networks",
+      "kind": "enetunreach",
+      "input": {
+        "url": "http://192.0.2.10/ok",
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://192.0.2.10",
+        "errorCode": "ENETUNREACH",
+        "errorMessage": "connect ENETUNREACH http://192.0.2.10"
+      }
+    },
+    {
+      "name": "enotfound",
+      "description": "TestDispatcher rejects missing domains",
+      "kind": "enotfound",
+      "input": {
+        "url": "http://does-not-exist.test/ok",
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://does-not-exist.test",
+        "errorCode": "ENOTFOUND",
+        "errorMessage": "getaddrinfo ENOTFOUND http://does-not-exist.test"
+      }
+    },
+    {
+      "name": "ok",
+      "description": "TestDispatcher returns text for /ok",
+      "kind": "ok",
+      "input": {
+        "url": "http://127.0.0.1:41234/ok",
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": "ok"
+      }
+    },
+    {
+      "name": "text-response",
+      "description": "TestDispatcher returns text for unsupported paths",
+      "kind": "text-response",
+      "input": {
+        "url": "http://127.0.0.1:41234/unhandled",
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 404,
+        "body": "{\"error\":\"Not Found\"}"
+      }
+    },
+    {
+      "name": "url-echo",
+      "description": "TestDispatcher echoes query parameters",
+      "kind": "url-echo",
+      "input": {
+        "url": "http://127.0.0.1:41234/echo?x=1&y=two",
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": {
+          "query": {
+            "x": "1",
+            "y": "two"
+          }
+        }
+      }
+    },
+    {
+      "name": "post-echo",
+      "description": "TestDispatcher echoes POST bodies and headers",
+      "kind": "post-echo",
+      "input": {
+        "url": "http://127.0.0.1:41234/echo",
+        "init": {
+          "body": "{\"hello\":\"world\"}",
+          "headers": {
+            "x-custom": "value"
+          },
+          "method": "POST"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": {
+          "body": {
+            "hello": "world"
+          },
+          "headers": {
+            "x-custom": "value"
+          }
+        }
+      }
+    },
+    {
+      "name": "post-string",
+      "description": "TestDispatcher reads plain string request bodies",
+      "kind": "post-string",
+      "input": {
+        "url": "http://127.0.0.1:41234/echo",
+        "body": "plain-text",
+        "init": {
+          "headers": {
+            "content-type": "text/plain"
+          },
+          "method": "POST"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": {
+          "body": {},
+          "headers": {
+            "content-type": "text/plain"
+          }
+        }
+      }
+    },
+    {
+      "name": "post-uint8array",
+      "description": "TestDispatcher reads Uint8Array request bodies",
+      "kind": "post-uint8array",
+      "input": {
+        "url": "http://127.0.0.1:41234/echo",
+        "bodyBuffer": [
+          1,
+          2,
+          3
+        ],
+        "init": {
+          "headers": {
+            "content-type": "application/octet-stream"
+          },
+          "method": "POST"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": {
+          "body": {},
+          "headers": {
+            "content-type": "application/octet-stream"
+          }
+        }
+      }
+    },
+    {
+      "name": "post-arraybuffer",
+      "description": "TestDispatcher reads ArrayBuffer request bodies",
+      "kind": "post-arraybuffer",
+      "input": {
+        "url": "http://127.0.0.1:41234/echo",
+        "bodyBuffer": [
+          4,
+          5,
+          6
+        ],
+        "init": {
+          "headers": {
+            "content-type": "application/octet-stream"
+          },
+          "method": "POST"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": {
+          "body": {},
+          "headers": {
+            "content-type": "application/octet-stream"
+          }
+        }
+      }
+    },
+    {
+      "name": "post-dataview",
+      "description": "TestDispatcher reads DataView request bodies",
+      "kind": "post-dataview",
+      "input": {
+        "url": "http://127.0.0.1:41234/echo",
+        "bodyBuffer": [
+          7,
+          8,
+          9
+        ],
+        "init": {
+          "headers": {
+            "content-type": "application/octet-stream"
+          },
+          "method": "POST"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": {
+          "body": {},
+          "headers": {
+            "content-type": "application/octet-stream"
+          }
+        }
+      }
+    },
+    {
+      "name": "post-blob",
+      "description": "TestDispatcher rejects Blob request bodies",
+      "kind": "post-blob",
+      "input": {
+        "url": "http://127.0.0.1:41234/echo",
+        "body": "blob-body",
+        "init": {
+          "method": "POST"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "errorMessage": "Blob request bodies are not supported in the fetch test dispatcher"
+      }
+    },
+    {
+      "name": "post-posts",
+      "description": "TestDispatcher creates a post record",
+      "kind": "post-posts",
+      "input": {
+        "url": "http://127.0.0.1:41234/posts",
+        "init": {
+          "body": "{\"title\":\"New Post\"}",
+          "method": "POST"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 201,
+        "body": {
+          "title": "New Post",
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "put-post",
+      "description": "TestDispatcher updates a post with PUT",
+      "kind": "put-post",
+      "input": {
+        "url": "http://127.0.0.1:41234/posts/1",
+        "init": {
+          "body": "{\"title\":\"Updated Post\"}",
+          "method": "PUT"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": {
+          "title": "Updated Post",
+          "id": 1
+        }
+      }
+    },
+    {
+      "name": "patch-post",
+      "description": "TestDispatcher updates a post with PATCH",
+      "kind": "patch-post",
+      "input": {
+        "url": "http://127.0.0.1:41234/posts/1",
+        "init": {
+          "body": "{\"title\":\"Patched Post\"}",
+          "method": "PATCH"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": {
+          "title": "Test Post",
+          "id": 1
+        }
+      }
+    },
+    {
+      "name": "delete-post",
+      "description": "TestDispatcher deletes a post",
+      "kind": "delete-post",
+      "input": {
+        "url": "http://127.0.0.1:41234/posts/1",
+        "init": {
+          "method": "DELETE"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": {}
+      }
+    },
+    {
+      "name": "head-post",
+      "description": "TestDispatcher serves HEAD responses for posts",
+      "kind": "head-post",
+      "input": {
+        "url": "http://127.0.0.1:41234/posts/1",
+        "init": {
+          "method": "HEAD"
+        },
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 200,
+        "body": ""
+      }
+    },
+    {
+      "name": "not-found",
+      "description": "TestDispatcher returns JSON 404 for unknown routes",
+      "kind": "not-found",
+      "input": {
+        "url": "http://127.0.0.1:41234/unknown",
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "origin": "http://127.0.0.1:41234",
+        "status": 404,
+        "body": {
+          "error": "Not Found"
+        }
+      }
+    }
+  ]
+}

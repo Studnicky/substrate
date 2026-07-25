@@ -1,0 +1,38 @@
+{
+  "cases": [
+    {
+      "description": "validates non-negative history timestamps",
+      "expected": {
+        "validationResults": [
+          true,
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "InterpreterHistoryRecordMetadataEntity", "expected": true, "value": { "timestamp": 0 } },
+          { "entity": "InterpreterHistoryRecordMetadataEntity", "expected": false, "value": { "timestamp": -1 } }
+        ]
+      },
+      "kind": "history-timestamp-validation",
+      "name": "history-timestamp-validation"
+    },
+    {
+      "description": "validates non-negative integer hook error counts",
+      "expected": {
+        "validationResults": [
+          true,
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "RegisteredInterpreterMetricsEntity", "expected": true, "value": { "hookErrorCount": 0 } },
+          { "entity": "RegisteredInterpreterMetricsEntity", "expected": false, "value": { "hookErrorCount": 0.5 } }
+        ]
+      },
+      "kind": "hook-error-count-validation",
+      "name": "hook-error-count-validation"
+    }
+  ]
+}

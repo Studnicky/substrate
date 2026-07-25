@@ -1,0 +1,224 @@
+{
+  "cases": [
+    {
+      "name": "baseURL-prepend-relative",
+      "description": "FetchClient prepends baseURL to relative paths",
+      "kind": "baseURL-prepend-relative",
+      "input": {
+        "fetchClient": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "baseURL-keep-absolute",
+      "description": "FetchClient does not modify absolute URLs",
+      "kind": "baseURL-keep-absolute",
+      "input": {
+        "fetchClient": {
+          "baseURL": "https://example.com"
+        },
+        "request": {
+          "url": "__TEST_URL__/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "baseURL-trailing-slash",
+      "description": "FetchClient handles baseURL with trailing slash",
+      "kind": "baseURL-trailing-slash",
+      "input": {
+        "fetchClient": {
+          "baseURL": "__TEST_URL__/"
+        },
+        "request": {
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "baseURL-path-without-leading-slash",
+      "description": "FetchClient handles path without leading slash",
+      "kind": "baseURL-path-without-leading-slash",
+      "input": {
+        "fetchClient": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "headers-apply-defaults",
+      "description": "FetchClient applies default headers",
+      "kind": "headers-apply-defaults",
+      "input": {
+        "fetchClient": {
+          "baseURL": "__TEST_URL__",
+          "headers": {
+            "X-Custom": "default-value"
+          }
+        },
+        "request": {
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "headers-merge-default-and-request",
+      "description": "FetchClient merges default and request headers",
+      "kind": "headers-merge-default-and-request",
+      "input": {
+        "fetchClient": {
+          "baseURL": "__TEST_URL__",
+          "headers": {
+            "X-Default": "default"
+          }
+        },
+        "request": {
+          "options": {
+            "headers": {
+              "X-Request": "request"
+            }
+          },
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "headers-override-defaults",
+      "description": "FetchClient allows request headers to override defaults",
+      "kind": "headers-override-defaults",
+      "input": {
+        "fetchClient": {
+          "baseURL": "__TEST_URL__",
+          "headers": {
+            "X-Custom": "default"
+          }
+        },
+        "request": {
+          "options": {
+            "headers": {
+              "X-Custom": "override"
+            }
+          },
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "params-apply-defaults-with-baseURL",
+      "description": "FetchClient applies default query params with baseURL",
+      "kind": "params-apply-defaults-with-baseURL",
+      "input": {
+        "fetchClient": {
+          "baseURL": "__TEST_URL__",
+          "params": {
+            "_limit": "5",
+            "_page": "1"
+          }
+        },
+        "request": {
+          "url": "/posts"
+        }
+      },
+      "expected": {
+        "itemsLengthAtMost": 5
+      }
+    },
+    {
+      "name": "params-apply-defaults-without-baseURL",
+      "description": "FetchClient applies default query params without baseURL",
+      "kind": "params-apply-defaults-without-baseURL",
+      "input": {
+        "fetchClient": {
+          "params": {
+            "_limit": "5",
+            "_page": "1"
+          }
+        },
+        "request": {
+          "url": "__TEST_URL__/echo"
+        }
+      },
+      "expected": {
+        "query": {
+          "_limit": "5",
+          "_page": "1"
+        }
+      }
+    },
+    {
+      "name": "abort-details",
+      "description": "FetchClient provides abort details in the error",
+      "kind": "abort-details",
+      "input": {
+        "fetchClient": {}
+      },
+      "expected": {
+        "abortErrorName": "AbortError",
+        "urlIncludes": "127.0.0.1"
+      }
+    },
+    {
+      "name": "timeout-first",
+      "description": "FetchClient throws TimeoutError when timeout occurs first",
+      "kind": "timeout-first",
+      "input": {
+        "fetchClient": {}
+      },
+      "expected": {
+        "timeoutErrorName": "TimeoutError"
+      }
+    },
+    {
+      "name": "abort-first",
+      "description": "FetchClient throws AbortError when manual abort occurs first",
+      "kind": "abort-first",
+      "input": {
+        "fetchClient": {}
+      },
+      "expected": {
+        "abortErrorName": "AbortError",
+        "urlIncludes": "127.0.0.1"
+      }
+    },
+    {
+      "name": "abort-in-get",
+      "description": "FetchClient supports abort in GET",
+      "kind": "abort-in-get",
+      "input": {
+        "fetchClient": {}
+      },
+      "expected": {
+        "abortErrorName": "AbortError",
+        "urlIncludes": "127.0.0.1"
+      }
+    }
+  ]
+}

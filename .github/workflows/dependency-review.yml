@@ -1,0 +1,40 @@
+name: dependency-review
+
+on:
+  pull_request:
+    branches: [ develop, main ]
+    types: [ opened, synchronize, reopened, labeled, unlabeled ]
+
+concurrency:
+  group: dependency-review-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - id: diff
+        uses: ./.github/actions/diff-range
+      - id: probe
+        uses: ./.github/actions/gh-api-probe
+        with:
+          path: repos/${{ github.repository }}/dependency-graph/compare/${{
+            steps.diff.outputs.base_sha }}...${{ steps.diff.outputs.head_sha }}
+
+      - name: Skip when dependency graph unavailable
+        if: steps.probe.outputs.enabled != 'true'
+        run: |
+          echo "Dependency review skipped: dependency graph is unavailable."
+          exit 0
+      - uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always

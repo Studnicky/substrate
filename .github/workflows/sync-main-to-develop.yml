@@ -1,0 +1,56 @@
+name: Sync main to develop
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-main-to-develop
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Probe for an open sync PR
+        id: pr
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --base develop --head main --state open --json number --jq '.[0].number // empty')
+          echo "existing=$existing" >> "$GITHUB_OUTPUT"
+      - name: Check divergence
+        id: diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main develop
+          ahead=$(git rev-list --count origin/develop..origin/main)
+          echo "ahead=$ahead" >> "$GITHUB_OUTPUT"
+      - name: Skip if already in sync
+        if: steps.diff.outputs.ahead == '0'
+        run: echo "develop is already in sync with main."
+      - name: Open sync PR
+        if: steps.diff.outputs.ahead != '0' && steps.pr.outputs.existing == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base develop \
+            --head main \
+            --title "chore: sync main to develop" \
+            --body "Automated sync PR from main to develop."
+      - name: Report existing sync PR
+        if: steps.diff.outputs.ahead != '0' && steps.pr.outputs.existing != ''
+        run: echo "Sync PR #${{ steps.pr.outputs.existing }} already open."

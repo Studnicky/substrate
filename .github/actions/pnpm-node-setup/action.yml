@@ -1,0 +1,38 @@
+name: pnpm-node-setup
+description: Setup Node, pnpm, and install dependencies with the shared
+  registry/cache settings.
+
+inputs:
+  node-version:
+    required: false
+    default: '24'
+  pnpm-version:
+    required: false
+    default: '10.32.1'
+  scope:
+    required: false
+    default: '@studnicky'
+  install:
+    required: false
+    default: 'true'
+  install-args:
+    required: false
+    default: '--frozen-lockfile'
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+      with:
+        version: ${{ inputs.pnpm-version }}
+    - uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+        registry-url: 'https://npm.pkg.github.com'
+        scope: ${{ inputs.scope }}
+    - if: inputs.install == 'true'
+      shell: bash
+      run: pnpm install ${{ inputs.install-args }}
+      env:
+        NODE_AUTH_TOKEN: ${{ github.token }}

@@ -1,0 +1,53 @@
+{
+  "cases": [
+    {
+      "name": "accepts-empty",
+      "description": "accepts an undefined backoffStrategy config",
+      "kind": "accepts-empty",
+      "input": { "source": "value" },
+      "expected": { "accepted": true }
+    },
+    {
+      "name": "accepts-null",
+      "description": "accepts a null backoffStrategy config",
+      "kind": "accepts-null",
+      "input": { "source": "value", "value": null },
+      "expected": { "accepted": true }
+    },
+    {
+      "name": "accepts-valid",
+      "description": "accepts a valid backoffStrategy config",
+      "kind": "accepts-valid",
+      "input": { "source": "backoff-strategy", "backoffStrategy": { "baseDelayMs": 10, "strategyResult": 10 } },
+      "expected": { "accepted": true }
+    },
+    {
+      "name": "rejects-non-object",
+      "description": "rejects a non-object backoffStrategy config",
+      "kind": "rejects-non-object",
+      "input": { "source": "value", "value": "bad" },
+      "expected": { "errorName": "ConfigurationError" }
+    },
+    {
+      "name": "rejects-missing-strategy",
+      "description": "rejects a backoffStrategy config without strategy",
+      "kind": "rejects-missing-strategy",
+      "input": { "source": "value", "value": { "baseDelayMs": 10 } },
+      "expected": { "errorName": "ConfigurationError" }
+    },
+    {
+      "name": "rejects-missing-base-delay",
+      "description": "rejects a backoffStrategy config without baseDelayMs",
+      "kind": "rejects-missing-base-delay",
+      "input": { "source": "value", "value": {} },
+      "expected": { "errorName": "ConfigurationError" }
+    },
+    {
+      "name": "rejects-bad-base-delay-with-function-strategy",
+      "description": "rejects a backoffStrategy config with a valid strategy and invalid baseDelayMs",
+      "kind": "rejects-bad-base-delay-with-function-strategy",
+      "input": { "source": "backoff-strategy", "backoffStrategy": { "baseDelayMs": "bad", "strategyResult": 0 } },
+      "expected": { "errorName": "ConfigurationError" }
+    }
+  ]
+}

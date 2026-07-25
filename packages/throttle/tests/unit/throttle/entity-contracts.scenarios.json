@@ -1,0 +1,31 @@
+{
+  "cases": [
+    {
+      "name": "abort-options",
+      "description": "Throttle abort options validate canonical values",
+      "kind": "abort-options",
+      "input": { "valid": { "timeout": 100 }, "invalid": { "timeout": -1 } },
+      "expected": { "valid": true, "invalid": false }
+    },
+    {
+      "name": "error-constructors",
+      "description": "Throttle error constructors expose their canonical codes and fields",
+      "kind": "error-constructors",
+      "input": {
+        "aborted": { "message": "aborted", "timeoutMs": 250 },
+        "draining": { "message": "draining" }
+      },
+      "expected": {
+        "aborted": { "code": "throttle.aborted", "message": "aborted", "timeoutMs": 250 },
+        "draining": { "code": "throttle.draining", "message": "draining" }
+      }
+    },
+    {
+      "name": "active-operation-state",
+      "description": "Throttle active operation state validates canonical values",
+      "kind": "active-operation-state",
+      "input": { "valid": { "completed": false }, "invalid": {} },
+      "expected": { "valid": true, "invalid": false }
+    }
+  ]
+}

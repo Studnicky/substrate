@@ -1,0 +1,124 @@
+{
+  "cases": [
+    {
+      "name": "buffered-publish",
+      "description": "publish then subscribe yields buffered items",
+      "kind": "buffered-publish",
+      "input": { "key": "a", "items": [1, 2, 3] },
+      "expected": { "items": [1, 2, 3] }
+    },
+    {
+      "name": "live-subscribe",
+      "description": "subscribe receives items published after subscription starts",
+      "kind": "live-subscribe",
+      "input": { "key": "b", "items": ["hello", "world"] },
+      "expected": { "items": ["hello", "world"] }
+    },
+    {
+      "name": "close-terminates",
+      "description": "close() terminates subscribe",
+      "kind": "close-terminates",
+      "input": { "key": "c", "items": [10, 20] },
+      "expected": { "items": [10, 20] }
+    },
+    {
+      "name": "independent-keys",
+      "description": "multiple keys are independent",
+      "kind": "independent-keys",
+      "input": { "left": "x", "leftItem": "from-x", "right": "y", "rightItem": "from-y" },
+      "expected": { "left": ["from-x"], "right": ["from-y"] }
+    },
+    {
+      "name": "publish-after-close",
+      "description": "publish after close is a no-op",
+      "kind": "publish-after-close",
+      "input": { "key": "z", "item": 99 },
+      "expected": { "items": [] }
+    },
+    {
+      "name": "duplicate-subscribe",
+      "description": "subscribe rejects a second active subscriber for the same key",
+      "kind": "duplicate-subscribe",
+      "input": { "key": "shared" },
+      "expected": { "errorName": "ChannelError" }
+    },
+    {
+      "name": "onEnqueue-hooks",
+      "description": "onEnqueue fires for each publish when open",
+      "kind": "onEnqueue-hooks",
+      "input": { "key": "k", "items": ["a", "b"] },
+      "expected": {
+        "count": 2,
+        "entries": [
+          { "key": "k", "item": "a" },
+          { "key": "k", "item": "b" }
+        ]
+      }
+    },
+    {
+      "name": "onDequeue-hooks",
+      "description": "onDequeue fires for each consumed item",
+      "kind": "onDequeue-hooks",
+      "input": { "key": "ev", "items": [1, 2] },
+      "expected": {
+        "count": 2,
+        "entries": [
+          { "key": "ev", "item": 1 },
+          { "key": "ev", "item": 2 }
+        ]
+      }
+    },
+    {
+      "name": "onPublishDropped-hooks",
+      "description": "onPublishDropped fires when publishing to closed channel",
+      "kind": "onPublishDropped-hooks",
+      "input": { "key": "x", "item": "dropped" },
+      "expected": { "count": 1, "entry": { "key": "x", "item": "dropped" } }
+    },
+    {
+      "name": "onClose-hooks",
+      "description": "onClose fires once on close()",
+      "kind": "onClose-hooks",
+      "input": { "before": 0, "after": 1 },
+      "expected": { "before": 0, "after": 1 }
+    },
+    {
+      "name": "no-high-water-mark",
+      "description": "no highWaterMark configured: onOverflow never fires, buffer grows unbounded",
+      "kind": "no-high-water-mark",
+      "input": { "count": 50, "key": "k" },
+      "expected": {
+        "items": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49],
+        "overflowCount": 0
+      }
+    },
+    {
+      "name": "high-water-mark",
+      "description": "highWaterMark configured: onOverflow fires at configured depth without dropping items",
+      "kind": "high-water-mark",
+      "input": { "channel": { "highWaterMark": 3 }, "items": [1, 2, 3, 4], "key": "k" },
+      "expected": { "items": [1, 2, 3, 4], "overflowDepths": [3, 4] }
+    },
+    {
+      "name": "enqueue-rollback",
+      "description": "a throwing onEnqueue hook rolls the item back and a later publish wakes the waiting subscriber",
+      "kind": "enqueue-rollback",
+      "input": { "first": 1, "key": "k", "second": 2 },
+      "expected": { "nextValue": 2 }
+    },
+    {
+      "name": "dequeue-hook-error",
+      "description": "a throwing onDequeue hook rejects subscribe() with HookInvocationError after the item is dequeued",
+      "kind": "dequeue-hook-error",
+      "input": { "item": 1, "key": "k" },
+      "expected": { "errorName": "HookInvocationError", "item": 1, "key": "k" }
+    },
+    {
+      "name": "async-enqueue-hook",
+      "description": "an async-overridden onEnqueue hook that rejects is routed safely through HookInvoker without an unhandled rejection",
+      "kind": "async-enqueue-hook",
+      "input": { "first": 1, "key": "k", "second": 2 },
+      "expected": { "nextValue": 2, "rejectionCount": 0 }
+    }
+  ]
+}

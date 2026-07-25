@@ -1,0 +1,11 @@
+{
+  "cases": [
+    {
+      "description": "FileLockConfigError carries the invalid-config code and provided message",
+      "expected": { "code": "fileLock.invalidConfig", "message": "invalid" },
+      "input": { "message": "invalid" },
+      "kind": "constructs-with-code",
+      "name": "constructs-with-code"
+    }
+  ]
+}

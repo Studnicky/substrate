@@ -1,0 +1,60 @@
+{
+  "cases": [
+    {
+      "name": "hook-throw-on-attempt",
+      "description": "a throwing onAttempt hook does not replace a successful execute() result",
+      "kind": "on-attempt",
+      "input": { "retry": { "maxRetries": 1 }, "hookErrorMessage": "onAttempt boom", "result": "ok" },
+      "expected": { "result": "ok" }
+    },
+    {
+      "name": "hook-throw-on-success",
+      "description": "a throwing onSuccess hook does not replace a successful execute() result",
+      "kind": "on-success",
+      "input": { "retry": { "maxRetries": 1 }, "hookErrorMessage": "onSuccess boom", "result": "ok" },
+      "expected": { "result": "ok" }
+    },
+    {
+      "name": "hook-throw-on-retryable-error",
+      "description": "a throwing onRetryableError hook does not replace a later successful retry",
+      "kind": "on-retryable-error",
+      "input": { "retry": { "maxRetries": 2 }, "batch": { "failureCountBeforeSuccess": 1 }, "firstErrorMessage": "transient", "hookErrorMessage": "onRetryableError boom", "result": "recovered" },
+      "expected": { "result": "recovered", "attempts": 2 }
+    },
+    {
+      "name": "hook-throw-on-retry-scheduled",
+      "description": "a throwing onRetryScheduled hook does not prevent the scheduled retry",
+      "kind": "on-retry-scheduled",
+      "input": { "retry": { "maxRetries": 1 }, "batch": { "failureCountBeforeSuccess": 1 }, "firstErrorMessage": "transient", "hookErrorMessage": "onRetryScheduled boom", "result": "recovered" },
+      "expected": { "result": "recovered", "attempts": 2 }
+    },
+    {
+      "name": "hook-throw-on-retry-scheduled-async",
+      "description": "an async-rejecting onRetryScheduled hook does not prevent the scheduled retry",
+      "kind": "on-retry-scheduled-async",
+      "input": { "retry": { "maxRetries": 1 }, "batch": { "failureCountBeforeSuccess": 1 }, "firstErrorMessage": "transient", "hookErrorMessage": "onRetryScheduled async boom", "result": "recovered" },
+      "expected": { "result": "recovered", "attempts": 2 }
+    },
+    {
+      "name": "hook-throw-on-give-up-non-retryable",
+      "description": "a throwing onGiveUp hook does not replace the canonical non-retryable failure",
+      "kind": "on-give-up-non-retryable",
+      "input": { "retry": { "maxRetries": 1 }, "errorMessage": "fatal", "hookErrorMessage": "onGiveUp boom" },
+      "expected": { "errorKind": "NonRetryableError" }
+    },
+    {
+      "name": "hook-throw-enter-call",
+      "description": "a throwing enterCall hook does not replace a successful execute() result",
+      "kind": "enter-call",
+      "input": { "retry": { "maxRetries": 1 }, "hookErrorMessage": "enterCall boom", "result": "ok" },
+      "expected": { "result": "ok" }
+    },
+    {
+      "name": "hook-throw-on-give-up-exhausted",
+      "description": "a throwing onGiveUp hook does not replace exhausted retry failure",
+      "kind": "on-give-up-exhausted",
+      "input": { "retry": { "maxRetries": 0 }, "errorMessage": "still failing", "hookErrorMessage": "onGiveUp boom" },
+      "expected": { "errorKind": "MaxRetriesExceededError" }
+    }
+  ]
+}

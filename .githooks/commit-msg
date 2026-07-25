@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+message=$(head -1 "$1")
+
+case "$message" in
+  Merge*|Rebase*|Revert*|Squashed\ commit\ of*) exit 0 ;;
+esac
+
+. "$(dirname "$0")/lib/runtime.sh"
+hook_source_lib title-check.sh
+
+check_commit_subject "$message"

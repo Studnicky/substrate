@@ -1,0 +1,51 @@
+name: security-audit
+
+on:
+  workflow_call:
+    inputs:
+      report-artifact:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/pnpm-node-setup
+      - name: Run audit checks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/substrate-security-audit.XXXXXX")
+          trap 'rm -rf "$tmpdir"' EXIT INT TERM
+
+          if [ "${{ inputs.report-artifact }}" = "true" ]; then
+            pnpm audit --json >"$tmpdir/npm-audit-report.json" 2>"$tmpdir/report.log" || true &
+            report_pid=$!
+          fi
+
+          bash scripts/security-suite.sh audit >"$tmpdir/audit.log" 2>&1 &
+          audit_pid=$!
+
+          if ! wait "$audit_pid"; then
+            cat "$tmpdir/audit.log" >&2
+            exit 1
+          fi
+
+          if [ "${{ inputs.report-artifact }}" = "true" ]; then
+            wait "$report_pid" || true
+            cp "$tmpdir/npm-audit-report.json" npm-audit-report.json
+          fi
+      - if: inputs.report-artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-audit-report
+          path: npm-audit-report.json
+          retention-days: 30

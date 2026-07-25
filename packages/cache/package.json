@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/cache",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "In-process LRU + TTL cache with O(1) promotion",
   "type": "module",
   "sideEffects": false,
@@ -22,7 +22,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+    "test": "node ../../scripts/test-suite.mjs all --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",

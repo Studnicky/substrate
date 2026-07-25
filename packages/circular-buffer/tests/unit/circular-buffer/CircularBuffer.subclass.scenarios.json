@@ -1,0 +1,663 @@
+{
+  "cases": [
+    {
+      "name": "create-returns-subclass",
+      "description": "Create returns the requested subclass type without a cast",
+      "kind": "create-returns-subclass",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "evictLog": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "onEvict-called-with-evicted-item",
+      "description": "onEvict is called with the evicted item when overwrite triggers",
+      "kind": "onEvict-called-with-evicted-item",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "evictLog": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "onEvict-receives-items-FIFO",
+      "description": "onEvict receives items in FIFO eviction order",
+      "kind": "onEvict-receives-items-FIFO",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "expected": {
+        "evictLog": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "name": "onEvict-not-called-below-capacity",
+      "description": "onEvict is not called when the buffer is below capacity",
+      "kind": "onEvict-not-called-below-capacity",
+      "input": {
+        "options": {
+          "capacity": 4
+        },
+        "pushItems": [
+          1,
+          2
+        ]
+      },
+      "expected": {
+        "evictLog": []
+      }
+    },
+    {
+      "name": "onEvict-receives-oldest-item",
+      "description": "onEvict receives exactly the oldest item",
+      "kind": "onEvict-receives-oldest-item",
+      "input": {
+        "options": {
+          "capacity": 3
+        },
+        "pushItems": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ]
+      },
+      "expected": {
+        "evictLog": [
+          "a"
+        ]
+      }
+    },
+    {
+      "name": "onGrow-called-when-capacity-exceeded",
+      "description": "onGrow is called when capacity is exceeded in grow mode",
+      "kind": "onGrow-called-when-capacity-exceeded",
+      "input": {
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "growLog": [
+          {
+            "oldCapacity": 2,
+            "newCapacity": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "onGrow-called-once-per-grow-event",
+      "description": "onGrow is called once per grow event",
+      "kind": "onGrow-called-once-per-grow-event",
+      "input": {
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        },
+        "pushItems": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "expected": {
+        "growLog": [
+          {
+            "oldCapacity": 2,
+            "newCapacity": 4
+          },
+          {
+            "oldCapacity": 4,
+            "newCapacity": 8
+          }
+        ]
+      }
+    },
+    {
+      "name": "onGrow-not-called-in-overwrite-mode",
+      "description": "onGrow is not called in overwrite mode",
+      "kind": "onGrow-not-called-in-overwrite-mode",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "growLog": []
+      }
+    },
+    {
+      "name": "onPush-called-on-each-push",
+      "description": "onPush is called on each push",
+      "kind": "onPush-called-on-each-push",
+      "input": {
+        "options": {
+          "capacity": 8
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "pushCount": 3
+      }
+    },
+    {
+      "name": "onPush-called-on-grow-trigger",
+      "description": "onPush is called on a push that triggers grow",
+      "kind": "onPush-called-on-grow-trigger",
+      "input": {
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "pushCount": 3
+      }
+    },
+    {
+      "name": "onPush-called-on-each-overwrite-push",
+      "description": "onPush is called on each overwrite push",
+      "kind": "onPush-called-on-each-overwrite-push",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "pushCount": 3
+      }
+    },
+    {
+      "name": "onShift-called-with-items-before-returned",
+      "description": "onShift is called with the items before they are returned",
+      "kind": "onShift-called-with-items-before-returned",
+      "input": {
+        "options": {
+          "capacity": 4
+        },
+        "pushItems": [
+          10,
+          20
+        ]
+      },
+      "expected": {
+        "shiftLog": [
+          10,
+          20
+        ]
+      }
+    },
+    {
+      "name": "onShift-not-called-when-empty",
+      "description": "onShift is not called when the buffer is empty",
+      "kind": "onShift-not-called-when-empty",
+      "input": {
+        "batch": {
+          "shiftCount": 1
+        },
+        "options": {
+          "capacity": 4
+        }
+      },
+      "expected": {
+        "shiftLog": []
+      }
+    },
+    {
+      "name": "onShift-receives-correct-item",
+      "description": "onShift receives the correct item value",
+      "kind": "onShift-receives-correct-item",
+      "input": {
+        "options": {
+          "capacity": 4
+        },
+        "pushItems": [
+          42
+        ]
+      },
+      "expected": {
+        "shiftLog": [
+          42
+        ]
+      }
+    },
+    {
+      "name": "onPush-length-already-incremented",
+      "description": "onPush sees length after the push has already committed",
+      "kind": "onPush-length-already-incremented",
+      "input": {
+        "options": {
+          "capacity": 8
+        },
+        "pushValue": 42
+      },
+      "expected": {
+        "lengthAtHook": 1
+      }
+    },
+    {
+      "name": "onGrow-receives-correct-old-new-capacity",
+      "description": "onGrow receives the correct old and new capacity",
+      "kind": "onGrow-receives-correct-old-new-capacity",
+      "input": {
+        "options": {
+          "capacity": 4,
+          "overflow": "grow"
+        },
+        "pushItems": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "expected": {
+        "growLog": [
+          {
+            "oldCapacity": 4,
+            "newCapacity": 8
+          }
+        ]
+      }
+    },
+    {
+      "name": "base-class-operates-correctly-after-grow",
+      "description": "The base class still operates correctly after grow",
+      "kind": "base-class-operates-correctly-after-grow",
+      "input": {
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "shiftCount": 3,
+        "shiftValues": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "onShift-return-value-matches-log",
+      "description": "The onShift log matches the value returned from shift",
+      "kind": "onShift-return-value-matches-log",
+      "input": {
+        "options": {
+          "capacity": 4
+        },
+        "pushItems": [
+          "hello"
+        ]
+      },
+      "expected": {
+        "returned": "hello",
+        "shiftLog": [
+          "hello"
+        ]
+      }
+    },
+    {
+      "name": "full-trace-grow",
+      "description": "FullTraceBuffer tracks grow, push, and shift events independently",
+      "kind": "full-trace-grow",
+      "input": {
+        "batch": {
+          "shiftCount": 2
+        },
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "growEventsLength": 1,
+        "pushItemsLength": 3,
+        "shiftItemsLength": 2,
+        "evictItemsLength": 0
+      }
+    },
+    {
+      "name": "full-trace-overwrite",
+      "description": "FullTraceBuffer tracks evict events in overwrite mode",
+      "kind": "full-trace-overwrite",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "expected": {
+        "evictItems": [
+          1,
+          2
+        ],
+        "growEventsLength": 0,
+        "pushItemsLength": 4
+      }
+    },
+    {
+      "name": "grow-mode-all-hooks-active",
+      "description": "Grow mode preserves FIFO order with all hooks active",
+      "kind": "grow-mode-all-hooks-active",
+      "input": {
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        },
+        "pushItems": [
+          10,
+          20,
+          30,
+          40,
+          50
+        ]
+      },
+      "expected": {
+        "result": [
+          10,
+          20,
+          30,
+          40,
+          50
+        ]
+      }
+    },
+    {
+      "name": "throwing-onPush",
+      "description": "A throwing onPush hook surfaces a HookInvocationError",
+      "kind": "throwing-onPush",
+      "input": {
+        "options": {
+          "capacity": 4
+        },
+        "pushValue": 42
+      },
+      "expected": {
+        "length": 1,
+        "shiftValue": 42
+      }
+    },
+    {
+      "name": "throwing-onOverflow",
+      "description": "A throwing onOverflow hook surfaces a HookInvocationError",
+      "kind": "throwing-onOverflow",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "length": 2,
+        "shiftValues": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "throwing-onEvict",
+      "description": "A throwing onEvict hook surfaces a HookInvocationError",
+      "kind": "throwing-onEvict",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "length": 2,
+        "shiftValues": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "throwing-onGrow",
+      "description": "A throwing onGrow hook surfaces a HookInvocationError",
+      "kind": "throwing-onGrow",
+      "input": {
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        },
+        "pushItems": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected": {
+        "length": 2,
+        "shiftValues": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "name": "throwing-onShift",
+      "description": "A throwing onShift hook surfaces a HookInvocationError",
+      "kind": "throwing-onShift",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1
+        ]
+      },
+      "expected": {
+        "length": 0
+      }
+    },
+    {
+      "name": "async-rejecting-onPush-guarded",
+      "description": "Unexpected async onPush overrides stay guarded across push and unshift",
+      "kind": "async-rejecting-onPush-guarded",
+      "input": {
+        "asyncOperations": [
+          {
+            "method": "push",
+            "value": 1
+          },
+          {
+            "method": "unshift",
+            "value": 0
+          },
+          {
+            "method": "push",
+            "value": 2
+          },
+          {
+            "method": "unshift",
+            "value": -1
+          }
+        ],
+        "flushTurns": 2,
+        "options": {
+          "capacity": 2
+        }
+      },
+      "expected": {
+        "length": 2,
+        "minHookErrors": 1,
+        "rejectionCount": 0,
+        "shiftValues": [
+          -1,
+          1
+        ]
+      }
+    },
+    {
+      "name": "subclass-can-read-protected-state",
+      "description": "A subclass can read the protected buffer state",
+      "kind": "subclass-can-read-protected-state",
+      "input": {
+        "options": {
+          "capacity": 4
+        },
+        "pushItems": [
+          1,
+          2
+        ]
+      },
+      "expected": {
+        "state": {
+          "capacity": 4,
+          "head": 1,
+          "length": 1,
+          "tail": 2
+        }
+      }
+    },
+    {
+      "name": "reentrant-shift-throws",
+      "description": "A reentrant shift from onShift throws ReentrantHookInvocationError",
+      "kind": "reentrant-shift-throws",
+      "input": {
+        "options": {
+          "capacity": 2
+        },
+        "pushItems": [
+          1,
+          2
+        ]
+      },
+      "expected": {
+        "firstShift": 1,
+        "length": 1,
+        "secondShift": 2
+      }
+    },
+    {
+      "name": "reentrant-grow-throws-and-does-not-double-resize",
+      "description": "A reentrant grow from onGrow throws ReentrantHookInvocationError and does not double-resize",
+      "kind": "reentrant-grow-throws-and-does-not-double-resize",
+      "input": {
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        },
+        "pushItems": [
+          1,
+          2,
+          3,
+          10,
+          11,
+          12,
+          13,
+          14
+        ],
+        "batch": {
+          "pushStageCounts": [
+            3,
+            4,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "firstShiftValues": [
+          1,
+          2,
+          3
+        ],
+        "growOldCapacitiesFirst": [
+          2
+        ],
+        "growOldCapacitiesSecond": [
+          2,
+          4
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "cases": [
+    {
+      "name": "create-with-config",
+      "description": "Throttle.create(config) creates a throttle with the provided concurrency limit",
+      "kind": "create-with-config",
+      "input": { "throttle": { "concurrencyLimit": 5 } },
+      "expected": { "concurrencyLimit": 5 }
+    },
+    {
+      "name": "create-with-default",
+      "description": "Throttle.create() creates a throttle with the default concurrency limit",
+      "kind": "create-with-default",
+      "input": { "throttle": {} },
+      "expected": { "concurrencyLimit": 10 }
+    },
+    {
+      "name": "execute-created-throttle",
+      "description": "Throttle.create().execute() executes an operation directly",
+      "kind": "execute-created-throttle",
+      "input": { "throttle": { "concurrencyLimit": 5 } },
+      "expected": { "result": "factory-result" }
+    },
+    {
+      "name": "chain-execute-after-create",
+      "description": "Throttle.create(config).execute() chains execution after creation",
+      "kind": "chain-execute-after-create",
+      "input": { "throttle": { "concurrencyLimit": 3 } },
+      "expected": { "result": "chained-result" }
+    },
+    {
+      "name": "execute-closure-arguments",
+      "description": "Throttle.create().execute() supports function arguments via closure",
+      "kind": "execute-closure-arguments",
+      "input": { "throttle": { "concurrencyLimit": 5 } },
+      "expected": { "result": 12 }
+    }
+  ]
+}

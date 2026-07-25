@@ -7,21 +7,28 @@ name: CodeQL
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main, develop]
+    branches: [ main, develop ]
   schedule:
     - cron: '0 0 * * 1'
   workflow_dispatch:
 
 jobs:
+  detect-changes:
+    uses: ./.github/workflows/detect-changes.yml
+
   analyze:
     name: Analyze (${{ matrix.language }})
+    needs: [ detect-changes ]
+    if: needs.detect-changes.outputs.analysis == 'true' || github.event_name ==
+      'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       security-events: write
       contents: read
       actions: read
+      packages: read
     strategy:
       fail-fast: false
       matrix:
@@ -30,6 +37,17 @@ jobs:
             build-mode: none
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/pnpm-node-setup
+      - id: probe
+        uses: ./.github/actions/gh-api-probe
+        with:
+          path: repos/${{ github.repository }}/code-scanning/alerts
+
+      - name: Skip when GHAS unavailable
+        if: steps.probe.outputs.enabled != 'true'
+        run: |
+          echo "CodeQL skipped: GitHub Advanced Security is unavailable."
+          exit 0
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -44,3 +62,20 @@ jobs:
           category: '/language:${{ matrix.language }}'
 
     timeout-minutes: 15
+
+  required:
+    name: CodeQL required
+    needs: [ detect-changes, analyze ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate CodeQL result
+        shell: bash
+        run: |
+          set -euo pipefail
+          for result in '${{ needs.detect-changes.result }}' '${{ needs.analyze.result }}'; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "CodeQL required: dependency result was $result" >&2; exit 1 ;;
+            esac
+          done

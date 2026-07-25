@@ -1,0 +1,32 @@
+{
+  "valid": [
+    {
+      "code": "function f(k) { switch (k) {\n  case 0: return 0;\n  case 1: return 1;\n  case 2: return 2;\n  case 3: return 3;\n  case 4: return 4;\n  case 5: return 5;\n  case 6: return 6;\n  case 7: return 7;\n  case 8: return 8;\n  case 9: return 9;\n  case 10: return 10;\n  case 11: return 11;\n  case 12: return 12;\n  case 13: return 13;\n  case 14: return 14;\n  case 15: return 15;\n  case 16: return 16;\n  case 17: return 17;\n  case 18: return 18;\n  default: return -1;\n} }",
+      "name": "19 cases - below the 20-case threshold, switch measured faster, not flagged"
+    },
+    {
+      "code": "switch (k) { case 0: return 1; default: return -1; }",
+      "name": "trivial 1-case switch - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "function f(k) { switch (k) {\n  case 0: return 0;\n  case 1: return 1;\n  case 2: return 2;\n  case 3: return 3;\n  case 4: return 4;\n  case 5: return 5;\n  case 6: return 6;\n  case 7: return 7;\n  case 8: return 8;\n  case 9: return 9;\n  case 10: return 10;\n  case 11: return 11;\n  case 12: return 12;\n  case 13: return 13;\n  case 14: return 14;\n  case 15: return 15;\n  case 16: return 16;\n  case 17: return 17;\n  case 18: return 18;\n  case 19: return 19;\n  default: return -1;\n} }",
+      "errors": [
+        {
+          "messageId": "tooManyCases"
+        }
+      ],
+      "name": "20 cases - at the threshold, dispatch map measured comparable-or-faster, flagged"
+    },
+    {
+      "code": "function f(k) { switch (k) {\n  case 0: return 0;\n  case 1: return 1;\n  case 2: return 2;\n  case 3: return 3;\n  case 4: return 4;\n  case 5: return 5;\n  case 6: return 6;\n  case 7: return 7;\n  case 8: return 8;\n  case 9: return 9;\n  case 10: return 10;\n  case 11: return 11;\n  case 12: return 12;\n  case 13: return 13;\n  case 14: return 14;\n  case 15: return 15;\n  case 16: return 16;\n  case 17: return 17;\n  case 18: return 18;\n  case 19: return 19;\n  case 20: return 20;\n  case 21: return 21;\n  case 22: return 22;\n  case 23: return 23;\n  case 24: return 24;\n  case 25: return 25;\n  case 26: return 26;\n  case 27: return 27;\n  case 28: return 28;\n  case 29: return 29;\n  case 30: return 30;\n  case 31: return 31;\n  case 32: return 32;\n  case 33: return 33;\n  case 34: return 34;\n  case 35: return 35;\n  case 36: return 36;\n  case 37: return 37;\n  case 38: return 38;\n  case 39: return 39;\n  case 40: return 40;\n  case 41: return 41;\n  case 42: return 42;\n  case 43: return 43;\n  case 44: return 44;\n  case 45: return 45;\n  case 46: return 46;\n  case 47: return 47;\n  case 48: return 48;\n  case 49: return 49;\n  default: return -1;\n} }",
+      "errors": [
+        {
+          "messageId": "tooManyCases"
+        }
+      ],
+      "name": "50 cases - well above threshold, flagged"
+    }
+  ]
+}

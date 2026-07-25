@@ -1,0 +1,137 @@
+{
+  "cases": [
+    {
+      "name": "never aborts",
+      "description": "never aborts",
+      "kind": "never-aborts",
+      "input": { "aborted": false },
+      "expected": { "aborted": false }
+    },
+    {
+      "name": "same cached instance",
+      "description": "same cached instance",
+      "kind": "never-same-instance",
+      "input": { "sameInstance": true },
+      "expected": { "sameInstance": true }
+    },
+    {
+      "name": "compose with empty options",
+      "description": "compose with empty options",
+      "kind": "compose-empty-options",
+      "input": { "aborted": false, "composeOptions": {} },
+      "expected": { "aborted": false }
+    },
+    {
+      "name": "compose with provided signal",
+      "description": "compose with provided signal",
+      "kind": "compose-provided-signal",
+      "input": { "composeOptions": { "signalId": "provided" } },
+      "expected": { "sameSignal": true }
+    },
+    {
+      "name": "compose with signal and deadline abort",
+      "description": "compose with signal and deadline abort",
+      "kind": "compose-signal-deadline-abort",
+      "input": { "composeOptions": { "deadlineMs": 5000, "signalId": "abort-controller" } },
+      "expected": { "initialAborted": false, "abortedAfterAbort": true }
+    },
+    {
+      "name": "compose returns a signal that fires after deadlineMs",
+      "description": "compose returns a signal that fires after deadlineMs",
+      "kind": "compose-deadline-fires",
+      "input": { "composeOptions": { "deadlineMs": 50 }, "waitMs": 80 },
+      "expected": { "initialAborted": false, "abortedAfterWait": true }
+    },
+    {
+      "name": "compose rejects invalid deadline",
+      "description": "compose rejects invalid deadline",
+      "kind": "compose-invalid-deadline",
+      "input": { "composeOptions": { "deadlineMs": -1 } },
+      "expected": { "errorMessageIncludes": "deadlineMs must be a non-negative number" }
+    },
+    {
+      "name": "instance compose with empty options",
+      "description": "instance compose with empty options",
+      "kind": "instance-empty-options",
+      "input": { "sameAsNever": true, "composeOptions": {} },
+      "expected": { "sameAsNever": true }
+    },
+    {
+      "name": "instance compose with provided signal",
+      "description": "instance compose with provided signal",
+      "kind": "instance-provided-signal",
+      "input": { "composeOptions": { "signalId": "provided" } },
+      "expected": { "sameSignal": true }
+    },
+    {
+      "name": "onCompose hook fires with signal-only options",
+      "description": "onCompose hook fires with signal-only options",
+      "kind": "on-compose-signal-only",
+      "input": { "composeOptions": { "signalId": "provided" } },
+      "expected": { "callCount": 1, "resultMatches": true }
+    },
+    {
+      "name": "onCompose hook fires with deadline-only options",
+      "description": "onCompose hook fires with deadline-only options",
+      "kind": "on-compose-deadline-only",
+      "input": { "composeOptions": { "deadlineMs": 1000 } },
+      "expected": { "callCount": 1, "resultMatches": true }
+    },
+    {
+      "name": "onCompose hook fires with empty options",
+      "description": "onCompose hook fires with empty options",
+      "kind": "on-compose-empty-options",
+      "input": { "composeOptions": {} },
+      "expected": { "callCount": 1, "resultMatches": true }
+    },
+    {
+      "name": "a throwing onCompose hook surfaces as a HookInvocationError from compose()",
+      "description": "a throwing onCompose hook surfaces as a HookInvocationError from compose()",
+      "kind": "throwing-on-compose-surfaces",
+      "input": { "message": "onCompose boom", "composeOptions": { "signalId": "provided" } },
+      "expected": { "causeMessage": "onCompose boom", "hookName": "onCompose" }
+    },
+    {
+      "name": "an async onCompose rejection also surfaces as a HookInvocationError from compose()",
+      "description": "an async onCompose rejection also surfaces as a HookInvocationError from compose()",
+      "kind": "async-on-compose-rejection-surfaces",
+      "input": { "message": "onCompose async boom", "composeOptions": {} },
+      "expected": { "causeMessage": "onCompose async boom", "hookName": "onCompose" }
+    },
+    {
+      "name": "a HookInvoker subclass overriding onHookError can swallow a throwing onCompose hook",
+      "description": "a HookInvoker subclass overriding onHookError can swallow a throwing onCompose hook",
+      "kind": "swallowing-hook-invoker",
+      "input": { "message": "onCompose boom", "composeOptions": {} },
+      "expected": { "aborted": false }
+    },
+    {
+      "name": "raceTimeout resolves timeout when the timer wins with no signal supplied",
+      "description": "raceTimeout resolves timeout when the timer wins with no signal supplied",
+      "kind": "race-timeout-no-signal",
+      "input": { "waitMs": 20 },
+      "expected": { "outcome": "timeout" }
+    },
+    {
+      "name": "raceTimeout resolves timeout when the timer wins and removes its abort listener",
+      "description": "raceTimeout resolves timeout when the timer wins and removes its abort listener",
+      "kind": "race-timeout-removes-listener",
+      "input": { "waitMs": 20 },
+      "expected": { "abortListenerCountBefore": 1, "abortListenerCountAfter": 0, "outcome": "timeout" }
+    },
+    {
+      "name": "raceTimeout returns aborted for an already-aborted signal",
+      "description": "raceTimeout returns aborted for an already-aborted signal",
+      "kind": "race-timeout-already-aborted",
+      "input": {},
+      "expected": { "outcome": "aborted" }
+    },
+    {
+      "name": "signal error construction",
+      "description": "signal error construction",
+      "kind": "signal-error-construction",
+      "input": { "message": "invalid signal config" },
+      "expected": { "code": "signal.invalidConfig" }
+    }
+  ]
+}

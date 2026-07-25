@@ -1,0 +1,36 @@
+{
+  "valid": [
+    {
+      "code": "const pattern = new RegExp('a');",
+      "name": "RegExp construction outside a loop - not flagged"
+    },
+    {
+      "code": "for (const value of [1, 2, 3]) { const pattern = new Date(value); void pattern; }",
+      "name": "non-RegExp construction inside a loop - not flagged"
+    },
+    {
+      "code": "for (const value of [1, 2, 3]) { (() => RegExp(String(value)))(); }",
+      "name": "RegExp construction inside a nested function within a loop - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "for (const value of [1, 2, 3]) { const pattern = new RegExp(String(value)); void pattern; }",
+      "errors": [
+        {
+          "messageId": "regexpInLoop"
+        }
+      ],
+      "name": "new RegExp() inside a loop - flagged"
+    },
+    {
+      "code": "while (true) { const pattern = RegExp('a'); void pattern; break; }",
+      "errors": [
+        {
+          "messageId": "regexpInLoop"
+        }
+      ],
+      "name": "RegExp() call inside a loop - flagged"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "cases": [
+    {
+      "description": "the observed limiter example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedSlidingWindowLimiter.ts"
+      },
+      "kind": "imports-example",
+      "name": "observedSlidingWindowLimiter"
+    },
+    {
+      "description": "the default-clock limiter example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/defaultClockSlidingWindowLimiter.ts"
+      },
+      "kind": "imports-example",
+      "name": "defaultClockSlidingWindowLimiter"
+    },
+    {
+      "description": "the invalid-config limiter example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/invalidConfigSlidingWindowLimiter.ts"
+      },
+      "kind": "imports-example",
+      "name": "invalidConfigSlidingWindowLimiter"
+    }
+  ]
+}

@@ -1,0 +1,417 @@
+{
+  "cases": [
+    {
+      "name": "buildQueryString-object",
+      "description": "buildQueryString serializes object values",
+      "kind": "buildQueryString-object",
+      "input": {
+        "params": {
+          "limit": 10,
+          "page": 1
+        }
+      },
+      "expected": {
+        "output": "limit=10&page=1"
+      }
+    },
+    {
+      "name": "buildQueryString-string",
+      "description": "buildQueryString URL-encodes strings",
+      "kind": "buildQueryString-string",
+      "input": {
+        "params": {
+          "email": "john@example.com",
+          "name": "John Doe"
+        }
+      },
+      "expected": {
+        "output": "email=john%40example.com&name=John%20Doe"
+      }
+    },
+    {
+      "name": "buildQueryString-boolean",
+      "description": "buildQueryString serializes booleans",
+      "kind": "buildQueryString-boolean",
+      "input": {
+        "params": {
+          "active": true,
+          "deleted": false
+        }
+      },
+      "expected": {
+        "output": "active=true&deleted=false"
+      }
+    },
+    {
+      "name": "buildQueryString-array",
+      "description": "buildQueryString serializes arrays",
+      "kind": "buildQueryString-array",
+      "input": {
+        "params": {
+          "tags": [
+            "javascript",
+            "typescript"
+          ]
+        }
+      },
+      "expected": {
+        "output": "tags=javascript&tags=typescript"
+      }
+    },
+    {
+      "name": "buildQueryString-skip-null-undefined",
+      "description": "buildQueryString skips null and undefined values",
+      "kind": "buildQueryString-skip-null-undefined",
+      "input": {
+        "params": {
+          "filter": null,
+          "page": 1,
+          "sort": {
+            "kind": "undefined"
+          }
+        }
+      },
+      "expected": {
+        "output": "page=1"
+      }
+    },
+    {
+      "name": "buildQueryString-skip-null-array-items",
+      "description": "buildQueryString skips nullish array items",
+      "kind": "buildQueryString-skip-null-array-items",
+      "input": {
+        "params": {
+          "tags": [
+            "js",
+            null,
+            "ts",
+            {
+              "kind": "undefined"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "output": "tags=js&tags=ts"
+      }
+    },
+    {
+      "name": "buildQueryString-empty-object",
+      "description": "buildQueryString returns empty output for empty input",
+      "kind": "buildQueryString-empty-object",
+      "input": {
+        "params": {}
+      },
+      "expected": {
+        "output": ""
+      }
+    },
+    {
+      "name": "buildQueryString-encode-special-chars",
+      "description": "buildQueryString encodes special characters",
+      "kind": "buildQueryString-encode-special-chars",
+      "input": {
+        "params": {
+          "filter": "a&b=c",
+          "query": "hello world!"
+        }
+      },
+      "expected": {
+        "output": "filter=a%26b%3Dc&query=hello%20world!"
+      }
+    },
+    {
+      "name": "buildQueryString-number",
+      "description": "buildQueryString serializes numbers",
+      "kind": "buildQueryString-number",
+      "input": {
+        "params": {
+          "id": 123,
+          "price": 99.99
+        }
+      },
+      "expected": {
+        "output": "id=123&price=99.99"
+      }
+    },
+    {
+      "name": "buildQueryString-mixed-bool-null-array",
+      "description": "buildQueryString skips nullish items in mixed arrays",
+      "kind": "buildQueryString-skip-null-array-items",
+      "input": {
+        "params": {
+          "tags": [
+            true,
+            null,
+            false,
+            {
+              "kind": "undefined"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "output": "tags=true&tags=false"
+      }
+    },
+    {
+      "name": "buildUrl-append-query",
+      "description": "buildUrl appends a query string",
+      "kind": "buildUrl-append-query",
+      "input": {
+        "baseUrl": "/api/users",
+        "params": {
+          "limit": 10,
+          "page": 1
+        }
+      },
+      "expected": {
+        "output": "/api/users?limit=10&page=1"
+      }
+    },
+    {
+      "name": "buildUrl-existing-query",
+      "description": "buildUrl preserves existing query params",
+      "kind": "buildUrl-existing-query",
+      "input": {
+        "baseUrl": "/api/users?sort=name",
+        "params": {
+          "page": 1
+        }
+      },
+      "expected": {
+        "output": "/api/users?sort=name&page=1"
+      }
+    },
+    {
+      "name": "buildUrl-full-url",
+      "description": "buildUrl handles full URLs",
+      "kind": "buildUrl-full-url",
+      "input": {
+        "baseUrl": "https://api.example.com/users",
+        "params": {
+          "page": 1
+        }
+      },
+      "expected": {
+        "output": "https://api.example.com/users?page=1"
+      }
+    },
+    {
+      "name": "buildUrl-no-params",
+      "description": "buildUrl returns the original URL without params",
+      "kind": "buildUrl-no-params",
+      "input": {
+        "baseUrl": "/api/users"
+      },
+      "expected": {
+        "output": "/api/users"
+      }
+    },
+    {
+      "name": "buildUrl-empty-params",
+      "description": "buildUrl returns the original URL for empty params",
+      "kind": "buildUrl-empty-params",
+      "input": {
+        "baseUrl": "/api/users",
+        "params": {}
+      },
+      "expected": {
+        "output": "/api/users"
+      }
+    },
+    {
+      "name": "buildUrl-nullish-only",
+      "description": "buildUrl ignores nullish-only params",
+      "kind": "buildUrl-nullish-only",
+      "input": {
+        "baseUrl": "/api/users",
+        "params": {
+          "filter": null,
+          "sort": {
+            "kind": "undefined"
+          }
+        }
+      },
+      "expected": {
+        "output": "/api/users"
+      }
+    },
+    {
+      "name": "buildUrl-array-params",
+      "description": "buildUrl serializes array params",
+      "kind": "buildUrl-array-params",
+      "input": {
+        "baseUrl": "/api/search",
+        "params": {
+          "active": true,
+          "tags": [
+            "js",
+            "ts"
+          ]
+        }
+      },
+      "expected": {
+        "output": "/api/search?active=true&tags=js&tags=ts"
+      }
+    },
+    {
+      "name": "buildUrl-empty-query-string",
+      "description": "buildUrl preserves base URL for params that serialize empty",
+      "kind": "buildUrl-empty-params",
+      "input": {
+        "baseUrl": "/api/items",
+        "params": {
+          "tags": []
+        }
+      },
+      "expected": {
+        "output": "/api/items"
+      }
+    },
+    {
+      "name": "parseQueryString-basic",
+      "description": "parseQueryString parses a basic query string",
+      "kind": "parseQueryString-basic",
+      "input": {
+        "queryString": "page=1&limit=10"
+      },
+      "expected": {
+        "output": {
+          "limit": "10",
+          "page": "1"
+        }
+      }
+    },
+    {
+      "name": "parseQueryString-leading-question-mark",
+      "description": "parseQueryString handles a leading question mark",
+      "kind": "parseQueryString-leading-question-mark",
+      "input": {
+        "queryString": "?page=1&limit=10"
+      },
+      "expected": {
+        "output": {
+          "limit": "10",
+          "page": "1"
+        }
+      }
+    },
+    {
+      "name": "parseQueryString-repeated-keys",
+      "description": "parseQueryString groups repeated keys into arrays",
+      "kind": "parseQueryString-repeated-keys",
+      "input": {
+        "queryString": "tags=js&tags=ts&tags=py"
+      },
+      "expected": {
+        "output": {
+          "tags": [
+            "js",
+            "ts",
+            "py"
+          ]
+        }
+      }
+    },
+    {
+      "name": "parseQueryString-decode-values",
+      "description": "parseQueryString decodes URL-encoded values",
+      "kind": "parseQueryString-decode-values",
+      "input": {
+        "queryString": "name=John%20Doe&email=john%40example.com"
+      },
+      "expected": {
+        "output": {
+          "email": "john@example.com",
+          "name": "John Doe"
+        }
+      }
+    },
+    {
+      "name": "parseQueryString-empty-string",
+      "description": "parseQueryString handles an empty string",
+      "kind": "parseQueryString-empty-string",
+      "input": {
+        "queryString": ""
+      },
+      "expected": {
+        "output": {}
+      }
+    },
+    {
+      "name": "parseQueryString-just-question-mark",
+      "description": "parseQueryString handles just a question mark",
+      "kind": "parseQueryString-just-question-mark",
+      "input": {
+        "queryString": "?"
+      },
+      "expected": {
+        "output": {}
+      }
+    },
+    {
+      "name": "parseQueryString-keys-without-values",
+      "description": "parseQueryString handles keys without values",
+      "kind": "parseQueryString-keys-without-values",
+      "input": {
+        "queryString": "debug&verbose"
+      },
+      "expected": {
+        "output": {
+          "debug": "",
+          "verbose": ""
+        }
+      }
+    },
+    {
+      "name": "parseQueryString-mixed-single-and-repeated",
+      "description": "parseQueryString handles mixed single and repeated keys",
+      "kind": "parseQueryString-mixed-single-and-repeated",
+      "input": {
+        "queryString": "page=1&tags=js&tags=ts&active=true"
+      },
+      "expected": {
+        "output": {
+          "active": "true",
+          "page": "1",
+          "tags": [
+            "js",
+            "ts"
+          ]
+        }
+      }
+    },
+    {
+      "name": "parseQueryString-empty-value",
+      "description": "parseQueryString preserves empty values",
+      "kind": "parseQueryString-basic",
+      "input": {
+        "queryString": "flag=&page=1"
+      },
+      "expected": {
+        "output": {
+          "flag": "",
+          "page": "1"
+        }
+      }
+    },
+    {
+      "name": "parseQueryString-duplicate-empty-values",
+      "description": "parseQueryString groups repeated empty values",
+      "kind": "parseQueryString-repeated-keys",
+      "input": {
+        "queryString": "flag=&flag=two&flag="
+      },
+      "expected": {
+        "output": {
+          "flag": [
+            "",
+            "two",
+            ""
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,419 @@
+{
+  "cases": [
+    {
+      "name": "invalid-limit-zero",
+      "description": "create rejects a limit below 1",
+      "kind": "invalid-config",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "limit": 0,
+          "windowMs": 1000
+        }
+      },
+      "expected": {
+        "errorName": "SlidingWindowLimiterConfigError"
+      }
+    },
+    {
+      "name": "invalid-window-zero",
+      "description": "create rejects a zero window",
+      "kind": "invalid-config",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "limit": 5,
+          "windowMs": 0
+        }
+      },
+      "expected": {
+        "errorName": "SlidingWindowLimiterConfigError"
+      }
+    },
+    {
+      "name": "invalid-limit-non-integer",
+      "description": "create rejects a non-integer limit",
+      "kind": "invalid-config",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "limit": 1.5,
+          "windowMs": 1000
+        }
+      },
+      "expected": {
+        "errorName": "SlidingWindowLimiterConfigError"
+      }
+    },
+    {
+      "name": "default-clock-consume",
+      "description": "create uses the default clock when none is provided",
+      "kind": "default-clock-consume",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "limit": 1,
+          "windowMs": 1000
+        }
+      },
+      "expected": {
+        "admitted": 1
+      }
+    },
+    {
+      "name": "default-clock-consume-counter",
+      "description": "create uses the default clock for the counter algorithm",
+      "kind": "default-clock-consume-counter",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "counter",
+          "limit": 1,
+          "windowMs": 1000
+        }
+      },
+      "expected": {
+        "admitted": 1
+      }
+    },
+    {
+      "name": "log-within-limit",
+      "description": "log admissions stay under the limit",
+      "kind": "within-limit",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "admitCount": 3,
+          "limit": 3,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "admitted": 3
+      }
+    },
+    {
+      "name": "counter-within-limit",
+      "description": "counter admissions stay under the limit",
+      "kind": "within-limit",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "counter",
+          "admitCount": 3,
+          "limit": 3,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "admitted": 3
+      }
+    },
+    {
+      "name": "log-limit-plus-one",
+      "description": "log rejects the request that would exceed the limit",
+      "kind": "limit-plus-one-throws",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "admitCount": 3,
+          "limit": 3,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "admitted": 3
+      }
+    },
+    {
+      "name": "counter-limit-plus-one",
+      "description": "counter rejects the request that would exceed the limit",
+      "kind": "limit-plus-one-throws",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "counter",
+          "admitCount": 3,
+          "limit": 3,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "admitted": 3
+      }
+    },
+    {
+      "name": "log-recovers-after-window",
+      "description": "log admits again after the rolling window clears",
+      "kind": "recovers-after-window",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "admitCount": 2,
+          "advanceAfterRejectMs": 101,
+          "limit": 2,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "admittedBeforeRetry": 2,
+        "retryAfterMs": 101
+      }
+    },
+    {
+      "name": "counter-recovers-after-window",
+      "description": "counter admits again after the blended estimate decays",
+      "kind": "recovers-after-window",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "counter",
+          "admitCount": 2,
+          "advanceAfterRejectMs": 199,
+          "limit": 2,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "admittedBeforeRetry": 2,
+        "retryAfterMs": 199
+      }
+    },
+    {
+      "name": "log-aborted-wait",
+      "description": "log waitForToken stops when the signal aborts",
+      "kind": "wait-for-token-aborts",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "abortMessage": "cancelled",
+          "limit": 1,
+          "windowMs": 1000
+        }
+      },
+      "expected": {
+        "rejectionMessage": "cancelled"
+      }
+    },
+    {
+      "name": "counter-aborted-wait",
+      "description": "counter waitForToken stops when the signal aborts",
+      "kind": "wait-for-token-aborts",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "counter",
+          "abortMessage": "cancelled",
+          "limit": 1,
+          "windowMs": 1000
+        }
+      },
+      "expected": {
+        "rejectionMessage": "cancelled"
+      }
+    },
+    {
+      "name": "log-prunes-stale-entries",
+      "description": "log prunes stale timestamps and keeps fresh ones",
+      "kind": "log-prunes-stale-entries",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "firstAdvanceMs": 60,
+          "limit": 2,
+          "secondAdvanceMs": 101,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "afterPruneRejects": 1,
+        "beforePruneRejects": 1
+      }
+    },
+    {
+      "name": "counter-blends-previous-window",
+      "description": "counter blends the previous window count by elapsed fraction",
+      "kind": "counter-blends-previous-window",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "counter",
+          "firstAdvanceMs": 150,
+          "limit": 4,
+          "secondWaveAttempts": 2,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "afterPruneRejects": 1,
+        "beforePruneRejects": 1
+      }
+    },
+    {
+      "name": "allow-hook-fires",
+      "description": "onAllow fires after an admitted request",
+      "kind": "hook-event",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "hook": "allow",
+          "limit": 2,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          {
+            "type": "allow",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "reject-hook-fires",
+      "description": "onReject fires before an exhausted request throws",
+      "kind": "hook-event",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "counter",
+          "hook": "reject",
+          "limit": 1,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          {
+            "type": "allow",
+            "value": 1
+          },
+          {
+            "type": "reject",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "log-window-roll-fires",
+      "description": "log fires onWindowRoll when stale entries are pruned",
+      "kind": "window-roll",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "limit": 1,
+          "rollAfterMs": 101,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          "windowRoll"
+        ]
+      }
+    },
+    {
+      "name": "counter-window-roll-fires",
+      "description": "counter fires onWindowRoll when the fixed window changes",
+      "kind": "window-roll",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "counter",
+          "limit": 5,
+          "rollAfterMs": 150,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          "windowRoll"
+        ]
+      }
+    },
+    {
+      "name": "structural-compatibility",
+      "description": "consume(tokens?) and waitForToken(options?) accept the keyed-rate-limiter shape",
+      "kind": "structural-compatibility",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "consumeTokens": 1,
+          "limit": 5,
+          "waitTokens": 1,
+          "windowMs": 1000
+        }
+      },
+      "expected": {
+        "output": "resolved"
+      }
+    },
+    {
+      "name": "hook-errors-are-isolated",
+      "description": "hook failures stay isolated per limiter instance",
+      "kind": "hook-error-isolation",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "limit": 1,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "firstCount": 1,
+        "secondCount": 1,
+        "snapshotLength": 1
+      }
+    },
+    {
+      "name": "hook-error-snapshot-is-detached",
+      "description": "hook error snapshots detach nested diagnostics",
+      "kind": "hook-error-snapshot",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "limit": 1,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "firstCount": 1,
+        "secondCount": 1,
+        "snapshotLength": 1
+      }
+    },
+    {
+      "name": "async-allow-rejection-stays-contained",
+      "description": "async onAllow failures do not escape as unhandled rejections",
+      "kind": "async-allow-rejection",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "limit": 1,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "errorCount": 1,
+        "hookNames": [
+          "onAllow"
+        ]
+      }
+    },
+    {
+      "name": "async-notifications-preserve-decisions",
+      "description": "async notification overrides keep decisions and record ordered failures",
+      "kind": "async-notification-order",
+      "input": {
+        "slidingWindowLimiter": {
+          "algorithm": "log",
+          "limit": 1,
+          "windowMs": 100
+        }
+      },
+      "expected": {
+        "errorCount": 4,
+        "hookNames": [
+          "onAllow",
+          "onWindowRoll",
+          "onAllow",
+          "onReject"
+        ]
+      }
+    }
+  ]
+}

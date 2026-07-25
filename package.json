@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/substrate",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "license": "MIT",
@@ -28,6 +28,11 @@
     "changeset:status": "changeset status",
     "changeset:version": "changeset version",
     "clean": "tsc -b --clean",
+    "config-schema": "node scripts/config-schema.mjs",
+    "config-schema:check": "node scripts/config-schema.mjs --check",
+    "diagram:deps": "node scripts/dependency-diagram.mjs",
+    "diagram:deps:check": "node scripts/dependency-diagram.mjs --check",
+    "diagram:deps:blast-radius": "node scripts/dependency-diagram.mjs --blast-radius",
     "predocs:build": "node scripts/stamp-version.mjs",
     "docs:build": "vitepress build docs",
     "docs:dev": "vitepress dev docs",
@@ -36,10 +41,28 @@
     "lint:docs": "node scripts/check-docs-includes.mjs",
     "lint:fix": "oxlint packages --fix && eslint . --fix",
     "lint:oxlint": "oxlint packages",
+    "test:inventory": "node scripts/test-estate-report.mjs",
     "stamp-version": "node scripts/stamp-version.mjs",
     "stamp-version:check": "node scripts/stamp-version.mjs --check",
-    "test": "pnpm -r --if-present run test",
-    "typecheck": "tsc -b"
+    "test": "pnpm run test:unit",
+    "test:unit": "node scripts/test-suite.mjs unit --fail-if-empty",
+    "test:integration": "node scripts/test-suite.mjs integration --fail-if-empty",
+    "test:smoke": "node scripts/test-suite.mjs smoke --fail-if-empty",
+    "test:all": "node scripts/test-suite.mjs all --fail-if-empty",
+    "test:coverage": "node scripts/test-suite.mjs all --coverage --fail-if-empty",
+    "test:watch": "node scripts/test-suite.mjs all --watch",
+    "test:dry-run": "node scripts/test-suite.mjs all --dry-run",
+    "test:changed": "node scripts/test-suite.mjs changed --base origin/develop",
+    "typecheck": "tsc -b",
+    "prepare": "bash scripts/install-hooks.sh",
+    "prebuild": "bash scripts/install-hooks.sh",
+    "prelint": "bash scripts/install-hooks.sh",
+    "pretest": "bash scripts/install-hooks.sh",
+    "pretypecheck": "bash scripts/install-hooks.sh",
+    "predev": "bash scripts/install-hooks.sh",
+    "setup-hooks": "bash scripts/install-hooks.sh",
+    "worktree:clean": "bash scripts/worktree-clean.sh",
+    "test:hooks": "for f in .githooks/tests/*.test.sh; do echo \"→ $f\"; bash \"$f\" || exit $?; done"
   },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.1",
@@ -63,6 +86,8 @@
     "eslint-plugin-regexp": "^3.1.1",
     "eslint-plugin-unused-imports": "^4.4.1",
     "mermaid": "^11.16.0",
+    "madge": "^8.0.0",
+    "lint-staged": "^16.1.0",
     "oxlint": "^1.74.0",
     "sucrase": "^3.35.1",
     "tsx": "^4.23.1",
@@ -76,7 +101,8 @@
   "pnpm": {
     "overrides": {
       "vite": "^6.4.3",
-      "esbuild": "^0.25.0"
+      "esbuild": "^0.25.0",
+      "fast-uri": "^3.1.4"
     }
   },
   "substrate": {

@@ -1,0 +1,88 @@
+{
+  "cases": [
+    {
+      "name": "merge-empty",
+      "description": "returns immediately for zero sources",
+      "kind": "merge-empty",
+      "input": { "sources": [] },
+      "expected": { "items": [] }
+    },
+    {
+      "name": "merge-single",
+      "description": "merges a single source",
+      "kind": "merge-single",
+      "input": { "sources": [[1, 2, 3]] },
+      "expected": { "items": [1, 2, 3] }
+    },
+    {
+      "name": "merge-two-sources",
+      "description": "merges two sources",
+      "kind": "merge-two-sources",
+      "input": { "sources": [[1, 2], [3, 4]] },
+      "expected": { "includes": [1, 2, 3, 4], "length": 4 }
+    },
+    {
+      "name": "merge-propagates-error",
+      "description": "first error from any source propagates",
+      "kind": "merge-propagates-error",
+      "input": { "errorMessage": "source-error", "sources": [[1], [2, 3]] },
+      "expected": { "errorMessage": "source-error" }
+    },
+    {
+      "name": "merge-high-volume",
+      "description": "FIFO order survives the CircularBuffer swap for a single source under high volume",
+      "kind": "merge-high-volume",
+      "input": { "batch": { "itemCount": 500 } },
+      "expected": { "first": 0, "last": 499, "length": 500 }
+    },
+    {
+      "name": "filter-sync",
+      "description": "passes items matching a sync predicate",
+      "kind": "filter-sync",
+      "input": { "predicate": "even", "values": [1, 2, 3, 4, 5] },
+      "expected": { "items": [2, 4] }
+    },
+    {
+      "name": "filter-empty",
+      "description": "skips all items when predicate returns false for all",
+      "kind": "filter-empty",
+      "input": { "predicate": "even", "values": [1, 3, 5] },
+      "expected": { "items": [] }
+    },
+    {
+      "name": "filter-async",
+      "description": "async predicate works",
+      "kind": "filter-async",
+      "input": { "minLength": 1, "values": ["a", "bb", "ccc"] },
+      "expected": { "items": ["bb", "ccc"] }
+    },
+    {
+      "name": "filter-all",
+      "description": "passes through all items when predicate returns true for all",
+      "kind": "filter-all",
+      "input": { "values": [1, 2, 3] },
+      "expected": { "items": [1, 2, 3] }
+    },
+    {
+      "name": "enrich-value",
+      "description": "enriches when lookup returns a value",
+      "kind": "enrich-value",
+      "input": { "values": [{ "id": 1 }, { "id": 2 }] },
+      "expected": { "items": [{ "id": 1, "label": "label-1" }, { "id": 2, "label": "label-2" }] }
+    },
+    {
+      "name": "enrich-partial",
+      "description": "passes through original item when lookup returns null",
+      "kind": "enrich-partial",
+      "input": { "values": [{ "id": 1 }, { "id": 2 }] },
+      "expected": { "items": [{ "id": 1 }, { "id": 2, "label": "found" }] }
+    },
+    {
+      "name": "enrich-none",
+      "description": "passes through all items when lookup always returns null",
+      "kind": "enrich-none",
+      "input": { "values": [{ "id": 1 }, { "id": 2 }] },
+      "expected": { "items": [{ "id": 1 }, { "id": 2 }] }
+    }
+  ]
+}

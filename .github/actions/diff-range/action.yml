@@ -1,0 +1,52 @@
+name: diff-range
+description: Resolve a diff range for PR and push workflows.
+
+inputs:
+  base-sha:
+    required: false
+    default: ''
+  head-sha:
+    required: false
+    default: ''
+
+outputs:
+  base_sha:
+    value: ${{ steps.resolve.outputs.base_sha }}
+  head_sha:
+    value: ${{ steps.resolve.outputs.head_sha }}
+  range:
+    value: ${{ steps.resolve.outputs.range }}
+
+runs:
+  using: composite
+  steps:
+    - id: resolve
+      shell: bash
+      env:
+        BASE_SHA: ${{ inputs.base-sha }}
+        HEAD_SHA: ${{ inputs.head-sha }}
+      run: |
+        set -euo pipefail
+
+        base="${BASE_SHA:-}"
+        head="${HEAD_SHA:-${GITHUB_SHA}}"
+
+        if [ -z "$base" ]; then
+          case "${GITHUB_EVENT_NAME:-}" in
+            pull_request)
+              base="${{ github.event.pull_request.base.sha }}"
+              head="${{ github.event.pull_request.head.sha }}"
+              ;;
+            push)
+              base="${{ github.event.before }}"
+              ;;
+          esac
+        fi
+
+        if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+          base=$(git rev-list --max-parents=0 "$head" | tail -1)
+        fi
+
+        echo "base_sha=$base" >> "$GITHUB_OUTPUT"
+        echo "head_sha=$head" >> "$GITHUB_OUTPUT"
+        echo "range=${base}..${head}" >> "$GITHUB_OUTPUT"

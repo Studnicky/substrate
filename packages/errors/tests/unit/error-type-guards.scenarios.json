@@ -1,0 +1,82 @@
+{
+  "cases": [
+    {
+      "name": "status-guard-valid",
+      "description": "recognizes an error with a numeric status",
+      "input": { "guard": "isErrorWithStatus", "error": { "status": 503 } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "status-guard-invalid",
+      "description": "rejects an error with a non-numeric status",
+      "input": { "guard": "isErrorWithStatus", "error": { "status": "503" } },
+      "expected": { "result": false }
+    },
+    {
+      "name": "status-code-guard-valid",
+      "description": "recognizes an error with a numeric statusCode",
+      "input": { "guard": "isErrorWithStatusCode", "error": { "statusCode": 503 } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "code-guard-valid",
+      "description": "recognizes an error with a string code",
+      "input": { "guard": "isErrorWithCode", "error": { "code": "ECONNRESET" } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "code-guard-native-error",
+      "description": "recognizes a native Error with a string code",
+      "input": { "guard": "isErrorWithCode", "error": { "kind": "native-error", "code": "ECONNRESET" } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "code-guard-invalid",
+      "description": "rejects an error with a non-string code",
+      "input": { "guard": "isErrorWithCode", "error": { "code": 123 } },
+      "expected": { "result": false }
+    },
+    {
+      "name": "retry-after-guard-valid",
+      "description": "recognizes an error with a numeric retryAfter",
+      "input": { "guard": "isErrorWithRetryAfter", "error": { "retryAfter": 30 } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "errno-guard-valid",
+      "description": "recognizes an error with a numeric errno",
+      "input": { "guard": "isErrorWithErrno", "error": { "errno": -61 } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "syscall-guard-valid",
+      "description": "recognizes an error with a string syscall",
+      "input": { "guard": "isErrorWithSyscall", "error": { "syscall": "connect" } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "hostname-guard-valid",
+      "description": "recognizes an error with a string hostname",
+      "input": { "guard": "isErrorWithHostname", "error": { "hostname": "example.test" } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "port-guard-valid",
+      "description": "recognizes an error with a numeric port",
+      "input": { "guard": "isErrorWithPort", "error": { "port": 443 } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "address-guard-valid",
+      "description": "recognizes an error with a string address",
+      "input": { "guard": "isErrorWithAddress", "error": { "address": "127.0.0.1" } },
+      "expected": { "result": true }
+    },
+    {
+      "name": "primitive-rejected",
+      "description": "rejects primitive values across the error-like guards",
+      "input": { "guard": "isErrorWithStatus", "error": "not-an-error" },
+      "expected": { "result": false }
+    }
+  ]
+}

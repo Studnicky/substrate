@@ -1,0 +1,56 @@
+{
+  "construction": [
+    {
+      "description": "is an instance of Error",
+      "outcome": "error"
+    },
+    {
+      "description": "is an instance of BaseError",
+      "outcome": "base-error"
+    },
+    {
+      "description": "sets name to ConfigurationError",
+      "outcome": "ConfigurationError"
+    },
+    {
+      "description": "has fixed code config.invalid",
+      "outcome": "config.invalid"
+    },
+    {
+      "description": "is not retryable",
+      "outcome": "retryable-false"
+    },
+    {
+      "description": "has a stack trace",
+      "outcome": "stack"
+    }
+  ],
+  "direct": [
+    {
+      "description": "sets the message correctly",
+      "kind": "message",
+      "message": "maxEvents must be positive",
+      "outcome": {
+        "message": "maxEvents must be positive"
+      }
+    },
+    {
+      "description": "toJSON includes code and message",
+      "kind": "json",
+      "message": "bad value",
+      "outcome": {
+        "code": "config.invalid",
+        "message": "bad value"
+      }
+    },
+    {
+      "description": "accepts a cause and threads it through the chain",
+      "kind": "cause",
+      "message": "wrapped",
+      "causeMessage": "original",
+      "outcome": {
+        "causeMessage": "original"
+      }
+    }
+  ]
+}

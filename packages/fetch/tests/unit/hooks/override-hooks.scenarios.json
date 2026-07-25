@@ -1,0 +1,101 @@
+{
+  "cases": [
+    {
+      "name": "request-header-injection",
+      "description": "Overriding onRequest injects a request header",
+      "operation": "request-header-injection",
+      "input": {
+        "baseURL": "https://example.test"
+      },
+      "expected": {
+        "header": "x-injected",
+        "value": "hook-value"
+      }
+    },
+    {
+      "name": "url-rewrite",
+      "description": "Overriding onRequest rewrites the request URL",
+      "operation": "url-rewrite",
+      "input": {
+        "baseURL": "https://example.test"
+      },
+      "expected": {
+        "entries": [
+          "https://example.test/original-path"
+        ]
+      }
+    },
+    {
+      "name": "base-on-request",
+      "description": "The base onRequest implementation leaves the request unchanged",
+      "operation": "base-on-request",
+      "input": {
+        "baseURL": "https://example.test"
+      },
+      "expected": {
+        "header": "x-injected",
+        "value": "__UNDEFINED__"
+      }
+    },
+    {
+      "name": "response-wrap",
+      "description": "Overriding onResponse can wrap the response",
+      "operation": "response-wrap",
+      "input": {
+        "baseURL": "https://example.test"
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "response-reject",
+      "description": "Throwing from onResponse rejects the request",
+      "operation": "response-reject",
+      "input": {
+        "baseURL": "https://example.test"
+      },
+      "expected": {
+        "messageIncludes": [
+          "HTTP error: 404"
+        ]
+      }
+    },
+    {
+      "name": "base-on-response",
+      "description": "The base onResponse implementation leaves the response unchanged",
+      "operation": "base-on-response",
+      "input": {
+        "baseURL": "https://example.test"
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "metadata",
+      "description": "Response hooks receive request metadata",
+      "operation": "metadata",
+      "input": {
+        "baseURL": "https://example.test"
+      },
+      "expected": {
+        "count": 1
+      }
+    },
+    {
+      "name": "hook-pipeline",
+      "description": "Request and response hooks both participate in the pipeline",
+      "operation": "hook-pipeline",
+      "input": {
+        "baseURL": "https://example.test"
+      },
+      "expected": {
+        "entries": [
+          "onRequest",
+          "onResponse"
+        ]
+      }
+    }
+  ]
+}

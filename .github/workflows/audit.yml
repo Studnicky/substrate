@@ -1,0 +1,44 @@
+name: audit
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    uses: ./.github/workflows/detect-changes.yml
+
+  audit:
+    name: security audit
+    needs: [ detect-changes ]
+    if: needs.detect-changes.outputs.audit == 'true' || github.event_name ==
+      'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/security-audit.yml
+    with:
+      report-artifact: false
+
+  required:
+    name: audit required
+    needs: [ detect-changes, audit ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate audit result
+        shell: bash
+        run: |
+          set -euo pipefail
+          for result in '${{ needs.detect-changes.result }}' '${{ needs.audit.result }}'; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "audit required: dependency result was $result" >&2; exit 1 ;;
+            esac
+          done

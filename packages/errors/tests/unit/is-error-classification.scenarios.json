@@ -1,0 +1,32 @@
+{
+  "cases": [
+    {
+      "name": "non-object",
+      "description": "returns false for non-objects",
+      "kind": "non-object",
+      "input": "not an object",
+      "expected": { "result": false }
+    },
+    {
+      "name": "invalid-reason",
+      "description": "returns false when reason has the wrong type",
+      "kind": "invalid-reason",
+      "input": { "reason": 42, "retryable": true },
+      "expected": { "result": false }
+    },
+    {
+      "name": "valid",
+      "description": "returns true for a minimal valid classification",
+      "kind": "valid",
+      "input": { "retryable": false },
+      "expected": { "result": true }
+    },
+    {
+      "name": "valid-with-reason",
+      "description": "returns true when reason is a string",
+      "kind": "valid-with-reason",
+      "input": { "reason": "temporary", "retryable": true },
+      "expected": { "result": true }
+    }
+  ]
+}
