@@ -5,7 +5,14 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { maxSwitchCases } from '../../../src/rules/v8/maxSwitchCases.js';
+import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
 import scenarioGroups from './maxSwitchCases.scenarios.json';
+
+function toMessageId(report: unknown): string {
+  if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
+  const { messageId } = report;
+  return typeof messageId === 'string' ? messageId : '<no-messageId>';
+}
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -29,6 +36,6 @@ void describe('max-switch-cases', () => {
 
     listeners.SwitchStatement?.({ cases: undefined } as never);
 
-    assert.equal(reports.length, 0);
+    assert.deepEqual(reports.map(toMessageId), []);
   });
 });

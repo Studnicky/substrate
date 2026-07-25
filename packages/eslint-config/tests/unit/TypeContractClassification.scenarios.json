@@ -1,7 +1,7 @@
 {
   "cases": [
     {
-      "kind": "entity-direct",
+      "shape": "entity-direct",
       "name": "recognizes direct FromSchema provenance inside an entity namespace",
       "input": {
         "files": {
@@ -25,7 +25,7 @@
       }
     },
     {
-      "kind": "composition-provenance",
+      "shape": "composition-provenance",
       "name": "verifies local FromSchema roots and imported canonical composition provenance",
       "input": {
         "files": {
@@ -55,8 +55,8 @@
       ]
     },
     {
-      "kind": "owner-direct",
-      "name": "requires owner-direct FromSchema and JSONSchema while preserving aliases and namespaces",
+      "shape": "owner-direct",
+      "name": "derivation resolves through re-export and namespace proxies and needs no satisfies clause, while a non-const-asserted value and an inline schema stay invalid",
       "input": {
         "files": {
           "proxy.ts": "export type { FromSchema, JSONSchema } from 'json-schema-to-ts';",
@@ -67,14 +67,14 @@
         "assertions": [
           { "name": "DirectType", "classification": "pureDataCanonical", "reason": "fromSchema" },
           { "name": "DirectNamespaceType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-          { "name": "ProxyType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-          { "name": "ProxyNamespaceType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-          { "name": "ProxyConstraintType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-          { "name": "ProxyNamespaceConstraintType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-          { "name": "ShadowedFromSchemaType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-          { "name": "ShadowedJSONSchemaType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
+          { "name": "ProxyType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "ProxyNamespaceType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "ProxyConstraintType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "ProxyNamespaceConstraintType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "ShadowedFromSchemaType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "ShadowedJSONSchemaType", "classification": "pureDataCanonical", "reason": "fromSchema" },
           { "name": "MutableConstraintType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-          { "name": "UnconstrainedType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
+          { "name": "UnconstrainedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
           { "name": "InlineSchemaType", "classification": "pureDataInvalid", "reason": "unresolvedReference" }
         ]
       },
@@ -85,19 +85,19 @@
       "assertions": [
         { "name": "DirectType", "classification": "pureDataCanonical", "reason": "fromSchema" },
         { "name": "DirectNamespaceType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "ProxyType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-        { "name": "ProxyNamespaceType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-        { "name": "ProxyConstraintType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-        { "name": "ProxyNamespaceConstraintType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-        { "name": "ShadowedFromSchemaType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-        { "name": "ShadowedJSONSchemaType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
+        { "name": "ProxyType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "ProxyNamespaceType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "ProxyConstraintType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "ProxyNamespaceConstraintType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "ShadowedFromSchemaType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "ShadowedJSONSchemaType", "classification": "pureDataCanonical", "reason": "fromSchema" },
         { "name": "MutableConstraintType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-        { "name": "UnconstrainedType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
+        { "name": "UnconstrainedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
         { "name": "InlineSchemaType", "classification": "pureDataInvalid", "reason": "unresolvedReference" }
       ]
     },
     {
-      "kind": "alias-cycles",
+      "shape": "alias-cycles",
       "name": "returns each alias classification with evidence and terminates alias cycles",
       "input": {
         "files": {
@@ -127,7 +127,7 @@
       ]
     },
     {
-      "kind": "readonly-intrinsics",
+      "shape": "readonly-intrinsics",
       "name": "distinguishes TypeScript readonly intrinsics from shadowed utility names",
       "input": {
         "programs": {
@@ -148,7 +148,7 @@
             { "name": "IntrinsicArrayType", "classification": "pureDataCanonical", "reason": "canonicalComposition", "readonlyReasons": ["intrinsicReadonly"], "fixable": false }
           ],
           "shadowed": [
-            { "name": "ShadowedType", "readonlyLength": 0 }
+            { "name": "ShadowedType", "readonlyReasons": [] }
           ]
         }
       },
@@ -168,12 +168,12 @@
           { "name": "IntrinsicArrayType", "classification": "pureDataCanonical", "reason": "canonicalComposition", "readonlyReasons": ["intrinsicReadonly"], "fixable": false }
         ],
         "shadowed": [
-          { "name": "ShadowedType", "readonlyLength": 0 }
+          { "name": "ShadowedType", "readonlyReasons": [] }
         ]
       }
     },
     {
-      "kind": "explicit-readonly",
+      "shape": "explicit-readonly",
       "name": "identifies explicit readonly syntax only in output roles",
       "input": {
         "files": {
@@ -199,7 +199,7 @@
       ]
     },
     {
-      "kind": "exposed-defaults",
+      "shape": "exposed-defaults",
       "name": "reports readonly defaults only when their parameter is exposed in output",
       "input": {
         "files": {
@@ -210,7 +210,7 @@
       "expected": {
         "assertions": [
           { "name": "ExposedDefaultType", "readonlyReasons": ["exposedDefault"], "fixable": false },
-          { "name": "UnusedDefaultType", "readonlyLength": 0 }
+          { "name": "UnusedDefaultType", "readonlyReasons": [] }
         ]
       },
       "files": {
@@ -219,11 +219,11 @@
       },
       "assertions": [
         { "name": "ExposedDefaultType", "readonlyReasons": ["exposedDefault"], "fixable": false },
-        { "name": "UnusedDefaultType", "readonlyLength": 0 }
+        { "name": "UnusedDefaultType", "readonlyReasons": [] }
       ]
     },
     {
-      "kind": "readonly-exclusions",
+      "shape": "readonly-exclusions",
       "name": "excludes input and inspection roles while retaining result output roles",
       "input": {
         "files": {
@@ -263,7 +263,7 @@
       ]
     },
     {
-      "kind": "readonly-indirection",
+      "shape": "readonly-indirection",
       "name": "follows local and imported readonly alias indirection at the reference site",
       "input": {
         "files": {
@@ -287,7 +287,7 @@
       ]
     },
     {
-      "kind": "interface-matrix",
+      "shape": "interface-matrix",
       "name": "classifies pure-data and readonly, callable, constructor, class, brand, and non-JSON interfaces",
       "input": {
         "files": {
@@ -317,11 +317,11 @@
           { "name": "UrlOwnerInterface", "reason": "classInstance" }
         ],
         "aliasAssertions": [
-          { "name": "DirectPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyLength": 0 },
-          { "name": "NestedPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyLength": 0 },
-          { "name": "DirectContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyLength": 0 },
-          { "name": "NestedContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyLength": 0 },
-          { "name": "RecursivePureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyLength": 0 }
+          { "name": "DirectPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] },
+          { "name": "NestedPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] },
+          { "name": "DirectContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyReasons": [] },
+          { "name": "NestedContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyReasons": [] },
+          { "name": "RecursivePureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] }
         ]
       },
       "files": {
@@ -349,11 +349,61 @@
         { "name": "UrlOwnerInterface", "reason": "classInstance" }
       ],
       "aliasAssertions": [
-        { "name": "DirectPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyLength": 0 },
-        { "name": "NestedPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyLength": 0 },
-        { "name": "DirectContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyLength": 0 },
-        { "name": "NestedContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyLength": 0 },
-        { "name": "RecursivePureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyLength": 0 }
+        { "name": "DirectPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] },
+        { "name": "NestedPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] },
+        { "name": "DirectContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyReasons": [] },
+        { "name": "NestedContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyReasons": [] },
+        { "name": "RecursivePureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] }
+      ]
+    },
+    {
+      "shape": "composition-provenance",
+      "name": "recognizes TypeBox, Zod, a local schema-derivation generic, and the @schemaDerivation tag, while a builder result carrying a method stays invalid",
+      "input": {
+        "files": {
+          "root.ts": "import { Type, type Static } from '@sinclair/typebox';\nimport { z } from 'zod';\nconst TypeboxSchema = Type.Object({ name: Type.String() });\ntype TypeboxDerivedType = Static<typeof TypeboxSchema>;\nconst ZodSchema = z.object({ name: z.string() });\ntype ZodDerivedType = z.infer<typeof ZodSchema>;\ntype LocalFromSchema<S> = S extends { readonly type: 'string' } ? { readonly value: string } : never;\nconst LocalValueSchema = { type: 'string' } as const;\ntype LocalDerivedType = LocalFromSchema<typeof LocalValueSchema>;\n/** @schemaDerivation */\ninterface TaggedDerivation<T> {}\nconst TaggedSchema = { type: 'string' } as const;\ntype TaggedDerivedType = TaggedDerivation<typeof TaggedSchema>;\ntype BuilderFromSchema<S> = S extends object ? S : never;\nfunction buildSchema() { return { value: 'x', handler: () => {} } as const; }\nconst MethodBearingSchema = buildSchema();\ntype MethodBearingDerivedType = BuilderFromSchema<typeof MethodBearingSchema>;"
+        }
+      },
+      "expected": {
+        "assertions": [
+          { "name": "TypeboxDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "ZodDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "LocalDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "TaggedDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "MethodBearingDerivedType", "classification": "pureDataInvalid", "reason": "callable" }
+        ]
+      },
+      "files": {
+        "root.ts": "import { Type, type Static } from '@sinclair/typebox';\nimport { z } from 'zod';\nconst TypeboxSchema = Type.Object({ name: Type.String() });\ntype TypeboxDerivedType = Static<typeof TypeboxSchema>;\nconst ZodSchema = z.object({ name: z.string() });\ntype ZodDerivedType = z.infer<typeof ZodSchema>;\ntype LocalFromSchema<S> = S extends { readonly type: 'string' } ? { readonly value: string } : never;\nconst LocalValueSchema = { type: 'string' } as const;\ntype LocalDerivedType = LocalFromSchema<typeof LocalValueSchema>;\n/** @schemaDerivation */\ninterface TaggedDerivation<T> {}\nconst TaggedSchema = { type: 'string' } as const;\ntype TaggedDerivedType = TaggedDerivation<typeof TaggedSchema>;\ntype BuilderFromSchema<S> = S extends object ? S : never;\nfunction buildSchema() { return { value: 'x', handler: () => {} } as const; }\nconst MethodBearingSchema = buildSchema();\ntype MethodBearingDerivedType = BuilderFromSchema<typeof MethodBearingSchema>;"
+      },
+      "assertions": [
+        { "name": "TypeboxDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "ZodDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "LocalDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "TaggedDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "MethodBearingDerivedType", "classification": "pureDataInvalid", "reason": "callable" }
+      ]
+    },
+    {
+      "shape": "composition-provenance",
+      "name": "resolves a qualified typeof entity name by direction: a namespace-qualified schema resolves through the general derivation path, and a tail-property accessor resolves back to its owning const",
+      "input": {
+        "files": {
+          "root.ts": "namespace SchemaNamespace {\n  export const Schema = { type: 'string' } as const;\n}\ntype LocalFromSchema<S> = S extends { readonly type: 'string' } ? { readonly value: string } : never;\ntype NamespaceGeneralType = LocalFromSchema<typeof SchemaNamespace.Schema>;\nconst TailSchema = { type: 'string', inferred: { value: 'x' } } as const;\ntype TailDerivedType = typeof TailSchema.inferred;"
+        }
+      },
+      "expected": {
+        "assertions": [
+          { "name": "NamespaceGeneralType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+          { "name": "TailDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" }
+        ]
+      },
+      "files": {
+        "root.ts": "namespace SchemaNamespace {\n  export const Schema = { type: 'string' } as const;\n}\ntype LocalFromSchema<S> = S extends { readonly type: 'string' } ? { readonly value: string } : never;\ntype NamespaceGeneralType = LocalFromSchema<typeof SchemaNamespace.Schema>;\nconst TailSchema = { type: 'string', inferred: { value: 'x' } } as const;\ntype TailDerivedType = typeof TailSchema.inferred;"
+      },
+      "assertions": [
+        { "name": "NamespaceGeneralType", "classification": "pureDataCanonical", "reason": "fromSchema" },
+        { "name": "TailDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" }
       ]
     }
   ]

@@ -5,7 +5,14 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { inlineArrowFunctions } from '../../../src/rules/v8/inlineArrowFunctions.js';
+import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
 import scenarioGroups from './inlineArrowFunctions.scenarios.json';
+
+function toMessageId(report: unknown): string {
+  if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
+  const { messageId } = report;
+  return typeof messageId === 'string' ? messageId : '<no-messageId>';
+}
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -50,7 +57,7 @@ void describe('inline-arrow-functions', () => {
       }
     } as never);
 
-    assert.equal(reports.length, 1);
+    assert.deepEqual(reports.map(toMessageId), ['forbidden']);
 
     listeners.ArrowFunctionExpression?.({
       body: { type: 'BlockStatement' },

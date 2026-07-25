@@ -6,7 +6,14 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { arrayScanOutsideLoops } from '../../../src/rules/v8/arrayScanOutsideLoops.js';
+import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
 import scenarioGroups from './arrayScanOutsideLoops.scenarios.json';
+
+function toMessageId(report: unknown): string {
+  if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
+  const { messageId } = report;
+  return typeof messageId === 'string' ? messageId : '<no-messageId>';
+}
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -67,7 +74,7 @@ void describe('array-scan-outside-loops', () => {
       type: 'CallExpression'
     } as never);
 
-    assert.equal(noReports.length, 0);
+    assert.deepEqual(noReports.map(toMessageId), []);
 
     const typedReports: unknown[] = [];
     const typedReceiver = { type: 'Identifier', name: 'records' };
@@ -116,7 +123,7 @@ void describe('array-scan-outside-loops', () => {
       type: 'CallExpression'
     } as never);
 
-    assert.equal(typedReports.length, 1);
+    assert.deepEqual(typedReports.map(toMessageId), ['forbidden']);
 
     const typedNoReportContext = {
       report(descriptor: unknown) {
@@ -163,7 +170,7 @@ void describe('array-scan-outside-loops', () => {
       type: 'CallExpression'
     } as never);
 
-    assert.equal(typedReports.length, 1);
+    assert.deepEqual(typedReports.map(toMessageId), ['forbidden']);
   });
 
   void it('covers remaining guard exits directly', () => {
@@ -209,6 +216,6 @@ void describe('array-scan-outside-loops', () => {
       type: 'CallExpression'
     } as never);
 
-    assert.equal(reports.length, 0);
+    assert.deepEqual(reports.map(toMessageId), []);
   });
 });

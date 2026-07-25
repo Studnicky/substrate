@@ -21,6 +21,14 @@
         "name": "direct import preserves the canonical name"
       },
       {
+        "code": "type ConditionalType<T> = T extends string ? number : boolean;",
+        "name": "generic conditional alias is a type-level function no interface can express"
+      },
+      {
+        "code": "type MappedType<T> = { [K in keyof T]: T[K] };",
+        "name": "generic mapped alias is a type-level function no interface can express"
+      },
+      {
         "code": "interface HandlerInterface { (value: string): void; }",
         "name": "interfaces are owned by interface rules"
       },
@@ -48,7 +56,7 @@
             "messageId": "aliasMustBeInterface"
           }
         ],
-        "name": "callable alias receives the declaration-kind verdict"
+        "name": "callable alias receives the declaration-shape verdict"
       },
       {
         "code": "type ConstructorType = new (value: string) => object;",
@@ -57,7 +65,7 @@
             "messageId": "aliasMustBeInterface"
           }
         ],
-        "name": "constructor alias receives the declaration-kind verdict"
+        "name": "constructor alias receives the declaration-shape verdict"
       },
       {
         "code": "type BrandType = { readonly __brand: unique symbol };",
@@ -66,26 +74,54 @@
             "messageId": "aliasMustBeInterface"
           }
         ],
-        "name": "brand alias receives one declaration-kind verdict without a readonly fix",
+        "name": "brand alias receives one declaration-shape verdict without a readonly fix",
         "output": null
       },
       {
-        "code": "type ConditionalType<T> = T extends string ? number : boolean;",
+        "code": "type LocalFromSchema<S> = S extends { value: string } ? { value: string } : never;\nconst AnnotatedSchema: { value: string } = { value: 'x' } as const;\ntype AnnotatedDerivedType = LocalFromSchema<typeof AnnotatedSchema>;",
         "errors": [
           {
             "messageId": "aliasMustBeInterface"
           }
         ],
-        "name": "conditional computation is a contract or redesign concern"
+        "name": "a typeof over an explicitly type-annotated const is not value-first authored"
       },
       {
-        "code": "type MappedType<T> = { [K in keyof T]: T[K] };",
+        "code": "type LocalFromSchema<S> = S extends { value: string } ? { value: string } : never;\nlet MutableSchema = { value: 'x' } as const;\ntype MutableDerivedType = LocalFromSchema<typeof MutableSchema>;",
         "errors": [
           {
             "messageId": "aliasMustBeInterface"
           }
         ],
-        "name": "mapped computation is a contract or redesign concern"
+        "name": "a typeof over a let binding is not value-first authored"
+      },
+      {
+        "code": "type ConditionalNonGenericType = string extends string ? number : boolean;",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "name": "non-generic conditional alias without a type-level function shape still receives the declaration-shape verdict"
+      },
+      {
+        "code": "type MappedNonGenericType = { [K in 'a' | 'b']: string };",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "name": "non-generic mapped alias without a type-level function shape still receives the declaration-shape verdict"
+      },
+      {
+        "code": "export type ConditionalAlias<T> = T extends string ? number : boolean;",
+        "errors": [
+          {
+            "messageId": "mustEndType"
+          }
+        ],
+        "filename": "packages/eslint-config/BadTypeFunctionName.ts",
+        "name": "type-level function aliases remain subject to deterministic naming"
       },
       {
         "code": "class Service {}\ntype ServiceContractType = { service: Service };",
@@ -94,7 +130,7 @@
             "messageId": "aliasMustBeInterface"
           }
         ],
-        "name": "class-bearing alias receives the declaration-kind verdict"
+        "name": "class-bearing alias receives the declaration-shape verdict"
       },
       {
         "code": "type UnknownContractType = { value: unknown };",
@@ -103,7 +139,7 @@
             "messageId": "aliasMustBeInterface"
           }
         ],
-        "name": "unknown-bearing alias receives the declaration-kind verdict"
+        "name": "unknown-bearing alias receives the declaration-shape verdict"
       },
       {
         "code": "type InlineDataType = { value: string };",
@@ -209,6 +245,26 @@
         "filename": "packages/eslint-config/IntrinsicReadonlyCollection.ts",
         "name": "intrinsic readonly canonical output is reported without an unsafe fix",
         "output": null
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nlet MutableOwnerSchema = { type: 'string' } as const satisfies JSONSchema;\ntype MutableOwnerType = FromSchema<typeof MutableOwnerSchema>;",
+        "errors": [
+          {
+            "messageId": "derivedFromSchema"
+          }
+        ],
+        "filename": "packages/eslint-config/MutableOwnerBinding.ts",
+        "name": "a let binding is not value-first authored even for an owner-direct schema"
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst AnnotatedOwnerSchema: { readonly type: 'string' } = { type: 'string' } as const satisfies JSONSchema;\ntype AnnotatedOwnerType = FromSchema<typeof AnnotatedOwnerSchema>;",
+        "errors": [
+          {
+            "messageId": "derivedFromSchema"
+          }
+        ],
+        "filename": "packages/eslint-config/AnnotatedOwnerBinding.ts",
+        "name": "an explicitly type-annotated const is not value-first authored even for an owner-direct schema"
       }
     ]
   },
@@ -219,7 +275,7 @@
     "code": "type HandlerType = () => void;",
     "warningFilename": "OuterSeverity.ts",
     "disabledFilename": "OuterSeverityOff.ts",
-    "expectedWarningCount": 1,
+    "expectedMessageIds": ["aliasMustBeInterface"],
     "expectedWarningSeverity": 1
   },
   "combined": {

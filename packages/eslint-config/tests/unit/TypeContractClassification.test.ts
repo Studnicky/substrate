@@ -177,7 +177,7 @@ describe('TypeContractClassification', () => {
     assert.equal(TypeContractClassification.forProgram(program), classification);
   });
 
-  it('requires owner-direct FromSchema and JSONSchema while preserving aliases and namespaces', () => {
+  it('resolves derivation through re-export and namespace proxies and needs no satisfies clause, while a non-const-asserted value and an inline schema stay invalid', () => {
     const program = createFixture(new Map([
       ['proxy.ts', "export type { FromSchema, JSONSchema } from 'json-schema-to-ts';"],
       ['root.ts', [
@@ -224,22 +224,22 @@ describe('TypeContractClassification', () => {
     assert.equal(direct.reason, 'fromSchema');
     assert.equal(directNamespace.classification, 'pureDataCanonical');
     assert.equal(directNamespace.reason, 'fromSchema');
-    assert.equal(proxy.classification, 'pureDataInvalid');
-    assert.equal(proxy.reason, 'unresolvedReference');
-    assert.equal(proxyNamespace.classification, 'pureDataInvalid');
-    assert.equal(proxyNamespace.reason, 'unresolvedReference');
-    assert.equal(proxyConstraint.classification, 'pureDataInvalid');
-    assert.equal(proxyConstraint.reason, 'unresolvedReference');
-    assert.equal(proxyNamespaceConstraint.classification, 'pureDataInvalid');
-    assert.equal(proxyNamespaceConstraint.reason, 'unresolvedReference');
-    assert.equal(shadowedFromSchema.classification, 'pureDataInvalid');
-    assert.equal(shadowedFromSchema.reason, 'unresolvedReference');
-    assert.equal(shadowedJSONSchema.classification, 'pureDataInvalid');
-    assert.equal(shadowedJSONSchema.reason, 'unresolvedReference');
+    assert.equal(proxy.classification, 'pureDataCanonical');
+    assert.equal(proxy.reason, 'fromSchema');
+    assert.equal(proxyNamespace.classification, 'pureDataCanonical');
+    assert.equal(proxyNamespace.reason, 'fromSchema');
+    assert.equal(proxyConstraint.classification, 'pureDataCanonical');
+    assert.equal(proxyConstraint.reason, 'fromSchema');
+    assert.equal(proxyNamespaceConstraint.classification, 'pureDataCanonical');
+    assert.equal(proxyNamespaceConstraint.reason, 'fromSchema');
+    assert.equal(shadowedFromSchema.classification, 'pureDataCanonical');
+    assert.equal(shadowedFromSchema.reason, 'fromSchema');
+    assert.equal(shadowedJSONSchema.classification, 'pureDataCanonical');
+    assert.equal(shadowedJSONSchema.reason, 'fromSchema');
     assert.equal(mutableConstraint.classification, 'pureDataInvalid');
     assert.equal(mutableConstraint.reason, 'unresolvedReference');
-    assert.equal(unconstrained.classification, 'pureDataInvalid');
-    assert.equal(unconstrained.reason, 'unresolvedReference');
+    assert.equal(unconstrained.classification, 'pureDataCanonical');
+    assert.equal(unconstrained.reason, 'fromSchema');
     assert.equal(inline.classification, 'pureDataInvalid');
     assert.equal(inline.reason, 'unresolvedReference');
   });
@@ -298,7 +298,7 @@ describe('TypeContractClassification', () => {
     assert.equal(intrinsicReadonly.readonlyOutput[0]?.fixable, false);
     assert.equal(intrinsicArray.classification, 'pureDataCanonical');
     assert.deepEqual(intrinsicArray.readonlyOutput.map((evidence) => { return evidence.reason; }), ['intrinsicReadonly']);
-    assert.equal(shadowed.readonlyOutput.length, 0);
+    assert.deepEqual(shadowed.readonlyOutput.map((evidence) => { return evidence.reason; }), []);
   });
 
   it('identifies explicit readonly syntax only in output roles', () => {
@@ -334,7 +334,7 @@ describe('TypeContractClassification', () => {
 
     assert.deepEqual(exposed.readonlyOutput.map((evidence) => { return evidence.reason; }), ['exposedDefault']);
     assert.equal(exposed.readonlyOutput[0]?.fixable, false);
-    assert.equal(unused.readonlyOutput.length, 0);
+    assert.deepEqual(unused.readonlyOutput.map((evidence) => { return evidence.reason; }), []);
   });
 
   it('excludes input and inspection roles while retaining result output roles', () => {
@@ -360,7 +360,11 @@ describe('TypeContractClassification', () => {
     ];
 
     excluded.forEach((name) => {
-      assert.equal(classification.analyzeAlias(alias(program, name)).readonlyOutput.length, 0, name);
+      assert.deepEqual(
+        classification.analyzeAlias(alias(program, name)).readonlyOutput.map((evidence) => { return evidence.reason; }),
+        [],
+        name
+      );
     });
     assert.deepEqual(
       classification.analyzeAlias(alias(program, 'ConditionalOutputType')).readonlyOutput.map((evidence) => {
@@ -482,7 +486,7 @@ describe('TypeContractClassification', () => {
     assert.equal(nestedPure.reason, 'interfaceReference');
     assert.equal(directContract.classification, 'interfaceContract');
     assert.equal(directContract.reason, 'interfaceReference');
-    assert.equal(directContract.readonlyOutput.length, 0);
+    assert.deepEqual(directContract.readonlyOutput.map((evidence) => { return evidence.reason; }), []);
     assert.equal(nestedContract.classification, 'interfaceContract');
     assert.equal(nestedContract.reason, 'interfaceReference');
     assert.equal(recursivePure.classification, 'pureDataInvalid');

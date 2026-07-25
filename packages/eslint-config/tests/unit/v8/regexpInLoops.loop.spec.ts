@@ -5,7 +5,14 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { regexpInLoops } from '../../../src/rules/v8/regexpInLoops.js';
+import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
 import scenarioGroups from './regexpInLoops.scenarios.json';
+
+function toMessageId(report: unknown): string {
+  if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
+  const { messageId } = report;
+  return typeof messageId === 'string' ? messageId : '<no-messageId>';
+}
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -42,6 +49,6 @@ void describe('regexp-in-loops', () => {
       callee: {}
     } as never);
 
-    assert.equal(reports.length, 0);
+    assert.deepEqual(reports.map(toMessageId), []);
   });
 });

@@ -37,7 +37,7 @@ const typeAwareRuleTester = new RuleTester({
 void describe('single-export', () => {
   for (const run of scenarioGroups.runs) {
     void it(run.name, () => {
-      const tester = run.kind === 'type-aware' ? typeAwareRuleTester : ruleTester;
+      const tester = run.shape === 'type-aware' ? typeAwareRuleTester : ruleTester;
       tester.run(run.ruleName, singleExport, {
         invalid: run.invalid,
         valid: run.valid

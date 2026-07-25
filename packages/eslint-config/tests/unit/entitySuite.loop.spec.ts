@@ -28,7 +28,7 @@ type ScenarioCase =
         rules: Linter.Config['rules'];
       };
       input: Record<string, never>;
-      kind: 'preserves-entity-rules';
+      shape: 'preserves-entity-rules';
       name: string;
     }
   | {
@@ -40,7 +40,7 @@ type ScenarioCase =
         code: string;
         filename: string;
       };
-      kind: 'blocks-inline-disable';
+      shape: 'blocks-inline-disable';
       name: string;
     }
   | {
@@ -52,7 +52,7 @@ type ScenarioCase =
         code: string;
         filename: string;
       };
-      kind: 'overrides-prefer-function-type';
+      shape: 'overrides-prefer-function-type';
       name: string;
     }
   | {
@@ -69,11 +69,11 @@ type ScenarioCase =
           filename: string;
         }>;
       };
-      kind: 'assigns-owning-rule';
+      shape: 'assigns-owning-rule';
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'assigns-owning-rule': (scenarioCase) => {
     const actualOutputs = scenarioCase.input.scenarios.map((scenario) => {
       const linter = new Linter();
@@ -152,7 +152,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 void describe('entitySuite', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
-      runnerMap[scenario.kind](scenario);
+      runnerMap[scenario.shape](scenario);
     });
   }
 });

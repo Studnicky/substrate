@@ -1,7 +1,7 @@
 {
   "runs": [
     {
-      "kind": "plain",
+      "shape": "plain",
       "name": "static-method-verbs (any mode)",
       "ruleName": "static-method-verbs (any mode)",
       "valid": [
@@ -56,7 +56,7 @@
       ]
     },
     {
-      "kind": "plain",
+      "shape": "plain",
       "name": "static-method-verbs (structural mode)",
       "ruleName": "static-method-verbs (structural mode)",
       "valid": [
@@ -198,7 +198,7 @@
       ]
     },
     {
-      "kind": "typed",
+      "shape": "typed",
       "name": "static-method-verbs (typed mode)",
       "ruleName": "static-method-verbs (typed mode)",
       "valid": [
@@ -294,7 +294,7 @@
       ]
     },
     {
-      "kind": "plain",
+      "shape": "plain",
       "name": "static-method-verbs (module-scope gating, any mode)",
       "ruleName": "static-method-verbs (module-scope gating, any mode)",
       "valid": [
@@ -377,7 +377,7 @@
       ]
     },
     {
-      "kind": "plain",
+      "shape": "plain",
       "name": "static-method-verbs (module-scope gating, structural mode)",
       "ruleName": "static-method-verbs (module-scope gating, structural mode)",
       "valid": [
@@ -460,7 +460,7 @@
       ]
     },
     {
-      "kind": "typed",
+      "shape": "typed",
       "name": "static-method-verbs (module-scope gating, typed mode)",
       "ruleName": "static-method-verbs (module-scope gating, typed mode)",
       "valid": [

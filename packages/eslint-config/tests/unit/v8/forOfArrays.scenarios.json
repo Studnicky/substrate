@@ -2,65 +2,71 @@
   "listenerCases": [
     {
       "expected": {
-        "reportCount": 1
+        "messageIds": [
+          "forOfArrays"
+        ]
       },
       "input": {
         "parserServices": {
           "hasTsNode": true,
           "isArrayType": true,
           "isTupleType": false,
-          "kind": "typed"
+          "shape": "typed"
         },
         "right": {
-          "kind": "object"
+          "shape": "object"
         }
       },
       "name": "reports arrays through typed parser services"
     },
     {
       "expected": {
-        "reportCount": 1
+        "messageIds": [
+          "forOfArrays"
+        ]
       },
       "input": {
         "parserServices": {
           "hasTsNode": true,
           "isArrayType": false,
           "isTupleType": true,
-          "kind": "typed"
+          "shape": "typed"
         },
         "right": {
-          "kind": "object"
+          "shape": "object"
         }
       },
       "name": "reports tuples through typed parser services"
     },
     {
       "expected": {
-        "reportCount": 1
+        "messageIds": [
+          "forOfArrays"
+        ]
       },
       "input": {
         "parserServices": {
-          "kind": "empty"
+          "shape": "empty"
         },
         "right": {
-          "kind": "arrayExpression"
+          "shape": "arrayExpression"
         }
       },
       "name": "reports literal arrays without type services"
     },
     {
       "expected": {
-        "reportCount": 0
+        "messageIds": []
       },
       "input": {
         "parserServices": {
           "hasTsNode": false,
           "isArrayType": false,
           "isTupleType": false,
-          "kind": "typed"
+          "shape": "typed"
         },
         "right": {
-          "kind": "object"
+          "shape": "object"
         }
       },
       "name": "ignores non-arrays when type services do not resolve a TS node"

@@ -182,7 +182,7 @@ void describe('entitySuite', () => {
           }
         ],
         'filename': 'NakedAlias.ts',
-        'name': 'contract alias receives the declaration-kind verdict'
+        'name': 'contract alias receives the declaration-shape verdict'
       },
       {
         'code': 'interface Collision { value: string; }',
