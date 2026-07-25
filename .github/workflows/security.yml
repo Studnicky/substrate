@@ -10,7 +10,24 @@ on:
 
 jobs:
   audit:
-    name: Security audit
+    name: security audit suite
     uses: ./.github/workflows/security-audit.yml
     with:
       report-artifact: true
+
+  security-required:
+    name: Security audit
+    needs: [ audit ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate security audit result
+        shell: bash
+        env:
+          AUDIT_RESULT: ${{ needs.audit.result }}
+        run: |
+          set -euo pipefail
+          case "$AUDIT_RESULT" in
+            success|skipped) ;;
+            *) echo "Security audit: dependency result was $AUDIT_RESULT" >&2; exit 1 ;;
+          esac

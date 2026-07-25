@@ -42,8 +42,8 @@ jobs:
     with:
       preset: audit
 
-  ci-gate:
-    name: ci-gate
+  ci-required:
+    name: ci required
     needs: [ detect-changes, validate, docs, audit ]
     if: always()
     runs-on: ubuntu-latest
@@ -60,6 +60,6 @@ jobs:
           for result in "$DETECT_CHANGES_RESULT" "$VALIDATE_RESULT" "$DOCS_RESULT" "$AUDIT_RESULT"; do
             case "$result" in
               success|skipped) ;;
-              *) echo "ci-gate: dependency result was $result" >&2; exit 1 ;;
+              *) echo "ci required: dependency result was $result" >&2; exit 1 ;;
             esac
           done
