@@ -9,5 +9,10 @@ hook_repo_root() {
 }
 
 hook_source_lib() {
-  . "${HOOKS_DIR:-$(dirname "$0")}/lib/$1"
+  hooks_dir="${HOOKS_DIR:-}"
+  if [ -z "$hooks_dir" ]; then
+    repo_root=$(hook_repo_root)
+    hooks_dir="$repo_root/.githooks"
+  fi
+  . "$hooks_dir/lib/$1"
 }
