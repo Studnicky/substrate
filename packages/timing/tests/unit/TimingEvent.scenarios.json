@@ -1,0 +1,95 @@
+{
+  "cases": [
+    {
+      "name": "component-operation-format",
+      "description": "returns event data with component.operation format",
+      "kind": "component-operation-format",
+      "input": {
+        "component": "GraphAdapter",
+        "operation": "query"
+      },
+      "expected": {
+        "event": "GraphAdapter.query"
+      }
+    },
+    {
+      "name": "includes-status",
+      "description": "includes an optional status in the event name",
+      "kind": "includes-status",
+      "input": {
+        "component": "DatabaseAdapter",
+        "operation": "connect",
+        "status": "start"
+      },
+      "expected": {
+        "event": "DatabaseAdapter.connect.start"
+      }
+    },
+    {
+      "name": "domain-specific-status",
+      "description": "works with domain-specific status constants",
+      "kind": "domain-specific-status",
+      "input": {
+        "component": "CacheService",
+        "operation": "get",
+        "status": "hit"
+      },
+      "expected": {
+        "event": "CacheService.get.hit"
+      }
+    },
+    {
+      "name": "immutable-event-data",
+      "description": "returns immutable event data",
+      "kind": "immutable-event-data",
+      "input": {
+        "component": "GraphAdapter",
+        "operation": "query"
+      },
+      "expected": {
+        "frozen": true
+      }
+    },
+    {
+      "name": "missing-component",
+      "description": "throws when component is missing",
+      "kind": "missing-component",
+      "input": {
+        "operation": "query"
+      },
+      "expected": {
+        "errorName": "TimingBuildError"
+      }
+    },
+    {
+      "name": "missing-operation",
+      "description": "throws when operation is missing",
+      "kind": "missing-operation",
+      "input": {
+        "component": "GraphAdapter"
+      },
+      "expected": {
+        "errorName": "TimingBuildError"
+      }
+    },
+    {
+      "name": "independent-event-values",
+      "description": "creates independent event values from independent configurations",
+      "kind": "independent-event-values",
+      "input": {
+        "first": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        },
+        "second": {
+          "component": "GraphAdapter",
+          "operation": "insert"
+        }
+      },
+      "expected": {
+        "firstEvent": "GraphAdapter.query",
+        "secondEvent": "GraphAdapter.insert"
+      }
+    }
+  ]
+}

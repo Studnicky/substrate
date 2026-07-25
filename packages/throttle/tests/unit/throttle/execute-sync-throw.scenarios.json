@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {
+      "name": "sync-throw-releases-slot",
+      "description": "Throttle releases the slot when a function throws synchronously before returning a promise",
+      "kind": "sync-throw-releases-slot",
+      "input": { "errorMessage": "synchronous failure", "result": "recovered", "throttle": { "concurrencyLimit": 2 } },
+      "expected": { "activeCount": 0, "recoveredResult": "recovered" }
+    },
+    {
+      "name": "sync-throw-reject-hook",
+      "description": "Throttle wraps onReject failures when a synchronous execute() throw is reported",
+      "kind": "sync-throw-reject-hook",
+      "input": { "errorMessage": "reject hook boom", "failureMessage": "synchronous failure", "throttle": { "concurrencyLimit": 1 } },
+      "expected": {}
+    }
+  ]
+}

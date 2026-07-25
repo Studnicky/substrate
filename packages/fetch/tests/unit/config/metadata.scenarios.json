@@ -1,0 +1,68 @@
+{
+  "cases": [
+    {
+      "name": "metadata-undefined",
+      "description": "ValidateMetadata accepts undefined",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "metadata": {
+          "__kind": "undefined"
+        }
+      }
+    },
+    {
+      "name": "metadata-null",
+      "description": "ValidateMetadata accepts null",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "metadata": null
+      }
+    },
+    {
+      "name": "metadata-valid-object",
+      "description": "ValidateMetadata accepts plain objects",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "metadata": {
+          "service": "api",
+          "version": 1,
+          "nested": {
+            "enabled": true
+          }
+        }
+      }
+    },
+    {
+      "name": "metadata-array",
+      "description": "ValidateMetadata rejects arrays",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "metadata must be an object"
+        ]
+      },
+      "input": {
+        "metadata": []
+      }
+    },
+    {
+      "name": "metadata-non-object",
+      "description": "ValidateMetadata rejects non-object values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "metadata must be an object"
+        ]
+      },
+      "input": {
+        "metadata": "invalid"
+      }
+    }
+  ]
+}

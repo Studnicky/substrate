@@ -1,0 +1,45 @@
+{
+  "cases": [
+    {
+      "description": "File-lock mutual exclusion works with an injected VirtualFileSystem",
+      "expected": {
+        "firstAcquire": true,
+        "secondAcquireRejected": true,
+        "thirdAcquire": true
+      },
+      "input": {
+        "fileLock": {
+          "first": { "timeoutMs": 5000 },
+          "second": { "timeoutMs": 200 },
+          "third": { "timeoutMs": 1000 }
+        },
+        "fileSystemSeed": [
+          ["/data.json", "{\"value\":1}"]
+        ],
+        "lockPath": "/data.json"
+      },
+      "kind": "virtual-fs-mutual-exclusion",
+      "name": "virtual-fs-mutual-exclusion"
+    },
+    {
+      "description": "File-lock read and write operate on the injected VirtualFileSystem",
+      "expected": {
+        "initialContents": "{\"version\":1}",
+        "updatedContents": "{\"version\":2}"
+      },
+      "input": {
+        "fileLock": {
+          "first": { "timeoutMs": 1000 },
+          "second": { "timeoutMs": 1000 }
+        },
+        "fileSystemSeed": [
+          ["/config.json", "{\"version\":1}"]
+        ],
+        "lockPath": "/config.json",
+        "updatedContents": "{\"version\":2}"
+      },
+      "kind": "virtual-fs-read-write",
+      "name": "virtual-fs-read-write"
+    }
+  ]
+}

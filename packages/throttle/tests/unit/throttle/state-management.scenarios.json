@@ -1,0 +1,99 @@
+{
+  "cases": [
+    {
+      "name": "initial-stats",
+      "description": "Throttle returns correct initial stats",
+      "kind": "initial-stats",
+      "input": { "throttle": { "concurrencyLimit": 5 } },
+      "expected": {
+        "stats": {
+          "activeCount": 0,
+          "queuedCount": 0,
+          "totalExecuted": 0,
+          "concurrencyLimit": 5,
+          "isAborted": false,
+          "isDraining": false
+        },
+        "isComplete": true
+      }
+    },
+    {
+      "name": "is-complete-initially",
+      "description": "Throttle is complete when no operations are active or queued",
+      "kind": "is-complete-initially",
+      "input": { "throttle": { "concurrencyLimit": 2 } },
+      "expected": { "isComplete": true }
+    },
+    {
+      "name": "adaptive-latency-stats",
+      "description": "Throttle includes latency stats after adaptive execution completes",
+      "kind": "adaptive-latency-stats",
+      "input": {
+        "result": "ok",
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "sampleWindow": 10,
+            "targetLatencyMs": 50
+          },
+          "concurrencyLimit": 1
+        }
+      },
+      "expected": { "result": "ok", "sampleCount": 1 }
+    },
+    {
+      "name": "adaptive-scales-up",
+      "description": "Throttle increases concurrency when adaptive latency stays low",
+      "kind": "adaptive-scales-up",
+      "input": {
+        "batch": {
+          "itemCount": 10,
+          "maxConcurrent": 10,
+          "operationDelayMs": 0
+        },
+        "throttle": {
+          "adaptive": {
+            "adjustmentInterval": 100,
+            "enabled": true,
+            "maxConcurrency": 4,
+            "minConcurrency": 1,
+            "sampleWindow": 10,
+            "scaleDownThreshold": 1.5,
+            "scaleUpThreshold": 1,
+            "stepSize": 1,
+            "targetLatencyMs": 50
+          },
+          "concurrencyLimit": 2
+        }
+      },
+      "expected": { "concurrencyLimit": 3, "resultCount": 10 }
+    },
+    {
+      "name": "adaptive-scales-down",
+      "description": "Throttle decreases concurrency when adaptive latency stays high",
+      "kind": "adaptive-scales-down",
+      "input": {
+        "batch": {
+          "itemCount": 10,
+          "maxConcurrent": 10,
+          "operationDelayMs": 5
+        },
+        "throttle": {
+          "adaptive": {
+            "adjustmentInterval": 100,
+            "enabled": true,
+            "maxConcurrency": 4,
+            "minConcurrency": 2,
+            "sampleWindow": 10,
+            "scaleDownThreshold": 1.1,
+            "scaleUpThreshold": 0.5,
+            "stepSize": 1,
+            "targetLatencyMs": 1
+          },
+          "concurrencyLimit": 4
+        }
+      },
+      "expected": { "concurrencyLimit": 3, "resultCount": 10 }
+    }
+  ]
+}

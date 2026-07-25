@@ -1,0 +1,467 @@
+{
+  "cases": [
+    {
+      "name": "before-after-order",
+      "description": "before and after each registered stage fire in order",
+      "kind": "before-after-order",
+      "input": {
+        "ctx": 5,
+        "stages": [
+          { "kind": "add", "value": 1 },
+          { "kind": "mul", "value": 2 },
+          { "kind": "sub", "value": 3 }
+        ]
+      },
+      "expected": {
+        "trace": [
+          { "hook": "before", "index": 0 },
+          { "hook": "after", "index": 0 },
+          { "hook": "before", "index": 1 },
+          { "hook": "after", "index": 1 },
+          { "hook": "before", "index": 2 },
+          { "hook": "after", "index": 2 }
+        ]
+      }
+    },
+    {
+      "name": "no-hooks-no-stages",
+      "description": "before and after hooks do not fire when pipeline has no stages",
+      "kind": "no-hooks-no-stages",
+      "input": {
+        "ctx": "hello",
+        "stages": []
+      },
+      "expected": {
+        "traceLength": 0
+      }
+    },
+    {
+      "name": "single-stage-before-after",
+      "description": "before and after fire once for a single stage",
+      "kind": "single-stage-before-after",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 1 }
+        ]
+      },
+      "expected": {
+        "trace": [
+          { "hook": "before", "index": 0 },
+          { "hook": "after", "index": 0 }
+        ]
+      }
+    },
+    {
+      "name": "tracing-pipeline-result",
+      "description": "base pipeline produces the correct result with tracing hooks active",
+      "kind": "tracing-pipeline-result",
+      "input": {
+        "ctx": 5,
+        "stages": [
+          { "kind": "add", "value": 1 },
+          { "kind": "mul", "value": 2 },
+          { "kind": "sub", "value": 3 }
+        ]
+      },
+      "expected": {
+        "result": 9
+      }
+    },
+    {
+      "name": "before-stage-gets-prior-output",
+      "description": "beforeStage receives ctx from prior stage output",
+      "kind": "before-stage-gets-prior-output",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 10 },
+          { "kind": "add", "value": 10 }
+        ]
+      },
+      "expected": {
+        "receivedCtxAtBefore": [0, 10]
+      }
+    },
+    {
+      "name": "after-stage-gets-stage-output",
+      "description": "afterStage receives ctx from stage output",
+      "kind": "after-stage-gets-stage-output",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 5 },
+          { "kind": "mul", "value": 3 }
+        ]
+      },
+      "expected": {
+        "receivedCtxAtAfter": [5, 15]
+      }
+    },
+    {
+      "name": "run-start-before-stages",
+      "description": "onRunStart is called before any stage",
+      "kind": "run-start-before-stages",
+      "input": {
+        "ctx": 5,
+        "stages": [
+          { "kind": "identity" }
+        ]
+      },
+      "expected": {
+        "runStartCalled": true
+      }
+    },
+    {
+      "name": "run-complete-after-stages",
+      "description": "onRunComplete is called after all stages",
+      "kind": "run-complete-after-stages",
+      "input": {
+        "ctx": 5,
+        "stages": [
+          { "kind": "identity" }
+        ]
+      },
+      "expected": {
+        "runCompleteCalled": true
+      }
+    },
+    {
+      "name": "run-start-original-value",
+      "description": "onRunStart receives the original ctx value",
+      "kind": "run-start-original-value",
+      "input": {
+        "ctx": 5,
+        "stages": [
+          { "kind": "identity" }
+        ]
+      },
+      "expected": {
+        "runStartCtx": 5
+      }
+    },
+    {
+      "name": "run-start-return-passed-to-first-stage",
+      "description": "onRunStart return value is passed to the first stage",
+      "kind": "run-start-return-passed-to-first-stage",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "identity" }
+        ]
+      },
+      "expected": {
+        "stageInput": 1000
+      }
+    },
+    {
+      "name": "run-complete-return-value",
+      "description": "onRunComplete return value is the resolved value of run",
+      "kind": "run-complete-return-value",
+      "input": {
+        "ctx": 10,
+        "stages": [
+          { "kind": "add", "value": 5 }
+        ]
+      },
+      "expected": {
+        "result": 15
+      }
+    },
+    {
+      "name": "hooks-called-with-no-stages",
+      "description": "both bracket hooks are called even when the pipeline has no stages",
+      "kind": "hooks-called-with-no-stages",
+      "input": {
+        "ctx": 7,
+        "stages": []
+      },
+      "expected": {
+        "runStartCalled": true,
+        "runCompleteCalled": true
+      }
+    },
+    {
+      "name": "protected-fns-length",
+      "description": "subclass can read the protected stages array length",
+      "kind": "protected-fns-length",
+      "input": {
+        "stages": [
+          { "kind": "add", "value": 1 },
+          { "kind": "mul", "value": 2 }
+        ]
+      },
+      "expected": {
+        "stageCount": 2
+      }
+    },
+    {
+      "name": "stage-start-order",
+      "description": "onStageStart fires for each stage in index order",
+      "kind": "stage-start-order",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 1 },
+          { "kind": "add", "value": 2 },
+          { "kind": "add", "value": 3 }
+        ]
+      },
+      "expected": {
+        "stageStartIndexes": [0, 1, 2]
+      }
+    },
+    {
+      "name": "stage-success-output",
+      "description": "onStageSuccess fires after each successful stage with the output ctx",
+      "kind": "stage-success-output",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 10 },
+          { "kind": "mul", "value": 3 }
+        ]
+      },
+      "expected": {
+        "stageSuccessValues": [10, 30]
+      }
+    },
+    {
+      "name": "stage-start-after-before-stage",
+      "description": "onStageStart sees the ctx returned by beforeStage",
+      "kind": "stage-start-after-before-stage",
+      "input": {
+        "ctx": 5,
+        "stages": [
+          { "kind": "identity" }
+        ]
+      },
+      "expected": {
+        "stageStartCtx": 105
+      }
+    },
+    {
+      "name": "stage-success-before-after-stage",
+      "description": "onStageSuccess fires before afterStage",
+      "kind": "stage-success-before-after-stage",
+      "input": {
+        "ctx": 1,
+        "stages": [
+          { "kind": "identity" }
+        ]
+      },
+      "expected": {
+        "order": [
+          "onStageSuccess",
+          "afterStage"
+        ]
+      }
+    },
+    {
+      "name": "stage-error-on-throw",
+      "description": "onStageError fires when a stage throws",
+      "kind": "stage-error-on-throw",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 1 },
+          { "kind": "throw", "message": "stage 1 fails" },
+          { "kind": "add", "value": 3 }
+        ]
+      },
+      "expected": {
+        "stageErrorIndex": 1,
+        "stageErrorMessage": "stage 1 fails"
+      }
+    },
+    {
+      "name": "stage-error-not-on-success",
+      "description": "onStageError does not fire for successful stages",
+      "kind": "stage-error-not-on-success",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 1 },
+          { "kind": "add", "value": 2 }
+        ]
+      },
+      "expected": {
+        "stageErrorCount": 0
+      }
+    },
+    {
+      "name": "run-error-on-throw",
+      "description": "onRunError fires when any stage throws",
+      "kind": "run-error-on-throw",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "throw", "message": "fail" }
+        ]
+      },
+      "expected": {
+        "runErrorCount": 1
+      }
+    },
+    {
+      "name": "run-error-contains-pipeline-error",
+      "description": "onRunError receives the wrapped PipelineError",
+      "kind": "run-error-contains-pipeline-error",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "throw", "message": "original" }
+        ]
+      },
+      "expected": {
+        "errorInstanceOf": "PipelineError"
+      }
+    },
+    {
+      "name": "stage-error-before-run-error",
+      "description": "onStageError fires before onRunError",
+      "kind": "stage-error-before-run-error",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "throw", "message": "fail" }
+        ]
+      },
+      "expected": {
+        "order": [
+          "onStageError",
+          "onRunError"
+        ]
+      }
+    },
+    {
+      "name": "no-stage-hooks-with-empty-pipeline",
+      "description": "stage hooks do not fire when the pipeline has no stages",
+      "kind": "no-stage-hooks-with-empty-pipeline",
+      "input": {
+        "ctx": 0,
+        "stages": []
+      },
+      "expected": {
+        "stageStartCount": 0,
+        "stageSuccessCount": 0
+      }
+    },
+    {
+      "name": "throwing-on-stage-start",
+      "description": "a throwing onStageStart hook propagates as HookInvocationError",
+      "kind": "throwing-on-stage-start",
+      "input": {
+        "ctx": 1,
+        "stages": [
+          { "kind": "add", "value": 1 }
+        ]
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "throwing-on-stage-success",
+      "description": "a throwing onStageSuccess hook propagates as HookInvocationError",
+      "kind": "throwing-on-stage-success",
+      "input": {
+        "ctx": 1,
+        "stages": [
+          { "kind": "add", "value": 1 }
+        ]
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "throwing-on-stage-error",
+      "description": "a throwing onStageError hook propagates as HookInvocationError",
+      "kind": "throwing-on-stage-error",
+      "input": {
+        "ctx": 1,
+        "stages": [
+          { "kind": "throw", "message": "stage failed" }
+        ]
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "throwing-on-run-error",
+      "description": "a throwing onRunError hook propagates as HookInvocationError",
+      "kind": "throwing-on-run-error",
+      "input": {
+        "ctx": 1,
+        "stages": [
+          { "kind": "throw", "message": "stage failed" }
+        ]
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "before-stage-throw-does-not-trigger-run-error",
+      "description": "a throw from beforeStage does not trigger onRunError",
+      "kind": "before-stage-throw-does-not-trigger-run-error",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 1 }
+        ]
+      },
+      "expected": {
+        "rawMessage": "beforeStage boom",
+        "runErrorCount": 0
+      }
+    },
+    {
+      "name": "after-stage-throw-does-not-trigger-run-error",
+      "description": "a throw from afterStage does not trigger onRunError",
+      "kind": "after-stage-throw-does-not-trigger-run-error",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 1 }
+        ]
+      },
+      "expected": {
+        "rawMessage": "afterStage boom",
+        "runErrorCount": 0
+      }
+    },
+    {
+      "name": "on-run-start-throw-does-not-trigger-run-error",
+      "description": "a throw from onRunStart does not trigger onRunError",
+      "kind": "on-run-start-throw-does-not-trigger-run-error",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 1 }
+        ]
+      },
+      "expected": {
+        "rawMessage": "onRunStart boom",
+        "runErrorCount": 0
+      }
+    },
+    {
+      "name": "on-run-complete-throw-does-not-trigger-run-error",
+      "description": "a throw from onRunComplete does not trigger onRunError",
+      "kind": "on-run-complete-throw-does-not-trigger-run-error",
+      "input": {
+        "ctx": 0,
+        "stages": [
+          { "kind": "add", "value": 1 }
+        ]
+      },
+      "expected": {
+        "rawMessage": "onRunComplete boom",
+        "runErrorCount": 0
+      }
+    }
+  ]
+}

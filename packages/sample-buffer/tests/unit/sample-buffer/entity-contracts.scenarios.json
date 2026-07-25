@@ -1,0 +1,51 @@
+{
+  "cases": [
+    {
+      "description": "accepts valid observable buffer state",
+      "expected": {
+        "validationResults": [
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          { "expected": true, "value": { "isFull": true, "length": 4 } }
+        ]
+      },
+      "kind": "valid-state",
+      "name": "valid-state"
+    },
+    {
+      "description": "rejects negative lengths",
+      "expected": {
+        "validationResults": [
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "expected": false, "value": { "isFull": false, "length": -1 } }
+        ]
+      },
+      "kind": "invalid-length",
+      "name": "invalid-length"
+    },
+    {
+      "description": "constructs SampleBufferError with args",
+      "expected": {
+        "causeMessage": "cause",
+        "correlationId": "corr-1",
+        "message": "bad config",
+        "retryable": false
+      },
+      "input": {
+        "causeMessage": "cause",
+        "correlationId": "corr-1",
+        "message": "bad config",
+        "retryable": true
+      },
+      "kind": "error-args",
+      "name": "error-args"
+    }
+  ]
+}

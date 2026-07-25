@@ -1,0 +1,847 @@
+{
+  "cases": [
+    {
+      "name": "factory-scenario-defaults",
+      "description": "creates error with scenario defaults",
+      "kind": "factory-scenario-defaults",
+      "input": {
+        "message": "Test error",
+        "scenario": "INTERNAL"
+      },
+      "expected": {
+        "result": {
+          "name": "ModuleError",
+          "code": "INTERNAL_ERROR",
+          "retryable": false,
+          "statusCode": 500
+        }
+      }
+    },
+    {
+      "name": "factory-merge-user-options",
+      "description": "merges user options over scenario defaults",
+      "kind": "factory-merge-user-options",
+      "input": {
+        "message": "Test error",
+        "scenario": "DATABASE",
+        "cause": {
+          "message": "Root cause"
+        },
+        "context": {
+          "operation": "fetch",
+          "userId": "123"
+        },
+        "retryable": true,
+        "statusCode": 503
+      },
+      "expected": {
+        "result": {
+          "code": "DATABASE_ERROR",
+          "retryable": true,
+          "statusCode": 503,
+          "context": {
+            "operation": "fetch",
+            "userId": "123"
+          }
+        }
+      }
+    },
+    {
+      "name": "factory-reject-empty-message",
+      "description": "validates empty message",
+      "kind": "factory-reject-empty-message",
+      "input": {
+        "message": "",
+        "scenario": "INTERNAL"
+      },
+      "expected": {
+        "throws": true,
+        "errorName": "ValidationError"
+      }
+    },
+    {
+      "name": "factory-reject-empty-code",
+      "description": "validates empty code",
+      "kind": "factory-reject-empty-code",
+      "input": {
+        "message": "Test"
+      },
+      "expected": {
+        "throws": true,
+        "errorName": "ValidationError"
+      }
+    },
+    {
+      "name": "factory-reject-invalid-scenario",
+      "description": "validates invalid scenario",
+      "kind": "factory-reject-invalid-scenario",
+      "input": {
+        "message": "Test",
+        "scenario": "INVALID"
+      },
+      "expected": {
+        "throws": true,
+        "errorName": "ValidationError"
+      }
+    },
+    {
+      "name": "constructor-defaults-omitted-options",
+      "description": "uses constructor defaults when a subclass passes undefined optional module options",
+      "kind": "constructor-defaults-omitted-options",
+      "input": {
+        "code": "MINIMAL_ERROR",
+        "message": "Minimal failure"
+      },
+      "expected": {
+        "result": {
+          "retryable": false
+        }
+      }
+    },
+    {
+      "name": "scenario-connection-defaults",
+      "description": "CONNECTION scenario has correct defaults",
+      "kind": "scenario-defaults",
+      "scenario": "CONNECTION",
+      "input": {
+        "scenario": "CONNECTION"
+      },
+      "expected": {
+        "result": {
+          "code": "CONNECTION_ERROR",
+          "statusCode": 503,
+          "retryable": true
+        }
+      }
+    },
+    {
+      "name": "scenario-authentication-defaults",
+      "description": "AUTHENTICATION scenario has correct defaults",
+      "kind": "scenario-defaults",
+      "scenario": "AUTHENTICATION",
+      "input": {
+        "scenario": "AUTHENTICATION"
+      },
+      "expected": {
+        "result": {
+          "code": "CONNECTION_ERROR",
+          "statusCode": 503,
+          "retryable": true
+        }
+      }
+    },
+    {
+      "name": "scenario-not-found-defaults",
+      "description": "NOT_FOUND scenario has correct defaults",
+      "kind": "scenario-defaults",
+      "scenario": "NOT_FOUND",
+      "input": {
+        "scenario": "NOT_FOUND"
+      },
+      "expected": {
+        "result": {
+          "code": "CONNECTION_ERROR",
+          "statusCode": 503,
+          "retryable": true
+        }
+      }
+    },
+    {
+      "name": "scenario-retryable-overrides",
+      "description": "allows overriding scenario retryable",
+      "kind": "scenario-retryable-overrides",
+      "input": {
+        "scenario": "CONNECTION",
+        "retryable": false
+      },
+      "expected": {
+        "result": {
+          "retryable": false
+        }
+      }
+    },
+    {
+      "name": "context-stores-arbitrary-data",
+      "description": "stores arbitrary context data",
+      "kind": "context-stores-arbitrary-data",
+      "input": {
+        "context": {
+          "operation": "createUser",
+          "requestId": "req-456",
+          "timestamp": "2026-07-23T00:00:00.000Z",
+          "userId": "123"
+        }
+      },
+      "expected": {
+        "result": {
+          "context": {
+            "operation": "createUser",
+            "requestId": "req-456",
+            "timestamp": "2026-07-23T00:00:00.000Z",
+            "userId": "123"
+          }
+        }
+      }
+    },
+    {
+      "name": "context-handles-undefined",
+      "description": "handles undefined context",
+      "kind": "context-handles-undefined",
+      "input": {
+        "context": {
+          "__kind": "undefined"
+        }
+      },
+      "expected": {
+        "result": {
+          "context": {
+            "__kind": "undefined"
+          }
+        }
+      }
+    },
+    {
+      "name": "context-empty-object",
+      "description": "handles empty context object",
+      "kind": "context-empty-object",
+      "input": {
+        "context": {}
+      },
+      "expected": {
+        "result": {
+          "context": {}
+        }
+      }
+    },
+    {
+      "name": "context-null-prototype",
+      "description": "detaches null-prototype and nested array context values",
+      "kind": "context-null-prototype",
+      "input": {
+        "context": {
+          "items": [
+            {
+              "nested": {
+                "count": 1
+              }
+            },
+            [
+              "a",
+              "b"
+            ]
+          ],
+          "meta": {
+            "flags": {
+              "__kind": "null-prototype"
+            }
+          }
+        }
+      },
+      "expected": {
+        "result": {
+          "context": {
+            "items": [
+              {
+                "nested": {
+                  "count": 1
+                }
+              },
+              [
+                "a",
+                "b"
+              ]
+            ],
+            "meta": {
+              "flags": {}
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "context-preserves-collaborator-instance",
+      "description": "keeps non-plain collaborator instances by reference while snapshotting context records",
+      "kind": "context-preserves-collaborator-instance",
+      "input": {
+        "context": {
+          "collaborator": {
+            "label": "shared-client"
+          }
+        }
+      },
+      "expected": {
+        "result": {
+          "label": "shared-client",
+          "sameInstance": true
+        }
+      }
+    },
+    {
+      "name": "context-detaches-projections",
+      "description": "detaches nested construction context and each public projection",
+      "kind": "context-detaches-projections",
+      "input": {
+        "context": {
+          "request": {
+            "attempt": 1
+          }
+        }
+      },
+      "expected": {
+        "result": {
+          "context": {
+            "request": {
+              "attempt": 1
+            }
+          },
+          "projectionDetached": true
+        }
+      }
+    },
+    {
+      "name": "http-uses-scenario-code",
+      "description": "uses scenario status code",
+      "kind": "http-uses-scenario-code",
+      "input": {
+        "scenario": "NOT_FOUND"
+      },
+      "expected": {
+        "result": {
+          "statusCode": 404
+        }
+      }
+    },
+    {
+      "name": "http-allows-status-override",
+      "description": "allows overriding status code",
+      "kind": "http-allows-status-override",
+      "input": {
+        "scenario": "INTERNAL",
+        "statusCode": 503
+      },
+      "expected": {
+        "result": {
+          "statusCode": 503
+        }
+      }
+    },
+    {
+      "name": "retryable-transient",
+      "description": "marks transient errors as retryable",
+      "kind": "retryable-transient",
+      "input": {
+        "scenario": "TIMEOUT"
+      },
+      "expected": {
+        "result": {
+          "retryable": true
+        }
+      }
+    },
+    {
+      "name": "retryable-permanent",
+      "description": "marks permanent errors as non-retryable",
+      "kind": "retryable-permanent",
+      "input": {
+        "scenario": "VALIDATION"
+      },
+      "expected": {
+        "result": {
+          "retryable": false
+        }
+      }
+    },
+    {
+      "name": "cause-stores-single",
+      "description": "stores single cause",
+      "kind": "cause-stores-single",
+      "input": {
+        "cause": {
+          "message": "Root cause"
+        }
+      },
+      "expected": {
+        "result": {
+          "cause": {
+            "message": "Root cause"
+          }
+        }
+      }
+    },
+    {
+      "name": "cause-builds-chain",
+      "description": "builds multi-level cause chain",
+      "kind": "cause-builds-chain",
+      "input": {
+        "root": "Root cause",
+        "middle": "Middle error",
+        "top": "Top error"
+      },
+      "expected": {
+        "result": {
+          "chainLength": 3,
+          "rootMessage": "Root cause"
+        }
+      }
+    },
+    {
+      "name": "cause-handles-undefined",
+      "description": "handles undefined cause",
+      "kind": "cause-handles-undefined",
+      "input": {
+        "cause": {
+          "__kind": "undefined"
+        }
+      },
+      "expected": {
+        "result": {
+          "cause": {
+            "__kind": "undefined"
+          }
+        }
+      }
+    },
+    {
+      "name": "chain-single",
+      "description": "returns single error for no causes",
+      "kind": "chain-single",
+      "input": {
+        "message": "Test"
+      },
+      "expected": {
+        "result": {
+          "chainLength": 1
+        }
+      }
+    },
+    {
+      "name": "chain-nested",
+      "description": "returns full chain for nested causes",
+      "kind": "chain-nested",
+      "input": {
+        "root": "Root",
+        "middle": "Middle",
+        "top": "Top"
+      },
+      "expected": {
+        "result": {
+          "chainLength": 3
+        }
+      }
+    },
+    {
+      "name": "chain-deep",
+      "description": "handles deep cause chains",
+      "kind": "chain-deep",
+      "input": {
+        "depth": 5
+      },
+      "expected": {
+        "result": {
+          "chainLength": 5
+        }
+      }
+    },
+    {
+      "name": "chain-circular",
+      "description": "does not hang on a circular cause chain",
+      "kind": "chain-circular",
+      "input": {
+        "circular": true
+      },
+      "expected": {
+        "result": {
+          "chainLengthMax": 10
+        }
+      }
+    },
+    {
+      "name": "find-cause-match",
+      "description": "finds matching cause in chain",
+      "kind": "find-cause-match",
+      "input": {
+        "type": "ValidationError"
+      },
+      "expected": {
+        "result": {
+          "found": true
+        }
+      }
+    },
+    {
+      "name": "find-cause-missing",
+      "description": "returns undefined when type not found",
+      "kind": "find-cause-missing",
+      "input": {
+        "type": "MissingError"
+      },
+      "expected": {
+        "result": {
+          "found": false
+        }
+      }
+    },
+    {
+      "name": "find-cause-first-match",
+      "description": "finds first matching type",
+      "kind": "find-cause-first-match",
+      "input": {
+        "type": "ModuleError"
+      },
+      "expected": {
+        "result": {
+          "found": true,
+          "firstMatch": true
+        }
+      }
+    },
+    {
+      "name": "find-cause-subclass",
+      "description": "can find ModuleError subclass",
+      "kind": "find-cause-subclass",
+      "input": {
+        "type": "ModuleError"
+      },
+      "expected": {
+        "result": {
+          "found": true,
+          "subclass": true
+        }
+      }
+    },
+    {
+      "name": "find-cause-circular",
+      "description": "does not hang on a circular cause chain",
+      "kind": "find-cause-circular",
+      "input": {
+        "circular": true
+      },
+      "expected": {
+        "result": {
+          "found": false,
+          "terminated": true
+        }
+      }
+    },
+    {
+      "name": "has-cause-true",
+      "description": "returns true when type exists in chain",
+      "kind": "has-cause-true",
+      "input": {
+        "type": "ValidationError"
+      },
+      "expected": {
+        "result": {
+          "value": true
+        }
+      }
+    },
+    {
+      "name": "has-cause-false",
+      "description": "returns false when type not in chain",
+      "kind": "has-cause-false",
+      "input": {
+        "type": "MissingError"
+      },
+      "expected": {
+        "result": {
+          "value": false
+        }
+      }
+    },
+    {
+      "name": "has-cause-empty",
+      "description": "returns false for error with no causes",
+      "kind": "has-cause-empty",
+      "input": {
+        "type": "MissingError"
+      },
+      "expected": {
+        "result": {
+          "value": false
+        }
+      }
+    },
+    {
+      "name": "has-cause-deep",
+      "description": "checks entire cause chain",
+      "kind": "has-cause-deep",
+      "input": {
+        "type": "ValidationError",
+        "depth": 5
+      },
+      "expected": {
+        "result": {
+          "value": true
+        }
+      }
+    },
+    {
+      "name": "has-cause-circular",
+      "description": "does not hang on a circular cause chain",
+      "kind": "has-cause-circular",
+      "input": {
+        "circular": true
+      },
+      "expected": {
+        "result": {
+          "value": false
+        }
+      }
+    },
+    {
+      "name": "json-basic",
+      "description": "serializes basic properties",
+      "kind": "json-basic",
+      "input": {
+        "scenario": "INTERNAL"
+      },
+      "expected": {
+        "result": {
+          "fields": [
+            "name",
+            "message",
+            "code",
+            "statusCode",
+            "retryable"
+          ]
+        }
+      }
+    },
+    {
+      "name": "json-optional-context",
+      "description": "includes optional properties when defined",
+      "kind": "json-optional-context",
+      "input": {
+        "context": {
+          "requestId": "req-1"
+        }
+      },
+      "expected": {
+        "result": {
+          "context": {
+            "requestId": "req-1"
+          }
+        }
+      }
+    },
+    {
+      "name": "json-excludes-undefined",
+      "description": "excludes undefined optional properties",
+      "kind": "json-excludes-undefined",
+      "input": {
+        "context": {
+          "__kind": "undefined"
+        }
+      },
+      "expected": {
+        "result": {
+          "excluded": true
+        }
+      }
+    },
+    {
+      "name": "json-native-cause",
+      "description": "serializes native Error cause",
+      "kind": "json-native-cause",
+      "input": {
+        "cause": {
+          "message": "Root"
+        }
+      },
+      "expected": {
+        "result": {
+          "cause": {
+            "message": "Root"
+          }
+        }
+      }
+    },
+    {
+      "name": "json-primitive-cause",
+      "description": "serializes primitive cause values",
+      "kind": "json-primitive-cause",
+      "input": {
+        "cause": "primitive cause"
+      },
+      "expected": {
+        "result": {
+          "cause": "primitive cause"
+        }
+      }
+    },
+    {
+      "name": "json-native-primitive-cause",
+      "description": "serializes numeric primitive cause values",
+      "kind": "json-native-primitive-cause",
+      "input": {
+        "cause": 42
+      },
+      "expected": {
+        "result": {
+          "cause": 42
+        }
+      }
+    },
+    {
+      "name": "json-module-cause",
+      "description": "recursively serializes ModuleError cause",
+      "kind": "json-module-cause",
+      "input": {
+        "cause": {
+          "message": "Module cause"
+        }
+      },
+      "expected": {
+        "result": {
+          "cause": {
+            "message": "Module cause"
+          }
+        }
+      }
+    },
+    {
+      "name": "json-deep-chain",
+      "description": "handles deep cause chain serialization",
+      "kind": "json-deep-chain",
+      "input": {
+        "depth": 5
+      },
+      "expected": {
+        "result": {
+          "depth": 5
+        }
+      }
+    },
+    {
+      "name": "json-depth-sentinel",
+      "description": "uses sentinel string when ModuleError chain exceeds depth limit",
+      "kind": "json-depth-sentinel",
+      "input": {
+        "depth": 10
+      },
+      "expected": {
+        "result": {
+          "sentinel": "CAUSE_DEPTH_SENTINEL"
+        }
+      }
+    },
+    {
+      "name": "json-safe",
+      "description": "produces JSON-safe output",
+      "kind": "json-safe",
+      "input": {
+        "safe": true
+      },
+      "expected": {
+        "result": {
+          "safe": true
+        }
+      }
+    },
+    {
+      "name": "subclass-custom",
+      "description": "supports custom error subclasses",
+      "kind": "subclass-custom",
+      "input": {
+        "scenario": "CONNECTION"
+      },
+      "expected": {
+        "result": {
+          "name": "NetworkError"
+        }
+      }
+    },
+    {
+      "name": "subclass-overrides-defaults",
+      "description": "allows subclass to override defaults",
+      "kind": "subclass-overrides-defaults",
+      "input": {
+        "scenario": "CONNECTION"
+      },
+      "expected": {
+        "result": {
+          "code": "CONNECTION_ERROR"
+        }
+      }
+    },
+    {
+      "name": "subclass-serialization-name",
+      "description": "preserves subclass name in serialization",
+      "kind": "subclass-serialization-name",
+      "input": {
+        "scenario": "CONNECTION"
+      },
+      "expected": {
+        "result": {
+          "name": "NetworkError"
+        }
+      }
+    },
+    {
+      "name": "instanceof-error",
+      "description": "is instance of Error",
+      "kind": "instanceof-error",
+      "input": {
+        "scenario": "INTERNAL"
+      },
+      "expected": {
+        "result": {
+          "instanceofError": true
+        }
+      }
+    },
+    {
+      "name": "instanceof-module-error",
+      "description": "is instance of ModuleError",
+      "kind": "instanceof-module-error",
+      "input": {
+        "scenario": "INTERNAL"
+      },
+      "expected": {
+        "result": {
+          "instanceofModuleError": true
+        }
+      }
+    },
+    {
+      "name": "instanceof-subclass",
+      "description": "subclass is instance of both ModuleError and Error",
+      "kind": "instanceof-subclass",
+      "input": {
+        "scenario": "CONNECTION"
+      },
+      "expected": {
+        "result": {
+          "instanceofSubclass": true
+        }
+      }
+    },
+    {
+      "name": "stack-trace",
+      "description": "has stack trace",
+      "kind": "stack-trace",
+      "input": {
+        "scenario": "INTERNAL"
+      },
+      "expected": {
+        "result": {
+          "stackIncludesName": true
+        }
+      }
+    },
+    {
+      "name": "stack-trace-disabled",
+      "description": "has stack trace when stack capture is unavailable",
+      "kind": "stack-trace-disabled",
+      "input": {
+        "scenario": "INTERNAL"
+      },
+      "expected": {
+        "result": {
+          "stackIncludesName": true
+        }
+      }
+    }
+  ]
+}

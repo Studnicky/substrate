@@ -1,0 +1,17 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "code": "mutex.queueSizeExceeded",
+        "key": "account-42",
+        "maxQueueSize": 3,
+        "message": "Queue size exceeded for key \"account-42\". Maximum queue size is 3."
+      },
+      "input": {
+        "key": "account-42",
+        "maxQueueSize": 3
+      },
+      "name": "captures key and queue size"
+    }
+  ]
+}

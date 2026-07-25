@@ -1,0 +1,125 @@
+{
+  "cases": [
+    {
+      "name": "component-prefixes",
+      "description": "EVENT_COMPONENTS exposes all component prefixes",
+      "kind": "component-prefixes",
+      "input": {
+        "components": {
+          "API": "api",
+          "AUTH": "auth",
+          "CACHE": "cache",
+          "DATA_SOURCE": "dataSource",
+          "DB": "db",
+          "ENTITY": "entity",
+          "GRAPH": "graph",
+          "LLM": "llm",
+          "ONTOLOGY": "ontology",
+          "QUERY_PLANNER": "queryPlanner",
+          "QUERY_ROUTER": "queryRouter",
+          "QUERY_TRANSLATE": "queryTranslate",
+          "SCHEMA": "schema",
+          "TIMING": "timing",
+          "WORKFLOW": "workflow"
+        }
+      },
+      "expected": {
+        "components": {
+          "API": "api",
+          "AUTH": "auth",
+          "CACHE": "cache",
+          "DATA_SOURCE": "dataSource",
+          "DB": "db",
+          "ENTITY": "entity",
+          "GRAPH": "graph",
+          "LLM": "llm",
+          "ONTOLOGY": "ontology",
+          "QUERY_PLANNER": "queryPlanner",
+          "QUERY_ROUTER": "queryRouter",
+          "QUERY_TRANSLATE": "queryTranslate",
+          "SCHEMA": "schema",
+          "TIMING": "timing",
+          "WORKFLOW": "workflow"
+        }
+      }
+    },
+    {
+      "name": "create-graph-query",
+      "description": "creates event from component and operation",
+      "kind": "create-graph-query",
+      "input": {
+        "component": "graph",
+        "operation": "query"
+      },
+      "expected": "graph.query"
+    },
+    {
+      "name": "create-query-planner",
+      "description": "works with complex operation names",
+      "kind": "create-query-planner",
+      "input": {
+        "component": "queryPlanner",
+        "operation": "createPlan"
+      },
+      "expected": "queryPlanner.createPlan"
+    },
+    {
+      "name": "create-constant-component",
+      "description": "works with EVENT_COMPONENTS constants",
+      "kind": "create-constant-component",
+      "input": {
+        "component": "cache",
+        "operation": "get"
+      },
+      "expected": "cache.get"
+    },
+    {
+      "name": "parse-graph-query",
+      "description": "parses event into component and operation",
+      "kind": "parse-graph-query",
+      "input": {
+        "event": "graph.query"
+      },
+      "expected": {
+        "component": "graph",
+        "operation": "query"
+      }
+    },
+    {
+      "name": "parse-query-planner",
+      "description": "handles complex operation names",
+      "kind": "parse-query-planner",
+      "input": {
+        "event": "queryPlanner.createPlan"
+      },
+      "expected": {
+        "component": "queryPlanner",
+        "operation": "createPlan"
+      }
+    },
+    {
+      "name": "parse-multiple-dots",
+      "description": "handles events with multiple dots",
+      "kind": "parse-multiple-dots",
+      "input": {
+        "event": "custom.nested.operation"
+      },
+      "expected": {
+        "component": "custom",
+        "operation": "nested.operation"
+      }
+    },
+    {
+      "name": "parse-standalone",
+      "description": "handles events without dots",
+      "kind": "parse-standalone",
+      "input": {
+        "event": "standalone"
+      },
+      "expected": {
+        "component": "standalone",
+        "operation": ""
+      }
+    }
+  ]
+}

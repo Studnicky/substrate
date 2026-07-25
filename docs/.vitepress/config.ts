@@ -1,27 +1,13 @@
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
 
-const pkg = JSON.parse(
-  readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
-) as {
+import { BROWSER_SWAPS } from './browser-swaps.js';
+import pkg from '../../package.json';
+
+const packageJson = pkg as {
   substrate?: { seo?: { googleSiteVerification?: string; bingSiteVerification?: string; twitterHandle?: string } };
 };
-
-// Node-only source modules in otherwise-isomorphic packages, mapped to their
-// browser siblings. The docs playground bundles package SOURCE (not the built
-// dist), so the packages' own `"browser"` export-field swaps never engage —
-// this plugin performs the equivalent redirect for the CLIENT bundle only.
-const BROWSER_SWAPS: ReadonlyArray<readonly [string, string]> = [
-  ['packages/system/src/providers/SystemProvider', 'packages/system/src/providers/browser/SystemProvider'],
-  ['packages/system/src/modules/GpuDetector', 'packages/system/src/modules/browser/GpuDetector'],
-  ['packages/file-lock/src/NodeFileSystem', 'packages/file-lock/src/browser/NodeFileSystem'],
-  ['packages/file-lock/src/NodeOwnerToken', 'packages/file-lock/src/browser/NodeOwnerToken'],
-  ['packages/fetch/src/config/DispatcherAgent', 'packages/fetch/src/config/browser/DispatcherAgent'],
-  ['packages/fetch/src/modules/FetchTransport', 'packages/fetch/src/modules/browser/FetchTransport'],
-  ['packages/fetch/src/modules/UndiciDispatcher', 'packages/fetch/src/modules/browser/UndiciDispatcher']
-];
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -69,7 +55,6 @@ const substrateBrowserSwap = (): {
 };
 
 const SITE_TITLE = 'Substrate';
-const SITE_TAGLINE = 'Subclass-first TypeScript primitives.';
 const SITE_DESCRIPTION = 'A subclass-first toolkit of TypeScript primitives: retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base.';
 const SITE_URL = 'https://studnicky.github.io/substrate/';
 const SITE_BASE = '/substrate/';
@@ -81,7 +66,7 @@ const SITE_AUTHOR_URL = 'https://github.com/Studnicky';
 const SITE_REPO = 'https://github.com/Studnicky/substrate';
 const SITE_LOGO = `${SITE_URL}og-image.png`;
 
-const seo = pkg.substrate?.seo ?? {};
+const seo = packageJson.substrate?.seo ?? {};
 const googleVerify = seo.googleSiteVerification ?? '';
 const bingVerify = seo.bingSiteVerification ?? '';
 const twitterHandle = seo.twitterHandle ?? '';

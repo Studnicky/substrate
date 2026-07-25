@@ -1,0 +1,187 @@
+{
+  "cases": [
+    {
+      "description": "resolves results in the same order as the input items",
+      "expected": {
+        "results": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ]
+      },
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 4 },
+          "concurrency": 4,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [
+          { "ms": 40, "value": "a" },
+          { "ms": 5, "value": "b" },
+          { "ms": 25, "value": "c" },
+          { "ms": 1, "value": "d" }
+        ]
+      },
+      "kind": "result-order",
+      "name": "result-order"
+    },
+    {
+      "description": "bounds concurrency and proves more than one worker overlaps",
+      "expected": {
+        "itemCount": 6,
+        "observedMaxGreaterThanOne": true,
+        "observedMaxLessThanOrEqualConcurrency": true
+      },
+      "input": {
+        "batch": {
+          "itemCount": 6,
+          "itemMs": 500,
+          "valuePrefix": "item"
+        },
+        "workerPool": {
+          "batch": { "concurrency": 6 },
+          "concurrency": 2,
+          "workerPath": "../fixtures/concurrencyWorker.mjs"
+        }
+      },
+      "kind": "bounded-concurrency",
+      "name": "bounded-concurrency"
+    },
+    {
+      "description": "a worker error rejects the whole run() call without aborting items already in flight",
+      "expected": {
+        "observedResults": [
+          "b",
+          "a",
+          "d"
+        ]
+      },
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 4 },
+          "concurrency": 2,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [
+          { "value": "a" },
+          { "value": "b" },
+          { "error": "boom", "value": "c" },
+          { "value": "d" }
+        ]
+      },
+      "kind": "error-fail-fast",
+      "name": "error-fail-fast"
+    },
+    {
+      "description": "a worker that exits mid-task is retried once on a replacement worker",
+      "expected": {
+        "createdWorkerCount": 2,
+        "results": [
+          "lost",
+          "recovered"
+        ]
+      },
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 2 },
+          "concurrency": 1,
+          "workerPath": "../fixtures/exitWorker.mjs"
+        },
+        "items": [
+          { "exit": true, "stateFile": "retry-flag", "value": "lost" },
+          { "value": "recovered" }
+        ]
+      },
+      "kind": "exit-retry",
+      "name": "exit-retry"
+    }
+    ,
+    {
+      "description": "a worker that exits on both the original and retry attempt rejects the task",
+      "expected": {
+        "runRejectedMessageIncludes": "before returning a result"
+      },
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 1 },
+          "concurrency": 1,
+          "workerPath": "../fixtures/alwaysExitWorker.mjs"
+        },
+        "items": [
+          { "value": "never" }
+        ]
+      },
+      "kind": "exit-retry-fails",
+      "name": "exit-retry-fails"
+    }
+    ,
+    {
+      "description": "an exited worker still drains queued work when replacement workers are available",
+      "expected": {
+        "createdWorkerCount": 3,
+        "results": [
+          "lost",
+          "kept",
+          "last"
+        ]
+      },
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 3 },
+          "concurrency": 2,
+          "workerPath": "../fixtures/exitWorker.mjs"
+        },
+        "items": [
+          { "exit": true, "stateFile": "retry-flag", "value": "lost" },
+          { "ms": 25, "value": "kept" },
+          { "value": "last" }
+        ]
+      },
+      "kind": "exit-retry",
+      "name": "exit-retry-queued"
+    },
+    {
+      "description": "a timed-out task rejects with a timeout error",
+      "expected": {
+        "runRejectedMessageIncludes": "exceeded its timeout"
+      },
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 1 },
+          "concurrency": 1,
+          "timeoutMs": 1,
+          "workerPath": "../fixtures/terminationWorker.mjs"
+        },
+        "items": [
+          { "ms": 50, "value": "slow" }
+        ]
+      },
+      "kind": "timeout-rejects",
+      "name": "timeout-rejects"
+    },
+    {
+      "description": "a worker that exits immediately after a result forces queued work onto a replacement worker",
+      "expected": {
+        "createdWorkerCount": 2,
+        "results": [
+          "first",
+          "second"
+        ]
+      },
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 2 },
+          "concurrency": 1,
+          "workerPath": "../fixtures/resultThenExitWorker.mjs"
+        },
+        "items": [
+          { "value": "first" },
+          { "value": "second" }
+        ]
+      },
+      "kind": "exit-retry",
+      "name": "exit-retry-after-result"
+    }
+  ]
+}

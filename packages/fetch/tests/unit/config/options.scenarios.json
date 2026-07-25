@@ -1,0 +1,679 @@
+{
+  "cases": [
+    {
+      "name": "options-undefined",
+      "description": "ValidateOptions accepts undefined",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "__kind": "undefined"
+        }
+      }
+    },
+    {
+      "name": "options-null",
+      "description": "ValidateOptions accepts null",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": null
+      }
+    },
+    {
+      "name": "options-non-object",
+      "description": "ValidateOptions rejects non-object values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "options must be an object"
+        ]
+      },
+      "input": {
+        "options": "invalid"
+      }
+    },
+    {
+      "name": "options-array",
+      "description": "ValidateOptions rejects arrays",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "options must be an object"
+        ]
+      },
+      "input": {
+        "options": []
+      }
+    },
+    {
+      "name": "options-body-object",
+      "description": "ValidateOptions accepts body values without inspecting them",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "body": {
+            "nested": true
+          }
+        }
+      }
+    },
+    {
+      "name": "options-body-array",
+      "description": "ValidateOptions accepts array body values without inspecting them",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "body": [
+            1,
+            "two",
+            null
+          ]
+        }
+      }
+    },
+    {
+      "name": "options-headers-object",
+      "description": "ValidateOptions accepts headers values without inspecting them",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "headers": {
+            "x-custom-header": "value"
+          }
+        }
+      }
+    },
+    {
+      "name": "options-headers-null",
+      "description": "ValidateOptions accepts null headers values without inspecting them",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "headers": null
+        }
+      }
+    },
+    {
+      "name": "options-cache-valid",
+      "description": "ValidateOptions accepts valid cache values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "cache": "no-cache"
+        }
+      }
+    },
+    {
+      "name": "options-cache-non-string",
+      "description": "ValidateOptions rejects non-string cache values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "cache must be a string"
+        ]
+      },
+      "input": {
+        "options": {
+          "cache": true
+        }
+      }
+    },
+    {
+      "name": "options-cache-invalid",
+      "description": "ValidateOptions rejects invalid cache values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "cache must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "cache": "invalid"
+        }
+      }
+    },
+    {
+      "name": "options-cache-empty",
+      "description": "ValidateOptions rejects empty cache values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "cache must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "cache": ""
+        }
+      }
+    },
+    {
+      "name": "options-credentials-valid",
+      "description": "ValidateOptions accepts valid credentials values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "credentials": "include"
+        }
+      }
+    },
+    {
+      "name": "options-credentials-non-string",
+      "description": "ValidateOptions rejects non-string credentials values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "credentials must be a string"
+        ]
+      },
+      "input": {
+        "options": {
+          "credentials": true
+        }
+      }
+    },
+    {
+      "name": "options-credentials-invalid",
+      "description": "ValidateOptions rejects invalid credentials values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "credentials must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "credentials": "invalid"
+        }
+      }
+    },
+    {
+      "name": "options-credentials-empty",
+      "description": "ValidateOptions rejects empty credentials values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "credentials must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "credentials": ""
+        }
+      }
+    },
+    {
+      "name": "options-integrity-valid",
+      "description": "ValidateOptions accepts string integrity values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "integrity": "sha256-abc"
+        }
+      }
+    },
+    {
+      "name": "options-integrity-invalid",
+      "description": "ValidateOptions rejects non-string integrity values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "integrity must be a string"
+        ]
+      },
+      "input": {
+        "options": {
+          "integrity": true
+        }
+      }
+    },
+    {
+      "name": "options-keepalive-valid",
+      "description": "ValidateOptions accepts boolean keepalive values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "keepalive": true
+        }
+      }
+    },
+    {
+      "name": "options-keepalive-invalid",
+      "description": "ValidateOptions rejects non-boolean keepalive values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "keepalive must be a boolean"
+        ]
+      },
+      "input": {
+        "options": {
+          "keepalive": "yes"
+        }
+      }
+    },
+    {
+      "name": "options-method-valid",
+      "description": "ValidateOptions accepts method values case-insensitively",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "method": "post"
+        }
+      }
+    },
+    {
+      "name": "options-method-non-string",
+      "description": "ValidateOptions rejects non-string method values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "method must be a string"
+        ]
+      },
+      "input": {
+        "options": {
+          "method": true
+        }
+      }
+    },
+    {
+      "name": "options-method-invalid",
+      "description": "ValidateOptions rejects invalid method values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "method must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "method": "fetch"
+        }
+      }
+    },
+    {
+      "name": "options-method-padded",
+      "description": "ValidateOptions rejects padded method values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "method must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "method": " get "
+        }
+      }
+    },
+    {
+      "name": "options-mode-valid",
+      "description": "ValidateOptions accepts valid mode values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "mode": "cors"
+        }
+      }
+    },
+    {
+      "name": "options-mode-non-string",
+      "description": "ValidateOptions rejects non-string mode values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "mode must be a string"
+        ]
+      },
+      "input": {
+        "options": {
+          "mode": true
+        }
+      }
+    },
+    {
+      "name": "options-mode-invalid",
+      "description": "ValidateOptions rejects invalid mode values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "mode must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "mode": "invalid"
+        }
+      }
+    },
+    {
+      "name": "options-mode-empty",
+      "description": "ValidateOptions rejects empty mode values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "mode must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "mode": ""
+        }
+      }
+    },
+    {
+      "name": "options-redirect-valid",
+      "description": "ValidateOptions accepts valid redirect values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "redirect": "manual"
+        }
+      }
+    },
+    {
+      "name": "options-redirect-non-string",
+      "description": "ValidateOptions rejects non-string redirect values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "redirect must be a string"
+        ]
+      },
+      "input": {
+        "options": {
+          "redirect": true
+        }
+      }
+    },
+    {
+      "name": "options-redirect-invalid",
+      "description": "ValidateOptions rejects invalid redirect values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "redirect must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "redirect": "invalid"
+        }
+      }
+    },
+    {
+      "name": "options-redirect-empty",
+      "description": "ValidateOptions rejects empty redirect values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "redirect must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "redirect": ""
+        }
+      }
+    },
+    {
+      "name": "options-referrer-valid",
+      "description": "ValidateOptions accepts string referrer values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "referrer": "https://example.test"
+        }
+      }
+    },
+    {
+      "name": "options-referrer-invalid",
+      "description": "ValidateOptions rejects non-string referrer values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "referrer must be a string"
+        ]
+      },
+      "input": {
+        "options": {
+          "referrer": 123
+        }
+      }
+    },
+    {
+      "name": "options-referrer-policy-valid",
+      "description": "ValidateOptions accepts valid referrerPolicy values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "referrerPolicy": "strict-origin"
+        }
+      }
+    },
+    {
+      "name": "options-referrer-policy-non-string",
+      "description": "ValidateOptions rejects non-string referrerPolicy values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "referrerPolicy must be a string"
+        ]
+      },
+      "input": {
+        "options": {
+          "referrerPolicy": true
+        }
+      }
+    },
+    {
+      "name": "options-referrer-policy-empty",
+      "description": "ValidateOptions accepts empty referrerPolicy values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "referrerPolicy": ""
+        }
+      }
+    },
+    {
+      "name": "options-referrer-policy-invalid",
+      "description": "ValidateOptions rejects invalid referrerPolicy values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "referrerPolicy must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "referrerPolicy": "invalid"
+        }
+      }
+    },
+    {
+      "name": "options-referrer-policy-empty-spaces",
+      "description": "ValidateOptions rejects whitespace referrerPolicy values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "referrerPolicy must be one of"
+        ]
+      },
+      "input": {
+        "options": {
+          "referrerPolicy": "  "
+        }
+      }
+    },
+    {
+      "name": "options-signal-valid",
+      "description": "ValidateOptions accepts AbortSignal values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "signal": {
+            "__kind": "abort-signal"
+          }
+        }
+      }
+    },
+    {
+      "name": "options-signal-null",
+      "description": "ValidateOptions accepts null signal values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "signal": null
+        }
+      }
+    },
+    {
+      "name": "options-signal-undefined",
+      "description": "ValidateOptions accepts undefined signal values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "signal": {
+            "__kind": "undefined"
+          }
+        }
+      }
+    },
+    {
+      "name": "options-signal-invalid",
+      "description": "ValidateOptions rejects invalid signal values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "signal must be an AbortSignal instance"
+        ]
+      },
+      "input": {
+        "options": {
+          "signal": "invalid"
+        }
+      }
+    },
+    {
+      "name": "options-signal-number",
+      "description": "ValidateOptions rejects numeric signal values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "signal must be an AbortSignal instance"
+        ]
+      },
+      "input": {
+        "options": {
+          "signal": 1
+        }
+      }
+    },
+    {
+      "name": "options-timeout-valid",
+      "description": "ValidateOptions accepts numeric timeout values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "timeout": 5000
+        }
+      }
+    },
+    {
+      "name": "options-timeout-null",
+      "description": "ValidateOptions accepts null timeout values",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "timeout": null
+        }
+      }
+    },
+    {
+      "name": "options-timeout-invalid",
+      "description": "ValidateOptions rejects invalid timeout values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "timeout must be a number"
+        ]
+      },
+      "input": {
+        "options": {
+          "timeout": "5000"
+        }
+      }
+    },
+    {
+      "name": "options-timeout-zero",
+      "description": "ValidateOptions rejects zero timeout values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "timeout must be positive"
+        ]
+      },
+      "input": {
+        "options": {
+          "timeout": 0
+        }
+      }
+    },
+    {
+      "name": "options-unknown-option",
+      "description": "ValidateOptions ignores unknown custom options",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "options": {
+          "customOption": "value"
+        }
+      }
+    }
+  ]
+}

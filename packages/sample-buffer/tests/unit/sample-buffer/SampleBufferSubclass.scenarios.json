@@ -1,0 +1,494 @@
+{
+  "cases": [
+    {
+      "name": "on-evict-empty",
+      "description": "onEvict is not called when buffer is not full",
+      "kind": "on-evict",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [1, 2, 3]
+      },
+      "expected": {
+        "evictedValues": []
+      }
+    },
+    {
+      "name": "on-evict-overwrite",
+      "description": "onEvict is called with the overwritten value when buffer is full",
+      "kind": "on-evict",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushItems": [100, 200, 300, 400]
+      },
+      "expected": {
+        "evictedValues": [100]
+      }
+    },
+    {
+      "name": "on-evict-order",
+      "description": "onEvict receives values in FIFO eviction order",
+      "kind": "on-evict",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushItems": [10, 20, 30, 40, 50, 60]
+      },
+      "expected": {
+        "evictedValues": [10, 20, 30]
+      }
+    },
+    {
+      "name": "on-evict-before-overwrite",
+      "description": "onEvict is called before the value is overwritten",
+      "kind": "on-evict-before-overwrite",
+      "input": {
+        "sampleBuffer": { "capacity": 2 },
+        "values": [77, 88, 99]
+      },
+      "expected": {
+        "capturedOldValue": 77
+      }
+    },
+    {
+      "name": "on-push-empty",
+      "description": "onPush is called with evicted=false when buffer is not full",
+      "kind": "on-push",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [42, 43]
+      },
+      "expected": {
+        "pushLog": [
+          { "value": 42, "evicted": false },
+          { "value": 43, "evicted": false }
+        ]
+      }
+    },
+    {
+      "name": "on-push-full",
+      "description": "onPush is called with evicted=true when buffer was full",
+      "kind": "on-push",
+      "input": {
+        "sampleBuffer": { "capacity": 2 },
+        "pushItems": [1, 2, 3]
+      },
+      "expected": {
+        "pushLog": [
+          { "value": 1, "evicted": false },
+          { "value": 2, "evicted": false },
+          { "value": 3, "evicted": true }
+        ]
+      }
+    },
+    {
+      "name": "on-push-value",
+      "description": "onPush receives the pushed value",
+      "kind": "on-push",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushItems": [100]
+      },
+      "expected": {
+        "pushLog": [
+          { "value": 100, "evicted": false }
+        ]
+      }
+    },
+    {
+      "name": "on-push-length-update",
+      "description": "onPush is called at end of push",
+      "kind": "on-push-length-update",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "value": 99
+      },
+      "expected": {
+        "lengthAtHook": 1
+      }
+    },
+    {
+      "name": "on-clear-once",
+      "description": "onClear is called once per clear invocation",
+      "kind": "on-clear",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [1],
+        "clearTimes": 1
+      },
+      "expected": {
+        "clearCount": 1
+      }
+    },
+    {
+      "name": "on-clear-multiple",
+      "description": "onClear is called on each of multiple clear calls",
+      "kind": "on-clear",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [1, 2],
+        "clearTimes": 2
+      },
+      "expected": {
+        "clearCount": 2
+      }
+    },
+    {
+      "name": "on-clear-empty",
+      "description": "onClear is called even on an empty buffer",
+      "kind": "on-clear",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [],
+        "clearTimes": 1
+      },
+      "expected": {
+        "clearCount": 1
+      }
+    },
+    {
+      "name": "on-clear-before-reset",
+      "description": "onClear is called before state is reset",
+      "kind": "on-clear-before-reset",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [1, 2]
+      },
+      "expected": {
+        "lengthAtHook": 2
+      }
+    },
+    {
+      "name": "on-percentile-called",
+      "description": "onPercentile is called with the pct and result",
+      "kind": "on-percentile-called",
+      "input": {
+        "sampleBuffer": { "capacity": 10 },
+        "pushItems": [10, 20, 30],
+        "pct": 50
+      },
+      "expected": {
+        "pct": 50,
+        "result": 20,
+        "resultType": "number"
+      }
+    },
+    {
+      "name": "on-percentile-empty",
+      "description": "onPercentile is not called when buffer is empty",
+      "kind": "on-percentile-absent-when-empty",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pct": 50
+      },
+      "expected": {
+        "percentileLogLength": 0
+      }
+    },
+    {
+      "name": "on-percentile-result",
+      "description": "onPercentile result matches return value",
+      "kind": "on-percentile-result-matches-return",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [10, 20, 30],
+        "pct": 50
+      },
+      "expected": {
+        "result": 20
+      }
+    },
+    {
+      "name": "on-percentile-edge-cases",
+      "description": "onPercentile is called for p0 and p100 edge cases",
+      "kind": "on-percentile-edge-cases",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [5, 15],
+        "percentiles": [0, 100]
+      },
+      "expected": {
+        "results": [5, 15]
+      }
+    },
+    {
+      "name": "on-overflow-empty",
+      "description": "onOverflow is not called when buffer is not full",
+      "kind": "on-overflow-not-full",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushItems": [1, 2]
+      },
+      "expected": {
+        "overflowCount": 0
+      }
+    },
+    {
+      "name": "on-overflow-full",
+      "description": "onOverflow is called when buffer is full",
+      "kind": "on-overflow-full",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushItems": [1, 2, 3, 4]
+      },
+      "expected": {
+        "overflowCount": 1,
+        "overflowValue": 4
+      }
+    },
+    {
+      "name": "on-overflow-before-evict",
+      "description": "onOverflow is called before onEvict",
+      "kind": "on-overflow-before-on-evict",
+      "input": {
+        "sampleBuffer": { "capacity": 2 },
+        "pushItems": [10, 20, 30]
+      },
+      "expected": {
+        "events": ["overflow:30", "evict:10"]
+      }
+    },
+    {
+      "name": "on-overflow-incoming",
+      "description": "onOverflow receives the incoming value",
+      "kind": "on-overflow-incoming-value",
+      "input": {
+        "sampleBuffer": { "capacity": 2 },
+        "pushItems": [10, 20, 30]
+      },
+      "expected": {
+        "overflowValue": 30
+      }
+    },
+    {
+      "name": "compute-empty",
+      "description": "onComputeStart is not called when buffer is empty",
+      "kind": "on-compute-start-empty",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pct": 50
+      },
+      "expected": {
+        "computeStartLengths": []
+      }
+    },
+    {
+      "name": "compute-cache-miss",
+      "description": "onComputeStart fires once per cache miss",
+      "kind": "on-compute-start-cache-miss",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [1, 2, 3],
+        "pct": 50,
+        "calls": 2
+      },
+      "expected": {
+        "computeStartLengths": [3]
+      }
+    },
+    {
+      "name": "compute-length",
+      "description": "onComputeStart receives the current sample count",
+      "kind": "on-compute-start-length",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [1, 2, 3],
+        "pct": 50
+      },
+      "expected": {
+        "computeStartLength": 3
+      }
+    },
+    {
+      "name": "compute-sorted",
+      "description": "onComputeComplete fires once per cache miss with sorted result",
+      "kind": "on-compute-complete-sorted",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pushItems": [30, 10, 20],
+        "pct": 50
+      },
+      "expected": {
+        "sorted": [10, 20, 30]
+      }
+    },
+    {
+      "name": "compute-empty-complete",
+      "description": "onComputeComplete is not called when buffer is empty",
+      "kind": "on-compute-complete-empty",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "pct": 50
+      },
+      "expected": {
+        "computeCompletes": []
+      }
+    },
+    {
+      "name": "compute-after-invalidation",
+      "description": "onComputeStart fires again after cache invalidation",
+      "kind": "on-compute-start-after-invalidation",
+      "input": {
+        "sampleBuffer": { "capacity": 5 },
+        "initialPushItems": [1, 2, 3],
+        "pushAfter": 4,
+        "pct": 50
+      },
+      "expected": {
+        "computeStartCount": 2
+      }
+    },
+    {
+      "name": "inspect-fields",
+      "description": "subclass can read count, capacity, head, sortedCache",
+      "kind": "inspect-protected-fields",
+      "input": {
+        "sampleBuffer": { "capacity": 4 },
+        "pushItems": [1, 2]
+      },
+      "expected": {
+        "state": {
+          "capacity": 4,
+          "cacheNull": true,
+          "head": 0,
+          "length": 2
+        }
+      }
+    },
+    {
+      "name": "throwing-on-push",
+      "description": "a throwing onPush hook raises HookInvocationError",
+      "kind": "throwing-on-push",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushValue": 10,
+        "pct": 50
+      },
+      "expected": {
+        "length": 1,
+        "percentile": 10
+      }
+    },
+    {
+      "name": "throwing-on-overflow",
+      "description": "a throwing onOverflow hook raises HookInvocationError",
+      "kind": "throwing-on-overflow",
+      "input": {
+        "sampleBuffer": { "capacity": 2 },
+        "primingPushItems": [10, 20],
+        "overflowPush": 30,
+        "percentiles": [0, 100]
+      },
+      "expected": {
+        "length": 2,
+        "percentiles": {
+          "0": 10,
+          "100": 20
+        }
+      }
+    },
+    {
+      "name": "throwing-on-evict",
+      "description": "a throwing onEvict hook raises HookInvocationError",
+      "kind": "throwing-on-evict",
+      "input": {
+        "sampleBuffer": { "capacity": 2 },
+        "primingPushItems": [10, 20],
+        "overflowPush": 30,
+        "percentiles": [0, 100]
+      },
+      "expected": {
+        "length": 2,
+        "percentiles": {
+          "0": 10,
+          "100": 20
+        }
+      }
+    },
+    {
+      "name": "throwing-on-clear",
+      "description": "a throwing onClear hook raises HookInvocationError",
+      "kind": "throwing-on-clear",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushItems": [1, 2],
+        "pct": 50
+      },
+      "expected": {
+        "length": 2,
+        "percentile": 1.5
+      }
+    },
+    {
+      "name": "throwing-on-percentile",
+      "description": "a throwing onPercentile hook raises HookInvocationError",
+      "kind": "throwing-on-percentile",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushItems": [10, 20, 30],
+        "pct": 50
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "throwing-on-compute-start",
+      "description": "a throwing onComputeStart hook raises HookInvocationError",
+      "kind": "throwing-on-compute-start",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushItems": [30, 10, 20],
+        "pct": 50
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "hook-cause",
+      "description": "HookInvocationError carries the failing hook name and original cause",
+      "kind": "hook-invocation-error-cause",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushValue": 10
+      },
+      "expected": {
+        "hookName": "onPush",
+        "causeMessage": "onPush boom"
+      }
+    },
+    {
+      "name": "async-push-safe",
+      "description": "an async-rejecting onPush override is routed safely",
+      "kind": "async-push-rejection-safe",
+      "input": {
+        "sampleBuffer": { "capacity": 1 },
+        "pushItems": [10, 20],
+        "pct": 50
+      },
+      "expected": {
+        "rejectionCount": 0,
+        "length": 1,
+        "percentile": 20
+      }
+    },
+    {
+      "name": "async-percentile-safe",
+      "description": "async-rejecting onPercentile overrides stay guarded across edge cases",
+      "kind": "async-percentile-rejection-safe",
+      "input": {
+        "sampleBuffer": { "capacity": 3 },
+        "pushItems": [10, 20, 30],
+        "percentiles": [0, 100, 50, 25]
+      },
+      "expected": {
+        "rejectionCount": 0,
+        "results": {
+          "0": 10,
+          "100": 30,
+          "50": 20,
+          "25": 15
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "cases": [
+    {
+      "name": "constructor-throws",
+      "description": "constructor is not instantiable",
+      "kind": "constructor-throws",
+      "input": {},
+      "expected": { "message": "ErrorCodeRegistry is not instantiable" }
+    },
+    {
+      "name": "register-unique",
+      "description": "accepts a unique descriptor",
+      "kind": "register-unique",
+      "input": {
+        "descriptor": { "code": "errors.loop.unique", "description": "Unique loop case", "retryable": false }
+      },
+      "expected": { "registered": true }
+    },
+    {
+      "name": "register-duplicate",
+      "description": "rejects duplicate codes",
+      "kind": "register-duplicate",
+      "input": {
+        "descriptor": { "code": "errors.loop.duplicate", "description": "Duplicate loop case", "retryable": false }
+      },
+      "expected": { "messageIncludes": "Duplicate error code" }
+    }
+  ]
+}

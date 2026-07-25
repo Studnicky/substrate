@@ -1,0 +1,28 @@
+{
+  "cases": [
+    {
+      "name": "01-memory-transport",
+      "description": "Runs the memory transport example",
+      "input": { "entrypoint": "../../examples/01-memory-transport.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "03-fanout",
+      "description": "Runs the fanout example",
+      "input": { "entrypoint": "../../examples/03-fanout.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "04-custom-transport",
+      "description": "Runs the custom transport example",
+      "input": { "entrypoint": "../../examples/04-custom-transport.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "observed-logger",
+      "description": "Runs the observed logger example",
+      "input": { "entrypoint": "../../examples/observedLogger.ts" },
+      "expected": { "importsWithoutThrow": true }
+    }
+  ]
+}

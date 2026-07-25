@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/predicates",
-  "version": "7.0.1",
+  "version": "8.0.1",
   "description": "JSON Schema primitive validation predicates: type guards, string, numeric, array, object, content",
   "type": "module",
   "sideEffects": false,
@@ -22,7 +22,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+    "test": "node ../../scripts/test-suite.mjs all --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/eslint-config",
-  "version": "7.0.1",
+  "version": "8.0.1",
   "description": "Shared ESLint flat config for @studnicky packages",
   "type": "module",
   "sideEffects": false,
@@ -23,7 +23,7 @@
     "build": "tsc",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
-    "test": "node --import tsx --test \"tests/**/*.test.ts\"",
+    "test": "node ../../scripts/test-suite.mjs all --package .",
     "type-check": "tsc --noEmit"
   },
   "keywords": [

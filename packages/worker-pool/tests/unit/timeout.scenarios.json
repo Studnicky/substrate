@@ -1,0 +1,144 @@
+{
+  "cases": [
+    {
+      "name": "worker-timeout",
+      "description": "terminates a worker that exceeds timeoutMs and rejects that task, firing onWorkerTimeout",
+      "kind": "worker-timeout",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "timeoutMs": 200,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "ms": 5000, "value": "too-slow" }]
+      },
+      "expected": {
+        "timedOutIndexes": [0]
+      }
+    },
+    {
+      "name": "within-timeout",
+      "description": "a task within timeoutMs resolves normally",
+      "kind": "within-timeout",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "timeoutMs": 20000,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "ms": 10, "value": "fast" }]
+      },
+      "expected": {
+        "results": ["fast"]
+      }
+    },
+    {
+      "name": "signal-already-aborted",
+      "description": "returns normally when the composed signal is already aborted before dispatch",
+      "kind": "signal-already-aborted",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "timeoutMs": 200,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "ready" }]
+      },
+      "expected": {
+        "errorMessageIncludes": "exceeded its timeout"
+      }
+    },
+    {
+      "name": "awaits-signal-composition",
+      "description": "awaits timeout signal composition before dispatching a task",
+      "kind": "awaits-signal-composition",
+      "input": {
+        "workerPool": {
+          "timeoutMs": 1000,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "after-compose" }],
+        "signal": { "kind": "deferred-compose" }
+      },
+      "expected": {
+        "messagesAfterCompose": 0,
+        "messagesAfterRun": 3,
+        "results": ["after-compose"]
+      }
+    },
+    {
+      "name": "signal-compose-rejects",
+      "description": "rejects before dispatch when timeout signal composition fails",
+      "kind": "signal-compose-rejects",
+      "input": {
+        "workerPool": {
+          "timeoutMs": 1000,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "never-dispatched" }],
+        "signal": { "kind": "rejecting-compose" }
+      },
+      "expected": {
+        "errorMessageIncludes": "signal compose failed"
+      }
+    },
+    {
+      "name": "signal-compose-rejects-string",
+      "description": "rejects before dispatch when timeout signal composition throws a non-error",
+      "kind": "signal-compose-rejects-string",
+      "input": {
+        "workerPool": {
+          "timeoutMs": 1000,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "never-dispatched" }],
+        "signal": { "kind": "rejecting-compose-string" }
+      },
+      "expected": {
+        "errorMessageIncludes": "signal compose failed as string"
+      }
+    },
+    {
+      "name": "compose-after-exit",
+      "description": "releases a worker after deferred signal composition once it has exited",
+      "kind": "compose-after-exit",
+      "input": {
+        "workerPool": {
+          "timeoutMs": 1000,
+          "workerPath": "../fixtures/immediateExitWorker.mjs"
+        },
+        "items": [{ "value": "recover" }],
+        "signal": { "kind": "deferred-compose" }
+      },
+      "expected": {
+        "errorMessageIncludes": "before returning a result"
+      }
+    },
+    {
+      "name": "compose-after-exit-queued",
+      "description": "requeues work when a worker exits before a deferred timeout composition completes",
+      "kind": "compose-after-exit-queued",
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 3 },
+          "concurrency": 1,
+          "timeoutMs": 1000,
+          "workerPath": "../fixtures/resultThenWaitExitWorker.mjs"
+        },
+        "items": [
+          { "exitAfterResult": true, "value": "first" },
+          { "value": "second" },
+          { "value": "third" }
+        ],
+        "signal": { "kind": "deferred-compose" }
+      },
+      "expected": {
+        "results": [
+          "first",
+          "second",
+          "third"
+        ]
+      }
+    }
+  ]
+}

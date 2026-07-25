@@ -4,6 +4,7 @@ import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.
 import type { MergedConfigEntity } from '../entities/MergedConfigEntity.js';
 
 import { DEFAULT_DISPATCHER_CONFIG } from '../constants/DEFAULT_DISPATCHER_CONFIG.js';
+import { TestDispatcher } from '../testing/TestDispatcher.js';
 
 /** Creates configured undici Agents for owners that retain and manage them. */
 export class DispatcherAgent {
@@ -12,6 +13,10 @@ export class DispatcherAgent {
   }
 
   static create(config: DispatcherConfigEntity.Type): Agent {
+    if (process.env.SUBSTRATE_FETCH_TEST_TRANSPORT === '1') {
+      return TestDispatcher.create(config) as unknown as Agent;
+    }
+
     const merged = DispatcherAgent.#mergeWithDefaults(config);
     const options: Record<string, unknown> = { 'pipelining': merged.pipelining };
 

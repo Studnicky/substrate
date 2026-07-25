@@ -1,0 +1,70 @@
+{
+  "cases": [
+    {
+      "name": "default-construction",
+      "description": "CircularBufferError applies its default code and retryability",
+      "kind": "default-construction",
+      "input": {
+        "message": "invalid capacity"
+      },
+      "expected": {
+        "code": "circularBuffer.invalidConfig",
+        "message": "invalid capacity",
+        "retryable": false
+      }
+    },
+    {
+      "name": "with-args",
+      "description": "CircularBufferError preserves caller metadata and correlation id",
+      "kind": "with-args",
+      "input": {
+        "message": "invalid capacity",
+        "args": {
+          "correlationId": "trace-1",
+          "metadata": {
+            "capacity": 0,
+            "reason": "zero"
+          }
+        }
+      },
+      "expected": {
+        "code": "circularBuffer.invalidConfig",
+        "correlationId": "trace-1",
+        "message": "invalid capacity",
+        "metadata": {
+          "capacity": 0,
+          "reason": "zero"
+        },
+        "retryable": false
+      }
+    },
+    {
+      "name": "with-cause",
+      "description": "CircularBufferError preserves an explicit cause",
+      "kind": "with-cause",
+      "input": {
+        "message": "invalid capacity",
+        "args": {
+          "cause": {
+            "message": "root cause"
+          },
+          "correlationId": "trace-2",
+          "metadata": {
+            "capacity": 1,
+            "reason": "cause"
+          }
+        }
+      },
+      "expected": {
+        "code": "circularBuffer.invalidConfig",
+        "correlationId": "trace-2",
+        "message": "invalid capacity",
+        "metadata": {
+          "capacity": 1,
+          "reason": "cause"
+        },
+        "retryable": false
+      }
+    }
+  ]
+}

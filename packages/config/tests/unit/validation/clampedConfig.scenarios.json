@@ -1,0 +1,154 @@
+{
+  "cases": [
+    {
+      "name": "clamp-below-min",
+      "description": "clamps a field below min up to min",
+      "kind": "clamp-below-min",
+      "input": {
+        "config": { "timeoutMs": 10 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout too low" } }
+      },
+      "expected": { "result": { "timeoutMs": 100 } }
+    },
+    {
+      "name": "clamp-above-max",
+      "description": "clamps a field above max down to max",
+      "kind": "clamp-above-max",
+      "input": {
+        "config": { "timeoutMs": 999999 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout too high" } }
+      },
+      "expected": { "result": { "timeoutMs": 5000 } }
+    },
+    {
+      "name": "in-range-untouched",
+      "description": "leaves an in-range field untouched",
+      "kind": "in-range-untouched",
+      "input": {
+        "config": { "timeoutMs": 2000 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout out of range" } }
+      },
+      "expected": { "result": { "timeoutMs": 2000 } }
+    },
+    {
+      "name": "unruled-field-untouched",
+      "description": "leaves a field not present in rules untouched",
+      "kind": "unruled-field-untouched",
+      "input": {
+        "config": { "timeoutMs": 2000, "unruled": -99999 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout out of range" } }
+      },
+      "expected": { "result": { "timeoutMs": 2000, "unruled": -99999 } }
+    },
+    {
+      "name": "non-numeric-field-untouched",
+      "description": "leaves a non-numeric field untouched even if the key is ruled",
+      "kind": "non-numeric-field-untouched",
+      "input": {
+        "config": { "timeoutMs": "not-a-number" },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout out of range" } }
+      },
+      "expected": { "result": { "timeoutMs": "not-a-number" } }
+    },
+    {
+      "name": "absent-field-untouched",
+      "description": "leaves a field absent from config untouched",
+      "kind": "absent-field-untouched",
+      "input": {
+        "config": { "other": 1 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout out of range" } }
+      },
+      "expected": { "result": { "other": 1 } }
+    },
+    {
+      "name": "returns-new-object",
+      "description": "returns a new object, not the same reference as the input",
+      "kind": "returns-new-object",
+      "input": {
+        "config": { "timeoutMs": 10 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout too low" } }
+      },
+      "expected": { "input": { "timeoutMs": 10 }, "result": { "timeoutMs": 100 }, "sameRef": false }
+    },
+    {
+      "name": "on-clamp-fires",
+      "description": "onClamp fires with raw, clamped, and reason when a field is clamped",
+      "kind": "on-clamp-fires",
+      "input": {
+        "config": { "timeoutMs": 10 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout too low" } }
+      },
+      "expected": {
+        "event": { "clamped": 100, "field": "timeoutMs", "raw": 10, "reason": "timeout too low" },
+        "result": { "timeoutMs": 100 }
+      }
+    },
+    {
+      "name": "on-clamp-skipped-in-range",
+      "description": "onClamp does not fire for a field left in range",
+      "kind": "on-clamp-skipped-in-range",
+      "input": {
+        "config": { "timeoutMs": 2000 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout out of range" } }
+      },
+      "expected": { "eventCount": 0, "result": { "timeoutMs": 2000 } }
+    },
+    {
+      "name": "on-clamp-multi-field",
+      "description": "onClamp observes every clamp event across multiple fields",
+      "kind": "on-clamp-multi-field",
+      "input": {
+        "config": { "timeoutMs": 10, "retries": 999, "concurrency": 4 },
+        "rules": {
+          "concurrency": { "min": 1, "max": 8, "reason": "concurrency out of range" },
+          "retries": { "min": 0, "max": 10, "reason": "retries too high" },
+          "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout too low" }
+        }
+      },
+      "expected": {
+        "eventFields": ["timeoutMs", "retries"],
+        "result": { "concurrency": 4, "retries": 10, "timeoutMs": 100 }
+      }
+    },
+    {
+      "name": "default-hook-noop",
+      "description": "default ClampedConfig has a no-op onClamp",
+      "kind": "default-hook-noop",
+      "input": {
+        "config": { "timeoutMs": 10 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout too low" } }
+      },
+      "expected": { "result": { "timeoutMs": 100 } }
+    },
+    {
+      "name": "throwing-hook-preserves-result",
+      "description": "a throwing onClamp hook does not replace the clamped result",
+      "kind": "throwing-hook-preserves-result",
+      "input": {
+        "config": { "timeoutMs": 10 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout too low" } }
+      },
+      "expected": { "result": { "timeoutMs": 100 } }
+    },
+    {
+      "name": "throwing-hook-preserves-input",
+      "description": "a throwing onClamp hook does not corrupt the input config",
+      "kind": "throwing-hook-preserves-input",
+      "input": {
+        "config": { "timeoutMs": 10 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout too low" } }
+      },
+      "expected": { "input": { "timeoutMs": 10 }, "result": { "timeoutMs": 100 } }
+    },
+    {
+      "name": "async-throwing-hook-is-contained",
+      "description": "an unexpectedly async rejecting onClamp override preserves the clamped result",
+      "kind": "async-throwing-hook-is-contained",
+      "input": {
+        "config": { "timeoutMs": 10 },
+        "rules": { "timeoutMs": { "min": 100, "max": 5000, "reason": "timeout too low" } }
+      },
+      "expected": { "hookInvoked": true, "rejectionCount": 0, "result": { "timeoutMs": 100 } }
+    }
+  ]
+}

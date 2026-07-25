@@ -1,0 +1,79 @@
+{
+  "cases": [
+    {
+      "name": "timeout-error-properties",
+      "description": "TimeoutError exposes the expected properties",
+      "input": {
+        "url": "/posts/1",
+        "timeout": 1
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "messageIncludes": [
+          "timed out",
+          "1ms"
+        ],
+        "timeoutMs": 1,
+        "urlIncludes": "127.0.0.1"
+      }
+    },
+    {
+      "name": "timeout-error-instance",
+      "description": "TimeoutError is an Error instance",
+      "input": {
+        "url": "/posts/1",
+        "timeout": 1
+      },
+      "expected": {
+        "error": "TimeoutError"
+      }
+    },
+    {
+      "name": "abort-error-properties",
+      "description": "AbortError exposes the expected properties",
+      "input": {
+        "url": "/delay",
+        "signal": "abort-after-ms"
+      },
+      "expected": {
+        "error": "AbortError",
+        "messageIncludes": [
+          "aborted"
+        ],
+        "urlIncludes": "127.0.0.1"
+      }
+    },
+    {
+      "name": "abort-error-instance",
+      "description": "AbortError is an Error instance",
+      "input": {
+        "url": "/delay",
+        "signal": "abort-after-ms"
+      },
+      "expected": {
+        "error": "AbortError"
+      }
+    },
+    {
+      "name": "network-error-propagation",
+      "description": "Network errors are propagated unchanged",
+      "input": {
+        "url": "https://invalid-domain-that-does-not-exist-12345.com"
+      },
+      "expected": {
+        "error": "Error"
+      }
+    },
+    {
+      "name": "http-404-response",
+      "description": "HTTP status errors return a 404 response without throwing",
+      "input": {
+        "url": "/posts/999999"
+      },
+      "expected": {
+        "ok": false,
+        "status": 404
+      }
+    }
+  ]
+}

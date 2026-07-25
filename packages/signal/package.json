@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/signal",
-  "version": "7.0.1",
+  "version": "8.0.1",
   "description": "AbortSignal composition for caller signals, deadlines, and a never-aborting reference",
   "type": "module",
   "sideEffects": false,
@@ -22,7 +22,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+    "test": "node ../../scripts/test-suite.mjs all --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",

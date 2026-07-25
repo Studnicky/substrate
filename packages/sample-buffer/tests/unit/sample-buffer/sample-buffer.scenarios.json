@@ -1,0 +1,260 @@
+{
+  "cases": [
+    {
+      "name": "construction-large",
+      "description": "creates buffer with large capacity, starts empty",
+      "kind": "construction",
+      "input": { "sampleBuffer": { "capacity": 100 } },
+      "expected": { "full": false, "length": 0 }
+    },
+    {
+      "name": "construction-small",
+      "description": "creates buffer with small capacity, starts empty",
+      "kind": "construction",
+      "input": { "sampleBuffer": { "capacity": 10 } },
+      "expected": { "full": false, "length": 0 }
+    },
+    {
+      "name": "capacity-zero",
+      "description": "rejects zero capacity",
+      "kind": "capacity-error",
+      "input": { "sampleBuffer": { "capacity": 0 } },
+      "expected": { "errorName": "SampleBufferError" }
+    },
+    {
+      "name": "capacity-negative",
+      "description": "rejects negative capacity",
+      "kind": "capacity-error",
+      "input": { "sampleBuffer": { "capacity": -1 } },
+      "expected": { "errorName": "SampleBufferError" }
+    },
+    {
+      "name": "capacity-non-integer",
+      "description": "rejects non-integer capacity",
+      "kind": "capacity-error",
+      "input": { "sampleBuffer": { "capacity": 1.5 } },
+      "expected": { "errorName": "SampleBufferError" }
+    },
+    {
+      "name": "invalid-multi-error",
+      "description": "rejects options with multiple validation errors",
+      "kind": "invalid-multi-error",
+      "input": {
+        "sampleBuffer": {
+          "capacity": 0,
+          "extra": true
+        }
+      },
+      "expected": {
+        "errorName": "SampleBufferError",
+        "messageIncludes": [
+          "must NOT have additional properties",
+          "/capacity must be >= 1"
+        ]
+      }
+    },
+    {
+      "name": "is-full-one",
+      "description": "isFull is false after one push into capacity-3 buffer",
+      "kind": "is-full",
+      "input": { "sampleBuffer": { "capacity": 3 }, "pushes": [1] },
+      "expected": { "full": false }
+    },
+    {
+      "name": "is-full-two",
+      "description": "isFull is false after two pushes into capacity-3 buffer",
+      "kind": "is-full",
+      "input": { "sampleBuffer": { "capacity": 3 }, "pushes": [1, 2] },
+      "expected": { "full": false }
+    },
+    {
+      "name": "is-full-three",
+      "description": "isFull is true after filling capacity-3 buffer",
+      "kind": "is-full",
+      "input": { "sampleBuffer": { "capacity": 3 }, "pushes": [1, 2, 3] },
+      "expected": { "full": true }
+    },
+    {
+      "name": "percentile-empty-p50",
+      "description": "returns undefined for empty buffer at p50",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 50, "samples": [] },
+      "expected": { "percentile": null }
+    },
+    {
+      "name": "percentile-empty-p95",
+      "description": "returns undefined for empty buffer at p95",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 95, "samples": [] },
+      "expected": { "percentile": null }
+    },
+    {
+      "name": "percentile-empty-p0",
+      "description": "returns undefined for empty buffer at p0",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 0, "samples": [] },
+      "expected": { "percentile": null }
+    },
+    {
+      "name": "percentile-single-p0",
+      "description": "returns single value at p0 with one sample",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 0, "samples": [42] },
+      "expected": { "percentile": 42 }
+    },
+    {
+      "name": "percentile-single-p50",
+      "description": "returns single value at p50 with one sample",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 50, "samples": [42] },
+      "expected": { "percentile": 42 }
+    },
+    {
+      "name": "percentile-single-p100",
+      "description": "returns single value at p100 with one sample",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 100, "samples": [42] },
+      "expected": { "percentile": 42 }
+    },
+    {
+      "name": "percentile-even-p50",
+      "description": "calculates p50 for even sample count",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 50, "samples": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] },
+      "expected": { "percentile": 55 }
+    },
+    {
+      "name": "percentile-odd-p50",
+      "description": "calculates p50 for odd sample count",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 50, "samples": [10, 20, 30, 40, 50, 60, 70, 80, 90] },
+      "expected": { "percentile": 50 }
+    },
+    {
+      "name": "percentile-duplicate-p0",
+      "description": "handles all duplicate values at p0",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 0, "samples": [100, 100, 100, 100, 100] },
+      "expected": { "percentile": 100 }
+    },
+    {
+      "name": "percentile-duplicate-p50",
+      "description": "handles all duplicate values at p50",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 50, "samples": [100, 100, 100, 100, 100] },
+      "expected": { "percentile": 100 }
+    },
+    {
+      "name": "percentile-duplicate-p100",
+      "description": "handles all duplicate values at p100",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 100, "samples": [100, 100, 100, 100, 100] },
+      "expected": { "percentile": 100 }
+    },
+    {
+      "name": "percentile-p25",
+      "description": "p25 lands on exact rank",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 25, "samples": [0, 25, 50, 75, 100] },
+      "expected": { "percentile": 25 }
+    },
+    {
+      "name": "percentile-p75",
+      "description": "p75 lands on exact rank",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 75, "samples": [0, 25, 50, 75, 100] },
+      "expected": { "percentile": 75 }
+    },
+    {
+      "name": "percentile-p10",
+      "description": "p10 uses linear interpolation",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 10, "samples": [0, 25, 50, 75, 100] },
+      "expected": { "percentile": 10 }
+    },
+    {
+      "name": "percentile-p0-min",
+      "description": "p0 returns minimum value",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 0, "samples": [5, 10, 15] },
+      "expected": { "percentile": 5 }
+    },
+    {
+      "name": "percentile-p100-max",
+      "description": "p100 returns maximum value",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 100, "samples": [5, 10, 15] },
+      "expected": { "percentile": 15 }
+    },
+    {
+      "name": "percentile-negative-as-p0",
+      "description": "negative percentile treated as p0",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": -10, "samples": [5, 10, 15] },
+      "expected": { "percentile": 5 }
+    },
+    {
+      "name": "percentile-over-100-as-p100",
+      "description": "percentile greater than 100 treated as p100",
+      "kind": "percentile",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 150, "samples": [5, 10, 15] },
+      "expected": { "percentile": 15 }
+    },
+    {
+      "name": "percentile-range-p95",
+      "description": "p95 for 1..100 falls within the expected range",
+      "kind": "percentile-range",
+      "input": { "sampleBuffer": { "capacity": 100 }, "batch": { "sampleCount": 100 }, "pct": 95, "startValue": 1 },
+      "expected": { "max": 96, "min": 95 }
+    },
+    {
+      "name": "percentile-range-p99",
+      "description": "p99 for 1..100 falls within the expected range",
+      "kind": "percentile-range",
+      "input": { "sampleBuffer": { "capacity": 100 }, "batch": { "sampleCount": 100 }, "pct": 99, "startValue": 1 },
+      "expected": { "max": 100, "min": 99 }
+    },
+    {
+      "name": "push-lengths",
+      "description": "adds samples and increments length after each push",
+      "kind": "push-lengths",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pushes": [100, 200, 300] },
+      "expected": { "lengths": [1, 2, 3] }
+    },
+    {
+      "name": "overwrites-oldest",
+      "description": "overwrites oldest sample when full",
+      "kind": "overwrites-oldest",
+      "input": { "sampleBuffer": { "capacity": 3 }, "pct": 0, "pushes": [100, 200, 300, 400] },
+      "expected": { "isFull": true, "length": 3, "percentile": 200 }
+    },
+    {
+      "name": "maintains-length",
+      "description": "maintains correct length when full after excess pushes",
+      "kind": "maintains-length",
+      "input": { "sampleBuffer": { "capacity": 5 }, "pushes": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90] },
+      "expected": { "isFull": true, "length": 5 }
+    },
+    {
+      "name": "clear-resets",
+      "description": "clear resets buffer to empty state",
+      "kind": "clear-resets",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 50, "pushes": [100, 200, 300] },
+      "expected": { "full": false, "length": 0, "percentile": null }
+    },
+    {
+      "name": "reuse-after-clear",
+      "description": "allows reuse after clear",
+      "kind": "reuse-after-clear",
+      "input": { "sampleBuffer": { "capacity": 3 }, "firstPushes": [100, 200, 300], "pct": 50, "secondPushes": [10, 20] },
+      "expected": { "length": 2, "percentile": 15 }
+    },
+    {
+      "name": "recalculate-after-push",
+      "description": "recalculates percentile after new push",
+      "kind": "recalculate-after-push",
+      "input": { "sampleBuffer": { "capacity": 10 }, "pct": 50, "pushAfter": 1000, "pushes": [10, 20, 30] },
+      "expected": { "percentileAfter": 25, "percentileBefore": 20 }
+    }
+  ]
+}

@@ -1,0 +1,733 @@
+{
+  "cases": [
+    {
+      "name": "creates-instance",
+      "description": "creates instance with expected interface",
+      "kind": "creates-instance",
+      "input": {
+        "expectMethods": [
+          "event",
+          "getEvents",
+          "clear"
+        ]
+      },
+      "expected": {
+        "instanceOf": "Timing",
+        "methodCount": 3
+      }
+    },
+    {
+      "name": "starts-immediately",
+      "description": "starts timing immediately with initialize event",
+      "kind": "starts-immediately",
+      "input": {
+        "busyWaitMs": 10
+      },
+      "expected": {
+        "hasInitialize": true,
+        "minDurationMs": 10
+      }
+    },
+    {
+      "name": "accepts-config-options",
+      "description": "accepts configuration options via create",
+      "kind": "accepts-config-options",
+      "input": {
+        "timing": {
+          "options": [
+            { "maxEvents": 5 },
+            { "precision": { "ms": 2 } },
+            { "maxEvents": 10, "precision": { "ms": 3 } }
+          ]
+        }
+      },
+      "expected": {
+        "createdCount": 3
+      }
+    },
+    {
+      "name": "constructor-wraps-error",
+      "description": "wraps unexpected constructor errors as ConfigurationError",
+      "kind": "constructor-wraps-error",
+      "input": {
+        "errorMessage": "clock boom"
+      },
+      "expected": {
+        "wrapped": true
+      }
+    },
+    {
+      "name": "component-operation-events",
+      "description": "records events with component.operation format",
+      "kind": "component-operation-events",
+      "input": {
+        "events": [
+          { "component": "GraphAdapter", "operation": "query" },
+          { "component": "CacheService", "operation": "get" }
+        ]
+      },
+      "expected": {
+        "keys": [
+          "GraphAdapter.query",
+          "CacheService.get"
+        ]
+      }
+    },
+    {
+      "name": "increasing-elapsed-times",
+      "description": "records events with increasing elapsed times",
+      "kind": "increasing-elapsed-times",
+      "input": {
+        "busyWaitMs": [
+          5,
+          5,
+          5
+        ],
+        "events": [
+          { "component": "GraphAdapter", "operation": "query" },
+          { "component": "CacheService", "operation": "get" },
+          { "component": "EntityResolver", "operation": "resolve" }
+        ]
+      },
+      "expected": {
+        "keysInOrder": [
+          "GraphAdapter.query",
+          "CacheService.get",
+          "EntityResolver.resolve"
+        ]
+      }
+    },
+    {
+      "name": "same-name-events",
+      "description": "stores multiple events with the same name",
+      "kind": "same-name-events",
+      "input": {
+        "busyWaitMs": 5,
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        }
+      },
+      "expected": {
+        "keys": [
+          "GraphAdapter.query"
+        ],
+        "uniqueCount": 1
+      }
+    },
+    {
+      "name": "optional-status",
+      "description": "records events with optional status parameter",
+      "kind": "optional-status",
+      "input": {
+        "events": [
+          { "component": "DatabaseAdapter", "operation": "connect", "status": "start" },
+          { "component": "DatabaseAdapter", "operation": "connect", "status": "complete" }
+        ]
+      },
+      "expected": {
+        "keys": [
+          "DatabaseAdapter.connect.start",
+          "DatabaseAdapter.connect.complete"
+        ]
+      }
+    },
+    {
+      "name": "domain-status",
+      "description": "records events with domain-specific status",
+      "kind": "domain-status",
+      "input": {
+        "events": [
+          { "component": "CacheService", "operation": "get", "status": "hit" },
+          { "component": "CacheService", "operation": "lookup", "status": "miss" },
+          { "component": "MutexManager", "operation": "acquire", "status": "waiting" }
+        ]
+      },
+      "expected": {
+        "keys": [
+          "CacheService.get.hit",
+          "CacheService.lookup.miss",
+          "MutexManager.acquire.waiting"
+        ]
+      }
+    },
+    {
+      "name": "mixes-status-and-plain",
+      "description": "mixes events with and without status",
+      "kind": "mixes-status-and-plain",
+      "input": {
+        "events": [
+          { "component": "GraphAdapter", "operation": "query" },
+          { "component": "DatabaseAdapter", "operation": "connect", "status": "start" },
+          { "component": "CacheService", "operation": "get" },
+          { "component": "DatabaseAdapter", "operation": "connect", "status": "complete" }
+        ]
+      },
+      "expected": {
+        "keys": [
+          "GraphAdapter.query",
+          "DatabaseAdapter.connect.start",
+          "CacheService.get",
+          "DatabaseAdapter.connect.complete"
+        ]
+      }
+    },
+    {
+      "name": "timing-status-constants",
+      "description": "works with TIMING_STATUS constants",
+      "kind": "timing-status-constants",
+      "input": {
+        "events": [
+          { "component": "DatabaseAdapter", "operation": "connect", "status": "start" },
+          { "component": "CacheService", "operation": "get", "status": "hit" },
+          { "component": "MutexManager", "operation": "acquire", "status": "acquired" },
+          { "component": "DatabaseAdapter", "operation": "connect", "status": "complete" }
+        ]
+      },
+      "expected": {
+        "keys": [
+          "DatabaseAdapter.connect.start",
+          "CacheService.get.hit",
+          "MutexManager.acquire.acquired",
+          "DatabaseAdapter.connect.complete"
+        ]
+      }
+    },
+    {
+      "name": "evicts-when-max-events-exceeded",
+      "description": "evicts oldest events when maxEvents exceeded",
+      "kind": "evicts-when-max-events-exceeded",
+      "input": {
+        "timing": { "maxEvents": 3 },
+        "events": [
+          { "component": "GraphAdapter", "operation": "query" },
+          { "component": "CacheService", "operation": "get" },
+          { "component": "EntityResolver", "operation": "resolve" },
+          { "component": "AuditService", "operation": "write" }
+        ]
+      },
+      "expected": {
+        "evictedKeys": [
+          "initialize",
+          "GraphAdapter.query"
+        ],
+        "retainedKeys": [
+          "CacheService.get",
+          "EntityResolver.resolve",
+          "AuditService.write"
+        ]
+      }
+    },
+    {
+      "name": "maintains-most-recent-events",
+      "description": "maintains most recent events across various limits",
+      "kind": "maintains-most-recent-events",
+      "input": {
+        "cases": [
+          {
+            "eventNames": [
+              "GraphAdapter.query",
+              "GraphAdapter.insert",
+              "CacheService.get",
+              "EntityResolver.resolve"
+            ],
+            "timing": { "maxEvents": 2 }
+          },
+          {
+            "eventNames": [
+              "GraphAdapter.query",
+              "GraphAdapter.insert",
+              "CacheService.get",
+              "EntityResolver.resolve"
+            ],
+            "timing": { "maxEvents": 1 }
+          }
+        ]
+      },
+      "expected": {
+        "retainedSets": [
+          [
+            "CacheService.get",
+            "EntityResolver.resolve"
+          ],
+          [
+            "EntityResolver.resolve"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "evicts-default-max-events",
+      "description": "evicts oldest events once the default maxEvents is exceeded",
+      "kind": "evicts-default-max-events",
+      "input": {
+        "event": {
+          "component": "TestService",
+          "operationPrefix": "event-"
+        },
+        "overflowMargin": 5
+      },
+      "expected": {
+        "defaultMaxEvents": 1000,
+        "retainedLastEventPrefix": "TestService.event-",
+        "retainedLastIndex": 1004
+      }
+    },
+    {
+      "name": "initial-only-initialize",
+      "description": "returns events with only initialize event initially",
+      "kind": "initial-only-initialize",
+      "input": {
+        "observeInitialize": true
+      },
+      "expected": {
+        "durationMsType": "number",
+        "eventKeys": [
+          "initialize"
+        ]
+      }
+    },
+    {
+      "name": "continues-after-get-events",
+      "description": "continues tracking after getEvents() call",
+      "kind": "continues-after-get-events",
+      "input": {
+        "waitBeforeFirstMs": 10,
+        "waitBeforeSecondMs": 10
+      },
+      "expected": {
+        "durationIncreases": true
+      }
+    },
+    {
+      "name": "returns-new-object",
+      "description": "returns new object on each call",
+      "kind": "returns-new-object",
+      "input": {
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        }
+      },
+      "expected": {
+        "sameReference": false
+      }
+    },
+    {
+      "name": "includes-later-events",
+      "description": "includes events added after previous call",
+      "kind": "includes-later-events",
+      "input": {
+        "firstEvent": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        },
+        "secondEvent": {
+          "component": "CacheService",
+          "operation": "get"
+        }
+      },
+      "expected": {
+        "newKey": "CacheService.get"
+      }
+    },
+    {
+      "name": "throwing-onInitialize",
+      "description": "a throwing onInitialize hook throws a HookInvocationError from construction",
+      "kind": "throwing-onInitialize",
+      "input": {
+        "errorMessage": "onInitialize boom"
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "throwing-onClear",
+      "description": "a throwing onClear hook throws a HookInvocationError from clear()",
+      "kind": "throwing-onClear",
+      "input": {
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        },
+        "errorMessage": "onClear boom"
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "throwing-onEvict",
+      "description": "a throwing onEvict hook throws a HookInvocationError from event()",
+      "kind": "throwing-onEvict",
+      "input": {
+        "errorMessage": "onEvict boom",
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        },
+        "timing": { "maxEvents": 1 }
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "throwing-onEvent",
+      "description": "a throwing onEvent hook throws a HookInvocationError from event()",
+      "kind": "throwing-onEvent",
+      "input": {
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        },
+        "errorMessage": "onEvent boom"
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "throwing-onGetEvents",
+      "description": "a throwing onGetEvents hook throws a HookInvocationError from getEvents()",
+      "kind": "throwing-onGetEvents",
+      "input": {
+        "errorMessage": "onGetEvents boom"
+      },
+      "expected": {
+        "errorName": "HookInvocationError"
+      }
+    },
+    {
+      "name": "hook-error-instance",
+      "description": "a throwing onEvent hook produces an error that is specifically a HookInvocationError instance",
+      "kind": "hook-error-instance",
+      "input": {
+        "errorMessage": "onEvent boom",
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        }
+      },
+      "expected": {
+        "instanceOf": "HookInvocationError"
+      }
+    },
+    {
+      "name": "async-onEvent-unhandled",
+      "description": "routes a rejection from an async onEvent override to a HookInvocationError without an unhandled rejection",
+      "kind": "async-onEvent-unhandled",
+      "input": {
+        "errorMessage": "async onEvent boom",
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        },
+        "settleTicks": 2
+      },
+      "expected": {
+        "unhandledRejections": 0
+      }
+    },
+    {
+      "name": "json-serializable",
+      "description": "returns JSON-serializable object",
+      "kind": "json-serializable",
+      "input": {
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        }
+      },
+      "expected": {
+        "serializable": true
+      }
+    },
+    {
+      "name": "includes-duration",
+      "description": "includes durationMs for total elapsed time",
+      "kind": "includes-duration",
+      "input": {
+        "busyWaitMs": 10,
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        }
+      },
+      "expected": {
+        "minDurationMs": 10
+      }
+    },
+    {
+      "name": "clear-all-and-reuse",
+      "description": "clears all events and allows new ones",
+      "kind": "clear-all-and-reuse",
+      "input": {
+        "beforeEvents": [
+          { "component": "GraphAdapter", "operation": "query" },
+          { "component": "CacheService", "operation": "get" }
+        ],
+        "afterEvent": {
+          "component": "EntityResolver",
+          "operation": "resolve"
+        },
+        "batch": {
+          "clearCount": 1
+        },
+        "waitAfterClearMs": 5
+      },
+      "expected": {
+        "afterAddCount": 1,
+        "afterClearCount": 0,
+        "beforeCount": 2
+      }
+    },
+    {
+      "name": "clear-keeps-start-time",
+      "description": "does not reset the start time",
+      "kind": "clear-keeps-start-time",
+      "input": {
+        "waitBeforeClearMs": 10,
+        "waitAfterClearMs": 10
+      },
+      "expected": {
+        "durationIncreasesAfterClear": true
+      }
+    },
+    {
+      "name": "clear-multiple-times",
+      "description": "can be called multiple times",
+      "kind": "clear-multiple-times",
+      "input": {
+        "batch": {
+          "clearCount": 3
+        },
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        }
+      },
+      "expected": {
+        "finalCount": 0
+      }
+    },
+    {
+      "name": "cumulative-timing",
+      "description": "tracks stages with cumulative timing",
+      "kind": "cumulative-timing",
+      "input": {
+        "stageWaitMs": [
+          5,
+          10,
+          5,
+          5
+        ],
+        "events": [
+          { "component": "WorkflowService", "operation": "stage1" },
+          { "component": "WorkflowService", "operation": "stage2" },
+          { "component": "WorkflowService", "operation": "stage3" },
+          { "component": "WorkflowService", "operation": "stage4" }
+        ]
+      },
+      "expected": {
+        "keys": [
+          "WorkflowService.stage1",
+          "WorkflowService.stage2",
+          "WorkflowService.stage3"
+        ],
+        "minimums": {
+          "WorkflowService.stage1": 5,
+          "WorkflowService.stage2": 15,
+          "WorkflowService.stage3": 20,
+          "durationMs": 25
+        }
+      }
+    },
+    {
+      "name": "immediate-operations",
+      "description": "handles immediate operations after creation",
+      "kind": "immediate-operations",
+      "input": {
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        }
+      },
+      "expected": {
+        "durationLtMs": 5,
+        "eventLtMs": 5
+      }
+    },
+    {
+      "name": "non-negative-values",
+      "description": "handles very small time intervals with non-negative values",
+      "kind": "non-negative-values",
+      "input": {
+        "events": [
+          { "component": "GraphAdapter", "operation": "query" },
+          { "component": "CacheService", "operation": "get" },
+          { "component": "EntityResolver", "operation": "resolve" }
+        ]
+      },
+      "expected": {
+        "allElapsedNonNegative": true
+      }
+    },
+    {
+      "name": "high-resolution-timing",
+      "description": "provides high-resolution timing",
+      "kind": "high-resolution-timing",
+      "input": {
+        "busyWaitMs": 1,
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        }
+      },
+      "expected": {
+        "minElapsedMs": 1
+      }
+    },
+    {
+      "name": "logbody-context",
+      "description": "produces output suitable for LogBody.context()",
+      "kind": "logbody-context",
+      "input": {
+        "events": [
+          { "component": "GraphAdapter", "operation": "query" },
+          { "component": "CacheService", "operation": "get" }
+        ]
+      },
+      "expected": {
+        "allValuesAreNumbers": true,
+        "keys": [
+          "GraphAdapter.query",
+          "CacheService.get",
+          "durationMs"
+        ]
+      }
+    },
+    {
+      "name": "read-hrtime-called",
+      "description": "readHrtime is called during event()",
+      "kind": "read-hrtime-called",
+      "input": {
+        "event": {
+          "component": "TestService",
+          "operation": "probe"
+        }
+      },
+      "expected": {
+        "readCountDelta": 1
+      }
+    },
+    {
+      "name": "onEvent-hook-called",
+      "description": "onEvent hook is called with the event data",
+      "kind": "onEvent-hook-called",
+      "input": {
+        "event": {
+          "component": "TestService",
+          "operation": "probe"
+        }
+      },
+      "expected": {
+        "eventCountDelta": 1,
+        "lastEventData": "TestService.probe"
+      }
+    },
+    {
+      "name": "onEvict-hook-called",
+      "description": "onEvict hook is called when maxEvents is exceeded",
+      "kind": "onEvict-hook-called",
+      "input": {
+        "timing": { "maxEvents": 2 },
+        "events": [
+          { "component": "TestService", "operation": "first" },
+          { "component": "TestService", "operation": "second" }
+        ]
+      },
+      "expected": {
+        "evictCountAtLeast": 1
+      }
+    },
+    {
+      "name": "onClear-hook-called",
+      "description": "onClear hook is called when clear() is invoked",
+      "kind": "onClear-hook-called",
+      "input": {
+        "batch": {
+          "clearCount": 1
+        }
+      },
+      "expected": {
+        "clearCount": 1
+      }
+    },
+    {
+      "name": "maxEvents-accessible",
+      "description": "maxEvents and startTime are accessible from subclass",
+      "kind": "maxEvents-accessible",
+      "input": {
+        "timing": { "maxEvents": 42 }
+      },
+      "expected": {
+        "maxEvents": 42,
+        "startTimeType": "bigint"
+      }
+    },
+    {
+      "name": "maxEvents-defaults",
+      "description": "maxEvents defaults to DEFAULT_MAX_EVENTS when not specified",
+      "kind": "maxEvents-defaults",
+      "input": {
+        "defaultMaxEvents": 1000
+      },
+      "expected": {
+        "maxEvents": 1000
+      }
+    },
+    {
+      "name": "convert-time",
+      "description": "convertTime is accessible from subclass and converts correctly",
+      "kind": "convert-time",
+      "input": {
+        "ns": 1000000,
+        "unit": "ms"
+      },
+      "expected": {
+        "result": 1
+      }
+    },
+    {
+      "name": "onInitialize-hook-fires",
+      "description": "onInitialize hook fires once at construction with a bigint startTime",
+      "kind": "onInitialize-hook-fires",
+      "input": {
+        "construct": true
+      },
+      "expected": {
+        "initCount": 1,
+        "startTimeType": "bigint"
+      }
+    },
+    {
+      "name": "onGetEvents-hook-fires",
+      "description": "onGetEvents hook fires on each getEvents() call with correct event count",
+      "kind": "onGetEvents-hook-fires",
+      "input": {
+        "events": [
+          { "component": "TestService", "operation": "probe" }
+        ]
+      },
+      "expected": {
+        "getEventsCount": 2,
+        "lastEventCounts": [
+          1,
+          2
+        ]
+      }
+    }
+  ]
+}

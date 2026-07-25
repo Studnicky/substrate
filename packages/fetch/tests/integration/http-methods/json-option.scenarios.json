@@ -1,0 +1,110 @@
+{
+  "cases": [
+    {
+      "name": "base-client-json",
+      "description": "FetchClient serializes json into the request body and sets Content-Type",
+      "client": "base",
+      "input": {
+        "baseURL": "__TEST_SERVER_URL__",
+        "method": "POST",
+        "path": "/echo",
+        "json": {
+          "a": 1,
+          "b": "two"
+        }
+      },
+      "expected": {
+        "status": 200,
+        "body": {
+          "a": 1,
+          "b": "two"
+        },
+        "headerContentType": "application/json"
+      }
+    },
+    {
+      "name": "base-client-body-wins",
+      "description": "FetchClient prefers body over json when both are provided",
+      "client": "base",
+      "input": {
+        "baseURL": "__TEST_SERVER_URL__",
+        "body": {
+          "winner": true
+        },
+        "json": {
+          "winner": false
+        },
+        "method": "POST",
+        "path": "/echo"
+      },
+      "expected": {
+        "status": 200,
+        "body": {
+          "winner": true
+        }
+      }
+    },
+    {
+      "name": "absolute-client-json-post",
+      "description": "FetchClient serializes json into the request body and sets Content-Type for post",
+      "client": "absolute",
+      "input": {
+        "baseURL": "__TEST_SERVER_URL__",
+        "method": "POST",
+        "path": "/echo",
+        "json": {
+          "a": 1,
+          "b": "two"
+        }
+      },
+      "expected": {
+        "status": 200,
+        "body": {
+          "a": 1,
+          "b": "two"
+        },
+        "headerContentType": "application/json"
+      }
+    },
+    {
+      "name": "absolute-client-json-put",
+      "description": "FetchClient serializes json into the request body for put",
+      "client": "absolute",
+      "input": {
+        "baseURL": "__TEST_SERVER_URL__",
+        "method": "PUT",
+        "path": "/posts/1",
+        "json": {
+          "title": "updated via json"
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "id": 1,
+          "title": "updated via json"
+        }
+      }
+    },
+    {
+      "name": "absolute-client-json-patch",
+      "description": "FetchClient serializes json into the request body for patch",
+      "client": "absolute",
+      "input": {
+        "baseURL": "__TEST_SERVER_URL__",
+        "method": "PATCH",
+        "path": "/posts/1",
+        "json": {
+          "title": "patched via json"
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "id": 1,
+          "title": "Test Post"
+        }
+      }
+    }
+  ]
+}

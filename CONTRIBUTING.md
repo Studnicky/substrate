@@ -20,7 +20,7 @@ All of these must pass before opening a PR:
 ```bash
 pnpm run typecheck   # tsc -b (composite project)
 pnpm run lint        # ESLint across all packages
-pnpm test            # node:test across all packages
+pnpm run test:all    # node:test across all packages
 pnpm run build       # full monorepo build
 pnpm run docs:build  # VitePress documentation build
 ```

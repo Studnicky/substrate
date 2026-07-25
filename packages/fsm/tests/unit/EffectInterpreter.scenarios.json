@@ -1,0 +1,184 @@
+{
+  "cases": [
+    {
+      "name": "get-state-before-start",
+      "description": "getState throws before start",
+      "kind": "get-state-before-start",
+      "input": { "machineId": "test-1" },
+      "expected": { "message": "not started" }
+    },
+    {
+      "name": "send-before-start",
+      "description": "send rejects before start",
+      "kind": "send-before-start",
+      "input": { "event": { "type": "activate" }, "machineId": "test-2" },
+      "expected": { "message": "not running" }
+    },
+    {
+      "name": "create-empty-machine-id",
+      "description": "create rejects an empty machineId",
+      "kind": "create-empty-machine-id",
+      "input": { "machineId": "" },
+      "expected": { "message": "machineId must not be empty" }
+    },
+    {
+      "name": "create-default-identity",
+      "description": "create uses a generated machineId and default mailbox capacity",
+      "kind": "create-default-identity",
+      "input": {
+        "event": { "type": "activate" }
+      },
+      "expected": { "state": { "variant": "active" } }
+    },
+    {
+      "name": "start-sets-initial-state",
+      "description": "start sets the initial state and notifies observers",
+      "kind": "start-sets-initial-state",
+      "input": { "machineId": "test-3" },
+      "expected": { "notificationCount": 1, "state": { "variant": "idle" } }
+    },
+    {
+      "name": "start-is-idempotent",
+      "description": "start is a no-op when the interpreter is already running",
+      "kind": "start-is-idempotent",
+      "input": { "machineId": "test-3b" },
+      "expected": { "notificationCount": 1, "state": { "variant": "idle" } }
+    },
+    {
+      "name": "stop-after-start",
+      "description": "stop reports the current state when the interpreter has started",
+      "kind": "stop-after-start",
+      "input": { "machineId": "test-3c" },
+      "expected": { "state": { "variant": "idle" } }
+    },
+    {
+      "name": "send-transitions-state",
+      "description": "send transitions state and notifies observers",
+      "kind": "send-transitions-state",
+      "input": { "event": { "type": "activate" }, "machineId": "test-4" },
+      "expected": { "notificationCount": 2, "state": { "variant": "active" } }
+    },
+    {
+      "name": "snapshot-isolation",
+      "description": "state snapshots remain isolated from mutation",
+      "kind": "snapshot-isolation",
+      "input": {
+        "activeCount": 2,
+        "event": { "type": "activate" },
+        "initialCount": 1,
+        "machineId": "snapshot-state",
+        "mutatedCount": 90,
+        "postMutationCount": 99,
+        "postTransitionMutationCount": 88
+      },
+      "expected": { "observedCounts": [90, 90], "state": { "details": { "count": 2 }, "variant": "active" } }
+    },
+    {
+      "name": "effect-handler-called-after-transition",
+      "description": "effect handler runs after the transition",
+      "kind": "effect-handler-called-after-transition",
+      "input": { "event": { "type": "activate" }, "machineId": "test-5" },
+      "expected": { "logged": ["activated"] }
+    },
+    {
+      "name": "effect-handler-omitted",
+      "description": "send still completes when no effect handler is supplied",
+      "kind": "effect-handler-omitted",
+      "input": { "event": { "type": "activate" }, "machineId": "test-5a" },
+      "expected": { "notificationCount": 2, "state": { "variant": "active" } }
+    },
+    {
+      "name": "unsubscribe-stops-notifications",
+      "description": "unsubscribe stops observer notifications",
+      "kind": "unsubscribe-stops-notifications",
+      "input": { "event": { "type": "activate" }, "machineId": "test-6" },
+      "expected": { "notificationCount": 1 }
+    },
+    {
+      "name": "processes-events-fifo",
+      "description": "send processes events in FIFO order",
+      "kind": "processes-events-fifo",
+      "input": { "events": [{ "type": "activate" }, { "type": "deactivate" }], "machineId": "test-7" },
+      "expected": { "state": { "variant": "idle" } }
+    },
+    {
+      "name": "handler-dispatches-within-send",
+      "description": "dispatch inside the effect handler is drained within the same send call",
+      "kind": "handler-dispatches-within-send",
+      "input": { "event": { "type": "activate" }, "machineId": "test-8" },
+      "expected": { "state": { "variant": "idle" } }
+    },
+    {
+      "name": "rejected-transition-does-not-wedge",
+      "description": "rejected transitions do not wedge later sends",
+      "kind": "rejected-transition-does-not-wedge",
+      "input": { "recoveryEvent": { "type": "activate" }, "rejectedEvent": { "type": "deactivate" }, "machineId": "test-9" },
+      "expected": { "state": { "variant": "active" } }
+    },
+    {
+      "name": "throwing-observer-does-not-block-send",
+      "description": "a throwing observer does not block send completion",
+      "kind": "throwing-observer-does-not-block-send",
+      "input": { "event": { "type": "activate" }, "machineId": "test-10" },
+      "expected": { "state": { "variant": "active" } }
+    },
+    {
+      "name": "stop-while-handler-in-flight",
+      "description": "stop prevents queued events after an in-flight async handler",
+      "kind": "stop-while-handler-in-flight",
+      "input": { "activateEvent": { "type": "activate" }, "deactivateEvent": { "type": "deactivate" }, "machineId": "test-11" },
+      "expected": { "state": { "variant": "active" }, "rejectionMessage": "stopped before all queued events could be drained" }
+    },
+    {
+      "name": "stop-before-start",
+      "description": "stop before start reports an undefined prior state to onStop",
+      "kind": "stop-before-start",
+      "input": { "machineId": "test-11a" },
+      "expected": {}
+    },
+    {
+      "name": "stop-hook-throws",
+      "description": "stop surfaces a throwing onStop hook",
+      "kind": "stop-hook-throws",
+      "input": { "machineId": "test-11b" },
+      "expected": { "state": { "variant": "idle" } }
+    },
+    {
+      "name": "queued-send-resolves-after-own-transition",
+      "description": "queued send resolves only after its own transition even when another drain errors",
+      "kind": "queued-send-resolves-after-own-transition",
+      "input": { "machineId": "test-12", "recoveryEvent": { "type": "activate" }, "rejectedEvent": { "type": "deactivate" } },
+      "expected": { "state": { "variant": "active" } }
+    },
+    {
+      "name": "create-non-positive-mailbox-capacity",
+      "description": "create rejects a non-positive mailboxCapacity",
+      "kind": "create-non-positive-mailbox-capacity",
+      "input": { "mailboxCapacity": 0, "machineId": "test-13" },
+      "expected": { "message": "mailboxCapacity must be a positive integer" }
+    },
+    {
+      "name": "create-non-integer-mailbox-capacity",
+      "description": "create rejects a non-integer mailboxCapacity",
+      "kind": "create-non-integer-mailbox-capacity",
+      "input": { "mailboxCapacity": 1.5, "machineId": "test-14" },
+      "expected": { "message": "mailboxCapacity must be a positive integer" }
+    },
+    {
+      "name": "mailbox-capacity-bounds-mailbox",
+      "description": "mailbox capacity bounds the mailbox and evicts the oldest queued send",
+      "kind": "mailbox-capacity-bounds-mailbox",
+      "input": {
+        "events": [
+          { "type": "activate" },
+          { "type": "deactivate" },
+          { "type": "activate" },
+          { "type": "deactivate" }
+        ],
+        "mailboxCapacity": 2,
+        "machineId": "test-15"
+      },
+      "expected": { "rejectionType": "MailboxCapacityExceededError", "state": { "variant": "idle" } }
+    }
+  ]
+}

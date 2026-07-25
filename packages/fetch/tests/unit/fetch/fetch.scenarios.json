@@ -1,0 +1,1441 @@
+{
+  "cases": [
+    {
+      "name": "url-validation-empty-string",
+      "description": "FetchClient rejects empty string URL",
+      "request": {
+        "invoke": "apply-get",
+        "args": [
+          ""
+        ]
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "url must be a non-empty string"
+      },
+      "input": {
+        "request": {
+          "invoke": "apply-get",
+          "args": [
+            ""
+          ]
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "url must be a non-empty string"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "url must be a non-empty string"
+      }
+    },
+    {
+      "name": "url-validation-non-string",
+      "description": "FetchClient rejects non-string URL",
+      "request": {
+        "invoke": "apply-get",
+        "args": [
+          123
+        ]
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "url must be a non-empty string"
+      },
+      "input": {
+        "request": {
+          "invoke": "apply-get",
+          "args": [
+            123
+          ]
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "url must be a non-empty string"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "url must be a non-empty string"
+      }
+    },
+    {
+      "name": "url-validation-null",
+      "description": "FetchClient rejects null URL",
+      "request": {
+        "invoke": "apply-get",
+        "args": [
+          null
+        ]
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "url must be a non-empty string"
+      },
+      "input": {
+        "request": {
+          "invoke": "apply-get",
+          "args": [
+            null
+          ]
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "url must be a non-empty string"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "url must be a non-empty string"
+      }
+    },
+    {
+      "name": "url-validation-undefined",
+      "description": "FetchClient rejects undefined URL",
+      "request": {
+        "invoke": "apply-get",
+        "args": [
+          {
+            "__kind": "undefined"
+          }
+        ]
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "url must be a non-empty string"
+      },
+      "input": {
+        "request": {
+          "invoke": "apply-get",
+          "args": [
+            {
+              "__kind": "undefined"
+            }
+          ]
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "url must be a non-empty string"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "url must be a non-empty string"
+      }
+    },
+    {
+      "name": "url-validation-valid",
+      "description": "FetchClient accepts valid URL strings",
+      "request": {
+        "path": "/instant"
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200,
+        "text": "instant response"
+      },
+      "input": {
+        "request": {
+          "path": "/instant"
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200,
+          "text": "instant response"
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200,
+        "text": "instant response"
+      }
+    },
+    {
+      "name": "timeout-validation-zero",
+      "description": "FetchClient rejects zero timeout",
+      "request": {
+        "path": "/instant",
+        "timeout": 0
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "timeout": 0
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "timeout must be a positive number"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      }
+    },
+    {
+      "name": "timeout-validation-negative",
+      "description": "FetchClient rejects negative timeout",
+      "request": {
+        "path": "/instant",
+        "timeout": -1
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "timeout": -1
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "timeout must be a positive number"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      }
+    },
+    {
+      "name": "timeout-validation-nan",
+      "description": "FetchClient rejects NaN timeout",
+      "request": {
+        "path": "/instant",
+        "timeout": {
+          "__kind": "nan"
+        }
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "timeout": {
+            "__kind": "nan"
+          }
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "timeout must be a positive number"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      }
+    },
+    {
+      "name": "timeout-validation-infinity",
+      "description": "FetchClient rejects Infinity timeout",
+      "request": {
+        "path": "/instant",
+        "timeout": {
+          "__kind": "infinity"
+        }
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "timeout": {
+            "__kind": "infinity"
+          }
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "timeout must be a positive number"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      }
+    },
+    {
+      "name": "timeout-validation-negative-infinity",
+      "description": "FetchClient rejects -Infinity timeout",
+      "request": {
+        "path": "/instant",
+        "timeout": {
+          "__kind": "negative-infinity"
+        }
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "timeout": {
+            "__kind": "negative-infinity"
+          }
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "timeout must be a positive number"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      }
+    },
+    {
+      "name": "timeout-validation-non-number",
+      "description": "FetchClient rejects non-number timeout",
+      "request": {
+        "path": "/instant",
+        "options": {
+          "timeout": "5000"
+        }
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "options": {
+            "timeout": "5000"
+          }
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "Error",
+          "messagePattern": "timeout must be a positive number"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "Error",
+        "messagePattern": "timeout must be a positive number"
+      }
+    },
+    {
+      "name": "timeout-validation-valid",
+      "description": "FetchClient accepts a valid positive timeout",
+      "request": {
+        "path": "/instant",
+        "timeout": 5000
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "timeout": 5000
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "timeout-functionality-expires",
+      "description": "FetchClient times out requests that exceed timeout",
+      "request": {
+        "path": "/delay?ms=200",
+        "timeout": 50
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "messageIncludes": [
+          "timed out",
+          "50ms"
+        ],
+        "timeoutMs": 50
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=200",
+          "timeout": 50
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "reject",
+          "messageIncludes": [
+            "timed out",
+            "50ms"
+          ],
+          "timeoutMs": 50
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "messageIncludes": [
+          "timed out",
+          "50ms"
+        ],
+        "timeoutMs": 50
+      }
+    },
+    {
+      "name": "timeout-functionality-completes",
+      "description": "FetchClient completes requests within timeout",
+      "request": {
+        "path": "/delay?ms=50",
+        "timeout": 200
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200,
+        "text": "delayed 50ms"
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=50",
+          "timeout": 200
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200,
+          "text": "delayed 50ms"
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200,
+        "text": "delayed 50ms"
+      }
+    },
+    {
+      "name": "timeout-functionality-short",
+      "description": "FetchClient handles very short timeout",
+      "request": {
+        "path": "/delay?ms=100",
+        "timeout": 1
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "timeoutMs": 1
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=100",
+          "timeout": 1
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "reject",
+          "timeoutMs": 1
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "timeoutMs": 1
+      }
+    },
+    {
+      "name": "timeout-functionality-long",
+      "description": "FetchClient handles very long timeout",
+      "request": {
+        "path": "/instant",
+        "timeout": 3600000
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "timeout": 3600000
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "signal-handling-external-abort",
+      "description": "FetchClient respects external signal abort",
+      "request": {
+        "path": "/delay?ms=200",
+        "signal": {
+          "kind": "abort-after-ms",
+          "delayMs": 10
+        }
+      },
+      "expect": {
+        "error": "AbortError",
+        "kind": "reject",
+        "messageIncludes": [
+          "aborted"
+        ]
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=200",
+          "signal": {
+            "kind": "abort-after-ms",
+            "delayMs": 10
+          }
+        },
+        "expect": {
+          "error": "AbortError",
+          "kind": "reject",
+          "messageIncludes": [
+            "aborted"
+          ]
+        }
+      },
+      "expected": {
+        "error": "AbortError",
+        "kind": "reject",
+        "messageIncludes": [
+          "aborted"
+        ]
+      }
+    },
+    {
+      "name": "signal-handling-already-aborted",
+      "description": "FetchClient handles already-aborted signals",
+      "request": {
+        "path": "/instant",
+        "signal": {
+          "kind": "already-aborted"
+        }
+      },
+      "expect": {
+        "error": "AbortError",
+        "kind": "reject",
+        "messageIncludes": [
+          "aborted"
+        ]
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "signal": {
+            "kind": "already-aborted"
+          }
+        },
+        "expect": {
+          "error": "AbortError",
+          "kind": "reject",
+          "messageIncludes": [
+            "aborted"
+          ]
+        }
+      },
+      "expected": {
+        "error": "AbortError",
+        "kind": "reject",
+        "messageIncludes": [
+          "aborted"
+        ]
+      }
+    },
+    {
+      "name": "signal-handling-combined",
+      "description": "FetchClient combines timeout signal and external signal",
+      "request": {
+        "path": "/instant",
+        "signal": {
+          "kind": "already-aborted"
+        },
+        "timeout": 5000
+      },
+      "expect": {
+        "kind": "reject",
+        "error": "AbortError"
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "signal": {
+            "kind": "already-aborted"
+          },
+          "timeout": 5000
+        },
+        "expect": {
+          "kind": "reject",
+          "error": "AbortError"
+        }
+      },
+      "expected": {
+        "kind": "reject",
+        "error": "AbortError"
+      }
+    },
+    {
+      "name": "signal-handling-timeout-wins",
+      "description": "FetchClient times out even with external signal present",
+      "request": {
+        "path": "/delay?ms=200",
+        "signal": {
+          "kind": "abort-after-ms",
+          "delayMs": 100
+        },
+        "timeout": 20
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "timeoutMs": 20
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=200",
+          "signal": {
+            "kind": "abort-after-ms",
+            "delayMs": 100
+          },
+          "timeout": 20
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "reject",
+          "timeoutMs": 20
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "timeoutMs": 20
+      }
+    },
+    {
+      "name": "request-without-timeout-success",
+      "description": "FetchClient makes successful requests without timeout",
+      "request": {
+        "path": "/instant"
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200,
+        "text": "instant response"
+      },
+      "input": {
+        "request": {
+          "path": "/instant"
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200,
+          "text": "instant response"
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200,
+        "text": "instant response"
+      }
+    },
+    {
+      "name": "request-without-timeout-baseurl-params",
+      "description": "FetchClient builds URLs from baseURL and params without timeout",
+      "request": {
+        "client": {
+          "baseURL": "https://example.test/",
+          "params": {
+            "page": 1,
+            "tag": "alpha"
+          }
+        },
+        "path": "/instant"
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200,
+        "text": "instant response",
+        "url": "https://example.test/instant?page=1&tag=alpha"
+      },
+      "input": {
+        "request": {
+          "client": {
+            "baseURL": "https://example.test/",
+            "params": {
+              "page": 1,
+              "tag": "alpha"
+            }
+          },
+          "path": "/instant"
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200,
+          "text": "instant response",
+          "url": "https://example.test/instant?page=1&tag=alpha"
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200,
+        "text": "instant response",
+        "url": "https://example.test/instant?page=1&tag=alpha"
+      }
+    },
+    {
+      "name": "request-without-timeout-explicit-request-id",
+      "description": "FetchClient preserves explicit request IDs in request metadata",
+      "request": {
+        "path": "/instant",
+        "options": {
+          "method": "GET",
+          "requestId": "request-id-123"
+        }
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200,
+        "text": "instant response"
+      }
+    },
+    {
+      "name": "request-without-timeout-absolute-url",
+      "description": "FetchClient keeps absolute request URLs when baseURL is configured",
+      "request": {
+        "client": {
+          "baseURL": "https://example.test/"
+        },
+        "url": "https://other.example.test/instant"
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200,
+        "text": "instant response",
+        "url": "https://other.example.test/instant"
+      },
+      "input": {
+        "request": {
+          "client": {
+            "baseURL": "https://example.test/"
+          },
+          "url": "https://other.example.test/instant"
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200,
+          "text": "instant response",
+          "url": "https://other.example.test/instant"
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200,
+        "text": "instant response",
+        "url": "https://other.example.test/instant"
+      }
+    },
+    {
+      "name": "request-without-timeout-signal",
+      "description": "FetchClient handles request with external signal but no timeout",
+      "request": {
+        "path": "/instant",
+        "signal": {
+          "kind": "already-aborted"
+        }
+      },
+      "expect": {
+        "error": "AbortError",
+        "kind": "reject"
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "signal": {
+            "kind": "already-aborted"
+          }
+        },
+        "expect": {
+          "error": "AbortError",
+          "kind": "reject"
+        }
+      },
+      "expected": {
+        "error": "AbortError",
+        "kind": "reject"
+      }
+    },
+    {
+      "name": "request-without-timeout-error",
+      "description": "FetchClient propagates server errors without timeout",
+      "request": {
+        "path": "/error"
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 500,
+        "text": "server error"
+      },
+      "input": {
+        "request": {
+          "path": "/error"
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 500,
+          "text": "server error"
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 500,
+        "text": "server error"
+      }
+    },
+    {
+      "name": "error-handling-network",
+      "description": "FetchClient handles network errors",
+      "request": {
+        "url": "http://localhost:1"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "reject",
+        "messagePattern": "ECONNREFUSED|fetch failed"
+      },
+      "input": {
+        "request": {
+          "url": "http://localhost:1"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "reject",
+          "messagePattern": "ECONNREFUSED|fetch failed"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "reject",
+        "messagePattern": "ECONNREFUSED|fetch failed"
+      }
+    },
+    {
+      "name": "error-handling-dns",
+      "description": "FetchClient handles DNS resolution errors",
+      "request": {
+        "url": "http://this-domain-definitely-does-not-exist-12345.com"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "reject",
+        "messagePattern": "EAI_AGAIN|ENOTFOUND|fetch failed"
+      },
+      "input": {
+        "request": {
+          "url": "http://this-domain-definitely-does-not-exist-12345.com"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "reject",
+          "messagePattern": "EAI_AGAIN|ENOTFOUND|fetch failed"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "reject",
+        "messagePattern": "EAI_AGAIN|ENOTFOUND|fetch failed"
+      }
+    },
+    {
+      "name": "error-handling-invalid-url",
+      "description": "FetchClient handles invalid URL format",
+      "request": {
+        "url": "not-a-valid-url"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "reject"
+      },
+      "input": {
+        "request": {
+          "url": "not-a-valid-url"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "reject"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "reject"
+      }
+    },
+    {
+      "name": "error-handling-connect-timeout",
+      "description": "FetchClient wraps connect timeout errors when the dispatcher is enabled",
+      "request": {
+        "client": {
+          "baseURL": "https://example.test",
+          "dispatcher": {
+            "connections": 2,
+            "enabled": true
+          }
+        },
+        "path": "/error-connect"
+      },
+      "expect": {
+        "error": "ConnectTimeoutError",
+        "kind": "reject"
+      },
+      "input": {
+        "request": {
+          "client": {
+            "baseURL": "https://example.test",
+            "dispatcher": {
+              "connections": 2,
+              "enabled": true
+            }
+          },
+          "path": "/error-connect"
+        },
+        "expect": {
+          "error": "ConnectTimeoutError",
+          "kind": "reject"
+        }
+      },
+      "expected": {
+        "error": "ConnectTimeoutError",
+        "kind": "reject"
+      }
+    },
+    {
+      "name": "edge-case-multiple-timeouts",
+      "description": "FetchClient handles multiple requests with different timeouts",
+      "request": {
+        "path": "/instant"
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "path": "/instant"
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "edge-case-just-before-timeout",
+      "description": "FetchClient handles request that completes just before timeout",
+      "request": {
+        "path": "/delay?ms=40",
+        "timeout": 100
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200,
+        "text": "delayed 40ms"
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=40",
+          "timeout": 100
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200,
+          "text": "delayed 40ms"
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200,
+        "text": "delayed 40ms"
+      }
+    },
+    {
+      "name": "edge-case-empty-options",
+      "description": "FetchClient handles an empty options object",
+      "request": {
+        "path": "/instant",
+        "options": {}
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "options": {}
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "edge-case-additional-fetch-options",
+      "description": "FetchClient handles additional fetch options",
+      "request": {
+        "path": "/instant",
+        "options": {
+          "headers": {
+            "X-Custom": "test"
+          },
+          "method": "GET",
+          "timeout": 5000
+        }
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "options": {
+            "headers": {
+              "X-Custom": "test"
+            },
+            "method": "GET",
+            "timeout": 5000
+          }
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "edge-case-pass-through-options",
+      "description": "FetchClient passes through other fetch options without timeout",
+      "request": {
+        "path": "/instant",
+        "options": {
+          "headers": {
+            "X-Test": "value"
+          },
+          "method": "GET"
+        }
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "options": {
+            "headers": {
+              "X-Test": "value"
+            },
+            "method": "GET"
+          }
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "signal-cleanup-success",
+      "description": "FetchClient cleans up timeout on successful request",
+      "request": {
+        "path": "/instant",
+        "timeout": 5000
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "timeout": 5000
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "signal-cleanup-failed",
+      "description": "FetchClient cleans up timeout on failed request",
+      "request": {
+        "path": "/instant",
+        "signal": {
+          "kind": "already-aborted"
+        },
+        "timeout": 5000
+      },
+      "expect": {
+        "error": "AbortError",
+        "kind": "reject"
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "signal": {
+            "kind": "already-aborted"
+          },
+          "timeout": 5000
+        },
+        "expect": {
+          "error": "AbortError",
+          "kind": "reject"
+        }
+      },
+      "expected": {
+        "error": "AbortError",
+        "kind": "reject"
+      }
+    },
+    {
+      "name": "fetch-without-timeout-direct-fetch",
+      "description": "FetchClient uses direct fetch when timeout is undefined",
+      "request": {
+        "path": "/instant"
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "path": "/instant"
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "fetch-without-timeout-signal",
+      "description": "FetchClient passes external signal to fetch when no timeout",
+      "request": {
+        "path": "/delay?ms=200",
+        "signal": {
+          "kind": "abort-after-ms",
+          "delayMs": 10
+        }
+      },
+      "expect": {
+        "error": "AbortError",
+        "kind": "reject"
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=200",
+          "signal": {
+            "kind": "abort-after-ms",
+            "delayMs": 10
+          }
+        },
+        "expect": {
+          "error": "AbortError",
+          "kind": "reject"
+        }
+      },
+      "expected": {
+        "error": "AbortError",
+        "kind": "reject"
+      }
+    },
+    {
+      "name": "fetch-without-timeout-convert-abort",
+      "description": "FetchClient converts abort errors to AbortError",
+      "request": {
+        "path": "/instant",
+        "signal": {
+          "kind": "already-aborted"
+        }
+      },
+      "expect": {
+        "error": "AbortError",
+        "kind": "reject",
+        "messageIncludes": [
+          "aborted"
+        ]
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "signal": {
+            "kind": "already-aborted"
+          }
+        },
+        "expect": {
+          "error": "AbortError",
+          "kind": "reject",
+          "messageIncludes": [
+            "aborted"
+          ]
+        }
+      },
+      "expected": {
+        "error": "AbortError",
+        "kind": "reject",
+        "messageIncludes": [
+          "aborted"
+        ]
+      }
+    },
+    {
+      "name": "timeout-path-apply-timeout",
+      "description": "FetchClient applies a timeout when specified",
+      "request": {
+        "path": "/instant",
+        "timeout": 5000
+      },
+      "expect": {
+        "kind": "ok",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "path": "/instant",
+          "timeout": 5000
+        },
+        "expect": {
+          "kind": "ok",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "timeout-path-timeout-expired",
+      "description": "FetchClient throws TimeoutError when timeout expires",
+      "request": {
+        "path": "/delay?ms=200",
+        "timeout": 50
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "timeoutMs": 50
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=200",
+          "timeout": 50
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "reject",
+          "timeoutMs": 50
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "timeoutMs": 50
+      }
+    },
+    {
+      "name": "timeout-path-external-signal",
+      "description": "FetchClient throws AbortError when external signal aborts",
+      "request": {
+        "path": "/delay?ms=200",
+        "signal": {
+          "kind": "abort-after-ms",
+          "delayMs": 10
+        },
+        "timeout": 5000
+      },
+      "expect": {
+        "error": "AbortError",
+        "kind": "reject",
+        "messageIncludes": [
+          "aborted"
+        ]
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=200",
+          "signal": {
+            "kind": "abort-after-ms",
+            "delayMs": 10
+          },
+          "timeout": 5000
+        },
+        "expect": {
+          "error": "AbortError",
+          "kind": "reject",
+          "messageIncludes": [
+            "aborted"
+          ]
+        }
+      },
+      "expected": {
+        "error": "AbortError",
+        "kind": "reject",
+        "messageIncludes": [
+          "aborted"
+        ]
+      }
+    },
+    {
+      "name": "timeout-path-timeout-before-abort",
+      "description": "FetchClient prioritizes timeout when it fires first",
+      "request": {
+        "path": "/delay?ms=200",
+        "signal": {
+          "kind": "abort-after-ms",
+          "delayMs": 100
+        },
+        "timeout": 20
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "timeoutMs": 20
+      },
+      "input": {
+        "request": {
+          "path": "/delay?ms=200",
+          "signal": {
+            "kind": "abort-after-ms",
+            "delayMs": 100
+          },
+          "timeout": 20
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "reject",
+          "timeoutMs": 20
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "reject",
+        "timeoutMs": 20
+      }
+    },
+    {
+      "name": "error-handling-unknown-code",
+      "description": "FetchClient falls back to the original error when the dispatcher code is unknown",
+      "request": {
+        "client": {
+          "baseURL": "https://example.test",
+          "dispatcher": {
+            "connections": 2,
+            "enabled": true
+          }
+        },
+        "path": "/error-unknown-code"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "reject",
+        "messageIncludes": [
+          "unknown error"
+        ]
+      },
+      "input": {
+        "request": {
+          "client": {
+            "baseURL": "https://example.test",
+            "dispatcher": {
+              "connections": 2,
+              "enabled": true
+            }
+          },
+          "path": "/error-unknown-code"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "reject",
+          "messageIncludes": [
+            "unknown error"
+          ]
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "reject",
+        "messageIncludes": [
+          "unknown error"
+        ]
+      }
+    }
+  ]
+}

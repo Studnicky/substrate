@@ -1,0 +1,880 @@
+{
+  "cases": [
+    {
+      "name": "json-clone-deep-number",
+      "description": "Clone.deep clones number by value",
+      "kind": "clone-deep-number",
+      "input": {
+        "json": {
+          "value": 42
+        }
+      },
+      "expected": {
+        "cloned": 42
+      }
+    },
+    {
+      "name": "json-clone-deep-string",
+      "description": "Clone.deep clones string by value",
+      "kind": "clone-deep-string",
+      "input": {
+        "json": {
+          "value": "hello"
+        }
+      },
+      "expected": {
+        "cloned": "hello"
+      }
+    },
+    {
+      "name": "json-clone-deep-null",
+      "description": "Clone.deep clones null by value",
+      "kind": "clone-deep-null",
+      "input": {
+        "json": {
+          "value": null
+        }
+      },
+      "expected": {
+        "cloned": null
+      }
+    },
+    {
+      "name": "json-clone-deep-array",
+      "description": "Clone.deep clones arrays without sharing references",
+      "kind": "clone-deep-array",
+      "input": {
+        "json": {
+          "value": [
+            1,
+            [
+              2,
+              3
+            ],
+            {
+              "a": 4
+            }
+          ]
+        }
+      },
+      "expected": {
+        "cloned": [
+          1,
+          [
+            2,
+            3
+          ],
+          {
+            "a": 4
+          }
+        ],
+        "distinct": true
+      }
+    },
+    {
+      "name": "json-clone-deep-nested-object",
+      "description": "Clone.deep clones nested objects",
+      "kind": "clone-deep-nested-object",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1,
+            "b": {
+              "c": 2
+            }
+          }
+        }
+      },
+      "expected": {
+        "cloned": {
+          "a": 1,
+          "b": {
+            "c": 2
+          }
+        },
+        "distinct": true
+      }
+    },
+    {
+      "name": "json-clone-deep-map",
+      "description": "Clone.deep clones Map values deeply",
+      "kind": "clone-deep-map",
+      "input": {
+        "json": {
+          "value": {
+            "__kind": "map",
+            "entries": [
+              [
+                "key",
+                {
+                  "value": 1
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "expected": {
+        "distinct": true,
+        "size": 1
+      }
+    },
+    {
+      "name": "json-clone-deep-set",
+      "description": "Clone.deep clones Set values",
+      "kind": "clone-deep-set",
+      "input": {
+        "json": {
+          "value": {
+            "__kind": "set",
+            "values": [
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      },
+      "expected": {
+        "distinct": true,
+        "has": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "json-clone-deep-date",
+      "description": "Clone.deep clones Date objects",
+      "kind": "clone-deep-date",
+      "input": {
+        "json": {
+          "value": "2024-06-01"
+        }
+      },
+      "expected": {
+        "distinct": true,
+        "sameTime": true
+      }
+    },
+    {
+      "name": "json-clone-deep-isolation",
+      "description": "Clone.deep mutations to the clone do not affect the original",
+      "kind": "clone-deep-isolation",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1,
+            "b": {
+              "c": 2
+            }
+          }
+        }
+      },
+      "expected": {
+        "originalUnchanged": true
+      }
+    },
+    {
+      "name": "json-clone-shallow",
+      "description": "Clone.shallow preserves nested references",
+      "kind": "clone-shallow",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1,
+            "b": {
+              "c": 2
+            }
+          }
+        }
+      },
+      "expected": {
+        "nestedShared": true
+      }
+    },
+    {
+      "name": "json-clone-subclass-root",
+      "description": "Clone subclass override tags the root object",
+      "kind": "clone-subclass-root",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1
+          }
+        }
+      },
+      "expected": {
+        "tagged": true
+      }
+    },
+    {
+      "name": "json-clone-subclass-nested",
+      "description": "Clone subclass override propagates through nested objects",
+      "kind": "clone-subclass-nested",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1,
+            "nested": {
+              "b": 2
+            }
+          }
+        }
+      },
+      "expected": {
+        "tagged": true,
+        "nestedTagged": true
+      }
+    },
+    {
+      "name": "json-clone-subclass-base",
+      "description": "base Clone.deep ignores subclass override",
+      "kind": "clone-subclass-base",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1,
+            "nested": {
+              "b": 2
+            }
+          }
+        }
+      },
+      "expected": {
+        "tagged": false
+      }
+    },
+    {
+      "name": "json-data-deepequal-true",
+      "description": "DataType.deepEqual accepts identical primitives",
+      "kind": "data-deepequal-true",
+      "input": {
+        "json": {
+          "values": [
+            1,
+            "a",
+            true,
+            null
+          ]
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "name": "json-data-deepequal-false",
+      "description": "DataType.deepEqual rejects different primitives",
+      "kind": "data-deepequal-false",
+      "input": {
+        "json": {
+          "values": [
+            1,
+            2,
+            "a",
+            "b",
+            null,
+            null
+          ]
+        }
+      },
+      "expected": {
+        "result": false
+      }
+    },
+    {
+      "name": "json-data-deepequal-special",
+      "description": "DataType.deepEqual handles arrays, objects, dates, regexps, sets, maps, and mixed types",
+      "kind": "data-deepequal-special",
+      "input": {
+        "json": {
+          "values": [
+            "NaN",
+            [
+              1,
+              2,
+              3
+            ],
+            {
+              "a": {
+                "b": 1
+              }
+            },
+            "date",
+            "set",
+            "map"
+          ]
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "name": "json-data-plain-object",
+      "description": "DataType.isPlainObject recognizes plain objects and rejects non-plain values",
+      "kind": "data-plain-object",
+      "input": {
+        "json": {
+          "values": [
+            "plain",
+            "array",
+            "date"
+          ]
+        }
+      },
+      "expected": {
+        "plain": true,
+        "array": false,
+        "date": false
+      }
+    },
+    {
+      "name": "json-data-record",
+      "description": "DataType.isRecord recognizes objects and maps while rejecting non-records",
+      "kind": "data-record",
+      "input": {
+        "json": {
+          "values": [
+            "object",
+            "map",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "expected": {
+        "object": true,
+        "map": true,
+        "array": false,
+        "null": false
+      }
+    },
+    {
+      "name": "json-data-cycle",
+      "description": "DataType.hasCycle detects cyclic and acyclic structures",
+      "kind": "data-cycle",
+      "input": {
+        "json": {
+          "values": [
+            "acyclic",
+            "object-cycle",
+            "array-cycle"
+          ]
+        }
+      },
+      "expected": {
+        "acyclic": false,
+        "objectCycle": true,
+        "arrayCycle": true
+      }
+    },
+    {
+      "name": "json-data-deepequal-negative-branches",
+      "description": "DataType.deepEqual rejects mixed dates, regexps, sets, maps, arrays, and object key shapes",
+      "kind": "data-deepequal-negative-branches",
+      "input": {
+        "json": {
+          "checks": [
+            "date-mixed",
+            "regexp-mixed",
+            "set-size",
+            "set-missing",
+            "map-size",
+            "map-missing",
+            "map-value",
+            "object-size",
+            "object-missing"
+          ]
+        }
+      },
+      "expected": {
+        "allNegativeChecksFail": true,
+        "regexpEqual": true
+      }
+    },
+    {
+      "name": "json-frozen-flat",
+      "description": "Frozen.deepFreeze freezes a flat object",
+      "kind": "frozen-flat",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1,
+            "b": 2
+          }
+        }
+      },
+      "expected": {
+        "frozen": true
+      }
+    },
+    {
+      "name": "json-frozen-nested",
+      "description": "Frozen.deepFreeze deeply freezes nested objects and arrays",
+      "kind": "frozen-nested",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1,
+            "b": {
+              "c": 3
+            }
+          }
+        }
+      },
+      "expected": {
+        "frozen": true,
+        "nestedFrozen": true
+      }
+    },
+    {
+      "name": "json-frozen-reference",
+      "description": "Frozen.deepFreeze returns the same reference",
+      "kind": "frozen-reference",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1
+          }
+        }
+      },
+      "expected": {
+        "sameRef": true
+      }
+    },
+    {
+      "name": "json-frozen-cycle",
+      "description": "Frozen.deepFreeze handles circular references",
+      "kind": "frozen-cycle",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1,
+            "self": "cycle"
+          }
+        }
+      },
+      "expected": {
+        "noThrow": true
+      }
+    },
+    {
+      "name": "json-frozen-primitives",
+      "description": "Frozen.deepFreeze passes through primitives unchanged",
+      "kind": "frozen-primitives",
+      "input": {
+        "json": {
+          "values": [
+            42,
+            "hello",
+            null
+          ]
+        }
+      },
+      "expected": {
+        "passthrough": true
+      }
+    },
+    {
+      "name": "json-frozen-map-set",
+      "description": "Frozen.deepFreeze preserves read access while blocking mutation",
+      "kind": "frozen-map-set",
+      "input": {
+        "json": {
+          "map": {
+            "entries": [
+              [
+                "a",
+                1
+              ]
+            ]
+          },
+          "set": {
+            "values": [
+              "a"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "mutationBlocked": true
+      }
+    },
+    {
+      "name": "json-frozen-map-values",
+      "description": "Frozen.deepFreeze deeply freezes values reachable from a Map",
+      "kind": "frozen-map-values",
+      "input": {
+        "json": {
+          "map": {
+            "entries": [
+              [
+                "a",
+                {
+                  "nested": 1
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "expected": {
+        "nestedFrozen": true
+      }
+    },
+    {
+      "name": "json-frozen-set-values",
+      "description": "Frozen.deepFreeze deeply freezes values reachable from a Set",
+      "kind": "frozen-set-values",
+      "input": {
+        "json": {
+          "setValues": [
+            {
+              "nested": 1
+            }
+          ]
+        }
+      },
+      "expected": {
+        "nestedFrozen": true,
+        "size": 1
+      }
+    },
+    {
+      "name": "json-frozen-subclass-skip",
+      "description": "Frozen subclasses can skip freezing selected object shapes while still freezing children",
+      "kind": "frozen-subclass-skip",
+      "input": {
+        "json": {
+          "value": {
+            "child": {
+              "frozen": true
+            },
+            "mutable": true
+          }
+        }
+      },
+      "expected": {
+        "childFrozen": true,
+        "rootFrozen": false
+      }
+    },
+    {
+      "name": "json-hash-hex",
+      "description": "Hash.value returns an 8-char hex string",
+      "kind": "hash-hex",
+      "input": {
+        "json": {
+          "value": {
+            "a": 1
+          }
+        }
+      },
+      "expected": {
+        "hexLength": 8
+      }
+    },
+    {
+      "name": "json-hash-identical",
+      "description": "Hash.value produces the same hash for identical values",
+      "kind": "hash-identical",
+      "input": {
+        "json": {
+          "values": [
+            {
+              "a": 1
+            },
+            {
+              "a": 1
+            }
+          ]
+        }
+      },
+      "expected": {
+        "sameHash": true
+      }
+    },
+    {
+      "name": "json-hash-order",
+      "description": "Hash.value is insensitive to object and set/map insertion order",
+      "kind": "hash-order",
+      "input": {
+        "json": {
+          "values": [
+            {
+              "a": 1,
+              "b": 2
+            },
+            {
+              "b": 2,
+              "a": 1
+            }
+          ]
+        }
+      },
+      "expected": {
+        "sameHash": true
+      }
+    },
+    {
+      "name": "json-hash-different",
+      "description": "Hash.value produces different hashes for different values",
+      "kind": "hash-different",
+      "input": {
+        "json": {
+          "values": [
+            {
+              "a": 1
+            },
+            {
+              "a": 2
+            }
+          ]
+        }
+      },
+      "expected": {
+        "sameHash": false
+      }
+    },
+    {
+      "name": "json-hash-primitive",
+      "description": "Hash.value returns a string for primitive inputs",
+      "kind": "hash-primitive",
+      "input": {
+        "json": {
+          "value": 42
+        }
+      },
+      "expected": {
+        "stringHash": true
+      }
+    },
+    {
+      "name": "json-hash-nested",
+      "description": "Hash.value handles nested structures",
+      "kind": "hash-nested",
+      "input": {
+        "json": {
+          "value": {
+            "a": {
+              "b": [
+                1,
+                2,
+                3
+              ]
+            }
+          }
+        }
+      },
+      "expected": {
+        "hashable": true
+      }
+    },
+    {
+      "name": "json-hash-distinct-kinds",
+      "description": "Hash.value distinguishes Map, Set, Date, and plain objects",
+      "kind": "hash-distinct-kinds",
+      "input": {
+        "json": {
+          "values": [
+            "map",
+            "set",
+            "date",
+            "object"
+          ]
+        }
+      },
+      "expected": {
+        "distinct": true
+      }
+    },
+    {
+      "name": "json-structural-hash-metadata",
+      "description": "StructuralHash ignores metadata-only schema differences",
+      "kind": "structural-hash-metadata",
+      "input": {
+        "json": {
+          "schema": {
+            "title": "A"
+          }
+        }
+      },
+      "expected": {
+        "sameHash": true
+      }
+    },
+    {
+      "name": "json-structural-hash-different",
+      "description": "StructuralHash distinguishes structurally different schemas",
+      "kind": "structural-hash-different",
+      "input": {
+        "json": {
+          "schema": {
+            "title": "A",
+            "extra": true
+          }
+        }
+      },
+      "expected": {
+        "sameHash": false
+      }
+    },
+    {
+      "name": "json-hash-edge-values",
+      "description": "Hash.value distinguishes booleans and non-JSON JavaScript input kinds",
+      "kind": "hash-edge-values",
+      "input": {
+        "json": {
+          "values": [
+            "true",
+            "false",
+            "undefined",
+            "function"
+          ]
+        }
+      },
+      "expected": {
+        "booleanDistinct": true,
+        "functionDistinctFromUndefined": true
+      }
+    },
+    {
+      "name": "json-merge-primitives",
+      "description": "Merge.deep handles primitive, object, array, and atomic overlay cases",
+      "kind": "merge-primitives",
+      "input": {
+        "json": {
+          "left": 1,
+          "right": 2
+        }
+      },
+      "expected": {
+        "merged": 2
+      }
+    },
+    {
+      "name": "json-merge-isolation",
+      "description": "Merge.deep isolates inputs and outputs from later mutation",
+      "kind": "merge-isolation",
+      "input": {
+        "json": {
+          "left": {
+            "a": 1
+          },
+          "right": {
+            "b": 2
+          }
+        }
+      },
+      "expected": {
+        "isolated": true
+      }
+    },
+    {
+      "name": "json-merge-hidden-class",
+      "description": "Merge.deep preserves a canonical key write order",
+      "kind": "merge-hidden-class",
+      "input": {
+        "json": {
+          "left": {
+            "a": 1
+          },
+          "right": {
+            "b": 2
+          }
+        }
+      },
+      "expected": {
+        "stableShape": true
+      }
+    },
+    {
+      "name": "json-sort-functions",
+      "description": "Sort comparators handle natural and length-based ordering",
+      "kind": "sort-functions",
+      "input": {
+        "json": {
+          "values": [
+            3,
+            1,
+            2
+          ]
+        }
+      },
+      "expected": {
+        "ascending": [
+          1,
+          2,
+          3
+        ],
+        "descending": [
+          3,
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "name": "json-entities-core",
+      "description": "JSON internal entities validate their core payloads",
+      "kind": "entities-core",
+      "input": {
+        "json": {
+          "entities": [
+            {
+              "id": "a"
+            },
+            {
+              "id": "b"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "ids": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "name": "json-schema-validator",
+      "description": "SchemaValidator compiles idempotently and formats Ajv validation errors",
+      "kind": "schema-validator",
+      "input": {
+        "json": {
+          "schema": {
+            "$id": "https://studnicky.dev/schemas/json-loop-user",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "valid": {
+            "name": "Ada"
+          },
+          "invalid": {
+            "name": 42
+          }
+        }
+      },
+      "expected": {
+        "fallback": "invalid payload",
+        "formattedIncludes": [
+          "/name",
+          "string"
+        ],
+        "idempotent": true
+      }
+    }
+  ]
+}

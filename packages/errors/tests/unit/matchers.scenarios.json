@@ -1,0 +1,267 @@
+{
+  "cases": [
+    {
+      "name": "immutable-matcher-route",
+      "description": "exposes one immutable matcher route",
+      "kind": "immutable-matcher-route",
+      "expected": {
+        "frozen": true,
+        "hasClassifierConstants": false,
+        "hasInstanceIsType": false,
+        "numberMatch": false,
+        "stringMatch": true
+      },
+      "input": {
+        "numberValue": "value",
+        "stringValue": "value"
+      }
+    },
+    {
+      "name": "negative-matcher-route",
+      "description": "drives false branches across matcher helpers",
+      "kind": "negative-matcher-route",
+      "expected": {
+        "and": false,
+        "contains": false,
+        "containsAll": false,
+        "containsAny": false,
+        "containsIgnoreCase": false,
+        "endsWith": false,
+        "hasAllProperties": false,
+        "hasAnyProperty": false,
+        "hasMethod": false,
+        "hasProperty": false,
+        "isAsyncIterable": false,
+        "isCallable": false,
+        "isError": false,
+        "isFalse": false,
+        "isIterable": false,
+        "isTrue": false,
+        "lessThan": false,
+        "lengthInRange": false,
+        "lte": false,
+        "matches": false,
+        "named": false,
+        "namedAny": false,
+        "not": false,
+        "notEmpty": false,
+        "oneOf": false,
+        "of": false,
+        "ofAny": false,
+        "or": false,
+        "startsWith": false,
+        "startsWithIgnoreCase": false
+      },
+      "input": {
+        "code": "X",
+        "errorName": "boom",
+        "numberValue": 0,
+        "objectValue": {},
+        "stringValue": ""
+      }
+    },
+    {
+      "name": "number-matchers",
+      "description": "covers numeric matcher branches",
+      "kind": "number-matchers",
+      "expected": {
+        "greaterThan": true,
+        "gte": true,
+        "inRange": true,
+        "lessThan": true,
+        "lte": true,
+        "oneOf": true
+      },
+      "input": {
+        "numberValue": 5
+      }
+    },
+    {
+      "name": "string-matchers",
+      "description": "covers string matcher branches",
+      "kind": "string-matchers",
+      "expected": {
+        "contains": true,
+        "containsIgnoreCase": true,
+        "endsWith": true,
+        "lengthInRange": true,
+        "matches": true,
+        "notEmpty": true,
+        "oneOf": true,
+        "startsWith": true,
+        "startsWithIgnoreCase": true
+      },
+      "input": {
+        "stringValue": "Connection Refused"
+      }
+    },
+    {
+      "name": "boolean-matchers",
+      "description": "covers boolean matcher branches",
+      "kind": "boolean-matchers",
+      "expected": {
+        "isFalse": true,
+        "isTrue": true
+      },
+      "input": {
+        "booleanValue": true
+      }
+    },
+    {
+      "name": "array-matchers",
+      "description": "covers array matcher branches",
+      "kind": "array-matchers",
+      "expected": {
+        "contains": true,
+        "containsAll": true,
+        "containsAny": true,
+        "lengthInRange": true,
+        "notEmpty": true
+      },
+      "input": {
+        "arrayValue": ["a", "b", "c"]
+      }
+    },
+    {
+      "name": "object-matchers",
+      "description": "covers object matcher branches",
+      "kind": "object-matchers",
+      "expected": {
+        "hasAllProperties": true,
+        "hasAnyProperty": true,
+        "hasProperty": true
+      },
+      "input": {
+        "objectValue": {
+          "alpha": 1,
+          "beta": 2
+        }
+      }
+    },
+    {
+      "name": "logic-matchers",
+      "description": "covers logical combinator branches",
+      "kind": "logic-matchers",
+      "expected": {
+        "and": true,
+        "not": true,
+        "or": true
+      },
+      "input": {
+        "numberValue": 503
+      }
+    },
+    {
+      "name": "empty-variadics",
+      "description": "covers empty variadic matcher inputs",
+      "kind": "empty-variadics",
+      "expected": {
+        "and": true,
+        "containsAll": true,
+        "containsAny": false,
+        "hasAllProperties": true,
+        "hasAnyProperty": false,
+        "or": false
+      },
+      "input": {
+        "numberValue": 0
+      }
+    },
+    {
+      "name": "network-matchers",
+      "description": "covers network matcher branches",
+      "kind": "network-matchers",
+      "expected": {
+        "connectionError": true,
+        "dnsError": false,
+        "timeout": true
+      },
+      "input": {
+        "code": "ETIMEDOUT"
+      }
+    },
+    {
+      "name": "network-matchers dns",
+      "description": "covers the dns-specific positive branch",
+      "kind": "network-matchers",
+      "expected": {
+        "connectionError": true,
+        "dnsError": true,
+        "timeout": false
+      },
+      "input": {
+        "code": "ENOTFOUND"
+      }
+    },
+    {
+      "name": "http-matchers",
+      "description": "covers common HTTP status matcher branches",
+      "kind": "http-matchers",
+      "expected": {
+        "isAuthError": false,
+        "isClientError": true,
+        "isGatewayError": false,
+        "isInformational": false,
+        "isRateLimited": true,
+        "isRedirection": false,
+        "isRetryable": true,
+        "isServerError": false,
+        "isSuccess": false
+      },
+      "input": {
+        "status": 429
+      }
+    },
+    {
+      "name": "database-matchers",
+      "description": "covers database matcher branches",
+      "kind": "database-matchers",
+      "expected": {
+        "connectionError": true,
+        "constraintViolation": true,
+        "deadlock": true,
+        "foreignKey": true,
+        "uniqueViolation": true
+      },
+      "input": {
+        "code": "23505",
+        "connectionCode": "08P01",
+        "constraintCode": "23P01",
+        "deadlockCode": "40001",
+        "foreignKeyCode": "23503"
+      }
+    },
+    {
+      "name": "instance-matchers",
+      "description": "covers instance matcher branches",
+      "kind": "instance-matchers",
+      "expected": {
+        "isError": true,
+        "named": true,
+        "namedAny": true,
+        "of": true,
+        "ofAny": true
+      },
+      "input": {
+        "errorName": "TypeError"
+      }
+    },
+    {
+      "name": "proto-matchers",
+      "description": "covers prototype matcher branches",
+      "kind": "proto-matchers",
+      "expected": {
+        "hasAllMethods": true,
+        "hasAnyMethod": true,
+        "hasMethod": true,
+        "hasProperty": true,
+        "isAsyncIterable": true,
+        "isCallable": true,
+        "isIterable": true
+      },
+      "input": {
+        "prototypeValue": {}
+      }
+    }
+  ]
+}

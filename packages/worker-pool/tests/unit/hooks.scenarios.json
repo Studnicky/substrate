@@ -1,0 +1,93 @@
+{
+  "cases": [
+    {
+      "name": "on-message-envelopes",
+      "description": "onMessage fires for every envelope type",
+      "kind": "on-message-envelopes",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "x" }]
+      },
+      "expected": {
+        "seenTypes": ["log", "progress", "result"]
+      }
+    },
+    {
+      "name": "error-envelope-and-hook",
+      "description": "onMessage and onWorkerError both fire when a worker posts an error envelope",
+      "kind": "error-envelope-and-hook",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "error": "kaboom", "value": "x" }]
+      },
+      "expected": {
+        "seenTypes": ["log", "progress", "error"],
+        "seenErrors": ["kaboom"]
+      }
+    },
+    {
+      "name": "throwing-on-message",
+      "description": "a throwing onMessage hook does not prevent the worker result from resolving",
+      "kind": "throwing-on-message",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "x" }]
+      },
+      "expected": {
+        "hookErrorCount": 3,
+        "hookErrorMessages": ["hook boom", "hook boom", "hook boom"],
+        "results": ["x"]
+      }
+    },
+    {
+      "name": "async-rejecting-on-message",
+      "description": "an async-rejecting onMessage override is routed to getHookErrors() without an unhandled rejection",
+      "kind": "async-rejecting-on-message",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "x" }]
+      },
+      "expected": {
+        "hookErrorCount": 3,
+        "hookErrorMessages": ["async onMessage boom", "async onMessage boom", "async onMessage boom"],
+        "rejectionEvents": [],
+        "results": ["x"]
+      }
+    },
+    {
+      "name": "hook-errors-instance-local",
+      "description": "records hook failures only on the worker-pool instance that owns the invoker",
+      "kind": "hook-errors-instance-local",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "firstItems": [{ "value": "first" }],
+        "secondItems": [{ "value": "second" }]
+      },
+      "expected": {
+        "firstHookErrorCount": 1,
+        "firstHookErrorMessage": "first pool hook failed",
+        "firstHookErrorName": "onWorkerCreated",
+        "firstResults": ["first"],
+        "secondHookErrorCount": 1,
+        "secondHookErrorMessage": "second pool hook failed",
+        "secondHookErrorName": "onWorkerCreated",
+        "secondResults": ["second"]
+      }
+    }
+  ]
+}

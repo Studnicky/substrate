@@ -18,7 +18,7 @@ console.log('satisfiesMinLength hi 5:', Predicates.satisfiesMinLength('hi', 5));
 console.log('satisfiesMaxLength hello 5:', Predicates.satisfiesMaxLength('hello', 5));  // true
 console.log('satisfiesMaxLength hello 4:', Predicates.satisfiesMaxLength('hello', 4));  // false
 
-// checkPattern accepts a pre-compiled RegExp or a pattern string
+// checkPattern accepts a compiled RegExp
 console.log('checkPattern abc123:', Predicates.checkPattern('abc123', WORD_PATTERN));  // true
 console.log('checkPattern abc 123:', Predicates.checkPattern('abc 123', WORD_PATTERN)); // false
 // #endregion string

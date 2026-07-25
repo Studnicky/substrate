@@ -1,0 +1,34 @@
+{
+  "cases": [
+    {
+      "name": "delay",
+      "description": "Runs the delay example",
+      "input": { "entrypoint": "../../examples/delay.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "di-provider",
+      "description": "Runs the DI provider example",
+      "input": { "entrypoint": "../../examples/di-provider.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "interval-tasks",
+      "description": "Runs the interval tasks example",
+      "input": { "entrypoint": "../../examples/interval-tasks.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "observed-scheduler",
+      "description": "Runs the observed scheduler example",
+      "input": { "entrypoint": "../../examples/observedScheduler.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "virtual-scheduler",
+      "description": "Runs the virtual scheduler example",
+      "input": { "entrypoint": "../../examples/virtual-scheduler.ts" },
+      "expected": { "importsWithoutThrow": true }
+    }
+  ]
+}

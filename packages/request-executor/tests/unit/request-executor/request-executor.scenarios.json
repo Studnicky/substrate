@@ -1,0 +1,218 @@
+{
+  "cases": [
+    {
+      "name": "validates omitted and non-negative deadlines",
+      "description": "validates omitted and non-negative deadlines",
+      "kind": "entity-validates-deadlines",
+      "input": {
+        "values": [{}, { "deadlineMs": 0 }]
+      },
+      "expected": { "accepted": true }
+    },
+    {
+      "name": "rejects negative deadlines",
+      "description": "rejects negative deadlines",
+      "kind": "entity-rejects-negative-deadline",
+      "input": {
+        "values": [{ "deadlineMs": -1 }]
+      },
+      "expected": { "accepted": false }
+    },
+    {
+      "name": "builds callable FetchClient and Retry dependencies from plain config",
+      "description": "builds callable FetchClient and Retry dependencies from plain config",
+      "kind": "create-plain-config",
+      "input": {
+        "fetchInputUrl": "https://example.test/resource",
+        "fetchMethod": "GET",
+        "fetchResponseText": "configured",
+        "requestExecutor": {
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": { "maxRetries": 5 }
+        },
+        "requestPath": "/resource"
+      },
+      "expected": {
+        "requestMethod": "GET",
+        "requestUrl": "https://example.test/resource",
+        "responseText": "configured",
+        "result": "configured"
+      }
+    },
+    {
+      "name": "executes through the caller-owned instances",
+      "description": "executes through the caller-owned instances",
+      "kind": "create-with-instances",
+      "input": {
+        "requestExecutor": {
+          "deadlineMs": 1000,
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": { "maxRetries": 2 }
+        },
+        "retryFailOnceMessage": "retry once"
+      },
+      "expected": {
+        "result": "retried",
+        "retryTotalRetries": 1,
+        "sameFetchClient": true
+      }
+    },
+    {
+      "name": "produces a working, callable instance with real default primitives",
+      "description": "produces a working, callable instance with real default primitives",
+      "kind": "defaults-real-primitives",
+      "input": {
+        "fetchResponseText": "ok",
+        "fetchUrl": "https://example.test/"
+      },
+      "expected": {
+        "responseStatus": 200,
+        "responseText": "ok"
+      }
+    },
+    {
+      "name": "round-trips a value set/get inside fn through the composed Context instance",
+      "description": "round-trips a value set/get inside fn through the composed Context instance",
+      "kind": "context-roundtrip",
+      "input": {
+        "contextValue": "req-abc-123",
+        "fetchResponseText": "ok",
+        "requestExecutor": {
+          "context": { "name": "context-test" },
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": {}
+        }
+      },
+      "expected": {
+        "observedRequestId": "req-abc-123"
+      }
+    },
+    {
+      "name": "seeds contextInitial values reachable from fn",
+      "description": "seeds contextInitial values reachable from fn",
+      "kind": "context-seeded-values",
+      "input": {
+        "contextSeed": 42,
+        "fetchResponseText": "ok",
+        "requestExecutor": {
+          "context": { "name": "context-seed-test" },
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": {}
+        }
+      },
+      "expected": {
+        "observedSeed": 42
+      }
+    },
+    {
+      "name": "a merged caller signal + deadlineMs aborts the in-flight fetch",
+      "description": "a merged caller signal + deadlineMs aborts the in-flight fetch",
+      "kind": "cancellation-merged-signal",
+      "input": {
+        "abortAfterMs": 10,
+        "fetchPath": "/delay?ms=200",
+        "requestExecutor": {
+          "deadlineMs": 5000,
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": { "maxRetries": 0 }
+        }
+      },
+      "expected": {
+        "aborted": true
+      }
+    },
+    {
+      "name": "composes the AbortSignal from Signal#compose (never-aborting sentinel when no options given)",
+      "description": "composes the AbortSignal from Signal#compose (never-aborting sentinel when no options given)",
+      "kind": "cancellation-default-signal",
+      "input": {
+        "fetchDelayMs": 10,
+        "fetchPath": "/delay?ms=10",
+        "requestExecutor": {
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": {}
+        },
+        "responseText": "ok"
+      },
+      "expected": {
+        "responseStatus": 200,
+        "signalAborted": false
+      }
+    },
+    {
+      "name": "cancellation-deadline-only",
+      "description": "composes a deadline-only AbortSignal when no caller signal is supplied",
+      "kind": "cancellation-deadline-only",
+      "input": {
+        "fetchDelayMs": 10,
+        "fetchPath": "/delay?ms=10",
+        "requestExecutor": {
+          "deadlineMs": 1000,
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": {}
+        },
+        "responseText": "ok"
+      },
+      "expected": {
+        "responseStatus": 200,
+        "signalAborted": false
+      }
+    },
+    {
+      "name": "captures one start/complete Timing span across all retry attempts",
+      "description": "captures one start/complete Timing span across all retry attempts",
+      "kind": "timing-brackets-retry-loop",
+      "input": {
+        "fetchFailures": 1,
+        "fetchPath": "/flaky",
+        "requestExecutor": {
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": { "maxRetries": 2 }
+        }
+      },
+      "expected": {
+        "completeEvents": 1,
+        "responseStatus": 200,
+        "startEvents": 1
+      }
+    },
+    {
+      "name": "timing-brackets-error",
+      "description": "records timing start and complete counts when the executor callback throws",
+      "kind": "timing-brackets-error",
+      "input": {
+        "errorMessage": "boom",
+        "requestExecutor": {
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": {}
+        }
+      },
+      "expected": {
+        "errorMessage": "boom",
+        "errorEvents": 1,
+        "startEvents": 1
+      }
+    },
+    {
+      "name": "fires subclass FetchClient and Retry hooks through the composed execute() call",
+      "description": "fires subclass FetchClient and Retry hooks through the composed execute() call",
+      "kind": "hooks-fire-through-executor",
+      "input": {
+        "fetchFailures": 2,
+        "fetchPath": "/flaky",
+        "requestExecutor": {
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": { "maxRetries": 3 }
+        }
+      },
+      "expected": {
+        "requestPaths": ["/flaky", "/flaky", "/flaky"],
+        "responseStatuses": [500, 500, 200],
+        "retryAttempts": [0, 1, 2],
+        "scheduledRetries": [0, 1],
+        "responseStatus": 200,
+        "responseText": "ok"
+      }
+    }
+  ]
+}

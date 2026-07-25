@@ -1,0 +1,493 @@
+{
+  "cases": [
+    {
+      "name": "invalid-connections-negative",
+      "description": "validateDispatcher rejects negative connections",
+      "kind": "invalid-config",
+      "input": {
+        "dispatcher": {
+          "connections": -1
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "invalid-connections-zero",
+      "description": "validateDispatcher rejects zero connections",
+      "kind": "invalid-config",
+      "input": {
+        "dispatcher": {
+          "connections": 0
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "invalid-connections-string",
+      "description": "validateDispatcher rejects non-numeric connections",
+      "kind": "invalid-config",
+      "input": {
+        "dispatcher": {
+          "connections": "invalid"
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "invalid-pipelining-negative",
+      "description": "validateDispatcher rejects negative pipelining",
+      "kind": "invalid-config",
+      "input": {
+        "dispatcher": {
+          "pipelining": -1
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "invalid-keep-alive-timeout-negative",
+      "description": "validateDispatcher rejects negative keepAliveTimeout",
+      "kind": "invalid-config",
+      "input": {
+        "dispatcher": {
+          "keepAliveTimeout": -1000
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "invalid-keep-alive-max-timeout-negative",
+      "description": "validateDispatcher rejects negative keepAliveMaxTimeout",
+      "kind": "invalid-config",
+      "input": {
+        "dispatcher": {
+          "keepAliveMaxTimeout": -1000
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "invalid-connections-infinity",
+      "description": "validateDispatcher rejects infinite connections",
+      "kind": "invalid-config",
+      "input": {
+        "dispatcher": {
+          "connections": {
+            "__kind": "infinity"
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "invalid-connections-nan",
+      "description": "validateDispatcher rejects NaN connections",
+      "kind": "invalid-config",
+      "input": {
+        "dispatcher": {
+          "connections": {
+            "__kind": "nan"
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "many-concurrent-requests",
+      "description": "a small pool still serves many concurrent requests",
+      "kind": "many-concurrent-requests",
+      "input": {
+        "batch": {
+          "requestCount": 10
+        },
+        "dispatcher": {
+          "connections": 2
+        }
+      },
+      "expected": {
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "name": "queue-requests-when-pool-is-full",
+      "description": "a full pool queues requests",
+      "kind": "queue-requests-when-pool-is-full",
+      "input": {
+        "dispatcher": {
+          "connections": 1,
+          "pipelining": 1
+        }
+      },
+      "expected": {
+        "fulfilled": 3
+      }
+    },
+    {
+      "name": "mixed-success-timeout-with-limited-connections",
+      "description": "mixed success and timeout requests complete with limited connections",
+      "kind": "mixed-success-timeout-with-limited-connections",
+      "input": {
+        "dispatcher": {
+          "connections": 2
+        }
+      },
+      "expected": {
+        "results": [
+          "timeout1",
+          200,
+          "timeout2",
+          200
+        ]
+      }
+    },
+    {
+      "name": "network-refused",
+      "description": "connection refused errors surface through the pool",
+      "kind": "network-refused",
+      "input": {
+        "dispatcher": {
+          "connections": 5
+        }
+      },
+      "expected": {
+        "error": "connect"
+      }
+    },
+    {
+      "name": "dns-failure",
+      "description": "DNS resolution failures surface through the pool",
+      "kind": "dns-failure",
+      "input": {
+        "dispatcher": {
+          "connections": 5
+        }
+      },
+      "expected": {
+        "error": "getaddrinfo"
+      }
+    },
+    {
+      "name": "isolates-network-errors",
+      "description": "network errors stay isolated from successful requests",
+      "kind": "isolates-network-errors",
+      "input": {
+        "dispatcher": {
+          "connections": 5
+        }
+      },
+      "expected": {
+        "statuses": [
+          "rejected",
+          "fulfilled",
+          "rejected",
+          "fulfilled"
+        ]
+      }
+    },
+    {
+      "name": "pool-after-network-error",
+      "description": "the pool stays functional after a network error",
+      "kind": "pool-after-network-error",
+      "input": {
+        "dispatcher": {
+          "connections": 2
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "pool-after-timeout",
+      "description": "the pool stays functional after a timeout",
+      "kind": "pool-after-timeout",
+      "input": {
+        "dispatcher": {
+          "connections": 2
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "sequential-errors",
+      "description": "the pool handles multiple sequential timeouts",
+      "kind": "sequential-errors",
+      "input": {
+        "repeats": 5,
+        "dispatcher": {
+          "connections": 2
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "many-concurrent-timeouts",
+      "description": "the pool handles many concurrent timeouts",
+      "kind": "many-concurrent-timeouts",
+      "input": {
+        "batch": {
+          "requestCount": 10
+        },
+        "dispatcher": {
+          "connections": 5
+        }
+      },
+      "expected": {
+        "results": [
+          "timeout",
+          "timeout",
+          "timeout",
+          "timeout",
+          "timeout",
+          "timeout",
+          "timeout",
+          "timeout",
+          "timeout",
+          "timeout"
+        ]
+      }
+    },
+    {
+      "name": "many-concurrent-network-errors",
+      "description": "the pool handles many concurrent network errors",
+      "kind": "many-concurrent-network-errors",
+      "input": {
+        "batch": {
+          "requestCount": 10
+        },
+        "dispatcher": {
+          "connections": 5
+        }
+      },
+      "expected": {
+        "results": [
+          "error",
+          "error",
+          "error",
+          "error",
+          "error",
+          "error",
+          "error",
+          "error",
+          "error",
+          "error"
+        ]
+      }
+    },
+    {
+      "name": "mixed-errors-successes",
+      "description": "the pool handles mixed errors and successes concurrently",
+      "kind": "mixed-errors-successes",
+      "input": {
+        "dispatcher": {
+          "connections": 5
+        }
+      },
+      "expected": {
+        "results": [
+          200,
+          "timeout",
+          200,
+          "timeout",
+          200,
+          "timeout"
+        ]
+      }
+    },
+    {
+      "name": "saturated-health",
+      "description": "dispatcher health reports a saturated pool",
+      "kind": "saturated-health",
+      "input": {
+        "dispatcher": {
+          "connections": 1
+        }
+      },
+      "expected": {
+        "healthy": true
+      }
+    },
+    {
+      "name": "health-after-errors",
+      "description": "dispatcher health still works after errors",
+      "kind": "health-after-errors",
+      "input": {
+        "dispatcher": {
+          "connections": 2
+        }
+      },
+      "expected": {
+        "healthy": true
+      }
+    },
+    {
+      "name": "keep-alive-short",
+      "description": "short keep-alive timeout causes a reconnect between requests",
+      "kind": "keep-alive-short",
+      "input": {
+        "waitMs": 150,
+        "dispatcher": {
+          "connections": 2,
+          "keepAliveTimeout": 100
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "keep-alive-long",
+      "description": "long keep-alive timeout keeps the connection warm between requests",
+      "kind": "keep-alive-long",
+      "input": {
+        "dispatcher": {
+          "connections": 2,
+          "keepAliveTimeout": 5000
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "pipelining-disabled",
+      "description": "pipelining disabled still completes requests",
+      "kind": "pipelining-disabled",
+      "input": {
+        "dispatcher": {
+          "connections": 1,
+          "pipelining": 1
+        }
+      },
+      "expected": {
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "name": "pipelining-high",
+      "description": "higher pipelining serves concurrent requests",
+      "kind": "pipelining-high",
+      "input": {
+        "batch": {
+          "requestCount": 10
+        },
+        "dispatcher": {
+          "connections": 1,
+          "pipelining": 10
+        }
+      },
+      "expected": {
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "name": "close-waits",
+      "description": "close waits for in-flight requests",
+      "kind": "close-waits",
+      "input": {
+        "dispatcher": {
+          "connections": 2
+        }
+      },
+      "expected": {
+        "closed": true
+      }
+    },
+    {
+      "name": "destroy-timeout-waits",
+      "description": "destroy with timeout waits before closing",
+      "kind": "destroy-timeout-waits",
+      "input": {
+        "dispatcher": {
+          "connections": 2
+        },
+        "destroy": {
+          "timeout": 100
+        }
+      },
+      "expected": {
+        "waited": true
+      }
+    },
+    {
+      "name": "destroy-zero-no-wait",
+      "description": "destroy with zero timeout returns immediately",
+      "kind": "destroy-zero-no-wait",
+      "input": {
+        "dispatcher": {
+          "connections": 2
+        },
+        "destroy": {
+          "timeout": 0
+        }
+      },
+      "expected": {
+        "waited": false
+      }
+    },
+    {
+      "name": "client-destroy-passes-timeout",
+      "description": "FetchClient.destroy forwards the timeout to dispatcher destroy",
+      "kind": "client-destroy-passes-timeout",
+      "input": {
+        "destroy": {
+          "timeout": 100
+        },
+        "fetchClient": {
+          "dispatcher": {
+            "connections": 2,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "waited": true
+      }
+    }
+  ]
+}

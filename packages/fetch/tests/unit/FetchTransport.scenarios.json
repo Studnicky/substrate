@@ -1,0 +1,46 @@
+{
+  "cases": [
+    {
+      "name": "uses-native-fetch",
+      "description": "FetchTransport uses native fetch when no dispatcher is supplied",
+      "operation": "uses-native-fetch",
+      "input": {},
+      "expected": {
+        "input": "https://example.com/resource",
+        "init": {
+          "method": "GET"
+        }
+      }
+    },
+    {
+      "name": "uses-test-transport",
+      "description": "FetchTransport routes through the in-process test transport marker",
+      "operation": "uses-test-transport",
+      "input": {},
+      "expected": {
+        "input": "https://example.com/resource",
+        "init": {
+          "method": "POST"
+        }
+      }
+    },
+    {
+      "name": "uses-undici-fetch",
+      "description": "FetchTransport falls back to undici for a plain dispatcher object",
+      "operation": "uses-undici-fetch",
+      "input": {},
+      "expected": {
+        "responseBody": "undici response"
+      }
+    },
+    {
+      "name": "uses-undici-fetch-null-dispatcher",
+      "description": "FetchTransport falls back to undici when dispatcher is null",
+      "operation": "uses-undici-fetch",
+      "input": {},
+      "expected": {
+        "responseBody": "undici response"
+      }
+    }
+  ]
+}

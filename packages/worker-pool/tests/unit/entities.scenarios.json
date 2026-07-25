@@ -1,0 +1,54 @@
+{
+  "cases": [
+    {
+      "description": "validate configuration, task state, and every envelope discriminant",
+      "expected": {
+        "validationResults": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "WorkerPoolConfigEntity", "expected": true, "value": { "workerPath": "/tmp/worker.mjs" } },
+          { "entity": "WorkerPoolConfigEntity", "expected": true, "value": { "batchConcurrency": 3, "concurrency": 1, "workerPath": "/tmp/worker.mjs" } },
+          { "entity": "WorkerTaskIndexEntity", "expected": true, "value": { "index": 0 } },
+          { "entity": "WorkerTaskDispositionEntity", "expected": true, "value": { "retried": false, "settled": false } },
+          { "entity": "WorkerErrorEnvelopeEntity", "expected": true, "value": { "error": "failed", "type": "error" } },
+          { "entity": "WorkerLogEnvelopeEntity", "expected": true, "value": { "message": "working", "type": "log" } },
+          { "entity": "WorkerProgressEnvelopeEntity", "expected": true, "value": { "percent": 50, "type": "progress" } },
+          { "entity": "WorkerResultEnvelopeDiscriminantEntity", "expected": true, "value": { "type": "result", "value": 42 } }
+        ]
+      },
+      "kind": "validates-everything",
+      "name": "validates-everything"
+    },
+    {
+      "description": "rejects invalid task state and envelope discriminants",
+      "expected": {
+        "validationResults": [
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "WorkerPoolConfigEntity", "expected": false, "value": { "batchConcurrency": 0, "workerPath": "/tmp/worker.mjs" } },
+          { "entity": "WorkerTaskIndexEntity", "expected": false, "value": { "index": -1 } },
+          { "entity": "WorkerProgressEnvelopeEntity", "expected": false, "value": { "percent": 101, "type": "progress" } },
+          { "entity": "WorkerResultEnvelopeDiscriminantEntity", "expected": false, "value": { "type": "error" } }
+        ]
+      },
+      "kind": "rejects-invalid",
+      "name": "rejects-invalid"
+    }
+  ]
+}

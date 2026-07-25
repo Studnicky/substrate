@@ -1,0 +1,1325 @@
+{
+  "cases": [
+    {
+      "name": "resilience-circuitbreaker-invalid-failure-threshold",
+      "description": "CircuitBreaker rejects failureThreshold < 1",
+      "kind": "cb-invalid-failure-threshold",
+      "input": {
+        "resilience": {
+          "failureThreshold": 0,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-invalid-reset-timeout",
+      "description": "CircuitBreaker rejects resetTimeoutMs < 0",
+      "kind": "cb-invalid-reset-timeout",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": -1
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-starts-closed",
+      "description": "CircuitBreaker starts in closed state",
+      "kind": "cb-starts-closed",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "state": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-state-entity",
+      "description": "CircuitStateEntity validates supported states",
+      "kind": "cb-state-entity",
+      "input": {
+        "resilience": {
+          "states": [
+            "closed",
+            "halfOpen",
+            "open",
+            "half-open"
+          ]
+        }
+      },
+      "expected": {
+        "validStates": [
+          "closed",
+          "halfOpen",
+          "open"
+        ],
+        "invalidState": "half-open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-trips-open",
+      "description": "CircuitBreaker trips open after threshold failures",
+      "kind": "cb-trips-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "failures": 2
+        }
+      },
+      "expected": {
+        "states": [
+          "closed",
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-success-resets",
+      "description": "CircuitBreaker resets failure count on success in closed state",
+      "kind": "cb-success-resets",
+      "input": {
+        "resilience": {
+          "failureThreshold": 3,
+          "resetTimeoutMs": 100,
+          "sequence": [
+            "fail",
+            "fail",
+            "success",
+            "fail",
+            "fail",
+            "fail"
+          ]
+        }
+      },
+      "expected": {
+        "stateBeforeFinalFailure": "closed",
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-open-error",
+      "description": "CircuitBreakerOpenError is thrown when open",
+      "kind": "cb-open-error",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 10000
+        }
+      },
+      "expected": {
+        "openError": true,
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-open-error-name",
+      "description": "CircuitBreakerOpenError includes the breaker name",
+      "kind": "cb-open-error-name",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 10000,
+          "name": "my-cb"
+        }
+      },
+      "expected": {
+        "openError": true,
+        "messageIncludes": "my-cb"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-halfopen-transition",
+      "description": "CircuitBreaker transitions to halfOpen after resetTimeoutMs",
+      "kind": "cb-halfopen-transition",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "finalState": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-stays-open",
+      "description": "CircuitBreaker stays open before resetTimeoutMs elapses",
+      "kind": "cb-stays-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            99
+          ]
+        }
+      },
+      "expected": {
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-close-on-success-threshold",
+      "description": "CircuitBreaker closes after successThreshold successes in halfOpen",
+      "kind": "cb-close-on-success-threshold",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "successThreshold": 2,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "states": [
+          "halfOpen",
+          "closed"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-halfopen-reopen",
+      "description": "CircuitBreaker re-opens on halfOpen failure",
+      "kind": "cb-halfopen-reopen",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-reset-control",
+      "description": "CircuitBreaker reset() returns to closed",
+      "kind": "cb-reset-control",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "stateAfterReset": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-force-open",
+      "description": "CircuitBreaker forceOpen() opens from closed",
+      "kind": "cb-force-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "state": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-reset-success",
+      "description": "CircuitBreaker execute succeeds after reset",
+      "kind": "cb-reset-success",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "result": "ok",
+        "state": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-success",
+      "description": "CircuitBreaker onSuccess fires on success",
+      "kind": "cb-observed-success",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          "success"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-failure",
+      "description": "CircuitBreaker onFailure fires on failure",
+      "kind": "cb-observed-failure",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          "failure"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-trip-open",
+      "description": "CircuitBreaker onTrip and onOpen fire when threshold reached",
+      "kind": "cb-observed-trip-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          "failure",
+          "failure",
+          "trip",
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-reject",
+      "description": "CircuitBreaker onReject fires when open",
+      "kind": "cb-observed-reject",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 10000
+        }
+      },
+      "expected": {
+        "events": [
+          "reject"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-halfopen",
+      "description": "CircuitBreaker onHalfOpen fires after timeout",
+      "kind": "cb-observed-halfopen",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "events": [
+          "failure",
+          "halfOpen",
+          "success"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-close",
+      "description": "CircuitBreaker onClose fires after halfOpen success and on reset",
+      "kind": "cb-observed-close",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "events": [
+          "failure",
+          "halfOpen",
+          "success",
+          "close"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-open",
+      "description": "CircuitBreaker onOpen fires on forceOpen and re-open",
+      "kind": "cb-observed-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ],
+          "reopenFailureThreshold": 1
+        }
+      },
+      "expected": {
+        "events": [
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-default-classification",
+      "description": "CircuitBreaker default classification counts all failures",
+      "kind": "cb-default-classification",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "states": [
+          "closed",
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-config-classifier-retryable",
+      "description": "CircuitBreaker errorClassifier retryable errors do not count",
+      "kind": "cb-config-classifier-retryable",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "finalState": "closed",
+        "retryableFailures": 3
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-config-classifier-failing",
+      "description": "CircuitBreaker errorClassifier non-retryable errors count",
+      "kind": "cb-config-classifier-failing",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "states": [
+          "closed",
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-config-classifier-throws-original",
+      "description": "CircuitBreaker thrown error remains unchanged when retryable",
+      "kind": "cb-config-classifier-throws-original",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "thrown": "TransientError",
+        "state": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-subclass-classifier",
+      "description": "CircuitBreaker classifyError override works",
+      "kind": "cb-subclass-classifier",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-config-overrides-subclass",
+      "description": "CircuitBreaker config classifier overrides classifyError subclass",
+      "kind": "cb-config-overrides-subclass",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-hook-swallows",
+      "description": "CircuitBreaker hook failures do not replace canonical results",
+      "kind": "cb-hook-swallows",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "rejectFailureThreshold": 1,
+          "rejectResetTimeoutMs": 10000,
+          "tripFailureThreshold": 1
+        }
+      },
+      "expected": {
+        "success": "ok",
+        "openState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-async-hook-isolation",
+      "description": "CircuitBreaker async hook failures stay isolated",
+      "kind": "cb-async-hook-isolation",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "first": "first async onSuccess boom",
+          "second": "second async onSuccess boom"
+        }
+      },
+      "expected": {
+        "results": [
+          "ok",
+          "ok"
+        ],
+        "rejections": 0,
+        "recordedErrors": 1
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-invalid-rps",
+      "description": "TokenBucket rejects requestsPerSecond <= 0",
+      "kind": "tb-invalid-rps",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 0,
+          "burstSize": 1
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-invalid-burst",
+      "description": "TokenBucket rejects burstSize < 1",
+      "kind": "tb-invalid-burst",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 1,
+          "burstSize": 0
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-consume-ok",
+      "description": "TokenBucket consume works when tokens are available",
+      "kind": "tb-consume-ok",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0,
+          "consume": [
+            1,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "available": 3,
+        "exhausted": false
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-consume-exhausted",
+      "description": "TokenBucket throws when exhausted",
+      "kind": "tb-consume-exhausted",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 2,
+          "consume": [
+            1,
+            1,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "exhausted": true
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-consume-multi",
+      "description": "TokenBucket consumes multiple tokens",
+      "kind": "tb-consume-multi",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 3,
+          "consume": [
+            3,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "exhaustedOnSecondConsume": true
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-available",
+      "description": "TokenBucket available getter reflects state",
+      "kind": "tb-available",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0,
+          "consume": [
+            2
+          ]
+        }
+      },
+      "expected": {
+        "available": [
+          5,
+          3
+        ]
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-refill",
+      "description": "TokenBucket refills over time",
+      "kind": "tb-refill",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 10,
+          "clock": [
+            0,
+            500
+          ],
+          "consume": [
+            10
+          ]
+        }
+      },
+      "expected": {
+        "availableAfterConsume": 0,
+        "availableAfterRefillAt500Ms": 4
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-cap",
+      "description": "TokenBucket does not exceed burstSize",
+      "kind": "tb-cap",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": [
+            0,
+            10000
+          ]
+        }
+      },
+      "expected": {
+        "availableAtCap": 5
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-wait-immediate",
+      "description": "TokenBucket waitForToken resolves immediately",
+      "kind": "tb-wait-immediate",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0
+        }
+      },
+      "expected": {
+        "availableAfterWait": 4
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-wait-refill",
+      "description": "TokenBucket waitForToken waits until refilled",
+      "kind": "tb-wait-refill",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 1000,
+          "burstSize": 1,
+          "clock": [
+            0,
+            2
+          ]
+        }
+      },
+      "expected": {
+        "completed": true
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-wait-abort",
+      "description": "TokenBucket waitForToken rejects on abort",
+      "kind": "tb-wait-abort",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 0.001,
+          "burstSize": 1,
+          "tokens": 1,
+          "aborted": true
+        }
+      },
+      "expected": {
+        "rejects": true
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-wait-too-many",
+      "description": "TokenBucket waitForToken rejects when tokens exceed burstSize",
+      "kind": "tb-wait-too-many",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "tokens": 6
+        }
+      },
+      "expected": {
+        "error": "TokenBucketExhaustedError"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-listener-leak",
+      "description": "TokenBucket waitForToken does not leak abort listeners",
+      "kind": "tb-listener-leak",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 1000,
+          "burstSize": 1,
+          "iterations": 5
+        }
+      },
+      "expected": {
+        "addCount": 5,
+        "removeCount": 5
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-observed-acquired",
+      "description": "TokenBucket onTokenAcquired fires after consume",
+      "kind": "tb-observed-acquired",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0,
+          "consume": 2
+        }
+      },
+      "expected": {
+        "events": [
+          {
+            "type": "acquired",
+            "value": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-observed-depleted",
+      "description": "TokenBucket onTokenDepleted fires before exhausted throw",
+      "kind": "tb-observed-depleted",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 2,
+          "clock": 0,
+          "consume": [
+            2,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "eventsContain": "depleted"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-observed-refill",
+      "description": "TokenBucket onRefill fires when refilled",
+      "kind": "tb-observed-refill",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 10,
+          "clock": [
+            0,
+            500
+          ],
+          "consume": 10
+        }
+      },
+      "expected": {
+        "eventsContain": "refill"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-observed-wait",
+      "description": "TokenBucket onTokenAcquired fires after waitForToken",
+      "kind": "tb-observed-wait",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0
+        }
+      },
+      "expected": {
+        "eventsContain": "acquired"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-hook-swallows",
+      "description": "TokenBucket throwing hooks do not replace canonical results",
+      "kind": "tb-hook-swallows",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 3,
+          "clock": 0,
+          "consume": 2,
+          "waitTokens": 2,
+          "waitBurstSize": 2,
+          "depletedBurstSize": 1,
+          "refillBurstSize": 5,
+          "refillClock": [
+            0,
+            500
+          ]
+        }
+      },
+      "expected": {
+        "available": [
+          1,
+          0,
+          ">=4"
+        ],
+        "errorsSwallowed": true
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-async-hook-isolation",
+      "description": "TokenBucket async hook failures stay isolated",
+      "kind": "tb-async-hook-isolation",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0,
+          "first": "first async onTokenAcquired boom",
+          "second": "second async onTokenAcquired boom"
+        }
+      },
+      "expected": {
+        "rejectionEvents": 0,
+        "hookErrorCount": 1,
+        "hookName": "onTokenAcquired"
+      }
+    },
+    {
+      "name": "resilience-dlq-enqueue",
+      "description": "DeadLetterQueue enqueue increments size and stores fields",
+      "kind": "dlq-enqueue",
+      "input": {
+        "resilience": {
+          "defaultItem": "msg",
+          "defaultReason": "parse-error",
+          "withClockMs": 42,
+          "secondItem": "payload",
+          "secondReason": "decode-failed",
+          "secondErrorMessage": "boom"
+        }
+      },
+      "expected": {
+        "size": 1,
+        "sizeWithError": 1
+      }
+    },
+    {
+      "name": "resilience-dlq-enqueue-errors",
+      "description": "DeadLetterQueue enqueue rejects full, closed, and aborted states",
+      "kind": "dlq-enqueue-errors",
+      "input": {
+        "resilience": {
+          "capacity": 2,
+          "scenarios": [
+            "full",
+            "closed",
+            "aborted"
+          ]
+        }
+      },
+      "expected": {
+        "errors": [
+          "DlqFullError",
+          "DlqClosedError",
+          "DlqAbortedError"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-aborted-signal",
+      "description": "DeadLetterQueue rejects enqueue when created aborted",
+      "kind": "dlq-aborted-signal",
+      "input": {
+        "resilience": {
+          "aborted": true,
+          "item": "x",
+          "reason": "reason"
+        }
+      },
+      "expected": {
+        "error": "DlqAbortedError"
+      }
+    },
+    {
+      "name": "resilience-dlq-size",
+      "description": "DeadLetterQueue size reflects queue state",
+      "kind": "dlq-size",
+      "input": {
+        "resilience": {
+          "initial": 0,
+          "enqueue": "a",
+          "reason": "r",
+          "drainOnce": true
+        }
+      },
+      "expected": {
+        "sizeBefore": 0,
+        "sizeAfterDrain": 0
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-fifo",
+      "description": "DeadLetterQueue drains in FIFO order",
+      "kind": "dlq-drain-fifo",
+      "input": {
+        "resilience": {
+          "items": [
+            "first",
+            "second"
+          ],
+          "reason": "r",
+          "closeAfterEnqueue": true
+        }
+      },
+      "expected": {
+        "drained": [
+          "first",
+          "second"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-close",
+      "description": "DeadLetterQueue drain ends after close",
+      "kind": "dlq-drain-close",
+      "input": {
+        "resilience": {
+          "items": [
+            "a"
+          ],
+          "reason": "r",
+          "closeAfterEnqueue": true
+        }
+      },
+      "expected": {
+        "drainedCount": 1
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-abort",
+      "description": "DeadLetterQueue drain ends after abort",
+      "kind": "dlq-drain-abort",
+      "input": {
+        "resilience": {
+          "items": [
+            1
+          ],
+          "reason": "r",
+          "abortAfterTick": true
+        }
+      },
+      "expected": {
+        "drainedCount": 1
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-wake",
+      "description": "DeadLetterQueue drain wakes when enqueue adds items",
+      "kind": "dlq-drain-wake",
+      "input": {
+        "resilience": {
+          "items": [
+            "x",
+            "y"
+          ],
+          "reason": "r",
+          "wakeAfterEnqueue": true
+        }
+      },
+      "expected": {
+        "drained": [
+          "x",
+          "y"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-entry-fields",
+      "description": "DeadLetterQueue drain entries contain the correct fields",
+      "kind": "dlq-entry-fields",
+      "input": {
+        "resilience": {
+          "item": "payload",
+          "reason": "my-reason",
+          "errorMessage": "test",
+          "clockMs": 999
+        }
+      },
+      "expected": {
+        "item": "payload",
+        "reason": "my-reason",
+        "enqueuedAtMs": 999,
+        "hasId": true
+      }
+    },
+    {
+      "name": "resilience-dlq-single-consumer",
+      "description": "DeadLetterQueue second drain replaces the first waiter",
+      "kind": "dlq-single-consumer",
+      "input": {
+        "resilience": {
+          "items": [
+            "x"
+          ],
+          "reason": "r",
+          "secondConsumer": true
+        }
+      },
+      "expected": {
+        "firstCollector": [],
+        "secondCollector": [
+          "x"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-fanout",
+      "description": "DeadLetterQueue override supports fan-out waiters",
+      "kind": "dlq-fanout",
+      "input": {
+        "resilience": {
+          "items": [
+            "x",
+            "y"
+          ],
+          "reason": "r",
+          "fanout": true
+        }
+      },
+      "expected": {
+        "combined": [
+          "x",
+          "y"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-abort-signal",
+      "description": "DeadLetterQueue drain aborts when the signal fires",
+      "kind": "dlq-drain-abort-signal",
+      "input": {
+        "resilience": {
+          "aborted": true,
+          "items": [],
+          "reason": "r"
+        }
+      },
+      "expected": {
+        "collected": 0
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-enqueue",
+      "description": "DeadLetterQueue onEnqueue fires with the item",
+      "kind": "dlq-observed-enqueue",
+      "input": {
+        "resilience": {
+          "item": "hello",
+          "reason": "test-reason"
+        }
+      },
+      "expected": {
+        "events": [
+          {
+            "type": "enqueue",
+            "item": "hello"
+          }
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-dequeue",
+      "description": "DeadLetterQueue onDequeue fires when drain yields",
+      "kind": "dlq-observed-dequeue",
+      "input": {
+        "resilience": {
+          "item": "x",
+          "reason": "reason"
+        }
+      },
+      "expected": {
+        "eventsContain": {
+          "type": "dequeue",
+          "item": "x"
+        }
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-overflow",
+      "description": "DeadLetterQueue onOverflow fires before DlqFullError",
+      "kind": "dlq-observed-overflow",
+      "input": {
+        "resilience": {
+          "capacity": 1,
+          "items": [
+            "first",
+            "second"
+          ]
+        }
+      },
+      "expected": {
+        "eventsContain": "overflow"
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-close",
+      "description": "DeadLetterQueue onClose fires when close is called",
+      "kind": "dlq-observed-close",
+      "input": {
+        "resilience": {
+          "closed": true
+        }
+      },
+      "expected": {
+        "eventsContain": "close"
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-abort",
+      "description": "DeadLetterQueue onAbort fires when abort is called",
+      "kind": "dlq-observed-abort",
+      "input": {
+        "resilience": {
+          "aborted": true
+        }
+      },
+      "expected": {
+        "eventsContain": "abort"
+      }
+    },
+    {
+      "name": "resilience-dlq-hook-swallows",
+      "description": "DeadLetterQueue throwing hooks do not replace canonical results",
+      "kind": "dlq-hook-swallows",
+      "input": {
+        "resilience": {
+          "items": [
+            "payload"
+          ],
+          "reason": "reason",
+          "overflowCapacity": 1
+        }
+      },
+      "expected": {
+        "size": 1,
+        "closed": true,
+        "abortedRejects": true
+      }
+    },
+    {
+      "name": "resilience-dlq-async-hook-isolation",
+      "description": "DeadLetterQueue async hook failures stay isolated",
+      "kind": "dlq-async-hook-isolation",
+      "input": {
+        "resilience": {
+          "first": "first async onEnqueue boom",
+          "second": "second async onEnqueue boom"
+        }
+      },
+      "expected": {
+        "rejectionEvents": 0,
+        "hookErrorCount": 1,
+        "hookName": "onEnqueue"
+      }
+    },
+    {
+      "name": "resilience-dlqretry-invalid-interval",
+      "description": "DeadLetterQueueRetryGenerator rejects invalid intervals",
+      "kind": "dlqr-invalid-interval",
+      "input": {
+        "resilience": {
+          "intervalMs": [
+            -1,
+            0.5
+          ],
+          "queueEmpty": true
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-dlqretry-missing-dlq",
+      "description": "DeadLetterQueueRetryGenerator rejects missing DLQ",
+      "kind": "dlqr-missing-dlq",
+      "input": {
+        "resilience": {
+          "intervalMs": 0
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-dlqretry-lifecycle",
+      "description": "DeadLetterQueueRetryGenerator lifecycle hooks surround yielded entries",
+      "kind": "dlqr-lifecycle",
+      "input": {
+        "resilience": {
+          "items": [
+            "first"
+          ],
+          "intervalMs": 0
+        }
+      },
+      "expected": {
+        "yielded": [
+          "first"
+        ],
+        "events": [
+          "yield",
+          "wait:0",
+          "done"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlqretry-hook-swallows",
+      "description": "DeadLetterQueueRetryGenerator throwing hooks do not replace generation",
+      "kind": "dlqr-hook-swallows",
+      "input": {
+        "resilience": {
+          "items": [
+            "first"
+          ],
+          "intervalMs": 0
+        }
+      },
+      "expected": {
+        "yielded": [
+          "first"
+        ],
+        "waitYieldDone": true
+      }
+    },
+    {
+      "name": "resilience-dlqretry-async-hook-isolation",
+      "description": "DeadLetterQueueRetryGenerator async hook failures stay isolated",
+      "kind": "dlqr-async-hook-isolation",
+      "input": {
+        "resilience": {
+          "intervalMs": 0,
+          "first": "first async onYield boom",
+          "second": "second async onYield boom"
+        }
+      },
+      "expected": {
+        "yielded": [
+          "first",
+          "second"
+        ],
+        "rejectionEvents": 0,
+        "hookName": "onYield"
+      }
+    },
+    {
+      "name": "resilience-entity-dlq-entry",
+      "description": "DlqEntryMetadataEntity validates complete and invalid metadata",
+      "kind": "entity-dlq-entry",
+      "input": {
+        "resilience": {
+          "valid": {
+            "enqueuedAtMs": 0,
+            "id": "entry-1",
+            "reason": "processing failed"
+          },
+          "invalid": {
+            "enqueuedAtMs": 0,
+            "id": "",
+            "reason": ""
+          }
+        }
+      },
+      "expected": {
+        "valid": true,
+        "invalid": false
+      }
+    }
+  ]
+}

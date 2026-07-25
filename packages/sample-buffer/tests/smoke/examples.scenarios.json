@@ -1,0 +1,34 @@
+{
+  "cases": [
+    {
+      "description": "Runs the basic sample buffer example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/basicUsage.ts"
+      },
+      "name": "basic-usage"
+    },
+    {
+      "description": "Runs the observed sample buffer example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/observedSampleBuffer.ts"
+      },
+      "name": "observed-sample-buffer"
+    },
+    {
+      "description": "Runs the subclass hooks example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/subclassHooks.ts"
+      },
+      "name": "subclass-hooks"
+    }
+  ]
+}

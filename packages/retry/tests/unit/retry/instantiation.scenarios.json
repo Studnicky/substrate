@@ -1,0 +1,116 @@
+{
+  "cases": [
+    {
+      "description": "creates retry with Retry.create({ maxRetries: 5 })",
+      "kind": "create-max-retries-5",
+      "name": "creates retry with Retry.create({ maxRetries: 5 })",
+      "input": { "retry": { "maxRetries": 5 } },
+      "expected": { "instanceOf": "Retry" }
+    },
+    {
+      "description": "creates retry with Retry.create() using defaults",
+      "kind": "create-defaults",
+      "name": "creates retry with Retry.create() using defaults",
+      "input": { "instanceOf": "Retry" },
+      "expected": { "instanceOf": "Retry" }
+    },
+    {
+      "description": "creates retry with Retry.create({ errorClassifier, maxRetries })",
+      "kind": "create-error-classifier-and-max-retries",
+      "name": "creates retry with Retry.create({ errorClassifier, maxRetries })",
+      "input": { "retry": { "maxRetries": 3 } },
+      "expected": { "instanceOf": "Retry" }
+    },
+    {
+      "description": "create-configured maxRetries and backoffStrategy drive actual retry behavior",
+      "kind": "execute-retries-until-success",
+      "name": "create-configured maxRetries and backoffStrategy drive actual retry behavior",
+      "input": { "retry": { "maxRetries": 10 }, "batch": { "failureCountBeforeSuccess": 3 }, "errorMessage": "transient failure", "recovered": "recovered" },
+      "expected": { "result": "recovered", "attempts": 4, "totalRetries": 3 }
+    },
+    {
+      "description": "create and factory produce functionally equivalent instances",
+      "kind": "factory-equivalent",
+      "name": "create and factory produce functionally equivalent instances",
+      "input": { "retry": { "maxRetries": 3 }, "result": "test" },
+      "expected": { "results": ["test", "test"] }
+    },
+    {
+      "description": "RetryError snapshots caller-owned arrays and mutable error graphs",
+      "kind": "retry-error-snapshots",
+      "name": "RetryError snapshots caller-owned arrays and mutable error graphs",
+      "input": { "failedMessage": "failed", "attemptNumber": 1, "outerMessage": "outer", "innerMessage": "inner", "laterMessage": "later", "attempt": 1, "mutatedOuterMessage": "mutated outer", "mutatedInnerMessage": "mutated inner", "mutatedAttempt": 2 },
+      "expected": { "errorCount": 1, "outerMessage": "outer", "innerMessage": "inner", "causeMessage": "outer" }
+    },
+    {
+      "description": "RetryError defaults to an empty diagnostic history when no cause or errors are supplied",
+      "kind": "retry-error-empty",
+      "name": "RetryError defaults to an empty diagnostic history when no cause or errors are supplied",
+      "input": { "failedMessage": "failed", "attemptNumber": 1 },
+      "expected": { "errorCount": 0 }
+    },
+    {
+      "description": "NonRetryableError.originalError falls back when diagnostics are empty",
+      "kind": "non-retryable-original-error-fallback",
+      "name": "NonRetryableError.originalError falls back when diagnostics are empty",
+      "input": { "failedMessage": "failed", "attemptNumber": 1, "sourceMessage": "source", "fatalReason": "fatal", "fallbackMessage": "Unknown non-retryable error" },
+      "expected": { "fallbackMessage": "Unknown non-retryable error" }
+    },
+    {
+      "description": "MaxRetriesExceededError falls back to an unknown cause when no errors are present",
+      "kind": "max-retries-empty-errors-fallback",
+      "name": "MaxRetriesExceededError falls back to an unknown cause when no errors are present",
+      "input": { "failedMessage": "failed", "attemptNumber": 1, "retries": 2, "fallbackMessage": "Unknown error" },
+      "expected": { "fallbackMessage": "Unknown error" }
+    },
+    {
+      "description": "RetryError projections cannot mutate retained diagnostics",
+      "kind": "retry-error-projections-are-detached",
+      "name": "RetryError projections cannot mutate retained diagnostics",
+      "input": { "failedMessage": "failed", "attemptNumber": 1, "outerMessage": "outer", "innerMessage": "inner", "mutatedHistoryMessage": "changed history", "mutatedCauseMessage": "changed cause", "mutatedInnerMessage": "changed inner", "appendedMessage": "appended" },
+      "expected": { "errorCount": 1, "outerMessage": "outer", "innerMessage": "inner", "causeMessage": "outer" }
+    },
+    {
+      "description": "RetryError snapshots self-referential diagnostic graphs without looping forever",
+      "kind": "retry-error-snapshot-cycles",
+      "name": "RetryError snapshots self-referential diagnostic graphs without looping forever",
+      "input": { "failedMessage": "failed", "attemptNumber": 1, "detailMessage": "detail" },
+      "expected": { "errorCount": 1, "detailMessage": "detail" }
+    },
+    {
+      "description": "RetryError snapshots non-cloneable diagnostics through own keys",
+      "kind": "retry-error-snapshot-clone-fallback",
+      "name": "RetryError snapshots non-cloneable diagnostics through own keys",
+      "input": { "failedMessage": "failed", "attemptNumber": 1, "tag": "fallback" },
+      "expected": { "badType": "object", "errorCount": 1, "tag": "fallback" }
+    },
+    {
+      "description": "RetryError rejects diagnostic history entries that are not Error instances",
+      "kind": "retry-error-rejects-non-error-diagnostics",
+      "name": "RetryError rejects non-Error diagnostics",
+      "input": { "failedMessage": "failed", "attemptNumber": 1, "invalidError": "not an error" },
+      "expected": { "errorName": "TypeError" }
+    },
+    {
+      "description": "RetryError snapshots preserve custom Error names",
+      "kind": "retry-error-preserves-error-name",
+      "name": "RetryError snapshots preserve custom Error names",
+      "input": { "failedMessage": "failed", "attemptNumber": 1, "sourceMessage": "typed failure", "errorName": "TypedRetryFailure" },
+      "expected": { "errorName": "TypedRetryFailure" }
+    },
+    {
+      "description": "RetryError snapshots preserve custom Error names from errors-only history",
+      "kind": "retry-error-preserves-history-error-name",
+      "name": "RetryError history snapshots preserve custom Error names",
+      "input": { "failedMessage": "failed", "attemptNumber": 1, "sourceMessage": "typed history failure", "errorName": "TypedHistoryFailure" },
+      "expected": { "errorName": "TypedHistoryFailure" }
+    },
+    {
+      "description": "derived retry errors expose detached readonly diagnostics",
+      "kind": "derived-errors-expose-detached-diagnostics",
+      "name": "derived retry errors expose detached readonly diagnostics",
+      "input": { "sourceMessage": "source", "exhaustedMessage": "exhausted", "rejectedMessage": "rejected", "fatalReason": "fatal", "attemptNumber": 1, "retries": 2 },
+      "expected": { "sourceMessage": "source" }
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "cases": [
+    {
+      "description": "accepts valid task data",
+      "expected": {
+        "valid": true
+      },
+      "input": {
+        "taskData": {
+          "atMs": 100,
+          "intervalMs": 25,
+          "variant": "interval"
+        }
+      },
+      "kind": "valid-task-data",
+      "name": "valid-task-data"
+    },
+    {
+      "description": "rejects negative intervals",
+      "expected": {
+        "valid": false
+      },
+      "input": {
+        "taskData": {
+          "atMs": 100,
+          "intervalMs": -1,
+          "variant": "interval"
+        }
+      },
+      "kind": "invalid-interval",
+      "name": "invalid-interval"
+    }
+  ]
+}

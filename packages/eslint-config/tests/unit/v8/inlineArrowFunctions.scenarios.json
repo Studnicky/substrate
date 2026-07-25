@@ -1,0 +1,40 @@
+{
+  "valid": [
+    {
+      "code": "const map = { a: (x) => { let y = x; return y; } };",
+      "name": "module-scope const map with inline multi-statement arrow - pre-built, not flagged"
+    },
+    {
+      "code": "class X { static map = { a: (x) => { let y = x; return y; } }; }",
+      "name": "static class field map with inline multi-statement arrow - pre-built, not flagged"
+    },
+    {
+      "code": "const map = { handler: (x) => { let y = x; return y; } };",
+      "name": "exempt key name \"handler\" - not flagged regardless of scope"
+    },
+    {
+      "code": "const map = { a: (x) => x + 1 };",
+      "name": "single-expression arrow body (not a BlockStatement) - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "function build() { return { a: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "map rebuilt inside a function body on every call - flagged"
+    },
+    {
+      "code": "class X { field = { a: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "non-static instance field rebuilds per instantiation - flagged"
+    }
+  ]
+}

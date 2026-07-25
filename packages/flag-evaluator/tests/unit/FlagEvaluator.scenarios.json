@@ -1,0 +1,621 @@
+{
+  "cases": [
+    {
+      "name": "unregistered-flag",
+      "description": "an unregistered flag evaluates to false",
+      "kind": "unregistered-flag",
+      "input": {
+        "flagEvaluator": {
+          "flag": "never-registered",
+          "context": {
+            "targetingKey": "user-1"
+          }
+        }
+      },
+      "expected": {
+        "result": false
+      }
+    },
+    {
+      "name": "disabled-flags",
+      "description": "a registered, disabled flag returns its defaultValue",
+      "kind": "disabled-flags",
+      "input": {
+        "flagEvaluator": {
+          "definitions": {
+            "off-flag": {
+              "defaultValue": true,
+              "enabled": false
+            },
+            "off-flag-2": {
+              "defaultValue": false,
+              "enabled": false
+            }
+          },
+          "evaluations": [
+            {
+              "flag": "off-flag",
+              "context": {
+                "targetingKey": "user-1"
+              }
+            },
+            {
+              "flag": "off-flag-2",
+              "context": {
+                "targetingKey": "user-1"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "results": [
+          true,
+          false
+        ]
+      }
+    },
+    {
+      "name": "implicit-full-rollout",
+      "description": "a registered, enabled flag with no rolloutPercent always returns true",
+      "kind": "implicit-full-rollout",
+      "input": {
+        "flagEvaluator": {
+          "flag": "full-rollout",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true
+          },
+          "contexts": [
+            {
+              "targetingKey": "user-1"
+            },
+            {
+              "targetingKey": "user-2"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "name": "half-rollout",
+      "description": "a registered, enabled flag with rolloutPercent 50 produces deterministic results",
+      "kind": "half-rollout",
+      "input": {
+        "flagEvaluator": {
+          "flag": "half-rollout",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true,
+            "rolloutPercent": 50
+          },
+          "evaluations": [
+            {
+              "context": {
+                "targetingKey": "user-1"
+              },
+              "result": false
+            },
+            {
+              "context": {
+                "targetingKey": "user-4"
+              },
+              "result": true
+            },
+            {
+              "context": {
+                "targetingKey": "user-6"
+              },
+              "result": true
+            },
+            {
+              "context": {
+                "targetingKey": "user-10"
+              },
+              "result": false
+            }
+          ]
+        }
+      },
+      "expected": {
+        "hasTrue": true,
+        "hasFalse": true
+      }
+    },
+    {
+      "name": "deterministic-rollout",
+      "description": "the same targetingKey always gets the same result for the same flag",
+      "kind": "deterministic-rollout",
+      "input": {
+        "flagEvaluator": {
+          "flag": "deterministic-flag",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true,
+            "rolloutPercent": 50
+          },
+          "context": {
+            "targetingKey": "stable-user"
+          }
+        }
+      },
+      "expected": {
+        "result": false
+      }
+    },
+    {
+      "name": "independent-flags",
+      "description": "different flags with the same targetingKey can independently resolve differently",
+      "kind": "independent-flags",
+      "input": {
+        "flagEvaluator": {
+          "definitions": {
+            "flag-a": {
+              "defaultValue": false,
+              "enabled": true,
+              "rolloutPercent": 50
+            },
+            "flag-b": {
+              "defaultValue": false,
+              "enabled": true,
+              "rolloutPercent": 50
+            }
+          },
+          "flags": [
+            "flag-a",
+            "flag-b"
+          ],
+          "context": {
+            "targetingKey": "fixed-user"
+          }
+        }
+      },
+      "expected": {
+        "results": {
+          "flag-a": true,
+          "flag-b": false
+        }
+      }
+    },
+    {
+      "name": "register-has-list-unregister",
+      "description": "unregister/has/list work correctly",
+      "kind": "register-has-list-unregister",
+      "input": {
+        "flagEvaluator": {
+          "missingFlag": "a",
+          "flags": [
+            "a",
+            "b"
+          ],
+          "unregisterFlag": "a",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "hasBefore": false,
+        "listBefore": [],
+        "hasAfterRegister": true,
+        "listAfterRegister": [
+          "a",
+          "b"
+        ],
+        "hasAfterUnregister": false,
+        "listAfterUnregister": [
+          "b"
+        ]
+      }
+    },
+    {
+      "name": "re-register-replaces",
+      "description": "re-registering the same name replaces the previous definition",
+      "kind": "re-register-replaces",
+      "input": {
+        "flagEvaluator": {
+          "flag": "flag",
+          "context": {},
+          "firstDefinition": {
+            "defaultValue": false,
+            "enabled": false
+          },
+          "secondDefinition": {
+            "defaultValue": true,
+            "enabled": false
+          }
+        }
+      },
+      "expected": {
+        "first": false,
+        "second": true
+      }
+    },
+    {
+      "name": "register-snapshots-definition",
+      "description": "register snapshots and freezes caller-owned definitions",
+      "kind": "register-snapshots-definition",
+      "input": {
+        "flagEvaluator": {
+          "flag": "owned-definition",
+          "context": {},
+          "definition": {
+            "defaultValue": false,
+            "enabled": false
+          },
+          "mutatedDefinition": {
+            "defaultValue": true,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "result": false
+      }
+    },
+    {
+      "name": "invalid-rollout-range",
+      "description": "register with rolloutPercent outside range throws",
+      "kind": "invalid-rollout-range",
+      "input": {
+        "flagEvaluator": {
+          "flag": "bad-rollout",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true,
+            "rolloutPercent": 150
+          }
+        }
+      },
+      "expected": {
+        "message": "must be <= 100"
+      }
+    },
+    {
+      "name": "missing-default-value",
+      "description": "register with a definition missing defaultValue throws",
+      "kind": "missing-default-value",
+      "input": {
+        "flagEvaluator": {
+          "flag": "missing-default",
+          "definition": {
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "message": "defaultValue"
+      }
+    },
+    {
+      "name": "valid-definition-still-works",
+      "description": "register with a valid definition still succeeds and evaluate continues to work",
+      "kind": "valid-definition-still-works",
+      "input": {
+        "flagEvaluator": {
+          "flag": "valid-flag",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true,
+            "rolloutPercent": 25
+          },
+          "context": {
+            "targetingKey": "user-1"
+          }
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "name": "hook-on-default",
+      "description": "onDefault fires only for an unregistered flag",
+      "kind": "hook-on-default",
+      "input": {
+        "flagEvaluator": {
+          "flag": "missing",
+          "context": {
+            "targetingKey": "user-1"
+          }
+        }
+      },
+      "expected": {
+        "defaultCalls": [
+          "missing"
+        ]
+      }
+    },
+    {
+      "name": "hook-on-rule-mismatch",
+      "description": "onRuleMismatch fires only for rollout mismatches",
+      "kind": "hook-on-rule-mismatch",
+      "input": {
+        "flagEvaluator": {
+          "definitions": {
+            "disabled-flag": {
+              "defaultValue": false,
+              "enabled": false
+            },
+            "zero-rollout": {
+              "defaultValue": false,
+              "enabled": true,
+              "rolloutPercent": 0
+            }
+          },
+          "evaluations": [
+            {
+              "flag": "disabled-flag",
+              "context": {
+                "targetingKey": "user-1"
+              }
+            },
+            {
+              "flag": "zero-rollout",
+              "context": {
+                "targetingKey": "user-1"
+              }
+            },
+            {
+              "flag": "zero-rollout",
+              "context": {
+                "targetingKey": "user-2"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "ruleMismatchFlags": [
+          "zero-rollout",
+          "zero-rollout"
+        ]
+      }
+    },
+    {
+      "name": "hook-on-evaluate",
+      "description": "onEvaluate fires last on every path",
+      "kind": "hook-on-evaluate",
+      "input": {
+        "flagEvaluator": {
+          "definitions": {
+            "disabled-flag": {
+              "defaultValue": true,
+              "enabled": false
+            },
+            "full-rollout": {
+              "defaultValue": false,
+              "enabled": true
+            },
+            "zero-rollout": {
+              "defaultValue": false,
+              "enabled": true,
+              "rolloutPercent": 0
+            }
+          },
+          "evaluations": [
+            {
+              "flag": "missing",
+              "context": {
+                "targetingKey": "a"
+              }
+            },
+            {
+              "flag": "disabled-flag",
+              "context": {
+                "targetingKey": "a"
+              }
+            },
+            {
+              "flag": "full-rollout",
+              "context": {
+                "targetingKey": "a"
+              }
+            },
+            {
+              "flag": "zero-rollout",
+              "context": {
+                "targetingKey": "a"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "evaluateCalls": [
+          {
+            "flag": "missing",
+            "result": false
+          },
+          {
+            "flag": "disabled-flag",
+            "result": true
+          },
+          {
+            "flag": "full-rollout",
+            "result": true
+          },
+          {
+            "flag": "zero-rollout",
+            "result": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "hook-order",
+      "description": "hook ordering remains deterministic across paths",
+      "kind": "hook-order",
+      "input": {
+        "flagEvaluator": {
+          "definitions": {
+            "disabled-flag": {
+              "defaultValue": true,
+              "enabled": false
+            }
+          },
+          "evaluations": [
+            {
+              "flag": "missing",
+              "context": {
+                "targetingKey": "a"
+              }
+            },
+            {
+              "flag": "disabled-flag",
+              "context": {
+                "targetingKey": "a"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "order": [
+          "default",
+          "evaluate",
+          "evaluate"
+        ]
+      }
+    },
+    {
+      "name": "hook-context-match",
+      "description": "onEvaluate context matches the exact object passed in",
+      "kind": "hook-context-match",
+      "input": {
+        "flagEvaluator": {
+          "flag": "flag",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true
+          },
+          "context": {
+            "plan": "pro",
+            "targetingKey": "user-1"
+          }
+        }
+      },
+      "expected": {
+        "context": {
+          "plan": "pro",
+          "targetingKey": "user-1"
+        }
+      }
+    },
+    {
+      "name": "throwing-on-default",
+      "description": "a throwing onDefault hook does not replace the fallback result",
+      "kind": "throwing-on-default",
+      "input": {
+        "flagEvaluator": {
+          "flag": "missing",
+          "context": {
+            "targetingKey": "user-1"
+          }
+        }
+      },
+      "expected": {
+        "result": false
+      }
+    },
+    {
+      "name": "throwing-on-rule-mismatch",
+      "description": "a throwing onRuleMismatch hook does not replace the computed result",
+      "kind": "throwing-on-rule-mismatch",
+      "input": {
+        "flagEvaluator": {
+          "flag": "zero-rollout",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true,
+            "rolloutPercent": 0
+          },
+          "context": {
+            "targetingKey": "user-1"
+          }
+        }
+      },
+      "expected": {
+        "result": false
+      }
+    },
+    {
+      "name": "throwing-on-evaluate",
+      "description": "a throwing onEvaluate hook does not replace a completed result",
+      "kind": "throwing-on-evaluate",
+      "input": {
+        "flagEvaluator": {
+          "flag": "enabled-flag",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true
+          },
+          "context": {
+            "targetingKey": "user-1"
+          }
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "name": "async-on-evaluate-safe",
+      "description": "an async-rejecting onEvaluate override is routed safely",
+      "kind": "async-on-evaluate-safe",
+      "input": {
+        "flagEvaluator": {
+          "flag": "enabled-flag",
+          "definition": {
+            "defaultValue": false,
+            "enabled": true
+          },
+          "context": {
+            "targetingKey": "user-1"
+          }
+        }
+      },
+      "expected": {
+        "result": true,
+        "rejectionEvents": []
+      }
+    },
+    {
+      "name": "flag-context-entity-accepts",
+      "description": "FlagContextEntity accepts optional string targeting keys",
+      "kind": "flag-context-entity-accepts",
+      "input": {
+        "flagEvaluator": {
+          "values": [
+            {},
+            {
+              "targetingKey": "user-42"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "name": "flag-context-entity-rejects",
+      "description": "FlagContextEntity rejects non-string targeting keys",
+      "kind": "flag-context-entity-rejects",
+      "input": {
+        "flagEvaluator": {
+          "value": {
+            "targetingKey": 42
+          }
+        }
+      },
+      "expected": {
+        "result": false
+      }
+    }
+  ]
+}

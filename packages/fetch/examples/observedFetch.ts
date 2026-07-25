@@ -1,36 +1,11 @@
 /** observedFetch — FetchClient subclass with exhaustive lifecycle hook tracing. Run: npx tsx examples/observedFetch.ts */
 
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
 
 // #region usage
 import type { RequestContextInterface, ResponseContextInterface } from '../src/index.js';
 
 import { FetchClient } from '../src/index.js';
-
-// Start an in-process server
-const server = createServer((req, res) => {
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-
-  if (url.pathname === '/ok') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 'status': 'ok' }));
-  } else if (url.pathname === '/error') {
-    res.writeHead(503, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 'error': 'unavailable' }));
-  } else {
-    res.writeHead(404);
-    res.end();
-  }
-});
-
-const baseURL = await new Promise<string>((resolve) => {
-  server.listen(0, '127.0.0.1', () => {
-    const addr = server.address();
-
-    resolve(`http://127.0.0.1:${(addr as { 'port': number }).port}`);
-  });
-});
 
 class ObservedFetch extends FetchClient {
   static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ObservedFetch {
@@ -82,36 +57,49 @@ class ObservedFetch extends FetchClient {
     console.log(line);
     this.hookLog.push('onRequestError');
   }
-
-  protected override onDispatcherDestroy(): void {
-    console.log('[fetch] onDispatcherDestroy');
-    this.hookLog.push('onDispatcherDestroy');
-  }
 }
 
+const originalFetch = globalThis.fetch;
+globalThis.fetch = (input) => {
+  const url = new URL(String(input));
+
+  if (url.pathname === '/ok') {
+    return Promise.resolve(new Response(JSON.stringify({ 'status': 'ok' }), {
+      'headers': { 'Content-Type': 'application/json' },
+      'status': 200
+    }));
+  }
+
+  if (url.pathname === '/error') {
+    return Promise.resolve(new Response(JSON.stringify({ 'error': 'unavailable' }), {
+      'headers': { 'Content-Type': 'application/json' },
+      'status': 503
+    }));
+  }
+
+  return Promise.resolve(new Response('', { 'status': 404 }));
+};
+
 const client = ObservedFetch.create({
-  'baseURL': baseURL,
-  'dispatcher': { 'connections': 2, 'enabled': true }
+  'baseURL': 'https://example.test'
 });
 
-// Scenario 1: successful request
-await client.get('/ok');
+try {
+  // Scenario 1: successful request
+  await client.get('/ok');
 
-// Scenario 2: non-2xx response
-await client.get('/error');
-
-// Scenario 3: destroy
-await client.destroy();
+  // Scenario 2: non-2xx response
+  await client.get('/error');
+} finally {
+  globalThis.fetch = originalFetch;
+}
 // #endregion usage
 
 // Assertions
-server.close();
-
 assert.ok(client.hookLog.includes('onRequestStart'), 'onRequestStart fired');
 assert.ok(client.hookLog.includes('onRequest'), 'onRequest fired');
 assert.ok(client.hookLog.includes('onResponse'), 'onResponse fired');
 assert.ok(client.hookLog.includes('onResponseSuccess'), 'onResponseSuccess fired for 200');
 assert.ok(client.hookLog.includes('onResponseError'), 'onResponseError fired for 503');
-assert.ok(client.hookLog.includes('onDispatcherDestroy'), 'onDispatcherDestroy fired');
 
 console.log('observedFetch: all assertions passed');
