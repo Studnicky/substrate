@@ -39,6 +39,36 @@ The package root exports `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `v
 `plugin.rules['single-export']` or `v8Plugin.rules['delete-property']` when programmatic
 rule access is required.
 
+## Suites are opt-in
+
+A suite is a flat-config entry bundling one domain's rules at `error`. Spreading a suite is a
+deliberate choice to adopt that whole domain; registering `plugin` alone enables nothing.
+
+| Suite | Domain |
+|---|---|
+| `entitySuite` | Entity and data-shape conventions — `all-types-are-entities`, `folder-content-shape`, `interface-must-be-contract`, `interface-suffix`, `interfaces-compose-named-types`, `no-mixed-callable-shapes`, `type-alias-invariants`, `whole-canonical-types` |
+| `hygieneSuite` | General code hygiene |
+| `v8Suite` | V8 performance rules |
+| `HexagonalSuite` | Hexagonal-architecture import boundaries |
+
+Enable individual rules instead when a domain's conventions do not apply. `type-alias-invariants`
+governs how a type alias establishes schema provenance and stands on its own;
+`all-types-are-entities` additionally requires every canonical alias to be the exported `Type`
+member of an `*Entity` namespace, which is a convention a consumer adopts by enabling
+`entitySuite`, not a prerequisite for the other rules.
+
+```js
+// eslint.config.mjs — one rule, without the entity conventions
+import { plugin } from '@studnicky/eslint-config';
+
+export default [
+  {
+    plugins: { '@studnicky': plugin },
+    rules: { '@studnicky/type-alias-invariants': 'error' }
+  }
+];
+```
+
 ## Usage
 
 Import `plugin` and `v8Plugin` and register them in a flat-config entry:
