@@ -225,6 +225,7 @@ export const interfacesComposeNamedTypes: Rule.RuleModule = {
       }
 
       const memberType: TypeNode = member.type;
+      if (classification.isBrandDeclarationMember(member)) { return; }
       if (classification.isInlineContractPortion(member.parent)) { return; }
       if (InlineDataPortion.hasAncestor(member, interfaceDeclaration, classification)) { return; }
       if (InlineDataPortion.contains(memberType, classification)) { return; }

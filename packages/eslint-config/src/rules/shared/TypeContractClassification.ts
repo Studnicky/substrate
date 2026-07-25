@@ -8,6 +8,7 @@ import {
   isAsExpression,
   isCallExpression,
   isCallSignatureDeclaration,
+  isComputedPropertyName,
   isConditionalTypeNode,
   isConstructorTypeNode,
   isConstructSignatureDeclaration,
@@ -51,6 +52,7 @@ import {
   type Type,
   type TypeAliasDeclaration,
   type TypeChecker,
+  type TypeElement,
   TypeFlags,
   type TypeNode,
   type TypeParameterDeclaration,
@@ -218,6 +220,17 @@ export class TypeContractClassification {
   public isInlineContractPortion(node: Node): boolean {
     if (!isTypeLiteralNode(node) && !isMappedTypeNode(node)) { return false; }
     return this.findInterfaceTypeContract(node, new Set(), 0) !== undefined;
+  }
+
+  /**
+   * A brand member marks its declaration nominally and has no schema-derived equivalent, since
+   * JSON expresses no symbol. Extraction to a named entity is unavailable to it.
+   */
+  public isBrandDeclarationMember(member: Node): boolean {
+    if (!isPropertySignature(member) && !isIndexSignatureDeclaration(member) && !isMethodSignature(member)) {
+      return false;
+    }
+    return this.isBrandMember(member);
   }
 
   public containsTypeParameterReference(node: Node): boolean {
@@ -1011,7 +1024,7 @@ export class TypeContractClassification {
           return { 'node': member, 'reason': 'constructor' };
         }
         if ((isPropertySignature(member) || isIndexSignatureDeclaration(member)) && member.type !== undefined) {
-          if (this.isUniqueSymbol(member.type)) { return { 'node': member, 'reason': 'brand' }; }
+          if (this.isBrandMember(member)) { return { 'node': member, 'reason': 'brand' }; }
           const evidence = this.findAliasContract(member.type, visiting, depth + 1);
           if (evidence !== undefined) { return evidence; }
         }
@@ -1199,7 +1212,7 @@ export class TypeContractClassification {
         return { 'node': member, 'reason': 'constructor' };
       }
 
-      if (isPropertySignature(member) && member.type !== undefined && this.isUniqueSymbol(member.type)) {
+      if (this.isBrandMember(member)) {
         return { 'node': member, 'reason': 'brand' };
       }
 
@@ -1358,7 +1371,7 @@ export class TypeContractClassification {
           return { 'node': member, 'reason': 'constructor' };
         }
         if ((isPropertySignature(member) || isIndexSignatureDeclaration(member)) && member.type !== undefined) {
-          if (this.isUniqueSymbol(member.type)) { return { 'node': member, 'reason': 'brand' }; }
+          if (this.isBrandMember(member)) { return { 'node': member, 'reason': 'brand' }; }
           if ((getCombinedModifierFlags(member) & ModifierFlags.Readonly) !== 0) {
             return { 'node': member, 'reason': 'readonly' };
           }
@@ -1558,6 +1571,26 @@ export class TypeContractClassification {
     return isTypeOperatorNode(node)
       && node.operator === SyntaxKind.UniqueKeyword
       && node.type.kind === SyntaxKind.SymbolKeyword;
+  }
+
+  /**
+   * A member keyed by a unique symbol brands its declaration nominally, whatever the member's own
+   * type. `{ [Marker]: T }` and `{ readonly brand?: unique symbol }` mark the same thing from
+   * opposite sides — one puts the symbol in the key, the other in the value — and neither is
+   * expressible in JSON.
+   */
+  private hasUniqueSymbolKey(member: TypeElement): boolean {
+    const name = member.name;
+    if (name === undefined || !isComputedPropertyName(name)) { return false; }
+
+    const keyType = this.checker.getTypeAtLocation(name.expression);
+    return (keyType.flags & TypeFlags.UniqueESSymbol) !== 0;
+  }
+
+  private isBrandMember(member: TypeElement): boolean {
+    if (this.hasUniqueSymbolKey(member)) { return true; }
+    if (!isPropertySignature(member) || member.type === undefined) { return false; }
+    return this.isUniqueSymbol(member.type);
   }
 
   private classifySchemaDerivedApplication(node: TypeNode): DataNodeResultInterface {
