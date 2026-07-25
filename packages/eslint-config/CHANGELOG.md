@@ -1,5 +1,46 @@
 # Changelog
 
+## 9.0.0
+
+### Major Changes
+
+- d5be000: ### Changed
+
+  - The package root is the sole code entrypoint. It exports `plugin`, `v8Plugin`, and the suite presets; individual rule objects are consumed through `plugin.rules` or `v8Plugin.rules` rather than named exports.
+
+- d5be000: This release establishes one canonical public path across the fixed `@studnicky/*` package group. Consumers import package-owned behavior, errors, entities, and interfaces from the owning package root, construct stateful primitives through `Class.create(config)`, and invoke direct operation methods. Package code subpaths and parallel construction APIs are outside the public contract.
+
+  Composition packages expose the ordering, failure, aggregation, or publication behavior they own. Dependency functionality stays with its declaring package and is imported directly from that package root. Collaborator accessors do not mirror scheduler, semaphore, cache, coalescer, fetch, retry, signal, timing, context, machine, or interpreter APIs. `BoundedDispatcher.getBus()` remains the functional access path for subscribing to and draining dispatcher-owned publications.
+
+  Every JSON-Schema-expressible pure-data structure is a schema-derived type alias. Interfaces represent only runtime, callable, constructor, nominal, readonly-access, class-bearing, or other contracts that are not wholly schema-expressible. Pure data referenced by an interface is declared separately as a schema-derived named type. Declaration comments provide no exemptions, and `entitySuite` configures `@typescript-eslint/prefer-function-type` as `off` so callable interfaces receive one consistent verdict.
+
+  Schema and validator declarations import dependency-owned symbols directly: `FromSchema` and `JSONSchema` from `json-schema-to-ts`, `ValidateFunction` from `ajv`, and `JSONSchema7Type` from `json-schema`. Each consuming package declares the dependency it uses; substrate packages do not proxy-export those declarations.
+
+  `HookInvoker.invoke(hookName, fn)` enters synchronous hooks and returns `undefined`. `HookInvoker.invokeAsync(hookName, fn)` observes completion and returns `Promise<void>`. `onHookError(hookName, cause)` controls failure disposition without fabricating a recovery value, while hook timeout and reentrancy failures retain their package error identities.
+
+  FSM and process orchestration use one optional `EffectHandlerInterface<TEffect, TEvent>` handler. `EffectInterpreter`, `InterpreterHistory`, and `ProcessKit` accept it through their direct `create(config)` paths. `InterpreterHistory` retains bounded, oldest-first variant-changing transition records and returns isolated readonly snapshots.
+
+  `Signal.create()` supplies instance `compose(options)` and `timeout(ms)` lifecycle behavior; `Signal.never()` supplies the static never-aborting sentinel. `Delay.sleep(ms, { clock?, scheduler?, signal? })` and `Delay.value(...)` share the scheduler-aware cancellation path.
+
+  `Throttle.create(config)` validates and copies caller configuration into instance-owned state. Adaptive concurrency changes only the instance's effective limit. `getStats()` returns `ThrottleStatsEntity.Type`, and `ThrottleStatsEntity.validate` is the root-exported compiled validator for trust-boundary checks.
+
+- d51e400: ### Changed
+
+  - `type-alias-invariants` recognizes schema-derived data by structure rather than by package. The enforced invariant is value-first authoring, a type-level function applied to that value, and a JSON-plain resolved result. TypeBox's `Static`, Zod's `z.infer`, `json-schema-to-ts`'s `FromSchema`, and a project-local equivalent all satisfy `derivedFromSchema` identically.
+  - A deriving type qualifies when it is a type alias declared with type parameters, is declared in a `.d.ts` file, carries a `/** @schemaDerivation */` JSDoc tag, or shares a package root with the builder that produced the schema value. The JSDoc tag is the one in-code extension point, for a project-local schema-to-type function whose declaration is not itself a generic type alias.
+  - A schema value is value-first authored when it is a module-scope `const` with no explicit type annotation whose initializer is a const-asserted object literal or a builder call. An explicit annotation or a `let` binding never qualifies, on every recognition path.
+  - Recognition validates the type a derivation resolves to instead of recursing into the deriving type's implementation. A resolved type carrying call or construct signatures, class instances, symbols, bigints, `never`, `void`, `undefined`, `any`, or `unknown` is not canonical data.
+  - A type alias with type parameters whose body is a conditional, mapped, or indexed-access type is a type-level function. It is retained as a type alias and is exempt from `aliasMustBeInterface` and `derivedFromSchema`, which no interface declaration can satisfy. Naming, aliasing, and readonly-output checks continue to apply. A reference to a type-level function composes the same contract portion an inline conditional, mapped, or indexed-access body composes; only the declaration is exempt.
+  - `folder-content-shape` accepts an entity `Type` member that applies any schema-deriving type to `typeof Schema`.
+  - `type-alias-invariants` and `interface-must-be-contract` take no options. `meta.schema` is `[]` on both, and ESLint's configured severity is the sole severity.
+
+### Patch Changes
+
+- beea6a5: `descriptive-identifiers`'s camelCase tokenizer no longer uses a backtracking regex (`/[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|$)/g`), fixing a polynomial-time ReDoS (CodeQL `js/polynomial-redos`, high severity) on an uppercase run immediately followed by a non-letter character that isn't the end of the identifier — e.g. a long run of capitals before a digit forced the engine to backtrack one character at a time at every starting position within the run. Replaced with a linear-time manual scan that produces identical tokens for real-world identifiers and, as a side effect, fixes a latent bug where the old regex silently dropped acronym tokens entirely in that same shape (e.g. `HTTP2Client` tokenized as `["Client"]`, losing `HTTP2`).
+- Updated dependencies [d5be000]
+- Updated dependencies [d5be000]
+  - @studnicky/types@9.0.0
+
 ## 8.0.1
 
 ### Patch Changes

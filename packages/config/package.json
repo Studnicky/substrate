@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/config",
-  "version": "8.0.1",
+  "version": "9.0.0",
   "description": "Configuration validation utilities and type guards",
   "type": "module",
   "sideEffects": false,
