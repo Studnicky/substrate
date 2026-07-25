@@ -51,9 +51,14 @@ prepare_semgrep_environment() {
   fi
 }
 
+prepare_semgrep_git_environment() {
+  git config --global --add safe.directory "$(pwd)" >/dev/null 2>&1 || true
+}
+
 semgrep_targets_for_range() {
   range="$1"
   target_file="$2"
+  prepare_semgrep_git_environment
   git diff --name-only -z --diff-filter=ACMR "$range" > "$target_file"
 }
 

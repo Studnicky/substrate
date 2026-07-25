@@ -43,6 +43,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+      - name: Trust checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - id: diff
         uses: ./.github/actions/diff-range
       - run: sh scripts/security-suite.sh semgrep-sarif-range "$DIFF_RANGE" semgrep.sarif
