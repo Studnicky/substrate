@@ -91,10 +91,15 @@ run_dependency_install() {
             echo "  -> ${context} — pnpm install --frozen-lockfile"
             (cd "$root" && run_with_deadline "$timeout" pnpm install --frozen-lockfile)
             local rc=$?
-            [ $rc -eq 124 ] && echo "  ⚠ pnpm install timed out (>${timeout}s) — run manually."
-            [ $rc -ne 0 ] && [ $rc -ne 124 ] && echo "  ⚠ pnpm install failed (exit ${rc}) — run manually."
+            if [ $rc -eq 124 ]; then
+                echo "  ⚠ pnpm install timed out (>${timeout}s) — run manually."
+            elif [ $rc -ne 0 ]; then
+                echo "  ⚠ pnpm install failed (exit ${rc}) — run manually."
+            fi
         else
             echo "  ⚠ pnpm not found — run manually: pnpm install --frozen-lockfile"
         fi
     fi
+
+    return 0
 }

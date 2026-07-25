@@ -43,6 +43,24 @@ assert_pnpm_install_gates_on_manifest_changes() {
   rm -rf "$repo"
 }
 
+assert_dependency_install_returns_success_after_successful_install() {
+  local repo old new
+  repo=$(make_repo)
+  mkdir -p "$repo/node_modules"
+  old=$(git -C "$repo" rev-parse HEAD)
+  (cd "$repo" && echo '{"name":"x"}' > package.json && git add package.json && git commit -q -m bump)
+  new=$(git -C "$repo" rev-parse HEAD)
+  stub_cmd "$repo" pnpm 'exit 0'
+  (
+    cd "$repo" || exit 1
+    PATH="$repo/bin:$PATH" run_dependency_install "test" "$old" "$new" >/tmp/dependency-install.out
+  )
+  assert_contains "dependency install ran" "test — pnpm install --frozen-lockfile" "$(cat /tmp/dependency-install.out)"
+  pass_count=$((pass_count + 1))
+  rm -rf "$repo"
+}
+
 assert_seeds_env_files
 assert_pnpm_install_gates_on_manifest_changes
+assert_dependency_install_returns_success_after_successful_install
 test_main
