@@ -1,0 +1,96 @@
+{
+  "listenerCases": [
+    {
+      "expected": {
+        "reportCount": 1
+      },
+      "input": {
+        "parserServices": {
+          "hasTsNode": true,
+          "isArrayType": true,
+          "isTupleType": false,
+          "kind": "typed"
+        },
+        "right": {
+          "kind": "object"
+        }
+      },
+      "name": "reports arrays through typed parser services"
+    },
+    {
+      "expected": {
+        "reportCount": 1
+      },
+      "input": {
+        "parserServices": {
+          "hasTsNode": true,
+          "isArrayType": false,
+          "isTupleType": true,
+          "kind": "typed"
+        },
+        "right": {
+          "kind": "object"
+        }
+      },
+      "name": "reports tuples through typed parser services"
+    },
+    {
+      "expected": {
+        "reportCount": 1
+      },
+      "input": {
+        "parserServices": {
+          "kind": "empty"
+        },
+        "right": {
+          "kind": "arrayExpression"
+        }
+      },
+      "name": "reports literal arrays without type services"
+    },
+    {
+      "expected": {
+        "reportCount": 0
+      },
+      "input": {
+        "parserServices": {
+          "hasTsNode": false,
+          "isArrayType": false,
+          "isTupleType": false,
+          "kind": "typed"
+        },
+        "right": {
+          "kind": "object"
+        }
+      },
+      "name": "ignores non-arrays when type services do not resolve a TS node"
+    }
+  ],
+  "ruleTester": {
+    "invalid": [
+      {
+        "code": "for (const value of [1, 2, 3]) { value.toFixed(); }",
+        "errors": [
+          {
+            "messageId": "forOfArrays"
+          }
+        ],
+        "name": "for...of over a literal array - flagged without type services"
+      }
+    ],
+    "valid": [
+      {
+        "code": "declare const input: Set<number>; for (const value of input) { value.toFixed(); }",
+        "name": "for...of over a Set - not flagged"
+      },
+      {
+        "code": "declare const input: number[]; for (const value of input) { value.toFixed(); }",
+        "name": "for...of over an array identifier - left to the typed listener path"
+      },
+      {
+        "code": "declare const input: readonly [number, string]; for (const value of input) { value; }",
+        "name": "for...of over a tuple identifier - left to the typed listener path"
+      }
+    ]
+  }
+}

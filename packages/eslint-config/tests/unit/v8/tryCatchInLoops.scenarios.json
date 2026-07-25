@@ -1,0 +1,28 @@
+{
+  "valid": [
+    {
+      "code": "try { doWork(); } catch { handle(); }",
+      "name": "try-catch outside a loop - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "for (const item of [1, 2, 3]) { try { doWork(item); } catch { handle(); } }",
+      "errors": [
+        {
+          "messageId": "tryCatchInLoop"
+        }
+      ],
+      "name": "try-catch inside a for...of loop - flagged"
+    },
+    {
+      "code": "while (true) { try { doWork(); } catch { handle(); } break; }",
+      "errors": [
+        {
+          "messageId": "tryCatchInLoop"
+        }
+      ],
+      "name": "try-catch inside a while loop - flagged"
+    }
+  ]
+}

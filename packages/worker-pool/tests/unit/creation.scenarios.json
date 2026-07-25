@@ -1,0 +1,71 @@
+{
+  "cases": [
+    {
+      "name": "missing-worker-path",
+      "description": "throws when workerPath is missing",
+      "kind": "missing-worker-path",
+      "input": {
+        "workerPool": { "workerPath": "" }
+      },
+      "expected": { "errorMessageIncludes": "workerPath is required" }
+    },
+    {
+      "name": "default-concurrency",
+      "description": "runs successfully when concurrency is omitted",
+      "kind": "default-concurrency",
+      "input": {
+        "workerPool": {
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "a" }]
+      },
+      "expected": { "results": ["a"] }
+    },
+    {
+      "name": "caller-supplied-signal",
+      "description": "uses a caller-supplied Signal for task deadlines",
+      "kind": "caller-supplied-signal",
+      "input": {
+        "workerPool": {
+          "timeoutMs": 1000,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "a" }],
+        "signal": { "kind": "tracking" }
+      },
+      "expected": {
+        "composeCalls": 1,
+        "results": ["a"]
+      }
+    },
+    {
+      "name": "explicit-bounded-concurrency",
+      "description": "builds a functioning pool with bounded concurrency",
+      "kind": "explicit-bounded-concurrency",
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 2 },
+          "concurrency": 2,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "a" }]
+      },
+      "expected": { "results": ["a"] }
+    },
+    {
+      "name": "foreign-construction",
+      "description": "rejects a subclass constructor that does not return a worker pool instance",
+      "kind": "foreign-construction",
+      "input": {
+        "workerPool": {
+          "batch": { "concurrency": 1 },
+          "concurrency": 1,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        }
+      },
+      "expected": {
+        "errorMessageIncludes": "must construct a WorkerPool instance"
+      }
+    }
+  ]
+}

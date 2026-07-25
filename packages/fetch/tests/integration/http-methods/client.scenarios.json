@@ -1,0 +1,111 @@
+{
+  "cases": [
+    {
+      "name": "get-request",
+      "description": "FetchClient performs GET requests",
+      "input": {
+        "method": "GET",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "post-json",
+      "description": "FetchClient performs POST requests with JSON bodies",
+      "input": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "body": "content",
+          "title": "test",
+          "userId": 1
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "body": "content",
+          "id": 101,
+          "title": "test",
+          "userId": 1
+        }
+      }
+    },
+    {
+      "name": "put-request",
+      "description": "FetchClient performs PUT requests",
+      "input": {
+        "method": "PUT",
+        "path": "/posts/1",
+        "body": {
+          "body": "content",
+          "id": 1,
+          "title": "updated",
+          "userId": 1
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "body": "content",
+          "id": 1,
+          "title": "updated",
+          "userId": 1
+        }
+      }
+    },
+    {
+      "name": "patch-request",
+      "description": "FetchClient performs PATCH requests",
+      "input": {
+        "method": "PATCH",
+        "path": "/posts/1",
+        "body": {
+          "title": "patched"
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "id": 1,
+          "title": "Test Post"
+        }
+      }
+    },
+    {
+      "name": "delete-request",
+      "description": "FetchClient performs DELETE requests",
+      "input": {
+        "method": "DELETE",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "head-request",
+      "description": "FetchClient performs HEAD requests",
+      "input": {
+        "method": "HEAD",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "options-request",
+      "description": "FetchClient performs OPTIONS requests",
+      "input": {
+        "method": "OPTIONS",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "status": 200
+      }
+    }
+  ]
+}

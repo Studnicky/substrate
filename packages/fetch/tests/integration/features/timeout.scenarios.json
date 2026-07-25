@@ -1,0 +1,118 @@
+{
+  "cases": [
+    {
+      "name": "completes-without-timeout",
+      "description": "request completes without timing out",
+      "kind": "completes-without-timeout",
+      "input": {
+        "request": {
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "times-out-fast-request",
+      "description": "request times out when it takes too long",
+      "kind": "times-out-fast-request",
+      "input": {
+        "request": {
+          "timeout": 1,
+          "url": "__TEST_URL__/delay"
+        }
+      },
+      "expected": {
+        "errorName": "TimeoutError"
+      }
+    },
+    {
+      "name": "reports-timeout-details",
+      "description": "timeout error carries timeout details",
+      "kind": "reports-timeout-details",
+      "input": {
+        "request": {
+          "timeout": 1,
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "errorName": "TimeoutError",
+        "timeoutMs": 1,
+        "urlIncludes": "127.0.0.1"
+      }
+    },
+    {
+      "name": "clears-timeout-after-success",
+      "description": "timeout clears after a successful request",
+      "kind": "clears-timeout-after-success",
+      "input": {
+        "request": {
+          "timeout": 5000,
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "supports-timeout-in-get",
+      "description": "GET supports timeout",
+      "kind": "supports-timeout-in-get",
+      "input": {
+        "request": {
+          "timeout": 100,
+          "url": "/delay"
+        }
+      },
+      "expected": {
+        "errorName": "TimeoutError"
+      }
+    },
+    {
+      "name": "works-with-fast-requests",
+      "description": "timeout works with fast requests",
+      "kind": "works-with-fast-requests",
+      "input": {
+        "request": {
+          "timeout": 5000,
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "applies-default-timeout",
+      "description": "client default timeout applies",
+      "kind": "applies-default-timeout",
+      "input": {
+        "clientTimeout": 5000,
+        "request": {
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    },
+    {
+      "name": "request-overrides-default-timeout",
+      "description": "request timeout overrides default timeout",
+      "kind": "request-overrides-default-timeout",
+      "input": {
+        "clientTimeout": 100,
+        "request": {
+          "timeout": 5000,
+          "url": "/posts/1"
+        }
+      },
+      "expected": {
+        "status": 200
+      }
+    }
+  ]
+}

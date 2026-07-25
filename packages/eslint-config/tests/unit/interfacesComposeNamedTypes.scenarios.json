@@ -1,0 +1,11 @@
+{
+  "cases": [
+    {
+      "name": "interfaces-compose-named-types",
+      "description": "ensures inline data in interfaces is composed through named types",
+      "kind": "interfaces-compose-named-types",
+      "input": { "code": "interface ServiceInterface { run(): void; }" },
+      "expected": { "validCount": 1, "invalidCount": 0 }
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 /** 02-override-hooks — subclass FetchClient and override onRequest/onResponse to transform requests and responses. Run: npx tsx packages/fetch/examples/02-override-hooks.ts */
 
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
 
 // #region usage
 import type { RequestContextInterface, ResponseContextInterface } from '../src/index.js';
@@ -45,41 +44,37 @@ class AuthClient extends FetchClient {
 }
 
 await (async function runOverrideHooksExample(): Promise<void> {
-  // Start an in-process server that echoes received headers back in the response body
-  const server = createServer((req, res) => {
-    const headers: Record<string, string> = {};
-    for (const [name, value] of Object.entries(req.headers)) {
-      if (typeof value === 'string') {
-        headers[name] = value;
-      }
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (_input, init) => {
+    const echoed: Record<string, string> = {};
+    for (const [name, value] of new Headers(init?.headers).entries()) {
+      echoed[name] = value;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 'echoed': headers }));
-  });
 
-  const baseURL = await new Promise<string>((resolve) => {
-    server.listen(0, '127.0.0.1', () => {
-      const addr = server.address();
-      resolve(`http://127.0.0.1:${(addr as { 'port': number }).port}`);
-    });
-  });
+    return Promise.resolve(new Response(JSON.stringify({ 'echoed': echoed }), {
+      'headers': { 'Content-Type': 'application/json' },
+      'status': 200
+    }));
+  };
 
-  const client = AuthClient.create({ 'baseURL': baseURL });
+  const client = AuthClient.create({ 'baseURL': 'https://example.test' });
 
-  const res = await client.get('/check');
-  const body = await res.json() as { 'echoed': Record<string, string> };
+  try {
+    const res = await client.get('/check');
+    const body = await res.json() as { 'echoed': Record<string, string> };
 
-  server.close();
+    assert.ok(client instanceof FetchClient, 'AuthClient is-a FetchClient');
+    assert.ok(client instanceof AuthClient, 'instanceof works for subclass');
+    assert.strictEqual(client.requestLog.length, 1, 'onRequest fired once');
+    assert.ok(client.requestLog[0]?.includes('/check') === true, 'onRequest received the correct url');
+    assert.strictEqual(client.responseLog.length, 1, 'onResponse fired once');
+    assert.strictEqual(client.responseLog[0], 200, 'onResponse received 200 status');
+    assert.strictEqual(body.echoed.authorization, 'Bearer example-token', 'Authorization header was injected');
+    assert.strictEqual(body.echoed['x-client'], 'AuthClient', 'X-Client header was injected');
 
-  assert.ok(client instanceof FetchClient, 'AuthClient is-a FetchClient');
-  assert.ok(client instanceof AuthClient, 'instanceof works for subclass');
-  assert.strictEqual(client.requestLog.length, 1, 'onRequest fired once');
-  assert.ok(client.requestLog[0]?.includes('/check') === true, 'onRequest received the correct url');
-  assert.strictEqual(client.responseLog.length, 1, 'onResponse fired once');
-  assert.strictEqual(client.responseLog[0], 200, 'onResponse received 200 status');
-  assert.strictEqual(body.echoed.authorization, 'Bearer example-token', 'Authorization header was injected');
-  assert.strictEqual(body.echoed['x-client'], 'AuthClient', 'X-Client header was injected');
-
-  console.log('02-override-hooks: all assertions passed');
+    console.log('02-override-hooks: all assertions passed');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 })();
 // #endregion usage

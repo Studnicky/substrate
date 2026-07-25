@@ -1,0 +1,30 @@
+{
+  "cases": [
+    {
+      "name": "create-clear-event-get-events",
+      "description": "NoOpTiming create, event, clear, and getEvents behave as no-ops",
+      "kind": "create-clear-event-get-events",
+      "input": {
+        "event": {
+          "component": "GraphAdapter",
+          "operation": "query"
+        }
+      },
+      "expected": {
+        "chainResult": true,
+        "durationMs": 0,
+        "sameInstance": true
+      }
+    },
+    {
+      "name": "get-events-empty",
+      "description": "NoOpTiming getEvents returns only durationMs",
+      "kind": "get-events-empty",
+      "input": {},
+      "expected": {
+        "empty": true,
+        "durationMs": 0
+      }
+    }
+  ]
+}

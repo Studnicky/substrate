@@ -1,0 +1,60 @@
+{
+  "cases": [
+    {
+      "name": "default-config",
+      "description": "Throttle uses the default configuration when no config is provided",
+      "kind": "default-config",
+      "input": { "throttle": {} },
+      "expected": { "concurrencyLimit": 10 }
+    },
+    {
+      "name": "custom-concurrency-limit",
+      "description": "Throttle accepts a custom concurrency limit",
+      "kind": "custom-concurrency-limit",
+      "input": { "throttle": { "concurrencyLimit": 5 } },
+      "expected": { "concurrencyLimit": 5 }
+    },
+    {
+      "name": "missing-concurrency-limit-uses-default",
+      "description": "Throttle uses the default concurrency limit when it is not specified",
+      "kind": "missing-concurrency-limit-uses-default",
+      "input": { "throttle": {} },
+      "expected": { "concurrencyLimit": 10 }
+    },
+    {
+      "name": "invalid-concurrency-limit-zero",
+      "description": "Throttle rejects a zero concurrency limit",
+      "kind": "invalid-concurrency-limit",
+      "input": { "throttle": { "concurrencyLimit": 0 } },
+      "expected": { "errorName": "ConfigurationError" }
+    },
+    {
+      "name": "invalid-concurrency-limit-negative",
+      "description": "Throttle rejects a negative concurrency limit",
+      "kind": "invalid-concurrency-limit",
+      "input": { "throttle": { "concurrencyLimit": -1 } },
+      "expected": { "errorName": "ConfigurationError" }
+    },
+    {
+      "name": "invalid-concurrency-limit-fractional",
+      "description": "Throttle rejects a fractional concurrency limit",
+      "kind": "invalid-concurrency-limit",
+      "input": { "throttle": { "concurrencyLimit": 1.5 } },
+      "expected": { "errorName": "ConfigurationError" }
+    },
+    {
+      "name": "invalid-concurrency-limit-nan",
+      "description": "Throttle rejects a NaN concurrency limit",
+      "kind": "invalid-concurrency-limit-nan",
+      "input": { "throttle": { "concurrencyLimit": "NaN" } },
+      "expected": { "errorName": "ConfigurationError" }
+    },
+    {
+      "name": "accepts-valid-configuration",
+      "description": "Throttle accepts valid configuration values",
+      "kind": "accepts-valid-configuration",
+      "input": { "throttle": { "concurrencyLimit": 5 } },
+      "expected": { "accepted": true, "defaultAccepted": true }
+    }
+  ]
+}

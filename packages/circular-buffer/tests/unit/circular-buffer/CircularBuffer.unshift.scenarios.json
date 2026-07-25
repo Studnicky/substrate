@@ -1,0 +1,154 @@
+{
+  "cases": [
+    {
+      "name": "unshift-adds-item",
+      "description": "Unshift adds an item and increments length",
+      "kind": "unshift-adds-item",
+      "input": {
+        "options": {
+          "capacity": 4
+        }
+      },
+      "expected": {
+        "length": 1
+      }
+    },
+    {
+      "name": "unshift-empty-then-shift",
+      "description": "Unshift on an empty buffer then shift returns the unshifted item",
+      "kind": "unshift-empty-then-shift",
+      "input": {
+        "options": {
+          "capacity": 4
+        }
+      },
+      "expected": {
+        "length": 0,
+        "shifted": 1
+      }
+    },
+    {
+      "name": "unshift-then-shift-order",
+      "description": "Unshifted items come out first on the next shift",
+      "kind": "unshift-then-shift-order",
+      "input": {
+        "options": {
+          "capacity": 4
+        }
+      },
+      "expected": {
+        "shifted": [0, 1, 2]
+      }
+    },
+    {
+      "name": "multiple-unshifts-reverse-order",
+      "description": "Multiple unshifts preserve reverse insertion order at the front",
+      "kind": "multiple-unshifts-reverse-order",
+      "input": {
+        "options": {
+          "capacity": 8
+        }
+      },
+      "expected": {
+        "shifted": [0, 1, 2, 3]
+      }
+    },
+    {
+      "name": "overwrite-mode-unshift-evicts-tail",
+      "description": "Overwrite mode unshift at capacity evicts the tail item",
+      "kind": "overwrite-mode-unshift-evicts-tail",
+      "input": {
+        "options": {
+          "capacity": 3
+        }
+      },
+      "expected": {
+        "length": 3,
+        "shifted": [0, 1, 2]
+      }
+    },
+    {
+      "name": "overwrite-mode-unshift-fires-hooks",
+      "description": "Overwrite mode unshift fires onOverflow and onEvict with the displaced tail item",
+      "kind": "overwrite-mode-unshift-fires-hooks",
+      "input": {
+        "options": {
+          "capacity": 2
+        }
+      },
+      "expected": {
+        "evictLog": [2],
+        "overflowLog": [0]
+      }
+    },
+    {
+      "name": "grow-mode-unshift-grows",
+      "description": "Grow mode unshift grows instead of evicting",
+      "kind": "grow-mode-unshift-grows",
+      "input": {
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        }
+      },
+      "expected": {
+        "length": 3,
+        "shifted": [0, 1, 2]
+      }
+    },
+    {
+      "name": "grow-mode-unshift-fires-onGrow",
+      "description": "Grow mode unshift fires onGrow",
+      "kind": "grow-mode-unshift-fires-onGrow",
+      "input": {
+        "options": {
+          "capacity": 2,
+          "overflow": "grow"
+        }
+      },
+      "expected": {
+        "newCapacity": 4,
+        "oldCapacity": 2
+      }
+    },
+    {
+      "name": "onPush-fires-for-unshift",
+      "description": "onPush fires for unshift as a shared insertion hook",
+      "kind": "onPush-fires-for-unshift",
+      "input": {
+        "options": {
+          "capacity": 4
+        }
+      },
+      "expected": {
+        "pushCount": 2
+      }
+    },
+    {
+      "name": "mixed-push-unshift-shift-order",
+      "description": "Mixed push, unshift, and shift operations preserve FIFO order from both ends",
+      "kind": "mixed-push-unshift-shift-order",
+      "input": {
+        "options": {
+          "capacity": 4
+        }
+      },
+      "expected": {
+        "shifted": ["C", "A", "B"]
+      }
+    },
+    {
+      "name": "interleaved-wraparound-order",
+      "description": "Interleaved push, unshift, and shift across wraparound preserves order",
+      "kind": "interleaved-wraparound-order",
+      "input": {
+        "options": {
+          "capacity": 4
+        }
+      },
+      "expected": {
+        "shifted": [-1, 0, 2, 3]
+      }
+    }
+  ]
+}

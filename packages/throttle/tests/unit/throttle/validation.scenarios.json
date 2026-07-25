@@ -1,0 +1,25 @@
+{
+  "cases": [
+    {
+      "name": "non-object-rejected",
+      "description": "ThrottleValidator rejects non-object input",
+      "kind": "non-object-rejected",
+      "input": null,
+      "expected": { "result": false }
+    },
+    {
+      "name": "missing-method-rejected",
+      "description": "ThrottleValidator rejects objects missing required methods",
+      "kind": "missing-method-rejected",
+      "input": { "execute": true, "getStats": true, "isComplete": true, "drain": true },
+      "expected": { "result": false }
+    },
+    {
+      "name": "full-interface-accepted",
+      "description": "ThrottleValidator accepts a throttle-like object with all required methods",
+      "kind": "full-interface-accepted",
+      "input": {},
+      "expected": { "result": true }
+    }
+  ]
+}

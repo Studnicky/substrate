@@ -1,0 +1,34 @@
+{
+  "cases": [
+    {
+      "description": "accepts recursive directory options",
+      "expected": {
+        "validationResults": [
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          { "expected": true, "value": { "recursive": true } }
+        ]
+      },
+      "kind": "recursive-directory-options",
+      "name": "recursive-directory-options"
+    },
+    {
+      "description": "rejects non-boolean recursive values",
+      "expected": {
+        "validationResults": [
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "expected": false, "value": { "recursive": "yes" } }
+        ]
+      },
+      "kind": "non-boolean-recursive-values",
+      "name": "non-boolean-recursive-values"
+    }
+  ]
+}

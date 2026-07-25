@@ -1,0 +1,298 @@
+{
+  "cases": [
+    {
+      "name": "timeout-missing-file",
+      "description": "create() times out when the file does not exist",
+      "kind": "timeout-missing-file",
+      "input": {
+        "fileLock": {
+          "timeoutMs": 100
+        },
+        "path": "nonexistent.txt"
+      },
+      "expected": {
+        "timedOut": true
+      }
+    },
+    {
+      "name": "acquire-success-restores-path",
+      "description": "create() succeeds when the file exists and is not locked",
+      "kind": "acquire-success-restores-path",
+      "input": {
+        "path": "test-acquire.txt",
+        "content": "hello"
+      },
+      "expected": {
+        "existedDuringLock": false,
+        "existedAfterRelease": true
+      }
+    },
+    {
+      "name": "contention-times-out",
+      "description": "create() times out when trying to acquire a lock already held",
+      "kind": "contention-times-out",
+      "input": {
+        "path": "test-contention.txt",
+        "content": "content",
+        "fileLock": {
+          "timeoutMs": 100
+        }
+      },
+      "expected": {
+        "timedOut": true
+      }
+    },
+    {
+      "name": "read-after-create",
+      "description": "read() returns file content after create()",
+      "kind": "read-after-create",
+      "input": {
+        "path": "test-read.txt",
+        "content": "content-to-read"
+      },
+      "expected": {
+        "content": "content-to-read"
+      }
+    },
+    {
+      "name": "write-then-release-restores-new-content",
+      "description": "write() followed by release() restores the original path with new content",
+      "kind": "write-then-release-restores-new-content",
+      "input": {
+        "path": "test-write.txt",
+        "originalContent": "original",
+        "updatedContent": "updated"
+      },
+      "expected": {
+        "content": "updated"
+      }
+    },
+    {
+      "name": "release-idempotent",
+      "description": "release() is idempotent",
+      "kind": "release-idempotent",
+      "input": {
+        "path": "test-idempotent.txt",
+        "content": "data"
+      },
+      "expected": {
+        "releaseCount": 1
+      }
+    },
+    {
+      "name": "symbol-dispose-releases",
+      "description": "Symbol.dispose triggers release()",
+      "kind": "symbol-dispose-releases",
+      "input": {
+        "path": "test-dispose.txt",
+        "content": "dispose-me"
+      },
+      "expected": {
+        "existedDuringLock": false,
+        "existedAfterDispose": true
+      }
+    },
+    {
+      "name": "poll-and-timeout-options",
+      "description": "create() respects pollMs and timeoutMs",
+      "kind": "poll-and-timeout-options",
+      "input": {
+        "path": "test-create-opts.txt",
+        "content": "content",
+        "fileLock": {
+          "pollMs": 25,
+          "timeoutMs": 100
+        }
+      },
+      "expected": {
+        "timedOut": true
+      }
+    },
+    {
+      "name": "hook-acquire-start-and-acquire",
+      "description": "onAcquireStart fires once and onAcquire fires once on success",
+      "kind": "hook-acquire-start-and-acquire",
+      "input": {
+        "path": "hook-acquire.txt",
+        "content": "hook-test"
+      },
+      "expected": {
+        "startCount": 1,
+        "acquireCount": 1
+      }
+    },
+    {
+      "name": "hook-release-original-path",
+      "description": "onRelease fires once with the original path",
+      "kind": "hook-release-original-path",
+      "input": {
+        "path": "hook-release.txt",
+        "content": "data"
+      },
+      "expected": {
+        "releaseCount": 1
+      }
+    },
+    {
+      "name": "hook-idempotent-release",
+      "description": "onRelease fires only once for idempotent release()",
+      "kind": "hook-idempotent-release",
+      "input": {
+        "path": "hook-idempotent-release.txt",
+        "content": "data"
+      },
+      "expected": {
+        "releaseCount": 1
+      }
+    },
+    {
+      "name": "hook-timeout",
+      "description": "onTimeout fires once when the file does not exist",
+      "kind": "hook-timeout",
+      "input": {
+        "path": "hook-timeout-nofile.txt",
+        "fileLock": {
+          "timeoutMs": 100
+        }
+      },
+      "expected": {
+        "timedOut": true
+      }
+    },
+    {
+      "name": "hook-contention-wait-and-timeout",
+      "description": "onAcquireWait and onContended fire on each contended poll",
+      "kind": "hook-contention-wait-and-timeout",
+      "input": {
+        "path": "hook-contention.txt",
+        "content": "content",
+        "fileLock": {
+          "pollMs": 25,
+          "timeoutMs": 120
+        }
+      },
+      "expected": {
+        "minimumContentions": 1,
+        "minimumWaits": 1,
+        "timeoutCount": 1
+      }
+    },
+    {
+      "name": "hook-order",
+      "description": "onAcquireStart fires before onAcquireWait which fires before onTimeout",
+      "kind": "hook-order",
+      "input": {
+        "path": "hook-order.txt",
+        "content": "held",
+        "fileLock": {
+          "pollMs": 20,
+          "timeoutMs": 80
+        }
+      },
+      "expected": {
+        "order": [
+          "onAcquireStart",
+          "onAcquireWait",
+          "onContended",
+          "onTimeout"
+        ]
+      }
+    },
+    {
+      "name": "throwing-onAcquire-does-not-orphan-lock",
+      "description": "A throwing onAcquire hook does not orphan the renamed lock file",
+      "kind": "throwing-onAcquire-does-not-orphan-lock",
+      "input": {
+        "path": "hook-throw-acquire.txt",
+        "content": "data",
+        "hookErrorMessage": "hook boom"
+      },
+      "expected": {
+        "orphaned": false
+      }
+    },
+    {
+      "name": "async-rejecting-onAcquire-guarded",
+      "description": "An async-rejecting onAcquire override is routed through onHookError",
+      "kind": "async-rejecting-onAcquire-guarded",
+      "input": {
+        "path": "hook-async-reject-acquire.txt",
+        "content": "data"
+      },
+      "expected": {
+        "hookCauseMessage": "async onAcquire failure"
+      }
+    },
+    {
+      "name": "hook-errors-isolated-per-instance",
+      "description": "Hook failures are recorded only on the file-lock instance that produced them",
+      "kind": "hook-errors-isolated-per-instance",
+      "input": {
+        "first": {
+          "path": "hook-isolation-first.txt",
+          "content": "first"
+        },
+        "second": {
+          "path": "hook-isolation-second.txt",
+          "content": "second"
+        }
+      },
+      "expected": {
+        "first": {
+          "message": "hook failure for /tmp/file-lock-tests-first"
+        },
+        "second": {
+          "message": "hook failure for /tmp/file-lock-tests-second"
+        }
+      }
+    },
+    {
+      "name": "symbol-dispose-hook",
+      "description": "Symbol.dispose triggers onRelease once",
+      "kind": "symbol-dispose-hook",
+      "input": {
+        "path": "hook-dispose.txt",
+        "content": "dispose-hook"
+      },
+      "expected": {
+        "releaseCount": 1
+      }
+    },
+    {
+      "name": "bare-relative-filename-contention",
+      "description": "Bare relative filenames detect contention correctly",
+      "kind": "bare-relative-filename-contention",
+      "input": {
+        "filename": "queue.json",
+        "content": "content",
+        "fileLock": {
+          "timeoutMs": 100
+        }
+      },
+      "expected": {
+        "existedDuringLock": false,
+        "existedAfterRelease": true
+      }
+    },
+    {
+      "name": "genuine-fs-error-routes-to-onError",
+      "description": "A genuine filesystem error rejects immediately via onError",
+      "kind": "genuine-fs-error-routes-to-onError",
+      "input": {
+        "path": "/data.json",
+        "fileSystemError": {
+          "code": "ENOSPC",
+          "message": "ENOSPC: no space left on device"
+        },
+        "fileLock": {
+          "timeoutMs": 5000
+        }
+      },
+      "expected": {
+        "errorMessageIncludes": "ENOSPC",
+        "errorCount": 1,
+        "contendedCount": 0
+      }
+    }
+  ]
+}

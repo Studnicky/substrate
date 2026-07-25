@@ -1,0 +1,34 @@
+{
+  "cases": [
+    {
+      "description": "Runs the basic batch processing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/basic-processing.ts"
+      },
+      "name": "basic-processing"
+    },
+    {
+      "description": "Runs the observed batch example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/observedBatch.ts"
+      },
+      "name": "observed-batch"
+    },
+    {
+      "description": "Runs the settled processing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/settled-processing.ts"
+      },
+      "name": "settled-processing"
+    }
+  ]
+}

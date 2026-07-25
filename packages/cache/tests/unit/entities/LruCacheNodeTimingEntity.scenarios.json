@@ -1,0 +1,41 @@
+{
+  "cases": [
+    {
+      "description": "accepts non-negative expiry and staleness timestamps",
+      "expected": {
+        "valid": true
+      },
+      "input": {
+        "timing": {
+          "expiresAt": 0,
+          "staleAt": 1
+        }
+      },
+      "kind": "valid-timestamps",
+      "name": "valid-timestamps"
+    },
+    {
+      "description": "rejects missing or negative timestamps",
+      "expected": {
+        "invalidChecks": [
+          false,
+          false
+        ],
+        "valid": false
+      },
+      "input": {
+        "timing": [
+          {
+            "expiresAt": 0
+          },
+          {
+            "expiresAt": -1,
+            "staleAt": 0
+          }
+        ]
+      },
+      "kind": "invalid-timestamps",
+      "name": "invalid-timestamps"
+    }
+  ]
+}

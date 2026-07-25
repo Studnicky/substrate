@@ -1,32 +1,48 @@
-import { execFileSync } from 'node:child_process';
+import * as childProcess from 'node:child_process';
 import os from 'node:os';
 
 import type { GpuInfoEntity } from '../entities/GpuInfoEntity.js';
 
 import { BYTES_PER_MB, EXEC_TIMEOUT_MS, VRAM_STRING_PATTERN } from '../constants/index.js';
 
+interface GpuDetectorDepsInterface {
+  readonly 'execFileSync': (
+    command: string,
+    args: readonly string[],
+    options: { readonly 'timeout': number }
+  ) => Buffer | string;
+  readonly 'platform': () => NodeJS.Platform;
+}
+
 export class GpuDetector {
+  static #defaultDeps(): GpuDetectorDepsInterface {
+    return {
+      'execFileSync': childProcess.execFileSync,
+      'platform': os.platform
+    };
+  }
+
   static #isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
-  static detect(): GpuInfoEntity.Type | null {
-    const platform = os.platform();
+  static detect(deps: GpuDetectorDepsInterface = GpuDetector.#defaultDeps()): GpuInfoEntity.Type | null {
+    const platform = deps.platform();
 
     if (platform === 'darwin') {
-      return GpuDetector.#detectMetal();
+      return GpuDetector.#detectMetal(deps);
     }
 
     if (platform === 'linux') {
-      return GpuDetector.#detectLinux();
+      return GpuDetector.#detectLinux(deps);
     }
 
     return null;
   }
 
-  static #detectMetal(): GpuInfoEntity.Type | null {
+  static #detectMetal(deps: GpuDetectorDepsInterface): GpuInfoEntity.Type | null {
     try {
-      const raw = execFileSync('system_profiler', ['SPDisplaysDataType', '-json'], {
+      const raw = deps.execFileSync('system_profiler', ['SPDisplaysDataType', '-json'], {
         'timeout': EXEC_TIMEOUT_MS
       }).toString();
 
@@ -51,18 +67,18 @@ export class GpuDetector {
     }
   }
 
-  static #detectLinux(): GpuInfoEntity.Type | null {
-    const nvidia = GpuDetector.#detectNvidia();
+  static #detectLinux(deps: GpuDetectorDepsInterface): GpuInfoEntity.Type | null {
+    const nvidia = GpuDetector.#detectNvidia(deps);
     if (nvidia !== null) {
       return nvidia;
     }
 
-    return GpuDetector.#detectAmd();
+    return GpuDetector.#detectAmd(deps);
   }
 
-  static #detectNvidia(): GpuInfoEntity.Type | null {
+  static #detectNvidia(deps: GpuDetectorDepsInterface): GpuInfoEntity.Type | null {
     try {
-      const raw = execFileSync(
+      const raw = deps.execFileSync(
         'nvidia-smi',
         ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'],
         { 'timeout': EXEC_TIMEOUT_MS }
@@ -92,9 +108,9 @@ export class GpuDetector {
     }
   }
 
-  static #detectAmd(): GpuInfoEntity.Type | null {
+  static #detectAmd(deps: GpuDetectorDepsInterface): GpuInfoEntity.Type | null {
     try {
-      const raw = execFileSync('rocm-smi', ['--showmeminfo', 'vram', '--json'], {
+      const raw = deps.execFileSync('rocm-smi', ['--showmeminfo', 'vram', '--json'], {
         'timeout': EXEC_TIMEOUT_MS
       }).toString();
 

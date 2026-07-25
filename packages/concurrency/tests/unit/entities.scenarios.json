@@ -1,0 +1,52 @@
+{
+  "cases": [
+    {
+      "description": "validate internal state and dispatch event contracts",
+      "expected": {
+        "validationResults": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "AsyncIterDoneDiscriminantEntity", "expected": true, "value": { "variant": "done" } },
+          { "entity": "AsyncIterErrorDiscriminantEntity", "expected": true, "value": { "variant": "error" } },
+          { "entity": "AsyncIterValueDiscriminantEntity", "expected": true, "value": { "variant": "value" } },
+          { "entity": "ChannelEntryStateEntity", "expected": true, "value": { "cancelled": false } },
+          { "entity": "ChannelStateEntity", "expected": true, "value": { "closed": false, "subscriber": true } },
+          { "entity": "SemaphoreWaiterStateEntity", "expected": true, "value": { "cancelled": false, "ready": true } },
+          { "entity": "DispatchStartedEventEntity", "expected": true, "value": { "key": "task-1" } },
+          { "entity": "DispatchCompletedEventEntity", "expected": true, "value": { "key": "task-1", "result": "done" } }
+        ]
+      },
+      "kind": "valid-contracts",
+      "name": "valid-contracts"
+    },
+    {
+      "description": "rejects invalid discriminants and state",
+      "expected": {
+        "validationResults": [
+          false,
+          false,
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "AsyncIterDoneDiscriminantEntity", "expected": false, "value": { "variant": "value" } },
+          { "entity": "ChannelStateEntity", "expected": false, "value": { "closed": false } },
+          { "entity": "DispatchCompletedEventEntity", "expected": false, "value": { "key": "", "result": "done" } }
+        ]
+      },
+      "kind": "invalid-contracts",
+      "name": "invalid-contracts"
+    }
+  ]
+}

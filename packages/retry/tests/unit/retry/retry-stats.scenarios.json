@@ -1,0 +1,13 @@
+{
+  "cases": [
+    { "name": "initial-stats-max-retries", "description": "getStats returns all zeros for new Retry(maxRetries)", "kind": "initial", "input": { "classifier": "default", "retry": { "maxRetries": 3 } }, "expected": { "stats": { "failedRequests": 0, "successfulRequests": 0, "totalRequests": 0, "totalRetries": 0 } } },
+    { "name": "initial-stats-defaults", "description": "getStats returns all zeros for new Retry defaults", "kind": "initial", "input": { "classifier": "default" }, "expected": { "stats": { "failedRequests": 0, "successfulRequests": 0, "totalRequests": 0, "totalRetries": 0 } } },
+    { "name": "total-requests-increments", "description": "totalRequests increments on each execute call", "kind": "total-requests-increments", "input": { "classifier": "default", "retry": { "maxRetries": 3 }, "calls": ["first", "second", "third"] }, "expected": { "totalRequests": 3 } },
+    { "name": "successful-requests-increment", "description": "successfulRequests increments on success", "kind": "successful-requests-increment", "input": { "classifier": "default", "retry": { "maxRetries": 3 }, "result": "success" }, "expected": { "successfulRequests": 1, "failedRequests": 0 } },
+    { "name": "failed-requests-increment", "description": "failedRequests increments on non-retryable error", "kind": "failed-requests-increment", "input": { "classifier": "non-retryable", "retry": { "maxRetries": 3 }, "errorMessage": "Non-retryable" }, "expected": { "failedRequests": 1, "successfulRequests": 0 } },
+    { "name": "total-retries-counted", "description": "totalRetries counts retry attempts", "kind": "total-retries-counted", "input": { "classifier": "retryable", "retry": { "maxRetries": 3 }, "errorMessage": "Always fail" }, "expected": { "totalRetries": 3, "attempts": 4 } },
+    { "name": "stats-frozen", "description": "getStats returns a frozen stats object", "kind": "stats-frozen", "input": { "classifier": "default", "retry": { "maxRetries": 3 }, "mutatedTotalRequests": 999 }, "expected": { "totalRequests": 0 } },
+    { "name": "reset-stats-zero", "description": "resetStats resets all stats to zero", "kind": "reset-stats-zero", "input": { "classifier": "default", "retry": { "maxRetries": 3 }, "calls": ["first", "second"] }, "expected": { "stats": { "failedRequests": 0, "successfulRequests": 0, "totalRequests": 0, "totalRetries": 0 } } },
+    { "name": "reset-stats-accumulates", "description": "resetStats allows new stats accumulation after reset", "kind": "reset-stats-accumulates", "input": { "classifier": "default", "retry": { "maxRetries": 3 }, "calls": ["first", "second", "third"] }, "expected": { "totalRequests": 2, "successfulRequests": 2 } }
+  ]
+}

@@ -1,0 +1,738 @@
+{
+  "cases": [
+    {
+      "name": "constant-100-a0",
+      "description": "constant attempt 0 baseDelay 100 returns 100",
+      "kind": "constant",
+      "attempt": 0,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 0,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "constant-100-a1",
+      "description": "constant attempt 1 baseDelay 100 returns 100",
+      "kind": "constant",
+      "attempt": 1,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 1,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "constant-100-a2",
+      "description": "constant attempt 2 baseDelay 100 returns 100",
+      "kind": "constant",
+      "attempt": 2,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 2,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "constant-100-a5",
+      "description": "constant attempt 5 baseDelay 100 returns 100",
+      "kind": "constant",
+      "attempt": 5,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 5,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "constant-100-a10",
+      "description": "constant attempt 10 baseDelay 100 returns 100",
+      "kind": "constant",
+      "attempt": 10,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 10,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "constant-50",
+      "description": "constant attempt 0 baseDelay 50 returns 50",
+      "kind": "constant",
+      "attempt": 0,
+      "baseDelay": 50,
+      "expected": {
+        "result": 50
+      },
+      "input": {
+        "attempt": 0,
+        "baseDelay": 50
+      }
+    },
+    {
+      "name": "constant-200",
+      "description": "constant attempt 0 baseDelay 200 returns 200",
+      "kind": "constant",
+      "attempt": 0,
+      "baseDelay": 200,
+      "expected": {
+        "result": 200
+      },
+      "input": {
+        "attempt": 0,
+        "baseDelay": 200
+      }
+    },
+    {
+      "name": "constant-1000",
+      "description": "constant attempt 0 baseDelay 1000 returns 1000",
+      "kind": "constant",
+      "attempt": 0,
+      "baseDelay": 1000,
+      "expected": {
+        "result": 1000
+      },
+      "input": {
+        "attempt": 0,
+        "baseDelay": 1000
+      }
+    },
+    {
+      "name": "linear-100-a0",
+      "description": "linear attempt 0 baseDelay 100 returns 100",
+      "kind": "linear",
+      "attempt": 0,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 0,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "linear-100-a1",
+      "description": "linear attempt 1 baseDelay 100 returns 200",
+      "kind": "linear",
+      "attempt": 1,
+      "baseDelay": 100,
+      "expected": {
+        "result": 200
+      },
+      "input": {
+        "attempt": 1,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "linear-100-a2",
+      "description": "linear attempt 2 baseDelay 100 returns 300",
+      "kind": "linear",
+      "attempt": 2,
+      "baseDelay": 100,
+      "expected": {
+        "result": 300
+      },
+      "input": {
+        "attempt": 2,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "linear-100-a3",
+      "description": "linear attempt 3 baseDelay 100 returns 400",
+      "kind": "linear",
+      "attempt": 3,
+      "baseDelay": 100,
+      "expected": {
+        "result": 400
+      },
+      "input": {
+        "attempt": 3,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "linear-100-a4",
+      "description": "linear attempt 4 baseDelay 100 returns 500",
+      "kind": "linear",
+      "attempt": 4,
+      "baseDelay": 100,
+      "expected": {
+        "result": 500
+      },
+      "input": {
+        "attempt": 4,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "linear-50-a0",
+      "description": "linear attempt 0 baseDelay 50 returns 50",
+      "kind": "linear",
+      "attempt": 0,
+      "baseDelay": 50,
+      "expected": {
+        "result": 50
+      },
+      "input": {
+        "attempt": 0,
+        "baseDelay": 50
+      }
+    },
+    {
+      "name": "linear-50-a1",
+      "description": "linear attempt 1 baseDelay 50 returns 100",
+      "kind": "linear",
+      "attempt": 1,
+      "baseDelay": 50,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 1,
+        "baseDelay": 50
+      }
+    },
+    {
+      "name": "linear-50-a2",
+      "description": "linear attempt 2 baseDelay 50 returns 150",
+      "kind": "linear",
+      "attempt": 2,
+      "baseDelay": 50,
+      "expected": {
+        "result": 150
+      },
+      "input": {
+        "attempt": 2,
+        "baseDelay": 50
+      }
+    },
+    {
+      "name": "exponential-100-a0",
+      "description": "exponential attempt 0 baseDelay 100 returns 100",
+      "kind": "exponential",
+      "attempt": 0,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 0,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "exponential-100-a1",
+      "description": "exponential attempt 1 baseDelay 100 returns 200",
+      "kind": "exponential",
+      "attempt": 1,
+      "baseDelay": 100,
+      "expected": {
+        "result": 200
+      },
+      "input": {
+        "attempt": 1,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "exponential-100-a2",
+      "description": "exponential attempt 2 baseDelay 100 returns 400",
+      "kind": "exponential",
+      "attempt": 2,
+      "baseDelay": 100,
+      "expected": {
+        "result": 400
+      },
+      "input": {
+        "attempt": 2,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "exponential-100-a3",
+      "description": "exponential attempt 3 baseDelay 100 returns 800",
+      "kind": "exponential",
+      "attempt": 3,
+      "baseDelay": 100,
+      "expected": {
+        "result": 800
+      },
+      "input": {
+        "attempt": 3,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "exponential-100-a4",
+      "description": "exponential attempt 4 baseDelay 100 returns 1600",
+      "kind": "exponential",
+      "attempt": 4,
+      "baseDelay": 100,
+      "expected": {
+        "result": 1600
+      },
+      "input": {
+        "attempt": 4,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "exponential-50-a0",
+      "description": "exponential attempt 0 baseDelay 50 returns 50",
+      "kind": "exponential",
+      "attempt": 0,
+      "baseDelay": 50,
+      "expected": {
+        "result": 50
+      },
+      "input": {
+        "attempt": 0,
+        "baseDelay": 50
+      }
+    },
+    {
+      "name": "exponential-50-a1",
+      "description": "exponential attempt 1 baseDelay 50 returns 100",
+      "kind": "exponential",
+      "attempt": 1,
+      "baseDelay": 50,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 1,
+        "baseDelay": 50
+      }
+    },
+    {
+      "name": "exponential-50-a2",
+      "description": "exponential attempt 2 baseDelay 50 returns 200",
+      "kind": "exponential",
+      "attempt": 2,
+      "baseDelay": 50,
+      "expected": {
+        "result": 200
+      },
+      "input": {
+        "attempt": 2,
+        "baseDelay": 50
+      }
+    },
+    {
+      "name": "exponential-50-a3",
+      "description": "exponential attempt 3 baseDelay 50 returns 400",
+      "kind": "exponential",
+      "attempt": 3,
+      "baseDelay": 50,
+      "expected": {
+        "result": 400
+      },
+      "input": {
+        "attempt": 3,
+        "baseDelay": 50
+      }
+    },
+    {
+      "name": "jitter-range-a0",
+      "description": "exponentialWithJitter attempt 0 baseDelay 100 is within 50-150",
+      "kind": "jitter-range",
+      "attempt": 0,
+      "baseDelay": 100,
+      "minMultiplier": 0.5,
+      "maxMultiplier": 1.5,
+      "input": {
+        "attempt": 0,
+        "baseDelay": 100,
+        "batch": {
+          "sampleCount": 50
+        },
+        "minMultiplier": 0.5,
+        "maxMultiplier": 1.5
+      },
+      "expected": {
+        "result": "within-range"
+      }
+    },
+    {
+      "name": "jitter-range-a1",
+      "description": "exponentialWithJitter attempt 1 baseDelay 100 is within 100-300",
+      "kind": "jitter-range",
+      "attempt": 1,
+      "baseDelay": 100,
+      "minMultiplier": 0.5,
+      "maxMultiplier": 1.5,
+      "input": {
+        "attempt": 1,
+        "baseDelay": 100,
+        "batch": {
+          "sampleCount": 50
+        },
+        "minMultiplier": 0.5,
+        "maxMultiplier": 1.5
+      },
+      "expected": {
+        "result": "within-range"
+      }
+    },
+    {
+      "name": "jitter-range-a2",
+      "description": "exponentialWithJitter attempt 2 baseDelay 100 is within 200-600",
+      "kind": "jitter-range",
+      "attempt": 2,
+      "baseDelay": 100,
+      "minMultiplier": 0.5,
+      "maxMultiplier": 1.5,
+      "input": {
+        "attempt": 2,
+        "baseDelay": 100,
+        "batch": {
+          "sampleCount": 50
+        },
+        "minMultiplier": 0.5,
+        "maxMultiplier": 1.5
+      },
+      "expected": {
+        "result": "within-range"
+      }
+    },
+    {
+      "name": "jitter-range-a3",
+      "description": "exponentialWithJitter attempt 3 baseDelay 100 is within 400-1200",
+      "kind": "jitter-range",
+      "attempt": 3,
+      "baseDelay": 100,
+      "minMultiplier": 0.5,
+      "maxMultiplier": 1.5,
+      "input": {
+        "attempt": 3,
+        "baseDelay": 100,
+        "batch": {
+          "sampleCount": 50
+        },
+        "minMultiplier": 0.5,
+        "maxMultiplier": 1.5
+      },
+      "expected": {
+        "result": "within-range"
+      }
+    },
+    {
+      "name": "jitter-varying",
+      "description": "exponentialWithJitter produces varying results due to jitter",
+      "kind": "jitter-varying",
+      "input": {
+        "attempt": 0,
+        "baseDelay": 100,
+        "batch": {
+          "sampleCount": 20
+        }
+      },
+      "expected": {
+        "minDistinct": 2
+      }
+    },
+    {
+      "name": "ceiling-exp-a0",
+      "description": "withCeiling(exponential, 500) attempt 0 baseDelay 100 returns 100",
+      "kind": "ceiling",
+      "strategy": "exponential",
+      "ceiling": 500,
+      "attempt": 0,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "strategy": "exponential",
+        "ceiling": 500,
+        "attempt": 0,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-exp-a1",
+      "description": "withCeiling(exponential, 500) attempt 1 baseDelay 100 returns 200",
+      "kind": "ceiling",
+      "strategy": "exponential",
+      "ceiling": 500,
+      "attempt": 1,
+      "baseDelay": 100,
+      "expected": {
+        "result": 200
+      },
+      "input": {
+        "strategy": "exponential",
+        "ceiling": 500,
+        "attempt": 1,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-exp-a2",
+      "description": "withCeiling(exponential, 500) attempt 2 baseDelay 100 returns 400",
+      "kind": "ceiling",
+      "strategy": "exponential",
+      "ceiling": 500,
+      "attempt": 2,
+      "baseDelay": 100,
+      "expected": {
+        "result": 400
+      },
+      "input": {
+        "strategy": "exponential",
+        "ceiling": 500,
+        "attempt": 2,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-exp-a3",
+      "description": "withCeiling(exponential, 500) attempt 3 baseDelay 100 caps at 500",
+      "kind": "ceiling",
+      "strategy": "exponential",
+      "ceiling": 500,
+      "attempt": 3,
+      "baseDelay": 100,
+      "expected": {
+        "result": 500
+      },
+      "input": {
+        "strategy": "exponential",
+        "ceiling": 500,
+        "attempt": 3,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-exp-a4",
+      "description": "withCeiling(exponential, 500) attempt 4 baseDelay 100 caps at 500",
+      "kind": "ceiling",
+      "strategy": "exponential",
+      "ceiling": 500,
+      "attempt": 4,
+      "baseDelay": 100,
+      "expected": {
+        "result": 500
+      },
+      "input": {
+        "strategy": "exponential",
+        "ceiling": 500,
+        "attempt": 4,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-lin-a0",
+      "description": "withCeiling(linear, 300) attempt 0 baseDelay 100 returns 100",
+      "kind": "ceiling",
+      "strategy": "linear",
+      "ceiling": 300,
+      "attempt": 0,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "strategy": "linear",
+        "ceiling": 300,
+        "attempt": 0,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-lin-a1",
+      "description": "withCeiling(linear, 300) attempt 1 baseDelay 100 returns 200",
+      "kind": "ceiling",
+      "strategy": "linear",
+      "ceiling": 300,
+      "attempt": 1,
+      "baseDelay": 100,
+      "expected": {
+        "result": 200
+      },
+      "input": {
+        "strategy": "linear",
+        "ceiling": 300,
+        "attempt": 1,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-lin-a2",
+      "description": "withCeiling(linear, 300) attempt 2 baseDelay 100 returns 300 at ceiling",
+      "kind": "ceiling",
+      "strategy": "linear",
+      "ceiling": 300,
+      "attempt": 2,
+      "baseDelay": 100,
+      "expected": {
+        "result": 300
+      },
+      "input": {
+        "strategy": "linear",
+        "ceiling": 300,
+        "attempt": 2,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-lin-a3",
+      "description": "withCeiling(linear, 300) attempt 3 baseDelay 100 caps at 300",
+      "kind": "ceiling",
+      "strategy": "linear",
+      "ceiling": 300,
+      "attempt": 3,
+      "baseDelay": 100,
+      "expected": {
+        "result": 300
+      },
+      "input": {
+        "strategy": "linear",
+        "ceiling": 300,
+        "attempt": 3,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-const-a0",
+      "description": "withCeiling(constant, 500) attempt 0 baseDelay 100 unaffected returns 100",
+      "kind": "ceiling",
+      "strategy": "constant",
+      "ceiling": 500,
+      "attempt": 0,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "strategy": "constant",
+        "ceiling": 500,
+        "attempt": 0,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-const-a5",
+      "description": "withCeiling(constant, 500) attempt 5 baseDelay 100 unaffected returns 100",
+      "kind": "ceiling",
+      "strategy": "constant",
+      "ceiling": 500,
+      "attempt": 5,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "strategy": "constant",
+        "ceiling": 500,
+        "attempt": 5,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-const-a10",
+      "description": "withCeiling(constant, 500) attempt 10 baseDelay 100 unaffected returns 100",
+      "kind": "ceiling",
+      "strategy": "constant",
+      "ceiling": 500,
+      "attempt": 10,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "strategy": "constant",
+        "ceiling": 500,
+        "attempt": 10,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "ceiling-const-cap",
+      "description": "withCeiling(constant, 50) caps baseDelay 100 at ceiling 50",
+      "kind": "ceiling",
+      "strategy": "constant",
+      "ceiling": 50,
+      "attempt": 0,
+      "baseDelay": 100,
+      "expected": {
+        "result": 50
+      },
+      "input": {
+        "strategy": "constant",
+        "ceiling": 50,
+        "attempt": 0,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "decorrelated-zero",
+      "description": "decorrelated jitter returns baseDelay at attempt 0",
+      "kind": "decorrelated-zero",
+      "attempt": 0,
+      "baseDelay": 100,
+      "expected": {
+        "result": 100
+      },
+      "input": {
+        "attempt": 0,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "decorrelated-range",
+      "description": "decorrelated jitter stays within the expected range at later attempts",
+      "kind": "decorrelated-range",
+      "attempt": 2,
+      "baseDelay": 100,
+      "expected": {
+        "minResult": 100,
+        "maxResult": 2700
+      },
+      "input": {
+        "attempt": 2,
+        "baseDelay": 100
+      }
+    },
+    {
+      "name": "is-valid-function",
+      "description": "isValid accepts function values",
+      "kind": "is-valid",
+      "input": {
+        "value": "() => 1"
+      },
+      "expected": {
+        "isValid": true
+      }
+    },
+    {
+      "name": "is-valid-non-function",
+      "description": "isValid rejects non-function values",
+      "kind": "is-valid",
+      "input": {
+        "value": "bad"
+      },
+      "expected": {
+        "isValid": false
+      }
+    }
+  ]
+}

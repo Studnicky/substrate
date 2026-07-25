@@ -1,0 +1,56 @@
+{
+  "cases": [
+    {
+      "description": "Mutex records reentrant beforeAcquire for the same key",
+      "expected": {
+        "complete": true,
+        "hookErrorCount": 1,
+        "hookName": "beforeAcquire",
+        "lockedAfterOuterRelease": false
+      },
+      "input": {
+        "key": "key1"
+      },
+      "kind": "beforeAcquire-reentrant-same-key",
+      "name": "beforeAcquire-reentrant-same-key"
+    },
+    {
+      "description": "Mutex records reentrant onRelease for the same key",
+      "expected": {
+        "complete": true,
+        "hookErrorCount": 1,
+        "hookName": "onRelease",
+        "lockedAfterFirstRelease": true,
+        "lockedAfterSecondRelease": true,
+        "lockedAfterThirdRelease": false
+      },
+      "input": {
+        "batch": {
+          "pendingCount": 2
+        },
+        "key": "key1"
+      },
+      "kind": "onRelease-reentrant-same-key",
+      "name": "onRelease-reentrant-same-key"
+    },
+    {
+      "description": "Mutex keeps different keys unaffected by the reentrancy guard",
+      "expected": {
+        "complete": true,
+        "hookErrorCount": 0,
+        "keys": [
+          "key1",
+          "key2"
+        ]
+      },
+      "input": {
+        "keys": [
+          "key1",
+          "key2"
+        ]
+      },
+      "kind": "different-keys-unaffected",
+      "name": "different-keys-unaffected"
+    }
+  ]
+}

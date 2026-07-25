@@ -1,0 +1,75 @@
+{
+  "rule": {
+    "valid": [
+      {
+        "code": "const httpClient = 1;",
+        "name": "whitelisted acronym httpClient - no report"
+      },
+      {
+        "code": "interface JsonValue { readonly x: number; }",
+        "name": "whitelisted JsonValue interface - no report"
+      },
+      {
+        "code": "for (let i = 0; i < 10; i += 1) { void i; }",
+        "name": "loop iterator i - no report"
+      },
+      {
+        "code": "for (let j = 0; j < 10; j += 1) { void j; }",
+        "name": "loop iterator j - no report"
+      },
+      {
+        "code": "for (let k = 0; k < 10; k += 1) { void k; }",
+        "name": "loop iterator k - no report"
+      },
+      {
+        "code": "const n = Math.max(1, 2); void n;",
+        "name": "external member expression property Math.max - no report"
+      },
+      {
+        "code": "const list = Array.from([1, 2, 3]); void list;",
+        "name": "external member expression property Array.from - no report"
+      },
+      {
+        "code": "export { cfg } from './config.js';",
+        "name": "re-exported cfg through a barrel - no duplicate report"
+      },
+      {
+        "code": "export { cfg as config } from './config.js';",
+        "name": "re-exported and renamed cfg through a barrel - no duplicate report"
+      }
+    ],
+    "invalid": [
+      {
+        "code": "const cfg = {};",
+        "errors": [
+          {
+            "messageId": "banned-shortening"
+          }
+        ],
+        "name": "variable cfg - flagged"
+      },
+      {
+        "code": "function getCtx(): void {}",
+        "errors": [
+          {
+            "messageId": "banned-shortening"
+          }
+        ],
+        "name": "function getCtx - flagged"
+      },
+      {
+        "code": "class A { opts: string = \"\"; }",
+        "errors": [
+          {
+            "messageId": "banned-shortening"
+          }
+        ],
+        "name": "class property opts - flagged"
+      }
+    ]
+  },
+  "performance": {
+    "repeatCount": 50000,
+    "thresholdMs": 1000
+  }
+}

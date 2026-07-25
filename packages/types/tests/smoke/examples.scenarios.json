@@ -1,0 +1,24 @@
+{
+  "cases": [
+    {
+      "description": "Runs the guard accessors example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/guard-accessors.ts"
+      },
+      "name": "guard-accessors"
+    },
+    {
+      "description": "Runs the PickDefined example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/pickDefined.ts"
+      },
+      "name": "pick-defined"
+    }
+  ]
+}

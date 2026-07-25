@@ -1,0 +1,46 @@
+{
+  "cases": [
+    {
+      "name": "construction",
+      "description": "BatchError uses the batch.invalidConfig code and preserves supplied context",
+      "kind": "construction",
+      "input": {
+        "error": {
+          "message": "maxConcurrent must be a positive integer",
+          "args": {
+            "correlationId": "corr-123",
+            "metadata": {
+              "field": "maxConcurrent",
+              "value": 0
+            }
+          }
+        }
+      },
+      "expected": {
+        "code": "batch.invalidConfig",
+        "correlationId": "corr-123",
+        "metadata": {
+          "field": "maxConcurrent",
+          "value": 0
+        },
+        "message": "maxConcurrent must be a positive integer",
+        "retryable": false
+      }
+    },
+    {
+      "name": "construction-without-args",
+      "description": "BatchError fills in default fields when optional args are omitted",
+      "kind": "construction",
+      "input": {
+        "error": {
+          "message": "maxConcurrent must be a positive integer"
+        }
+      },
+      "expected": {
+        "code": "batch.invalidConfig",
+        "message": "maxConcurrent must be a positive integer",
+        "retryable": false
+      }
+    }
+  ]
+}

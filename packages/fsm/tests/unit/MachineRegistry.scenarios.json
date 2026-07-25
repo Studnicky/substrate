@@ -1,0 +1,53 @@
+{
+  "cases": [
+    {
+      "name": "register-get-roundtrip",
+      "description": "register and get round-trip the same interpreter",
+      "kind": "register-get-roundtrip",
+      "input": { "name": "test" },
+      "expected": { "sameInterpreter": true }
+    },
+    {
+      "name": "duplicate-register-throws",
+      "description": "registering the same id twice throws",
+      "kind": "duplicate-register-throws",
+      "input": { "name": "dupe" },
+      "expected": { "errorName": "MachineAlreadyRegisteredError" }
+    },
+    {
+      "name": "unregister-removes-entry",
+      "description": "unregister removes the entry",
+      "kind": "unregister-removes-entry",
+      "input": { "name": "gone" },
+      "expected": { "removed": true }
+    },
+    {
+      "name": "has-present",
+      "description": "has returns true when registered",
+      "kind": "has-check",
+      "input": { "name": "present", "registered": true },
+      "expected": { "exists": true }
+    },
+    {
+      "name": "has-absent",
+      "description": "has returns false when missing",
+      "kind": "has-check",
+      "input": { "name": "absent", "registered": false },
+      "expected": { "exists": false }
+    },
+    {
+      "name": "list-returns-all-registered",
+      "description": "list returns all registered names",
+      "kind": "list-returns-all-registered",
+      "input": { "names": ["a", "b"] },
+      "expected": { "names": ["a", "b"] }
+    },
+    {
+      "name": "instances-isolated",
+      "description": "two instances do not share state",
+      "kind": "instances-isolated",
+      "input": { "name": "isolated" },
+      "expected": { "isolated": true }
+    }
+  ]
+}

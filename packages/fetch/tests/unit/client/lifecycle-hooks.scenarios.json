@@ -1,0 +1,179 @@
+{
+  "cases": [
+    {
+      "name": "request-start-event",
+      "description": "onRequestStart captures the request metadata",
+      "operation": "request-start",
+      "input": { "method": "GET", "path": "/ok" },
+      "expected": { "count": 1, "hook": "onRequestStart" }
+    },
+    {
+      "name": "response-success-event",
+      "description": "onResponseSuccess fires on 200 OK",
+      "operation": "response-success",
+      "input": { "method": "GET", "path": "/ok" },
+      "expected": { "count": 1, "hook": "onResponseSuccess", "status": 200 }
+    },
+    {
+      "name": "response-error-event",
+      "description": "onResponseError fires on 404",
+      "operation": "response-error",
+      "input": { "method": "GET", "path": "/not-found" },
+      "expected": { "count": 1, "hook": "onResponseError", "status": 404 }
+    },
+    {
+      "name": "timeout-event",
+      "description": "onTimeout fires when the request times out",
+      "operation": "timeout-event",
+      "input": { "method": "GET", "path": "/delay", "timeoutMs": 1 },
+      "expected": { "count": 1, "hook": "onTimeout", "timeoutMs": 1 }
+    },
+    {
+      "name": "timeout-hook-error",
+      "description": "Throwing onTimeout surfaces as a HookInvocationError",
+      "operation": "throw-timeout",
+      "input": { "message": "onTimeout boom", "method": "GET", "path": "/delay", "timeoutMs": 1 },
+      "expected": { "hookName": "onTimeout" }
+    },
+    {
+      "name": "abort-event",
+      "description": "onAbort fires when AbortController aborts",
+      "operation": "abort-event",
+      "input": { "abortAfterMs": 10, "method": "GET", "path": "/delay" },
+      "expected": { "count": 1, "hook": "onAbort" }
+    },
+    {
+      "name": "abort-event-preaborted",
+      "description": "onAbort fires when the provided signal is already aborted",
+      "operation": "abort-event-preaborted",
+      "input": { "abortAfterMs": 0, "method": "GET", "path": "/delay" },
+      "expected": { "count": 1, "hook": "onAbort" }
+    },
+    {
+      "name": "dispatcher-destroy",
+      "description": "onDispatcherDestroy fires when a dispatcher is configured",
+      "operation": "dispatcher-destroy",
+      "input": { "dispatcher": { "connections": 2, "enabled": true } },
+      "expected": { "count": 1, "hook": "onDispatcherDestroy" }
+    },
+    {
+      "name": "dispatcher-destroy-with-timeout",
+      "description": "onDispatcherDestroy fires when destroy uses an explicit timeout",
+      "operation": "dispatcher-destroy-with-timeout",
+      "input": { "dispatcher": { "connections": 2, "enabled": true }, "timeoutMs": 5 },
+      "expected": { "count": 1, "hook": "onDispatcherDestroy" }
+    },
+    {
+      "name": "dispatcher-destroy-no-dispatcher",
+      "description": "destroy does not fire onDispatcherDestroy when no dispatcher is configured",
+      "operation": "dispatcher-destroy-no-dispatcher",
+      "input": {},
+      "expected": { "count": 0, "hook": "onDispatcherDestroy" }
+    },
+    {
+      "name": "request-start-hook-error",
+      "description": "Throwing onRequestStart surfaces as a HookInvocationError",
+      "operation": "throw-request-start",
+      "input": { "message": "onRequestStart boom", "method": "GET", "path": "/ok" },
+      "expected": { "hookName": "onRequestStart" }
+    },
+    {
+      "name": "response-success-hook-error",
+      "description": "Throwing onResponseSuccess surfaces as a HookInvocationError",
+      "operation": "throw-response-success",
+      "input": { "message": "onResponseSuccess boom", "method": "GET", "path": "/ok" },
+      "expected": { "hookName": "onResponseSuccess" }
+    },
+    {
+      "name": "request-error-hook-error",
+      "description": "Throwing onRequestError surfaces as a HookInvocationError",
+      "operation": "throw-request-error",
+      "input": { "message": "onRequestError boom", "method": "GET", "path": "/delay", "timeoutMs": 1 },
+      "expected": { "hookName": "onRequestError" }
+    },
+    {
+      "name": "request-error-hook-error-string",
+      "description": "Throwing onRequestError also surfaces for passthrough string failures",
+      "operation": "throw-request-error-string",
+      "input": { "message": "onRequestError boom", "method": "GET", "path": "/throw-string" },
+      "expected": { "hookName": "onRequestError" }
+    },
+    {
+      "name": "dispatcher-destroy-hook-error",
+      "description": "Throwing onDispatcherDestroy surfaces as a HookInvocationError",
+      "operation": "throw-dispatcher-destroy",
+      "input": { "dispatcher": { "connections": 2, "enabled": true }, "message": "onDispatcherDestroy boom" },
+      "expected": { "hookName": "onDispatcherDestroy" }
+    },
+    {
+      "name": "undici-connect-timeout",
+      "description": "Connect timeout errors wrap to ConnectTimeoutError",
+      "operation": "undici-error-wrap",
+      "input": { "method": "GET", "path": "/error-connect" },
+      "expected": { "hookName": "ConnectTimeoutError" }
+    },
+    {
+      "name": "undici-body-timeout",
+      "description": "Body timeout errors wrap to BodyTimeoutError",
+      "operation": "undici-error-wrap",
+      "input": { "method": "GET", "path": "/error-body-timeout" },
+      "expected": { "hookName": "BodyTimeoutError" }
+    },
+    {
+      "name": "undici-headers-timeout",
+      "description": "Headers timeout errors wrap to HeadersTimeoutError",
+      "operation": "undici-error-wrap",
+      "input": { "method": "GET", "path": "/error-headers-timeout" },
+      "expected": { "hookName": "HeadersTimeoutError" }
+    },
+    {
+      "name": "undici-socket-error",
+      "description": "Socket errors wrap to SocketError",
+      "operation": "undici-error-wrap",
+      "input": { "method": "GET", "path": "/error-socket-timeout" },
+      "expected": { "hookName": "SocketError" }
+    },
+    {
+      "name": "undici-unknown-error",
+      "description": "Unknown undici error codes fall through to onRequestError",
+      "operation": "undici-error-wrap",
+      "input": { "method": "GET", "path": "/error-unknown-code" },
+      "expected": { "hookName": "Error" }
+    },
+    {
+      "name": "request-error-string",
+      "description": "Thrown non-Error values pass through onRequestError",
+      "operation": "throw-fetch-string",
+      "input": { "method": "GET", "path": "/throw-string" },
+      "expected": { "message": "fetch-string-error" }
+    },
+    {
+      "name": "request-error-object",
+      "description": "Thrown plain Error values pass through onRequestError",
+      "operation": "throw-fetch-error",
+      "input": { "message": "fetch-error", "method": "GET", "path": "/ok" },
+      "expected": { "message": "fetch-error" }
+    },
+    {
+      "name": "hook-timeout-error",
+      "description": "A stalled hook surfaces a HookTimeoutError through HookInvocationError",
+      "operation": "hook-timeout",
+      "input": { "hookTimeoutMs": 20, "method": "GET", "path": "/ok" },
+      "expected": { "hookName": "onRequestStart", "timeoutMs": 20 }
+    },
+    {
+      "name": "fast-hook",
+      "description": "A hook that settles before hookTimeoutMs succeeds",
+      "operation": "fast-hook",
+      "input": { "hookTimeoutMs": 50, "method": "GET", "path": "/ok", "settleMs": 5 },
+      "expected": { "events": ["onRequestStart"] }
+    },
+    {
+      "name": "never-settles",
+      "description": "A hook without hookTimeoutMs still succeeds when it resolves",
+      "operation": "never-settles",
+      "input": { "method": "GET", "path": "/ok", "settleMs": 40 },
+      "expected": { "events": ["onRequestStart"] }
+    }
+  ]
+}

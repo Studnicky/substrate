@@ -1,0 +1,932 @@
+{
+  "cases": [
+    {
+      "name": "small-timeout",
+      "description": "FetchClient times out on a very small timeout",
+      "request": {
+        "timeout": 1,
+        "url": "__TEST_URL__/posts/1"
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "timeoutMs": 1
+      },
+      "input": {
+        "request": {
+          "timeout": 1,
+          "url": "__TEST_URL__/posts/1"
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "rejects",
+          "timeoutMs": 1
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "timeoutMs": 1
+      }
+    },
+    {
+      "name": "moderate-timeout",
+      "description": "FetchClient completes with a moderate timeout",
+      "request": {
+        "timeout": 1000,
+        "url": "__TEST_URL__/posts/1"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "timeout": 1000,
+          "url": "__TEST_URL__/posts/1"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "large-timeout",
+      "description": "FetchClient completes with a large timeout",
+      "request": {
+        "timeout": 60000,
+        "url": "__TEST_URL__/posts/1"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "timeout": 60000,
+          "url": "__TEST_URL__/posts/1"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "negative-timeout",
+      "description": "FetchClient rejects a negative timeout",
+      "clientConfig": {
+        "timeout": -1
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "positive"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "timeout": -1
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "positive"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "positive"
+        ]
+      }
+    },
+    {
+      "name": "infinity-timeout",
+      "description": "FetchClient rejects an infinite timeout",
+      "clientConfig": {
+        "timeout": {
+          "__kind": "infinity"
+        }
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "finite"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "timeout": {
+            "__kind": "infinity"
+          }
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "finite"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "finite"
+        ]
+      }
+    },
+    {
+      "name": "string-timeout",
+      "description": "FetchClient rejects a string timeout",
+      "clientConfig": {
+        "timeout": "1000"
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "number"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "timeout": "1000"
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "number"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "number"
+        ]
+      }
+    },
+    {
+      "name": "object-timeout",
+      "description": "FetchClient rejects an object timeout",
+      "clientConfig": {
+        "timeout": {}
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "number"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "timeout": {}
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "number"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "number"
+        ]
+      }
+    },
+    {
+      "name": "null-timeout",
+      "description": "FetchClient accepts a null timeout",
+      "clientConfig": {
+        "timeout": null
+      },
+      "expect": {
+        "kind": "create-ok"
+      },
+      "input": {
+        "clientConfig": {
+          "timeout": null
+        },
+        "expect": {
+          "kind": "create-ok"
+        }
+      },
+      "expected": {
+        "kind": "create-ok"
+      }
+    },
+    {
+      "name": "undefined-timeout",
+      "description": "FetchClient accepts an undefined timeout",
+      "clientConfig": {
+        "timeout": {
+          "__kind": "undefined"
+        }
+      },
+      "expect": {
+        "kind": "create-ok"
+      },
+      "input": {
+        "clientConfig": {
+          "timeout": {
+            "__kind": "undefined"
+          }
+        },
+        "expect": {
+          "kind": "create-ok"
+        }
+      },
+      "expected": {
+        "kind": "create-ok"
+      }
+    },
+    {
+      "name": "nan-timeout",
+      "description": "FetchClient rejects NaN timeout",
+      "clientConfig": {
+        "timeout": {
+          "__kind": "nan"
+        }
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "finite"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "timeout": {
+            "__kind": "nan"
+          }
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "finite"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "finite"
+        ]
+      }
+    },
+    {
+      "name": "zero-timeout",
+      "description": "FetchClient rejects a zero timeout",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__",
+        "timeout": 0
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "positive"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__",
+          "timeout": 0
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "positive"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "positive"
+        ]
+      }
+    },
+    {
+      "name": "timeout-during-slow-request",
+      "description": "FetchClient times out during a slow request",
+      "request": {
+        "timeout": 100,
+        "url": "__TEST_URL__/delay"
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "timeoutMs": 100
+      },
+      "input": {
+        "request": {
+          "timeout": 100,
+          "url": "__TEST_URL__/delay"
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "rejects",
+          "timeoutMs": 100
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "timeoutMs": 100
+      }
+    },
+    {
+      "name": "timeout-does-not-fire-for-fast-request",
+      "description": "FetchClient completes a fast request before timeout",
+      "request": {
+        "timeout": 5000,
+        "url": "__TEST_URL__/posts/1"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "request": {
+          "timeout": 5000,
+          "url": "__TEST_URL__/posts/1"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "subsequent-after-timeout",
+      "description": "FetchClient continues working after a timeout",
+      "expect": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "expect": {
+              "error": "TimeoutError",
+              "kind": "rejects",
+              "timeoutMs": 50
+            },
+            "request": {
+              "timeout": 50,
+              "url": "__TEST_URL__/delay"
+            }
+          },
+          {
+            "expect": {
+              "kind": "status",
+              "status": 200
+            },
+            "request": {
+              "timeout": 5000,
+              "url": "__TEST_URL__/posts/1"
+            }
+          }
+        ]
+      },
+      "input": {
+        "expect": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "expect": {
+                "error": "TimeoutError",
+                "kind": "rejects",
+                "timeoutMs": 50
+              },
+              "request": {
+                "timeout": 50,
+                "url": "__TEST_URL__/delay"
+              }
+            },
+            {
+              "expect": {
+                "kind": "status",
+                "status": 200
+              },
+              "request": {
+                "timeout": 5000,
+                "url": "__TEST_URL__/posts/1"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "expect": {
+              "error": "TimeoutError",
+              "kind": "rejects",
+              "timeoutMs": 50
+            },
+            "request": {
+              "timeout": 50,
+              "url": "__TEST_URL__/delay"
+            }
+          },
+          {
+            "expect": {
+              "kind": "status",
+              "status": 200
+            },
+            "request": {
+              "timeout": 5000,
+              "url": "__TEST_URL__/posts/1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "concurrent-timeouts",
+      "description": "FetchClient handles concurrent requests with mixed results",
+      "expect": {
+        "kind": "parallel",
+        "steps": [
+          {
+            "expect": {
+              "error": "TimeoutError",
+              "kind": "rejects",
+              "timeoutMs": 50
+            },
+            "request": {
+              "timeout": 50,
+              "url": "__TEST_URL__/delay"
+            }
+          },
+          {
+            "expect": {
+              "error": "TimeoutError",
+              "kind": "rejects",
+              "timeoutMs": 60
+            },
+            "request": {
+              "timeout": 60,
+              "url": "__TEST_URL__/delay"
+            }
+          },
+          {
+            "expect": {
+              "kind": "status",
+              "status": 200
+            },
+            "request": {
+              "timeout": 5000,
+              "url": "__TEST_URL__/posts/1"
+            }
+          }
+        ]
+      },
+      "input": {
+        "expect": {
+          "kind": "parallel",
+          "steps": [
+            {
+              "expect": {
+                "error": "TimeoutError",
+                "kind": "rejects",
+                "timeoutMs": 50
+              },
+              "request": {
+                "timeout": 50,
+                "url": "__TEST_URL__/delay"
+              }
+            },
+            {
+              "expect": {
+                "error": "TimeoutError",
+                "kind": "rejects",
+                "timeoutMs": 60
+              },
+              "request": {
+                "timeout": 60,
+                "url": "__TEST_URL__/delay"
+              }
+            },
+            {
+              "expect": {
+                "kind": "status",
+                "status": 200
+              },
+              "request": {
+                "timeout": 5000,
+                "url": "__TEST_URL__/posts/1"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "kind": "parallel",
+        "steps": [
+          {
+            "expect": {
+              "error": "TimeoutError",
+              "kind": "rejects",
+              "timeoutMs": 50
+            },
+            "request": {
+              "timeout": 50,
+              "url": "__TEST_URL__/delay"
+            }
+          },
+          {
+            "expect": {
+              "error": "TimeoutError",
+              "kind": "rejects",
+              "timeoutMs": 60
+            },
+            "request": {
+              "timeout": 60,
+              "url": "__TEST_URL__/delay"
+            }
+          },
+          {
+            "expect": {
+              "kind": "status",
+              "status": 200
+            },
+            "request": {
+              "timeout": 5000,
+              "url": "__TEST_URL__/posts/1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "different-timeouts",
+      "description": "FetchClient handles different timeout values on sequential requests",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "expect": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "expect": {
+              "error": "TimeoutError",
+              "kind": "rejects",
+              "timeoutMs": 50
+            },
+            "request": {
+              "timeout": 50,
+              "url": "/delay"
+            }
+          },
+          {
+            "expect": {
+              "kind": "status",
+              "status": 200
+            },
+            "request": {
+              "timeout": 5000,
+              "url": "/posts/1"
+            }
+          }
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "expect": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "expect": {
+                "error": "TimeoutError",
+                "kind": "rejects",
+                "timeoutMs": 50
+              },
+              "request": {
+                "timeout": 50,
+                "url": "/delay"
+              }
+            },
+            {
+              "expect": {
+                "kind": "status",
+                "status": 200
+              },
+              "request": {
+                "timeout": 5000,
+                "url": "/posts/1"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "expect": {
+              "error": "TimeoutError",
+              "kind": "rejects",
+              "timeoutMs": 50
+            },
+            "request": {
+              "timeout": 50,
+              "url": "/delay"
+            }
+          },
+          {
+            "expect": {
+              "kind": "status",
+              "status": 200
+            },
+            "request": {
+              "timeout": 5000,
+              "url": "/posts/1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "default-client-timeout",
+      "description": "FetchClient uses the client default timeout",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__",
+        "timeout": 50
+      },
+      "request": {
+        "url": "/delay"
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "timeoutMs": 50
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__",
+          "timeout": 50
+        },
+        "request": {
+          "url": "/delay"
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "rejects",
+          "timeoutMs": 50
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "timeoutMs": 50
+      }
+    },
+    {
+      "name": "request-overrides-client-timeout",
+      "description": "FetchClient lets the request timeout override the client default",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__",
+        "timeout": 50
+      },
+      "request": {
+        "timeout": 5000,
+        "url": "/posts/1"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__",
+          "timeout": 50
+        },
+        "request": {
+          "timeout": 5000,
+          "url": "/posts/1"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "includes-url",
+      "description": "TimeoutError includes the request URL",
+      "request": {
+        "timeout": 50,
+        "url": "__TEST_URL__/delay"
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "urlIncludes": "/delay"
+      },
+      "input": {
+        "request": {
+          "timeout": 50,
+          "url": "__TEST_URL__/delay"
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "rejects",
+          "urlIncludes": "/delay"
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "urlIncludes": "/delay"
+      }
+    },
+    {
+      "name": "includes-timeout-value",
+      "description": "TimeoutError includes the timeout value",
+      "request": {
+        "timeout": 123,
+        "url": "__TEST_URL__/delay"
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "timeoutMs": 123
+      },
+      "input": {
+        "request": {
+          "timeout": 123,
+          "url": "__TEST_URL__/delay"
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "rejects",
+          "timeoutMs": 123
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "rejects",
+        "timeoutMs": 123
+      }
+    },
+    {
+      "name": "error-name",
+      "description": "TimeoutError reports the TimeoutError name",
+      "request": {
+        "timeout": 50,
+        "url": "__TEST_URL__/delay"
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "timeout": 50,
+          "url": "__TEST_URL__/delay"
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "implicit-abort-controller",
+      "description": "TimeoutError creates an implicit AbortController",
+      "request": {
+        "timeout": 50,
+        "url": "__TEST_URL__/delay"
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "timeout": 50,
+          "url": "__TEST_URL__/delay"
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "explicit-signal-overrides-timeout",
+      "description": "An explicit signal overrides timeout behavior",
+      "request": {
+        "signal": {
+          "delayMs": 100,
+          "kind": "abort-after-ms"
+        },
+        "timeout": 5000,
+        "url": "__TEST_URL__/delay"
+      },
+      "expect": {
+        "error": "AbortError",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "signal": {
+            "delayMs": 100,
+            "kind": "abort-after-ms"
+          },
+          "timeout": 5000,
+          "url": "__TEST_URL__/delay"
+        },
+        "expect": {
+          "error": "AbortError",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "AbortError",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "integer-timeout",
+      "description": "FetchClient accepts integer timeout values",
+      "request": {
+        "timeout": 50,
+        "url": "__TEST_URL__/delay"
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "timeout": 50,
+          "url": "__TEST_URL__/delay"
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "floating-point-timeout",
+      "description": "FetchClient accepts floating point timeout values",
+      "request": {
+        "timeout": 50.5,
+        "url": "__TEST_URL__/delay"
+      },
+      "expect": {
+        "error": "TimeoutError",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "timeout": 50.5,
+          "url": "__TEST_URL__/delay"
+        },
+        "expect": {
+          "error": "TimeoutError",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "TimeoutError",
+        "kind": "rejects"
+      }
+    }
+  ]
+}

@@ -1,0 +1,746 @@
+{
+  "cases": [
+    {
+      "name": "active-on-construction",
+      "description": "scope starts active after initialize",
+      "kind": "active-on-construction",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "value"
+          }
+        }
+      },
+      "expected": {
+        "result": "value"
+      }
+    },
+    {
+      "name": "multi-execute-before-terminate",
+      "description": "scope can execute multiple times before terminate",
+      "kind": "multi-execute-before-terminate",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "executions": [
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      "expected": {
+        "executions": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "terminated-scope-throws",
+      "description": "terminated scope throws on execute",
+      "kind": "terminated-scope-throws",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "message": "test scope has been terminated"
+        }
+      },
+      "expected": {
+        "message": "test scope has been terminated"
+      }
+    },
+    {
+      "name": "terminate-once",
+      "description": "terminate can only be called once",
+      "kind": "terminate-once",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "message": "test scope has already been terminated"
+        }
+      },
+      "expected": {
+        "message": "test scope has already been terminated"
+      }
+    },
+    {
+      "name": "persist-values-across-executes",
+      "description": "values set in first execute persist to second execute",
+      "kind": "persist-values-across-executes",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "fromFirst": "value1",
+          "fromSecond": "value2"
+        }
+      },
+      "expected": {
+        "terminate": {
+          "fromFirst": "value1",
+          "fromSecond": "value2"
+        }
+      }
+    },
+    {
+      "name": "overwrite-later-values",
+      "description": "modifications in later execute overwrite earlier values",
+      "kind": "overwrite-later-values",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "counter": 0
+          }
+        }
+      },
+      "expected": {
+        "counter": 3
+      }
+    },
+    {
+      "name": "delete-affects-later-executes",
+      "description": "deletions in one execute affect subsequent executes",
+      "kind": "delete-affects-later-executes",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "keep": "kept",
+            "remove": "removed"
+          }
+        }
+      },
+      "expected": {
+        "terminate": {
+          "keep": "kept"
+        }
+      }
+    },
+    {
+      "name": "async-accumulates-state",
+      "description": "accumulates state through async execute calls",
+      "kind": "async-accumulates-state",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "step": 0
+          }
+        }
+      },
+      "expected": {
+        "terminate": {
+          "async1": "done",
+          "async2": "done",
+          "step": 2
+        }
+      }
+    },
+    {
+      "name": "promise-resolve-propagation",
+      "description": "context propagates through Promise.resolve",
+      "kind": "promise-resolve-propagation",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "id": "promise-test"
+          }
+        }
+      },
+      "expected": {
+        "id": "promise-test"
+      }
+    },
+    {
+      "name": "timeout-propagation",
+      "description": "context propagates through setTimeout",
+      "kind": "timeout-propagation",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "id": "timeout-test"
+          }
+        }
+      },
+      "expected": {
+        "id": "timeout-test"
+      }
+    },
+    {
+      "name": "promise-all-propagation",
+      "description": "context propagates through Promise.all",
+      "kind": "promise-all-propagation",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "id": "all-test"
+          }
+        }
+      },
+      "expected": {
+        "results": [
+          "all-test",
+          "all-test",
+          "all-test"
+        ]
+      }
+    },
+    {
+      "name": "nested-async-functions",
+      "description": "context propagates through nested async functions",
+      "kind": "nested-async-functions",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "depth": 0
+          }
+        }
+      },
+      "expected": {
+        "finalDepth": 3
+      }
+    },
+    {
+      "name": "mutations-visible-after-await",
+      "description": "mutations within async operations are visible after await",
+      "kind": "mutations-visible-after-await",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "before": true,
+          "after": true
+        }
+      },
+      "expected": {
+        "terminate": {
+          "after": true,
+          "before": true
+        }
+      }
+    },
+    {
+      "name": "separate-scopes-isolated",
+      "description": "separate scopes have isolated stores",
+      "kind": "separate-scopes-isolated",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": [
+            {
+              "id": "scope-1"
+            },
+            {
+              "id": "scope-2"
+            },
+            {
+              "id": "scope-3"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "contains": [
+          "1:scope-1",
+          "2:scope-2",
+          "3:scope-3"
+        ]
+      }
+    },
+    {
+      "name": "mutations-in-one-scope-not-others",
+      "description": "mutations in one scope do not affect concurrent scopes",
+      "kind": "mutations-in-one-scope-not-others",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "value": "original"
+          }
+        }
+      },
+      "expected": {
+        "scope1": "modified-by-1",
+        "scope2": "modified-by-2"
+      }
+    },
+    {
+      "name": "independent-key-sets",
+      "description": "each scope maintains independent key sets",
+      "kind": "independent-key-sets",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "shared": true
+          }
+        }
+      },
+      "expected": {
+        "only1": [
+          "only1"
+        ],
+        "only2": [
+          "only2"
+        ]
+      }
+    },
+    {
+      "name": "snapshot-complete",
+      "description": "returns complete snapshot of all values",
+      "kind": "snapshot-complete",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "initial1": "a",
+            "initial2": "b"
+          }
+        }
+      },
+      "expected": {
+        "snapshot": {
+          "added1": "c",
+          "added2": "d",
+          "initial1": "a",
+          "initial2": "b"
+        }
+      }
+    },
+    {
+      "name": "snapshot-clears-store",
+      "description": "clears internal store after terminate",
+      "kind": "snapshot-clears-store",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "value"
+          }
+        }
+      },
+      "expected": {
+        "first": "value",
+        "secondThrows": true
+      }
+    },
+    {
+      "name": "snapshot-independent-copy",
+      "description": "snapshot is independent copy",
+      "kind": "snapshot-independent-copy",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "obj": {
+              "nested": "original"
+            }
+          }
+        }
+      },
+      "expected": {
+        "nested": "mutated"
+      }
+    },
+    {
+      "name": "prevent-execute-after-terminate",
+      "description": "prevents execute after terminate",
+      "kind": "prevent-execute-after-terminate",
+      "input": {
+        "context": {
+          "name": "my-scope"
+        },
+        "scope": {
+          "message": "my-scope scope has been terminated"
+        }
+      },
+      "expected": {
+        "message": "my-scope scope has been terminated"
+      }
+    },
+    {
+      "name": "immediate-terminate-with-values",
+      "description": "can terminate immediately after initialize with initial values",
+      "kind": "immediate-terminate-with-values",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "a": 1,
+            "b": 2
+          }
+        }
+      },
+      "expected": {
+        "terminate": {
+          "a": 1,
+          "b": 2
+        }
+      }
+    },
+    {
+      "name": "immediate-terminate-empty",
+      "description": "returns empty object when initialized without values and no execute",
+      "kind": "immediate-terminate-empty",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "terminate": {}
+        }
+      },
+      "expected": {
+        "terminate": {}
+      }
+    },
+    {
+      "name": "execute-errors-propagate",
+      "description": "errors in execute propagate to caller",
+      "kind": "execute-errors-propagate",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "message": "test error"
+        }
+      },
+      "expected": {
+        "message": "test error"
+      }
+    },
+    {
+      "name": "async-execute-errors-propagate",
+      "description": "async errors in execute propagate to caller",
+      "kind": "async-execute-errors-propagate",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "message": "async test error"
+        }
+      },
+      "expected": {
+        "message": "async test error"
+      }
+    },
+    {
+      "name": "scope-reusable-after-error",
+      "description": "scope remains usable after error in execute",
+      "kind": "scope-reusable-after-error",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "initial": "value"
+          }
+        }
+      },
+      "expected": {
+        "afterError": true
+      }
+    },
+    {
+      "name": "terminate-after-error",
+      "description": "can terminate after error in execute",
+      "kind": "terminate-after-error",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "key": "value"
+          }
+        }
+      },
+      "expected": {
+        "terminate": {
+          "key": "value"
+        }
+      }
+    },
+    {
+      "name": "undefined-values",
+      "description": "handles undefined values",
+      "kind": "undefined-values",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "undef": null
+          }
+        }
+      },
+      "expected": {
+        "has": true,
+        "finalHas": true
+      }
+    },
+    {
+      "name": "null-values",
+      "description": "handles null values",
+      "kind": "null-values",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "nul": null
+          }
+        }
+      },
+      "expected": {
+        "terminate": {
+          "nul": null
+        }
+      }
+    },
+    {
+      "name": "symbol-key-string",
+      "description": "handles Symbol keys via string conversion",
+      "kind": "symbol-key-string",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "Symbol(test)": "value"
+          }
+        }
+      },
+      "expected": {
+        "value": "value"
+      }
+    },
+    {
+      "name": "empty-string-key",
+      "description": "handles empty string key",
+      "kind": "empty-string-key",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "": "empty-key-value"
+          }
+        }
+      },
+      "expected": {
+        "value": "empty-key-value"
+      }
+    },
+    {
+      "name": "long-key-name",
+      "description": "handles very long key names",
+      "kind": "long-key-name",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "keyLength": 10000
+        }
+      },
+      "expected": {
+        "value": "value",
+        "length": 10000
+      }
+    },
+    {
+      "name": "complex-object-values",
+      "description": "handles complex object values",
+      "kind": "complex-object-values",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "complex": {
+              "array": [
+                1,
+                2,
+                3
+              ],
+              "date": "2024-01-01",
+              "map": {},
+              "nested": {
+                "deep": {
+                  "value": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "sameReference": true
+      }
+    },
+    {
+      "name": "function-values",
+      "description": "handles function values",
+      "kind": "function-values",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "initial": {
+            "fn": "doubleNumber"
+          }
+        }
+      },
+      "expected": {
+        "result": 10
+      }
+    },
+    {
+      "name": "many-keys",
+      "description": "handles many keys",
+      "kind": "many-keys",
+      "input": {
+        "context": {
+          "name": "test"
+        },
+        "scope": {
+          "count": 1000
+        }
+      },
+      "expected": {
+        "size": 1000,
+        "key500": 500
+      }
+    },
+    {
+      "name": "request-handling-pattern",
+      "description": "request handling pattern",
+      "kind": "request-handling-pattern",
+      "input": {
+        "context": {
+          "name": "request"
+        },
+        "scope": {
+          "requestId": "req-456"
+        }
+      },
+      "expected": {
+        "response": {
+          "body": "{\"data\":\"processed\"}",
+          "status": 200
+        },
+        "finalState": {
+          "requestId": "req-456",
+          "userId": "user-123"
+        }
+      }
+    },
+    {
+      "name": "middleware-chain-pattern",
+      "description": "middleware chain pattern",
+      "kind": "middleware-chain-pattern",
+      "input": {
+        "context": {
+          "name": "middleware"
+        },
+        "scope": {
+          "initial": {
+            "requestId": "req-789"
+          }
+        }
+      },
+      "expected": {
+        "authenticated": true,
+        "logged": true,
+        "requestId": "req-789",
+        "user": {
+          "id": "123"
+        },
+        "validated": true
+      }
+    },
+    {
+      "name": "parallel-operations-pattern",
+      "description": "parallel operations with shared context",
+      "kind": "parallel-operations-pattern",
+      "input": {
+        "context": {
+          "name": "parallel"
+        },
+        "scope": {
+          "delays": [
+            10,
+            20,
+            15
+          ],
+          "initial": {
+            "results": []
+          }
+        }
+      },
+      "expected": {
+        "results": [
+          "op1",
+          "op2",
+          "op3"
+        ]
+      }
+    }
+  ]
+}

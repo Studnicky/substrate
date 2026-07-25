@@ -1,0 +1,77 @@
+{
+  "cases": [
+    {
+      "name": "client-error",
+      "description": "HTTPError captures 4xx status details",
+      "kind": "client-error",
+      "input": {
+        "body": "not found",
+        "status": 404,
+        "statusText": "Not Found",
+        "url": "https://api.example.com/users/1"
+      },
+      "expected": {
+        "code": "fetch.httpError",
+        "message": "HTTP 404 Not Found: https://api.example.com/users/1",
+        "retryable": false,
+        "status": 404,
+        "statusText": "Not Found",
+        "url": "https://api.example.com/users/1"
+      }
+    },
+    {
+      "name": "server-error",
+      "description": "HTTPError marks 5xx status as retryable",
+      "kind": "server-error",
+      "input": {
+        "body": "boom",
+        "status": 503,
+        "statusText": "Service Unavailable",
+        "url": "https://api.example.com/users/1"
+      },
+      "expected": {
+        "code": "fetch.httpError",
+        "message": "HTTP 503 Service Unavailable: https://api.example.com/users/1",
+        "retryable": true,
+        "status": 503,
+        "statusText": "Service Unavailable",
+        "url": "https://api.example.com/users/1"
+      }
+    },
+    {
+      "name": "catchable",
+      "description": "HTTPError is catchable as its own class",
+      "kind": "catchable",
+      "input": {
+        "body": "boom",
+        "status": 500,
+        "statusText": "Internal Server Error",
+        "url": "https://api.example.com/users/1"
+      },
+      "expected": {
+        "caughtName": "HTTPError",
+        "retryable": true,
+        "status": 500,
+        "statusText": "Internal Server Error",
+        "url": "https://api.example.com/users/1"
+      }
+    },
+    {
+      "name": "response-properties",
+      "description": "HTTPError exposes the response object and scalar properties",
+      "kind": "response-properties",
+      "input": {
+        "body": "bad request",
+        "status": 400,
+        "statusText": "Bad Request",
+        "url": "https://api.example.com/users/1"
+      },
+      "expected": {
+        "responseUrl": "",
+        "status": 400,
+        "statusText": "Bad Request",
+        "url": "https://api.example.com/users/1"
+      }
+    }
+  ]
+}

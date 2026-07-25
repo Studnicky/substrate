@@ -1,0 +1,460 @@
+{
+  "cases": [
+    {
+      "name": "virtual-timecounter",
+      "description": "VirtualTimeCounter handles advances and start bounds",
+      "kind": "virtual-timecounter",
+      "input": {
+        "scheduler": {
+          "counterAdvanceScenarios": [
+            {
+              "start": 0,
+              "advances": [],
+              "expectedNowMs": 0
+            },
+            {
+              "start": 0,
+              "advances": [
+                100
+              ],
+              "expectedNowMs": 100
+            },
+            {
+              "start": 0,
+              "advances": [
+                100,
+                200
+              ],
+              "expectedNowMs": 300
+            },
+            {
+              "start": 100,
+              "advances": [
+                50
+              ],
+              "expectedNowMs": 150
+            }
+          ],
+          "edgeCases": [
+            {
+              "advance": -10,
+              "start": 0,
+              "expectedNowMs": 0
+            },
+            {
+              "advance": 0,
+              "start": 0,
+              "expectedNowMs": 0
+            }
+          ],
+          "finalCounterAdvances": [
+            20,
+            30,
+            20
+          ],
+          "finalCounterStartMs": 0,
+          "negativeStartMs": -50
+        }
+      },
+      "expected": {
+        "finalNowMs": 70
+      }
+    },
+    {
+      "name": "minimum-heap",
+      "description": "MinimumHeap snapshots inserted tasks",
+      "kind": "minimum-heap",
+      "input": {
+        "scheduler": {
+          "tasks": [
+            {
+              "atMs": 10,
+              "fire": "noop",
+              "id": "first",
+              "intervalMs": 0,
+              "mutation": {
+                "atMs": 100,
+                "id": "mutated"
+              },
+              "variant": "timeout"
+            },
+            {
+              "atMs": 20,
+              "fire": "noop",
+              "id": "second",
+              "intervalMs": 0,
+              "mutation": {
+                "atMs": 1
+              },
+              "variant": "timeout"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "peekAtMs": 10,
+        "removedMinimum": {
+          "atMs": 10,
+          "id": "first",
+          "intervalMs": 0,
+          "variant": "timeout"
+        },
+        "secondPeekAtMs": 20
+      }
+    },
+    {
+      "name": "minimum-heap-drain-order",
+      "description": "MinimumHeap drains tasks in ascending atMs order after upward swaps",
+      "kind": "minimum-heap-drain-order",
+      "input": {
+        "scheduler": {
+          "tasks": [
+            {
+              "atMs": 30,
+              "fire": "noop",
+              "id": "thirty",
+              "intervalMs": 0,
+              "variant": "timeout"
+            },
+            {
+              "atMs": 20,
+              "fire": "noop",
+              "id": "twenty",
+              "intervalMs": 0,
+              "variant": "timeout"
+            },
+            {
+              "atMs": 40,
+              "fire": "noop",
+              "id": "forty",
+              "intervalMs": 0,
+              "variant": "timeout"
+            },
+            {
+              "atMs": 5,
+              "fire": "noop",
+              "id": "five",
+              "intervalMs": 0,
+              "variant": "timeout"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "drainedAtMs": [
+          5,
+          20,
+          30,
+          40
+        ],
+        "drainedIds": [
+          "five",
+          "twenty",
+          "thirty",
+          "forty"
+        ],
+        "empty": true
+      }
+    },
+    {
+      "name": "scheduleAt",
+      "description": "scheduleAt returns tasks and respects atMs",
+      "kind": "scheduleAt",
+      "input": {
+        "scheduler": {
+          "runs": [
+            {
+              "advanceMs": 100,
+              "atMs": 50,
+              "counterStartMs": 0,
+              "expectedKey": "first"
+            },
+            {
+              "advanceMs": 30,
+              "atMs": 50,
+              "counterStartMs": 0,
+              "expectedKey": "second"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "first": {
+          "atMs": 50,
+          "fired": true,
+          "idNonEmpty": true
+        },
+        "second": {
+          "atMs": 50,
+          "fired": false,
+          "idNonEmpty": true
+        }
+      }
+    },
+    {
+      "name": "scheduleEvery",
+      "description": "scheduleEvery fires at the expected cadence",
+      "kind": "scheduleEvery",
+      "input": {
+        "scheduler": {
+          "runs": [
+            {
+              "advanceMs": 300,
+              "counterStartMs": 0,
+              "expectedKey": "longFireCount",
+              "intervalMs": 100
+            },
+            {
+              "advanceMs": 100,
+              "counterStartMs": 0,
+              "expectedKey": "exactFireCount",
+              "intervalMs": 100
+            },
+            {
+              "advanceMs": 50,
+              "counterStartMs": 0,
+              "expectedKey": "shortFireCount",
+              "intervalMs": 100
+            }
+          ]
+        }
+      },
+      "expected": {
+        "exactFireCount": 1,
+        "longFireCount": 3,
+        "shortFireCount": 0
+      }
+    },
+    {
+      "name": "cancelAll-runAll",
+      "description": "cancelAll and runAll handle cancellation and draining",
+      "kind": "cancelAll-runAll",
+      "input": {
+        "batch": {
+          "cancelAllTaskCount": 3,
+          "runAllTaskCount": 3
+        },
+        "scheduler": {
+          "cancelAll": {
+            "advanceMs": 100,
+            "atMs": 50,
+            "counterStartMs": 0
+          },
+          "runAll": {
+            "counterStartMs": 0,
+            "taskStepMs": 50
+          }
+        }
+      },
+      "expected": {
+        "cancelAllFireCount": 0,
+        "runAllFireCount": 3
+      }
+    },
+    {
+      "name": "edge-cases",
+      "description": "edge cases around cancellation, invalid intervals, and runUntil",
+      "kind": "edge-cases",
+      "input": {
+        "batch": {
+          "skipCount": 3
+        },
+        "scheduler": {
+          "cancelledAdvanceMs": 100,
+          "cancelledAtMs": 50,
+          "cancelledIntervalFirstAdvanceMs": 100,
+          "cancelledIntervalSecondAdvanceMs": 200,
+          "counterStartMs": 0,
+          "emptyAdvanceMs": 100,
+          "intervalAdvanceMs": 250,
+          "intervalMs": 100,
+          "invalidIntervals": [
+            0,
+            -10
+          ],
+          "runUntilAtMs": 100,
+          "runUntilFirstAtMs": 50,
+          "runUntilSecondAtMs": 150,
+          "stepMs": 50
+        }
+      },
+      "expected": {
+        "cancelledFired": false,
+        "cancelledIntervalCount": 1,
+        "cancelledTaskAtMs": 50,
+        "emptyRecordCount": 0,
+        "intervalCount": 2,
+        "invalidIntervalErrorCount": 2,
+        "runUntilFirstFired": true,
+        "runUntilSecondFired": false,
+        "skippedCount": 2
+      }
+    },
+    {
+      "name": "unhappy-path",
+      "description": "rejected task promises and zero/negative advances are swallowed",
+      "kind": "unhappy-path",
+      "input": {
+        "scheduler": {
+          "advanceCounterStartMs": 100,
+          "advanceDeltas": [
+            0,
+            -10
+          ],
+          "advanceFiredAtMs": 150,
+          "cancelledCounterStartMs": 0,
+          "cancelAtMs": 50,
+          "providerNowMs": -1,
+          "runAllCounterStartMs": 0,
+          "runAllRejectAtMs": 50,
+          "runUntilAdvanceMs": 100,
+          "runUntilCounterStartMs": 0,
+          "runUntilRejectAtMs": 50
+        }
+      },
+      "expected": {
+        "advanceCounterNowMs": 100,
+        "advanceFired": false,
+        "cancelledFired": false,
+        "providerNowMs": 0
+      }
+    },
+    {
+      "name": "virtual-fire-error-loop",
+      "description": "sync throws and explicit Promise rejections are routed through onFireError in runUntil and runAll loops",
+      "kind": "virtual-fire-error-loop",
+      "input": {
+        "scheduler": {
+          "atMs": 50,
+          "counterStartMs": 0,
+          "intervalAdvanceDeltas": [
+            50,
+            50
+          ],
+          "intervalMs": 50
+        }
+      },
+      "expected": {
+        "errorsPerScheduler": 1,
+        "firedAfterIntervalFailure": 1
+      }
+    },
+    {
+      "name": "subclass-seams",
+      "description": "subclass hooks, custom heap, and async hook rejection behavior",
+      "kind": "subclass-seams",
+      "input": {
+        "batch": {
+          "repeatCancelCount": 2
+        },
+        "scheduler": {
+          "advanceMs": 100,
+          "auditScenarios": [
+            {
+              "action": "schedule",
+              "atMs": 50,
+              "counterStartMs": 0,
+              "expectedKey": "scheduleCount"
+            },
+            {
+              "action": "schedule-and-advance",
+              "advanceMs": 100,
+              "atMs": 50,
+              "counterStartMs": 0,
+              "expectedKey": "fireCount"
+            },
+            {
+              "action": "schedule-and-cancel",
+              "atMs": 50,
+              "counterStartMs": 0,
+              "expectedKey": "cancelCount"
+            },
+            {
+              "action": "schedule-and-cancel-all",
+              "atMs": 50,
+              "counterStartMs": 0,
+              "expectedKey": "cancelAllCount"
+            },
+            {
+              "action": "advance",
+              "advanceMs": 100,
+              "counterStartMs": 0,
+              "expectedKey": "advanceCount"
+            }
+          ],
+          "cancelAfterFireAtMs": 50,
+          "cancelAtMs": 50,
+          "counterStartMs": 0,
+          "fireErrorAtMs": 50,
+          "fireRejectAtMs": 50,
+          "heapAtMs": 50,
+          "idleAdvanceMs": 100,
+          "idleAtMs": 50,
+          "idleSecondAtMs": 150,
+          "intervalMs": 100,
+          "rescheduleAdvanceMs": 300,
+          "scheduleAtMs": 50
+        }
+      },
+      "expected": {
+        "advanceCount": 1,
+        "asyncErrorCount": 1,
+        "cancelAfterFireCancelCount": 0,
+        "cancelAfterFireFireCount": 1,
+        "cancelAllCount": 1,
+        "cancelCheckerCancelled": true,
+        "cancelCount": 1,
+        "cancelRepeatFireCount": 0,
+        "cancelRepeatCount": 1,
+        "counterAccessorNowMs": 0,
+        "fireErrorCount": 1,
+        "fireCount": 1,
+        "heapCreatedCount": 1,
+        "heapFired": true,
+        "idleCount": 1,
+        "idlePartialCount": 0,
+        "observedCauseMessage": "onFire boom",
+        "observedHookName": "onFire",
+        "recordedHookNames": [
+          "onFire"
+        ],
+        "rejectionEventsLength": 0,
+        "rescheduleAtMs": [
+          200,
+          300,
+          400
+        ],
+        "rescheduleCount": 3,
+        "scheduleCount": 1,
+        "throwingFireErrorCount": 1,
+        "throwingFireFired": true,
+        "throwingRescheduleFireCount": 3,
+        "throwingScheduleIdNonEmpty": true
+      }
+    },
+    {
+      "name": "invalid-constructor",
+      "description": "rejects invalid VirtualTimeCounter instances",
+      "kind": "invalid-constructor",
+      "expected": {},
+      "input": {
+        "scheduler": {}
+      }
+    },
+    {
+      "name": "invalid-interval",
+      "description": "rejects non-positive scheduleEvery intervals",
+      "kind": "invalid-interval",
+      "expected": {},
+      "input": {
+        "scheduler": {
+          "invalidIntervals": [
+            0,
+            -1
+          ],
+          "startMs": 0
+        }
+      }
+    }
+  ]
+}

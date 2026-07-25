@@ -1,0 +1,174 @@
+{
+  "cases": [
+    {
+      "name": "preserves-entity-rules",
+      "description": "keeps entity rules strict and disables the conflicting function-type preference",
+      "kind": "preserves-entity-rules",
+      "input": {
+        "rules": {
+          "@studnicky/all-types-are-entities": "error",
+          "@studnicky/folder-content-shape": "error",
+          "@studnicky/interface-must-be-contract": "error",
+          "@studnicky/interface-suffix": "error",
+          "@studnicky/interfaces-compose-named-types": "error",
+          "@studnicky/type-alias-invariants": "error",
+          "@studnicky/whole-canonical-types": "error",
+          "@typescript-eslint/prefer-function-type": "off"
+        }
+      },
+      "expected": {
+        "rules": {
+          "@studnicky/all-types-are-entities": "error",
+          "@studnicky/folder-content-shape": "error",
+          "@studnicky/interface-must-be-contract": "error",
+          "@studnicky/interface-suffix": "error",
+          "@studnicky/interfaces-compose-named-types": "error",
+          "@studnicky/type-alias-invariants": "error",
+          "@studnicky/whole-canonical-types": "error",
+          "@typescript-eslint/prefer-function-type": "off"
+        }
+      }
+    },
+    {
+      "name": "blocks-inline-disable",
+      "description": "does not allow inline comments to disable entity rules",
+      "kind": "blocks-inline-disable",
+      "input": {
+        "code": "/* eslint-disable @studnicky/interface-must-be-contract */ interface PureDataInterface { value: string; }",
+        "filename": "PureDataInterface.ts"
+      },
+      "expected": {
+        "messages": [
+          {
+            "messageId": null,
+            "ruleId": null
+          },
+          {
+            "messageId": "dataShapeMustBeType",
+            "ruleId": "@studnicky/interface-must-be-contract"
+          }
+        ]
+      }
+    },
+    {
+      "name": "overrides-prefer-function-type",
+      "description": "overrides an earlier function-type preference for a minimal callable interface",
+      "kind": "overrides-prefer-function-type",
+      "input": {
+        "code": "export interface CallableInterface { (): Promise<void>; }",
+        "filename": "CallableInterface.ts"
+      },
+      "expected": {
+        "messages": []
+      }
+    },
+    {
+      "name": "assigns-owning-rule",
+      "description": "assigns each entity declaration defect to its exact owning rule",
+      "kind": "assigns-owning-rule",
+      "input": {
+        "scenarios": [
+          {
+            "code": "import type { ImportedPureDataInterface } from './packages/eslint-config/tests/fixtures/ImportedPureDataInterface.js';\ninterface ImportedDuplicate { first: string; second: number; }",
+            "filename": "ImportedDuplicate.ts"
+          },
+          {
+            "code": "interface Empty {}",
+            "filename": "Empty.ts"
+          },
+          {
+            "code": "interface Callable { (): void; }",
+            "filename": "Callable.ts"
+          },
+          {
+            "code": "interface Snapshot { readonly value: string; }",
+            "filename": "Snapshot.ts"
+          },
+          {
+            "code": "interface HandlerInterface { run(): void; config: { retries: number }; }",
+            "filename": "HandlerInterface.ts"
+          },
+          {
+            "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { 'type': 'string' } as const satisfies JSONSchema;\ntype ValueType = FromSchema<typeof ValueSchema>;",
+            "filename": "packages/retry/src/models/MisplacedCanonical.ts"
+          },
+          {
+            "code": "type InvalidDataType = { value: string };",
+            "filename": "InvalidInlineAlias.ts"
+          }
+        ]
+      },
+      "expected": {
+        "outputs": [
+          {
+            "filename": "ImportedDuplicate.ts",
+            "messages": [
+              {
+                "messageId": "dataShapeMustBeType",
+                "ruleId": "@studnicky/interface-must-be-contract"
+              }
+            ]
+          },
+          {
+            "filename": "Empty.ts",
+            "messages": [
+              {
+                "messageId": "dataShapeMustBeType",
+                "ruleId": "@studnicky/interface-must-be-contract"
+              }
+            ]
+          },
+          {
+            "filename": "Callable.ts",
+            "messages": [
+              {
+                "messageId": "missing-interface-suffix",
+                "ruleId": "@studnicky/interface-suffix"
+              }
+            ]
+          },
+          {
+            "filename": "Snapshot.ts",
+            "messages": [
+              {
+                "messageId": "missing-interface-suffix",
+                "ruleId": "@studnicky/interface-suffix"
+              },
+              {
+                "messageId": "inlineObjectInInterface",
+                "ruleId": "@studnicky/interfaces-compose-named-types"
+              }
+            ]
+          },
+          {
+            "filename": "HandlerInterface.ts",
+            "messages": [
+              {
+                "messageId": "inlineObjectInInterface",
+                "ruleId": "@studnicky/interfaces-compose-named-types"
+              }
+            ]
+          },
+          {
+            "filename": "packages/retry/src/models/MisplacedCanonical.ts",
+            "messages": [
+              {
+                "messageId": "forbidden-type-alias",
+                "ruleId": "@studnicky/all-types-are-entities"
+              }
+            ]
+          },
+          {
+            "filename": "InvalidInlineAlias.ts",
+            "messages": [
+              {
+                "messageId": "derivedFromSchema",
+                "ruleId": "@studnicky/type-alias-invariants"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

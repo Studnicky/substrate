@@ -1,0 +1,250 @@
+{
+  "cases": [
+    {
+      "name": "error-code-values",
+      "description": "ErrorCode exposes expected values",
+      "kind": "error-code-values",
+      "input": {
+        "AUTHENTICATION_ERROR": "AUTHENTICATION_ERROR",
+        "AUTHORIZATION_ERROR": "AUTHORIZATION_ERROR",
+        "CONFIGURATION_ERROR": "CONFIGURATION_ERROR",
+        "CONNECTION_ERROR": "CONNECTION_ERROR",
+        "DATABASE_ERROR": "DATABASE_ERROR",
+        "EXTERNAL_SERVICE_ERROR": "EXTERNAL_SERVICE_ERROR",
+        "INTERNAL_ERROR": "INTERNAL_ERROR",
+        "NOT_FOUND": "NOT_FOUND",
+        "RATE_LIMIT_ERROR": "RATE_LIMIT_ERROR",
+        "TIMEOUT_ERROR": "TIMEOUT_ERROR",
+        "VALIDATION_ERROR": "VALIDATION_ERROR"
+      },
+      "expected": {
+        "AUTHENTICATION_ERROR": "AUTHENTICATION_ERROR",
+        "AUTHORIZATION_ERROR": "AUTHORIZATION_ERROR",
+        "CONFIGURATION_ERROR": "CONFIGURATION_ERROR",
+        "CONNECTION_ERROR": "CONNECTION_ERROR",
+        "DATABASE_ERROR": "DATABASE_ERROR",
+        "EXTERNAL_SERVICE_ERROR": "EXTERNAL_SERVICE_ERROR",
+        "INTERNAL_ERROR": "INTERNAL_ERROR",
+        "NOT_FOUND": "NOT_FOUND",
+        "RATE_LIMIT_ERROR": "RATE_LIMIT_ERROR",
+        "TIMEOUT_ERROR": "TIMEOUT_ERROR",
+        "VALIDATION_ERROR": "VALIDATION_ERROR"
+      }
+    },
+    {
+      "name": "http-status-client",
+      "description": "HttpStatus exposes client error codes",
+      "kind": "http-status-client",
+      "input": {
+        "BAD_REQUEST": 400,
+        "CONFLICT": 409,
+        "FORBIDDEN": 403,
+        "METHOD_NOT_ALLOWED": 405,
+        "NOT_FOUND": 404,
+        "TOO_MANY_REQUESTS": 429,
+        "UNAUTHORIZED": 401,
+        "UNPROCESSABLE_ENTITY": 422
+      },
+      "expected": {
+        "BAD_REQUEST": 400,
+        "CONFLICT": 409,
+        "FORBIDDEN": 403,
+        "METHOD_NOT_ALLOWED": 405,
+        "NOT_FOUND": 404,
+        "TOO_MANY_REQUESTS": 429,
+        "UNAUTHORIZED": 401,
+        "UNPROCESSABLE_ENTITY": 422
+      }
+    },
+    {
+      "name": "http-status-server",
+      "description": "HttpStatus exposes server error codes",
+      "kind": "http-status-server",
+      "input": {
+        "BAD_GATEWAY": 502,
+        "GATEWAY_TIMEOUT": 504,
+        "INTERNAL_SERVER_ERROR": 500,
+        "NOT_IMPLEMENTED": 501,
+        "SERVICE_UNAVAILABLE": 503
+      },
+      "expected": {
+        "BAD_GATEWAY": 502,
+        "GATEWAY_TIMEOUT": 504,
+        "INTERNAL_SERVER_ERROR": 500,
+        "NOT_IMPLEMENTED": 501,
+        "SERVICE_UNAVAILABLE": 503
+      }
+    },
+    {
+      "name": "defaults-authentication",
+      "description": "AUTHENTICATION has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "AUTHENTICATION" },
+      "expected": { "code": "AUTHENTICATION_ERROR", "retryable": false, "statusCode": 401 }
+    },
+    {
+      "name": "defaults-authorization",
+      "description": "AUTHORIZATION has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "AUTHORIZATION" },
+      "expected": { "code": "AUTHORIZATION_ERROR", "retryable": false, "statusCode": 403 }
+    },
+    {
+      "name": "defaults-connection",
+      "description": "CONNECTION has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "CONNECTION" },
+      "expected": { "code": "CONNECTION_ERROR", "retryable": true, "statusCode": 503 }
+    },
+    {
+      "name": "defaults-database",
+      "description": "DATABASE has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "DATABASE" },
+      "expected": { "code": "DATABASE_ERROR", "retryable": false, "statusCode": 500 }
+    },
+    {
+      "name": "defaults-not-found",
+      "description": "NOT_FOUND has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "NOT_FOUND" },
+      "expected": { "code": "NOT_FOUND", "retryable": false, "statusCode": 404 }
+    },
+    {
+      "name": "defaults-timeout",
+      "description": "TIMEOUT has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "TIMEOUT" },
+      "expected": { "code": "TIMEOUT_ERROR", "retryable": true, "statusCode": 504 }
+    },
+    {
+      "name": "defaults-validation",
+      "description": "VALIDATION has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "VALIDATION" },
+      "expected": { "code": "VALIDATION_ERROR", "retryable": false, "statusCode": 400 }
+    },
+    {
+      "name": "defaults-rate-limit",
+      "description": "RATE_LIMIT has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "RATE_LIMIT" },
+      "expected": { "code": "RATE_LIMIT_ERROR", "retryable": true, "statusCode": 429 }
+    },
+    {
+      "name": "defaults-external-service",
+      "description": "EXTERNAL_SERVICE has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "EXTERNAL_SERVICE" },
+      "expected": { "code": "EXTERNAL_SERVICE_ERROR", "retryable": true, "statusCode": 502 }
+    },
+    {
+      "name": "defaults-configuration",
+      "description": "CONFIGURATION has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "CONFIGURATION" },
+      "expected": { "code": "CONFIGURATION_ERROR", "retryable": false, "statusCode": 500 }
+    },
+    {
+      "name": "defaults-internal",
+      "description": "INTERNAL has correct defaults",
+      "kind": "defaults",
+      "input": { "scenario": "INTERNAL" },
+      "expected": { "code": "INTERNAL_ERROR", "retryable": false, "statusCode": 500 }
+    },
+    {
+      "name": "module-error-authentication",
+      "description": "ModuleError.create uses AUTHENTICATION defaults",
+      "kind": "module-error-authentication",
+      "input": {
+        "error": {
+          "message": "Authentication failed",
+          "options": { "context": { "userId": "123" }, "scenario": "AUTHENTICATION" }
+        }
+      },
+      "expected": {
+        "code": "AUTHENTICATION_ERROR",
+        "context": { "userId": "123" },
+        "retryable": false,
+        "statusCode": 401
+      }
+    },
+    {
+      "name": "retryable-connection",
+      "description": "CONNECTION marks errors as retryable",
+      "kind": "retryable",
+      "input": { "error": { "message": "retry", "options": { "scenario": "CONNECTION" } } },
+      "expected": { "code": "CONNECTION_ERROR", "retryable": true }
+    },
+    {
+      "name": "retryable-timeout",
+      "description": "TIMEOUT marks errors as retryable",
+      "kind": "retryable",
+      "input": { "error": { "message": "retry", "options": { "scenario": "TIMEOUT" } } },
+      "expected": { "code": "TIMEOUT_ERROR", "retryable": true }
+    },
+    {
+      "name": "retryable-rate-limit",
+      "description": "RATE_LIMIT marks errors as retryable",
+      "kind": "retryable",
+      "input": { "error": { "message": "retry", "options": { "scenario": "RATE_LIMIT" } } },
+      "expected": { "code": "RATE_LIMIT_ERROR", "retryable": true }
+    },
+    {
+      "name": "retryable-external-service",
+      "description": "EXTERNAL_SERVICE marks errors as retryable",
+      "kind": "retryable",
+      "input": { "error": { "message": "retry", "options": { "scenario": "EXTERNAL_SERVICE" } } },
+      "expected": { "code": "EXTERNAL_SERVICE_ERROR", "retryable": true }
+    },
+    {
+      "name": "integration-context-override",
+      "description": "ModuleError.create works with context override",
+      "kind": "integration-context-override",
+      "input": {
+        "error": {
+          "message": "Failed to connect",
+          "options": { "context": { "attempt": 3, "host": "api.example.com" }, "scenario": "CONNECTION" }
+        }
+      },
+      "expected": { "code": "CONNECTION_ERROR", "context": { "attempt": 3, "host": "api.example.com" }, "retryable": true }
+    },
+    {
+      "name": "integration-cause-override",
+      "description": "ModuleError.create works with cause override",
+      "kind": "integration-cause-override",
+      "input": {
+        "error": {
+          "causeMessage": "Socket timeout",
+          "message": "Connection failed",
+          "options": { "scenario": "CONNECTION" }
+        }
+      },
+      "expected": { "causeMessage": "Socket timeout", "code": "CONNECTION_ERROR" }
+    },
+    {
+      "name": "integration-retryable-override",
+      "description": "ModuleError.create allows overriding retryable",
+      "kind": "integration-retryable-override",
+      "input": {
+        "error": {
+          "message": "Permanent connection failure",
+          "options": { "retryable": false, "scenario": "CONNECTION" }
+        }
+      },
+      "expected": { "code": "CONNECTION_ERROR", "retryable": false }
+    },
+    {
+      "name": "integration-status-code-override",
+      "description": "ModuleError.create allows overriding statusCode",
+      "kind": "integration-status-code-override",
+      "input": {
+        "error": {
+          "message": "Database locked",
+          "options": { "scenario": "DATABASE", "statusCode": 409 }
+        }
+      },
+      "expected": { "code": "DATABASE_ERROR", "statusCode": 409 }
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "cases": [
+    {
+      "name": "url-only",
+      "description": "SocketExhaustionError creates an error with URL only",
+      "kind": "url-only",
+      "input": {
+        "url": "https://api.example.com/data"
+      },
+      "expected": {
+        "dispatcherStats": "__UNDEFINED__",
+        "maxConnections": 0,
+        "pendingRequests": 0,
+        "queuedRequests": 0,
+        "url": "https://api.example.com/data"
+      }
+    },
+    {
+      "name": "with-stats",
+      "description": "SocketExhaustionError creates an error with dispatcher stats",
+      "kind": "with-stats",
+      "input": {
+        "url": "https://api.example.com/data",
+        "stats": {
+          "connected": 20,
+          "free": 0,
+          "pending": 15,
+          "queued": 5,
+          "running": 20,
+          "size": 40
+        }
+      },
+      "expected": {
+        "dispatcherStats": {
+          "connected": 20,
+          "free": 0,
+          "pending": 15,
+          "queued": 5,
+          "running": 20,
+          "size": 40
+        },
+        "maxConnections": 20,
+        "pendingRequests": 15,
+        "queuedRequests": 5,
+        "url": "https://api.example.com/data"
+      }
+    },
+    {
+      "name": "message-includes-stats",
+      "description": "SocketExhaustionError includes stats in the error message",
+      "kind": "message-includes-stats",
+      "input": {
+        "url": "https://test.com/api",
+        "stats": {
+          "connected": 10,
+          "free": 2,
+          "pending": 5,
+          "queued": 3,
+          "running": 8,
+          "size": 16
+        }
+      },
+      "expected": {
+        "messageIncludes": [
+          "connected: 10",
+          "free: 2",
+          "pending: 5",
+          "queued: 3",
+          "increasing pool size"
+        ]
+      }
+    },
+    {
+      "name": "catchable",
+      "description": "SocketExhaustionError is catchable as Error",
+      "kind": "catchable",
+      "input": {
+        "url": "https://test.com/api",
+        "stats": {
+          "connected": 5,
+          "free": 0,
+          "pending": 10,
+          "queued": 0,
+          "running": 5,
+          "size": 15
+        }
+      },
+      "expected": {
+        "caughtName": "SocketExhaustionError",
+        "url": "https://test.com/api"
+      }
+    },
+    {
+      "name": "property-types",
+      "description": "SocketExhaustionError exposes the correct property types",
+      "kind": "property-types",
+      "input": {
+        "url": "https://api.com/test",
+        "stats": {
+          "connected": 15,
+          "free": 3,
+          "pending": 8,
+          "queued": 2,
+          "running": 12,
+          "size": 22
+        }
+      },
+      "expected": {
+        "dispatcherStatsType": "object",
+        "freeConnectionsType": "number",
+        "maxConnectionsType": "number",
+        "pendingRequestsType": "number",
+        "queuedRequestsType": "number",
+        "urlType": "string"
+      }
+    },
+    {
+      "name": "preserve-through-throw",
+      "description": "SocketExhaustionError preserves its properties through throw and catch",
+      "kind": "preserve-through-throw",
+      "input": {
+        "url": "https://api.com/test",
+        "stats": {
+          "connected": 10,
+          "free": 0,
+          "pending": 5,
+          "queued": 0,
+          "running": 10,
+          "size": 15
+        }
+      },
+      "expected": {
+        "dispatcherStatsDefined": true,
+        "freeConnections": 0,
+        "maxConnections": 10,
+        "pendingRequests": 5,
+        "url": "https://api.com/test"
+      }
+    }
+  ]
+}

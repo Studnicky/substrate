@@ -1,0 +1,166 @@
+{
+  "cases": [
+    {
+      "name": "wrap-no-code",
+      "description": "wrapUndiciError returns undefined when the error has no code",
+      "kind": "wrap-no-code",
+      "input": {
+        "url": "https://example.test/ok",
+        "fetchClient": {
+          "baseURL": "https://example.test"
+        }
+      },
+      "expected": {
+        "kind": "undefined"
+      }
+    },
+    {
+      "name": "wrap-unknown-code",
+      "description": "wrapUndiciError returns undefined for unknown error codes",
+      "kind": "wrap-unknown-code",
+      "input": {
+        "errorCode": "UND_ERR_SOMETHING_ELSE",
+        "url": "https://example.test/ok",
+        "fetchClient": {
+          "baseURL": "https://example.test"
+        }
+      },
+      "expected": {
+        "kind": "undefined"
+      }
+    },
+    {
+      "name": "handle-no-dispatcher",
+      "description": "handleSocketExhaustion returns undefined when dispatcher is absent",
+      "kind": "handle-no-dispatcher",
+      "input": {
+        "errorCode": "UND_ERR_CONNECT_TIMEOUT",
+        "url": "https://example.test/ok",
+        "fetchClient": {
+          "baseURL": "https://example.test"
+        }
+      },
+      "expected": {
+        "kind": "undefined"
+      }
+    },
+    {
+      "name": "handle-invalid-origin",
+      "description": "handleSocketExhaustion returns undefined when origin extraction fails",
+      "kind": "handle-invalid-origin",
+      "input": {
+        "errorCode": "UND_ERR_CONNECT_TIMEOUT",
+        "url": "not-a-valid-url",
+        "fetchClient": {
+          "baseURL": "https://example.test",
+          "dispatcher": {
+            "connections": 2,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "kind": "undefined"
+      }
+    },
+    {
+      "name": "handle-dispatcher-health",
+      "description": "handleSocketExhaustion creates a SocketExhaustionError when health stats are available",
+      "kind": "handle-dispatcher-health",
+      "input": {
+        "errorCode": "UND_ERR_CONNECT_TIMEOUT",
+        "url": "https://example.test/ok",
+        "fetchClient": {
+          "baseURL": "https://example.test",
+          "dispatcher": {
+            "connections": 2,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "kind": "socket-exhaustion"
+      }
+    },
+    {
+      "name": "wrap-connect-timeout",
+      "description": "wrapUndiciError maps connect timeout errors",
+      "kind": "wrap-connect-timeout",
+      "input": {
+        "errorCode": "UND_ERR_CONNECT_TIMEOUT",
+        "url": "not-a-valid-url",
+        "fetchClient": {
+          "baseURL": "https://example.test",
+          "dispatcher": {
+            "connections": 2,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "kind": "error",
+        "errorName": "ConnectTimeoutError"
+      }
+    },
+    {
+      "name": "wrap-body-timeout",
+      "description": "wrapUndiciError maps body timeout errors",
+      "kind": "wrap-body-timeout",
+      "input": {
+        "errorCode": "UND_ERR_BODY_TIMEOUT",
+        "url": "https://example.test/ok",
+        "fetchClient": {
+          "baseURL": "https://example.test",
+          "dispatcher": {
+            "connections": 2,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "kind": "error",
+        "errorName": "BodyTimeoutError"
+      }
+    },
+    {
+      "name": "wrap-headers-timeout",
+      "description": "wrapUndiciError maps headers timeout errors",
+      "kind": "wrap-headers-timeout",
+      "input": {
+        "errorCode": "UND_ERR_HEADERS_TIMEOUT",
+        "url": "https://example.test/ok",
+        "fetchClient": {
+          "baseURL": "https://example.test",
+          "dispatcher": {
+            "connections": 2,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "kind": "error",
+        "errorName": "HeadersTimeoutError"
+      }
+    },
+    {
+      "name": "wrap-socket-error",
+      "description": "wrapUndiciError maps socket errors",
+      "kind": "wrap-socket-error",
+      "input": {
+        "errorCode": "UND_ERR_SOCKET",
+        "url": "https://example.test/ok",
+        "fetchClient": {
+          "baseURL": "https://example.test",
+          "dispatcher": {
+            "connections": 2,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "kind": "error",
+        "errorName": "SocketError"
+      }
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "cases": [
+    {
+      "name": "default-config",
+      "description": "DispatcherAgent.create uses defaults when config is empty",
+      "kind": "default-config",
+      "input": {
+        "dispatcherAgent": {}
+      },
+      "expected": {
+        "optionKeys": 0
+      }
+    },
+    {
+      "name": "sparse-config",
+      "description": "DispatcherAgent.create preserves sparse config values",
+      "kind": "sparse-config",
+      "input": {
+        "dispatcherAgent": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "optionKeys": 2
+      }
+    },
+    {
+      "name": "comprehensive-config",
+      "description": "DispatcherAgent.create accepts a comprehensive dispatcher config",
+      "kind": "comprehensive-config",
+      "input": {
+        "dispatcherAgent": {
+          "allowH2": true,
+          "autoSelectFamily": true,
+          "autoSelectFamilyAttemptTimeout": 20,
+          "bodyTimeout": 30,
+          "clientTtl": 40,
+          "connections": 2,
+          "connectTimeout": 50,
+          "enabled": true,
+          "headersTimeout": 60,
+          "keepAliveMaxTimeout": 70,
+          "keepAliveTimeout": 80,
+          "keepAliveTimeoutThreshold": 90,
+          "localAddress": "127.0.0.1",
+          "maxConcurrentStreams": 100,
+          "maxHeaderSize": 200,
+          "maxOrigins": 3,
+          "maxRequestsPerClient": 4,
+          "maxResponseSize": 500,
+          "pipelining": 1,
+          "strictContentLength": true
+        }
+      },
+      "expected": {
+        "optionKeys": 18
+      }
+    }
+  ]
+}

@@ -1,0 +1,266 @@
+{
+  "isObject": [
+    {
+      "description": "returns true for a plain object",
+      "input": {
+        "a": 1
+      },
+      "outcome": true
+    },
+    {
+      "description": "returns false for null",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": false
+    },
+    {
+      "description": "returns false for an array",
+      "input": [
+        1,
+        2
+      ],
+      "outcome": false
+    },
+    {
+      "description": "returns false for a string",
+      "input": "hello",
+      "outcome": false
+    }
+  ],
+  "isString": [
+    {
+      "description": "returns true for a string",
+      "input": "hello",
+      "outcome": true
+    },
+    {
+      "description": "returns false for a number",
+      "input": 42,
+      "outcome": false
+    },
+    {
+      "description": "returns false for undefined",
+      "input": {
+        "kind": "undefined"
+      },
+      "outcome": false
+    }
+  ],
+  "isNumber": [
+    {
+      "description": "returns true for a finite number",
+      "input": 42,
+      "outcome": true
+    },
+    {
+      "description": "returns false for NaN",
+      "input": {
+        "kind": "nan"
+      },
+      "outcome": false
+    },
+    {
+      "description": "returns false for a string",
+      "input": "42",
+      "outcome": false
+    }
+  ],
+  "asNumber": [
+    {
+      "description": "returns number for a number value",
+      "input": 7,
+      "outcome": 7
+    },
+    {
+      "description": "returns undefined for a non-number",
+      "input": "seven",
+      "outcome": {
+        "kind": "undefined"
+      }
+    }
+  ],
+  "isBoolean": [
+    {
+      "description": "returns true for true",
+      "input": true,
+      "outcome": true
+    },
+    {
+      "description": "returns true for false",
+      "input": false,
+      "outcome": true
+    },
+    {
+      "description": "returns false for a string",
+      "input": "true",
+      "outcome": false
+    },
+    {
+      "description": "returns false for 0",
+      "input": 0,
+      "outcome": false
+    }
+  ],
+  "isFunction": [
+    {
+      "description": "returns true for an arrow function",
+      "input": {
+        "kind": "function"
+      },
+      "outcome": true
+    },
+    {
+      "description": "returns true for a named function",
+      "input": {
+        "kind": "namedFunction"
+      },
+      "outcome": true
+    },
+    {
+      "description": "returns false for an object",
+      "input": {},
+      "outcome": false
+    },
+    {
+      "description": "returns false for null",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": false
+    }
+  ],
+  "asStringOrNull": [
+    {
+      "description": "returns null for null",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    },
+    {
+      "description": "returns string for a string value",
+      "input": "hello",
+      "outcome": "hello"
+    },
+    {
+      "description": "returns undefined for a number",
+      "input": 42,
+      "outcome": {
+        "kind": "undefined"
+      }
+    },
+    {
+      "description": "returns undefined for undefined",
+      "input": {
+        "kind": "undefined"
+      },
+      "outcome": {
+        "kind": "undefined"
+      }
+    }
+  ],
+  "asRecordArray": [
+    {
+      "description": "returns filtered array of records from a mixed array",
+      "input": [
+        {
+          "a": 1
+        },
+        "skip",
+        {
+          "kind": "null"
+        },
+        {
+          "b": 2
+        }
+      ],
+      "outcome": [
+        {
+          "a": 1
+        },
+        {
+          "b": 2
+        }
+      ]
+    },
+    {
+      "description": "returns undefined for a non-array",
+      "input": {
+        "a": 1
+      },
+      "outcome": {
+        "kind": "undefined"
+      }
+    },
+    {
+      "description": "returns undefined when no records are in the array",
+      "input": [
+        "a",
+        {
+          "kind": "null"
+        },
+        42
+      ],
+      "outcome": {
+        "kind": "undefined"
+      }
+    }
+  ],
+  "isNonNegativeInteger": [
+    {
+      "description": "returns true for 0",
+      "input": 0,
+      "outcome": true
+    },
+    {
+      "description": "returns true for a positive integer",
+      "input": 1,
+      "outcome": true
+    },
+    {
+      "description": "returns false for -1",
+      "input": -1,
+      "outcome": false
+    },
+    {
+      "description": "returns false for a float",
+      "input": 0.5,
+      "outcome": false
+    },
+    {
+      "description": "returns false for a string",
+      "input": "1",
+      "outcome": false
+    }
+  ],
+  "isPositiveInteger": [
+    {
+      "description": "returns true for 1",
+      "input": 1,
+      "outcome": true
+    },
+    {
+      "description": "returns false for 0",
+      "input": 0,
+      "outcome": false
+    },
+    {
+      "description": "returns false for -1",
+      "input": -1,
+      "outcome": false
+    },
+    {
+      "description": "returns false for a float",
+      "input": 1.5,
+      "outcome": false
+    },
+    {
+      "description": "returns false for a string",
+      "input": "1",
+      "outcome": false
+    }
+  ]
+}

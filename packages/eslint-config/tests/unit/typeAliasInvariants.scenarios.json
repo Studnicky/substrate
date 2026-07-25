@@ -1,0 +1,232 @@
+{
+  "rule": {
+    "valid": [
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\nexport type ValueType = FromSchema<typeof ValueSchema>;",
+        "filename": "packages/eslint-config/Canonical.ts",
+        "name": "direct schema-derived data is canonical"
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\ntype ValueType = FromSchema<typeof ValueSchema>;\nexport type ValueCollectionType = ValueType[] | null;",
+        "filename": "packages/eslint-config/CanonicalComposition.ts",
+        "name": "verified canonical roots compose deterministically"
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\ntype ValueType = FromSchema<typeof ValueSchema>;\ntype MutableCollectionType = ValueType[];",
+        "filename": "packages/eslint-config/MutableCollection.ts",
+        "name": "mutable canonical composition does not author readonly policy"
+      },
+      {
+        "code": "import { type FooType } from './foo.js';",
+        "name": "direct import preserves the canonical name"
+      },
+      {
+        "code": "interface HandlerInterface { (value: string): void; }",
+        "name": "interfaces are owned by interface rules"
+      },
+      {
+        "code": "import type { ImportedPureDataInterface } from './packages/eslint-config/tests/fixtures/ImportedPureDataInterface.js';\nimport type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst NearSchema = {\n  additionalProperties: false,\n  properties: { first: { type: 'string' }, optionalExtra: { type: 'string' }, second: { type: 'number' } },\n  required: ['first', 'second'],\n  type: 'object'\n} as const satisfies JSONSchema;\ntype NearType = FromSchema<typeof NearSchema>;",
+        "filename": "packages/eslint-config/NearCanonical.ts",
+        "name": "near structural similarity does not block a distinct canonical data type"
+      },
+      {
+        "code": "import type { ImportedPureDataInterface } from './packages/eslint-config/tests/fixtures/ImportedPureDataInterface.js';\nimport type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst NarrowSchema = {\n  additionalProperties: false,\n  properties: { first: { const: 'fixed', type: 'string' }, second: { type: 'number' } },\n  required: ['first', 'second'],\n  type: 'object'\n} as const satisfies JSONSchema;\ntype NarrowType = FromSchema<typeof NarrowSchema>;",
+        "filename": "packages/eslint-config/NarrowCanonical.ts",
+        "name": "subsumed structural similarity does not block a distinct canonical data type"
+      },
+      {
+        "code": "import type { ImportedPureDataInterface } from './tests/fixtures/ImportedPureDataInterface.js';\nimport type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst LocalSchema = {\n  additionalProperties: false,\n  properties: { first: { type: 'string' }, second: { type: 'number' } },\n  required: ['first', 'second'],\n  type: 'object'\n} as const satisfies JSONSchema;\ntype LocalType = FromSchema<typeof LocalSchema>;",
+        "filename": "packages/eslint-config/ExactCanonical.ts",
+        "name": "structural equality does not override independent canonical provenance"
+      }
+    ],
+    "invalid": [
+      {
+        "code": "type HandlerType = (value: string) => void;",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "name": "callable alias receives the declaration-kind verdict"
+      },
+      {
+        "code": "type ConstructorType = new (value: string) => object;",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "name": "constructor alias receives the declaration-kind verdict"
+      },
+      {
+        "code": "type BrandType = { readonly __brand: unique symbol };",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "name": "brand alias receives one declaration-kind verdict without a readonly fix",
+        "output": null
+      },
+      {
+        "code": "type ConditionalType<T> = T extends string ? number : boolean;",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "name": "conditional computation is a contract or redesign concern"
+      },
+      {
+        "code": "type MappedType<T> = { [K in keyof T]: T[K] };",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "name": "mapped computation is a contract or redesign concern"
+      },
+      {
+        "code": "class Service {}\ntype ServiceContractType = { service: Service };",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "name": "class-bearing alias receives the declaration-kind verdict"
+      },
+      {
+        "code": "type UnknownContractType = { value: unknown };",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "name": "unknown-bearing alias receives the declaration-kind verdict"
+      },
+      {
+        "code": "type InlineDataType = { value: string };",
+        "errors": [
+          {
+            "messageId": "derivedFromSchema"
+          }
+        ],
+        "name": "inline pure data must have verified schema provenance"
+      },
+      {
+        "code": "// json-schema-uninexpressible: comments do not change classification\ntype InlineDataType = { value: string };",
+        "errors": [
+          {
+            "messageId": "derivedFromSchema"
+          }
+        ],
+        "name": "comments cannot exempt canonical provenance"
+      },
+      {
+        "code": "import type { ImportedPureDataInterface } from './packages/eslint-config/tests/fixtures/ImportedPureDataInterface.js';\ntype LocalType = { first: string; second: number };",
+        "errors": [
+          {
+            "messageId": "derivedFromSchema"
+          }
+        ],
+        "name": "exact imported shape comparison cannot mask missing schema provenance"
+      },
+      {
+        "code": "type ListType<T> = Array<T>;",
+        "errors": [
+          {
+            "messageId": "genericForwardingAlias"
+          }
+        ],
+        "name": "generic forwarding alias receives its deterministic identity verdict"
+      },
+      {
+        "code": "type AliasType = ExistingType;",
+        "errors": [
+          {
+            "messageId": "nakedTypeAlias"
+          }
+        ],
+        "name": "naked alias receives its deterministic identity verdict"
+      },
+      {
+        "code": "type IdType = string;",
+        "errors": [
+          {
+            "messageId": "primitiveTypeAlias"
+          }
+        ],
+        "name": "primitive forwarding alias receives its deterministic identity verdict"
+      },
+      {
+        "code": "import { FooType as BarType } from './foo.js';",
+        "errors": [
+          {
+            "messageId": "importAlias"
+          }
+        ],
+        "name": "import aliases cannot hide canonical names"
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\nexport type Value = FromSchema<typeof ValueSchema>;",
+        "errors": [
+          {
+            "messageId": "mustEndType"
+          }
+        ],
+        "filename": "packages/eslint-config/BadName.ts",
+        "name": "retained exported canonical aliases keep deterministic naming"
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\ntype Value = FromSchema<typeof ValueSchema>;\nexport type { Value };",
+        "errors": [
+          {
+            "messageId": "mustEndType"
+          }
+        ],
+        "filename": "packages/eslint-config/BadReexportName.ts",
+        "name": "separate canonical re-export keeps deterministic naming"
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\ntype ValueType = FromSchema<typeof ValueSchema>;\nexport type ValueListType = readonly ValueType[];",
+        "errors": [
+          {
+            "messageId": "noReadonly"
+          }
+        ],
+        "filename": "packages/eslint-config/ReadonlyCollection.ts",
+        "name": "canonical alias readonly output is reported and fixed",
+        "output": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\ntype ValueType = FromSchema<typeof ValueSchema>;\nexport type ValueListType = ValueType[];"
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\ntype ValueType = FromSchema<typeof ValueSchema>;\ntype ValueListType = ReadonlyArray<ValueType>;",
+        "errors": [
+          {
+            "messageId": "noReadonly"
+          }
+        ],
+        "filename": "packages/eslint-config/IntrinsicReadonlyCollection.ts",
+        "name": "intrinsic readonly canonical output is reported without an unsafe fix",
+        "output": null
+      }
+    ]
+  },
+  "metaSchema": {
+    "expected": []
+  },
+  "severity": {
+    "code": "type HandlerType = () => void;",
+    "warningFilename": "OuterSeverity.ts",
+    "disabledFilename": "OuterSeverityOff.ts",
+    "expectedWarningCount": 1,
+    "expectedWarningSeverity": 1
+  },
+  "combined": {
+    "code": "import type { ImportedPureDataInterface } from './packages/eslint-config/tests/fixtures/ImportedPureDataInterface.js';\ninterface LocalPureDataInterface { first: string; second: number; }",
+    "filename": "ImportedPureDataInterfaceConsumer.ts",
+    "expectedMessageIds": [
+      "dataShapeMustBeType"
+    ]
+  }
+}

@@ -1,0 +1,393 @@
+{
+  "cases": [
+    {
+      "name": "scheduleAt-returns-task",
+      "description": "returns a ScheduledTask with id and atMs",
+      "kind": "scheduleAt-returns-task",
+      "input": {
+        "scheduler": {
+          "delayMs": 10000
+        }
+      },
+      "expected": {
+        "hasId": true,
+        "atMsMatches": true
+      }
+    },
+    {
+      "name": "backend-overrides",
+      "description": "custom timer backend hooks and clearTimer are invoked",
+      "kind": "backend-overrides",
+      "input": {
+        "batch": {
+          "taskCount": 2
+        },
+        "scheduler": {
+          "delayMs": 10000,
+          "intervalMs": 5000
+        }
+      },
+      "expected": {
+        "cancelAllCount": 1,
+        "scheduleCount": 3
+      }
+    },
+    {
+      "name": "scheduleEvery-returns-task",
+      "description": "returns a ScheduledTask with atMs and id",
+      "kind": "scheduleEvery-returns-task",
+      "input": {
+        "scheduler": {
+          "intervalMs": 5000
+        }
+      },
+      "expected": {
+        "hasId": true,
+        "atMsPositive": true
+      }
+    },
+    {
+      "name": "cancelAll-clears-multiple",
+      "description": "clears multiple tasks without error",
+      "kind": "cancelAll-clears-multiple",
+      "input": {
+        "batch": {
+          "taskCount": 3
+        },
+        "scheduler": {
+          "delayMs": 10000
+        }
+      },
+      "expected": {
+        "cancelAllCount": 1,
+        "scheduleCount": 3
+      }
+    },
+    {
+      "name": "cancel-before-fire",
+      "description": "cancel() before fire prevents double-cancel error",
+      "kind": "cancel-before-fire",
+      "input": {
+        "scheduler": {
+          "delayMs": 10000
+        }
+      },
+      "expected": {
+        "cancelCount": 1
+      }
+    },
+    {
+      "name": "cancelAll-interval-task",
+      "description": "scheduleEvery interval task cancel via cancelAll",
+      "kind": "cancelAll-interval-task",
+      "input": {
+        "scheduler": {
+          "intervalMs": 5000
+        }
+      },
+      "expected": {
+        "cancelAllCount": 1,
+        "scheduleCount": 1
+      }
+    },
+    {
+      "name": "cancelAll-empty",
+      "description": "cancelAll on empty scheduler is a no-op",
+      "kind": "cancelAll-empty",
+      "input": {
+        "batch": {
+          "taskCount": 0
+        },
+        "scheduler": {}
+      },
+      "expected": {
+        "cancelAllCount": 1,
+        "scheduleCount": 0
+      }
+    },
+    {
+      "name": "unique-task-ids",
+      "description": "task IDs are unique across multiple schedules",
+      "kind": "unique-task-ids",
+      "input": {
+        "batch": {
+          "taskCount": 5
+        },
+        "scheduler": {
+          "delayMs": 10000
+        }
+      },
+      "expected": {
+        "uniqueIds": true
+      }
+    },
+    {
+      "name": "rejecting-scheduleAt",
+      "description": "rejected Promise from fire is silently caught for scheduleAt",
+      "kind": "rejecting-scheduleAt",
+      "input": {
+        "scheduler": {
+          "pastMsOffset": -1,
+          "waitMs": 20
+        }
+      },
+      "expected": {
+        "unhandledRejectionCount": 0
+      }
+    },
+    {
+      "name": "rejecting-scheduleEvery",
+      "description": "rejected Promise from fire is silently caught for scheduleEvery",
+      "kind": "rejecting-scheduleEvery",
+      "input": {
+        "scheduler": {
+          "intervalMs": 1,
+          "waitMs": 20
+        }
+      },
+      "expected": {
+        "unhandledRejectionCount": 0
+      }
+    },
+    {
+      "name": "onSchedule-called",
+      "description": "onSchedule is called when scheduleAt or scheduleEvery is called",
+      "kind": "onSchedule-called",
+      "input": {
+        "scheduler": {
+          "delayMs": 10000
+        }
+      },
+      "expected": {
+        "scheduleCount": 1
+      }
+    },
+    {
+      "name": "onCancel-called",
+      "description": "onCancel is called when task is cancelled",
+      "kind": "onCancel-called",
+      "input": {
+        "scheduler": {
+          "delayMs": 10000
+        }
+      },
+      "expected": {
+        "cancelCount": 1
+      }
+    },
+    {
+      "name": "cancel-after-fire",
+      "description": "cancel after a timeout callback fires does not invoke onCancel",
+      "kind": "cancel-after-fire",
+      "input": {
+        "scheduler": {
+          "delayMs": -1,
+          "waitMs": 20
+        }
+      },
+      "expected": {
+        "callbackCount": 1,
+        "fireCount": 1,
+        "cancelCount": 0
+      }
+    },
+    {
+      "name": "onCancelAll-called",
+      "description": "onCancelAll is called when cancelAll is called",
+      "kind": "onCancelAll-called",
+      "input": {
+        "scheduler": {
+          "delayMs": 10000
+        }
+      },
+      "expected": {
+        "cancelAllCount": 1
+      }
+    },
+    {
+      "name": "custom-id",
+      "description": "generateId override returns custom IDs",
+      "kind": "custom-id",
+      "input": {
+        "scheduler": {
+          "delayMs": 10000
+        }
+      },
+      "expected": {
+        "id": "custom-id"
+      }
+    },
+    {
+      "name": "onMiss-past-scheduleAt",
+      "description": "onMiss fires when scheduleAt receives a past atMs",
+      "kind": "onMiss-past-scheduleAt",
+      "input": {
+        "scheduler": {
+          "pastMsOffset": -1
+        }
+      },
+      "expected": {
+        "missCount": 1
+      }
+    },
+    {
+      "name": "onMiss-future-scheduleAt",
+      "description": "onMiss does NOT fire for a future scheduleAt",
+      "kind": "onMiss-future-scheduleAt",
+      "input": {
+        "scheduler": {
+          "futureMsOffset": 10000
+        }
+      },
+      "expected": {
+        "missCount": 0
+      }
+    },
+    {
+      "name": "onFireError-sync",
+      "description": "onFireError fires when a scheduled task throws synchronously",
+      "kind": "onFireError-sync",
+      "input": {
+        "scheduler": {
+          "pastMsOffset": -1,
+          "waitMs": 20
+        }
+      },
+      "expected": {
+        "fireErrorCount": 1
+      }
+    },
+    {
+      "name": "onFireError-async",
+      "description": "onFireError fires when a scheduled task rejects asynchronously",
+      "kind": "onFireError-async",
+      "input": {
+        "scheduler": {
+          "pastMsOffset": -1,
+          "waitMs": 20
+        }
+      },
+      "expected": {
+        "fireErrorCount": 1
+      }
+    },
+    {
+      "name": "onIdle-after-cancelAll",
+      "description": "onIdle fires after cancelAll clears all tasks",
+      "kind": "onIdle-after-cancelAll",
+      "input": {
+        "scheduler": {
+          "delayMs": 10000
+        }
+      },
+      "expected": {
+        "idleCount": 1
+      }
+    },
+    {
+      "name": "onIdle-empty-cancelAll",
+      "description": "onIdle fires on cancelAll even when no tasks were scheduled",
+      "kind": "onIdle-empty-cancelAll",
+      "input": {
+        "batch": {
+          "idleCount": 1
+        },
+        "scheduler": {}
+      },
+      "expected": {
+        "idleCount": 1
+      }
+    },
+    {
+      "name": "onDrift-captured",
+      "description": "onDrift fires when scheduleAt resolves later than the requested time",
+      "kind": "onDrift-captured",
+      "input": {
+        "scheduler": {
+          "atMs": 10,
+          "clockStepMs": 25,
+          "waitMs": 20
+        }
+      },
+      "expected": {
+        "completed": true
+      }
+    },
+    {
+      "name": "chained-timeout-fire",
+      "description": "scheduleAt chains through intermediate stages and still fires once for a far-future atMs",
+      "kind": "chained-timeout-fire",
+      "input": {
+        "batch": {
+          "chainStageCount": 3
+        },
+        "scheduler": {
+          "bufferMs": 30,
+          "maxDelayMs": 10
+        }
+      },
+      "expected": {
+        "completed": true
+      }
+    },
+    {
+      "name": "chained-timeout-cancel",
+      "description": "cancel() during an intermediate chained stage prevents the eventual fire",
+      "kind": "chained-timeout-cancel",
+      "input": {
+        "batch": {
+          "chainStageCount": 3
+        },
+        "scheduler": {
+          "bufferMs": 30,
+          "maxDelayMs": 10
+        }
+      },
+      "expected": {
+        "completed": true
+      }
+    },
+    {
+      "name": "async-onFire-rejection-guarded",
+      "description": "an async onFire override that rejects is routed to onHookError without an unhandled rejection",
+      "kind": "async-onFire-rejection-guarded",
+      "input": {
+        "scheduler": {
+          "pastMsOffset": -1,
+          "waitMs": 20
+        }
+      },
+      "expected": {
+        "unhandledRejections": 0
+      }
+    },
+    {
+      "name": "scheduleEvery-sync-throw",
+      "description": "scheduleEvery routes synchronous callback throws to onFireError",
+      "kind": "scheduleEvery-sync-throw",
+      "input": {
+        "scheduler": {
+          "intervalMs": 1,
+          "waitMs": 20
+        }
+      },
+      "expected": {
+        "completed": true
+      }
+    },
+    {
+      "name": "scheduleEvery-async-reject",
+      "description": "scheduleEvery routes async callback rejections to onFireError",
+      "kind": "scheduleEvery-async-reject",
+      "input": {
+        "scheduler": {
+          "intervalMs": 1,
+          "waitMs": 20
+        }
+      },
+      "expected": {
+        "completed": true
+      }
+    }
+  ]
+}

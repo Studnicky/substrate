@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {
+      "description": "imports every example module without throwing",
+      "expected": {
+        "exampleCount": 1,
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "examplesRoot": "../../examples"
+      },
+      "kind": "examples-smoke",
+      "name": "examples-smoke"
+    }
+  ]
+}

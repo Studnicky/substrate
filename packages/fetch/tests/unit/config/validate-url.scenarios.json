@@ -1,0 +1,48 @@
+{
+  "cases": [
+    {
+      "name": "valid",
+      "description": "ValidateURL accepts a valid URL string",
+      "kind": "valid",
+      "input": {
+        "value": "https://api.example.com/users"
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "empty",
+      "description": "ValidateURL rejects an empty baseURL",
+      "kind": "empty",
+      "input": {
+        "value": ""
+      },
+      "expected": {
+        "message": "baseURL must not be empty"
+      }
+    },
+    {
+      "name": "invalid",
+      "description": "ValidateURL rejects a malformed URL string",
+      "kind": "invalid",
+      "input": {
+        "value": "not-a-valid-url"
+      },
+      "expected": {
+        "message": "baseURL must be a valid URL"
+      }
+    },
+    {
+      "name": "non-string",
+      "description": "ValidateURL rejects non-string values",
+      "kind": "non-string",
+      "input": {
+        "value": 123
+      },
+      "expected": {
+        "message": "baseURL must be a string"
+      }
+    }
+  ]
+}

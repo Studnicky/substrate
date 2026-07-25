@@ -1,0 +1,24 @@
+{
+  "cases": [
+    {
+      "description": "Runs the custom error example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/custom-error.ts"
+      },
+      "name": "custom-error"
+    },
+    {
+      "description": "Runs the validate config example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/validate-config.ts"
+      },
+      "name": "validate-config"
+    }
+  ]
+}

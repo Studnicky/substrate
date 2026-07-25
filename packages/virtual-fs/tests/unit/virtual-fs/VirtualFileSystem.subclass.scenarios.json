@@ -1,0 +1,239 @@
+{
+  "cases": [
+    {
+      "name": "onCreate-new-files",
+      "description": "onCreate fires once for each new file written",
+      "kind": "onCreate-new-files",
+      "input": {
+        "files": [
+          { "path": "/a.txt", "content": "a" },
+          { "path": "/b.txt", "content": "b" }
+        ]
+      },
+      "expected": {
+        "createLog": ["/a.txt", "/b.txt"]
+      }
+    },
+    {
+      "name": "onCreate-recursive-mkdir",
+      "description": "onCreate fires for each directory segment in recursive mkdirSync",
+      "kind": "onCreate-recursive-mkdir",
+      "input": {
+        "path": "/x/y/z"
+      },
+      "expected": {
+        "createLogIncludes": ["/x", "/x/y", "/x/y/z"]
+      }
+    },
+    {
+      "name": "onCreate-no-overwrite",
+      "description": "onCreate does not fire on overwrite",
+      "kind": "onCreate-no-overwrite",
+      "input": {
+        "path": "/f.txt",
+        "first": "first",
+        "second": "second"
+      },
+      "expected": {
+        "createCount": 1
+      }
+    },
+    {
+      "name": "onWrite-update-only",
+      "description": "onWrite fires on update but not on initial write",
+      "kind": "onWrite-update-only",
+      "input": {
+        "path": "/f.txt",
+        "first": "first",
+        "second": "second"
+      },
+      "expected": {
+        "writeLog": ["/f.txt"]
+      }
+    },
+    {
+      "name": "onRead-readFileSync",
+      "description": "onRead fires on readFileSync",
+      "kind": "onRead-readFileSync",
+      "input": {
+        "path": "/r.txt",
+        "content": "data"
+      },
+      "expected": {
+        "readLog": ["/r.txt"]
+      }
+    },
+    {
+      "name": "onRead-readdirSync",
+      "description": "onRead fires on readdirSync",
+      "kind": "onRead-readdirSync",
+      "input": {
+        "path": "/"
+      },
+      "expected": {
+        "readLogIncludes": ["/"]
+      }
+    },
+    {
+      "name": "onDelete-unlinkSync",
+      "description": "onDelete fires once after unlinkSync",
+      "kind": "onDelete-unlinkSync",
+      "input": {
+        "path": "/d.txt",
+        "content": "bye"
+      },
+      "expected": {
+        "deleteLog": ["/d.txt"]
+      }
+    },
+    {
+      "name": "onDelete-not-before-unlink",
+      "description": "onDelete does not fire before unlinkSync",
+      "kind": "onDelete-not-before-unlink",
+      "input": {
+        "path": "/d.txt",
+        "content": "data"
+      },
+      "expected": {
+        "deleteCount": 0
+      }
+    },
+    {
+      "name": "onRename-paths",
+      "description": "onRename fires with correct old and new paths",
+      "kind": "onRename-paths",
+      "input": {
+        "from": "/src.txt",
+        "to": "/dst.txt",
+        "content": "content"
+      },
+      "expected": {
+        "renameLog": [
+          { "from": "/src.txt", "to": "/dst.txt" }
+        ]
+      }
+    },
+    {
+      "name": "full-trace",
+      "description": "FullTraceFs tracks all hooks independently",
+      "kind": "full-trace",
+      "input": {
+        "path": "/f.txt",
+        "contentA": "first",
+        "contentB": "second",
+        "renamed": "/g.txt"
+      },
+      "expected": {
+        "createLog": ["/f.txt"],
+        "writeLog": ["/f.txt"],
+        "readLog": ["/f.txt"],
+        "deleteLog": ["/g.txt"],
+        "renameCount": 1
+      }
+    },
+    {
+      "name": "subclass-create-instance",
+      "description": "subclass static create() returns subclass instance",
+      "kind": "subclass-create-instance",
+      "input": {
+        "factory": "FullTraceFs.create"
+      },
+      "expected": {
+        "instanceofSubclass": true,
+        "instanceofBase": true
+      }
+    },
+    {
+      "name": "throwing-create-hook",
+      "description": "a throwing onCreate hook still leaves the write applied, then throws HookInvocationError",
+      "kind": "throwing-create-hook",
+      "input": {
+        "path": "/created.txt",
+        "content": "hello"
+      },
+      "expected": {
+        "hookName": "onCreate",
+        "written": true
+      }
+    },
+    {
+      "name": "throwing-write-hook",
+      "description": "a throwing onWrite hook still leaves the overwrite applied, then throws HookInvocationError",
+      "kind": "throwing-write-hook",
+      "input": {
+        "path": "/file.txt",
+        "first": "first",
+        "second": "second"
+      },
+      "expected": {
+        "hookName": "onWrite",
+        "written": true
+      }
+    },
+    {
+      "name": "throwing-read-hook",
+      "description": "a throwing onRead hook still returns the read outcome via the thrown cause, but propagates HookInvocationError",
+      "kind": "throwing-read-hook",
+      "input": {
+        "path": "/read.txt",
+        "content": "content"
+      },
+      "expected": {
+        "hookName": "onRead"
+      }
+    },
+    {
+      "name": "throwing-rename-hook",
+      "description": "a throwing onRename hook still leaves the rename applied, then throws HookInvocationError",
+      "kind": "throwing-rename-hook",
+      "input": {
+        "from": "/old.txt",
+        "to": "/new.txt",
+        "content": "content"
+      },
+      "expected": {
+        "hookName": "onRename",
+        "oldExists": false,
+        "newContent": "content"
+      }
+    },
+    {
+      "name": "throwing-delete-hook",
+      "description": "a throwing onDelete hook still leaves the unlink applied, then throws HookInvocationError",
+      "kind": "throwing-delete-hook",
+      "input": {
+        "path": "/gone.txt",
+        "content": "content"
+      },
+      "expected": {
+        "hookName": "onDelete",
+        "exists": false
+      }
+    },
+    {
+      "name": "hook-cause-chains",
+      "description": "a throwing hook chains the original error as cause",
+      "kind": "hook-cause-chains",
+      "input": {
+        "path": "/chained.txt",
+        "content": "data"
+      },
+      "expected": {
+        "causeMatches": true
+      }
+    },
+    {
+      "name": "async-create-hook",
+      "description": "an async-rejecting hook override is routed through the default onHookError disposition without ever surfacing as an unhandled rejection",
+      "kind": "async-create-hook",
+      "input": {
+        "path": "/async.txt",
+        "content": "data"
+      },
+      "expected": {
+        "rejections": [],
+        "content": "data"
+      }
+    }
+  ]
+}

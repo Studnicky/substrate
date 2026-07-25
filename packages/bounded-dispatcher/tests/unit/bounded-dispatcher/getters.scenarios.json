@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {
+      "description": "create() supplies an event bus when none is configured",
+      "kind": "getBus-default",
+      "name": "create() supplies an event bus when none is configured",
+      "input": { "busKind": "EventBus" },
+      "expected": { "busKind": "EventBus" }
+    },
+    {
+      "description": "create() preserves the exact pre-built bus instance identity",
+      "kind": "getBus-preserves-instance",
+      "name": "create() preserves the exact pre-built bus instance identity",
+      "input": { "sameInstance": true },
+      "expected": { "sameInstance": true }
+    }
+  ]
+}

@@ -35,7 +35,7 @@ class TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {
   }
 
   protected override onWorkerError(error: Error, index: number): void {
-    console.error(`[worker ${String(index)}] failed:`, error.message);
+    console.error('[worker] failed:', String(index), error.message);
     this.errors.push({ 'index': index, 'message': error.message });
   }
 }

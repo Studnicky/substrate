@@ -1,0 +1,49 @@
+{
+  "cases": [
+    {
+      "name": "missing-size",
+      "description": "throws a VisibleRangeError when neither itemSize nor estimateSize is supplied",
+      "expected": { "errorName": "VisibleRangeError" },
+      "input": {
+        "visibleRange": { "count": 100 }
+      },
+      "kind": "missing-size"
+    },
+    {
+      "name": "ambiguous-size",
+      "description": "throws a VisibleRangeError when both itemSize and estimateSize are supplied",
+      "expected": { "errorName": "VisibleRangeError" },
+      "input": {
+        "visibleRange": { "count": 100, "estimateSizeValue": 40, "itemSize": 40 }
+      },
+      "kind": "ambiguous-size"
+    },
+    {
+      "name": "zero-size",
+      "description": "throws a VisibleRangeError when itemSize is zero",
+      "expected": { "errorName": "VisibleRangeError" },
+      "input": {
+        "visibleRange": { "count": 100, "itemSize": 0 }
+      },
+      "kind": "zero-size"
+    },
+    {
+      "name": "negative-size",
+      "description": "throws a VisibleRangeError when itemSize is negative",
+      "expected": { "errorName": "VisibleRangeError" },
+      "input": {
+        "visibleRange": { "count": 100, "itemSize": -5 }
+      },
+      "kind": "negative-size"
+    },
+    {
+      "name": "error-args",
+      "description": "constructs a VisibleRangeError with structured error metadata",
+      "expected": { "errorName": "VisibleRangeError" },
+      "input": {
+        "visibleRange": { "count": 100, "itemSize": 0 }
+      },
+      "kind": "error-args"
+    }
+  ]
+}

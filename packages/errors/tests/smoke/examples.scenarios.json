@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "name": "01-base-error",
+      "description": "Runs the base error example",
+      "input": { "entrypoint": "../../examples/01-base-error.ts" },
+      "expected": { "imports": true }
+    },
+    {
+      "name": "02-module-error",
+      "description": "Runs the module error example",
+      "input": { "entrypoint": "../../examples/02-module-error.ts" },
+      "expected": { "imports": true }
+    },
+    {
+      "name": "03-domain-subclass",
+      "description": "Runs the domain subclass example",
+      "input": { "entrypoint": "../../examples/03-domain-subclass.ts" },
+      "expected": { "imports": true }
+    },
+    {
+      "name": "04-domain-error-args",
+      "description": "Runs the domain error args example",
+      "input": { "entrypoint": "../../examples/04-domain-error-args.ts" },
+      "expected": { "imports": true }
+    },
+    {
+      "name": "05-event-recorder",
+      "description": "Runs the event recorder example",
+      "input": { "entrypoint": "../../examples/05-event-recorder.ts" },
+      "expected": { "imports": true }
+    },
+    {
+      "name": "06-hook-invoker",
+      "description": "Runs the hook invoker example",
+      "input": { "entrypoint": "../../examples/06-hook-invoker.ts" },
+      "expected": { "imports": true }
+    }
+  ]
+}

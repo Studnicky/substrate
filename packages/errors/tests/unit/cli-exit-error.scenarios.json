@@ -1,0 +1,13 @@
+{
+  "cases": [
+    { "name": "instance-check", "description": "is instance of Error, BaseError, and CliExitError", "kind": "instance-check", "input": { "instanceOf": ["Error", "BaseError", "CliExitError"] }, "expected": { "instanceOf": ["Error", "BaseError", "CliExitError"] } },
+    { "name": "defaults-exit-code", "description": "defaults exitCode to 1", "kind": "exit-code", "input": { "error": { "exitCode": 1 } }, "expected": { "exitCode": 1 } },
+    { "name": "custom-exit-code", "description": "accepts a custom exitCode", "kind": "exit-code", "input": { "error": { "exitCode": 2 } }, "expected": { "exitCode": 2 } },
+    { "name": "zero-exit-code", "description": "has exitCode 0 for success", "kind": "exit-code", "input": { "error": { "exitCode": 0 } }, "expected": { "exitCode": 0 } },
+    { "name": "code-value", "description": "has code cli.exit", "kind": "code-value", "input": { "code": "cli.exit" }, "expected": { "code": "cli.exit" } },
+    { "name": "not-retryable", "description": "is not retryable", "kind": "not-retryable", "input": { "retryable": false }, "expected": { "retryable": false } },
+    { "name": "empty-message", "description": "has empty message", "kind": "empty-message", "input": { "message": "" }, "expected": { "message": "" } },
+    { "name": "name-value", "description": "has name CliExitError", "kind": "name-value", "input": { "name": "CliExitError" }, "expected": { "name": "CliExitError" } },
+    { "name": "json-code", "description": "serializes with code cli.exit", "kind": "json-code", "input": { "error": { "exitCode": 3 }, "code": "cli.exit" }, "expected": { "code": "cli.exit" } }
+  ]
+}
