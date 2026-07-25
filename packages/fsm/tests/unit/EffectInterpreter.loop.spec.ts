@@ -164,7 +164,11 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       });
       interp.start();
       const sends = caseData.input.events.map((event: DemoEvent) => interp.send(event));
-      return assert.rejects(() => sends[1], MailboxCapacityExceededError)
+      return assert.rejects(() => sends[1], (error: unknown) => {
+        assert.ok(error instanceof MailboxCapacityExceededError);
+        assert.equal(error.name, caseData.expected.rejectionType);
+        return true;
+      })
         .then(() => sends[0])
         .then(() => sends[2])
         .then(() => sends[3])

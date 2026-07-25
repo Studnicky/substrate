@@ -37,87 +37,147 @@ import scenarioGroups from './System.scenarios.json';
 
 type SystemScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
+function numberInput(expected: Record<string, unknown>, key: string): number {
+  const value = expected[key];
+  if (typeof value !== 'number') {
+    throw new Error(`expected.${key} must be a number`);
+  }
+  return value;
+}
+
+function stringInput(expected: Record<string, unknown>, key: string): string {
+  const value = expected[key];
+  if (typeof value !== 'string') {
+    throw new Error(`expected.${key} must be a string`);
+  }
+  return value;
+}
+
+function booleanInput(expected: Record<string, unknown>, key: string): boolean {
+  const value = expected[key];
+  if (typeof value !== 'boolean') {
+    throw new Error(`expected.${key} must be a boolean`);
+  }
+  return value;
+}
+
 const scenarioRunners: Record<SystemScenarioShape, SystemScenarioRunner> = {
-  'cpu-logical-count-positive': () => {
+  'cpu-logical-count-positive': (scenarioCase) => {
     const count = System.cpu.logicalCount;
     assert.ok(typeof count === 'number');
-    assert.ok(count > 0);
     assert.ok(Number.isInteger(count));
+    assert.ok(count >= numberInput(scenarioCase.expected, 'minimum'));
   },
 
-  'optimal-worker-count-at-least-1': () => {
+  'optimal-worker-count-at-least-1': (scenarioCase) => {
     const count = System.optimalWorkerCount;
     assert.ok(typeof count === 'number');
-    assert.ok(count >= 1);
+    assert.ok(count >= numberInput(scenarioCase.expected, 'minimum'));
   },
 
-  'optimal-worker-count-clamped': () => {
-    const expected = Math.max(1, System.cpu.logicalCount - 1);
-    assert.equal(System.optimalWorkerCount, expected);
+  'optimal-worker-count-clamped': (scenarioCase) => {
+    const formulaByExpression: Record<string, () => number> = {
+      'max(1, cpu.logicalCount - 1)': () => Math.max(1, System.cpu.logicalCount - 1)
+    };
+    const formula = stringInput(scenarioCase.expected, 'formula');
+    const compute = formulaByExpression[formula];
+    assert.ok(compute !== undefined, `unknown formula: ${formula}`);
+    assert.equal(System.optimalWorkerCount, compute());
   },
 
-  'cpu-arch-non-empty': () => {
+  'cpu-arch-non-empty': (scenarioCase) => {
     const { arch } = System.cpu;
     assert.ok(typeof arch === 'string');
-    assert.ok(arch.length > 0);
+    assert.equal(arch.length > 0, booleanInput(scenarioCase.expected, 'nonEmpty'));
   },
 
-  'cpu-model-non-empty': () => {
+  'cpu-model-non-empty': (scenarioCase) => {
     const { model } = System.cpu;
     assert.ok(typeof model === 'string');
-    assert.ok(model.length > 0);
+    assert.equal(model.length > 0, booleanInput(scenarioCase.expected, 'nonEmpty'));
   },
 
-  'cpu-logical-count-matches-os': () => {
-    assert.equal(System.cpu.logicalCount, os.cpus().length);
+  'cpu-logical-count-matches-os': (scenarioCase) => {
+    const sourceByExpression: Record<string, () => number> = {
+      'os.cpus().length': () => os.cpus().length
+    };
+    const source = stringInput(scenarioCase.expected, 'source');
+    const compute = sourceByExpression[source];
+    assert.ok(compute !== undefined, `unknown source: ${source}`);
+    assert.equal(System.cpu.logicalCount, compute());
   },
 
-  'cpu-physical-count-range': () => {
+  'cpu-physical-count-range': (scenarioCase) => {
     const { logicalCount, physicalCount } = System.cpu;
-    assert.ok(physicalCount >= 1);
-    assert.ok(physicalCount <= logicalCount);
+    assert.ok(physicalCount >= numberInput(scenarioCase.expected, 'minimum'));
+    const referenceByName: Record<string, number> = { logicalCount };
+    const maximumRef = stringInput(scenarioCase.expected, 'maximum');
+    const maximum = referenceByName[maximumRef];
+    assert.ok(maximum !== undefined, `unknown maximum reference: ${maximumRef}`);
+    assert.ok(physicalCount <= maximum);
   },
 
-  'cpu-physical-count-equals-logical-count': () => {
+  'cpu-physical-count-equals-logical-count': (scenarioCase) => {
     const { logicalCount, physicalCount } = System.cpu;
-    assert.equal(physicalCount, logicalCount);
+    const relationByName: Record<string, (a: number, b: number) => boolean> = {
+      'equal': (a, b) => a === b
+    };
+    const relation = stringInput(scenarioCase.expected, 'relation');
+    const compare = relationByName[relation];
+    assert.ok(compare !== undefined, `unknown relation: ${relation}`);
+    assert.equal(compare(physicalCount, logicalCount), true);
   },
 
-  'cpu-getter-calls-os-cpus-once': () => {
+  'cpu-getter-calls-os-cpus-once': (scenarioCase) => {
     const spy = mock.method(os, 'cpus');
     try {
       void System.cpu;
-      assert.equal(spy.mock.callCount(), 1);
+      assert.equal(spy.mock.callCount(), numberInput(scenarioCase.expected, 'callCount'));
     } finally {
       spy.mock.restore();
     }
   },
 
-  'memory-total-positive': () => {
+  'memory-total-positive': (scenarioCase) => {
     const { totalMb } = System.memory;
     assert.ok(typeof totalMb === 'number');
-    assert.ok(totalMb > 0);
+    assert.ok(totalMb >= numberInput(scenarioCase.expected, 'minimum'));
   },
 
-  'memory-free-range': () => {
+  'memory-free-range': (scenarioCase) => {
     const { freeMb, totalMb } = System.memory;
-    assert.ok(freeMb >= 0);
-    assert.ok(freeMb <= totalMb);
+    assert.ok(freeMb >= numberInput(scenarioCase.expected, 'minimum'));
+    const referenceByName: Record<string, number> = { totalMb };
+    const maximumRef = stringInput(scenarioCase.expected, 'maximum');
+    const maximum = referenceByName[maximumRef];
+    assert.ok(maximum !== undefined, `unknown maximum reference: ${maximumRef}`);
+    assert.ok(freeMb <= maximum);
   },
 
-  'platform-node-version': () => {
-    assert.equal(System.platform.nodeVersion, process.version);
+  'platform-node-version': (scenarioCase) => {
+    const sourceByExpression: Record<string, () => string> = {
+      'process.version': () => process.version
+    };
+    const source = stringInput(scenarioCase.expected, 'source');
+    const compute = sourceByExpression[source];
+    assert.ok(compute !== undefined, `unknown source: ${source}`);
+    assert.equal(System.platform.nodeVersion, compute());
   },
 
-  'platform-os-non-empty': () => {
+  'platform-os-non-empty': (scenarioCase) => {
     const { os: platformOs } = System.platform;
     assert.ok(typeof platformOs === 'string');
-    assert.ok(platformOs.length > 0);
+    assert.equal(platformOs.length > 0, booleanInput(scenarioCase.expected, 'nonEmpty'));
   },
 
-  'platform-is-apple-silicon': () => {
-    const expected = os.platform() === 'darwin' && os.arch() === 'arm64';
-    assert.equal(System.platform.isAppleSilicon, expected);
+  'platform-is-apple-silicon': (scenarioCase) => {
+    const formulaByExpression: Record<string, () => boolean> = {
+      'darwin && arm64': () => os.platform() === 'darwin' && os.arch() === 'arm64'
+    };
+    const formula = stringInput(scenarioCase.expected, 'formula');
+    const compute = formulaByExpression[formula];
+    assert.ok(compute !== undefined, `unknown formula: ${formula}`);
+    assert.equal(System.platform.isAppleSilicon, compute());
   },
 
   'gpu-caches-detection': (scenarioCase) => {
@@ -142,8 +202,9 @@ const scenarioRunners: Record<SystemScenarioShape, SystemScenarioRunner> = {
       if (second === null) {
         throw new Error('cached GPU detection returned null');
       }
-      assert.equal(second.name, detectedGpu.name);
-      assert.equal(detectGpu.mock.callCount(), 1);
+      assert.equal(detectGpu.mock.callCount(), numberInput(scenarioCase.expected, 'callCount'));
+      const cachedWithoutExposingMutation = detectGpu.mock.callCount() === 1 && second.name === detectedGpu.name;
+      assert.equal(cachedWithoutExposingMutation, booleanInput(scenarioCase.expected, 'cached'));
     } finally {
       detectGpu.mock.restore();
     }

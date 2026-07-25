@@ -126,6 +126,7 @@ const runnerMap: RunnerMap = {
         assert.ok(err instanceof HookInvocationError);
         assert.strictEqual(err.hookName, scenarioCase.expected.hookName);
         assert.ok(err.cause instanceof HookTimeoutError);
+        assert.strictEqual(err.cause.name, scenarioCase.expected.causeName);
         return true;
       }
     );

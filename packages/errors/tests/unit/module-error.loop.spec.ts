@@ -13,9 +13,9 @@ import scenarioGroups from './module-error.scenarios.json';
 type ScenarioCase =
   | { description: string; shape: 'factory-scenario-defaults' }
   | { description: string; shape: 'factory-merge-user-options' }
-  | { description: string; shape: 'factory-reject-empty-message' }
-  | { description: string; shape: 'factory-reject-empty-code' }
-  | { description: string; shape: 'factory-reject-invalid-scenario' }
+  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-message' }
+  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-code' }
+  | { description: string; expected: { errorName: string }; shape: 'factory-reject-invalid-scenario' }
   | { description: string; expected: { result: { retryable: boolean } }; input: { code: string; message: string }; shape: 'constructor-defaults-omitted-options' }
   | { description: string; shape: 'scenario-defaults'; scenario: 'CONNECTION' | 'AUTHENTICATION' | 'NOT_FOUND' }
   | { description: string; shape: 'scenario-retryable-overrides' }
@@ -149,16 +149,16 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(error.retryable, true);
   },
 
-  'factory-reject-empty-message': () => {
+  'factory-reject-empty-message': (scenarioCase) => {
     assert.throws(() => {
       ModuleError.create('', { scenario: 'INTERNAL' });
     }, {
       message: /Validation failed at "message"/u,
-      name: 'ValidationError'
+      name: scenarioCase.expected.errorName
     });
   },
 
-  'factory-reject-empty-code': () => {
+  'factory-reject-empty-code': (scenarioCase) => {
     class EmptyCodeError extends ModuleError {
       static create(message: string): EmptyCodeError {
         return new EmptyCodeError(message, {
@@ -171,16 +171,16 @@ const runnerMap: RunnerMap = {
       EmptyCodeError.create('Test');
     }, {
       message: /Validation failed at "code"/u,
-      name: 'ValidationError'
+      name: scenarioCase.expected.errorName
     });
   },
 
-  'factory-reject-invalid-scenario': () => {
+  'factory-reject-invalid-scenario': (scenarioCase) => {
     assert.throws(() => {
       Reflect.apply(ModuleError.create, ModuleError, ['Test', { scenario: 'INVALID' }]);
     }, {
       message: /Validation failed at "scenario"/u,
-      name: 'ValidationError'
+      name: scenarioCase.expected.errorName
     });
   },
 

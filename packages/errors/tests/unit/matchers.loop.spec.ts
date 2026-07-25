@@ -129,6 +129,12 @@ const runnerMap = {
     assert.strictEqual(matchers.http.isSuccess(status), scenario.expected.isSuccess);
   },
   'immutable-matcher-route': (scenario) => {
+    assert.strictEqual(Object.isFrozen(matchers), scenario.expected.frozen);
+    assert.strictEqual(
+      Object.hasOwn(ErrorClassifier, 'NUMBER_MATCHERS') || Object.hasOwn(ErrorClassifier, 'HTTP_MATCHERS'),
+      scenario.expected.hasClassifierConstants
+    );
+    assert.strictEqual(Object.hasOwn(matchers.instance, 'isType'), scenario.expected.hasInstanceIsType);
     assert.strictEqual(matchers.isType<string>('string')(scenario.input.stringValue), scenario.expected.stringMatch);
     assert.strictEqual(matchers.isType<number>('number')(scenario.input.numberValue), scenario.expected.numberMatch);
   },

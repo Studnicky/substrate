@@ -50,8 +50,12 @@ type ScenarioInput = {
 };
 
 type ExpectedObject = {
+  drained?: number[];
   length?: number;
+  lengths?: number[];
   message?: string;
+  preservedIdentity?: boolean;
+  shiftedMatchesPushed?: boolean;
   shifts?: readonly [null, null, null];
   value?: null | number;
 };
@@ -107,6 +111,24 @@ const requireExpectedArray = (scenarioCase: ScenarioCase): number[] => {
   const { expected } = scenarioCase;
   assert.ok(Array.isArray(expected), `${scenarioCase.name} must define array expected`);
   return expected;
+};
+
+const requireExpectedDrained = (scenarioCase: ScenarioCase): number[] => {
+  const { drained } = requireExpectedObject(scenarioCase);
+  assert.ok(Array.isArray(drained), `${scenarioCase.name} must define expected.drained`);
+  return drained;
+};
+
+const requireExpectedLengths = (scenarioCase: ScenarioCase): number[] => {
+  const { lengths } = requireExpectedObject(scenarioCase);
+  assert.ok(Array.isArray(lengths), `${scenarioCase.name} must define expected.lengths`);
+  return lengths;
+};
+
+const requireExpectedFlag = (scenarioCase: ScenarioCase, name: 'preservedIdentity' | 'shiftedMatchesPushed'): boolean => {
+  const flag = requireExpectedObject(scenarioCase)[name];
+  assert.equal(typeof flag, 'boolean', `${scenarioCase.name} must define expected.${name}`);
+  return flag === true;
 };
 
 const requireExpectedLength = (scenarioCase: ScenarioCase): number => {
@@ -214,7 +236,10 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         if (value !== undefined) shifted.push(value);
       }
 
-      assert.equal(shifted.length, pushed.length);
+      assert.equal(
+        shifted.every((value, index) => value === pushed[index]) && shifted.length === pushed.length,
+        requireExpectedFlag(scenarioCase, 'shiftedMatchesPushed')
+      );
       assert.deepEqual(shifted, pushed);
     },
     'grow-order-preserved-after-grow': () => {
@@ -251,18 +276,29 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'grow-wraparound-order': () => {
       const buf = CircularBuffer.create<number>(options);
+      const shiftOrder: number[] = [];
+      const recordShift = (): void => {
+        const value = buf.shift();
+        assert.ok(value !== undefined, `${scenarioCase.name} shift returned undefined`);
+        shiftOrder.push(value);
+      };
+
       buf.push(1);
       buf.push(2);
       buf.push(3);
       buf.push(4);
-      assert.equal(buf.shift(), 1);
-      assert.equal(buf.shift(), 2);
+      recordShift();
+      recordShift();
       buf.push(5);
       buf.push(6);
-      assert.equal(buf.shift(), 3);
-      assert.equal(buf.shift(), 4);
-      assert.equal(buf.shift(), 5);
-      assert.equal(buf.shift(), 6);
+      recordShift();
+      recordShift();
+      buf.push(7);
+      buf.push(8);
+      buf.push(9);
+      while (buf.length > 0) { recordShift(); }
+
+      assert.deepEqual(shiftOrder, requireExpectedDrained(scenarioCase));
     },
     'length-reflects-count-not-capacity': () => {
       const buf = CircularBuffer.create<number>(options);
@@ -276,8 +312,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       const b = { id: 2 };
       buf.push(a);
       buf.push(b);
-      assert.equal(buf.shift(), a);
-      assert.equal(buf.shift(), b);
+      const preservedIdentity = buf.shift() === a && buf.shift() === b;
+      assert.equal(preservedIdentity, requireExpectedFlag(scenarioCase, 'preservedIdentity'));
     },
     'overwrite-capacity-one-holds-last': () => {
       const buf = CircularBuffer.create<number>(options);
@@ -322,12 +358,15 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'push-increments-length': () => {
       const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      assert.equal(buf.length, 1);
-      buf.push(2);
-      assert.equal(buf.length, 2);
-      buf.push(3);
-      assert.equal(buf.length, 3);
+      const lengths = requireExpectedLengths(scenarioCase);
+      const observed: number[] = [];
+
+      lengths.forEach((_length, index) => {
+        buf.push(index + 1);
+        observed.push(buf.length);
+      });
+
+      assert.deepEqual(observed, lengths);
     },
     'push-length-grow': assertPushLength,
     'push-length-overwrite': assertPushLength,

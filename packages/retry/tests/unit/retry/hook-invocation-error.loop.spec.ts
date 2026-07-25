@@ -73,6 +73,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const invoker = new HookInvoker();
     await assert.rejects(async () => invoker.invoke(String(input.hookName), () => { throw new Error(String(input.message)); }), (error: unknown) => {
       assert.ok(error instanceof HookInvocationError);
+      assert.strictEqual(error.name, String(expected.errorShape));
       assert.strictEqual(error.hookName, String(expected.hookName));
       assert.strictEqual((error.cause as Error).message, String(expected.causeMessage));
       return true;

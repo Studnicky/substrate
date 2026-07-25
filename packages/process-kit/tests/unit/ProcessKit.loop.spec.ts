@@ -170,7 +170,11 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       machine: JobMachine.make()
     });
     kit.start();
-    await assert.rejects(() => kit.dispatch(scenarioCase.input.events.rejected), TransitionRejectedError);
+    await assert.rejects(() => kit.dispatch(scenarioCase.input.events.rejected), (error: unknown) => {
+      assert.ok(error instanceof TransitionRejectedError);
+      assert.equal(error.eventType, scenarioCase.expected.rejectedEvent.type);
+      return true;
+    });
     const afterRecovery = await kit.dispatch(scenarioCase.input.events.recovery);
     assert.deepStrictEqual(afterRecovery, scenarioCase.expected.afterRecovery);
     assert.equal(scenarioCase.expected.rejectionName, 'TransitionRejectedError');

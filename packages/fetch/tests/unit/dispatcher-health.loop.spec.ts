@@ -83,6 +83,15 @@ function createDispatcher(config: { connections: number }): UndiciDispatcher {
   return UndiciDispatcher.create(agent);
 }
 
+function matchesTypeDescriptor(value: unknown, descriptor: string): boolean {
+  const orUndefinedSuffix = '-or-undefined';
+  if (descriptor.endsWith(orUndefinedSuffix)) {
+    const base = descriptor.slice(0, -orUndefinedSuffix.length);
+    return value === undefined || typeof value === base;
+  }
+  return typeof value === descriptor;
+}
+
 const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'empty-stats': async (scenarioCase) => {
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
@@ -142,12 +151,9 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
     assert.equal(typeof health.healthy, scenarioCase.expected.healthyType);
-    assert.equal(health.stats === undefined || typeof health.stats === 'object', true);
-    assert.equal(health.queueRatio === undefined || typeof health.queueRatio === 'number', true);
-    assert.equal(health.recommendation === undefined || typeof health.recommendation === 'string', true);
-    assert.equal(typeof health.queueRatio === 'number' || health.queueRatio === undefined, true);
-    assert.equal(typeof health.recommendation === 'string' || health.recommendation === undefined, true);
-    assert.equal(typeof health.stats === 'object' || health.stats === undefined, true);
+    assert.equal(matchesTypeDescriptor(health.queueRatio, scenarioCase.expected.queueRatioType), true);
+    assert.equal(matchesTypeDescriptor(health.recommendation, scenarioCase.expected.recommendationType), true);
+    assert.equal(matchesTypeDescriptor(health.stats, scenarioCase.expected.statsType), true);
     await dispatcher.destroy();
   },
   'test-transport-pressure': async (scenarioCase) => {

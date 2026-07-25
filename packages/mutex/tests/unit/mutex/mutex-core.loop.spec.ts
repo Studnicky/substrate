@@ -148,6 +148,13 @@ function readString(value: unknown, label: string): string {
   return value;
 }
 
+function readBoolean(value: unknown, label: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new Error(`${label} must be a boolean`);
+  }
+  return value;
+}
+
 function readStringArray(value: unknown, label: string): string[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
     throw new Error(`${label} must be a string array`);
@@ -291,11 +298,16 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const mutex = Mutex.create(mutexConfig(scenarioCase));
     await mutex.acquire(key);
     const acquisitions = createAcquireBatch(queuedCount, () => mutex.acquire(key));
+    const drainOrder: number[] = [];
+    acquisitions.forEach((acquisition, index) => {
+      void acquisition.catch(() => { drainOrder.push(index + 1); });
+    });
     for (const acquisition of acquisitions) {
       await assert.rejects(acquisition, LockTimeoutError);
     }
     assert.strictEqual(mutex.queueSize(key), 0);
     assert.strictEqual(acquisitions.length, scenarioCase.expected.rejects);
+    assert.deepStrictEqual(drainOrder, readNumberArray(scenarioCase.expected.drainOrder, 'Scenario expected.drainOrder'));
     assert.ok(!mutex.isComplete());
   },
   'clear-clears-all': async (scenarioCase) => {
@@ -416,6 +428,10 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const config = mutex.getConfig();
     Object.assign(config, { maxQueueSize: 999 });
     assert.strictEqual(mutex.getConfig().maxQueueSize, scenarioCase.expected.maxQueueSize);
+    assert.strictEqual(
+      mutex.getConfig().maxQueueSize === scenarioCase.expected.maxQueueSize,
+      scenarioCase.expected.externalMutationIgnored
+    );
   },
   'config-full': assertCreatedMutex,
   'config-invalid-enableCoalescing': assertInvalidMutexConfig,
@@ -436,7 +452,11 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const config1 = mutex.getConfig();
     const config2 = mutex.getConfig();
     assert.strictEqual(config1 === config2, scenarioCase.expected.sameRef);
-    assert.deepStrictEqual(config1, config2);
+    if (readBoolean(scenarioCase.expected.sameValue, 'Scenario expected.sameValue')) {
+      assert.deepStrictEqual(config1, config2);
+    } else {
+      assert.notDeepStrictEqual(config1, config2);
+    }
   },
   'config-unknown-key': assertInvalidMutexConfig,
   'create-composite-key': async (scenarioCase) => {
@@ -451,7 +471,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const release = await mutex.acquire(key);
     assert.strictEqual(mutex.isLocked(key), scenarioCase.expected.locked);
     release();
-    assert.ok(!mutex.isLocked(key));
+    assert.strictEqual(!mutex.isLocked(key), scenarioCase.expected.releaseWorks);
   },
   'create-no-config': (scenarioCase) => {
     const mutex = Mutex.create();
@@ -472,12 +492,16 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   },
   'different-keys': async (scenarioCase) => {
     const keys = readStringKeys(scenarioCase.input);
+    const lockedKeys = readStringArray(scenarioCase.expected.lockedKeys, 'Scenario expected.lockedKeys');
     const mutex = Mutex.create();
     const releases = await Promise.all(keys.map((key) => mutex.acquire(key)));
-    for (const key of keys) {
-      assert.ok(mutex.isLocked(key));
-    }
-    releaseAll(releases);
+    assert.deepStrictEqual(keys.filter((key) => mutex.isLocked(key)), lockedKeys);
+    const firstKey = readArrayItem(keys, 0, 'Scenario input.keys');
+    const secondKey = readArrayItem(keys, 1, 'Scenario input.keys');
+    const firstRelease = readArrayItem(releases, 0, 'Scenario acquire releases');
+    firstRelease();
+    assert.strictEqual(!mutex.isLocked(firstKey) && mutex.isLocked(secondKey), scenarioCase.expected.independent);
+    releaseAll(releases.slice(1));
   },
   'getConfig-current': assertCreatedMutex,
   'getConfig-default': (scenarioCase) => {
@@ -535,9 +559,10 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const keys = readStringKeys(scenarioCase.input);
     const mutex = Mutex.create();
     const releases = await Promise.all(keys.map((key) => mutex.acquire(key)));
-    for (const key of keys) {
-      assert.ok(mutex.isLocked(key));
-    }
+    const firstKey = readArrayItem(keys, 0, 'Scenario input.keys');
+    const secondKey = readArrayItem(keys, 1, 'Scenario input.keys');
+    assert.strictEqual(mutex.isLocked(firstKey), scenarioCase.expected.first);
+    assert.strictEqual(mutex.isLocked(secondKey), scenarioCase.expected.second);
     releaseAll(releases);
   },
   'isLocked-true': async (scenarioCase) => {
@@ -640,12 +665,15 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const key = readStringKey(scenarioCase.input);
     const acquireCount = readBatchCount(scenarioCase.input, 'acquireCount');
     const mutex = Mutex.create();
+    const releaseOrder: number[] = [];
     for (let index = 0; index < acquireCount; index++) {
       const release = await mutex.acquire(key);
       assert.ok(mutex.isLocked(key));
       release();
+      releaseOrder.push(index + 1);
       await delay(10);
     }
+    assert.deepStrictEqual(releaseOrder, readNumberArray(scenarioCase.expected.releaseOrder, 'Scenario expected.releaseOrder'));
   },
   'size-active-locks': async (scenarioCase) => {
     const keys = readStringKeys(scenarioCase.input);
@@ -664,6 +692,10 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(queuedCount, () => mutex.acquire(key));
     assert.strictEqual(mutex.size(), scenarioCase.expected.size);
+    assert.strictEqual(
+      mutex.size() === scenarioCase.expected.size && queuedCount > 0,
+      scenarioCase.expected.queuedCountExcluded
+    );
     release();
     await releaseQueuedInOrder(pending);
   },
@@ -677,16 +709,16 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     });
     release();
   },
-  'stats-api-shape': () => {
+  'stats-api-shape': (scenarioCase) => {
     const mutex = Mutex.create<string>();
     assert.strictEqual(typeof mutex.getStats, 'function');
     assert.strictEqual(typeof mutex.isComplete, 'function');
     assert.strictEqual(typeof mutex.completeQueue, 'function');
     const stats = mutex.getStats();
     assert.strictEqual(typeof stats, 'object');
-    assert.ok('activeLocksCount' in stats);
-    assert.ok('queuedCount' in stats);
-    assert.ok('totalExecuted' in stats);
+    assert.strictEqual('activeLocksCount' in stats, scenarioCase.expected.hasActiveLocksCount);
+    assert.strictEqual('queuedCount' in stats, scenarioCase.expected.hasQueuedCount);
+    assert.strictEqual('totalExecuted' in stats, scenarioCase.expected.hasTotalExecuted);
     assert.ok('maxQueueSize' in stats);
     assert.ok('timeout' in stats);
   },

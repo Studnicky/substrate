@@ -22,6 +22,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
 
     assert.strictEqual(afterEvent, undefined);
     assert.strictEqual(afterClear, timer);
+    assert.strictEqual(scenarioCase.expected.chainResult, afterClear === timer);
     assert.strictEqual(events.durationMs, scenarioCase.expected.durationMs);
     assert.strictEqual(Object.keys(events).length, 1);
     assert.strictEqual(scenarioCase.expected.sameInstance, true);

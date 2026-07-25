@@ -192,8 +192,8 @@
       "expected": {
         "order": [
           "onAcquireStart",
-          "onAcquireWait",
           "onContended",
+          "onAcquireWait",
           "onTimeout"
         ]
       }

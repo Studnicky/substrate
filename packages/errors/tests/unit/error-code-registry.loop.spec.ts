@@ -48,9 +48,15 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'register-unique': (scenario) => {
     const descriptor = scenario.input.descriptor;
     assert.ok(descriptor);
-    assert.doesNotThrow(() => {
-      ErrorCodeRegistry.register(descriptor);
-    });
+    if (scenario.expected.registered) {
+      assert.doesNotThrow(() => {
+        ErrorCodeRegistry.register(descriptor);
+      });
+    } else {
+      assert.throws(() => {
+        ErrorCodeRegistry.register(descriptor);
+      });
+    }
   }
 };
 

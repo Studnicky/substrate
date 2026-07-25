@@ -501,11 +501,14 @@ const runnerMap = {
     const input = scenarioCase.input as { cache: CacheConfig; keyA: string; keyB: string; keyC: string; valueA: number; valueB: number; valueC: number; throwMessage: string };
     const expected = scenarioCase.expected as { afterGetA: number; afterGetB: number; afterGetC: number; hitCount: number; missingKey: string };
     class ThrowingHitCache extends LruCache<string, number> {
+      hitCount = 0;
+
       constructor(config: CacheConfig) {
         super(config);
       }
 
       protected override onHit(): void {
+        this.hitCount += 1;
         throw new Error(input.throwMessage);
       }
     }
@@ -517,6 +520,7 @@ const runnerMap = {
     cache.set(input.keyC, input.valueC);
     assert.strictEqual(cache.get(input.keyA), expected.afterGetA);
     assert.strictEqual(cache.get(expected.missingKey), undefined);
+    assert.strictEqual(cache.hitCount, expected.hitCount);
   },
   'throwing-on-update': (scenarioCase) => {
     const input = scenarioCase.input as { cache: CacheConfig; key: string; firstValue: number; secondValue: number; throwMessage: string };

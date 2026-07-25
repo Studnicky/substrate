@@ -143,9 +143,9 @@ const runnerMap = {
   'construction-explicit-retryable': (scenario, error) => {
     assert.strictEqual(error.retryable, scenario.expected.retryable);
   },
-  'construction-instanceof': (_scenario, error) => {
-    assert.ok(error instanceof Error);
-    assert.ok(error instanceof BaseError);
+  'construction-instanceof': (scenario, error) => {
+    assert.strictEqual(error instanceof Error, scenario.expected.instanceofError);
+    assert.strictEqual(error instanceof BaseError, scenario.expected.instanceofBaseError);
   },
   'construction-message': (scenario, error) => {
     assert.strictEqual(error.message, scenario.expected.message);
@@ -196,9 +196,9 @@ const runnerMap = {
     const cause = BaseError.findCauseOfType(primitiveError, MissingError);
     assert.strictEqual(cause, undefined);
   },
-  'find-cause-of-type-self': (_scenario, error) => {
+  'find-cause-of-type-self': (scenario, error) => {
     const cause = BaseError.findCauseOfType(error, TestError);
-    assert.strictEqual(cause, error);
+    assert.strictEqual(cause === error, scenario.expected.sameInstance);
   },
   'has-cause-of-type-hit': (scenario, error) => {
     assert.strictEqual(BaseError.hasCauseOfType(error, Error), scenario.expected.value);

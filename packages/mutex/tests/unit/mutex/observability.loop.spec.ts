@@ -58,6 +58,22 @@ type ScenarioShape =
 type ScenarioCase = ScenarioData & { shape: ScenarioShape };
 type ReleaseFunction = () => void;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+type AnyErrorConstructor = new (...args: never[]) => Error;
+
+const mutexErrorTypes = {
+  'LockTimeoutError': LockTimeoutError
+} satisfies Record<string, AnyErrorConstructor>;
+
+function isMutexErrorTypeName(value: string): value is keyof typeof mutexErrorTypes {
+  return Object.hasOwn(mutexErrorTypes, value);
+}
+
+function mutexErrorTypeInput(value: string): (typeof mutexErrorTypes)[keyof typeof mutexErrorTypes] {
+  if (!isMutexErrorTypeName(value)) {
+    throw new Error(`Unknown mutex error type name: ${value}`);
+  }
+  return mutexErrorTypes[value];
+}
 
 class AcquireTrackingMutex extends Mutex<string> {
   readonly acquireEvents: Array<{ key: string; waitTimeMs: number }> = [];
@@ -269,6 +285,13 @@ function readNumber(value: unknown, label: string): number {
   return value;
 }
 
+function readBoolean(value: unknown, label: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new Error(`${label} must be a boolean`);
+  }
+  return value;
+}
+
 function readString(value: unknown, label: string): string {
   if (typeof value !== 'string') {
     throw new Error(`${label} must be a string`);
@@ -340,6 +363,10 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     release();
     await releaseQueuedInOrder(pending);
     assert.deepStrictEqual(mutex.acquireKeys, scenarioCase.expected.acquiredKeys);
+    assert.strictEqual(
+      mutex.acquireKeys.length === pending.length + 1,
+      readBoolean(scenarioCase.expected.queueContinues, 'Scenario expected.queueContinues')
+    );
   },
   'afterAcquire-immediate': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
@@ -588,8 +615,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const mutex = new ThrowingTimeoutHookMutex(mutexConfig(scenarioCase));
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
+    const errorType = mutexErrorTypeInput(readString(scenarioCase.expected.errorName, 'Scenario expected.errorName'));
     for (const waiter of pending) {
-      await assert.rejects(waiter, LockTimeoutError);
+      await assert.rejects(waiter, errorType);
     }
     release();
   },

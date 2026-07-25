@@ -478,7 +478,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     const task = dispatcher.scheduleDispatch(Number(input.dispatcher.atMs), () => { fired = true; });
 
     assert.equal(task.atMs, Number(expected.atMs));
-    assert.equal(typeof task.cancel, 'function');
+    assert.equal(typeof task.cancel, expected.cancelType);
 
     task.cancel();
     scheduler.advance(Number(input.dispatcher.atMs) * 2);

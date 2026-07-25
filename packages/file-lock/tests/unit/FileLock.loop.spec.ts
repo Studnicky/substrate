@@ -83,6 +83,14 @@ function getFileLockConfig(scenarioCase: ScenarioCase): FileLockScenarioConfig {
   return (scenarioCase.input.fileLock ?? {}) as FileLockScenarioConfig;
 }
 
+function requireStringArray(value: unknown, context: string): string[] {
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
+    return value;
+  }
+
+  throw new TypeError(`Expected string array for ${context}`);
+}
+
 beforeEach(() => {
   TEST_DIR = mkdtempSync(join(tmpdir(), 'file-lock-tests-'));
 });
@@ -130,7 +138,7 @@ const runnerMap: ScenarioRunnerMap = {
         path: FileLockTestHelpers.makePath(scenarioCase.input.path as string),
         timeoutMs: getFileLockConfig(scenarioCase).timeoutMs
       }),
-      (error: unknown) => error instanceof FileLockTimeoutError
+      (error: unknown) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
   },
   'acquire-success-restores-path': async (scenarioCase) => {
@@ -147,7 +155,7 @@ const runnerMap: ScenarioRunnerMap = {
     const lock = await FileLock.create({ path });
     await assert.rejects(
       FileLock.create({ path, timeoutMs: getFileLockConfig(scenarioCase).timeoutMs }),
-      (error: unknown) => error instanceof FileLockTimeoutError
+      (error: unknown) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
     lock.release();
   },
@@ -188,7 +196,7 @@ const runnerMap: ScenarioRunnerMap = {
     const firstLock = await FileLock.create({ path });
     await assert.rejects(
       FileLock.create({ path, ...getFileLockConfig(scenarioCase) }),
-      (error: unknown) => error instanceof FileLockTimeoutError
+      (error: unknown) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
     firstLock.release();
   },
@@ -232,7 +240,7 @@ const runnerMap: ScenarioRunnerMap = {
     } catch (error) {
       caughtError = error;
     }
-    assert.ok(caughtError instanceof FileLockTimeoutError);
+    assert.equal(caughtError instanceof FileLockTimeoutError, Boolean(scenarioCase.expected.timedOut));
     assert.ok(lock === undefined);
   },
   'hook-contention-wait-and-timeout': async (scenarioCase) => {
@@ -282,9 +290,9 @@ const runnerMap: ScenarioRunnerMap = {
       OrderingFileLock.create({ path, ...getFileLockConfig(scenarioCase) }),
       (e: unknown) => e instanceof FileLockTimeoutError
     );
-    assert.strictEqual(capturedHooks[0], 'onAcquireStart');
-    assert.ok(capturedHooks.indexOf('onAcquireStart') < capturedHooks.indexOf('onAcquireWait'));
-    assert.ok(capturedHooks.indexOf('onAcquireWait') < capturedHooks.lastIndexOf('onTimeout'));
+    const order = requireStringArray(scenarioCase.expected.order, 'hook-order expected order');
+    const distinctOrder = capturedHooks.filter((hook, index) => capturedHooks.indexOf(hook) === index);
+    assert.deepEqual(distinctOrder, order);
     holder.release();
   },
   'throwing-onAcquire-does-not-orphan-lock': async (scenarioCase) => {
@@ -299,7 +307,7 @@ const runnerMap: ScenarioRunnerMap = {
     const lock = await ThrowingAcquireHookLock.create({ path });
     assert.ok(!existsSync(path));
     lock.release();
-    assert.ok(existsSync(path));
+    assert.equal(existsSync(path), !scenarioCase.expected.orphaned);
   },
   'async-rejecting-onAcquire-guarded': async (scenarioCase) => {
     const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);

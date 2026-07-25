@@ -287,6 +287,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
         assert.ok(err instanceof HookInvocationError);
         assert.equal(err.hookName, scenarioCase.expected.hookName);
         assert.equal(err.cause, originalError);
+        assert.equal(originalError.message, scenarioCase.expected.causeMessage);
         return true;
       }
     );
@@ -308,6 +309,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
         assert.ok(err instanceof HookInvocationError);
         assert.equal(err.hookName, scenarioCase.expected.hookName);
         assert.equal(err.cause, originalError);
+        assert.equal(originalError.message, scenarioCase.expected.causeMessage);
         return true;
       }
     );

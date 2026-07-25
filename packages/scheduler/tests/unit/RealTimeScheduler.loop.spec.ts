@@ -64,12 +64,12 @@ function futureAtMs(input: Record<string, unknown>): number {
 }
 
 const scenarioRunners = {
-  'scheduleAt-returns-task': ({ input }): void => {
+  'scheduleAt-returns-task': ({ expected, input }): void => {
     const sched = RealTimeScheduler.create();
     const atMs = futureAtMs(input);
     const task = sched.scheduleAt(atMs, () => { return; });
-    assert.strictEqual(task.atMs, atMs);
-    assert.ok(task.id.length > 0);
+    assert.strictEqual(task.atMs === atMs, expected.atMsMatches);
+    assert.strictEqual(task.id.length > 0, expected.hasId);
     task.cancel();
     sched.cancelAll();
   },
@@ -109,11 +109,11 @@ const scenarioRunners = {
     sched.cancelAll();
   },
 
-  'scheduleEvery-returns-task': ({ input }): void => {
+  'scheduleEvery-returns-task': ({ expected, input }): void => {
     const sched = RealTimeScheduler.create();
     const task = sched.scheduleEvery(numberField(input, 'intervalMs'), () => { return; });
-    assert.ok(task.atMs > 0);
-    assert.ok(task.id.length > 0);
+    assert.strictEqual(task.atMs > 0, expected.atMsPositive);
+    assert.strictEqual(task.id.length > 0, expected.hasId);
     task.cancel();
     sched.cancelAll();
   },
@@ -153,7 +153,7 @@ const scenarioRunners = {
     assert.strictEqual(sched.cancelAllCount, expected.cancelAllCount);
   },
 
-  'unique-task-ids': ({ batch, input }): void => {
+  'unique-task-ids': ({ batch, expected, input }): void => {
     const sched = RealTimeScheduler.create();
     const idSet = new Set<string>();
     const taskCount = numberField(batch, 'taskCount');
@@ -163,6 +163,7 @@ const scenarioRunners = {
     }
     sched.cancelAll();
     assert.strictEqual(idSet.size, taskCount);
+    assert.strictEqual(idSet.size === taskCount, expected.uniqueIds);
   },
 
   'rejecting-scheduleAt': ({ expected, input }): Promise<void> => {
@@ -355,7 +356,7 @@ const scenarioRunners = {
     assert.strictEqual(sched.idleCount, expected.idleCount);
   },
 
-  'chained-timeout-fire': ({ batch, input }): Promise<void> => {
+  'chained-timeout-fire': ({ batch, expected, input }): Promise<void> => {
     class TinyMaxDelayScheduler extends RealTimeScheduler {
       public fireCount = 0;
       public scheduleCount = 0;
@@ -377,7 +378,7 @@ const scenarioRunners = {
     let fired = false;
     const task = sched.scheduleAt(atMs, () => { fired = true; });
     return setTimeoutPromise((maxDelayMs * stageCount) + numberField(input, 'bufferMs')).then(() => {
-      assert.strictEqual(fired, true);
+      assert.strictEqual(fired, expected.completed);
       assert.strictEqual(sched.fireCount, 1);
       assert.strictEqual(sched.scheduleCount, 1);
       assert.strictEqual(task.atMs, atMs);
@@ -385,7 +386,7 @@ const scenarioRunners = {
     });
   },
 
-  'chained-timeout-cancel': ({ batch, input }): Promise<void> => {
+  'chained-timeout-cancel': ({ batch, expected, input }): Promise<void> => {
     class TinyMaxDelayScheduler extends RealTimeScheduler {
       public fireCount = 0;
       public constructor() { super(); }
@@ -407,10 +408,11 @@ const scenarioRunners = {
       await setTimeoutPromise((maxDelayMs * stageCount) + numberField(input, 'bufferMs'));
       assert.strictEqual(fired, false);
       assert.strictEqual(sched.fireCount, 0);
+      assert.strictEqual(!fired && sched.fireCount === 0, expected.completed);
     });
   },
 
-  'async-onFire-rejection-guarded': ({ input }): Promise<void> => {
+  'async-onFire-rejection-guarded': ({ expected, input }): Promise<void> => {
     const recordedHookNames: string[] = [];
     const recordedCauses: unknown[] = [];
 
@@ -446,7 +448,7 @@ const scenarioRunners = {
         await setTimeoutPromise(numberField(input, 'waitMs'));
         await new Promise((resolve) => { setImmediate(resolve); });
         await new Promise((resolve) => { setImmediate(resolve); });
-        assert.strictEqual(rejectionEvents.length, 0);
+        assert.strictEqual(rejectionEvents.length, Number(expected.unhandledRejections));
         assert.deepStrictEqual(recordedHookNames, ['onFire']);
         assert.strictEqual(recordedCauses[0], rejectionError);
       } finally {
@@ -456,7 +458,7 @@ const scenarioRunners = {
     })();
   },
 
-  'onDrift-captured': ({ input }): Promise<void> => {
+  'onDrift-captured': ({ expected, input }): Promise<void> => {
     class DriftScheduler extends RealTimeScheduler {
       public driftCount = 0;
       public driftMs: number[] = [];
@@ -480,7 +482,7 @@ const scenarioRunners = {
       let fired = false;
       sched.scheduleAt(numberField(input, 'atMs'), () => { fired = true; });
       return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-        assert.strictEqual(fired, true);
+        assert.strictEqual(fired, expected.completed);
         assert.strictEqual(sched.driftCount, 1);
         assert.ok(sched.driftMs[0] !== undefined && sched.driftMs[0] > 0);
         sched.cancelAll();
@@ -490,7 +492,7 @@ const scenarioRunners = {
     }
   },
 
-  'scheduleEvery-sync-throw': ({ input }): Promise<void> => {
+  'scheduleEvery-sync-throw': ({ expected, input }): Promise<void> => {
     class FireErrorScheduler extends RealTimeScheduler {
       public fireErrorCount = 0;
       public constructor() { super(); }
@@ -503,12 +505,12 @@ const scenarioRunners = {
     const task = sched.scheduleEvery(numberField(input, 'intervalMs'), () => { throw new Error('interval sync throw'); });
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
       task.cancel();
-      assert.ok(sched.fireErrorCount > 0);
+      assert.strictEqual(sched.fireErrorCount > 0, expected.completed);
       sched.cancelAll();
     });
   },
 
-  'scheduleEvery-async-reject': ({ input }): Promise<void> => {
+  'scheduleEvery-async-reject': ({ expected, input }): Promise<void> => {
     class FireErrorScheduler extends RealTimeScheduler {
       public fireErrorCount = 0;
       public constructor() { super(); }
@@ -524,7 +526,7 @@ const scenarioRunners = {
     });
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
       task.cancel();
-      assert.ok(sched.fireErrorCount > 0);
+      assert.strictEqual(sched.fireErrorCount > 0, expected.completed);
       sched.cancelAll();
     });
   }

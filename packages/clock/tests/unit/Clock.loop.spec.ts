@@ -266,7 +266,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'now-monotonic-same-instance': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
+    const { expected, input } = scenarioCase as ScenarioCase & {
+      expected: { monotonic: boolean };
       input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
     };
     const counter = createVirtualTimeCounter(input.counterOptions);
@@ -276,13 +277,13 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const second = clock.now();
     counter.advance(0);
     const third = clock.now();
-    assert.ok(first <= second);
-    assert.ok(second <= third);
+    assert.equal(first <= second && second <= third, expected.monotonic);
     return;
   },
 
   'hrtime-monotonic-same-instance': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
+    const { expected, input } = scenarioCase as ScenarioCase & {
+      expected: { monotonic: boolean };
       input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
     };
     const counter = createVirtualTimeCounter(input.counterOptions);
@@ -290,12 +291,13 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const first = clock.hrtime();
     counter.advance(input.advanceMs);
     const second = clock.hrtime();
-    assert.ok(first <= second);
+    assert.equal(first <= second, expected.monotonic);
     return;
   },
 
   'two-instances-independent': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
+    const { expected, input } = scenarioCase as ScenarioCase & {
+      expected: { sameResults: boolean };
       input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
     };
     const startMs = readVirtualTimeCounterStartMs(input.counterOptions);
@@ -314,26 +316,38 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.ok(bNow2 >= bNow1);
     assert.strictEqual(aNow2, startMs + input.advanceMs);
     assert.strictEqual(bNow2, startMs + input.advanceMs);
+    const sameResults = aNow1 === bNow1 && aNow2 === bNow2;
+    assert.equal(sameResults, expected.sameResults);
     return;
   },
 
   'clamp-backwards-provider-values': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
+    const { expected, input } = scenarioCase as ScenarioCase & {
+      expected: { clamped: boolean };
       input: {
         lowerCounterOptions: VirtualTimeCounterOptionsInput;
         counterOptions: VirtualTimeCounterOptionsInput;
       };
     };
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const clock = Clock.create(VirtualClockProvider.create(counter));
-    const first = clock.now();
     const lowerCounter = createVirtualTimeCounter(input.lowerCounterOptions);
-    const clockLower = Clock.create(VirtualClockProvider.create(lowerCounter));
-    const lowerFirst = clockLower.now();
-    const second = clockLower.now();
+    let readCount = 0;
+
+    class BackwardsJumpClock extends Clock {
+      public constructor(provider: ClockProviderInterface) { super(provider); }
+      protected override readNow(): number {
+        readCount += 1;
+        return readCount === 1 ? counter.nowMs() : lowerCounter.nowMs();
+      }
+    }
+
+    const clock = new BackwardsJumpClock(VirtualClockProvider.create(counter));
+    const first = clock.now();
+    const second = clock.now();
     assert.ok(first >= 0);
-    assert.ok(lowerFirst >= 0);
-    assert.ok(second >= lowerFirst);
+    assert.ok(lowerCounter.nowMs() >= 0);
+    const clamped = second === first && second > lowerCounter.nowMs();
+    assert.equal(clamped, expected.clamped);
     return;
   },
 
@@ -629,7 +643,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'real-provider-throws-on-now': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
+    const { expected, input } = scenarioCase as ScenarioCase & {
+      expected: { hookError: boolean };
       input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
     };
     class ThrowingRealNowProvider extends RealTimeClockProvider {
@@ -640,7 +655,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const provider = new ThrowingRealNowProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
     assert.throws(() => { provider.now(); }, (thrown: unknown) => {
-      assert.ok(thrown instanceof HookInvocationError);
+      assert.equal(thrown instanceof HookInvocationError, expected.hookError);
       assert.strictEqual(thrown.hookName, 'onNow');
       assert.ok(thrown.cause instanceof Error);
       assert.strictEqual((thrown.cause as Error).message, 'provider onNow boom');
@@ -650,7 +665,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'real-provider-throws-on-hrtime': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
+    const { expected, input } = scenarioCase as ScenarioCase & {
+      expected: { hookError: boolean };
       input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
     };
     class ThrowingRealHrtimeProvider extends RealTimeClockProvider {
@@ -661,7 +677,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const provider = new ThrowingRealHrtimeProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
     assert.throws(() => { provider.hrtime(); }, (thrown: unknown) => {
-      assert.ok(thrown instanceof HookInvocationError);
+      assert.equal(thrown instanceof HookInvocationError, expected.hookError);
       assert.strictEqual(thrown.hookName, 'onHrtime');
       return true;
     });
@@ -669,7 +685,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'virtual-provider-throws-on-now': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
+    const { expected, input } = scenarioCase as ScenarioCase & {
+      expected: { hookError: boolean };
       input: { counterOptions: VirtualTimeCounterOptionsInput };
     };
     class ThrowingVirtualNowProvider extends VirtualClockProvider {
@@ -680,7 +697,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const counter = createVirtualTimeCounter(input.counterOptions);
     const provider = new ThrowingVirtualNowProvider(counter);
     assert.throws(() => { provider.now(); }, (thrown: unknown) => {
-      assert.ok(thrown instanceof HookInvocationError);
+      assert.equal(thrown instanceof HookInvocationError, expected.hookError);
       assert.strictEqual(thrown.hookName, 'onNow');
       return true;
     });
@@ -688,7 +705,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'virtual-provider-throws-on-hrtime': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
+    const { expected, input } = scenarioCase as ScenarioCase & {
+      expected: { hookError: boolean };
       input: { counterOptions: VirtualTimeCounterOptionsInput };
     };
     class ThrowingVirtualHrtimeProvider extends VirtualClockProvider {
@@ -699,7 +717,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const counter = createVirtualTimeCounter(input.counterOptions);
     const provider = new ThrowingVirtualHrtimeProvider(counter);
     assert.throws(() => { provider.hrtime(); }, (thrown: unknown) => {
-      assert.ok(thrown instanceof HookInvocationError);
+      assert.equal(thrown instanceof HookInvocationError, expected.hookError);
       assert.strictEqual(thrown.hookName, 'onHrtime');
       return true;
     });
@@ -1017,7 +1035,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'long-uptime-precision': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
+    const { expected, input } = scenarioCase as ScenarioCase & {
+      expected: { precise: boolean };
       input: { rawMs: number; realProviderOptions: RealTimeClockProviderOptionsInput };
     };
     class LongUptimeRealTimeClockProvider extends RealTimeClockProvider {
@@ -1033,8 +1052,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const expectedNs = BigInt(wholeMs) * NS_PER_MS + BigInt(Math.round(fractionalMs * Number(NS_PER_MS)));
     const lossyNs = BigInt(Math.round(input.rawMs * Number(NS_PER_MS)));
     const result = provider.hrtime();
-    assert.strictEqual(result, expectedNs);
-    assert.notStrictEqual(result, lossyNs);
+    const precise = result === expectedNs && result !== lossyNs;
+    assert.equal(precise, expected.precise);
     return;
   }
 };

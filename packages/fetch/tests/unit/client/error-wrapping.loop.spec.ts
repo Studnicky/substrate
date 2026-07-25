@@ -44,24 +44,45 @@ type MappedErrorScenario = Extract<ScenarioCase, {
     | 'wrap-headers-timeout'
     | 'wrap-socket-error';
 }>;
-type MappedErrorAssertionMap = { [Shape in MappedErrorScenario['shape']]: (wrapped: Error | undefined) => void };
+type MappedErrorAssertionMap = { [Shape in MappedErrorScenario['shape']]: (wrapped: Error | undefined, scenarioCase: MappedErrorScenario) => void };
 
 function createClient(config: Parameters<typeof FetchClient.create>[0]): FetchClient {
   return FetchClient.create(config);
 }
 
+/**
+ * Categorizes a wrapped result the same way `expected.shape` describes it in the scenario data.
+ */
+function resultShape(wrapped: Error | undefined): 'error' | 'socket-exhaustion' | 'undefined' {
+  if (wrapped === undefined) {
+    return 'undefined';
+  }
+  if (wrapped instanceof SocketExhaustionError) {
+    return 'socket-exhaustion';
+  }
+  return 'error';
+}
+
 const mappedErrorAssertionMap: MappedErrorAssertionMap = {
-  'wrap-body-timeout': (wrapped) => {
+  'wrap-body-timeout': (wrapped, scenarioCase) => {
     assert.ok(wrapped instanceof BodyTimeoutError);
+    assert.equal(wrapped.name, scenarioCase.expected.errorName);
+    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
-  'wrap-connect-timeout': (wrapped) => {
+  'wrap-connect-timeout': (wrapped, scenarioCase) => {
     assert.ok(wrapped instanceof ConnectTimeoutError);
+    assert.equal(wrapped.name, scenarioCase.expected.errorName);
+    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
-  'wrap-headers-timeout': (wrapped) => {
+  'wrap-headers-timeout': (wrapped, scenarioCase) => {
     assert.ok(wrapped instanceof HeadersTimeoutError);
+    assert.equal(wrapped.name, scenarioCase.expected.errorName);
+    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
-  'wrap-socket-error': (wrapped) => {
+  'wrap-socket-error': (wrapped, scenarioCase) => {
     assert.ok(wrapped instanceof SocketError);
+    assert.equal(wrapped.name, scenarioCase.expected.errorName);
+    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   }
 };
 
@@ -72,7 +93,7 @@ async function runMappedErrorScenario(scenarioCase: MappedErrorScenario): Promis
   const dispatcher = Reflect.get(client, 'dispatcher') as { checkDispatcherHealth(origin: string): { stats: Record<string, unknown> } };
   dispatcher.checkDispatcherHealth = () => ({ 'stats': { 'freeConnections': 0, 'maxConnections': 2, 'pendingRequests': 1, 'queuedRequests': 0 } });
   const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(error, scenarioCase.input.url, 'GET', 'request-1', 1);
-  mappedErrorAssertionMap[scenarioCase.shape](wrapped);
+  mappedErrorAssertionMap[scenarioCase.shape](wrapped, scenarioCase);
 }
 
 const runnerMap: RunnerMap = {
@@ -82,11 +103,13 @@ const runnerMap: RunnerMap = {
     dispatcher.checkDispatcherHealth = () => ({ 'stats': { 'freeConnections': 0, 'maxConnections': 2, 'pendingRequests': 1, 'queuedRequests': 0 } });
     const wrapped = await (client as { handleSocketExhaustion(url: string, errorCode: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).handleSocketExhaustion(scenarioCase.input.url, scenarioCase.input.errorCode, 'GET', 'request-1', 1);
     assert.ok(wrapped instanceof SocketExhaustionError);
+    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
   'handle-invalid-origin': async (scenarioCase) => {
     const client = createClient(scenarioCase.input.fetchClient) as never;
     const wrapped = await (client as { handleSocketExhaustion(url: string, errorCode: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).handleSocketExhaustion(scenarioCase.input.url, scenarioCase.input.errorCode, 'GET', 'request-1', 1);
     assert.equal(wrapped, undefined);
+    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
   'handle-no-dispatcher': async (scenarioCase) => {
     const error = new Error('connect timeout') as Error & { code?: string };
@@ -94,6 +117,7 @@ const runnerMap: RunnerMap = {
     const client = createClient(scenarioCase.input.fetchClient) as never;
     const wrapped = await (client as { handleSocketExhaustion(url: string, errorCode: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).handleSocketExhaustion(scenarioCase.input.url, error.code, 'GET', 'request-1', 1);
     assert.equal(wrapped, undefined);
+    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
   'wrap-body-timeout': runMappedErrorScenario,
   'wrap-connect-timeout': runMappedErrorScenario,
@@ -102,6 +126,7 @@ const runnerMap: RunnerMap = {
     const client = createClient(scenarioCase.input.fetchClient) as never;
     const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(new Error('no code'), scenarioCase.input.url, 'GET', 'request-1', 1);
     assert.equal(wrapped, undefined);
+    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
   'wrap-socket-error': runMappedErrorScenario,
   'wrap-unknown-code': async (scenarioCase) => {
@@ -110,6 +135,7 @@ const runnerMap: RunnerMap = {
     const client = createClient(scenarioCase.input.fetchClient) as never;
     const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(error, scenarioCase.input.url, 'GET', 'request-1', 1);
     assert.equal(wrapped, undefined);
+    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   }
 };
 

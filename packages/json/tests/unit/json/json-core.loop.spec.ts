@@ -454,9 +454,10 @@ const scenarioRunnerMap = {
     assert.deepEqual(['id', 'type', 'property', 'name'].sort(Sort.longestFirst), ['property', 'type', 'name', 'id']);
     assert.equal(Sort.longestFirst('abc', 'de'), Sort.shortestFirst('de', 'abc'));
     assert.deepEqual(requireArray(readJson(scenarioCase).values, 'sort values').sort((left, right) => Number(left) - Number(right)), scenarioCase.expected.ascending);
+    assert.deepEqual(requireArray(readJson(scenarioCase).values, 'sort values').sort((left, right) => Number(right) - Number(left)), scenarioCase.expected.descending);
   },
 
-  'entities-core': () => {
+  'entities-core': (scenarioCase) => {
     assert.equal(DraftNodeStateEntity.validate({ isArray: true }), true);
     assert.equal(DraftNodeStateEntity.validate({ isArray: 'yes' }), false);
     assert.equal(PatchApplyResultStatusEntity.validate({ success: true }), true);
@@ -464,6 +465,9 @@ const scenarioRunnerMap = {
     assert.equal(PatchApplyResultStatusEntity.validate({}), false);
     assert.equal(PathWildcardResultEntity.validate({ isWildcard: true, remainingPath: ['items', 'name'] }), true);
     assert.equal(PathWildcardResultEntity.validate({ isWildcard: false, remainingPath: [] }), false);
+    const entities = requireArray(readJson(scenarioCase).entities, 'entities-core entities');
+    const ids = entities.map((entity) => requireJsonObject(entity, 'entities-core entity').id);
+    assert.deepEqual(ids, scenarioCase.expected.ids);
   },
 
   'schema-validator': (scenarioCase) => {

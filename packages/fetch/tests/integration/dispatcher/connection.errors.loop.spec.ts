@@ -4,6 +4,7 @@ import {
 } from 'node:test';
 
 import {
+  ConfigurationError,
   FetchClient,
   TimeoutError,
   UndiciDispatcher
@@ -159,6 +160,46 @@ function createBatchRequests<TResult>(batch: BatchInputInterface, requestFactory
   return Array.from({ length: batch.requestCount }, requestFactory);
 }
 
+function requireExpected(scenarioCase: ScenarioCase): Record<string, RuntimeValue> {
+  const { expected } = scenarioCase;
+  if (expected === undefined) {
+    throw new Error(`Missing expected for ${scenarioCase.name}`);
+  }
+  return expected;
+}
+
+function requireExpectedString(scenarioCase: ScenarioCase, key: string): string {
+  const value = requireExpected(scenarioCase)[key];
+  if (typeof value !== 'string') {
+    throw new Error(`${scenarioCase.name} must define expected.${key} as a string`);
+  }
+  return value;
+}
+
+function requireExpectedBoolean(scenarioCase: ScenarioCase, key: string): boolean {
+  const value = requireExpected(scenarioCase)[key];
+  if (typeof value !== 'boolean') {
+    throw new Error(`${scenarioCase.name} must define expected.${key} as a boolean`);
+  }
+  return value;
+}
+
+function requireExpectedArray(scenarioCase: ScenarioCase, key: string): RuntimeValue[] {
+  const value = requireExpected(scenarioCase)[key];
+  if (!Array.isArray(value)) {
+    throw new Error(`${scenarioCase.name} must define expected.${key} as an array`);
+  }
+  return value;
+}
+
+/**
+ * Normalizes a settled outcome (a Response, an HTTP status, or a caught fallback label)
+ * into a value comparable against scenario-declared `expected.results`/`expected.statuses`.
+ */
+function normalizeOutcome(value: Response | number | string): number | string {
+  return typeof value === 'object' ? value.status : value;
+}
+
 const runnerMap: RunnerMap = {
   'client-destroy-passes-timeout': async (scenarioCase) => {
     const fetchClientConfig = materializeRuntimeValue(scenarioCase.input.fetchClient ?? {}) as Parameters<typeof FetchClient.create>[0];
@@ -171,7 +212,8 @@ const runnerMap: RunnerMap = {
     const startTime = Date.now();
     await client.destroy(getDestroyOptions(scenarioCase));
     const elapsed = Date.now() - startTime;
-    assert.ok(elapsed >= 95, `Expected ~${getDestroyOptions(scenarioCase).timeout}ms wait, got ${elapsed}ms`);
+    const waited = elapsed >= 95;
+    assert.equal(waited, requireExpectedBoolean(scenarioCase, 'waited'), `Expected ~${getDestroyOptions(scenarioCase).timeout}ms wait, got ${elapsed}ms`);
   },
   'close-waits': async (scenarioCase) => {
     const { agent, dispatcher } = createManagedDispatcher(getDispatcherConfig(scenarioCase));
@@ -184,6 +226,7 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(responses[0]?.status, 200);
     assert.strictEqual(responses[1]?.status, 200);
     await dispatcher.close();
+    assert.equal(requireExpectedBoolean(scenarioCase, 'closed'), true);
   },
   'destroy-timeout-waits': async (scenarioCase) => {
     const { agent, dispatcher } = createManagedDispatcher(getDispatcherConfig(scenarioCase));
@@ -193,7 +236,8 @@ const runnerMap: RunnerMap = {
     const startTime = Date.now();
     await dispatcher.destroy(getDestroyOptions(scenarioCase));
     const elapsed = Date.now() - startTime;
-    assert.ok(elapsed >= 95, `Expected ~${getDestroyOptions(scenarioCase).timeout}ms wait, got ${elapsed}ms`);
+    const waited = elapsed >= 95;
+    assert.equal(waited, requireExpectedBoolean(scenarioCase, 'waited'), `Expected ~${getDestroyOptions(scenarioCase).timeout}ms wait, got ${elapsed}ms`);
   },
   'destroy-zero-no-wait': async (scenarioCase) => {
     const { agent, dispatcher } = createManagedDispatcher(getDispatcherConfig(scenarioCase));
@@ -203,7 +247,8 @@ const runnerMap: RunnerMap = {
     const startTime = Date.now();
     await dispatcher.destroy({ timeout: 0 });
     const elapsed = Date.now() - startTime;
-    assert.ok(elapsed < 50, `Expected immediate destroy, took ${elapsed}ms`);
+    const waited = elapsed >= 50;
+    assert.equal(waited, requireExpectedBoolean(scenarioCase, 'waited'), `Expected immediate destroy, took ${elapsed}ms`);
   },
   'dns-failure': async (scenarioCase) => {
     const { agent, dispatcher } = createManagedDispatcher(getDispatcherConfig(scenarioCase));
@@ -211,13 +256,14 @@ const runnerMap: RunnerMap = {
       baseURL: 'https://this-domain-does-not-exist-12345.com',
       options: { dispatcher: agent }
     });
+    const expectedError = requireExpectedString(scenarioCase, 'error');
 
     await assert.rejects(async () => {
       await client.get('/api');
     }, (error: unknown) => {
       assert.ok(error instanceof Error);
       const cause = error as Error & { cause?: Error };
-      const hasDnsError = error.message.includes('getaddrinfo') || (cause.cause?.message ?? '').includes('getaddrinfo');
+      const hasDnsError = error.message.includes(expectedError) || (cause.cause?.message ?? '').includes(expectedError);
       assert.ok(hasDnsError, `Expected DNS error, got: ${error.message}`);
       return true;
     });
@@ -238,10 +284,12 @@ const runnerMap: RunnerMap = {
     await dispatcher.destroy();
   },
   'invalid-config': async (scenarioCase) => {
+    const expectedError = requireExpectedString(scenarioCase, 'error');
     assert.throws(() => {
       validateDispatcher(materializeRuntimeValue(getDispatcherConfig(scenarioCase)) as never);
     }, (error: Error) => {
-      assert.ok(error.message.toLowerCase().includes('dispatcher') || error.message.toLowerCase().includes('configuration'));
+      assert.ok(error instanceof ConfigurationError);
+      assert.equal(error.name, expectedError);
       return true;
     });
   },
@@ -260,10 +308,7 @@ const runnerMap: RunnerMap = {
       goodClient.get('/posts/2')
     ]);
 
-    assert.strictEqual(results[0].status, 'rejected');
-    assert.strictEqual(results[1].status, 'fulfilled');
-    assert.strictEqual(results[2].status, 'rejected');
-    assert.strictEqual(results[3].status, 'fulfilled');
+    assert.deepStrictEqual(results.map((result) => result.status), requireExpectedArray(scenarioCase, 'statuses'));
 
     await dispatcher.destroy();
   },
@@ -300,10 +345,7 @@ const runnerMap: RunnerMap = {
         return 'error';
       });
     }));
-    assert.strictEqual(results.length, batch.requestCount);
-    for (const result of results) {
-      assert.strictEqual(result, 'error');
-    }
+    assert.deepStrictEqual(results.map(normalizeOutcome), requireExpectedArray(scenarioCase, 'results'));
     await dispatcher.destroy();
   },
   'many-concurrent-requests': async (scenarioCase) => {
@@ -313,10 +355,7 @@ const runnerMap: RunnerMap = {
     const responses = await Promise.all(createBatchRequests(batch, async () => {
       return await client.get('/posts/1');
     }));
-    assert.strictEqual(responses.length, batch.requestCount);
-    for (const response of responses) {
-      assert.strictEqual(response.status, 200);
-    }
+    assert.deepStrictEqual(responses.map(normalizeOutcome), requireExpectedArray(scenarioCase, 'statuses'));
     await dispatcher.destroy();
   },
   'many-concurrent-timeouts': async (scenarioCase) => {
@@ -328,10 +367,7 @@ const runnerMap: RunnerMap = {
         return 'timeout';
       });
     }));
-    assert.strictEqual(results.length, batch.requestCount);
-    for (const result of results) {
-      assert.strictEqual(result, 'timeout');
-    }
+    assert.deepStrictEqual(results.map(normalizeOutcome), requireExpectedArray(scenarioCase, 'results'));
     await dispatcher.destroy();
   },
   'mixed-errors-successes': async (scenarioCase) => {
@@ -345,12 +381,7 @@ const runnerMap: RunnerMap = {
       goodClient.get('/posts/1'),
       goodClient.get('/delay', { timeout: 100 }).catch(() => { return 'timeout'; })
     ]);
-    assert.strictEqual((results[0] as Response).status, 200);
-    assert.strictEqual(results[1], 'timeout');
-    assert.strictEqual((results[2] as Response).status, 200);
-    assert.strictEqual(results[3], 'timeout');
-    assert.strictEqual((results[4] as Response).status, 200);
-    assert.strictEqual(results[5], 'timeout');
+    assert.deepStrictEqual(results.map(normalizeOutcome), requireExpectedArray(scenarioCase, 'results'));
     await dispatcher.destroy();
   },
   'mixed-success-timeout-with-limited-connections': async (scenarioCase) => {
@@ -362,22 +393,20 @@ const runnerMap: RunnerMap = {
       client.get('/delay', { timeout: 100 }).catch(() => { return 'timeout2'; }),
       client.get('/posts/2')
     ]);
-    assert.strictEqual(results[0], 'timeout1');
-    assert.ok((results[1] as Response).status === 200);
-    assert.strictEqual(results[2], 'timeout2');
-    assert.ok((results[3] as Response).status === 200);
+    assert.deepStrictEqual(results.map(normalizeOutcome), requireExpectedArray(scenarioCase, 'results'));
     await dispatcher.destroy();
   },
   'network-refused': async (scenarioCase) => {
     const { agent, dispatcher } = createManagedDispatcher(getDispatcherConfig(scenarioCase));
     const client = createClient(agent, 'http://127.0.0.1:59999');
+    const expectedError = requireExpectedString(scenarioCase, 'error');
 
     await assert.rejects(async () => {
       await client.get('/api');
     }, (error: unknown) => {
       assert.ok(error instanceof Error);
       const cause = error as Error & { cause?: Error };
-      const hasConnectError = error.message.includes('connect') || (cause.cause?.message ?? '').includes('connect');
+      const hasConnectError = error.message.includes(expectedError) || (cause.cause?.message ?? '').includes(expectedError);
       assert.ok(hasConnectError, `Expected connect error, got: ${error.message}`);
       return true;
     });
@@ -392,8 +421,7 @@ const runnerMap: RunnerMap = {
       client.get('/posts/2')
     ];
     const responses = await Promise.all(requests);
-    assert.strictEqual(responses[0]?.status, 200);
-    assert.strictEqual(responses[1]?.status, 200);
+    assert.deepStrictEqual(responses.map(normalizeOutcome), requireExpectedArray(scenarioCase, 'statuses'));
     await dispatcher.destroy();
   },
   'pipelining-high': async (scenarioCase) => {
@@ -403,10 +431,7 @@ const runnerMap: RunnerMap = {
     const responses = await Promise.all(createBatchRequests(batch, async () => {
       return await client.get('/posts/1');
     }));
-    assert.strictEqual(responses.length, batch.requestCount);
-    for (const response of responses) {
-      assert.strictEqual(response.status, 200);
-    }
+    assert.deepStrictEqual(responses.map(normalizeOutcome), requireExpectedArray(scenarioCase, 'statuses'));
     await dispatcher.destroy();
   },
   'pool-after-network-error': async (scenarioCase) => {

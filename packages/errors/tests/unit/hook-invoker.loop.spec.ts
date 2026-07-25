@@ -11,6 +11,17 @@ import { ReentrantHookInvocationError } from '../../src/errors/ReentrantHookInvo
 import { ValidationError } from '../../src/errors/ValidationError.js';
 import scenarioGroups from './hook-invoker.scenarios.json';
 
+const errorConstructorsByShape: Record<string, new (...args: never[]) => Error> = {
+  'HookInvocationError': HookInvocationError,
+  'HookTimeoutError': HookTimeoutError
+};
+
+function errorConstructorForShape(shape: unknown): new (...args: never[]) => Error {
+  const constructor = errorConstructorsByShape[String(shape)];
+  assert.ok(constructor, `Unknown error shape: ${String(shape)}`);
+  return constructor;
+}
+
 class SwallowingInvoker extends HookInvoker {
   protected override onHookError(_hookName: string, _cause: unknown): void {}
 }
@@ -167,7 +178,7 @@ const runFireAndForgetTimeout: ScenarioRunner = (scenario, expected, input) => {
     await new Promise((resolve) => { setTimeout(resolve, Number(input.observationDelayMs)); });
     assert.deepStrictEqual(invoker.erroredHookNames, expected.erroredHookNames);
     const cause = invoker.causes[0];
-    assert.ok(cause instanceof HookTimeoutError);
+    assert.ok(cause instanceof errorConstructorForShape(expected.causeShape));
     assert.strictEqual((cause as HookTimeoutError).hookName, String(expected.erroredHookNames[0]));
     assert.strictEqual((cause as HookTimeoutError).timeoutMs, Number(expected.causeTimeoutMs));
   }).then((rejectionEvents) => {
@@ -345,6 +356,7 @@ const runnerMap = {
       await flushTurn();
       assert.deepStrictEqual(invoker.erroredHookNames, expected.erroredHookNames);
       assert.deepStrictEqual(invoker.causes, [original]);
+      assert.deepStrictEqual(invoker.causes.map((entry) => (entry instanceof Error ? entry.message : String(entry))), expected.causeMessages);
     }).then((rejectionEvents) => {
       assert.strictEqual(rejectionEvents.length, Number(expected.unhandledRejections));
     });
@@ -359,7 +371,7 @@ const runnerMap = {
       hookCompleted = true;
       return input.returnValue;
     });
-    assert.strictEqual(completion, undefined);
+    assert.strictEqual(completion, materializeInput(expected.completion));
     return flushTurn().then(() => {
       assert.strictEqual(hookCompleted, Boolean(expected.hookCompleted));
     });
@@ -372,21 +384,21 @@ const runnerMap = {
         await Promise.resolve();
         throw new Error(String(input.message));
       });
-      assert.strictEqual(completion, undefined);
+      assert.strictEqual(completion, materializeInput(expected.completion));
       await flushTurn();
       assert.deepStrictEqual(invoker.erroredHookNames, expected.erroredHookNames);
     }).then((rejectionEvents) => {
       assert.strictEqual(rejectionEvents.length, Number(expected.unhandledRejections));
     });
   },
-  'invoke-swallow-sync': (_scenario, _expected, input) => {
+  'invoke-swallow-sync': (_scenario, expected, input) => {
     const invoker = new SwallowingInvoker();
     const completion = invoker.invoke(String(input.hookName), () => {
       throw new Error(String(input.message));
     });
-    assert.strictEqual(completion, undefined);
+    assert.strictEqual(completion, materializeInput(expected.completion));
   },
-  'invoke-sync-success': (_scenario, _expected, input) => {
+  'invoke-sync-success': (_scenario, expected, input) => {
     const invoker = new HookInvoker();
     let hookRan = false;
     const completion: void = invoker.invoke(String(input.hookName), () => {
@@ -394,7 +406,7 @@ const runnerMap = {
       return input.returnValue;
     });
     assert.strictEqual(hookRan, true);
-    assert.strictEqual(completion, undefined);
+    assert.strictEqual(completion, materializeInput(expected.completion));
   },
   'invoke-sync-throw': (_scenario, expected, input) => {
     const invoker = new HookInvoker();
@@ -404,7 +416,7 @@ const runnerMap = {
         throw original;
       });
     }, (err: unknown) => {
-      assert.ok(err instanceof HookInvocationError);
+      assert.ok(err instanceof errorConstructorForShape(expected.errorShape));
       assert.strictEqual((err as HookInvocationError).hookName, String(expected.hookName));
       assert.strictEqual((err as HookInvocationError).cause, original);
       return true;
@@ -433,7 +445,8 @@ const runnerMap = {
       hookCompleted = true;
     });
     assert.strictEqual(hookCompleted, false);
-    return completion.then(() => {
+    return completion.then((result) => {
+      assert.strictEqual(result, materializeInput(expected.completion));
       assert.strictEqual(hookCompleted, Boolean(expected.hookCompleted));
     });
   },
@@ -479,7 +492,7 @@ const runnerMap = {
     });
     assert.strictEqual(hookRan, Boolean(expected.hookRan));
     return completion.then((result) => {
-      assert.strictEqual(result, undefined);
+      assert.strictEqual(result, materializeInput(expected.completion));
     });
   },
   'invokeasync-sync-throw': (_scenario, expected, input) => {
@@ -514,8 +527,8 @@ const runnerMap = {
     return assert.rejects(
       invoker.invokeAsync(String(input.hookName), () => new Promise(() => { /* never settles */ })),
       (err: unknown) => {
-        assert.ok(err instanceof HookInvocationError);
-        assert.ok(err.cause instanceof HookTimeoutError);
+        assert.ok(err instanceof errorConstructorForShape(expected.errorShape));
+        assert.ok(err.cause instanceof errorConstructorForShape(expected.causeShape));
         assert.strictEqual((err as HookInvocationError).hookName, String(expected.hookName));
         assert.strictEqual((err.cause as HookTimeoutError).hookName, String(expected.hookName));
         assert.strictEqual((err.cause as HookTimeoutError).timeoutMs, Number(expected.causeTimeoutMs));
@@ -595,7 +608,7 @@ const runnerMap = {
     let hookRan = false;
     const completion = invoker.invoke(String(input.hookName), () => { hookRan = true; return input.returnValue; });
     assert.strictEqual(hookRan, Boolean(expected.hookRan));
-    assert.strictEqual(completion, undefined);
+    assert.strictEqual(completion, materializeInput(expected.completion));
   },
   'options-non-positive': (_scenario, _expected, input) => {
     assert.throws(() => {
@@ -611,7 +624,7 @@ const runnerMap = {
       hookCompleted = true;
     });
     return completion.then((result) => {
-      assert.strictEqual(result, undefined);
+      assert.strictEqual(result, materializeInput(expected.completion));
       assert.strictEqual(hookCompleted, Boolean(expected.hookCompleted));
     });
   },
@@ -633,7 +646,7 @@ const runnerMap = {
       return input.returnValue;
     });
     assert.strictEqual(hookRan, Boolean(expected.hookRan));
-    assert.strictEqual(completion, undefined);
+    assert.strictEqual(completion, materializeInput(expected.completion));
   }
 } satisfies Record<ScenarioShape, ScenarioRunner>;
 
