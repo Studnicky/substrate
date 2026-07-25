@@ -10,7 +10,7 @@ export namespace EntryEntity {
       'mtimeMs': { 'type': 'number' },
       'shape': { 'enum': ['directory', 'file'], 'type': 'string' }
     },
-    'required': ['shape', 'mtimeMs'],
+    'required': ['mtimeMs', 'shape'],
     'type': 'object'
   } as const satisfies JSONSchema;
 
