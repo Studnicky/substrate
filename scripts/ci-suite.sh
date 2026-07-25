@@ -39,12 +39,12 @@ for check in "$@"; do
     build) pnpm run build && verify_dist ;;
     docs-build) prepare_dist && pnpm run docs:build ;;
     docs-includes) pnpm run lint:docs ;;
-    generated-artifacts) pnpm run config-schema:check && pnpm run stamp-version:check && pnpm run diagram:deps:check ;;
+    generated-artifacts) prepare_dist && pnpm run config-schema:check && pnpm run stamp-version:check && pnpm run diagram:deps:check ;;
     predocs-build) pnpm run predocs:build ;;
     audit) run_audit_check ;;
     verify-dist) prepare_dist && verify_dist ;;
-    diagram-check) pnpm run diagram:deps:check ;;
-    diagram-blast-radius) pnpm run diagram:deps:blast-radius -- --base "${CI_SUITE_BASE_REF:-origin/develop}" ;;
+    diagram-check) prepare_dist && pnpm run diagram:deps:check ;;
+    diagram-blast-radius) prepare_dist && pnpm run diagram:deps:blast-radius -- --base "${CI_SUITE_BASE_REF:-origin/develop}" ;;
     *)
       echo "ci-suite: unknown check '$check'" >&2
       exit 1
