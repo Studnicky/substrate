@@ -1,0 +1,31 @@
+name: gh-api-probe
+description: Probe a GitHub API path and report whether it is available.
+
+inputs:
+  path:
+    required: true
+  enabled-output:
+    required: false
+    default: enabled
+
+outputs:
+  enabled:
+    value: ${{ steps.probe.outputs.enabled }}
+
+runs:
+  using: composite
+  steps:
+    - id: probe
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PROBE_PATH: ${{ inputs.path }}
+        ENABLED_OUTPUT: ${{ inputs.enabled-output }}
+      run: |
+        set -euo pipefail
+
+        if gh api "$PROBE_PATH" --silent 2>/dev/null; then
+          echo "${ENABLED_OUTPUT}=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "${ENABLED_OUTPUT}=false" >> "$GITHUB_OUTPUT"
+        fi

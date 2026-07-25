@@ -1,0 +1,119 @@
+{
+  "cases": [
+    {
+      "name": "get-request",
+      "description": "FetchClient makes GET requests",
+      "input": {
+        "method": "GET",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "kind": "json",
+        "id": 1,
+        "status": 200
+      }
+    },
+    {
+      "name": "post-json",
+      "description": "FetchClient makes POST requests with JSON body",
+      "input": {
+        "body": {
+          "body": "content",
+          "title": "test",
+          "userId": 1
+        },
+        "method": "POST",
+        "path": "/posts"
+      },
+      "expected": {
+        "kind": "json",
+        "status": 201,
+        "title": "test"
+      }
+    },
+    {
+      "name": "post-string-body",
+      "description": "FetchClient supports string request bodies",
+      "input": {
+        "body": "plain text",
+        "method": "POST",
+        "path": "/posts"
+      },
+      "expected": {
+        "kind": "json",
+        "status": 201
+      }
+    },
+    {
+      "name": "put-json",
+      "description": "FetchClient makes PUT requests with JSON body",
+      "input": {
+        "body": {
+          "body": "content",
+          "id": 1,
+          "title": "updated",
+          "userId": 1
+        },
+        "method": "PUT",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "kind": "json",
+        "status": 200,
+        "title": "updated"
+      }
+    },
+    {
+      "name": "patch-json",
+      "description": "FetchClient makes PATCH requests with JSON body",
+      "input": {
+        "body": {
+          "title": "partial update"
+        },
+        "method": "PATCH",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "kind": "json",
+        "status": 200,
+        "title": "Test Post"
+      }
+    },
+    {
+      "name": "delete-request",
+      "description": "FetchClient makes DELETE requests",
+      "input": {
+        "method": "DELETE",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "head-request",
+      "description": "FetchClient makes HEAD requests",
+      "input": {
+        "method": "HEAD",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    },
+    {
+      "name": "options-request",
+      "description": "FetchClient makes OPTIONS requests",
+      "input": {
+        "method": "OPTIONS",
+        "path": "/posts/1"
+      },
+      "expected": {
+        "kind": "ok",
+        "status": 200
+      }
+    }
+  ]
+}

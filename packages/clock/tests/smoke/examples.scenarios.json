@@ -1,0 +1,44 @@
+{
+  "cases": [
+    {
+      "description": "Runs the basic clock example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/basic-usage.ts"
+      },
+      "name": "basic-usage"
+    },
+    {
+      "description": "Runs the custom provider example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/custom-provider.ts"
+      },
+      "name": "custom-provider"
+    },
+    {
+      "description": "Runs the observed clock example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/observedClock.ts"
+      },
+      "name": "observed-clock"
+    },
+    {
+      "description": "Runs the virtual time example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/virtual-time.ts"
+      },
+      "name": "virtual-time"
+    }
+  ]
+}

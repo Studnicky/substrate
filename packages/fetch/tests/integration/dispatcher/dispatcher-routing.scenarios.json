@@ -1,0 +1,38 @@
+{
+  "cases": [
+    {
+      "name": "routes-through-configured-dispatcher",
+      "description": "FetchClient records pool activity on the configured dispatcher",
+      "operation": "routes-through-configured-dispatcher",
+      "input": {
+        "path": "/posts/1",
+        "dispatcher": {
+          "connections": 5
+        },
+        "fetchClient": {
+          "baseURL": "__TEST_SERVER_URL__"
+        }
+      },
+      "expected": {
+        "originRecorded": true
+      }
+    },
+    {
+      "name": "isolates-unrelated-dispatcher",
+      "description": "FetchClient does not record activity on an unrelated dispatcher",
+      "operation": "isolates-unrelated-dispatcher",
+      "input": {
+        "path": "/posts/1",
+        "dispatcher": {
+          "connections": 5
+        },
+        "fetchClient": {
+          "baseURL": "__TEST_SERVER_URL__"
+        }
+      },
+      "expected": {
+        "idleOriginRecorded": false
+      }
+    }
+  ]
+}

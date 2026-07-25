@@ -1,0 +1,11 @@
+{
+  "cases": [
+    {
+      "name": "interface-must-be-contract",
+      "description": "separates contract and pure-data interfaces",
+      "kind": "interface-must-be-contract",
+      "input": { "code": "interface RunnerInterface { run(): void; }" },
+      "expected": { "validCount": 1, "invalidCount": 0 }
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "cases": [
+    {
+      "description": "validate their canonical phase discriminants",
+      "expected": {
+        "validationResults": [
+          true,
+          true,
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "BoundedDispatcherStartEventEntity", "expected": true, "value": { "phase": "start" } },
+          { "entity": "BoundedDispatcherSuccessEventEntity", "expected": true, "value": { "phase": "success" } },
+          { "entity": "BoundedDispatcherErrorEventEntity", "expected": true, "value": { "phase": "error" } }
+        ]
+      },
+      "kind": "entities-valid-phases",
+      "name": "validate their canonical phase discriminants"
+    },
+    {
+      "description": "reject mismatched phases and extra data",
+      "expected": {
+        "validationResults": [
+          false,
+          false,
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "BoundedDispatcherStartEventEntity", "expected": false, "value": { "phase": "success" } },
+          { "entity": "BoundedDispatcherSuccessEventEntity", "expected": false, "value": { "phase": "success", "result": "runtime" } },
+          { "entity": "BoundedDispatcherErrorEventEntity", "expected": false, "value": { "error": "runtime", "phase": "error" } }
+        ]
+      },
+      "kind": "entities-reject-invalid",
+      "name": "reject mismatched phases and extra data"
+    }
+  ]
+}

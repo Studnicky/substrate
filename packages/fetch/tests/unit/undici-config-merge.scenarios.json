@@ -1,0 +1,328 @@
+{
+  "cases": [
+    {
+      "name": "create-dispatcher-option-branches",
+      "description": "createDispatcher accepts a fully populated dispatcher config",
+      "operation": "create-dispatcher",
+      "input": {
+        "dispatcher": {
+          "allowH2": true,
+          "autoSelectFamily": true,
+          "autoSelectFamilyAttemptTimeout": 0,
+          "bodyTimeout": 0,
+          "clientTtl": 5000,
+          "connections": 3,
+          "connectTimeout": 0,
+          "enabled": true,
+          "headersTimeout": 0,
+          "keepAliveMaxTimeout": 0,
+          "keepAliveTimeout": 0,
+          "keepAliveTimeoutThreshold": 0,
+          "localAddress": "127.0.0.1",
+          "maxConcurrentStreams": 1,
+          "maxHeaderSize": 1,
+          "maxOrigins": 1,
+          "maxRequestsPerClient": 1,
+          "maxResponseSize": 1,
+          "pipelining": 0,
+          "strictContentLength": false
+        }
+      },
+      "expected": {
+        "kind": "dispatcher"
+      }
+    },
+    {
+      "name": "validation-reject-invalid-connections",
+      "description": "createDispatcher rejects invalid connections before constructing the dispatcher",
+      "operation": "create-dispatcher",
+      "input": {
+        "dispatcher": {
+          "connections": -5
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be at least 1"
+        ]
+      }
+    },
+    {
+      "name": "validation-reject-unknown-keys",
+      "description": "createDispatcher rejects unknown keys",
+      "operation": "create-dispatcher",
+      "input": {
+        "dispatcher": {
+          "invalidKey": true
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "not declared in the schema"
+        ]
+      }
+    },
+    {
+      "name": "validation-accept-valid-config",
+      "description": "createDispatcher accepts valid config",
+      "operation": "create-dispatcher",
+      "input": {
+        "dispatcher": {
+          "connections": 20
+        }
+      },
+      "expected": {
+        "kind": "dispatcher"
+      }
+    },
+    {
+      "name": "validation-reject-invalid-config-via-client",
+      "description": "FetchClient.create rejects invalid dispatcher config",
+      "operation": "create-client",
+      "input": {
+        "fetchClient": {
+          "dispatcher": {
+            "connections": -5,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be at least 1"
+        ]
+      }
+    },
+    {
+      "name": "validation-reject-unknown-keys-via-client",
+      "description": "FetchClient.create rejects unknown dispatcher keys",
+      "operation": "create-client",
+      "input": {
+        "fetchClient": {
+          "dispatcher": {
+            "enabled": true,
+            "invalidKey": true
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.invalidKey",
+          "not declared in the schema"
+        ]
+      }
+    },
+    {
+      "name": "default-timeout-values",
+      "description": "DEFAULT_DISPATCHER_CONFIG exposes documented timeout defaults",
+      "operation": "defaults",
+      "input": {},
+      "expected": {
+        "kind": "defaults",
+        "values": {
+          "connectTimeout": 10000,
+          "headersTimeout": 30000,
+          "bodyTimeout": 30000,
+          "keepAliveTimeout": 4000,
+          "keepAliveMaxTimeout": 600000,
+          "keepAliveTimeoutThreshold": 1000
+        }
+      }
+    },
+    {
+      "name": "default-connection-values",
+      "description": "DEFAULT_DISPATCHER_CONFIG exposes documented connection defaults",
+      "operation": "defaults",
+      "input": {},
+      "expected": {
+        "kind": "defaults",
+        "values": {
+          "connections": 10,
+          "pipelining": 1,
+          "enabled": false
+        }
+      }
+    },
+    {
+      "name": "default-size-limit-values",
+      "description": "DEFAULT_DISPATCHER_CONFIG exposes documented size limits",
+      "operation": "defaults",
+      "input": {},
+      "expected": {
+        "kind": "defaults",
+        "values": {
+          "maxHeaderSize": 16384,
+          "maxResponseSize": -1
+        }
+      }
+    },
+    {
+      "name": "default-http2-disabled",
+      "description": "DEFAULT_DISPATCHER_CONFIG disables HTTP/2 by default",
+      "operation": "defaults",
+      "input": {},
+      "expected": {
+        "kind": "defaults",
+        "values": {
+          "allowH2": false
+        }
+      }
+    },
+    {
+      "name": "default-ipv6-disabled",
+      "description": "DEFAULT_DISPATCHER_CONFIG disables IPv6 autodetection by default",
+      "operation": "defaults",
+      "input": {},
+      "expected": {
+        "kind": "defaults",
+        "values": {
+          "autoSelectFamily": false,
+          "autoSelectFamilyAttemptTimeout": 250
+        }
+      }
+    },
+    {
+      "name": "default-strict-content-length",
+      "description": "DEFAULT_DISPATCHER_CONFIG enables strict content length by default",
+      "operation": "defaults",
+      "input": {},
+      "expected": {
+        "kind": "defaults",
+        "values": {
+          "strictContentLength": true
+        }
+      }
+    },
+    {
+      "name": "dispatcher-create-empty-config",
+      "description": "createDispatcher accepts an empty config",
+      "operation": "create-dispatcher",
+      "input": {
+        "dispatcher": {}
+      },
+      "expected": {
+        "kind": "dispatcher"
+      }
+    },
+    {
+      "name": "dispatcher-create-all-options",
+      "description": "createDispatcher accepts the full documented option set",
+      "operation": "create-dispatcher",
+      "input": {
+        "dispatcher": {
+          "allowH2": true,
+          "autoSelectFamily": true,
+          "autoSelectFamilyAttemptTimeout": 400,
+          "bodyTimeout": 480000,
+          "clientTtl": 90000,
+          "connections": 30,
+          "connectTimeout": 8000,
+          "headersTimeout": 240000,
+          "keepAliveMaxTimeout": 480000,
+          "keepAliveTimeout": 45000,
+          "keepAliveTimeoutThreshold": 1500,
+          "localAddress": "172.16.0.1",
+          "maxConcurrentStreams": 150,
+          "maxHeaderSize": 24576,
+          "maxOrigins": 75,
+          "maxRequestsPerClient": 500,
+          "maxResponseSize": 2097152,
+          "pipelining": 2,
+          "strictContentLength": false
+        }
+      },
+      "expected": {
+        "kind": "dispatcher"
+      }
+    },
+    {
+      "name": "client-reject-zero-connections",
+      "description": "FetchClient.create rejects zero connections during construction",
+      "operation": "create-client",
+      "input": {
+        "fetchClient": {
+          "dispatcher": {
+            "connections": 0,
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be at least 1"
+        ]
+      }
+    },
+    {
+      "name": "client-accept-valid-pool-config",
+      "description": "FetchClient.create accepts valid dispatcher config",
+      "operation": "create-client",
+      "input": {
+        "fetchClient": {
+          "dispatcher": {
+            "connections": 20,
+            "enabled": false
+          }
+        }
+      },
+      "expected": {
+        "kind": "fetch-client"
+      }
+    },
+    {
+      "name": "client-create-with-pool-disabled",
+      "description": "FetchClient.create returns a client when dispatcher pooling is disabled",
+      "operation": "create-client",
+      "input": {
+        "fetchClient": {
+          "dispatcher": {
+            "enabled": false
+          }
+        }
+      },
+      "expected": {
+        "kind": "fetch-client"
+      }
+    },
+    {
+      "name": "client-create-option-branches",
+      "description": "FetchClient.create accepts a nested dispatcher config that exercises option branches",
+      "operation": "create-client",
+      "input": {
+        "fetchClient": {
+          "baseURL": "https://api.example.com",
+          "dispatcher": {
+            "allowH2": true,
+            "autoSelectFamily": true,
+            "autoSelectFamilyAttemptTimeout": 0,
+            "bodyTimeout": 0,
+            "clientTtl": 5000,
+            "connections": 3,
+            "connectTimeout": 0,
+            "enabled": true,
+            "headersTimeout": 0,
+            "keepAliveMaxTimeout": 0,
+            "keepAliveTimeout": 0,
+            "keepAliveTimeoutThreshold": 0,
+            "localAddress": "127.0.0.1",
+            "maxConcurrentStreams": 1,
+            "maxHeaderSize": 1,
+            "maxOrigins": 1,
+            "maxRequestsPerClient": 1,
+            "maxResponseSize": 1,
+            "pipelining": 0,
+            "strictContentLength": false
+          }
+        }
+      },
+      "expected": {
+        "kind": "fetch-client"
+      }
+    }
+  ]
+}

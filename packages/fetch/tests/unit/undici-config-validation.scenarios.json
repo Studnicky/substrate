@@ -1,0 +1,1313 @@
+{
+  "cases": [
+    {
+      "name": "dispatcher-undefined",
+      "description": "validateDispatcher accepts undefined",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "dispatcher": {
+          "__kind": "undefined"
+        }
+      }
+    },
+    {
+      "name": "dispatcher-null",
+      "description": "validateDispatcher accepts null",
+      "expected": {
+        "kind": "ok"
+      },
+      "input": {
+        "dispatcher": null
+      }
+    },
+    {
+      "name": "dispatcher-non-object",
+      "description": "validateDispatcher rejects non-object values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher must be an object"
+        ]
+      },
+      "input": {
+        "dispatcher": "invalid"
+      }
+    },
+    {
+      "name": "dispatcher-array",
+      "description": "validateDispatcher rejects array values",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher must be an object"
+        ]
+      },
+      "input": {
+        "dispatcher": []
+      }
+    },
+    {
+      "name": "enabled-true",
+      "description": "validateDispatcher accepts enabled true",
+      "input": {
+        "dispatcher": {
+          "enabled": true
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "enabled-false",
+      "description": "validateDispatcher accepts enabled false",
+      "input": {
+        "dispatcher": {
+          "enabled": false
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "enabled-non-boolean",
+      "description": "validateDispatcher rejects non-boolean enabled",
+      "input": {
+        "dispatcher": {
+          "enabled": 123
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a boolean"
+        ]
+      }
+    },
+    {
+      "name": "connections-valid",
+      "description": "validateDispatcher accepts valid connections",
+      "input": {
+        "dispatcher": {
+          "connections": 20
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "connections-null",
+      "description": "validateDispatcher accepts null connections",
+      "input": {
+        "dispatcher": {
+          "connections": null
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "connections-undefined",
+      "description": "validateDispatcher accepts undefined connections",
+      "input": {
+        "dispatcher": {
+          "connections": {
+            "__kind": "undefined"
+          }
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "connections-zero",
+      "description": "validateDispatcher rejects zero connections",
+      "input": {
+        "dispatcher": {
+          "connections": 0
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be at least 1"
+        ]
+      }
+    },
+    {
+      "name": "connections-negative",
+      "description": "validateDispatcher rejects negative connections",
+      "input": {
+        "dispatcher": {
+          "connections": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be at least 1"
+        ]
+      }
+    },
+    {
+      "name": "connections-too-large",
+      "description": "validateDispatcher rejects connections over the limit",
+      "input": {
+        "dispatcher": {
+          "connections": 1001
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must not exceed 1000"
+        ]
+      }
+    },
+    {
+      "name": "connections-non-integer",
+      "description": "validateDispatcher rejects non-integer connections",
+      "input": {
+        "dispatcher": {
+          "connections": 10.5
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be an integer"
+        ]
+      }
+    },
+    {
+      "name": "connections-non-number",
+      "description": "validateDispatcher rejects non-number connections",
+      "input": {
+        "dispatcher": {
+          "connections": {}
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a number"
+        ]
+      }
+    },
+    {
+      "name": "pipelining-disabled",
+      "description": "validateDispatcher accepts disabled pipelining",
+      "input": {
+        "dispatcher": {
+          "pipelining": 0
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "pipelining-valid",
+      "description": "validateDispatcher accepts valid pipelining",
+      "input": {
+        "dispatcher": {
+          "pipelining": 5
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "pipelining-negative",
+      "description": "validateDispatcher rejects negative pipelining",
+      "input": {
+        "dispatcher": {
+          "pipelining": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be non-negative"
+        ]
+      }
+    },
+    {
+      "name": "pipelining-too-large",
+      "description": "validateDispatcher rejects oversized pipelining",
+      "input": {
+        "dispatcher": {
+          "pipelining": 11
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must not exceed 10"
+        ]
+      }
+    },
+    {
+      "name": "pipelining-non-integer",
+      "description": "validateDispatcher rejects non-integer pipelining",
+      "input": {
+        "dispatcher": {
+          "pipelining": 1.5
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be an integer"
+        ]
+      }
+    },
+    {
+      "name": "connect-timeout-valid",
+      "description": "validateDispatcher accepts connectTimeout",
+      "input": {
+        "dispatcher": {
+          "connectTimeout": 5000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "connect-timeout-negative",
+      "description": "validateDispatcher rejects negative connectTimeout",
+      "input": {
+        "dispatcher": {
+          "connectTimeout": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be non-negative"
+        ]
+      }
+    },
+    {
+      "name": "connect-timeout-infinite",
+      "description": "validateDispatcher rejects infinite connectTimeout",
+      "input": {
+        "dispatcher": {
+          "connectTimeout": {
+            "__kind": "infinity"
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be finite"
+        ]
+      }
+    },
+    {
+      "name": "connect-timeout-non-number",
+      "description": "validateDispatcher rejects non-number connectTimeout",
+      "input": {
+        "dispatcher": {
+          "connectTimeout": {}
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a number"
+        ]
+      }
+    },
+    {
+      "name": "body-timeout-valid",
+      "description": "validateDispatcher accepts bodyTimeout",
+      "input": {
+        "dispatcher": {
+          "bodyTimeout": 5000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "body-timeout-negative",
+      "description": "validateDispatcher rejects negative bodyTimeout",
+      "input": {
+        "dispatcher": {
+          "bodyTimeout": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be non-negative"
+        ]
+      }
+    },
+    {
+      "name": "body-timeout-infinite",
+      "description": "validateDispatcher rejects infinite bodyTimeout",
+      "input": {
+        "dispatcher": {
+          "bodyTimeout": {
+            "__kind": "infinity"
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be finite"
+        ]
+      }
+    },
+    {
+      "name": "body-timeout-non-number",
+      "description": "validateDispatcher rejects non-number bodyTimeout",
+      "input": {
+        "dispatcher": {
+          "bodyTimeout": {}
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a number"
+        ]
+      }
+    },
+    {
+      "name": "headers-timeout-valid",
+      "description": "validateDispatcher accepts headersTimeout",
+      "input": {
+        "dispatcher": {
+          "headersTimeout": 5000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "headers-timeout-negative",
+      "description": "validateDispatcher rejects negative headersTimeout",
+      "input": {
+        "dispatcher": {
+          "headersTimeout": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be non-negative"
+        ]
+      }
+    },
+    {
+      "name": "headers-timeout-infinite",
+      "description": "validateDispatcher rejects infinite headersTimeout",
+      "input": {
+        "dispatcher": {
+          "headersTimeout": {
+            "__kind": "infinity"
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be finite"
+        ]
+      }
+    },
+    {
+      "name": "headers-timeout-non-number",
+      "description": "validateDispatcher rejects non-number headersTimeout",
+      "input": {
+        "dispatcher": {
+          "headersTimeout": {}
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a number"
+        ]
+      }
+    },
+    {
+      "name": "keep-alive-timeout-valid",
+      "description": "validateDispatcher accepts keepAliveTimeout",
+      "input": {
+        "dispatcher": {
+          "keepAliveTimeout": 5000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "keep-alive-timeout-negative",
+      "description": "validateDispatcher rejects negative keepAliveTimeout",
+      "input": {
+        "dispatcher": {
+          "keepAliveTimeout": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be non-negative"
+        ]
+      }
+    },
+    {
+      "name": "keep-alive-timeout-infinite",
+      "description": "validateDispatcher rejects infinite keepAliveTimeout",
+      "input": {
+        "dispatcher": {
+          "keepAliveTimeout": {
+            "__kind": "infinity"
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be finite"
+        ]
+      }
+    },
+    {
+      "name": "keep-alive-timeout-non-number",
+      "description": "validateDispatcher rejects non-number keepAliveTimeout",
+      "input": {
+        "dispatcher": {
+          "keepAliveTimeout": {}
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a number"
+        ]
+      }
+    },
+    {
+      "name": "keep-alive-max-timeout-valid",
+      "description": "validateDispatcher accepts keepAliveMaxTimeout",
+      "input": {
+        "dispatcher": {
+          "keepAliveMaxTimeout": 5000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "keep-alive-max-timeout-negative",
+      "description": "validateDispatcher rejects negative keepAliveMaxTimeout",
+      "input": {
+        "dispatcher": {
+          "keepAliveMaxTimeout": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be non-negative"
+        ]
+      }
+    },
+    {
+      "name": "keep-alive-max-timeout-infinite",
+      "description": "validateDispatcher rejects infinite keepAliveMaxTimeout",
+      "input": {
+        "dispatcher": {
+          "keepAliveMaxTimeout": {
+            "__kind": "infinity"
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be finite"
+        ]
+      }
+    },
+    {
+      "name": "keep-alive-max-timeout-non-number",
+      "description": "validateDispatcher rejects non-number keepAliveMaxTimeout",
+      "input": {
+        "dispatcher": {
+          "keepAliveMaxTimeout": {}
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a number"
+        ]
+      }
+    },
+    {
+      "name": "keep-alive-threshold-valid",
+      "description": "validateDispatcher accepts keepAliveTimeoutThreshold",
+      "input": {
+        "dispatcher": {
+          "keepAliveTimeoutThreshold": 5000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "keep-alive-threshold-negative",
+      "description": "validateDispatcher rejects negative keepAliveTimeoutThreshold",
+      "input": {
+        "dispatcher": {
+          "keepAliveTimeoutThreshold": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be non-negative"
+        ]
+      }
+    },
+    {
+      "name": "keep-alive-threshold-infinite",
+      "description": "validateDispatcher rejects infinite keepAliveTimeoutThreshold",
+      "input": {
+        "dispatcher": {
+          "keepAliveTimeoutThreshold": {
+            "__kind": "infinity"
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be finite"
+        ]
+      }
+    },
+    {
+      "name": "keep-alive-threshold-non-number",
+      "description": "validateDispatcher rejects non-number keepAliveTimeoutThreshold",
+      "input": {
+        "dispatcher": {
+          "keepAliveTimeoutThreshold": {}
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a number"
+        ]
+      }
+    },
+    {
+      "name": "allow-h2-boolean",
+      "description": "validateDispatcher accepts allowH2 boolean",
+      "input": {
+        "dispatcher": {
+          "allowH2": true
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "allow-h2-non-boolean",
+      "description": "validateDispatcher rejects non-boolean allowH2",
+      "input": {
+        "dispatcher": {
+          "allowH2": 1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a boolean"
+        ]
+      }
+    },
+    {
+      "name": "max-concurrent-streams-valid",
+      "description": "validateDispatcher accepts maxConcurrentStreams",
+      "input": {
+        "dispatcher": {
+          "maxConcurrentStreams": 50
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-concurrent-streams-zero",
+      "description": "validateDispatcher rejects maxConcurrentStreams below one",
+      "input": {
+        "dispatcher": {
+          "maxConcurrentStreams": 0
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be at least 1"
+        ]
+      }
+    },
+    {
+      "name": "max-concurrent-streams-non-integer",
+      "description": "validateDispatcher rejects non-integer maxConcurrentStreams",
+      "input": {
+        "dispatcher": {
+          "maxConcurrentStreams": 10.5
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be an integer"
+        ]
+      }
+    },
+    {
+      "name": "max-concurrent-streams-non-number",
+      "description": "validateDispatcher rejects non-number maxConcurrentStreams",
+      "input": {
+        "dispatcher": {
+          "maxConcurrentStreams": {}
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a number"
+        ]
+      }
+    },
+    {
+      "name": "max-response-size-unbounded",
+      "description": "validateDispatcher accepts maxResponseSize -1",
+      "input": {
+        "dispatcher": {
+          "maxResponseSize": -1
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-response-size-positive",
+      "description": "validateDispatcher accepts positive maxResponseSize",
+      "input": {
+        "dispatcher": {
+          "maxResponseSize": 1048576
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-response-size-invalid-negative",
+      "description": "validateDispatcher rejects invalid negative maxResponseSize",
+      "input": {
+        "dispatcher": {
+          "maxResponseSize": -2
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be -1"
+        ]
+      }
+    },
+    {
+      "name": "max-response-size-non-number",
+      "description": "validateDispatcher rejects non-number maxResponseSize",
+      "input": {
+        "dispatcher": {
+          "maxResponseSize": {}
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a number"
+        ]
+      }
+    },
+    {
+      "name": "max-header-size-valid",
+      "description": "validateDispatcher accepts maxHeaderSize",
+      "input": {
+        "dispatcher": {
+          "maxHeaderSize": 32768
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-header-size-zero",
+      "description": "validateDispatcher rejects maxHeaderSize below one",
+      "input": {
+        "dispatcher": {
+          "maxHeaderSize": 0
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be at least 1"
+        ]
+      }
+    },
+    {
+      "name": "max-requests-per-client-valid",
+      "description": "validateDispatcher accepts maxRequestsPerClient",
+      "input": {
+        "dispatcher": {
+          "maxRequestsPerClient": 100
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-requests-per-client-undefined",
+      "description": "validateDispatcher accepts undefined maxRequestsPerClient",
+      "input": {
+        "dispatcher": {
+          "maxRequestsPerClient": {
+            "__kind": "undefined"
+          }
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-requests-per-client-null",
+      "description": "validateDispatcher accepts null maxRequestsPerClient",
+      "input": {
+        "dispatcher": {
+          "maxRequestsPerClient": null
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-requests-per-client-zero",
+      "description": "validateDispatcher rejects maxRequestsPerClient below one",
+      "input": {
+        "dispatcher": {
+          "maxRequestsPerClient": 0
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be at least 1"
+        ]
+      }
+    },
+    {
+      "name": "client-ttl-valid",
+      "description": "validateDispatcher accepts clientTtl",
+      "input": {
+        "dispatcher": {
+          "clientTtl": 60000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "client-ttl-undefined",
+      "description": "validateDispatcher accepts undefined clientTtl",
+      "input": {
+        "dispatcher": {
+          "clientTtl": {
+            "__kind": "undefined"
+          }
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "client-ttl-null",
+      "description": "validateDispatcher accepts null clientTtl",
+      "input": {
+        "dispatcher": {
+          "clientTtl": null
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "client-ttl-negative",
+      "description": "validateDispatcher rejects negative clientTtl",
+      "input": {
+        "dispatcher": {
+          "clientTtl": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be non-negative"
+        ]
+      }
+    },
+    {
+      "name": "strict-content-length-boolean",
+      "description": "validateDispatcher accepts strictContentLength boolean",
+      "input": {
+        "dispatcher": {
+          "strictContentLength": false
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "strict-content-length-non-boolean",
+      "description": "validateDispatcher rejects non-boolean strictContentLength",
+      "input": {
+        "dispatcher": {
+          "strictContentLength": 0
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a boolean"
+        ]
+      }
+    },
+    {
+      "name": "local-address-valid",
+      "description": "validateDispatcher accepts localAddress",
+      "input": {
+        "dispatcher": {
+          "localAddress": "192.168.1.100"
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "local-address-undefined",
+      "description": "validateDispatcher accepts undefined localAddress",
+      "input": {
+        "dispatcher": {
+          "localAddress": {
+            "__kind": "undefined"
+          }
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "local-address-null",
+      "description": "validateDispatcher accepts null localAddress",
+      "input": {
+        "dispatcher": {
+          "localAddress": null
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "local-address-empty",
+      "description": "validateDispatcher rejects empty localAddress",
+      "input": {
+        "dispatcher": {
+          "localAddress": ""
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must not be empty"
+        ]
+      }
+    },
+    {
+      "name": "local-address-non-string",
+      "description": "validateDispatcher rejects non-string localAddress",
+      "input": {
+        "dispatcher": {
+          "localAddress": 123
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a string"
+        ]
+      }
+    },
+    {
+      "name": "auto-select-family-boolean",
+      "description": "validateDispatcher accepts autoSelectFamily boolean",
+      "input": {
+        "dispatcher": {
+          "autoSelectFamily": true
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "auto-select-family-non-boolean",
+      "description": "validateDispatcher rejects non-boolean autoSelectFamily",
+      "input": {
+        "dispatcher": {
+          "autoSelectFamily": 1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be a boolean"
+        ]
+      }
+    },
+    {
+      "name": "auto-select-family-attempt-timeout-valid",
+      "description": "validateDispatcher accepts autoSelectFamilyAttemptTimeout",
+      "input": {
+        "dispatcher": {
+          "autoSelectFamilyAttemptTimeout": 500
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "auto-select-family-attempt-timeout-negative",
+      "description": "validateDispatcher rejects negative autoSelectFamilyAttemptTimeout",
+      "input": {
+        "dispatcher": {
+          "autoSelectFamilyAttemptTimeout": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be non-negative"
+        ]
+      }
+    },
+    {
+      "name": "max-origins-valid",
+      "description": "validateDispatcher accepts maxOrigins",
+      "input": {
+        "dispatcher": {
+          "maxOrigins": 50
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-origins-undefined",
+      "description": "validateDispatcher accepts undefined maxOrigins",
+      "input": {
+        "dispatcher": {
+          "maxOrigins": {
+            "__kind": "undefined"
+          }
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-origins-null",
+      "description": "validateDispatcher accepts null maxOrigins",
+      "input": {
+        "dispatcher": {
+          "maxOrigins": null
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "max-origins-below-one",
+      "description": "validateDispatcher rejects maxOrigins below one",
+      "input": {
+        "dispatcher": {
+          "maxOrigins": 0
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be at least 1"
+        ]
+      }
+    },
+    {
+      "name": "max-origins-non-integer",
+      "description": "validateDispatcher rejects non-integer maxOrigins",
+      "input": {
+        "dispatcher": {
+          "maxOrigins": 10.5
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "must be an integer"
+        ]
+      }
+    },
+    {
+      "name": "max-header-size-non-number",
+      "description": "validateDispatcher rejects non-number maxHeaderSize",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.maxHeaderSize must be a number"
+        ]
+      },
+      "input": {
+        "dispatcher": {
+          "maxHeaderSize": "bad"
+        }
+      }
+    },
+    {
+      "name": "max-requests-per-client-non-number",
+      "description": "validateDispatcher rejects non-number maxRequestsPerClient",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.maxRequestsPerClient must be a number"
+        ]
+      },
+      "input": {
+        "dispatcher": {
+          "maxRequestsPerClient": "bad"
+        }
+      }
+    },
+    {
+      "name": "client-ttl-non-number",
+      "description": "validateDispatcher rejects non-number clientTtl",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.clientTtl must be a number"
+        ]
+      },
+      "input": {
+        "dispatcher": {
+          "clientTtl": "bad"
+        }
+      }
+    },
+    {
+      "name": "local-address-non-string",
+      "description": "validateDispatcher rejects non-string localAddress",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.localAddress must be a string"
+        ]
+      },
+      "input": {
+        "dispatcher": {
+          "localAddress": 123
+        }
+      }
+    },
+    {
+      "name": "local-address-empty-string",
+      "description": "validateDispatcher rejects empty localAddress",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.localAddress must not be empty"
+        ]
+      },
+      "input": {
+        "dispatcher": {
+          "localAddress": ""
+        }
+      }
+    },
+    {
+      "name": "max-origins-non-number",
+      "description": "validateDispatcher rejects non-number maxOrigins",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.maxOrigins must be a number"
+        ]
+      },
+      "input": {
+        "dispatcher": {
+          "maxOrigins": "bad"
+        }
+      }
+    },
+    {
+      "name": "max-response-size-non-integer",
+      "description": "validateDispatcher rejects non-integer maxResponseSize",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.maxResponseSize must be an integer"
+        ]
+      },
+      "input": {
+        "dispatcher": {
+          "maxResponseSize": 1.5
+        }
+      }
+    },
+    {
+      "name": "pipelining-non-number",
+      "description": "validateDispatcher rejects non-number pipelining",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.pipelining must be a number"
+        ]
+      },
+      "input": {
+        "dispatcher": {
+          "pipelining": "bad"
+        }
+      }
+    },
+    {
+      "name": "auto-select-family-attempt-timeout-non-number",
+      "description": "validateDispatcher rejects non-number autoSelectFamilyAttemptTimeout",
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "dispatcher.autoSelectFamilyAttemptTimeout must be a number"
+        ]
+      },
+      "input": {
+        "dispatcher": {
+          "autoSelectFamilyAttemptTimeout": "bad"
+        }
+      }
+    },
+    {
+      "name": "unknown-key",
+      "description": "validateDispatcher rejects unknown configuration keys",
+      "input": {
+        "dispatcher": {
+          "unknownKey": true
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "unknownKey",
+          "not declared in the schema"
+        ]
+      }
+    },
+    {
+      "name": "typo-key",
+      "description": "validateDispatcher rejects typoed configuration keys",
+      "input": {
+        "dispatcher": {
+          "conections": 10
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "conections",
+          "not declared in the schema"
+        ]
+      }
+    },
+    {
+      "name": "comprehensive-config",
+      "description": "validateDispatcher accepts the documented dispatcher configuration together",
+      "input": {
+        "dispatcher": {
+          "allowH2": false,
+          "autoSelectFamily": true,
+          "autoSelectFamilyAttemptTimeout": 300,
+          "bodyTimeout": 600000,
+          "clientTtl": 120000,
+          "connections": 20,
+          "connectTimeout": 10000,
+          "enabled": true,
+          "headersTimeout": 300000,
+          "keepAliveMaxTimeout": 600000,
+          "keepAliveTimeout": 60000,
+          "keepAliveTimeoutThreshold": 2000,
+          "localAddress": "192.168.1.100",
+          "maxConcurrentStreams": 100,
+          "maxHeaderSize": 32768,
+          "maxOrigins": 100,
+          "maxRequestsPerClient": 1000,
+          "maxResponseSize": -1,
+          "pipelining": 1,
+          "strictContentLength": true
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    }
+  ]
+}

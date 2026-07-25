@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/file-lock",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "Atomic rename-based single-writer file lock for Node.js",
   "type": "module",
   "sideEffects": false,
@@ -22,7 +22,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
-    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+    "test": "node ../../scripts/test-suite.mjs all --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",

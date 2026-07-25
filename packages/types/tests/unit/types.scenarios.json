@@ -1,0 +1,1135 @@
+{
+  "guard": {
+    "asNumber": [
+      {
+        "description": "returns the number for 42",
+        "input": 42,
+        "outcome": 42
+      },
+      {
+        "description": "returns the number for 0",
+        "input": 0,
+        "outcome": 0
+      },
+      {
+        "description": "returns the number for -1.5",
+        "input": -1.5,
+        "outcome": -1.5
+      },
+      {
+        "description": "returns undefined for string",
+        "input": "42",
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns undefined for null",
+        "input": {
+          "kind": "null"
+        },
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns undefined for boolean",
+        "input": true,
+        "outcome": {
+          "kind": "undefined"
+        }
+      }
+    ],
+    "asStringOrNull": [
+      {
+        "description": "returns the string when value is a string",
+        "input": "hello",
+        "outcome": "hello"
+      },
+      {
+        "description": "returns null when value is null",
+        "input": {
+          "kind": "null"
+        },
+        "outcome": {
+          "kind": "null"
+        }
+      },
+      {
+        "description": "returns undefined for number",
+        "input": 42,
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns undefined for boolean",
+        "input": true,
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns undefined for undefined",
+        "input": {
+          "kind": "undefined"
+        },
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns undefined for object",
+        "input": {},
+        "outcome": {
+          "kind": "undefined"
+        }
+      }
+    ],
+    "asRecordArray": [
+      {
+        "description": "returns filtered records from an array",
+        "input": [
+          {
+            "a": 1
+          },
+          "string",
+          {
+            "b": 2
+          },
+          {
+            "kind": "null"
+          },
+          42
+        ],
+        "outcome": [
+          {
+            "a": 1
+          },
+          {
+            "b": 2
+          }
+        ]
+      },
+      {
+        "description": "returns undefined for non-array input (object)",
+        "input": {
+          "a": 1
+        },
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns undefined for non-array input (string)",
+        "input": "string",
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns undefined for non-array input (null)",
+        "input": {
+          "kind": "null"
+        },
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns undefined when no records found in array",
+        "input": [
+          1,
+          2,
+          "str",
+          {
+            "kind": "null"
+          }
+        ],
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns undefined for empty array",
+        "input": [],
+        "outcome": {
+          "kind": "undefined"
+        }
+      },
+      {
+        "description": "returns all elements when all are records",
+        "input": [
+          {
+            "x": 1
+          },
+          {
+            "y": 2
+          },
+          {
+            "z": 3
+          }
+        ],
+        "outcome": [
+          {
+            "x": 1
+          },
+          {
+            "y": 2
+          },
+          {
+            "z": 3
+          }
+        ]
+      }
+    ],
+    "isString": [
+      {
+        "description": "returns true for non-empty string",
+        "input": "hello",
+        "outcome": true
+      },
+      {
+        "description": "returns true for empty string",
+        "input": "",
+        "outcome": true
+      },
+      {
+        "description": "returns false for number",
+        "input": 42,
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "kind": "null"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for undefined",
+        "input": {
+          "kind": "undefined"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for boolean",
+        "input": true,
+        "outcome": false
+      }
+    ],
+    "isNumber": [
+      {
+        "description": "returns true for 42",
+        "input": 42,
+        "outcome": true
+      },
+      {
+        "description": "returns true for 0",
+        "input": 0,
+        "outcome": true
+      },
+      {
+        "description": "returns true for -1.5",
+        "input": -1.5,
+        "outcome": true
+      },
+      {
+        "description": "returns false for NaN",
+        "input": {
+          "kind": "nan"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for string",
+        "input": "42",
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "kind": "null"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for boolean",
+        "input": true,
+        "outcome": false
+      }
+    ],
+    "isBoolean": [
+      {
+        "description": "returns true for true",
+        "input": true,
+        "outcome": true
+      },
+      {
+        "description": "returns true for false",
+        "input": false,
+        "outcome": true
+      },
+      {
+        "description": "returns false for number 1",
+        "input": 1,
+        "outcome": false
+      },
+      {
+        "description": "returns false for string true",
+        "input": "true",
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "kind": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isFunction": [
+      {
+        "description": "returns true for arrow function",
+        "input": {
+          "kind": "function"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for named function",
+        "input": {
+          "kind": "namedFunction"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for number",
+        "input": 42,
+        "outcome": false
+      },
+      {
+        "description": "returns false for object",
+        "input": {},
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "kind": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isObject": [
+      {
+        "description": "returns true for empty object",
+        "input": {},
+        "outcome": true
+      },
+      {
+        "description": "returns true for plain object",
+        "input": {
+          "a": 1
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "kind": "null"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for array",
+        "input": [],
+        "outcome": false
+      },
+      {
+        "description": "returns false for string",
+        "input": "hello",
+        "outcome": false
+      },
+      {
+        "description": "returns false for number",
+        "input": 42,
+        "outcome": false
+      },
+      {
+        "description": "returns false for boolean",
+        "input": true,
+        "outcome": false
+      },
+      {
+        "description": "returns false for Map",
+        "input": {
+          "kind": "map"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for non-empty Map",
+        "input": {
+          "kind": "mapWithEntry"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for Set",
+        "input": {
+          "kind": "set"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for non-empty Set",
+        "input": {
+          "kind": "setWithEntry"
+        },
+        "outcome": false
+      }
+    ],
+    "isNonNegativeInteger": [
+      {
+        "description": "returns true for 0",
+        "input": 0,
+        "outcome": true
+      },
+      {
+        "description": "returns true for positive integer",
+        "input": 5,
+        "outcome": true
+      },
+      {
+        "description": "returns false for float",
+        "input": 1.5,
+        "outcome": false
+      },
+      {
+        "description": "returns false for negative integer",
+        "input": -1,
+        "outcome": false
+      },
+      {
+        "description": "returns false for string",
+        "input": "5",
+        "outcome": false
+      }
+    ],
+    "isPositiveInteger": [
+      {
+        "description": "returns true for 1",
+        "input": 1,
+        "outcome": true
+      },
+      {
+        "description": "returns false for 0",
+        "input": 0,
+        "outcome": false
+      },
+      {
+        "description": "returns false for negative integer",
+        "input": -3,
+        "outcome": false
+      },
+      {
+        "description": "returns false for float",
+        "input": 2.5,
+        "outcome": false
+      }
+    ]
+  },
+  "empty": [
+    {
+      "description": "string returns an empty string",
+      "method": "string",
+      "outcome": ""
+    },
+    {
+      "description": "object returns a fresh plain object with no keys",
+      "method": "object",
+      "outcome": {}
+    },
+    {
+      "description": "object returns a new instance on each call",
+      "method": "objectIdentity",
+      "outcome": true
+    },
+    {
+      "description": "array returns a fresh empty array",
+      "method": "array",
+      "outcome": []
+    },
+    {
+      "description": "array returns a new instance on each call",
+      "method": "arrayIdentity",
+      "outcome": true
+    },
+    {
+      "description": "map returns a fresh empty Map",
+      "method": "map",
+      "outcome": {
+        "kind": "map"
+      }
+    },
+    {
+      "description": "map returns a new instance on each call",
+      "method": "mapIdentity",
+      "outcome": true
+    },
+    {
+      "description": "set returns a fresh empty Set",
+      "method": "set",
+      "outcome": {
+        "kind": "set"
+      }
+    },
+    {
+      "description": "set returns a new instance on each call",
+      "method": "setIdentity",
+      "outcome": true
+    },
+    {
+      "description": "isString returns true for empty string",
+      "method": "isString",
+      "input": "",
+      "outcome": true
+    },
+    {
+      "description": "isString returns false for non-empty string",
+      "method": "isString",
+      "input": "a",
+      "outcome": false
+    },
+    {
+      "description": "isString returns false for number",
+      "method": "isString",
+      "input": 0,
+      "outcome": false
+    },
+    {
+      "description": "isString returns false for null",
+      "method": "isString",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isString returns false for undefined",
+      "method": "isString",
+      "input": {
+        "kind": "undefined"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isString returns false for boolean false",
+      "method": "isString",
+      "input": false,
+      "outcome": false
+    },
+    {
+      "description": "isObject returns true for empty plain object",
+      "method": "isObject",
+      "input": {},
+      "outcome": true
+    },
+    {
+      "description": "isObject returns false for non-empty plain object",
+      "method": "isObject",
+      "input": {
+        "a": 1
+      },
+      "outcome": false
+    },
+    {
+      "description": "isObject returns false for null",
+      "method": "isObject",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isObject returns false for array",
+      "method": "isObject",
+      "input": [],
+      "outcome": false
+    },
+    {
+      "description": "isObject returns false for empty Map",
+      "method": "isObject",
+      "input": {
+        "kind": "map"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isObject returns false for empty Set",
+      "method": "isObject",
+      "input": {
+        "kind": "set"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isObject returns false for string",
+      "method": "isObject",
+      "input": "",
+      "outcome": false
+    },
+    {
+      "description": "isObject returns false for number",
+      "method": "isObject",
+      "input": 0,
+      "outcome": false
+    },
+    {
+      "description": "isArray returns true for empty array",
+      "method": "isArray",
+      "input": [],
+      "outcome": true
+    },
+    {
+      "description": "isArray returns false for non-empty array",
+      "method": "isArray",
+      "input": [
+        1
+      ],
+      "outcome": false
+    },
+    {
+      "description": "isArray returns false for plain object",
+      "method": "isArray",
+      "input": {},
+      "outcome": false
+    },
+    {
+      "description": "isArray returns false for null",
+      "method": "isArray",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isArray returns false for string",
+      "method": "isArray",
+      "input": "",
+      "outcome": false
+    },
+    {
+      "description": "isMap returns true for empty Map",
+      "method": "isMap",
+      "input": {
+        "kind": "map"
+      },
+      "outcome": true
+    },
+    {
+      "description": "isMap returns false for non-empty Map",
+      "method": "isMap",
+      "input": {
+        "kind": "mapWithEntry"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isMap returns false for plain object",
+      "method": "isMap",
+      "input": {},
+      "outcome": false
+    },
+    {
+      "description": "isMap returns false for null",
+      "method": "isMap",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isMap returns false for empty Set",
+      "method": "isMap",
+      "input": {
+        "kind": "set"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isSet returns true for empty Set",
+      "method": "isSet",
+      "input": {
+        "kind": "set"
+      },
+      "outcome": true
+    },
+    {
+      "description": "isSet returns false for non-empty Set",
+      "method": "isSet",
+      "input": {
+        "kind": "setWithEntry"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isSet returns false for plain object",
+      "method": "isSet",
+      "input": {},
+      "outcome": false
+    },
+    {
+      "description": "isSet returns false for null",
+      "method": "isSet",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": false
+    },
+    {
+      "description": "isSet returns false for empty Map",
+      "method": "isSet",
+      "input": {
+        "kind": "map"
+      },
+      "outcome": false
+    }
+  ],
+  "jsonObject": [
+    {
+      "description": "accepts a plain object",
+      "input": {
+        "a": 1
+      },
+      "outcome": true
+    },
+    {
+      "description": "rejects null",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": false
+    },
+    {
+      "description": "rejects arrays",
+      "input": [],
+      "outcome": false
+    },
+    {
+      "description": "rejects Map",
+      "input": {
+        "kind": "map"
+      },
+      "outcome": false
+    },
+    {
+      "description": "rejects Set",
+      "input": {
+        "kind": "set"
+      },
+      "outcome": false
+    },
+    {
+      "description": "rejects a regular expression",
+      "input": {
+        "kind": "regex"
+      },
+      "outcome": false
+    },
+    {
+      "description": "accepts a plain object with null prototype",
+      "input": {
+        "kind": "nullPrototypeObject"
+      },
+      "outcome": true
+    }
+  ],
+  "jsonValue": [
+    {
+      "description": "accepts nested JSON data",
+      "method": "is",
+      "input": {
+        "nested": [
+          1,
+          "two",
+          {
+            "kind": "null"
+          },
+          true
+        ]
+      },
+      "outcome": true
+    },
+    {
+      "description": "rejects non-JSON data",
+      "method": "is",
+      "input": {
+        "value": {
+          "kind": "undefined"
+        }
+      },
+      "outcome": false
+    },
+    {
+      "description": "rejects class instances",
+      "method": "is",
+      "input": {
+        "kind": "date"
+      },
+      "outcome": false
+    },
+    {
+      "description": "rejects cyclic data",
+      "method": "is",
+      "input": {
+        "kind": "cyclicObject"
+      },
+      "outcome": false
+    },
+    {
+      "description": "passes null through",
+      "method": "from",
+      "input": {
+        "kind": "null"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    },
+    {
+      "description": "passes a string through",
+      "method": "from",
+      "input": "hello",
+      "outcome": "hello"
+    },
+    {
+      "description": "passes a number through",
+      "method": "from",
+      "input": 42,
+      "outcome": 42
+    },
+    {
+      "description": "passes boolean true through",
+      "method": "from",
+      "input": true,
+      "outcome": true
+    },
+    {
+      "description": "passes boolean false through",
+      "method": "from",
+      "input": false,
+      "outcome": false
+    },
+    {
+      "description": "coerces a flat array element-wise",
+      "method": "from",
+      "input": [
+        1,
+        "two",
+        {
+          "kind": "null"
+        },
+        true
+      ],
+      "outcome": [
+        1,
+        "two",
+        {
+          "kind": "null"
+        },
+        true
+      ]
+    },
+    {
+      "description": "coerces non-JSON elements inside an array to null",
+      "method": "from",
+      "input": [
+        {
+          "kind": "undefined"
+        },
+        {
+          "kind": "function"
+        },
+        {
+          "kind": "symbol"
+        }
+      ],
+      "outcome": [
+        {
+          "kind": "null"
+        },
+        {
+          "kind": "null"
+        },
+        {
+          "kind": "null"
+        }
+      ]
+    },
+    {
+      "description": "recurses nested arrays",
+      "method": "from",
+      "input": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "outcome": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "description": "replaces a cyclic branch with null",
+      "method": "from",
+      "input": {
+        "kind": "cyclicObject"
+      },
+      "outcome": {
+        "self": {
+          "kind": "null"
+        }
+      }
+    },
+    {
+      "description": "replaces class instances with null",
+      "method": "from",
+      "input": {
+        "kind": "date"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    },
+    {
+      "description": "coerces a flat plain object field-wise",
+      "method": "from",
+      "input": {
+        "a": 1,
+        "b": "two"
+      },
+      "outcome": {
+        "a": 1,
+        "b": "two"
+      }
+    },
+    {
+      "description": "recurses nested plain objects",
+      "method": "from",
+      "input": {
+        "outer": {
+          "inner": 42
+        }
+      },
+      "outcome": {
+        "outer": {
+          "inner": 42
+        }
+      }
+    },
+    {
+      "description": "coerces non-JSON fields in an object to null",
+      "method": "from",
+      "input": {
+        "fn": {
+          "kind": "function"
+        },
+        "sym": {
+          "kind": "symbol"
+        },
+        "n": 1
+      },
+      "outcome": {
+        "fn": {
+          "kind": "null"
+        },
+        "sym": {
+          "kind": "null"
+        },
+        "n": 1
+      }
+    },
+    {
+      "description": "coerces undefined to null",
+      "method": "from",
+      "input": {
+        "kind": "undefined"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    },
+    {
+      "description": "coerces a function to null",
+      "method": "from",
+      "input": {
+        "kind": "function"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    },
+    {
+      "description": "coerces a symbol to null",
+      "method": "from",
+      "input": {
+        "kind": "symbol"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    },
+    {
+      "description": "coerces a bigint to null",
+      "method": "from",
+      "input": {
+        "kind": "bigint"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    },
+    {
+      "description": "coerces NaN to null",
+      "method": "from",
+      "input": {
+        "kind": "nan"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    },
+    {
+      "description": "coerces Infinity to null",
+      "method": "from",
+      "input": {
+        "kind": "infinity"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    },
+    {
+      "description": "coerces -Infinity to null",
+      "method": "from",
+      "input": {
+        "kind": "negativeInfinity"
+      },
+      "outcome": {
+        "kind": "null"
+      }
+    }
+  ],
+  "pickDefined": [
+    {
+      "description": "keeps all keys when every value is required and present",
+      "input": {
+        "burstSize": 10,
+        "requestsPerSecond": 5
+      },
+      "outcome": {
+        "burstSize": 10,
+        "requestsPerSecond": 5
+      }
+    },
+    {
+      "description": "keeps present optional keys alongside required ones",
+      "input": {
+        "burstSize": 10,
+        "requestsPerSecond": 5,
+        "clock": {
+          "kind": "function"
+        }
+      },
+      "outcome": {
+        "burstSize": 10,
+        "requestsPerSecond": 5,
+        "clock": {
+          "kind": "function"
+        }
+      }
+    },
+    {
+      "description": "drops undefined-valued keys from a mixed record",
+      "input": {
+        "burstSize": 10,
+        "requestsPerSecond": 5,
+        "clock": {
+          "kind": "undefined"
+        }
+      },
+      "outcome": {
+        "burstSize": 10,
+        "requestsPerSecond": 5
+      }
+    },
+    {
+      "description": "returns an empty object when every value is undefined",
+      "input": {
+        "clock": {
+          "kind": "undefined"
+        },
+        "deadlineMs": {
+          "kind": "undefined"
+        }
+      },
+      "outcome": {}
+    },
+    {
+      "description": "models an always-undefined input property as absent",
+      "input": {
+        "value": {
+          "kind": "undefined"
+        }
+      },
+      "outcome": {}
+    },
+    {
+      "description": "returns an empty object for an empty record",
+      "input": {},
+      "outcome": {}
+    },
+    {
+      "description": "preserves a required field so it is not over-stripped",
+      "input": {
+        "requestsPerSecond": 5,
+        "clock": {
+          "kind": "undefined"
+        }
+      },
+      "outcome": {
+        "requestsPerSecond": 5
+      }
+    },
+    {
+      "description": "preserves falsy-but-defined values",
+      "input": {
+        "count": 0,
+        "label": "",
+        "enabled": false,
+        "clock": {
+          "kind": "undefined"
+        }
+      },
+      "outcome": {
+        "count": 0,
+        "label": "",
+        "enabled": false
+      }
+    }
+  ]
+}

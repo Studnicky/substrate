@@ -1,0 +1,34 @@
+{
+  "cases": [
+    {
+      "name": "01-client-config.ts",
+      "description": "Client config example runs without throwing",
+      "input": { "entrypoint": "../../examples/01-client-config.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "02-override-hooks.ts",
+      "description": "Override hooks example runs without throwing",
+      "input": { "entrypoint": "../../examples/02-override-hooks.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "03-telemetry-hooks.ts",
+      "description": "Telemetry hooks example runs without throwing",
+      "input": { "entrypoint": "../../examples/03-telemetry-hooks.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "browserFetch.ts",
+      "description": "Browser fetch example runs without throwing",
+      "input": { "entrypoint": "../../examples/browserFetch.ts" },
+      "expected": { "importsWithoutThrow": true }
+    },
+    {
+      "name": "observedFetch.ts",
+      "description": "Observed fetch example runs without throwing",
+      "input": { "entrypoint": "../../examples/observedFetch.ts" },
+      "expected": { "importsWithoutThrow": true }
+    }
+  ]
+}

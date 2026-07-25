@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/worker-pool)
 
-Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers, reuses each worker for later items in that run, terminates the live workers after dispatched work settles, and resolves an ordered results array. Every envelope a worker posts back (`log`, `progress`, `result`, `error`) fires `onMessage()`; a `'result'` envelope resolves that item, while an `'error'` envelope, an uncaught worker error, a repeated unexpected mid-task exit, or exceeding `timeoutMs` rejects it.
+Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers, admits up to `batchConcurrency` items into each `Batch#process()` scheduling window, reuses each worker for later items in that run, terminates the live workers after dispatched work settles, and resolves an ordered results array. Every envelope a worker posts back (`log`, `progress`, `result`, `error`) fires `onMessage()`; a `'result'` envelope resolves that item, while an `'error'` envelope, an uncaught worker error, a repeated unexpected mid-task exit, or exceeding `timeoutMs` rejects it.
 
 ## Install
 
@@ -32,7 +32,7 @@ const pool = WorkerPool.create({
 const results = await pool.run([1, 2, 3, 4, 5]);
 ```
 
-`concurrency` defaults to `System.optimalWorkerCount` (logical CPU count minus one) when omitted. `timeoutMs` is optional — omit it for no per-task timeout.
+`concurrency` defaults to `System.optimalWorkerCount` (logical CPU count minus one) when omitted. `batchConcurrency` defaults to `concurrency`; set it higher only when callers intentionally want a wider admission window than the worker count. `timeoutMs` is optional — omit it for no per-task timeout.
 
 For each dispatched task with a timeout, the pool awaits `signal.compose({ deadlineMs: timeoutMs })` before posting the item to its worker. Signal hooks and composition failures therefore settle before task execution begins, while queued time remains outside the per-task deadline.
 
@@ -57,7 +57,7 @@ Each call to `run()` creates its own pool of at most `concurrency` workers. An i
 
 | Method | Description |
 |--------|-------------|
-| `WorkerPool.create(config)` | Creates a pool. `config.workerPath` is required; `concurrency`, `timeoutMs`, and `signal` default |
+| `WorkerPool.create(config)` | Creates a pool. `config.workerPath` is required; `concurrency`, `batchConcurrency`, `timeoutMs`, and `signal` default |
 | `run(items)` | Fans `items` across at most `concurrency` workers and resolves an ordered `TResult[]` |
 | `getHookErrorCount()` | Count of hook failures recorded since construction |
 | `getHookErrors()` | Detached errors and nested causes for every hook failure recorded since construction |

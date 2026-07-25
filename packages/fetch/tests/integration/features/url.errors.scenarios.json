@@ -1,0 +1,1276 @@
+{
+  "cases": [
+    {
+      "name": "baseurl-empty-string",
+      "description": "FetchClient rejects an empty baseURL",
+      "clientConfig": {
+        "baseURL": ""
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": ""
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "baseurl",
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "baseurl-invalid-format",
+      "description": "FetchClient rejects an invalid baseURL format",
+      "clientConfig": {
+        "baseURL": "not-a-url"
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "not-a-url"
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "baseurl",
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "baseurl-missing-protocol",
+      "description": "FetchClient rejects a baseURL without protocol",
+      "clientConfig": {
+        "baseURL": "://no-protocol"
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "://no-protocol"
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "baseurl",
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "baseurl-protocol-only",
+      "description": "FetchClient rejects a protocol-only baseURL",
+      "clientConfig": {
+        "baseURL": "http://"
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "http://"
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "baseurl",
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "baseurl-number",
+      "description": "FetchClient rejects a numeric baseURL",
+      "clientConfig": {
+        "baseURL": 123
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": 123
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "baseurl",
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "baseurl-object",
+      "description": "FetchClient rejects an object baseURL",
+      "clientConfig": {
+        "baseURL": {}
+      },
+      "expect": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": {}
+        },
+        "expect": {
+          "kind": "create-throws",
+          "messageIncludes": [
+            "baseurl",
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "kind": "create-throws",
+        "messageIncludes": [
+          "baseurl",
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "baseurl-null",
+      "description": "FetchClient accepts a null baseURL",
+      "clientConfig": {
+        "baseURL": null
+      },
+      "expect": {
+        "kind": "create-ok"
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": null
+        },
+        "expect": {
+          "kind": "create-ok"
+        }
+      },
+      "expected": {
+        "kind": "create-ok"
+      }
+    },
+    {
+      "name": "baseurl-custom-protocol",
+      "description": "FetchClient accepts a custom protocol baseURL",
+      "clientConfig": {
+        "baseURL": "htp://invalid"
+      },
+      "expect": {
+        "kind": "create-ok"
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "htp://invalid"
+        },
+        "expect": {
+          "kind": "create-ok"
+        }
+      },
+      "expected": {
+        "kind": "create-ok"
+      }
+    },
+    {
+      "name": "empty-request-url",
+      "description": "FetchClient rejects an empty request URL",
+      "request": {
+        "url": ""
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": ""
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "spaces-in-url",
+      "description": "FetchClient rejects a request URL with spaces",
+      "request": {
+        "url": "http://invalid url with spaces.com/api"
+      },
+      "expect": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      },
+      "input": {
+        "request": {
+          "url": "http://invalid url with spaces.com/api"
+        },
+        "expect": {
+          "error": "TypeError",
+          "kind": "rejects",
+          "messageIncludes": [
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "whitespace-url",
+      "description": "FetchClient rejects a request URL containing only whitespace",
+      "request": {
+        "url": "   "
+      },
+      "expect": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      },
+      "input": {
+        "request": {
+          "url": "   "
+        },
+        "expect": {
+          "error": "TypeError",
+          "kind": "rejects",
+          "messageIncludes": [
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "relative-url-without-baseurl",
+      "description": "FetchClient rejects a relative request URL without a baseURL",
+      "request": {
+        "url": "api/posts/1"
+      },
+      "expect": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      },
+      "input": {
+        "request": {
+          "url": "api/posts/1"
+        },
+        "expect": {
+          "error": "TypeError",
+          "kind": "rejects",
+          "messageIncludes": [
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "encoded-space-url",
+      "description": "FetchClient handles a URL with encoded spaces",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/1?query=hello%20world"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1?query=hello%20world"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "unicode-url",
+      "description": "FetchClient handles a URL with unicode characters",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/1?query=你好"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1?query=你好"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "special-query-url",
+      "description": "FetchClient handles a URL with special query characters",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/1?query=test&foo=bar&baz=qux"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1?query=test&foo=bar&baz=qux"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "hash-fragment-url",
+      "description": "FetchClient handles a URL with a hash fragment",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/1#section"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1#section"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "long-url-1kb",
+      "description": "FetchClient handles a URL with a long path",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/1?xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "expect": {
+        "kind": "status-or-404"
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1?xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        "expect": {
+          "kind": "status-or-404"
+        }
+      },
+      "expected": {
+        "kind": "status-or-404"
+      }
+    },
+    {
+      "name": "long-url-2kb",
+      "description": "FetchClient handles a URL with a very long query string",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/1?data=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "expect": {
+        "kind": "status-or-404"
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1?data=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        "expect": {
+          "kind": "status-or-404"
+        }
+      },
+      "expected": {
+        "kind": "status-or-404"
+      }
+    },
+    {
+      "name": "long-url-8kb",
+      "description": "FetchClient handles a URL approaching the 8KB limit",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/1?data=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "expect": {
+        "kind": "status-or-404"
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1?data=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        "expect": {
+          "kind": "status-or-404"
+        }
+      },
+      "expected": {
+        "kind": "status-or-404"
+      }
+    },
+    {
+      "name": "auth-username-password",
+      "description": "FetchClient rejects a URL with username and password",
+      "request": {
+        "url": "http://user:pass@localhost:9999/api"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "http://user:pass@localhost:9999/api"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "auth-username-only",
+      "description": "FetchClient rejects a URL with username only",
+      "request": {
+        "url": "http://user@localhost:9999/api"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "http://user@localhost:9999/api"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "auth-encoded-credentials",
+      "description": "FetchClient rejects a URL with encoded credentials",
+      "request": {
+        "url": "http://user%40email.com:pass%40123@localhost:9999/api"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "http://user%40email.com:pass%40123@localhost:9999/api"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "relative-with-baseurl-leading-slash",
+      "description": "FetchClient resolves a relative path with a baseURL",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/1"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "relative-with-baseurl-no-leading-slash",
+      "description": "FetchClient resolves a path without a leading slash with a baseURL",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "posts/1"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "posts/1"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "relative-with-baseurl-trailing-slash",
+      "description": "FetchClient resolves a path with a trailing slash on baseURL",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__/"
+      },
+      "request": {
+        "url": "/posts/1"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__/"
+        },
+        "request": {
+          "url": "/posts/1"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "relative-with-baseurl-without-trailing-slash",
+      "description": "FetchClient resolves a path without a trailing slash on baseURL",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "posts/1"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "posts/1"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "relative-root-without-baseurl",
+      "description": "FetchClient rejects a relative path without a baseURL",
+      "request": {
+        "url": "/posts/1"
+      },
+      "expect": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      },
+      "input": {
+        "request": {
+          "url": "/posts/1"
+        },
+        "expect": {
+          "error": "TypeError",
+          "kind": "rejects",
+          "messageIncludes": [
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "relative-path-without-baseurl",
+      "description": "FetchClient rejects a path without a protocol or baseURL",
+      "request": {
+        "url": "api/posts/1"
+      },
+      "expect": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      },
+      "input": {
+        "request": {
+          "url": "api/posts/1"
+        },
+        "expect": {
+          "error": "TypeError",
+          "kind": "rejects",
+          "messageIncludes": [
+            "url"
+          ]
+        }
+      },
+      "expected": {
+        "error": "TypeError",
+        "kind": "rejects",
+        "messageIncludes": [
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "ipv6-localhost",
+      "description": "FetchClient handles an IPv6 localhost URL",
+      "request": {
+        "url": "http://[::1]:9999/api"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "http://[::1]:9999/api"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "ipv6-full-address",
+      "description": "FetchClient handles a full IPv6 address URL",
+      "request": {
+        "url": "http://[2001:db8::1]:9999/api"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "http://[2001:db8::1]:9999/api"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "protocol-file",
+      "description": "FetchClient rejects file protocol URLs",
+      "request": {
+        "url": "file:///etc/passwd"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "file:///etc/passwd"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "protocol-ftp",
+      "description": "FetchClient rejects ftp protocol URLs",
+      "request": {
+        "url": "ftp://example.com/file"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "ftp://example.com/file"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "protocol-custom",
+      "description": "FetchClient rejects custom protocol URLs",
+      "request": {
+        "url": "custom://example.com/api"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "custom://example.com/api"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "query-array-notation",
+      "description": "FetchClient handles array notation in query strings",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts?ids[]=1&ids[]=2&ids[]=3"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts?ids[]=1&ids[]=2&ids[]=3"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "query-nested-objects",
+      "description": "FetchClient handles nested object query strings",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts?filter[status]=active&filter[type]=post"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts?filter[status]=active&filter[type]=post"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "query-special-characters",
+      "description": "FetchClient handles special characters in query strings",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts?search=hello+world&sort=name:asc"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts?search=hello+world&sort=name:asc"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "query-encoded-special-characters",
+      "description": "FetchClient handles encoded special characters in query strings",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts?email=user%40example.com&name=John%20Doe"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts?email=user%40example.com&name=John%20Doe"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "query-empty-parameters",
+      "description": "FetchClient handles empty query parameters",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts?empty=&null&undefined"
+      },
+      "expect": {
+        "kind": "status",
+        "status": 200
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts?empty=&null&undefined"
+        },
+        "expect": {
+          "kind": "status",
+          "status": 200
+        }
+      },
+      "expected": {
+        "kind": "status",
+        "status": 200
+      }
+    },
+    {
+      "name": "network-nonexistent-domain",
+      "description": "FetchClient rejects a non-existent domain",
+      "request": {
+        "url": "https://this-domain-definitely-does-not-exist-12345.com"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "https://this-domain-definitely-does-not-exist-12345.com"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "network-connection-refused",
+      "description": "FetchClient rejects a connection refused URL",
+      "request": {
+        "url": "http://127.0.0.1:1"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "http://127.0.0.1:1"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "network-unreachable-host",
+      "description": "FetchClient rejects an unreachable host",
+      "request": {
+        "url": "http://192.0.2.1:9999"
+      },
+      "expect": {
+        "error": "Error",
+        "kind": "rejects"
+      },
+      "input": {
+        "request": {
+          "url": "http://192.0.2.1:9999"
+        },
+        "expect": {
+          "error": "Error",
+          "kind": "rejects"
+        }
+      },
+      "expected": {
+        "error": "Error",
+        "kind": "rejects"
+      }
+    },
+    {
+      "name": "path-double-slashes",
+      "description": "FetchClient handles double slashes in a path",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "//posts//1"
+      },
+      "expect": {
+        "kind": "status-or-404"
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "//posts//1"
+        },
+        "expect": {
+          "kind": "status-or-404"
+        }
+      },
+      "expected": {
+        "kind": "status-or-404"
+      }
+    },
+    {
+      "name": "path-dot-segments",
+      "description": "FetchClient handles dot segments in a path",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/./1/../1"
+      },
+      "expect": {
+        "kind": "status-or-404"
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/./1/../1"
+        },
+        "expect": {
+          "kind": "status-or-404"
+        }
+      },
+      "expected": {
+        "kind": "status-or-404"
+      }
+    },
+    {
+      "name": "path-trailing-slash",
+      "description": "FetchClient handles a trailing slash in a path",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/posts/1/"
+      },
+      "expect": {
+        "kind": "status-or-404"
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/posts/1/"
+        },
+        "expect": {
+          "kind": "status-or-404"
+        }
+      },
+      "expected": {
+        "kind": "status-or-404"
+      }
+    },
+    {
+      "name": "path-root",
+      "description": "FetchClient handles the root path",
+      "clientConfig": {
+        "baseURL": "__TEST_URL__"
+      },
+      "request": {
+        "url": "/"
+      },
+      "expect": {
+        "kind": "status-or-404"
+      },
+      "input": {
+        "clientConfig": {
+          "baseURL": "__TEST_URL__"
+        },
+        "request": {
+          "url": "/"
+        },
+        "expect": {
+          "kind": "status-or-404"
+        }
+      },
+      "expected": {
+        "kind": "status-or-404"
+      }
+    }
+  ]
+}

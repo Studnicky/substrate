@@ -1,0 +1,99 @@
+{
+  "cases": [
+    {
+      "name": "boundary-kit-plain-config",
+      "description": "creates from plain config and executes successfully",
+      "kind": "plain-config",
+      "input": {
+        "boundaryKit": {
+          "config": {
+            "circuitBreaker": { "failureThreshold": 3, "resetTimeoutMs": 1000 },
+            "retry": { "maxRetries": 5 },
+            "throttle": { "concurrencyLimit": 4 }
+          }
+        }
+      },
+      "expected": { "result": "ok" }
+    },
+    {
+      "name": "boundary-kit-default-retry",
+      "description": "creates with default primitives and retries a flaky function until success",
+      "kind": "default-retry",
+      "input": { "boundaryKit": { "failuresBeforeSuccess": 2 } },
+      "expected": { "callCount": 3, "result": "ok" }
+    },
+    {
+      "name": "boundary-kit-prebuilt-instances",
+      "description": "uses pre-built subclass instances directly",
+      "kind": "prebuilt-instances",
+      "input": {
+        "boundaryKit": {
+          "prebuiltConfig": {
+            "circuitBreaker": { "failureThreshold": 5, "resetTimeoutMs": 30000 },
+            "retry": {},
+            "throttle": { "concurrencyLimit": 5 }
+          }
+        }
+      },
+      "expected": { "acquireCount": 1, "attemptCount": 1, "successCount": 1 }
+    },
+    {
+      "name": "boundary-kit-throttle-bound",
+      "description": "respects the throttle concurrency bound across concurrent execute calls",
+      "kind": "throttle-bound",
+      "input": {
+        "batch": { "callCount": 6 },
+        "boundaryKit": {
+          "config": {
+            "throttle": { "concurrencyLimit": 2 }
+          },
+          "workDelayMs": 20
+        }
+      },
+      "expected": { "maxObservedActive": 2 }
+    },
+    {
+      "name": "boundary-kit-circuit-breaker-open",
+      "description": "fails fast without retrying once the circuit breaker trips open",
+      "kind": "circuit-breaker-open",
+      "input": {
+        "boundaryKit": {
+          "config": {
+            "circuitBreaker": { "failureThreshold": 2, "resetTimeoutMs": 60000 },
+            "retry": {
+              "errorClassifier": {
+                "kind": "constant",
+                "reason": "always retryable",
+                "retryable": true
+              },
+              "maxRetries": 2
+            }
+          }
+        }
+      },
+      "expected": {
+        "callCount": 3,
+        "breakerStateAfterFirst": "closed",
+        "breakerStateAfterSecond": "open",
+        "rejectionName": "CircuitBreakerOpenError"
+      }
+    },
+    {
+      "name": "boundary-kit-undefined-result-vs-abort",
+      "description": "distinguishes legitimate undefined results from aborted queued calls",
+      "kind": "undefined-result-vs-abort",
+      "input": {
+        "boundaryKit": {
+          "abortConfig": {
+            "throttle": { "concurrencyLimit": 1 }
+          },
+          "abortDelayMs": 50
+        }
+      },
+      "expected": {
+        "abortedRan": false,
+        "resultIsUndefined": true
+      }
+    }
+  ]
+}

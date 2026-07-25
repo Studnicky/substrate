@@ -17,6 +17,7 @@ import type { WorkerResultEnvelopeInterface } from './interfaces/WorkerResultEnv
 
 
 interface WorkerPoolDepsInterface extends WorkerPoolConfigEntity.Type {
+  'batchConcurrency': Required<WorkerPoolConfigEntity.Type>['batchConcurrency'];
   'concurrency': Required<WorkerPoolConfigEntity.Type>['concurrency'];
   'signal': Signal;
 }
@@ -43,7 +44,8 @@ interface TaskContextInterface<TMessage, TResult>
 /**
  * Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded
  * `node:worker_threads` pool: `run()` fans a list of work items across at most `concurrency`
- * concurrently-running workers. Workers are long-lived for the duration of a single `run()`
+ * concurrently-running workers. `batchConcurrency` controls how many items `Batch#process()`
+ * admits into a scheduling window and defaults to `concurrency`. Workers are long-lived for the duration of a single `run()`
  * call — spun up as needed up to `concurrency`, reused across every item dispatched during
  * that call, and terminated only after every dispatched item has settled. Pool state (idle
  * workers, in-flight task tracking, the pending-item queue) lives entirely in `run()`'s own
@@ -81,8 +83,8 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
   };
 
   /**
-   * Creates a new WorkerPool, defaulting `concurrency` to `System.optimalWorkerCount` and
-   * `signal` to a fresh `Signal.create()` when omitted.
+   * Creates a new WorkerPool, defaulting `concurrency` to `System.optimalWorkerCount`,
+   * `batchConcurrency` to `concurrency`, and `signal` to a fresh `Signal.create()` when omitted.
    *
    * @param config - `workerPath` is required; every other field defaults
    * @returns New WorkerPool instance
@@ -110,8 +112,10 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       throw new Error('WorkerPool: workerPath is required');
     }
 
+    const concurrency = config.concurrency ?? System.optimalWorkerCount;
     const result: unknown = Reflect.construct(this, [{
-      'concurrency': config.concurrency ?? System.optimalWorkerCount,
+      'batchConcurrency': config.batchConcurrency ?? concurrency,
+      'concurrency': concurrency,
       'signal': config.signal ?? Signal.create(),
       'timeoutMs': config.timeoutMs,
       'workerPath': config.workerPath
@@ -124,6 +128,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
   readonly #workerPath: string;
   readonly #concurrency: number;
+  readonly #batchConcurrency: number;
   readonly #timeoutMs: number | undefined;
   readonly #signal: Signal;
 
@@ -133,6 +138,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     this.hooks = new WorkerPool.#OwnedHookInvoker();
     this.#workerPath = deps.workerPath;
     this.#concurrency = deps.concurrency;
+    this.#batchConcurrency = deps.batchConcurrency;
     this.#timeoutMs = deps.timeoutMs;
     this.#signal = deps.signal;
   }
@@ -415,7 +421,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       return await completion.promise;
     };
 
-    const batch = Batch.create<TResult>(this.#concurrency);
+    const batch = Batch.create<TResult>(this.#batchConcurrency);
     const indexed: IndexedItemInterface<TMessage>[] = items.map((item, index) => {
       return { 'index': index, 'item': item };
     });

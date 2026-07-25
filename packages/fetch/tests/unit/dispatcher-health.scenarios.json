@@ -1,0 +1,211 @@
+{
+  "cases": [
+    {
+      "name": "close-after-idle",
+      "description": "Dispatcher.close resolves when the pool is idle",
+      "kind": "close-after-idle",
+      "input": {
+        "dispatcher": {
+          "connections": 10
+        }
+      },
+      "expected": {
+        "closed": true
+      }
+    },
+    {
+      "name": "destroy-with-timeout",
+      "description": "Dispatcher.destroy waits for the requested timeout",
+      "kind": "destroy-with-timeout",
+      "input": {
+        "dispatcher": {
+          "connections": 10
+        },
+        "destroy": {
+          "timeout": 5
+        }
+      },
+      "expected": {
+        "destroyedAfterWait": true
+      }
+    },
+    {
+      "name": "reject-invalid-agent",
+      "description": "UndiciDispatcher rejects invalid agent objects",
+      "kind": "reject-invalid-agent",
+      "input": {},
+      "expected": {
+        "message": "dispatcher agent must be an undici Agent"
+      }
+    },
+    {
+      "name": "test-transport-delegates",
+      "description": "UndiciDispatcher delegates through the test transport marker",
+      "kind": "test-transport-delegates",
+      "input": {
+        "origin": "https://example.com:443",
+        "dispatcher": {
+          "connections": 10
+        }
+      },
+      "expected": {
+        "healthy": true,
+        "statsKeys": 0
+      }
+    },
+    {
+      "name": "empty-stats",
+      "description": "Dispatcher.getStats returns an empty object for a new dispatcher",
+      "kind": "empty-stats",
+      "input": {
+        "dispatcher": {
+          "connections": 10
+        }
+      },
+      "expected": {
+        "frozen": false,
+        "objectKeys": 0
+      }
+    },
+    {
+      "name": "stats-object-after-requests",
+      "description": "Dispatcher.getStats returns an object after requests",
+      "kind": "stats-object-after-requests",
+      "input": {
+        "dispatcher": {
+          "connections": 10
+        }
+      },
+      "expected": {
+        "frozen": false,
+        "objectKeys": 0
+      }
+    },
+    {
+      "name": "frozen-stats-object",
+      "description": "Dispatcher.getStats returns a frozen stats object",
+      "kind": "frozen-stats-object",
+      "input": {
+        "dispatcher": {
+          "connections": 10
+        }
+      },
+      "expected": {
+        "frozen": true
+      }
+    },
+    {
+      "name": "deeply-frozen-stats",
+      "description": "Dispatcher.getStats returns deeply frozen stats",
+      "kind": "deeply-frozen-stats",
+      "input": {
+        "dispatcher": {
+          "connections": 10
+        }
+      },
+      "expected": {
+        "frozen": true
+      }
+    },
+    {
+      "name": "healthy-non-existent-origin",
+      "description": "Dispatcher.checkDispatcherHealth returns healthy for a non-existent origin",
+      "kind": "healthy-non-existent-origin",
+      "input": {
+        "origin": "https://example.com:443",
+        "dispatcher": {
+          "connections": 10
+        }
+      },
+      "expected": {
+        "healthy": true,
+        "queueRatio": "__UNDEFINED__",
+        "recommendation": "__UNDEFINED__",
+        "stats": "__UNDEFINED__"
+      }
+    },
+    {
+      "name": "healthy-new-dispatcher",
+      "description": "Dispatcher.checkDispatcherHealth returns healthy for a newly created dispatcher",
+      "kind": "healthy-new-dispatcher",
+      "input": {
+        "origin": "https://test.com:443",
+        "dispatcher": {
+          "connections": 20
+        }
+      },
+      "expected": {
+        "healthy": true,
+        "objectKeys": 0
+      }
+    },
+    {
+      "name": "test-transport-pressure",
+      "description": "Dispatcher.checkDispatcherHealth reports pressure for a queued test transport request",
+      "kind": "test-transport-pressure",
+      "input": {
+        "origin": "http://127.0.0.1:41234",
+        "path": "http://127.0.0.1:41234/delay?ms=50",
+        "testDispatcher": {
+          "connections": 2,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "healthy": false,
+        "queueRatio": 0.5,
+        "recommendationIncludes": "under pressure"
+      }
+    },
+    {
+      "name": "test-transport-overloaded",
+      "description": "Dispatcher.checkDispatcherHealth reports overload for queued test transport requests",
+      "kind": "test-transport-overloaded",
+      "input": {
+        "origin": "http://127.0.0.1:41234",
+        "path": "http://127.0.0.1:41234/delay?ms=50",
+        "queuedPath": "http://127.0.0.1:41234/delay?ms=50",
+        "testDispatcher": {
+          "connections": 1,
+          "enabled": true
+        }
+      },
+      "expected": {
+        "healthy": false,
+        "queueRatio": 2,
+        "recommendationIncludes": "overloaded"
+      }
+    },
+    {
+      "name": "health-interface-shape",
+      "description": "Dispatcher.checkDispatcherHealth returns the expected interface shape",
+      "kind": "health-interface-shape",
+      "input": {
+        "origin": "https://test.com:443",
+        "dispatcher": {
+          "connections": 10
+        }
+      },
+      "expected": {
+        "healthyType": "boolean",
+        "queueRatioType": "number-or-undefined",
+        "recommendationType": "string-or-undefined",
+        "statsType": "object-or-undefined"
+      }
+    },
+    {
+      "name": "structure-after-get-stats",
+      "description": "Dispatcher.getStats returns the expected structure",
+      "kind": "structure-after-get-stats",
+      "input": {
+        "dispatcher": {
+          "connections": 10
+        }
+      },
+      "expected": {
+        "frozen": true,
+        "objectKeys": 0
+      }
+    }
+  ]
+}

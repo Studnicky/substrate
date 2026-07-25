@@ -1,0 +1,542 @@
+{
+  "cases": [
+    {
+      "name": "accepts a string fingerprint",
+      "description": "accepts a string fingerprint",
+      "kind": "metadata-accepts-string-fingerprint",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "fingerprint": "f00dbabe"
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "rejects missing and non-string fingerprints",
+      "description": "rejects missing and non-string fingerprints",
+      "kind": "metadata-rejects-invalid-fingerprint",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "missingFingerprint": {},
+        "numericFingerprint": {
+          "fingerprint": 42
+        }
+      },
+      "expected": {
+        "missingValid": false,
+        "numericValid": false
+      }
+    },
+    {
+      "name": "shares one execution across concurrent calls with the same key and payload",
+      "description": "shares one execution across concurrent calls with the same key and payload",
+      "kind": "coalesce-shares-one-execution",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-5",
+        "payload": {
+          "amount": 500
+        },
+        "batch": {
+          "calls": 2,
+          "factoryResult": "shared-result"
+        }
+      },
+      "expected": {
+        "calls": 1,
+        "result": "shared-result"
+      }
+    },
+    {
+      "name": "owns one result contract across creation, execution, and replay",
+      "description": "owns one result contract across creation, execution, and replay",
+      "kind": "result-contract-owned",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "calculation",
+        "payload": {
+          "operand": 7
+        }
+      },
+      "expected": {
+        "initial": 41,
+        "replayed": 41,
+        "type": "number"
+      }
+    },
+    {
+      "name": "rejects factories outside the guard result contract at compile time",
+      "description": "rejects factories outside the guard result contract at compile time",
+      "kind": "result-contract-rejects-invalid-factory",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "fixture": "idempotency-result-contract.ts",
+        "key": "direct",
+        "payload": {}
+      },
+      "expected": {
+        "diagnosticsCount": 1,
+        "messagePattern": "Type 'string' is not assignable to type 'number \\| Promise<number>'"
+      }
+    },
+    {
+      "name": "throws IdempotencyConflictError when the same key is reused with a different payload",
+      "description": "throws IdempotencyConflictError when the same key is reused with a different payload",
+      "kind": "conflict-same-key-different-payload",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-3",
+        "payload": {
+          "amount": 500
+        },
+        "conflictingPayload": {
+          "amount": 999
+        }
+      },
+      "expected": {
+        "calls": 1
+      }
+    },
+    {
+      "name": "sets the conflicting key on IdempotencyConflictError",
+      "description": "sets the conflicting key on IdempotencyConflictError",
+      "kind": "conflict-exposes-key",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-4",
+        "payload": {
+          "amount": 500
+        },
+        "conflictingPayload": {
+          "amount": 999
+        }
+      },
+      "expected": {
+        "key": "order-4",
+        "code": "idempotencyGuard.conflict",
+        "result": "ok"
+      }
+    },
+    {
+      "name": "accepts a synchronous factory",
+      "description": "accepts a synchronous factory",
+      "kind": "replay-accepts-sync-factory",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-sync",
+        "payload": {
+          "amount": 500
+        }
+      },
+      "expected": {
+        "result": {
+          "chargeId": "ch_sync"
+        }
+      }
+    },
+    {
+      "name": "replays the cached result for a repeat call with the same key and payload",
+      "description": "replays the cached result for a repeat call with the same key and payload",
+      "kind": "replay-cached-result",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-1",
+        "payload": {
+          "amount": 500
+        }
+      },
+      "expected": {
+        "calls": 1,
+        "firstResult": {
+          "chargeId": "ch_1"
+        },
+        "secondResult": {
+          "chargeId": "ch_2"
+        }
+      }
+    },
+    {
+      "name": "runs the factory again once the cached entry expires",
+      "description": "runs the factory again once the cached entry expires",
+      "kind": "replay-expired-entry-reruns",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 10
+        },
+        "key": "order-2",
+        "payload": {
+          "amount": 500
+        },
+        "expirationWaitMs": 30
+      },
+      "expected": {
+        "calls": 2,
+        "second": "second"
+      }
+    },
+    {
+      "name": "fires onExecute when a key is genuinely new",
+      "description": "fires onExecute when a key is genuinely new",
+      "kind": "hooks-execute-new-key",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-6",
+        "payload": {
+          "amount": 500
+        }
+      },
+      "expected": {
+        "executed": [
+          "order-6"
+        ],
+        "replayed": [],
+        "conflicted": []
+      }
+    },
+    {
+      "name": "fires onExecute before invoking the factory for a genuinely new key",
+      "description": "fires onExecute before invoking the factory for a genuinely new key",
+      "kind": "hooks-execute-before-factory",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-ordered",
+        "payload": {
+          "amount": 500
+        }
+      },
+      "expected": {
+        "events": [
+          "execute",
+          "factory"
+        ]
+      }
+    },
+    {
+      "name": "fires onReplay (not onExecute) on a repeat call with a matching fingerprint",
+      "description": "fires onReplay (not onExecute) on a repeat call with a matching fingerprint",
+      "kind": "hooks-replay-match",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-7",
+        "payload": {
+          "amount": 500
+        }
+      },
+      "expected": {
+        "executed": [
+          "order-7"
+        ],
+        "replayed": [
+          "order-7"
+        ]
+      }
+    },
+    {
+      "name": "fires onConflict before throwing on a payload mismatch",
+      "description": "fires onConflict before throwing on a payload mismatch",
+      "kind": "hooks-conflict-before-throw",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-8",
+        "payload": {
+          "amount": 500
+        },
+        "conflictingPayload": {
+          "amount": 999
+        }
+      },
+      "expected": {
+        "conflicted": [
+          "order-8"
+        ]
+      }
+    },
+    {
+      "name": "fires onCoalesce for a follower that joins an in-flight leader",
+      "description": "fires onCoalesce for a follower that joins an in-flight leader",
+      "kind": "hooks-coalesce-follower",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-9",
+        "payload": {
+          "amount": 500
+        },
+        "batch": {
+          "calls": 2,
+          "factoryResult": "shared"
+        }
+      },
+      "expected": {
+        "executed": [
+          "order-9"
+        ],
+        "coalesced": [
+          "order-9"
+        ]
+      }
+    },
+    {
+      "name": "dispatches leader and join hooks to each owning subclass instance in order",
+      "description": "dispatches leader and join hooks to each owning subclass instance in order",
+      "kind": "hooks-isolated-instances",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "shared-key",
+        "payload": {
+          "amount": 500
+        },
+        "batch": {
+          "callsPerInstance": 2,
+          "factoryResults": [
+            "first-result",
+            "second-result"
+          ]
+        }
+      },
+      "expected": {
+        "firstEvents": [
+          "execute:shared-key",
+          "coalesce:shared-key"
+        ],
+        "secondEvents": [
+          "execute:shared-key",
+          "coalesce:shared-key"
+        ],
+        "firstFactoryCalls": 1,
+        "secondFactoryCalls": 1,
+        "results": [
+          "first-result",
+          "first-result",
+          "second-result",
+          "second-result"
+        ]
+      }
+    },
+    {
+      "name": "a throwing onReplay hook does not replace the cached result",
+      "description": "a throwing onReplay hook does not replace the cached result",
+      "kind": "hooks-throwing-replay",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-10",
+        "payload": {
+          "amount": 500
+        }
+      },
+      "expected": {
+        "result": "ok"
+      }
+    },
+    {
+      "name": "a throwing onConflict hook does not replace IdempotencyConflictError",
+      "description": "a throwing onConflict hook does not replace IdempotencyConflictError",
+      "kind": "hooks-throwing-conflict",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-11",
+        "payload": {
+          "amount": 500
+        },
+        "conflictingPayload": {
+          "amount": 999
+        }
+      },
+      "expected": {
+        "result": "conflict"
+      }
+    },
+    {
+      "name": "a throwing onExecute hook does not replace the leader result",
+      "description": "a throwing onExecute hook does not replace the leader result",
+      "kind": "hooks-throwing-execute",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-12",
+        "payload": {
+          "amount": 500
+        }
+      },
+      "expected": {
+        "result": "ok"
+      }
+    },
+    {
+      "name": "a synchronous onReplay failure is swallowed and does not propagate from run()",
+      "description": "a synchronous onReplay failure is swallowed and does not propagate from run()",
+      "kind": "hooks-sync-replay-swallowed",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-14",
+        "payload": {
+          "amount": 500
+        }
+      },
+      "expected": {
+        "result": "ok"
+      }
+    },
+    {
+      "name": "an async onReplay override that rejects is routed safely with no unhandled rejection",
+      "description": "an async onReplay override that rejects is routed safely with no unhandled rejection",
+      "kind": "hooks-async-replay-safe",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-15",
+        "payload": {
+          "amount": 500
+        }
+      },
+      "expected": {
+        "result": "ok",
+        "rejections": 0
+      }
+    },
+    {
+      "name": "a throwing onCoalesce hook does not replace the shared follower result",
+      "description": "a throwing onCoalesce hook does not replace the shared follower result",
+      "kind": "hooks-throwing-coalesce",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-13",
+        "payload": {
+          "amount": 500
+        },
+        "batch": {
+          "calls": 2,
+          "factoryResult": "shared"
+        }
+      },
+      "expected": {
+        "leaderResult": "shared",
+        "followerResult": "shared"
+      }
+    },
+    {
+      "name": "unexpected async lifecycle overrides preserve execute, coalesce, replay, and conflict outcomes without unhandled rejections",
+      "description": "unexpected async lifecycle overrides preserve execute, coalesce, replay, and conflict outcomes without unhandled rejections",
+      "kind": "hooks-async-overrides-safe",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-16",
+        "payload": {
+          "amount": 500
+        },
+        "conflictingPayload": {
+          "amount": 999
+        },
+        "batch": {
+          "calls": 2,
+          "factoryResult": "shared"
+        }
+      },
+      "expected": {
+        "events": [
+          "execute",
+          "coalesce",
+          "replay",
+          "conflict"
+        ],
+        "rejections": 0,
+        "result": "shared"
+      }
+    },
+    {
+      "name": "throws IdempotencyConflictError for a concurrent same-key different-payload racer with no cached entry yet",
+      "description": "throws IdempotencyConflictError for a concurrent same-key different-payload racer with no cached entry yet",
+      "kind": "race-concurrent-different-payload",
+      "input": {
+        "idempotencyGuard": {
+          "capacity": 10,
+          "ttlMs": 60000
+        },
+        "key": "order-race",
+        "leaderPayload": {
+          "amount": 500
+        },
+        "followerPayload": {
+          "amount": 999
+        },
+        "batch": {
+          "leaderResult": "leader-result",
+          "followerResult": "follower-result",
+          "replayResult": "unexpected-result"
+        }
+      },
+      "expected": {
+        "leaderResult": "leader-result",
+        "leaderCalls": 1,
+        "followerCalls": 0,
+        "replayed": "leader-result",
+        "replayFactoryCalls": 0
+      }
+    }
+  ]
+}

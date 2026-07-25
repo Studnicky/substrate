@@ -1,5 +1,16 @@
 # Changelog
 
+## 8.0.1
+
+### Patch Changes
+
+- The test estate uses the controlled test-suite harness for coverage and JSON-backed loop fixtures with `input.batch` fan-out configuration across package scenario suites.
+- Updated dependencies
+  - @studnicky/errors@8.0.1
+  - @studnicky/json@8.0.1
+  - @studnicky/signal@8.0.1
+  - @studnicky/types@8.0.1
+
 ## 8.0.0
 
 ### Major Changes

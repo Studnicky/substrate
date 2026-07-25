@@ -1,0 +1,85 @@
+{
+  "valid": [
+    {
+      "code": "interface FooInterface { readonly x: number; }",
+      "name": "readonly contract ending with Interface"
+    },
+    {
+      "code": "namespace X { interface FooInterface { readonly x: number; } }",
+      "name": "namespace contract ending with Interface"
+    },
+    {
+      "code": "interface PureData { value: string; count: number; }",
+      "name": "pure-data interface is owned by interface-must-be-contract"
+    },
+    {
+      "code": "interface Empty {}",
+      "name": "empty interface is owned by interface-must-be-contract"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "interface Foo { readonly x: number; }",
+      "errors": [
+        {
+          "messageId": "missing-interface-suffix"
+        }
+      ],
+      "name": "readonly contract missing Interface suffix"
+    },
+    {
+      "code": "namespace X { interface Foo { readonly x: number; } }",
+      "errors": [
+        {
+          "messageId": "missing-interface-suffix"
+        }
+      ],
+      "name": "namespace contract missing Interface suffix"
+    },
+    {
+      "code": "interface Callable { (): void; }",
+      "errors": [
+        {
+          "messageId": "missing-interface-suffix"
+        }
+      ],
+      "name": "callable contract missing Interface suffix"
+    },
+    {
+      "code": "interface RuntimeOwner { value: Date; }",
+      "errors": [
+        {
+          "messageId": "missing-interface-suffix"
+        }
+      ],
+      "name": "runtime contract missing Interface suffix"
+    },
+    {
+      "code": "interface Branded { readonly __brand: unique symbol; value: string; }",
+      "errors": [
+        {
+          "messageId": "missing-interface-suffix"
+        }
+      ],
+      "name": "brand contract missing Interface suffix"
+    },
+    {
+      "code": "interface NonSchema { value: unknown; }",
+      "errors": [
+        {
+          "messageId": "missing-interface-suffix"
+        }
+      ],
+      "name": "non-schema contract missing Interface suffix"
+    },
+    {
+      "code": "interface Handler { run(): void; config: { retries: number }; }",
+      "errors": [
+        {
+          "messageId": "missing-interface-suffix"
+        }
+      ],
+      "name": "contract with inline pure data missing Interface suffix"
+    }
+  ]
+}

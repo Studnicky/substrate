@@ -1,0 +1,178 @@
+{
+  "cases": [
+    {
+      "description": "cpu.logicalCount is a positive integer",
+      "kind": "cpu-logical-count-positive",
+      "name": "cpu.logicalCount is a positive integer",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "minimum": 1
+      }
+    },
+    {
+      "description": "optimalWorkerCount is at least 1",
+      "kind": "optimal-worker-count-at-least-1",
+      "name": "optimalWorkerCount is at least 1",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "minimum": 1
+      }
+    },
+    {
+      "description": "optimalWorkerCount is cpu.logicalCount - 1 clamped to 1",
+      "kind": "optimal-worker-count-clamped",
+      "name": "optimalWorkerCount is cpu.logicalCount - 1 clamped to 1",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "formula": "max(1, cpu.logicalCount - 1)"
+      }
+    },
+    {
+      "description": "cpu.arch is a non-empty string",
+      "kind": "cpu-arch-non-empty",
+      "name": "cpu.arch is a non-empty string",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "nonEmpty": true
+      }
+    },
+    {
+      "description": "cpu.model is a non-empty string",
+      "kind": "cpu-model-non-empty",
+      "name": "cpu.model is a non-empty string",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "nonEmpty": true
+      }
+    },
+    {
+      "description": "cpu.logicalCount matches os.cpus().length",
+      "kind": "cpu-logical-count-matches-os",
+      "name": "cpu.logicalCount matches os.cpus().length",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "source": "os.cpus().length"
+      }
+    },
+    {
+      "description": "cpu.physicalCount is >= 1 and <= logicalCount",
+      "kind": "cpu-physical-count-range",
+      "name": "cpu.physicalCount is >= 1 and <= logicalCount",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "minimum": 1,
+        "maximum": "logicalCount"
+      }
+    },
+    {
+      "description": "cpu.physicalCount equals logicalCount regardless of arch",
+      "kind": "cpu-physical-count-equals-logical-count",
+      "name": "cpu.physicalCount equals logicalCount regardless of arch",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "relation": "equal"
+      }
+    },
+    {
+      "description": "cpu getter enumerates os.cpus() exactly once per access",
+      "kind": "cpu-getter-calls-os-cpus-once",
+      "name": "cpu getter enumerates os.cpus() exactly once per access",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "callCount": 1
+      }
+    },
+    {
+      "description": "memory.totalMb is > 0",
+      "kind": "memory-total-positive",
+      "name": "memory.totalMb is > 0",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "minimum": 1
+      }
+    },
+    {
+      "description": "memory.freeMb is >= 0 and <= totalMb",
+      "kind": "memory-free-range",
+      "name": "memory.freeMb is >= 0 and <= totalMb",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "minimum": 0,
+        "maximum": "totalMb"
+      }
+    },
+    {
+      "description": "platform.nodeVersion matches process.version",
+      "kind": "platform-node-version",
+      "name": "platform.nodeVersion matches process.version",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "source": "process.version"
+      }
+    },
+    {
+      "description": "platform.os is a non-empty string",
+      "kind": "platform-os-non-empty",
+      "name": "platform.os is a non-empty string",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "nonEmpty": true
+      }
+    },
+    {
+      "description": "platform.isAppleSilicon matches darwin + arm64",
+      "kind": "platform-is-apple-silicon",
+      "name": "platform.isAppleSilicon matches darwin + arm64",
+      "input": {
+        "system": {}
+      },
+      "expected": {
+        "formula": "darwin && arm64"
+      }
+    },
+    {
+      "description": "gpu caches detection without exposing the cached object",
+      "kind": "gpu-caches-detection",
+      "name": "gpu caches detection without exposing the cached object",
+      "input": {
+        "system": {
+          "detectedGpu": {
+            "computeApi": "software",
+            "name": "Test GPU",
+            "vramMb": 512
+          }
+        }
+      },
+      "expected": {
+        "callCount": 1,
+        "cached": true
+      }
+    }
+  ]
+}

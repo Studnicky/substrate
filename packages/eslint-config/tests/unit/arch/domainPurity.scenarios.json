@@ -1,0 +1,235 @@
+{
+  "valid": [
+    {
+      "code": "import { User } from './User.js';",
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "domain-layer file importing something not in forbiddenImports - not flagged",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "code": "import axios from 'axios';",
+      "filename": "/repo/src/application/UserService.ts",
+      "name": "non-domain-layer file importing a forbidden import - not flagged, rule only applies inside domain",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "code": "const id = crypto.randomUUID();",
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "domain-layer file calling something not in forbiddenCalls - not flagged",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "code": "import axios from 'axios';",
+      "filename": "/repo/src/entities/user/User.ts",
+      "name": "entities-layer file without domainLayerName configured - not flagged, defaults to \"domain\" for backward compatibility",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "entities",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    }
+  ],
+  "invalid": [
+    {
+      "code": "import axios from 'axios';",
+      "errors": [
+        {
+          "messageId": "impureImport"
+        }
+      ],
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "domain-layer file importing a forbidden import - flagged",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "code": "const timestamp = Date.now();",
+      "errors": [
+        {
+          "messageId": "impureCall"
+        }
+      ],
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "domain-layer file calling a forbidden call - flagged",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "code": "import promises from 'node:fs/promises';",
+      "errors": [
+        {
+          "messageId": "impureImport"
+        }
+      ],
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "domain-layer file importing a submodule of a forbidden root - flagged via prefix match",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "code": "import axios from 'axios';",
+      "errors": [
+        {
+          "messageId": "impureImport"
+        }
+      ],
+      "filename": "/repo/src/entities/user/User.ts",
+      "name": "entities-layer file with domainLayerName configured - flagged as configurable domain layer name",
+      "options": [
+        {
+          "domainLayerName": "entities",
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "entities",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    }
+  ]
+}

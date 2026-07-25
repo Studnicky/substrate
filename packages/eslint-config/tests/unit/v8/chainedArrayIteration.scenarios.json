@@ -1,0 +1,32 @@
+{
+  "valid": [
+    {
+      "code": "const names = users.map((u) => u.name);",
+      "name": "standalone map() - not flagged"
+    },
+    {
+      "code": "const active = users.filter((u) => u.active);",
+      "name": "standalone filter() - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "const names = users.filter((u) => u.active).map((u) => u.name);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "filter().map() chain - flagged"
+    },
+    {
+      "code": "const doubled = values.map((v) => v * 2).filter((v) => v > 0);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "map().filter() chain - flagged"
+    }
+  ]
+}

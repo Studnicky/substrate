@@ -1,0 +1,241 @@
+{
+  "cases": [
+    {
+      "name": "publish-delivers",
+      "description": "publish delivers payload to all subscribers on the topic",
+      "kind": "publish-delivers",
+      "input": { "payload": "hello", "topic": "ping" },
+      "expected": { "received": ["hello"] }
+    },
+    {
+      "name": "unsubscribe-stops",
+      "description": "unsubscribe fn stops delivery to that subscriber",
+      "kind": "unsubscribe-stops",
+      "input": { "first": "first", "second": "second", "topic": "ping" },
+      "expected": { "received": ["first"] }
+    },
+    {
+      "name": "multiple-subscribers",
+      "description": "multiple subscribers on the same topic each receive the payload independently",
+      "kind": "multiple-subscribers",
+      "input": { "payload": "broadcast", "topic": "ping" },
+      "expected": { "receivedA": ["broadcast"], "receivedB": ["broadcast"] }
+    },
+    {
+      "name": "topics-isolated",
+      "description": "different topics are isolated from each other",
+      "kind": "topics-isolated",
+      "input": { "countPayload": 42, "pingPayload": "pong" },
+      "expected": { "counts": [42], "pings": ["pong"] }
+    },
+    {
+      "name": "handler-signal",
+      "description": "handler receives an AbortSignal as second argument that is not aborted during normal delivery",
+      "kind": "handler-signal",
+      "input": { "payload": "hello", "topic": "ping" },
+      "expected": { "aborted": false, "isAbortSignal": true }
+    },
+    {
+      "name": "signal-after-unsubscribe",
+      "description": "captured subscription signal is aborted after unsubscribe",
+      "kind": "signal-after-unsubscribe",
+      "input": { "payload": "first", "topic": "ping" },
+      "expected": { "abortedAfterUnsubscribe": true, "abortedBeforeUnsubscribe": false }
+    },
+    {
+      "name": "signal-after-close",
+      "description": "captured subscription signal is aborted after bus.close",
+      "kind": "signal-after-close",
+      "input": { "payload": "hello", "topic": "ping" },
+      "expected": { "abortedAfterClose": true, "abortedBeforeClose": false }
+    },
+    {
+      "name": "signal-listener-cleanup",
+      "description": "unsubscribe removes caller-supplied signal listeners across repeated cycles",
+      "kind": "signal-listener-cleanup",
+      "input": { "cycles": 8, "topic": "ping" },
+      "expected": { "addMinusRemoveAfterAdd": 1, "addMinusRemoveAfterRemove": 0 }
+    },
+    {
+      "name": "subscribe-after-close",
+      "description": "subscribing after close still returns a valid unsubscribe handle",
+      "kind": "subscribe-after-close",
+      "input": { "topic": "ping" },
+      "expected": { "ok": true }
+    },
+    {
+      "name": "preaborted-caller-signal",
+      "description": "pre-aborted caller signals propagate to the subscriber queue immediately",
+      "kind": "preaborted-caller-signal",
+      "input": { "payload": "hello", "topic": "ping" },
+      "expected": { "aborted": true, "received": [] }
+    },
+    {
+      "name": "close-stops-delivery",
+      "description": "close stops all delivery across all topics",
+      "kind": "close-stops-delivery",
+      "input": { "afterClose": "after-close", "beforeClose": "before-close", "topic": "ping" },
+      "expected": { "received": ["before-close"] }
+    },
+    {
+      "name": "publish-empty-topic",
+      "description": "publishing a topic with no subscribers is a no-op",
+      "kind": "publish-empty-topic",
+      "input": { "payload": "unused", "topic": "ping" },
+      "expected": { "ok": true }
+    },
+    {
+      "name": "on-publish",
+      "description": "onPublish fires once per publish call",
+      "kind": "on-publish",
+      "input": { "firstId": "a", "secondId": "b", "topic": "order:created" },
+      "expected": { "firstPayload": { "id": "a" }, "publishCount": 2 }
+    },
+    {
+      "name": "on-subscribe",
+      "description": "onSubscribe fires when a subscriber registers",
+      "kind": "on-subscribe",
+      "input": { "topics": ["order:created", "order:created", "order:updated"] },
+      "expected": { "firstTopic": "order:created", "lastTopic": "order:updated", "subscribeCount": 3 }
+    },
+    {
+      "name": "on-unsubscribe",
+      "description": "onUnsubscribe fires when unsubscribe fn is called",
+      "kind": "on-unsubscribe",
+      "input": { "topic": "order:created" },
+      "expected": { "topic": "order:created", "unsubscribeCount": 1 }
+    },
+    {
+      "name": "async-subscription-hooks",
+      "description": "async-rejecting subscription lifecycle hooks are recorded and swallowed",
+      "kind": "async-subscription-hooks",
+      "input": { "hookNames": ["onSubscribe", "onUnsubscribe"], "unhandledRejections": 0 },
+      "expected": { "hookNames": ["onSubscribe", "onUnsubscribe"], "unhandledRejections": 0 }
+    },
+    {
+      "name": "async-owned-queue-hooks",
+      "description": "async-rejecting owned queue hooks use the owner invoker without blocking delivery",
+      "kind": "async-owned-queue-hooks",
+      "input": { "hookNames": ["onEnqueue", "onDequeue", "onDeliver"], "payloadId": "owned", "topic": "order:created", "unhandledRejections": 0 },
+      "expected": { "hookNames": ["onEnqueue", "onDequeue", "onDeliver"], "received": ["owned"], "unhandledRejections": 0 }
+    },
+    {
+      "name": "on-deliver",
+      "description": "onDeliver fires once per successful handler invocation",
+      "kind": "on-deliver",
+      "input": { "payloadId": "x", "topic": "order:created" },
+      "expected": { "deliverCount": 2, "firstPayload": { "id": "x" } }
+    },
+    {
+      "name": "owned-queues-isolated",
+      "description": "owned subscription queues keep hook ownership isolated across bus instances",
+      "kind": "owned-queues-isolated",
+      "input": { "firstId": "first", "secondId": "second", "topic": "order:created" },
+      "expected": {
+        "firstDeliver": { "payload": { "id": "first" }, "topic": "order:created" },
+        "received": ["first", "second"],
+        "secondDeliver": { "payload": { "id": "second" }, "topic": "order:created" }
+      }
+    },
+    {
+      "name": "on-handler-error",
+      "description": "onHandlerError fires when a subscriber handler throws",
+      "kind": "on-handler-error",
+      "input": { "errorMessage": "sub error", "payloadId": "y", "topic": "order:created" },
+      "expected": { "handlerErrors": 1, "message": "sub error", "topic": "order:created" }
+    },
+    {
+      "name": "enqueue-dequeue-hooks",
+      "description": "onEnqueue and onDequeue fire on EventBus publish/delivery cycle",
+      "kind": "enqueue-dequeue-hooks",
+      "input": { "payloadId": "z", "topic": "order:created" },
+      "expected": { "dequeueCount": 1, "enqueueCount": 1 }
+    },
+    {
+      "name": "on-drop-noop",
+      "description": "drop path remains safe when the bus is closed",
+      "kind": "on-drop-noop",
+      "input": { "topic": "order:created" },
+      "expected": { "closed": true }
+    },
+    {
+      "name": "on-dispose",
+      "description": "onDispose fires when bus.close is called",
+      "kind": "on-dispose",
+      "input": { "disposeCount": 1 },
+      "expected": { "disposeCount": 1 }
+    },
+    {
+      "name": "hook-order",
+      "description": "hooks fire in correct order",
+      "kind": "hook-order",
+      "input": { "payloadId": "1", "topic": "order:created" },
+      "expected": { "order": ["subscribe", "publish", "enqueue", "dequeue", "deliver"] }
+    },
+    {
+      "name": "pending-admission-order",
+      "description": "publish delivery waits for pending enqueue and overflow hooks in order",
+      "kind": "pending-admission-order",
+      "input": { "bus": { "highWaterMark": 1 }, "payloadId": "pending", "topic": "order:created" },
+      "expected": {
+        "order": ["publish", "enqueue:start", "enqueue:end", "overflow:start", "overflow:end", "dequeue", "handler", "deliver"]
+      }
+    },
+    {
+      "name": "default-hwm",
+      "description": "default highWaterMark stays well above small publish bursts",
+      "kind": "default-hwm",
+      "input": { "items": ["item-0", "item-1", "item-2", "item-3", "item-4", "item-5", "item-6", "item-7", "item-8", "item-9"], "topic": "x" },
+      "expected": { "overflowCount": 0 }
+    },
+    {
+      "name": "forwarded-hwm",
+      "description": "configured highWaterMark is forwarded to subscriber queues",
+      "kind": "forwarded-hwm",
+      "input": { "bus": { "highWaterMark": 3 }, "items": ["1", "2", "3"], "topic": "x" },
+      "expected": { "overflowCountAtLeast": 1 }
+    },
+    {
+      "name": "config-snapshot",
+      "description": "EventBus snapshots caller-owned configuration",
+      "kind": "config-snapshot",
+      "input": { "bus": { "highWaterMark": 3 }, "mutatedBus": { "highWaterMark": 1 }, "payload": "first", "topic": "x" },
+      "expected": { "overflowCount": 0 }
+    },
+    {
+      "name": "same-depth-no-overflow",
+      "description": "the same publish depth does not overflow the default-configured bus",
+      "kind": "same-depth-no-overflow",
+      "input": { "items": ["1", "2", "3"], "topic": "x" },
+      "expected": { "overflowCount": 0 }
+    },
+    {
+      "name": "throwing-on-publish",
+      "description": "a throwing onPublish hook does not replace publish or prevent delivery",
+      "kind": "throwing-on-publish",
+      "input": { "errorMessage": "hook boom", "payload": "hello", "topic": "ping" },
+      "expected": { "received": ["hello"] }
+    },
+    {
+      "name": "topic-entry-cleanup",
+      "description": "unsubscribing the only handler removes the topic entry",
+      "kind": "topic-entry-cleanup",
+      "input": { "topic": "ping" },
+      "expected": { "after": false, "before": false, "during": true }
+    },
+    {
+      "name": "topic-entry-kept",
+      "description": "unsubscribing one of several handlers keeps the topic entry",
+      "kind": "topic-entry-kept",
+      "input": { "topic": "ping" },
+      "expected": { "after": true }
+    },
+    {
+      "name": "throwing-on-deliver",
+      "description": "a throwing onDeliver hook does not replace successful delivery",
+      "kind": "throwing-on-deliver",
+      "input": { "errorMessage": "hook boom", "payload": "hello", "topic": "ping" },
+      "expected": { "received": ["hello"] }
+    }
+  ]
+}

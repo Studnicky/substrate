@@ -1,0 +1,679 @@
+{
+  "cases": [
+    {
+      "name": "paginator-creation-pages-empty",
+      "description": "Paginator.create() starts with no pages accumulated",
+      "kind": "creation-pages-empty",
+      "input": {
+        "paginator": {
+          "initialPages": []
+        }
+      },
+      "expected": {
+        "pages": []
+      }
+    },
+    {
+      "name": "paginator-creation-has-next",
+      "description": "Paginator.create() reports hasNext() before any page arrives",
+      "kind": "creation-has-next",
+      "input": {
+        "paginator": {
+          "initialPages": []
+        }
+      },
+      "expected": {
+        "hasNext": true
+      }
+    },
+    {
+      "name": "paginator-accumulation-single-page",
+      "description": "next() accumulates a single page and keeps hasNext() true when a cursor remains",
+      "kind": "accumulation-single-page",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1"
+          ],
+          "nextCursor": {
+            "cursor": 2,
+            "exhausted": false
+          }
+        }
+      },
+      "expected": {
+        "pages": [
+          "page-1"
+        ],
+        "hasNext": true
+      }
+    },
+    {
+      "name": "paginator-accumulation-multiple-pages",
+      "description": "next() accumulates multiple pages in receipt order",
+      "kind": "accumulation-multiple-pages",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1",
+            "page-2",
+            "page-3"
+          ],
+          "nextCursors": [
+            {
+              "cursor": 2,
+              "exhausted": false
+            },
+            {
+              "cursor": 3,
+              "exhausted": false
+            },
+            {
+              "cursor": 4,
+              "exhausted": false
+            }
+          ]
+        }
+      },
+      "expected": {
+        "pages": [
+          "page-1",
+          "page-2",
+          "page-3"
+        ],
+        "hasNext": true
+      }
+    },
+    {
+      "name": "paginator-accumulation-pages-defensive-snapshot",
+      "description": "pages returns a defensive snapshot",
+      "kind": "accumulation-pages-defensive-snapshot",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1"
+          ],
+          "nextCursor": {
+            "cursor": 2,
+            "exhausted": false
+          }
+        }
+      },
+      "expected": {
+        "pages": [
+          "page-1"
+        ]
+      }
+    },
+    {
+      "name": "paginator-accumulation-nested-pages-detached",
+      "description": "nested retained pages stay detached from caller mutation",
+      "kind": "accumulation-nested-pages-detached",
+      "input": {
+        "paginator": {
+          "page": {
+            "items": [
+              {
+                "name": "original"
+              }
+            ]
+          },
+          "mutatedPage": {
+            "items": [
+              {
+                "name": "caller mutation"
+              }
+            ]
+          },
+          "nextCursor": {
+            "cursor": 10,
+            "exhausted": false
+          }
+        }
+      },
+      "expected": {
+        "pages": [
+          {
+            "items": [
+              {
+                "name": "original"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "paginator-accumulation-many-pages",
+      "description": "next() accumulates many pages without dropping or reordering entries",
+      "kind": "accumulation-many-pages",
+      "input": {
+        "paginator": {
+          "batch": {
+            "pageCount": 25
+          }
+        }
+      },
+      "expected": {
+        "pages": [
+          "page-0",
+          "page-1",
+          "page-2",
+          "page-3",
+          "page-4",
+          "page-5",
+          "page-6",
+          "page-7",
+          "page-8",
+          "page-9",
+          "page-10",
+          "page-11",
+          "page-12",
+          "page-13",
+          "page-14",
+          "page-15",
+          "page-16",
+          "page-17",
+          "page-18",
+          "page-19",
+          "page-20",
+          "page-21",
+          "page-22",
+          "page-23",
+          "page-24"
+        ],
+        "length": 25
+      }
+    },
+    {
+      "name": "paginator-exhaustion-first-page",
+      "description": "an exhausted first page marks the source exhausted",
+      "kind": "exhaustion-first-page",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1"
+          ],
+          "nextCursor": {
+            "exhausted": true
+          }
+        }
+      },
+      "expected": {
+        "hasNext": false,
+        "pages": [
+          "page-1"
+        ]
+      }
+    },
+    {
+      "name": "paginator-exhaustion-later-page",
+      "description": "an exhausted later page marks the source exhausted",
+      "kind": "exhaustion-later-page",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1",
+            "page-2"
+          ],
+          "nextCursors": [
+            {
+              "cursor": 2,
+              "exhausted": false
+            },
+            {
+              "exhausted": true
+            }
+          ]
+        }
+      },
+      "expected": {
+        "hasNext": false,
+        "pages": [
+          "page-1",
+          "page-2"
+        ]
+      }
+    },
+    {
+      "name": "paginator-exhaustion-after-exhaustion-throws",
+      "description": "next() throws after the source is exhausted",
+      "kind": "exhaustion-after-exhaustion-throws",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1",
+            "page-2"
+          ],
+          "nextCursor": {
+            "exhausted": true
+          }
+        }
+      },
+      "expected": {
+        "throws": true
+      }
+    },
+    {
+      "name": "paginator-exhaustion-undefined-cursor",
+      "description": "a legitimate undefined cursor mid-stream does not imply exhaustion",
+      "kind": "exhaustion-undefined-cursor",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1",
+            "page-2"
+          ],
+          "nextCursors": [
+            {
+              "cursor": {
+                "kind": "undefined"
+              },
+              "exhausted": false
+            },
+            {
+              "cursor": "cursor-2",
+              "exhausted": false
+            }
+          ]
+        }
+      },
+      "expected": {
+        "hasNext": true,
+        "pages": [
+          "page-1",
+          "page-2"
+        ]
+      }
+    },
+    {
+      "name": "paginator-hooks-record-transitions",
+      "description": "hook overrides observe the expected transition ordering and payloads",
+      "kind": "hooks-record-transitions",
+      "input": {
+        "paginator": {
+          "page": "page-1",
+          "nextCursor": {
+            "cursor": 2,
+            "exhausted": false
+          }
+        }
+      },
+      "expected": {
+        "transitions": [
+          {
+            "event": "pageReceived",
+            "from": "idle",
+            "to": "hasMore"
+          }
+        ],
+        "enters": [
+          "hasMore"
+        ],
+        "exits": [
+          "idle"
+        ],
+        "order": [
+          "exit:idle",
+          "transition:idle->hasMore",
+          "enter:hasMore"
+        ]
+      }
+    },
+    {
+      "name": "paginator-hooks-skip-hasmore-self-transition",
+      "description": "hasMore to hasMore does not fire the transition hooks again",
+      "kind": "hooks-skip-hasmore-self-transition",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1",
+            "page-2"
+          ],
+          "nextCursors": [
+            {
+              "cursor": 2,
+              "exhausted": false
+            },
+            {
+              "cursor": 3,
+              "exhausted": false
+            }
+          ]
+        }
+      },
+      "expected": {
+        "transitions": 1,
+        "enters": 1,
+        "exits": 1
+      }
+    },
+    {
+      "name": "paginator-hooks-record-exhausted-reset",
+      "description": "reset records exhausted to idle",
+      "kind": "hooks-record-exhausted-reset",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1",
+            "page-2"
+          ],
+          "nextCursors": [
+            {
+              "cursor": 2,
+              "exhausted": false
+            },
+            {
+              "exhausted": true
+            }
+          ],
+          "reset": true
+        }
+      },
+      "expected": {
+        "lastTransition": {
+          "event": "reset",
+          "from": "exhausted",
+          "to": "idle"
+        }
+      }
+    },
+    {
+      "name": "paginator-hooks-rejected-after-exhaustion",
+      "description": "hook rejection is reported after exhaustion",
+      "kind": "hooks-rejected-after-exhaustion",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1",
+            "page-2"
+          ],
+          "nextCursors": [
+            {
+              "exhausted": true
+            },
+            {
+              "exhausted": true
+            }
+          ]
+        }
+      },
+      "expected": {
+        "rejections": 1,
+        "state": "exhausted",
+        "event": "pageReceived"
+      }
+    },
+    {
+      "name": "paginator-hooks-retain-detached-cursor-snapshot",
+      "description": "cursor snapshots stay detached from caller mutation",
+      "kind": "hooks-retain-detached-cursor-snapshot",
+      "input": {
+        "paginator": {
+          "page": "page-1",
+          "cursor": {
+            "token": {
+              "value": "original"
+            }
+          },
+          "nextCursor": {
+            "exhausted": false
+          },
+          "mutatedValue": "mutated"
+        }
+      },
+      "expected": {
+        "exitedCursorValues": [
+          "original"
+        ]
+      }
+    },
+    {
+      "name": "paginator-hook-error-throwing-enter",
+      "description": "throwing hook overrides surface as HookInvocationError",
+      "kind": "hook-error-throwing-enter",
+      "input": {
+        "paginator": {
+          "page": "page-1",
+          "nextCursor": {
+            "cursor": 2,
+            "exhausted": false
+          }
+        }
+      },
+      "expected": {
+        "hookName": "onEnterState",
+        "causeMessage": "onEnterState boom"
+      }
+    },
+    {
+      "name": "paginator-hook-error-async-rejection",
+      "description": "async hook rejection is staged and surfaced on the next call",
+      "kind": "hook-error-async-rejection",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1",
+            "page-2"
+          ],
+          "nextCursors": [
+            {
+              "cursor": 2,
+              "exhausted": false
+            },
+            {
+              "cursor": 3,
+              "exhausted": false
+            }
+          ]
+        }
+      },
+      "expected": {
+        "rejectionEvents": []
+      }
+    },
+    {
+      "name": "paginator-hook-error-owning-instance-isolation",
+      "description": "hook failures stay isolated to their owning paginator instance",
+      "kind": "hook-error-owning-instance-isolation",
+      "input": {
+        "paginator": {
+          "failing": {
+            "name": "failing",
+            "pages": [
+              "failing-page-1",
+              "failing-page-2"
+            ],
+            "nextCursors": [
+              {
+                "cursor": 2,
+                "exhausted": false
+              },
+              {
+                "cursor": 3,
+                "exhausted": false
+              }
+            ]
+          },
+          "healthy": {
+            "name": "healthy",
+            "pages": [
+              "healthy-page-1",
+              "healthy-page-2"
+            ],
+            "nextCursors": [
+              {
+                "cursor": 2,
+                "exhausted": false
+              },
+              {
+                "cursor": 3,
+                "exhausted": false
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "firstDiagnostics": {
+          "hookName": "onTransition",
+          "causeMessage": "failing transition boom",
+          "labels": [
+            "initial"
+          ]
+        },
+        "transitions": [
+          "failing:hasMore"
+        ],
+        "healthyTransitions": [
+          "healthy:hasMore"
+        ],
+        "pages": [
+          "failing-page-1",
+          "failing-page-2"
+        ]
+      }
+    },
+    {
+      "name": "paginator-reentrancy-next",
+      "description": "reentrant next() retains all pages in order",
+      "kind": "reentrancy-next",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1",
+            "page-2",
+            "page-3"
+          ],
+          "nextCursors": [
+            {
+              "cursor": 2,
+              "exhausted": false
+            },
+            {
+              "cursor": 3,
+              "exhausted": false
+            },
+            {
+              "cursor": 4,
+              "exhausted": false
+            }
+          ]
+        }
+      },
+      "expected": {
+        "pages": [
+          "page-1",
+          "page-2",
+          "page-3"
+        ],
+        "hasNext": true
+      }
+    },
+    {
+      "name": "paginator-reentrancy-reset",
+      "description": "reentrant reset() resolves without corrupting state",
+      "kind": "reentrancy-reset",
+      "input": {
+        "paginator": {
+          "pages": [
+            "page-1"
+          ],
+          "nextCursor": {
+            "cursor": 2,
+            "exhausted": false
+          }
+        }
+      },
+      "expected": {
+        "pages": [],
+        "hasNext": true,
+        "enterCount": 1
+      }
+    },
+    {
+      "name": "paginator-reentrancy-cross-instance",
+      "description": "a hook can transition a second paginator because ownership is instance-local",
+      "kind": "reentrancy-cross-instance",
+      "input": {
+        "paginator": {
+          "sourceName": "source",
+          "targetName": "target",
+          "pages": [
+            "source-page"
+          ],
+          "nextCursor": {
+            "cursor": 2,
+            "exhausted": false
+          }
+        }
+      },
+      "expected": {
+        "sourcePages": [
+          "source-page"
+        ],
+        "targetPages": [
+          "source-delegated-page"
+        ],
+        "sourceEnters": [
+          "source:hasMore"
+        ],
+        "targetEnters": [
+          "target:hasMore"
+        ]
+      }
+    },
+    {
+      "name": "paginator-discriminant-narrowing",
+      "description": "discriminant helpers narrow state, event, and cursor payloads",
+      "kind": "discriminant-narrowing",
+      "input": {
+        "paginator": {
+          "cursorAvailable": {
+            "cursor": 2,
+            "exhausted": false
+          },
+          "cursorExhausted": {
+            "exhausted": true
+          },
+          "resetEvent": {
+            "type": "reset"
+          },
+          "pageEvent": {
+            "nextCursor": {
+              "cursor": 2,
+              "exhausted": false
+            },
+            "page": "page-1",
+            "type": "pageReceived"
+          },
+          "stateIdle": {
+            "variant": "idle"
+          },
+          "stateHasMore": {
+            "cursor": 2,
+            "pages": [
+              "page-1"
+            ],
+            "variant": "hasMore"
+          },
+          "stateExhausted": {
+            "pages": [
+              "page-1"
+            ],
+            "variant": "exhausted"
+          }
+        }
+      },
+      "expected": {
+        "cursorAvailable": "cursor:2",
+        "cursorExhausted": "exhausted",
+        "resetEvent": "reset",
+        "pageEvent": "page-1:cursor:2",
+        "stateIdle": "idle",
+        "stateHasMore": "page-1:cursor:2",
+        "stateExhausted": "page-1:exhausted"
+      }
+    }
+  ]
+}

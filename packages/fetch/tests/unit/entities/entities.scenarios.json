@@ -1,0 +1,90 @@
+{
+  "cases": [
+    {
+      "description": "Fetch request options entity accepts valid schema-expressible data",
+      "expected": {
+        "validationResults": [
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          {
+            "entity": "FetchRequestOptionsEntity",
+            "expected": true,
+            "value": {
+              "cache": "no-store",
+              "keepalive": true,
+              "method": "GET",
+              "timeout": 500
+            }
+          }
+        ]
+      },
+      "kind": "request-options-valid",
+      "name": "request-options-valid"
+    },
+    {
+      "description": "Fetch request options entity rejects invalid schema-expressible data",
+      "expected": {
+        "validationResults": [
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          {
+            "entity": "FetchRequestOptionsEntity",
+            "expected": false,
+            "value": { "redirect": "elsewhere" }
+          }
+        ]
+      },
+      "kind": "request-options-invalid",
+      "name": "request-options-invalid"
+    },
+    {
+      "description": "Client config entity accepts valid schema-expressible data",
+      "expected": {
+        "validationResults": [
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          {
+            "entity": "ClientConfigDataEntity",
+            "expected": true,
+            "value": {
+              "autoGenerateRequestId": true,
+              "baseURL": "https://example.test",
+              "hookTimeoutMs": 100,
+              "timeout": 500
+            }
+          }
+        ]
+      },
+      "kind": "client-config-valid",
+      "name": "client-config-valid"
+    },
+    {
+      "description": "Client config entity rejects invalid schema-expressible data",
+      "expected": {
+        "validationResults": [
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          {
+            "entity": "ClientConfigDataEntity",
+            "expected": false,
+            "value": { "timeout": -1 }
+          }
+        ]
+      },
+      "kind": "client-config-invalid",
+      "name": "client-config-invalid"
+    }
+  ]
+}

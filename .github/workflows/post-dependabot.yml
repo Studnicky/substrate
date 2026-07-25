@@ -1,0 +1,48 @@
+name: post-dependabot
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+concurrency:
+  group: post-dependabot-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  lockfile:
+    name: Reconcile lockfile
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: ./.github/actions/pnpm-node-setup
+        with:
+          install-args: --no-frozen-lockfile
+
+      - name: Commit lockfile and re-trigger CI if it changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git add pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo "Lockfile already in sync — nothing to commit."
+            exit 0
+          fi
+
+          git commit -m 'chore(deps): reconcile pnpm lockfile after dependabot bump'
+          git push origin HEAD:"${GITHUB_HEAD_REF}"
+
+          gh pr close "$PR_NUMBER"
+          gh pr reopen "$PR_NUMBER"

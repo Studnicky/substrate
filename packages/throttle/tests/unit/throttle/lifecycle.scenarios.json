@@ -1,0 +1,273 @@
+{
+  "cases": [
+    {
+      "name": "abort-timeout-timed-out",
+      "description": "abort({ timeout }) reports a timeout when active work does not finish in time",
+      "kind": "abort-timeout-timed-out",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "abortOptions": { "timeout": 1 },
+        "activeResult": "active"
+      },
+      "expected": { "abort": { "timedOut": true } }
+    },
+    {
+      "name": "abort-timeout-completes",
+      "description": "abort({ timeout }) reports no timeout when work completes during the grace period",
+      "kind": "abort-timeout-completes",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "abortOptions": { "timeout": 100 },
+        "activeResult": "done"
+      },
+      "expected": { "abort": { "timedOut": false } }
+    },
+    {
+      "name": "abort-immediate-with-active-work",
+      "description": "abort() returns immediately when no timeout is supplied even if work is active",
+      "kind": "abort-immediate-with-active-work",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "kept-running"
+      },
+      "expected": { "abort": { "cancelled": 0, "completed": 0, "timedOut": false } }
+    },
+    {
+      "name": "abort-zero-timeout-with-active-work",
+      "description": "abort({ timeout: 0 }) returns immediately even if work is active",
+      "kind": "abort-zero-timeout-with-active-work",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "abortOptions": { "timeout": 0 },
+        "activeResult": "kept-running"
+      },
+      "expected": { "abort": { "cancelled": 0, "completed": 0, "timedOut": false } }
+    },
+    {
+      "name": "abort-start-hook-throws",
+      "description": "abort() surfaces a throwing onAbortStart hook after cleanup has been committed",
+      "kind": "abort-start-hook-throws",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "kept-running",
+        "hookErrorMessage": "abort start boom"
+      },
+      "expected": {}
+    },
+    {
+      "name": "abort-after-abort-is-idempotent",
+      "description": "abort() returns the empty aborted result when called after the throttle is already aborted",
+      "kind": "abort-after-abort-is-idempotent",
+      "input": { "throttle": { "concurrencyLimit": 1 } },
+      "expected": {
+        "abort": { "timedOut": false },
+        "secondAbort": { "cancelled": 0, "completed": 0, "timedOut": false }
+      }
+    },
+    {
+      "name": "abort-on-complete-skips-grace-period",
+      "description": "abort() skips the grace period when no work is active",
+      "kind": "abort-on-complete-skips-grace-period",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "abortOptions": { "timeout": 100 }
+      },
+      "expected": { "abort": { "cancelled": 0, "completed": 0, "timedOut": false } }
+    },
+    {
+      "name": "abort-cancels-active-and-queued",
+      "description": "abort() resolves active and queued execute promises without running abandoned queued work",
+      "kind": "abort-cancels-active-and-queued",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "active-result",
+        "queuedResult": "queued-result",
+        "settleMs": 0
+      },
+      "expected": {
+        "abort": { "cancelled": 2, "completed": 0, "timedOut": false },
+        "activeResolvedWithUndefined": true,
+        "queuedResolvedWithUndefined": true,
+        "queuedStarted": false,
+        "isComplete": true,
+        "totalExecuted": 0
+      }
+    },
+    {
+      "name": "abort-during-draining-cancels-active-and-queued",
+      "description": "abort() cancels active and queued work while an existing drain is waiting",
+      "kind": "abort-during-draining-cancels-active-and-queued",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "draining-active-result",
+        "queuedResult": "draining-queued-result",
+        "settleMs": 0,
+        "abortOptions": { "timeout": 0 }
+      },
+      "expected": {
+        "abort": { "cancelled": 2, "completed": 0, "timedOut": false },
+        "activeResolvedWithUndefined": true,
+        "queuedResolvedWithUndefined": true,
+        "queuedStarted": false,
+        "isComplete": true,
+        "totalExecuted": 0
+      }
+    },
+    {
+      "name": "on-acquire-throws",
+      "description": "a throwing onAcquire hook rejects execute() and releases the slot",
+      "kind": "on-acquire-throws",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "unused",
+        "hookErrorMessage": "acquire boom"
+      },
+      "expected": { "activeCount": 0, "isComplete": true }
+    },
+    {
+      "name": "on-release-throws",
+      "description": "a throwing onRelease hook does not corrupt the completed throttle state",
+      "kind": "on-release-throws",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "ok",
+        "hookErrorMessage": "release boom"
+      },
+      "expected": { "isComplete": true }
+    },
+    {
+      "name": "on-contended-throws",
+      "description": "a throwing onContended hook rejects the contended caller without enqueueing it",
+      "kind": "on-contended-throws",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "contended-active-result",
+        "hookErrorMessage": "contended boom",
+        "settleMs": 0
+      },
+      "expected": {
+        "errorName": "HookInvocationError",
+        "causeMessage": "contended boom",
+        "activeCount": 1,
+        "queuedCount": 0,
+        "activeResult": "contended-active-result",
+        "isComplete": true
+      }
+    },
+    {
+      "name": "on-acquire-wait-throws",
+      "description": "a throwing onAcquireWait hook removes the queued caller and rejects it",
+      "kind": "on-acquire-wait-throws",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "acquire-wait-active-result",
+        "hookErrorMessage": "acquire wait boom",
+        "settleMs": 0
+      },
+      "expected": {
+        "errorName": "HookInvocationError",
+        "causeMessage": "acquire wait boom",
+        "activeCount": 1,
+        "queuedCount": 0,
+        "activeResult": "acquire-wait-active-result",
+        "isComplete": true
+      }
+    },
+    {
+      "name": "on-reject-throws",
+      "description": "a throwing onReject hook rejects execute() with the hook error and releases the slot",
+      "kind": "on-reject-throws",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "hookErrorMessage": "reject hook boom",
+        "operationErrorMessage": "operation boom",
+        "settleMs": 0
+      },
+      "expected": {
+        "errorName": "HookInvocationError",
+        "causeMessage": "reject hook boom",
+        "activeCount": 0,
+        "queuedCount": 0,
+        "isComplete": true
+      }
+    },
+    {
+      "name": "drain-waits-for-active-and-queued",
+      "description": "drain() waits for active and queued work to complete before resolving",
+      "kind": "drain-waits-for-active-and-queued",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": 1,
+        "queuedResult": 2
+      },
+      "expected": { "results": [1, 2], "isComplete": true }
+    },
+    {
+      "name": "drain-on-complete-returns-immediately",
+      "description": "drain() resolves immediately when the throttle is already complete",
+      "kind": "drain-on-complete-returns-immediately",
+      "input": { "throttle": { "concurrencyLimit": 1 } },
+      "expected": { "isComplete": true }
+    },
+    {
+      "name": "drain-reuses-completion-promise",
+      "description": "multiple drain() callers wait on the same active completion path",
+      "kind": "drain-reuses-completion-promise",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "drain-reused-result",
+        "settleMs": 0
+      },
+      "expected": {
+        "drainResolvedBeforeRelease": false,
+        "result": "drain-reused-result",
+        "isComplete": true
+      }
+    },
+    {
+      "name": "queued-operation-completes-after-release",
+      "description": "queued execute() calls start after the leading slot is released",
+      "kind": "queued-operation-completes-after-release",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": 1,
+        "queuedResult": 2,
+        "settleMs": 0
+      },
+      "expected": { "order": ["first-start", "first-end", "second-start"] }
+    },
+    {
+      "name": "on-window-slide-throws",
+      "description": "a failing onWindowSlide hook rejects the queued operation",
+      "kind": "on-window-slide-throws",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": 1,
+        "queuedResult": 2,
+        "settleMs": 0,
+        "hookErrorMessage": "window slide boom"
+      },
+      "expected": {}
+    },
+    {
+      "name": "execute-after-abort-throws",
+      "description": "execute() rejects after the throttle is aborted",
+      "kind": "execute-after-abort-throws",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "nope"
+      },
+      "expected": {}
+    },
+    {
+      "name": "execute-during-draining-throws",
+      "description": "execute() rejects while the throttle is draining",
+      "kind": "execute-during-draining-throws",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "nope"
+      },
+      "expected": {}
+    }
+  ]
+}

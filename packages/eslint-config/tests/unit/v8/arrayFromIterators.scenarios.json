@@ -1,0 +1,185 @@
+{
+  "listenerCases": [
+    {
+      "expected": {
+        "reportCount": 1
+      },
+      "input": {
+        "callExpression": {
+          "callee": {
+            "kind": "arrayFrom"
+          },
+          "firstArgument": {
+            "constructorName": "Set",
+            "kind": "newExpression"
+          },
+          "parent": {
+            "kind": "none"
+          }
+        },
+        "parserServices": {
+          "kind": "empty"
+        }
+      },
+      "name": "reports map and set constructors without type services"
+    },
+    {
+      "expected": {
+        "reportCount": 1
+      },
+      "input": {
+        "callExpression": {
+          "callee": {
+            "kind": "arrayFrom"
+          },
+          "firstArgument": {
+            "kind": "tracked"
+          },
+          "parent": {
+            "kind": "none"
+          }
+        },
+        "parserServices": {
+          "hasTsNode": true,
+          "isArrayType": false,
+          "kind": "typed"
+        }
+      },
+      "name": "reports non-arrays through typed parser services"
+    },
+    {
+      "expected": {
+        "reportCount": 0
+      },
+      "input": {
+        "callExpression": {
+          "callee": {
+            "kind": "arrayFrom"
+          },
+          "firstArgument": {
+            "kind": "tracked"
+          },
+          "parent": {
+            "kind": "none"
+          }
+        },
+        "parserServices": {
+          "hasTsNode": true,
+          "isArrayType": true,
+          "kind": "typed"
+        }
+      },
+      "name": "does not report arrays through typed parser services"
+    },
+    {
+      "expected": {
+        "reportCount": 0
+      },
+      "input": {
+        "callExpression": {
+          "callee": {
+            "kind": "nullish"
+          },
+          "firstArgument": {
+            "kind": "plainObject"
+          },
+          "parent": {
+            "kind": "none"
+          }
+        },
+        "parserServices": {
+          "kind": "empty"
+        }
+      },
+      "name": "ignores malformed callee shapes"
+    },
+    {
+      "expected": {
+        "reportCount": 1
+      },
+      "input": {
+        "callExpression": {
+          "callee": {
+            "kind": "arrayFrom"
+          },
+          "firstArgument": {
+            "constructorName": "Set",
+            "kind": "newExpression"
+          },
+          "parent": {
+            "kind": "node",
+            "nodeType": "ForOfStatement"
+          }
+        },
+        "parserServices": {
+          "kind": "empty"
+        }
+      },
+      "name": "reports Array.from on a Set inside a loop without type services"
+    },
+    {
+      "expected": {
+        "reportCount": 1
+      },
+      "input": {
+        "callExpression": {
+          "callee": {
+            "kind": "arrayFrom"
+          },
+          "firstArgument": {
+            "constructorName": "Map",
+            "kind": "newExpression"
+          },
+          "parent": {
+            "kind": "node",
+            "nodeType": "WhileStatement"
+          }
+        },
+        "parserServices": {
+          "kind": "empty"
+        }
+      },
+      "name": "reports Array.from on a Map inside a loop without type services"
+    }
+  ],
+  "ruleTester": {
+    "invalid": [
+      {
+        "code": "const output = Array.from(new Set([1, 2, 3]));",
+        "errors": [
+          {
+            "messageId": "forbidden"
+          }
+        ],
+        "name": "Array.from on a Set constructor - flagged"
+      },
+      {
+        "code": "const output = Array.from(new Map([[1, 2]]));",
+        "errors": [
+          {
+            "messageId": "forbidden"
+          }
+        ],
+        "name": "Array.from on a Map constructor - flagged"
+      }
+    ],
+    "valid": [
+      {
+        "code": "declare const values: number[]; const output = Array.from(values);",
+        "name": "Array.from on an array - not flagged by this rule"
+      },
+      {
+        "code": "const output = Array.from([1, 2, 3]);",
+        "name": "Array.from on an array literal - not flagged by this rule"
+      },
+      {
+        "code": "const output = Array.from();",
+        "name": "Array.from without arguments - not flagged"
+      },
+      {
+        "code": "function* ids() { yield 1; } const output = Array.from(ids());",
+        "name": "Array.from on a generator result - left to the typed listener path"
+      }
+    ]
+  }
+}

@@ -1,0 +1,197 @@
+{
+  "cases": [
+    {
+      "name": "construction-empty",
+      "description": "empty collection has ok === true and length === 0",
+      "kind": "construction-empty",
+      "input": { "kind": "empty-array" },
+      "expected": { "length": 0, "ok": true }
+    },
+    {
+      "name": "construction-non-empty",
+      "description": "non-empty collection has ok === false",
+      "kind": "construction-non-empty",
+      "input": [{ "keyword": "required", "message": "required", "path": "/name" }],
+      "expected": { "length": 1, "ok": false }
+    },
+    {
+      "name": "create-from-array",
+      "description": "produces correct collection from array",
+      "kind": "create-from-array",
+      "input": [{ "keyword": "format", "message": "must be email", "path": "/email" }],
+      "expected": { "items": [{ "keyword": "format", "message": "must be email", "path": "/email" }], "length": 1 }
+    },
+    {
+      "name": "detaches-source",
+      "description": "detaches source items and every returned projection",
+      "kind": "detaches-source",
+      "input": [{ "keyword": "format", "message": "must be email", "path": "/email" }],
+      "expected": { "items": [{ "keyword": "format", "message": "must be email", "path": "/email" }], "length": 1 }
+    },
+    {
+      "name": "merge",
+      "description": "combines violations from multiple collections",
+      "kind": "merge",
+      "input": {
+        "left": [{ "keyword": "required", "message": "required", "path": "/a" }],
+        "right": [{ "keyword": "minLength", "message": "too short", "path": "/b" }]
+      },
+      "expected": { "items": [{ "keyword": "required", "message": "required", "path": "/a" }, { "keyword": "minLength", "message": "too short", "path": "/b" }], "length": 2 }
+    },
+    {
+      "name": "merge-empty",
+      "description": "merging empty collections yields empty",
+      "kind": "merge-empty",
+      "input": { "left": { "kind": "empty-array" }, "right": { "kind": "empty-array" } },
+      "expected": { "length": 0, "ok": true }
+    },
+    { "name": "from-null", "description": "returns empty collection for null", "kind": "from-null", "input": { "kind": "null" }, "expected": { "length": 0, "ok": true } },
+    { "name": "from-undefined", "description": "returns empty collection for undefined", "kind": "from-undefined", "input": { "kind": "undefined" }, "expected": { "length": 0, "ok": true } },
+    { "name": "from-empty-array", "description": "returns empty collection for empty array", "kind": "from-empty-array", "input": { "kind": "empty-array" }, "expected": { "length": 0, "ok": true } },
+    {
+      "name": "maps-ajv",
+      "description": "maps Ajv-style errors to violations",
+      "kind": "maps-ajv",
+      "input": [
+        { "instancePath": "/name", "keyword": "required", "message": "must have property name" },
+        { "instancePath": "/email", "keyword": "format", "message": "must match format \"email\"" }
+      ],
+      "expected": { "items": [{ "keyword": "required", "message": "must have property name", "path": "/name" }, { "keyword": "format", "message": "must match format \"email\"", "path": "/email" }], "length": 2 }
+    },
+    {
+      "name": "fallback-message",
+      "description": "falls back to keyword as message when message is absent",
+      "kind": "fallback-message",
+      "input": [{ "instancePath": "/x", "keyword": "type" }],
+      "expected": { "items": [{ "keyword": "type", "message": "type", "path": "/x" }], "length": 1 }
+    },
+    {
+      "name": "aggregate-dedup",
+      "description": "returns deduplicated sorted paths and keywords",
+      "kind": "aggregate-dedup",
+      "input": [
+        { "keyword": "minLength", "message": "too short", "path": "/b" },
+        { "keyword": "required", "message": "required", "path": "/a" },
+        { "keyword": "type", "message": "wrong type", "path": "/b" },
+        { "keyword": "required", "message": "required again", "path": "/a" }
+      ],
+      "expected": { "aggregate": { "count": 4, "keywords": ["minLength", "required", "type"], "paths": ["/a", "/b"] } }
+    },
+    { "name": "aggregate-empty", "description": "returns empty arrays for empty collection", "kind": "aggregate-empty", "input": { "kind": "empty-array" }, "expected": { "aggregate": { "count": 0, "keywords": [], "paths": [] } } },
+    {
+      "name": "report-default",
+      "description": "returns RFC 7807 shape with defaults",
+      "kind": "report-default",
+      "input": [{ "keyword": "required", "message": "required", "path": "/x" }],
+      "expected": {
+        "report": {
+          "detail": "1 validation error",
+          "errors": [{ "keyword": "required", "message": "required", "path": "/x" }],
+          "status": 422,
+          "title": "Validation failed",
+          "type": "https://problems.studnicky.dev/validation"
+        }
+      }
+    },
+    {
+      "name": "report-empty",
+      "description": "returns plural detail for an empty collection report",
+      "kind": "report-empty",
+      "input": { "kind": "empty-array" },
+      "expected": {
+        "report": {
+          "detail": "0 validation errors",
+          "errors": [],
+          "status": 422,
+          "title": "Validation failed",
+          "type": "https://problems.studnicky.dev/validation"
+        }
+      }
+    },
+    {
+      "name": "report-plural",
+      "description": "uses plural detail for multiple errors",
+      "kind": "report-plural",
+      "input": [
+        { "keyword": "required", "message": "required", "path": "/a" },
+        { "keyword": "format", "message": "bad format", "path": "/b" }
+      ],
+      "expected": {
+        "report": {
+          "detail": "2 validation errors",
+          "errors": [
+            { "keyword": "required", "message": "required", "path": "/a" },
+            { "keyword": "format", "message": "bad format", "path": "/b" }
+          ],
+          "status": 422,
+          "title": "Validation failed",
+          "type": "https://problems.studnicky.dev/validation"
+        }
+      }
+    },
+    {
+      "name": "report-overrides",
+      "description": "applies provided type and status overrides",
+      "kind": "report-overrides",
+      "input": {
+        "options": { "status": 400, "type": "https://example.com/custom" },
+        "violations": [{ "keyword": "required", "message": "required", "path": "/x" }]
+      },
+      "expected": {
+        "report": {
+          "detail": "1 validation error",
+          "errors": [{ "keyword": "required", "message": "required", "path": "/x" }],
+          "status": 400,
+          "title": "Validation failed",
+          "type": "https://example.com/custom"
+        }
+      }
+    },
+    {
+      "name": "report-title",
+      "description": "applies provided title override",
+      "kind": "report-title",
+      "input": {
+        "options": { "title": "Schema check failed" },
+        "violations": [{ "keyword": "required", "message": "required", "path": "/x" }]
+      },
+      "expected": {
+        "report": {
+          "detail": "1 validation error",
+          "errors": [{ "keyword": "required", "message": "required", "path": "/x" }],
+          "status": 422,
+          "title": "Schema check failed",
+          "type": "https://problems.studnicky.dev/validation"
+        }
+      }
+    },
+    {
+      "name": "spread",
+      "description": "spread yields all violations",
+      "kind": "spread",
+      "input": [
+        { "keyword": "required", "message": "required", "path": "/a" },
+        { "keyword": "minLength", "message": "too short", "path": "/b" }
+      ],
+      "expected": { "items": [{ "keyword": "required", "message": "required", "path": "/a" }, { "keyword": "minLength", "message": "too short", "path": "/b" }], "length": 2 }
+    },
+    {
+      "name": "for-of",
+      "description": "for-of iterates violations in order",
+      "kind": "for-of",
+      "input": [
+        { "keyword": "required", "message": "required", "path": "/a" },
+        { "keyword": "format", "message": "bad format", "path": "/b" },
+        { "keyword": "type", "message": "wrong type", "path": "/c" }
+      ],
+      "expected": { "items": [{ "keyword": "required", "message": "required", "path": "/a" }, { "keyword": "format", "message": "bad format", "path": "/b" }, { "keyword": "type", "message": "wrong type", "path": "/c" }], "length": 3 }
+    },
+    {
+      "name": "construction-invalid",
+      "description": "throws ValidationError when constructed with a non-array value",
+      "kind": "construction-invalid",
+      "input": { "kind": "not-array" },
+      "expected": { "messageIncludes": ["items must be an array"] }
+    }
+  ]
+}

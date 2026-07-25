@@ -1,0 +1,119 @@
+{
+  "cases": [
+    {
+      "description": "returns null on unsupported platforms",
+      "expected": { "result": "null" },
+      "input": { "platform": "win32" },
+      "kind": "detect",
+      "name": "unsupported-platform"
+    },
+    {
+      "description": "parses Metal output with GB units",
+      "expected": {
+        "computeApi": "metal",
+        "name": "Apple M2 Max",
+        "result": "gpu",
+        "vramMb": 32768
+      },
+      "input": {
+        "commands": {
+          "system_profiler": {
+            "output": "{\"SPDisplaysDataType\":[{\"sppci_model\":\"Apple M2 Max\",\"spdisplays_vram\":\"32 GB\"}]}"
+          }
+        },
+        "platform": "darwin"
+      },
+      "kind": "detect",
+      "name": "metal-valid-gb"
+    },
+    {
+      "description": "returns null for empty Metal display arrays",
+      "expected": { "result": "null" },
+      "input": {
+        "commands": {
+          "system_profiler": { "output": "{\"SPDisplaysDataType\":[]}" }
+        },
+        "platform": "darwin"
+      },
+      "kind": "detect",
+      "name": "metal-empty-displays"
+    },
+    {
+      "description": "returns null for invalid Metal JSON",
+      "expected": { "result": "null" },
+      "input": {
+        "commands": {
+          "system_profiler": { "output": "not-json" }
+        },
+        "platform": "darwin"
+      },
+      "kind": "detect",
+      "name": "metal-invalid-json"
+    },
+    {
+      "description": "parses NVIDIA output",
+      "expected": {
+        "computeApi": "cuda",
+        "name": "NVIDIA RTX 4090",
+        "result": "gpu",
+        "vramMb": 24576
+      },
+      "input": {
+        "commands": {
+          "nvidia-smi": { "output": "NVIDIA RTX 4090, 24576\n" }
+        },
+        "platform": "linux"
+      },
+      "kind": "detect",
+      "name": "nvidia-valid"
+    },
+    {
+      "description": "handles empty NVIDIA output",
+      "expected": {
+        "computeApi": "cuda",
+        "name": "",
+        "result": "gpu",
+        "vramMb": null
+      },
+      "input": {
+        "commands": {
+          "nvidia-smi": { "output": "\n" }
+        },
+        "platform": "linux"
+      },
+      "kind": "detect",
+      "name": "nvidia-empty-output"
+    },
+    {
+      "description": "falls back to AMD output when NVIDIA detection fails",
+      "expected": {
+        "computeApi": "opencl",
+        "name": "AMD GPU",
+        "result": "gpu",
+        "vramMb": 2048
+      },
+      "input": {
+        "commands": {
+          "nvidia-smi": { "error": "nvidia unavailable" },
+          "rocm-smi": { "output": "{\"0\":{\"VRAM Total Memory (B)\":\"2147483648\"}}" }
+        },
+        "platform": "linux"
+      },
+      "kind": "detect",
+      "name": "amd-valid"
+    },
+    {
+      "description": "returns null for invalid AMD JSON",
+      "expected": { "result": "null" },
+      "input": {
+        "commands": {
+          "nvidia-smi": { "error": "nvidia unavailable" },
+          "rocm-smi": { "output": "not-json" }
+        },
+        "platform": "linux"
+      },
+      "kind": "detect",
+      "name": "amd-invalid-json"
+    }
+  ]
+}

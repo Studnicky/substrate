@@ -1,0 +1,36 @@
+{
+  "cases": [
+    {
+      "description": "validates non-negative enqueue timestamps",
+      "expected": {
+        "validationResults": [
+          true,
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          { "expected": true, "value": { "queuedAt": 0 } },
+          { "expected": true, "value": { "queuedAt": 1 } }
+        ]
+      },
+      "kind": "non-negative",
+      "name": "validates non-negative enqueue timestamps"
+    },
+    {
+      "description": "rejects negative enqueue timestamps",
+      "expected": {
+        "validationResults": [
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "expected": false, "value": { "queuedAt": -1 } }
+        ]
+      },
+      "kind": "negative",
+      "name": "rejects negative enqueue timestamps"
+    }
+  ]
+}

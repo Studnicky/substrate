@@ -1,0 +1,130 @@
+name: dependency-diagram
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: dependency-diagram-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    uses: ./.github/workflows/detect-changes.yml
+
+  diagram-check:
+    name: dependency graph
+    needs: [ detect-changes ]
+    if: needs.detect-changes.outputs.analysis == 'true' || github.event_name ==
+      'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/pnpm-node-setup
+      - run: bash scripts/ci-suite.sh diagram-check
+
+  blast-radius:
+    name: blast radius
+    needs: [ detect-changes ]
+    if: needs.detect-changes.outputs.analysis == 'true' || github.event_name ==
+      'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      packages: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/pnpm-node-setup
+      - name: Blast radius
+        env:
+          BASE_REF_NAME: ${{ github.base_ref || 'develop' }}
+        run: |
+          CI_SUITE_BASE_REF="origin/${BASE_REF_NAME}" \
+            DEPENDENCY_DIAGRAM_ARTIFACT=".orchestration/dependency-diagram/blast-radius.md" \
+            DEPENDENCY_DIAGRAM_MERMAID_ARTIFACT=".orchestration/dependency-diagram/blast-radius.mmd" \
+            DEPENDENCY_DIAGRAM_COMMENT_ARTIFACT=".orchestration/dependency-diagram/blast-radius-comment.md" \
+            bash scripts/ci-suite.sh diagram-blast-radius
+      - name: Upload blast-radius diagram
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dependency-blast-radius
+          path: |
+            .orchestration/dependency-diagram/blast-radius.md
+            .orchestration/dependency-diagram/blast-radius.mmd
+            .orchestration/dependency-diagram/blast-radius-comment.md
+          if-no-files-found: error
+      - name: Post blast-radius PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('fs');
+
+            try {
+              const marker = '<!-- substrate-dependency-blast-radius -->';
+              const body = fs.readFileSync('.orchestration/dependency-diagram/blast-radius-comment.md', 'utf8');
+              if (!body.includes(marker)) {
+                core.warning('Dependency diagram comment marker missing; comment not posted.');
+                return;
+              }
+
+              const { data: comments } = await github.rest.issues.listComments({
+                ...context.repo,
+                issue_number: context.issue.number,
+                per_page: 100,
+              });
+              const existing = comments.find((comment) => comment.body?.includes(marker));
+              const post = existing
+                ? () => github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body })
+                : () => github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+              const label = existing ? 'updateComment' : 'createComment';
+
+              for (let attempt = 1; attempt <= 3; attempt += 1) {
+                try {
+                  await post();
+                  return;
+                } catch (error) {
+                  core.warning(`${label} attempt ${attempt}/3 failed (status ${error.status ?? 'unknown'}): ${String(error.message ?? error).slice(0, 300)}`);
+                  if (attempt < 3) {
+                    await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+                  }
+                }
+              }
+
+              core.warning(`${label} failed after 3 attempts; dependency diagram comment not posted this run.`);
+            } catch (error) {
+              core.warning(`Unexpected error posting dependency diagram comment: ${String(error.message ?? error).slice(0, 300)}`);
+            }
+
+  required:
+    name: dependency diagram required
+    needs: [ detect-changes, diagram-check, blast-radius ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate dependency diagram result
+        shell: bash
+        env:
+          DETECT_CHANGES_RESULT: ${{ needs.detect-changes.result }}
+          DIAGRAM_CHECK_RESULT: ${{ needs.diagram-check.result }}
+          BLAST_RADIUS_RESULT: ${{ needs.blast-radius.result }}
+        run: |
+          set -euo pipefail
+          for result in "$DETECT_CHANGES_RESULT" "$DIAGRAM_CHECK_RESULT" "$BLAST_RADIUS_RESULT"; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "dependency diagram required: dependency result was $result" >&2; exit 1 ;;
+            esac
+          done

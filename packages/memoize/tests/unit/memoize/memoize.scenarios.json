@@ -1,0 +1,484 @@
+{
+  "cases": [
+    {
+      "name": "memoize-entities",
+      "description": "validates cache lookup state",
+      "kind": "entities",
+      "input": {
+        "memoize": {}
+      },
+      "expected": {
+        "foundTrue": true,
+        "foundFalse": true,
+        "missingFalse": false
+      }
+    },
+    {
+      "name": "memoize-hit-cache",
+      "description": "returns the cached result without re-invoking fn for a repeat key",
+      "kind": "hit-cache",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity",
+          "staleMs": 1,
+          "ttlMs": 10
+        }
+      },
+      "expected": {
+        "first": "value:a",
+        "second": "value:a",
+        "calls": 1
+      }
+    },
+    {
+      "name": "memoize-different-keys",
+      "description": "invokes fn independently for args that derive different keys",
+      "kind": "different-keys",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        }
+      },
+      "expected": {
+        "results": [
+          "value:a",
+          "value:b"
+        ],
+        "calls": 2
+      }
+    },
+    {
+      "name": "memoize-sync-fn",
+      "description": "memoizes a synchronous function correctly",
+      "kind": "sync-fn",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "number-string"
+        }
+      },
+      "expected": {
+        "results": [
+          42,
+          42
+        ],
+        "calls": 1
+      }
+    },
+    {
+      "name": "memoize-ttl-stale-options",
+      "description": "constructs memoize with ttl and stale options enabled",
+      "kind": "ttl-stale-options",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity",
+          "ttlMs": 1000,
+          "staleMs": 500
+        }
+      },
+      "expected": {
+        "calls": 1,
+        "first": "value:a:1",
+        "second": "value:a:1"
+      }
+    },
+    {
+      "name": "memoize-create-rejects-foreign-construction",
+      "description": "rejects a subclass constructor that does not return the requested instance",
+      "kind": "create-rejects-foreign-construction",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        }
+      },
+      "expected": {}
+    },
+    {
+      "name": "memoize-config-error",
+      "description": "constructs the memoize config error type",
+      "kind": "config-error",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        }
+      },
+      "expected": {}
+    },
+    {
+      "name": "memoize-invalidate-recomputes",
+      "description": "invalidate forces the next matching call to re-invoke fn",
+      "kind": "invalidate-recomputes",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        }
+      },
+      "expected": {
+        "first": "value:a:1",
+        "second": "value:a:2",
+        "calls": 2
+      }
+    },
+    {
+      "name": "memoize-invalidate-preserves-other-keys",
+      "description": "invalidate leaves other keys cached",
+      "kind": "invalidate-preserves-other-keys",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        }
+      },
+      "expected": {
+        "calls": 2
+      }
+    },
+    {
+      "name": "memoize-clear-recomputes-all",
+      "description": "clear forces every subsequent call to re-invoke fn",
+      "kind": "clear-recomputes-all",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        }
+      },
+      "expected": {
+        "calls": 4
+      }
+    },
+    {
+      "name": "memoize-coalesce-shared-call",
+      "description": "shares one fn invocation across concurrent calls with the same key",
+      "kind": "coalesce-shared-call",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "batch": {
+          "callCount": 2
+        }
+      },
+      "expected": {
+        "calls": 1,
+        "results": [
+          "x:shared",
+          "x:shared"
+        ]
+      }
+    },
+    {
+      "name": "memoize-miss-before-fn",
+      "description": "fires onMemoMiss before invoking the wrapped function",
+      "kind": "miss-before-fn",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        }
+      },
+      "expected": {
+        "events": [
+          "miss",
+          "function"
+        ]
+      }
+    },
+    {
+      "name": "memoize-hit-and-miss-hooks",
+      "description": "fires onMemoMiss then onMemoHit with key and args",
+      "kind": "hit-and-miss-hooks",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "compound"
+        }
+      },
+      "expected": {
+        "events": [
+          "miss:order-1:3:[\"order-1\",3]",
+          "hit:order-1:3:[\"order-1\",3]"
+        ]
+      }
+    },
+    {
+      "name": "memoize-throwing-hit-hook",
+      "description": "a throwing onMemoHit hook does not replace a cached return value",
+      "kind": "throwing-hit-hook",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        }
+      },
+      "expected": {
+        "value": "value:a"
+      }
+    },
+    {
+      "name": "memoize-throwing-miss-hook",
+      "description": "a throwing onMemoMiss hook does not hang the triggering call or a subsequent call",
+      "kind": "throwing-miss-hook",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "batch": {
+          "callCount": 2
+        }
+      },
+      "expected": {
+        "first": "value:a",
+        "second": "value:a"
+      }
+    },
+    {
+      "name": "memoize-async-hooks-safe",
+      "description": "unexpected async hit, miss, and coalesced overrides preserve results without unhandled rejections",
+      "kind": "async-hooks-safe",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "batch": {
+          "callCount": 2
+        }
+      },
+      "expected": {
+        "events": [
+          "miss",
+          "coalesced",
+          "hit"
+        ],
+        "rejectionEvents": 0,
+        "leaderResult": "value:a",
+        "followerResult": "value:a",
+        "cachedResult": "value:a"
+      }
+    },
+    {
+      "name": "memoize-coalesced-hooks",
+      "description": "fires onMemoCoalesced for the joining caller and onMemoMiss for the leader",
+      "kind": "coalesced-hooks",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "batch": {
+          "callCount": 2
+        }
+      },
+      "expected": {
+        "events": [
+          "miss:x",
+          "coalesced:x"
+        ]
+      }
+    },
+    {
+      "name": "memoize-isolated-hook-ownership",
+      "description": "dispatches leader and joining hooks to the owning subclass instance",
+      "kind": "isolated-hook-ownership",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "batch": {
+          "callCount": 2
+        }
+      },
+      "expected": {
+        "memoAEvents": [
+          "miss:shared:leader-a",
+          "coalesced:shared:follower-a"
+        ],
+        "memoBEvents": [
+          "miss:shared:leader-b",
+          "coalesced:shared:follower-b"
+        ]
+      }
+    },
+    {
+      "name": "memoize-throwing-coalesced-hook",
+      "description": "a throwing onMemoCoalesced hook does not hang the joining caller or a subsequent call for the same key",
+      "kind": "throwing-coalesced-hook",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "batch": {
+          "callCount": 2
+        }
+      },
+      "expected": {
+        "results": [
+          "x:shared",
+          "x:shared",
+          "x:shared"
+        ]
+      }
+    },
+    {
+      "name": "memoize-rejecting-coalesced-hook",
+      "description": "an async onMemoCoalesced hook whose returned promise rejects does not hang the joining caller or a subsequent call",
+      "kind": "rejecting-coalesced-hook",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "batch": {
+          "callCount": 2
+        }
+      },
+      "expected": {
+        "results": [
+          "x:shared",
+          "x:shared",
+          "x:shared"
+        ]
+      }
+    },
+    {
+      "name": "memoize-per-key-hook-args",
+      "description": "does not cross-contaminate hook args across concurrent calls for distinct keys",
+      "kind": "per-key-hook-args",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "batch": {
+          "callCount": 4
+        }
+      },
+      "expected": {
+        "results": [
+          "x@1:resolved-x",
+          "y@2:resolved-y",
+          "x@1:resolved-x",
+          "y@2:resolved-y"
+        ],
+        "missArgs": {
+          "x": [
+            "x",
+            1
+          ],
+          "y": [
+            "y",
+            2
+          ]
+        },
+        "coalescedArgs": {
+          "x": [
+            "x",
+            100
+          ],
+          "y": [
+            "y",
+            200
+          ]
+        }
+      }
+    },
+    {
+      "name": "memoize-rejecting-miss-hook",
+      "description": "an async onMemoMiss hook whose returned promise rejects does not hang the triggering call or a subsequent call",
+      "kind": "rejecting-miss-hook",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        }
+      },
+      "expected": {
+        "first": "value:a",
+        "second": "value:a"
+      }
+    },
+    {
+      "name": "memoize-undefined-result-cache",
+      "description": "caches an explicit undefined result instead of treating the cache lookup as a miss",
+      "kind": "undefined-result-cache",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "key": "empty"
+      },
+      "expected": {
+        "calls": 1,
+        "resultType": "undefined"
+      }
+    },
+    {
+      "name": "memoize-failure-recomputes-after-rejection",
+      "description": "does not cache a rejected computation and caches the later successful retry",
+      "kind": "failure-recomputes-after-rejection",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "failureMessage": "memoize compute failed",
+        "failuresBeforeSuccess": 1,
+        "key": "retry-key",
+        "successValue": "memoize retry value"
+      },
+      "expected": {
+        "calls": 2,
+        "events": [
+          "miss:retry-key:[\"retry-key\"]",
+          "miss:retry-key:[\"retry-key\"]",
+          "hit:retry-key:[\"retry-key\"]"
+        ],
+        "firstErrorMessage": "memoize compute failed",
+        "second": "memoize retry value",
+        "third": "memoize retry value"
+      }
+    },
+    {
+      "name": "memoize-coalesced-failure-recomputes",
+      "description": "shares a rejected in-flight call, clears the failed pending state, and caches a later successful retry",
+      "kind": "coalesced-failure-recomputes",
+      "input": {
+        "memoize": {
+          "capacity": 10,
+          "keyFnKind": "identity"
+        },
+        "batch": {
+          "callCount": 2
+        },
+        "failureMessage": "memoize shared compute failed",
+        "key": "shared-retry-key",
+        "successValue": "memoize shared retry value"
+      },
+      "expected": {
+        "calls": 2,
+        "events": [
+          "miss:shared-retry-key:[\"shared-retry-key\"]",
+          "coalesced:shared-retry-key:[\"shared-retry-key\"]",
+          "miss:shared-retry-key:[\"shared-retry-key\"]",
+          "hit:shared-retry-key:[\"shared-retry-key\"]"
+        ],
+        "firstErrorMessage": "memoize shared compute failed",
+        "followerErrorMessage": "memoize shared compute failed",
+        "second": "memoize shared retry value",
+        "third": "memoize shared retry value"
+      }
+    }
+  ]
+}

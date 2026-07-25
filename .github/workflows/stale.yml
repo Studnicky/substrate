@@ -14,7 +14,7 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: actions/stale@v10
+      - uses: actions/stale@1e223db275d687790206a7acac4d1a11bd6fe629
         with:
           days-before-issue-stale: 30
           days-before-issue-close: 14
@@ -25,16 +25,17 @@ jobs:
           exempt-issue-labels: 'pinned,security,bug,enhancement'
           exempt-pr-labels: 'pinned,security,work-in-progress'
           stale-issue-message: >
-            This issue has been automatically marked as stale because it has not had
-            recent activity. It will be closed in 14 days if no further activity occurs.
-            Thank you for your contributions.
+            This issue has been automatically marked as stale because it has not
+            had recent activity. It will be closed in 14 days if no further
+            activity occurs. Thank you for your contributions.
           close-issue-message: >
-            This issue has been automatically closed due to inactivity.
-            Please reopen if this is still relevant.
+            This issue has been automatically closed due to inactivity. Please
+            reopen if this is still relevant.
           stale-pr-message: >
-            This pull request has been automatically marked as stale because it has not had
-            recent activity. It will be closed in 7 days if no further activity occurs.
-            Please update the PR or close it if it is no longer relevant.
+            This pull request has been automatically marked as stale because it
+            has not had recent activity. It will be closed in 7 days if no
+            further activity occurs. Please update the PR or close it if it is
+            no longer relevant.
           close-pr-message: >
             This pull request has been automatically closed due to inactivity.
             Please reopen if you would like to continue this work.

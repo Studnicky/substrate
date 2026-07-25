@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/event-bus",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "Typed async pub/sub with per-subscriber backpressure via BusQueue",
   "type": "module",
   "sideEffects": false,
@@ -23,7 +23,7 @@
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "type-check": "tsc --noEmit",
-    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+    "test": "node ../../scripts/test-suite.mjs all --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",

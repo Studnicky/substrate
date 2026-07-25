@@ -1,0 +1,69 @@
+{
+  "cases": [
+    {
+      "name": "final-shutdown-rejection",
+      "description": "reports final shutdown termination rejection, records rejecting error hooks, and preserves results",
+      "kind": "final-shutdown-rejection",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../fixtures/terminationWorker.mjs"
+        },
+        "item": { "value": "ok" },
+        "terminateFailureMessage": "final termination rejected"
+      },
+      "expected": {
+        "results": ["ok"],
+        "observedErrors": [{ "index": 0, "message": "final termination rejected" }],
+        "rejectionEvents": [],
+        "terminateCalls": 1
+      }
+    },
+    {
+      "name": "timeout-shutdown-rejection",
+      "description": "reports timeout-path termination rejection and still cleans up for a later run",
+      "kind": "timeout-shutdown-rejection",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "timeoutMs": 200,
+          "workerPath": "../fixtures/terminationWorker.mjs"
+        },
+        "timeoutItem": { "ms": 5000, "value": "too-slow" },
+        "laterItem": { "value": "later" },
+        "terminateFailureMessage": "timeout termination rejected"
+      },
+      "expected": {
+        "laterResults": ["later"],
+        "runRejectedMessageIncludes": "exceeded its timeout",
+        "observedErrors": [{ "index": 0, "message": "timeout termination rejected" }],
+        "rejectionEvents": [],
+        "terminateCalls": 3
+      }
+    },
+    {
+      "name": "error-shutdown-rejection",
+      "description": "reports worker-error-path termination rejection and a later run still progresses",
+      "kind": "error-shutdown-rejection",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../fixtures/terminationWorker.mjs"
+        },
+        "crashItem": { "crash": true, "error": "boom", "value": "bad" },
+        "laterItem": { "value": "later" },
+        "terminateFailureMessage": "error termination rejected"
+      },
+      "expected": {
+        "laterResults": ["later"],
+        "runRejectedMessageIncludes": "boom",
+        "observedErrors": [
+          { "index": 0, "message": "boom" },
+          { "index": 0, "message": "error termination rejected" }
+        ],
+        "rejectionEvents": [],
+        "terminateCalls": 3
+      }
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "cases": [
+    {
+      "name": "real-time-sleep",
+      "description": "sleep resolves after roughly ms in real time",
+      "kind": "real-time-sleep",
+      "input": { "sleepMs": 20 },
+      "expected": { "elapsedMsAtLeast": 15 }
+    },
+    {
+      "name": "virtual-sleep",
+      "description": "sleep resolves without real delay when driven by a VirtualScheduler",
+      "kind": "virtual-sleep",
+      "input": {
+        "scheduler": {
+          "counter": {
+            "startMs": 0
+          }
+        },
+        "sleepMs": 500
+      },
+      "expected": { "resolved": true, "virtualSleepMs": 500 }
+    },
+    {
+      "name": "real-time-abort",
+      "description": "sleep rejects and cancels a pending RealTimeScheduler task when aborted",
+      "kind": "real-time-abort",
+      "input": {
+        "abortMs": 10000,
+        "reasonMessage": "real-time delay aborted",
+        "sleepMs": 10000
+      },
+      "expected": { "cancelCount": 1, "reasonMessage": "real-time delay aborted" }
+    },
+    {
+      "name": "virtual-zero",
+      "description": "sleep resolves immediately for ms=0 with a VirtualScheduler",
+      "kind": "virtual-zero",
+      "input": {
+        "scheduler": {
+          "counter": {
+            "startMs": 0
+          }
+        },
+        "sleepMs": 0
+      },
+      "expected": { "resolved": true, "sleepMs": 0 }
+    },
+    {
+      "name": "default-scheduler",
+      "description": "defaults to RealTimeScheduler and RealTimeClockProvider when no options are given",
+      "kind": "default-scheduler",
+      "input": { "sleepMs": 0 },
+      "expected": { "resolved": true, "sleepMs": 0 }
+    },
+    {
+      "name": "pre-aborted",
+      "description": "pre-aborted sleep rejects with the exact reason without scheduling",
+      "kind": "pre-aborted",
+      "input": {
+        "reasonMessage": "already aborted",
+        "scheduler": {
+          "counter": {
+            "startMs": 0
+          }
+        },
+        "sleepMs": 500
+      },
+      "expected": { "scheduleCount": 0 }
+    },
+    {
+      "name": "abort-during-clock",
+      "description": "abort during clock.now rejects with the exact reason without scheduling",
+      "kind": "abort-during-clock",
+      "input": {
+        "reasonMessage": "clock aborted delay",
+        "scheduler": {
+          "counter": {
+            "startMs": 0
+          }
+        },
+        "sleepMs": 500
+      },
+      "expected": { "cancelCount": 0, "fireCount": 0, "scheduleCount": 0 }
+    },
+    {
+      "name": "abort-during-schedule",
+      "description": "abort during onSchedule cancels the returned task before later advancement",
+      "kind": "abort-during-schedule",
+      "input": {
+        "reasonMessage": "schedule hook aborted delay",
+        "scheduler": {
+          "counter": {
+            "startMs": 0
+          }
+        },
+        "sleepMs": 500
+      },
+      "expected": { "cancelCount": 1, "fireCount": 0, "scheduleCount": 1 }
+    },
+    {
+      "name": "pending-abort",
+      "description": "pending abort cancels the virtual task and later advancement stays inert",
+      "kind": "pending-abort",
+      "input": {
+        "reasonMessage": "pending delay aborted",
+        "scheduler": {
+          "counter": {
+            "startMs": 0
+          }
+        },
+        "sleepMs": 500
+      },
+      "expected": { "cancelCount": 1, "fireCount": 0 }
+    },
+    {
+      "name": "late-abort",
+      "description": "abort after completion is inert",
+      "kind": "late-abort",
+      "input": {
+        "reasonMessage": "late abort",
+        "scheduler": {
+          "counter": {
+            "startMs": 0
+          }
+        },
+        "sleepMs": 500
+      },
+      "expected": { "cancelCount": 0, "fireCount": 1 }
+    },
+    {
+      "name": "schedule-failure",
+      "description": "scheduleAt failure removes the abort listener and preserves the error",
+      "kind": "schedule-failure",
+      "input": {
+        "schedulerErrorMessage": "scheduleAt failed",
+        "sleepMs": 500
+      },
+      "expected": { "errorMessage": "scheduleAt failed", "listenerCountUnchanged": true }
+    }
+  ]
+}

@@ -1,0 +1,2530 @@
+{
+  "cases": [
+    {
+      "name": "plain-object-post",
+      "description": "FetchClient serializes a plain object via POST",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "baz": 123,
+          "foo": "bar"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "baz": 123,
+          "foo": "bar",
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "baz": 123,
+            "foo": "bar"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "baz": 123,
+            "foo": "bar",
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "baz": 123,
+          "foo": "bar",
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "plain-object-put",
+      "description": "FetchClient serializes a plain object via PUT",
+      "request": {
+        "method": "PUT",
+        "path": "/posts/1",
+        "body": {
+          "baz": 123,
+          "foo": "bar"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "baz": 123,
+          "foo": "bar",
+          "id": 1
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PUT",
+          "path": "/posts/1",
+          "body": {
+            "baz": 123,
+            "foo": "bar"
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "baz": 123,
+            "foo": "bar",
+            "id": 1
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "baz": 123,
+          "foo": "bar",
+          "id": 1
+        }
+      }
+    },
+    {
+      "name": "plain-object-patch",
+      "description": "FetchClient serializes a plain object via PATCH",
+      "request": {
+        "method": "PATCH",
+        "path": "/posts/1",
+        "body": {
+          "baz": 123,
+          "foo": "bar"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "baz": 123,
+          "foo": "bar",
+          "id": 1,
+          "title": "Test Post"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PATCH",
+          "path": "/posts/1",
+          "body": {
+            "baz": 123,
+            "foo": "bar"
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "baz": 123,
+            "foo": "bar",
+            "id": 1,
+            "title": "Test Post"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "baz": 123,
+          "foo": "bar",
+          "id": 1,
+          "title": "Test Post"
+        }
+      }
+    },
+    {
+      "name": "nested-object-post",
+      "description": "FetchClient serializes a nested object via POST",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "address": {
+            "city": "New York",
+            "street": "123 Main St"
+          },
+          "name": "John"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "address": {
+            "city": "New York",
+            "street": "123 Main St"
+          },
+          "id": 101,
+          "name": "John"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "address": {
+              "city": "New York",
+              "street": "123 Main St"
+            },
+            "name": "John"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "address": {
+              "city": "New York",
+              "street": "123 Main St"
+            },
+            "id": 101,
+            "name": "John"
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "address": {
+            "city": "New York",
+            "street": "123 Main St"
+          },
+          "id": 101,
+          "name": "John"
+        }
+      }
+    },
+    {
+      "name": "nested-object-put",
+      "description": "FetchClient serializes a nested object via PUT",
+      "request": {
+        "method": "PUT",
+        "path": "/posts/1",
+        "body": {
+          "address": {
+            "city": "New York",
+            "street": "123 Main St"
+          },
+          "name": "John"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "address": {
+            "city": "New York",
+            "street": "123 Main St"
+          },
+          "id": 1,
+          "name": "John"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PUT",
+          "path": "/posts/1",
+          "body": {
+            "address": {
+              "city": "New York",
+              "street": "123 Main St"
+            },
+            "name": "John"
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "address": {
+              "city": "New York",
+              "street": "123 Main St"
+            },
+            "id": 1,
+            "name": "John"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "address": {
+            "city": "New York",
+            "street": "123 Main St"
+          },
+          "id": 1,
+          "name": "John"
+        }
+      }
+    },
+    {
+      "name": "nested-object-patch",
+      "description": "FetchClient serializes a nested object via PATCH",
+      "request": {
+        "method": "PATCH",
+        "path": "/posts/1",
+        "body": {
+          "address": {
+            "city": "New York",
+            "street": "123 Main St"
+          },
+          "name": "John"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "address": {
+            "city": "New York",
+            "street": "123 Main St"
+          },
+          "id": 1,
+          "name": "John",
+          "title": "Test Post"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PATCH",
+          "path": "/posts/1",
+          "body": {
+            "address": {
+              "city": "New York",
+              "street": "123 Main St"
+            },
+            "name": "John"
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "address": {
+              "city": "New York",
+              "street": "123 Main St"
+            },
+            "id": 1,
+            "name": "John",
+            "title": "Test Post"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "address": {
+            "city": "New York",
+            "street": "123 Main St"
+          },
+          "id": 1,
+          "name": "John",
+          "title": "Test Post"
+        }
+      }
+    },
+    {
+      "name": "array-object-post",
+      "description": "FetchClient serializes an object with arrays via POST",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "test"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101,
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "test"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "items": [
+              "a",
+              "b",
+              "c"
+            ],
+            "title": "test"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101,
+            "items": [
+              "a",
+              "b",
+              "c"
+            ],
+            "title": "test"
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101,
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "test"
+        }
+      }
+    },
+    {
+      "name": "array-object-put",
+      "description": "FetchClient serializes an object with arrays via PUT",
+      "request": {
+        "method": "PUT",
+        "path": "/posts/1",
+        "body": {
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "test"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "id": 1,
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "test"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PUT",
+          "path": "/posts/1",
+          "body": {
+            "items": [
+              "a",
+              "b",
+              "c"
+            ],
+            "title": "test"
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "id": 1,
+            "items": [
+              "a",
+              "b",
+              "c"
+            ],
+            "title": "test"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "id": 1,
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "test"
+        }
+      }
+    },
+    {
+      "name": "array-object-patch",
+      "description": "FetchClient serializes an object with arrays via PATCH",
+      "request": {
+        "method": "PATCH",
+        "path": "/posts/1",
+        "body": {
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "test"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "id": 1,
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "test"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PATCH",
+          "path": "/posts/1",
+          "body": {
+            "items": [
+              "a",
+              "b",
+              "c"
+            ],
+            "title": "test"
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "id": 1,
+            "items": [
+              "a",
+              "b",
+              "c"
+            ],
+            "title": "test"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "id": 1,
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "test"
+        }
+      }
+    },
+    {
+      "name": "null-object-post",
+      "description": "FetchClient serializes an object with null values via POST",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "active": null,
+          "name": "test"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "active": null,
+          "id": 101,
+          "name": "test"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "active": null,
+            "name": "test"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "active": null,
+            "id": 101,
+            "name": "test"
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "active": null,
+          "id": 101,
+          "name": "test"
+        }
+      }
+    },
+    {
+      "name": "null-object-put",
+      "description": "FetchClient serializes an object with null values via PUT",
+      "request": {
+        "method": "PUT",
+        "path": "/posts/1",
+        "body": {
+          "active": null,
+          "name": "test"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "active": null,
+          "id": 1,
+          "name": "test"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PUT",
+          "path": "/posts/1",
+          "body": {
+            "active": null,
+            "name": "test"
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "active": null,
+            "id": 1,
+            "name": "test"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "active": null,
+          "id": 1,
+          "name": "test"
+        }
+      }
+    },
+    {
+      "name": "null-object-patch",
+      "description": "FetchClient serializes an object with null values via PATCH",
+      "request": {
+        "method": "PATCH",
+        "path": "/posts/1",
+        "body": {
+          "active": null,
+          "name": "test"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "active": null,
+          "id": 1,
+          "name": "test",
+          "title": "Test Post"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PATCH",
+          "path": "/posts/1",
+          "body": {
+            "active": null,
+            "name": "test"
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "active": null,
+            "id": 1,
+            "name": "test",
+            "title": "Test Post"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "active": null,
+          "id": 1,
+          "name": "test",
+          "title": "Test Post"
+        }
+      }
+    },
+    {
+      "name": "empty-object-post",
+      "description": "FetchClient serializes an empty object via POST",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {}
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {}
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "empty-object-put",
+      "description": "FetchClient serializes an empty object via PUT",
+      "request": {
+        "method": "PUT",
+        "path": "/posts/1",
+        "body": {}
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "id": 1
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PUT",
+          "path": "/posts/1",
+          "body": {}
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "id": 1
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "id": 1
+        }
+      }
+    },
+    {
+      "name": "empty-object-patch",
+      "description": "FetchClient serializes an empty object via PATCH",
+      "request": {
+        "method": "PATCH",
+        "path": "/posts/1",
+        "body": {}
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "id": 1,
+          "title": "Test Post"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PATCH",
+          "path": "/posts/1",
+          "body": {}
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "id": 1,
+            "title": "Test Post"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "id": 1,
+          "title": "Test Post"
+        }
+      }
+    },
+    {
+      "name": "boolean-object-post",
+      "description": "FetchClient serializes an object with booleans via POST",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "active": true,
+          "deleted": false
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "active": true,
+          "deleted": false,
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "active": true,
+            "deleted": false
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "active": true,
+            "deleted": false,
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "active": true,
+          "deleted": false,
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "boolean-object-put",
+      "description": "FetchClient serializes an object with booleans via PUT",
+      "request": {
+        "method": "PUT",
+        "path": "/posts/1",
+        "body": {
+          "active": true,
+          "deleted": false
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "active": true,
+          "deleted": false,
+          "id": 1
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PUT",
+          "path": "/posts/1",
+          "body": {
+            "active": true,
+            "deleted": false
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "active": true,
+            "deleted": false,
+            "id": 1
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "active": true,
+          "deleted": false,
+          "id": 1
+        }
+      }
+    },
+    {
+      "name": "boolean-object-patch",
+      "description": "FetchClient serializes an object with booleans via PATCH",
+      "request": {
+        "method": "PATCH",
+        "path": "/posts/1",
+        "body": {
+          "active": true,
+          "deleted": false
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "active": true,
+          "deleted": false,
+          "id": 1,
+          "title": "Test Post"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PATCH",
+          "path": "/posts/1",
+          "body": {
+            "active": true,
+            "deleted": false
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "active": true,
+            "deleted": false,
+            "id": 1,
+            "title": "Test Post"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "active": true,
+          "deleted": false,
+          "id": 1,
+          "title": "Test Post"
+        }
+      }
+    },
+    {
+      "name": "number-object-post",
+      "description": "FetchClient serializes an object with numbers via POST",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "count": 42,
+          "price": 19.99,
+          "rating": 0
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "count": 42,
+          "id": 101,
+          "price": 19.99,
+          "rating": 0
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "count": 42,
+            "price": 19.99,
+            "rating": 0
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "count": 42,
+            "id": 101,
+            "price": 19.99,
+            "rating": 0
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "count": 42,
+          "id": 101,
+          "price": 19.99,
+          "rating": 0
+        }
+      }
+    },
+    {
+      "name": "number-object-put",
+      "description": "FetchClient serializes an object with numbers via PUT",
+      "request": {
+        "method": "PUT",
+        "path": "/posts/1",
+        "body": {
+          "count": 42,
+          "price": 19.99,
+          "rating": 0
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "count": 42,
+          "id": 1,
+          "price": 19.99,
+          "rating": 0
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PUT",
+          "path": "/posts/1",
+          "body": {
+            "count": 42,
+            "price": 19.99,
+            "rating": 0
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "count": 42,
+            "id": 1,
+            "price": 19.99,
+            "rating": 0
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "count": 42,
+          "id": 1,
+          "price": 19.99,
+          "rating": 0
+        }
+      }
+    },
+    {
+      "name": "number-object-patch",
+      "description": "FetchClient serializes an object with numbers via PATCH",
+      "request": {
+        "method": "PATCH",
+        "path": "/posts/1",
+        "body": {
+          "count": 42,
+          "price": 19.99,
+          "rating": 0
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "count": 42,
+          "id": 1,
+          "price": 19.99,
+          "rating": 0,
+          "title": "Test Post"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PATCH",
+          "path": "/posts/1",
+          "body": {
+            "count": 42,
+            "price": 19.99,
+            "rating": 0
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "count": 42,
+            "id": 1,
+            "price": 19.99,
+            "rating": 0,
+            "title": "Test Post"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "count": 42,
+          "id": 1,
+          "price": 19.99,
+          "rating": 0,
+          "title": "Test Post"
+        }
+      }
+    },
+    {
+      "name": "string-primitive",
+      "description": "FetchClient serializes string bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": "hello"
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": "hello"
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "empty-string-primitive",
+      "description": "FetchClient serializes empty string bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": ""
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": ""
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "number-primitive",
+      "description": "FetchClient serializes number bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": 42
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": 42
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "zero-primitive",
+      "description": "FetchClient serializes zero bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": 0
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": 0
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "negative-number-primitive",
+      "description": "FetchClient serializes negative number bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": -42
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": -42
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "float-primitive",
+      "description": "FetchClient serializes float bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": 3.14159
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": 3.14159
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "boolean-true-primitive",
+      "description": "FetchClient serializes boolean true bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": true
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": true
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "boolean-false-primitive",
+      "description": "FetchClient serializes boolean false bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": false
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": false
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "null-primitive",
+      "description": "FetchClient handles null bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": null
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": null
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "undefined-primitive",
+      "description": "FetchClient handles undefined bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "__kind": "undefined"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "__kind": "undefined"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "buffer-binary",
+      "description": "FetchClient serializes Buffer bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "__kind": "buffer",
+          "text": "test buffer content"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "__kind": "buffer",
+            "text": "test buffer content"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "array-buffer-binary",
+      "description": "FetchClient serializes ArrayBuffer bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "__kind": "array-buffer",
+          "text": "test arraybuffer content"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "__kind": "array-buffer",
+            "text": "test arraybuffer content"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "uint8-array-binary",
+      "description": "FetchClient serializes Uint8Array bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "__kind": "uint8-array",
+          "text": "test uint8array content"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "__kind": "uint8-array",
+            "text": "test uint8array content"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "empty-buffer-binary",
+      "description": "FetchClient serializes empty Buffer bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "__kind": "buffer",
+          "text": ""
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "__kind": "buffer",
+            "text": ""
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "large-buffer-binary",
+      "description": "FetchClient serializes large binary bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "__kind": "filled-buffer",
+          "fill": "a",
+          "length": 1048576
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "__kind": "filled-buffer",
+            "fill": "a",
+            "length": 1048576
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "top-level-array",
+      "description": "FetchClient serializes a top-level array",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "0": 1,
+          "1": 2,
+          "2": 3,
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": [
+            1,
+            2,
+            3
+          ]
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "0": 1,
+            "1": 2,
+            "2": 3,
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "0": 1,
+          "1": 2,
+          "2": 3,
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "array-of-objects",
+      "description": "FetchClient serializes an array of objects",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": [
+          {
+            "name": "alpha"
+          },
+          {
+            "name": "beta"
+          }
+        ]
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "0": {
+            "name": "alpha"
+          },
+          "1": {
+            "name": "beta"
+          },
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": [
+            {
+              "name": "alpha"
+            },
+            {
+              "name": "beta"
+            }
+          ]
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "0": {
+              "name": "alpha"
+            },
+            "1": {
+              "name": "beta"
+            },
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "0": {
+            "name": "alpha"
+          },
+          "1": {
+            "name": "beta"
+          },
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "date-object",
+      "description": "FetchClient serializes Date values inside objects",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "createdAt": {
+            "__kind": "date",
+            "iso": "2026-07-22T12:34:56.000Z"
+          }
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "createdAt": "2026-07-22T12:34:56.000Z",
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "createdAt": {
+              "__kind": "date",
+              "iso": "2026-07-22T12:34:56.000Z"
+            }
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "createdAt": "2026-07-22T12:34:56.000Z",
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "createdAt": "2026-07-22T12:34:56.000Z",
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "mixed-types",
+      "description": "FetchClient serializes mixed-type objects",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "active": true,
+          "count": 42,
+          "data": [
+            1,
+            2,
+            3
+          ],
+          "metadata": {
+            "key": "value"
+          },
+          "name": "test",
+          "optional": null
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "active": true,
+          "count": 42,
+          "data": [
+            1,
+            2,
+            3
+          ],
+          "id": 101,
+          "metadata": {
+            "key": "value"
+          },
+          "name": "test",
+          "optional": null
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "active": true,
+            "count": 42,
+            "data": [
+              1,
+              2,
+              3
+            ],
+            "metadata": {
+              "key": "value"
+            },
+            "name": "test",
+            "optional": null
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "active": true,
+            "count": 42,
+            "data": [
+              1,
+              2,
+              3
+            ],
+            "id": 101,
+            "metadata": {
+              "key": "value"
+            },
+            "name": "test",
+            "optional": null
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "active": true,
+          "count": 42,
+          "data": [
+            1,
+            2,
+            3
+          ],
+          "id": 101,
+          "metadata": {
+            "key": "value"
+          },
+          "name": "test",
+          "optional": null
+        }
+      }
+    },
+    {
+      "name": "large-json-object",
+      "description": "FetchClient handles a larger JSON object",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "key0": "value0",
+          "key1": "value1",
+          "key2": "value2",
+          "key3": "value3",
+          "key4": "value4",
+          "key5": "value5",
+          "key6": "value6",
+          "key7": "value7",
+          "key8": "value8",
+          "key9": "value9",
+          "key10": "value10",
+          "key11": "value11",
+          "key12": "value12",
+          "key13": "value13",
+          "key14": "value14",
+          "key15": "value15"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101,
+          "key0": "value0",
+          "key1": "value1",
+          "key2": "value2",
+          "key3": "value3",
+          "key4": "value4",
+          "key5": "value5",
+          "key6": "value6",
+          "key7": "value7",
+          "key8": "value8",
+          "key9": "value9",
+          "key10": "value10",
+          "key11": "value11",
+          "key12": "value12",
+          "key13": "value13",
+          "key14": "value14",
+          "key15": "value15"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "key0": "value0",
+            "key1": "value1",
+            "key2": "value2",
+            "key3": "value3",
+            "key4": "value4",
+            "key5": "value5",
+            "key6": "value6",
+            "key7": "value7",
+            "key8": "value8",
+            "key9": "value9",
+            "key10": "value10",
+            "key11": "value11",
+            "key12": "value12",
+            "key13": "value13",
+            "key14": "value14",
+            "key15": "value15"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101,
+            "key0": "value0",
+            "key1": "value1",
+            "key2": "value2",
+            "key3": "value3",
+            "key4": "value4",
+            "key5": "value5",
+            "key6": "value6",
+            "key7": "value7",
+            "key8": "value8",
+            "key9": "value9",
+            "key10": "value10",
+            "key11": "value11",
+            "key12": "value12",
+            "key13": "value13",
+            "key14": "value14",
+            "key15": "value15"
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101,
+          "key0": "value0",
+          "key1": "value1",
+          "key2": "value2",
+          "key3": "value3",
+          "key4": "value4",
+          "key5": "value5",
+          "key6": "value6",
+          "key7": "value7",
+          "key8": "value8",
+          "key9": "value9",
+          "key10": "value10",
+          "key11": "value11",
+          "key12": "value12",
+          "key13": "value13",
+          "key14": "value14",
+          "key15": "value15"
+        }
+      }
+    },
+    {
+      "name": "deeply-nested-object",
+      "description": "FetchClient handles deeply nested objects",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "level1": {
+            "level2": {
+              "level3": {
+                "level4": {
+                  "level5": {
+                    "value": "deep"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101,
+          "level1": {
+            "level2": {
+              "level3": {
+                "level4": {
+                  "level5": {
+                    "value": "deep"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "level1": {
+              "level2": {
+                "level3": {
+                  "level4": {
+                    "level5": {
+                      "value": "deep"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101,
+            "level1": {
+              "level2": {
+                "level3": {
+                  "level4": {
+                    "level5": {
+                      "value": "deep"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101,
+          "level1": {
+            "level2": {
+              "level3": {
+                "level4": {
+                  "level5": {
+                    "value": "deep"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "special-character-string",
+      "description": "FetchClient handles strings with special characters inside objects",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "emojis": "😀 😃 😄",
+          "quotes": "He said \"hello\"",
+          "unicode": "你好世界"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "emojis": "😀 😃 😄",
+          "id": 101,
+          "quotes": "He said \"hello\"",
+          "unicode": "你好世界"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "emojis": "😀 😃 😄",
+            "quotes": "He said \"hello\"",
+            "unicode": "你好世界"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "emojis": "😀 😃 😄",
+            "id": 101,
+            "quotes": "He said \"hello\"",
+            "unicode": "你好世界"
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "emojis": "😀 😃 😄",
+          "id": 101,
+          "quotes": "He said \"hello\"",
+          "unicode": "你好世界"
+        }
+      }
+    },
+    {
+      "name": "empty-array",
+      "description": "FetchClient handles empty arrays",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": []
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": []
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "circular-reference",
+      "description": "FetchClient throws on circular references",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "__kind": "circular",
+          "name": "test"
+        }
+      },
+      "expect": {
+        "messageIncludes": [
+          "circular"
+        ],
+        "name": "TypeError"
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "__kind": "circular",
+            "name": "test"
+          }
+        },
+        "expect": {
+          "messageIncludes": [
+            "circular"
+          ],
+          "name": "TypeError"
+        }
+      },
+      "expected": {
+        "messageIncludes": [
+          "circular"
+        ],
+        "name": "TypeError"
+      }
+    },
+    {
+      "name": "symbol-properties",
+      "description": "FetchClient omits symbol properties",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "__kind": "symbol-properties",
+          "name": "test"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": 101,
+          "name": "test"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "__kind": "symbol-properties",
+            "name": "test"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "id": 101,
+            "name": "test"
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "id": 101,
+          "name": "test"
+        }
+      }
+    },
+    {
+      "name": "function-properties",
+      "description": "FetchClient omits function properties",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "__kind": "function-properties",
+          "data": "test"
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "data": "test",
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "__kind": "function-properties",
+            "data": "test"
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "data": "test",
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "data": "test",
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "bigint-properties",
+      "description": "FetchClient throws on BigInt bodies",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "bigNumber": {
+            "__kind": "bigint",
+            "value": "9007199254740991"
+          },
+          "name": "test"
+        }
+      },
+      "expect": {
+        "messageIncludes": [
+          "BigInt"
+        ],
+        "name": "TypeError"
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "bigNumber": {
+              "__kind": "bigint",
+              "value": "9007199254740991"
+            },
+            "name": "test"
+          }
+        },
+        "expect": {
+          "messageIncludes": [
+            "BigInt"
+          ],
+          "name": "TypeError"
+        }
+      },
+      "expected": {
+        "messageIncludes": [
+          "BigInt"
+        ],
+        "name": "TypeError"
+      }
+    },
+    {
+      "name": "undefined-properties",
+      "description": "FetchClient omits undefined properties",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "defined": "value",
+          "undefined": {
+            "__kind": "undefined"
+          }
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "defined": "value",
+          "id": 101
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "defined": "value",
+            "undefined": {
+              "__kind": "undefined"
+            }
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "defined": "value",
+            "id": 101
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "defined": "value",
+          "id": 101
+        }
+      }
+    },
+    {
+      "name": "consistent-post",
+      "description": "FetchClient serializes consistently via POST",
+      "request": {
+        "method": "POST",
+        "path": "/posts",
+        "body": {
+          "data": "test",
+          "number": 42
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "data": "test",
+          "id": 101,
+          "number": 42
+        }
+      },
+      "input": {
+        "request": {
+          "method": "POST",
+          "path": "/posts",
+          "body": {
+            "data": "test",
+            "number": 42
+          }
+        },
+        "expect": {
+          "status": 201,
+          "json": {
+            "data": "test",
+            "id": 101,
+            "number": 42
+          }
+        }
+      },
+      "expected": {
+        "status": 201,
+        "json": {
+          "data": "test",
+          "id": 101,
+          "number": 42
+        }
+      }
+    },
+    {
+      "name": "consistent-put",
+      "description": "FetchClient serializes consistently via PUT",
+      "request": {
+        "method": "PUT",
+        "path": "/posts/1",
+        "body": {
+          "data": "test",
+          "number": 42
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "data": "test",
+          "id": 1,
+          "number": 42
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PUT",
+          "path": "/posts/1",
+          "body": {
+            "data": "test",
+            "number": 42
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "data": "test",
+            "id": 1,
+            "number": 42
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "data": "test",
+          "id": 1,
+          "number": 42
+        }
+      }
+    },
+    {
+      "name": "consistent-patch",
+      "description": "FetchClient serializes consistently via PATCH",
+      "request": {
+        "method": "PATCH",
+        "path": "/posts/1",
+        "body": {
+          "data": "test",
+          "number": 42
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "data": "test",
+          "id": 1,
+          "number": 42,
+          "title": "Test Post"
+        }
+      },
+      "input": {
+        "request": {
+          "method": "PATCH",
+          "path": "/posts/1",
+          "body": {
+            "data": "test",
+            "number": 42
+          }
+        },
+        "expect": {
+          "status": 200,
+          "json": {
+            "data": "test",
+            "id": 1,
+            "number": 42,
+            "title": "Test Post"
+          }
+        }
+      },
+      "expected": {
+        "status": 200,
+        "json": {
+          "data": "test",
+          "id": 1,
+          "number": 42,
+          "title": "Test Post"
+        }
+      }
+    }
+  ]
+}

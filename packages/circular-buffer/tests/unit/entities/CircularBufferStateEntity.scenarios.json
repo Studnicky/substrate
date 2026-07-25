@@ -1,0 +1,36 @@
+{
+  "cases": [
+    {
+      "description": "The schema accepts a non-negative integer length",
+      "expected": {
+        "validationResults": [
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          { "expected": true, "value": { "length": 0 } }
+        ]
+      },
+      "kind": "valid-length",
+      "name": "valid-length"
+    },
+    {
+      "description": "The schema rejects negative and fractional lengths",
+      "expected": {
+        "validationResults": [
+          false,
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "expected": false, "value": { "length": -1 } },
+          { "expected": false, "value": { "length": 1.5 } }
+        ]
+      },
+      "kind": "invalid-lengths",
+      "name": "invalid-lengths"
+    }
+  ]
+}

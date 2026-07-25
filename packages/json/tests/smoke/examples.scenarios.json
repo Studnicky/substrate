@@ -1,0 +1,48 @@
+{
+  "cases": [
+    {
+      "description": "imports the draft example without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/draft.ts"
+      },
+      "kind": "draft",
+      "name": "json-smoke-draft"
+    },
+    {
+      "description": "imports the merge-clone example without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/merge-clone.ts"
+      },
+      "kind": "merge-clone",
+      "name": "json-smoke-merge-clone"
+    },
+    {
+      "description": "imports the patch-datatype example without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/patch-datatype.ts"
+      },
+      "kind": "patch-datatype",
+      "name": "json-smoke-patch-datatype"
+    },
+    {
+      "description": "imports the path-sort-hash example without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/path-sort-hash.ts"
+      },
+      "kind": "path-sort-hash",
+      "name": "json-smoke-path-sort-hash"
+    }
+  ]
+}

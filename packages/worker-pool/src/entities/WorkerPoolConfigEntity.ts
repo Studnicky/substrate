@@ -8,6 +8,7 @@ export namespace WorkerPoolConfigEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
+      'batchConcurrency': { 'minimum': 1, 'type': 'integer' },
       'concurrency': { 'minimum': 1, 'type': 'integer' },
       'timeoutMs': { 'minimum': 0, 'type': 'number' },
       'workerPath': { 'minLength': 1, 'type': 'string' }

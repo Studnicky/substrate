@@ -1,0 +1,44 @@
+{
+  "cases": [
+    {
+      "description": "runs acquireRelease without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "acquireRelease.ts"
+      },
+      "name": "runs acquireRelease without throwing"
+    },
+    {
+      "description": "runs keyedMutex without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "keyedMutex.ts"
+      },
+      "name": "runs keyedMutex without throwing"
+    },
+    {
+      "description": "runs keyedWorkGateComposition without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "keyedWorkGateComposition.ts"
+      },
+      "name": "runs keyedWorkGateComposition without throwing"
+    },
+    {
+      "description": "runs observedMutex without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "observedMutex.ts"
+      },
+      "name": "runs observedMutex without throwing"
+    }
+  ]
+}

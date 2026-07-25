@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/keyed-rate-limiter",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "Per-key rate limiting composing cache and resilience: lazily creates one rate-limiting strategy per key, evicting idle keys via LRU+TTL",
   "type": "module",
   "sideEffects": false,
@@ -24,7 +24,7 @@
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+    "test": "node ../../scripts/test-suite.mjs all --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",

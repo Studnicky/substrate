@@ -1,0 +1,501 @@
+{
+  "cases": [
+    {
+      "name": "baseURL-non-string",
+      "description": "FetchClient rejects non-string baseURL",
+      "kind": "baseURL-non-string",
+      "input": {
+        "fetchClient": {
+          "baseURL": 123
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "baseURL must be a string"
+        ]
+      }
+    },
+    {
+      "name": "baseURL-empty",
+      "description": "FetchClient rejects empty baseURL",
+      "kind": "baseURL-empty",
+      "input": {
+        "fetchClient": {
+          "baseURL": ""
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "baseURL must not be empty"
+        ]
+      }
+    },
+    {
+      "name": "baseURL-invalid-url",
+      "description": "FetchClient rejects invalid baseURL URLs",
+      "kind": "baseURL-invalid-url",
+      "input": {
+        "fetchClient": {
+          "baseURL": "not-a-valid-url"
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "baseURL must be a valid URL"
+        ]
+      }
+    },
+    {
+      "name": "baseURL-valid",
+      "description": "FetchClient accepts valid baseURL",
+      "kind": "baseURL-valid",
+      "input": {
+        "fetchClient": {
+          "baseURL": "https://api.example.com"
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "headers-non-object",
+      "description": "FetchClient rejects non-object headers",
+      "kind": "headers-non-object",
+      "input": {
+        "fetchClient": {
+          "headers": "invalid"
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "headers must be an object"
+        ]
+      }
+    },
+    {
+      "name": "headers-array",
+      "description": "FetchClient rejects array headers",
+      "kind": "headers-array",
+      "input": {
+        "fetchClient": {
+          "headers": []
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "headers must be an object"
+        ]
+      }
+    },
+    {
+      "name": "headers-invalid-value",
+      "description": "FetchClient rejects non-string header values",
+      "kind": "headers-invalid-value",
+      "input": {
+        "fetchClient": {
+          "headers": {
+            "X-Custom": 123
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "header value for \"X-Custom\" must be a string"
+        ]
+      }
+    },
+    {
+      "name": "headers-valid",
+      "description": "FetchClient accepts valid headers",
+      "kind": "headers-valid",
+      "input": {
+        "fetchClient": {
+          "headers": {
+            "Authorization": "Bearer token"
+          }
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "params-non-object",
+      "description": "FetchClient rejects non-object params",
+      "kind": "params-non-object",
+      "input": {
+        "fetchClient": {
+          "params": "invalid"
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "params must be an object"
+        ]
+      }
+    },
+    {
+      "name": "params-array",
+      "description": "FetchClient rejects array params",
+      "kind": "params-array",
+      "input": {
+        "fetchClient": {
+          "params": []
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "params must be an object"
+        ]
+      }
+    },
+    {
+      "name": "params-invalid-value",
+      "description": "FetchClient rejects invalid param value types",
+      "kind": "params-invalid-value",
+      "input": {
+        "fetchClient": {
+          "params": {
+            "invalid": {
+              "nested": "object"
+            }
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "param value for \"invalid\" must be string, number, boolean, or array of these types"
+        ]
+      }
+    },
+    {
+      "name": "params-valid",
+      "description": "FetchClient accepts valid params",
+      "kind": "params-valid",
+      "input": {
+        "fetchClient": {
+          "params": {
+            "key": "value",
+            "page": 1,
+            "active": true,
+            "tags": [
+              "javascript",
+              "typescript"
+            ],
+            "other": null,
+            "missing": {
+              "kind": "undefined"
+            }
+          }
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "hook-timeout-ms-non-number",
+      "description": "FetchClient rejects non-number hookTimeoutMs",
+      "kind": "hook-timeout-ms-non-number",
+      "input": {
+        "fetchClient": {
+          "hookTimeoutMs": "5000"
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "hookTimeoutMs must be a number"
+        ]
+      }
+    },
+    {
+      "name": "hook-timeout-ms-negative",
+      "description": "FetchClient rejects negative hookTimeoutMs",
+      "kind": "hook-timeout-ms-negative",
+      "input": {
+        "fetchClient": {
+          "hookTimeoutMs": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "hookTimeoutMs must be positive"
+        ]
+      }
+    },
+    {
+      "name": "hook-timeout-ms-zero",
+      "description": "FetchClient rejects zero hookTimeoutMs",
+      "kind": "hook-timeout-ms-zero",
+      "input": {
+        "fetchClient": {
+          "hookTimeoutMs": 0
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "hookTimeoutMs must be positive"
+        ]
+      }
+    },
+    {
+      "name": "hook-timeout-ms-infinite",
+      "description": "FetchClient rejects infinite hookTimeoutMs",
+      "kind": "hook-timeout-ms-infinite",
+      "input": {
+        "fetchClient": {
+          "hookTimeoutMs": {
+            "kind": "infinity"
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "hookTimeoutMs must be finite"
+        ]
+      }
+    },
+    {
+      "name": "hook-timeout-ms-valid",
+      "description": "FetchClient accepts valid hookTimeoutMs",
+      "kind": "hook-timeout-ms-valid",
+      "input": {
+        "fetchClient": {
+          "hookTimeoutMs": 5000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "strict-validation-unknown-key",
+      "description": "FetchClient rejects unknown top-level keys",
+      "kind": "strict-validation-unknown-key",
+      "input": {
+        "fetchClient": {
+          "baseURL": "https://api.example.com",
+          "unknownKey": "value"
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "unknownKey"
+        ]
+      }
+    },
+    {
+      "name": "strict-validation-multiple-unknown-keys",
+      "description": "FetchClient rejects multiple unknown top-level keys",
+      "kind": "strict-validation-multiple-unknown-keys",
+      "input": {
+        "fetchClient": {
+          "baseURL": "https://api.example.com",
+          "unknownKey1": "value1",
+          "unknownKey2": "value2"
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "not declared"
+        ]
+      }
+    },
+    {
+      "name": "strict-validation-typo",
+      "description": "FetchClient rejects baseUrl typo",
+      "kind": "strict-validation-typo",
+      "input": {
+        "fetchClient": {
+          "baseUrl": "https://api.example.com"
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "baseUrl"
+        ]
+      }
+    },
+    {
+      "name": "strict-validation-wrong-case",
+      "description": "FetchClient rejects wrong-case baseURL",
+      "kind": "strict-validation-wrong-case",
+      "input": {
+        "fetchClient": {
+          "BaseURL": "https://api.example.com"
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "BaseURL"
+        ]
+      }
+    },
+    {
+      "name": "strict-validation-nested-unknown",
+      "description": "FetchClient rejects unknown nested keys",
+      "kind": "strict-validation-nested-unknown",
+      "input": {
+        "fetchClient": {
+          "baseURL": "https://api.example.com",
+          "invalidOption": {
+            "nested": "value"
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "invalidOption"
+        ]
+      }
+    },
+    {
+      "name": "strict-validation-valid-empty",
+      "description": "FetchClient accepts an empty config",
+      "kind": "strict-validation-valid-empty",
+      "input": {
+        "fetchClient": {}
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "strict-validation-valid-known-keys",
+      "description": "FetchClient accepts a full known-key config",
+      "kind": "strict-validation-valid-known-keys",
+      "input": {
+        "fetchClient": {
+          "baseURL": "https://api.example.com",
+          "headers": {
+            "Authorization": "Bearer token"
+          },
+          "params": {
+            "page": 1
+          },
+          "timeout": 5000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "strict-validation-valid-undefined",
+      "description": "FetchClient accepts undefined optional values",
+      "kind": "strict-validation-valid-undefined",
+      "input": {
+        "fetchClient": {
+          "baseURL": "https://api.example.com",
+          "headers": {
+            "kind": "undefined"
+          },
+          "timeout": {
+            "kind": "undefined"
+          }
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "name": "timeout-non-number",
+      "description": "FetchClient rejects non-number timeout",
+      "kind": "timeout-non-number",
+      "input": {
+        "fetchClient": {
+          "timeout": "5000"
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "timeout must be a number"
+        ]
+      }
+    },
+    {
+      "name": "timeout-negative",
+      "description": "FetchClient rejects negative timeout",
+      "kind": "timeout-negative",
+      "input": {
+        "fetchClient": {
+          "timeout": -1
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "timeout must be positive"
+        ]
+      }
+    },
+    {
+      "name": "timeout-zero",
+      "description": "FetchClient rejects zero timeout",
+      "kind": "timeout-zero",
+      "input": {
+        "fetchClient": {
+          "timeout": 0
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "timeout must be positive"
+        ]
+      }
+    },
+    {
+      "name": "timeout-infinite",
+      "description": "FetchClient rejects infinite timeout",
+      "kind": "timeout-infinite",
+      "input": {
+        "fetchClient": {
+          "timeout": {
+            "kind": "infinity"
+          }
+        }
+      },
+      "expected": {
+        "kind": "throws",
+        "messageIncludes": [
+          "timeout must be finite"
+        ]
+      }
+    },
+    {
+      "name": "timeout-valid",
+      "description": "FetchClient accepts valid timeout",
+      "kind": "timeout-valid",
+      "input": {
+        "fetchClient": {
+          "timeout": 5000
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    }
+  ]
+}

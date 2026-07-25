@@ -1,0 +1,654 @@
+{
+  "cases": [
+    {
+      "name": "valid-all-fields",
+      "description": "Throttle accepts valid adaptive config with all required fields",
+      "kind": "valid-all-fields",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "adjustmentInterval": 1000,
+            "enabled": true,
+            "maxConcurrency": 50,
+            "minConcurrency": 5,
+            "sampleWindow": 100,
+            "scaleDownThreshold": 1.5,
+            "scaleUpThreshold": 0.5,
+            "stepSize": 2,
+            "targetLatencyMs": 200
+          },
+          "concurrencyLimit": 10
+        }
+      },
+      "expected": {
+        "concurrencyLimit": 10,
+        "adaptive": {
+          "enabled": true,
+          "minConcurrency": 5,
+          "maxConcurrency": 50,
+          "targetLatencyMs": 200
+        }
+      }
+    },
+    {
+      "name": "valid-required-fields",
+      "description": "Throttle accepts adaptive config with only required fields and applies defaults",
+      "kind": "valid-required-fields",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "targetLatencyMs": 200
+          },
+          "concurrencyLimit": 10
+        }
+      },
+      "expected": {
+        "minConcurrency": 1,
+        "maxConcurrency": 100
+      }
+    },
+    {
+      "name": "valid-disabled-no-extra-fields",
+      "description": "Throttle accepts disabled adaptive config without other fields",
+      "kind": "valid-disabled-no-extra-fields",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": false
+          },
+          "concurrencyLimit": 10
+        }
+      },
+      "expected": {
+        "enabled": false
+      }
+    },
+    {
+      "name": "valid-disabled-defaulted-config",
+      "description": "Throttle validates the fully defaulted disabled adaptive configuration",
+      "kind": "valid-disabled-defaulted-config",
+      "input": {
+        "disabledConfig": {
+          "adjustmentInterval": 1000,
+          "enabled": false,
+          "maxConcurrency": 100,
+          "minConcurrency": 1,
+          "sampleWindow": 100,
+          "scaleDownThreshold": 1.5,
+          "scaleUpThreshold": 0.8,
+          "stepSize": 1,
+          "targetLatencyMs": 0
+        },
+        "throttle": {
+          "concurrencyLimit": 10
+        }
+      },
+      "expected": {
+        "validated": true,
+        "throttleValidated": true,
+        "rejectEnabledTrue": true
+      }
+    },
+    {
+      "name": "reject-non-object-adaptive",
+      "description": "Throttle rejects non-object adaptive config",
+      "kind": "reject-non-object-adaptive",
+      "input": {
+        "throttle": {
+          "adaptive": "invalid"
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-missing-enabled",
+      "description": "Throttle rejects missing enabled flag",
+      "kind": "reject-missing-enabled",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-non-boolean-enabled",
+      "description": "Throttle rejects non-boolean enabled",
+      "kind": "reject-non-boolean-enabled",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": "yes"
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-missing-target-latency",
+      "description": "Throttle rejects missing targetLatencyMs when enabled",
+      "kind": "reject-missing-target-latency",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-non-positive-target-latency-zero",
+      "description": "Throttle rejects zero targetLatencyMs",
+      "kind": "reject-non-positive-target-latency",
+      "value": 0,
+      "input": {
+        "value": 0,
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "targetLatencyMs": 0
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-non-positive-target-latency-negative",
+      "description": "Throttle rejects negative targetLatencyMs",
+      "kind": "reject-non-positive-target-latency",
+      "value": -100,
+      "input": {
+        "value": -100,
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "targetLatencyMs": -100
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-min-concurrency-less-than-one",
+      "description": "Throttle rejects minConcurrency less than 1",
+      "kind": "reject-min-concurrency-less-than-one",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "minConcurrency": 0,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-non-integer-min-concurrency",
+      "description": "Throttle rejects non-integer minConcurrency",
+      "kind": "reject-non-integer-min-concurrency",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "minConcurrency": 1.5,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-min-greater-than-max",
+      "description": "Throttle rejects minConcurrency greater than maxConcurrency",
+      "kind": "reject-min-greater-than-max",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "maxConcurrency": 5,
+            "minConcurrency": 10,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-non-positive-scale-up",
+      "description": "Throttle rejects non-positive scaleUpThreshold",
+      "kind": "reject-non-positive-scale-up",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "scaleUpThreshold": 0,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-scale-up-equal-scale-down",
+      "description": "Throttle rejects scaleUpThreshold equal to scaleDownThreshold",
+      "kind": "reject-scale-up-not-less-than-scale-down",
+      "scaleDownThreshold": 0.5,
+      "scaleUpThreshold": 0.5,
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "scaleDownThreshold": 0.5,
+            "scaleUpThreshold": 0.5,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-scale-up-greater-than-scale-down",
+      "description": "Throttle rejects scaleUpThreshold greater than scaleDownThreshold",
+      "kind": "reject-scale-up-not-less-than-scale-down",
+      "scaleDownThreshold": 0.5,
+      "scaleUpThreshold": 0.7,
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "scaleDownThreshold": 0.5,
+            "scaleUpThreshold": 0.7,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-sample-window-less-than-10",
+      "description": "Throttle rejects sampleWindow less than 10",
+      "kind": "reject-sample-window-less-than-10",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "sampleWindow": 5,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-non-integer-sample-window",
+      "description": "Throttle rejects non-integer sampleWindow",
+      "kind": "reject-non-integer-sample-window",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "sampleWindow": 50.5,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-adjustment-interval-less-than-100",
+      "description": "Throttle rejects adjustmentInterval less than 100",
+      "kind": "reject-adjustment-interval-less-than-100",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "adjustmentInterval": 50,
+            "enabled": true,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-non-integer-adjustment-interval",
+      "description": "Throttle rejects non-integer adjustmentInterval",
+      "kind": "reject-non-integer-adjustment-interval",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "adjustmentInterval": 500.5,
+            "enabled": true,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-step-size-less-than-one",
+      "description": "Throttle rejects stepSize less than 1",
+      "kind": "reject-step-size-less-than-one",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "stepSize": 0,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-non-integer-step-size",
+      "description": "Throttle rejects non-integer stepSize",
+      "kind": "reject-non-integer-step-size",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "stepSize": 1.5,
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-unknown-key",
+      "description": "Throttle rejects unknown keys in adaptive config",
+      "kind": "reject-unknown-key",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "targetLatencyMs": 200,
+            "unknown": true
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-concurrency-below-min",
+      "description": "Throttle rejects concurrencyLimit below minConcurrency",
+      "kind": "reject-concurrency-below-min",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "minConcurrency": 5,
+            "targetLatencyMs": 200
+          },
+          "concurrencyLimit": 4
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-concurrency-above-max",
+      "description": "Throttle rejects concurrencyLimit above maxConcurrency",
+      "kind": "reject-concurrency-above-max",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "maxConcurrency": 5,
+            "targetLatencyMs": 200
+          },
+          "concurrencyLimit": 6
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-adaptive-empty",
+      "description": "Throttle rejects an empty adaptive config object",
+      "kind": "reject-adaptive-empty",
+      "input": {
+        "throttle": {
+          "adaptive": {},
+          "concurrencyLimit": 10
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "reject-adaptive-step-size-string",
+      "description": "Throttle rejects a string adaptive stepSize",
+      "kind": "reject-adaptive-step-size-string",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "stepSize": "bad",
+            "targetLatencyMs": 200
+          }
+        }
+      },
+      "expected": {
+        "error": "ConfigurationError"
+      }
+    },
+    {
+      "name": "adaptive-scales-up",
+      "description": "Throttle scales adaptive concurrency upward when observed latency is below target",
+      "kind": "adaptive-scales-up",
+      "input": {
+        "batch": {
+          "itemCount": 10,
+          "maxConcurrent": 1
+        },
+        "clock": {
+          "operationDurationMs": 1,
+          "operationSpacingMs": 20,
+          "startMs": 0
+        },
+        "throttle": {
+          "adaptive": {
+            "adjustmentInterval": 100,
+            "enabled": true,
+            "maxConcurrency": 4,
+            "minConcurrency": 1,
+            "sampleWindow": 10,
+            "scaleDownThreshold": 1.5,
+            "scaleUpThreshold": 0.8,
+            "stepSize": 1,
+            "targetLatencyMs": 100
+          },
+          "concurrencyLimit": 2
+        }
+      },
+      "expected": {
+        "adjustmentDirection": "up",
+        "concurrencyLimit": 3
+      }
+    },
+    {
+      "name": "adaptive-scales-down",
+      "description": "Throttle scales adaptive concurrency downward when observed latency is above target",
+      "kind": "adaptive-scales-down",
+      "input": {
+        "batch": {
+          "itemCount": 10,
+          "maxConcurrent": 1
+        },
+        "clock": {
+          "operationDurationMs": 200,
+          "operationSpacingMs": 200,
+          "startMs": 0
+        },
+        "throttle": {
+          "adaptive": {
+            "adjustmentInterval": 100,
+            "enabled": true,
+            "maxConcurrency": 3,
+            "minConcurrency": 1,
+            "sampleWindow": 10,
+            "scaleDownThreshold": 1.5,
+            "scaleUpThreshold": 0.8,
+            "stepSize": 1,
+            "targetLatencyMs": 100
+          },
+          "concurrencyLimit": 3
+        }
+      },
+      "expected": {
+        "adjustmentDirection": "down",
+        "concurrencyLimit": 2
+      }
+    },
+    {
+      "name": "adaptive-no-change",
+      "description": "Throttle keeps adaptive concurrency unchanged when observed latency stays in range",
+      "kind": "adaptive-no-change",
+      "input": {
+        "batch": {
+          "itemCount": 10,
+          "maxConcurrent": 1
+        },
+        "clock": {
+          "operationDurationMs": 50,
+          "operationSpacingMs": 100,
+          "startMs": 0
+        },
+        "throttle": {
+          "adaptive": {
+            "adjustmentInterval": 100,
+            "enabled": true,
+            "maxConcurrency": 3,
+            "minConcurrency": 1,
+            "sampleWindow": 10,
+            "scaleDownThreshold": 1.5,
+            "scaleUpThreshold": 0.8,
+            "stepSize": 1,
+            "targetLatencyMs": 100
+          },
+          "concurrencyLimit": 3
+        }
+      },
+      "expected": {
+        "adjustmentDirection": "none",
+        "concurrencyLimit": 3
+      }
+    },
+    {
+      "name": "adaptive-adjust-hook-throws",
+      "description": "Throttle rejects when adaptive adjustment hook throws during scaling",
+      "kind": "adaptive-adjust-hook-throws",
+      "input": {
+        "batch": {
+          "itemCount": 10,
+          "maxConcurrent": 1
+        },
+        "clock": {
+          "operationDurationMs": 1,
+          "operationSpacingMs": 20,
+          "startMs": 0
+        },
+        "throttle": {
+          "adaptive": {
+            "adjustmentInterval": 100,
+            "enabled": true,
+            "maxConcurrency": 4,
+            "minConcurrency": 1,
+            "sampleWindow": 10,
+            "scaleDownThreshold": 1.5,
+            "scaleUpThreshold": 0.8,
+            "stepSize": 1,
+            "targetLatencyMs": 100
+          },
+          "concurrencyLimit": 2
+        },
+        "hookErrorMessage": "adaptive adjust boom"
+      },
+      "expected": {
+        "error": "HookInvocationError",
+        "hookErrorMessage": "adaptive adjust boom"
+      }
+    },
+    {
+      "name": "default-min-concurrency",
+      "description": "Throttle applies default minConcurrency of 1",
+      "kind": "default-min-concurrency",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "targetLatencyMs": 200
+          },
+          "concurrencyLimit": 10
+        }
+      },
+      "expected": {
+        "minConcurrency": 1
+      }
+    },
+    {
+      "name": "default-max-concurrency",
+      "description": "Throttle applies default maxConcurrency of 100",
+      "kind": "default-max-concurrency",
+      "input": {
+        "throttle": {
+          "adaptive": {
+            "enabled": true,
+            "targetLatencyMs": 200
+          },
+          "concurrencyLimit": 10
+        }
+      },
+      "expected": {
+        "maxConcurrency": 100
+      }
+    }
+  ]
+}

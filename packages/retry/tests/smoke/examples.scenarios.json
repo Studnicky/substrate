@@ -1,0 +1,34 @@
+{
+  "cases": [
+    {
+      "description": "Runs the basic retry example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/basicRetry.ts"
+      },
+      "name": "basic-retry"
+    },
+    {
+      "description": "Runs the custom classifier example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/customClassifier.ts"
+      },
+      "name": "custom-classifier"
+    },
+    {
+      "description": "Runs the observed retry example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/observedRetry.ts"
+      },
+      "name": "observed-retry"
+    }
+  ]
+}

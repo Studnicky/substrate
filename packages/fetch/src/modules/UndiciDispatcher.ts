@@ -18,6 +18,7 @@ import {
 } from '../constants/POOL_HEALTH.js';
 import { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
 import { ConfigurationError } from '../errors/index.js';
+import { TestDispatcher } from '../testing/TestDispatcher.js';
 import { Delay } from './Delay.js';
 
 /**
@@ -62,19 +63,19 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * const response = await client.get('/users');
    * ```
    */
-  static create(agent: Agent): UndiciDispatcher {
+  static create(agent: Agent | TestDispatcher): UndiciDispatcher {
     return new this(agent);
   }
 
-  private readonly agent: Agent;
+  private readonly agent: Agent | TestDispatcher;
 
   /**
    * Protected constructor - use UndiciDispatcher.create() instead
    *
    * @param agent - Caller-owned undici Agent
    */
-  protected constructor(agent: Agent) {
-    if (!(agent instanceof Agent)) {
+  protected constructor(agent: Agent | TestDispatcher) {
+    if (!(agent instanceof Agent) && !(agent instanceof TestDispatcher)) {
       throw new ConfigurationError('dispatcher agent must be an undici Agent');
     }
     this.agent = agent;
@@ -134,6 +135,10 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * ```
    */
   checkDispatcherHealth(origin: string): DispatcherHealthEntity.Type {
+    if (this.agent instanceof TestDispatcher) {
+      return this.agent.checkDispatcherHealth(origin);
+    }
+
     const stats = this.agent.stats[origin];
 
     if (stats === undefined || !SocketDispatcherStatsEntity.validate(stats)) {
@@ -168,6 +173,11 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * @returns Promise that resolves when all connections are closed
    */
   async close(): Promise<void> {
+    if (this.agent instanceof TestDispatcher) {
+      await this.agent.close();
+      return;
+    }
+
     await this.agent.close();
   }
 
@@ -201,6 +211,11 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * ```
    */
   async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
+    if (this.agent instanceof TestDispatcher) {
+      await this.agent.destroy(options);
+      return;
+    }
+
     const timeout = options?.timeout;
 
     if (timeout !== undefined && timeout > 0) {
@@ -216,6 +231,10 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * @returns Frozen record mapping origin URLs to frozen dispatcher statistics
    */
   getStats(): Readonly<Record<string, unknown>> {
+    if (this.agent instanceof TestDispatcher) {
+      return this.agent.getStats();
+    }
+
     const stats = this.agent.stats;
     const frozenStats: Record<string, unknown> = {};
 
