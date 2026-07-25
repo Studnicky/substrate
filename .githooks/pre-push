@@ -121,6 +121,7 @@ if [ "${#policy_stage[@]}" -gt 0 ]; then
 fi
 
 validation_stage=()
+test_stage=()
 if [ "$CHANGED_CI" = true ]; then
   validation_stage+=("typecheck:bash scripts/hook-suite.sh typecheck")
   validation_stage+=("lint:bash scripts/hook-suite.sh lint")
@@ -137,22 +138,22 @@ if [ "$CHANGED_AUDIT" = true ]; then
 fi
 
 if [ "$CHANGED_SOURCE" = true ] || [ "$CHANGED_LOCKFILES" = true ] || [ "$CHANGED_CONFIG" = true ] || [ "$CHANGED_UNIT_TESTS" = true ]; then
-  validation_stage+=("test_unit:bash scripts/hook-suite.sh test-unit")
+  test_stage+=("test_unit:bash scripts/hook-suite.sh test-unit")
 fi
 
 if [ "$CHANGED_INTEGRATION_TESTS" = true ]; then
-  validation_stage+=("test_integration:bash scripts/hook-suite.sh test-integration")
+  test_stage+=("test_integration:bash scripts/hook-suite.sh test-integration")
 fi
 
 if [ "$CHANGED_SMOKE_TESTS" = true ]; then
-  validation_stage+=("test_smoke:bash scripts/hook-suite.sh test-smoke")
+  test_stage+=("test_smoke:bash scripts/hook-suite.sh test-smoke")
 fi
 
 if [ "$CHANGED_TESTS" = true ] && \
   [ "$CHANGED_UNIT_TESTS" = false ] && \
   [ "$CHANGED_INTEGRATION_TESTS" = false ] && \
   [ "$CHANGED_SMOKE_TESTS" = false ]; then
-  validation_stage+=("test_all:bash scripts/hook-suite.sh test-all")
+  test_stage+=("test_all:bash scripts/hook-suite.sh test-all")
 fi
 
 if [ -n "$push_range" ] && { [ "$CHANGED_SOURCE" = true ] || [ "$CHANGED_SECURITY_CONFIG" = true ]; }; then
@@ -166,4 +167,8 @@ fi
 
 if [ "${#validation_stage[@]}" -gt 0 ]; then
   run_stage validation "${validation_stage[@]}"
+fi
+
+if [ "${#test_stage[@]}" -gt 0 ]; then
+  run_stage tests "${test_stage[@]}"
 fi
