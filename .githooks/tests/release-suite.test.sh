@@ -27,5 +27,35 @@ assert_release_suite_dispatches_shared_gates() {
   pass_count=$((pass_count + 1))
 }
 
+assert_release_suite_backmerge_preserves_base_changesets() {
+  local repo base_sha
+
+  repo=$(make_repo)
+  (
+    cd "$repo" || exit 1
+    mkdir -p .changeset packages/a
+    printf '%s\n' '{"name":"repo","version":"1.0.0"}' > package.json
+    printf '%s\n' '{"name":"a","version":"1.0.0"}' > packages/a/package.json
+    printf '%s\n' 'pending' > .changeset/pending.md
+    git add -A
+    git commit -q -m "chore: pending develop changeset"
+    base_sha=$(git rev-parse HEAD)
+    git update-ref refs/remotes/origin/develop "$base_sha"
+
+    PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-backmerge 1.0.0 origin/develop
+
+    printf '%s\n' 'changed' > .changeset/pending.md
+    git add .changeset/pending.md
+    git commit -q -m "chore: alter pending changeset"
+    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-backmerge 1.0.0 origin/develop 2>/tmp/release-suite-backmerge.out; then
+      fail "release backmerge changesets" "expected changed .changeset entries to fail"
+    fi
+    assert_contains "release backmerge error" "Release backmerge changes .changeset entries" "$(cat /tmp/release-suite-backmerge.out)"
+  )
+  rm -rf "$repo"
+  pass_count=$((pass_count + 1))
+}
+
 assert_release_suite_dispatches_shared_gates
+assert_release_suite_backmerge_preserves_base_changesets
 test_main

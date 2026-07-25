@@ -16,6 +16,18 @@ release_suite_verify_lockstep() {
   assert_no_pending_changesets
 }
 
+release_suite_verify_backmerge() {
+  expected_version="$1"
+  base_ref="${2:-origin/develop}"
+
+  assert_workspace_lockstep_version "$expected_version"
+  if ! git diff --quiet "$base_ref"..HEAD -- .changeset; then
+    echo "::error::Release backmerge changes .changeset entries relative to ${base_ref}; preserve pending develop changesets." >&2
+    git diff --name-status "$base_ref"..HEAD -- .changeset >&2
+    return 1
+  fi
+}
+
 release_suite_publish_gates() {
   expected_version="$1"
   root_version=$(release_root_version)
@@ -32,6 +44,9 @@ case "${1:-}" in
     ;;
   verify-lockstep)
     release_suite_verify_lockstep "${2:?missing version}"
+    ;;
+  verify-backmerge)
+    release_suite_verify_backmerge "${2:?missing version}" "${3:-origin/develop}"
     ;;
   publish-gates)
     release_suite_publish_gates "${2:?missing version}"

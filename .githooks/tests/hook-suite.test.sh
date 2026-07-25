@@ -81,7 +81,7 @@ assert_hook_suite_backmerge_verifies_lockstep() {
     git merge -q --no-ff "$main_sha" -m "chore: sync main to develop"
 
     out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
-    assert_contains "hook backmerge release gates" "scripts/release-suite.sh verify-lockstep 1.0.0" "$out"
+    assert_contains "hook backmerge release gates" "scripts/release-suite.sh verify-backmerge 1.0.0 origin/develop" "$out"
     assert_not_contains "hook backmerge skips changeset status" "changeset-status" "$out"
   )
   rm -rf "$repo"

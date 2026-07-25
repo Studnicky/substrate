@@ -55,7 +55,7 @@ run_hook_suite_release_gates() {
     *)
       if is_release_backmerge "$branch" "$base_ref"; then
         version=$(node -p "require('./package.json').version")
-        bash scripts/release-suite.sh verify-lockstep "$version"
+        bash scripts/release-suite.sh verify-backmerge "$version" "$base_ref"
       else
         bash scripts/release-suite.sh changeset-status "$base_ref"
       fi
