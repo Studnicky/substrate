@@ -19,7 +19,16 @@ run_hook_suite_diagram() {
 }
 
 run_hook_suite_release_gates() {
-  bash scripts/release-suite.sh changeset-status "${1:-origin/develop}"
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  case "$branch" in
+    release/*|hotfix/*)
+      version=$(node -p "require('./package.json').version")
+      bash scripts/release-suite.sh publish-gates "$version"
+      ;;
+    *)
+      bash scripts/release-suite.sh changeset-status "${1:-origin/develop}"
+      ;;
+  esac
 }
 
 run_hook_suite_semgrep() {
