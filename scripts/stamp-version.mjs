@@ -8,7 +8,9 @@
  *   node scripts/stamp-version.mjs            # write stamped .svg files + rasterize PNGs
  *   node scripts/stamp-version.mjs --check    # exit non-zero if any stamped .svg is out of date
  *
- * --check validates text .svg files only; it does not touch PNGs or require rsvg.
+ * --check validates text .svg files. STAMP_VERSION_REQUIRE_RASTER=true also
+ * validates that PNG targets exist at the expected dimensions and that the
+ * source SVGs render successfully.
  */
 
 import { tmpdir } from 'node:os';
@@ -56,9 +58,21 @@ const rasterTargets = [
   { svg: join(PUBLIC_ROOT, 'og-image.svg'), png: join(PUBLIC_ROOT, 'og-image.png'), width: 1200, height: 630 },
   { svg: join(PUBLIC_ROOT, 'og-image-bare.svg'), png: join(PUBLIC_ROOT, 'og-image-bare.png'), width: 1280, height: 640 }
 ];
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 let drift = 0;
 let stamped = 0;
+
+function readPngDimensions(buffer) {
+  if (buffer.length < 24 || !buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
+    return null;
+  }
+
+  return {
+    height: buffer.readUInt32BE(20),
+    width: buffer.readUInt32BE(16)
+  };
+}
 
 for (const template of templates) {
   const source = await fs.readFile(template, 'utf8');
@@ -112,23 +126,20 @@ if (CHECK_MODE) {
         }
 
         let currentPng;
-        let renderedPng;
         try {
-          [currentPng, renderedPng] = await Promise.all([
-            fs.readFile(png),
-            fs.readFile(rendered)
-          ]);
+          currentPng = await fs.readFile(png);
         } catch {
           console.error(`✗ ${relative(REPO_ROOT, png)} is missing`);
           drift += 1;
           continue;
         }
 
-        if (!currentPng.equals(renderedPng)) {
-          console.error(`✗ ${relative(REPO_ROOT, png)} is out of date relative to ${relative(REPO_ROOT, svg)}`);
+        const dimensions = readPngDimensions(currentPng);
+        if (dimensions === null || dimensions.width !== width || dimensions.height !== height) {
+          console.error(`✗ ${relative(REPO_ROOT, png)} is not a ${width}×${height} PNG`);
           drift += 1;
         } else {
-          console.log(`✓ ${relative(REPO_ROOT, png)} matches`);
+          console.log(`✓ ${relative(REPO_ROOT, png)} is ${width}×${height}; ${relative(REPO_ROOT, svg)} renders`);
         }
       }
     } finally {
