@@ -13,7 +13,7 @@ import scenarioGroups from './fsm.scenarios.json';
 
 type TransitionRecord = { from: RetryCallStateEntity.Type; to: RetryCallStateEntity.Type };
 
-type ScenarioKind =
+type ScenarioShape =
   | 'aborted-by-hook'
   | 'exhausted-after-max-elapsed'
   | 'exhausted-after-max-retries'
@@ -41,7 +41,7 @@ type ScenarioCase = {
     rejectedTransition?: TransitionRecord;
     result?: string;
   };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -76,7 +76,7 @@ function resolveAttemptOutcome(callCount: number, scenarioCase: ScenarioCase): A
   return callCount <= Number(scenarioCase.input.batch?.failureCountBeforeSuccess ?? 0) ? 'failure' : 'success';
 }
 
-const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void>> = {
   'aborted-by-hook': async (scenarioCase) => {
     const retry = new AbortingTrackingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
@@ -196,7 +196,7 @@ const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<vo
 void describe('Retry FSM', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
-      await runnerMap[scenario.kind](scenario);
+      await runnerMap[scenario.shape](scenario);
     });
   }
 });

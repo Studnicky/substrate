@@ -9,7 +9,7 @@ import { Retry } from '../../../src/retry/index.js';
 import scenarioGroups from './hook-timeout.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'enter-call-unset' | 'fast-hook' | 'hung-attempt-with-timeout' | 'hung-attempt-without-timeout' | 'hung-give-up-with-timeout' | 'hung-retry-scheduled'; name: string };
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'enter-call-unset' | 'fast-hook' | 'hung-attempt-with-timeout' | 'hung-attempt-without-timeout' | 'hung-give-up-with-timeout' | 'hung-retry-scheduled'; name: string };
 
 type RetryScenarioInput = Record<string, unknown> & {
   batch?: { failureCountBeforeSuccess?: number };
@@ -43,7 +43,7 @@ async function executeUntilConfiguredSuccess(retry: Retry, input: RetryScenarioI
   return { attempts, result };
 }
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'enter-call-unset': async (scenario) => {
     const { expected, input } = scenario;
 
@@ -145,7 +145,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
     await assert.rejects(() => retry.execute(async () => { throw new Error(String(input.errorMessage)); }), NonRetryableError);
     const elapsedMs = Date.now() - startedAt;
 
-    assert.strictEqual(expected.errorKind, 'NonRetryableError');
+    assert.strictEqual(expected.errorShape, 'NonRetryableError');
     assert.ok(elapsedMs < Number(expected.elapsedLessThanMs));
   },
   'hung-retry-scheduled': async (scenario) => {
@@ -176,7 +176,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.kind](scenario);
+  await runnerMap[scenario.shape](scenario);
 }
 
 void describe('Retry hook timeouts', () => {

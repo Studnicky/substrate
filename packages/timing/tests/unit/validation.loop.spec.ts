@@ -38,81 +38,81 @@ type ScenarioCase =
       description: string;
       expected: { accepted: true };
       input: { values: number[] };
-      kind: 'accepts-valid-max-events';
+      shape: 'accepts-valid-max-events';
       name: string;
     }
   | {
       description: string;
       expected: { errorNames: string[] };
       input: { values: unknown[] };
-      kind: 'rejects-invalid-max-events';
+      shape: 'rejects-invalid-max-events';
       name: string;
     }
   | {
       description: string;
       expected: { accepted: true };
       input: { values: Array<Record<string, number>> };
-      kind: 'accepts-valid-precision';
+      shape: 'accepts-valid-precision';
       name: string;
     }
   | {
       description: string;
       expected: { errorName: 'ConfigurationError' };
       input: { value: unknown };
-      kind: 'rejects-non-object-precision' | 'rejects-array-precision';
+      shape: 'rejects-non-object-precision' | 'rejects-array-precision';
       name: string;
     }
   | {
       description: string;
       expected: { accepted: true };
       input: Record<string, never>;
-      kind: 'accepts-empty-precision' | 'accepts-null-max-events' | 'accepts-undefined-max-events';
+      shape: 'accepts-empty-precision' | 'accepts-null-max-events' | 'accepts-undefined-max-events';
       name: string;
     }
   | {
       description: string;
       expected: { errorNames: string[] };
       input: { values: Array<Record<string, unknown>> };
-      kind: 'rejects-invalid-precision';
+      shape: 'rejects-invalid-precision';
       name: string;
     }
   | {
       description: string;
       expected: { errorName: 'ConfigurationError' };
       input: { value: Record<string, number> };
-      kind: 'rejects-invalid-time-units';
+      shape: 'rejects-invalid-time-units';
       name: string;
     }
   | {
       description: string;
       expected: { results: boolean[] };
       input: { cases: Array<{ entity: string; value: unknown }> };
-      kind: 'validates-entities';
+      shape: 'validates-entities';
       name: string;
     }
   | {
       description: string;
       expected: { maxDecimalPlaces: number; hasInitialize: true };
       input: { event: Parameters<typeof TimingEvent.create>[0]; timing: { precision: { ms: number } } };
-      kind: 'applies-precision';
+      shape: 'applies-precision';
       name: string;
     }
   | {
       description: string;
       expected: { accepted: true };
       input: { timing: { maxEvents: number; precision: { ms: number } } };
-      kind: 'accepts-all-options';
+      shape: 'accepts-all-options';
       name: string;
     }
   | {
       description: string;
       expected: { hasInitialize: true };
       input: Record<string, never>;
-      kind: 'applies-defaults';
+      shape: 'applies-defaults';
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'accepts-valid-max-events': (scenarioCase) => {
     for (const value of scenarioCase.input.values) {
       assert.doesNotThrow(() => {
@@ -238,7 +238,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Timing validation', () => {

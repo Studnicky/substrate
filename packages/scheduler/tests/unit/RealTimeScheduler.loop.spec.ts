@@ -24,7 +24,7 @@ type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: ScenarioInput;
-  kind: string;
+  shape: string;
   name: string;
 };
 
@@ -530,15 +530,15 @@ const scenarioRunners = {
   }
 } satisfies Record<string, ScenarioRunner>;
 
-type ScenarioKind = keyof typeof scenarioRunners;
+type ScenarioShape = keyof typeof scenarioRunners;
 
-function isScenarioKind(kind: string): kind is ScenarioKind {
-  return Object.hasOwn(scenarioRunners, kind);
+function isScenarioShape(shape: string): shape is ScenarioShape {
+  return Object.hasOwn(scenarioRunners, shape);
 }
 
-function scenarioRunner(kind: string): ScenarioRunner {
-  assert.ok(isScenarioKind(kind), `Unknown RealTimeScheduler scenario kind: ${kind}`);
-  return scenarioRunners[kind];
+function scenarioRunner(shape: string): ScenarioRunner {
+  assert.ok(isScenarioShape(shape), `Unknown RealTimeScheduler scenario shape: ${shape}`);
+  return scenarioRunners[shape];
 }
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
@@ -546,7 +546,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
   const batch = scenarioCase.input.batch ?? {};
   const expected = scenarioCase.expected;
 
-  return scenarioRunner(scenarioCase.kind)({ batch, expected, input });
+  return scenarioRunner(scenarioCase.shape)({ batch, expected, input });
 }
 
 void describe('RealTimeScheduler', () => {

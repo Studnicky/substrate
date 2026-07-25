@@ -8,7 +8,7 @@
       "input": {
         "file": "../../examples/observedSlidingWindowLimiter.ts"
       },
-      "kind": "imports-example",
+      "shape": "imports-example",
       "name": "observedSlidingWindowLimiter"
     },
     {
@@ -19,7 +19,7 @@
       "input": {
         "file": "../../examples/defaultClockSlidingWindowLimiter.ts"
       },
-      "kind": "imports-example",
+      "shape": "imports-example",
       "name": "defaultClockSlidingWindowLimiter"
     },
     {
@@ -30,7 +30,7 @@
       "input": {
         "file": "../../examples/invalidConfigSlidingWindowLimiter.ts"
       },
-      "kind": "imports-example",
+      "shape": "imports-example",
       "name": "invalidConfigSlidingWindowLimiter"
     }
   ]

@@ -4,7 +4,7 @@
       "description": "returns null on unsupported platforms",
       "expected": { "result": "null" },
       "input": { "platform": "win32" },
-      "kind": "detect",
+      "shape": "detect",
       "name": "unsupported-platform"
     },
     {
@@ -23,7 +23,7 @@
         },
         "platform": "darwin"
       },
-      "kind": "detect",
+      "shape": "detect",
       "name": "metal-valid-gb"
     },
     {
@@ -35,7 +35,7 @@
         },
         "platform": "darwin"
       },
-      "kind": "detect",
+      "shape": "detect",
       "name": "metal-empty-displays"
     },
     {
@@ -47,7 +47,7 @@
         },
         "platform": "darwin"
       },
-      "kind": "detect",
+      "shape": "detect",
       "name": "metal-invalid-json"
     },
     {
@@ -64,7 +64,7 @@
         },
         "platform": "linux"
       },
-      "kind": "detect",
+      "shape": "detect",
       "name": "nvidia-valid"
     },
     {
@@ -81,7 +81,7 @@
         },
         "platform": "linux"
       },
-      "kind": "detect",
+      "shape": "detect",
       "name": "nvidia-empty-output"
     },
     {
@@ -99,7 +99,7 @@
         },
         "platform": "linux"
       },
-      "kind": "detect",
+      "shape": "detect",
       "name": "amd-valid"
     },
     {
@@ -112,7 +112,7 @@
         },
         "platform": "linux"
       },
-      "kind": "detect",
+      "shape": "detect",
       "name": "amd-invalid-json"
     }
   ]

@@ -36,7 +36,7 @@ type ScenarioData = {
   name: string;
 };
 
-type ScenarioKind =
+type ScenarioShape =
   | 'acquire-disposable'
   | 'acquire-release'
   | 'async-exclusive'
@@ -109,7 +109,7 @@ type ScenarioKind =
   | 'validateConfig-invalid'
   | 'validateConfig-valid';
 
-type ScenarioCase = ScenarioData & { kind: ScenarioKind };
+type ScenarioCase = ScenarioData & { shape: ScenarioShape };
 type NumericBatchField = keyof Omit<BatchInput, 'queuedPerKey'>;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 type ReleaseFunction = () => void;
@@ -245,7 +245,7 @@ const assertInvalidMutexConfig: ScenarioRunner = (scenarioCase) => {
   assert.throws(() => { Mutex.create(mutexConfig(scenarioCase)); });
 };
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'acquire-disposable': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const mutex = Mutex.create();
@@ -776,7 +776,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Mutex core', () => {

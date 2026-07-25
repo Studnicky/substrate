@@ -353,7 +353,7 @@ function circuitBreakerActionInput(value: string): CircuitBreakerAction {
   return value;
 }
 
-type ScenarioKind =
+type ScenarioShape =
   | 'cb-invalid-failure-threshold'
   | 'cb-invalid-reset-timeout'
   | 'cb-starts-closed'
@@ -1228,18 +1228,18 @@ const scenarioHandlers = {
     assert.equal(DlqEntryMetadataEntity.validate(recordInput(input, 'valid')), booleanInput(expected, 'valid'));
     assert.equal(DlqEntryMetadataEntity.validate(recordInput(input, 'invalid')), booleanInput(expected, 'invalid'));
   }
-} satisfies Record<ScenarioKind, ScenarioHandler>;
+} satisfies Record<ScenarioShape, ScenarioHandler>;
 
-function isScenarioKind(kind: string): kind is ScenarioKind {
-  return Object.hasOwn(scenarioHandlers, kind);
+function isScenarioShape(shape: string): shape is ScenarioShape {
+  return Object.hasOwn(scenarioHandlers, shape);
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { kind } = scenarioCase;
-  if (!isScenarioKind(kind)) {
-    throw new Error(`Unhandled resilience scenario kind: ${kind}`);
+  const { shape } = scenarioCase;
+  if (!isScenarioShape(shape)) {
+    throw new Error(`Unhandled resilience scenario shape: ${shape}`);
   }
-  await scenarioHandlers[kind](scenarioCase, scenarioCase.input.resilience);
+  await scenarioHandlers[shape](scenarioCase, scenarioCase.input.resilience);
 }
 void describe('Resilience', () => {
   for (const scenarioCase of scenarioGroups.cases) {

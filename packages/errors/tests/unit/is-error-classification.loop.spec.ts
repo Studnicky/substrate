@@ -9,7 +9,7 @@ type ScenarioCase =
       description: string;
       expected: { result: boolean };
       input: unknown;
-      kind: 'invalid-reason' | 'non-object' | 'valid' | 'valid-with-reason';
+      shape: 'invalid-reason' | 'non-object' | 'valid' | 'valid-with-reason';
       name: string;
     };
 
@@ -24,10 +24,10 @@ const runnerMap = {
   'non-object': runClassification,
   'valid': runClassification,
   'valid-with-reason': runClassification
-} satisfies Record<ScenarioCase['kind'], ScenarioRunner>;
+} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 function runCase(scenario: ScenarioCase): void {
-  runnerMap[scenario.kind](scenario);
+  runnerMap[scenario.shape](scenario);
 }
 
 void describe('isErrorClassification', () => {

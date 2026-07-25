@@ -17,7 +17,7 @@ type ScenarioCase =
       description: string;
       expected: Record<string, unknown>;
       input: ScenarioInput;
-      kind: 'code' | 'correlation-id' | 'detach-violations' | 'instanceof' | 'json-excludes-violations' | 'json-includes-violations' | 'json-roundtrip' | 'json-serializes' | 'message-with-path' | 'retryable' | 'user-message-empty-violations' | 'user-message-plain' | 'user-message-violations' | 'violations-absent' | 'violations-present' | 'violations-present-details' | 'violations-complex-details';
+      shape: 'code' | 'correlation-id' | 'detach-violations' | 'instanceof' | 'json-excludes-violations' | 'json-includes-violations' | 'json-roundtrip' | 'json-serializes' | 'message-with-path' | 'retryable' | 'user-message-empty-violations' | 'user-message-plain' | 'user-message-violations' | 'violations-absent' | 'violations-present' | 'violations-present-details' | 'violations-complex-details';
       name: string;
     };
 
@@ -111,7 +111,7 @@ const runnerMap = {
     }
   },
   'violations-absent': (scenario, err) => {
-    assert.deepStrictEqual(err.violations ?? { 'kind': 'undefined' }, scenario.expected.violations);
+    assert.deepStrictEqual(err.violations ?? { 'shape': 'undefined' }, scenario.expected.violations);
   },
   'violations-complex-details': (scenario) => {
     class DetailMarker {
@@ -146,11 +146,11 @@ const runnerMap = {
   'violations-present-details': (scenario, err) => {
     assert.strictEqual(err.violations?.[0]?.details?.limit, scenario.expected.violationsLimit);
   }
-} satisfies Record<ScenarioCase['kind'], ScenarioRunner>;
+} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 function runCase(scenario: ScenarioCase): void {
   const err = ValidationError.create(buildInput(scenario.input));
-  runnerMap[scenario.kind](scenario, err);
+  runnerMap[scenario.shape](scenario, err);
 }
 
 void describe('ValidationError', () => {

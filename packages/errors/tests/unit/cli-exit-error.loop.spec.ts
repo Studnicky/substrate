@@ -6,18 +6,18 @@ import { CliExitError } from '../../src/errors/CliExitError.js';
 import scenarioGroups from './cli-exit-error.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'instance-check' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'exit-code' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'code-value' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'not-retryable' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'empty-message' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'name-value' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'json-code' };
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'instance-check' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'exit-code' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'code-value' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'not-retryable' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'empty-message' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'name-value' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'json-code' };
 
-type ScenarioRunner<K extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: K }>) => void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
 
 type RunnerMap = {
-  [K in ScenarioCase['kind']]: ScenarioRunner<K>;
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
 const runnerMap: RunnerMap = {
@@ -79,8 +79,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: K }>): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('CliExitError', () => {

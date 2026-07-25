@@ -15,127 +15,127 @@ import { ClockError } from '../../src/errors/ClockError.js';
 import scenarioGroups from './Clock.scenarios.json';
 
 type ScenarioCase =
-  | { advanceMs: number; description: string; expectedNow: number; kind: 'now-returns'; startMs: number }
-  | { description: string; expectedNs: string; kind: 'hrtime-returns'; startMs: number }
-  | { description: string; kind: 'real-hrtime-positive'; offsetMs: number }
-  | { description: string; kind: 'real-now-within-range'; offsetMs: number }
-  | { description: string; expectedMessage: string; kind: 'offset-invalid'; offsetMs: 'NaN' | 'Infinity' | '-Infinity' }
-  | { description: string; expectedMessage: string; kind: 'clock-invalid-provider' }
-  | { description: string; expectedMessage: string; kind: 'real-provider-invalid-options' }
-  | { description: string; expectedMessage: string; kind: 'virtual-provider-invalid-counter' }
-  | { description: string; expectedMessage: string; kind: 'counter-invalid-options' }
-  | { description: string; kind: 'clock-error-with-cause' }
-  | { description: string; kind: 'now-monotonic-same-instance' }
-  | { description: string; kind: 'hrtime-monotonic-same-instance' }
-  | { description: string; kind: 'two-instances-independent' }
-  | { description: string; kind: 'clamp-backwards-provider-values' }
-  | { description: string; kind: 'virtual-advance-reflected' }
-  | { description: string; kind: 'hooked-clock-on-now' }
-  | { description: string; kind: 'hooked-clock-on-now-clamped' }
-  | { description: string; kind: 'hooked-clock-on-now-advanced' }
-  | { description: string; kind: 'hooked-clock-on-hrtime' }
-  | { description: string; kind: 'hooked-clock-on-hrtime-repeat' }
-  | { description: string; kind: 'clock-async-on-now-rejection-contained' }
-  | { description: string; kind: 'real-provider-on-now' }
-  | { description: string; kind: 'real-provider-on-now-offset' }
-  | { description: string; kind: 'real-provider-on-hrtime' }
-  | { description: string; kind: 'real-provider-default-options' }
-  | { description: string; kind: 'virtual-provider-on-now' }
-  | { description: string; kind: 'virtual-provider-on-now-advance' }
-  | { description: string; kind: 'virtual-provider-on-hrtime' }
-  | { description: string; kind: 'virtual-counter-default-options' }
-  | { description: string; kind: 'real-provider-throws-on-now' }
-  | { description: string; kind: 'real-provider-throws-on-hrtime' }
-  | { description: string; kind: 'virtual-provider-throws-on-now' }
-  | { description: string; kind: 'virtual-provider-throws-on-hrtime' }
-  | { description: string; kind: 'counter-on-advance' }
-  | { description: string; kind: 'counter-on-advance-suppressed' }
-  | { description: string; kind: 'counter-on-advance-sequence' }
-  | { description: string; kind: 'counter-on-now-ms' }
-  | { description: string; kind: 'counter-on-now-ms-repeat' }
-  | { description: string; kind: 'clock-throws-on-now' }
-  | { description: string; kind: 'clock-throws-on-hrtime' }
-  | { description: string; kind: 'counter-throws-on-advance' }
-  | { description: string; kind: 'counter-throws-on-now-ms' }
-  | { description: string; kind: 'metered-clock-now' }
-  | { description: string; kind: 'metered-clock-hrtime' }
-  | { description: string; kind: 'offset-provider-now' }
-  | { description: string; kind: 'offset-provider-offset' }
-  | { description: string; kind: 'traced-virtual-provider-now' }
-  | { description: string; kind: 'traced-virtual-provider-hrtime' }
-  | { description: string; kind: 'long-uptime-precision' };
+  | { advanceMs: number; description: string; expectedNow: number; shape: 'now-returns'; startMs: number }
+  | { description: string; expectedNs: string; shape: 'hrtime-returns'; startMs: number }
+  | { description: string; shape: 'real-hrtime-positive'; offsetMs: number }
+  | { description: string; shape: 'real-now-within-range'; offsetMs: number }
+  | { description: string; expectedMessage: string; shape: 'offset-invalid'; offsetMs: 'NaN' | 'Infinity' | '-Infinity' }
+  | { description: string; expectedMessage: string; shape: 'clock-invalid-provider' }
+  | { description: string; expectedMessage: string; shape: 'real-provider-invalid-options' }
+  | { description: string; expectedMessage: string; shape: 'virtual-provider-invalid-counter' }
+  | { description: string; expectedMessage: string; shape: 'counter-invalid-options' }
+  | { description: string; shape: 'clock-error-with-cause' }
+  | { description: string; shape: 'now-monotonic-same-instance' }
+  | { description: string; shape: 'hrtime-monotonic-same-instance' }
+  | { description: string; shape: 'two-instances-independent' }
+  | { description: string; shape: 'clamp-backwards-provider-values' }
+  | { description: string; shape: 'virtual-advance-reflected' }
+  | { description: string; shape: 'hooked-clock-on-now' }
+  | { description: string; shape: 'hooked-clock-on-now-clamped' }
+  | { description: string; shape: 'hooked-clock-on-now-advanced' }
+  | { description: string; shape: 'hooked-clock-on-hrtime' }
+  | { description: string; shape: 'hooked-clock-on-hrtime-repeat' }
+  | { description: string; shape: 'clock-async-on-now-rejection-contained' }
+  | { description: string; shape: 'real-provider-on-now' }
+  | { description: string; shape: 'real-provider-on-now-offset' }
+  | { description: string; shape: 'real-provider-on-hrtime' }
+  | { description: string; shape: 'real-provider-default-options' }
+  | { description: string; shape: 'virtual-provider-on-now' }
+  | { description: string; shape: 'virtual-provider-on-now-advance' }
+  | { description: string; shape: 'virtual-provider-on-hrtime' }
+  | { description: string; shape: 'virtual-counter-default-options' }
+  | { description: string; shape: 'real-provider-throws-on-now' }
+  | { description: string; shape: 'real-provider-throws-on-hrtime' }
+  | { description: string; shape: 'virtual-provider-throws-on-now' }
+  | { description: string; shape: 'virtual-provider-throws-on-hrtime' }
+  | { description: string; shape: 'counter-on-advance' }
+  | { description: string; shape: 'counter-on-advance-suppressed' }
+  | { description: string; shape: 'counter-on-advance-sequence' }
+  | { description: string; shape: 'counter-on-now-ms' }
+  | { description: string; shape: 'counter-on-now-ms-repeat' }
+  | { description: string; shape: 'clock-throws-on-now' }
+  | { description: string; shape: 'clock-throws-on-hrtime' }
+  | { description: string; shape: 'counter-throws-on-advance' }
+  | { description: string; shape: 'counter-throws-on-now-ms' }
+  | { description: string; shape: 'metered-clock-now' }
+  | { description: string; shape: 'metered-clock-hrtime' }
+  | { description: string; shape: 'offset-provider-now' }
+  | { description: string; shape: 'offset-provider-offset' }
+  | { description: string; shape: 'traced-virtual-provider-now' }
+  | { description: string; shape: 'traced-virtual-provider-hrtime' }
+  | { description: string; shape: 'long-uptime-precision' };
 
 const NS_PER_MS = 1_000_000n;
 const ZERO_NS = 0n;
 
-type RuntimeNumberKind = 'infinity' | 'nan' | 'negative-infinity';
-type RuntimeNumberInput = number | { kind: RuntimeNumberKind };
+type RuntimeNumberShape = 'infinity' | 'nan' | 'negative-infinity';
+type RuntimeNumberInput = number | { shape: RuntimeNumberShape };
 type RealTimeClockProviderOptionsInput = {
-  kind: 'default' | 'options';
+  shape: 'default' | 'options';
   value?: {
     offsetMs?: RuntimeNumberInput;
   };
 };
 type VirtualTimeCounterOptionsInput = {
-  kind: 'default' | 'options';
+  shape: 'default' | 'options';
   value?: {
     startMs?: RuntimeNumberInput;
   };
 };
 type ObjectFixtureInput = {
-  kind: 'empty-object';
+  shape: 'empty-object';
 };
 
-const runtimeNumberByKind = {
+const runtimeNumberByShape = {
   'infinity': () => Number.POSITIVE_INFINITY,
   'nan': () => Number.NaN,
   'negative-infinity': () => Number.NEGATIVE_INFINITY
-} satisfies Record<RuntimeNumberKind, () => number>;
+} satisfies Record<RuntimeNumberShape, () => number>;
 
 function materializeRuntimeNumber(input: RuntimeNumberInput): number {
-  return typeof input === 'number' ? input : runtimeNumberByKind[input.kind]();
+  return typeof input === 'number' ? input : runtimeNumberByShape[input.shape]();
 }
 
-const realTimeClockProviderOptionsByKind = {
+const realTimeClockProviderOptionsByShape = {
   'default': () => undefined,
   'options': (input: RealTimeClockProviderOptionsInput) => {
     const offsetMs = input.value?.offsetMs;
     return offsetMs === undefined ? {} : { offsetMs: materializeRuntimeNumber(offsetMs) };
   }
 } satisfies Record<
-  RealTimeClockProviderOptionsInput['kind'],
+  RealTimeClockProviderOptionsInput['shape'],
   (input: RealTimeClockProviderOptionsInput) => Parameters<typeof RealTimeClockProvider.create>[0]
 >;
 
 function materializeRealTimeClockProviderOptions(
   input: RealTimeClockProviderOptionsInput
 ): Parameters<typeof RealTimeClockProvider.create>[0] {
-  return realTimeClockProviderOptionsByKind[input.kind](input);
+  return realTimeClockProviderOptionsByShape[input.shape](input);
 }
 
-const virtualTimeCounterOptionsByKind = {
+const virtualTimeCounterOptionsByShape = {
   'default': () => undefined,
   'options': (input: VirtualTimeCounterOptionsInput) => {
     const startMs = input.value?.startMs;
     return startMs === undefined ? {} : { startMs: materializeRuntimeNumber(startMs) };
   }
 } satisfies Record<
-  VirtualTimeCounterOptionsInput['kind'],
+  VirtualTimeCounterOptionsInput['shape'],
   (input: VirtualTimeCounterOptionsInput) => Parameters<typeof VirtualTimeCounter.create>[0]
 >;
 
 function materializeVirtualTimeCounterOptions(
   input: VirtualTimeCounterOptionsInput
 ): Parameters<typeof VirtualTimeCounter.create>[0] {
-  return virtualTimeCounterOptionsByKind[input.kind](input);
+  return virtualTimeCounterOptionsByShape[input.shape](input);
 }
 
-const objectFixtureByKind = {
+const objectFixtureByShape = {
   'empty-object': () => ({})
-} satisfies Record<ObjectFixtureInput['kind'], () => Record<string, never>>;
+} satisfies Record<ObjectFixtureInput['shape'], () => Record<string, never>>;
 
 function materializeObjectFixture(input: ObjectFixtureInput): Record<string, never> {
-  return objectFixtureByKind[input.kind]();
+  return objectFixtureByShape[input.shape]();
 }
 
 function createRealTimeClockProvider(input: RealTimeClockProviderOptionsInput): RealTimeClockProvider {
@@ -160,7 +160,7 @@ function readVirtualTimeCounterStartMs(input: VirtualTimeCounterOptionsInput): n
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'now-returns': (scenarioCase) => {
     const { expected, input } = scenarioCase as ScenarioCase & {
       expected: { now: number };
@@ -1040,7 +1040,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Clock', () => {

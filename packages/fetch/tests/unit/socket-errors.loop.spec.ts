@@ -10,46 +10,46 @@ type ScenarioCase =
       description: string;
       expected: { dispatcherStats: undefined; maxConnections: number; pendingRequests: number; queuedRequests: number; url: string };
       input: { stats?: SocketDispatcherStatsType; url: string };
-      kind: 'url-only';
+      shape: 'url-only';
       name: string;
     }
   | {
       description: string;
       expected: { dispatcherStats: SocketDispatcherStatsType; maxConnections: number; pendingRequests: number; queuedRequests: number; url: string };
       input: { stats: SocketDispatcherStatsType; url: string };
-      kind: 'with-stats';
+      shape: 'with-stats';
       name: string;
     }
   | {
       description: string;
       expected: { messageIncludes: string[] };
       input: { stats: SocketDispatcherStatsType; url: string };
-      kind: 'message-includes-stats';
+      shape: 'message-includes-stats';
       name: string;
     }
   | {
       description: string;
       expected: { caughtName: 'SocketExhaustionError'; url: string };
       input: { stats: SocketDispatcherStatsType; url: string };
-      kind: 'catchable';
+      shape: 'catchable';
       name: string;
     }
   | {
       description: string;
       expected: { dispatcherStatsType: 'object'; freeConnectionsType: 'number'; maxConnectionsType: 'number'; pendingRequestsType: 'number'; queuedRequestsType: 'number'; urlType: 'string' };
       input: { stats: SocketDispatcherStatsType; url: string };
-      kind: 'property-types';
+      shape: 'property-types';
       name: string;
     }
   | {
       description: string;
       expected: { dispatcherStatsDefined: true; freeConnections: number; maxConnections: number; pendingRequests: number; url: string };
       input: { stats: SocketDispatcherStatsType; url: string };
-      kind: 'preserve-through-throw';
+      shape: 'preserve-through-throw';
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'url-only': (scenarioCase) => {
     const error = new SocketExhaustionError(scenarioCase.input.url);
     assert.ok(error instanceof Error);
@@ -117,7 +117,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('socket error classes', () => {

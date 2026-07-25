@@ -5,7 +5,7 @@ import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 import type { CircularBufferOptionsEntity } from '../../../src/entities/CircularBufferOptionsEntity.js';
 import scenarioGroups from './CircularBuffer.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'capacity-one-cycling'
   | 'capacity-two-cycling'
   | 'construction-capacity-one-empty'
@@ -60,7 +60,7 @@ type ScenarioCase = {
   description: string;
   expected?: ExpectedObject | number[];
   input: ScenarioInput;
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -134,7 +134,7 @@ const requireExpectedShifts = (scenarioCase: ScenarioCase): readonly [null, null
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { kind } = scenarioCase;
+  const { shape } = scenarioCase;
   const { options } = scenarioCase.input;
 
   const assertConstructionEmpty = (): void => {
@@ -153,7 +153,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     assert.equal(buf.shift(), requireExpectedShiftValue(scenarioCase));
   };
 
-  const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+  const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     'capacity-one-cycling': () => {
       const buf = CircularBuffer.create<string>(options);
       buf.push('A');
@@ -384,7 +384,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
   };
 
-  await runnerMap[kind](scenarioCase);
+  await runnerMap[shape](scenarioCase);
 }
 
 void describe('CircularBuffer core', () => {

@@ -8,7 +8,7 @@
       "input": {
         "fileName": "basicUsage.ts"
       },
-      "kind": "example-file",
+      "shape": "example-file",
       "name": "basicUsage.ts"
     },
     {
@@ -19,7 +19,7 @@
       "input": {
         "fileName": "observedCircularBuffer.ts"
       },
-      "kind": "example-file",
+      "shape": "example-file",
       "name": "observedCircularBuffer.ts"
     },
     {
@@ -30,7 +30,7 @@
       "input": {
         "fileName": "subclassHooks.ts"
       },
-      "kind": "example-file",
+      "shape": "example-file",
       "name": "subclassHooks.ts"
     }
   ]

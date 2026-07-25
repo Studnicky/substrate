@@ -15,36 +15,36 @@ import scenarioGroups from './error-wrapping.scenarios.json';
 type ScenarioCase =
   | {
       description: string;
-      expected: { kind: 'undefined' };
+      expected: { shape: 'undefined' };
       input: { errorCode?: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      kind: 'wrap-unknown-code' | 'wrap-no-code' | 'handle-no-dispatcher' | 'handle-invalid-origin';
+      shape: 'wrap-unknown-code' | 'wrap-no-code' | 'handle-no-dispatcher' | 'handle-invalid-origin';
       name: string;
     }
   | {
       description: string;
-      expected: { kind: 'error'; errorName: 'BodyTimeoutError' | 'ConnectTimeoutError' | 'HeadersTimeoutError' | 'SocketError' };
+      expected: { shape: 'error'; errorName: 'BodyTimeoutError' | 'ConnectTimeoutError' | 'HeadersTimeoutError' | 'SocketError' };
       input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      kind: 'wrap-body-timeout' | 'wrap-connect-timeout' | 'wrap-headers-timeout' | 'wrap-socket-error';
+      shape: 'wrap-body-timeout' | 'wrap-connect-timeout' | 'wrap-headers-timeout' | 'wrap-socket-error';
       name: string;
     }
   | {
       description: string;
-      expected: { kind: 'socket-exhaustion' };
+      expected: { shape: 'socket-exhaustion' };
       input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      kind: 'handle-dispatcher-health';
+      shape: 'handle-dispatcher-health';
       name: string;
     };
 
-type ScenarioRunner<Kind extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => Promise<void>;
-type RunnerMap = { [Kind in ScenarioCase['kind']]: ScenarioRunner<Kind> };
+type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
 type MappedErrorScenario = Extract<ScenarioCase, {
-  kind:
+  shape:
     | 'wrap-body-timeout'
     | 'wrap-connect-timeout'
     | 'wrap-headers-timeout'
     | 'wrap-socket-error';
 }>;
-type MappedErrorAssertionMap = { [Kind in MappedErrorScenario['kind']]: (wrapped: Error | undefined) => void };
+type MappedErrorAssertionMap = { [Shape in MappedErrorScenario['shape']]: (wrapped: Error | undefined) => void };
 
 function createClient(config: Parameters<typeof FetchClient.create>[0]): FetchClient {
   return FetchClient.create(config);
@@ -72,7 +72,7 @@ async function runMappedErrorScenario(scenarioCase: MappedErrorScenario): Promis
   const dispatcher = Reflect.get(client, 'dispatcher') as { checkDispatcherHealth(origin: string): { stats: Record<string, unknown> } };
   dispatcher.checkDispatcherHealth = () => ({ 'stats': { 'freeConnections': 0, 'maxConnections': 2, 'pendingRequests': 1, 'queuedRequests': 0 } });
   const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(error, scenarioCase.input.url, 'GET', 'request-1', 1);
-  mappedErrorAssertionMap[scenarioCase.kind](wrapped);
+  mappedErrorAssertionMap[scenarioCase.shape](wrapped);
 }
 
 const runnerMap: RunnerMap = {
@@ -113,8 +113,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-async function runCase<Kind extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('fetch error wrapping', () => {

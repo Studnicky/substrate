@@ -3,77 +3,77 @@
     {
       "name": "has-property-present",
       "description": "returns true when the property exists without a matcher",
-      "kind": "has-property-present",
+      "shape": "has-property-present",
       "input": { "message": "classify me", "propertyName": "status", "status": 503 },
       "expected": { "value": true }
     },
     {
       "name": "has-property-missing",
       "description": "returns false when the property is missing",
-      "kind": "has-property-missing",
+      "shape": "has-property-missing",
       "input": { "message": "classify me", "propertyName": "missing" },
       "expected": { "value": false }
     },
     {
       "name": "has-property-match-value",
       "description": "matches a specific property value",
-      "kind": "has-property-match-value",
-      "input": { "matcher": { "kind": "status", "value": 503 }, "message": "classify me", "propertyName": "status", "status": 503 },
+      "shape": "has-property-match-value",
+      "input": { "matcher": { "shape": "status", "value": 503 }, "message": "classify me", "propertyName": "status", "status": 503 },
       "expected": { "value": true }
     },
     {
       "name": "has-property-match-array",
       "description": "matches any value from an accepted list",
-      "kind": "has-property-match-array",
-      "input": { "matcher": { "kind": "accepted-statuses", "values": [502, 503, 504] }, "message": "classify me", "propertyName": "status", "status": 503 },
+      "shape": "has-property-match-array",
+      "input": { "matcher": { "shape": "accepted-statuses", "values": [502, 503, 504] }, "message": "classify me", "propertyName": "status", "status": 503 },
       "expected": { "value": true }
     },
     {
       "name": "has-property-match-predicate",
       "description": "matches via predicate",
-      "kind": "has-property-match-predicate",
-      "input": { "matcher": { "kind": "minimum-status", "min": 500 }, "message": "classify me", "propertyName": "status", "status": 503 },
+      "shape": "has-property-match-predicate",
+      "input": { "matcher": { "shape": "minimum-status", "min": 500 }, "message": "classify me", "propertyName": "status", "status": 503 },
       "expected": { "value": true }
     },
     {
       "name": "has-property-mismatch-value",
       "description": "returns false when a specific value does not match",
-      "kind": "has-property-mismatch-value",
-      "input": { "matcher": { "kind": "status", "value": 503 }, "message": "classify me", "propertyName": "status", "status": 404 },
+      "shape": "has-property-mismatch-value",
+      "input": { "matcher": { "shape": "status", "value": 503 }, "message": "classify me", "propertyName": "status", "status": 404 },
       "expected": { "value": false }
     },
     {
       "name": "has-property-mismatch-array",
       "description": "returns false when none of the accepted values match",
-      "kind": "has-property-mismatch-array",
-      "input": { "matcher": { "kind": "accepted-statuses", "values": [500, 501] }, "message": "classify me", "propertyName": "status", "status": 404 },
+      "shape": "has-property-mismatch-array",
+      "input": { "matcher": { "shape": "accepted-statuses", "values": [500, 501] }, "message": "classify me", "propertyName": "status", "status": 404 },
       "expected": { "value": false }
     },
     {
       "name": "has-property-mismatch-predicate",
       "description": "returns false when the predicate rejects the value",
-      "kind": "has-property-mismatch-predicate",
-      "input": { "matcher": { "kind": "minimum-status", "min": 500 }, "message": "classify me", "propertyName": "status", "status": 404 },
+      "shape": "has-property-mismatch-predicate",
+      "input": { "matcher": { "shape": "minimum-status", "min": 500 }, "message": "classify me", "propertyName": "status", "status": 404 },
       "expected": { "value": false }
     },
     {
       "name": "message-contains-hit",
       "description": "matches a message fragment case-insensitively",
-      "kind": "message-contains-hit",
+      "shape": "message-contains-hit",
       "input": { "message": "Connection Refused", "patterns": ["connection refused"] },
       "expected": { "value": true }
     },
     {
       "name": "message-contains-miss",
       "description": "returns false when no fragment matches",
-      "kind": "message-contains-miss",
+      "shape": "message-contains-miss",
       "input": { "message": "all good", "patterns": ["socket hang up"] },
       "expected": { "value": false }
     },
     {
       "name": "classifications",
       "description": "builds retryable and non-retryable classifications",
-      "kind": "classifications",
+      "shape": "classifications",
       "input": { "message": "classify me" },
       "expected": { "retryable": true, "nonRetryable": false }
     }

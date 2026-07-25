@@ -3,7 +3,7 @@
     {
       "name": "accepts a string fingerprint",
       "description": "accepts a string fingerprint",
-      "kind": "metadata-accepts-string-fingerprint",
+      "shape": "metadata-accepts-string-fingerprint",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -18,7 +18,7 @@
     {
       "name": "rejects missing and non-string fingerprints",
       "description": "rejects missing and non-string fingerprints",
-      "kind": "metadata-rejects-invalid-fingerprint",
+      "shape": "metadata-rejects-invalid-fingerprint",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -37,7 +37,7 @@
     {
       "name": "shares one execution across concurrent calls with the same key and payload",
       "description": "shares one execution across concurrent calls with the same key and payload",
-      "kind": "coalesce-shares-one-execution",
+      "shape": "coalesce-shares-one-execution",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -60,7 +60,7 @@
     {
       "name": "owns one result contract across creation, execution, and replay",
       "description": "owns one result contract across creation, execution, and replay",
-      "kind": "result-contract-owned",
+      "shape": "result-contract-owned",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -80,7 +80,7 @@
     {
       "name": "rejects factories outside the guard result contract at compile time",
       "description": "rejects factories outside the guard result contract at compile time",
-      "kind": "result-contract-rejects-invalid-factory",
+      "shape": "result-contract-rejects-invalid-factory",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -98,7 +98,7 @@
     {
       "name": "throws IdempotencyConflictError when the same key is reused with a different payload",
       "description": "throws IdempotencyConflictError when the same key is reused with a different payload",
-      "kind": "conflict-same-key-different-payload",
+      "shape": "conflict-same-key-different-payload",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -119,7 +119,7 @@
     {
       "name": "sets the conflicting key on IdempotencyConflictError",
       "description": "sets the conflicting key on IdempotencyConflictError",
-      "kind": "conflict-exposes-key",
+      "shape": "conflict-exposes-key",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -142,7 +142,7 @@
     {
       "name": "accepts a synchronous factory",
       "description": "accepts a synchronous factory",
-      "kind": "replay-accepts-sync-factory",
+      "shape": "replay-accepts-sync-factory",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -162,7 +162,7 @@
     {
       "name": "replays the cached result for a repeat call with the same key and payload",
       "description": "replays the cached result for a repeat call with the same key and payload",
-      "kind": "replay-cached-result",
+      "shape": "replay-cached-result",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -186,7 +186,7 @@
     {
       "name": "runs the factory again once the cached entry expires",
       "description": "runs the factory again once the cached entry expires",
-      "kind": "replay-expired-entry-reruns",
+      "shape": "replay-expired-entry-reruns",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -206,7 +206,7 @@
     {
       "name": "fires onExecute when a key is genuinely new",
       "description": "fires onExecute when a key is genuinely new",
-      "kind": "hooks-execute-new-key",
+      "shape": "hooks-execute-new-key",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -228,7 +228,7 @@
     {
       "name": "fires onExecute before invoking the factory for a genuinely new key",
       "description": "fires onExecute before invoking the factory for a genuinely new key",
-      "kind": "hooks-execute-before-factory",
+      "shape": "hooks-execute-before-factory",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -249,7 +249,7 @@
     {
       "name": "fires onReplay (not onExecute) on a repeat call with a matching fingerprint",
       "description": "fires onReplay (not onExecute) on a repeat call with a matching fingerprint",
-      "kind": "hooks-replay-match",
+      "shape": "hooks-replay-match",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -272,7 +272,7 @@
     {
       "name": "fires onConflict before throwing on a payload mismatch",
       "description": "fires onConflict before throwing on a payload mismatch",
-      "kind": "hooks-conflict-before-throw",
+      "shape": "hooks-conflict-before-throw",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -295,7 +295,7 @@
     {
       "name": "fires onCoalesce for a follower that joins an in-flight leader",
       "description": "fires onCoalesce for a follower that joins an in-flight leader",
-      "kind": "hooks-coalesce-follower",
+      "shape": "hooks-coalesce-follower",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -322,7 +322,7 @@
     {
       "name": "dispatches leader and join hooks to each owning subclass instance in order",
       "description": "dispatches leader and join hooks to each owning subclass instance in order",
-      "kind": "hooks-isolated-instances",
+      "shape": "hooks-isolated-instances",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -362,7 +362,7 @@
     {
       "name": "a throwing onReplay hook does not replace the cached result",
       "description": "a throwing onReplay hook does not replace the cached result",
-      "kind": "hooks-throwing-replay",
+      "shape": "hooks-throwing-replay",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -380,7 +380,7 @@
     {
       "name": "a throwing onConflict hook does not replace IdempotencyConflictError",
       "description": "a throwing onConflict hook does not replace IdempotencyConflictError",
-      "kind": "hooks-throwing-conflict",
+      "shape": "hooks-throwing-conflict",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -401,7 +401,7 @@
     {
       "name": "a throwing onExecute hook does not replace the leader result",
       "description": "a throwing onExecute hook does not replace the leader result",
-      "kind": "hooks-throwing-execute",
+      "shape": "hooks-throwing-execute",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -419,7 +419,7 @@
     {
       "name": "a synchronous onReplay failure is swallowed and does not propagate from run()",
       "description": "a synchronous onReplay failure is swallowed and does not propagate from run()",
-      "kind": "hooks-sync-replay-swallowed",
+      "shape": "hooks-sync-replay-swallowed",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -437,7 +437,7 @@
     {
       "name": "an async onReplay override that rejects is routed safely with no unhandled rejection",
       "description": "an async onReplay override that rejects is routed safely with no unhandled rejection",
-      "kind": "hooks-async-replay-safe",
+      "shape": "hooks-async-replay-safe",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -456,7 +456,7 @@
     {
       "name": "a throwing onCoalesce hook does not replace the shared follower result",
       "description": "a throwing onCoalesce hook does not replace the shared follower result",
-      "kind": "hooks-throwing-coalesce",
+      "shape": "hooks-throwing-coalesce",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -479,7 +479,7 @@
     {
       "name": "unexpected async lifecycle overrides preserve execute, coalesce, replay, and conflict outcomes without unhandled rejections",
       "description": "unexpected async lifecycle overrides preserve execute, coalesce, replay, and conflict outcomes without unhandled rejections",
-      "kind": "hooks-async-overrides-safe",
+      "shape": "hooks-async-overrides-safe",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,
@@ -511,7 +511,7 @@
     {
       "name": "throws IdempotencyConflictError for a concurrent same-key different-payload racer with no cached entry yet",
       "description": "throws IdempotencyConflictError for a concurrent same-key different-payload racer with no cached entry yet",
-      "kind": "race-concurrent-different-payload",
+      "shape": "race-concurrent-different-payload",
       "input": {
         "idempotencyGuard": {
           "capacity": 10,

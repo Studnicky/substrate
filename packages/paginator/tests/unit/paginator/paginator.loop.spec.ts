@@ -15,7 +15,7 @@ import type {
 
 import { Paginator } from '../../../src/index.js';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'accumulation-many-pages'
   | 'accumulation-multiple-pages'
   | 'accumulation-nested-pages-detached'
@@ -44,7 +44,7 @@ type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: { paginator: Record<string, unknown> };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -342,7 +342,7 @@ function cursorFrom<TCursor>(
 
   const normalizedCursor = cursor.cursor !== null
     && typeof cursor.cursor === 'object'
-    && Reflect.get(cursor.cursor, 'kind') === 'undefined'
+    && Reflect.get(cursor.cursor, 'shape') === 'undefined'
     ? undefined
     : cursor.cursor;
 
@@ -371,11 +371,11 @@ function applyPages<TPage, TCursor>(
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { kind } = scenarioCase;
+  const { shape } = scenarioCase;
   const input = scenarioCase.input.paginator;
   const expected = scenarioCase.expected;
 
-  const runnerMap: Record<ScenarioKind, () => Promise<void> | void> = {
+  const runnerMap: Record<ScenarioShape, () => Promise<void> | void> = {
   'creation-pages-empty': () => {
     const paginator = Paginator.create<string, number>();
     assert.deepEqual(paginator.pages, expected.pages);
@@ -708,7 +708,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   }
   };
 
-  await runnerMap[kind]();
+  await runnerMap[shape]();
 }
 
 void describe('Paginator', () => {

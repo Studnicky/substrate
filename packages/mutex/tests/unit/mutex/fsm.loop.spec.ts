@@ -16,7 +16,7 @@ type ScenarioCase =
         invalidState: string;
         states: MutexKeyStateEntity.Type[];
       };
-      kind: 'validate-states';
+      shape: 'validate-states';
       name: string;
     }
   | {
@@ -29,7 +29,7 @@ type ScenarioCase =
       input: {
         key: string;
       };
-      kind: 'unlocked-to-locked';
+      shape: 'unlocked-to-locked';
       name: string;
     }
   | {
@@ -42,7 +42,7 @@ type ScenarioCase =
       input: {
         key: string;
       };
-      kind: 'locked-to-queued';
+      shape: 'locked-to-queued';
       name: string;
     }
   | {
@@ -55,7 +55,7 @@ type ScenarioCase =
       input: {
         key: string;
       };
-      kind: 'queued-to-locked';
+      shape: 'queued-to-locked';
       name: string;
     }
   | {
@@ -68,7 +68,7 @@ type ScenarioCase =
       input: {
         key: string;
       };
-      kind: 'locked-to-unlocked';
+      shape: 'locked-to-unlocked';
       name: string;
     }
   | {
@@ -79,7 +79,7 @@ type ScenarioCase =
       input: {
         key: string;
       };
-      kind: 'illegal-transition-throws';
+      shape: 'illegal-transition-throws';
       name: string;
     };
 
@@ -118,7 +118,7 @@ class ForcingMutex extends Mutex<string> {
   }
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
   'illegal-transition-throws': (scenarioCase) => {
     const mutex = new ForcingMutex();
     assert.throws(() => { mutex.forceKeyTransition(scenarioCase.input.key, 'unlocked'); }, /Illegal state transition/);
@@ -178,7 +178,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 void describe('Mutex FSM', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
-      await runnerMap[scenarioCase.kind](scenarioCase);
+      await runnerMap[scenarioCase.shape](scenarioCase);
     });
   }
 });

@@ -8,7 +8,7 @@
       "input": {
         "body": [1, 2, 3]
       },
-      "kind": "needs-json-content-type-array",
+      "shape": "needs-json-content-type-array",
       "name": "needs-json-content-type-array"
     },
     {
@@ -19,10 +19,10 @@
       "input": {
         "body": {
           "bytes": [1, 2, 3],
-          "kind": "buffer"
+          "shape": "buffer"
         }
       },
-      "kind": "needs-json-content-type-buffer",
+      "shape": "needs-json-content-type-buffer",
       "name": "needs-json-content-type-buffer"
     },
     {
@@ -35,7 +35,7 @@
           "ok": true
         }
       },
-      "kind": "needs-json-content-type-object",
+      "shape": "needs-json-content-type-object",
       "name": "needs-json-content-type-object"
     },
     {
@@ -46,7 +46,7 @@
       "input": {
         "body": "text"
       },
-      "kind": "needs-json-content-type-primitive",
+      "shape": "needs-json-content-type-primitive",
       "name": "needs-json-content-type-primitive"
     },
     {
@@ -56,14 +56,14 @@
         "constructorName": "Uint8Array"
       },
       "input": {
-        "kind": "data-view-visible-range",
+        "shape": "data-view-visible-range",
         "source": [99, 1, 2, 3, 99],
         "view": {
           "byteLength": 3,
           "byteOffset": 1
         }
       },
-      "kind": "data-view-visible-range",
+      "shape": "data-view-visible-range",
       "name": "data-view-visible-range"
     },
     {
@@ -74,11 +74,11 @@
         "remainsDetachedAfterSourceMutation": true
       },
       "input": {
-        "kind": "typed-array-byte-range",
+        "shape": "typed-array-byte-range",
         "source": [258, 772],
         "typedArray": "Uint16Array"
       },
-      "kind": "typed-array-byte-range",
+      "shape": "typed-array-byte-range",
       "name": "typed-array-byte-range"
     }
   ]

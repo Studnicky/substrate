@@ -15,13 +15,13 @@ type ScenarioCase =
           retryable: boolean;
         };
       };
-      kind: 'constructor-throws' | 'register-duplicate' | 'register-unique';
+      shape: 'constructor-throws' | 'register-duplicate' | 'register-unique';
       name: string;
     };
 
 type ScenarioRunner = (scenario: ScenarioCase) => void;
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'constructor-throws': (scenario) => {
     assert.throws(() => {
       Reflect.construct(ErrorCodeRegistry, []);
@@ -55,7 +55,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 function runCase(scenario: ScenarioCase): void {
-  runnerMap[scenario.kind](scenario);
+  runnerMap[scenario.shape](scenario);
 }
 
 void describe('ErrorCodeRegistry', () => {

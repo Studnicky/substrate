@@ -3,12 +3,12 @@
     {
       "name": "bounded-dispatcher-dispatch-success",
       "description": "publishes start then success for a resolving fn",
-      "kind": "dispatch-success",
+      "shape": "dispatch-success",
       "input": {
         "dispatcher": {
-          "bus": { "kind": "default" },
+          "bus": { "shape": "default" },
           "options": {},
-          "scheduler": { "kind": "default" }
+          "scheduler": { "shape": "default" }
         },
         "result": "ok"
       },
@@ -23,12 +23,12 @@
     {
       "name": "bounded-dispatcher-dispatch-error",
       "description": "publishes start then error for a rejecting fn, and rethrows",
-      "kind": "dispatch-error",
+      "shape": "dispatch-error",
       "input": {
         "dispatcher": {
-          "bus": { "kind": "default" },
+          "bus": { "shape": "default" },
           "options": {},
-          "scheduler": { "kind": "default" }
+          "scheduler": { "shape": "default" }
         },
         "errorMessage": "boom"
       },
@@ -41,12 +41,12 @@
     {
       "name": "bounded-dispatcher-dispatch-concurrency-bound",
       "description": "never runs more than permits fn bodies concurrently",
-      "kind": "dispatch-concurrency-bound",
+      "shape": "dispatch-concurrency-bound",
       "input": {
         "dispatcher": {
-          "bus": { "kind": "default" },
+          "bus": { "shape": "default" },
           "options": { "permits": 2 },
-          "scheduler": { "kind": "default" }
+          "scheduler": { "shape": "default" }
         },
         "batch": { "labels": ["a", "b", "c", "d", "e"] }
       },
@@ -55,12 +55,12 @@
     {
       "name": "bounded-dispatcher-dispatch-serializes",
       "description": "serializes fn bodies entirely when permits is 1",
-      "kind": "dispatch-serializes",
+      "shape": "dispatch-serializes",
       "input": {
         "dispatcher": {
-          "bus": { "kind": "default" },
+          "bus": { "shape": "default" },
           "options": { "permits": 1 },
-          "scheduler": { "kind": "default" }
+          "scheduler": { "shape": "default" }
         },
         "batch": { "taskCount": 3 }
       },
@@ -69,12 +69,12 @@
     {
       "name": "bounded-dispatcher-backpressure-isolation",
       "description": "runs permits fn bodies concurrently even while the dispatch subscriber is stalled",
-      "kind": "backpressure-isolation",
+      "shape": "backpressure-isolation",
       "input": {
         "dispatcher": {
-          "bus": { "kind": "options", "options": { "highWaterMark": 1 } },
+          "bus": { "shape": "options", "options": { "highWaterMark": 1 } },
           "options": { "permits": 3 },
-          "scheduler": { "kind": "default" }
+          "scheduler": { "shape": "default" }
         },
         "batch": { "taskCount": 3 }
       },
@@ -83,12 +83,12 @@
     {
       "name": "bounded-dispatcher-reject-start-publication",
       "description": "records a rejected start publication and retains the work result",
-      "kind": "reject-start-publication",
+      "shape": "reject-start-publication",
       "input": {
         "dispatcher": {
-          "bus": { "failureOrdinal": 1, "kind": "rejecting" },
+          "bus": { "failureOrdinal": 1, "shape": "rejecting" },
           "options": {},
-          "scheduler": { "kind": "default" }
+          "scheduler": { "shape": "default" }
         },
         "publicationCauseMessage": "reject-start-publication failed",
         "result": "work result"
@@ -98,12 +98,12 @@
     {
       "name": "bounded-dispatcher-reject-success-publication",
       "description": "records a rejected success publication and retains the work result",
-      "kind": "reject-success-publication",
+      "shape": "reject-success-publication",
       "input": {
         "dispatcher": {
-          "bus": { "failureOrdinal": 2, "kind": "rejecting" },
+          "bus": { "failureOrdinal": 2, "shape": "rejecting" },
           "options": {},
-          "scheduler": { "kind": "default" }
+          "scheduler": { "shape": "default" }
         },
         "publicationCauseMessage": "reject-success-publication failed",
         "result": "work result"
@@ -113,12 +113,12 @@
     {
       "name": "bounded-dispatcher-reject-error-publication",
       "description": "records a rejected error publication and retains the work error",
-      "kind": "reject-error-publication",
+      "shape": "reject-error-publication",
       "input": {
         "dispatcher": {
-          "bus": { "failureOrdinal": 2, "kind": "rejecting" },
+          "bus": { "failureOrdinal": 2, "shape": "rejecting" },
           "options": {},
-          "scheduler": { "kind": "default" }
+          "scheduler": { "shape": "default" }
         },
         "publicationCauseMessage": "reject-error-publication failed",
         "workErrorMessage": "work failed"
@@ -128,12 +128,12 @@
     {
       "name": "bounded-dispatcher-snapshot-hook-failures",
       "description": "returns nested snapshots that cannot mutate retained hook failures",
-      "kind": "snapshot-hook-failures",
+      "shape": "snapshot-hook-failures",
       "input": {
         "dispatcher": {
-          "bus": { "failureOrdinal": 1, "kind": "rejecting" },
+          "bus": { "failureOrdinal": 1, "shape": "rejecting" },
           "options": {},
-          "scheduler": { "kind": "default" }
+          "scheduler": { "shape": "default" }
         },
         "publicationCauseValue": 1,
         "mutatedValue": 99,
@@ -144,13 +144,13 @@
     {
       "name": "bounded-dispatcher-schedule-fires",
       "description": "fires fn through dispatch only once virtual time reaches atMs",
-      "kind": "schedule-fires",
+      "shape": "schedule-fires",
       "input": {
         "dispatcher": {
           "atMs": 1000,
-          "bus": { "kind": "default" },
+          "bus": { "shape": "default" },
           "options": {},
-          "scheduler": { "counter": {}, "kind": "virtual" }
+          "scheduler": { "counter": {}, "shape": "virtual" }
         },
         "fireResult": "scheduled-done"
       },
@@ -159,13 +159,13 @@
     {
       "name": "bounded-dispatcher-schedule-cancel",
       "description": "returns the scheduler-owned task handle and cancel prevents the fire",
-      "kind": "schedule-cancel",
+      "shape": "schedule-cancel",
       "input": {
         "dispatcher": {
           "atMs": 1000,
-          "bus": { "kind": "default" },
+          "bus": { "shape": "default" },
           "options": {},
-          "scheduler": { "counter": {}, "kind": "virtual" }
+          "scheduler": { "counter": {}, "shape": "virtual" }
         }
       },
       "expected": { "fired": false, "cancelType": "function", "atMs": 1000 }
@@ -173,13 +173,13 @@
     {
       "name": "bounded-dispatcher-schedule-uses-dispatch",
       "description": "routes the scheduled fn through the permit bound like a direct dispatch call",
-      "kind": "schedule-uses-dispatch",
+      "shape": "schedule-uses-dispatch",
       "input": {
         "dispatcher": {
           "atMs": 100,
-          "bus": { "kind": "default" },
+          "bus": { "shape": "default" },
           "options": { "permits": 1 },
-          "scheduler": { "counter": {}, "kind": "virtual" }
+          "scheduler": { "counter": {}, "shape": "virtual" }
         }
       },
       "expected": { "order": ["scheduled-start", "scheduled-end"] }

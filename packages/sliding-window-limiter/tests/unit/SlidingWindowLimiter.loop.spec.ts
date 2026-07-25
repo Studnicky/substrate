@@ -11,7 +11,7 @@ import { SlidingWindowLimiter } from '../../src/SlidingWindowLimiter.js';
 import type { SlidingWindowLimiterOptionsInterface } from '../../src/interfaces/SlidingWindowLimiterOptionsInterface.js';
 import scenarioGroups from './SlidingWindowLimiter.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'async-allow-rejection'
   | 'async-notification-order'
   | 'counter-blends-previous-window'
@@ -34,7 +34,7 @@ type ScenarioCase =
     description: string;
     expected: Record<string, unknown>;
     input: Record<string, unknown>;
-    kind: ScenarioKind;
+    shape: ScenarioShape;
     name: string;
   };
 
@@ -64,7 +64,7 @@ function resolveLimiterConfig(input: SlidingWindowLimiterInput, clock?: () => nu
   return clock === undefined ? config : { ...config, clock };
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'async-allow-rejection': (scenarioCase) => {
       const input = slidingWindowLimiterInput(scenarioCase.input);
       const expected = scenarioCase.expected as { errorCount: number; hookNames: Array<'onAllow'> };
@@ -397,7 +397,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('SlidingWindowLimiter', () => {

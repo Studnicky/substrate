@@ -11,11 +11,11 @@ type RetryScenarioInput = Record<string, unknown> & {
 };
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; kind: 'configured-not-reached' | 'count-wins' | 'default-behavior' | 'time-wins'; name: string };
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'configured-not-reached' | 'count-wins' | 'default-behavior' | 'time-wins'; name: string };
 
 type ScenarioRunner = (scenario: ScenarioCase) => Promise<void>;
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'configured-not-reached': async (scenario) => {
     const { expected, input } = scenario;
     const retry = Retry.create({
@@ -94,7 +94,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.kind](scenario);
+  await runnerMap[scenario.shape](scenario);
 }
 
 void describe('Retry maxElapsedMs', () => {

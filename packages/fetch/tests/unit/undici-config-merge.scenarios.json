@@ -29,7 +29,7 @@
         }
       },
       "expected": {
-        "kind": "dispatcher"
+        "shape": "dispatcher"
       }
     },
     {
@@ -42,7 +42,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
@@ -58,7 +58,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "not declared in the schema"
         ]
@@ -74,7 +74,7 @@
         }
       },
       "expected": {
-        "kind": "dispatcher"
+        "shape": "dispatcher"
       }
     },
     {
@@ -90,7 +90,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
@@ -109,7 +109,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.invalidKey",
           "not declared in the schema"
@@ -122,7 +122,7 @@
       "operation": "defaults",
       "input": {},
       "expected": {
-        "kind": "defaults",
+        "shape": "defaults",
         "values": {
           "connectTimeout": 10000,
           "headersTimeout": 30000,
@@ -139,7 +139,7 @@
       "operation": "defaults",
       "input": {},
       "expected": {
-        "kind": "defaults",
+        "shape": "defaults",
         "values": {
           "connections": 10,
           "pipelining": 1,
@@ -153,7 +153,7 @@
       "operation": "defaults",
       "input": {},
       "expected": {
-        "kind": "defaults",
+        "shape": "defaults",
         "values": {
           "maxHeaderSize": 16384,
           "maxResponseSize": -1
@@ -166,7 +166,7 @@
       "operation": "defaults",
       "input": {},
       "expected": {
-        "kind": "defaults",
+        "shape": "defaults",
         "values": {
           "allowH2": false
         }
@@ -178,7 +178,7 @@
       "operation": "defaults",
       "input": {},
       "expected": {
-        "kind": "defaults",
+        "shape": "defaults",
         "values": {
           "autoSelectFamily": false,
           "autoSelectFamilyAttemptTimeout": 250
@@ -191,7 +191,7 @@
       "operation": "defaults",
       "input": {},
       "expected": {
-        "kind": "defaults",
+        "shape": "defaults",
         "values": {
           "strictContentLength": true
         }
@@ -205,7 +205,7 @@
         "dispatcher": {}
       },
       "expected": {
-        "kind": "dispatcher"
+        "shape": "dispatcher"
       }
     },
     {
@@ -236,7 +236,7 @@
         }
       },
       "expected": {
-        "kind": "dispatcher"
+        "shape": "dispatcher"
       }
     },
     {
@@ -252,7 +252,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
@@ -271,7 +271,7 @@
         }
       },
       "expected": {
-        "kind": "fetch-client"
+        "shape": "fetch-client"
       }
     },
     {
@@ -286,7 +286,7 @@
         }
       },
       "expected": {
-        "kind": "fetch-client"
+        "shape": "fetch-client"
       }
     },
     {
@@ -321,7 +321,7 @@
         }
       },
       "expected": {
-        "kind": "fetch-client"
+        "shape": "fetch-client"
       }
     }
   ]

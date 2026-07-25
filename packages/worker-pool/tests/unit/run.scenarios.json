@@ -23,7 +23,7 @@
           { "ms": 1, "value": "d" }
         ]
       },
-      "kind": "result-order",
+      "shape": "result-order",
       "name": "result-order"
     },
     {
@@ -45,7 +45,7 @@
           "workerPath": "../fixtures/concurrencyWorker.mjs"
         }
       },
-      "kind": "bounded-concurrency",
+      "shape": "bounded-concurrency",
       "name": "bounded-concurrency"
     },
     {
@@ -70,7 +70,7 @@
           { "value": "d" }
         ]
       },
-      "kind": "error-fail-fast",
+      "shape": "error-fail-fast",
       "name": "error-fail-fast"
     },
     {
@@ -93,7 +93,7 @@
           { "value": "recovered" }
         ]
       },
-      "kind": "exit-retry",
+      "shape": "exit-retry",
       "name": "exit-retry"
     }
     ,
@@ -112,7 +112,7 @@
           { "value": "never" }
         ]
       },
-      "kind": "exit-retry-fails",
+      "shape": "exit-retry-fails",
       "name": "exit-retry-fails"
     }
     ,
@@ -138,7 +138,7 @@
           { "value": "last" }
         ]
       },
-      "kind": "exit-retry",
+      "shape": "exit-retry",
       "name": "exit-retry-queued"
     },
     {
@@ -157,7 +157,7 @@
           { "ms": 50, "value": "slow" }
         ]
       },
-      "kind": "timeout-rejects",
+      "shape": "timeout-rejects",
       "name": "timeout-rejects"
     },
     {
@@ -180,7 +180,7 @@
           { "value": "second" }
         ]
       },
-      "kind": "exit-retry",
+      "shape": "exit-retry",
       "name": "exit-retry-after-result"
     }
   ]

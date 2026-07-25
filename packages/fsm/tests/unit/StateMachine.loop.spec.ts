@@ -20,7 +20,7 @@ type ScenarioCase =
         stateVariant: 'on' | 'off';
       };
       input: ToggleState;
-      kind: 'transitions-off-on';
+      shape: 'transitions-off-on';
       name: string;
     }
   | {
@@ -29,7 +29,7 @@ type ScenarioCase =
         stateVariant: 'on' | 'off';
       };
       input: ToggleState;
-      kind: 'transitions-on-off';
+      shape: 'transitions-on-off';
       name: string;
     }
   | {
@@ -40,7 +40,7 @@ type ScenarioCase =
         stateVariant: string;
       };
       input: ToggleState;
-      kind: 'wraps-reducer-throw';
+      shape: 'wraps-reducer-throw';
       name: string;
     }
   | {
@@ -51,7 +51,7 @@ type ScenarioCase =
         stateVariant: string;
       };
       input: ToggleState;
-      kind: 'rejected-error-surfaces';
+      shape: 'rejected-error-surfaces';
       name: string;
     }
   | {
@@ -60,7 +60,7 @@ type ScenarioCase =
         errorName: string;
       };
       input: ToggleState;
-      kind: 'plain-error-wraps';
+      shape: 'plain-error-wraps';
       name: string;
     }
   | {
@@ -72,7 +72,7 @@ type ScenarioCase =
         secondStateVariant: string;
       };
       input: ToggleState;
-      kind: 'terminated-blocks-transition';
+      shape: 'terminated-blocks-transition';
       name: string;
     }
   | {
@@ -83,7 +83,7 @@ type ScenarioCase =
         callEventType: string;
       };
       input: ToggleState;
-      kind: 'terminated-access-hook';
+      shape: 'terminated-access-hook';
       name: string;
     };
 
@@ -133,7 +133,7 @@ class TerminatingMachine extends StateMachine<ToggleState, ToggleEvent> {
   }
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'plain-error-wraps': (scenarioCase) => {
     const machine = new ThrowingMachine();
     assert.throws(
@@ -219,7 +219,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 void describe('StateMachine', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
-      runnerMap[scenario.kind](scenario);
+      runnerMap[scenario.shape](scenario);
     });
   }
 });

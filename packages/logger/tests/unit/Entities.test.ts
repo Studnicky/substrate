@@ -5,7 +5,7 @@ import {
   CloudWatchLogSchemaFieldsEntity,
   LogBody,
   LogDataEntity,
-  LoggerHookEventKindEntity
+  LoggerHookEventShapeEntity
 } from '../../src/index.js';
 
 describe('logger composition entities', () => {
@@ -25,11 +25,11 @@ describe('logger composition entities', () => {
       'service': 'api',
       'time': '2026-07-19T00:00:00.000Z'
     }), true);
-    assert.equal(LoggerHookEventKindEntity.validate('transportError'), true);
+    assert.equal(LoggerHookEventShapeEntity.validate('transportError'), true);
   });
 
   it('rejects values outside the composed schemas', () => {
     assert.equal(LogDataEntity.validate({ 'message': 'missing fields' }), false);
-    assert.equal(LoggerHookEventKindEntity.validate('unknown'), false);
+    assert.equal(LoggerHookEventShapeEntity.validate('unknown'), false);
   });
 });

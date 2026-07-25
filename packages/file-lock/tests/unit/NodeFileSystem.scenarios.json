@@ -3,7 +3,7 @@
     {
       "name": "forwards-file-system-operations",
       "description": "NodeFileSystem forwards all supported operations to node:fs",
-      "kind": "forwards-file-system-operations",
+      "shape": "forwards-file-system-operations",
       "input": {},
       "expected": {
         "forwarded": true

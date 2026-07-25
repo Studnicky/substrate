@@ -13,7 +13,7 @@ type ScenarioCase =
       description: string;
       expected: { validationResults: boolean[] };
       input: { validations: ValidationCase[] };
-      kind: 'client-config-invalid' | 'client-config-valid' | 'request-options-invalid' | 'request-options-valid';
+      shape: 'client-config-invalid' | 'client-config-valid' | 'request-options-invalid' | 'request-options-valid';
       name: string;
     };
 

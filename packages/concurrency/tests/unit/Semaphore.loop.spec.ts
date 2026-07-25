@@ -7,27 +7,27 @@ import { SemaphoreError } from '../../src/errors/index.js';
 import scenarioGroups from './Semaphore.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'reject-zero' | 'reject-fractional' | 'reject-negative'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'getter-reflects-permits'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'acquire-release-cycle'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'double-release-safe'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'queue-waiters'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'withPermit-runs'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'withPermit-throws'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'onAcquire-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'onAcquireWait-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'onAcquireWait-multiwaiter'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'onRelease-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'onReleaseDelegated-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'throwing-onAcquire'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'throwing-onContended'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'async-onAcquire-reject'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'async-onAcquire-reserve'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'async-onAcquireWait-reject'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'async-onContended-reject'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'fifo-swap'; name: string };
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'reject-zero' | 'reject-fractional' | 'reject-negative'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'getter-reflects-permits'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'acquire-release-cycle'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'double-release-safe'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'queue-waiters'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'withPermit-runs'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'withPermit-throws'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onAcquire-hooks'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onAcquireWait-hooks'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onAcquireWait-multiwaiter'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onRelease-hooks'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onReleaseDelegated-hooks'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-onAcquire'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-onContended'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-onAcquire-reject'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-onAcquire-reserve'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-onAcquireWait-reject'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-onContended-reject'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'fifo-swap'; name: string };
 
-type ScenarioKind = ScenarioCase['kind'];
+type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
 function flushMicrotasks(): Promise<void> {
@@ -67,7 +67,7 @@ const rejectInvalidPermits: ScenarioRunner = (scenarioCase) => {
     });
 };
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'acquire-release-cycle': async (scenarioCase) => {
     const input = scenarioCase.input as { semaphore: { permits: number } };
     const expected = scenarioCase.expected as { availableAfterAcquire1: number; availableAfterAcquire2: number; availableAfterRelease1: number; availableAfterRelease2: number; availableInitial: number };
@@ -392,7 +392,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Semaphore', () => {

@@ -31,27 +31,27 @@ type ScenarioCase =
   | (ScenarioCaseBaseInterface & {
       expected: { errorMessageIncludes: string };
       input: { workerPool: WorkerPoolInputInterface };
-      kind: 'missing-worker-path';
+      shape: 'missing-worker-path';
     })
   | (ScenarioCaseBaseInterface & {
       expected: { results: string[] };
       input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      kind: 'default-concurrency';
+      shape: 'default-concurrency';
     })
   | (ScenarioCaseBaseInterface & {
       expected: { composeCalls: number; results: string[] };
-      input: { items: ItemInterface[]; signal: { kind: 'tracking' }; workerPool: WorkerPoolInputInterface };
-      kind: 'caller-supplied-signal';
+      input: { items: ItemInterface[]; signal: { shape: 'tracking' }; workerPool: WorkerPoolInputInterface };
+      shape: 'caller-supplied-signal';
     })
   | (ScenarioCaseBaseInterface & {
       expected: { results: string[] };
       input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      kind: 'explicit-bounded-concurrency';
+      shape: 'explicit-bounded-concurrency';
     })
   | (ScenarioCaseBaseInterface & {
       expected: { errorMessageIncludes: string };
       input: { workerPool: WorkerPoolInputInterface };
-      kind: 'foreign-construction';
+      shape: 'foreign-construction';
     });
 
 function resolveWorkerPath(relativePath: string): string {
@@ -81,7 +81,7 @@ function resolveRequiredPoolConfig(config: WorkerPoolInputInterface): WorkerPool
   };
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'missing-worker-path': async (scenarioCase) => {
     assert.throws(() => WorkerPool.create(resolvePoolConfig(scenarioCase.input.workerPool)), (error: unknown) => {
       assert.ok(error instanceof Error);
@@ -145,7 +145,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool.create', () => {

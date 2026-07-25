@@ -7,7 +7,7 @@
       "input": {
         "visibleRange": { "count": 100 }
       },
-      "kind": "missing-size"
+      "shape": "missing-size"
     },
     {
       "name": "ambiguous-size",
@@ -16,7 +16,7 @@
       "input": {
         "visibleRange": { "count": 100, "estimateSizeValue": 40, "itemSize": 40 }
       },
-      "kind": "ambiguous-size"
+      "shape": "ambiguous-size"
     },
     {
       "name": "zero-size",
@@ -25,7 +25,7 @@
       "input": {
         "visibleRange": { "count": 100, "itemSize": 0 }
       },
-      "kind": "zero-size"
+      "shape": "zero-size"
     },
     {
       "name": "negative-size",
@@ -34,7 +34,7 @@
       "input": {
         "visibleRange": { "count": 100, "itemSize": -5 }
       },
-      "kind": "negative-size"
+      "shape": "negative-size"
     },
     {
       "name": "error-args",
@@ -43,7 +43,7 @@
       "input": {
         "visibleRange": { "count": 100, "itemSize": 0 }
       },
-      "kind": "error-args"
+      "shape": "error-args"
     }
   ]
 }

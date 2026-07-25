@@ -13,7 +13,7 @@ type ScenarioCase =
       description: string;
       expected: { importsWithoutThrow: true };
       input: { entrypoint: string };
-      kind: 'basicThrottle' | 'boundaryKitComposition' | 'drainThrottle' | 'observedThrottle';
+      shape: 'basicThrottle' | 'boundaryKitComposition' | 'drainThrottle' | 'observedThrottle';
       name: string;
     };
 

@@ -67,7 +67,7 @@ export { LogBodyDataEntity } from './entities/LogBodyDataEntity.js';
 export { LogDataEntity } from './entities/LogDataEntity.js';
 export { LogFaultConfigEntity } from './entities/LogFaultConfigEntity.js';
 export { LogFaultDataEntity } from './entities/LogFaultDataEntity.js';
-export { LoggerHookEventKindEntity } from './entities/LoggerHookEventKindEntity.js';
+export { LoggerHookEventShapeEntity } from './entities/LoggerHookEventShapeEntity.js';
 export { LoggerOptionsEntity } from './entities/LoggerOptionsEntity.js';
 export { LogLevelEntity } from './entities/LogLevelEntity.js';
 export { LogLevelNameEntity } from './entities/LogLevelNameEntity.js';

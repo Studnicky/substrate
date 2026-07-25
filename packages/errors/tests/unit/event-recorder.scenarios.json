@@ -3,9 +3,9 @@
     {
       "name": "detaches-recorded-events",
       "description": "detaches recorded events and every public projection",
-      "kind": "detaches-recorded-events",
-      "input": { "recorder": { "event": { "kind": "request", "nested": { "value": 1 } } } },
-      "expected": { "firstProjection": { "kind": "request", "nested": { "value": 1 } }, "detachedProjection": { "kind": "request", "nested": { "value": 1 } } }
+      "shape": "detaches-recorded-events",
+      "input": { "recorder": { "event": { "shape": "request", "nested": { "value": 1 } } } },
+      "expected": { "firstProjection": { "shape": "request", "nested": { "value": 1 } }, "detachedProjection": { "shape": "request", "nested": { "value": 1 } } }
     }
   ]
 }

@@ -3,7 +3,7 @@
     {
       "name": "initial-stats",
       "description": "Throttle returns correct initial stats",
-      "kind": "initial-stats",
+      "shape": "initial-stats",
       "input": { "throttle": { "concurrencyLimit": 5 } },
       "expected": {
         "stats": {
@@ -20,14 +20,14 @@
     {
       "name": "is-complete-initially",
       "description": "Throttle is complete when no operations are active or queued",
-      "kind": "is-complete-initially",
+      "shape": "is-complete-initially",
       "input": { "throttle": { "concurrencyLimit": 2 } },
       "expected": { "isComplete": true }
     },
     {
       "name": "adaptive-latency-stats",
       "description": "Throttle includes latency stats after adaptive execution completes",
-      "kind": "adaptive-latency-stats",
+      "shape": "adaptive-latency-stats",
       "input": {
         "result": "ok",
         "throttle": {
@@ -44,7 +44,7 @@
     {
       "name": "adaptive-scales-up",
       "description": "Throttle increases concurrency when adaptive latency stays low",
-      "kind": "adaptive-scales-up",
+      "shape": "adaptive-scales-up",
       "input": {
         "batch": {
           "itemCount": 10,
@@ -71,7 +71,7 @@
     {
       "name": "adaptive-scales-down",
       "description": "Throttle decreases concurrency when adaptive latency stays high",
-      "kind": "adaptive-scales-down",
+      "shape": "adaptive-scales-down",
       "input": {
         "batch": {
           "itemCount": 10,

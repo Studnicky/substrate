@@ -48,15 +48,15 @@ function summarize(files) {
   const packages = new Map();
 
   for (const file of files) {
-    const kind = classify(file);
-    if (!(kind in counts)) {
+    const shape = classify(file);
+    if (!(shape in counts)) {
       continue;
     }
-    counts[kind] += 1;
+    counts[shape] += 1;
 
     const packageName = getPackageName(file);
     const current = packages.get(packageName) ?? { 'legacy': 0, 'loop': 0, 'scenarios': 0 };
-    current[kind] += 1;
+    current[shape] += 1;
     packages.set(packageName, current);
   }
 

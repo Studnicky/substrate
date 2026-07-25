@@ -7,7 +7,7 @@ import scenarioGroups from './LruCache.scenarios.json' with { type: 'json' };
 
 import { LruCache } from '../../src/LruCache.js';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'clear-empties-cache'
   | 'delete-existing'
   | 'delete-missing'
@@ -47,20 +47,20 @@ type ScenarioKind =
   | 'ttl-before-expiry'
   | 'ttl-expires-after-delay';
 
-type BaseScenarioCase<Kind extends ScenarioKind> = {
+type BaseScenarioCase<Shape extends ScenarioShape> = {
   description: string;
   expected: Record<string, unknown>;
   input: Record<string, unknown>;
-  kind: Kind;
+  shape: Shape;
   name: string;
 };
 
-type ScenarioCaseByKind = {
-  [Kind in ScenarioKind]: BaseScenarioCase<Kind>;
+type ScenarioCaseByShape = {
+  [Shape in ScenarioShape]: BaseScenarioCase<Shape>;
 };
 
-type ScenarioCase = ScenarioCaseByKind[ScenarioKind];
-type ScenarioRunnerMap = Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<void> | void>;
+type ScenarioCase = ScenarioCaseByShape[ScenarioShape];
+type ScenarioRunnerMap = Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void> | void>;
 
 class RecordingCache extends LruCache<string, number> {
   readonly log: Array<
@@ -553,8 +553,8 @@ const runnerMap = {
   }
 } satisfies ScenarioRunnerMap;
 
-function runCase<Kind extends ScenarioKind>(scenarioCase: ScenarioCaseByKind[Kind]): Promise<void> | void {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseByShape[Shape]): Promise<void> | void {
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('LruCache', () => {

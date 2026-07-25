@@ -6,14 +6,14 @@ import { TimingEvent } from '../../src/modules/TimingEvent.js';
 import scenarioGroups from './NoOpTiming.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: { chainResult: true; durationMs: 0; sameInstance: true }; input: { event: Parameters<typeof TimingEvent.create>[0] }; kind: 'create-clear-event-get-events'; name: string }
-  | { description: string; expected: { empty: true; durationMs: 0 }; input: Record<string, never>; kind: 'get-events-empty'; name: string };
+  | { description: string; expected: { chainResult: true; durationMs: 0; sameInstance: true }; input: { event: Parameters<typeof TimingEvent.create>[0] }; shape: 'create-clear-event-get-events'; name: string }
+  | { description: string; expected: { empty: true; durationMs: 0 }; input: Record<string, never>; shape: 'get-events-empty'; name: string };
 
 function createTimingEvent(input: Parameters<typeof TimingEvent.create>[0]): ReturnType<typeof TimingEvent.create> {
   return TimingEvent.create(input);
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'create-clear-event-get-events': (scenarioCase) => {
     const timer = NoOpTiming.create();
     const afterEvent = timer.event(createTimingEvent(scenarioCase.input.event));
@@ -36,7 +36,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('NoOpTiming', () => {

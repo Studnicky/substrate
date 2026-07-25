@@ -13,12 +13,12 @@ type RuntimeValue =
   | { [key: string]: RuntimeValue };
 
 type RuntimeTag =
-  | { __kind: 'infinity' }
-  | { __kind: 'undefined' };
+  | { __shape: 'infinity' }
+  | { __shape: 'undefined' };
 
 type ExpectedOutcome =
-  | { kind: 'ok'; messageIncludes?: readonly string[] }
-  | { kind: 'throws'; messageIncludes: readonly string[] };
+  | { shape: 'ok'; messageIncludes?: readonly string[] }
+  | { shape: 'throws'; messageIncludes: readonly string[] };
 
 type ScenarioCase = {
   description: string;
@@ -34,13 +34,13 @@ import scenarioGroups from './undici-config-validation.scenarios.json';
 type ExpectedOutcomeRunner = (config: unknown, expected: ExpectedOutcome) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 
-const runtimeTagMap: Record<RuntimeTag['__kind'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['__shape'], RuntimeTagMaterializer> = {
   infinity: () => Number.POSITIVE_INFINITY,
   undefined: () => undefined
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && '__kind' in value;
+  return value !== null && typeof value === 'object' && '__shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -49,7 +49,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.__kind](value);
+    return runtimeTagMap[value.__shape](value);
   }
 
   if (value !== null && typeof value === 'object') {
@@ -65,7 +65,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   return value;
 }
 
-const expectedOutcomeMap: Record<ExpectedOutcome['kind'], ExpectedOutcomeRunner> = {
+const expectedOutcomeMap: Record<ExpectedOutcome['shape'], ExpectedOutcomeRunner> = {
   ok: (config) => {
     assert.doesNotThrow(() => {
       validateDispatcher(config);
@@ -86,7 +86,7 @@ const expectedOutcomeMap: Record<ExpectedOutcome['kind'], ExpectedOutcomeRunner>
 
 function runCase(scenarioCase: ScenarioCase): void {
   const config = materializeRuntimeValue(scenarioCase.input.dispatcher);
-  expectedOutcomeMap[scenarioCase.expected.kind](config, scenarioCase.expected);
+  expectedOutcomeMap[scenarioCase.expected.shape](config, scenarioCase.expected);
 }
 
 void describe('pool configuration validation', () => {

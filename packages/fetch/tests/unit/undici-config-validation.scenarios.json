@@ -4,11 +4,11 @@
       "name": "dispatcher-undefined",
       "description": "validateDispatcher accepts undefined",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "dispatcher": {
-          "__kind": "undefined"
+          "__shape": "undefined"
         }
       }
     },
@@ -16,7 +16,7 @@
       "name": "dispatcher-null",
       "description": "validateDispatcher accepts null",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "dispatcher": null
@@ -26,7 +26,7 @@
       "name": "dispatcher-non-object",
       "description": "validateDispatcher rejects non-object values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher must be an object"
         ]
@@ -39,7 +39,7 @@
       "name": "dispatcher-array",
       "description": "validateDispatcher rejects array values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher must be an object"
         ]
@@ -57,7 +57,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -69,7 +69,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -81,7 +81,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a boolean"
         ]
@@ -96,7 +96,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -108,7 +108,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -117,12 +117,12 @@
       "input": {
         "dispatcher": {
           "connections": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -134,7 +134,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
@@ -149,7 +149,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
@@ -164,7 +164,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must not exceed 1000"
         ]
@@ -179,7 +179,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be an integer"
         ]
@@ -194,7 +194,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
@@ -209,7 +209,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -221,7 +221,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -233,7 +233,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
@@ -248,7 +248,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must not exceed 10"
         ]
@@ -263,7 +263,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be an integer"
         ]
@@ -278,7 +278,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -290,7 +290,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
@@ -302,12 +302,12 @@
       "input": {
         "dispatcher": {
           "connectTimeout": {
-            "__kind": "infinity"
+            "__shape": "infinity"
           }
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
@@ -322,7 +322,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
@@ -337,7 +337,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -349,7 +349,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
@@ -361,12 +361,12 @@
       "input": {
         "dispatcher": {
           "bodyTimeout": {
-            "__kind": "infinity"
+            "__shape": "infinity"
           }
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
@@ -381,7 +381,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
@@ -396,7 +396,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -408,7 +408,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
@@ -420,12 +420,12 @@
       "input": {
         "dispatcher": {
           "headersTimeout": {
-            "__kind": "infinity"
+            "__shape": "infinity"
           }
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
@@ -440,7 +440,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
@@ -455,7 +455,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -467,7 +467,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
@@ -479,12 +479,12 @@
       "input": {
         "dispatcher": {
           "keepAliveTimeout": {
-            "__kind": "infinity"
+            "__shape": "infinity"
           }
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
@@ -499,7 +499,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
@@ -514,7 +514,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -526,7 +526,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
@@ -538,12 +538,12 @@
       "input": {
         "dispatcher": {
           "keepAliveMaxTimeout": {
-            "__kind": "infinity"
+            "__shape": "infinity"
           }
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
@@ -558,7 +558,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
@@ -573,7 +573,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -585,7 +585,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
@@ -597,12 +597,12 @@
       "input": {
         "dispatcher": {
           "keepAliveTimeoutThreshold": {
-            "__kind": "infinity"
+            "__shape": "infinity"
           }
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
@@ -617,7 +617,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
@@ -632,7 +632,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -644,7 +644,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a boolean"
         ]
@@ -659,7 +659,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -671,7 +671,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
@@ -686,7 +686,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be an integer"
         ]
@@ -701,7 +701,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
@@ -716,7 +716,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -728,7 +728,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -740,7 +740,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be -1"
         ]
@@ -755,7 +755,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
@@ -770,7 +770,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -782,7 +782,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
@@ -797,7 +797,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -806,12 +806,12 @@
       "input": {
         "dispatcher": {
           "maxRequestsPerClient": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -823,7 +823,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -835,7 +835,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
@@ -850,7 +850,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -859,12 +859,12 @@
       "input": {
         "dispatcher": {
           "clientTtl": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -876,7 +876,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -888,7 +888,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
@@ -903,7 +903,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -915,7 +915,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a boolean"
         ]
@@ -930,7 +930,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -939,12 +939,12 @@
       "input": {
         "dispatcher": {
           "localAddress": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -956,7 +956,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -968,7 +968,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must not be empty"
         ]
@@ -983,7 +983,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a string"
         ]
@@ -998,7 +998,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -1010,7 +1010,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be a boolean"
         ]
@@ -1025,7 +1025,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -1037,7 +1037,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
@@ -1052,7 +1052,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -1061,12 +1061,12 @@
       "input": {
         "dispatcher": {
           "maxOrigins": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -1078,7 +1078,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     },
     {
@@ -1090,7 +1090,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
@@ -1105,7 +1105,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "must be an integer"
         ]
@@ -1115,7 +1115,7 @@
       "name": "max-header-size-non-number",
       "description": "validateDispatcher rejects non-number maxHeaderSize",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.maxHeaderSize must be a number"
         ]
@@ -1130,7 +1130,7 @@
       "name": "max-requests-per-client-non-number",
       "description": "validateDispatcher rejects non-number maxRequestsPerClient",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.maxRequestsPerClient must be a number"
         ]
@@ -1145,7 +1145,7 @@
       "name": "client-ttl-non-number",
       "description": "validateDispatcher rejects non-number clientTtl",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.clientTtl must be a number"
         ]
@@ -1160,7 +1160,7 @@
       "name": "local-address-non-string",
       "description": "validateDispatcher rejects non-string localAddress",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.localAddress must be a string"
         ]
@@ -1175,7 +1175,7 @@
       "name": "local-address-empty-string",
       "description": "validateDispatcher rejects empty localAddress",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.localAddress must not be empty"
         ]
@@ -1190,7 +1190,7 @@
       "name": "max-origins-non-number",
       "description": "validateDispatcher rejects non-number maxOrigins",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.maxOrigins must be a number"
         ]
@@ -1205,7 +1205,7 @@
       "name": "max-response-size-non-integer",
       "description": "validateDispatcher rejects non-integer maxResponseSize",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.maxResponseSize must be an integer"
         ]
@@ -1220,7 +1220,7 @@
       "name": "pipelining-non-number",
       "description": "validateDispatcher rejects non-number pipelining",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.pipelining must be a number"
         ]
@@ -1235,7 +1235,7 @@
       "name": "auto-select-family-attempt-timeout-non-number",
       "description": "validateDispatcher rejects non-number autoSelectFamilyAttemptTimeout",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "dispatcher.autoSelectFamilyAttemptTimeout must be a number"
         ]
@@ -1255,7 +1255,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "unknownKey",
           "not declared in the schema"
@@ -1271,7 +1271,7 @@
         }
       },
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "conections",
           "not declared in the schema"
@@ -1306,7 +1306,7 @@
         }
       },
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       }
     }
   ]

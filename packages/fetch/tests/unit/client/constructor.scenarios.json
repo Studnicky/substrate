@@ -3,7 +3,7 @@
     {
       "name": "valid-no-config",
       "description": "FetchClient.create creates a client with no config",
-      "kind": "valid-no-config",
+      "shape": "valid-no-config",
       "input": {
         "fetchClient": {}
       },
@@ -14,7 +14,7 @@
     {
       "name": "valid-baseURL",
       "description": "FetchClient.create creates a client with baseURL",
-      "kind": "valid-baseURL",
+      "shape": "valid-baseURL",
       "input": {
         "fetchClient": {
           "baseURL": "https://api.example.com"
@@ -27,7 +27,7 @@
     {
       "name": "valid-headers",
       "description": "FetchClient.create creates a client with default headers",
-      "kind": "valid-headers",
+      "shape": "valid-headers",
       "input": {
         "fetchClient": {
           "headers": {
@@ -42,7 +42,7 @@
     {
       "name": "valid-timeout",
       "description": "FetchClient.create creates a client with timeout",
-      "kind": "valid-timeout",
+      "shape": "valid-timeout",
       "input": {
         "fetchClient": {
           "timeout": 5000
@@ -55,7 +55,7 @@
     {
       "name": "valid-dispatcher",
       "description": "FetchClient.create creates a client with dispatcher",
-      "kind": "valid-dispatcher",
+      "shape": "valid-dispatcher",
       "input": {
         "fetchClient": {
           "dispatcher": {
@@ -71,11 +71,11 @@
     {
       "name": "valid-requestIdGenerator",
       "description": "FetchClient.create creates a client with custom requestIdGenerator",
-      "kind": "valid-requestIdGenerator",
+      "shape": "valid-requestIdGenerator",
       "input": {
         "fetchClient": {
           "requestIdGenerator": {
-            "kind": "static-request-id",
+            "shape": "static-request-id",
             "value": "custom-id"
           }
         }
@@ -87,7 +87,7 @@
     {
       "name": "valid-autoGenerateRequestId-false",
       "description": "FetchClient.create creates a client with autoGenerateRequestId disabled",
-      "kind": "valid-autoGenerateRequestId-false",
+      "shape": "valid-autoGenerateRequestId-false",
       "input": {
         "fetchClient": {
           "autoGenerateRequestId": false
@@ -100,7 +100,7 @@
     {
       "name": "valid-metadata",
       "description": "FetchClient.create creates a client with metadata",
-      "kind": "valid-metadata",
+      "shape": "valid-metadata",
       "input": {
         "fetchClient": {
           "metadata": {
@@ -116,7 +116,7 @@
     {
       "name": "valid-default-params",
       "description": "FetchClient.create creates a client with default params",
-      "kind": "valid-default-params",
+      "shape": "valid-default-params",
       "input": {
         "fetchClient": {
           "params": {
@@ -131,7 +131,7 @@
     {
       "name": "valid-fetch-options",
       "description": "FetchClient.create creates a client with fetch options",
-      "kind": "valid-fetch-options",
+      "shape": "valid-fetch-options",
       "input": {
         "fetchClient": {
           "options": {
@@ -146,7 +146,7 @@
     {
       "name": "invalid-baseURL",
       "description": "FetchClient.create rejects invalid baseURL",
-      "kind": "invalid-baseURL",
+      "shape": "invalid-baseURL",
       "input": {
         "fetchClient": {
           "baseURL": "not-a-valid-url"
@@ -159,7 +159,7 @@
     {
       "name": "invalid-timeout-negative",
       "description": "FetchClient.create rejects negative timeout",
-      "kind": "invalid-timeout-negative",
+      "shape": "invalid-timeout-negative",
       "input": {
         "fetchClient": {
           "timeout": -1000
@@ -172,7 +172,7 @@
     {
       "name": "invalid-timeout-non-numeric",
       "description": "FetchClient.create rejects non-numeric timeout",
-      "kind": "invalid-timeout-non-numeric",
+      "shape": "invalid-timeout-non-numeric",
       "input": {
         "fetchClient": {
           "timeout": "not-a-number"
@@ -185,7 +185,7 @@
     {
       "name": "invalid-headers-object",
       "description": "FetchClient.create rejects invalid headers object",
-      "kind": "invalid-headers-object",
+      "shape": "invalid-headers-object",
       "input": {
         "fetchClient": {
           "headers": "not-an-object"
@@ -198,7 +198,7 @@
     {
       "name": "invalid-unknown-keys",
       "description": "FetchClient.create rejects unknown configuration keys",
-      "kind": "invalid-unknown-keys",
+      "shape": "invalid-unknown-keys",
       "input": {
         "fetchClient": {
           "unknownKey": "value"
@@ -211,7 +211,7 @@
     {
       "name": "invalid-requestIdGenerator",
       "description": "FetchClient.create rejects invalid requestIdGenerator",
-      "kind": "invalid-requestIdGenerator",
+      "shape": "invalid-requestIdGenerator",
       "input": {
         "fetchClient": {
           "requestIdGenerator": "not-a-function"
@@ -224,11 +224,11 @@
     {
       "name": "invalid-requestIdGenerator-return-type",
       "description": "FetchClient.create rejects requestIdGenerator return values that are not strings",
-      "kind": "invalid-requestIdGenerator-return-type",
+      "shape": "invalid-requestIdGenerator-return-type",
       "input": {
         "fetchClient": {
           "requestIdGenerator": {
-            "kind": "static-request-id",
+            "shape": "static-request-id",
             "value": 123
           }
         }
@@ -240,11 +240,11 @@
     {
       "name": "invalid-requestIdGenerator-throws",
       "description": "FetchClient.create rejects requestIdGenerator functions that throw",
-      "kind": "invalid-requestIdGenerator-throws",
+      "shape": "invalid-requestIdGenerator-throws",
       "input": {
         "fetchClient": {
           "requestIdGenerator": {
-            "kind": "throwing-request-id",
+            "shape": "throwing-request-id",
             "message": "request-id boom"
           }
         }
@@ -256,7 +256,7 @@
     {
       "name": "behavior-baseURL",
       "description": "FetchClient applies baseURL to requests",
-      "kind": "behavior-baseURL",
+      "shape": "behavior-baseURL",
       "input": {
         "fetchClient": {
           "baseURL": "https://example.test"
@@ -275,7 +275,7 @@
     {
       "name": "behavior-default-timeout",
       "description": "FetchClient applies default timeout to requests",
-      "kind": "behavior-default-timeout",
+      "shape": "behavior-default-timeout",
       "input": {
         "fetchClient": {
           "baseURL": "https://example.test",
@@ -291,12 +291,12 @@
     {
       "name": "behavior-custom-requestIdGenerator",
       "description": "FetchClient uses custom requestIdGenerator",
-      "kind": "behavior-custom-requestIdGenerator",
+      "shape": "behavior-custom-requestIdGenerator",
       "input": {
         "fetchClient": {
           "baseURL": "https://example.test",
           "requestIdGenerator": {
-            "kind": "static-request-id",
+            "shape": "static-request-id",
             "value": "custom-test-id"
           }
         },
@@ -313,7 +313,7 @@
     {
       "name": "behavior-explicit-requestId",
       "description": "FetchClient keeps explicit requestId values",
-      "kind": "behavior-explicit-requestId",
+      "shape": "behavior-explicit-requestId",
       "input": {
         "fetchClient": {
           "baseURL": "https://example.test",
@@ -332,7 +332,7 @@
     {
       "name": "behavior-metadata-merge",
       "description": "FetchClient merges default metadata with request metadata",
-      "kind": "behavior-metadata-merge",
+      "shape": "behavior-metadata-merge",
       "input": {
         "fetchClient": {
           "baseURL": "https://example.test",
@@ -359,7 +359,7 @@
     {
       "name": "behavior-detach-mutable-config",
       "description": "FetchClient detaches construction config from caller-owned mutable data",
-      "kind": "behavior-detach-mutable-config",
+      "shape": "behavior-detach-mutable-config",
       "input": {
         "fetchClient": {
           "baseURL": "https://example.test",
@@ -438,14 +438,14 @@
           }
         },
         "params": {
-          "kind": "undefined"
+          "shape": "undefined"
         }
       }
     },
     {
       "name": "behavior-preserve-non-plain-json",
       "description": "FetchClient preserves non-plain json values without cloning them",
-      "kind": "behavior-preserve-non-plain-json",
+      "shape": "behavior-preserve-non-plain-json",
       "input": {
         "fetchClient": {
           "baseURL": "https://example.test"
@@ -458,7 +458,7 @@
       },
       "expected": {
         "json": {
-          "kind": "boxed-json",
+          "shape": "boxed-json",
           "value": "mutated-json"
         }
       }
@@ -466,7 +466,7 @@
     {
       "name": "behavior-preserve-null-prototype-json",
       "description": "FetchClient preserves null-prototype json values without changing their shape",
-      "kind": "behavior-preserve-null-prototype-json",
+      "shape": "behavior-preserve-null-prototype-json",
       "input": {
         "fetchClient": {
           "baseURL": "https://example.test"

@@ -4,11 +4,11 @@
       "name": "options-undefined",
       "description": "ValidateOptions accepts undefined",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
-          "__kind": "undefined"
+          "__shape": "undefined"
         }
       }
     },
@@ -16,7 +16,7 @@
       "name": "options-null",
       "description": "ValidateOptions accepts null",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": null
@@ -26,7 +26,7 @@
       "name": "options-non-object",
       "description": "ValidateOptions rejects non-object values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "options must be an object"
         ]
@@ -39,7 +39,7 @@
       "name": "options-array",
       "description": "ValidateOptions rejects arrays",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "options must be an object"
         ]
@@ -52,7 +52,7 @@
       "name": "options-body-object",
       "description": "ValidateOptions accepts body values without inspecting them",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -66,7 +66,7 @@
       "name": "options-body-array",
       "description": "ValidateOptions accepts array body values without inspecting them",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -82,7 +82,7 @@
       "name": "options-headers-object",
       "description": "ValidateOptions accepts headers values without inspecting them",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -96,7 +96,7 @@
       "name": "options-headers-null",
       "description": "ValidateOptions accepts null headers values without inspecting them",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -108,7 +108,7 @@
       "name": "options-cache-valid",
       "description": "ValidateOptions accepts valid cache values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -120,7 +120,7 @@
       "name": "options-cache-non-string",
       "description": "ValidateOptions rejects non-string cache values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "cache must be a string"
         ]
@@ -135,7 +135,7 @@
       "name": "options-cache-invalid",
       "description": "ValidateOptions rejects invalid cache values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "cache must be one of"
         ]
@@ -150,7 +150,7 @@
       "name": "options-cache-empty",
       "description": "ValidateOptions rejects empty cache values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "cache must be one of"
         ]
@@ -165,7 +165,7 @@
       "name": "options-credentials-valid",
       "description": "ValidateOptions accepts valid credentials values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -177,7 +177,7 @@
       "name": "options-credentials-non-string",
       "description": "ValidateOptions rejects non-string credentials values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "credentials must be a string"
         ]
@@ -192,7 +192,7 @@
       "name": "options-credentials-invalid",
       "description": "ValidateOptions rejects invalid credentials values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "credentials must be one of"
         ]
@@ -207,7 +207,7 @@
       "name": "options-credentials-empty",
       "description": "ValidateOptions rejects empty credentials values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "credentials must be one of"
         ]
@@ -222,7 +222,7 @@
       "name": "options-integrity-valid",
       "description": "ValidateOptions accepts string integrity values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -234,7 +234,7 @@
       "name": "options-integrity-invalid",
       "description": "ValidateOptions rejects non-string integrity values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "integrity must be a string"
         ]
@@ -249,7 +249,7 @@
       "name": "options-keepalive-valid",
       "description": "ValidateOptions accepts boolean keepalive values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -261,7 +261,7 @@
       "name": "options-keepalive-invalid",
       "description": "ValidateOptions rejects non-boolean keepalive values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "keepalive must be a boolean"
         ]
@@ -276,7 +276,7 @@
       "name": "options-method-valid",
       "description": "ValidateOptions accepts method values case-insensitively",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -288,7 +288,7 @@
       "name": "options-method-non-string",
       "description": "ValidateOptions rejects non-string method values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "method must be a string"
         ]
@@ -303,7 +303,7 @@
       "name": "options-method-invalid",
       "description": "ValidateOptions rejects invalid method values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "method must be one of"
         ]
@@ -318,7 +318,7 @@
       "name": "options-method-padded",
       "description": "ValidateOptions rejects padded method values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "method must be one of"
         ]
@@ -333,7 +333,7 @@
       "name": "options-mode-valid",
       "description": "ValidateOptions accepts valid mode values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -345,7 +345,7 @@
       "name": "options-mode-non-string",
       "description": "ValidateOptions rejects non-string mode values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "mode must be a string"
         ]
@@ -360,7 +360,7 @@
       "name": "options-mode-invalid",
       "description": "ValidateOptions rejects invalid mode values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "mode must be one of"
         ]
@@ -375,7 +375,7 @@
       "name": "options-mode-empty",
       "description": "ValidateOptions rejects empty mode values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "mode must be one of"
         ]
@@ -390,7 +390,7 @@
       "name": "options-redirect-valid",
       "description": "ValidateOptions accepts valid redirect values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -402,7 +402,7 @@
       "name": "options-redirect-non-string",
       "description": "ValidateOptions rejects non-string redirect values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "redirect must be a string"
         ]
@@ -417,7 +417,7 @@
       "name": "options-redirect-invalid",
       "description": "ValidateOptions rejects invalid redirect values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "redirect must be one of"
         ]
@@ -432,7 +432,7 @@
       "name": "options-redirect-empty",
       "description": "ValidateOptions rejects empty redirect values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "redirect must be one of"
         ]
@@ -447,7 +447,7 @@
       "name": "options-referrer-valid",
       "description": "ValidateOptions accepts string referrer values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -459,7 +459,7 @@
       "name": "options-referrer-invalid",
       "description": "ValidateOptions rejects non-string referrer values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "referrer must be a string"
         ]
@@ -474,7 +474,7 @@
       "name": "options-referrer-policy-valid",
       "description": "ValidateOptions accepts valid referrerPolicy values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -486,7 +486,7 @@
       "name": "options-referrer-policy-non-string",
       "description": "ValidateOptions rejects non-string referrerPolicy values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "referrerPolicy must be a string"
         ]
@@ -501,7 +501,7 @@
       "name": "options-referrer-policy-empty",
       "description": "ValidateOptions accepts empty referrerPolicy values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -513,7 +513,7 @@
       "name": "options-referrer-policy-invalid",
       "description": "ValidateOptions rejects invalid referrerPolicy values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "referrerPolicy must be one of"
         ]
@@ -528,7 +528,7 @@
       "name": "options-referrer-policy-empty-spaces",
       "description": "ValidateOptions rejects whitespace referrerPolicy values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "referrerPolicy must be one of"
         ]
@@ -543,12 +543,12 @@
       "name": "options-signal-valid",
       "description": "ValidateOptions accepts AbortSignal values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
           "signal": {
-            "__kind": "abort-signal"
+            "__shape": "abort-signal"
           }
         }
       }
@@ -557,7 +557,7 @@
       "name": "options-signal-null",
       "description": "ValidateOptions accepts null signal values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -569,12 +569,12 @@
       "name": "options-signal-undefined",
       "description": "ValidateOptions accepts undefined signal values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
           "signal": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       }
@@ -583,7 +583,7 @@
       "name": "options-signal-invalid",
       "description": "ValidateOptions rejects invalid signal values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "signal must be an AbortSignal instance"
         ]
@@ -598,7 +598,7 @@
       "name": "options-signal-number",
       "description": "ValidateOptions rejects numeric signal values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "signal must be an AbortSignal instance"
         ]
@@ -613,7 +613,7 @@
       "name": "options-timeout-valid",
       "description": "ValidateOptions accepts numeric timeout values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -625,7 +625,7 @@
       "name": "options-timeout-null",
       "description": "ValidateOptions accepts null timeout values",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {
@@ -637,7 +637,7 @@
       "name": "options-timeout-invalid",
       "description": "ValidateOptions rejects invalid timeout values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "timeout must be a number"
         ]
@@ -652,7 +652,7 @@
       "name": "options-timeout-zero",
       "description": "ValidateOptions rejects zero timeout values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "timeout must be positive"
         ]
@@ -667,7 +667,7 @@
       "name": "options-unknown-option",
       "description": "ValidateOptions ignores unknown custom options",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "options": {

@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { UrlUtils } from '../../../src/index.js';
 import scenarioGroups from './query.scenarios.json';
 
-type RuntimeTag = { kind: 'undefined' };
+type RuntimeTag = { shape: 'undefined' };
 type RuntimeValue =
   | RuntimeTag
   | RuntimeValue[]
@@ -14,7 +14,7 @@ type RuntimeValue =
   | string
   | { [key: string]: RuntimeValue };
 
-type ScenarioKind =
+type ScenarioShape =
   | 'buildQueryString-object'
   | 'buildQueryString-string'
   | 'buildQueryString-boolean'
@@ -48,7 +48,7 @@ type ScenarioCase = {
     params?: { [key: string]: RuntimeValue };
     queryString?: string;
   };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -57,7 +57,7 @@ type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
 const { buildQueryString, buildUrl, parseQueryString } = UrlUtils;
 
-const runtimeTagMap: Record<RuntimeTag['kind'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
   undefined: () => undefined
 };
 
@@ -66,8 +66,8 @@ function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
     value !== null &&
     typeof value === 'object' &&
     !Array.isArray(value) &&
-    typeof value.kind === 'string' &&
-    value.kind in runtimeTagMap
+    typeof value.shape === 'string' &&
+    value.shape in runtimeTagMap
   );
 }
 
@@ -78,7 +78,7 @@ function materializeValue(value: RuntimeValue): unknown {
 
   if (value !== null && typeof value === 'object') {
     if (isRuntimeTag(value)) {
-      return runtimeTagMap[value.kind](value);
+      return runtimeTagMap[value.shape](value);
     }
 
     return Object.fromEntries(
@@ -137,7 +137,7 @@ function runParseQueryString(scenarioCase: ScenarioCase): void {
   );
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'buildQueryString-array': runBuildQueryString,
   'buildQueryString-boolean': runBuildQueryString,
   'buildQueryString-empty-object': runBuildQueryString,
@@ -165,7 +165,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('fetch query utils', () => {

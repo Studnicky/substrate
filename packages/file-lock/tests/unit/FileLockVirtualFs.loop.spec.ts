@@ -19,7 +19,7 @@ type ScenarioCase =
         fileSystemSeed: [string, string][];
         lockPath: string;
       };
-      kind: 'virtual-fs-mutual-exclusion';
+      shape: 'virtual-fs-mutual-exclusion';
       name: string;
     }
   | {
@@ -34,13 +34,13 @@ type ScenarioCase =
         lockPath: string;
         updatedContents: string;
       };
-      kind: 'virtual-fs-read-write';
+      shape: 'virtual-fs-read-write';
       name: string;
     };
 
-type ScenarioKind = ScenarioCase['kind'];
-type ScenarioRunner<Kind extends ScenarioKind> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => Promise<void>;
-type ScenarioRunnerMap = { readonly [Kind in ScenarioKind]: ScenarioRunner<Kind> };
+type ScenarioShape = ScenarioCase['shape'];
+type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
+type ScenarioRunnerMap = { readonly [Shape in ScenarioShape]: ScenarioRunner<Shape> };
 
 const runnerMap: ScenarioRunnerMap = {
   'virtual-fs-mutual-exclusion': async (scenarioCase) => {
@@ -72,8 +72,8 @@ const runnerMap: ScenarioRunnerMap = {
   },
 };
 
-function runCase<Kind extends ScenarioKind>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): Promise<void> {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('FileLock VirtualFileSystem', () => {

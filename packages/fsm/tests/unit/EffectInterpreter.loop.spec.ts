@@ -39,7 +39,7 @@ type ScenarioInput = {
   readonly rejectedEvent: DemoEvent;
 };
 
-type ScenarioKind =
+type ScenarioShape =
   | 'create-empty-machine-id'
   | 'create-default-identity'
   | 'create-non-integer-mailbox-capacity'
@@ -68,7 +68,7 @@ type ScenarioCase = {
   description: string;
   expected: ScenarioExpected;
   input: ScenarioInput;
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -92,7 +92,7 @@ function assertErrorMessageIncludes(error: unknown, expectedMessage: string): vo
 }
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  const runnerMap: Record<ScenarioCase['kind'], (caseData: ScenarioCase) => Promise<void> | void> = {
+  const runnerMap: Record<ScenarioCase['shape'], (caseData: ScenarioCase) => Promise<void> | void> = {
     'create-empty-machine-id': (caseData) => {
       assert.throws(
         () => EffectInterpreter.create({ machine: new DemoMachine(), machineId: caseData.input.machineId }),
@@ -391,7 +391,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
     }
   };
 
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('EffectInterpreter', () => {

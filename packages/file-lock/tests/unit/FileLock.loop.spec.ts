@@ -17,30 +17,30 @@ type ScenarioCaseBase = {
 };
 
 type ScenarioCase =
-  | (ScenarioCaseBase & { kind: 'timeout-missing-file' })
-  | (ScenarioCaseBase & { kind: 'acquire-success-restores-path' })
-  | (ScenarioCaseBase & { kind: 'contention-times-out' })
-  | (ScenarioCaseBase & { kind: 'read-after-create' })
-  | (ScenarioCaseBase & { kind: 'write-then-release-restores-new-content' })
-  | (ScenarioCaseBase & { kind: 'release-idempotent' })
-  | (ScenarioCaseBase & { kind: 'symbol-dispose-releases' })
-  | (ScenarioCaseBase & { kind: 'poll-and-timeout-options' })
-  | (ScenarioCaseBase & { kind: 'hook-acquire-start-and-acquire' })
-  | (ScenarioCaseBase & { kind: 'hook-release-original-path' })
-  | (ScenarioCaseBase & { kind: 'hook-idempotent-release' })
-  | (ScenarioCaseBase & { kind: 'hook-timeout' })
-  | (ScenarioCaseBase & { kind: 'hook-contention-wait-and-timeout' })
-  | (ScenarioCaseBase & { kind: 'hook-order' })
-  | (ScenarioCaseBase & { kind: 'throwing-onAcquire-does-not-orphan-lock' })
-  | (ScenarioCaseBase & { kind: 'async-rejecting-onAcquire-guarded' })
-  | (ScenarioCaseBase & { kind: 'hook-errors-isolated-per-instance' })
-  | (ScenarioCaseBase & { kind: 'symbol-dispose-hook' })
-  | (ScenarioCaseBase & { kind: 'bare-relative-filename-contention' })
-  | (ScenarioCaseBase & { kind: 'genuine-fs-error-routes-to-onError' });
+  | (ScenarioCaseBase & { shape: 'timeout-missing-file' })
+  | (ScenarioCaseBase & { shape: 'acquire-success-restores-path' })
+  | (ScenarioCaseBase & { shape: 'contention-times-out' })
+  | (ScenarioCaseBase & { shape: 'read-after-create' })
+  | (ScenarioCaseBase & { shape: 'write-then-release-restores-new-content' })
+  | (ScenarioCaseBase & { shape: 'release-idempotent' })
+  | (ScenarioCaseBase & { shape: 'symbol-dispose-releases' })
+  | (ScenarioCaseBase & { shape: 'poll-and-timeout-options' })
+  | (ScenarioCaseBase & { shape: 'hook-acquire-start-and-acquire' })
+  | (ScenarioCaseBase & { shape: 'hook-release-original-path' })
+  | (ScenarioCaseBase & { shape: 'hook-idempotent-release' })
+  | (ScenarioCaseBase & { shape: 'hook-timeout' })
+  | (ScenarioCaseBase & { shape: 'hook-contention-wait-and-timeout' })
+  | (ScenarioCaseBase & { shape: 'hook-order' })
+  | (ScenarioCaseBase & { shape: 'throwing-onAcquire-does-not-orphan-lock' })
+  | (ScenarioCaseBase & { shape: 'async-rejecting-onAcquire-guarded' })
+  | (ScenarioCaseBase & { shape: 'hook-errors-isolated-per-instance' })
+  | (ScenarioCaseBase & { shape: 'symbol-dispose-hook' })
+  | (ScenarioCaseBase & { shape: 'bare-relative-filename-contention' })
+  | (ScenarioCaseBase & { shape: 'genuine-fs-error-routes-to-onError' });
 
-type ScenarioKind = ScenarioCase['kind'];
-type ScenarioRunner<Kind extends ScenarioKind> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => Promise<void>;
-type ScenarioRunnerMap = { readonly [Kind in ScenarioKind]: ScenarioRunner<Kind> };
+type ScenarioShape = ScenarioCase['shape'];
+type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
+type ScenarioRunnerMap = { readonly [Shape in ScenarioShape]: ScenarioRunner<Shape> };
 
 type FileLockScenarioConfig = {
   pollMs?: number;
@@ -419,8 +419,8 @@ const runnerMap: ScenarioRunnerMap = {
   },
 };
 
-function runCase<Kind extends ScenarioKind>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): Promise<void> {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('FileLock', () => {

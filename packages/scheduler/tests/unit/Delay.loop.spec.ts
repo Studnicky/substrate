@@ -32,77 +32,77 @@ type ScenarioCase =
       description: string;
       expected: { elapsedMsAtLeast: number };
       input: DelayInputInterface;
-      kind: 'real-time-sleep';
+      shape: 'real-time-sleep';
       name: string;
     }
   | {
       description: string;
       expected: { resolved: true; virtualSleepMs: number };
       input: DelayInputInterface;
-      kind: 'virtual-sleep';
+      shape: 'virtual-sleep';
       name: string;
     }
   | {
       description: string;
       expected: { cancelCount: 1; reasonMessage: string };
       input: DelayInputInterface;
-      kind: 'real-time-abort';
+      shape: 'real-time-abort';
       name: string;
     }
   | {
       description: string;
       expected: { resolved: true; sleepMs: 0 };
       input: DelayInputInterface;
-      kind: 'virtual-zero';
+      shape: 'virtual-zero';
       name: string;
     }
   | {
       description: string;
       expected: { resolved: true; sleepMs: 0 };
       input: DelayInputInterface;
-      kind: 'default-scheduler';
+      shape: 'default-scheduler';
       name: string;
     }
   | {
       description: string;
       expected: { scheduleCount: 0 };
       input: DelayInputInterface;
-      kind: 'pre-aborted';
+      shape: 'pre-aborted';
       name: string;
     }
   | {
       description: string;
       expected: { cancelCount: 0; fireCount: 0; scheduleCount: 0 };
       input: DelayInputInterface;
-      kind: 'abort-during-clock';
+      shape: 'abort-during-clock';
       name: string;
     }
   | {
       description: string;
       expected: { cancelCount: 1; fireCount: 0; scheduleCount: 1 };
       input: DelayInputInterface;
-      kind: 'abort-during-schedule';
+      shape: 'abort-during-schedule';
       name: string;
     }
   | {
       description: string;
       expected: { cancelCount: 1; fireCount: 0 };
       input: DelayInputInterface;
-      kind: 'pending-abort';
+      shape: 'pending-abort';
       name: string;
     }
   | {
       description: string;
       expected: { cancelCount: 0; fireCount: 1 };
       input: DelayInputInterface;
-      kind: 'late-abort';
+      shape: 'late-abort';
       name: string;
     }
   | {
       description: string;
       expected: { errorMessage: string; listenerCountUnchanged: true };
       input: DelayInputInterface;
-      kind: 'schedule-failure';
+      shape: 'schedule-failure';
       name: string;
     };
 
@@ -166,7 +166,7 @@ function createSchedulerError(input: DelayInputInterface): Error {
   return new Error(input.schedulerErrorMessage);
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'abort-during-clock': async (scenarioCase) => {
     const counter = createVirtualTimeCounter(scenarioCase.input);
     const scheduler = new AuditVirtualScheduler(counter);
@@ -307,12 +307,12 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  traceDelayTest('case start', { 'kind': scenarioCase.kind, 'name': scenarioCase.name });
+  traceDelayTest('case start', { 'shape': scenarioCase.shape, 'name': scenarioCase.name });
   try {
-    await runnerMap[scenarioCase.kind](scenarioCase);
-    traceDelayTest('case end', { 'kind': scenarioCase.kind, 'name': scenarioCase.name });
+    await runnerMap[scenarioCase.shape](scenarioCase);
+    traceDelayTest('case end', { 'shape': scenarioCase.shape, 'name': scenarioCase.name });
   } catch (error: unknown) {
-    traceDelayTest('case fail', { 'error': error instanceof Error ? error.message : String(error), 'kind': scenarioCase.kind, 'name': scenarioCase.name });
+    traceDelayTest('case fail', { 'error': error instanceof Error ? error.message : String(error), 'shape': scenarioCase.shape, 'name': scenarioCase.name });
     throw error;
   }
 }

@@ -3,14 +3,14 @@
     {
       "name": "on-check-registered",
       "description": "onCheckRegistered fires once per registration",
-      "kind": "on-check-registered",
+      "shape": "on-check-registered",
       "input": { "checks": [{ "name": "a", "status": "healthy" }, { "name": "b", "status": "healthy" }] },
       "expected": { "registeredCalls": ["a", "b"] }
     },
     {
       "name": "on-check-result",
       "description": "onCheckResult fires once per check per evaluate call",
-      "kind": "on-check-result",
+      "shape": "on-check-result",
       "input": {
         "checks": [
           { "name": "a", "status": "healthy" },
@@ -27,70 +27,70 @@
     {
       "name": "rejecting-check-result",
       "description": "onCheckResult fires for a rejecting check",
-      "kind": "rejecting-check-result",
+      "shape": "rejecting-check-result",
       "input": { "errorMessage": "nope", "name": "boom" },
       "expected": { "resultCalls": [{ "name": "boom", "status": "unhealthy" }] }
     },
     {
       "name": "timeout-plus-result",
       "description": "onCheckTimeout fires in addition to onCheckResult",
-      "kind": "timeout-plus-result",
+      "shape": "timeout-plus-result",
       "input": { "delayMs": 200, "name": "slow", "status": "healthy", "timeoutMs": 10 },
       "expected": { "resultStatus": "unhealthy", "timeoutCalls": [{ "name": "slow", "timeoutMs": 10 }] }
     },
     {
       "name": "no-timeout-after-fast-result",
       "description": "onCheckTimeout does not fire for a fast check",
-      "kind": "no-timeout-after-fast-result",
+      "shape": "no-timeout-after-fast-result",
       "input": { "delayMs": 600, "name": "fast", "status": "healthy", "timeoutMs": 500 },
       "expected": { "resultStatus": "healthy", "timeoutCount": 0 }
     },
     {
       "name": "on-aggregate-after-settle",
       "description": "onAggregate fires once per evaluate call after all checks settle",
-      "kind": "on-aggregate-after-settle",
+      "shape": "on-aggregate-after-settle",
       "input": { "checks": [{ "name": "a", "status": "healthy" }, { "name": "b", "status": "unhealthy" }] },
       "expected": { "aggregateCalls": [{ "overall": "unhealthy", "size": 2 }], "aggregateCountAfterFirst": 1, "aggregateCountAfterSecond": 2 }
     },
     {
       "name": "hook-order",
       "description": "hooks fire in registration then result then aggregate order",
-      "kind": "hook-order",
+      "shape": "hook-order",
       "input": { "name": "a", "status": "healthy" },
       "expected": { "order": ["registered", "result", "aggregate"] }
     },
     {
       "name": "throwing-on-check-result",
       "description": "a throwing onCheckResult hook does not replace evaluate output",
-      "kind": "throwing-on-check-result",
+      "shape": "throwing-on-check-result",
       "input": { "name": "a", "status": "healthy" },
       "expected": { "resultStatus": "healthy" }
     },
     {
       "name": "throwing-on-aggregate",
       "description": "a throwing onAggregate hook does not replace the aggregated result",
-      "kind": "throwing-on-aggregate",
+      "shape": "throwing-on-aggregate",
       "input": { "name": "a", "status": "degraded" },
       "expected": { "resultStatus": "degraded" }
     },
     {
       "name": "hook-errors-owned-by-instance",
       "description": "hook failures stay on the registry instance that owns the invoker",
-      "kind": "hook-errors-owned-by-instance",
+      "shape": "hook-errors-owned-by-instance",
       "input": { "firstCause": "first registry hook failed", "secondCause": "second registry hook failed" },
       "expected": { "errorCount": 1, "hookName": "onCheckRegistered" }
     },
     {
       "name": "deeply-detached-hook-errors",
       "description": "getHookErrors deeply detaches nested diagnostics",
-      "kind": "deeply-detached-hook-errors",
+      "shape": "deeply-detached-hook-errors",
       "input": { "causeMessage": "registration hook failed", "nestedChecks": ["database"], "mutateChecks": ["cache"] },
       "expected": { "errorCount": 1, "message": "registration hook failed", "nestedChecks": ["database"] }
     },
     {
       "name": "async-aggregate-rejection",
       "description": "async onAggregate rejections are routed through getHookErrors without an unhandled rejection",
-      "kind": "async-aggregate-rejection",
+      "shape": "async-aggregate-rejection",
       "input": { "name": "a", "status": "healthy", "waitMs": 10 },
       "expected": { "hookErrorCount": 1, "hookName": "onAggregate", "rejectionCount": 0, "resultStatus": "healthy" }
     }

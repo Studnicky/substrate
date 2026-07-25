@@ -137,7 +137,7 @@ const logger = Logger.create({
 });
 ```
 
-Entity namespaces own serializable logger data. Use `LogBodyConfigEntity.Type` and `LogFaultConfigEntity.Type` for direct construction input, `LogDataEntity.Type` for the schema-defined body-or-fault union, and `LogRecordEntity.Type`, `LogBodyDataEntity.Type`, `LogFaultDataEntity.Type`, `LogLevelEntity.Type`, and `LogStatusEntity.Type` for normalized data from `@studnicky/logger`. `CloudWatchLogSchemaFieldsEntity` owns the CloudWatch envelope fields and `LoggerHookEventKindEntity` owns observed hook discriminants. Entity implementations import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`, with both packages declared as direct dependencies.
+Entity namespaces own serializable logger data. Use `LogBodyConfigEntity.Type` and `LogFaultConfigEntity.Type` for direct construction input, `LogDataEntity.Type` for the schema-defined body-or-fault union, and `LogRecordEntity.Type`, `LogBodyDataEntity.Type`, `LogFaultDataEntity.Type`, `LogLevelEntity.Type`, and `LogStatusEntity.Type` for normalized data from `@studnicky/logger`. `CloudWatchLogSchemaFieldsEntity` owns the CloudWatch envelope fields and `LoggerHookEventShapeEntity` owns observed hook discriminants. Entity implementations import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`, with both packages declared as direct dependencies.
 
 ## Hook failures
 

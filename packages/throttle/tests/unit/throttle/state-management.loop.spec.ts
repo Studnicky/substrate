@@ -22,7 +22,7 @@ type ScenarioCase =
         result?: string;
         throttle: Parameters<typeof Throttle.create>[0];
       };
-      kind: 'adaptive-latency-stats' | 'adaptive-scales-down' | 'adaptive-scales-up' | 'initial-stats' | 'is-complete-initially';
+      shape: 'adaptive-latency-stats' | 'adaptive-scales-down' | 'adaptive-scales-up' | 'initial-stats' | 'is-complete-initially';
     };
 
 function requireBatchInput(input: ScenarioCase['input']): BatchInputInterface {
@@ -58,7 +58,7 @@ async function executeIndexedWork(throttle: Throttle, input: ScenarioCase['input
   return results.filter((result): result is number => result !== undefined);
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
   'adaptive-latency-stats': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const throttle = Throttle.create(input.throttle);
@@ -103,7 +103,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle state management', () => {

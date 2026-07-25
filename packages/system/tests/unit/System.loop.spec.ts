@@ -12,11 +12,11 @@ type ScenarioCase =
     description: string;
     expected: Record<string, unknown>;
     input: { system: { detectedGpu?: GpuInfoEntity.Type } };
-    kind: SystemScenarioKind;
+    shape: SystemScenarioShape;
     name: string;
   };
 
-type SystemScenarioKind =
+type SystemScenarioShape =
   | 'cpu-logical-count-positive'
   | 'optimal-worker-count-at-least-1'
   | 'optimal-worker-count-clamped'
@@ -37,7 +37,7 @@ import scenarioGroups from './System.scenarios.json';
 
 type SystemScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-const scenarioRunners: Record<SystemScenarioKind, SystemScenarioRunner> = {
+const scenarioRunners: Record<SystemScenarioShape, SystemScenarioRunner> = {
   'cpu-logical-count-positive': () => {
     const count = System.cpu.logicalCount;
     assert.ok(typeof count === 'number');
@@ -151,7 +151,7 @@ const scenarioRunners: Record<SystemScenarioKind, SystemScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await scenarioRunners[scenarioCase.kind](scenarioCase);
+  await scenarioRunners[scenarioCase.shape](scenarioCase);
 }
 
 void describe('System', () => {

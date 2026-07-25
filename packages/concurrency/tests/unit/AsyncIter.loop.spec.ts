@@ -27,49 +27,49 @@ type ScenarioCase =
       description: string;
       expected: { items: number[] };
       input: { sources: number[][] };
-      kind: 'merge-empty' | 'merge-single';
+      shape: 'merge-empty' | 'merge-single';
       name: string;
     }
   | {
       description: string;
       expected: { includes: number[]; length: number };
       input: { sources: number[][] };
-      kind: 'merge-two-sources';
+      shape: 'merge-two-sources';
       name: string;
     }
   | {
       description: string;
       expected: { errorMessage: string };
       input: { errorMessage: string; sources: number[][] };
-      kind: 'merge-propagates-error';
+      shape: 'merge-propagates-error';
       name: string;
     }
   | {
       description: string;
       expected: { first: number; last: number; length: number };
       input: { batch: BatchInput };
-      kind: 'merge-high-volume';
+      shape: 'merge-high-volume';
       name: string;
     }
   | {
       description: string;
       expected: { items: number[] };
       input: { predicate: 'even' | 'all'; values: number[] };
-      kind: 'filter-sync' | 'filter-empty' | 'filter-all';
+      shape: 'filter-sync' | 'filter-empty' | 'filter-all';
       name: string;
     }
   | {
       description: string;
       expected: { items: string[] };
       input: { minLength: number; values: string[] };
-      kind: 'filter-async';
+      shape: 'filter-async';
       name: string;
     }
   | {
       description: string;
       expected: { items: Array<{ id: number; label?: string }> };
       input: { values: Array<{ id: number }> };
-      kind: 'enrich-value' | 'enrich-partial' | 'enrich-none';
+      shape: 'enrich-value' | 'enrich-partial' | 'enrich-none';
       name: string;
     };
 
@@ -86,7 +86,7 @@ function assertErrorMessageIncludes(error: unknown, expectedMessage: string): vo
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'enrich-none': async (scenarioCase) => {
     const items = await collect(
       AsyncIter.enrich(
@@ -178,7 +178,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('AsyncIter', () => {

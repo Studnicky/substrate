@@ -9,56 +9,56 @@ type ScenarioCase =
       description: string;
       expected: { invalidState: false; validStates: true };
       input: { invalidState: string; states: readonly string[] };
-      kind: 'validate-states';
+      shape: 'validate-states';
       name: string;
     }
   | {
       description: string;
       expected: { currentState: 'idle'; transitionCount: 0 };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'starts-idle';
+      shape: 'starts-idle';
       name: string;
     }
   | {
       description: string;
       expected: { from: 'idle'; to: 'active' };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'idle-to-active';
+      shape: 'idle-to-active';
       name: string;
     }
   | {
       description: string;
       expected: { currentState: 'idle'; from: 'active'; to: 'idle' };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'active-to-idle';
+      shape: 'active-to-idle';
       name: string;
     }
   | {
       description: string;
       expected: { currentState: 'idle'; from: 'idle'; to: 'draining' };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'idle-to-draining';
+      shape: 'idle-to-draining';
       name: string;
     }
   | {
       description: string;
       expected: { currentState: 'aborted'; to: 'aborted' };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'abort-transitions-to-aborted';
+      shape: 'abort-transitions-to-aborted';
       name: string;
     }
   | {
       description: string;
       expected: { abortedTransitionCount: 1 };
       input: { throttle: { concurrencyLimit: number } };
-      kind: 'double-abort-no-second-transition';
+      shape: 'double-abort-no-second-transition';
       name: string;
     }
   | {
       description: string;
       expected: { errorMessage: string };
       input: { illegalFrom: 'idle'; illegalTo: 'active'; throttle: { concurrencyLimit: number } };
-      kind: 'illegal-transition-throws';
+      shape: 'illegal-transition-throws';
       name: string;
     };
 
@@ -105,7 +105,7 @@ class BlockingThrottle extends TrackingThrottle {
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+  const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
     'abort-transitions-to-aborted': async (caseData) => {
       const throttle = new TrackingThrottle(caseData.input.throttle);
       await throttle.abort();
@@ -181,7 +181,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
   };
 
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle FSM', () => {

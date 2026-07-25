@@ -27,7 +27,7 @@ type ScenarioCase = {
   description: string;
   expected: { distinctThreadIdsLessThanItemCount: boolean; distinctThreadIdsLessThanOrEqualConcurrency: boolean; resultLength: number; results: string[] };
   input: { batch: WorkloadBatchInputInterface; workerPool: WorkerPoolInputInterface };
-  kind: 'reuses-workers';
+  shape: 'reuses-workers';
   name: string;
 };
 
@@ -51,7 +51,7 @@ function createWorkloadItems(batch: WorkloadBatchInputInterface): ItemType[] {
   }));
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'reuses-workers': async (scenarioCase) => {
     const threadIds: number[] = [];
 
@@ -76,7 +76,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 };
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool pooling', () => {

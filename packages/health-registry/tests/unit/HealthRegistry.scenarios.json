@@ -3,14 +3,14 @@
     {
       "name": "empty-registry-healthy",
       "description": "empty registry evaluates to healthy with an empty results map",
-      "kind": "empty-registry-healthy",
+      "shape": "empty-registry-healthy",
       "input": { "checks": [] },
       "expected": { "resultCount": 0, "status": "healthy" }
     },
     {
       "name": "all-healthy",
       "description": "all healthy checks evaluate to healthy",
-      "kind": "all-healthy",
+      "shape": "all-healthy",
       "input": { "checks": [{ "name": "a", "status": "healthy" }, { "name": "b", "status": "healthy" }] },
       "expected": {
         "results": [{ "name": "a", "status": "healthy" }, { "name": "b", "status": "healthy" }],
@@ -20,7 +20,7 @@
     {
       "name": "one-degraded",
       "description": "one degraded check makes the overall status degraded",
-      "kind": "one-degraded",
+      "shape": "one-degraded",
       "input": {
         "checks": [
           { "name": "a", "status": "healthy" },
@@ -35,7 +35,7 @@
     {
       "name": "one-unhealthy",
       "description": "one unhealthy check makes the overall status unhealthy",
-      "kind": "one-unhealthy",
+      "shape": "one-unhealthy",
       "input": {
         "checks": [
           { "name": "a", "status": "healthy" },
@@ -51,7 +51,7 @@
     {
       "name": "rejecting-check-unhealthy",
       "description": "a rejecting check is treated as unhealthy",
-      "kind": "rejecting-check-unhealthy",
+      "shape": "rejecting-check-unhealthy",
       "input": { "checks": [{ "name": "rejecting", "outcome": "throw" }, { "name": "ok", "status": "healthy" }] },
       "expected": {
         "results": [{ "name": "rejecting", "status": "unhealthy" }, { "name": "ok", "status": "healthy" }],
@@ -61,35 +61,35 @@
     {
       "name": "timeout-check-unhealthy",
       "description": "a timeout makes the check unhealthy",
-      "kind": "timeout-check-unhealthy",
+      "shape": "timeout-check-unhealthy",
       "input": { "checks": [{ "name": "slow", "outcome": "timeout", "timeoutMs": 10 }] },
       "expected": { "resultStatus": "unhealthy", "status": "unhealthy" }
     },
     {
       "name": "timed-out-late-rejection-owned",
       "description": "a timed out late rejection remains owned by the timeout race",
-      "kind": "timed-out-late-rejection-owned",
+      "shape": "timed-out-late-rejection-owned",
       "input": { "checks": [{ "name": "late-rejection", "outcome": "late-throw", "delayMs": 20, "timeoutMs": 1 }] },
       "expected": { "rejectionEvents": 0, "resultStatus": "unhealthy", "status": "unhealthy" }
     },
     {
       "name": "unregister-removes-check",
       "description": "unregister removes a check so it no longer participates in evaluate",
-      "kind": "unregister-removes-check",
+      "shape": "unregister-removes-check",
       "input": { "checks": [{ "name": "a", "status": "healthy" }, { "name": "b", "status": "unhealthy" }], "unregister": "b" },
       "expected": { "remainingCount": 1, "status": "healthy" }
     },
     {
       "name": "has-and-list-reflect-registration",
       "description": "has and list reflect the current registration state",
-      "kind": "has-and-list-reflect-registration",
+      "shape": "has-and-list-reflect-registration",
       "input": { "name": "a" },
       "expected": { "afterRegisterHas": true, "afterUnregisterHas": false, "initialHas": false, "registeredNames": ["a"] }
     },
     {
       "name": "re-register-replaces-check",
       "description": "re-registering the same name replaces the previous check",
-      "kind": "re-register-replaces-check",
+      "shape": "re-register-replaces-check",
       "input": { "checks": [{ "name": "a", "status": "unhealthy" }, { "name": "a", "status": "healthy" }] },
       "expected": { "status": "healthy" }
     }

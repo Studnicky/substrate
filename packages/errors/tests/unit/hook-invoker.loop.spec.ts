@@ -92,13 +92,13 @@ interface ScenarioInputInterface {
   invoker: HookInvokerInputInterface;
 }
 
-type ScenarioKind = 'detectreentrancy-disabled' | 'detectreentrancy-direct' | 'detectreentrancy-no-throw' | 'detectreentrancy-wrapped' | 'diagnostics-async' | 'diagnostics-fallback' | 'diagnostics-null-prototype' | 'diagnostics-rich' | 'diagnostics-structured-clone' | 'diagnostics-sync' | 'invoke-async-reject' | 'invoke-async-success' | 'invoke-fire-and-forget' | 'invoke-swallow-async' | 'invoke-swallow-sync' | 'invoke-sync-success' | 'invoke-sync-throw' | 'invoke-unexpected-async' | 'invokeasync-async-success' | 'invokeasync-async-throw' | 'invokeasync-function-thenable' | 'invokeasync-sync-success' | 'invokeasync-sync-throw' | 'invokeasync-thenable' | 'invokeasync-timeout' | 'onhookerror-async-reject-invoke' | 'onhookerror-async-reject-invokeasync' | 'onhookerror-loop-guard' | 'onhookerror-sync-throw' | 'options-malformed' | 'options-no-options' | 'options-non-positive' | 'timeout-invoke-fire-and-forget' | 'timeout-invokeasync-fast' | 'timeout-no-dangling-timer' | 'timeout-sync-never-applies';
+type ScenarioShape = 'detectreentrancy-disabled' | 'detectreentrancy-direct' | 'detectreentrancy-no-throw' | 'detectreentrancy-wrapped' | 'diagnostics-async' | 'diagnostics-fallback' | 'diagnostics-null-prototype' | 'diagnostics-rich' | 'diagnostics-structured-clone' | 'diagnostics-sync' | 'invoke-async-reject' | 'invoke-async-success' | 'invoke-fire-and-forget' | 'invoke-swallow-async' | 'invoke-swallow-sync' | 'invoke-sync-success' | 'invoke-sync-throw' | 'invoke-unexpected-async' | 'invokeasync-async-success' | 'invokeasync-async-throw' | 'invokeasync-function-thenable' | 'invokeasync-sync-success' | 'invokeasync-sync-throw' | 'invokeasync-thenable' | 'invokeasync-timeout' | 'onhookerror-async-reject-invoke' | 'onhookerror-async-reject-invokeasync' | 'onhookerror-loop-guard' | 'onhookerror-sync-throw' | 'options-malformed' | 'options-no-options' | 'options-non-positive' | 'timeout-invoke-fire-and-forget' | 'timeout-invokeasync-fast' | 'timeout-no-dangling-timer' | 'timeout-sync-never-applies';
 
 type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: ScenarioInputInterface;
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -108,7 +108,7 @@ function materializeInput(value: unknown): unknown {
   }
   if (value !== null && typeof value === 'object') {
     const record = value as Record<string, unknown>;
-    if (record.kind === 'undefined') {
+    if (record.shape === 'undefined') {
       return undefined;
     }
     if ('returnValue' in record || 'hookName' in record || 'outerHookName' in record || 'innerHookName' in record || 'timeoutMs' in record) {
@@ -635,11 +635,11 @@ const runnerMap = {
     assert.strictEqual(hookRan, Boolean(expected.hookRan));
     assert.strictEqual(completion, undefined);
   }
-} satisfies Record<ScenarioKind, ScenarioRunner>;
+} satisfies Record<ScenarioShape, ScenarioRunner>;
 
 function runCase(scenario: ScenarioCase): Promise<void> | void {
   const { expected, input } = requireScenarioData(scenario);
-  return runnerMap[scenario.kind](scenario, expected, input);
+  return runnerMap[scenario.shape](scenario, expected, input);
 }
 
 void describe('HookInvoker', () => {

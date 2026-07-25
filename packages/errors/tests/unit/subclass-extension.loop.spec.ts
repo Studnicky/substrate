@@ -62,12 +62,12 @@ class NetworkModuleError extends ModuleError {
 }
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'audit-instanceof' | 'audit-json-base' | 'audit-json-extra' | 'audit-json-independent' | 'audit-name' | 'audit-user-message' | 'network-cause-chain' | 'network-find-cause' | 'network-has-cause' | 'network-instanceof' | 'network-json-context' | 'network-json-name' | 'network-json-status-code' | 'network-name'; name: string };
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'audit-instanceof' | 'audit-json-base' | 'audit-json-extra' | 'audit-json-independent' | 'audit-name' | 'audit-user-message' | 'network-cause-chain' | 'network-find-cause' | 'network-has-cause' | 'network-instanceof' | 'network-json-context' | 'network-json-name' | 'network-json-status-code' | 'network-name'; name: string };
 
-type ScenarioRunner<K extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: K }>) => void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
 
 type RunnerMap = {
-  [K in ScenarioCase['kind']]: ScenarioRunner<K>;
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
 const runnerMap: RunnerMap = {
@@ -189,8 +189,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: K }>): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Subclass extension', () => {

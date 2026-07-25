@@ -32,11 +32,11 @@ type HookFailureType = { message: string };
 type SelectiveHookFailureType = HookFailureType & { id: string };
 type ErrorCauseMutationType = { attempt: number; message: string };
 
-type ScenarioDescriptor<Kind extends string, Input, Expected> = {
+type ScenarioDescriptor<Shape extends string, Input, Expected> = {
   description: string;
   expected: Expected;
   input: Input;
-  kind: Kind;
+  shape: Shape;
   name: string;
 };
 
@@ -203,10 +203,10 @@ type ScenarioCaseMap = {
   >;
 };
 
-type ScenarioKind = keyof ScenarioCaseMap;
-type ScenarioCase = ScenarioCaseMap[ScenarioKind];
-type ScenarioRunner<K extends ScenarioKind> = (scenarioCase: ScenarioCaseMap[K]) => Promise<void>;
-type RunnerMap = { [K in ScenarioKind]: ScenarioRunner<K> };
+type ScenarioShape = keyof ScenarioCaseMap;
+type ScenarioCase = ScenarioCaseMap[ScenarioShape];
+type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: ScenarioCaseMap[K]) => Promise<void>;
+type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
 const selectId = (entity: UserType): string => entity.id;
 
@@ -707,12 +707,12 @@ const runnerMap = {
   'upsert-one-overwrites': runUpsertOneOverwrites
 } satisfies RunnerMap;
 
-async function dispatchCase<K extends ScenarioKind>(kind: K, scenarioCase: ScenarioCaseMap[K]): Promise<void> {
-  await runnerMap[kind](scenarioCase);
+async function dispatchCase<K extends ScenarioShape>(shape: K, scenarioCase: ScenarioCaseMap[K]): Promise<void> {
+  await runnerMap[shape](scenarioCase);
 }
 
-async function runCase<K extends ScenarioKind>(scenarioCase: ScenarioCaseMap[K]): Promise<void> {
-  await dispatchCase(scenarioCase.kind, scenarioCase);
+async function runCase<K extends ScenarioShape>(scenarioCase: ScenarioCaseMap[K]): Promise<void> {
+  await dispatchCase(scenarioCase.shape, scenarioCase);
 }
 
 void describe('EntityStore', () => {

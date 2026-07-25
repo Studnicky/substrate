@@ -11,7 +11,7 @@ type ScenarioDescriptor<K extends string, Input, Expected> = {
   description: string;
   expected: Expected;
   input: Input;
-  kind: K;
+  shape: K;
   name: string;
 };
 
@@ -33,9 +33,9 @@ type ScenarioCaseMap = {
   'valid-state': ValidationScenario;
 };
 
-type ScenarioKind = keyof ScenarioCaseMap;
-type ScenarioCase = ScenarioCaseMap[ScenarioKind];
-type RunnerMap = { [K in ScenarioKind]: (scenarioCase: ScenarioCaseMap[K]) => void };
+type ScenarioShape = keyof ScenarioCaseMap;
+type ScenarioCase = ScenarioCaseMap[ScenarioShape];
+type RunnerMap = { [K in ScenarioShape]: (scenarioCase: ScenarioCaseMap[K]) => void };
 
 const runnerMap: RunnerMap = {
   'error-args': (scenarioCase) => {
@@ -54,12 +54,12 @@ const runnerMap: RunnerMap = {
   'valid-state': runValidationCase
 };
 
-function dispatchCase<K extends ScenarioKind>(kind: K, scenarioCase: ScenarioCaseMap[K]): void {
-  runnerMap[kind](scenarioCase);
+function dispatchCase<K extends ScenarioShape>(shape: K, scenarioCase: ScenarioCaseMap[K]): void {
+  runnerMap[shape](scenarioCase);
 }
 
-function runCase<K extends ScenarioKind>(scenarioCase: ScenarioCaseMap[K]): void {
-  dispatchCase(scenarioCase.kind, scenarioCase);
+function runCase<K extends ScenarioShape>(scenarioCase: ScenarioCaseMap[K]): void {
+  dispatchCase(scenarioCase.shape, scenarioCase);
 }
 
 function runValidationCase(scenarioCase: ValidationScenario): void {

@@ -10,18 +10,18 @@ type TimingEventInput = { component: string; operation: string };
 type TimingEventWithStatusInput = TimingEventInput & { status: TimingStatus };
 
 type ScenarioBase<
-  Kind extends string,
+  Shape extends string,
   Input extends Record<string, unknown>,
   Expected extends Record<string, unknown>
 > = {
   description: string;
   expected: Expected;
   input: Input;
-  kind: Kind;
+  shape: Shape;
   name: string;
 };
 
-type ScenarioCaseByKind = {
+type ScenarioCaseByShape = {
   'component-operation-format': ScenarioBase<'component-operation-format', TimingEventInput, { event: string }>;
   'domain-specific-status': ScenarioBase<'domain-specific-status', TimingEventWithStatusInput, { event: string }>;
   'immutable-event-data': ScenarioBase<'immutable-event-data', TimingEventInput, { frozen: true }>;
@@ -31,10 +31,10 @@ type ScenarioCaseByKind = {
   'missing-operation': ScenarioBase<'missing-operation', { component: string }, { errorName: string }>;
 };
 
-type ScenarioKind = keyof ScenarioCaseByKind;
-type ScenarioCase = ScenarioCaseByKind[ScenarioKind];
-type ScenarioRunner<Kind extends ScenarioKind> = (scenarioCase: ScenarioCaseByKind[Kind]) => void;
-type RunnerMap = { [Kind in ScenarioKind]: ScenarioRunner<Kind> };
+type ScenarioShape = keyof ScenarioCaseByShape;
+type ScenarioCase = ScenarioCaseByShape[ScenarioShape];
+type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: ScenarioCaseByShape[Shape]) => void;
+type RunnerMap = { [Shape in ScenarioShape]: ScenarioRunner<Shape> };
 
 function createInvalidTimingEvent(input: { component?: string; operation?: string; status?: TimingStatus }): void {
   Reflect.apply(TimingEvent.create, TimingEvent, [input]);
@@ -92,8 +92,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<Kind extends ScenarioKind>(scenarioCase: ScenarioCaseByKind[Kind]): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseByShape[Shape]): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('TimingEvent', () => {

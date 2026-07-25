@@ -26,45 +26,45 @@ interface HookTopics {
 }
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'publish-delivers' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'unsubscribe-stops' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'multiple-subscribers' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'topics-isolated' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'handler-signal' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'signal-after-unsubscribe' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'signal-after-close' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'signal-listener-cleanup' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'subscribe-after-close' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'preaborted-caller-signal' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'close-stops-delivery' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'publish-empty-topic' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'on-publish' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'on-subscribe' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'on-unsubscribe' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'async-subscription-hooks' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'async-owned-queue-hooks' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'on-deliver' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'owned-queues-isolated' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'on-handler-error' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'enqueue-dequeue-hooks' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'on-drop-noop' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'on-dispose' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'hook-order' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'pending-admission-order' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'default-hwm' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'forwarded-hwm' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'config-snapshot' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'same-depth-no-overflow' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'throwing-on-publish' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'topic-entry-cleanup' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'topic-entry-kept' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'throwing-on-deliver' };
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'publish-delivers' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'unsubscribe-stops' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'multiple-subscribers' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'topics-isolated' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'handler-signal' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'signal-after-unsubscribe' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'signal-after-close' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'signal-listener-cleanup' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'subscribe-after-close' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'preaborted-caller-signal' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'close-stops-delivery' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'publish-empty-topic' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-publish' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-subscribe' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-unsubscribe' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-subscription-hooks' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-owned-queue-hooks' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-deliver' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'owned-queues-isolated' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-handler-error' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'enqueue-dequeue-hooks' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-drop-noop' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-dispose' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'hook-order' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'pending-admission-order' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'default-hwm' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'forwarded-hwm' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'config-snapshot' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'same-depth-no-overflow' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-on-publish' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'topic-entry-cleanup' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'topic-entry-kept' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-on-deliver' };
 
-type ScenarioKind = ScenarioCase['kind'];
+type ScenarioShape = ScenarioCase['shape'];
 
-type ScenarioRunner<K extends ScenarioKind> = (scenarioCase: Extract<ScenarioCase, { kind: K }>) => Promise<void> | void;
+type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
 
-type RunnerMap = { [K in ScenarioKind]: ScenarioRunner<K> };
+type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
 class ObservedBus extends EventBus<HookTopics> {
   static override create(): ObservedBus {
@@ -880,8 +880,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioKind>(scenarioCase: Extract<ScenarioCase, { kind: K }>): Promise<void> | void {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> | void {
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('EventBus', () => {

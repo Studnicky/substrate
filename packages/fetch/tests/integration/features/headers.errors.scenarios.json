@@ -9,7 +9,7 @@
         }
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -21,14 +21,14 @@
           }
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "messageIncludes": [
             "header"
           ]
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -43,7 +43,7 @@
         }
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -55,14 +55,14 @@
           }
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "messageIncludes": [
             "header"
           ]
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -77,7 +77,7 @@
         }
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -89,14 +89,14 @@
           }
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "messageIncludes": [
             "header"
           ]
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -108,12 +108,12 @@
       "clientConfig": {
         "headers": {
           "X-Custom": {
-            "__kind": "undefined"
+            "__shape": "undefined"
           }
         }
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -122,19 +122,19 @@
         "clientConfig": {
           "headers": {
             "X-Custom": {
-              "__kind": "undefined"
+              "__shape": "undefined"
             }
           }
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "messageIncludes": [
             "header"
           ]
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -149,7 +149,7 @@
         }
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -161,14 +161,14 @@
           }
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "messageIncludes": [
             "header"
           ]
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -183,7 +183,7 @@
         }
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -195,14 +195,14 @@
           }
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "messageIncludes": [
             "header"
           ]
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
@@ -215,7 +215,7 @@
         "headers": []
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
@@ -225,14 +225,14 @@
           "headers": []
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "messageIncludes": [
             "headers"
           ]
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
@@ -245,7 +245,7 @@
         "headers": "invalid"
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
@@ -255,14 +255,14 @@
           "headers": "invalid"
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "messageIncludes": [
             "headers"
           ]
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
@@ -275,7 +275,7 @@
         "headers": 123
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
@@ -285,14 +285,14 @@
           "headers": 123
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "messageIncludes": [
             "headers"
           ]
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
@@ -309,7 +309,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -321,12 +321,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -344,7 +344,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -359,12 +359,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -383,7 +383,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -399,12 +399,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -421,7 +421,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -435,12 +435,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -457,7 +457,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -471,12 +471,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -493,7 +493,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -507,12 +507,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -529,7 +529,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "reject",
+        "shape": "reject",
         "errorType": "TypeError"
       },
       "input": {
@@ -543,12 +543,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "reject",
+          "shape": "reject",
           "errorType": "TypeError"
         }
       },
       "expected": {
-        "kind": "reject",
+        "shape": "reject",
         "errorType": "TypeError"
       }
     },
@@ -565,7 +565,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -579,12 +579,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -601,7 +601,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -615,12 +615,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -686,7 +686,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -749,12 +749,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -870,7 +870,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -983,12 +983,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -1008,7 +1008,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -1025,12 +1025,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -1050,7 +1050,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -1067,12 +1067,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -1090,7 +1090,7 @@
         "path": "/posts"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 201
       },
       "input": {
@@ -1105,12 +1105,12 @@
           "path": "/posts"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 201
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 201
       }
     },
@@ -1126,7 +1126,7 @@
         "path": "/posts"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 201
       },
       "input": {
@@ -1139,12 +1139,12 @@
           "path": "/posts"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 201
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 201
       }
     },
@@ -1165,7 +1165,7 @@
         "path": "/posts"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 201
       },
       "input": {
@@ -1183,12 +1183,12 @@
           "path": "/posts"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 201
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 201
       }
     },
@@ -1205,7 +1205,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -1219,12 +1219,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -1241,7 +1241,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -1255,12 +1255,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -1277,7 +1277,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -1291,12 +1291,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -1313,7 +1313,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -1327,12 +1327,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     },
@@ -1350,7 +1350,7 @@
         "path": "/posts/1"
       },
       "expect": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       },
       "input": {
@@ -1365,12 +1365,12 @@
           "path": "/posts/1"
         },
         "expect": {
-          "kind": "ok",
+          "shape": "ok",
           "status": 200
         }
       },
       "expected": {
-        "kind": "ok",
+        "shape": "ok",
         "status": 200
       }
     }

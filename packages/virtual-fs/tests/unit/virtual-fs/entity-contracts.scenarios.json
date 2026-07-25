@@ -12,7 +12,7 @@
           { "expected": true, "value": { "recursive": true } }
         ]
       },
-      "kind": "recursive-directory-options",
+      "shape": "recursive-directory-options",
       "name": "recursive-directory-options"
     },
     {
@@ -27,7 +27,7 @@
           { "expected": false, "value": { "recursive": "yes" } }
         ]
       },
-      "kind": "non-boolean-recursive-values",
+      "shape": "non-boolean-recursive-values",
       "name": "non-boolean-recursive-values"
     }
   ]

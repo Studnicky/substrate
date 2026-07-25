@@ -18,7 +18,7 @@ import {
 
 import scenarioGroups from './json-core.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'clone-deep-array'
   | 'clone-deep-date'
   | 'clone-deep-isolation'
@@ -50,7 +50,7 @@ type ScenarioKind =
   | 'frozen-set-values'
   | 'frozen-subclass-skip'
   | 'hash-different'
-  | 'hash-distinct-kinds'
+  | 'hash-distinct-shapes'
   | 'hash-edge-values'
   | 'hash-hex'
   | 'hash-identical'
@@ -71,7 +71,7 @@ type ScenarioCase = {
   description: string;
   expected: JsonObject;
   input: { json: JsonObject };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
@@ -89,7 +89,7 @@ class SelectiveFrozen extends Frozen {
   }
 }
 
-const runtimeValueByKind = {
+const runtimeValueByShape = {
   date: (): Date => new Date(0),
   false: (): boolean => false,
   function: (): (() => string) => {
@@ -381,9 +381,9 @@ const scenarioRunnerMap = {
     assert.equal(scenarioCase.expected.hashable, true);
   },
 
-  'hash-distinct-kinds': (scenarioCase) => {
-    const hashes = requireArray(readJson(scenarioCase).values, 'hash distinct value kinds').map((kind) => {
-      return Hash.value(materializeRuntimeValue(requireString(kind, 'hash distinct value kind')));
+  'hash-distinct-shapes': (scenarioCase) => {
+    const hashes = requireArray(readJson(scenarioCase).values, 'hash distinct value shapes').map((shape) => {
+      return Hash.value(materializeRuntimeValue(requireString(shape, 'hash distinct value shape')));
     });
     assert.equal(new Set(hashes).size === hashes.length, scenarioCase.expected.distinct);
   },
@@ -481,7 +481,7 @@ const scenarioRunnerMap = {
     assert.equal(SchemaValidator.formatErrors(undefined), scenarioCase.expected.fallback);
     assert.equal(SchemaValidator.formatErrors([]), scenarioCase.expected.fallback);
   }
-} satisfies Record<ScenarioKind, ScenarioRunner>;
+} satisfies Record<ScenarioShape, ScenarioRunner>;
 
 const scenarioCases = scenarioGroups.cases.map(normalizeScenarioCase);
 
@@ -490,17 +490,17 @@ function normalizeScenarioCase(scenarioCase: ImportedScenarioCase): ScenarioCase
     description: scenarioCase.description,
     expected: scenarioCase.expected,
     input: scenarioCase.input,
-    kind: requireScenarioKind(scenarioCase.kind),
+    shape: requireScenarioShape(scenarioCase.shape),
     name: scenarioCase.name
   };
 }
 
-function requireScenarioKind(kind: string): ScenarioKind {
-  if (Object.hasOwn(scenarioRunnerMap, kind)) {
-    return kind;
+function requireScenarioShape(shape: string): ScenarioShape {
+  if (Object.hasOwn(scenarioRunnerMap, shape)) {
+    return shape;
   }
 
-  throw new Error(`Unhandled json core scenario kind: ${kind}`);
+  throw new Error(`Unhandled json core scenario shape: ${shape}`);
 }
 
 function readJson(scenarioCase: ScenarioCase): JsonObject {
@@ -591,16 +591,16 @@ function materializeCycle(value: unknown): JsonObject {
   return result;
 }
 
-function materializeRuntimeValue(kind: string): unknown {
-  if (Object.hasOwn(runtimeValueByKind, kind)) {
-    return runtimeValueByKind[kind]!();
+function materializeRuntimeValue(shape: string): unknown {
+  if (Object.hasOwn(runtimeValueByShape, shape)) {
+    return runtimeValueByShape[shape]!();
   }
 
-  throw new TypeError(`Unknown runtime value kind: ${kind}`);
+  throw new TypeError(`Unknown runtime value shape: ${shape}`);
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await scenarioRunnerMap[scenarioCase.kind](scenarioCase);
+  await scenarioRunnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('JSON core', () => {

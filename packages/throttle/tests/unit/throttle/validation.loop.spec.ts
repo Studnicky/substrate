@@ -5,15 +5,15 @@ import { ThrottleValidator } from '../../../src/throttle/validation/ThrottleVali
 import scenarioGroups from './validation.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: { result: boolean }; input: unknown; kind: 'non-object-rejected'; name: string }
-  | { description: string; expected: { result: boolean }; input: Record<string, unknown>; kind: 'missing-method-rejected'; name: string }
-  | { description: string; expected: { result: boolean }; input: Record<string, unknown>; kind: 'full-interface-accepted'; name: string };
+  | { description: string; expected: { result: boolean }; input: unknown; shape: 'non-object-rejected'; name: string }
+  | { description: string; expected: { result: boolean }; input: Record<string, unknown>; shape: 'missing-method-rejected'; name: string }
+  | { description: string; expected: { result: boolean }; input: Record<string, unknown>; shape: 'full-interface-accepted'; name: string };
 
 function assertValidationResult(scenarioCase: ScenarioCase): void {
   assert.strictEqual(ThrottleValidator.isThrottle(scenarioCase.input), scenarioCase.expected.result);
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'full-interface-accepted': (scenarioCase) => {
     const throttleLike = {
       abort: () => Promise.resolve(undefined),
@@ -29,7 +29,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle validation', () => {

@@ -31,7 +31,7 @@ type ScenarioCase = {
   description: string;
   expected: { validationResults: boolean[] };
   input: { validations: ValidationCase[] };
-  kind: 'invalid-contracts' | 'valid-contracts';
+  shape: 'invalid-contracts' | 'valid-contracts';
   name: string;
 };
 

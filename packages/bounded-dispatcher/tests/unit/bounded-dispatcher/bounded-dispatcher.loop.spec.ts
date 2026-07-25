@@ -9,9 +9,9 @@ import type { BoundedDispatcherConfigInterface, BoundedDispatcherTopicMapInterfa
 import { BoundedDispatcher } from '../../../src/index.js';
 
 type DispatcherBusDescriptor =
-  | { kind: 'default' }
-  | { kind: 'options'; options: { highWaterMark?: number } }
-  | { failureOrdinal: number; kind: 'rejecting' };
+  | { shape: 'default' }
+  | { shape: 'options'; options: { highWaterMark?: number } }
+  | { failureOrdinal: number; shape: 'rejecting' };
 
 type DispatcherOptionsDescriptor = {
   permits?: number;
@@ -25,15 +25,15 @@ type DispatcherScenarioConfig = {
 };
 
 type DispatcherSchedulerDescriptor =
-  | { kind: 'default' }
-  | { counter: { startMs?: number }; kind: 'virtual' };
+  | { shape: 'default' }
+  | { counter: { startMs?: number }; shape: 'virtual' };
 
 type BatchInput = {
   labels?: string[];
   taskCount?: number;
 };
 
-type ScenarioKind =
+type ScenarioShape =
   | 'backpressure-isolation'
   | 'dispatch-concurrency-bound'
   | 'dispatch-error'
@@ -61,7 +61,7 @@ type ScenarioCase = {
     result?: string;
     workErrorMessage?: string;
   };
-  kind: ScenarioKind;
+  shape: ScenarioShape;
   name: string;
 };
 
@@ -115,25 +115,25 @@ type BusMaterializer = (
 
 type SchedulerMaterializer = (descriptor: DispatcherSchedulerDescriptor) => MaterializedScheduler;
 
-function requireBusOptionsDescriptor(descriptor: DispatcherBusDescriptor): Extract<DispatcherBusDescriptor, { kind: 'options' }> {
-  if (descriptor.kind !== 'options') {
-    throw new Error(`Expected options bus descriptor, received ${descriptor.kind}`);
+function requireBusOptionsDescriptor(descriptor: DispatcherBusDescriptor): Extract<DispatcherBusDescriptor, { shape: 'options' }> {
+  if (descriptor.shape !== 'options') {
+    throw new Error(`Expected options bus descriptor, received ${descriptor.shape}`);
   }
   return descriptor;
 }
 
-function requireRejectingBusDescriptor(descriptor: DispatcherBusDescriptor): Extract<DispatcherBusDescriptor, { kind: 'rejecting' }> {
-  if (descriptor.kind !== 'rejecting') {
-    throw new Error(`Expected rejecting bus descriptor, received ${descriptor.kind}`);
+function requireRejectingBusDescriptor(descriptor: DispatcherBusDescriptor): Extract<DispatcherBusDescriptor, { shape: 'rejecting' }> {
+  if (descriptor.shape !== 'rejecting') {
+    throw new Error(`Expected rejecting bus descriptor, received ${descriptor.shape}`);
   }
   return descriptor;
 }
 
 function requireVirtualSchedulerDescriptor(
   descriptor: DispatcherSchedulerDescriptor
-): Extract<DispatcherSchedulerDescriptor, { kind: 'virtual' }> {
-  if (descriptor.kind !== 'virtual') {
-    throw new Error(`Expected virtual scheduler descriptor, received ${descriptor.kind}`);
+): Extract<DispatcherSchedulerDescriptor, { shape: 'virtual' }> {
+  if (descriptor.shape !== 'virtual') {
+    throw new Error(`Expected virtual scheduler descriptor, received ${descriptor.shape}`);
   }
   return descriptor;
 }
@@ -163,7 +163,7 @@ function materializeRejectingBus(
   return new RejectingEventBus(rejectingDescriptor.failureOrdinal, cause);
 }
 
-const busMaterializerMap: Record<DispatcherBusDescriptor['kind'], BusMaterializer> = {
+const busMaterializerMap: Record<DispatcherBusDescriptor['shape'], BusMaterializer> = {
   'default': materializeDefaultBus,
   'options': materializeOptionsBus,
   'rejecting': materializeRejectingBus
@@ -182,7 +182,7 @@ function materializeVirtualScheduler(descriptor: DispatcherSchedulerDescriptor):
   return { 'provider': scheduler, 'virtual': scheduler };
 }
 
-const schedulerMaterializerMap: Record<DispatcherSchedulerDescriptor['kind'], SchedulerMaterializer> = {
+const schedulerMaterializerMap: Record<DispatcherSchedulerDescriptor['shape'], SchedulerMaterializer> = {
   'default': materializeDefaultScheduler,
   'virtual': materializeVirtualScheduler
 };
@@ -192,11 +192,11 @@ function materializeDispatcher(config: DispatcherScenarioConfig, cause?: unknown
   if (config.options.permits !== undefined) {
     dispatcherConfig.permits = config.options.permits;
   }
-  const bus = busMaterializerMap[config.bus.kind](config.bus, cause);
+  const bus = busMaterializerMap[config.bus.shape](config.bus, cause);
   if (bus !== undefined) {
     dispatcherConfig.bus = bus;
   }
-  const scheduler = schedulerMaterializerMap[config.scheduler.kind](config.scheduler);
+  const scheduler = schedulerMaterializerMap[config.scheduler.shape](config.scheduler);
   if (scheduler.provider !== undefined) {
     dispatcherConfig.scheduler = scheduler.provider;
   }
@@ -265,7 +265,7 @@ function createTaskBatch(batch: BatchInput, task: () => Promise<void>): Promise<
   return Array.from({ length: batch.taskCount }, () => task());
 }
 
-const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void>> = {
   'dispatch-success': async ({ expected, input }) => {
     const dispatcher = createDispatcher(input.dispatcher);
     const received: BoundedDispatcherTopicMapInterface['dispatch'][] = [];
@@ -511,7 +511,7 @@ const runnerMap: Record<ScenarioKind, (scenarioCase: ScenarioCase) => Promise<vo
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('BoundedDispatcher', () => {

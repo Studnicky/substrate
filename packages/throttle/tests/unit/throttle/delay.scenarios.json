@@ -3,35 +3,35 @@
     {
       "name": "delay-resolves-without-signal",
       "description": "Delay resolves after the timeout elapses when no signal is provided",
-      "kind": "delay-resolves-without-signal",
+      "shape": "delay-resolves-without-signal",
       "input": { "timeoutMs": 1 },
       "expected": { "resolved": true }
     },
     {
       "name": "delay-resolves-with-never-aborted-signal",
       "description": "Delay resolves after the timeout elapses when the signal is never aborted",
-      "kind": "delay-resolves-with-never-aborted-signal",
+      "shape": "delay-resolves-with-never-aborted-signal",
       "input": { "timeoutMs": 1 },
       "expected": { "resolved": true }
     },
     {
       "name": "delay-rejects-already-aborted",
       "description": "Delay rejects with AbortError when the signal is already aborted",
-      "kind": "delay-rejects-already-aborted",
+      "shape": "delay-rejects-already-aborted",
       "input": { "timeoutMs": 50 },
       "expected": { "abortErrorName": "AbortError" }
     },
     {
       "name": "delay-rejects-before-timeout",
       "description": "Delay rejects with AbortError when the signal aborts before the timeout",
-      "kind": "delay-rejects-before-timeout",
+      "shape": "delay-rejects-before-timeout",
       "input": { "timeoutMs": 50 },
       "expected": { "abortErrorName": "AbortError" }
     },
     {
       "name": "delay-removes-abort-listener",
       "description": "Delay removes the abort listener once the timer resolves normally",
-      "kind": "delay-removes-abort-listener",
+      "shape": "delay-removes-abort-listener",
       "input": { "timeoutMs": 1 },
       "expected": { "abortListenerAddCount": 1, "abortListenerRemoveCount": 1 }
     }

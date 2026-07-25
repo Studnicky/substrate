@@ -18,7 +18,7 @@ type ScenarioCase =
         numberValue: string;
         stringValue: string;
       };
-      kind: 'immutable-matcher-route';
+      shape: 'immutable-matcher-route';
       name: string;
     }
   | {
@@ -62,14 +62,14 @@ type ScenarioCase =
         objectValue: Record<string, unknown>;
         stringValue: string;
       };
-      kind: 'negative-matcher-route';
+      shape: 'negative-matcher-route';
       name: string;
     }
   | {
       description: string;
       expected: Record<string, boolean>;
       input: Record<string, unknown>;
-      kind: 'array-matchers' | 'boolean-matchers' | 'database-matchers' | 'empty-variadics' | 'http-matchers' | 'instance-matchers' | 'logic-matchers' | 'network-matchers' | 'number-matchers' | 'object-matchers' | 'proto-matchers' | 'string-matchers';
+      shape: 'array-matchers' | 'boolean-matchers' | 'database-matchers' | 'empty-variadics' | 'http-matchers' | 'instance-matchers' | 'logic-matchers' | 'network-matchers' | 'number-matchers' | 'object-matchers' | 'proto-matchers' | 'string-matchers';
       name: string;
     };
 
@@ -276,11 +276,11 @@ const runnerMap = {
     assert.strictEqual(matchers.string.startsWith('Connection')(value), scenario.expected.startsWith);
     assert.strictEqual(matchers.string.startsWithIgnoreCase('connection')(value), scenario.expected.startsWithIgnoreCase);
   }
-} satisfies Record<ScenarioCase['kind'], ScenarioRunner>;
+} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 function runCase(scenario: ScenarioCase): void {
   assertMatcherSurface();
-  runnerMap[scenario.kind](scenario);
+  runnerMap[scenario.shape](scenario);
 }
 
 void describe('matchers', () => {

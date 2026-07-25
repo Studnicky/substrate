@@ -14,7 +14,7 @@ type ScenarioCase =
         components: typeof EVENT_COMPONENTS;
       };
       input: Record<string, never>;
-      kind: 'component-prefixes';
+      shape: 'component-prefixes';
     }
   | {
       description: string;
@@ -23,7 +23,7 @@ type ScenarioCase =
         component: string;
         operation: string;
       };
-      kind: 'create-graph-query';
+      shape: 'create-graph-query';
     }
   | {
       description: string;
@@ -32,7 +32,7 @@ type ScenarioCase =
         component: string;
         operation: string;
       };
-      kind: 'create-query-planner';
+      shape: 'create-query-planner';
     }
   | {
       description: string;
@@ -41,7 +41,7 @@ type ScenarioCase =
         component: string;
         operation: string;
       };
-      kind: 'create-constant-component';
+      shape: 'create-constant-component';
     }
   | {
       description: string;
@@ -52,7 +52,7 @@ type ScenarioCase =
       input: {
         event: string;
       };
-      kind: 'parse-graph-query';
+      shape: 'parse-graph-query';
     }
   | {
       description: string;
@@ -63,7 +63,7 @@ type ScenarioCase =
       input: {
         event: string;
       };
-      kind: 'parse-query-planner';
+      shape: 'parse-query-planner';
     }
   | {
       description: string;
@@ -74,7 +74,7 @@ type ScenarioCase =
       input: {
         event: string;
       };
-      kind: 'parse-multiple-dots';
+      shape: 'parse-multiple-dots';
     }
   | {
       description: string;
@@ -85,10 +85,10 @@ type ScenarioCase =
       input: {
         event: string;
       };
-      kind: 'parse-standalone';
+      shape: 'parse-standalone';
     };
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'component-prefixes': (scenarioCase) => {
     assert.deepStrictEqual(scenarioCase.input.components, scenarioCase.expected.components);
     assert.strictEqual(scenarioCase.expected.components.API, EVENT_COMPONENTS.API);
@@ -132,7 +132,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => vo
 void describe('LogEventName', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
-      runnerMap[scenario.kind](scenario);
+      runnerMap[scenario.shape](scenario);
     });
   }
 });

@@ -3,21 +3,21 @@
     {
       "name": "transitions-off-on",
       "description": "transitions off to on",
-      "kind": "transitions-off-on",
+      "shape": "transitions-off-on",
       "input": { "variant": "off" },
       "expected": { "stateVariant": "on" }
     },
     {
       "name": "transitions-on-off",
       "description": "transitions on to off",
-      "kind": "transitions-on-off",
+      "shape": "transitions-on-off",
       "input": { "variant": "on" },
       "expected": { "stateVariant": "off" }
     },
     {
       "name": "wraps-reducer-throw",
       "description": "wraps reducer throw as ReducerThrewError",
-      "kind": "wraps-reducer-throw",
+      "shape": "wraps-reducer-throw",
       "input": { "variant": "off" },
       "expected": {
         "errorName": "ReducerThrewError"
@@ -26,7 +26,7 @@
     {
       "name": "rejected-error-surfaces",
       "description": "TransitionRejectedError surfaces without wrapping",
-      "kind": "rejected-error-surfaces",
+      "shape": "rejected-error-surfaces",
       "input": { "variant": "off" },
       "expected": {
         "errorName": "TransitionRejectedError",
@@ -37,14 +37,14 @@
     {
       "name": "plain-error-wraps",
       "description": "plain reducer errors still wrap as ReducerThrewError",
-      "kind": "plain-error-wraps",
+      "shape": "plain-error-wraps",
       "input": { "variant": "off" },
       "expected": { "errorName": "ReducerThrewError" }
     },
     {
       "name": "terminated-blocks-transition",
       "description": "isTerminated blocks further transitions",
-      "kind": "terminated-blocks-transition",
+      "shape": "terminated-blocks-transition",
       "input": { "variant": "off" },
       "expected": {
         "firstTransitionStateVariant": "on",
@@ -56,7 +56,7 @@
     {
       "name": "terminated-access-hook",
       "description": "onTerminatedAccess fires on terminated state access",
-      "kind": "terminated-access-hook",
+      "shape": "terminated-access-hook",
       "input": { "variant": "on" },
       "expected": {
         "callCount": 1,

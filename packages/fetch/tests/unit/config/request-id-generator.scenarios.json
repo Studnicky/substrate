@@ -4,11 +4,11 @@
       "name": "request-id-generator-undefined",
       "description": "ValidateRequestIdGenerator accepts undefined",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "requestIdGenerator": {
-          "__kind": "undefined"
+          "__shape": "undefined"
         }
       }
     },
@@ -16,11 +16,11 @@
       "name": "request-id-generator-null",
       "description": "ValidateRequestIdGenerator accepts null",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "requestIdGenerator": {
-          "__kind": "null"
+          "__shape": "null"
         }
       }
     },
@@ -28,7 +28,7 @@
       "name": "request-id-generator-non-function",
       "description": "ValidateRequestIdGenerator rejects non-function values",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "requestIdGenerator must be a function"
         ]
@@ -41,11 +41,11 @@
       "name": "request-id-generator-return-string",
       "description": "ValidateRequestIdGenerator accepts functions that return strings",
       "expected": {
-        "kind": "ok"
+        "shape": "ok"
       },
       "input": {
         "requestIdGenerator": {
-          "__kind": "function-return-string",
+          "__shape": "function-return-string",
           "value": "request-id"
         }
       }
@@ -54,14 +54,14 @@
       "name": "request-id-generator-return-non-string",
       "description": "ValidateRequestIdGenerator rejects functions that return non-strings",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "requestIdGenerator must return a string"
         ]
       },
       "input": {
         "requestIdGenerator": {
-          "__kind": "function-return-value",
+          "__shape": "function-return-value",
           "value": 123
         }
       }
@@ -70,14 +70,14 @@
       "name": "request-id-generator-throws",
       "description": "ValidateRequestIdGenerator wraps function errors",
       "expected": {
-        "kind": "throws",
+        "shape": "throws",
         "messageIncludes": [
           "requestIdGenerator function error: boom"
         ]
       },
       "input": {
         "requestIdGenerator": {
-          "__kind": "function-throws",
+          "__shape": "function-throws",
           "message": "boom"
         }
       }

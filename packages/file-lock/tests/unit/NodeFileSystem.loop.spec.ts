@@ -11,14 +11,14 @@ type ScenarioCase = {
   description: string;
   expected: { forwarded: true };
   input: Record<string, never>;
-  kind: 'forwards-file-system-operations';
+  shape: 'forwards-file-system-operations';
   name: string;
 };
 
 void describe('NodeFileSystem', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, () => {
-      assert.strictEqual(scenarioCase.kind, 'forwards-file-system-operations');
+      assert.strictEqual(scenarioCase.shape, 'forwards-file-system-operations');
 
       const root = mkdtempSync(join(tmpdir(), 'file-lock-node-fs-'));
       const fs = new NodeFileSystem();

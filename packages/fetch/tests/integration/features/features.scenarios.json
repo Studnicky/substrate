@@ -3,7 +3,7 @@
     {
       "name": "baseURL-prepend-relative",
       "description": "FetchClient prepends baseURL to relative paths",
-      "kind": "baseURL-prepend-relative",
+      "shape": "baseURL-prepend-relative",
       "input": {
         "fetchClient": {
           "baseURL": "__TEST_URL__"
@@ -19,7 +19,7 @@
     {
       "name": "baseURL-keep-absolute",
       "description": "FetchClient does not modify absolute URLs",
-      "kind": "baseURL-keep-absolute",
+      "shape": "baseURL-keep-absolute",
       "input": {
         "fetchClient": {
           "baseURL": "https://example.com"
@@ -35,7 +35,7 @@
     {
       "name": "baseURL-trailing-slash",
       "description": "FetchClient handles baseURL with trailing slash",
-      "kind": "baseURL-trailing-slash",
+      "shape": "baseURL-trailing-slash",
       "input": {
         "fetchClient": {
           "baseURL": "__TEST_URL__/"
@@ -51,7 +51,7 @@
     {
       "name": "baseURL-path-without-leading-slash",
       "description": "FetchClient handles path without leading slash",
-      "kind": "baseURL-path-without-leading-slash",
+      "shape": "baseURL-path-without-leading-slash",
       "input": {
         "fetchClient": {
           "baseURL": "__TEST_URL__"
@@ -67,7 +67,7 @@
     {
       "name": "headers-apply-defaults",
       "description": "FetchClient applies default headers",
-      "kind": "headers-apply-defaults",
+      "shape": "headers-apply-defaults",
       "input": {
         "fetchClient": {
           "baseURL": "__TEST_URL__",
@@ -86,7 +86,7 @@
     {
       "name": "headers-merge-default-and-request",
       "description": "FetchClient merges default and request headers",
-      "kind": "headers-merge-default-and-request",
+      "shape": "headers-merge-default-and-request",
       "input": {
         "fetchClient": {
           "baseURL": "__TEST_URL__",
@@ -110,7 +110,7 @@
     {
       "name": "headers-override-defaults",
       "description": "FetchClient allows request headers to override defaults",
-      "kind": "headers-override-defaults",
+      "shape": "headers-override-defaults",
       "input": {
         "fetchClient": {
           "baseURL": "__TEST_URL__",
@@ -134,7 +134,7 @@
     {
       "name": "params-apply-defaults-with-baseURL",
       "description": "FetchClient applies default query params with baseURL",
-      "kind": "params-apply-defaults-with-baseURL",
+      "shape": "params-apply-defaults-with-baseURL",
       "input": {
         "fetchClient": {
           "baseURL": "__TEST_URL__",
@@ -154,7 +154,7 @@
     {
       "name": "params-apply-defaults-without-baseURL",
       "description": "FetchClient applies default query params without baseURL",
-      "kind": "params-apply-defaults-without-baseURL",
+      "shape": "params-apply-defaults-without-baseURL",
       "input": {
         "fetchClient": {
           "params": {
@@ -176,7 +176,7 @@
     {
       "name": "abort-details",
       "description": "FetchClient provides abort details in the error",
-      "kind": "abort-details",
+      "shape": "abort-details",
       "input": {
         "fetchClient": {}
       },
@@ -188,7 +188,7 @@
     {
       "name": "timeout-first",
       "description": "FetchClient throws TimeoutError when timeout occurs first",
-      "kind": "timeout-first",
+      "shape": "timeout-first",
       "input": {
         "fetchClient": {}
       },
@@ -199,7 +199,7 @@
     {
       "name": "abort-first",
       "description": "FetchClient throws AbortError when manual abort occurs first",
-      "kind": "abort-first",
+      "shape": "abort-first",
       "input": {
         "fetchClient": {}
       },
@@ -211,7 +211,7 @@
     {
       "name": "abort-in-get",
       "description": "FetchClient supports abort in GET",
-      "kind": "abort-in-get",
+      "shape": "abort-in-get",
       "input": {
         "fetchClient": {}
       },

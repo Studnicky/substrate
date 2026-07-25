@@ -8,7 +8,7 @@ import { Context } from '../../../src/context/index.js';
 import type { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
 import scenarioGroups from './ContextScope.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'active-on-construction'
   | 'async-accumulates-state'
   | 'async-execute-errors-propagate'
@@ -54,7 +54,7 @@ type ScenarioCase = {
     context: unknown;
     scope?: Record<string, unknown>;
   };
-  kind: string;
+  shape: string;
   name: string;
 };
 
@@ -708,19 +708,19 @@ const runnerMap = {
       assert.ok(typeof final.completedAt === 'number');
     });
   },
-} satisfies Record<ScenarioKind, ScenarioRunner>;
+} satisfies Record<ScenarioShape, ScenarioRunner>;
 
-function isScenarioKind(kind: string): kind is ScenarioKind {
-  return Object.hasOwn(runnerMap, kind);
+function isScenarioShape(shape: string): shape is ScenarioShape {
+  return Object.hasOwn(runnerMap, shape);
 }
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  const { kind } = scenarioCase;
-  if (!isScenarioKind(kind)) {
-    throw new TypeError(`Unsupported scenario kind: ${kind}`);
+  const { shape } = scenarioCase;
+  if (!isScenarioShape(shape)) {
+    throw new TypeError(`Unsupported scenario shape: ${shape}`);
   }
 
-  return runnerMap[kind](scenarioCase);
+  return runnerMap[shape](scenarioCase);
 }
 
 void describe('Context.initialize() scope lifecycle', () => {

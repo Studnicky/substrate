@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/boundary-kit)
 
-Composes three substrate primitives into the fixed composition order `throttle → circuitBreaker → retry → fn`. That order is the kit's entire value: throttle bounds concurrency first so the circuit breaker and retry never observe more concurrent load than the throttle admits; the circuit breaker wraps retry so a tripped circuit fails fast BEFORE any retry attempt is wasted against a known-broken dependency; retry runs innermost, directly against the real call. Getting this order backwards is easy to do by hand and changes behavior silently — that is exactly the kind of wiring `BoundaryKit` exists to protect a consumer from re-deriving.
+Composes three substrate primitives into the fixed composition order `throttle → circuitBreaker → retry → fn`. That order is the kit's entire value: throttle bounds concurrency first so the circuit breaker and retry never observe more concurrent load than the throttle admits; the circuit breaker wraps retry so a tripped circuit fails fast BEFORE any retry attempt is wasted against a known-broken dependency; retry runs innermost, directly against the real call. Getting this order backwards is easy to do by hand and changes behavior silently — that is exactly the shape of wiring `BoundaryKit` exists to protect a consumer from re-deriving.
 
 ## Install
 

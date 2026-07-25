@@ -9,26 +9,26 @@ import { VirtualFileSystem } from '../../../src/virtual-fs/VirtualFileSystem.js'
 import scenarioGroups from './VirtualFileSystem.subclass.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
-  [Kind in ScenarioKind]: ScenarioMetadata<Kind> & ScenarioCaseByKind[Kind];
-}[ScenarioKind];
+  [Shape in ScenarioShape]: ScenarioMetadata<Shape> & ScenarioCaseByShape[Shape];
+}[ScenarioShape];
 
-type ScenarioCaseOf<Kind extends ScenarioKind> = Extract<ScenarioCase, { kind: Kind }>;
+type ScenarioCaseOf<Shape extends ScenarioShape> = Extract<ScenarioCase, { shape: Shape }>;
 
-type ScenarioHandler<Kind extends ScenarioKind> = (scenarioCase: ScenarioCaseOf<Kind>) => Promise<void> | void;
+type ScenarioHandler<Shape extends ScenarioShape> = (scenarioCase: ScenarioCaseOf<Shape>) => Promise<void> | void;
 
 type ScenarioHandlers = {
-  [Kind in ScenarioKind]: ScenarioHandler<Kind>;
+  [Shape in ScenarioShape]: ScenarioHandler<Shape>;
 };
 
-type ScenarioKind = keyof ScenarioCaseByKind;
+type ScenarioShape = keyof ScenarioCaseByShape;
 
-type ScenarioMetadata<Kind extends string> = {
+type ScenarioMetadata<Shape extends string> = {
   description: string;
-  kind: Kind;
+  shape: Shape;
   name: string;
 };
 
-interface ScenarioCaseByKind {
+interface ScenarioCaseByShape {
   'async-create-hook': {
     expected: { content: string; rejections: unknown[] };
     input: { content: string; path: string };
@@ -454,8 +454,8 @@ const scenarioHandlers: ScenarioHandlers = {
   }
 };
 
-function runCase<Kind extends ScenarioKind>(scenarioCase: ScenarioCaseOf<Kind>): Promise<void> | void {
-  return scenarioHandlers[scenarioCase.kind](scenarioCase);
+function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseOf<Shape>): Promise<void> | void {
+  return scenarioHandlers[scenarioCase.shape](scenarioCase);
 }
 
 const scenarios = scenarioGroups.cases as ScenarioCase[];

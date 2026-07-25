@@ -51,7 +51,7 @@ class CustomMessageError extends BaseError {
   }
 }
 
-type CauseDescriptor = { kind: 'base-error' | 'native-error'; message: string };
+type CauseDescriptor = { shape: 'base-error' | 'native-error'; message: string };
 type ScenarioInput = {
   cause?: CauseDescriptor | string;
   correlationId?: string;
@@ -61,21 +61,21 @@ type ScenarioInput = {
   retryable?: boolean;
   toMessage?: ToMessageInput;
 };
-type ToMessageInput = { kind: 'native-error' | 'primitive'; message?: string; value?: boolean | null | number | string };
+type ToMessageInput = { shape: 'native-error' | 'primitive'; message?: string; value?: boolean | null | number | string };
 
 type ScenarioCase =
   | {
       description: string;
       expected: Record<string, unknown>;
       input: ScenarioInput;
-      kind: 'cause-chain' | 'cause-chain-primitive' | 'construction-cause' | 'construction-code' | 'construction-correlation-id' | 'construction-correlation-id-absent' | 'construction-default-retryable' | 'construction-explicit-retryable' | 'construction-instanceof' | 'construction-message' | 'construction-metadata' | 'construction-metadata-absent' | 'construction-metadata-nested' | 'construction-name' | 'construction-omitted-optional-args' | 'construction-timestamp' | 'find-cause-of-type-hit' | 'find-cause-of-type-miss' | 'find-cause-of-type-primitive' | 'find-cause-of-type-self' | 'has-cause-of-type-hit' | 'has-cause-of-type-miss' | 'json-code-message' | 'json-correlation-null' | 'json-correlation-value' | 'json-depth-sentinel' | 'json-native-error-cause' | 'json-primitive-cause' | 'json-recursive-cause' | 'json-required-fields' | 'json-roundtrip' | 'to-message-native-error' | 'to-message-primitive' | 'to-serialized-error';
+      shape: 'cause-chain' | 'cause-chain-primitive' | 'construction-cause' | 'construction-code' | 'construction-correlation-id' | 'construction-correlation-id-absent' | 'construction-default-retryable' | 'construction-explicit-retryable' | 'construction-instanceof' | 'construction-message' | 'construction-metadata' | 'construction-metadata-absent' | 'construction-metadata-nested' | 'construction-name' | 'construction-omitted-optional-args' | 'construction-timestamp' | 'find-cause-of-type-hit' | 'find-cause-of-type-miss' | 'find-cause-of-type-primitive' | 'find-cause-of-type-self' | 'has-cause-of-type-hit' | 'has-cause-of-type-miss' | 'json-code-message' | 'json-correlation-null' | 'json-correlation-value' | 'json-depth-sentinel' | 'json-native-error-cause' | 'json-primitive-cause' | 'json-recursive-cause' | 'json-required-fields' | 'json-roundtrip' | 'to-message-native-error' | 'to-message-primitive' | 'to-serialized-error';
       name: string;
     }
   | {
       description: string;
       expected: { message: string };
       input: ScenarioInput;
-      kind: 'to-user-message-default' | 'to-user-message-custom';
+      shape: 'to-user-message-default' | 'to-user-message-custom';
       name: string;
     };
 
@@ -84,23 +84,23 @@ type ScenarioRunner = (scenario: ScenarioCase, error: TestError) => void;
 const causeFactoryMap = {
   'base-error': (cause: CauseDescriptor) => new TestError(cause.message),
   'native-error': (cause: CauseDescriptor) => new Error(cause.message)
-} satisfies Record<CauseDescriptor['kind'], (cause: CauseDescriptor) => unknown>;
+} satisfies Record<CauseDescriptor['shape'], (cause: CauseDescriptor) => unknown>;
 
 const toMessageInputMap = {
   'native-error': (input: ToMessageInput) => new Error(String(input.message)),
   'primitive': (input: ToMessageInput) => input.value
-} satisfies Record<ToMessageInput['kind'], (input: ToMessageInput) => unknown>;
+} satisfies Record<ToMessageInput['shape'], (input: ToMessageInput) => unknown>;
 
 function isCauseDescriptor(cause: CauseDescriptor | string | undefined): cause is CauseDescriptor {
   return cause !== undefined && typeof cause !== 'string';
 }
 
 function createCause(cause: CauseDescriptor | string | undefined): unknown {
-  return isCauseDescriptor(cause) ? causeFactoryMap[cause.kind](cause) : cause;
+  return isCauseDescriptor(cause) ? causeFactoryMap[cause.shape](cause) : cause;
 }
 
 function createToMessageInput(input: ToMessageInput | undefined): unknown {
-  return input === undefined ? undefined : toMessageInputMap[input.kind](input);
+  return input === undefined ? undefined : toMessageInputMap[input.shape](input);
 }
 
 function createError(input: ScenarioCase['input']): TestError {
@@ -132,10 +132,10 @@ const runnerMap = {
     assert.strictEqual(error.code, scenario.expected.code);
   },
   'construction-correlation-id': (scenario, error) => {
-    assert.deepStrictEqual(error.correlationId ?? { 'kind': 'undefined' }, scenario.expected.correlationId ?? { 'kind': 'undefined' });
+    assert.deepStrictEqual(error.correlationId ?? { 'shape': 'undefined' }, scenario.expected.correlationId ?? { 'shape': 'undefined' });
   },
   'construction-correlation-id-absent': (scenario, error) => {
-    assert.deepStrictEqual(error.correlationId ?? { 'kind': 'undefined' }, scenario.expected.correlationId ?? { 'kind': 'undefined' });
+    assert.deepStrictEqual(error.correlationId ?? { 'shape': 'undefined' }, scenario.expected.correlationId ?? { 'shape': 'undefined' });
   },
   'construction-default-retryable': (scenario, error) => {
     assert.strictEqual(error.retryable, scenario.expected.retryable);
@@ -284,10 +284,10 @@ const runnerMap = {
   'to-user-message-default': (scenario, error) => {
     assert.strictEqual(error.toUserMessage(), scenario.expected.message);
   }
-} satisfies Record<ScenarioCase['kind'], ScenarioRunner>;
+} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 function runCase(scenario: ScenarioCase): void {
-  runnerMap[scenario.kind](scenario, createError(scenario.input));
+  runnerMap[scenario.shape](scenario, createError(scenario.input));
 }
 
 void describe('BaseError', () => {

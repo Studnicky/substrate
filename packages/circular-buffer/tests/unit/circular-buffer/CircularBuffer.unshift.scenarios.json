@@ -3,7 +3,7 @@
     {
       "name": "unshift-adds-item",
       "description": "Unshift adds an item and increments length",
-      "kind": "unshift-adds-item",
+      "shape": "unshift-adds-item",
       "input": {
         "options": {
           "capacity": 4
@@ -16,7 +16,7 @@
     {
       "name": "unshift-empty-then-shift",
       "description": "Unshift on an empty buffer then shift returns the unshifted item",
-      "kind": "unshift-empty-then-shift",
+      "shape": "unshift-empty-then-shift",
       "input": {
         "options": {
           "capacity": 4
@@ -30,7 +30,7 @@
     {
       "name": "unshift-then-shift-order",
       "description": "Unshifted items come out first on the next shift",
-      "kind": "unshift-then-shift-order",
+      "shape": "unshift-then-shift-order",
       "input": {
         "options": {
           "capacity": 4
@@ -43,7 +43,7 @@
     {
       "name": "multiple-unshifts-reverse-order",
       "description": "Multiple unshifts preserve reverse insertion order at the front",
-      "kind": "multiple-unshifts-reverse-order",
+      "shape": "multiple-unshifts-reverse-order",
       "input": {
         "options": {
           "capacity": 8
@@ -56,7 +56,7 @@
     {
       "name": "overwrite-mode-unshift-evicts-tail",
       "description": "Overwrite mode unshift at capacity evicts the tail item",
-      "kind": "overwrite-mode-unshift-evicts-tail",
+      "shape": "overwrite-mode-unshift-evicts-tail",
       "input": {
         "options": {
           "capacity": 3
@@ -70,7 +70,7 @@
     {
       "name": "overwrite-mode-unshift-fires-hooks",
       "description": "Overwrite mode unshift fires onOverflow and onEvict with the displaced tail item",
-      "kind": "overwrite-mode-unshift-fires-hooks",
+      "shape": "overwrite-mode-unshift-fires-hooks",
       "input": {
         "options": {
           "capacity": 2
@@ -84,7 +84,7 @@
     {
       "name": "grow-mode-unshift-grows",
       "description": "Grow mode unshift grows instead of evicting",
-      "kind": "grow-mode-unshift-grows",
+      "shape": "grow-mode-unshift-grows",
       "input": {
         "options": {
           "capacity": 2,
@@ -99,7 +99,7 @@
     {
       "name": "grow-mode-unshift-fires-onGrow",
       "description": "Grow mode unshift fires onGrow",
-      "kind": "grow-mode-unshift-fires-onGrow",
+      "shape": "grow-mode-unshift-fires-onGrow",
       "input": {
         "options": {
           "capacity": 2,
@@ -114,7 +114,7 @@
     {
       "name": "onPush-fires-for-unshift",
       "description": "onPush fires for unshift as a shared insertion hook",
-      "kind": "onPush-fires-for-unshift",
+      "shape": "onPush-fires-for-unshift",
       "input": {
         "options": {
           "capacity": 4
@@ -127,7 +127,7 @@
     {
       "name": "mixed-push-unshift-shift-order",
       "description": "Mixed push, unshift, and shift operations preserve FIFO order from both ends",
-      "kind": "mixed-push-unshift-shift-order",
+      "shape": "mixed-push-unshift-shift-order",
       "input": {
         "options": {
           "capacity": 4
@@ -140,7 +140,7 @@
     {
       "name": "interleaved-wraparound-order",
       "description": "Interleaved push, unshift, and shift across wraparound preserves order",
-      "kind": "interleaved-wraparound-order",
+      "shape": "interleaved-wraparound-order",
       "input": {
         "options": {
           "capacity": 4

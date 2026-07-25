@@ -10,7 +10,7 @@ type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: { flagEvaluator: Record<string, unknown> };
-  kind: string;
+  shape: string;
   name: string;
 };
 
@@ -47,11 +47,11 @@ function contextOf(input: Record<string, unknown>): Record<string, unknown> {
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { kind } = scenarioCase;
+  const { shape } = scenarioCase;
   const input = scenarioCase.input.flagEvaluator;
   const expected = scenarioCase.expected;
 
-  const runnerMap: Record<ScenarioCase['kind'], () => Promise<void> | void> = {
+  const runnerMap: Record<ScenarioCase['shape'], () => Promise<void> | void> = {
     'unregistered-flag': () => {
     assert.equal(evaluator.evaluate(input.flag as string, contextOf(input)), expected.result);
     return;
@@ -318,7 +318,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
   };
 
-  await runnerMap[kind]();
+  await runnerMap[shape]();
 }
 
 void describe('FlagEvaluator', () => {

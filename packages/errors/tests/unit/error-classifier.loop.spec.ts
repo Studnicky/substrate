@@ -26,15 +26,15 @@ class TestClassifier extends ErrorClassifier {
   }
 }
 
-type MatcherInput = { kind: 'accepted-statuses' | 'minimum-status' | 'status'; min?: number; value?: number; values?: number[] };
-type PropertyScenarioKind = 'has-property-match-array' | 'has-property-match-predicate' | 'has-property-match-value' | 'has-property-missing' | 'has-property-mismatch-array' | 'has-property-mismatch-predicate' | 'has-property-mismatch-value' | 'has-property-present';
-type MessageScenarioKind = 'message-contains-hit' | 'message-contains-miss';
+type MatcherInput = { shape: 'accepted-statuses' | 'minimum-status' | 'status'; min?: number; value?: number; values?: number[] };
+type PropertyScenarioShape = 'has-property-match-array' | 'has-property-match-predicate' | 'has-property-match-value' | 'has-property-missing' | 'has-property-mismatch-array' | 'has-property-mismatch-predicate' | 'has-property-mismatch-value' | 'has-property-present';
+type MessageScenarioShape = 'message-contains-hit' | 'message-contains-miss';
 
 type PropertyScenarioCase = {
   description: string;
   expected: { value: boolean };
   input: { matcher?: MatcherInput; message: string; propertyName?: string; status?: number };
-  kind: PropertyScenarioKind;
+  shape: PropertyScenarioShape;
   name: string;
 };
 
@@ -42,7 +42,7 @@ type MessageScenarioCase = {
   description: string;
   expected: { value: boolean };
   input: { message: string; patterns?: string[] };
-  kind: MessageScenarioKind;
+  shape: MessageScenarioShape;
   name: string;
 };
 
@@ -50,7 +50,7 @@ type ClassificationScenarioCase = {
   description: string;
   expected: { nonRetryable: boolean; retryable: boolean };
   input: { message: string };
-  kind: 'classifications';
+  shape: 'classifications';
   name: string;
 };
 
@@ -64,29 +64,29 @@ function createError(input: { message: string; status?: number }): Error {
   return error;
 }
 
-type ScenarioRunner<K extends ScenarioCase['kind']> = (scenario: Extract<ScenarioCase, { kind: K }>, classifier: TestClassifier, error: Error) => void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>, classifier: TestClassifier, error: Error) => void;
 type RunnerMap = {
-  [K in ScenarioCase['kind']]: ScenarioRunner<K>;
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
 const matcherMap = {
   'accepted-statuses': (matcher: MatcherInput) => matcher.values ?? [],
   'minimum-status': (matcher: MatcherInput) => (value: number) => value >= Number(matcher.min),
   'status': (matcher: MatcherInput) => matcher.value
-} satisfies Record<MatcherInput['kind'], (matcher: MatcherInput) => unknown>;
+} satisfies Record<MatcherInput['shape'], (matcher: MatcherInput) => unknown>;
 
 function materializeMatcher(matcher: MatcherInput | undefined): unknown {
-  return matcher === undefined ? undefined : matcherMap[matcher.kind](matcher);
+  return matcher === undefined ? undefined : matcherMap[matcher.shape](matcher);
 }
 
-const runHasProperty: ScenarioRunner<PropertyScenarioKind> = (scenario, classifier, error) => {
+const runHasProperty: ScenarioRunner<PropertyScenarioShape> = (scenario, classifier, error) => {
   assert.strictEqual(
     classifier.hasPropertyPublic(error, String(scenario.input.propertyName), materializeMatcher(scenario.input.matcher)),
     scenario.expected.value
   );
 };
 
-const runMessageContains: ScenarioRunner<MessageScenarioKind> = (scenario, classifier, error) => {
+const runMessageContains: ScenarioRunner<MessageScenarioShape> = (scenario, classifier, error) => {
   assert.strictEqual(classifier.messageContainsPublic(error, ...(scenario.input.patterns ?? [])), scenario.expected.value);
 };
 
@@ -107,11 +107,11 @@ const runnerMap: RunnerMap = {
   'message-contains-miss': runMessageContains
 };
 
-function runCase<K extends ScenarioCase['kind']>(scenario: Extract<ScenarioCase, { kind: K }>): void {
+function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase, { shape: K }>): void {
   const classifier = new TestClassifier();
   const error = createError(scenario.input);
 
-  runnerMap[scenario.kind](scenario, classifier, error);
+  runnerMap[scenario.shape](scenario, classifier, error);
 }
 
 void describe('ErrorClassifier', () => {

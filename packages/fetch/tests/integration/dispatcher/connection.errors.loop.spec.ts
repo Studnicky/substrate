@@ -16,8 +16,8 @@ import {
 import scenarioGroups from './connection.errors.scenarios.json';
 
 type RuntimeTag =
-  | { __kind: 'infinity' }
-  | { __kind: 'nan' };
+  | { __shape: 'infinity' }
+  | { __shape: 'nan' };
 
 type RuntimeValue =
   | null
@@ -43,7 +43,7 @@ type ScenarioCase = {
     repeats?: number;
     waitMs?: number;
   };
-  kind:
+  shape:
     | 'client-destroy-passes-timeout'
     | 'close-waits'
     | 'destroy-timeout-waits'
@@ -70,8 +70,8 @@ type ScenarioCase = {
   name: string;
 };
 
-type ScenarioRunner<Kind extends ScenarioCase['kind']> = (scenarioCase: Extract<ScenarioCase, { kind: Kind }>) => Promise<void>;
-type RunnerMap = { [Kind in ScenarioCase['kind']]: ScenarioRunner<Kind> };
+type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
 
 let testUrl: string;
 
@@ -93,14 +93,14 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (value !== null && typeof value === 'object') {
-    if ('__kind' in value) {
-      if (value.__kind === 'infinity') {
+    if ('__shape' in value) {
+      if (value.__shape === 'infinity') {
         return Number.POSITIVE_INFINITY;
       }
-      if (value.__kind === 'nan') {
+      if (value.__shape === 'nan') {
         return Number.NaN;
       }
-      throw new Error(`Unknown runtime tag: ${value.__kind satisfies never}`);
+      throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -489,8 +489,8 @@ const runnerMap: RunnerMap = {
   }
 };
 
-async function runCase<Kind extends ScenarioCase['kind']>(scenarioCase: Extract<ScenarioCase, { kind: Kind }>): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Connection Pool Error Scenarios', () => {

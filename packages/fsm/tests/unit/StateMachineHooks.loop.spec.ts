@@ -22,35 +22,35 @@ type ScenarioCase =
         transition: { event: 'advance'; from: TrafficState['variant']; to: TrafficState['variant'] };
       };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'transition-hook';
+      shape: 'transition-hook';
       name: string;
     }
   | {
       description: string;
       expected: { variant: 'green' };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'enter-hook';
+      shape: 'enter-hook';
       name: string;
     }
   | {
       description: string;
       expected: { variant: 'red' };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'exit-hook';
+      shape: 'exit-hook';
       name: string;
     }
   | {
       description: string;
       expected: { order: Array<'exit' | 'transition' | 'enter'> };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'hook-order';
+      shape: 'hook-order';
       name: string;
     }
   | {
       description: string;
       expected: { hookCount: 0 };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'unchanged-no-hooks';
+      shape: 'unchanged-no-hooks';
       name: string;
     }
   | {
@@ -61,7 +61,7 @@ type ScenarioCase =
         transitions: Array<{ event: 'advance'; from: TrafficState['variant']; to: TrafficState['variant'] }>;
       };
       input: { event: TrafficEvent; states: TrafficState[] };
-      kind: 'multiple-transitions';
+      shape: 'multiple-transitions';
       name: string;
     }
   | {
@@ -73,35 +73,35 @@ type ScenarioCase =
         state: 'red';
       };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'transition-rejected-hook';
+      shape: 'transition-rejected-hook';
       name: string;
     }
   | {
       description: string;
       expected: { rejectionCount: 0 };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'successful-transition-no-rejection';
+      shape: 'successful-transition-no-rejection';
       name: string;
     }
   | {
       description: string;
       expected: { hookCount: 1; state: 'green'; toEffects: [] };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'throwing-transition-hook';
+      shape: 'throwing-transition-hook';
       name: string;
     }
   | {
       description: string;
       expected: { hookCount: 1 };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'throwing-rejection-hook';
+      shape: 'throwing-rejection-hook';
       name: string;
     }
   | {
       description: string;
       expected: { hookCount: 1; rejectionEvents: 0; state: 'green' };
       input: { event: TrafficEvent; state: TrafficState };
-      kind: 'async-rejection';
+      shape: 'async-rejection';
       name: string;
     };
 
@@ -158,7 +158,7 @@ class ObservedThrowingMachine extends ThrowingMachine {
   }
 }
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
   'async-rejection': async (scenarioCase) => {
     class AsyncRejectingEnterStateMachine extends TrafficMachine {
       readonly failureDetails = { labels: ['initial'] };
@@ -312,7 +312,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 void describe('StateMachine hooks', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
-      await runnerMap[scenario.kind](scenario);
+      await runnerMap[scenario.shape](scenario);
     });
   }
 });

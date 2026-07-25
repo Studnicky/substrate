@@ -2,7 +2,7 @@
   "cases": [
     {
       "description": "returns true for string type match",
-      "kind": "matchesType:string:true",
+      "shape": "matchesType:string:true",
       "name": "returns true for string type match",
       "input": {
         "predicates": {
@@ -16,7 +16,7 @@
     },
     {
       "description": "returns true for number type match",
-      "kind": "matchesType:number:true",
+      "shape": "matchesType:number:true",
       "name": "returns true for number type match",
       "input": {
         "predicates": {
@@ -30,7 +30,7 @@
     },
     {
       "description": "returns false for integer with float value",
-      "kind": "matchesType:integer:false",
+      "shape": "matchesType:integer:false",
       "name": "returns false for integer with float value",
       "input": {
         "predicates": {
@@ -44,7 +44,7 @@
     },
     {
       "description": "returns true for integer with whole number",
-      "kind": "matchesType:integer:true",
+      "shape": "matchesType:integer:true",
       "name": "returns true for integer with whole number",
       "input": {
         "predicates": {
@@ -58,7 +58,7 @@
     },
     {
       "description": "returns true for boolean type match",
-      "kind": "matchesType:boolean:true",
+      "shape": "matchesType:boolean:true",
       "name": "returns true for boolean type match",
       "input": {
         "predicates": {
@@ -72,7 +72,7 @@
     },
     {
       "description": "returns true for null type match",
-      "kind": "matchesType:null:true",
+      "shape": "matchesType:null:true",
       "name": "returns true for null type match",
       "input": {
         "predicates": {
@@ -86,7 +86,7 @@
     },
     {
       "description": "returns false for null type with non-null",
-      "kind": "matchesType:null:false",
+      "shape": "matchesType:null:false",
       "name": "returns false for null type with non-null",
       "input": {
         "predicates": {
@@ -100,7 +100,7 @@
     },
     {
       "description": "returns true for array type match",
-      "kind": "matchesType:array:true",
+      "shape": "matchesType:array:true",
       "name": "returns true for array type match",
       "input": {
         "predicates": {
@@ -118,7 +118,7 @@
     },
     {
       "description": "returns true for object type match",
-      "kind": "matchesType:object:true",
+      "shape": "matchesType:object:true",
       "name": "returns true for object type match",
       "input": {
         "predicates": {
@@ -134,7 +134,7 @@
     },
     {
       "description": "returns false for object type with array",
-      "kind": "matchesType:object:false",
+      "shape": "matchesType:object:false",
       "name": "returns false for object type with array",
       "input": {
         "predicates": {
@@ -151,7 +151,7 @@
     },
     {
       "description": "returns true when string meets minimum code-point count",
-      "kind": "satisfiesMinLength:hello:3:true",
+      "shape": "satisfiesMinLength:hello:3:true",
       "name": "returns true when string meets minimum code-point count",
       "input": {
         "predicates": {
@@ -165,7 +165,7 @@
     },
     {
       "description": "returns false when string is shorter than minimum",
-      "kind": "satisfiesMinLength:hi:3:false",
+      "shape": "satisfiesMinLength:hi:3:false",
       "name": "returns false when string is shorter than minimum",
       "input": {
         "predicates": {
@@ -179,7 +179,7 @@
     },
     {
       "description": "handles surrogate pair as single code point (meets min 1)",
-      "kind": "satisfiesMinLength:𝄞:1:true",
+      "shape": "satisfiesMinLength:𝄞:1:true",
       "name": "handles surrogate pair as single code point (meets min 1)",
       "input": {
         "predicates": {
@@ -193,7 +193,7 @@
     },
     {
       "description": "handles surrogate pair as single code point (below min 2)",
-      "kind": "satisfiesMinLength:𝄞:2:false",
+      "shape": "satisfiesMinLength:𝄞:2:false",
       "name": "handles surrogate pair as single code point (below min 2)",
       "input": {
         "predicates": {
@@ -207,7 +207,7 @@
     },
     {
       "description": "returns true when string is within maximum code-point count",
-      "kind": "satisfiesMaxLength:hello:10:true",
+      "shape": "satisfiesMaxLength:hello:10:true",
       "name": "returns true when string is within maximum code-point count",
       "input": {
         "predicates": {
@@ -221,7 +221,7 @@
     },
     {
       "description": "returns false when string exceeds maximum",
-      "kind": "satisfiesMaxLength:hello:3:false",
+      "shape": "satisfiesMaxLength:hello:3:false",
       "name": "returns false when string exceeds maximum",
       "input": {
         "predicates": {
@@ -235,7 +235,7 @@
     },
     {
       "description": "returns true at exact maximum",
-      "kind": "satisfiesMaxLength:hello:5:true",
+      "shape": "satisfiesMaxLength:hello:5:true",
       "name": "returns true at exact maximum",
       "input": {
         "predicates": {
@@ -249,7 +249,7 @@
     },
     {
       "description": "handles surrogate pairs as single code points (within max)",
-      "kind": "satisfiesMaxLength:𝄞𝄞:2:true",
+      "shape": "satisfiesMaxLength:𝄞𝄞:2:true",
       "name": "handles surrogate pairs as single code points (within max)",
       "input": {
         "predicates": {
@@ -263,7 +263,7 @@
     },
     {
       "description": "handles surrogate pairs as single code points (exceeds max)",
-      "kind": "satisfiesMaxLength:𝄞𝄞𝄞:2:false",
+      "shape": "satisfiesMaxLength:𝄞𝄞𝄞:2:false",
       "name": "handles surrogate pairs as single code points (exceeds max)",
       "input": {
         "predicates": {
@@ -277,7 +277,7 @@
     },
     {
       "description": "returns true when string matches a compiled RegExp",
-      "kind": "checkPattern:hello:/^he/u:true",
+      "shape": "checkPattern:hello:/^he/u:true",
       "name": "returns true when string matches a compiled RegExp",
       "input": {
         "predicates": {
@@ -294,7 +294,7 @@
     },
     {
       "description": "returns false when string does not match a compiled RegExp",
-      "kind": "checkPattern:world:/^he/u:false",
+      "shape": "checkPattern:world:/^he/u:false",
       "name": "returns false when string does not match a compiled RegExp",
       "input": {
         "predicates": {
@@ -311,7 +311,7 @@
     },
     {
       "description": "resets stateful RegExp indices between checks",
-      "kind": "checkPattern:lastIndex",
+      "shape": "checkPattern:lastIndex",
       "name": "resets stateful RegExp indices between checks",
       "input": {
         "predicates": {
@@ -330,7 +330,7 @@
     },
     {
       "description": "returns true for inclusive minimum satisfied",
-      "kind": "checkMinimum:5:5:false:true",
+      "shape": "checkMinimum:5:5:false:true",
       "name": "returns true for inclusive minimum satisfied",
       "input": {
         "predicates": {
@@ -345,7 +345,7 @@
     },
     {
       "description": "returns false for exclusive minimum at boundary",
-      "kind": "checkMinimum:5:5:true:false",
+      "shape": "checkMinimum:5:5:true:false",
       "name": "returns false for exclusive minimum at boundary",
       "input": {
         "predicates": {
@@ -360,7 +360,7 @@
     },
     {
       "description": "returns true for exclusive minimum above boundary",
-      "kind": "checkMinimum:6:5:true:true",
+      "shape": "checkMinimum:6:5:true:true",
       "name": "returns true for exclusive minimum above boundary",
       "input": {
         "predicates": {
@@ -375,7 +375,7 @@
     },
     {
       "description": "returns false when value is below inclusive minimum",
-      "kind": "checkMinimum:4:5:false:false",
+      "shape": "checkMinimum:4:5:false:false",
       "name": "returns false when value is below inclusive minimum",
       "input": {
         "predicates": {
@@ -390,7 +390,7 @@
     },
     {
       "description": "returns true for inclusive maximum satisfied",
-      "kind": "checkMaximum:5:5:false:true",
+      "shape": "checkMaximum:5:5:false:true",
       "name": "returns true for inclusive maximum satisfied",
       "input": {
         "predicates": {
@@ -405,7 +405,7 @@
     },
     {
       "description": "returns false for exclusive maximum at boundary",
-      "kind": "checkMaximum:5:5:true:false",
+      "shape": "checkMaximum:5:5:true:false",
       "name": "returns false for exclusive maximum at boundary",
       "input": {
         "predicates": {
@@ -420,7 +420,7 @@
     },
     {
       "description": "returns true for exclusive maximum below boundary",
-      "kind": "checkMaximum:4:5:true:true",
+      "shape": "checkMaximum:4:5:true:true",
       "name": "returns true for exclusive maximum below boundary",
       "input": {
         "predicates": {
@@ -435,7 +435,7 @@
     },
     {
       "description": "returns true for exact integer multiple",
-      "kind": "checkMultipleOf:6:3:true",
+      "shape": "checkMultipleOf:6:3:true",
       "name": "returns true for exact integer multiple",
       "input": {
         "predicates": {
@@ -449,7 +449,7 @@
     },
     {
       "description": "returns true for floating-point multiple within epsilon",
-      "kind": "checkMultipleOf:0.3:0.1:true",
+      "shape": "checkMultipleOf:0.3:0.1:true",
       "name": "returns true for floating-point multiple within epsilon",
       "input": {
         "predicates": {
@@ -463,7 +463,7 @@
     },
     {
       "description": "returns false for non-multiple",
-      "kind": "checkMultipleOf:7:3:false",
+      "shape": "checkMultipleOf:7:3:false",
       "name": "returns false for non-multiple",
       "input": {
         "predicates": {
@@ -477,7 +477,7 @@
     },
     {
       "description": "returns false for divisor zero",
-      "kind": "checkMultipleOf:5:0:false",
+      "shape": "checkMultipleOf:5:0:false",
       "name": "returns false for divisor zero",
       "input": {
         "predicates": {
@@ -491,7 +491,7 @@
     },
     {
       "description": "returns true when array meets minimum length",
-      "kind": "satisfiesMinItems:2:1:true",
+      "shape": "satisfiesMinItems:2:1:true",
       "name": "returns true when array meets minimum length",
       "input": {
         "predicates": {
@@ -508,7 +508,7 @@
     },
     {
       "description": "returns true at exact minimum",
-      "kind": "satisfiesMinItems:1:1:true",
+      "shape": "satisfiesMinItems:1:1:true",
       "name": "returns true at exact minimum",
       "input": {
         "predicates": {
@@ -524,7 +524,7 @@
     },
     {
       "description": "returns false when array is shorter than minimum",
-      "kind": "satisfiesMinItems:0:1:false",
+      "shape": "satisfiesMinItems:0:1:false",
       "name": "returns false when array is shorter than minimum",
       "input": {
         "predicates": {
@@ -538,7 +538,7 @@
     },
     {
       "description": "returns true when array is within maximum",
-      "kind": "satisfiesMaxItems:2:3:true",
+      "shape": "satisfiesMaxItems:2:3:true",
       "name": "returns true when array is within maximum",
       "input": {
         "predicates": {
@@ -555,7 +555,7 @@
     },
     {
       "description": "returns false when array exceeds maximum",
-      "kind": "satisfiesMaxItems:3:2:false",
+      "shape": "satisfiesMaxItems:3:2:false",
       "name": "returns false when array exceeds maximum",
       "input": {
         "predicates": {
@@ -573,7 +573,7 @@
     },
     {
       "description": "returns true for array with all unique primitives",
-      "kind": "satisfiesUniqueItems:unique-primitives:true",
+      "shape": "satisfiesUniqueItems:unique-primitives:true",
       "name": "returns true for array with all unique primitives",
       "input": {
         "predicates": {
@@ -590,7 +590,7 @@
     },
     {
       "description": "returns false for array with duplicate primitives",
-      "kind": "satisfiesUniqueItems:duplicate-primitives:false",
+      "shape": "satisfiesUniqueItems:duplicate-primitives:false",
       "name": "returns false for array with duplicate primitives",
       "input": {
         "predicates": {
@@ -607,7 +607,7 @@
     },
     {
       "description": "returns true for array with unique objects",
-      "kind": "satisfiesUniqueItems:unique-objects:true",
+      "shape": "satisfiesUniqueItems:unique-objects:true",
       "name": "returns true for array with unique objects",
       "input": {
         "predicates": {
@@ -627,7 +627,7 @@
     },
     {
       "description": "returns false for array with deeply-equal objects",
-      "kind": "satisfiesUniqueItems:deeply-equal-objects:false",
+      "shape": "satisfiesUniqueItems:deeply-equal-objects:false",
       "name": "returns false for array with deeply-equal objects",
       "input": {
         "predicates": {
@@ -647,7 +647,7 @@
     },
     {
       "description": "returns true when all required properties are present",
-      "kind": "hasAllRequiredProperties:present:true",
+      "shape": "hasAllRequiredProperties:present:true",
       "name": "returns true when all required properties are present",
       "input": {
         "predicates": {
@@ -667,7 +667,7 @@
     },
     {
       "description": "returns false when a required property is missing",
-      "kind": "hasAllRequiredProperties:missing:false",
+      "shape": "hasAllRequiredProperties:missing:false",
       "name": "returns false when a required property is missing",
       "input": {
         "predicates": {
@@ -686,7 +686,7 @@
     },
     {
       "description": "returns true for empty required list",
-      "kind": "hasAllRequiredProperties:empty:true",
+      "shape": "hasAllRequiredProperties:empty:true",
       "name": "returns true for empty required list",
       "input": {
         "predicates": {
@@ -700,7 +700,7 @@
     },
     {
       "description": "returns true when value matches one of the listed types",
-      "kind": "matchesAnyType:string-or-null:true",
+      "shape": "matchesAnyType:string-or-null:true",
       "name": "returns true when value matches one of the listed types",
       "input": {
         "predicates": {
@@ -717,7 +717,7 @@
     },
     {
       "description": "returns false when value matches none of the listed types",
-      "kind": "matchesAnyType:string-or-null:false",
+      "shape": "matchesAnyType:string-or-null:false",
       "name": "returns false when value matches none of the listed types",
       "input": {
         "predicates": {
@@ -734,7 +734,7 @@
     },
     {
       "description": "returns true for deeply equal primitive",
-      "kind": "satisfiesConst:primitive:true",
+      "shape": "satisfiesConst:primitive:true",
       "name": "returns true for deeply equal primitive",
       "input": {
         "predicates": {
@@ -748,7 +748,7 @@
     },
     {
       "description": "returns false for non-equal primitive",
-      "kind": "satisfiesConst:primitive:false",
+      "shape": "satisfiesConst:primitive:false",
       "name": "returns false for non-equal primitive",
       "input": {
         "predicates": {
@@ -762,7 +762,7 @@
     },
     {
       "description": "returns true for deeply equal object",
-      "kind": "satisfiesConst:object:true",
+      "shape": "satisfiesConst:object:true",
       "name": "returns true for deeply equal object",
       "input": {
         "predicates": {
@@ -780,7 +780,7 @@
     },
     {
       "description": "returns true when value is in enum",
-      "kind": "satisfiesEnum:in:true",
+      "shape": "satisfiesEnum:in:true",
       "name": "returns true when value is in enum",
       "input": {
         "predicates": {
@@ -798,7 +798,7 @@
     },
     {
       "description": "returns false when value is not in enum",
-      "kind": "satisfiesEnum:out:false",
+      "shape": "satisfiesEnum:out:false",
       "name": "returns false when value is not in enum",
       "input": {
         "predicates": {
@@ -816,7 +816,7 @@
     },
     {
       "description": "returns true when match count satisfies default minimum of 1",
-      "kind": "satisfiesContains:1:default:default:true",
+      "shape": "satisfiesContains:1:default:default:true",
       "name": "returns true when match count satisfies default minimum of 1",
       "input": {
         "predicates": {
@@ -829,7 +829,7 @@
     },
     {
       "description": "returns false when match count is below minimum",
-      "kind": "satisfiesContains:0:1:default:false",
+      "shape": "satisfiesContains:0:1:default:false",
       "name": "returns false when match count is below minimum",
       "input": {
         "predicates": {
@@ -843,7 +843,7 @@
     },
     {
       "description": "returns false when match count exceeds maximum",
-      "kind": "satisfiesContains:3:1:2:false",
+      "shape": "satisfiesContains:3:1:2:false",
       "name": "returns false when match count exceeds maximum",
       "input": {
         "predicates": {
@@ -858,7 +858,7 @@
     },
     {
       "description": "returns true for valid base64 string",
-      "kind": "satisfiesContentEncoding:aGVsbG8=:base64:true",
+      "shape": "satisfiesContentEncoding:aGVsbG8=:base64:true",
       "name": "returns true for valid base64 string",
       "input": {
         "predicates": {
@@ -872,7 +872,7 @@
     },
     {
       "description": "returns false for invalid base64 string",
-      "kind": "satisfiesContentEncoding:not base64!!!:base64:false",
+      "shape": "satisfiesContentEncoding:not base64!!!:base64:false",
       "name": "returns false for invalid base64 string",
       "input": {
         "predicates": {
@@ -886,7 +886,7 @@
     },
     {
       "description": "returns true for unknown encoding (unconstrained)",
-      "kind": "satisfiesContentEncoding:anything:quoted-printable:true",
+      "shape": "satisfiesContentEncoding:anything:quoted-printable:true",
       "name": "returns true for unknown encoding (unconstrained)",
       "input": {
         "predicates": {
@@ -900,7 +900,7 @@
     },
     {
       "description": "returns true for valid JSON string",
-      "kind": "satisfiesContentMediaType:{\"x\":1}:application/json:true",
+      "shape": "satisfiesContentMediaType:{\"x\":1}:application/json:true",
       "name": "returns true for valid JSON string",
       "input": {
         "predicates": {
@@ -914,7 +914,7 @@
     },
     {
       "description": "returns false for invalid JSON string",
-      "kind": "satisfiesContentMediaType:{bad json}:application/json:false",
+      "shape": "satisfiesContentMediaType:{bad json}:application/json:false",
       "name": "returns false for invalid JSON string",
       "input": {
         "predicates": {
@@ -928,7 +928,7 @@
     },
     {
       "description": "returns true for unknown media type (unconstrained)",
-      "kind": "satisfiesContentMediaType:anything:text/html:true",
+      "shape": "satisfiesContentMediaType:anything:text/html:true",
       "name": "returns true for unknown media type (unconstrained)",
       "input": {
         "predicates": {
@@ -942,7 +942,7 @@
     },
     {
       "description": "returns true when all object keys are in allowed set",
-      "kind": "hasNoAdditionalProperties:allowed:true",
+      "shape": "hasNoAdditionalProperties:allowed:true",
       "name": "returns true when all object keys are in allowed set",
       "input": {
         "predicates": {
@@ -963,7 +963,7 @@
     },
     {
       "description": "returns false when object has a key outside allowed set",
-      "kind": "hasNoAdditionalProperties:extra:false",
+      "shape": "hasNoAdditionalProperties:extra:false",
       "name": "returns false when object has a key outside allowed set",
       "input": {
         "predicates": {
@@ -983,7 +983,7 @@
     },
     {
       "description": "returns true when object has at least minimum properties",
-      "kind": "minMaxProperties:min:2:true",
+      "shape": "minMaxProperties:min:2:true",
       "name": "returns true when object has at least minimum properties",
       "input": {
         "predicates": {
@@ -1001,7 +1001,7 @@
     },
     {
       "description": "returns false when object has fewer than minimum properties",
-      "kind": "minMaxProperties:min:2:false",
+      "shape": "minMaxProperties:min:2:false",
       "name": "returns false when object has fewer than minimum properties",
       "input": {
         "predicates": {
@@ -1018,7 +1018,7 @@
     },
     {
       "description": "returns true when object has at most maximum properties",
-      "kind": "minMaxProperties:max:2:true",
+      "shape": "minMaxProperties:max:2:true",
       "name": "returns true when object has at most maximum properties",
       "input": {
         "predicates": {
@@ -1035,7 +1035,7 @@
     },
     {
       "description": "returns false when object exceeds maximum properties",
-      "kind": "minMaxProperties:max:2:false",
+      "shape": "minMaxProperties:max:2:false",
       "name": "returns false when object exceeds maximum properties",
       "input": {
         "predicates": {
@@ -1054,7 +1054,7 @@
     },
     {
       "description": "coerces \"true\" to true",
-      "kind": "coerceToBoolean:true:true",
+      "shape": "coerceToBoolean:true:true",
       "name": "coerces \"true\" to true",
       "input": {
         "predicates": {
@@ -1067,7 +1067,7 @@
     },
     {
       "description": "coerces \"false\" to false",
-      "kind": "coerceToBoolean:false:false",
+      "shape": "coerceToBoolean:false:false",
       "name": "coerces \"false\" to false",
       "input": {
         "predicates": {
@@ -1080,7 +1080,7 @@
     },
     {
       "description": "returns undefined for unrecognised string",
-      "kind": "coerceToBoolean:yes:undefined",
+      "shape": "coerceToBoolean:yes:undefined",
       "name": "returns undefined for unrecognised string",
       "input": {
         "predicates": {
@@ -1093,7 +1093,7 @@
     },
     {
       "description": "coerces numeric string to number",
-      "kind": "coerceToNumber:3.14:3.14",
+      "shape": "coerceToNumber:3.14:3.14",
       "name": "coerces numeric string to number",
       "input": {
         "predicates": {
@@ -1106,7 +1106,7 @@
     },
     {
       "description": "returns undefined for non-numeric string",
-      "kind": "coerceToNumber:abc:undefined",
+      "shape": "coerceToNumber:abc:undefined",
       "name": "returns undefined for non-numeric string",
       "input": {
         "predicates": {
@@ -1119,7 +1119,7 @@
     },
     {
       "description": "returns undefined for \"Infinity\"",
-      "kind": "coerceToNumber:Infinity:undefined",
+      "shape": "coerceToNumber:Infinity:undefined",
       "name": "returns undefined for \"Infinity\"",
       "input": {
         "predicates": {
@@ -1132,7 +1132,7 @@
     },
     {
       "description": "coerces string \"true\" to boolean true",
-      "kind": "coerceValue:boolean:true",
+      "shape": "coerceValue:boolean:true",
       "name": "coerces string \"true\" to boolean true",
       "input": {
         "predicates": {
@@ -1148,7 +1148,7 @@
     },
     {
       "description": "returns original value when no coercion applies",
-      "kind": "coerceValue:integer:unchanged",
+      "shape": "coerceValue:integer:unchanged",
       "name": "returns original value when no coercion applies",
       "input": {
         "predicates": {
@@ -1164,7 +1164,7 @@
     },
     {
       "description": "returns null unchanged",
-      "kind": "coerceValue:string:null",
+      "shape": "coerceValue:string:null",
       "name": "returns null unchanged",
       "input": {
         "predicates": {
@@ -1180,7 +1180,7 @@
     },
     {
       "description": "returns value unchanged when schemaTypes is empty",
-      "kind": "coerceValue:empty:unchanged",
+      "shape": "coerceValue:empty:unchanged",
       "name": "returns value unchanged when schemaTypes is empty",
       "input": {
         "predicates": {
@@ -1194,7 +1194,7 @@
     },
     {
       "description": "returns \"null\" for null",
-      "kind": "inferValueType:null",
+      "shape": "inferValueType:null",
       "name": "returns \"null\" for null",
       "input": {
         "predicates": {
@@ -1207,7 +1207,7 @@
     },
     {
       "description": "returns \"array\" for arrays",
-      "kind": "inferValueType:array",
+      "shape": "inferValueType:array",
       "name": "returns \"array\" for arrays",
       "input": {
         "predicates": {
@@ -1220,7 +1220,7 @@
     },
     {
       "description": "returns \"object\" for plain objects",
-      "kind": "inferValueType:object",
+      "shape": "inferValueType:object",
       "name": "returns \"object\" for plain objects",
       "input": {
         "predicates": {
@@ -1233,7 +1233,7 @@
     },
     {
       "description": "returns \"string\" for strings",
-      "kind": "inferValueType:string",
+      "shape": "inferValueType:string",
       "name": "returns \"string\" for strings",
       "input": {
         "predicates": {
@@ -1246,7 +1246,7 @@
     },
     {
       "description": "counts ASCII characters correctly",
-      "kind": "codePointLength:hello:5",
+      "shape": "codePointLength:hello:5",
       "name": "counts ASCII characters correctly",
       "input": {
         "predicates": {
@@ -1259,7 +1259,7 @@
     },
     {
       "description": "counts surrogate-pair emoji as one code point",
-      "kind": "codePointLength:emoji:1",
+      "shape": "codePointLength:emoji:1",
       "name": "counts surrogate-pair emoji as one code point",
       "input": {
         "predicates": {
@@ -1272,7 +1272,7 @@
     },
     {
       "description": "returns 0 for empty string",
-      "kind": "codePointLength:empty:0",
+      "shape": "codePointLength:empty:0",
       "name": "returns 0 for empty string",
       "input": {
         "predicates": {

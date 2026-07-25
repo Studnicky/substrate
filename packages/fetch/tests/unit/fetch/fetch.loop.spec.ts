@@ -8,10 +8,10 @@ import {
 } from '../../../src/index.js';
 
 type RuntimeTag =
-  | { __kind: 'infinity' }
-  | { __kind: 'nan' }
-  | { __kind: 'negative-infinity' }
-  | { __kind: 'undefined' };
+  | { __shape: 'infinity' }
+  | { __shape: 'nan' }
+  | { __shape: 'negative-infinity' }
+  | { __shape: 'undefined' };
 
 type RuntimeValue =
   | null
@@ -23,14 +23,14 @@ type RuntimeValue =
   | { [key: string]: RuntimeValue };
 
 type RequestSignal =
-  | { delayMs: number; kind: 'abort-after-ms' }
-  | { kind: 'already-aborted' };
+  | { delayMs: number; shape: 'abort-after-ms' }
+  | { shape: 'already-aborted' };
 
 type ScenarioCase = {
   description: string;
   expect:
-    | { kind: 'ok'; status: number; text?: string; url?: string }
-    | { error: 'AbortError' | 'ConnectTimeoutError' | 'Error' | 'TimeoutError'; kind: 'reject'; messageIncludes?: readonly string[]; messagePattern?: string; timeoutMs?: number };
+    | { shape: 'ok'; status: number; text?: string; url?: string }
+    | { error: 'AbortError' | 'ConnectTimeoutError' | 'Error' | 'TimeoutError'; shape: 'reject'; messageIncludes?: readonly string[]; messagePattern?: string; timeoutMs?: number };
   name: string;
   request: {
     args?: readonly [RuntimeValue?] | readonly [RuntimeValue?, Record<string, unknown>?];
@@ -96,24 +96,24 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (value !== null && typeof value === 'object') {
-    if ('__kind' in value) {
-      if (value.__kind === 'undefined') {
+    if ('__shape' in value) {
+      if (value.__shape === 'undefined') {
         return undefined;
       }
 
-      if (value.__kind === 'infinity') {
+      if (value.__shape === 'infinity') {
         return Number.POSITIVE_INFINITY;
       }
 
-      if (value.__kind === 'negative-infinity') {
+      if (value.__shape === 'negative-infinity') {
         return Number.NEGATIVE_INFINITY;
       }
 
-      if (value.__kind === 'nan') {
+      if (value.__shape === 'nan') {
         return Number.NaN;
       }
 
-      throw new Error(`Unknown runtime tag: ${value.__kind satisfies never}`);
+      throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -133,7 +133,7 @@ function materializeSignal(signal: RequestSignal | undefined): AbortSignal | und
     return undefined;
   }
 
-  if (signal.kind === 'already-aborted') {
+  if (signal.shape === 'already-aborted') {
     const controller = new AbortController();
     controller.abort();
     return controller.signal;
@@ -293,7 +293,7 @@ async function invokeRequest(request: ScenarioCase['request']): Promise<Response
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  if (scenarioCase.expect.kind === 'reject') {
+  if (scenarioCase.expect.shape === 'reject') {
     await assert.rejects(async () => {
       await invokeRequest(scenarioCase.request);
     }, (error: Error) => {

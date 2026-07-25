@@ -26,63 +26,63 @@ type ScenarioCase =
       description: string;
       expected: { result: [number, number]; runs: 1 };
       input: ConfiguredGateInput;
-      kind: 'plain-config-single-flight';
+      shape: 'plain-config-single-flight';
       name: string;
     }
   | {
       description: string;
       expected: { coalesceIsInflight: false; mutexIsLocked: false; result: string };
       input: ConfiguredGateInput;
-      kind: 'composed-instances';
+      shape: 'composed-instances';
       name: string;
     }
   | {
       description: string;
       expected: { order: ['first', 'second']; results: [number, number] };
       input: { key: string };
-      kind: 'default-serialize-same-key';
+      shape: 'default-serialize-same-key';
       name: string;
     }
   | {
       description: string;
       expected: { calls: 3; completionOrder: [number, number, number]; maxActive: 1; results: [number, number, number] };
       input: { delayMs: number; key: string };
-      kind: 'same-key-serialized-exclusion';
+      shape: 'same-key-serialized-exclusion';
       name: string;
     }
   | {
       description: string;
       expected: { order: ['user1-start', 'user2-start', 'user2-end', 'user1-end'] };
       input: { key1: string; key2: string; key1DelayMs: number; key2DelayMs: number };
-      kind: 'different-keys-do-not-block';
+      shape: 'different-keys-do-not-block';
       name: string;
     }
   | {
       description: string;
       expected: { calls: 1; values: ['shared-result', 'shared-result', 'shared-result'] };
       input: { key: string; delayMs: number };
-      kind: 'single-flight-shares-result';
+      shape: 'single-flight-shares-result';
       name: string;
     }
   | {
       description: string;
       expected: { calls: 2; first: 1; second: 2 };
       input: { key: string };
-      kind: 'single-flight-reruns-after-settle';
+      shape: 'single-flight-reruns-after-settle';
       name: string;
     }
   | {
       description: string;
       expected: { resolved: 'shared-result'; rejectedName: 'TypeError' };
       input: { key: string; delayMs: number };
-      kind: 'single-flight-validates-result';
+      shape: 'single-flight-validates-result';
       name: string;
     }
   | {
       description: string;
       expected: { order: ['single-flight-start', 'single-flight-end', 'serialized-start', 'serialized-end'] };
       input: { key: string; leaderDelayMs: number; serializedDelayMs: number; waitBeforeSerializedMs: number };
-      kind: 'single-flight-holds-mutex-against-serialized';
+      shape: 'single-flight-holds-mutex-against-serialized';
       name: string;
     };
 
@@ -105,7 +105,7 @@ const materializeSerializableConfig = <K extends PropertyKey>(
   mutex: config.mutex
 });
 
-const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'composed-instances': async (scenarioCase) => {
     const { coalesce, mutex } = materializeDelegateInstances<string>(scenarioCase.input.config);
     const gate = KeyedWorkGate.create<string>({ coalesce, mutex });
@@ -241,7 +241,7 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
 void describe('KeyedWorkGate', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
-      await runnerMap[scenarioCase.kind](scenarioCase);
+      await runnerMap[scenarioCase.shape](scenarioCase);
     });
   }
 });

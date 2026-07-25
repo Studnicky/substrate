@@ -8,7 +8,7 @@ import type { VisibleRangeConfigInterface } from '../../../src/index.js';
 import { VisibleRange, VisibleRangeError } from '../../../src/index.js';
 import scenarioGroups from './config-validation.scenarios.json';
 
-type ScenarioKind = 'ambiguous-size' | 'error-args' | 'missing-size' | 'negative-size' | 'zero-size';
+type ScenarioShape = 'ambiguous-size' | 'error-args' | 'missing-size' | 'negative-size' | 'zero-size';
 
 type SerializableVisibleRangeConfig = {
   readonly count: number;
@@ -20,7 +20,7 @@ type ScenarioCase = {
   readonly description: string;
   readonly expected: { readonly errorName: 'VisibleRangeError' };
   readonly input: { readonly visibleRange: SerializableVisibleRangeConfig };
-  readonly kind: ScenarioKind;
+  readonly shape: ScenarioShape;
   readonly name: string;
 };
 
@@ -71,10 +71,10 @@ const scenarioRunners = {
   'missing-size': runInvalidConfigCase,
   'negative-size': runInvalidConfigCase,
   'zero-size': runInvalidConfigCase
-} satisfies Record<ScenarioKind, (scenarioCase: ScenarioCase) => void>;
+} satisfies Record<ScenarioShape, (scenarioCase: ScenarioCase) => void>;
 
 function runCase(scenarioCase: ScenarioCase): void {
-  scenarioRunners[scenarioCase.kind](scenarioCase);
+  scenarioRunners[scenarioCase.shape](scenarioCase);
 }
 
 void describe('VisibleRange config validation', () => {

@@ -23,17 +23,17 @@ import { ValidationErrorArgumentsEntity } from '../../src/entities/ValidationErr
 import scenarioGroups from './entity-contracts.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'error-with-address-invalid' | 'error-with-address-valid' | 'error-with-code-invalid' | 'error-with-code-valid' | 'error-with-errno-invalid' | 'error-with-errno-valid' | 'error-with-hostname-invalid' | 'error-with-hostname-valid' | 'error-with-port-invalid' | 'error-with-port-valid' | 'error-with-retry-after-invalid' | 'error-with-retry-after-valid' | 'error-with-status-invalid' | 'error-with-status-valid' | 'error-with-status-code-invalid' | 'error-with-status-code-valid' | 'error-with-syscall-invalid' | 'error-with-syscall-valid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'error-diagnostic-valid' | 'error-diagnostic-valid-no-stack' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'error-diagnostic-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'error-classification-valid' | 'error-classification-invalid' | 'error-code-descriptor-valid' | 'error-code-descriptor-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'violation-detail-valid' | 'violation-detail-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'aggregate-view-valid' | 'aggregate-view-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'report-options-valid' | 'report-options-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'problem-details-valid' | 'problem-details-valid-empty-errors' | 'problem-details-invalid' | 'problem-details-invalid-item' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'validation-arguments-valid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'validation-arguments-invalid-top-level' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; kind: 'validation-arguments-invalid-violation' };
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-with-address-invalid' | 'error-with-address-valid' | 'error-with-code-invalid' | 'error-with-code-valid' | 'error-with-errno-invalid' | 'error-with-errno-valid' | 'error-with-hostname-invalid' | 'error-with-hostname-valid' | 'error-with-port-invalid' | 'error-with-port-valid' | 'error-with-retry-after-invalid' | 'error-with-retry-after-valid' | 'error-with-status-invalid' | 'error-with-status-valid' | 'error-with-status-code-invalid' | 'error-with-status-code-valid' | 'error-with-syscall-invalid' | 'error-with-syscall-valid' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-diagnostic-valid' | 'error-diagnostic-valid-no-stack' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-diagnostic-invalid' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-classification-valid' | 'error-classification-invalid' | 'error-code-descriptor-valid' | 'error-code-descriptor-invalid' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'violation-detail-valid' | 'violation-detail-invalid' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'aggregate-view-valid' | 'aggregate-view-invalid' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'report-options-valid' | 'report-options-invalid' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'problem-details-valid' | 'problem-details-valid-empty-errors' | 'problem-details-invalid' | 'problem-details-invalid-item' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'validation-arguments-valid' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'validation-arguments-invalid-top-level' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'validation-arguments-invalid-violation' };
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
@@ -53,7 +53,7 @@ const runErrorWithStatus = validateValue((value) => ErrorWithStatusEntity.valida
 const runErrorWithStatusCode = validateValue((value) => ErrorWithStatusCodeEntity.validate(value));
 const runErrorWithSyscall = validateValue((value) => ErrorWithSyscallEntity.validate(value));
 
-const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'aggregate-view-invalid': validateValue((value) => ValidationAggregateViewEntity.validate(value)),
   'aggregate-view-valid': validateValue((value) => ValidationAggregateViewEntity.validate(value)),
   'error-classification-invalid': validateValue((value) => ErrorClassificationEntity.validate(value)),
@@ -99,7 +99,7 @@ const runnerMap: Record<ScenarioCase['kind'], ScenarioRunner> = {
 };
 
 function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.kind](scenarioCase);
+  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('errors entity contracts', () => {

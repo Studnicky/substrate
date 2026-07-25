@@ -21,7 +21,7 @@ const specialValueMaterializers = {
   'undefined': (): undefined => undefined
 };
 
-type SpecialValueKind = keyof typeof specialValueMaterializers;
+type SpecialValueShape = keyof typeof specialValueMaterializers;
 
 type SerializedScenarioValue =
   | null
@@ -30,7 +30,7 @@ type SerializedScenarioValue =
   | string
   | readonly SerializedScenarioValue[]
   | { readonly [key: string]: SerializedScenarioValue }
-  | { readonly kind: SpecialValueKind };
+  | { readonly shape: SpecialValueShape };
 
 type GuardScenario = {
   readonly description: string;
@@ -102,8 +102,8 @@ const typedScenarioGroups: Record<GuardGroupName, readonly GuardScenario[]> = sc
 
 function isSpecialValue(
   value: { readonly [key: string]: SerializedScenarioValue }
-): value is { readonly kind: SpecialValueKind } {
-  return typeof value.kind === 'string' && Object.hasOwn(specialValueMaterializers, value.kind);
+): value is { readonly shape: SpecialValueShape } {
+  return typeof value.shape === 'string' && Object.hasOwn(specialValueMaterializers, value.shape);
 }
 
 function materialize(value: SerializedScenarioValue): unknown {
@@ -114,7 +114,7 @@ function materialize(value: SerializedScenarioValue): unknown {
     return value.map((entry) => materialize(entry));
   }
   if (isSpecialValue(value)) {
-    return specialValueMaterializers[value.kind]();
+    return specialValueMaterializers[value.shape]();
   }
   return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, materialize(entry)]));
 }

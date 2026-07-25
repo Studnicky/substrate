@@ -20,7 +20,7 @@ type ConstructionScenario = {
   readonly outcome: ConstructionOutcome;
 };
 
-type DirectKind = 'cause' | 'json' | 'message';
+type DirectShape = 'cause' | 'json' | 'message';
 
 type DirectOutcome = {
   readonly causeMessage?: string;
@@ -31,7 +31,7 @@ type DirectOutcome = {
 type DirectScenario = {
   readonly causeMessage?: string;
   readonly description: string;
-  readonly kind: DirectKind;
+  readonly shape: DirectShape;
   readonly message: string;
   readonly outcome: DirectOutcome;
 };
@@ -71,7 +71,7 @@ function expectedString(value: string | undefined, label: string): string {
   return value;
 }
 
-const directAssertions: Record<DirectKind, (scenario: DirectScenario) => void> = {
+const directAssertions: Record<DirectShape, (scenario: DirectScenario) => void> = {
   'cause': (scenario): void => {
     const cause = new Error(expectedString(scenario.causeMessage, 'causeMessage'));
     const err = ConfigurationError.create(scenario.message, cause);
@@ -108,7 +108,7 @@ void describe('ConfigurationError', () => {
   void describe('direct', () => {
     for (const scenario of typedScenarioGroups.direct) {
       void it(scenario.description, () => {
-        directAssertions[scenario.kind](scenario);
+        directAssertions[scenario.shape](scenario);
       });
     }
   });

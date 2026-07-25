@@ -130,10 +130,10 @@ function materialize(value: unknown): unknown {
     return value;
   }
 
-  if (isObjectRecord(value) && 'kind' in value) {
-    const markerKind = value.kind;
-    if (typeof markerKind === 'string' && hasOwnKey(materializeMarkers, markerKind)) {
-      return materializeMarkers[markerKind]();
+  if (isObjectRecord(value) && 'shape' in value) {
+    const markerShape = value.shape;
+    if (typeof markerShape === 'string' && hasOwnKey(materializeMarkers, markerShape)) {
+      return materializeMarkers[markerShape]();
     }
   }
 
@@ -157,10 +157,10 @@ function expectOutcome(actual: unknown, expected: unknown): void {
     return;
   }
 
-  if (isObjectRecord(expected) && 'kind' in expected) {
-    const markerKind = expected.kind;
-    if (typeof markerKind === 'string' && hasOwnKey(outcomeAssertions, markerKind)) {
-      outcomeAssertions[markerKind](actual);
+  if (isObjectRecord(expected) && 'shape' in expected) {
+    const markerShape = expected.shape;
+    if (typeof markerShape === 'string' && hasOwnKey(outcomeAssertions, markerShape)) {
+      outcomeAssertions[markerShape](actual);
       return;
     }
   }

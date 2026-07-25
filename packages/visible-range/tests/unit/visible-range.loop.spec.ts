@@ -15,16 +15,16 @@ import {
 } from '../../src/index.js';
 import scenarioGroups from './visible-range.scenarios.json';
 
-type EntityContractKind =
+type EntityContractShape =
   | 'config-data-valid'
   | 'constructor-both-sizes'
   | 'constructor-invalid-item-size'
   | 'constructor-missing-size'
   | 'resolved-config-valid';
 
-type FixedModeKind = 'range' | 'range-end' | 'range-start';
+type FixedModeShape = 'range' | 'range-end' | 'range-start';
 
-type OnRangeChangeKind =
+type OnRangeChangeShape =
   | 'async-rejecting-hook'
   | 'first-call'
   | 'no-state-change'
@@ -32,7 +32,7 @@ type OnRangeChangeKind =
   | 'scroll-moves-range'
   | 'throwing-hook';
 
-type VariableModeKind =
+type VariableModeShape =
   | 'initial-range'
   | 'interleaved-measure-corrections'
   | 'measure-corrects-range'
@@ -64,7 +64,7 @@ type EntityContractInput = {
 type EntityContractScenario = {
   readonly description: string;
   readonly input?: EntityContractInput;
-  readonly kind: EntityContractKind;
+  readonly shape: EntityContractShape;
   readonly name: string;
 };
 
@@ -75,12 +75,12 @@ type RangeInput = {
 };
 
 type RangeValueExpectation = {
-  readonly kind: 'corrected-range' | 'range';
+  readonly shape: 'corrected-range' | 'range';
   readonly range: VisibleRangeEntity.Type;
 };
 
 type RangeBoundaryExpectation = {
-  readonly kind: 'range-end' | 'range-start';
+  readonly shape: 'range-end' | 'range-start';
   readonly value: number;
 };
 
@@ -90,7 +90,7 @@ type FixedModeScenario = {
   readonly description: string;
   readonly expect: RangeExpectation;
   readonly input: RangeInput;
-  readonly kind: FixedModeKind;
+  readonly shape: FixedModeShape;
   readonly name: string;
 };
 
@@ -101,7 +101,7 @@ type OnRangeChangeInput = RangeInput & {
 type OnRangeChangeScenario = {
   readonly description: string;
   readonly input: OnRangeChangeInput;
-  readonly kind: OnRangeChangeKind;
+  readonly shape: OnRangeChangeShape;
   readonly name: string;
 };
 
@@ -118,7 +118,7 @@ type MeasurementBatch = {
 };
 
 type VariableExpectation = RangeValueExpectation | {
-  readonly kind: 'unchanged-range';
+  readonly shape: 'unchanged-range';
 };
 
 type VariableModeInput = RangeInput & {
@@ -132,7 +132,7 @@ type VariableModeScenario = {
   readonly description: string;
   readonly expect: VariableExpectation;
   readonly input: VariableModeInput;
-  readonly kind: VariableModeKind;
+  readonly shape: VariableModeShape;
   readonly name: string;
 };
 
@@ -168,7 +168,7 @@ function buildVisibleRangeConfig(config: SerializableVisibleRangeConfig): Visibl
 
 function requireEntityInput(scenario: EntityContractScenario): EntityContractInput {
   if (scenario.input === undefined) {
-    throw new Error(`Missing input for visible-range entity scenario: ${scenario.kind}`);
+    throw new Error(`Missing input for visible-range entity scenario: ${scenario.shape}`);
   }
   return scenario.input;
 }
@@ -176,7 +176,7 @@ function requireEntityInput(scenario: EntityContractScenario): EntityContractInp
 function requireValidationInput(scenario: EntityContractScenario, key: 'configData' | 'resolvedConfig'): EntityValidationInput {
   const input = requireEntityInput(scenario)[key];
   if (input === undefined) {
-    throw new Error(`Missing ${key} fixture for visible-range entity scenario: ${scenario.kind}`);
+    throw new Error(`Missing ${key} fixture for visible-range entity scenario: ${scenario.shape}`);
   }
   return input;
 }
@@ -184,7 +184,7 @@ function requireValidationInput(scenario: EntityContractScenario, key: 'configDa
 function requireVisibleRangeConfig(scenario: EntityContractScenario): SerializableVisibleRangeConfig {
   const config = requireEntityInput(scenario).visibleRange;
   if (config === undefined) {
-    throw new Error(`Missing visible-range config for entity scenario: ${scenario.kind}`);
+    throw new Error(`Missing visible-range config for entity scenario: ${scenario.shape}`);
   }
   return config;
 }
@@ -213,19 +213,19 @@ function createConfiguredRange(input: RangeInput, rangeType: typeof VisibleRange
 
 function requireRangeValue(expectation: RangeExpectation | VariableExpectation): VisibleRangeEntity.Type {
   if (!('range' in expectation)) {
-    throw new Error(`Expected range fixture, received ${expectation.kind}`);
+    throw new Error(`Expected range fixture, received ${expectation.shape}`);
   }
   return expectation.range;
 }
 
-function requireBoundaryValue(expectation: RangeExpectation, kind: RangeBoundaryExpectation['kind']): number {
-  if (expectation.kind !== kind || !('value' in expectation)) {
-    throw new Error(`Expected ${kind} fixture, received ${expectation.kind}`);
+function requireBoundaryValue(expectation: RangeExpectation, shape: RangeBoundaryExpectation['shape']): number {
+  if (expectation.shape !== shape || !('value' in expectation)) {
+    throw new Error(`Expected ${shape} fixture, received ${expectation.shape}`);
   }
   return expectation.value;
 }
 
-const rangeExpectationAssertions: Record<RangeExpectation['kind'], (actual: VisibleRangeEntity.Type, expectation: RangeExpectation) => void> = {
+const rangeExpectationAssertions: Record<RangeExpectation['shape'], (actual: VisibleRangeEntity.Type, expectation: RangeExpectation) => void> = {
   'corrected-range': (actual, expectation) => {
     assert.deepStrictEqual(actual, requireRangeValue(expectation));
   },
@@ -241,10 +241,10 @@ const rangeExpectationAssertions: Record<RangeExpectation['kind'], (actual: Visi
 };
 
 function assertRangeExpectation(actual: VisibleRangeEntity.Type, expectation: RangeExpectation): void {
-  rangeExpectationAssertions[expectation.kind](actual, expectation);
+  rangeExpectationAssertions[expectation.shape](actual, expectation);
 }
 
-const variableRangeAssertions: Record<VariableExpectation['kind'], (actual: VisibleRangeEntity.Type, expectation: VariableExpectation) => void> = {
+const variableRangeAssertions: Record<VariableExpectation['shape'], (actual: VisibleRangeEntity.Type, expectation: VariableExpectation) => void> = {
   'corrected-range': (actual, expectation) => {
     assert.deepStrictEqual(actual, requireRangeValue(expectation));
   },
@@ -257,15 +257,15 @@ const variableRangeAssertions: Record<VariableExpectation['kind'], (actual: Visi
 };
 
 function assertVariableRange(actual: VisibleRangeEntity.Type, expectation: VariableExpectation): void {
-  variableRangeAssertions[expectation.kind](actual, expectation);
+  variableRangeAssertions[expectation.shape](actual, expectation);
 }
 
-const unchangedRangeAssertions: Record<VariableExpectation['kind'], (before: VisibleRangeEntity.Type, after: VisibleRangeEntity.Type, expectation: VariableExpectation) => void> = {
+const unchangedRangeAssertions: Record<VariableExpectation['shape'], (before: VisibleRangeEntity.Type, after: VisibleRangeEntity.Type, expectation: VariableExpectation) => void> = {
   'corrected-range': (_before, _after, expectation) => {
-    throw new Error(`Expected unchanged-range fixture, received ${expectation.kind}`);
+    throw new Error(`Expected unchanged-range fixture, received ${expectation.shape}`);
   },
   range: (_before, _after, expectation) => {
-    throw new Error(`Expected unchanged-range fixture, received ${expectation.kind}`);
+    throw new Error(`Expected unchanged-range fixture, received ${expectation.shape}`);
   },
   'unchanged-range': (before, after) => {
     assert.deepStrictEqual(after, before);
@@ -273,7 +273,7 @@ const unchangedRangeAssertions: Record<VariableExpectation['kind'], (before: Vis
 };
 
 function assertUnchangedRange(before: VisibleRangeEntity.Type, after: VisibleRangeEntity.Type, expectation: VariableExpectation): void {
-  unchangedRangeAssertions[expectation.kind](before, after, expectation);
+  unchangedRangeAssertions[expectation.shape](before, after, expectation);
 }
 
 function applyMeasurementBatch(range: VisibleRange, batch: MeasurementBatch | undefined): void {
@@ -321,11 +321,11 @@ const entityContractRunners = {
     assert.strictEqual(VisibleRangeResolvedConfigEntity.validate(input.valid), true);
     assert.strictEqual(VisibleRangeResolvedConfigEntity.validate(input.invalid), false);
   }
-} satisfies Record<EntityContractKind, (scenario: EntityContractScenario) => void>;
+} satisfies Record<EntityContractShape, (scenario: EntityContractScenario) => void>;
 
 function runEntityContracts(): void {
   for (const scenario of entityContractScenarios) {
-    entityContractRunners[scenario.kind](scenario);
+    entityContractRunners[scenario.shape](scenario);
   }
 }
 
@@ -443,11 +443,11 @@ const onRangeChangeRunners = {
       range.getRange();
     }, HookInvocationError);
   }
-} satisfies Record<OnRangeChangeKind, (scenario: OnRangeChangeScenario) => Promise<void> | void>;
+} satisfies Record<OnRangeChangeShape, (scenario: OnRangeChangeScenario) => Promise<void> | void>;
 
 async function runOnRangeChange(): Promise<void> {
   for (const scenario of onRangeChangeScenarios) {
-    await onRangeChangeRunners[scenario.kind](scenario);
+    await onRangeChangeRunners[scenario.shape](scenario);
   }
 }
 
@@ -497,11 +497,11 @@ const variableModeRunners = {
   'overscan-applied': runVariableRangeScenario,
   'variable-boundary-offsets': runVariableRangeScenario,
   'variable-count-zero': runVariableRangeScenario
-} satisfies Record<VariableModeKind, (scenario: VariableModeScenario) => void>;
+} satisfies Record<VariableModeShape, (scenario: VariableModeScenario) => void>;
 
 function runVariableMode(): void {
   for (const scenario of variableModeScenarios) {
-    variableModeRunners[scenario.kind](scenario);
+    variableModeRunners[scenario.shape](scenario);
   }
 }
 

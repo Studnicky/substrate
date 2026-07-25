@@ -9,7 +9,7 @@ import { BusQueue } from '../../src/BusQueue.js';
 import type { BusQueueCreateOptionsInterface } from '../../src/BusQueueCreateOptionsInterface.js';
 import scenarioGroups from './BusQueue.scenarios.json';
 
-type ScenarioKind =
+type ScenarioShape =
   | 'admission-and-overflow-order'
   | 'admission-hook-on-hook-error'
   | 'abort-initially-cancelled'
@@ -34,22 +34,22 @@ type ScenarioKind =
   | 'size-before-drain'
   | 'throwing-dequeue-hook';
 
-type ScenarioCase<K extends ScenarioKind = ScenarioKind> = {
+type ScenarioCase<K extends ScenarioShape = ScenarioShape> = {
   description: string;
   expected: Record<string, unknown>;
   input: Record<string, unknown>;
-  kind: K;
+  shape: K;
   name: string;
 };
 
-type ScenarioRunContext<K extends ScenarioKind> = {
+type ScenarioRunContext<K extends ScenarioShape> = {
   expected: ScenarioCase<K>['expected'];
   input: ScenarioCase<K>['input'];
 };
 
-type ScenarioRunner<K extends ScenarioKind> = (context: ScenarioRunContext<K>) => Promise<void> | void;
+type ScenarioRunner<K extends ScenarioShape> = (context: ScenarioRunContext<K>) => Promise<void> | void;
 
-type RunnerMap = { [K in ScenarioKind]: ScenarioRunner<K> };
+type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
 const runnerMap: RunnerMap = {
     'handler-order': ({ expected, input }) => {
@@ -527,8 +527,8 @@ function flushMicrotasks(times: number): Promise<void> {
   return chain;
 }
 
-function runCase<K extends ScenarioKind>(scenarioCase: ScenarioCase<K>): Promise<void> | void {
-  return runnerMap[scenarioCase.kind]({
+function runCase<K extends ScenarioShape>(scenarioCase: ScenarioCase<K>): Promise<void> | void {
+  return runnerMap[scenarioCase.shape]({
     'expected': scenarioCase.expected,
     'input': scenarioCase.input
   });

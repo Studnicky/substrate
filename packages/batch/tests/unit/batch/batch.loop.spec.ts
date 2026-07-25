@@ -8,20 +8,20 @@ import scenarioGroups from './batch.scenarios.json';
 type ScenarioInput = Record<string, unknown> & { batch?: { maxConcurrent?: number } };
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-empty' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-single-batch' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-single-batch-concurrent' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-multi-batch' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-invalid-max-concurrent' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-order' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-default-max-concurrent' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-waits-for-batch-completion' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-propagates-errors' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-stops-on-first-error' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-returns-results' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; kind: 'process-settled-returns-results' };
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-empty' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-single-batch' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-single-batch-concurrent' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-multi-batch' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-invalid-max-concurrent' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-order' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-default-max-concurrent' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-waits-for-batch-completion' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-propagates-errors' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-stops-on-first-error' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-returns-results' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-returns-results' };
 
-type ScenarioKind = ScenarioCase['kind'];
+type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
 function resolveBatchMaxConcurrent(input: ScenarioInput): number | undefined {
@@ -46,7 +46,7 @@ function assertErrorMessageIncludes(error: unknown, expectedMessage: string): vo
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-empty': async (scenarioCase) => {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
@@ -241,7 +241,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  return runnerMap[scenarioCase.kind](scenarioCase);
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Batch', () => {

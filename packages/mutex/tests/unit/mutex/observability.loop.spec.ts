@@ -29,7 +29,7 @@ type ScenarioData = {
   name: string;
 };
 
-type ScenarioKind =
+type ScenarioShape =
   | 'afterAcquire-error-does-not-stop-queue'
   | 'afterAcquire-immediate'
   | 'afterAcquire-separate-keys'
@@ -55,7 +55,7 @@ type ScenarioKind =
   | 'onTimeout-throw-does-not-replace-error'
   | 'tracks-all-metrics';
 
-type ScenarioCase = ScenarioData & { kind: ScenarioKind };
+type ScenarioCase = ScenarioData & { shape: ScenarioShape };
 type ReleaseFunction = () => void;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
@@ -331,7 +331,7 @@ async function waitForHookRejections(): Promise<void> {
   await new Promise((resolve) => { setImmediate(resolve); });
 }
 
-const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'afterAcquire-error-does-not-stop-queue': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const mutex = new ThrowingQueueMutex();
@@ -609,7 +609,7 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
 };
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 const scenarioEntries: ScenarioCase[] = Object.values(scenarioGroups).flat();

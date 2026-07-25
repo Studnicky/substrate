@@ -6,11 +6,11 @@ import { ValidateRequestIdGenerator } from '../../../src/config/schemas/validate
 import scenarioGroups from './request-id-generator.scenarios.json';
 
 type RuntimeTag =
-  | { __kind: 'undefined' }
-  | { __kind: 'null' }
-  | { __kind: 'function-return-string'; value: string }
-  | { __kind: 'function-return-value'; value: unknown }
-  | { __kind: 'function-throws'; message: string };
+  | { __shape: 'undefined' }
+  | { __shape: 'null' }
+  | { __shape: 'function-return-string'; value: string }
+  | { __shape: 'function-return-value'; value: unknown }
+  | { __shape: 'function-throws'; message: string };
 
 type RuntimeValue =
   | boolean
@@ -23,7 +23,7 @@ type RuntimeValue =
 
 type ScenarioCase = {
   description: string;
-  expected: { kind: 'ok'; messageIncludes?: readonly string[] } | { kind: 'throws'; messageIncludes: readonly string[] };
+  expected: { shape: 'ok'; messageIncludes?: readonly string[] } | { shape: 'throws'; messageIncludes: readonly string[] };
   input: {
     requestIdGenerator: RuntimeValue;
   };
@@ -33,7 +33,7 @@ type ScenarioCase = {
 type ExpectedOutcomeRunner = (config: unknown, expected: ScenarioCase['expected']) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 
-const runtimeTagMap: Record<RuntimeTag['__kind'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['__shape'], RuntimeTagMaterializer> = {
   'function-return-string': (value) => {
     if ('value' in value) {
       return () => value.value;
@@ -60,7 +60,7 @@ const runtimeTagMap: Record<RuntimeTag['__kind'], RuntimeTagMaterializer> = {
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && '__kind' in value;
+  return value !== null && typeof value === 'object' && '__shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -69,7 +69,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.__kind](value);
+    return runtimeTagMap[value.__shape](value);
   }
 
   if (value !== null && typeof value === 'object') {
@@ -85,7 +85,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   return value;
 }
 
-const expectedOutcomeMap: Record<ScenarioCase['expected']['kind'], ExpectedOutcomeRunner> = {
+const expectedOutcomeMap: Record<ScenarioCase['expected']['shape'], ExpectedOutcomeRunner> = {
   ok: (config) => {
     assert.doesNotThrow(() => {
       ValidateRequestIdGenerator.validate(config);
@@ -106,7 +106,7 @@ const expectedOutcomeMap: Record<ScenarioCase['expected']['kind'], ExpectedOutco
 
 function runCase(scenarioCase: ScenarioCase): void {
   const config = materializeRuntimeValue(scenarioCase.input.requestIdGenerator);
-  expectedOutcomeMap[scenarioCase.expected.kind](config, scenarioCase.expected);
+  expectedOutcomeMap[scenarioCase.expected.shape](config, scenarioCase.expected);
 }
 
 void describe('fetch requestIdGenerator validation', () => {

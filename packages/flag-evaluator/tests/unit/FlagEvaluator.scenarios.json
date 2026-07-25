@@ -3,7 +3,7 @@
     {
       "name": "unregistered-flag",
       "description": "an unregistered flag evaluates to false",
-      "kind": "unregistered-flag",
+      "shape": "unregistered-flag",
       "input": {
         "flagEvaluator": {
           "flag": "never-registered",
@@ -19,7 +19,7 @@
     {
       "name": "disabled-flags",
       "description": "a registered, disabled flag returns its defaultValue",
-      "kind": "disabled-flags",
+      "shape": "disabled-flags",
       "input": {
         "flagEvaluator": {
           "definitions": {
@@ -58,7 +58,7 @@
     {
       "name": "implicit-full-rollout",
       "description": "a registered, enabled flag with no rolloutPercent always returns true",
-      "kind": "implicit-full-rollout",
+      "shape": "implicit-full-rollout",
       "input": {
         "flagEvaluator": {
           "flag": "full-rollout",
@@ -83,7 +83,7 @@
     {
       "name": "half-rollout",
       "description": "a registered, enabled flag with rolloutPercent 50 produces deterministic results",
-      "kind": "half-rollout",
+      "shape": "half-rollout",
       "input": {
         "flagEvaluator": {
           "flag": "half-rollout",
@@ -128,7 +128,7 @@
     {
       "name": "deterministic-rollout",
       "description": "the same targetingKey always gets the same result for the same flag",
-      "kind": "deterministic-rollout",
+      "shape": "deterministic-rollout",
       "input": {
         "flagEvaluator": {
           "flag": "deterministic-flag",
@@ -149,7 +149,7 @@
     {
       "name": "independent-flags",
       "description": "different flags with the same targetingKey can independently resolve differently",
-      "kind": "independent-flags",
+      "shape": "independent-flags",
       "input": {
         "flagEvaluator": {
           "definitions": {
@@ -183,7 +183,7 @@
     {
       "name": "register-has-list-unregister",
       "description": "unregister/has/list work correctly",
-      "kind": "register-has-list-unregister",
+      "shape": "register-has-list-unregister",
       "input": {
         "flagEvaluator": {
           "missingFlag": "a",
@@ -215,7 +215,7 @@
     {
       "name": "re-register-replaces",
       "description": "re-registering the same name replaces the previous definition",
-      "kind": "re-register-replaces",
+      "shape": "re-register-replaces",
       "input": {
         "flagEvaluator": {
           "flag": "flag",
@@ -238,7 +238,7 @@
     {
       "name": "register-snapshots-definition",
       "description": "register snapshots and freezes caller-owned definitions",
-      "kind": "register-snapshots-definition",
+      "shape": "register-snapshots-definition",
       "input": {
         "flagEvaluator": {
           "flag": "owned-definition",
@@ -260,7 +260,7 @@
     {
       "name": "invalid-rollout-range",
       "description": "register with rolloutPercent outside range throws",
-      "kind": "invalid-rollout-range",
+      "shape": "invalid-rollout-range",
       "input": {
         "flagEvaluator": {
           "flag": "bad-rollout",
@@ -278,7 +278,7 @@
     {
       "name": "missing-default-value",
       "description": "register with a definition missing defaultValue throws",
-      "kind": "missing-default-value",
+      "shape": "missing-default-value",
       "input": {
         "flagEvaluator": {
           "flag": "missing-default",
@@ -294,7 +294,7 @@
     {
       "name": "valid-definition-still-works",
       "description": "register with a valid definition still succeeds and evaluate continues to work",
-      "kind": "valid-definition-still-works",
+      "shape": "valid-definition-still-works",
       "input": {
         "flagEvaluator": {
           "flag": "valid-flag",
@@ -315,7 +315,7 @@
     {
       "name": "hook-on-default",
       "description": "onDefault fires only for an unregistered flag",
-      "kind": "hook-on-default",
+      "shape": "hook-on-default",
       "input": {
         "flagEvaluator": {
           "flag": "missing",
@@ -333,7 +333,7 @@
     {
       "name": "hook-on-rule-mismatch",
       "description": "onRuleMismatch fires only for rollout mismatches",
-      "kind": "hook-on-rule-mismatch",
+      "shape": "hook-on-rule-mismatch",
       "input": {
         "flagEvaluator": {
           "definitions": {
@@ -379,7 +379,7 @@
     {
       "name": "hook-on-evaluate",
       "description": "onEvaluate fires last on every path",
-      "kind": "hook-on-evaluate",
+      "shape": "hook-on-evaluate",
       "input": {
         "flagEvaluator": {
           "definitions": {
@@ -449,7 +449,7 @@
     {
       "name": "hook-order",
       "description": "hook ordering remains deterministic across paths",
-      "kind": "hook-order",
+      "shape": "hook-order",
       "input": {
         "flagEvaluator": {
           "definitions": {
@@ -485,7 +485,7 @@
     {
       "name": "hook-context-match",
       "description": "onEvaluate context matches the exact object passed in",
-      "kind": "hook-context-match",
+      "shape": "hook-context-match",
       "input": {
         "flagEvaluator": {
           "flag": "flag",
@@ -509,7 +509,7 @@
     {
       "name": "throwing-on-default",
       "description": "a throwing onDefault hook does not replace the fallback result",
-      "kind": "throwing-on-default",
+      "shape": "throwing-on-default",
       "input": {
         "flagEvaluator": {
           "flag": "missing",
@@ -525,7 +525,7 @@
     {
       "name": "throwing-on-rule-mismatch",
       "description": "a throwing onRuleMismatch hook does not replace the computed result",
-      "kind": "throwing-on-rule-mismatch",
+      "shape": "throwing-on-rule-mismatch",
       "input": {
         "flagEvaluator": {
           "flag": "zero-rollout",
@@ -546,7 +546,7 @@
     {
       "name": "throwing-on-evaluate",
       "description": "a throwing onEvaluate hook does not replace a completed result",
-      "kind": "throwing-on-evaluate",
+      "shape": "throwing-on-evaluate",
       "input": {
         "flagEvaluator": {
           "flag": "enabled-flag",
@@ -566,7 +566,7 @@
     {
       "name": "async-on-evaluate-safe",
       "description": "an async-rejecting onEvaluate override is routed safely",
-      "kind": "async-on-evaluate-safe",
+      "shape": "async-on-evaluate-safe",
       "input": {
         "flagEvaluator": {
           "flag": "enabled-flag",
@@ -587,7 +587,7 @@
     {
       "name": "flag-context-entity-accepts",
       "description": "FlagContextEntity accepts optional string targeting keys",
-      "kind": "flag-context-entity-accepts",
+      "shape": "flag-context-entity-accepts",
       "input": {
         "flagEvaluator": {
           "values": [
@@ -605,7 +605,7 @@
     {
       "name": "flag-context-entity-rejects",
       "description": "FlagContextEntity rejects non-string targeting keys",
-      "kind": "flag-context-entity-rejects",
+      "shape": "flag-context-entity-rejects",
       "input": {
         "flagEvaluator": {
           "value": {

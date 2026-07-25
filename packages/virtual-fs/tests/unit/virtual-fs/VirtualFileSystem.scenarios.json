@@ -3,7 +3,7 @@
     {
       "name": "write-roundtrip",
       "description": "writeFileSync then readFileSync returns the same content",
-      "kind": "write-roundtrip",
+      "shape": "write-roundtrip",
       "input": {
         "path": "/hello.txt",
         "content": "world",
@@ -16,7 +16,7 @@
     {
       "name": "write-overwrite",
       "description": "writeFileSync overwrites existing content",
-      "kind": "write-overwrite",
+      "shape": "write-overwrite",
       "input": {
         "path": "/a.txt",
         "firstContent": "first",
@@ -30,7 +30,7 @@
     {
       "name": "exists-after-write",
       "description": "existsSync returns true after writeFileSync",
-      "kind": "exists-after-write",
+      "shape": "exists-after-write",
       "input": {
         "path": "/x.txt",
         "content": "data",
@@ -43,7 +43,7 @@
     {
       "name": "exists-missing",
       "description": "existsSync returns false for unknown path",
-      "kind": "exists-missing",
+      "shape": "exists-missing",
       "input": {
         "path": "/nonexistent.txt"
       },
@@ -54,7 +54,7 @@
     {
       "name": "exists-root",
       "description": "existsSync returns true for root directory",
-      "kind": "exists-root",
+      "shape": "exists-root",
       "input": {
         "path": "/"
       },
@@ -65,7 +65,7 @@
     {
       "name": "read-missing-throws",
       "description": "readFileSync throws ENOENT for unknown path",
-      "kind": "read-missing-throws",
+      "shape": "read-missing-throws",
       "input": {
         "path": "/missing.txt",
         "encoding": "utf8"
@@ -77,7 +77,7 @@
     {
       "name": "rename-file-moves-content",
       "description": "renameSync moves file content to new path",
-      "kind": "rename-file-moves-content",
+      "shape": "rename-file-moves-content",
       "input": {
         "from": "/old.txt",
         "to": "/new.txt",
@@ -93,7 +93,7 @@
     {
       "name": "rename-missing-throws",
       "description": "renameSync throws ENOENT when source does not exist",
-      "kind": "rename-missing-throws",
+      "shape": "rename-missing-throws",
       "input": {
         "from": "/missing.txt",
         "to": "/dest.txt"
@@ -105,7 +105,7 @@
     {
       "name": "rename-directory",
       "description": "renameSync moves an existing directory to a new path",
-      "kind": "rename-directory",
+      "shape": "rename-directory",
       "input": {
         "path": "/dir",
         "renamedPath": "/renamed"
@@ -119,7 +119,7 @@
     {
       "name": "rename-directory-subtree",
       "description": "renameSync moves a directory along with its descendant entries",
-      "kind": "rename-directory-subtree",
+      "shape": "rename-directory-subtree",
       "input": {
         "sourcePath": "/dir",
         "targetPath": "/moved",
@@ -140,7 +140,7 @@
     {
       "name": "readdir-root",
       "description": "readdirSync lists direct children of root after writes",
-      "kind": "readdir-root",
+      "shape": "readdir-root",
       "input": {
         "files": [
           { "path": "/a.txt", "content": "a" },
@@ -157,7 +157,7 @@
     {
       "name": "readdir-no-nested",
       "description": "readdirSync does not include nested entries",
-      "kind": "readdir-no-nested",
+      "shape": "readdir-no-nested",
       "input": {
         "directory": "/dir",
         "filePath": "/dir/file.txt",
@@ -176,7 +176,7 @@
     {
       "name": "readdir-missing-throws",
       "description": "readdirSync throws ENOENT for unknown directory",
-      "kind": "readdir-missing-throws",
+      "shape": "readdir-missing-throws",
       "input": {
         "path": "/missing"
       },
@@ -187,7 +187,7 @@
     {
       "name": "readdir-reflects-unlink",
       "description": "readdirSync reflects unlinkSync removals",
-      "kind": "readdir-reflects-unlink",
+      "shape": "readdir-reflects-unlink",
       "input": {
         "keep": "/b.txt",
         "keepContent": "b",
@@ -206,7 +206,7 @@
     {
       "name": "readdir-reflects-file-rename",
       "description": "readdirSync reflects renameSync of a file into and out of a directory listing",
-      "kind": "readdir-reflects-file-rename",
+      "shape": "readdir-reflects-file-rename",
       "input": {
         "directory": "/dir",
         "from": "/dir/old.txt",
@@ -225,7 +225,7 @@
     {
       "name": "readdir-reflects-dir-rename",
       "description": "readdirSync reflects a directory rename that moves a subtree, using the new parent path",
-      "kind": "readdir-reflects-dir-rename",
+      "shape": "readdir-reflects-dir-rename",
       "input": {
         "from": "/dir",
         "to": "/moved",
@@ -255,7 +255,7 @@
     {
       "name": "readdir-mixed-operations",
       "description": "readdirSync after mixed create/delete/rename operations returns only current, correctly-scoped direct children",
-      "kind": "readdir-mixed-operations",
+      "shape": "readdir-mixed-operations",
       "input": {
         "rootFiles": [
           { "path": "/keep.txt", "content": "k" },
@@ -287,7 +287,7 @@
     {
       "name": "readdir-scale-scope",
       "description": "readdirSync returns only direct children under a path, independent of total filesystem size",
-      "kind": "readdir-scale-scope",
+      "shape": "readdir-scale-scope",
       "input": {
         "unrelatedCount": 500,
         "target": "/target",
@@ -302,7 +302,7 @@
     {
       "name": "unlink-removes",
       "description": "unlinkSync removes file and existsSync returns false",
-      "kind": "unlink-removes",
+      "shape": "unlink-removes",
       "input": {
         "path": "/del.txt",
         "content": "bye",
@@ -315,7 +315,7 @@
     {
       "name": "unlink-missing-throws",
       "description": "unlinkSync throws ENOENT for missing file",
-      "kind": "unlink-missing-throws",
+      "shape": "unlink-missing-throws",
       "input": {
         "path": "/missing.txt"
       },
@@ -326,7 +326,7 @@
     {
       "name": "unlink-directory-throws",
       "description": "unlinkSync throws EISDIR for an existing directory",
-      "kind": "unlink-directory-throws",
+      "shape": "unlink-directory-throws",
       "input": {
         "path": "/mydir"
       },
@@ -337,7 +337,7 @@
     {
       "name": "mkdir-recursive-creates",
       "description": "mkdirSync recursive creates nested directories",
-      "kind": "mkdir-recursive-creates",
+      "shape": "mkdir-recursive-creates",
       "input": {
         "path": "/a/b/c",
         "recursive": true
@@ -353,7 +353,7 @@
     {
       "name": "mkdir-existing-dir-throws",
       "description": "mkdirSync without recursive throws EEXIST for existing dir",
-      "kind": "mkdir-existing-dir-throws",
+      "shape": "mkdir-existing-dir-throws",
       "input": {
         "path": "/mydir",
         "existingRecursive": true
@@ -365,7 +365,7 @@
     {
       "name": "mkdir-existing-dir-no-throw",
       "description": "mkdirSync with recursive does not throw for existing dir",
-      "kind": "mkdir-existing-dir-no-throw",
+      "shape": "mkdir-existing-dir-no-throw",
       "input": {
         "path": "/mydir",
         "recursive": true
@@ -377,7 +377,7 @@
     {
       "name": "mkdir-file-path-throws",
       "description": "mkdirSync throws when a file already occupies the path",
-      "kind": "mkdir-file-path-throws",
+      "shape": "mkdir-file-path-throws",
       "input": {
         "path": "/a",
         "content": "x",
@@ -392,7 +392,7 @@
     {
       "name": "mkdir-recursive-intermediate-file-throws",
       "description": "mkdirSync recursive throws when an intermediate segment is a file",
-      "kind": "mkdir-recursive-intermediate-file-throws",
+      "shape": "mkdir-recursive-intermediate-file-throws",
       "input": {
         "path": "/a/b",
         "intermediateFilePath": "/a",
@@ -406,7 +406,7 @@
     {
       "name": "stat-mtime-clock",
       "description": "statSync returns correct mtimeMs via injected clock",
-      "kind": "stat-mtime-clock",
+      "shape": "stat-mtime-clock",
       "input": {
         "initialClockMs": 1000,
         "advanceMs": 500,
@@ -419,9 +419,9 @@
       }
     },
     {
-      "name": "stat-file-kind",
+      "name": "stat-file-shape",
       "description": "statSync isFile returns true for written file",
-      "kind": "stat-file-kind",
+      "shape": "stat-file-shape",
       "input": {
         "path": "/f.txt",
         "content": "x",
@@ -433,9 +433,9 @@
       }
     },
     {
-      "name": "stat-dir-kind",
+      "name": "stat-dir-shape",
       "description": "statSync isDirectory returns true for created directory",
-      "kind": "stat-dir-kind",
+      "shape": "stat-dir-shape",
       "input": {
         "path": "/mydir"
       },
@@ -447,7 +447,7 @@
     {
       "name": "stat-missing-throws",
       "description": "statSync throws ENOENT for unknown path",
-      "kind": "stat-missing-throws",
+      "shape": "stat-missing-throws",
       "input": {
         "path": "/missing"
       },
@@ -458,7 +458,7 @@
     {
       "name": "create-seed-populates",
       "description": "create() seed pre-populates files",
-      "kind": "create-seed-populates",
+      "shape": "create-seed-populates",
       "input": {
         "readPath": "/seeded.txt",
         "seed": [
@@ -475,7 +475,7 @@
     {
       "name": "create-seed-empty",
       "description": "create() with an explicit empty seed preserves the seeded root state only",
-      "kind": "create-seed-empty",
+      "shape": "create-seed-empty",
       "input": {
         "seed": []
       },
@@ -487,7 +487,7 @@
     {
       "name": "create-clock-deterministic",
       "description": "create() injects a clock for deterministic time",
-      "kind": "create-clock-deterministic",
+      "shape": "create-clock-deterministic",
       "input": {
         "clockMs": 2000,
         "path": "/clocked.txt",
@@ -501,7 +501,7 @@
     {
       "name": "lifecycle-onCreate",
       "description": "onCreate fires after writeFileSync for new file",
-      "kind": "lifecycle-onCreate",
+      "shape": "lifecycle-onCreate",
       "input": {
         "path": "/new.txt",
         "content": "x",
@@ -514,7 +514,7 @@
     {
       "name": "lifecycle-onWrite",
       "description": "onWrite fires after writeFileSync for existing file",
-      "kind": "lifecycle-onWrite",
+      "shape": "lifecycle-onWrite",
       "input": {
         "path": "/existing.txt",
         "firstContent": "first",
@@ -528,7 +528,7 @@
     {
       "name": "lifecycle-onRead",
       "description": "onRead fires after readFileSync",
-      "kind": "lifecycle-onRead",
+      "shape": "lifecycle-onRead",
       "input": {
         "path": "/r.txt",
         "content": "data",
@@ -541,7 +541,7 @@
     {
       "name": "lifecycle-onDelete",
       "description": "onDelete fires after unlinkSync",
-      "kind": "lifecycle-onDelete",
+      "shape": "lifecycle-onDelete",
       "input": {
         "path": "/d.txt",
         "content": "data",
@@ -554,7 +554,7 @@
     {
       "name": "lifecycle-onRename",
       "description": "onRename fires after renameSync",
-      "kind": "lifecycle-onRename",
+      "shape": "lifecycle-onRename",
       "input": {
         "from": "/old.txt",
         "to": "/new.txt",

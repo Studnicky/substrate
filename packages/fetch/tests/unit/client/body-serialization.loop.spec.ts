@@ -17,16 +17,16 @@ type RuntimeValue =
 type RuntimeObject = { [key: string]: RuntimeValue };
 
 type RuntimeTag =
-  | { __kind: 'array-buffer'; text: string }
-  | { __kind: 'bigint'; value: string }
-  | { __kind: 'buffer'; text: string }
-  | { __kind: 'circular'; name: string }
-  | { __kind: 'date'; iso: string }
-  | { __kind: 'filled-buffer'; fill: string; length: number }
-  | { __kind: 'function-properties'; data: string }
-  | { __kind: 'symbol-properties'; name: string }
-  | { __kind: 'undefined' }
-  | { __kind: 'uint8-array'; text: string };
+  | { __shape: 'array-buffer'; text: string }
+  | { __shape: 'bigint'; value: string }
+  | { __shape: 'buffer'; text: string }
+  | { __shape: 'circular'; name: string }
+  | { __shape: 'date'; iso: string }
+  | { __shape: 'filled-buffer'; fill: string; length: number }
+  | { __shape: 'function-properties'; data: string }
+  | { __shape: 'symbol-properties'; name: string }
+  | { __shape: 'undefined' }
+  | { __shape: 'uint8-array'; text: string };
 
 type RequestDefinition = {
   body?: RuntimeValue;
@@ -62,7 +62,7 @@ const ctx = {
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && '__kind' in value;
+  return typeof value === 'object' && value !== null && '__shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -71,41 +71,41 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    if (value.__kind === 'undefined') {
+    if (value.__shape === 'undefined') {
       return undefined;
     }
 
-    if (value.__kind === 'bigint') {
+    if (value.__shape === 'bigint') {
       return BigInt(value.value);
     }
 
-    if (value.__kind === 'buffer') {
+    if (value.__shape === 'buffer') {
       return Buffer.from(value.text, 'utf8');
     }
 
-    if (value.__kind === 'array-buffer') {
+    if (value.__shape === 'array-buffer') {
       return new TextEncoder().encode(value.text).buffer;
     }
 
-    if (value.__kind === 'uint8-array') {
+    if (value.__shape === 'uint8-array') {
       return new TextEncoder().encode(value.text);
     }
 
-    if (value.__kind === 'filled-buffer') {
+    if (value.__shape === 'filled-buffer') {
       return Buffer.alloc(value.length, value.fill);
     }
 
-    if (value.__kind === 'date') {
+    if (value.__shape === 'date') {
       return new Date(value.iso);
     }
 
-    if (value.__kind === 'circular') {
+    if (value.__shape === 'circular') {
       const circular: { name: string; self?: unknown } = { name: value.name };
       circular.self = circular;
       return circular;
     }
 
-    if (value.__kind === 'symbol-properties') {
+    if (value.__shape === 'symbol-properties') {
       const symbol = Symbol(value.name);
       return {
         [symbol]: 'symbol value',
@@ -113,14 +113,14 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
       };
     }
 
-    if (value.__kind === 'function-properties') {
+    if (value.__shape === 'function-properties') {
       return {
         data: value.data,
         method: () => 'function'
       };
     }
 
-    throw new Error(`Unknown runtime tag: ${value.__kind satisfies never}`);
+    throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
   }
 
   if (value === null || typeof value !== 'object') {

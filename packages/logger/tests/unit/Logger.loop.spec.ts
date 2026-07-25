@@ -20,21 +20,21 @@ import { TestFactory } from '../helpers/TestFactory.js';
 import scenarioGroups from './Logger.scenarios.json';
 
 type ScenarioCase =
-  | { description: string; kind: 'create-default'; name: string }
-  | { description: string; kind: 'create-string-level'; level: 'debug'; name: string }
-  | { description: string; kind: 'create-numeric-level'; level: LogLevelEntity.Type; name: string }
-  | { description: string; kind: 'create-with-metadata'; level: LogLevelEntity.Type; metadata: LogMetadataInterface; name: string }
-  | { description: string; kind: 'create-invalid-metadata'; name: string }
-  | { description: string; expectedMessage: string; kind: 'create-invalid-transports'; name: string }
-  | { description: string; kind: 'snapshot-metadata-and-transports'; name: string }
-  | { description: string; expectedCount: number; kind: 'global-floor'; level: number; name: string }
+  | { description: string; shape: 'create-default'; name: string }
+  | { description: string; shape: 'create-string-level'; level: 'debug'; name: string }
+  | { description: string; shape: 'create-numeric-level'; level: LogLevelEntity.Type; name: string }
+  | { description: string; shape: 'create-with-metadata'; level: LogLevelEntity.Type; metadata: LogMetadataInterface; name: string }
+  | { description: string; shape: 'create-invalid-metadata'; name: string }
+  | { description: string; expectedMessage: string; shape: 'create-invalid-transports'; name: string }
+  | { description: string; shape: 'snapshot-metadata-and-transports'; name: string }
+  | { description: string; expectedCount: number; shape: 'global-floor'; level: number; name: string }
   | {
       description: string;
       expectedCounts: {
         all: number;
         warn: number;
       };
-      kind: 'transport-floor-warn';
+      shape: 'transport-floor-warn';
       loggerLevel: LogLevelEntity.Type;
       name: string;
       transportLevels: {
@@ -48,7 +48,7 @@ type ScenarioCase =
         debug: number;
         error: number;
       };
-      kind: 'transport-floor-mixed';
+      shape: 'transport-floor-mixed';
       loggerLevel: LogLevelEntity.Type;
       name: string;
       transportLevels: {
@@ -56,46 +56,46 @@ type ScenarioCase =
         error: LogLevelEntity.Type;
       };
     }
-  | { description: string; kind: 'fanout-multiple-transports'; name: string }
-  | { description: string; kind: 'fanout-transport-throws'; name: string }
-  | { description: string; kind: 'fanout-onTransportError-throws'; name: string }
-  | { description: string; kind: 'child-inherits-metadata'; name: string }
-  | { description: string; kind: 'child-overrides-metadata'; name: string }
-  | { description: string; kind: 'grandchild-merges-metadata'; name: string }
-  | { description: string; kind: 'child-shares-transports'; name: string }
-  | { description: string; kind: 'child-snapshots-metadata'; name: string }
-  | { description: string; kind: 'child-create-hook'; name: string }
-  | { description: string; kind: 'record-shape'; name: string }
-  | { description: string; kind: 'record-level-mapping'; name: string }
-  | { description: string; kind: 'record-onLog-throws'; name: string }
-  | { description: string; kind: 'function-transport-bridge'; name: string }
-  | { description: string; kind: 'noop-transport-silence'; name: string }
-  | { description: string; kind: 'no-transports-silent'; name: string }
-  | { description: string; kind: 'onLog-before-transport'; name: string }
-  | { description: string; kind: 'onLog-assembled-record'; name: string }
-  | { description: string; kind: 'onDropped-below-floor'; name: string }
-  | { description: string; kind: 'onDropped-at-floor'; name: string }
-  | { description: string; kind: 'onDropped-trace-debug'; name: string }
-  | { description: string; kind: 'onDropped-hook-error'; name: string }
-  | { description: string; kind: 'onChildCreate-hooks'; name: string }
-  | { description: string; kind: 'onChildCreate-bindings'; name: string }
-  | { description: string; kind: 'onTransportError-fires'; name: string }
-  | { description: string; kind: 'onTransportError-succeeds'; name: string }
-  | { description: string; kind: 'onTransportError-each-failure'; name: string }
-  | { description: string; kind: 'onTransportError-isolation'; name: string }
-  | { description: string; kind: 'onTransportError-detached-cause'; name: string }
-  | { description: string; kind: 'onTransportError-fanout-continues'; name: string }
-  | { description: string; kind: 'async-onTransportError'; name: string }
-  | { description: string; kind: 'hook-invocation-error-cause'; name: string }
-  | { description: string; kind: 'async-onLog-unhandled'; name: string };
+  | { description: string; shape: 'fanout-multiple-transports'; name: string }
+  | { description: string; shape: 'fanout-transport-throws'; name: string }
+  | { description: string; shape: 'fanout-onTransportError-throws'; name: string }
+  | { description: string; shape: 'child-inherits-metadata'; name: string }
+  | { description: string; shape: 'child-overrides-metadata'; name: string }
+  | { description: string; shape: 'grandchild-merges-metadata'; name: string }
+  | { description: string; shape: 'child-shares-transports'; name: string }
+  | { description: string; shape: 'child-snapshots-metadata'; name: string }
+  | { description: string; shape: 'child-create-hook'; name: string }
+  | { description: string; shape: 'record-shape'; name: string }
+  | { description: string; shape: 'record-level-mapping'; name: string }
+  | { description: string; shape: 'record-onLog-throws'; name: string }
+  | { description: string; shape: 'function-transport-bridge'; name: string }
+  | { description: string; shape: 'noop-transport-silence'; name: string }
+  | { description: string; shape: 'no-transports-silent'; name: string }
+  | { description: string; shape: 'onLog-before-transport'; name: string }
+  | { description: string; shape: 'onLog-assembled-record'; name: string }
+  | { description: string; shape: 'onDropped-below-floor'; name: string }
+  | { description: string; shape: 'onDropped-at-floor'; name: string }
+  | { description: string; shape: 'onDropped-trace-debug'; name: string }
+  | { description: string; shape: 'onDropped-hook-error'; name: string }
+  | { description: string; shape: 'onChildCreate-hooks'; name: string }
+  | { description: string; shape: 'onChildCreate-bindings'; name: string }
+  | { description: string; shape: 'onTransportError-fires'; name: string }
+  | { description: string; shape: 'onTransportError-succeeds'; name: string }
+  | { description: string; shape: 'onTransportError-each-failure'; name: string }
+  | { description: string; shape: 'onTransportError-isolation'; name: string }
+  | { description: string; shape: 'onTransportError-detached-cause'; name: string }
+  | { description: string; shape: 'onTransportError-fanout-continues'; name: string }
+  | { description: string; shape: 'async-onTransportError'; name: string }
+  | { description: string; shape: 'hook-invocation-error-cause'; name: string }
+  | { description: string; shape: 'async-onLog-unhandled'; name: string };
 
-type ScenarioKind = ScenarioCase['kind'];
-type ScenarioCaseByKind = {
-  [Kind in ScenarioKind]: Extract<ScenarioCase, { kind: Kind }>;
+type ScenarioShape = ScenarioCase['shape'];
+type ScenarioCaseByShape = {
+  [Shape in ScenarioShape]: Extract<ScenarioCase, { shape: Shape }>;
 };
-type ScenarioRunner<Kind extends ScenarioKind> = (scenarioCase: ScenarioCaseByKind[Kind]) => Promise<void> | void;
+type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: ScenarioCaseByShape[Shape]) => Promise<void> | void;
 type ScenarioRunnerMap = {
-  [Kind in ScenarioKind]: ScenarioRunner<Kind>;
+  [Shape in ScenarioShape]: ScenarioRunner<Shape>;
 };
 
 const runnerMap: ScenarioRunnerMap = {
@@ -756,8 +756,8 @@ const runnerMap: ScenarioRunnerMap = {
   }
 };
 
-async function runCase<Kind extends ScenarioKind>(scenarioCase: ScenarioCaseByKind[Kind]): Promise<void> {
-  await runnerMap[scenarioCase.kind](scenarioCase);
+async function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseByShape[Shape]): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Logger', () => {

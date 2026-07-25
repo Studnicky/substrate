@@ -10,14 +10,14 @@ type ScenarioCase =
       description: string;
       expected: { optionKeys: number };
       input: { dispatcherAgent: Record<string, unknown> };
-      kind: 'default-config' | 'sparse-config';
+      shape: 'default-config' | 'sparse-config';
       name: string;
     }
   | {
       description: string;
       expected: { optionKeys: number };
       input: { dispatcherAgent: Record<string, unknown> };
-      kind: 'comprehensive-config';
+      shape: 'comprehensive-config';
       name: string;
     };
 
