@@ -92,3 +92,4 @@ export default [
 - [`all-types-are-entities`](./all-types-are-entities.md) requires the exact entity declaration form.
 - [`interface-must-be-contract`](./interface-must-be-contract.md) rejects pure-data interfaces.
 - [`interfaces-compose-named-types`](./interfaces-compose-named-types.md) extracts pure-data portions from contract interfaces.
+- [`no-mixed-callable-shapes`](./no-mixed-callable-shapes.md) owns a union or intersection that mixes a callable constituent with data — a shape `aliasMustBeInterface` cannot direct to an interface, since TypeScript has no syntax for a union-shaped interface.

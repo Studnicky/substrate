@@ -5,7 +5,9 @@ import {
   type InterfaceDeclaration,
   isIndexSignatureDeclaration,
   isInterfaceDeclaration,
+  isIntersectionTypeNode,
   isPropertySignature,
+  isUnionTypeNode,
   type Node,
   type Program,
   type TypeNode
@@ -92,6 +94,13 @@ class InlineDataPortion {
     let current = node.parent;
     while (current !== undefined && current !== boundary) {
       if (classification.isInlinePureDataPortion(current)) { return true; }
+      // An ancestor union or intersection that mixes a callable constituent with a data
+      // constituent has no interface remedy — `no-mixed-callable-shapes` owns that diagnostic.
+      // Reporting the data constituent here as well would tell the consumer to both split the
+      // shape and extract it to a named entity, two contradictory fixes for one declaration.
+      if ((isUnionTypeNode(current) || isIntersectionTypeNode(current)) && classification.mixesCallableAndData(current)) {
+        return true;
+      }
       current = current.parent;
     }
     return false;
@@ -216,6 +225,7 @@ export const interfacesComposeNamedTypes: Rule.RuleModule = {
       }
 
       const memberType: TypeNode = member.type;
+      if (classification.isBrandDeclarationMember(member)) { return; }
       if (classification.isInlineContractPortion(member.parent)) { return; }
       if (InlineDataPortion.hasAncestor(member, interfaceDeclaration, classification)) { return; }
       if (InlineDataPortion.contains(memberType, classification)) { return; }

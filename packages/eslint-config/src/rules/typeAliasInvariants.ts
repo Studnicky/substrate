@@ -412,6 +412,13 @@ export const typeAliasInvariants: Rule.RuleModule = {
       if (analysis === undefined || declaration === undefined) { return; }
 
       if (analysis.classification === 'interfaceContract') {
+        // A top-level mixed union/intersection has no interface remedy at all — `interface X`
+        // cannot itself be a union — so `no-mixed-callable-shapes` owns this declaration's only
+        // diagnostic instead of the unfollowable "declare as an interface" advice.
+        if (classification?.isTopLevelMixedCallableData(declaration.type) === true) {
+          return;
+        }
+
         const sourceFile = declaration.getSourceFile();
         const evidenceStart = analysis.evidence.getStart(sourceFile);
         const evidenceEnd = analysis.evidence.getEnd();

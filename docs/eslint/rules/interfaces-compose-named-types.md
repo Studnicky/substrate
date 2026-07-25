@@ -181,3 +181,4 @@ export default [
 - [`interface-must-be-contract`](./interface-must-be-contract.md) owns pure-data interface declarations.
 - [`type-alias-invariants`](./type-alias-invariants.md) verifies canonical alias provenance and declaration shape.
 - [`all-types-are-entities`](./all-types-are-entities.md) owns canonical alias placement.
+- [`no-mixed-callable-shapes`](./no-mixed-callable-shapes.md) owns a member whose type mixes a callable constituent with data — this rule skips that constituent rather than telling the consumer to extract it, since the underlying shape must split instead.
