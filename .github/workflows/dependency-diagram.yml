@@ -25,7 +25,7 @@ jobs:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
       - uses: ./.github/actions/pnpm-node-setup
@@ -43,19 +43,21 @@ jobs:
       packages: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
       - uses: ./.github/actions/pnpm-node-setup
       - name: Blast radius
+        env:
+          BASE_REF_NAME: ${{ github.base_ref || 'develop' }}
         run: |
-          CI_SUITE_BASE_REF="origin/${{ github.base_ref || 'develop' }}" \
+          CI_SUITE_BASE_REF="origin/${BASE_REF_NAME}" \
             DEPENDENCY_DIAGRAM_ARTIFACT=".orchestration/dependency-diagram/blast-radius.md" \
             DEPENDENCY_DIAGRAM_MERMAID_ARTIFACT=".orchestration/dependency-diagram/blast-radius.mmd" \
             DEPENDENCY_DIAGRAM_COMMENT_ARTIFACT=".orchestration/dependency-diagram/blast-radius-comment.md" \
             bash scripts/ci-suite.sh diagram-blast-radius
       - name: Upload blast-radius diagram
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: dependency-blast-radius
           path: |
@@ -114,9 +116,13 @@ jobs:
     steps:
       - name: Gate dependency diagram result
         shell: bash
+        env:
+          DETECT_CHANGES_RESULT: ${{ needs.detect-changes.result }}
+          DIAGRAM_CHECK_RESULT: ${{ needs.diagram-check.result }}
+          BLAST_RADIUS_RESULT: ${{ needs.blast-radius.result }}
         run: |
           set -euo pipefail
-          for result in '${{ needs.detect-changes.result }}' '${{ needs.diagram-check.result }}' '${{ needs.blast-radius.result }}'; do
+          for result in "$DETECT_CHANGES_RESULT" "$DIAGRAM_CHECK_RESULT" "$BLAST_RADIUS_RESULT"; do
             case "$result" in
               success|skipped) ;;
               *) echo "dependency diagram required: dependency result was $result" >&2; exit 1 ;;

@@ -23,7 +23,7 @@ jobs:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/pnpm-node-setup
 
       - name: Release gates
@@ -61,7 +61,7 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/pnpm-node-setup
       - name: Install raster tooling
         run: |
@@ -108,7 +108,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/pnpm-node-setup
         with:
           install: false
@@ -119,8 +119,8 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.publish.outputs.version }}
         run: |
-          VERSION="${{ needs.publish.outputs.version }}"
           gh release create "v${VERSION}" \
             --title "v${VERSION}" \
             --notes-file release_notes.md \

@@ -18,6 +18,11 @@ interface ScenarioRequestExecutorInputInterface {
   retry?: RetryConfigInterface;
 }
 
+function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
+  assert.ok(error instanceof Error);
+  assert.equal(error.message.includes(expectedMessage), true);
+}
+
 type ScenarioCase =
   | {
       description: string;
@@ -482,7 +487,10 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
       () => executor.execute(async () => {
         throw new Error(scenarioCase.input.errorMessage);
       }),
-      new RegExp(scenarioCase.input.errorMessage)
+      (error: unknown) => {
+        assertErrorMessageIncludes(error, scenarioCase.input.errorMessage);
+        return true;
+      }
     );
 
     assert.equal(timing.eventNames.filter((name) => name === 'RequestExecutor.execute.start').length, scenarioCase.expected.startEvents);

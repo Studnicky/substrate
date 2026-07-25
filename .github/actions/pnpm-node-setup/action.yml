@@ -22,10 +22,10 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@v6
+    - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
       with:
         version: ${{ inputs.pnpm-version }}
-    - uses: actions/setup-node@v6
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
       with:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
@@ -33,6 +33,22 @@ runs:
         scope: ${{ inputs.scope }}
     - if: inputs.install == 'true'
       shell: bash
-      run: pnpm install ${{ inputs.install-args }}
       env:
+        INSTALL_ARGS: ${{ inputs.install-args }}
         NODE_AUTH_TOKEN: ${{ github.token }}
+      run: |
+        case "$INSTALL_ARGS" in
+          "--frozen-lockfile")
+            pnpm install --frozen-lockfile
+            ;;
+          "--prod --frozen-lockfile")
+            pnpm install --prod --frozen-lockfile
+            ;;
+          "--no-frozen-lockfile")
+            pnpm install --no-frozen-lockfile
+            ;;
+          *)
+            echo "pnpm-node-setup: unsupported install args '$INSTALL_ARGS'" >&2
+            exit 1
+            ;;
+        esac

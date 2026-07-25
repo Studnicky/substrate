@@ -16,17 +16,19 @@ jobs:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/pnpm-node-setup
       - name: Run audit checks
         shell: bash
+        env:
+          REPORT_ARTIFACT: ${{ inputs.report-artifact }}
         run: |
           set -euo pipefail
 
           tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/substrate-security-audit.XXXXXX")
           trap 'rm -rf "$tmpdir"' EXIT INT TERM
 
-          if [ "${{ inputs.report-artifact }}" = "true" ]; then
+          if [ "$REPORT_ARTIFACT" = "true" ]; then
             pnpm audit --json >"$tmpdir/npm-audit-report.json" 2>"$tmpdir/report.log" || true &
             report_pid=$!
           fi
@@ -39,12 +41,12 @@ jobs:
             exit 1
           fi
 
-          if [ "${{ inputs.report-artifact }}" = "true" ]; then
+          if [ "$REPORT_ARTIFACT" = "true" ]; then
             wait "$report_pid" || true
             cp "$tmpdir/npm-audit-report.json" npm-audit-report.json
           fi
       - if: inputs.report-artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: npm-audit-report
           path: npm-audit-report.json

@@ -41,6 +41,11 @@ function createScenarioBatch<TResult = unknown>(input: ScenarioInput): Batch<TRe
   return Batch.create<TResult>(resolveBatchMaxConcurrent(input));
 }
 
+function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
+  assert.ok(error instanceof Error);
+  assert.equal(error.message.includes(expectedMessage), true);
+}
+
 const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
   'process-empty': async (scenarioCase) => {
     const input = scenarioCase.input;
@@ -101,7 +106,10 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
   'process-invalid-max-concurrent': (scenarioCase) => {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
-    assert.throws(() => { createScenarioBatch(input); }, new RegExp(String(expected.message), 'u'));
+    assert.throws(() => { createScenarioBatch(input); }, (error: unknown) => {
+      assertErrorMessageIncludes(error, String(expected.message));
+      return true;
+    });
   },
 
   'process-order': async (scenarioCase) => {
@@ -178,7 +186,10 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
         assert.ok(Array.isArray(batch));
       }
     };
-    return assert.rejects(consumeGenerator, new RegExp(String(expected.rejectedMessage), 'u'));
+    return assert.rejects(consumeGenerator, (error: unknown) => {
+      assertErrorMessageIncludes(error, String(expected.rejectedMessage));
+      return true;
+    });
   },
 
   'process-stops-on-first-error': (scenarioCase) => {
@@ -201,7 +212,10 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
       }
     };
 
-    return assert.rejects(consumeGenerator, new RegExp(String(expected.rejectedMessage), 'u')).then(() => {
+    return assert.rejects(consumeGenerator, (error: unknown) => {
+      assertErrorMessageIncludes(error, String(expected.rejectedMessage));
+      return true;
+    }).then(() => {
       assert.deepStrictEqual(processed, expected.processed);
       assert.deepStrictEqual(batchesReceived, expected.batches);
     });

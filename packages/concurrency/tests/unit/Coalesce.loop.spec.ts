@@ -41,6 +41,11 @@ class ObservedTimeoutCoalesce<T> extends Coalesce<T> {
   }
 }
 
+function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
+  assert.ok(error instanceof Error);
+  assert.equal(error.message.includes(expectedMessage), true);
+}
+
 const scenarioRunners: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'shared-factory': async (scenarioCase) => {
     const input = scenarioCase.input as { calls: number; delayMs: number; key: string; result: string };
@@ -89,7 +94,10 @@ const scenarioRunners: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase)
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
-    await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
+    await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(new Error(input.message))), (error: unknown) => {
+      assertErrorMessageIncludes(error, input.message);
+      return true;
+    });
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
 
@@ -97,7 +105,10 @@ const scenarioRunners: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase)
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
-    await assert.rejects(() => coalesce.run(input.key, () => { throw new Error(input.message); }), new RegExp(input.message));
+    await assert.rejects(() => coalesce.run(input.key, () => { throw new Error(input.message); }), (error: unknown) => {
+      assertErrorMessageIncludes(error, input.message);
+      return true;
+    });
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
 
@@ -184,7 +195,10 @@ const scenarioRunners: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase)
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { success: boolean };
     const c = new ObservedCoalesce<number>();
-    await assert.rejects(() => c.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
+    await assert.rejects(() => c.run(input.key, () => Promise.reject(new Error(input.message))), (error: unknown) => {
+      assertErrorMessageIncludes(error, input.message);
+      return true;
+    });
     assert.equal(c.settledEvents.length, 1);
     assert.deepEqual(c.settledEvents[0], { 'key': input.key, 'success': expected.success });
   },

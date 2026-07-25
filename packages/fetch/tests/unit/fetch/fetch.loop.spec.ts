@@ -55,6 +55,15 @@ type ScenarioCase = {
 
 import scenarioGroups from './fetch.scenarios.json';
 
+type MessagePatternPredicate = (message: string) => boolean;
+
+const messagePatternPredicates: Record<string, MessagePatternPredicate> = {
+  'ECONNREFUSED|fetch failed': (message) => message.includes('ECONNREFUSED') || message.includes('fetch failed'),
+  'EAI_AGAIN|ENOTFOUND|fetch failed': (message) => message.includes('EAI_AGAIN') || message.includes('ENOTFOUND') || message.includes('fetch failed'),
+  'timeout must be a positive number': (message) => message.includes('timeout must be a positive number'),
+  'url must be a non-empty string': (message) => message.includes('url must be a non-empty string')
+};
+
 const originalFetch = globalThis.fetch;
 const client = FetchClient.create();
 let lastFetchedUrl = '';
@@ -69,6 +78,16 @@ void afterEach(() => {
 
 function abortError(): DOMException {
   return new DOMException('The operation was aborted.', 'AbortError');
+}
+
+function assertMessagePattern(message: string, pattern: string): void {
+  const predicate = messagePatternPredicates[pattern];
+
+  if (predicate === undefined) {
+    throw new Error(`Unsupported fetch message pattern scenario: ${pattern}`);
+  }
+
+  assert.equal(predicate(message), true);
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -297,7 +316,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       }
 
       if (scenarioCase.expect.messagePattern !== undefined) {
-        assert.ok(new RegExp(scenarioCase.expect.messagePattern, 'u').test(error.message));
+        assertMessagePattern(error.message, scenarioCase.expect.messagePattern);
       }
 
       return true;

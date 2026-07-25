@@ -56,7 +56,7 @@ async function captureUnhandledRejections(scenarioName: string, action: () => Pr
   const rejectionEvents: unknown[] = [];
   const onUnhandledRejection = (reason: unknown): void => {
     rejectionEvents.push(reason);
-    console.error(`[${scenarioName}] captured unhandledRejection`, reason);
+    console.error('[%s] captured unhandledRejection', scenarioName, reason);
   };
 
   process.on('unhandledRejection', onUnhandledRejection);

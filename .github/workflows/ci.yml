@@ -50,9 +50,14 @@ jobs:
     steps:
       - name: Gate CI result
         shell: bash
+        env:
+          DETECT_CHANGES_RESULT: ${{ needs.detect-changes.result }}
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          DOCS_RESULT: ${{ needs.docs.result }}
+          AUDIT_RESULT: ${{ needs.audit.result }}
         run: |
           set -euo pipefail
-          for result in '${{ needs.detect-changes.result }}' '${{ needs.validate.result }}' '${{ needs.docs.result }}' '${{ needs.audit.result }}'; do
+          for result in "$DETECT_CHANGES_RESULT" "$VALIDATE_RESULT" "$DOCS_RESULT" "$AUDIT_RESULT"; do
             case "$result" in
               success|skipped) ;;
               *) echo "ci-gate: dependency result was $result" >&2; exit 1 ;;

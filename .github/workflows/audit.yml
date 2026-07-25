@@ -34,9 +34,12 @@ jobs:
     steps:
       - name: Gate audit result
         shell: bash
+        env:
+          DETECT_CHANGES_RESULT: ${{ needs.detect-changes.result }}
+          AUDIT_RESULT: ${{ needs.audit.result }}
         run: |
           set -euo pipefail
-          for result in '${{ needs.detect-changes.result }}' '${{ needs.audit.result }}'; do
+          for result in "$DETECT_CHANGES_RESULT" "$AUDIT_RESULT"; do
             case "$result" in
               success|skipped) ;;
               *) echo "audit required: dependency result was $result" >&2; exit 1 ;;

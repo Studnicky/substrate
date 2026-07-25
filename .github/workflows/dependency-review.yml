@@ -20,7 +20,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - id: diff
         uses: ./.github/actions/diff-range
       - id: probe
@@ -34,7 +34,7 @@ jobs:
         run: |
           echo "Dependency review skipped: dependency graph is unavailable."
           exit 0
-      - uses: actions/dependency-review-action@v5
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
         with:
           fail-on-severity: high
           comment-summary-in-pr: always

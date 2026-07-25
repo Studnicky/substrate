@@ -8,6 +8,11 @@ import scenarioGroups from './execute-sync-throw.scenarios.json';
 type ScenarioCase =
   | { name: string; description: string; expected: Record<string, unknown>; input: { errorMessage: string; failureMessage?: string; result?: string; throttle: { concurrencyLimit: number } }; kind: 'sync-throw-releases-slot' | 'sync-throw-reject-hook' };
 
+function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
+  assert.ok(error instanceof Error);
+  assert.equal(error.message.includes(expectedMessage), true);
+}
+
 const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'sync-throw-releases-slot': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
@@ -19,7 +24,10 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
     for (let i = 0; i < input.throttle.concurrencyLimit; i += 1) {
       await assert.rejects(
         throttle.execute(throwingFn),
-        new RegExp(String(input.errorMessage))
+        (error: unknown) => {
+          assertErrorMessageIncludes(error, String(input.errorMessage));
+          return true;
+        }
       );
     }
 

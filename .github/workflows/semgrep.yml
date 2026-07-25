@@ -40,18 +40,18 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
       - id: diff
         uses: ./.github/actions/diff-range
-      - run: sh scripts/security-suite.sh semgrep-sarif-range "${{
-          steps.diff.outputs.range }}" semgrep.sarif
+      - run: sh scripts/security-suite.sh semgrep-sarif-range "$DIFF_RANGE" semgrep.sarif
         env:
+          DIFF_RANGE: ${{ steps.diff.outputs.range }}
           SECURITY_SUITE_REQUIRE_TOOLS: 'true'
       - name: Upload SARIF
         if: always() && needs.check-ghas.outputs.enabled == 'true'
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
         with:
           sarif_file: semgrep.sarif
           category: semgrep

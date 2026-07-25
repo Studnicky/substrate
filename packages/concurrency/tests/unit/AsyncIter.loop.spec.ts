@@ -81,6 +81,11 @@ function createNumberBatch(batch: BatchInput): number[] {
   return Array.from({ length: batch.itemCount }, (_v, index) => index);
 }
 
+function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
+  assert.ok(error instanceof Error);
+  assert.equal(error.message.includes(expectedMessage), true);
+}
+
 const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'enrich-none': async (scenarioCase) => {
     const items = await collect(
@@ -154,7 +159,10 @@ const runnerMap: Record<ScenarioCase['kind'], (scenarioCase: ScenarioCase) => Pr
       yield 1;
       throw new Error(scenarioCase.input.errorMessage);
     }
-    await assert.rejects(() => collect(AsyncIter.merge(erroring(), ...makeNumberSources(scenarioCase.input.sources))), new RegExp(scenarioCase.expected.errorMessage));
+    await assert.rejects(() => collect(AsyncIter.merge(erroring(), ...makeNumberSources(scenarioCase.input.sources))), (error: unknown) => {
+      assertErrorMessageIncludes(error, scenarioCase.expected.errorMessage);
+      return true;
+    });
   },
   'merge-single': async (scenarioCase) => {
     const items = await collect(AsyncIter.merge(...makeNumberSources(scenarioCase.input.sources)));

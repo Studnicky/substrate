@@ -16,7 +16,7 @@ jobs:
     if: ${{ github.actor != 'dependabot[bot]' && !startsWith(github.head_ref,
       'release/') && !startsWith(github.head_ref, 'hotfix/') }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Verify a changeset was added
         run: bash scripts/policy-suite.sh changeset-required

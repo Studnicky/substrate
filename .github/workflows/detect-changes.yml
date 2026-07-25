@@ -68,7 +68,7 @@ jobs:
       analysis: ${{ steps.filter.outputs.analysis }}
       docs_workflow: ${{ steps.filter.outputs.docs_workflow }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
       - id: filter
@@ -76,6 +76,8 @@ jobs:
         env:
           BASE_SHA: ${{ inputs.base-sha }}
           HEAD_SHA: ${{ inputs.head-sha }}
+          PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT_BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
 
@@ -89,9 +91,9 @@ jobs:
 
           if [ -z "$base" ]; then
             if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
-              base="${{ github.event.pull_request.base.sha }}"
+              base="$PULL_REQUEST_BASE_SHA"
             else
-              base="${{ github.event.before }}"
+              base="$EVENT_BEFORE"
             fi
           fi
 

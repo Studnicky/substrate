@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
       - id: diff
@@ -34,7 +34,7 @@ jobs:
             -o "$archive"
           echo "5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba  $archive" | sha256sum --check
           sudo tar -xz -C /usr/local/bin -f "$archive" gitleaks
-      - run: bash scripts/security-suite.sh gitleaks-range "${{ steps.diff.outputs.range
-          }}"
+      - run: bash scripts/security-suite.sh gitleaks-range "$DIFF_RANGE"
         env:
+          DIFF_RANGE: ${{ steps.diff.outputs.range }}
           SECURITY_SUITE_REQUIRE_TOOLS: 'true'

@@ -16,7 +16,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
       - name: Probe for an open sync PR
@@ -53,4 +53,6 @@ jobs:
             --body "Automated sync PR from main to develop."
       - name: Report existing sync PR
         if: steps.diff.outputs.ahead != '0' && steps.pr.outputs.existing != ''
-        run: echo "Sync PR #${{ steps.pr.outputs.existing }} already open."
+        env:
+          EXISTING_PR: ${{ steps.pr.outputs.existing }}
+        run: echo "Sync PR #${EXISTING_PR} already open."

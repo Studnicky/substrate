@@ -64,6 +64,11 @@ type ScenarioCase =
 
 import scenarioGroups from './fsm.scenarios.json';
 
+function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
+  assert.ok(error instanceof Error);
+  assert.equal(error.message.includes(expectedMessage), true);
+}
+
 interface TransitionRecord {
   from: ThrottleStateEntity.Type;
   to: ThrottleStateEntity.Type;
@@ -151,7 +156,10 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         }
       }
       const throttle = new GuardBlockingThrottle(caseData.input.throttle);
-      assert.throws(() => { throttle.forceTransition(caseData.input.illegalTo); }, new RegExp(caseData.expected.errorMessage));
+      assert.throws(() => { throttle.forceTransition(caseData.input.illegalTo); }, (error: unknown) => {
+        assertErrorMessageIncludes(error, caseData.expected.errorMessage);
+        return true;
+      });
     },
     'idle-to-draining': async (caseData) => {
       const throttle = new TrackingThrottle(caseData.input.throttle);

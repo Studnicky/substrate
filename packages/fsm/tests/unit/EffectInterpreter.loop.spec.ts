@@ -86,6 +86,11 @@ class DemoMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
   }
 }
 
+function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
+  assert.ok(error instanceof Error);
+  assert.equal(error.message.includes(expectedMessage), true);
+}
+
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
   const runnerMap: Record<ScenarioCase['kind'], (caseData: ScenarioCase) => Promise<void> | void> = {
     'create-empty-machine-id': (caseData) => {
@@ -337,7 +342,10 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
           release();
           return activatePromise;
         })
-        .then(() => assert.rejects(() => deactivatePromise, new RegExp(caseData.expected.rejectionMessage)))
+        .then(() => assert.rejects(() => deactivatePromise, (error: unknown) => {
+          assertErrorMessageIncludes(error, caseData.expected.rejectionMessage);
+          return true;
+        }))
         .then(() => {
           assert.deepEqual(interp.getState(), caseData.expected.state);
         });

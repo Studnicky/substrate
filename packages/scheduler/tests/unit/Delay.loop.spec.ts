@@ -113,10 +113,10 @@ function traceDelayTest(message: string, payload?: unknown): void {
     return;
   }
   if (payload === undefined) {
-    console.error(`[Delay.loop] ${message}`);
+    console.error('[Delay.loop] %s', message);
     return;
   }
-  console.error(`[Delay.loop] ${message}`, payload);
+  console.error('[Delay.loop] %s', message, payload);
 }
 
 class AuditRealTimeScheduler extends RealTimeScheduler {

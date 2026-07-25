@@ -36,7 +36,7 @@ jobs:
           - language: javascript-typescript
             build-mode: none
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/pnpm-node-setup
       - id: probe
         uses: ./.github/actions/gh-api-probe
@@ -50,14 +50,14 @@ jobs:
           exit 0
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
         with:
           category: '/language:${{ matrix.language }}'
 
@@ -71,9 +71,12 @@ jobs:
     steps:
       - name: Gate CodeQL result
         shell: bash
+        env:
+          DETECT_CHANGES_RESULT: ${{ needs.detect-changes.result }}
+          ANALYZE_RESULT: ${{ needs.analyze.result }}
         run: |
           set -euo pipefail
-          for result in '${{ needs.detect-changes.result }}' '${{ needs.analyze.result }}'; do
+          for result in "$DETECT_CHANGES_RESULT" "$ANALYZE_RESULT"; do
             case "$result" in
               success|skipped) ;;
               *) echo "CodeQL required: dependency result was $result" >&2; exit 1 ;;

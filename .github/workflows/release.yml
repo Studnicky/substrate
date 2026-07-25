@@ -25,12 +25,18 @@ jobs:
       release_needed: ${{ steps.detect.outputs.release_needed }}
       publish: ${{ steps.detect.outputs.publish }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 1
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
       - id: detect
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WORKFLOW_RUN_EVENT: ${{ github.event.workflow_run.event }}
+          ACTOR: ${{ github.actor }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
         run: |
           set -euo pipefail
 
@@ -40,13 +46,13 @@ jobs:
           fi
 
           publish=false
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            if [ "${{ github.event.workflow_run.conclusion }}" = "success" ] &&
-               [ "${{ github.event.workflow_run.event }}" = "push" ] &&
-               [ "${{ github.actor }}" != "github-actions[bot]" ]; then
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            if [ "$WORKFLOW_RUN_CONCLUSION" = "success" ] &&
+               [ "$WORKFLOW_RUN_EVENT" = "push" ] &&
+               [ "$ACTOR" != "github-actions[bot]" ]; then
               publish=true
             fi
-          elif [ "${{ inputs.publish }}" = "true" ]; then
+          elif [ "$INPUT_PUBLISH" = "true" ]; then
             publish=true
             release_needed=true
           fi
@@ -72,10 +78,10 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
           token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
       - uses: ./.github/actions/pnpm-node-setup
       - name: Install raster tooling

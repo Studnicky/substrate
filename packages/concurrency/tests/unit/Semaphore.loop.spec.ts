@@ -38,6 +38,11 @@ function semaphoreOptions(input: { semaphore: { permits: number } }): { permits:
   return { 'permits': input.semaphore.permits };
 }
 
+function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
+  assert.ok(error instanceof Error);
+  assert.equal(error.message.includes(expectedMessage), true);
+}
+
 class ObservedSemaphore extends Semaphore {
   readonly acquireEvents: number[] = [];
   readonly acquireWaitEvents: number[] = [];
@@ -378,7 +383,10 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
     const input = scenarioCase.input as { message: string; semaphore: { permits: number } };
     const expected = scenarioCase.expected as { availableAfter: number };
     const sem = Semaphore.create(semaphoreOptions(input));
-    await assert.rejects(() => sem.withPermit(async () => { throw new Error(input.message); }), new RegExp(input.message));
+    await assert.rejects(() => sem.withPermit(async () => { throw new Error(input.message); }), (error: unknown) => {
+      assertErrorMessageIncludes(error, input.message);
+      return true;
+    });
     assert.equal(sem.available, expected.availableAfter);
   }
 };

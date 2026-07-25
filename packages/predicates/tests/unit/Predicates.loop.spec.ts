@@ -14,6 +14,12 @@ type ScenarioCase = {
 };
 
 type PredicateRunner = (input: Record<string, unknown>, expected: { result: unknown }) => void;
+type PatternFactory = () => RegExp;
+
+const patternFactories: Record<string, PatternFactory> = {
+  '/^he/u|u': () => /^he/u,
+  '^he|gu': () => /^he/gu
+};
 
 function stringField(input: Record<string, unknown>, key: string): string {
   const value = input[key];
@@ -64,12 +70,13 @@ function patternFrom(input: Record<string, unknown>): RegExp {
   const pattern = recordField(input, 'pattern');
   const source = stringField(pattern, 'source');
   const flags = stringField(pattern, 'flags');
-  const lastSlash = source.lastIndexOf('/');
-  const normalizedSource = source.startsWith('/') && lastSlash > 0
-    ? source.slice(1, lastSlash)
-    : source;
+  const factory = patternFactories[`${source}|${flags}`];
 
-  return new RegExp(normalizedSource, flags);
+  if (factory === undefined) {
+    throw new Error(`Unsupported predicate pattern scenario: ${source}|${flags}`);
+  }
+
+  return factory();
 }
 
 const predicateRunners: Record<string, PredicateRunner> = {

@@ -66,6 +66,11 @@ function createRecordingBatch<TResult = unknown>(input: ScenarioInput): Recordin
   return new RecordingBatch<TResult>(resolveBatchMaxConcurrent(input));
 }
 
+function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
+  assert.ok(error instanceof Error);
+  assert.equal(error.message.includes(expectedMessage), true);
+}
+
 const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
   'on-batch-start': async ({ expected, input }) => {
     const rec = createRecordingBatch<number>(input);
@@ -97,7 +102,10 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
         return n;
       }));
     };
-    await assert.rejects(run, new RegExp(String(expected.rejectedMessage), 'u'));
+    await assert.rejects(run, (error: unknown) => {
+      assertErrorMessageIncludes(error, String(expected.rejectedMessage));
+      return true;
+    });
     assert.strictEqual(rec.itemErrorArgs.length, Number(expected.itemErrorCount));
     assert.strictEqual(rec.itemErrorArgs[0]![0], Number(expected.firstErrorIndex));
   },
@@ -110,7 +118,10 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
         return n;
       }));
     };
-    await assert.rejects(run, new RegExp(String(expected.rejectedMessage), 'u'));
+    await assert.rejects(run, (error: unknown) => {
+      assertErrorMessageIncludes(error, String(expected.rejectedMessage));
+      return true;
+    });
     assert.strictEqual(rec.itemSettledArgs.length, Number(expected.itemSettledCount));
   },
 
@@ -137,7 +148,10 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
     const run = async (): Promise<void> => {
       await collectBatches(batch.process(input.items as number[], async () => { throw new Error(String(input.errorMessage)); }));
     };
-    await assert.rejects(run, new RegExp(String(expected.rejectedMessage), 'u'));
+    await assert.rejects(run, (error: unknown) => {
+      assertErrorMessageIncludes(error, String(expected.rejectedMessage));
+      return true;
+    });
     assert.deepStrictEqual(order, expected.order);
   },
 
@@ -162,7 +176,10 @@ const runnerMap: Record<ScenarioKind, ScenarioRunner> = {
         return n;
       }));
     };
-    await assert.rejects(run, new RegExp(String(expected.rejectedMessage), 'u'));
+    await assert.rejects(run, (error: unknown) => {
+      assertErrorMessageIncludes(error, String(expected.rejectedMessage));
+      return true;
+    });
     assert.strictEqual(rec.batchCompleteArgs.length, Number(expected.batchCompleteCount));
   },
 

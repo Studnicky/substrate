@@ -31,6 +31,11 @@ type PayloadMaterializerMap = {
   leader: <TInput extends { leaderPayload: unknown }>(input: TInput) => TInput['leaderPayload'];
   primary: <TInput extends { payload: unknown }>(input: TInput) => TInput['payload'];
 };
+type DiagnosticPatternPredicate = (diagnostic: string) => boolean;
+
+const diagnosticPatternPredicates: Record<string, DiagnosticPatternPredicate> = {
+  "Type 'string' is not assignable to type 'number \\| Promise<number>'": (diagnostic) => diagnostic.includes("Type 'string' is not assignable to type 'number | Promise<number>'")
+};
 
 class ResultContractCompiler {
   static diagnostics(input: { fixture: string; idempotencyGuard: GuardOptions; key: string; payload: unknown }): string[] {
@@ -187,6 +192,16 @@ function runScenarioInputBatch<TResult, TInput extends { batch: { calls: number 
   return Promise.all(Array.from({ length: input.batch.calls }, () => runScenarioInput(guard, input, factory)));
 }
 
+function assertDiagnosticPattern(diagnostic: string, pattern: string): void {
+  const predicate = diagnosticPatternPredicates[pattern];
+
+  if (predicate === undefined) {
+    throw new Error(`Unsupported diagnostic message pattern scenario: ${pattern}`);
+  }
+
+  assert.equal(predicate(diagnostic), true);
+}
+
 function createTraceLogger(kind: string): { log: (message: string) => void; snapshot: () => string } {
   const lines: string[] = [];
   return {
@@ -194,7 +209,7 @@ function createTraceLogger(kind: string): { log: (message: string) => void; snap
       const line = `${kind}: ${message}`;
       lines.push(line);
       if (process.env.SUBSTATE_TEST_TRACE === '1') {
-        console.error(line);
+        console.error('%s', line);
       }
     },
     snapshot(): string {
@@ -265,7 +280,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     const diagnostics = ResultContractCompiler.diagnostics(scenario.input);
     assert.equal(diagnostics.length, scenario.expected.diagnosticsCount);
     for (const diagnostic of diagnostics) {
-      assert.match(diagnostic, new RegExp(scenario.expected.messagePattern, 'u'));
+      assertDiagnosticPattern(diagnostic, scenario.expected.messagePattern);
     }
   },
 
