@@ -1,5 +1,46 @@
 # Changelog
 
+## 9.1.0
+
+### Minor Changes
+
+- 789da06: ### Changed
+
+  - `@studnicky/fetch`'s `FetchClient.create()`, `TestDispatcher.create()`, and `UndiciDispatcher.create()` return the invoking subclass's own type instead of the base class. Each already constructed the subclass via `new this(...)`; the factory now types its `this` parameter and constructs through `Reflect.construct`, so `MySubclass.create(...)` types as `MySubclass` and a subclass member is readable without a cast. A runtime guard throws a `TypeError` naming the factory if construction ever yields an instance outside the requested subclass's prototype chain. Calling the base class's `create(...)` directly is unaffected.
+  - `@studnicky/context`'s `Context.create()` and `@studnicky/throttle`'s `Throttle.create()` follow the same conversion. These were the last two factories in the workspace still declaring the base class as their return type.
+  - Subclasses across `fetch`, `request-executor`, `context`, and `throttle` drop their `static override create()` declarations. Each hardcoded `new ConcreteClass(...)` to recover the subclass type from a base-typed factory — the per-subclass workaround this conversion makes redundant, and one a properly polymorphic `create()` can no longer be validly overridden by.
+
+  `@studnicky/fetch`'s `DispatcherAgent.create()` and its browser counterpart are unchanged: they return a foreign type or throw, so they are not factories of their own class.
+
+### Patch Changes
+
+- 789da06: ### Fixed
+
+  - `retry`'s `failed-requests-increment` and `total-retries-counted` stats specs assert the rejection with `assert.rejects` before reading stats, instead of parking every assertion inside an unchecked `.catch()` handler that silently skips if `execute()` resolves.
+  - `logger`'s `global-floor-*` and `transport-floor-warn` specs assert the exact ordered list of surviving levels, not just a record count. `create-default`, `create-string-level`, and `create-numeric-level` attach a `MemoryTransport`-free observer and log boundary levels either side of the parsed floor to prove the default and parsed levels take effect.
+  - `entity-store`'s `hooks-remove-many` spec asserts the exact `{event, id}` sequence removed, not just an event count.
+  - `bounded-dispatcher`'s `dispatch-concurrency-bound` spec asserts the exact observed concurrency ceiling instead of an inclusive range that also accepts a stricter-than-configured mutex.
+  - `context`'s `initialize-empty` scenario now initializes with a genuinely empty store, and the `initialize-scope` runner asserts the resulting key set against the fixture instead of hardcoding an unreachable branch.
+  - `errors`' `timeout-no-dangling-timer` spec asserts the hook-timeout race's timer is cleared via a `clearTimeout` spy, instead of an observation window far shorter than the timer it claims is not left dangling.
+  - `retry`'s hook-throw, hook-timeout, fsm, instantiation, backoff-strategy, and retry-support specs drop redundant fixture-literal-to-hardcoded-literal assertions that followed a real check, or replace them with an assertion against the actual thrown error's identity where one was in scope.
+
+- 789da06: ### Fixed
+
+  - Every `*.scenarios.json` import across the test suites carries the `with { type: 'json' }` import attribute `module: NodeNext` requires, clearing 221 `TS1543` diagnostics that `tsc -b` never surfaced because test files aren't part of any package's typechecked build — only `tsconfig.eslint.json` (used for ESLint's type-aware rules) sees them, and it consumes type information without reporting `TS` diagnostics on its own.
+  - Tests that constructed a `protected`-constructor class directly with `new` now call the class's `this`-polymorphic static factory instead (`Subclass.create(...)`), clearing 78 `TS2674` diagnostics across `Clock`, `Channel`, `Coalesce`, `EntityStore`, `CircuitBreaker`, `EventBus`, `Mutex`, and `RealTimeScheduler` subclasses. The remaining 86 `TS2674` instances are left on `new` because no fitting factory exists for that call site: `StateMachine` is abstract with no static factory at all; `EffectInterpreter`, `InterpreterHistory`, `DeadLetterQueue`, `Signal`, `FetchClient`, and `ErrorClassifier`'s factories (where one exists) hardcode their own class rather than accepting `this`, so calling them on a subclass returns the base type instead of the subclass; and `Channel`/`Coalesce` subclasses that are themselves generic and expose subclass-only members lose that member's type through the factory's necessarily looser `TInstance` bound, so the direct constructor call is correct as written.
+
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+  - @studnicky/errors@9.1.0
+  - @studnicky/json@9.1.0
+
 ## 9.0.0
 
 ### Major Changes

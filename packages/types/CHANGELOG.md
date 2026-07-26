@@ -1,5 +1,25 @@
 # Changelog
 
+## 9.1.0
+
+### Patch Changes
+
+- 789da06: ### Changed
+
+  - `@studnicky/clock`'s `Clock.scenarios.json` suite derives `long-uptime-precision`'s expected nanosecond value independently of `RealTimeClockProvider.hrtime()`'s internal trunc/multiply/round split, asserts both bounds around `Date.now()` for `real-provider-default-options`, reads the `offsetMs` getter from a subclass in `offset-provider-offset`, and asserts the actual offset-to-nanosecond relationship (rather than bare positivity) in `real-hrtime-positive-with-offset`/`-zero-offset`. Its smoke suite drops a tautological assertion that compared a fixture field to a hardcoded literal ahead of the real import check.
+  - `@studnicky/types`' `Guard.asNumber` scenarios cover the NaN-passthrough asymmetry with `Guard.isNumber` (which excludes NaN). Its smoke suite drops the same tautological assertion.
+  - `@studnicky/config`'s `Guard.isObject` scenarios cover `Map` and `Set` inputs, matching the documented plain-object exclusion. Its smoke suite drops the same tautological assertion.
+  - `@studnicky/signal`'s `Signal.scenarios.json` suite drops four tautological assertions that compared a fixture field to itself ahead of the real behavioral check.
+  - `@studnicky/boundary-kit`'s `undefined-result-vs-abort` scenario drops a tautological assertion ahead of the real result check.
+  - `@studnicky/process-kit`'s `rejection` scenario asserts the thrown error's `constructor.name` from within the actual `assert.rejects` callback instead of comparing a fixture field to a hardcoded literal afterward.
+  - `@studnicky/visible-range`'s `config-validation` `error-args` scenario asserts the constructed error's `cause`, `correlationId`, `metadata`, and `retryable` properties, matching its "structured error metadata" description. `visible-range.scenarios.json`'s `default-overscan` case now exercises a distinct count/itemSize combination instead of duplicating `simple-range` verbatim.
+  - `@studnicky/memoize`'s `memoize-ttl-stale-options` scenario mocks `Date.now()` to advance past the configured `ttlMs`, proving the option reaches the underlying `LruCache` (an unwired option would keep replaying the first computed value indefinitely).
+
+- 789da06: ### Fixed
+
+  - Every `*.scenarios.json` import across the test suites carries the `with { type: 'json' }` import attribute `module: NodeNext` requires, clearing 221 `TS1543` diagnostics that `tsc -b` never surfaced because test files aren't part of any package's typechecked build — only `tsconfig.eslint.json` (used for ESLint's type-aware rules) sees them, and it consumes type information without reporting `TS` diagnostics on its own.
+  - Tests that constructed a `protected`-constructor class directly with `new` now call the class's `this`-polymorphic static factory instead (`Subclass.create(...)`), clearing 78 `TS2674` diagnostics across `Clock`, `Channel`, `Coalesce`, `EntityStore`, `CircuitBreaker`, `EventBus`, `Mutex`, and `RealTimeScheduler` subclasses. The remaining 86 `TS2674` instances are left on `new` because no fitting factory exists for that call site: `StateMachine` is abstract with no static factory at all; `EffectInterpreter`, `InterpreterHistory`, `DeadLetterQueue`, `Signal`, `FetchClient`, and `ErrorClassifier`'s factories (where one exists) hardcode their own class rather than accepting `this`, so calling them on a subclass returns the base type instead of the subclass; and `Channel`/`Coalesce` subclasses that are themselves generic and expose subclass-only members lose that member's type through the factory's necessarily looser `TInstance` bound, so the direct constructor call is correct as written.
+
 ## 9.0.0
 
 ### Major Changes

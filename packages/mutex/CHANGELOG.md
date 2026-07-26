@@ -1,5 +1,56 @@
 # Changelog
 
+## 9.1.0
+
+### Minor Changes
+
+- 789da06: ### Changed
+
+  - `@studnicky/visible-range`'s `VisibleRange.create()`, `@studnicky/virtual-fs`'s `VirtualFileSystem.create()`, `@studnicky/sliding-window-limiter`'s `SlidingWindowLimiter.create()`, `@studnicky/sample-buffer`'s `SampleBuffer.create()`, `@studnicky/retry`'s `Retry.create()`, `@studnicky/batch`'s `Batch.create()`, `@studnicky/cache`'s `LruCache.create()`, `@studnicky/boundary-kit`'s `BoundaryKit.create()`, `@studnicky/entity-store`'s `EntityStore.create()`, `@studnicky/idempotency-guard`'s `IdempotencyGuard.create()`, `@studnicky/mutex`'s `Mutex.create()`, `@studnicky/keyed-work-gate`'s `KeyedWorkGate.create()`, and `@studnicky/bounded-dispatcher`'s `BoundedDispatcher.create()` return the invoking subclass's own type instead of the base class. Each already constructed the subclass at runtime via `new this(...)`; the factory now types its `this` parameter and constructs through `Reflect.construct`, so `MySubclass.create(...)` types as `MySubclass` and a subclass member is readable without a cast. A runtime guard throws a `TypeError` naming the factory if construction ever yields an instance outside the requested subclass's prototype chain. Calling `Base.create(...)` directly is unaffected — it still types as `Base`.
+  - `@studnicky/keyed-rate-limiter`'s `KeyedRateLimiter.create()` follows the same subclass-return pattern across all three overloads (the default `TokenBucket` configuration signature, the generic strategy signature, and the implementation signature). Its `keyed-rate-limiter.loop.spec.ts` suite drops the five `as TrackingLimiter`/`as TrackingEvictionLimiter`/`as ThrowingEvictedLimiter` return-type casts that existed only because the factory wasn't polymorphic.
+
+### Patch Changes
+
+- 789da06: ### Changed
+
+  - `@studnicky/fsm`'s `.loop.spec.ts` suites construct every locally-defined `StateMachine` subclass through a small explicitly-typed factory (or a subclass-declared public constructor) instead of an inline `new Xxx()`, so `EffectInterpreter.create`/`InterpreterHistory.create`/`MachineRegistry`'s generic parameters infer correctly instead of collapsing to `unknown`. `InterpreterHistory.loop.spec.ts`, `MachineRegistry.loop.spec.ts`, `MachineRegistryHooks.loop.spec.ts`, `StateMachine.loop.spec.ts`, and `StateMachineHooks.loop.spec.ts` retype their scenario `runnerMap`s as per-shape mapped types (`{ [K in Shape]: (c: Extract<ScenarioCase, { shape: K }>) => ... }`) so each handler narrows to its own scenario case instead of the full union; `InterpreterHistory`'s and `StateMachine`'s scenario types split every shape field that held more than one literal into its own discriminated-union member. `StateMachine.loop.spec.ts` gains a `PlainErrorThrowingMachine` covering the non-`Error` reducer-throw path with its own `expectedReason` assertion.
+  - `@studnicky/mutex`'s `coalescing.loop.spec.ts`, `fsm.loop.spec.ts`, `reentrancy.loop.spec.ts`, `observability.loop.spec.ts`, and `mutex-core.loop.spec.ts` apply the same per-shape `runnerMap` narrowing; `coalescing.loop.spec.ts`'s combined `stats-coalescedCount-enabled`/`-disabled` case becomes two discriminated members. Array-index and settled-promise accesses that could be `undefined` now go through explicit guards instead of relying on ambient narrowing. `tests/fixtures/constants.ts` imports `MutexConfigEntity` from its real path instead of a `MutexConfigInterface` module that never existed. `examples/observedMutex.ts`'s `TracingMutex.create()` call drops an explicit `<string>` type argument that was defeating `this`-polymorphic inference and returning the base `Mutex` type; `examples/keyedWorkGateComposition.ts`'s `runExclusive` call supplies a type-predicate guard so its result narrows to `string`.
+  - All touched `.loop.spec.ts`/example files pick up the `with { type: 'json' }` import attribute their JSON scenario imports need under the stricter test typecheck.
+
+- 789da06: ### Changed
+
+  - `Mutex` documents its FIFO acquisition contract: waiters queued behind a held lock are granted access in request order, and a burst of queued waiters that time out together reject in that same order. Documented on the class TSDoc and in the README's new "Ordering" section, and referenced from the `burst-timeout-drains-queue` scenario so the exact-order assertion reads as contract verification.
+  - `entitySuite`'s hand-written duplicate test (`entitySuite.test.ts`) is removed in favor of its data-driven equivalent (`entitySuite.loop.spec.ts` / `entitySuite.scenarios.json`), which gains the three `assigns-owning-rule` fixtures (naked type-alias-to-interface, suffix-collision pure data, dual-remediation contract) it was missing.
+
+- 789da06: ### Changed
+
+  - `v8/inline-arrow-functions` and `v8/inline-functions` no longer exempt a dispatch-map property by its key name (`callback`, `execute`, `handler`, `message`, `process`, `transform`, `transformAsync`, `validate`). Whether an inline arrow or function value is flagged depends only on whether the enclosing object literal is rebuilt on every call — a module-scope `const` or `static` class field is still exempt, a map rebuilt inside a function body is still flagged, regardless of what its properties are named.
+  - `descriptive-identifiers` no longer whitelists acronyms or loop-iterator names. Whether an identifier is flagged depends only on whether one of its camelCase tokens matches a banned shortening; single-letter loop iterators and short acronyms already fall outside that check structurally, since they never match a banned-shortening token.
+  - `folder-content-shape` no longer exempts a file from the constants-placement or inline-regex checks by path (`constants/`, `fixtures/`, `tests/`, the `eslint-config` package, `eslint.config.mjs`, `entities/`, or an `index.ts` basename) or by declared name (`ajv`, `compiledValidator`, `Schema`, `validate`). A file is exempt only when it is structurally one of: a pure constants module (every top-level declaration is an import, a type declaration, or a data `const`), a module exporting an `*Entity`-named namespace, or a pure re-export barrel. Renaming a directory, moving a file into `constants/`, or naming a declaration `Schema`/`validate`/`ajv` no longer buys an escape on its own.
+
+  ### Fixed
+
+  - Thirteen domain error classes (`VisibleRangeError`, `VirtualFileSystemError`, `SampleBufferError`, `CircularBufferError`, `BatchError`, `QueueSizeExceededError`, `FileLockTimeoutError`, `ConnectTimeoutError`, `TimeoutError`, `BodyTimeoutError`, `HeadersTimeoutError`, `SocketError`, `CoalesceTimeoutError`) hoist their `DomainErrorArgs.build()` message builder to a `private static` class method instead of an inline arrow rebuilt on every construction call.
+
+- 789da06: ### Fixed
+
+  - Every `*.scenarios.json` import across the test suites carries the `with { type: 'json' }` import attribute `module: NodeNext` requires, clearing 221 `TS1543` diagnostics that `tsc -b` never surfaced because test files aren't part of any package's typechecked build — only `tsconfig.eslint.json` (used for ESLint's type-aware rules) sees them, and it consumes type information without reporting `TS` diagnostics on its own.
+  - Tests that constructed a `protected`-constructor class directly with `new` now call the class's `this`-polymorphic static factory instead (`Subclass.create(...)`), clearing 78 `TS2674` diagnostics across `Clock`, `Channel`, `Coalesce`, `EntityStore`, `CircuitBreaker`, `EventBus`, `Mutex`, and `RealTimeScheduler` subclasses. The remaining 86 `TS2674` instances are left on `new` because no fitting factory exists for that call site: `StateMachine` is abstract with no static factory at all; `EffectInterpreter`, `InterpreterHistory`, `DeadLetterQueue`, `Signal`, `FetchClient`, and `ErrorClassifier`'s factories (where one exists) hardcode their own class rather than accepting `this`, so calling them on a subclass returns the base type instead of the subclass; and `Channel`/`Coalesce` subclasses that are themselves generic and expose subclass-only members lose that member's type through the factory's necessarily looser `TInstance` bound, so the direct constructor call is correct as written.
+
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+  - @studnicky/config@9.1.0
+  - @studnicky/errors@9.1.0
+  - @studnicky/json@9.1.0
+
 ## 9.0.0
 
 ### Major Changes
