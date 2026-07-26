@@ -1,5 +1,14 @@
 # Changelog
 
+## 9.1.1
+
+### Patch Changes
+
+- @studnicky/concurrency@9.1.1
+- @studnicky/errors@9.1.1
+- @studnicky/event-bus@9.1.1
+- @studnicky/scheduler@9.1.1
+
 ## 9.1.0
 
 ### Minor Changes

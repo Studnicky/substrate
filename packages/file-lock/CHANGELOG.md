@@ -1,5 +1,13 @@
 # Changelog
 
+## 9.1.1
+
+### Patch Changes
+
+- @studnicky/errors@9.1.1
+- @studnicky/json@9.1.1
+- @studnicky/virtual-fs@9.1.1
+
 ## 9.1.0
 
 ### Minor Changes
