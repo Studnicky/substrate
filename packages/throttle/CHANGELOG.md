@@ -1,5 +1,17 @@
 # Changelog
 
+## 9.1.1
+
+### Patch Changes
+
+- @studnicky/circular-buffer@9.1.1
+- @studnicky/config@9.1.1
+- @studnicky/errors@9.1.1
+- @studnicky/json@9.1.1
+- @studnicky/sample-buffer@9.1.1
+- @studnicky/signal@9.1.1
+- @studnicky/types@9.1.1
+
 ## 9.1.0
 
 ### Minor Changes

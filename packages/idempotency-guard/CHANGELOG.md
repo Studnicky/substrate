@@ -1,5 +1,14 @@
 # Changelog
 
+## 9.1.1
+
+### Patch Changes
+
+- @studnicky/cache@9.1.1
+- @studnicky/concurrency@9.1.1
+- @studnicky/errors@9.1.1
+- @studnicky/json@9.1.1
+
 ## 9.1.0
 
 ### Minor Changes

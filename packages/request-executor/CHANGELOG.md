@@ -1,5 +1,16 @@
 # Changelog
 
+## 9.1.1
+
+### Patch Changes
+
+- @studnicky/context@9.1.1
+- @studnicky/errors@9.1.1
+- @studnicky/fetch@9.1.1
+- @studnicky/json@9.1.1
+- @studnicky/retry@9.1.1
+- @studnicky/signal@9.1.1
+
 ## 9.1.0
 
 ### Minor Changes
