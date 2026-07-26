@@ -77,11 +77,9 @@
         "secondItems": [{ "value": "second" }]
       },
       "expected": {
-        "firstHookErrorCount": 1,
         "firstHookErrorMessage": "first pool hook failed",
         "firstHookErrorName": "onWorkerCreated",
         "firstResults": ["first"],
-        "secondHookErrorCount": 1,
         "secondHookErrorMessage": "second pool hook failed",
         "secondHookErrorName": "onWorkerCreated",
         "secondResults": ["second"]

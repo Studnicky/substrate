@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/process-kit",
-  "version": "9.1.0",
+  "version": "9.1.1",
   "description": "Reducer-with-effects process pattern composing @studnicky/fsm and /scheduler",
   "type": "module",
   "sideEffects": false,

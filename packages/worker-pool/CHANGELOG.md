@@ -1,5 +1,18 @@
 # Changelog
 
+## 9.1.1
+
+### Patch Changes
+
+- f246572: ### Fixed
+
+  - The instance-local hook-error scenario asserts that each pool records only its own failures, rather than asserting how many it records. A pool that loses a worker spawns a replacement and fires `onWorkerCreated` again, so the count is a property of the run and not of the contract; the suite now checks that every recorded entry names that pool's hook and carries that pool's cause, which is the isolation the scenario describes.
+  - @studnicky/batch@9.1.1
+  - @studnicky/errors@9.1.1
+  - @studnicky/json@9.1.1
+  - @studnicky/signal@9.1.1
+  - @studnicky/system@9.1.1
+
 ## 9.1.0
 
 ### Patch Changes
