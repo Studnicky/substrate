@@ -50,11 +50,9 @@ type ScenarioCase =
       expected: {
         firstHookErrorMessage: string;
         firstHookErrorName: string;
-        firstHookErrorCount: number;
         firstResults: string[];
         secondHookErrorMessage: string;
         secondHookErrorName: string;
-        secondHookErrorCount: number;
         secondResults: string[];
       };
       input: { firstItems: ItemInterface[]; secondItems: ItemInterface[]; workerPool: WorkerPoolInputInterface };
@@ -208,10 +206,23 @@ const runnerMap: RunnerMap = {
     const secondErrors = second.getHookErrors();
     assert.deepStrictEqual(firstResults, scenarioCase.expected.firstResults);
     assert.deepStrictEqual(secondResults, scenarioCase.expected.secondResults);
-    assert.equal(first.getHookErrorCount(), scenarioCase.expected.firstHookErrorCount);
-    assert.equal(second.getHookErrorCount(), scenarioCase.expected.secondHookErrorCount);
+    // A pool that loses a worker spawns a replacement, firing `onWorkerCreated`
+    // again, so how many failures a pool records is a property of the run rather
+    // than of the contract. What this scenario claims is that a pool records only
+    // its own: every entry names this pool's hook and carries this pool's cause,
+    // and neither pool ever sees the other's.
     assert.equal(firstErrors[0]?.hookName, scenarioCase.expected.firstHookErrorName);
     assert.equal(secondErrors[0]?.hookName, scenarioCase.expected.secondHookErrorName);
+
+    for (const entry of firstErrors) {
+      assert.equal(entry.hookName, scenarioCase.expected.firstHookErrorName);
+      assert.equal(entry.cause instanceof Error && entry.cause.message, scenarioCase.expected.firstHookErrorMessage);
+    }
+
+    for (const entry of secondErrors) {
+      assert.equal(entry.hookName, scenarioCase.expected.secondHookErrorName);
+      assert.equal(entry.cause instanceof Error && entry.cause.message, scenarioCase.expected.secondHookErrorMessage);
+    }
     assert.notStrictEqual(firstErrors[0]?.cause, FirstThrowingPool.hookCause);
     assert.notStrictEqual(secondErrors[0]?.cause, SecondThrowingPool.hookCause);
     assert.notStrictEqual(firstErrors[0], first.getHookErrors()[0]);
