@@ -6,7 +6,7 @@ import {
 import type { VisibleRangeConfigInterface } from '../../../src/index.js';
 
 import { VisibleRange, VisibleRangeError } from '../../../src/index.js';
-import scenarioGroups from './config-validation.scenarios.json';
+import scenarioGroups from './config-validation.scenarios.json' with { type: 'json' };
 
 type ScenarioShape = 'ambiguous-size' | 'error-args' | 'missing-size' | 'negative-size' | 'zero-size';
 
@@ -43,16 +43,24 @@ function buildConfig(config: SerializableVisibleRangeConfig): VisibleRangeConfig
 }
 
 function runErrorArgsCase(): void {
+  const cause = new Error('cause');
   const error = new VisibleRangeError('manual visible-range error', {
-    'cause': new Error('cause'),
+    'cause': cause,
     'correlationId': 'corr-123',
     'metadata': { 'source': 'unit-test' },
-    'retryable': false
+    'retryable': true
   });
 
   assert.ok(error instanceof VisibleRangeError);
   assert.equal(error.message, 'manual visible-range error');
   assert.equal(error.code, 'visibleRange.invalidConfig');
+  assert.equal(error.cause, cause);
+  assert.equal(error.correlationId, 'corr-123');
+  assert.deepStrictEqual(error.metadata, { 'source': 'unit-test' });
+  assert.equal(error.retryable, true);
+
+  const defaulted = new VisibleRangeError('defaulted visible-range error');
+  assert.equal(defaulted.retryable, false);
 }
 
 function runInvalidConfigCase(scenarioCase: ScenarioCase): void {

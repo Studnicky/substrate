@@ -41,11 +41,6 @@
       "name": "[interfaces/types] type alias directly under src/, no interfaces/ or types/ segment -> not flagged"
     },
     {
-      "code": "export type FooType = { readonly id: string };",
-      "filename": "/project/packages/logger/tests/unit/interfaces/FooType.test.ts",
-      "name": "[interfaces/types] file under tests/ path -> exempt even though it contains a misplaced declaration"
-    },
-    {
       "code": "function wrapper(): void { type Local = { a: number }; }",
       "filename": "/project/src/interfaces/Wrapper.ts",
       "name": "[interfaces/types] nested type alias inside a function body under interfaces/ -> not flagged (not top-level)"
@@ -63,37 +58,32 @@
     {
       "code": "const Schema = {}; export const validate = (): boolean => true;",
       "filename": "/project/src/schemas/thing.ts",
-      "name": "[constants] two consts but one is exempt (Schema) -> only one real const remains, not flagged"
+      "name": "[constants] validate is a function const (structurally excluded); only Schema remains, below the 2+ threshold -> not flagged"
     },
     {
       "code": "export const ajv = {}; const compiledValidator = (): boolean => true;",
       "filename": "/project/src/schemas/other.ts",
-      "name": "[constants] all consts are exempt names -> not flagged"
+      "name": "[constants] compiledValidator is a function const (structurally excluded); only ajv remains, below the 2+ threshold -> not flagged"
     },
     {
       "code": "export const ALPHA = 1; export const BETA = 2; export const GAMMA = 3;",
       "filename": "/project/src/constants/values.ts",
-      "name": "[constants] file under constants/ path -> exempt regardless of const count"
+      "name": "[constants] a pure constants module (every top-level declaration is a data const) -> exempt by content, coincidentally under constants/"
     },
     {
       "code": "export const items = [1, 2, 3]; export const expected = 6;",
       "filename": "/project/examples/fixtures/sampleData.ts",
-      "name": "[constants] file under fixtures/ path -> exempt regardless of const count (equally valid destination for test/example data)"
+      "name": "[constants] a pure constants module -> exempt by content, coincidentally under fixtures/"
     },
     {
       "code": "export const EMAIL_PATTERN = /^[^@]+@[^@]+$/u;",
       "filename": "/project/src/constants/patterns.ts",
-      "name": "[regex] regex literal already declared under constants/ -> not flagged"
+      "name": "[regex] a pure constants module holding a single regex data const -> exempt by content, coincidentally under constants/"
     },
     {
       "code": "export const ID_PATTERN = /^[a-z0-9-]+$/u;",
       "filename": "/project/examples/fixtures/patterns.ts",
-      "name": "[regex] regex literal already declared under fixtures/ -> not flagged"
-    },
-    {
-      "code": "export function isEmail(value: string): boolean { return /^[^@]+@[^@]+$/u.test(value); }",
-      "filename": "/project/tests/unit/isEmail.test.ts",
-      "name": "[regex] inline regex literal in a tests/ file -> exempt"
+      "name": "[regex] a pure constants module holding a single regex data const -> exempt by content, coincidentally under fixtures/"
     },
     {
       "code": "import { EMAIL_PATTERN } from \"../constants/patterns.js\"; export function isEmail(value: string): boolean { return EMAIL_PATTERN.test(value); }",
@@ -108,22 +98,22 @@
     {
       "code": "export const A = 1; export const B = 2;",
       "filename": "/project/tests/unit/foo.test.ts",
-      "name": "[constants] file under tests/ path -> exempt"
+      "name": "[constants] a pure constants module -> exempt by content, coincidentally under tests/"
     },
     {
       "code": "export const A = 1; export const B = 2;",
       "filename": "/project/packages/eslint-config/src/rules/someRule.ts",
-      "name": "[constants] file under eslint-config/ package path -> exempt"
+      "name": "[constants] a pure constants module -> exempt by content, coincidentally inside the eslint-config package"
     },
     {
       "code": "export const A = 1; export const B = 2;",
       "filename": "/project/eslint.config.mjs",
-      "name": "[constants] eslint.config.mjs -> exempt"
+      "name": "[constants] a pure constants module -> exempt by content, coincidentally named eslint.config.mjs"
     },
     {
       "code": "export const A = 1; export const B = 2;",
       "filename": "/project/src/index.ts",
-      "name": "[constants] index.ts -> exempt"
+      "name": "[constants] a pure constants module -> exempt by content, coincidentally named index.ts"
     },
     {
       "code": "let a = 1; a = 2; function f(): void {}",
@@ -159,6 +149,56 @@
       "code": "export const defaultConfig = ConfigValidator.validate(); export const otherConfig = ConfigValidator.validateOther();",
       "filename": "/project/src/config/derived.ts",
       "name": "[constants] call-expression-derived consts -> not flagged"
+    },
+    {
+      "code": "export const TIMEOUT_MS = 1000; export const MAX_RETRIES = 3;",
+      "filename": "/project/src/http/client.ts",
+      "name": "[constants] a pure constants module (both top-level declarations are data consts, nothing else in the file) -> exempt by content regardless of folder"
+    },
+    {
+      "code": "const items = [1, 2, 3]; const expected = 6;",
+      "filename": "/project/examples/walkthrough.ts",
+      "name": "[constants] a pure constants module outside any constants/fixtures folder -> exempt by content, not by location"
+    },
+    {
+      "code": "const A = 1; const B = 2; const C = 3;",
+      "filename": "/project/src/values.ts",
+      "name": "[constants] three bare top-level consts, nothing else -> exempt as a pure constants module"
+    },
+    {
+      "code": "export const CONFIG = {}; const OTHER = 2;",
+      "filename": "/project/src/mixed.ts",
+      "name": "[constants] a mix of exported and non-exported data consts, nothing else -> exempt as a pure constants module"
+    },
+    {
+      "code": "export const { ALPHA, BETA, GAMMA } = CONFIG;",
+      "filename": "/project/src/http/destructuredObject.ts",
+      "name": "[constants] destructured object pattern introducing three names, nothing else in the file -> exempt as a pure constants module"
+    },
+    {
+      "code": "export const [a, b, c] = arr;",
+      "filename": "/project/src/http/destructuredArray.ts",
+      "name": "[constants] destructured array pattern introducing three names, nothing else in the file -> exempt as a pure constants module"
+    },
+    {
+      "code": "export const CACHE = new Set([1, 2, 3]); export const SEEN = new Map([[\"a\", 1]]);",
+      "filename": "/project/src/http/collectionLiterals.ts",
+      "name": "[constants] two new Set()/new Map() data consts, nothing else in the file -> exempt as a pure constants module"
+    },
+    {
+      "code": "export const VALID_ID = /^[a-z0-9-]+$/u;",
+      "filename": "/project/src/validation/patterns.ts",
+      "name": "[regex] a single top-level regex data const, nothing else in the file -> exempt as a pure constants module"
+    },
+    {
+      "code": "export * from './helpers.js';\nexport * from './other.js';",
+      "filename": "/project/src/aggregate.ts",
+      "name": "[constants] a pure re-export barrel not named index.ts -> exempt by content, not filename"
+    },
+    {
+      "code": "import type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = (candidate: unknown): candidate is Type => candidate !== null;\n}\nexport const ALPHA = 1;\nexport const BETA = 2;",
+      "filename": "/project/src/shared/domainModule.ts",
+      "name": "[constants] an entity-namespace export alongside extra top-level consts, outside any entities/ folder -> exempt by content, not folder"
     }
   ],
   "invalid": [
@@ -259,84 +299,64 @@
       "name": "[interfaces/types] real-world case: LogBodyDataType pure data type alias in interfaces/ -> flagged"
     },
     {
-      "code": "export const TIMEOUT_MS = 1000; export const MAX_RETRIES = 3;",
+      "code": "export type FooType = { readonly id: string };",
       "errors": [
         {
-          "messageId": "mustLiveInConstantsFolder"
+          "messageId": "typeInInterfacesFolder"
         }
       ],
-      "filename": "/project/src/http/client.ts",
-      "name": "[constants] two top-level non-exempt consts -> flagged once, listing both names"
+      "filename": "/project/packages/logger/tests/unit/interfaces/FooType.test.ts",
+      "name": "[interfaces/types] a tests/ path buys no escape from the interfaces/ convention -> flagged"
     },
     {
-      "code": "const items = [1, 2, 3]; const expected = 6;",
+      "code": "export const MAX = 3; export const MIN = 1; export const handler = (): void => {};",
       "errors": [
         {
-          "messageId": "mustLiveInConstantsFolder"
+          "messageId": "constantsNotIsolated"
         }
       ],
-      "filename": "/project/examples/walkthrough.ts",
-      "name": "[constants] example file with 2+ top-level consts not under fixtures/ -> still flagged"
+      "filename": "/project/src/constants/mixed.ts",
+      "name": "[constants] two data consts mixed with a function const, under a constants/ folder -> still flagged (folder name alone buys no escape)"
     },
     {
-      "code": "const A = 1; const B = 2; const C = 3;",
+      "code": "export const ALPHA = 1; export const BETA = 2; export const helper = (): void => {};",
       "errors": [
         {
-          "messageId": "mustLiveInConstantsFolder"
+          "messageId": "constantsNotIsolated"
         }
       ],
-      "filename": "/project/src/values.ts",
-      "name": "[constants] three top-level non-exempt consts -> flagged once"
+      "filename": "/project/src/constants/impure.ts",
+      "name": "[constants] two data consts mixed with a function const, under a constants/ folder -> still flagged (mixing a function disqualifies the pure-constants-module exemption; folder name buys nothing)"
     },
     {
-      "code": "export const CONFIG = {}; const OTHER = 2;",
+      "code": "export * from './helpers.js'; export const ALPHA = 1; export const BETA = 2;",
       "errors": [
         {
-          "messageId": "mustLiveInConstantsFolder"
+          "messageId": "constantsNotIsolated"
         }
       ],
-      "filename": "/project/src/mixed.ts",
-      "name": "[constants] mix of exported and non-exported top-level consts -> flagged"
+      "filename": "/project/src/index.ts",
+      "name": "[constants] index.ts mixing local consts with re-exports -> still flagged (filename alone buys no escape; it is neither a pure barrel nor a pure constants module)"
+    },
+    {
+      "code": "export const CACHE = new Set([1, 2, 3]); export const SEEN = new Map([[\"a\", 1]]); export const handler = (): void => {};",
+      "errors": [
+        {
+          "messageId": "constantsNotIsolated"
+        }
+      ],
+      "filename": "/project/src/http/collectionLiteralsMixed.ts",
+      "name": "[constants] new Set()/new Map() data consts still count (Set/Map carve-out regression guard) even once a function const disqualifies the pure-constants-module exemption"
     },
     {
       "code": "export const MAX_RETRIES = 3; export const TIMEOUT_MS = 1000; export const onClick = (): void => {};",
       "errors": [
         {
-          "messageId": "mustLiveInConstantsFolder"
+          "messageId": "constantsNotIsolated"
         }
       ],
       "filename": "/project/src/http/mixedWithFunction.ts",
       "name": "[constants] two data consts plus a function const -> still flagged for the two data consts"
-    },
-    {
-      "code": "export const { ALPHA, BETA, GAMMA } = CONFIG;",
-      "errors": [
-        {
-          "messageId": "mustLiveInConstantsFolder"
-        }
-      ],
-      "filename": "/project/src/http/destructuredObject.ts",
-      "name": "[constants] destructured object pattern introducing three names -> flagged"
-    },
-    {
-      "code": "export const [a, b, c] = arr;",
-      "errors": [
-        {
-          "messageId": "mustLiveInConstantsFolder"
-        }
-      ],
-      "filename": "/project/src/http/destructuredArray.ts",
-      "name": "[constants] destructured array pattern introducing three names -> flagged"
-    },
-    {
-      "code": "export const CACHE = new Set([1, 2, 3]); export const SEEN = new Map([[\"a\", 1]]);",
-      "errors": [
-        {
-          "messageId": "mustLiveInConstantsFolder"
-        }
-      ],
-      "filename": "/project/src/http/collectionLiterals.ts",
-      "name": "[constants] two genuine new Set()/new Map() literal-collection consts -> still flagged (Set/Map carve-out regression guard)"
     },
     {
       "code": "export function isEmail(value: string): boolean { return /^[^@]+@[^@]+$/u.test(value); }",
@@ -347,16 +367,6 @@
       ],
       "filename": "/project/src/validation/isEmail.ts",
       "name": "[regex] single inline regex literal nested inside a function body -> flagged (zero-tolerance, unlike the 2+ threshold for other constants)"
-    },
-    {
-      "code": "export const VALID_ID = /^[a-z0-9-]+$/u;",
-      "errors": [
-        {
-          "messageId": "regexBelongsInConstants"
-        }
-      ],
-      "filename": "/project/src/validation/patterns.ts",
-      "name": "[regex] top-level regex literal assigned to a const -> flagged"
     },
     {
       "code": "export function normalize(value: string): string { return value.replace(new RegExp(\"[\\\\s]+\", \"g\"), \" \"); }",
@@ -390,6 +400,16 @@
       ],
       "filename": "/project/src/types/isEmail.ts",
       "name": "[regex] inline regex inside a types/ folder file -> still flagged alongside the declaration-form check"
+    },
+    {
+      "code": "export function isEmail(value: string): boolean { return /^[^@]+@[^@]+$/u.test(value); }",
+      "errors": [
+        {
+          "messageId": "regexBelongsInConstants"
+        }
+      ],
+      "filename": "/project/tests/unit/isEmail.test.ts",
+      "name": "[regex] a tests/ path buys no escape from the inline-regex check -> flagged"
     }
   ]
 }

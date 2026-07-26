@@ -152,7 +152,6 @@
       "name": "reject-non-positive-target-latency-zero",
       "description": "Throttle rejects zero targetLatencyMs",
       "shape": "reject-non-positive-target-latency",
-      "value": 0,
       "input": {
         "value": 0,
         "throttle": {
@@ -170,7 +169,6 @@
       "name": "reject-non-positive-target-latency-negative",
       "description": "Throttle rejects negative targetLatencyMs",
       "shape": "reject-non-positive-target-latency",
-      "value": -100,
       "input": {
         "value": -100,
         "throttle": {

@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { domainPurity } from '../../../src/rules/arch/domainPurity.js';
-import scenarioGroups from './domainPurity.scenarios.json';
+import scenarioGroups from './domainPurity.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

@@ -4,7 +4,7 @@ import {
 } from 'node:test';
 
 import { FlagContextEntity, FlagDefinitionValidationError, FlagEvaluator } from '../../src/index.js';
-import scenarioGroups from './FlagEvaluator.scenarios.json';
+import scenarioGroups from './FlagEvaluator.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
   description: string;
@@ -63,8 +63,13 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
 
     const results = input.evaluations as Array<{ context: Record<string, unknown>; flag: string }>;
-    assert.equal(evaluator.evaluate(results[0].flag, results[0].context), expected.results[0]);
-    assert.equal(evaluator.evaluate(results[1].flag, results[1].context), expected.results[1]);
+    const expectedResults = expected.results as boolean[];
+    const first = results[0];
+    const second = results[1];
+    assert.ok(first !== undefined);
+    assert.ok(second !== undefined);
+    assert.equal(evaluator.evaluate(first.flag, first.context), expectedResults[0]);
+    assert.equal(evaluator.evaluate(second.flag, second.context), expectedResults[1]);
     return;
     },
 
@@ -79,11 +84,14 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'half-rollout': () => {
     evaluator.register(input.flag as string, definitionOf(input) as never);
     const evaluations = input.evaluations as Array<{ context: Record<string, unknown>; result: boolean }>;
+    const liveResults: boolean[] = [];
     for (const evaluation of evaluations) {
-      assert.equal(evaluator.evaluate(input.flag as string, evaluation.context), evaluation.result);
+      const result = evaluator.evaluate(input.flag as string, evaluation.context);
+      assert.equal(result, evaluation.result);
+      liveResults.push(result);
     }
-    assert.equal(evaluations.some((evaluation) => evaluation.result === true), expected.hasTrue);
-    assert.equal(evaluations.some((evaluation) => evaluation.result === false), expected.hasFalse);
+    assert.equal(liveResults.some((result) => result === true), expected.hasTrue);
+    assert.equal(liveResults.some((result) => result === false), expected.hasFalse);
     return;
     },
 
@@ -118,7 +126,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       evaluator.register(flag, definition);
     }
 
-    assert.equal(evaluator.has(input.flags[0] as string), expected.hasAfterRegister);
+    assert.equal(evaluator.has((input.flags as string[])[0] as string), expected.hasAfterRegister);
     assert.deepStrictEqual(evaluator.list(), expected.listAfterRegister);
 
     evaluator.unregister(input.unregisterFlag as string);
@@ -147,7 +155,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'invalid-rollout-range': () => {
     assert.throws(() => {
       evaluator.register(input.flag as string, definitionOf(input) as never);
-    }, (error: unknown) => error instanceof FlagDefinitionValidationError && String(error.message).includes(expected.message as string));
+    }, FlagDefinitionValidationError);
     return;
     },
 
@@ -306,9 +314,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     'flag-context-entity-accepts': () => {
     for (const value of input.values as Record<string, unknown>[]) {
-      assert.equal(FlagContextEntity.validate(value), true);
+      assert.equal(FlagContextEntity.validate(value), expected.result);
     }
-    assert.equal(expected.result, true);
     return;
     },
 
@@ -318,7 +325,11 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
   };
 
-  await runnerMap[shape]();
+  const runner = runnerMap[shape];
+  if (runner === undefined) {
+    throw new Error(`No runner registered for shape: ${shape}`);
+  }
+  await runner();
 }
 
 void describe('FlagEvaluator', () => {

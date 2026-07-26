@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { tryCatchInLoops } from '../../../src/rules/v8/tryCatchInLoops.js';
-import scenarioGroups from './tryCatchInLoops.scenarios.json';
+import scenarioGroups from './tryCatchInLoops.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

@@ -13,6 +13,7 @@ import {
   isModuleDeclaration,
   isTypeAliasDeclaration,
   ModuleKind,
+  type ModuleDeclaration,
   ModuleResolutionKind,
   ScriptKind,
   ScriptTarget,
@@ -20,7 +21,7 @@ import {
 } from 'typescript';
 
 import { TypeContractClassification } from '../../src/rules/shared/TypeContractClassification.js';
-import scenarioGroups from './TypeContractClassification.scenarios.json';
+import scenarioGroups from './TypeContractClassification.scenarios.json' with { type: 'json' };
 
 const packageRoot = resolve(import.meta.dirname, '../..');
 const virtualRoot = resolve(packageRoot, '.type-contract-classification');
@@ -96,9 +97,11 @@ function namespaceAlias(
   aliasName: string,
   filename = 'root.ts'
 ): NonNullable<ReturnType<typeof alias>> {
-  const namespaceDeclaration = sourceFile(program, filename).statements.find((statement) => {
-    return isModuleDeclaration(statement) && statement.name.text === namespaceName;
-  });
+  const namespaceDeclaration = sourceFile(program, filename).statements.find(
+    (statement): statement is ModuleDeclaration => {
+      return isModuleDeclaration(statement) && statement.name.text === namespaceName;
+    }
+  );
   const namespaceBody = namespaceDeclaration?.body;
   if (namespaceBody === undefined || !isModuleBlock(namespaceBody)) {
     throw new Error(`Missing namespace body: ${namespaceName}`);
@@ -273,7 +276,12 @@ type ScenarioCase =
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['shape'], (scenario: ScenarioCase) => void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>) => void;
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   'alias-cycles': (scenario) => {
     const program = programFromFiles(scenario.input.files);
     for (const expected of scenario.expected.assertions) {
@@ -360,10 +368,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenario: ScenarioCase) => void>
   }
 };
 
+function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenario.shape](scenario);
+}
+
 void describe('TypeContractClassification', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of scenarioGroups.cases as unknown as ScenarioCase[]) {
     void it(scenario.name, () => {
-      runnerMap[scenario.shape](scenario);
+      runCase(scenario);
     });
   }
 });

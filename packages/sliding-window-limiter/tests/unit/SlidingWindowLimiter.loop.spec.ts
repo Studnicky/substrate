@@ -9,7 +9,7 @@ import { SlidingWindowLimiterConfigError } from '../../src/errors/SlidingWindowL
 import { SlidingWindowExhaustedError } from '../../src/SlidingWindowExhaustedError.js';
 import { SlidingWindowLimiter } from '../../src/SlidingWindowLimiter.js';
 import type { SlidingWindowLimiterOptionsInterface } from '../../src/interfaces/SlidingWindowLimiterOptionsInterface.js';
-import scenarioGroups from './SlidingWindowLimiter.scenarios.json';
+import scenarioGroups from './SlidingWindowLimiter.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'async-allow-rejection'
@@ -33,7 +33,7 @@ type ScenarioCase =
   {
     description: string;
     expected: Record<string, unknown>;
-    input: Record<string, unknown>;
+    input: ScenarioInput;
     shape: ScenarioShape;
     name: string;
   };
@@ -48,7 +48,7 @@ type LimiterConfigInput = {
 type SlidingWindowLimiterInput = LimiterConfigInput & Record<string, unknown>;
 type ScenarioInput = {
   slidingWindowLimiter: SlidingWindowLimiterInput;
-};
+} & Record<string, unknown>;
 
 function slidingWindowLimiterInput<T extends SlidingWindowLimiterInput = SlidingWindowLimiterInput>(input: ScenarioInput): T {
   return input.slidingWindowLimiter as T;

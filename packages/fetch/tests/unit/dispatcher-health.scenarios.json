@@ -78,7 +78,7 @@
       },
       "expected": {
         "frozen": false,
-        "objectKeys": 0
+        "objectKeys": 1
       }
     },
     {

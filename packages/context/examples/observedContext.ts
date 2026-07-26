@@ -5,15 +5,10 @@ import assert from 'node:assert/strict';
 // #region usage
 import {
   Context,
-  type ContextConfigEntity,
   type ContextScopeInterface
 } from '../src/index.js';
 
 class ObservedContext extends Context {
-  static override create(config: ContextConfigEntity.Type): ObservedContext {
-    return new ObservedContext(config);
-  }
-
   readonly deleteEvents: { 'existed': boolean; 'key': string }[] = [];
   readonly getEvents: { 'key': string; 'value': unknown }[] = [];
   readonly initializeEvents: string[] = [];

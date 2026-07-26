@@ -3,26 +3,9 @@
     {
       "name": "baseurl-empty-string",
       "description": "FetchClient rejects an empty baseURL",
-      "clientConfig": {
-        "baseURL": ""
-      },
-      "expect": {
-        "shape": "create-throws",
-        "messageIncludes": [
-          "baseurl",
-          "url"
-        ]
-      },
       "input": {
         "clientConfig": {
           "baseURL": ""
-        },
-        "expect": {
-          "shape": "create-throws",
-          "messageIncludes": [
-            "baseurl",
-            "url"
-          ]
         }
       },
       "expected": {
@@ -36,26 +19,9 @@
     {
       "name": "baseurl-invalid-format",
       "description": "FetchClient rejects an invalid baseURL format",
-      "clientConfig": {
-        "baseURL": "not-a-url"
-      },
-      "expect": {
-        "shape": "create-throws",
-        "messageIncludes": [
-          "baseurl",
-          "url"
-        ]
-      },
       "input": {
         "clientConfig": {
           "baseURL": "not-a-url"
-        },
-        "expect": {
-          "shape": "create-throws",
-          "messageIncludes": [
-            "baseurl",
-            "url"
-          ]
         }
       },
       "expected": {
@@ -69,26 +35,9 @@
     {
       "name": "baseurl-missing-protocol",
       "description": "FetchClient rejects a baseURL without protocol",
-      "clientConfig": {
-        "baseURL": "://no-protocol"
-      },
-      "expect": {
-        "shape": "create-throws",
-        "messageIncludes": [
-          "baseurl",
-          "url"
-        ]
-      },
       "input": {
         "clientConfig": {
           "baseURL": "://no-protocol"
-        },
-        "expect": {
-          "shape": "create-throws",
-          "messageIncludes": [
-            "baseurl",
-            "url"
-          ]
         }
       },
       "expected": {
@@ -102,26 +51,9 @@
     {
       "name": "baseurl-protocol-only",
       "description": "FetchClient rejects a protocol-only baseURL",
-      "clientConfig": {
-        "baseURL": "http://"
-      },
-      "expect": {
-        "shape": "create-throws",
-        "messageIncludes": [
-          "baseurl",
-          "url"
-        ]
-      },
       "input": {
         "clientConfig": {
           "baseURL": "http://"
-        },
-        "expect": {
-          "shape": "create-throws",
-          "messageIncludes": [
-            "baseurl",
-            "url"
-          ]
         }
       },
       "expected": {
@@ -135,26 +67,9 @@
     {
       "name": "baseurl-number",
       "description": "FetchClient rejects a numeric baseURL",
-      "clientConfig": {
-        "baseURL": 123
-      },
-      "expect": {
-        "shape": "create-throws",
-        "messageIncludes": [
-          "baseurl",
-          "url"
-        ]
-      },
       "input": {
         "clientConfig": {
           "baseURL": 123
-        },
-        "expect": {
-          "shape": "create-throws",
-          "messageIncludes": [
-            "baseurl",
-            "url"
-          ]
         }
       },
       "expected": {
@@ -168,26 +83,9 @@
     {
       "name": "baseurl-object",
       "description": "FetchClient rejects an object baseURL",
-      "clientConfig": {
-        "baseURL": {}
-      },
-      "expect": {
-        "shape": "create-throws",
-        "messageIncludes": [
-          "baseurl",
-          "url"
-        ]
-      },
       "input": {
         "clientConfig": {
           "baseURL": {}
-        },
-        "expect": {
-          "shape": "create-throws",
-          "messageIncludes": [
-            "baseurl",
-            "url"
-          ]
         }
       },
       "expected": {
@@ -201,18 +99,9 @@
     {
       "name": "baseurl-null",
       "description": "FetchClient accepts a null baseURL",
-      "clientConfig": {
-        "baseURL": null
-      },
-      "expect": {
-        "shape": "create-ok"
-      },
       "input": {
         "clientConfig": {
           "baseURL": null
-        },
-        "expect": {
-          "shape": "create-ok"
         }
       },
       "expected": {
@@ -222,18 +111,9 @@
     {
       "name": "baseurl-custom-protocol",
       "description": "FetchClient accepts a custom protocol baseURL",
-      "clientConfig": {
-        "baseURL": "htp://invalid"
-      },
-      "expect": {
-        "shape": "create-ok"
-      },
       "input": {
         "clientConfig": {
           "baseURL": "htp://invalid"
-        },
-        "expect": {
-          "shape": "create-ok"
         }
       },
       "expected": {
@@ -243,20 +123,9 @@
     {
       "name": "empty-request-url",
       "description": "FetchClient rejects an empty request URL",
-      "request": {
-        "url": ""
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
       "input": {
         "request": {
           "url": ""
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
         }
       },
       "expected": {
@@ -267,26 +136,9 @@
     {
       "name": "spaces-in-url",
       "description": "FetchClient rejects a request URL with spaces",
-      "request": {
-        "url": "http://invalid url with spaces.com/api"
-      },
-      "expect": {
-        "error": "TypeError",
-        "shape": "rejects",
-        "messageIncludes": [
-          "url"
-        ]
-      },
       "input": {
         "request": {
           "url": "http://invalid url with spaces.com/api"
-        },
-        "expect": {
-          "error": "TypeError",
-          "shape": "rejects",
-          "messageIncludes": [
-            "url"
-          ]
         }
       },
       "expected": {
@@ -300,26 +152,9 @@
     {
       "name": "whitespace-url",
       "description": "FetchClient rejects a request URL containing only whitespace",
-      "request": {
-        "url": "   "
-      },
-      "expect": {
-        "error": "TypeError",
-        "shape": "rejects",
-        "messageIncludes": [
-          "url"
-        ]
-      },
       "input": {
         "request": {
           "url": "   "
-        },
-        "expect": {
-          "error": "TypeError",
-          "shape": "rejects",
-          "messageIncludes": [
-            "url"
-          ]
         }
       },
       "expected": {
@@ -333,26 +168,9 @@
     {
       "name": "relative-url-without-baseurl",
       "description": "FetchClient rejects a relative request URL without a baseURL",
-      "request": {
-        "url": "api/posts/1"
-      },
-      "expect": {
-        "error": "TypeError",
-        "shape": "rejects",
-        "messageIncludes": [
-          "url"
-        ]
-      },
       "input": {
         "request": {
           "url": "api/posts/1"
-        },
-        "expect": {
-          "error": "TypeError",
-          "shape": "rejects",
-          "messageIncludes": [
-            "url"
-          ]
         }
       },
       "expected": {
@@ -366,26 +184,12 @@
     {
       "name": "encoded-space-url",
       "description": "FetchClient handles a URL with encoded spaces",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/1?query=hello%20world"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts/1?query=hello%20world"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -396,26 +200,12 @@
     {
       "name": "unicode-url",
       "description": "FetchClient handles a URL with unicode characters",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/1?query=你好"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
-          "url": "/posts/1?query=你好"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
+          "url": "/posts/1?query=\u4f60\u597d"
         }
       },
       "expected": {
@@ -426,26 +216,12 @@
     {
       "name": "special-query-url",
       "description": "FetchClient handles a URL with special query characters",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/1?query=test&foo=bar&baz=qux"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts/1?query=test&foo=bar&baz=qux"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -456,26 +232,12 @@
     {
       "name": "hash-fragment-url",
       "description": "FetchClient handles a URL with a hash fragment",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/1#section"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts/1#section"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -486,179 +248,108 @@
     {
       "name": "long-url-1kb",
       "description": "FetchClient handles a URL with a long path",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/1?xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      },
-      "expect": {
-        "shape": "status-or-404"
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts/1?xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        },
-        "expect": {
-          "shape": "status-or-404"
         }
       },
       "expected": {
-        "shape": "status-or-404"
+        "shape": "status",
+        "status": 200
       }
     },
     {
       "name": "long-url-2kb",
       "description": "FetchClient handles a URL with a very long query string",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/1?data=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      },
-      "expect": {
-        "shape": "status-or-404"
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts/1?data=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        },
-        "expect": {
-          "shape": "status-or-404"
         }
       },
       "expected": {
-        "shape": "status-or-404"
+        "shape": "status",
+        "status": 200
       }
     },
     {
       "name": "long-url-8kb",
       "description": "FetchClient handles a URL approaching the 8KB limit",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/1?data=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      },
-      "expect": {
-        "shape": "status-or-404"
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts/1?data=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        },
-        "expect": {
-          "shape": "status-or-404"
         }
       },
       "expected": {
-        "shape": "status-or-404"
+        "shape": "status",
+        "status": 200
       }
     },
     {
       "name": "auth-username-password",
-      "description": "FetchClient rejects a URL with username and password",
-      "request": {
-        "url": "http://user:pass@localhost:9999/api"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
+      "description": "FetchClient rejects a URL with username and password before any request reaches the network",
       "input": {
         "request": {
-          "url": "http://user:pass@localhost:9999/api"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
+          "url": "http://user:pass@127.0.0.1:41234/posts/1"
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
+        "error": "TypeError",
+        "shape": "rejects-native",
+        "messageIncludes": [
+          "credentials"
+        ]
       }
     },
     {
       "name": "auth-username-only",
-      "description": "FetchClient rejects a URL with username only",
-      "request": {
-        "url": "http://user@localhost:9999/api"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
+      "description": "FetchClient rejects a URL with username only before any request reaches the network",
       "input": {
         "request": {
-          "url": "http://user@localhost:9999/api"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
+          "url": "http://user@127.0.0.1:41234/posts/1"
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
+        "error": "TypeError",
+        "shape": "rejects-native",
+        "messageIncludes": [
+          "credentials"
+        ]
       }
     },
     {
       "name": "auth-encoded-credentials",
-      "description": "FetchClient rejects a URL with encoded credentials",
-      "request": {
-        "url": "http://user%40email.com:pass%40123@localhost:9999/api"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
+      "description": "FetchClient rejects a URL with encoded credentials before any request reaches the network",
       "input": {
         "request": {
-          "url": "http://user%40email.com:pass%40123@localhost:9999/api"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
+          "url": "http://user%40email.com:pass%40123@127.0.0.1:41234/posts/1"
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
+        "error": "TypeError",
+        "shape": "rejects-native",
+        "messageIncludes": [
+          "credentials"
+        ]
       }
     },
     {
       "name": "relative-with-baseurl-leading-slash",
       "description": "FetchClient resolves a relative path with a baseURL",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/1"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts/1"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -669,26 +360,12 @@
     {
       "name": "relative-with-baseurl-no-leading-slash",
       "description": "FetchClient resolves a path without a leading slash with a baseURL",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "posts/1"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "posts/1"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -699,26 +376,12 @@
     {
       "name": "relative-with-baseurl-trailing-slash",
       "description": "FetchClient resolves a path with a trailing slash on baseURL",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__/"
-      },
-      "request": {
-        "url": "/posts/1"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__/"
         },
         "request": {
           "url": "/posts/1"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -729,26 +392,12 @@
     {
       "name": "relative-with-baseurl-without-trailing-slash",
       "description": "FetchClient resolves a path without a trailing slash on baseURL",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "posts/1"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "posts/1"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -759,26 +408,9 @@
     {
       "name": "relative-root-without-baseurl",
       "description": "FetchClient rejects a relative path without a baseURL",
-      "request": {
-        "url": "/posts/1"
-      },
-      "expect": {
-        "error": "TypeError",
-        "shape": "rejects",
-        "messageIncludes": [
-          "url"
-        ]
-      },
       "input": {
         "request": {
           "url": "/posts/1"
-        },
-        "expect": {
-          "error": "TypeError",
-          "shape": "rejects",
-          "messageIncludes": [
-            "url"
-          ]
         }
       },
       "expected": {
@@ -792,26 +424,9 @@
     {
       "name": "relative-path-without-baseurl",
       "description": "FetchClient rejects a path without a protocol or baseURL",
-      "request": {
-        "url": "api/posts/1"
-      },
-      "expect": {
-        "error": "TypeError",
-        "shape": "rejects",
-        "messageIncludes": [
-          "url"
-        ]
-      },
       "input": {
         "request": {
           "url": "api/posts/1"
-        },
-        "expect": {
-          "error": "TypeError",
-          "shape": "rejects",
-          "messageIncludes": [
-            "url"
-          ]
         }
       },
       "expected": {
@@ -825,20 +440,9 @@
     {
       "name": "ipv6-localhost",
       "description": "FetchClient handles an IPv6 localhost URL",
-      "request": {
-        "url": "http://[::1]:9999/api"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
       "input": {
         "request": {
           "url": "http://[::1]:9999/api"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
         }
       },
       "expected": {
@@ -849,20 +453,9 @@
     {
       "name": "ipv6-full-address",
       "description": "FetchClient handles a full IPv6 address URL",
-      "request": {
-        "url": "http://[2001:db8::1]:9999/api"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
       "input": {
         "request": {
           "url": "http://[2001:db8::1]:9999/api"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
         }
       },
       "expected": {
@@ -873,20 +466,9 @@
     {
       "name": "protocol-file",
       "description": "FetchClient rejects file protocol URLs",
-      "request": {
-        "url": "file:///etc/passwd"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
       "input": {
         "request": {
           "url": "file:///etc/passwd"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
         }
       },
       "expected": {
@@ -897,20 +479,9 @@
     {
       "name": "protocol-ftp",
       "description": "FetchClient rejects ftp protocol URLs",
-      "request": {
-        "url": "ftp://example.com/file"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
       "input": {
         "request": {
           "url": "ftp://example.com/file"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
         }
       },
       "expected": {
@@ -921,20 +492,9 @@
     {
       "name": "protocol-custom",
       "description": "FetchClient rejects custom protocol URLs",
-      "request": {
-        "url": "custom://example.com/api"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
       "input": {
         "request": {
           "url": "custom://example.com/api"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
         }
       },
       "expected": {
@@ -945,26 +505,12 @@
     {
       "name": "query-array-notation",
       "description": "FetchClient handles array notation in query strings",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts?ids[]=1&ids[]=2&ids[]=3"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts?ids[]=1&ids[]=2&ids[]=3"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -975,26 +521,12 @@
     {
       "name": "query-nested-objects",
       "description": "FetchClient handles nested object query strings",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts?filter[status]=active&filter[type]=post"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts?filter[status]=active&filter[type]=post"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -1005,26 +537,12 @@
     {
       "name": "query-special-characters",
       "description": "FetchClient handles special characters in query strings",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts?search=hello+world&sort=name:asc"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts?search=hello+world&sort=name:asc"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -1035,26 +553,12 @@
     {
       "name": "query-encoded-special-characters",
       "description": "FetchClient handles encoded special characters in query strings",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts?email=user%40example.com&name=John%20Doe"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts?email=user%40example.com&name=John%20Doe"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -1065,26 +569,12 @@
     {
       "name": "query-empty-parameters",
       "description": "FetchClient handles empty query parameters",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts?empty=&null&undefined"
-      },
-      "expect": {
-        "shape": "status",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts?empty=&null&undefined"
-        },
-        "expect": {
-          "shape": "status",
-          "status": 200
         }
       },
       "expected": {
@@ -1095,20 +585,9 @@
     {
       "name": "network-nonexistent-domain",
       "description": "FetchClient rejects a non-existent domain",
-      "request": {
-        "url": "https://this-domain-definitely-does-not-exist-12345.com"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
       "input": {
         "request": {
           "url": "https://this-domain-definitely-does-not-exist-12345.com"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
         }
       },
       "expected": {
@@ -1119,20 +598,9 @@
     {
       "name": "network-connection-refused",
       "description": "FetchClient rejects a connection refused URL",
-      "request": {
-        "url": "http://127.0.0.1:1"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
       "input": {
         "request": {
           "url": "http://127.0.0.1:1"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
         }
       },
       "expected": {
@@ -1143,20 +611,9 @@
     {
       "name": "network-unreachable-host",
       "description": "FetchClient rejects an unreachable host",
-      "request": {
-        "url": "http://192.0.2.1:9999"
-      },
-      "expect": {
-        "error": "Error",
-        "shape": "rejects"
-      },
       "input": {
         "request": {
           "url": "http://192.0.2.1:9999"
-        },
-        "expect": {
-          "error": "Error",
-          "shape": "rejects"
         }
       },
       "expected": {
@@ -1167,109 +624,65 @@
     {
       "name": "path-double-slashes",
       "description": "FetchClient handles double slashes in a path",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "//posts//1"
-      },
-      "expect": {
-        "shape": "status-or-404"
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "//posts//1"
-        },
-        "expect": {
-          "shape": "status-or-404"
         }
       },
       "expected": {
-        "shape": "status-or-404"
+        "shape": "status",
+        "status": 404
       }
     },
     {
       "name": "path-dot-segments",
       "description": "FetchClient handles dot segments in a path",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/./1/../1"
-      },
-      "expect": {
-        "shape": "status-or-404"
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts/./1/../1"
-        },
-        "expect": {
-          "shape": "status-or-404"
         }
       },
       "expected": {
-        "shape": "status-or-404"
+        "shape": "status",
+        "status": 200
       }
     },
     {
       "name": "path-trailing-slash",
       "description": "FetchClient handles a trailing slash in a path",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/posts/1/"
-      },
-      "expect": {
-        "shape": "status-or-404"
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/posts/1/"
-        },
-        "expect": {
-          "shape": "status-or-404"
         }
       },
       "expected": {
-        "shape": "status-or-404"
+        "shape": "status",
+        "status": 404
       }
     },
     {
       "name": "path-root",
       "description": "FetchClient handles the root path",
-      "clientConfig": {
-        "baseURL": "__TEST_URL__"
-      },
-      "request": {
-        "url": "/"
-      },
-      "expect": {
-        "shape": "status-or-404"
-      },
       "input": {
         "clientConfig": {
           "baseURL": "__TEST_URL__"
         },
         "request": {
           "url": "/"
-        },
-        "expect": {
-          "shape": "status-or-404"
         }
       },
       "expected": {
-        "shape": "status-or-404"
+        "shape": "status",
+        "status": 404
       }
     }
   ]

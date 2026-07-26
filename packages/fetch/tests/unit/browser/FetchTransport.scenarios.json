@@ -49,25 +49,10 @@
       }
     },
     {
-      "name": "docs-graph",
-      "description": "FetchTransport keeps undici out of the docs browser graph",
-      "operation": "docs-graph",
-      "input": {
-        "mappings": [
-          {
-            "from": "packages/fetch/src/config/DispatcherAgent",
-            "to": "packages/fetch/src/config/browser/DispatcherAgent"
-          },
-          {
-            "from": "packages/fetch/src/modules/FetchTransport",
-            "to": "packages/fetch/src/modules/browser/FetchTransport"
-          },
-          {
-            "from": "packages/fetch/src/modules/UndiciDispatcher",
-            "to": "packages/fetch/src/modules/browser/UndiciDispatcher"
-          }
-        ]
-      },
+      "name": "package-browser-map",
+      "description": "package.json's browser field routes undici-backed modules to their browser (native fetch) counterparts",
+      "operation": "package-browser-map",
+      "input": {},
       "expected": {
         "mappings": [
           {

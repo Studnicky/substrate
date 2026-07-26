@@ -1,33 +1,42 @@
-/** directComposition — hand-composes FetchClient, Retry, Signal, Timing, and Context directly,
+/** directComposition — hand-composes FetchClient, Retry, Signal, and Context directly,
  * without RequestExecutor, to show the same one-shot request execution pattern built from its
- * five primitives by hand. Compare with observedRequestExecutor.ts, which does identical work
- * through the kit. Run: npx tsx examples/directComposition.ts */
+ * four primitives by hand, including the lifecycle hook points RequestExecutor brackets the
+ * retry loop with. Compare with observedRequestExecutor.ts, which does identical work through
+ * the kit. Run: npx tsx examples/directComposition.ts */
 
 // #region usage
 import { Context } from '@studnicky/context';
 import { FetchClient } from '@studnicky/fetch';
 import { Retry } from '@studnicky/retry';
 import { Signal } from '@studnicky/signal';
-import { Timing, TIMING_STATUS, TimingEvent } from '@studnicky/timing';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 
+import type { RequestDeadlineEntity } from '../src/index.js';
+
+interface ExecuteOptionsInterface<T> {
+  'deadlineMs'?: RequestDeadlineEntity.Type['deadlineMs'];
+  'onExecuteComplete'?: (result: T) => void;
+  'onExecuteError'?: (error: unknown) => void;
+  'onExecuteStart'?: () => void;
+}
+
 /**
  * The same composition order RequestExecutor#execute() uses internally: a context scope
- * wraps the whole call, a timing span brackets the retry loop, the retry loop wraps the
- * caller's fn, and the composed cancellation signal threads through into whatever call
- * fn makes. Nothing here is hidden inside a facade class — every primitive is a plain
- * local variable the caller owns.
+ * wraps the whole call, `onExecuteStart`/`onExecuteComplete`/`onExecuteError` bracket the
+ * retry loop, the retry loop wraps the caller's fn, and the composed cancellation signal
+ * threads through into whatever call fn makes. Nothing here is hidden inside a facade class —
+ * every primitive is a plain local variable the caller owns, and the lifecycle hooks are plain
+ * callbacks rather than protected methods to override.
  */
 class Directly {
   static async execute<T>(
     fetchClient: FetchClient,
     retry: Retry,
     signal: Signal,
-    timing: Timing,
     context: Context,
     fn: (client: FetchClient, abortSignal: AbortSignal) => Promise<T>,
-    options: { 'deadlineMs'?: number } = {}
+    options: ExecuteOptionsInterface<T> = {}
   ): Promise<T> {
     const composedSignal = await signal.compose(
       options.deadlineMs !== undefined ? { 'deadlineMs': options.deadlineMs } : {}
@@ -37,34 +46,16 @@ class Directly {
 
     try {
       const result = await scope.execute(async () => {
-        timing.event(
-          TimingEvent.create({
-            'component': 'directComposition',
-            'operation': 'execute',
-            'status': TIMING_STATUS.START
-          })
-        );
+        options.onExecuteStart?.();
 
         try {
           const attemptResult = await retry.execute(() => { const result = fn(fetchClient, composedSignal); return result; });
 
-          timing.event(
-            TimingEvent.create({
-              'component': 'directComposition',
-              'operation': 'execute',
-              'status': TIMING_STATUS.COMPLETE
-            })
-          );
+          options.onExecuteComplete?.(attemptResult);
 
           return attemptResult;
         } catch (error) {
-          timing.event(
-            TimingEvent.create({
-              'component': 'directComposition',
-              'operation': 'execute',
-              'status': TIMING_STATUS.ERROR
-            })
-          );
+          options.onExecuteError?.(error);
           throw error;
         }
       });
@@ -76,6 +67,10 @@ class Directly {
   }
 }
 // #endregion usage
+
+class LifecycleLog {
+  static readonly entries: string[] = [];
+}
 
 let failuresRemaining = 2;
 
@@ -111,14 +106,12 @@ if (address === null || typeof address !== 'object') {
 const fetchClient = FetchClient.create({ 'baseURL': `http://localhost:${address.port}` });
 const retry = Retry.create({ 'maxRetries': 3 });
 const signal = Signal.create();
-const timing = Timing.create();
 const context = Context.create({ 'name': 'directComposition' });
 
 const response = await Directly.execute(
   fetchClient,
   retry,
   signal,
-  timing,
   context,
   async (client, abortSignal) => {
     const result = await client.get('/flaky', { 'signal': abortSignal });
@@ -129,17 +122,22 @@ const response = await Directly.execute(
 
     return result;
   },
-  { 'deadlineMs': 5000 }
+  {
+    'deadlineMs': 5000,
+    'onExecuteComplete': (result) => { LifecycleLog.entries.push(`complete:${result.status}`); },
+    'onExecuteStart': () => { LifecycleLog.entries.push('start'); }
+  }
 );
 
 console.log('Response status:', response.status);
-console.log('Timing events:', timing.getEvents());
+console.log('Lifecycle events:', LifecycleLog.entries);
 // #endregion usage
 
 assert.equal(response.status, 200);
 assert.equal(await response.text(), 'ok');
 assert.equal(retry.getStats().totalRetries, 2);
 assert.equal(retry.getStats().successfulRequests, 1);
+assert.deepEqual(LifecycleLog.entries, ['start', 'complete:200']);
 
 server.close();
 

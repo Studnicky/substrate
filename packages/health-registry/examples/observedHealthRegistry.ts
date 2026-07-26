@@ -34,12 +34,15 @@ class TelemetryHealthRegistry extends HealthRegistry {
 
 const registry = TelemetryHealthRegistry.create();
 
-registry.register('database', () => {return { 'status': 'healthy' };});
+registry.register('database', async () => { await Promise.resolve(); return { 'status': 'healthy' }; });
 
-registry.register('cache', () => {return {
-  'metadata': { 'hitRate': 0.42 },
-  'status': 'degraded'
-};});
+registry.register('cache', async () => {
+  await Promise.resolve();
+  return {
+    'metadata': { 'hitRate': 0.42 },
+    'status': 'degraded'
+  };
+});
 
 registry.register('downstream-api', async () => {
   await new Promise((resolve) => { const result = setTimeout(resolve, 200); return result; });

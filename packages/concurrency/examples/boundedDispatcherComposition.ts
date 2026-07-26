@@ -103,7 +103,7 @@ class BoundedDispatcherScenarios {
     bus.subscribe('dispatch.completed', (payload) => { completedEvents.push(payload.key); });
     bus.subscribe('dispatch.failed', (payload) => { failedEvents.push(payload.key); });
 
-    await Dispatcher.dispatch('ok-task', () => { const result = 'fine'; return result; });
+    await Dispatcher.dispatch('ok-task', async () => { await Promise.resolve(); return 'fine'; });
     await Dispatcher.dispatch('bad-task', () => { throw new Error('boom'); }).catch(() => { /* expected */ });
     await bus.drain();
 
@@ -120,7 +120,8 @@ class BoundedDispatcherScenarios {
     const scheduleStartedAt = Date.now();
 
     await new Promise<void>((resolve) => {
-      Dispatcher.scheduleDispatch(Date.now() + 30, 'scheduled-task', () => {
+      Dispatcher.scheduleDispatch(Date.now() + 30, 'scheduled-task', async () => {
+        await Promise.resolve();
         scheduledCompletedAt.push(Date.now() - scheduleStartedAt);
         resolve();
         return 'scheduled-done';

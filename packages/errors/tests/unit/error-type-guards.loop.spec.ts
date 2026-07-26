@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { errorTypeGuards } from '../../src/validation/errorTypeGuards.js';
-import scenarioGroups from './error-type-guards.scenarios.json';
+import scenarioGroups from './error-type-guards.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
   description: string;

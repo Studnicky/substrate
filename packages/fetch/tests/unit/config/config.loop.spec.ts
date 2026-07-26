@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { FetchClient } from '../../../src/index.js';
-import scenarioGroups from './config.scenarios.json';
+import scenarioGroups from './config.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =
   | { shape: 'infinity' }
@@ -78,11 +78,12 @@ const expectedOutcomeMap: Record<ExpectedOutcome['shape'], ExpectedOutcomeRunner
     });
   },
   throws: (config, expected) => {
-    assert.ok(expected.messageIncludes !== undefined);
+    const { messageIncludes } = expected;
+    assert.ok(messageIncludes !== undefined);
     assert.throws(() => {
       createFetchClient(config);
     }, (error: Error) => {
-      for (const expectedMessagePart of expected.messageIncludes) {
+      for (const expectedMessagePart of messageIncludes) {
         assert.ok(error.message.includes(expectedMessagePart));
       }
 

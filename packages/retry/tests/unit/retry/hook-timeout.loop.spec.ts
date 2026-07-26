@@ -6,7 +6,7 @@ import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateE
 
 import { NonRetryableError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
-import scenarioGroups from './hook-timeout.scenarios.json';
+import scenarioGroups from './hook-timeout.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'enter-call-unset' | 'fast-hook' | 'hung-attempt-with-timeout' | 'hung-attempt-without-timeout' | 'hung-give-up-with-timeout' | 'hung-retry-scheduled'; name: string };
@@ -142,10 +142,12 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     });
 
     const startedAt = Date.now();
-    await assert.rejects(() => retry.execute(async () => { throw new Error(String(input.errorMessage)); }), NonRetryableError);
+    await assert.rejects(
+      () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
+      (error: unknown) => error instanceof NonRetryableError && error.name === String(expected.errorShape)
+    );
     const elapsedMs = Date.now() - startedAt;
 
-    assert.strictEqual(expected.errorShape, 'NonRetryableError');
     assert.ok(elapsedMs < Number(expected.elapsedLessThanMs));
   },
   'hung-retry-scheduled': async (scenario) => {

@@ -13,7 +13,7 @@ import { VfsLockFixtures } from './fixtures/VfsLockFixtures.js';
 class TracedFileLock extends FileLock {
   static readonly #recorders = new WeakMap<FileLock, EventRecorder<LockEventEntity.Type>>();
 
-  static events(lock: FileLock): LockEventEntity.Type[] {
+  static events(lock: FileLock): readonly LockEventEntity.Type[] {
     return this.#recorders.get(lock)?.events ?? [];
   }
 

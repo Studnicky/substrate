@@ -62,11 +62,6 @@ interface ObjectCursor {
   };
 }
 
-type PaginatorState =
-  | PaginatorIdleStateEntity.Type
-  | PaginatorHasMoreStateInterface<string, number>
-  | PaginatorExhaustedStateInterface<string>;
-
 class TrackingPaginator extends Paginator<string, number> {
   readonly transitions: TransitionRecord[] = [];
   readonly enters: string[] = [];
@@ -249,43 +244,6 @@ class CrossInstanceReentrantPaginator extends Paginator<string, number> {
       this.target.next(`${this.name}-delegated-page`, { 'cursor': 2, 'exhausted': false });
     }
   }
-}
-
-function describeCursor(
-  cursor: PaginatorAvailableCursorInterface<number> | PaginatorExhaustedCursorEntity.Type
-): string {
-  return cursor.exhausted ? 'exhausted' : `cursor:${String(cursor.cursor)}`;
-}
-
-function describeEvent(
-  event: PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<string, number>
-): string {
-  if (event.type === 'reset') {
-    return event.type;
-  }
-
-  return `${event.page}:${describeCursor(event.nextCursor)}`;
-}
-
-const stateDescriptionMap: Record<PaginatorState['variant'], (state: PaginatorState) => string> = {
-  exhausted: (state) => {
-    assert.equal(state.variant, 'exhausted');
-    return `${state.pages.join(',')}:exhausted`;
-  },
-  hasMore: (state) => {
-    assert.equal(state.variant, 'hasMore');
-    return `${state.pages.join(',')}:cursor:${String(state.cursor)}`;
-  },
-  idle: (state) => {
-    assert.equal(state.variant, 'idle');
-    return state.variant;
-  }
-};
-
-function describeState(
-  state: PaginatorState
-): string {
-  return stateDescriptionMap[state.variant](state);
 }
 
 function recordField(input: Record<string, unknown>, key: string): Record<string, unknown> {
@@ -697,13 +655,21 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   },
 
   'discriminant-narrowing': () => {
-    assert.equal(describeCursor(cursorFrom<number>(input.cursorAvailable)), expected.cursorAvailable);
-    assert.equal(describeCursor(cursorFrom<number>(input.cursorExhausted)), expected.cursorExhausted);
-    assert.equal(describeEvent(input.resetEvent as PaginatorResetEventEntity.Type), expected.resetEvent);
-    assert.equal(describeEvent(input.pageEvent as PaginatorPageReceivedEventInterface<string, number>), expected.pageEvent);
-    assert.equal(describeState(input.stateIdle as PaginatorIdleStateEntity.Type), expected.stateIdle);
-    assert.equal(describeState(input.stateHasMore as PaginatorHasMoreStateInterface<string, number>), expected.stateHasMore);
-    assert.equal(describeState(input.stateExhausted as PaginatorExhaustedStateInterface<string>), expected.stateExhausted);
+    const paginator = Paginator.create<string, number>();
+    const pages = arrayField(input, 'pages') as string[];
+    const cursors = arrayField(input, 'nextCursors');
+
+    paginator.next(itemAt(pages, 0), cursorFrom<number>(cursors[0]));
+    assert.deepEqual(paginator.pages, expected.pagesAfterFirst);
+    assert.equal(paginator.hasNext(), expected.hasNextAfterFirst);
+
+    paginator.next(itemAt(pages, 1), cursorFrom<number>(cursors[1]));
+    assert.deepEqual(paginator.pages, expected.pagesAfterSecond);
+    assert.equal(paginator.hasNext(), expected.hasNextAfterSecond);
+
+    paginator.reset();
+    assert.deepEqual(paginator.pages, expected.pagesAfterReset);
+    assert.equal(paginator.hasNext(), expected.hasNextAfterReset);
     return;
   }
   };

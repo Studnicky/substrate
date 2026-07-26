@@ -31,6 +31,26 @@
     {
       "code": "const allowed = new Set(['a', 'b']); arr.filter(x => allowed.has(x));",
       "name": "filter callback using named set - no array literal inside callback"
+    },
+    {
+      "code": "const found = ['a', 'b', 'c'].includes(x);",
+      "name": "checkArrayLiterals: false - Pattern A no longer flagged",
+      "options": [{ "checkArrayLiterals": false }]
+    },
+    {
+      "code": "const result = arr.filter(x => ['a', 'b'].includes(x));",
+      "name": "checkArrayLiterals: false - Pattern D no longer flagged",
+      "options": [{ "checkArrayLiterals": false }]
+    },
+    {
+      "code": "const val = Object.fromEntries(pairs)[key];",
+      "name": "checkFromEntries: false - Pattern B no longer flagged",
+      "options": [{ "checkFromEntries": false }]
+    },
+    {
+      "code": "const VALID = ['x', 'y', 'z']; VALID.includes(val);",
+      "name": "checkModuleScopeArrays: false - Pattern C no longer flagged",
+      "options": [{ "checkModuleScopeArrays": false }]
     }
   ],
   "invalid": [

@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { ValidationErrors } from '../../src/errors/ValidationErrors.js';
 import type { ValidationViolationEntity } from '../../src/entities/ValidationViolationEntity.js';
-import scenarioGroups from './validation-errors.scenarios.json';
+import scenarioGroups from './validation-errors.scenarios.json' with { type: 'json' };
 
 class TestViolation {
   public static of(path: string, keyword: string, message: string): ValidationViolationEntity.Type {
@@ -36,11 +36,9 @@ type ScenarioCase =
       name: string;
     };
 
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
+type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
 
 function materialize(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -101,40 +99,40 @@ function expectViolations(actual: readonly ValidationViolationEntity.Type[], exp
   assert.deepStrictEqual(actual, expected);
 }
 
-const runConstruction: ScenarioRunner<'construction-empty' | 'construction-non-empty'> = (scenarioCase) => {
+const runConstruction: ScenarioRunner = (scenarioCase) => {
   const input = materialize(scenarioCase.input);
   const errs = ValidationErrors.create(toViolations(input));
   assert.strictEqual(errs.ok, scenarioCase.expected.ok);
   assert.strictEqual(errs.length, scenarioCase.expected.length);
 };
 
-const runValidatorErrorsEmpty: ScenarioRunner<'from-empty-array' | 'from-null' | 'from-undefined'> = (scenarioCase) => {
+const runValidatorErrorsEmpty: ScenarioRunner = (scenarioCase) => {
   const input = materialize(scenarioCase.input);
   const errs = ValidationErrors.fromValidatorErrors(input as null | undefined | []);
   assert.strictEqual(errs.ok, scenarioCase.expected.ok);
   assert.strictEqual(errs.length, scenarioCase.expected.length);
 };
 
-const runValidatorErrorsMapped: ScenarioRunner<'fallback-message' | 'maps-ajv'> = (scenarioCase) => {
+const runValidatorErrorsMapped: ScenarioRunner = (scenarioCase) => {
   const input = materialize(scenarioCase.input);
   const errs = ValidationErrors.fromValidatorErrors(input as { instancePath: string; keyword: string; message?: string }[]);
   assert.strictEqual(errs.length, scenarioCase.expected.length);
   expectViolations(errs.items, scenarioCase.expected.items ?? []);
 };
 
-const runAggregate: ScenarioRunner<'aggregate-dedup' | 'aggregate-empty'> = (scenarioCase) => {
+const runAggregate: ScenarioRunner = (scenarioCase) => {
   const input = materialize(scenarioCase.input);
   const agg = ValidationErrors.create(toViolations(input)).aggregate();
   assert.deepStrictEqual(agg, scenarioCase.expected.aggregate);
 };
 
-const runDefaultReport: ScenarioRunner<'report-default' | 'report-empty' | 'report-plural'> = (scenarioCase) => {
+const runDefaultReport: ScenarioRunner = (scenarioCase) => {
   const input = materialize(scenarioCase.input);
   const report = ValidationErrors.create(toViolations(input)).report();
   assert.deepStrictEqual(report, scenarioCase.expected.report);
 };
 
-const runReportOverrides: ScenarioRunner<'report-overrides' | 'report-title'> = (scenarioCase) => {
+const runReportOverrides: ScenarioRunner = (scenarioCase) => {
   const input = materialize(scenarioCase.input);
   const { options, violations } = input as { options: { status?: number; title?: string; type?: string }; violations: ValidationViolationEntity.Type[] };
   const report = ValidationErrors.create(violations).report(options);
@@ -236,7 +234,7 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+function runCase(scenarioCase: ScenarioCase): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 

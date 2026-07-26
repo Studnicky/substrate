@@ -15,15 +15,461 @@ import {
 
 import { IdempotencyConflictError, IdempotencyGuard, IdempotencyGuardEntryMetadataEntity } from '../../../src/index.js';
 
-import scenarioGroups from './idempotency-guard.scenarios.json';
+import scenarioGroups from './idempotency-guard.scenarios.json' with { type: 'json' };
 
 type ScenarioFixture = (typeof scenarioGroups.cases)[number];
-type ScenarioShape = ScenarioFixture['shape'];
-type ScenarioFor<TShape extends ScenarioShape> = Extract<ScenarioFixture, { shape: TShape }>;
-type ScenarioRunner<TShape extends ScenarioShape> = (scenario: ScenarioFor<TShape>) => Promise<void> | void;
-type ScenarioRunnerMap = { [TShape in ScenarioShape]: ScenarioRunner<TShape> };
 type GuardOptions = ScenarioFixture['input']['idempotencyGuard'];
 type GuardFactory<TResult> = () => TResult | Promise<TResult>;
+
+/**
+ * `scenarioGroups.cases` is loaded via `resolveJsonModule`, which widens every JSON literal
+ * (including `shape`) to its base type (`string`, `number`, …). That makes `ScenarioFixture['shape']`
+ * plain `string` rather than a literal union, so `Extract` on it can never narrow — every scenario
+ * handler would otherwise receive the full union of all fixture shapes. `ScenarioCase` restates the
+ * true per-shape contract by hand so `shape` is a real discriminant, and `assertScenarioShape` below
+ * performs the runtime check that lets TypeScript narrow a loose `ScenarioFixture` down to one member.
+ */
+type ScenarioCase =
+  | {
+      shape: 'metadata-accepts-string-fingerprint';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; fingerprint: string };
+      expected: { valid: boolean };
+    }
+  | {
+      shape: 'metadata-rejects-invalid-fingerprint';
+      name: string;
+      description: string;
+      input: {
+        idempotencyGuard: GuardOptions;
+        missingFingerprint: Record<string, never>;
+        numericFingerprint: { fingerprint: number };
+      };
+      expected: { missingValid: boolean; numericValid: boolean };
+    }
+  | {
+      shape: 'coalesce-shares-one-execution';
+      name: string;
+      description: string;
+      input: {
+        idempotencyGuard: GuardOptions;
+        key: string;
+        payload: { amount: number };
+        batch: { calls: number; factoryResult: string };
+      };
+      expected: { calls: number; result: string };
+    }
+  | {
+      shape: 'result-contract-owned';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { operand: number } };
+      expected: { initial: number; replayed: number; type: string };
+    }
+  | {
+      shape: 'result-contract-rejects-invalid-factory';
+      name: string;
+      description: string;
+      input: { fixture: string; idempotencyGuard: GuardOptions; key: string; payload: Record<string, never> };
+      expected: { diagnosticsCount: number; messagePattern: string };
+    }
+  | {
+      shape: 'conflict-same-key-different-payload';
+      name: string;
+      description: string;
+      input: {
+        conflictingPayload: { amount: number };
+        idempotencyGuard: GuardOptions;
+        key: string;
+        payload: { amount: number };
+      };
+      expected: { calls: number };
+    }
+  | {
+      shape: 'conflict-exposes-key';
+      name: string;
+      description: string;
+      input: {
+        conflictingPayload: { amount: number };
+        idempotencyGuard: GuardOptions;
+        key: string;
+        payload: { amount: number };
+      };
+      expected: { code: string; key: string; result: string };
+    }
+  | {
+      shape: 'replay-accepts-sync-factory';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { result: { chargeId: string } };
+    }
+  | {
+      shape: 'replay-cached-result';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { calls: number; firstResult: { chargeId: string }; secondResult: { chargeId: string } };
+    }
+  | {
+      shape: 'replay-expired-entry-reruns';
+      name: string;
+      description: string;
+      input: { expirationWaitMs: number; idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { calls: number; second: string };
+    }
+  | {
+      shape: 'hooks-execute-new-key';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { conflicted: never[]; executed: string[]; replayed: never[] };
+    }
+  | {
+      shape: 'hooks-execute-before-factory';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { events: string[] };
+    }
+  | {
+      shape: 'hooks-replay-match';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { executed: string[]; replayed: string[] };
+    }
+  | {
+      shape: 'hooks-conflict-before-throw';
+      name: string;
+      description: string;
+      input: {
+        conflictingPayload: { amount: number };
+        idempotencyGuard: GuardOptions;
+        key: string;
+        payload: { amount: number };
+      };
+      expected: { conflicted: string[] };
+    }
+  | {
+      shape: 'hooks-coalesce-follower';
+      name: string;
+      description: string;
+      input: {
+        idempotencyGuard: GuardOptions;
+        key: string;
+        payload: { amount: number };
+        batch: { calls: number; factoryResult: string };
+      };
+      expected: { coalesced: string[]; executed: string[] };
+    }
+  | {
+      shape: 'hooks-isolated-instances';
+      name: string;
+      description: string;
+      input: {
+        idempotencyGuard: GuardOptions;
+        key: string;
+        payload: { amount: number };
+        batch: { callsPerInstance: number; factoryResults: string[] };
+      };
+      expected: {
+        firstEvents: string[];
+        firstFactoryCalls: number;
+        results: string[];
+        secondEvents: string[];
+        secondFactoryCalls: number;
+      };
+    }
+  | {
+      shape: 'hooks-throwing-replay';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { result: string };
+    }
+  | {
+      shape: 'hooks-throwing-conflict';
+      name: string;
+      description: string;
+      input: {
+        conflictingPayload: { amount: number };
+        idempotencyGuard: GuardOptions;
+        key: string;
+        payload: { amount: number };
+      };
+      expected: { result: string };
+    }
+  | {
+      shape: 'hooks-throwing-execute';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { result: string };
+    }
+  | {
+      shape: 'hooks-sync-replay-swallowed';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { result: string };
+    }
+  | {
+      shape: 'hooks-async-replay-safe';
+      name: string;
+      description: string;
+      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
+      expected: { rejections: number; result: string };
+    }
+  | {
+      shape: 'hooks-throwing-coalesce';
+      name: string;
+      description: string;
+      input: {
+        idempotencyGuard: GuardOptions;
+        key: string;
+        payload: { amount: number };
+        batch: { calls: number; factoryResult: string };
+      };
+      expected: { followerResult: string; leaderResult: string };
+    }
+  | {
+      shape: 'hooks-async-overrides-safe';
+      name: string;
+      description: string;
+      input: {
+        conflictingPayload: { amount: number };
+        idempotencyGuard: GuardOptions;
+        key: string;
+        payload: { amount: number };
+        batch: { calls: number; factoryResult: string };
+      };
+      expected: { events: string[]; rejections: number; result: string };
+    }
+  | {
+      shape: 'race-concurrent-different-payload';
+      name: string;
+      description: string;
+      input: {
+        followerPayload: { amount: number };
+        idempotencyGuard: GuardOptions;
+        key: string;
+        leaderPayload: { amount: number };
+        batch: { followerResult: string; leaderResult: string; replayResult: string };
+      };
+      expected: {
+        followerCalls: number;
+        leaderCalls: number;
+        leaderResult: string;
+        replayed: string;
+        replayFactoryCalls: number;
+      };
+    };
+type ScenarioShape = ScenarioCase['shape'];
+type ScenarioRunner = (scenario: ScenarioFixture) => Promise<void> | void;
+type ScenarioRunnerMap = Record<ScenarioShape, ScenarioRunner>;
+
+/**
+ * `scenarioGroups.cases` is loaded via `resolveJsonModule`, which widens every JSON literal
+ * (including `shape`) to its base type (`string`), so `ScenarioFixture['shape']` is plain `string`
+ * rather than a literal union — a single generic `Extract`-based assertion cannot be proven
+ * assignable back to `ScenarioFixture` for an arbitrary type parameter (TS2677), even though each
+ * concrete instantiation is sound. These per-shape assertions narrow a loose `ScenarioFixture` down
+ * to the matching `ScenarioCase` member, verified at runtime.
+ */
+
+function assertScenarioMetadataAcceptsStringFingerprint(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'metadata-accepts-string-fingerprint' }> {
+  if (scenario.shape !== 'metadata-accepts-string-fingerprint') {
+    throw new Error(`Scenario shape mismatch: expected "metadata-accepts-string-fingerprint", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioMetadataRejectsInvalidFingerprint(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'metadata-rejects-invalid-fingerprint' }> {
+  if (scenario.shape !== 'metadata-rejects-invalid-fingerprint') {
+    throw new Error(`Scenario shape mismatch: expected "metadata-rejects-invalid-fingerprint", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioCoalesceSharesOneExecution(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'coalesce-shares-one-execution' }> {
+  if (scenario.shape !== 'coalesce-shares-one-execution') {
+    throw new Error(`Scenario shape mismatch: expected "coalesce-shares-one-execution", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioResultContractOwned(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'result-contract-owned' }> {
+  if (scenario.shape !== 'result-contract-owned') {
+    throw new Error(`Scenario shape mismatch: expected "result-contract-owned", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioResultContractRejectsInvalidFactory(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'result-contract-rejects-invalid-factory' }> {
+  if (scenario.shape !== 'result-contract-rejects-invalid-factory') {
+    throw new Error(`Scenario shape mismatch: expected "result-contract-rejects-invalid-factory", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioConflictSameKeyDifferentPayload(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'conflict-same-key-different-payload' }> {
+  if (scenario.shape !== 'conflict-same-key-different-payload') {
+    throw new Error(`Scenario shape mismatch: expected "conflict-same-key-different-payload", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioConflictExposesKey(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'conflict-exposes-key' }> {
+  if (scenario.shape !== 'conflict-exposes-key') {
+    throw new Error(`Scenario shape mismatch: expected "conflict-exposes-key", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioReplayAcceptsSyncFactory(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'replay-accepts-sync-factory' }> {
+  if (scenario.shape !== 'replay-accepts-sync-factory') {
+    throw new Error(`Scenario shape mismatch: expected "replay-accepts-sync-factory", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioReplayCachedResult(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'replay-cached-result' }> {
+  if (scenario.shape !== 'replay-cached-result') {
+    throw new Error(`Scenario shape mismatch: expected "replay-cached-result", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioReplayExpiredEntryReruns(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'replay-expired-entry-reruns' }> {
+  if (scenario.shape !== 'replay-expired-entry-reruns') {
+    throw new Error(`Scenario shape mismatch: expected "replay-expired-entry-reruns", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksExecuteNewKey(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-execute-new-key' }> {
+  if (scenario.shape !== 'hooks-execute-new-key') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-execute-new-key", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksExecuteBeforeFactory(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-execute-before-factory' }> {
+  if (scenario.shape !== 'hooks-execute-before-factory') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-execute-before-factory", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksReplayMatch(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-replay-match' }> {
+  if (scenario.shape !== 'hooks-replay-match') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-replay-match", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksConflictBeforeThrow(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-conflict-before-throw' }> {
+  if (scenario.shape !== 'hooks-conflict-before-throw') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-conflict-before-throw", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksCoalesceFollower(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-coalesce-follower' }> {
+  if (scenario.shape !== 'hooks-coalesce-follower') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-coalesce-follower", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksIsolatedInstances(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-isolated-instances' }> {
+  if (scenario.shape !== 'hooks-isolated-instances') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-isolated-instances", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksThrowingReplay(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-replay' }> {
+  if (scenario.shape !== 'hooks-throwing-replay') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-throwing-replay", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksThrowingConflict(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-conflict' }> {
+  if (scenario.shape !== 'hooks-throwing-conflict') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-throwing-conflict", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksThrowingExecute(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-execute' }> {
+  if (scenario.shape !== 'hooks-throwing-execute') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-throwing-execute", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksSyncReplaySwallowed(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-sync-replay-swallowed' }> {
+  if (scenario.shape !== 'hooks-sync-replay-swallowed') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-sync-replay-swallowed", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksAsyncReplaySafe(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-async-replay-safe' }> {
+  if (scenario.shape !== 'hooks-async-replay-safe') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-async-replay-safe", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksThrowingCoalesce(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-coalesce' }> {
+  if (scenario.shape !== 'hooks-throwing-coalesce') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-throwing-coalesce", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioHooksAsyncOverridesSafe(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-async-overrides-safe' }> {
+  if (scenario.shape !== 'hooks-async-overrides-safe') {
+    throw new Error(`Scenario shape mismatch: expected "hooks-async-overrides-safe", received "${scenario.shape}"`);
+  }
+}
+
+function assertScenarioRaceConcurrentDifferentPayload(
+  scenario: ScenarioFixture
+): asserts scenario is Extract<ScenarioCase, { shape: 'race-concurrent-different-payload' }> {
+  if (scenario.shape !== 'race-concurrent-different-payload') {
+    throw new Error(`Scenario shape mismatch: expected "race-concurrent-different-payload", received "${scenario.shape}"`);
+  }
+}
 
 type PayloadMaterializerMap = {
   conflicting: <TInput extends { conflictingPayload: unknown }>(input: TInput) => TInput['conflictingPayload'];
@@ -220,6 +666,7 @@ function createTraceLogger(shape: string): { log: (message: string) => void; sna
 
 const scenarioRunners: ScenarioRunnerMap = {
   'metadata-accepts-string-fingerprint': (scenario) => {
+    assertScenarioMetadataAcceptsStringFingerprint(scenario);
     assert.equal(
       IdempotencyGuardEntryMetadataEntity.validate({ fingerprint: scenario.input.fingerprint }),
       scenario.expected.valid
@@ -227,6 +674,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'metadata-rejects-invalid-fingerprint': (scenario) => {
+    assertScenarioMetadataRejectsInvalidFingerprint(scenario);
     assert.equal(
       IdempotencyGuardEntryMetadataEntity.validate(scenario.input.missingFingerprint),
       scenario.expected.missingValid
@@ -238,6 +686,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'coalesce-shares-one-execution': async (scenario) => {
+    assertScenarioCoalesceSharesOneExecution(scenario);
     const trace = createTraceLogger(scenario.shape);
     const guard = createGuard<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
@@ -267,6 +716,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'result-contract-owned': async (scenario) => {
+    assertScenarioResultContractOwned(scenario);
     const guard = createGuard<number>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     const initial = await runScenarioInput(guard, input, () => scenario.expected.initial);
@@ -277,6 +727,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'result-contract-rejects-invalid-factory': (scenario) => {
+    assertScenarioResultContractRejectsInvalidFactory(scenario);
     const diagnostics = ResultContractCompiler.diagnostics(scenario.input);
     assert.equal(diagnostics.length, scenario.expected.diagnosticsCount);
     for (const diagnostic of diagnostics) {
@@ -285,6 +736,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'conflict-same-key-different-payload': async (scenario) => {
+    assertScenarioConflictSameKeyDifferentPayload(scenario);
     const guard = createGuard<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     let calls = 0;
@@ -308,6 +760,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'conflict-exposes-key': async (scenario) => {
+    assertScenarioConflictExposesKey(scenario);
     const guard = createGuard<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     await runScenarioInput(guard, input, async () => scenario.expected.result);
@@ -324,12 +777,14 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'replay-accepts-sync-factory': async (scenario) => {
+    assertScenarioReplayAcceptsSyncFactory(scenario);
     const guard = createGuard<{ chargeId: string }>(scenario.input.idempotencyGuard);
     const result = await runScenarioInput(guard, scenario.input, () => structuredClone(scenario.expected.result));
     assert.deepEqual(result, scenario.expected.result);
   },
 
   'replay-cached-result': async (scenario) => {
+    assertScenarioReplayCachedResult(scenario);
     const guard = createGuard<{ chargeId: string }>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     let calls = 0;
@@ -347,6 +802,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'replay-expired-entry-reruns': async (scenario) => {
+    assertScenarioReplayExpiredEntryReruns(scenario);
     const guard = createGuard<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     let calls = 0;
@@ -366,6 +822,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-execute-new-key': async (scenario) => {
+    assertScenarioHooksExecuteNewKey(scenario);
     const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
     await runScenarioInput(guard, input, async () => 'ok');
@@ -375,6 +832,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-execute-before-factory': async (scenario) => {
+    assertScenarioHooksExecuteBeforeFactory(scenario);
     const events: string[] = [];
 
     class OrderedGuard extends IdempotencyGuard<string> {
@@ -396,6 +854,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-replay-match': async (scenario) => {
+    assertScenarioHooksReplayMatch(scenario);
     const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
     await runScenarioInput(guard, input, async () => 'ok');
@@ -405,6 +864,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-conflict-before-throw': async (scenario) => {
+    assertScenarioHooksConflictBeforeThrow(scenario);
     const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
     await runScenarioInput(guard, input, async () => 'ok');
@@ -417,6 +877,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-coalesce-follower': async (scenario) => {
+    assertScenarioHooksCoalesceFollower(scenario);
     const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
     let resolveFactory: (value: string) => void = () => {};
@@ -432,6 +893,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-isolated-instances': async (scenario) => {
+    assertScenarioHooksIsolatedInstances(scenario);
     class IsolatedTrackingGuard extends IdempotencyGuard<string> {
       readonly events: string[] = [];
 
@@ -504,6 +966,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-throwing-replay': async (scenario) => {
+    assertScenarioHooksThrowingReplay(scenario);
     class ThrowingReplayGuard extends IdempotencyGuard<string> {
       static tracked(options: GuardOptions): ThrowingReplayGuard {
         return new ThrowingReplayGuard(options);
@@ -522,6 +985,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-throwing-conflict': async (scenario) => {
+    assertScenarioHooksThrowingConflict(scenario);
     class ThrowingConflictGuard extends IdempotencyGuard<string> {
       static tracked(options: GuardOptions): ThrowingConflictGuard {
         return new ThrowingConflictGuard(options);
@@ -539,6 +1003,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-throwing-execute': async (scenario) => {
+    assertScenarioHooksThrowingExecute(scenario);
     class ThrowingExecuteGuard extends IdempotencyGuard<string> {
       static tracked(options: GuardOptions): ThrowingExecuteGuard {
         return new ThrowingExecuteGuard(options);
@@ -555,6 +1020,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-sync-replay-swallowed': async (scenario) => {
+    assertScenarioHooksSyncReplaySwallowed(scenario);
     class ThrowingReplayGuard extends IdempotencyGuard<string> {
       static tracked(options: GuardOptions): ThrowingReplayGuard {
         return new ThrowingReplayGuard(options);
@@ -573,6 +1039,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-async-replay-safe': async (scenario) => {
+    assertScenarioHooksAsyncReplaySafe(scenario);
     const trace = createTraceLogger(scenario.shape);
 
     class AsyncRejectingReplayGuard extends IdempotencyGuard<string> {
@@ -612,6 +1079,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-throwing-coalesce': async (scenario) => {
+    assertScenarioHooksThrowingCoalesce(scenario);
     class ThrowingCoalesceGuard extends IdempotencyGuard<string> {
       static tracked(options: GuardOptions): ThrowingCoalesceGuard {
         return new ThrowingCoalesceGuard(options);
@@ -635,6 +1103,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'hooks-async-overrides-safe': async (scenario) => {
+    assertScenarioHooksAsyncOverridesSafe(scenario);
     const trace = createTraceLogger(scenario.shape);
     const events: string[] = [];
     const rejectionEvents: unknown[] = [];
@@ -711,6 +1180,7 @@ const scenarioRunners: ScenarioRunnerMap = {
   },
 
   'race-concurrent-different-payload': async (scenario) => {
+    assertScenarioRaceConcurrentDifferentPayload(scenario);
     const trace = createTraceLogger(scenario.shape);
     const guard = createGuard<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
@@ -760,7 +1230,14 @@ const scenarioRunners: ScenarioRunnerMap = {
   }
 };
 
-async function runScenario<TShape extends ScenarioShape>(scenario: ScenarioFor<TShape>): Promise<void> {
+function isScenarioShape(shape: string): shape is ScenarioShape {
+  return Object.prototype.hasOwnProperty.call(scenarioRunners, shape);
+}
+
+async function runScenario(scenario: ScenarioFixture): Promise<void> {
+  if (!isScenarioShape(scenario.shape)) {
+    throw new Error(`Unknown scenario shape: ${scenario.shape}`);
+  }
   await scenarioRunners[scenario.shape](scenario);
 }
 

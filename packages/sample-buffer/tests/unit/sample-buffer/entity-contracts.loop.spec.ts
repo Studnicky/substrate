@@ -5,7 +5,7 @@ import {
 
 import { SampleBufferStateEntity } from '../../../src/index.js';
 import { SampleBufferError } from '../../../src/errors/SampleBufferError.js';
-import scenarioGroups from './entity-contracts.scenarios.json';
+import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
 
 type ScenarioDescriptor<K extends string, Input, Expected> = {
   description: string;
@@ -23,7 +23,7 @@ type ValidationScenario = ScenarioDescriptor<
 
 type ErrorArgsScenario = ScenarioDescriptor<
   'error-args',
-  { causeMessage: string; correlationId: string; message: string; retryable: boolean },
+  { causeMessage: string; correlationId: string; message: string; retryable?: boolean },
   { causeMessage: string; correlationId: string; message: string; retryable: boolean }
 >;
 
@@ -42,7 +42,7 @@ const runnerMap: RunnerMap = {
     const err = new SampleBufferError(scenarioCase.input.message, {
       'cause': new Error(scenarioCase.input.causeMessage),
       'correlationId': scenarioCase.input.correlationId,
-      'retryable': scenarioCase.input.retryable
+      ...(scenarioCase.input.retryable === undefined ? {} : { 'retryable': scenarioCase.input.retryable })
     });
     assert.equal(err.message, scenarioCase.expected.message);
     assert.equal(err.correlationId, scenarioCase.expected.correlationId);

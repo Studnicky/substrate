@@ -8,6 +8,7 @@ import {
   KeyedRateLimiterRegistryOptionsEntity,
   RateLimitRequestEntity
 } from '../../../src/index.js';
+import type { KeyedRateLimiterCreateConfigInterface } from '../../../src/index.js';
 
 type ScenarioCase = {
   description: string;
@@ -23,8 +24,6 @@ type ScenarioInput = {
   registry?: Record<string, unknown>;
 };
 
-type KeyedRateLimiterCreateConfig = Parameters<typeof KeyedRateLimiter.create>[0];
-
 class TrackingEvictionLimiter extends KeyedRateLimiter {
   readonly created: string[] = [];
   readonly evicted: string[] = [];
@@ -38,7 +37,7 @@ class TrackingEvictionLimiter extends KeyedRateLimiter {
   }
 }
 
-import scenarioGroups from './keyed-rate-limiter.scenarios.json';
+import scenarioGroups from './keyed-rate-limiter.scenarios.json' with { type: 'json' };
 
 class TrackingLimiter extends KeyedRateLimiter {
   readonly evicted: string[] = [];
@@ -102,15 +101,18 @@ function rateLimitRequestInput(input: ScenarioInput): Record<string, unknown> {
   return input.rateLimitRequest;
 }
 
-function keyedRateLimiterConfig(input: ScenarioInput, clock?: () => number): KeyedRateLimiterCreateConfig {
-  const config = { ...keyedRateLimiterInput(input) };
+function keyedRateLimiterConfig(input: ScenarioInput, clock?: () => number): KeyedRateLimiterCreateConfigInterface {
+  const raw = keyedRateLimiterInput(input);
+  const config: KeyedRateLimiterCreateConfigInterface = {
+    burstSize: Number(raw.burstSize),
+    requestsPerSecond: Number(raw.requestsPerSecond)
+  };
 
-  delete config.advanceTimeMs;
-  delete config.allowance;
-  delete config.consumeTokens;
-  delete config.waitMs;
+  if (raw.maxKeys !== undefined) { config.maxKeys = Number(raw.maxKeys); }
+  if (raw.keyIdleTtlMs !== undefined) { config.keyIdleTtlMs = Number(raw.keyIdleTtlMs); }
+  if (clock !== undefined) { config.clock = clock; }
 
-  return (clock === undefined ? config : { ...config, clock }) as KeyedRateLimiterCreateConfig;
+  return config;
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
@@ -134,7 +136,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       limiter.consume('user-a');
       assert.throws(() => { limiter.consume('user-a'); }, TokenBucketExhaustedError);
       limiter.consume('user-b');
-      assert.equal(expected.completed, true);
       return;
     },
 
@@ -143,7 +144,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       limiter.consume('user-c');
       limiter.consume('user-c');
       assert.throws(() => { limiter.consume('user-c'); }, TokenBucketExhaustedError);
-      assert.equal(expected.completed, true);
       return;
     },
 
@@ -151,7 +151,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       const limiter = KeyedRateLimiter.create(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-d', 5);
       assert.throws(() => { limiter.consume('user-d', 1); }, TokenBucketExhaustedError);
-      assert.equal(expected.completed, true);
       return;
     },
 
@@ -171,12 +170,11 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       limiter.consume('user-e');
       limiter.consume('user-e');
       assert.equal(factoryCalls, expected.factoryCalls);
-      assert.equal(expected.completed, true);
       return;
     },
 
     'getters-eviction-on-max-keys': () => {
-      const limiter = TrackingLimiter.create(keyedRateLimiterConfig(input, () => 0) as Parameters<typeof TrackingLimiter.create>[0]);
+      const limiter = TrackingLimiter.create(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -194,7 +192,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       limiter.consume('user-a');
       assert.throws(() => { limiter.consume('user-a'); });
       limiter.consume('user-b');
-      assert.equal(expected.completed, true);
       return;
     },
 
@@ -205,7 +202,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       });
       await limiter.waitForToken('user-a');
       assert.throws(() => { limiter.consume('user-a'); });
-      assert.equal(expected.completed, true);
       return;
     },
 
@@ -223,7 +219,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       limiter.consume('user-b');
       limiter.consume('user-a');
       assert.deepEqual([...creations.entries()], expected.creations);
-      assert.equal(expected.completed, true);
       return;
     },
 
@@ -233,7 +228,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       await limiter.waitForToken('user-a');
       limiter.consume('user-a', Number(keyedRateLimiter.consumeTokens));
       assert.throws(() => { limiter.consume('user-a'); }, TokenBucketExhaustedError);
-      assert.equal(expected.completed, true);
       return;
     },
 
@@ -249,7 +243,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       const wait = limiter.waitForToken('user-b');
       await Promise.all([advance, wait]);
       limiter.consume('user-c');
-      assert.equal(expected.completed, true);
       return;
     },
 
@@ -259,12 +252,11 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       limiter.consume('user-d');
       setImmediate(() => { controller.abort(new Error('cancelled')); });
       await assert.rejects(() => limiter.waitForToken('user-d', { signal: controller.signal }));
-      assert.equal(expected.completed, true);
       return;
     },
 
     'evicts-idle-key-at-capacity': () => {
-      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input, () => 0) as Parameters<typeof TrackingEvictionLimiter.create>[0]);
+      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -274,7 +266,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
 
     'recreates-strategy-after-eviction': () => {
-      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input, () => 0) as Parameters<typeof TrackingEvictionLimiter.create>[0]);
+      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -286,7 +278,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     'idle-key-expires-and-rebuilds': async () => {
       const keyedRateLimiter = keyedRateLimiterInput(input);
-      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input) as Parameters<typeof TrackingEvictionLimiter.create>[0]);
+      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input));
       limiter.consume('user-a');
       await new Promise<void>((resolve) => { setTimeout(resolve, Number(keyedRateLimiter.waitMs)); });
       limiter.consume('user-a');
@@ -297,17 +289,26 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     'throwing-on-key-evicted': () => {
       class ThrowingEvictedLimiter extends KeyedRateLimiter {
-        protected override onKeyEvicted(): void {
+        readonly created: string[] = [];
+        readonly evicted: string[] = [];
+
+        protected override onKeyCreated(key: string): void {
+          this.created.push(key);
+        }
+
+        protected override onKeyEvicted(key: string): void {
+          this.evicted.push(key);
           throw new Error('onKeyEvicted boom');
         }
       }
 
-      const limiter = ThrowingEvictedLimiter.create(keyedRateLimiterConfig(input) as Parameters<typeof ThrowingEvictedLimiter.create>[0]);
+      const limiter = ThrowingEvictedLimiter.create(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
       limiter.consume('user-a');
-      assert.equal(expected.completed, true);
+      assert.deepEqual(limiter.created, expected.created);
+      assert.deepEqual(limiter.evicted, expected.evicted);
       return;
     },
 
@@ -320,7 +321,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         }
       }
 
-      const limiter = ObservedTokenAcquiredLimiter.create(keyedRateLimiterConfig(input, () => 0) as Parameters<typeof ObservedTokenAcquiredLimiter.create>[0]);
+      const limiter = ObservedTokenAcquiredLimiter.create(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a', 1);
       limiter.consume('user-a', 1);
       assert.deepStrictEqual(acquired, expected.acquired);
@@ -328,13 +329,17 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
   };
 
-  await runnerMap[shape]();
+  const runner = runnerMap[shape];
+  if (runner === undefined) {
+    throw new Error(`No runner registered for shape: ${shape}`);
+  }
+  await runner();
 }
 
 void describe('keyed-rate-limiter', () => {
   for (const scenario of scenarioGroups.cases) {
     void it(scenario.name, async () => {
-      await runCase(scenario as ScenarioCase);
+      await runCase(scenario);
     });
   }
 });

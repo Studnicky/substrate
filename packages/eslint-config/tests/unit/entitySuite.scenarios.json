@@ -97,6 +97,18 @@
           {
             "code": "type InvalidDataType = { value: string };",
             "filename": "InvalidInlineAlias.ts"
+          },
+          {
+            "code": "interface RunnerInterface { run(): void; }\ntype RunnerAliasType = RunnerInterface;",
+            "filename": "NakedAlias.ts"
+          },
+          {
+            "code": "interface Collision { value: string; }",
+            "filename": "SuffixCollision.ts"
+          },
+          {
+            "code": "interface Handler { run(): void; config: { retries: number }; }",
+            "filename": "DualRemediation.ts"
           }
         ]
       },
@@ -166,6 +178,37 @@
               {
                 "messageId": "derivedFromSchema",
                 "ruleId": "@studnicky/type-alias-invariants"
+              }
+            ]
+          },
+          {
+            "filename": "NakedAlias.ts",
+            "messages": [
+              {
+                "messageId": "aliasMustBeInterface",
+                "ruleId": "@studnicky/type-alias-invariants"
+              }
+            ]
+          },
+          {
+            "filename": "SuffixCollision.ts",
+            "messages": [
+              {
+                "messageId": "dataShapeMustBeType",
+                "ruleId": "@studnicky/interface-must-be-contract"
+              }
+            ]
+          },
+          {
+            "filename": "DualRemediation.ts",
+            "messages": [
+              {
+                "messageId": "missing-interface-suffix",
+                "ruleId": "@studnicky/interface-suffix"
+              },
+              {
+                "messageId": "inlineObjectInInterface",
+                "ruleId": "@studnicky/interfaces-compose-named-types"
               }
             ]
           }

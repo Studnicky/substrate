@@ -22,21 +22,25 @@
     },
     {
       "name": "onEvict-called-with-evicted-item",
-      "description": "onEvict is called with the evicted item when overwrite triggers",
+      "description": "onEvict is called with each evicted item in order across a longer eviction chain",
       "shape": "onEvict-called-with-evicted-item",
       "input": {
         "options": {
           "capacity": 2
         },
         "pushItems": [
-          1,
-          2,
-          3
+          10,
+          20,
+          30,
+          40,
+          50
         ]
       },
       "expected": {
         "evictLog": [
-          1
+          10,
+          20,
+          30
         ]
       }
     },

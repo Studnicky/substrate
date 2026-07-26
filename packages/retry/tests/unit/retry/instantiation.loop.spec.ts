@@ -10,7 +10,7 @@ import {
 } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
-import scenarioGroups from './instantiation.scenarios.json';
+import scenarioGroups from './instantiation.scenarios.json' with { type: 'json' };
 
 type RetryScenarioInput = Record<string, unknown> & {
   batch?: { failureCountBeforeSuccess?: number };
@@ -18,22 +18,22 @@ type RetryScenarioInput = Record<string, unknown> & {
 };
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'create-max-retries-5' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'create-defaults' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'create-error-classifier-and-max-retries' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'execute-retries-until-success' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'factory-equivalent' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-snapshots' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-empty' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'non-retryable-original-error-fallback' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'max-retries-empty-errors-fallback' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-projections-are-detached' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-snapshot-cycles' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-snapshot-clone-fallback' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-rejects-non-error-diagnostics' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-preserves-error-name' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'retry-error-preserves-history-error-name' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'derived-errors-expose-detached-diagnostics' };
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'create-max-retries-5' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'create-defaults' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'create-error-classifier-and-max-retries' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'execute-retries-until-success' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'factory-equivalent' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-snapshots' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-empty' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'non-retryable-original-error-fallback' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'max-retries-empty-errors-fallback' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-projections-are-detached' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-snapshot-cycles' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-snapshot-clone-fallback' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-rejects-non-error-diagnostics' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-preserves-error-name' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-preserves-history-error-name' }
+  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'derived-errors-expose-detached-diagnostics' };
 
 type AttemptOutcome = 'failure' | 'success';
 
@@ -64,22 +64,17 @@ async function executeUntilConfiguredSuccess(retry: Retry, input: RetryScenarioI
 
 const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'create-max-retries-5': (scenario) => {
-    const { expected, input } = scenario;
+    const { input } = scenario;
     assert.ok(Retry.create(input.retry) instanceof Retry);
-    assert.strictEqual(expected.instanceOf, 'Retry');
   },
-  'create-defaults': (scenario) => {
-    const { expected, input } = scenario;
-    assert.strictEqual(input.instanceOf, expected.instanceOf);
+  'create-defaults': (_scenario) => {
     assert.ok(Retry.create() instanceof Retry);
-    assert.strictEqual(expected.instanceOf, 'Retry');
   },
   'create-error-classifier-and-max-retries': (scenario) => {
-    const { expected, input } = scenario;
+    const { input } = scenario;
     assert.ok(
       Retry.create({ errorClassifier: DefaultHttpErrorClassifier.create(), ...input.retry }) instanceof Retry
     );
-    assert.strictEqual(expected.instanceOf, 'Retry');
   },
   'derived-errors-expose-detached-diagnostics': (scenario) => {
     const { expected, input } = scenario;
@@ -174,6 +169,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     assert.ok(projectedError instanceof Error);
     assert.ok(projectedCause instanceof Error);
+    assert.ok(projectedError.cause instanceof Error);
     projectedError.message = String(input.mutatedHistoryMessage);
     projectedCause.message = String(input.mutatedCauseMessage);
     Reflect.set(projectedError.cause, 'message', String(input.mutatedInnerMessage));
@@ -195,8 +191,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
         Number(input.attemptNumber),
         { 'errors': [String(input.invalidError)] }
       ]);
-    }, TypeError);
-    assert.equal(String(expected.errorName), 'TypeError');
+    }, (error: unknown) => error instanceof TypeError && error.name === String(expected.errorName));
   },
   'retry-error-snapshot-clone-fallback': (scenario) => {
     const { expected, input } = scenario;
@@ -219,9 +214,9 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { cause: error });
     const [projectedError] = retryError.errors;
+    assert.ok(projectedError instanceof Error);
     const projectedPrototypeData = Reflect.get(projectedError, 'prototypeData') as { tag?: string; visit?: () => string };
 
-    assert.ok(projectedError instanceof Error);
     assert.equal(projectedPrototypeData.tag, String(expected.tag));
     assert.equal(typeof projectedPrototypeData.visit, String(expected.badType));
     assert.equal(retryError.errors.length, Number(expected.errorCount));
@@ -235,9 +230,9 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { cause });
     const [projectedError] = retryError.errors;
+    assert.ok(projectedError instanceof Error);
     const projectedDetail = Reflect.get(projectedError, 'detail') as Record<string, unknown>;
 
-    assert.ok(projectedError instanceof Error);
     assert.equal(projectedError.message, String(input.failedMessage));
     assert.equal(projectedDetail.message, String(expected.detailMessage));
     assert.strictEqual(projectedDetail.self, projectedDetail);

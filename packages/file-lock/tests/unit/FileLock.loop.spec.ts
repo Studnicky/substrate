@@ -7,7 +7,7 @@ import { beforeEach, afterEach, describe, it } from 'node:test';
 import type { FileSystemInterface, StatResultInterface } from '@studnicky/virtual-fs';
 
 import { FileLock, FileLockTimeoutError } from '../../src/index.js';
-import scenarioGroups from './FileLock.scenarios.json';
+import scenarioGroups from './FileLock.scenarios.json' with { type: 'json' };
 
 type ScenarioCaseBase = {
   description: string;
@@ -432,7 +432,7 @@ function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase
 }
 
 void describe('FileLock', () => {
-  for (const scenarioCase of scenarioGroups.cases) {
+  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

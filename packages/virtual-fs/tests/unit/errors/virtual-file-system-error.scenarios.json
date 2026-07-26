@@ -1,0 +1,62 @@
+{
+  "cases": [
+    {
+      "name": "construction",
+      "description": "VirtualFileSystemError uses the virtualFs.error code and preserves supplied context",
+      "shape": "construction",
+      "input": {
+        "error": {
+          "message": "path does not exist",
+          "args": {
+            "correlationId": "corr-123",
+            "metadata": {
+              "path": "/missing"
+            }
+          }
+        }
+      },
+      "expected": {
+        "code": "virtualFs.error",
+        "correlationId": "corr-123",
+        "metadata": {
+          "path": "/missing"
+        },
+        "message": "path does not exist",
+        "retryable": false
+      }
+    },
+    {
+      "name": "construction-without-args",
+      "description": "VirtualFileSystemError fills in default fields when optional args are omitted",
+      "shape": "construction",
+      "input": {
+        "error": {
+          "message": "path does not exist"
+        }
+      },
+      "expected": {
+        "code": "virtualFs.error",
+        "message": "path does not exist",
+        "retryable": false
+      }
+    },
+    {
+      "name": "construction-retryable",
+      "description": "VirtualFileSystemError honours a supplied retryable argument",
+      "shape": "construction",
+      "input": {
+        "error": {
+          "message": "underlying volume is temporarily locked",
+          "args": {
+            "retryable": true
+          }
+        }
+      },
+      "expected": {
+        "code": "virtualFs.error",
+        "message": "underlying volume is temporarily locked",
+        "retryable": true
+      }
+    }
+  ]
+}

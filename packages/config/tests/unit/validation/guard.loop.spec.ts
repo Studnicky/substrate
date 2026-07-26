@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { Guard } from '@studnicky/types';
 
-import scenarioGroups from './guard.scenarios.json';
+import scenarioGroups from './guard.scenarios.json' with { type: 'json' };
 
 function fixtureFunction(): void {
   return undefined;
@@ -15,9 +15,11 @@ function namedFixtureFunction(): void {
 
 const specialValueMaterializers = {
   'function': (): (() => void) => fixtureFunction,
+  'map': (): Map<unknown, unknown> => new Map(),
   'namedFunction': (): (() => void) => namedFixtureFunction,
   'nan': (): number => NaN,
   'null': (): null => null,
+  'set': (): Set<unknown> => new Set(),
   'undefined': (): undefined => undefined
 };
 
@@ -98,7 +100,7 @@ const guardGroupNames: readonly GuardGroupName[] = [
   'isPositiveInteger'
 ];
 
-const typedScenarioGroups: Record<GuardGroupName, readonly GuardScenario[]> = scenarioGroups;
+const typedScenarioGroups = scenarioGroups as Record<GuardGroupName, readonly GuardScenario[]>;
 
 function isSpecialValue(
   value: { readonly [key: string]: SerializedScenarioValue }
@@ -113,10 +115,14 @@ function materialize(value: SerializedScenarioValue): unknown {
   if (Array.isArray(value)) {
     return value.map((entry) => materialize(entry));
   }
-  if (isSpecialValue(value)) {
-    return specialValueMaterializers[value.shape]();
+  // Array.isArray() above rules out the array branch at runtime, but TypeScript's
+  // narrower can't fold that back into this recursive union — the object shape
+  // is asserted, not assumed.
+  const objectValue = value as { readonly [key: string]: SerializedScenarioValue };
+  if (isSpecialValue(objectValue)) {
+    return specialValueMaterializers[objectValue.shape]();
   }
-  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, materialize(entry)]));
+  return Object.fromEntries(Object.entries(objectValue).map(([key, entry]) => [key, materialize(entry)]));
 }
 
 for (const groupName of guardGroupNames) {

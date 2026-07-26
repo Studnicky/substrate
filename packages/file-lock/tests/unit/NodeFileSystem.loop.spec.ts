@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { NodeFileSystem } from '../../src/NodeFileSystem.js';
-import scenarioGroups from './NodeFileSystem.scenarios.json';
+import scenarioGroups from './NodeFileSystem.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
   description: string;

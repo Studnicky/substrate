@@ -8,7 +8,7 @@ import { MachineAlreadyRegisteredError } from '../../src/MachineAlreadyRegistere
 import { MachineRegistry } from '../../src/MachineRegistry.js';
 import { StateMachine } from '../../src/StateMachine.js';
 import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
-import scenarioGroups from './MachineRegistry.scenarios.json';
+import scenarioGroups from './MachineRegistry.scenarios.json' with { type: 'json' };
 
 type SimpleState = { readonly variant: 'idle' };
 type SimpleEvent = { readonly type: 'noop' };
@@ -83,6 +83,10 @@ type ScenarioCase =
     };
 
 class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
+  static create(): SimpleMachine {
+    return new SimpleMachine();
+  }
+
   override getInitialState(): SimpleState { return { variant: 'idle' }; }
 
   override reduce(state: SimpleState, _event: SimpleEvent): FsmStepInterface<SimpleState> {
@@ -92,11 +96,17 @@ class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
 
 class Fixture {
   static interpreter(): EffectInterpreter<SimpleState, SimpleEvent> {
-    return EffectInterpreter.create({ machine: new SimpleMachine() });
+    return EffectInterpreter.create({ machine: SimpleMachine.create() });
   }
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
+type ScenarioShape = ScenarioCase['shape'];
+
+type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+
+type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'duplicate-register-throws': (scenarioCase) => {
     const registry = MachineRegistry.create<SimpleState, SimpleEvent>();
     registry.register(scenarioCase.input.name, Fixture.interpreter());
@@ -148,10 +158,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
   }
 };
 
+function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
+}
+
 void describe('MachineRegistry', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
-      runnerMap[scenario.shape](scenario);
+      runCase(scenario);
     });
   }
 });

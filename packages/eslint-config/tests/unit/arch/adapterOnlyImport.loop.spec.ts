@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { adapterOnlyImport } from '../../../src/rules/arch/adapterOnlyImport.js';
-import scenarioGroups from './adapterOnlyImport.scenarios.json';
+import scenarioGroups from './adapterOnlyImport.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

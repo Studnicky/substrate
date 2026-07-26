@@ -3,7 +3,9 @@ import { describe, it } from 'node:test';
 
 import { BaseError } from '../../src/errors/BaseError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
-import scenarioGroups from './validation-error.scenarios.json';
+import scenarioGroups from './validation-error.scenarios.json' with { type: 'json' };
+
+type ScenarioViolationInput = { details?: Record<string, unknown>; message: string; path: string };
 
 type ScenarioInput = {
   correlationId?: string;
@@ -23,7 +25,7 @@ type ScenarioCase =
 
 type ScenarioRunner = (scenario: ScenarioCase, err: ValidationError) => void;
 
-function materializeViolations(violations: ReadonlyArray<Record<string, unknown>> | undefined): ReadonlyArray<Record<string, unknown>> | undefined {
+function materializeViolations(violations: ReadonlyArray<Record<string, unknown>> | undefined): ScenarioViolationInput[] | undefined {
   if (violations === undefined) {
     return undefined;
   }
@@ -37,15 +39,16 @@ function materializeViolations(violations: ReadonlyArray<Record<string, unknown>
       }
     }
     return result;
-  });
+  }) as unknown as ScenarioViolationInput[];
 }
 
-function buildInput(input: ScenarioInput): { correlationId?: string; message: string; path: string; violations?: ReadonlyArray<Record<string, unknown>> } {
+function buildInput(input: ScenarioInput): { correlationId?: string; message: string; path: string; violations?: ScenarioViolationInput[] } {
+  const violations = materializeViolations(input.violations);
   return {
-    'correlationId': input.correlationId,
+    ...(input.correlationId === undefined ? {} : { correlationId: input.correlationId }),
     'message': input.message,
     'path': input.path,
-    'violations': materializeViolations(input.violations)
+    ...(violations === undefined ? {} : { violations })
   };
 }
 
@@ -136,8 +139,11 @@ const runnerMap = {
     });
     const violation = errWithComplexDetails.violations?.[0];
     assert.ok(violation !== undefined);
-    assert.strictEqual(violation.details?.tags?.[0], scenario.expected.tags?.[0]);
-    assert.strictEqual(violation.details?.plain?.nested?.count, scenario.expected.count);
+    const resultTags = violation.details?.tags as unknown[] | undefined;
+    const expectedTags = scenario.expected.tags as unknown[] | undefined;
+    const resultPlain = violation.details?.plain as { nested?: { count?: unknown } } | undefined;
+    assert.strictEqual(resultTags?.[0], expectedTags?.[0]);
+    assert.strictEqual(resultPlain?.nested?.count, scenario.expected.count);
     assert.strictEqual(violation.details?.instance, marker);
   },
   'violations-present': (scenario, err) => {

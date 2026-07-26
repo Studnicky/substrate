@@ -1,7 +1,7 @@
 {
   "cases": [
     { "name": "instance-check", "description": "is instance of Error, BaseError, and CliExitError", "shape": "instance-check", "input": { "instanceOf": ["Error", "BaseError", "CliExitError"] }, "expected": { "instanceOf": ["Error", "BaseError", "CliExitError"] } },
-    { "name": "defaults-exit-code", "description": "defaults exitCode to 1", "shape": "exit-code", "input": { "error": { "exitCode": 1 } }, "expected": { "exitCode": 1 } },
+    { "name": "defaults-exit-code", "description": "defaults exitCode to 1 when the constructor argument is omitted", "shape": "exit-code", "input": { "error": { "exitCode": { "__shape": "undefined" } } }, "expected": { "exitCode": 1 } },
     { "name": "custom-exit-code", "description": "accepts a custom exitCode", "shape": "exit-code", "input": { "error": { "exitCode": 2 } }, "expected": { "exitCode": 2 } },
     { "name": "zero-exit-code", "description": "has exitCode 0 for success", "shape": "exit-code", "input": { "error": { "exitCode": 0 } }, "expected": { "exitCode": 0 } },
     { "name": "code-value", "description": "has code cli.exit", "shape": "code-value", "input": { "code": "cli.exit" }, "expected": { "code": "cli.exit" } },

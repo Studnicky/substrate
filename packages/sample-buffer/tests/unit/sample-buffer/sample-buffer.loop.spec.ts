@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { SampleBuffer } from '../../../src/sample-buffer/SampleBuffer.js';
 import { SampleBufferError } from '../../../src/errors/SampleBufferError.js';
-import scenarioGroups from './sample-buffer.scenarios.json';
+import scenarioGroups from './sample-buffer.scenarios.json' with { type: 'json' };
 
 type SampleBufferConfig = { capacity: number; extra?: boolean };
 
@@ -24,7 +24,7 @@ type ScenarioCaseMap = {
   'maintains-length': ScenarioDescriptor<'maintains-length', { pushes: number[]; sampleBuffer: SampleBufferConfig }, { isFull: boolean; length: number }>;
   'overwrites-oldest': ScenarioDescriptor<'overwrites-oldest', { pct: number; pushes: number[]; sampleBuffer: SampleBufferConfig }, { isFull: boolean; length: number; percentile: number }>;
   'percentile': ScenarioDescriptor<'percentile', { pct: number; sampleBuffer: SampleBufferConfig; samples: number[] }, { percentile: number | null }>;
-  'percentile-range': ScenarioDescriptor<'percentile-range', { batch: { sampleCount: number }; pct: number; sampleBuffer: SampleBufferConfig; startValue: number }, { max: number; min: number }>;
+  'percentile-batch': ScenarioDescriptor<'percentile-batch', { batch: { sampleCount: number }; pct: number; sampleBuffer: SampleBufferConfig; startValue: number }, { percentile: number }>;
   'push-lengths': ScenarioDescriptor<'push-lengths', { pushes: number[]; sampleBuffer: SampleBufferConfig }, { lengths: number[] }>;
   'recalculate-after-push': ScenarioDescriptor<'recalculate-after-push', { pct: number; pushAfter: number; pushes: number[]; sampleBuffer: SampleBufferConfig }, { percentileAfter: number; percentileBefore: number }>;
   'reuse-after-clear': ScenarioDescriptor<'reuse-after-clear', { firstPushes: number[]; pct: number; sampleBuffer: SampleBufferConfig; secondPushes: number[] }, { length: number; percentile: number }>;
@@ -88,15 +88,13 @@ const runnerMap: RunnerMap = {
     pushValues(buf, scenarioCase.input.samples);
     assert.equal(buf.percentile(scenarioCase.input.pct), scenarioCase.expected.percentile ?? undefined);
   },
-  'percentile-range': (scenarioCase) => {
+  'percentile-batch': (scenarioCase) => {
     const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
     const sampleLimit = scenarioCase.input.startValue + scenarioCase.input.batch.sampleCount;
     for (let value = scenarioCase.input.startValue; value < sampleLimit; value += 1) {
       buf.push(value);
     }
-    const value = buf.percentile(scenarioCase.input.pct);
-    assert.ok(value !== undefined, 'percentile should be defined');
-    assert.ok(value >= scenarioCase.expected.min && value <= scenarioCase.expected.max, `expected ${value} to be between ${scenarioCase.expected.min} and ${scenarioCase.expected.max}`);
+    assert.equal(buf.percentile(scenarioCase.input.pct), scenarioCase.expected.percentile);
   },
   'push-lengths': (scenarioCase) => {
     const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);

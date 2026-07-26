@@ -65,7 +65,7 @@ type ScenarioCase = {
   name: string;
 };
 
-import scenarioGroups from './bounded-dispatcher.scenarios.json';
+import scenarioGroups from './bounded-dispatcher.scenarios.json' with { type: 'json' };
 
 class RejectingEventBus extends EventBus<BoundedDispatcherTopicMapInterface> {
   readonly #cause: unknown;
@@ -103,9 +103,9 @@ type MaterializedScheduler = {
 };
 
 type MutableDispatcherConfig = {
-  bus?: BoundedDispatcherConfigInterface['bus'];
-  permits?: BoundedDispatcherConfigInterface['permits'];
-  scheduler?: BoundedDispatcherConfigInterface['scheduler'];
+  bus?: NonNullable<BoundedDispatcherConfigInterface['bus']>;
+  permits?: NonNullable<BoundedDispatcherConfigInterface['permits']>;
+  scheduler?: NonNullable<BoundedDispatcherConfigInterface['scheduler']>;
 };
 
 type BusMaterializer = (
@@ -316,8 +316,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     const results = await Promise.all((batch.labels ?? []).map((label) => trackedTask(label)));
 
     assert.deepEqual(results, expected.results);
-    assert.ok(maxConcurrentObserved <= Number(input.dispatcher.options.permits), `expected at most ${String(input.dispatcher.options.permits)} concurrent dispatches, observed ${maxConcurrentObserved}`);
-    assert.ok(maxConcurrentObserved >= 1, 'expected at least 1 concurrent dispatch to have run');
+    assert.equal(maxConcurrentObserved, Number(expected.maxConcurrentObserved));
   },
 
   'dispatch-serializes': async ({ expected, input }) => {

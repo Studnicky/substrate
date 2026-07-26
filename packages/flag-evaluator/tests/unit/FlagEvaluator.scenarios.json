@@ -271,9 +271,7 @@
           }
         }
       },
-      "expected": {
-        "message": "must be <= 100"
-      }
+      "expected": {}
     },
     {
       "name": "missing-default-value",

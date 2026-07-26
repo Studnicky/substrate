@@ -62,7 +62,7 @@ type ScenarioCase =
       name: string;
     };
 
-import scenarioGroups from './fsm.scenarios.json';
+import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
 
 function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
   assert.ok(error instanceof Error);
@@ -104,8 +104,11 @@ class BlockingThrottle extends TrackingThrottle {
   }
 }
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+  const runnerMap: RunnerMap = {
     'abort-transitions-to-aborted': async (caseData) => {
       const throttle = new TrackingThrottle(caseData.input.throttle);
       await throttle.abort();
@@ -185,7 +188,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Throttle FSM', () => {
-  for (const scenarioCase of scenarioGroups.cases) {
+  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

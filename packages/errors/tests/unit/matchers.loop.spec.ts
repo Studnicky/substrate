@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ErrorClassifier, matchers } from '../../src/index.js';
-import scenarioGroups from './matchers.scenarios.json';
+import scenarioGroups from './matchers.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -65,15 +65,24 @@ type ScenarioCase =
       shape: 'negative-matcher-route';
       name: string;
     }
-  | {
-      description: string;
-      expected: Record<string, boolean>;
-      input: Record<string, unknown>;
-      shape: 'array-matchers' | 'boolean-matchers' | 'database-matchers' | 'empty-variadics' | 'http-matchers' | 'instance-matchers' | 'logic-matchers' | 'network-matchers' | 'number-matchers' | 'object-matchers' | 'proto-matchers' | 'string-matchers';
-      name: string;
-    };
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'array-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'boolean-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'database-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'empty-variadics'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'http-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'instance-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'logic-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'network-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'number-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'object-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'proto-matchers'; name: string }
+  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'string-matchers'; name: string };
 
-type ScenarioRunner = (scenario: ScenarioCase) => void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>) => void;
+
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
 
 function assertMatcherSurface(): void {
   assert.strictEqual(Object.isFrozen(matchers), true);
@@ -84,7 +93,7 @@ function assertMatcherSurface(): void {
   assert.strictEqual(Object.hasOwn(matchers.instance, 'isType'), false);
 }
 
-const runnerMap = {
+const runnerMap: RunnerMap = {
   'array-matchers': (scenario) => {
     const value = scenario.input.arrayValue as string[];
     assert.strictEqual(matchers.array.contains('b')(value), scenario.expected.contains);
@@ -169,36 +178,36 @@ const runnerMap = {
     assert.strictEqual(matchers.number.greaterThan(4)(value), false);
     assert.strictEqual(matchers.number.gte(5)(value), false);
     assert.strictEqual(matchers.number.inRange(4, 5)(value), false);
-    assert.strictEqual(matchers.number.lessThan(6)(value), true);
-    assert.strictEqual(matchers.number.lte(5)(value), true);
-    assert.strictEqual(matchers.number.oneOf(1, 5, 9)(value), false);
+    assert.strictEqual(matchers.number.lessThan(6)(value), scenario.expected.lessThan);
+    assert.strictEqual(matchers.number.lte(5)(value), scenario.expected.lte);
+    assert.strictEqual(matchers.number.oneOf(1, 5, 9)(value), scenario.expected.oneOf);
 
-    assert.strictEqual(matchers.string.contains('Connection')(stringValue), false);
-    assert.strictEqual(matchers.string.containsIgnoreCase('connection refused')(stringValue), false);
-    assert.strictEqual(matchers.string.endsWith('Refused')(stringValue), false);
-    assert.strictEqual(matchers.string.lengthInRange(10, 30)(stringValue), false);
-    assert.strictEqual(matchers.string.matches(/Refused$/u)(stringValue), false);
-    assert.strictEqual(matchers.string.notEmpty(stringValue), false);
-    assert.strictEqual(matchers.string.oneOf('Connection Refused', 'other')(stringValue), false);
-    assert.strictEqual(matchers.string.startsWith('Connection')(stringValue), false);
-    assert.strictEqual(matchers.string.startsWithIgnoreCase('connection')(stringValue), false);
+    assert.strictEqual(matchers.string.contains('Connection')(stringValue), scenario.expected.contains);
+    assert.strictEqual(matchers.string.containsIgnoreCase('connection refused')(stringValue), scenario.expected.containsIgnoreCase);
+    assert.strictEqual(matchers.string.endsWith('Refused')(stringValue), scenario.expected.endsWith);
+    assert.strictEqual(matchers.string.lengthInRange(10, 30)(stringValue), scenario.expected.lengthInRange);
+    assert.strictEqual(matchers.string.matches(/Refused$/u)(stringValue), scenario.expected.matches);
+    assert.strictEqual(matchers.string.notEmpty(stringValue), scenario.expected.notEmpty);
+    assert.strictEqual(matchers.string.oneOf('Connection Refused', 'other')(stringValue), scenario.expected.oneOf);
+    assert.strictEqual(matchers.string.startsWith('Connection')(stringValue), scenario.expected.startsWith);
+    assert.strictEqual(matchers.string.startsWithIgnoreCase('connection')(stringValue), scenario.expected.startsWithIgnoreCase);
 
-    assert.strictEqual(matchers.boolean.isFalse(true), false);
-    assert.strictEqual(matchers.boolean.isTrue(false), false);
+    assert.strictEqual(matchers.boolean.isFalse(true), scenario.expected.isFalse);
+    assert.strictEqual(matchers.boolean.isTrue(false), scenario.expected.isTrue);
 
-    assert.strictEqual(matchers.array.contains('b')(['x', 'y']), false);
-    assert.strictEqual(matchers.array.containsAll('a', 'b')(['a', 'x']), false);
-    assert.strictEqual(matchers.array.containsAny('z', 'b')(['a', 'x']), false);
-    assert.strictEqual(matchers.array.lengthInRange(2, 4)(['a']), false);
-    assert.strictEqual(matchers.array.notEmpty([]), false);
+    assert.strictEqual(matchers.array.contains('b')(['x', 'y']), scenario.expected.contains);
+    assert.strictEqual(matchers.array.containsAll('a', 'b')(['a', 'x']), scenario.expected.containsAll);
+    assert.strictEqual(matchers.array.containsAny('z', 'b')(['a', 'x']), scenario.expected.containsAny);
+    assert.strictEqual(matchers.array.lengthInRange(2, 4)(['a']), scenario.expected.lengthInRange);
+    assert.strictEqual(matchers.array.notEmpty([]), scenario.expected.notEmpty);
 
-    assert.strictEqual(matchers.object.hasAllProperties('alpha', 'beta')(objectValue), false);
-    assert.strictEqual(matchers.object.hasAnyProperty('gamma', 'beta')(objectValue), false);
-    assert.strictEqual(matchers.object.hasProperty('alpha')(objectValue), false);
+    assert.strictEqual(matchers.object.hasAllProperties('alpha', 'beta')(objectValue), scenario.expected.hasAllProperties);
+    assert.strictEqual(matchers.object.hasAnyProperty('gamma', 'beta')(objectValue), scenario.expected.hasAnyProperty);
+    assert.strictEqual(matchers.object.hasProperty('alpha')(objectValue), scenario.expected.hasProperty);
 
-    assert.strictEqual(matchers.logic.and<number>(matchers.number.gte(500), matchers.number.lessThan(600))(value), false);
-    assert.strictEqual(matchers.logic.not<number>(matchers.number.inRange(200, 299))(value), true);
-    assert.strictEqual(matchers.logic.or<number>(matchers.number.oneOf(503), matchers.number.oneOf(429))(value), false);
+    assert.strictEqual(matchers.logic.and<number>(matchers.number.gte(500), matchers.number.lessThan(600))(value), scenario.expected.and);
+    assert.strictEqual(matchers.logic.not<number>(matchers.number.inRange(200, 299))(value), scenario.expected.not);
+    assert.strictEqual(matchers.logic.or<number>(matchers.number.oneOf(503), matchers.number.oneOf(429))(value), scenario.expected.or);
 
     assert.strictEqual(matchers.network.isConnectionError(String(scenario.input.code)), false);
     assert.strictEqual(matchers.network.isDNSError(String(scenario.input.code)), false);
@@ -210,19 +219,19 @@ const runnerMap = {
     assert.strictEqual(matchers.database.isForeignKeyViolation('00000'), false);
     assert.strictEqual(matchers.database.isUniqueViolation('00000'), false);
 
-    assert.strictEqual(matchers.instance.isError(error), false);
-    assert.strictEqual(matchers.instance.named('RangeError')(error), false);
-    assert.strictEqual(matchers.instance.namedAny('RangeError', 'SyntaxError')(error), false);
-    assert.strictEqual(matchers.instance.of(RangeError)(error), false);
-    assert.strictEqual(matchers.instance.ofAny(RangeError, SyntaxError)(error), false);
+    assert.strictEqual(matchers.instance.isError(error), scenario.expected.isError);
+    assert.strictEqual(matchers.instance.named('RangeError')(error), scenario.expected.named);
+    assert.strictEqual(matchers.instance.namedAny('RangeError', 'SyntaxError')(error), scenario.expected.namedAny);
+    assert.strictEqual(matchers.instance.of(RangeError)(error), scenario.expected.of);
+    assert.strictEqual(matchers.instance.ofAny(RangeError, SyntaxError)(error), scenario.expected.ofAny);
 
     assert.strictEqual(matchers.proto.hasAllMethods('read', 'write')(iterable), false);
     assert.strictEqual(matchers.proto.hasAnyMethod('read', 'missing')(iterable), false);
-    assert.strictEqual(matchers.proto.hasMethod('pipe')(iterable), false);
-    assert.strictEqual(matchers.proto.hasProperty('read')(iterable), false);
-    assert.strictEqual(matchers.proto.isAsyncIterable(iterable), false);
-    assert.strictEqual(matchers.proto.isCallable(stringValue as never), false);
-    assert.strictEqual(matchers.proto.isIterable(objectValue as never), false);
+    assert.strictEqual(matchers.proto.hasMethod('pipe')(iterable), scenario.expected.hasMethod);
+    assert.strictEqual(matchers.proto.hasProperty('read')(iterable), scenario.expected.hasProperty);
+    assert.strictEqual(matchers.proto.isAsyncIterable(iterable), scenario.expected.isAsyncIterable);
+    assert.strictEqual(matchers.proto.isCallable(stringValue as never), scenario.expected.isCallable);
+    assert.strictEqual(matchers.proto.isIterable(objectValue as never), scenario.expected.isIterable);
   },
   'network-matchers': (scenario) => {
     const value = String(scenario.input.code);
@@ -282,9 +291,9 @@ const runnerMap = {
     assert.strictEqual(matchers.string.startsWith('Connection')(value), scenario.expected.startsWith);
     assert.strictEqual(matchers.string.startsWithIgnoreCase('connection')(value), scenario.expected.startsWithIgnoreCase);
   }
-} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
+};
 
-function runCase(scenario: ScenarioCase): void {
+function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase, { shape: K }>): void {
   assertMatcherSurface();
   runnerMap[scenario.shape](scenario);
 }

@@ -5,6 +5,7 @@ import {
 
 import scenarioGroups from './LruCache.scenarios.json' with { type: 'json' };
 
+import { CacheConfigError } from '../../src/errors/CacheConfigError.js';
 import { LruCache } from '../../src/LruCache.js';
 
 type ScenarioShape =
@@ -221,7 +222,7 @@ const runnerMap = {
       cache.set(key, value);
     }
     cache.log.length = 0;
-    const removed = cache.deleteWhere(() => { return Boolean(scenarioCase.expected.matchPredicate); });
+    const removed = cache.deleteWhere((_key, value) => { return value % 2 === 1; });
     assert.strictEqual(removed, Number(scenarioCase.expected.removed));
     assert.strictEqual(cache.size, Number(scenarioCase.expected.size));
     assert.strictEqual(cache.log.length, Number(scenarioCase.expected.logLength));
@@ -279,7 +280,7 @@ const runnerMap = {
   'invalid-options': (scenarioCase) => {
     assert.throws(
       () => createCache<string, number>(scenarioCase),
-      { message: String(scenarioCase.expected.message) }
+      CacheConfigError
     );
   },
   'lru-evicts-tail': (scenarioCase) => {

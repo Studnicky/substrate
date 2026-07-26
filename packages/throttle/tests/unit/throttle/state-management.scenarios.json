@@ -48,8 +48,12 @@
       "input": {
         "batch": {
           "itemCount": 10,
-          "maxConcurrent": 10,
-          "operationDelayMs": 0
+          "maxConcurrent": 10
+        },
+        "clock": {
+          "operationDurationMs": 1,
+          "operationSpacingMs": 20,
+          "startMs": 0
         },
         "throttle": {
           "adaptive": {
@@ -75,8 +79,12 @@
       "input": {
         "batch": {
           "itemCount": 10,
-          "maxConcurrent": 10,
-          "operationDelayMs": 5
+          "maxConcurrent": 10
+        },
+        "clock": {
+          "operationDurationMs": 5,
+          "operationSpacingMs": 10,
+          "startMs": 0
         },
         "throttle": {
           "adaptive": {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 
 import { FetchTransport } from '../../src/modules/FetchTransport.js';
-import scenarioGroups from './FetchTransport.scenarios.json';
+import scenarioGroups from './FetchTransport.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {

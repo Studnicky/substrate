@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { HTTPError } from '../../../src/errors/index.js';
 
-import scenarioGroups from './http-error.scenarios.json';
+import scenarioGroups from './http-error.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {

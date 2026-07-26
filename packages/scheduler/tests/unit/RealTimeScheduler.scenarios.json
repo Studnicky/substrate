@@ -315,14 +315,13 @@
     },
     {
       "name": "chained-timeout-fire",
-      "description": "scheduleAt chains through intermediate stages and still fires once for a far-future atMs",
+      "description": "scheduleAt chains through intermediate stages and still fires once for a far-future atMs, driven deterministically via mocked timers",
       "shape": "chained-timeout-fire",
       "input": {
         "batch": {
           "chainStageCount": 3
         },
         "scheduler": {
-          "bufferMs": 30,
           "maxDelayMs": 10
         }
       },
@@ -332,14 +331,13 @@
     },
     {
       "name": "chained-timeout-cancel",
-      "description": "cancel() during an intermediate chained stage prevents the eventual fire",
+      "description": "cancel() during an intermediate chained stage prevents the eventual fire, driven deterministically via mocked timers",
       "shape": "chained-timeout-cancel",
       "input": {
         "batch": {
           "chainStageCount": 3
         },
         "scheduler": {
-          "bufferMs": 30,
           "maxDelayMs": 10
         }
       },

@@ -66,13 +66,9 @@ type ScenarioCase = {
   name: string;
 };
 
-import scenarioGroups from './lifecycle.scenarios.json';
+import scenarioGroups from './lifecycle.scenarios.json' with { type: 'json' };
 
-class TrackingThrottle extends Throttle {
-  static override create(config: Parameters<typeof Throttle.create>[0] = {}): TrackingThrottle {
-    return new this(config);
-  }
-}
+class TrackingThrottle extends Throttle {}
 
 type BlockedPairInput = {
   activeResult: string;

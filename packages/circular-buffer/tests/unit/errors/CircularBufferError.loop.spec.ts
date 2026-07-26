@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { JSONSchema7Type } from 'json-schema';
+
 import { CircularBufferError } from '../../../src/errors/CircularBufferError.js';
 
-import scenarioGroups from './CircularBufferError.scenarios.json';
+import scenarioGroups from './CircularBufferError.scenarios.json' with { type: 'json' };
 
 type ScenarioShape = 'default-construction' | 'with-args' | 'with-cause';
 
@@ -13,14 +15,15 @@ type ScenarioCase = {
     code: string;
     correlationId?: string;
     message: string;
-    metadata?: Record<string, unknown>;
+    metadata?: Record<string, JSONSchema7Type>;
     retryable: boolean;
   };
   input: {
     args?: {
       cause?: unknown;
       correlationId?: string;
-      metadata?: Record<string, unknown>;
+      metadata?: Record<string, JSONSchema7Type>;
+      retryable?: boolean;
     };
     message: string;
   };

@@ -69,7 +69,7 @@
     },
     {
       "name": "memoize-ttl-stale-options",
-      "description": "constructs memoize with ttl and stale options enabled",
+      "description": "ttl and stale options reach the underlying LruCache: the entry survives within ttlMs and is recomputed once ttlMs elapses",
       "shape": "ttl-stale-options",
       "input": {
         "memoize": {
@@ -82,7 +82,9 @@
       "expected": {
         "calls": 1,
         "first": "value:a:1",
-        "second": "value:a:1"
+        "second": "value:a:1",
+        "afterExpiry": "value:a:2",
+        "callsAfterExpiry": 2
       }
     },
     {

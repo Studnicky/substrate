@@ -8,7 +8,7 @@ import { HookInvocationError, HookTimeoutError } from '@studnicky/errors';
 import {
   FetchClient,
 } from '../../../src/index.js';
-import scenarioGroups from './lifecycle-hooks.scenarios.json';
+import scenarioGroups from './lifecycle-hooks.scenarios.json' with { type: 'json' };
 
 type HookEvent = { 'hook': string; 'args': unknown[] };
 
@@ -68,10 +68,6 @@ const originalFetch = globalThis.fetch;
 const baseURL = 'https://example.test';
 
 class HookedClient extends FetchClient {
-  static override create(config: Parameters<typeof FetchClient.create>[0] = {}): HookedClient {
-    return new this(config);
-  }
-
   readonly events: HookEvent[] = [];
 
   protected override onRequestStart(method: string, path: string, requestId: string, url: string): void {
@@ -119,7 +115,7 @@ function abortError(): DOMException {
   return new DOMException('The operation was aborted.', 'AbortError');
 }
 
-function toPlainHeaders(headers: HeadersInit | undefined): Record<string, string> {
+function toPlainHeaders(headers: RequestInit['headers']): Record<string, string> {
   const normalized = new Headers(headers);
   const result: Record<string, string> = {};
 
@@ -130,11 +126,11 @@ function toPlainHeaders(headers: HeadersInit | undefined): Record<string, string
   return result;
 }
 
-function parseUrl(input: RequestInfo | URL): URL {
+function parseUrl(input: Request | URL | string): URL {
   return new URL(String(input));
 }
 
-function getBodyFor(path: string, headers: HeadersInit | undefined): Response {
+function getBodyFor(path: string, headers: RequestInit['headers']): Response {
   if (path === '/echo-headers') {
     return new Response(JSON.stringify({ 'headers': toPlainHeaders(headers) }), {
       'headers': { 'Content-Type': 'application/json' },
@@ -173,7 +169,7 @@ function getBodyFor(path: string, headers: HeadersInit | undefined): Response {
   return new Response('', { 'status': 404 });
 }
 
-async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+async function fakeFetch(input: Request | URL | string, init?: RequestInit): Promise<Response> {
   const parsedUrl = parseUrl(input);
   const signal = init?.signal;
 
@@ -323,14 +319,16 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'fast-hook': async (caseData) => {
       class SlowButFastEnoughClient extends FetchClient {
-        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): SlowButFastEnoughClient {
-          return new this(config);
-        }
-
         readonly events: string[] = [];
 
+        // Settles across a handful of microtask hops rather than a real timer:
+        // HookInvoker races this against a real setTimeout(hookTimeoutMs), and
+        // Node always drains the microtask queue before running any timer, so
+        // this deterministically wins the race regardless of system load.
         protected override async onRequestStart(): Promise<void> {
-          await new Promise((resolve) => { setTimeout(resolve, caseData.input.settleMs); });
+          for (let tick = 0; tick < caseData.input.settleMs; tick += 1) {
+            await Promise.resolve();
+          }
           this.events.push('onRequestStart');
         }
       }
@@ -351,10 +349,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'hook-timeout': async (caseData) => {
       class NeverSettlesClient extends FetchClient {
-        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): NeverSettlesClient {
-          return new this(config);
-        }
-
         protected override onRequestStart(): Promise<void> {
           return new Promise(() => {
             // Deliberately never resolves or rejects.
@@ -385,10 +379,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'never-settles': async (caseData) => {
       class SlowUnboundedClient extends FetchClient {
-        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): SlowUnboundedClient {
-          return new this(config);
-        }
-
         readonly events: string[] = [];
 
         protected override async onRequestStart(): Promise<void> {
@@ -426,10 +416,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'throw-request-start': async (caseData) => {
       class ThrowingStartClient extends FetchClient {
-        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingStartClient {
-          return new this(config);
-        }
-
         protected override onRequestStart(): void {
           throw new Error(caseData.input.message);
         }
@@ -453,10 +439,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'throw-request-error': async (caseData) => {
       class ThrowingRequestErrorClient extends FetchClient {
-        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingRequestErrorClient {
-          return new this(config);
-        }
-
         protected override onRequestError(): void {
           throw new Error(caseData.input.message);
         }
@@ -482,10 +464,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'throw-request-error-string': async (caseData) => {
       class ThrowingRequestErrorStringClient extends FetchClient {
-        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingRequestErrorStringClient {
-          return new this(config);
-        }
-
         protected override onRequestError(): void {
           throw new Error(caseData.input.message);
         }
@@ -508,10 +486,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'throw-response-success': async (caseData) => {
       class ThrowingSuccessClient extends FetchClient {
-        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingSuccessClient {
-          return new this(config);
-        }
-
         protected override onResponseSuccess(): void {
           throw new Error(caseData.input.message);
         }
@@ -642,10 +616,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'throw-timeout': async (caseData) => {
       class ThrowingTimeoutClient extends FetchClient {
-        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingTimeoutClient {
-          return new this(config);
-        }
-
         protected override onTimeout(): void {
           throw new Error(caseData.input.message);
         }
@@ -671,10 +641,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'throw-dispatcher-destroy': async (caseData) => {
       class ThrowingDestroyClient extends FetchClient {
-        static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ThrowingDestroyClient {
-          return new this(config);
-        }
-
         protected override onDispatcherDestroy(): void {
           throw new Error(caseData.input.message);
         }
@@ -682,7 +648,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       const client = ThrowingDestroyClient.create({
         'baseURL': baseURL,
-        'dispatcher': caseData.input.dispatcher
+        ...(caseData.input.dispatcher === undefined ? {} : { 'dispatcher': caseData.input.dispatcher })
       });
 
       try {

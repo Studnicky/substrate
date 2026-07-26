@@ -9,10 +9,6 @@
       "name": "static class field map with inline multi-statement arrow - pre-built, not flagged"
     },
     {
-      "code": "const map = { handler: (x) => { let y = x; return y; } };",
-      "name": "exempt key name \"handler\" - not flagged regardless of scope"
-    },
-    {
       "code": "const map = { a: (x) => x + 1 };",
       "name": "single-expression arrow body (not a BlockStatement) - not flagged"
     }
@@ -35,6 +31,87 @@
         }
       ],
       "name": "non-static instance field rebuilds per instantiation - flagged"
+    },
+    {
+      "code": "function build() { return { handler: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"handler\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { callback: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"callback\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { execute: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"execute\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { message: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"message\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { process: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"process\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { transform: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"transform\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { transformAsync: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"transformAsync\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { validate: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"validate\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { anyArbitraryKeyName: (x) => { let y = x; return y; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "renaming the property key to an arbitrary name buys no escape - flagged identically"
     }
   ]
 }

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {
   describe,
-  it
+  it,
+  mock
 } from 'node:test';
 
 import { HookInvocationError } from '../../src/errors/HookInvocationError.js';
@@ -9,7 +10,7 @@ import { HookInvoker } from '../../src/errors/HookInvoker.js';
 import { HookTimeoutError } from '../../src/errors/HookTimeoutError.js';
 import { ReentrantHookInvocationError } from '../../src/errors/ReentrantHookInvocationError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
-import scenarioGroups from './hook-invoker.scenarios.json';
+import scenarioGroups from './hook-invoker.scenarios.json' with { type: 'json' };
 
 const errorConstructorsByShape: Record<string, new (...args: never[]) => Error> = {
   'HookInvocationError': HookInvocationError,
@@ -179,7 +180,7 @@ const runFireAndForgetTimeout: ScenarioRunner = (scenario, expected, input) => {
     assert.deepStrictEqual(invoker.erroredHookNames, expected.erroredHookNames);
     const cause = invoker.causes[0];
     assert.ok(cause instanceof errorConstructorForShape(expected.causeShape));
-    assert.strictEqual((cause as HookTimeoutError).hookName, String(expected.erroredHookNames[0]));
+    assert.strictEqual((cause as HookTimeoutError).hookName, String((expected.erroredHookNames as unknown[])[0]));
     assert.strictEqual((cause as HookTimeoutError).timeoutMs, Number(expected.causeTimeoutMs));
   }).then((rejectionEvents) => {
     assert.strictEqual(rejectionEvents.length, Number(expected.unhandledRejections));
@@ -303,9 +304,9 @@ const runnerMap = {
       assert.ok(diagnostic.cause instanceof Error);
       assert.strictEqual(diagnostic.hookName, String(expected.firstHookName));
       assert.strictEqual(diagnostic.cause.message, String(expected.firstCauseMessage));
-      assert.deepStrictEqual((diagnostic.cause as Record<string, unknown>).plain, input.diagnostics?.plain);
-      assert.deepStrictEqual((diagnostic.cause as Record<string, unknown>).items, input.diagnostics?.items);
-      assert.ok('broken' in (diagnostic.cause as Record<string, unknown>));
+      assert.deepStrictEqual((diagnostic.cause as unknown as Record<string, unknown>).plain, input.diagnostics?.plain);
+      assert.deepStrictEqual((diagnostic.cause as unknown as Record<string, unknown>).items, input.diagnostics?.items);
+      assert.ok('broken' in (diagnostic.cause as unknown as Record<string, unknown>));
       assert.strictEqual(invoker.hookErrorCount, Number(expected.hookErrorCount));
     });
   },
@@ -517,7 +518,7 @@ const runnerMap = {
       events.push('completed');
     };
     const completion: Promise<void> = invoker.invokeAsync(String(input.hookName), unexpectedlyAsyncHook);
-    assert.deepStrictEqual(events, [String(expected.events?.[0])]);
+    assert.deepStrictEqual(events, [String((expected.events as unknown[] | undefined)?.[0])]);
     return completion.then(() => {
       assert.deepStrictEqual(events, expected.events);
     });
@@ -590,7 +591,7 @@ const runnerMap = {
       });
     }, (err: unknown) => {
       assert.ok(err instanceof Error);
-      for (const fragment of expected.messageIncludes ?? []) {
+      for (const fragment of (expected.messageIncludes as string[] | undefined) ?? []) {
         assert.ok(err.message.includes(String(fragment)));
       }
       assert.strictEqual(err instanceof HookInvocationError, !expected.notHookInvocationError);
@@ -630,12 +631,18 @@ const runnerMap = {
   },
   'timeout-no-dangling-timer': (scenario, expected, input) => {
     const invoker = new HookInvoker(input.options);
+    const clearTimeoutSpy = mock.method(globalThis, 'clearTimeout');
     return captureUnhandledRejections(scenario.name, async () => {
       const completion = invoker.invokeAsync(String(input.hookName), async () => 'discarded');
       await completion;
       await new Promise((resolve) => { setTimeout(resolve, Number(input.observationDelayMs)); });
     }).then((rejectionEvents) => {
       assert.strictEqual(rejectionEvents.length, Number(expected.unhandledRejections));
+      // The timeout race's timer must be cleared once the hook settles, not left
+      // dangling until it eventually fires on its own.
+      assert.strictEqual(clearTimeoutSpy.mock.callCount(), 1);
+    }).finally(() => {
+      clearTimeoutSpy.mock.restore();
     });
   },
   'timeout-sync-never-applies': (_scenario, expected, input) => {

@@ -36,9 +36,8 @@ type RequestDefinition = {
 };
 
 type RequestExpectation =
-  | { shape: 'rejects'; error: 'AbortError' | 'Error' | 'TimeoutError' | 'TypeError'; messageIncludes?: readonly string[]; timeoutMs?: number; urlIncludes?: string }
-  | { shape: 'status'; status: number }
-  | { shape: 'status-or-404' };
+  | { shape: 'rejects'; error: 'AbortError' | 'Error' | 'TimeoutError'; messageIncludes?: readonly string[]; timeoutMs?: number; urlIncludes?: string }
+  | { shape: 'status'; status: number };
 
 type SequencedStep = {
   expect: RequestExpectation;
@@ -46,22 +45,24 @@ type SequencedStep = {
 };
 
 type ScenarioCase = {
-  clientConfig?: {
-    baseURL?: string;
-    timeout?: RuntimeValue;
-  };
   description: string;
-  expect:
+  expected:
     | { shape: 'create-ok' }
     | { shape: 'create-throws'; messageIncludes: readonly string[] }
     | RequestExpectation
     | { shape: 'parallel'; steps: readonly SequencedStep[] }
     | { shape: 'sequence'; steps: readonly SequencedStep[] };
+  input: {
+    clientConfig?: {
+      baseURL?: string;
+      timeout?: RuntimeValue;
+    };
+    request?: RequestDefinition;
+  };
   name: string;
-  request?: RequestDefinition;
 };
 
-import scenarioGroups from './timeout.errors.scenarios.json';
+import scenarioGroups from './timeout.errors.scenarios.json' with { type: 'json' };
 
 let testUrl: string;
 
@@ -73,6 +74,10 @@ void after(async () => {
   await stopTestServer();
 });
 
+function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
+  return typeof value === 'object' && value !== null && '__shape' in value;
+}
+
 function materializeRuntimeValue(value: RuntimeValue): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => { return materializeRuntimeValue(item); });
@@ -83,7 +88,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (value !== null && typeof value === 'object') {
-    if ('__shape' in value) {
+    if (isRuntimeTag(value)) {
       if (value.__shape === 'undefined') {
         return undefined;
       }
@@ -93,7 +98,8 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
       if (value.__shape === 'nan') {
         return Number.NaN;
       }
-      throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
+      const exhaustiveCheck: never = value;
+      throw new Error(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -184,10 +190,8 @@ function assertRejectedExpectation(error: unknown, expectation: Extract<RequestE
     }
   } else if (expectation.error === 'AbortError') {
     assert.strictEqual(error.name, 'AbortError');
-  } else if (expectation.error === 'Error') {
-    assert.ok(error.name.includes('Error'));
   } else {
-    assert.ok(error instanceof TypeError || error.message.toLowerCase().includes('url'));
+    assert.ok(error.name.includes('Error'));
   }
 
   for (const fragment of expectation.messageIncludes ?? []) {
@@ -206,12 +210,6 @@ async function assertRequestExpectation(
   if (expectation.shape === 'status') {
     assert.ok(result.ok, `expected successful response, received ${result.ok ? 'response' : result.error}`);
     assert.strictEqual(result.response.status, expectation.status);
-    return;
-  }
-
-  if (expectation.shape === 'status-or-404') {
-    assert.ok(result.ok, `expected successful response, received ${result.ok ? 'response' : result.error}`);
-    assert.ok(result.response.status === 200 || result.response.status === 404);
     return;
   }
 
@@ -244,20 +242,21 @@ async function runRequestGroup(
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+  const { expected } = scenarioCase;
   const clientConfig = {
-    ...(scenarioCase.clientConfig?.baseURL === undefined ? {} : {
-      baseURL: materializeRuntimeValue(scenarioCase.clientConfig.baseURL) as never
+    ...(scenarioCase.input.clientConfig?.baseURL === undefined ? {} : {
+      baseURL: materializeRuntimeValue(scenarioCase.input.clientConfig.baseURL) as never
     }),
-    ...(scenarioCase.clientConfig?.timeout === undefined ? {} : {
-      timeout: materializeRuntimeValue(scenarioCase.clientConfig.timeout) as never
+    ...(scenarioCase.input.clientConfig?.timeout === undefined ? {} : {
+      timeout: materializeRuntimeValue(scenarioCase.input.clientConfig.timeout) as never
     })
   };
 
-  if (scenarioCase.expect.shape === 'create-throws') {
+  if (expected.shape === 'create-throws') {
     assert.throws(() => {
       FetchClient.create(clientConfig as never);
     }, (error: Error) => {
-      for (const fragment of scenarioCase.expect.messageIncludes) {
+      for (const fragment of expected.messageIncludes) {
         assert.ok(error.message.toLowerCase().includes(fragment.toLowerCase()));
       }
       return true;
@@ -265,7 +264,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     return;
   }
 
-  if (scenarioCase.expect.shape === 'create-ok') {
+  if (expected.shape === 'create-ok') {
     assert.doesNotThrow(() => {
       FetchClient.create(clientConfig as never);
     });
@@ -274,20 +273,20 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   const clientInstance = FetchClient.create(clientConfig as never);
 
-  if (scenarioCase.expect.shape === 'sequence' || scenarioCase.expect.shape === 'parallel') {
-    await runRequestGroup(clientInstance, scenarioCase.expect.steps, scenarioCase.expect.shape);
+  if (expected.shape === 'sequence' || expected.shape === 'parallel') {
+    await runRequestGroup(clientInstance, expected.steps, expected.shape);
     return;
   }
 
-  if (scenarioCase.request === undefined) {
+  if (scenarioCase.input.request === undefined) {
     assert.fail('scenario request is required for request expectations');
   }
 
-  await assertRequestExpectation(await inspectRequest(clientInstance, scenarioCase.request), scenarioCase.expect);
+  await assertRequestExpectation(await inspectRequest(clientInstance, scenarioCase.input.request), expected);
 }
 
 void describe('Timeout Error Scenarios', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

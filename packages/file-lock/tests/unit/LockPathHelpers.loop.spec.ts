@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { LockPathHelpers } from '../../src/LockPathHelpers.js';
-import scenarioGroups from './LockPathHelpers.scenarios.json';
+import scenarioGroups from './LockPathHelpers.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {

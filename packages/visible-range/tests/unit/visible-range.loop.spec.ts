@@ -13,7 +13,7 @@ import {
   VisibleRangeEntity,
   VisibleRangeResolvedConfigEntity
 } from '../../src/index.js';
-import scenarioGroups from './visible-range.scenarios.json';
+import scenarioGroups from './visible-range.scenarios.json' with { type: 'json' };
 
 type EntityContractShape =
   | 'config-data-valid'

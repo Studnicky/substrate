@@ -5,65 +5,66 @@ import {
 
 import type { ModuleErrorOptionsInterface } from '../../src/interfaces/index.js';
 
-import { CAUSE_CHAIN_DEPTH_LIMIT, CAUSE_DEPTH_SENTINEL, ErrorDefaults } from '../../src/constants/index.js';
+import { CAUSE_CHAIN_DEPTH_LIMIT, CAUSE_DEPTH_SENTINEL } from '../../src/constants/CauseChainConstants.js';
+import { ErrorDefaults } from '../../src/constants/index.js';
 import { BaseError } from '../../src/errors/BaseError.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
-import scenarioGroups from './module-error.scenarios.json';
+import scenarioGroups from './module-error.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
-  | { description: string; shape: 'factory-scenario-defaults' }
-  | { description: string; shape: 'factory-merge-user-options' }
-  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-message' }
-  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-code' }
-  | { description: string; expected: { errorName: string }; shape: 'factory-reject-invalid-scenario' }
-  | { description: string; expected: { result: { retryable: boolean } }; input: { code: string; message: string }; shape: 'constructor-defaults-omitted-options' }
-  | { description: string; shape: 'scenario-defaults'; scenario: 'CONNECTION' | 'AUTHENTICATION' | 'NOT_FOUND' }
-  | { description: string; shape: 'scenario-retryable-overrides' }
-  | { description: string; expected: { result: { context: Record<string, unknown> } }; input: { context: Record<string, unknown> }; shape: 'context-stores-arbitrary-data' }
-  | { description: string; shape: 'context-handles-undefined' }
-  | { description: string; shape: 'context-empty-object' }
-  | { description: string; shape: 'context-null-prototype' }
-  | { description: string; expected: { result: { label: string; sameInstance: boolean } }; input: { context: { collaborator: { label: string } } }; shape: 'context-preserves-collaborator-instance' }
-  | { description: string; shape: 'context-detaches-projections' }
-  | { description: string; shape: 'http-uses-scenario-code' }
-  | { description: string; shape: 'http-allows-status-override' }
-  | { description: string; shape: 'retryable-transient' }
-  | { description: string; shape: 'retryable-permanent' }
-  | { description: string; shape: 'cause-stores-single' }
-  | { description: string; shape: 'cause-builds-chain' }
-  | { description: string; shape: 'cause-handles-undefined' }
-  | { description: string; shape: 'chain-single' }
-  | { description: string; shape: 'chain-nested' }
-  | { description: string; shape: 'chain-deep' }
-  | { description: string; shape: 'chain-circular' }
-  | { description: string; shape: 'find-cause-match' }
-  | { description: string; shape: 'find-cause-missing' }
-  | { description: string; shape: 'find-cause-first-match' }
-  | { description: string; shape: 'find-cause-subclass' }
-  | { description: string; shape: 'find-cause-circular' }
-  | { description: string; shape: 'has-cause-true' }
-  | { description: string; shape: 'has-cause-false' }
-  | { description: string; shape: 'has-cause-empty' }
-  | { description: string; shape: 'has-cause-deep' }
-  | { description: string; shape: 'has-cause-circular' }
-  | { description: string; shape: 'json-basic' }
-  | { description: string; shape: 'json-optional-context' }
-  | { description: string; shape: 'json-excludes-undefined' }
-  | { description: string; shape: 'json-native-cause' }
-  | { description: string; shape: 'json-primitive-cause' }
-  | { description: string; shape: 'json-native-primitive-cause' }
-  | { description: string; shape: 'json-module-cause' }
-  | { description: string; shape: 'json-deep-chain' }
-  | { description: string; shape: 'json-depth-sentinel' }
-  | { description: string; shape: 'json-safe' }
-  | { description: string; shape: 'subclass-custom' }
-  | { description: string; shape: 'subclass-overrides-defaults' }
-  | { description: string; shape: 'subclass-serialization-name' }
-  | { description: string; shape: 'instanceof-error' }
-  | { description: string; shape: 'instanceof-module-error' }
-  | { description: string; shape: 'instanceof-subclass' }
-  | { description: string; shape: 'stack-trace-disabled' }
-  | { description: string; shape: 'stack-trace' };
+  | { description: string; shape: 'factory-scenario-defaults'; name: string }
+  | { description: string; shape: 'factory-merge-user-options'; name: string }
+  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-message'; name: string }
+  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-code'; name: string }
+  | { description: string; expected: { errorName: string }; shape: 'factory-reject-invalid-scenario'; name: string }
+  | { description: string; expected: { result: { retryable: boolean } }; input: { code: string; message: string }; shape: 'constructor-defaults-omitted-options'; name: string }
+  | { description: string; expected: { result: { code: string; retryable: boolean; statusCode: number } }; scenario: 'CONNECTION' | 'AUTHENTICATION' | 'NOT_FOUND'; shape: 'scenario-defaults'; name: string }
+  | { description: string; shape: 'scenario-retryable-overrides'; name: string }
+  | { description: string; expected: { result: { context: Record<string, unknown> } }; input: { context: Record<string, unknown> }; shape: 'context-stores-arbitrary-data'; name: string }
+  | { description: string; shape: 'context-handles-undefined'; name: string }
+  | { description: string; shape: 'context-empty-object'; name: string }
+  | { description: string; shape: 'context-null-prototype'; name: string }
+  | { description: string; expected: { result: { label: string; sameInstance: boolean } }; input: { context: { collaborator: { label: string } } }; shape: 'context-preserves-collaborator-instance'; name: string }
+  | { description: string; shape: 'context-detaches-projections'; name: string }
+  | { description: string; shape: 'http-uses-scenario-code'; name: string }
+  | { description: string; shape: 'http-allows-status-override'; name: string }
+  | { description: string; shape: 'retryable-transient'; name: string }
+  | { description: string; shape: 'retryable-permanent'; name: string }
+  | { description: string; shape: 'cause-stores-single'; name: string }
+  | { description: string; shape: 'cause-builds-chain'; name: string }
+  | { description: string; shape: 'cause-handles-undefined'; name: string }
+  | { description: string; shape: 'chain-single'; name: string }
+  | { description: string; shape: 'chain-nested'; name: string }
+  | { description: string; shape: 'chain-deep'; name: string }
+  | { description: string; shape: 'chain-circular'; name: string }
+  | { description: string; shape: 'find-cause-match'; name: string }
+  | { description: string; shape: 'find-cause-missing'; name: string }
+  | { description: string; shape: 'find-cause-first-match'; name: string }
+  | { description: string; shape: 'find-cause-subclass'; name: string }
+  | { description: string; shape: 'find-cause-circular'; name: string }
+  | { description: string; shape: 'has-cause-true'; name: string }
+  | { description: string; shape: 'has-cause-false'; name: string }
+  | { description: string; shape: 'has-cause-empty'; name: string }
+  | { description: string; shape: 'has-cause-deep'; name: string }
+  | { description: string; shape: 'has-cause-circular'; name: string }
+  | { description: string; shape: 'json-basic'; name: string }
+  | { description: string; shape: 'json-optional-context'; name: string }
+  | { description: string; shape: 'json-excludes-undefined'; name: string }
+  | { description: string; shape: 'json-native-cause'; name: string }
+  | { description: string; shape: 'json-primitive-cause'; name: string }
+  | { description: string; shape: 'json-native-primitive-cause'; name: string }
+  | { description: string; shape: 'json-module-cause'; name: string }
+  | { description: string; shape: 'json-deep-chain'; name: string }
+  | { description: string; shape: 'json-depth-sentinel'; name: string }
+  | { description: string; shape: 'json-safe'; name: string }
+  | { description: string; shape: 'subclass-custom'; name: string }
+  | { description: string; shape: 'subclass-overrides-defaults'; name: string }
+  | { description: string; shape: 'subclass-serialization-name'; name: string }
+  | { description: string; shape: 'instanceof-error'; name: string }
+  | { description: string; shape: 'instanceof-module-error'; name: string }
+  | { description: string; shape: 'instanceof-subclass'; name: string }
+  | { description: string; shape: 'stack-trace-disabled'; name: string }
+  | { description: string; shape: 'stack-trace'; name: string };
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
 
@@ -84,7 +85,7 @@ class NetworkError extends ModuleError {
     options?: Omit<Parameters<typeof ModuleError.create>[1], 'scenario'>
   ): NetworkError {
     const defaults = ErrorDefaults.CONNECTION;
-    const mergedOptions = {
+    const mergedOptions: ModuleErrorOptionsInterface = {
       cause: options?.cause,
       code: defaults.code,
       context: options?.context,
@@ -95,7 +96,7 @@ class NetworkError extends ModuleError {
     return new NetworkError(message, mergedOptions);
   }
 
-  protected constructor(message: string, options: Parameters<typeof ModuleError.create>[1]) {
+  protected constructor(message: string, options: ModuleErrorOptionsInterface) {
     super(message, options);
   }
 }
@@ -105,7 +106,7 @@ class ContextCollaborator {
 }
 
 class MinimalOptionsError extends ModuleError {
-  static create(message: string, code: string): MinimalOptionsError {
+  static build(message: string, code: string): MinimalOptionsError {
     return new MinimalOptionsError(message, {
       code,
       context: undefined,
@@ -160,10 +161,12 @@ const runnerMap: RunnerMap = {
 
   'factory-reject-empty-code': (scenarioCase) => {
     class EmptyCodeError extends ModuleError {
-      static create(message: string): EmptyCodeError {
+      static override create(message: string): EmptyCodeError {
         return new EmptyCodeError(message, {
           'code': '',
-          'retryable': false
+          'context': undefined,
+          'retryable': false,
+          'statusCode': undefined
         });
       }
     }
@@ -185,7 +188,7 @@ const runnerMap: RunnerMap = {
   },
 
   'constructor-defaults-omitted-options': (scenarioCase) => {
-    const error = MinimalOptionsError.create(scenarioCase.input.message, scenarioCase.input.code);
+    const error = MinimalOptionsError.build(scenarioCase.input.message, scenarioCase.input.code);
     assert.strictEqual(error.retryable, scenarioCase.expected.result.retryable);
     assert.strictEqual(error.context, undefined);
     assert.strictEqual(error.statusCode, undefined);
@@ -198,10 +201,9 @@ const runnerMap: RunnerMap = {
         ? 'Auth failed'
         : 'Not found';
     const error = ModuleError.create(message, { scenario: scenarioCase.scenario });
-    const expected = ErrorDefaults[scenarioCase.scenario];
-    assert.strictEqual(error.code, expected.code);
-    assert.strictEqual(error.statusCode, expected.statusCode);
-    assert.strictEqual(error.retryable, expected.retryable);
+    assert.strictEqual(error.code, scenarioCase.expected.result.code);
+    assert.strictEqual(error.statusCode, scenarioCase.expected.result.statusCode);
+    assert.strictEqual(error.retryable, scenarioCase.expected.result.retryable);
   },
 
   'scenario-retryable-overrides': () => {
@@ -332,7 +334,7 @@ const runnerMap: RunnerMap = {
     assert.ok(current instanceof BaseError);
     const chain = BaseError.getCauseChain(current);
     assert.strictEqual(chain.length, 10);
-    assert.strictEqual(chain[9].message, 'Root');
+    assert.strictEqual((chain[9] as Error).message, 'Root');
   },
 
   'chain-circular': () => {
@@ -455,13 +457,13 @@ const runnerMap: RunnerMap = {
   },
 
   'json-native-primitive-cause': () => {
-    const error = ModuleError.create('Test', { cause: 42, scenario: 'INTERNAL' });
+    const error: ModuleError = Reflect.apply(ModuleError.create, ModuleError, ['Test', { cause: 42, scenario: 'INTERNAL' }]);
     const json = error.toJSON();
     assert.strictEqual(json.cause, 42);
   },
 
   'json-primitive-cause': () => {
-    const error = ModuleError.create('Test', { cause: 'primitive cause', scenario: 'INTERNAL' });
+    const error: ModuleError = Reflect.apply(ModuleError.create, ModuleError, ['Test', { cause: 'primitive cause', scenario: 'INTERNAL' }]);
     const json = error.toJSON();
     assert.strictEqual(json.cause, 'primitive cause');
   },

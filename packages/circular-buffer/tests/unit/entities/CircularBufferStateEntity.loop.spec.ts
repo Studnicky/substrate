@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { CircularBufferStateEntity } from '../../../src/index.js';
-import scenarioGroups from './CircularBufferStateEntity.scenarios.json';
+import scenarioGroups from './CircularBufferStateEntity.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: { validationResults: boolean[] }; input: { validations: { expected: boolean; value: Record<string, unknown> }[] }; shape: 'invalid-lengths' | 'valid-length'; name: string };

@@ -4,23 +4,38 @@ import { describe, it } from 'node:test';
 import { DispatcherAgent } from '../../src/config/DispatcherAgent.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
 import { TestDispatcher } from '../../src/testing/TestDispatcher.js';
-import scenarioGroups from './dispatcher-health.scenarios.json';
+import scenarioGroups from './dispatcher-health.scenarios.json' with { type: 'json' };
+
+type EmptyStatsScenarioCase<Shape extends string> = {
+  description: string;
+  expected: { frozen: false; objectKeys: number };
+  input: { dispatcher: { connections: number } };
+  shape: Shape;
+  name: string;
+};
+
+type FrozenStatsScenarioCase<Shape extends string> = {
+  description: string;
+  expected: { frozen: true };
+  input: { dispatcher: { connections: number } };
+  shape: Shape;
+  name: string;
+};
+
+type TestTransportScenarioCase<Shape extends string> = {
+  description: string;
+  expected: { healthy: boolean; queueRatio: number; recommendationIncludes: string };
+  input: { origin: string; path: string; queuedPath?: string; testDispatcher: { connections: number; enabled: boolean } };
+  shape: Shape;
+  name: string;
+};
 
 type ScenarioCase =
-  | {
-      description: string;
-      expected: { frozen: false; objectKeys: number };
-      input: { dispatcher: { connections: number } };
-      shape: 'empty-stats' | 'stats-object-after-requests' | 'structure-after-get-stats';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { frozen: true };
-      input: { dispatcher: { connections: number } };
-      shape: 'frozen-stats-object' | 'deeply-frozen-stats';
-      name: string;
-    }
+  | EmptyStatsScenarioCase<'empty-stats'>
+  | EmptyStatsScenarioCase<'stats-object-after-requests'>
+  | EmptyStatsScenarioCase<'structure-after-get-stats'>
+  | FrozenStatsScenarioCase<'frozen-stats-object'>
+  | FrozenStatsScenarioCase<'deeply-frozen-stats'>
   | {
       description: string;
       expected: { healthy: true; queueRatio: '__UNDEFINED__'; recommendation: '__UNDEFINED__'; stats: '__UNDEFINED__' };
@@ -35,13 +50,8 @@ type ScenarioCase =
       shape: 'healthy-new-dispatcher';
       name: string;
     }
-  | {
-      description: string;
-      expected: { healthy: boolean; queueRatio: number; recommendationIncludes: string };
-      input: { origin: string; path: string; queuedPath?: string; testDispatcher: { connections: number; enabled: boolean } };
-      shape: 'test-transport-overloaded' | 'test-transport-pressure';
-      name: string;
-    }
+  | TestTransportScenarioCase<'test-transport-overloaded'>
+  | TestTransportScenarioCase<'test-transport-pressure'>
   | {
       description: string;
       expected: { healthyType: 'boolean'; queueRatioType: 'number-or-undefined'; recommendationType: 'string-or-undefined'; statsType: 'object-or-undefined' };
@@ -92,7 +102,15 @@ function matchesTypeDescriptor(value: unknown, descriptor: string): boolean {
   return typeof value === descriptor;
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+/** Materializes the `__UNDEFINED__` JSON sentinel into a real `undefined`. */
+function materializeSentinel(value: unknown): unknown {
+  return value === '__UNDEFINED__' ? undefined : value;
+}
+
+type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
+
+const runnerMap: RunnerMap = {
   'empty-stats': async (scenarioCase) => {
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const stats = dispatcher.getStats();
@@ -102,12 +120,27 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     await dispatcher.destroy();
   },
   'stats-object-after-requests': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-    const stats = dispatcher.getStats();
-    assert.equal(typeof stats, 'object');
-    assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
-    assert.equal(Object.isFrozen(stats), true);
-    await dispatcher.destroy();
+    const previous = process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
+    process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = '1';
+
+    try {
+      const agent = TestDispatcher.create(scenarioCase.input.dispatcher);
+      const dispatcher = UndiciDispatcher.create(agent);
+      const origin = 'http://127.0.0.1:41234';
+      await agent.fetch(`${origin}/ok`, {});
+      const stats = dispatcher.getStats();
+      assert.equal(typeof stats, 'object');
+      assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
+      assert.ok(origin in stats, 'stats must key the origin that actually issued a request');
+      assert.equal(Object.isFrozen(stats), true);
+      await dispatcher.destroy();
+    } finally {
+      if (previous === undefined) {
+        delete process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
+      } else {
+        process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = previous;
+      }
+    }
   },
   'frozen-stats-object': async (scenarioCase) => {
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
@@ -134,9 +167,9 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
     assert.equal(health.healthy, scenarioCase.expected.healthy);
-    assert.equal(health.stats, undefined);
-    assert.equal(health.queueRatio, undefined);
-    assert.equal(health.recommendation, undefined);
+    assert.equal(health.stats, materializeSentinel(scenarioCase.expected.stats));
+    assert.equal(health.queueRatio, materializeSentinel(scenarioCase.expected.queueRatio));
+    assert.equal(health.recommendation, materializeSentinel(scenarioCase.expected.recommendation));
     await dispatcher.destroy();
   },
   'healthy-new-dispatcher': async (scenarioCase) => {
@@ -256,7 +289,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

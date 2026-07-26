@@ -3,12 +3,14 @@
  */
 import assert from 'node:assert/strict';
 import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
-import { describe, it } from 'node:test';
+import {
+  describe, it, mock
+} from 'node:test';
 
 import { HookInvoker } from '@studnicky/errors';
 
 import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
-import scenarioGroups from './RealTimeScheduler.scenarios.json';
+import scenarioGroups from './RealTimeScheduler.scenarios.json' with { type: 'json' };
 
 type ScenarioInput = {
   batch?: Record<string, unknown>;
@@ -55,7 +57,9 @@ class AuditScheduler extends RealTimeScheduler {
 
 function numberField(input: Record<string, unknown>, key: string): number {
   const value = input[key];
-  assert.equal(typeof value, 'number');
+  if (typeof value !== 'number') {
+    throw new Error(`Expected numeric field '${key}'`);
+  }
   return value;
 }
 
@@ -96,7 +100,7 @@ const scenarioRunners = {
       }
     }
 
-    const sched = new BackendScheduler();
+    const sched = BackendScheduler.create();
     const timeoutTask = sched.scheduleAt(futureAtMs(input), () => { return; });
     const intervalTask = sched.scheduleEvery(numberField(input, 'intervalMs'), () => { return; });
     const tasks = [timeoutTask, intervalTask];
@@ -356,13 +360,16 @@ const scenarioRunners = {
     assert.strictEqual(sched.idleCount, expected.idleCount);
   },
 
-  'chained-timeout-fire': ({ batch, expected, input }): Promise<void> => {
+  'chained-timeout-fire': ({ batch, expected, input }): void => {
+    const maxDelayMs = numberField(input, 'maxDelayMs');
+    const stageCount = numberField(batch, 'chainStageCount');
+
     class TinyMaxDelayScheduler extends RealTimeScheduler {
       public fireCount = 0;
       public scheduleCount = 0;
       public constructor() { super(); }
       protected override get maxTimeoutDelayMs(): number {
-        return numberField(input, 'maxDelayMs');
+        return maxDelayMs;
       }
       protected override onFire(_id: string): void {
         this.fireCount++;
@@ -371,45 +378,64 @@ const scenarioRunners = {
         this.scheduleCount++;
       }
     }
-    const maxDelayMs = numberField(input, 'maxDelayMs');
-    const stageCount = numberField(batch, 'chainStageCount');
-    const sched = new TinyMaxDelayScheduler();
-    const atMs = Date.now() + (maxDelayMs * stageCount);
-    let fired = false;
-    const task = sched.scheduleAt(atMs, () => { fired = true; });
-    return setTimeoutPromise((maxDelayMs * stageCount) + numberField(input, 'bufferMs')).then(() => {
+
+    // Drives the multi-stage chain deterministically: mocks Date.now() and setTimeout
+    // so each stage advances by exactly maxDelayMs, with no reliance on wall-clock margins.
+    mock.timers.enable({ apis: ['Date', 'setTimeout'] });
+    try {
+      const sched = new TinyMaxDelayScheduler();
+      const atMs = Date.now() + (maxDelayMs * stageCount);
+      let fired = false;
+      const task = sched.scheduleAt(atMs, () => { fired = true; });
+
+      for (let stage = 0; stage < stageCount; stage++) {
+        mock.timers.tick(maxDelayMs);
+      }
+
       assert.strictEqual(fired, expected.completed);
       assert.strictEqual(sched.fireCount, 1);
       assert.strictEqual(sched.scheduleCount, 1);
       assert.strictEqual(task.atMs, atMs);
       sched.cancelAll();
-    });
+    } finally {
+      mock.timers.reset();
+    }
   },
 
-  'chained-timeout-cancel': ({ batch, expected, input }): Promise<void> => {
+  'chained-timeout-cancel': ({ batch, expected, input }): void => {
+    const maxDelayMs = numberField(input, 'maxDelayMs');
+    const stageCount = numberField(batch, 'chainStageCount');
+
     class TinyMaxDelayScheduler extends RealTimeScheduler {
       public fireCount = 0;
       public constructor() { super(); }
       protected override get maxTimeoutDelayMs(): number {
-        return numberField(input, 'maxDelayMs');
+        return maxDelayMs;
       }
       protected override onFire(_id: string): void {
         this.fireCount++;
       }
     }
-    const maxDelayMs = numberField(input, 'maxDelayMs');
-    const stageCount = numberField(batch, 'chainStageCount');
-    const sched = new TinyMaxDelayScheduler();
-    const atMs = Date.now() + (maxDelayMs * stageCount);
-    let fired = false;
-    const task = sched.scheduleAt(atMs, () => { fired = true; });
-    return setTimeoutPromise(maxDelayMs / 2).then(async () => {
+
+    // Cancels mid-first-stage, then drives the rest of the chain's virtual time to
+    // completion deterministically, proving cancellation holds across the whole chain.
+    mock.timers.enable({ apis: ['Date', 'setTimeout'] });
+    try {
+      const sched = new TinyMaxDelayScheduler();
+      const atMs = Date.now() + (maxDelayMs * stageCount);
+      let fired = false;
+      const task = sched.scheduleAt(atMs, () => { fired = true; });
+
+      mock.timers.tick(maxDelayMs / 2);
       task.cancel();
-      await setTimeoutPromise((maxDelayMs * stageCount) + numberField(input, 'bufferMs'));
+      mock.timers.tick((maxDelayMs * stageCount) - (maxDelayMs / 2));
+
       assert.strictEqual(fired, false);
       assert.strictEqual(sched.fireCount, 0);
       assert.strictEqual(!fired && sched.fireCount === 0, expected.completed);
-    });
+    } finally {
+      mock.timers.reset();
+    }
   },
 
   'async-onFire-rejection-guarded': ({ expected, input }): Promise<void> => {

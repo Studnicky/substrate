@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { EventRecorder } from '../../src/index.js';
-import scenarioGroups from './event-recorder.scenarios.json';
+import scenarioGroups from './event-recorder.scenarios.json' with { type: 'json' };
 
 interface RecordedEventInterface {
   shape: string;

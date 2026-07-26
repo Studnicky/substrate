@@ -4,7 +4,6 @@
       "name": "construction-default-empty",
       "description": "Construction with default options starts empty",
       "shape": "construction-default-empty",
-      "options": {},
       "input": {
         "options": {}
       },
@@ -16,9 +15,6 @@
       "name": "construction-custom-capacity-empty",
       "description": "Construction with custom capacity 4 starts empty",
       "shape": "construction-custom-capacity-empty",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -32,9 +28,6 @@
       "name": "construction-capacity-one-empty",
       "description": "Construction with capacity 1 starts empty",
       "shape": "construction-capacity-one-empty",
-      "options": {
-        "capacity": 1
-      },
       "input": {
         "options": {
           "capacity": 1
@@ -48,9 +41,6 @@
       "name": "construction-invalid-capacity",
       "description": "Construction rejects invalid capacities",
       "shape": "construction-invalid-capacity",
-      "options": {
-        "capacity": 0
-      },
       "input": {
         "options": {
           "capacity": 0
@@ -64,9 +54,6 @@
       "name": "push-length-overwrite-capacity-4",
       "description": "Push 4 items into a capacity-4 overwrite buffer yields length 4",
       "shape": "push-length-overwrite",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -83,9 +70,6 @@
       "name": "push-length-overwrite-capacity-2-five-items",
       "description": "Push 5 items into a capacity-2 overwrite buffer yields length 2",
       "shape": "push-length-overwrite",
-      "options": {
-        "capacity": 2
-      },
       "input": {
         "options": {
           "capacity": 2
@@ -102,9 +86,6 @@
       "name": "push-length-overwrite-capacity-2-three-items",
       "description": "Push 3 items into a capacity-2 overwrite buffer yields length 2",
       "shape": "push-length-overwrite",
-      "options": {
-        "capacity": 2
-      },
       "input": {
         "options": {
           "capacity": 2
@@ -121,10 +102,6 @@
       "name": "push-length-grow-capacity-4",
       "description": "Push 4 items into a capacity-4 grow buffer yields length 4",
       "shape": "push-length-grow",
-      "options": {
-        "capacity": 4,
-        "overflow": "grow"
-      },
       "input": {
         "options": {
           "capacity": 4,
@@ -142,10 +119,6 @@
       "name": "push-length-grow-capacity-2-five-items",
       "description": "Push 5 items into a capacity-2 grow buffer yields length 5",
       "shape": "push-length-grow",
-      "options": {
-        "capacity": 2,
-        "overflow": "grow"
-      },
       "input": {
         "options": {
           "capacity": 2,
@@ -163,10 +136,6 @@
       "name": "push-length-grow-capacity-2-three-items",
       "description": "Push 3 items into a capacity-2 grow buffer yields length 3",
       "shape": "push-length-grow",
-      "options": {
-        "capacity": 2,
-        "overflow": "grow"
-      },
       "input": {
         "options": {
           "capacity": 2,
@@ -184,9 +153,6 @@
       "name": "push-increments-length",
       "description": "Push increments length with each push below capacity",
       "shape": "push-increments-length",
-      "options": {
-        "capacity": 8
-      },
       "input": {
         "options": {
           "capacity": 8
@@ -204,7 +170,6 @@
       "name": "shift-empty-returns-undefined",
       "description": "Shift on an empty buffer returns undefined",
       "shape": "shift-empty-returns-undefined",
-      "options": {},
       "input": {
         "options": {}
       },
@@ -216,9 +181,6 @@
       "name": "shift-empty-does-not-throw",
       "description": "Shift on an empty buffer does not throw",
       "shape": "shift-empty-does-not-throw",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -229,24 +191,9 @@
       }
     },
     {
-      "name": "shift-never-pushed-returns-undefined",
-      "description": "Shift on a never-pushed buffer returns undefined",
-      "shape": "shift-never-pushed-returns-undefined",
-      "options": {},
-      "input": {
-        "options": {}
-      },
-      "expected": {
-        "value": null
-      }
-    },
-    {
       "name": "shift-empty-successive-returns-undefined",
       "description": "Multiple successive shifts on an empty buffer stay undefined",
       "shape": "shift-empty-successive-returns-undefined",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -264,9 +211,6 @@
       "name": "shift-after-all-items-returns-undefined",
       "description": "Shift returns undefined after all items are shifted",
       "shape": "shift-after-all-items-returns-undefined",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -280,9 +224,6 @@
       "name": "fifo-order-small",
       "description": "Shift delivers items in FIFO order for a small sequence",
       "shape": "fifo-order",
-      "options": {
-        "capacity": 16
-      },
       "expected": [
         1,
         2,
@@ -305,9 +246,6 @@
       "name": "fifo-order-zero-to-nine",
       "description": "Push 0..9 then shift all yields the same order",
       "shape": "fifo-order",
-      "options": {
-        "capacity": 16
-      },
       "expected": [
         0,
         1,
@@ -344,9 +282,6 @@
       "name": "shift-first-item-and-decrements-length",
       "description": "Shift returns the first item and decrements length",
       "shape": "shift-first-item-and-decrements-length",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -361,9 +296,6 @@
       "name": "shift-only-item-and-leaves-empty",
       "description": "Shift returns the only item and leaves length 0",
       "shape": "shift-only-item-and-leaves-empty",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -378,9 +310,6 @@
       "name": "length-reflects-count-not-capacity",
       "description": "Length reflects item count, not capacity",
       "shape": "length-reflects-count-not-capacity",
-      "options": {
-        "capacity": 100
-      },
       "input": {
         "options": {
           "capacity": 100
@@ -394,9 +323,6 @@
       "name": "push-then-shift-then-push-again",
       "description": "Push, shift, then push again preserves order",
       "shape": "push-then-shift-then-push-again",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -411,9 +337,6 @@
       "name": "non-primitive-values",
       "description": "Works correctly with non-primitive object values",
       "shape": "non-primitive-values",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -427,9 +350,6 @@
       "name": "push-after-shift-order",
       "description": "Push after shift does not corrupt order",
       "shape": "push-after-shift-order",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -446,9 +366,6 @@
       "name": "push-shift-cycling",
       "description": "Push and shift cycling maintains correct order",
       "shape": "push-shift-cycling",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -466,9 +383,6 @@
       "name": "capacity-one-cycling",
       "description": "Capacity 1 push and shift cycling works",
       "shape": "capacity-one-cycling",
-      "options": {
-        "capacity": 1
-      },
       "input": {
         "options": {
           "capacity": 1
@@ -484,9 +398,6 @@
       "name": "capacity-two-cycling",
       "description": "Capacity 2 push and shift cycling works",
       "shape": "capacity-two-cycling",
-      "options": {
-        "capacity": 2
-      },
       "input": {
         "options": {
           "capacity": 2
@@ -503,9 +414,6 @@
       "name": "overwrite-oldest-evicted",
       "description": "Overwrite mode evicts the oldest item when full",
       "shape": "overwrite-oldest-evicted",
-      "options": {
-        "capacity": 3
-      },
       "input": {
         "options": {
           "capacity": 3
@@ -523,9 +431,6 @@
       "name": "overwrite-fifo-after-multiple-evictions",
       "description": "Overwrite mode keeps FIFO order after multiple evictions",
       "shape": "overwrite-fifo-after-multiple-evictions",
-      "options": {
-        "capacity": 3
-      },
       "input": {
         "options": {
           "capacity": 3
@@ -543,9 +448,6 @@
       "name": "overwrite-length-stays-at-capacity",
       "description": "Overwrite mode keeps length at capacity after overflow",
       "shape": "overwrite-length-stays-at-capacity",
-      "options": {
-        "capacity": 4
-      },
       "input": {
         "options": {
           "capacity": 4
@@ -559,9 +461,6 @@
       "name": "overwrite-capacity-one-holds-last",
       "description": "A capacity-1 overwrite buffer holds only the last pushed item",
       "shape": "overwrite-capacity-one-holds-last",
-      "options": {
-        "capacity": 1
-      },
       "input": {
         "options": {
           "capacity": 1
@@ -575,14 +474,17 @@
       "name": "grow-past-capacity",
       "description": "Grow mode doubles capacity when full and preserves all items",
       "shape": "grow-past-capacity",
-      "options": {
-        "capacity": 4,
-        "overflow": "grow"
-      },
       "input": {
         "options": {
           "capacity": 2,
           "overflow": "grow"
+        },
+        "batch": {
+          "startValue": 0,
+          "operations": [
+            { "push": 5 },
+            { "drainAll": true }
+          ]
         }
       },
       "expected": {
@@ -600,14 +502,21 @@
       "name": "grow-wraparound-order",
       "description": "Grow mode preserves order across wraparound",
       "shape": "grow-wraparound-order",
-      "options": {
-        "capacity": 4,
-        "overflow": "grow"
-      },
       "input": {
         "options": {
           "capacity": 3,
           "overflow": "grow"
+        },
+        "batch": {
+          "startValue": 1,
+          "operations": [
+            { "push": 4 },
+            { "shift": 2 },
+            { "push": 2 },
+            { "shift": 2 },
+            { "push": 3 },
+            { "drainAll": true }
+          ]
         }
       },
       "expected": {
@@ -628,23 +537,29 @@
       "name": "grow-head-wraparound",
       "description": "Grow mode preserves order after the head wraps",
       "shape": "grow-head-wraparound",
-      "options": {
-        "capacity": 6,
-        "overflow": "grow"
-      },
       "input": {
         "options": {
           "capacity": 3,
           "overflow": "grow"
+        },
+        "batch": {
+          "startValue": 1,
+          "operations": [
+            { "push": 6 },
+            { "shift": 3 },
+            { "push": 3 },
+            { "drainAll": true }
+          ]
         }
       },
       "expected": {
         "drained": [
-          3,
           4,
           5,
           6,
-          7
+          7,
+          8,
+          9
         ]
       }
     },
@@ -652,14 +567,19 @@
       "name": "grow-preserves-items-head-not-zero",
       "description": "Grow mode preserves items when head is not at index 0",
       "shape": "grow-preserves-items-head-not-zero",
-      "options": {
-        "capacity": 4,
-        "overflow": "grow"
-      },
       "input": {
         "options": {
           "capacity": 3,
           "overflow": "grow"
+        },
+        "batch": {
+          "startValue": 1,
+          "operations": [
+            { "push": 4 },
+            { "shift": 2 },
+            { "push": 3 },
+            { "drainAll": true }
+          ]
         }
       },
       "expected": {
@@ -677,14 +597,14 @@
       "name": "grow-multiple-cycles-preserves-order",
       "description": "Multiple grow cycles preserve item order",
       "shape": "grow-multiple-cycles-preserves-order",
-      "options": {
-        "capacity": 2,
-        "overflow": "grow"
-      },
       "input": {
         "options": {
           "capacity": 4,
           "overflow": "grow"
+        },
+        "batch": {
+          "itemCount": 20,
+          "shiftEveryNth": 3
         }
       },
       "expected": {
@@ -695,10 +615,6 @@
       "name": "grow-order-preserved-after-grow",
       "description": "Order is preserved immediately after a grow",
       "shape": "grow-order-preserved-after-grow",
-      "options": {
-        "capacity": 2,
-        "overflow": "grow"
-      },
       "input": {
         "options": {
           "capacity": 2,

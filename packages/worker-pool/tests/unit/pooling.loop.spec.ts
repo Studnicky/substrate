@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
-import scenarioGroups from './pooling.scenarios.json';
+import scenarioGroups from './pooling.scenarios.json' with { type: 'json' };
 
 type ItemType = { ms?: number; value: string };
 
@@ -69,7 +69,9 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       assert.equal(results.length, scenarioCase.expected.resultLength);
       assert.deepStrictEqual(results, scenarioCase.expected.results);
       const distinctThreadIds = new Set(threadIds);
-      assert.equal(distinctThreadIds.size <= scenarioCase.input.workerPool.concurrency, scenarioCase.expected.distinctThreadIdsLessThanOrEqualConcurrency);
+      const { concurrency } = scenarioCase.input.workerPool;
+      assert.ok(concurrency !== undefined);
+      assert.equal(distinctThreadIds.size <= concurrency, scenarioCase.expected.distinctThreadIdsLessThanOrEqualConcurrency);
       assert.equal(distinctThreadIds.size < scenarioCase.input.batch.itemCount, scenarioCase.expected.distinctThreadIdsLessThanItemCount);
     });
   }

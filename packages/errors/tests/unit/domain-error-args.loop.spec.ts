@@ -5,7 +5,7 @@ import { BaseError } from '../../src/errors/BaseError.js';
 import { DomainErrorArgs } from '../../src/errors/DomainErrorArgs.js';
 import type { BaseErrorArgumentsInterface } from '../../src/interfaces/BaseErrorArgumentsInterface.js';
 import type { DomainErrorOptionsInterface } from '../../src/interfaces/DomainErrorOptionsInterface.js';
-import scenarioGroups from './domain-error-args.scenarios.json';
+import scenarioGroups from './domain-error-args.scenarios.json' with { type: 'json' };
 
 abstract class StubFileLockError extends BaseError {
   protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
@@ -114,16 +114,15 @@ const runnerMap = {
     assert.strictEqual('retryable' in args, Boolean(expected.hasRetryable));
   },
   'preserves-instanceof': (scenario) => {
-    const { expected, input } = scenario;
+    const { input } = scenario;
     const err = new StubFileLockTimeoutError(input.error);
     assert.ok(err instanceof Error);
     assert.ok(err instanceof BaseError);
     assert.ok(err instanceof StubFileLockError);
     assert.ok(err instanceof StubFileLockTimeoutError);
-    assert.deepStrictEqual(expected.instanceOf, ['Error', 'BaseError', 'StubFileLockError', 'StubFileLockTimeoutError']);
   },
   'same-fields-object': (scenario) => {
-    const { expected, input } = scenario;
+    const { input } = scenario;
     const fields = input.error.fields;
     let received: Readonly<typeof fields> | undefined;
     DomainErrorArgs.build(fields, {
@@ -134,7 +133,6 @@ const runnerMap = {
       }
     });
     assert.strictEqual(received, fields);
-    assert.strictEqual(Boolean(expected.sameObject), true);
   }
 } satisfies Record<ScenarioShape, ScenarioRunner>;
 

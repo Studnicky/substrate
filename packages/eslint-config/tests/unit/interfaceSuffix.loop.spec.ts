@@ -5,7 +5,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { interfaceSuffix } from '../../src/rules/interfaceSuffix.js';
-import scenarioGroups from './interfaceSuffix.scenarios.json';
+import scenarioGroups from './interfaceSuffix.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

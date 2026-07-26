@@ -3,16 +3,32 @@ import { after, before, describe, it } from 'node:test';
 
 import { AbortError, FetchClient, TimeoutError } from '../../../src/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
-import scenarioGroups from './features.scenarios.json';
+import scenarioGroups from './features.scenarios.json' with { type: 'json' };
+
+type StatusScenarioCase<Shape extends string> = {
+  description: string;
+  expected: { status: number };
+  input: { fetchClient: Record<string, unknown>; request: { options?: Record<string, unknown>; url: string } };
+  shape: Shape;
+  name: string;
+};
+
+type AbortScenarioCase<Shape extends string> = {
+  description: string;
+  expected: { abortErrorName: 'AbortError'; urlIncludes: string };
+  input: { fetchClient: Record<string, unknown> };
+  shape: Shape;
+  name: string;
+};
 
 type ScenarioCase =
-  | {
-      description: string;
-      expected: { status: number };
-      input: { fetchClient: Record<string, unknown>; request: { options?: Record<string, unknown>; url: string } };
-      shape: 'baseURL-prepend-relative' | 'baseURL-keep-absolute' | 'baseURL-trailing-slash' | 'baseURL-path-without-leading-slash' | 'headers-apply-defaults' | 'headers-merge-default-and-request' | 'headers-override-defaults';
-      name: string;
-    }
+  | StatusScenarioCase<'baseURL-prepend-relative'>
+  | StatusScenarioCase<'baseURL-keep-absolute'>
+  | StatusScenarioCase<'baseURL-trailing-slash'>
+  | StatusScenarioCase<'baseURL-path-without-leading-slash'>
+  | StatusScenarioCase<'headers-apply-defaults'>
+  | StatusScenarioCase<'headers-merge-default-and-request'>
+  | StatusScenarioCase<'headers-override-defaults'>
   | {
       description: string;
       expected: { itemsLengthAtMost: number };
@@ -27,13 +43,9 @@ type ScenarioCase =
       shape: 'params-apply-defaults-without-baseURL';
       name: string;
     }
-  | {
-      description: string;
-      expected: { abortErrorName: 'AbortError'; urlIncludes: string };
-      input: { fetchClient: Record<string, unknown> };
-      shape: 'abort-details' | 'abort-in-get' | 'abort-first';
-      name: string;
-    }
+  | AbortScenarioCase<'abort-details'>
+  | AbortScenarioCase<'abort-in-get'>
+  | AbortScenarioCase<'abort-first'>
   | {
       description: string;
       expected: { timeoutErrorName: 'TimeoutError' };

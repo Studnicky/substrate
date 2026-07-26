@@ -26,6 +26,20 @@
       "description": "returns false for a string",
       "input": "hello",
       "outcome": false
+    },
+    {
+      "description": "returns false for a Map instance",
+      "input": {
+        "shape": "map"
+      },
+      "outcome": false
+    },
+    {
+      "description": "returns false for a Set instance",
+      "input": {
+        "shape": "set"
+      },
+      "outcome": false
     }
   ],
   "isString": [

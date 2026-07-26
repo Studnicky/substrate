@@ -5,7 +5,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { singleExport } from '../../src/rules/singleExport.js';
-import scenarioGroups from './singleExport.scenarios.json';
+import scenarioGroups from './singleExport.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

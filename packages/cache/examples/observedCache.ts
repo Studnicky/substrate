@@ -9,7 +9,7 @@ import { LruCache } from '../src/index.js';
 class TracingCache extends LruCache<string, number> {
   readonly #recorder = new EventRecorder<{ 'event': string; 'key'?: string }>();
 
-  get events(): { 'event': string; 'key'?: string }[] { return this.#recorder.events; }
+  get events(): readonly { 'event': string; 'key'?: string }[] { return this.#recorder.events; }
 
   constructor(options: { 'capacity': number; 'ttlMs'?: number }) {
     super(options);
@@ -71,7 +71,6 @@ cache.clear();            // onClear(2)
 
 // TTL expiry scenario
 const ttlCache = new TracingCache({ 'capacity': 10 });
-ttlCache.events.length = 0;
 ttlCache.set('ttl-key', 7, { 'ttlMs': 1 }); // 1 ms TTL
 await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
 ttlCache.get('ttl-key'); // onExpire then onMiss

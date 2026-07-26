@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { Draft, Patch, Path } from '../../../src/index.js';
 import { PatchError } from '../../../src/errors/PatchError.js';
 
-import scenarioGroups from './json-behavior.scenarios.json';
+import scenarioGroups from './json-behavior.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'draft-array-index'
@@ -238,7 +238,9 @@ const scenarioRunnerMap = {
     const target = structuredClone(base);
     Patch.create(patch).apply(target);
     assert.deepEqual(target, next);
-    assert.equal(scenarioCase.expected.roundTrips, true);
+    assert.equal(Reflect.get(next, 'count'), requiredValue(mutation, 'count'));
+    assert.deepEqual(Reflect.get(next, 'meta'), requiredValue(mutation, 'meta'));
+    assert.deepEqual(Reflect.get(next, 'tags'), requiredValue(mutation, 'tags'));
   },
 
   'draft-patch-remove': (scenarioCase) => {
@@ -258,12 +260,14 @@ const scenarioRunnerMap = {
     const input = readJson(scenarioCase);
     const base = cloneJsonObject(requiredValue(input, 'base'), 'draft patch add base');
     const addKey = requireString(requiredValue(input, 'addKey'), 'draft patch add key');
+    const addValue = requiredValue(input, 'addValue');
     const { next, patch } = Draft.producePatch(base, (draft) => {
-      Reflect.set(draft, addKey, requiredValue(input, 'addValue'));
+      Reflect.set(draft, addKey, addValue);
     });
     const target = structuredClone(base);
     Patch.create(patch).apply(target);
     assert.deepEqual(target, next);
+    assert.equal(Reflect.get(next, addKey), addValue);
   },
 
   'draft-patch-empty': (scenarioCase) => {
@@ -441,7 +445,7 @@ const scenarioRunnerMap = {
     const first = patch.operations;
     const firstValue = first[0]?.value;
     assert.ok(firstValue !== null && typeof firstValue === 'object' && !Array.isArray(firstValue));
-    Reflect.set(Reflect.get(firstValue, 'nested'), 'count', 3);
+    Reflect.set(requireJsonObject(Reflect.get(firstValue, 'nested'), 'patch operations first value nested'), 'count', 3);
     const target: Record<string, unknown> = {};
     patch.apply(target);
     const appliedValue = target.value;
@@ -451,7 +455,6 @@ const scenarioRunnerMap = {
     const nextTarget: Record<string, unknown> = {};
     patch.apply(nextTarget);
     assert.deepEqual(nextTarget, { value: scenarioCase.input.json.value });
-    assert.equal(scenarioCase.expected.isolated, true);
   },
 
   'patch-path-parsing': (scenarioCase) => {
@@ -556,7 +559,6 @@ const scenarioRunnerMap = {
     assert.equal(Path.get(obj, 'user.tags[1.5]'), undefined);
     assert.equal(Path.get(obj, 'user.tags[-1]'), undefined);
     assert.equal(Path.get(obj, 'user.tags[0]'), 'admin');
-    assert.equal(scenarioCase.expected.safe, true);
   },
 
   'path-subclass': (scenarioCase) => {
@@ -565,7 +567,6 @@ const scenarioRunnerMap = {
     assert.equal(OpenPath.get(obj, '__secret'), obj.__secret);
     assert.equal(Path.get(obj, 'layer.__inner'), undefined);
     assert.equal(OpenPath.get(obj, 'layer.__inner'), requireJsonObject(obj.layer, 'path subclass layer').__inner);
-    assert.equal(scenarioCase.expected.openPath, true);
   }
 } satisfies Record<ScenarioShape, ScenarioRunner>;
 
@@ -581,8 +582,12 @@ function normalizeScenarioCase(scenarioCase: ImportedScenarioCase): ScenarioCase
   };
 }
 
+function isScenarioShape(shape: string): shape is ScenarioShape {
+  return Object.hasOwn(scenarioRunnerMap, shape);
+}
+
 function requireScenarioShape(shape: string): ScenarioShape {
-  if (Object.hasOwn(scenarioRunnerMap, shape)) {
+  if (isScenarioShape(shape)) {
     return shape;
   }
 

@@ -6,7 +6,7 @@ import {
 import { HealthRegistry } from '../../src/HealthRegistry.js';
 import type { HealthCheckInterface } from '../../src/interfaces/HealthCheckInterface.js';
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
-import scenarioGroups from './HealthRegistry.scenarios.json';
+import scenarioGroups from './HealthRegistry.scenarios.json' with { type: 'json' };
 
 type HealthStatus = 'degraded' | 'healthy' | 'unhealthy';
 
@@ -181,7 +181,11 @@ function createCheckOptions(def: HealthCheckDefinitionInterface): { timeoutMs: n
   return def.timeoutMs === undefined ? undefined : { timeoutMs: def.timeoutMs };
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'all-healthy': async (scenarioCase) => {
     const registry = HealthRegistry.create();
     for (const check of scenarioCase.input.checks) {
@@ -283,10 +287,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
+}
+
 void describe('HealthRegistry', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
-      await runnerMap[scenario.shape](scenario);
+      await runCase(scenario);
     });
   }
 });

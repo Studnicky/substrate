@@ -5,9 +5,9 @@ import type { JSONSchema7Type } from 'json-schema';
 
 import { Guard } from '@studnicky/types';
 
-import { CAUSE_DEPTH_SENTINEL } from '../../src/constants/index.js';
+import { CAUSE_DEPTH_SENTINEL } from '../../src/constants/CauseChainConstants.js';
 import { BaseError } from '../../src/errors/BaseError.js';
-import scenarioGroups from './base-error.scenarios.json';
+import scenarioGroups from './base-error.scenarios.json' with { type: 'json' };
 
 class TestError extends BaseError {
   public constructor(message: string, options?: Partial<{
@@ -22,7 +22,7 @@ class TestError extends BaseError {
       code: options?.code ?? 'test.generic',
       correlationId: options?.correlationId,
       message,
-      metadata: options?.metadata,
+      ...(options?.metadata === undefined ? {} : { metadata: options.metadata }),
       retryable: options?.retryable ?? false
     });
   }
@@ -63,21 +63,13 @@ type ScenarioInput = {
 };
 type ToMessageInput = { shape: 'native-error' | 'primitive'; message?: string; value?: boolean | null | number | string };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: Record<string, unknown>;
-      input: ScenarioInput;
-      shape: 'cause-chain' | 'cause-chain-primitive' | 'construction-cause' | 'construction-code' | 'construction-correlation-id' | 'construction-correlation-id-absent' | 'construction-default-retryable' | 'construction-explicit-retryable' | 'construction-instanceof' | 'construction-message' | 'construction-metadata' | 'construction-metadata-absent' | 'construction-metadata-nested' | 'construction-name' | 'construction-omitted-optional-args' | 'construction-timestamp' | 'find-cause-of-type-hit' | 'find-cause-of-type-miss' | 'find-cause-of-type-primitive' | 'find-cause-of-type-self' | 'has-cause-of-type-hit' | 'has-cause-of-type-miss' | 'json-code-message' | 'json-correlation-null' | 'json-correlation-value' | 'json-depth-sentinel' | 'json-native-error-cause' | 'json-primitive-cause' | 'json-recursive-cause' | 'json-required-fields' | 'json-roundtrip' | 'to-message-native-error' | 'to-message-primitive' | 'to-serialized-error';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { message: string };
-      input: ScenarioInput;
-      shape: 'to-user-message-default' | 'to-user-message-custom';
-      name: string;
-    };
+type ScenarioCase = {
+  description: string;
+  expected: Record<string, unknown>;
+  input: ScenarioInput;
+  shape: 'cause-chain' | 'cause-chain-primitive' | 'construction-cause' | 'construction-code' | 'construction-correlation-id' | 'construction-correlation-id-absent' | 'construction-default-retryable' | 'construction-explicit-retryable' | 'construction-instanceof' | 'construction-message' | 'construction-metadata' | 'construction-metadata-absent' | 'construction-metadata-nested' | 'construction-name' | 'construction-omitted-optional-args' | 'construction-timestamp' | 'find-cause-of-type-hit' | 'find-cause-of-type-miss' | 'find-cause-of-type-primitive' | 'find-cause-of-type-self' | 'has-cause-of-type-hit' | 'has-cause-of-type-miss' | 'json-code-message' | 'json-correlation-null' | 'json-correlation-value' | 'json-depth-sentinel' | 'json-native-error-cause' | 'json-primitive-cause' | 'json-recursive-cause' | 'json-required-fields' | 'json-roundtrip' | 'to-message-native-error' | 'to-message-primitive' | 'to-serialized-error' | 'to-user-message-default' | 'to-user-message-custom';
+  name: string;
+};
 
 type ScenarioRunner = (scenario: ScenarioCase, error: TestError) => void;
 
@@ -106,9 +98,9 @@ function createToMessageInput(input: ToMessageInput | undefined): unknown {
 function createError(input: ScenarioCase['input']): TestError {
   const options = {
     'cause': createCause(input.cause),
-    'correlationId': input.correlationId,
-    'metadata': input.metadata,
-    'retryable': input.retryable
+    ...(input.correlationId === undefined ? {} : { correlationId: input.correlationId }),
+    ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
+    ...(input.retryable === undefined ? {} : { retryable: input.retryable })
   };
 
   return new TestError(input.message, options);
@@ -240,12 +232,12 @@ const runnerMap = {
   'json-native-error-cause': (scenario, error) => {
     const cause = error.toJSON().cause as Record<string, unknown>;
     assert.strictEqual(cause.code, 'native.error');
-    assert.strictEqual(cause.message, scenario.expected.cause.message);
+    assert.strictEqual(cause.message, (scenario.expected.cause as { message: string }).message);
   },
   'json-primitive-cause': (scenario, error) => {
     const cause = error.toJSON().cause as Record<string, unknown>;
     assert.strictEqual(cause.code, 'native.primitive');
-    assert.strictEqual(cause.message, scenario.expected.cause.message);
+    assert.strictEqual(cause.message, (scenario.expected.cause as { message: string }).message);
   },
   'json-recursive-cause': (_scenario, error) => {
     const cause = error.toJSON().cause as Record<string, unknown>;

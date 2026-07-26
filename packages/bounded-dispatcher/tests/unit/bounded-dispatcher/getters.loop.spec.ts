@@ -11,7 +11,7 @@ type ScenarioCase =
   | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'getBus-default' }
   | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'getBus-preserves-instance' };
 
-import scenarioGroups from './getters.scenarios.json';
+import scenarioGroups from './getters.scenarios.json' with { type: 'json' };
 
 type ScenarioRunner = (scenario: ScenarioCase) => void;
 

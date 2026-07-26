@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { VirtualFileSystem } from '@studnicky/virtual-fs';
 
 import { FileLock, FileLockTimeoutError } from '../../src/index.js';
-import scenarioGroups from './FileLockVirtualFs.scenarios.json';
+import scenarioGroups from './FileLockVirtualFs.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {

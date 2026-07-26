@@ -6,7 +6,7 @@ import { ModuleError } from '@studnicky/errors';
 import { ConfigValidation } from '../../../src/validation/configValidation.js';
 import { ConfigurationError } from '../../../src/errors/ConfigurationError.js';
 
-import scenarioGroups from './configValidation.scenarios.json';
+import scenarioGroups from './configValidation.scenarios.json' with { type: 'json' };
 
 function fixtureFunction(): void {
   return undefined;
@@ -86,7 +86,7 @@ type OutcomeContext = {
 type ConfigAssertion = (context: AssertionContext) => void;
 type OutcomeAssertion = (context: OutcomeContext) => void;
 
-const typedScenarioGroups: Record<ScenarioGroupName, readonly ScenarioCase[]> = scenarioGroups;
+const typedScenarioGroups = scenarioGroups as Record<ScenarioGroupName, readonly ScenarioCase[]>;
 
 const scenarioGroupNames: readonly ScenarioGroupName[] = [
   'assertString',
@@ -129,7 +129,7 @@ function requiredRecord(value: unknown, label: string): Record<string, unknown> 
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error(label);
   }
-  return value;
+  return value as Record<string, unknown>;
 }
 
 const inputMaterializers: Record<ScenarioInputShape, (value: ScenarioInputToken) => unknown> = {

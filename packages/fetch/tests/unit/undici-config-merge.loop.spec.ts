@@ -6,7 +6,7 @@ import { validateDispatcher } from '../../src/config/schemas/validateDispatcher.
 import { DEFAULT_DISPATCHER_CONFIG } from '../../src/constants/DEFAULT_DISPATCHER_CONFIG.js';
 import { FetchClient } from '../../src/modules/FetchClient.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
-import scenarioGroups from './undici-config-merge.scenarios.json';
+import scenarioGroups from './undici-config-merge.scenarios.json' with { type: 'json' };
 
 type RuntimeValue =
   | RuntimeValue[]
@@ -111,9 +111,10 @@ const expectedOutcomeMap: Record<ExpectedOutcome['shape'], ExpectedOutcomeRunner
     assert.doesNotThrow(action);
   },
   throws: (scenarioCase, action) => {
-    assert.ok(scenarioCase.expected.messageIncludes !== undefined);
+    const { messageIncludes } = scenarioCase.expected;
+    assert.ok(messageIncludes !== undefined);
     assert.throws(action, (error: Error) => {
-      for (const expectedMessagePart of scenarioCase.expected.messageIncludes) {
+      for (const expectedMessagePart of messageIncludes) {
         assert.ok(error.message.includes(expectedMessagePart));
       }
 

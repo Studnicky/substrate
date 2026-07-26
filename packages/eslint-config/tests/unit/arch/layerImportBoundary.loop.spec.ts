@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { layerImportBoundary } from '../../../src/rules/arch/layerImportBoundary.js';
-import scenarioGroups from './layerImportBoundary.scenarios.json';
+import scenarioGroups from './layerImportBoundary.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

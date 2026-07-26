@@ -691,12 +691,14 @@
           "burstSize": 1,
           "clock": [
             0,
-            2
+            0.4,
+            1
           ]
         }
       },
       "expected": {
-        "completed": true
+        "completed": true,
+        "availableAfterWait": 0
       }
     },
     {
@@ -844,7 +846,7 @@
         "available": [
           1,
           0,
-          ">=4"
+          5
         ],
         "errorsSwallowed": true
       }
@@ -866,6 +868,19 @@
         "rejectionEvents": 0,
         "hookErrorCount": 1,
         "hookName": "onTokenAcquired"
+      }
+    },
+    {
+      "name": "resilience-dlq-invalid-capacity",
+      "description": "DeadLetterQueue rejects capacity <= 0",
+      "shape": "dlq-invalid-capacity",
+      "input": {
+        "resilience": {
+          "capacity": 0
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
       }
     },
     {

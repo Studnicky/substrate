@@ -40,7 +40,7 @@ class TracingBuffer<T> extends CircularBuffer<T> {
 
 // Scenario 1: capacity-3 overwrite buffer, push 5 items (2 overflows/evictions)
 console.log('--- overwrite mode (capacity 3) ---');
-const ring = TracingBuffer.create<number>({ 'capacity': 3 });
+const ring = TracingBuffer.create<number, TracingBuffer<number>>({ 'capacity': 3 });
 ring.push(1);
 ring.push(2);
 ring.push(3);
@@ -52,7 +52,7 @@ while (ring.length > 0) { ring.shift(); }
 
 // Scenario 2: capacity-2 grow-mode buffer
 console.log('--- grow mode (capacity 2) ---');
-const growing = TracingBuffer.create<number>({ 'capacity': 2, 'overflow': 'grow' });
+const growing = TracingBuffer.create<number, TracingBuffer<number>>({ 'capacity': 2, 'overflow': 'grow' });
 growing.push(10);
 growing.push(20);
 growing.push(30); // triggers grow 2 → 4

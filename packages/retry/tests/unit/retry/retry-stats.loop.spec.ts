@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Retry } from '../../../src/retry/index.js';
-import scenarioGroups from './retry-stats.scenarios.json';
+import scenarioGroups from './retry-stats.scenarios.json' with { type: 'json' };
 
 type RetryClassifierMode = 'default' | 'non-retryable' | 'retryable';
 
@@ -40,11 +40,10 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     const { expected, input } = scenarioCase;
     const retry = createScenarioRetry(input);
 
-    await retry.execute(async () => { throw new Error(String(input.errorMessage)); }).catch(() => {
-      const stats = retry.getStats();
-      assert.strictEqual(stats.failedRequests, Number(expected.failedRequests));
-      assert.strictEqual(stats.successfulRequests, Number(expected.successfulRequests));
-    });
+    await assert.rejects(retry.execute(async () => { throw new Error(String(input.errorMessage)); }));
+    const stats = retry.getStats();
+    assert.strictEqual(stats.failedRequests, Number(expected.failedRequests));
+    assert.strictEqual(stats.successfulRequests, Number(expected.successfulRequests));
   },
   'initial': (scenarioCase) => {
     const { expected } = scenarioCase;
@@ -106,14 +105,13 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     let attempts = 0;
     const retry = createScenarioRetry(input);
 
-    await retry.execute(async () => {
+    await assert.rejects(retry.execute(async () => {
       attempts += 1;
       throw new Error(String(input.errorMessage));
-    }).catch(() => {
-      const stats = retry.getStats();
-      assert.strictEqual(stats.totalRetries, Number(expected.totalRetries));
-      assert.strictEqual(attempts, Number(expected.attempts));
-    });
+    }));
+    const stats = retry.getStats();
+    assert.strictEqual(stats.totalRetries, Number(expected.totalRetries));
+    assert.strictEqual(attempts, Number(expected.attempts));
   }
 };
 

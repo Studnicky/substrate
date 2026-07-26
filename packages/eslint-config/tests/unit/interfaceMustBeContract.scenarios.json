@@ -5,5 +5,36 @@
       "name": "a method signature makes the interface a contract"
     }
   ],
-  "invalid": []
+  "invalid": [
+    {
+      "code": "interface FeatureFlagsInterface {\n  [key: string]: boolean;\n}",
+      "errors": [
+        {
+          "data": { "name": "FeatureFlagsInterface" },
+          "messageId": "dataShapeMustBeType"
+        }
+      ],
+      "name": "index-only data has no contract signal"
+    },
+    {
+      "code": "interface BoxInterface<T> {\n  value: T;\n}",
+      "errors": [
+        {
+          "data": { "name": "BoxInterface" },
+          "messageId": "dataShapeMustBeType"
+        }
+      ],
+      "name": "generic pure data has no contract signal"
+    },
+    {
+      "code": "type UserIdType = string;\ninterface UserEnvelopeInterface {\n  user: UserIdType;\n}",
+      "errors": [
+        {
+          "data": { "name": "UserEnvelopeInterface" },
+          "messageId": "dataShapeMustBeType"
+        }
+      ],
+      "name": "a named pure-data reference carries no contract signal"
+    }
+  ]
 }

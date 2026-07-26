@@ -14,10 +14,6 @@ import { FetchClient } from '../src/index.js';
  * Return the context unchanged in onResponse for a no-op response stage.
  */
 class AuthClient extends FetchClient {
-  static override create(config: Parameters<typeof FetchClient.create>[0] = {}): AuthClient {
-    return new this(config);
-  }
-
   readonly requestLog: string[] = [];
   readonly responseLog: number[] = [];
 

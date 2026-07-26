@@ -3,11 +3,19 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import type { PipelineFunctionInterface, PipelineOptionsEntity } from '../src/index.js';
 import type { StepCtxTypeEntity } from './entities/StepCtxTypeEntity.js';
 
 import { Pipeline, PipelineError } from '../src/index.js';
 
 class TracingPipeline<T extends StepCtxTypeEntity.Type> extends Pipeline<T> {
+  public constructor(
+    stages: readonly PipelineFunctionInterface<T>[],
+    options?: Readonly<PipelineOptionsEntity.Type>
+  ) {
+    super(stages, options);
+  }
+
   readonly stageStartEvents: { 'ctx': T; 'index': number }[] = [];
   readonly stageSuccessEvents: { 'ctx': T; 'index': number }[] = [];
   readonly stageErrorEvents: { 'error': unknown; 'index': number }[] = [];
@@ -58,7 +66,7 @@ class TracingPipeline<T extends StepCtxTypeEntity.Type> extends Pipeline<T> {
 
 // ── Happy-path run: 3 stages that mutate step/value ───────────────────────────
 
-const successPipeline = TracingPipeline.create<StepCtxTypeEntity.Type>([
+const successPipeline = new TracingPipeline<StepCtxTypeEntity.Type>([
   (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->alpha` }; },
   (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->beta` }; },
   (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->gamma` }; }
@@ -70,7 +78,7 @@ console.log(`result: step=${successResult.step} value=${successResult.value}`);
 
 // ── Failing run: 2 stages where the second throws ────────────────────────────
 
-const failPipeline = TracingPipeline.create<StepCtxTypeEntity.Type>([
+const failPipeline = new TracingPipeline<StepCtxTypeEntity.Type>([
   (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->alpha` }; },
   (_ctx) => { throw new Error('stage 1 fails'); }
 ]);

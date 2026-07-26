@@ -5,7 +5,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { directInvocationOnly } from '../../src/rules/directInvocationOnly.js';
-import scenarioGroups from './directInvocationOnly.scenarios.json';
+import scenarioGroups from './directInvocationOnly.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

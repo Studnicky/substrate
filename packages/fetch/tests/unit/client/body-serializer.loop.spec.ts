@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { BodySerializer } from '../../../src/modules/BodySerializer.js';
-import scenarioGroups from './body-serializer.scenarios.json';
+import scenarioGroups from './body-serializer.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -48,7 +48,10 @@ type ScenarioCase =
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
+type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
+
+const runnerMap: RunnerMap = {
   'needs-json-content-type-array': (scenarioCase) => {
     assert.equal(BodySerializer.needsJsonContentType(materializeBody(scenarioCase.input.body)), scenarioCase.expected.decision);
   },
@@ -90,7 +93,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
   }
 };
 
-function runCase(scenarioCase: ScenarioCase): void {
+function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 

@@ -6,7 +6,7 @@ import type { ModuleErrorOptionsInterface } from '../../src/interfaces/index.js'
 import { ErrorDefaults } from '../../src/constants/index.js';
 import { BaseError } from '../../src/errors/BaseError.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
-import scenarioGroups from './subclass-extension.scenarios.json';
+import scenarioGroups from './subclass-extension.scenarios.json' with { type: 'json' };
 
 interface AuditErrorArgumentsInterface {
   auditId: string;
@@ -64,15 +64,13 @@ class NetworkModuleError extends ModuleError {
 type ScenarioCase =
   | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'audit-instanceof' | 'audit-json-base' | 'audit-json-extra' | 'audit-json-independent' | 'audit-name' | 'audit-user-message' | 'network-cause-chain' | 'network-find-cause' | 'network-has-cause' | 'network-instanceof' | 'network-json-context' | 'network-json-name' | 'network-json-status-code' | 'network-name'; name: string };
 
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
+type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
 
 const runnerMap: RunnerMap = {
   'audit-instanceof': (scenarioCase) => {
-    const input = scenarioCase.input as AuditErrorArgumentsInterface;
+    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
     const expected = scenarioCase.expected as { baseError: boolean; error: boolean; instanceOf: boolean };
     const err = AuditError.of(input);
     assert.strictEqual(err instanceof Error, expected.error);
@@ -81,7 +79,7 @@ const runnerMap: RunnerMap = {
   },
 
   'audit-json-base': (scenarioCase) => {
-    const input = scenarioCase.input as AuditErrorArgumentsInterface;
+    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
     const expected = scenarioCase.expected as { code: string };
     const json = AuditError.of(input).toJSON() as Record<string, unknown>;
     assert.strictEqual(json.code, expected.code);
@@ -90,7 +88,7 @@ const runnerMap: RunnerMap = {
   },
 
   'audit-json-extra': (scenarioCase) => {
-    const input = scenarioCase.input as AuditErrorArgumentsInterface;
+    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
     const expected = scenarioCase.expected as { auditId: string; policy: string };
     const json = AuditError.of(input).toJSON() as Record<string, unknown>;
     assert.strictEqual(json.auditId, expected.auditId);
@@ -98,7 +96,7 @@ const runnerMap: RunnerMap = {
   },
 
   'audit-json-independent': (scenarioCase) => {
-    const input = scenarioCase.input as AuditErrorArgumentsInterface;
+    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
     const expected = scenarioCase.expected as { jsonHasAuditId: boolean; messagePrefix: string };
     const err = AuditError.of(input);
     const json = err.toJSON() as Record<string, unknown>;
@@ -108,13 +106,13 @@ const runnerMap: RunnerMap = {
   },
 
   'audit-name': (scenarioCase) => {
-    const input = scenarioCase.input as AuditErrorArgumentsInterface;
+    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
     const expected = scenarioCase.expected as { name: string };
     assert.strictEqual(AuditError.of(input).name, expected.name);
   },
 
   'audit-user-message': (scenarioCase) => {
-    const input = scenarioCase.input as AuditErrorArgumentsInterface;
+    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
     const expected = scenarioCase.expected as { message: string };
     const msg = AuditError.of(input).toUserMessage();
     assert.strictEqual(msg, expected.message);
@@ -189,7 +187,7 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+function runCase(scenarioCase: ScenarioCase): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 

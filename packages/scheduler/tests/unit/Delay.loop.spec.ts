@@ -11,7 +11,7 @@ import type { SchedulerProviderInterface } from '../../src/interfaces/SchedulerP
 import { Delay } from '../../src/delay/Delay.js';
 import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
-import scenarioGroups from './Delay.scenarios.json';
+import scenarioGroups from './Delay.scenarios.json' with { type: 'json' };
 
 interface VirtualSchedulerInputInterface {
   counter: {
@@ -166,7 +166,12 @@ function createSchedulerError(input: DelayInputInterface): Error {
   return new Error(input.schedulerErrorMessage);
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   'abort-during-clock': async (scenarioCase) => {
     const counter = createVirtualTimeCounter(scenarioCase.input);
     const scheduler = new AuditVirtualScheduler(counter);
@@ -306,7 +311,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   traceDelayTest('case start', { 'shape': scenarioCase.shape, 'name': scenarioCase.name });
   try {
     await runnerMap[scenarioCase.shape](scenarioCase);

@@ -12,7 +12,14 @@ type ScenarioCase =
       description: string;
       expected: { concurrencyLimit: 10 };
       input: { throttle: JsonThrottleConfig };
-      shape: 'default-config' | 'missing-concurrency-limit-uses-default';
+      shape: 'default-config';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { concurrencyLimit: 10 };
+      input: { throttle: JsonThrottleConfig };
+      shape: 'missing-concurrency-limit-uses-default';
       name: string;
     }
   | {
@@ -44,7 +51,7 @@ type ScenarioCase =
       name: string;
     };
 
-import scenarioGroups from './configuration.scenarios.json';
+import scenarioGroups from './configuration.scenarios.json' with { type: 'json' };
 
 type ConcurrencyLimitShape = 'missing' | 'nan-token' | 'number';
 type ThrottleConfigResolver = (config: JsonThrottleConfig) => Parameters<typeof Throttle.create>[0];
@@ -58,14 +65,20 @@ const concurrencyLimitShape = (config: JsonThrottleConfig): ConcurrencyLimitShap
 const throttleConfigResolverMap: Record<ConcurrencyLimitShape, ThrottleConfigResolver> = {
   missing: () => ({}),
   'nan-token': () => ({ concurrencyLimit: Number.NaN }),
-  number: (config) => ({ concurrencyLimit: config.concurrencyLimit })
+  number: (config) => {
+    const { concurrencyLimit } = config;
+    return typeof concurrencyLimit === 'number' ? { concurrencyLimit } : {};
+  }
 };
 
 function resolveThrottleConfig(config: JsonThrottleConfig): Parameters<typeof Throttle.create>[0] {
   return throttleConfigResolverMap[concurrencyLimitShape(config)](config);
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'accepts-valid-configuration': (scenarioCase) => {
     assert.doesNotThrow(() => { Throttle.create(resolveThrottleConfig(scenarioCase.input.throttle)); });
     assert.doesNotThrow(() => { Throttle.create(); });
@@ -96,10 +109,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
   }
 };
 
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
+}
+
 void describe('Throttle configuration', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenarioCase.name, async () => {
-      await runnerMap[scenarioCase.shape](scenarioCase);
+    void it(scenarioCase.name, () => {
+      runCase(scenarioCase);
     });
   }
 });

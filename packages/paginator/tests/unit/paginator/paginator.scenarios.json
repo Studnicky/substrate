@@ -625,54 +625,37 @@
     },
     {
       "name": "paginator-discriminant-narrowing",
-      "description": "discriminant helpers narrow state, event, and cursor payloads",
+      "description": "next()/reset() drive the real Paginator through hasMore, exhausted, and back to idle, observed via pages/hasNext()",
       "shape": "discriminant-narrowing",
       "input": {
         "paginator": {
-          "cursorAvailable": {
-            "cursor": 2,
-            "exhausted": false
-          },
-          "cursorExhausted": {
-            "exhausted": true
-          },
-          "resetEvent": {
-            "type": "reset"
-          },
-          "pageEvent": {
-            "nextCursor": {
+          "pages": [
+            "page-1",
+            "page-2"
+          ],
+          "nextCursors": [
+            {
               "cursor": 2,
               "exhausted": false
             },
-            "page": "page-1",
-            "type": "pageReceived"
-          },
-          "stateIdle": {
-            "variant": "idle"
-          },
-          "stateHasMore": {
-            "cursor": 2,
-            "pages": [
-              "page-1"
-            ],
-            "variant": "hasMore"
-          },
-          "stateExhausted": {
-            "pages": [
-              "page-1"
-            ],
-            "variant": "exhausted"
-          }
+            {
+              "exhausted": true
+            }
+          ]
         }
       },
       "expected": {
-        "cursorAvailable": "cursor:2",
-        "cursorExhausted": "exhausted",
-        "resetEvent": "reset",
-        "pageEvent": "page-1:cursor:2",
-        "stateIdle": "idle",
-        "stateHasMore": "page-1:cursor:2",
-        "stateExhausted": "page-1:exhausted"
+        "pagesAfterFirst": [
+          "page-1"
+        ],
+        "hasNextAfterFirst": true,
+        "pagesAfterSecond": [
+          "page-1",
+          "page-2"
+        ],
+        "hasNextAfterSecond": false,
+        "pagesAfterReset": [],
+        "hasNextAfterReset": true
       }
     }
   ]

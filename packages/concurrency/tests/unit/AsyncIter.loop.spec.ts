@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { AsyncIter } from '../../src/AsyncIter.js';
-import scenarioGroups from './AsyncIter.scenarios.json';
+import scenarioGroups from './AsyncIter.scenarios.json' with { type: 'json' };
 
 async function collect<T>(gen: AsyncIterable<T>): Promise<T[]> {
   const items: T[] = [];
@@ -27,7 +27,14 @@ type ScenarioCase =
       description: string;
       expected: { items: number[] };
       input: { sources: number[][] };
-      shape: 'merge-empty' | 'merge-single';
+      shape: 'merge-empty';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { items: number[] };
+      input: { sources: number[][] };
+      shape: 'merge-single';
       name: string;
     }
   | {
@@ -55,7 +62,21 @@ type ScenarioCase =
       description: string;
       expected: { items: number[] };
       input: { predicate: 'even' | 'all'; values: number[] };
-      shape: 'filter-sync' | 'filter-empty' | 'filter-all';
+      shape: 'filter-sync';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { items: number[] };
+      input: { predicate: 'even' | 'all'; values: number[] };
+      shape: 'filter-empty';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { items: number[] };
+      input: { predicate: 'even' | 'all'; values: number[] };
+      shape: 'filter-all';
       name: string;
     }
   | {
@@ -69,7 +90,21 @@ type ScenarioCase =
       description: string;
       expected: { items: Array<{ id: number; label?: string }> };
       input: { values: Array<{ id: number }> };
-      shape: 'enrich-value' | 'enrich-partial' | 'enrich-none';
+      shape: 'enrich-value';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { items: Array<{ id: number; label?: string }> };
+      input: { values: Array<{ id: number }> };
+      shape: 'enrich-partial';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { items: Array<{ id: number; label?: string }> };
+      input: { values: Array<{ id: number }> };
+      shape: 'enrich-none';
       name: string;
     };
 
@@ -86,10 +121,15 @@ function assertErrorMessageIncludes(error: unknown, expectedMessage: string): vo
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (
+  scenarioCase: Extract<ScenarioCase, { shape: K }>
+) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'enrich-none': async (scenarioCase) => {
     const items = await collect(
-      AsyncIter.enrich(
+      AsyncIter.enrich<{ id: number }, { label: string }, { id: number; label?: string }>(
         fromArray(scenarioCase.input.values),
         async () => null,
         (item, extra) => ({ id: item.id, label: extra.label })
@@ -177,7 +217,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   return runnerMap[scenarioCase.shape](scenarioCase);
 }
 

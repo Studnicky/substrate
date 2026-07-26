@@ -5,7 +5,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { staticMethodVerbs } from '../../src/rules/staticMethodVerbs.js';
-import scenarioGroups from './staticMethodVerbs.scenarios.json';
+import scenarioGroups from './staticMethodVerbs.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

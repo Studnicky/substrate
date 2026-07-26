@@ -6,7 +6,7 @@ import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateE
 
 import { HookInvocationError, HookInvoker } from '@studnicky/errors';
 import { Retry } from '../../../src/retry/index.js';
-import scenarioGroups from './hook-invocation-error.scenarios.json';
+import scenarioGroups from './hook-invocation-error.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'async-rejects-are-guarded' | 'enter-call-swallows' | 'hookinvoker-default-throws'; name: string };

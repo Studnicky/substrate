@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Delay } from '../../../src/throttle/Delay.js';
-import scenarioGroups from './delay.scenarios.json';
+import scenarioGroups from './delay.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -41,10 +41,10 @@ type ScenarioCase =
       name: string;
     };
 
-type ScenarioShape = ScenarioCase['shape'];
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
 
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+const runnerMap: RunnerMap = {
     'delay-rejects-already-aborted': async (scenarioCase) => {
       const controller = new AbortController();
       controller.abort();
@@ -91,7 +91,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

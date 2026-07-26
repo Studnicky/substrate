@@ -21,7 +21,7 @@ type ScenarioCase = {
   };
 };
 
-import scenarioGroups from './standalone.scenarios.json';
+import scenarioGroups from './standalone.scenarios.json' with { type: 'json' };
 
 const client = FetchClient.create();
 
@@ -68,7 +68,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('FetchClient HTTP methods with absolute URLs', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
