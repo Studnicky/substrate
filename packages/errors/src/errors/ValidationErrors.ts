@@ -9,6 +9,19 @@ import { ValidationError } from './ValidationError.js';
 
 const DEFAULT_PROBLEM_TYPE = 'https://problems.studnicky.dev/validation';
 
+interface ValidationErrorsSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class ValidationErrorsInstance {
+  static belongsTo<TInstance>(
+    constructor: ValidationErrorsSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Ordered, iterable collection of `ValidationViolationEntity.Type` items.
  *
@@ -17,9 +30,15 @@ const DEFAULT_PROBLEM_TYPE = 'https://problems.studnicky.dev/validation';
  * Construct via `ValidationErrors.create(items)`.
  */
 export class ValidationErrors implements Iterable<ValidationViolationEntity.Type> {
-  /** Creates a `ValidationErrors` from an array of violations. */
-  public static create(items: readonly ValidationViolationEntity.Type[]): ValidationErrors {
-    const result = new this(items);
+  /** Creates a `ValidationErrors` from an array of violations (or the subclass instance when called on a subclass). */
+  public static create<TInstance extends ValidationErrors = ValidationErrors>(
+    this: ValidationErrorsSubclassInterface<TInstance>,
+    items: readonly ValidationViolationEntity.Type[]
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [items]);
+    if (!ValidationErrorsInstance.belongsTo(this, result)) {
+      throw new TypeError('ValidationErrors.create() did not construct the requested subclass.');
+    }
     return result;
   }
 

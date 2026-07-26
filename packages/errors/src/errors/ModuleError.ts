@@ -45,9 +45,9 @@ import type {
 
 import {
   CAUSE_CHAIN_DEPTH_LIMIT,
-  CAUSE_DEPTH_SENTINEL,
-  ErrorDefaults
-} from '../constants/index.js';
+  CAUSE_DEPTH_SENTINEL
+} from '../constants/CauseChainConstants.js';
+import { ErrorDefaults } from '../constants/index.js';
 import { DefensiveSnapshot } from '../validation/DefensiveSnapshot.js';
 import { BaseError } from './BaseError.js';
 import { ValidationError } from './ValidationError.js';

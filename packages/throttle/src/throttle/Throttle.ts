@@ -35,6 +35,19 @@ import {
 } from '../errors/index.js';
 import { Delay } from './Delay.js';
 
+interface ThrottleSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class ThrottleInstance {
+  static belongsTo<TInstance>(
+    constructor: ThrottleSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Tracks an active operation for detach-and-abandon abort support
  */
@@ -119,8 +132,14 @@ export class Throttle implements ThrottleInterface {
    * const throttle = Throttle.create({ concurrencyLimit: 5 });
    * ```
    */
-  static create(config?: Partial<ThrottleConfigEntity.Type>): Throttle {
-    const result = new this(config);
+  static create<TInstance extends Throttle = Throttle>(
+    this: ThrottleSubclassInterface<TInstance>,
+    config?: Partial<ThrottleConfigEntity.Type>
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [config]);
+    if (!ThrottleInstance.belongsTo(this, result)) {
+      throw new TypeError('Throttle.create() did not construct the requested subclass.');
+    }
     return result;
   }
 
@@ -232,6 +251,19 @@ export class Throttle implements ThrottleInterface {
    */
   protected get state(): ThrottleStateEntity.Type {
     const result = this.#state;
+    return result;
+  }
+
+  // ── Clock ───────────────────────────────────────────────────────────────────
+
+  /**
+   * Extension seam: subclasses may override to replace the wall-clock source
+   * used for operation latency measurement and adaptive-adjustment timing
+   * (`lastAdjustmentTime` and the `shouldAdjustConcurrency` gate). Returns the
+   * real epoch-ms by default.
+   */
+  protected now(): number {
+    const result = Date.now();
     return result;
   }
 
@@ -500,7 +532,7 @@ export class Throttle implements ThrottleInterface {
 
         this.activeOperations.add(operation);
 
-        const operationStartTime = Date.now();
+        const operationStartTime = this.now();
 
         try {
           // handleOperationSuccess/handleOperationError may now throw a
@@ -630,7 +662,7 @@ export class Throttle implements ThrottleInterface {
     this.totalExecuted++;
 
     if (this.latencyBuffer !== undefined) {
-      const duration = Date.now() - operationStartTime;
+      const duration = this.now() - operationStartTime;
 
       this.latencyBuffer.push(duration);
 
@@ -698,7 +730,7 @@ export class Throttle implements ThrottleInterface {
       this.processQueuedOperations();
     }
 
-    this.lastAdjustmentTime = Date.now();
+    this.lastAdjustmentTime = this.now();
   }
 
   /**
@@ -908,7 +940,7 @@ export class Throttle implements ThrottleInterface {
       return false;
     }
 
-    const now = Date.now();
+    const now = this.now();
 
     return now - this.lastAdjustmentTime >= adaptive.adjustmentInterval;
   }

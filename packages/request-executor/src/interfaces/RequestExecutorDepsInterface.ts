@@ -2,7 +2,6 @@ import type { Context } from '@studnicky/context';
 import type { FetchClient } from '@studnicky/fetch';
 import type { Retry } from '@studnicky/retry';
 import type { Signal } from '@studnicky/signal';
-import type { Timing } from '@studnicky/timing';
 
 import type { RequestDeadlineEntity } from '../entities/RequestDeadlineEntity.js';
 
@@ -13,5 +12,4 @@ export interface RequestExecutorDepsInterface {
   readonly 'fetchClient': FetchClient;
   readonly 'retry': Retry;
   readonly 'signal': Signal;
-  readonly 'timing': Timing | undefined;
 }

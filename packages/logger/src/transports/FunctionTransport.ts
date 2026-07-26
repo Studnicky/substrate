@@ -5,6 +5,19 @@ import type { TransportInterface } from './TransportInterface.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
 
+interface FunctionTransportSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class FunctionTransportInstance {
+  static belongsTo<TInstance>(
+    constructor: FunctionTransportSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Transport that delegates record delivery to a user-supplied function.
  *
@@ -32,11 +45,16 @@ export class FunctionTransport implements TransportInterface {
    * @param options - Optional configuration for this transport
    * @returns A new FunctionTransport instance
    */
-  static create(
+  static create<TInstance extends FunctionTransport = FunctionTransport>(
+    this: FunctionTransportSubclassInterface<TInstance>,
     sink: (record: LogRecordEntity.Type) => void,
     options: FunctionTransportOptionsEntity.Type = {}
-  ): FunctionTransport {
-    return new this(sink, options);
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [sink, options]);
+    if (!FunctionTransportInstance.belongsTo(this, result)) {
+      throw new TypeError('FunctionTransport.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   readonly #minLevel: number;

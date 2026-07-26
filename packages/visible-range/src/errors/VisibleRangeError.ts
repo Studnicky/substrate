@@ -20,15 +20,20 @@ interface VisibleRangeErrorArgsInterface {
 
 /** Thrown when a {@link VisibleRangeConfigInterface} is invalid or ambiguous. */
 export class VisibleRangeError extends BaseError {
+  private static buildMessage(fields: Readonly<{ 'message': string }>): string {
+    const result = fields.message;
+    return result;
+  }
+
   public constructor(message: string, args?: VisibleRangeErrorArgsInterface) {
     const fields = { 'message': message };
     super(DomainErrorArgs.build(fields, {
       'cause': args?.cause,
       'code': 'visibleRange.invalidConfig',
       'correlationId': args?.correlationId,
-      'message': (f) => { const result = f.message; return result; },
+      'message': VisibleRangeError.buildMessage,
       'metadata': args?.metadata,
-      'retryable': false
+      'retryable': args?.retryable ?? false
     }));
   }
 }

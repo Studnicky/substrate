@@ -1,27 +1,6 @@
 import type { Rule } from 'eslint';
 
-const FUNCTION_TYPES: ReadonlySet<string> = new Set([
-  'ArrowFunctionExpression',
-  'FunctionDeclaration',
-  'FunctionExpression'
-]);
-
-const LOOP_TYPES: ReadonlySet<string> = new Set([
-  'DoWhileStatement',
-  'ForInStatement',
-  'ForOfStatement',
-  'ForStatement',
-  'WhileStatement'
-]);
-
-// Ancestor-chain walks are pure functions of their starting node: for a given
-// dispatch-map object literal, every function-valued property in it passes
-// the SAME ObjectExpression node as the starting point (see inlineFunctions.ts
-// and inlineArrowFunctions.ts). Memoizing on that node avoids re-walking the
-// identical ancestor chain once per property. Keyed by object reference, so
-// entries are garbage-collected once a file's AST is no longer referenced —
-// this cannot leak across files.
-const rebuiltInFunctionScopeCache: WeakMap<Rule.Node, boolean> = new WeakMap();
+import { FUNCTION_TYPES, LOOP_TYPES, REBUILT_IN_FUNCTION_SCOPE_CACHE } from './constants/FunctionScopeConstants.js';
 
 export class FunctionScope {
   /**
@@ -36,7 +15,7 @@ export class FunctionScope {
    * function values, so it is not flagged.
    */
   public static isRebuiltInFunctionScope(node: Rule.Node): boolean {
-    const cached = rebuiltInFunctionScopeCache.get(node);
+    const cached = REBUILT_IN_FUNCTION_SCOPE_CACHE.get(node);
     if (cached !== undefined) { return cached; }
 
     let current: Rule.Node | null = node.parent;
@@ -56,7 +35,7 @@ export class FunctionScope {
       current = current.parent;
     }
 
-    rebuiltInFunctionScopeCache.set(node, result);
+    REBUILT_IN_FUNCTION_SCOPE_CACHE.set(node, result);
     return result;
   }
 

@@ -8,6 +8,19 @@ import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOption
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 import { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';
 
+interface TokenBucketSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class TokenBucketInstance {
+  static belongsTo<TInstance>(
+    constructor: TokenBucketSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 export class TokenBucket {
   static readonly #OwnedHookInvoker = class TokenBucketHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
@@ -22,8 +35,15 @@ export class TokenBucket {
   /** Invokes lifecycle hooks, retaining diagnostics in the invoker while swallowing failures. */
   protected readonly hooks: HookInvoker;
 
-  static create(options: TokenBucketOptionsInterface): TokenBucket {
-    return new this(options);
+  static create<TInstance extends TokenBucket = TokenBucket>(
+    this: TokenBucketSubclassInterface<TInstance>,
+    options: TokenBucketOptionsInterface
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!TokenBucketInstance.belongsTo(this, result)) {
+      throw new TypeError('TokenBucket.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   protected constructor(options: TokenBucketOptionsInterface) {

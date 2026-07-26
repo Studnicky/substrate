@@ -7,6 +7,7 @@ import {
   type TypeAliasDeclaration
 } from 'typescript';
 
+import { READONLY_KEYWORD_PATTERN, TRAILING_PLUS_PATTERN } from './constants/TypeAliasInvariantsConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
@@ -137,7 +138,7 @@ class ReadonlyCheck {
         'start': sourceCode.getLocFromIndex(evidenceStart)
       };
       const evidenceText = sourceCode.text.slice(evidenceStart, evidenceEnd);
-      const readonlyMatch = /\breadonly\b/u.exec(evidenceText);
+      const readonlyMatch = READONLY_KEYWORD_PATTERN.exec(evidenceText);
       const canFix = evidence.fixable
         && analysis.classification !== 'interfaceContract'
         && analysis.reason !== 'brand'
@@ -153,7 +154,7 @@ class ReadonlyCheck {
       }
 
       const prefix = evidenceText.slice(0, readonlyMatch.index);
-      const plusPrefix = /\+\s*$/u.exec(prefix);
+      const plusPrefix = TRAILING_PLUS_PATTERN.exec(prefix);
       const relativeStart = plusPrefix?.index ?? readonlyMatch.index;
       let relativeEnd = readonlyMatch.index + readonlyMatch[0].length;
       const followingCharacter = evidenceText[relativeEnd];

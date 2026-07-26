@@ -1448,10 +1448,14 @@ export class TypeContractClassification {
 
     if ((flags & TypeFlags.Object) === 0) { return undefined; }
 
+    // An indexed type carries its data in the element type. Its own members are
+    // prototype methods supplied by the standard library — `push`, `map`, `filter`
+    // and friends all own call signatures — so enumerating them classifies every
+    // array as callable. The element type is the whole of the contract here.
     const elementType = type.getNumberIndexType();
     if (elementType !== undefined) {
-      const evidence = this.findResolvedTypeContract(elementType, evidenceNode, seen, depth + 1);
-      if (evidence !== undefined) { return evidence; }
+      const result = this.findResolvedTypeContract(elementType, evidenceNode, seen, depth + 1);
+      return result;
     }
 
     const properties = type.getProperties();

@@ -3,6 +3,15 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import path from 'node:path';
 
+import {
+  BUILTIN_COLLECTION_CONSTRUCTOR_NAMES,
+  ENTITY_DIR_REGEX,
+  ENTITY_FILE_REGEX,
+  FILE_EXTENSION_STRIP_PATTERN,
+  FUNCTION_LIKE_INIT_TYPES,
+  INDEX_FILES,
+  TS_WRAPPER_EXPRESSION_TYPES
+} from './constants/FolderContentShapeConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
 
@@ -21,97 +30,42 @@ import { ObjectGuard } from './shared/ObjectGuard.js';
  *     `type` alias); files under a `types/` folder must declare a `type`
  *     alias (not an `interface`). Only top-level declarations are judged.
  *
- *  3. All other, non-exempt files with 2+ top-level `const` declarations
- *     (excluding function/class-bound consts and well-known exempt names)
- *     must live under a `constants/` folder — or a `fixtures/` folder, an
- *     equally valid destination reserved for test/example data.
+ *  3. All other files with 2+ top-level `const` declarations (excluding
+ *     function/class-bound consts) must live under a `constants/` folder —
+ *     or a `fixtures/` folder, an equally valid destination reserved for
+ *     test/example data — unless the file is itself structurally exempt (see
+ *     below).
  *
  * A file matches at most one category — entity detection takes priority over
  * folder-based declaration-form checks, which take priority over the
  * constants-count check.
  *
  * A fourth, independent check runs alongside whichever category above a file
- * falls into (except in files already exempt from the constants-count check —
- * `constants/`, `fixtures/`, `tests/`, `eslint-config/`, `eslint.config.mjs`,
- * `entities/`, and barrel `index.ts` files): regex literals (`/pattern/flags`
- * syntax, or `new RegExp('pattern', ...)` with an inlined string pattern) are
- * data constants exactly like magic numbers and enums, and must never be
- * declared inline — this check is zero-tolerance (a single inline regex is
- * flagged, unlike the 2+ threshold for other constants).
+ * falls into (except in files that are themselves structurally exempt from
+ * the constants-count check — see `ModuleShape.isStructurallyExemptFromConstantsCheck`
+ * below): regex literals (`/pattern/flags` syntax, or `new RegExp('pattern', ...)`
+ * with an inlined string pattern) are data constants exactly like magic numbers
+ * and enums, and must never be declared inline — this check is zero-tolerance
+ * (a single inline regex is flagged, unlike the 2+ threshold for other constants).
+ *
+ * A file is exempt from the constants-count check (and, transitively, from the
+ * regex-literal check) purely by what it structurally *is* — never by which
+ * folder it lives in or what its declarations are named:
+ *
+ *  - a **pure constants module** — every top-level statement is an import, a
+ *    type declaration, or a `const` declaration (exported or not) — is already
+ *    a self-contained constants file regardless of its folder;
+ *  - a module that exports a namespace whose name ends in `Entity` carries the
+ *    same entity-namespace signal `folderContentShape`'s entity check looks
+ *    for, so its non-Schema/Type/validate top-level consts are exempt too;
+ *  - a **pure barrel** — every top-level statement is a re-export
+ *    (`export … from …` / `export * from …`) with no local declaration of its
+ *    own — re-exports carry no data of their own to relocate.
  */
-
-const DECLARATION_EXEMPT_PATH_PATTERNS = [
-  /\/tests\//v,
-  /\/eslint-config\//v,
-  /eslint\.config\.mjs$/v
-];
-
-const CONSTANTS_EXEMPT_PATH_PATTERNS = [
-  /\/entities\/[^\/]+\.ts$/v,
-  /\/constants\//v,
-  /\/fixtures\//v,
-  /\/tests\//v,
-  /\/eslint-config\//v,
-  /eslint\.config\.mjs$/v,
-  /\/index\.ts$/v
-];
-
-const EXEMPT_CONST_NAMES = new Set([
-  'ajv',
-  'compiledValidator',
-  'Schema',
-  'validate'
-]);
-
-const ENTITY_FILE_REGEX = /Entity\.[cm]?[tj]sx?$/v;
-const ENTITY_DIR_REGEX = /\/entities\//v;
-
-const INDEX_FILES = new Set([
-  'index.cts',
-  'index.mts',
-  'index.ts',
-  'index.tsx'
-]);
-
-const FUNCTION_LIKE_INIT_TYPES = new Set([
-  'ArrowFunctionExpression',
-  'ClassExpression',
-  'FunctionExpression'
-]);
-
-const BUILTIN_COLLECTION_CONSTRUCTOR_NAMES = new Set([
-  'Map',
-  'Set',
-  'WeakMap',
-  'WeakSet'
-]);
-
-const TS_WRAPPER_EXPRESSION_TYPES = new Set([
-  'TSAsExpression',
-  'TSNonNullExpression',
-  'TSSatisfiesExpression',
-  'TSTypeAssertion'
-]);
 
 class FolderCategory {
   static isEmptyFilename(filename: string): boolean {
     return filename === '<input>' || filename.length === 0;
-  }
-
-  static isDeclarationExemptPath(filename: string): boolean {
-    if (FolderCategory.isEmptyFilename(filename)) { return true; }
-
-    const normalized = filename.split(path.sep).join('/');
-    return DECLARATION_EXEMPT_PATH_PATTERNS.some((pattern) => { const result = pattern.test(normalized);
-      return result; });
-  }
-
-  static isConstantsExemptPath(filename: string): boolean {
-    if (FolderCategory.isEmptyFilename(filename)) { return true; }
-
-    const normalized = filename.split(path.sep).join('/');
-    return CONSTANTS_EXEMPT_PATH_PATTERNS.some((pattern) => { const result = pattern.test(normalized);
-      return result; });
   }
 
   // Strips a leading `.../packages/<pkg-name>/` prefix before checking segment
@@ -299,7 +253,7 @@ class DeclaratorName {
 
 class FolderShapeHelpers {
   public static getEntityBaseName(filename: string): string {
-    const result = path.basename(filename).replace(/\.[cm]?[tj]sx?$/v, '');
+    const result = path.basename(filename).replace(FILE_EXTENSION_STRIP_PATTERN, '');
     return result;
   }
 
@@ -632,6 +586,132 @@ class RegexLiteralCheck {
   }
 }
 
+/**
+ * Replaces the old path-pattern exemptions (`constants/`, `entities/`,
+ * `index.ts`) with structural tests over the parsed `Program`: a file earns
+ * exemption from the constants-count (and regex-literal) check by what its
+ * top-level declarations structurally *are*, never by the folder it lives in
+ * or what it is named.
+ */
+class ModuleShape {
+  private static isTypeOnlyDeclaration(nodeType: unknown): boolean {
+    return nodeType === 'TSTypeAliasDeclaration' || nodeType === 'TSInterfaceDeclaration';
+  }
+
+  // Every declarator in a `const` VariableDeclaration must itself be a data
+  // constant — not a function/class value, dispatch-map, or non-collection
+  // `new` instance — reusing the exact same per-declarator test the
+  // constants-count check applies (`DeclaratorName.isNonDataConstantInit`).
+  private static isPureConstDeclaration(variableDeclaration: unknown): boolean {
+    if (!ObjectGuard.isObject(variableDeclaration) || variableDeclaration.kind !== 'const') { return false; }
+
+    const declarations: unknown = variableDeclaration.declarations;
+    if (!Array.isArray(declarations) || declarations.length === 0) { return false; }
+
+    return declarations.every((declarator) => { const result = !DeclaratorName.isNonDataConstantInit(declarator);
+      return result; });
+  }
+
+  // A pure constants module: every top-level statement is an import, a type
+  // declaration, or a `const` declaration (exported or bare) whose declarators
+  // are all genuine data constants — no function/class declaration, no
+  // mutable `let`/`var`, and no function-valued `const` appears at the top
+  // level. Such a file is already, in its entirety, a self-contained
+  // constants module regardless of which folder it lives in — a file mixing
+  // data constants with functions or classes still needs relocating, exactly
+  // as before.
+  static isPureConstantsModule(program: unknown): boolean {
+    if (!ObjectGuard.isObject(program)) { return false; }
+    const body: unknown = program.body;
+    if (!Array.isArray(body) || body.length === 0) { return false; }
+
+    let hasConstDeclarator = false;
+
+    const isPure = body.every((statement) => {
+      if (!ObjectGuard.isObject(statement)) { return false; }
+      const statementType: unknown = statement.type;
+
+      if (statementType === 'ImportDeclaration') { return true; }
+      if (ModuleShape.isTypeOnlyDeclaration(statementType)) { return true; }
+
+      if (statementType === 'VariableDeclaration') {
+        const pure = ModuleShape.isPureConstDeclaration(statement);
+        if (pure) { hasConstDeclarator = true; }
+        return pure;
+      }
+
+      if (statementType === 'ExportNamedDeclaration') {
+        const decl: unknown = statement.declaration;
+        if (decl === null || decl === undefined) { return false; }
+        if (!ObjectGuard.isObject(decl)) { return false; }
+
+        const declType: unknown = decl.type;
+        if (ModuleShape.isTypeOnlyDeclaration(declType)) { return true; }
+        if (declType === 'VariableDeclaration') {
+          const pure = ModuleShape.isPureConstDeclaration(decl);
+          if (pure) { hasConstDeclarator = true; }
+          return pure;
+        }
+        return false;
+      }
+
+      return false;
+    });
+
+    return isPure && hasConstDeclarator;
+  }
+
+  // An entity-namespace export (`export namespace XxxEntity { ... }`) is the
+  // same structural signal `EntityNamespaceCheck` looks for. A file that
+  // carries it is entity-shaped by content, so its remaining top-level consts
+  // (support constants alongside the namespace) are exempt too.
+  static hasEntityNamespaceExport(program: unknown): boolean {
+    if (!ObjectGuard.isObject(program)) { return false; }
+    const body: unknown = program.body;
+    if (!Array.isArray(body)) { return false; }
+
+    return body.some((statement) => {
+      if (AstHelpers.getNodeType(statement) !== 'ExportNamedDeclaration') { return false; }
+      const decl = FolderShapeHelpers.getDeclaration(statement);
+      if (AstHelpers.getNodeType(decl) !== 'TSModuleDeclaration') { return false; }
+
+      const name = FolderShapeHelpers.getIdName(decl);
+      return typeof name === 'string' && name.endsWith('Entity');
+    });
+  }
+
+  private static isPureReExportStatement(statement: unknown): boolean {
+    if (!ObjectGuard.isObject(statement)) { return false; }
+    const statementType: unknown = statement.type;
+
+    if (statementType === 'ExportAllDeclaration') { return true; }
+    if (statementType !== 'ExportNamedDeclaration') { return false; }
+
+    const decl: unknown = statement.declaration;
+    if (decl !== null && decl !== undefined) { return false; }
+
+    return ObjectGuard.isObject(statement.source);
+  }
+
+  // A pure barrel: every top-level statement re-exports from another module
+  // (`export { X } from '...'` / `export * from '...'`), with no local
+  // declaration of its own. A re-export carries no data of its own to
+  // relocate, so the file is exempt regardless of its filename.
+  static isPureBarrel(program: unknown): boolean {
+    if (!ObjectGuard.isObject(program)) { return false; }
+    const body: unknown = program.body;
+    if (!Array.isArray(body) || body.length === 0) { return false; }
+
+    return body.every(ModuleShape.isPureReExportStatement);
+  }
+
+  static isStructurallyExemptFromConstantsCheck(program: unknown): boolean {
+    return ModuleShape.isPureConstantsModule(program)
+      || ModuleShape.hasEntityNamespaceExport(program)
+      || ModuleShape.isPureBarrel(program);
+  }
+}
+
 class ConstantsCountCheck {
   static run(context: Rule.RuleContext, program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], physicalFilename: string): void {
     const rawProgram: unknown = program;
@@ -669,9 +749,7 @@ class ConstantsCountCheck {
         const declaratorNames = DeclaratorName.getAll(declarator);
 
         for (const declaratorName of declaratorNames) {
-          if (!EXEMPT_CONST_NAMES.has(declaratorName)) {
-            constNames.push(declaratorName);
-          }
+          constNames.push(declaratorName);
         }
       }
     }
@@ -683,7 +761,7 @@ class ConstantsCountCheck {
           'file': path.basename(physicalFilename),
           'names': constNames.join(', ')
         },
-        'messageId': 'mustLiveInConstantsFolder',
+        'messageId': 'constantsNotIsolated',
         'node': program
       });
     }
@@ -708,7 +786,11 @@ namespace FileCategoryEntity {
 
 class FileCategoryResolver {
   static resolve(filename: string): FileCategoryEntity.Type {
-    if (!FolderCategory.isEmptyFilename(filename) && FolderCategory.isEntityFile(filename)) {
+    if (FolderCategory.isEmptyFilename(filename)) {
+      return { 'expectedName': '', 'shape': 'none', 'underInterfacesFolder': false, 'underTypesFolder': false };
+    }
+
+    if (FolderCategory.isEntityFile(filename)) {
       return {
         'expectedName': FolderShapeHelpers.getEntityBaseName(filename),
         'shape': 'entity',
@@ -717,20 +799,17 @@ class FileCategoryResolver {
       };
     }
 
-    if (!FolderCategory.isDeclarationExemptPath(filename)) {
-      const underInterfacesFolder = FolderCategory.isUnderFolder(filename, 'interfaces');
-      const underTypesFolder = FolderCategory.isUnderFolder(filename, 'types');
+    const underInterfacesFolder = FolderCategory.isUnderFolder(filename, 'interfaces');
+    const underTypesFolder = FolderCategory.isUnderFolder(filename, 'types');
 
-      if (underInterfacesFolder || underTypesFolder) {
-        return { 'expectedName': '', 'shape': 'declaration', 'underInterfacesFolder': underInterfacesFolder, 'underTypesFolder': underTypesFolder };
-      }
+    if (underInterfacesFolder || underTypesFolder) {
+      return { 'expectedName': '', 'shape': 'declaration', 'underInterfacesFolder': underInterfacesFolder, 'underTypesFolder': underTypesFolder };
     }
 
-    if (!FolderCategory.isConstantsExemptPath(filename)) {
-      return { 'expectedName': '', 'shape': 'constants', 'underInterfacesFolder': false, 'underTypesFolder': false };
-    }
-
-    return { 'expectedName': '', 'shape': 'none', 'underInterfacesFolder': false, 'underTypesFolder': false };
+    // Whether this file's top-level consts are actually flagged is decided
+    // structurally, from the parsed Program, at Program:exit — see
+    // `ModuleShape.isStructurallyExemptFromConstantsCheck`.
+    return { 'expectedName': '', 'shape': 'constants', 'underInterfacesFolder': false, 'underTypesFolder': false };
   }
 }
 
@@ -739,17 +818,31 @@ export const folderContentShape: Rule.RuleModule = {
     const { filename } = context;
     const category = FileCategoryResolver.resolve(filename);
 
+    // Computed from the parsed Program as soon as traversal reaches it — before
+    // any Literal/NewExpression node is visited — so both the regex-literal
+    // check below and the constants-count check at Program:exit gate on the
+    // same structural determination.
+    let structurallyExemptFromConstantsCheck = false;
+
+    const onProgramEnter: NonNullable<Rule.RuleListener['Program']> = (program) => {
+      structurallyExemptFromConstantsCheck = ModuleShape.isStructurallyExemptFromConstantsCheck(program);
+    };
+
     const visitLiteralForRegex: NonNullable<Rule.RuleListener['Literal']> = (node) => {
+      if (structurallyExemptFromConstantsCheck) { return; }
       if (RegexLiteralCheck.isRegexLiteral(node)) { RegexLiteralCheck.run(context, node); }
     };
 
     const visitNewExpressionForRegex: NonNullable<Rule.RuleListener['NewExpression']> = (node) => {
+      if (structurallyExemptFromConstantsCheck) { return; }
       if (RegexLiteralCheck.isInlineRegExpConstruction(node)) { RegexLiteralCheck.run(context, node); }
     };
 
-    const regexListeners: Rule.RuleListener = FolderCategory.isConstantsExemptPath(filename)
-      ? {}
-      : { 'Literal': visitLiteralForRegex, 'NewExpression': visitNewExpressionForRegex };
+    const regexListeners: Rule.RuleListener = {
+      'Literal': visitLiteralForRegex,
+      'NewExpression': visitNewExpressionForRegex,
+      'Program': onProgramEnter
+    };
 
     if (category.shape === 'none') { return regexListeners; }
 
@@ -804,6 +897,7 @@ export const folderContentShape: Rule.RuleModule = {
     const { physicalFilename } = context;
 
     const onProgramExit: NonNullable<Rule.RuleListener['Program:exit']> = (program) => {
+      if (structurallyExemptFromConstantsCheck) { return; }
       ConstantsCountCheck.run(context, program, physicalFilename);
     };
 
@@ -816,13 +910,13 @@ export const folderContentShape: Rule.RuleModule = {
       'recommended': false
     },
     'messages': {
+      'constantsNotIsolated':
+        "File '{{file}}' declares {{count}} top-level constants ({{names}}) alongside other top-level declarations (re-exports, functions, classes, or mutable bindings), so it is not a self-contained constants module. Extract these constants into their own '<area>/constants/<Name>.ts' (or '<area>/fixtures/<Name>.ts' for test/example data) file, isolated from the other declarations, grouped under one exported namespace or frozen object literal.",
       'interfaceInTypesFolder':
         "Interface '{{name}}' is declared in a 'types/' folder, which is reserved for data shapes (`type` alias declarations). Move this contract to an 'interfaces/' folder, or — if it's actually a pure data shape with no contract signal — declare it as a `type {{name}}` instead.",
       'missingSchema': 'Entity namespace must export `const Schema` — a JSON Schema object literal declared `as const`.',
       'missingType': 'Entity namespace must export `type Type` derived via `FromSchema<typeof Schema>`.',
       'missingValidate': 'Entity namespace must export `validate` — either `const validate = SchemaValidator.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type`.',
-      'mustLiveInConstantsFolder':
-        "File '{{file}}' declares {{count}} top-level constants ({{names}}) but lives outside a 'constants/' folder. Move these into '<area>/constants/<Name>.ts' (or '<area>/fixtures/<Name>.ts' for test/example data), grouped under one exported namespace or frozen object literal.",
       'namespaceMismatch': 'Namespace name `{{found}}` must match the filename base `{{expected}}`.',
       'noNamespace': 'Entity files must export exactly one namespace (e.g. `export namespace XxxEntity { ... }`).',
       'regexBelongsInConstants':

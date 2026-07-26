@@ -5,6 +5,19 @@ import type { TransportInterface } from './TransportInterface.js';
 import { ImmutableSnapshot } from '../modules/ImmutableSnapshot.js';
 import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
 
+interface MemoryTransportSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class MemoryTransportInstance {
+  static belongsTo<TInstance>(
+    constructor: MemoryTransportSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Transport that captures log records into an internal array for test assertions.
  *
@@ -30,8 +43,15 @@ export class MemoryTransport implements TransportInterface {
    * @param options - Optional configuration for this transport
    * @returns A new MemoryTransport instance
    */
-  static create(options: MemoryTransportOptionsEntity.Type = {}): MemoryTransport {
-    return new this(options);
+  static create<TInstance extends MemoryTransport = MemoryTransport>(
+    this: MemoryTransportSubclassInterface<TInstance>,
+    options: MemoryTransportOptionsEntity.Type = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!MemoryTransportInstance.belongsTo(this, result)) {
+      throw new TypeError('MemoryTransport.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   readonly #buffer: LogRecordEntity.Type[] = [];

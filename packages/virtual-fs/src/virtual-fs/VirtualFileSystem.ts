@@ -37,8 +37,21 @@ class StatResult implements StatResultInterface {
 }
 
 export class VirtualFileSystem implements FileSystemInterface {
-  static create(options?: VirtualFileSystemOptionsInterface): VirtualFileSystem {
-    const result = new this(options ?? {});
+  private static isConstructed<TInstance extends VirtualFileSystem>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<TInstance extends VirtualFileSystem = VirtualFileSystem>(
+    this: Function & { readonly 'prototype': TInstance },
+    options?: VirtualFileSystemOptionsInterface
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options ?? {}]);
+    if (!VirtualFileSystem.isConstructed(result, this)) {
+      throw new TypeError('VirtualFileSystem.create() must construct a VirtualFileSystem instance');
+    }
     return result;
   }
 

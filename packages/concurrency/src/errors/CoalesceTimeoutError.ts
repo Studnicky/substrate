@@ -17,11 +17,16 @@ export class CoalesceTimeoutError extends ConcurrencyError {
   public readonly key!: string;
   public readonly timeoutMs!: number;
 
+  private static buildMessage(fields: Readonly<{ 'key': string; 'timeoutMs': number }>): string {
+    const result = `Coalesce.run() timed out for key "${fields.key}" after ${fields.timeoutMs}ms.`;
+    return result;
+  }
+
   public constructor(key: string, timeoutMs: number) {
     const fields = { 'key': key, 'timeoutMs': timeoutMs };
     super(DomainErrorArgs.build(fields, {
       'code': 'concurrency.coalesceTimeout',
-      'message': (f) => { const result = `Coalesce.run() timed out for key "${f.key}" after ${f.timeoutMs}ms.`; return result; },
+      'message': CoalesceTimeoutError.buildMessage,
       'retryable': true
     }));
     Object.assign(this, fields);

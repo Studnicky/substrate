@@ -9,6 +9,19 @@ import type { TimingInterface } from '../interfaces/TimingInterface.js';
 import { DEFAULT_DECIMAL_PRECISION, DEFAULT_MAX_EVENTS, NS_PER_UNIT } from '../constants/index.js';
 import { TimingValidator } from '../validation/TimingValidator.js';
 
+interface TimingSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class TimingInstance {
+  static belongsTo<TInstance>(
+    constructor: TimingSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * High-resolution timing tracker for collecting operation metrics.
  * Uses process.hrtime.bigint() for nanosecond precision.
@@ -59,8 +72,15 @@ export class Timing implements TimingInterface {
    * const timing = Timing.create({ maxEvents: 100 });
    * ```
    */
-  static create(options: TimingOptionsEntity.Type = {}): Timing {
-    return new this(options);
+  static create<TInstance extends Timing = Timing>(
+    this: TimingSubclassInterface<TInstance>,
+    options: TimingOptionsEntity.Type = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!TimingInstance.belongsTo(this, result)) {
+      throw new TypeError('Timing.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();

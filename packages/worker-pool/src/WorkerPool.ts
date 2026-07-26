@@ -60,6 +60,13 @@ interface TaskContextInterface<TMessage, TResult>
  * this absorbs a worker thread tearing itself down on its own between tasks, while a task that
  * fails a second time still surfaces as a rejection.
  *
+ * A task's composed timeout signal aborting mid-flight and the same signal already being
+ * aborted before the task was ever posted to a worker are distinct conditions, reported
+ * distinctly: the former is a genuine timeout, rejects with a message naming the timeout, and
+ * fires `onWorkerTimeout()`; the latter never ran, rejects with a message stating that dispatch
+ * never happened, and fires `onWorkerError()` instead. Both attach the signal's `reason`, if any,
+ * as the rejection's `cause`.
+ *
  * `run()`'s ordering and failure semantics follow `Batch#process()` directly, since that is the
  * scheduling loop `run()` delegates to: results resolve in the same order as `items`, and the
  * first item to reject makes the whole `run()` call reject (`Promise.all`-like fail-fast) —
@@ -158,6 +165,10 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     let spawnedCount = 0;
     let shuttingDown = false;
 
+    const errorWithReason = (message: string, reason: unknown): Error => {
+      return reason === undefined ? new Error(message) : new Error(message, { 'cause': reason });
+    };
+
     const settleTask = (worker: Worker, fn: (context: TaskContextInterface<TMessage, TResult>) => void): boolean => {
       const context = currentTaskByWorker.get(worker);
       if (context === undefined || context.settled) { return false; }
@@ -217,22 +228,48 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         'unregisterTimeout': WorkerPool.#noopUnregisterTimeout
       };
 
+      const terminateAfterAbort = (ctx: TaskContextInterface<TMessage, TResult>): void => {
+        worker.terminate().catch((cause: unknown) => {
+          const terminationError = cause instanceof Error
+            ? cause
+            : new Error('WorkerPool: worker termination failed', { 'cause': cause });
+          this.hooks.invoke('onWorkerError', () => {
+            const result = this.onWorkerError(terminationError, ctx.index);
+            return result;
+          });
+        });
+      };
+
+      // Fires when a task is in flight and its timeout signal aborts mid-run — a genuine timeout.
       const onTimeoutAbort = (): void => {
         settleTask(worker, (ctx) => {
           this.hooks.invoke('onWorkerTimeout', () => {
             const result = this.onWorkerTimeout(ctx.index);
             return result;
           });
-          ctx.reject(new Error(`WorkerPool: task at index ${String(ctx.index)} exceeded its timeout`));
-          worker.terminate().catch((cause: unknown) => {
-            const terminationError = cause instanceof Error
-              ? cause
-              : new Error('WorkerPool: worker termination failed', { 'cause': cause });
-            this.hooks.invoke('onWorkerError', () => {
-              const result = this.onWorkerError(terminationError, ctx.index);
-              return result;
-            });
+          ctx.reject(errorWithReason(
+            `WorkerPool: task at index ${String(ctx.index)} exceeded its timeout`,
+            timeoutSignal?.reason
+          ));
+          terminateAfterAbort(ctx);
+        });
+      };
+
+      // Fires when the composed signal is already aborted before the item is ever posted to the
+      // worker. The task never ran, so this is not a timeout: it fires onWorkerError, not
+      // onWorkerTimeout, and the message states plainly that dispatch never happened.
+      const onPreDispatchAbort = (): void => {
+        settleTask(worker, (ctx) => {
+          const error = errorWithReason(
+            `WorkerPool: task at index ${String(ctx.index)} was not dispatched because its signal was already aborted`,
+            timeoutSignal?.reason
+          );
+          this.hooks.invoke('onWorkerError', () => {
+            const result = this.onWorkerError(error, ctx.index);
+            return result;
           });
+          ctx.reject(error);
+          terminateAfterAbort(ctx);
         });
       };
 
@@ -243,7 +280,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       currentTaskByWorker.set(worker, context);
 
       if (timeoutSignal?.aborted === true) {
-        onTimeoutAbort();
+        onPreDispatchAbort();
         return;
       }
 

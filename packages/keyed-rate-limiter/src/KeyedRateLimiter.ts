@@ -123,6 +123,13 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     }
   };
 
+  private static isConstructed<TInstance>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
   /**
    * Creates a `KeyedRateLimiter` whose default factory constructs one
    * `TokenBucket` per key from `requestsPerSecond`/`burstSize`/`clock`.
@@ -130,28 +137,43 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
    * @param config - `{requestsPerSecond, burstSize, maxKeys?, keyIdleTtlMs?, clock?}`
    * @returns New `KeyedRateLimiter<TokenBucket>` instance
    */
-  static create(config: KeyedRateLimiterCreateConfigInterface): KeyedRateLimiter<TokenBucket>;
-  static create<TStrategy extends RateLimiterStrategyInterface>(
+  static create<TInstance extends KeyedRateLimiter<TokenBucket> = KeyedRateLimiter<TokenBucket>>(
+    this: Function & { readonly 'prototype': TInstance },
+    config: KeyedRateLimiterCreateConfigInterface
+  ): TInstance;
+  static create<
+    TStrategy extends RateLimiterStrategyInterface,
+    TInstance extends KeyedRateLimiter<TStrategy> = KeyedRateLimiter<TStrategy>
+  >(
+    this: Function & { readonly 'prototype': TInstance },
     config: KeyedRateLimiterStrategyConfigInterface<TStrategy>
-  ): KeyedRateLimiter<TStrategy>;
-  static create<TStrategy extends RateLimiterStrategyInterface>(
+  ): TInstance;
+  static create<
+    TStrategy extends RateLimiterStrategyInterface,
+    TInstance extends KeyedRateLimiter<TokenBucket> | KeyedRateLimiter<TStrategy> =
+      KeyedRateLimiter<TokenBucket>
+  >(
+    this: Function & { readonly 'prototype': TInstance },
     config: KeyedRateLimiterCreateConfigInterface | KeyedRateLimiterStrategyConfigInterface<TStrategy>
-  ): KeyedRateLimiter<TokenBucket> | KeyedRateLimiter<TStrategy> {
+  ): TInstance {
     const cacheOptions: LruCacheOptionsEntity.Type = {
       'capacity': config.maxKeys ?? DEFAULT_MAX_KEYS,
       ...(config.keyIdleTtlMs !== undefined ? { 'ttlMs': config.keyIdleTtlMs } : {})
     };
 
     if ('factory' in config) {
-      const limiter: KeyedRateLimiter<TStrategy> = new this({
+      const result: unknown = Reflect.construct(this, [{
         'cacheOptions': cacheOptions,
         'factory': config.factory,
         'tokenBucketOptions': undefined
-      });
-      return limiter;
+      }]);
+      if (!KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+        throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
+      }
+      return result;
     }
 
-    const limiter: KeyedRateLimiter<TokenBucket> = new this({
+    const result: unknown = Reflect.construct(this, [{
       'cacheOptions': cacheOptions,
       'factory': KeyedRateLimiter.#createTokenBucket,
       'tokenBucketOptions': {
@@ -159,8 +181,11 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         'requestsPerSecond': config.requestsPerSecond,
         ...(config.clock !== undefined ? { 'clock': config.clock } : {})
       }
-    });
-    return limiter;
+    }]);
+    if (!KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+      throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
+    }
+    return result;
   }
 
   readonly #cache: LruCache<string, TStrategy>;

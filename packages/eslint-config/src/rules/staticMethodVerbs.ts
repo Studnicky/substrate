@@ -2,6 +2,7 @@ import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 import type { Program, Symbol, Type } from 'typescript';
 
+import { DEFAULT_MODE, TRIVIAL_OPTS } from './constants/StaticMethodVerbsConstants.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
 import { TrivialExpression } from './shared/TrivialExpression.js';
 
@@ -21,10 +22,6 @@ namespace StaticMethodVerbsOptionsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 }
-
-const DEFAULT_MODE = 'structural';
-
-const TRIVIAL_OPTS = { 'allowLiterals': false, 'allowMemberExpressions': false };
 
 interface ParserServicesInterface {
   readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;

@@ -6,11 +6,16 @@ export class FileLockTimeoutError extends FileLockError {
   readonly path!: string;
   readonly timeoutMs!: number;
 
+  private static buildMessage(fields: Readonly<{ 'path': string; 'timeoutMs': number }>): string {
+    const result = `Timed out acquiring lock on "${fields.path}" after ${String(fields.timeoutMs)}ms`;
+    return result;
+  }
+
   constructor(path: string, timeoutMs: number) {
     const fields = { 'path': path, 'timeoutMs': timeoutMs };
     super(DomainErrorArgs.build(fields, {
       'code': 'fileLock.timeout',
-      'message': (f) => { const result = `Timed out acquiring lock on "${f.path}" after ${String(f.timeoutMs)}ms`; return result; },
+      'message': FileLockTimeoutError.buildMessage,
       'retryable': false
     }));
     Object.assign(this, fields);

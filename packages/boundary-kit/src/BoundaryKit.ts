@@ -54,18 +54,31 @@ import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
  * ```
  */
 export class BoundaryKit {
+  private static isConstructed<TInstance extends BoundaryKit>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
   /**
    * Creates a new BoundaryKit, defaulting any omitted primitive.
    *
    * @param config - Composition configuration
    * @returns New BoundaryKit instance
    */
-  static create(config: BoundaryKitConfigInterface = {}): BoundaryKit {
-    const result = new this({
+  static create<TInstance extends BoundaryKit = BoundaryKit>(
+    this: Function & { readonly 'prototype': TInstance },
+    config: BoundaryKitConfigInterface = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [{
       'circuitBreaker': BoundaryKit.#resolveCircuitBreaker(config.circuitBreaker),
       'retry': BoundaryKit.#resolveRetry(config.retry),
       'throttle': BoundaryKit.#resolveThrottle(config.throttle)
-    });
+    }]);
+    if (!BoundaryKit.isConstructed(result, this)) {
+      throw new TypeError('BoundaryKit.create() must construct a BoundaryKit instance');
+    }
     return result;
   }
 

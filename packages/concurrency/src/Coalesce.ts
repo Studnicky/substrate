@@ -6,9 +6,41 @@ import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js'
 
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
 
+interface CoalesceSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class CoalesceInstance {
+  static belongsTo<TInstance>(
+    constructor: CoalesceSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
+// T only appears in Coalesce's covariant/contravariant members (run()'s factory
+// and return value), so a bound of `Coalesce<T>` would force `Coalesce<T>` (the
+// method's own general T) to satisfy `Coalesce<never>`/`Coalesce<any>`, which
+// either fails to typecheck or requires a banned `any`. `isInflight()` is the one
+// public member that doesn't mention T at all, so it constrains TInstance to
+// "is actually Coalesce-shaped" without hitting that wall.
+interface CoalesceShapeInterface {
+  isInflight(key: string): boolean;
+}
+
 export class Coalesce<T> {
-  static create<T>(options?: CoalesceOptionsEntity.Type): Coalesce<T> {
-    const result = new this<T>(options);
+  static create<
+    T,
+    TInstance extends CoalesceShapeInterface = Coalesce<T>
+  >(
+    this: CoalesceSubclassInterface<TInstance>,
+    options?: CoalesceOptionsEntity.Type
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!CoalesceInstance.belongsTo(this, result)) {
+      throw new TypeError('Coalesce.create() did not construct the requested subclass.');
+    }
     return result;
   }
 

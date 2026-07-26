@@ -55,16 +55,28 @@ export class BoundedDispatcher<
    * @param config - Composition configuration
    * @returns New BoundedDispatcher instance
    */
+  private static isConstructed<TInstance>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
   static create<
-    TTopicMap extends BoundedDispatcherTopicMapInterface = BoundedDispatcherTopicMapInterface
+    TTopicMap extends BoundedDispatcherTopicMapInterface = BoundedDispatcherTopicMapInterface,
+    TInstance extends BoundedDispatcher<TTopicMap> = BoundedDispatcher<TTopicMap>
   >(
+    this: Function & { readonly 'prototype': TInstance },
     config: BoundedDispatcherConfigInterface<TTopicMap> = {}
-  ): BoundedDispatcher<TTopicMap> {
-    const result = new this<TTopicMap>({
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [{
       'bus': BoundedDispatcher.#resolveBus<TTopicMap>(config.bus),
       'scheduler': config.scheduler ?? RealTimeScheduler.create(),
       'semaphore': Semaphore.create({ 'permits': config.permits ?? 1 })
-    });
+    }]);
+    if (!BoundedDispatcher.isConstructed<TInstance>(result, this)) {
+      throw new TypeError('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
+    }
     return result;
   }
 

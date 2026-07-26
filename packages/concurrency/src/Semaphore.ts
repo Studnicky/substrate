@@ -15,9 +15,28 @@ interface SemaphoreWaiterInterface {
   readonly 'resolve': (release: () => Promise<void>) => void;
 }
 
+interface SemaphoreSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class SemaphoreInstance {
+  static belongsTo<TInstance>(
+    constructor: SemaphoreSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 export class Semaphore {
-  static create(options: SemaphoreOptionsEntity.Type): Semaphore {
-    const result = new this(options);
+  static create<TInstance extends Semaphore = Semaphore>(
+    this: SemaphoreSubclassInterface<TInstance>,
+    options: SemaphoreOptionsEntity.Type
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!SemaphoreInstance.belongsTo(this, result)) {
+      throw new TypeError('Semaphore.create() did not construct the requested subclass.');
+    }
     return result;
   }
 

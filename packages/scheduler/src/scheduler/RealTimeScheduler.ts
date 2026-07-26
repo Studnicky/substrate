@@ -23,6 +23,19 @@ interface ActiveTimerInterface {
   readonly 'variant': SchedulerTaskDataEntity.Type['variant'];
 }
 
+interface RealTimeSchedulerSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class RealTimeSchedulerInstance {
+  static belongsTo<TInstance>(
+    constructor: RealTimeSchedulerSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Real-time `SchedulerProvider` using `setTimeout` and `setInterval`.
  * Instantiate once per scheduler context; inject as a `SchedulerProviderInterface`.
@@ -50,8 +63,14 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
   }
 
   /** Creates a new `RealTimeScheduler` instance. */
-  static create(): RealTimeScheduler {
-    return new this();
+  static create<TInstance extends RealTimeScheduler = RealTimeScheduler>(
+    this: RealTimeSchedulerSubclassInterface<TInstance>
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, []);
+    if (!RealTimeSchedulerInstance.belongsTo(this, result)) {
+      throw new TypeError('RealTimeScheduler.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   /** Returns a unique task ID. Override to customise the ID format. */

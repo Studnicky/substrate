@@ -225,6 +225,11 @@ class MutexLock<K extends PropertyKey> implements MutexLockInterface {
  * Ideal for preventing race conditions in entity resolution where multiple
  * threads may resolve entities with the same identity keys.
  *
+ * Acquisition order for a given key is FIFO: waiters queued behind a held
+ * lock are granted the lock in the order they called `acquire` (or
+ * `runExclusive`), and a burst of queued waiters that time out together
+ * reject in that same request order.
+ *
  * Subclass and override the protected lifecycle hooks to add observability
  * without coupling the base class to any logging or metrics library:
  *
@@ -262,10 +267,25 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * });
    * ```
    */
-  static create<K extends PropertyKey = string>(
+  private static isConstructed<TInstance>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<
+    K extends PropertyKey = string,
+    TInstance extends Mutex<K> = Mutex<K>
+  >(
+    this: Function & { readonly 'prototype': TInstance },
     config?: Partial<MutexConfigEntity.Type>
-  ): Mutex<K> {
-    return new this(config);
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [config]);
+    if (!Mutex.isConstructed<TInstance>(result, this)) {
+      throw new TypeError('Mutex.create() must construct a Mutex instance');
+    }
+    return result;
   }
 
   readonly #keyStates: Map<K, MutexKeyStateEntity.Type>;

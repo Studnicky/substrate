@@ -11,8 +11,22 @@ export class Batch<TResult = unknown> {
     protected override onHookError(): void {}
   };
 
-  static create<TResult = unknown>(maxConcurrent?: number): Batch<TResult> {
-    return new this(maxConcurrent);
+  private static isConstructed<TInstance>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<TResult = unknown, TInstance extends Batch<TResult> = Batch<TResult>>(
+    this: Function & { readonly 'prototype': TInstance },
+    maxConcurrent?: number
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [maxConcurrent]);
+    if (!Batch.isConstructed<TInstance>(result, this)) {
+      throw new TypeError('Batch.create() must construct a Batch instance');
+    }
+    return result;
   }
 
   protected readonly maxConcurrent: number;

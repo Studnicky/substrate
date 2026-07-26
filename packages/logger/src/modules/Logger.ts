@@ -17,6 +17,19 @@ class TransportErrorHookInvoker extends HookInvoker {
   protected override onHookError(): void {}
 }
 
+interface LoggerSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class LoggerInstance {
+  static belongsTo<TInstance>(
+    constructor: LoggerSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Core logger with pluggable transport architecture.
  *
@@ -49,8 +62,15 @@ export class Logger implements LoggerInterface {
    * @param options - Configuration for the logger
    * @returns A new Logger instance
    */
-  static create(options: LoggerOptionsInterface = {}): Logger {
-    return new this(options);
+  static create<TInstance extends Logger = Logger>(
+    this: LoggerSubclassInterface<TInstance>,
+    options: LoggerOptionsInterface = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!LoggerInstance.belongsTo(this, result)) {
+      throw new TypeError('Logger.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   readonly #level: LogLevelEntity.Type;
