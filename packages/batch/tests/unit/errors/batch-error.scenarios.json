@@ -41,6 +41,24 @@
         "message": "maxConcurrent must be a positive integer",
         "retryable": false
       }
+    },
+    {
+      "name": "construction-retryable",
+      "description": "BatchError honours a supplied retryable argument",
+      "shape": "construction",
+      "input": {
+        "error": {
+          "message": "upstream batch submission timed out",
+          "args": {
+            "retryable": true
+          }
+        }
+      },
+      "expected": {
+        "code": "batch.invalidConfig",
+        "message": "upstream batch submission timed out",
+        "retryable": true
+      }
     }
   ]
 }

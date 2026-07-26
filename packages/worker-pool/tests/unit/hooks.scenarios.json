@@ -43,7 +43,6 @@
         "items": [{ "value": "x" }]
       },
       "expected": {
-        "hookErrorCount": 3,
         "hookErrorMessages": ["hook boom", "hook boom", "hook boom"],
         "results": ["x"]
       }
@@ -60,7 +59,6 @@
         "items": [{ "value": "x" }]
       },
       "expected": {
-        "hookErrorCount": 3,
         "hookErrorMessages": ["async onMessage boom", "async onMessage boom", "async onMessage boom"],
         "rejectionEvents": [],
         "results": ["x"]

@@ -45,9 +45,7 @@
           "requestsPerSecond": 1
         }
       },
-      "expected": {
-        "completed": true
-      }
+      "expected": {}
     },
     {
       "name": "repeated consume() on the same key past its limit throws",
@@ -59,9 +57,7 @@
           "requestsPerSecond": 1
         }
       },
-      "expected": {
-        "completed": true
-      }
+      "expected": {}
     },
     {
       "name": "consume(key, tokens) consumes the requested count in one call",
@@ -73,9 +69,7 @@
           "requestsPerSecond": 1
         }
       },
-      "expected": {
-        "completed": true
-      }
+      "expected": {}
     },
     {
       "name": "the same key creates its strategy exactly once across calls",
@@ -83,8 +77,7 @@
       "shape": "consume-strategy-created-once",
       "input": {},
       "expected": {
-        "factoryCalls": 1,
-        "completed": true
+        "factoryCalls": 1
       }
     },
     {
@@ -113,9 +106,7 @@
           "allowance": 2
         }
       },
-      "expected": {
-        "completed": true
-      }
+      "expected": {}
     },
     {
       "name": "waitForToken works through the generic strategy path too",
@@ -126,9 +117,7 @@
           "allowance": 1
         }
       },
-      "expected": {
-        "completed": true
-      }
+      "expected": {}
     },
     {
       "name": "maxKeys/keyIdleTtlMs bound the generic strategy path via the same LruCache",
@@ -150,8 +139,7 @@
             "user-b",
             1
           ]
-        ],
-        "completed": true
+        ]
       }
     },
     {
@@ -165,9 +153,7 @@
           "requestsPerSecond": 10
         }
       },
-      "expected": {
-        "completed": true
-      }
+      "expected": {}
     },
     {
       "name": "blocks on the same key until refilled, without affecting other keys",
@@ -180,9 +166,7 @@
           "requestsPerSecond": 1000
         }
       },
-      "expected": {
-        "completed": true
-      }
+      "expected": {}
     },
     {
       "name": "rejects when the passed AbortSignal is aborted while waiting",
@@ -194,9 +178,7 @@
           "requestsPerSecond": 0.001
         }
       },
-      "expected": {
-        "completed": true
-      }
+      "expected": {}
     },
     {
       "name": "fires onKeyEvicted when the LRU cache evicts a key past capacity",
@@ -278,7 +260,16 @@
         }
       },
       "expected": {
-        "completed": true
+        "created": [
+          "user-a",
+          "user-b",
+          "user-c",
+          "user-a"
+        ],
+        "evicted": [
+          "user-a",
+          "user-b"
+        ]
       }
     },
     {

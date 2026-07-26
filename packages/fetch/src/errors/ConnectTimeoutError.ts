@@ -32,12 +32,17 @@ export class ConnectTimeoutError extends FetchBaseError {
    */
   readonly url!: string;
 
+  private static buildMessage(fields: Readonly<{ 'undiciCode': 'UND_ERR_CONNECT_TIMEOUT'; 'url': string }>): string {
+    const result = `Connection timeout for ${fields.url}`;
+    return result;
+  }
+
   constructor(url: string, cause?: Error) {
     const fields = { 'undiciCode': 'UND_ERR_CONNECT_TIMEOUT' as const, 'url': url };
     super(DomainErrorArgs.build(fields, {
       'cause': cause,
       'code': 'fetch.connectTimeout',
-      'message': (f) => { const result = `Connection timeout for ${f.url}`; return result; },
+      'message': ConnectTimeoutError.buildMessage,
       'retryable': true
     }));
     Object.assign(this, fields);

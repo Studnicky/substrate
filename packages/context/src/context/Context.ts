@@ -12,6 +12,19 @@ import { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import { ContextConfigError, ContextError } from '../errors/ContextError.js';
 import { ContextScope } from './ContextScope.js';
 
+interface ContextSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class ContextInstance {
+  static belongsTo<TInstance>(
+    constructor: ContextSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Isolated per-request async context using AsyncLocalStorage.
  *
@@ -55,9 +68,14 @@ export class Context implements ContextInterface {
    * const context = Context.create({ name: 'request' });
    * ```
    */
-  static create(config: ContextConfigEntity.Type): Context {
-    // `new this(...)` so subclass factories return the subclass instance.
-    const result = new this(config);
+  static create<TInstance extends Context = Context>(
+    this: ContextSubclassInterface<TInstance>,
+    config: ContextConfigEntity.Type
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [config]);
+    if (!ContextInstance.belongsTo(this, result)) {
+      throw new TypeError('Context.create() did not construct the requested subclass.');
+    }
     return result;
   }
 

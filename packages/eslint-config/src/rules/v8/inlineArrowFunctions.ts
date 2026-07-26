@@ -1,12 +1,7 @@
 import type { Rule } from 'eslint';
 
 import { ObjectGuard } from '../shared/ObjectGuard.js';
-import { PropertyKeyName } from '../shared/propertyKeyName.js';
 import { FunctionScope } from './functionScope.js';
-
-const EXEMPT_KEYS: ReadonlySet<string> = new Set([
-  'callback', 'execute', 'handler', 'message', 'process', 'transform', 'transformAsync', 'validate'
-]);
 
 export const inlineArrowFunctions: Rule.RuleModule = {
   'create': (context) => {
@@ -21,9 +16,6 @@ export const inlineArrowFunctions: Rule.RuleModule = {
 
       const grandparent = parent.parent;
       if (grandparent.type !== 'ObjectExpression') { return; }
-
-      const keyName = PropertyKeyName.get(parent);
-      if (keyName !== undefined && EXEMPT_KEYS.has(keyName)) { return; }
 
       // A map built once at module scope or a `static` class field never
       // re-allocates its arrow-function values — only a rebuilt-per-call map

@@ -13,15 +13,6 @@
       "expected": {
         "classification": "pureDataCanonical",
         "reason": "fromSchema"
-      },
-      "files": {
-        "root.ts": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport namespace UserEntity {\n  export const Schema = { type: 'string' } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}"
-      },
-      "namespaceName": "UserEntity",
-      "aliasName": "Type",
-      "expect": {
-        "classification": "pureDataCanonical",
-        "reason": "fromSchema"
       }
     },
     {
@@ -41,18 +32,7 @@
           { "name": "LocalCompositionType", "classification": "pureDataCanonical" },
           { "name": "ImportedCompositionType", "classification": "pureDataCanonical" }
         ]
-      },
-      "files": {
-        "canonical.ts": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport const CanonicalSchema = {\n  additionalProperties: false,\n  properties: { id: { type: 'string' } },\n  required: ['id'],\n  type: 'object'\n} as const satisfies JSONSchema;\nexport type CanonicalType = FromSchema<typeof CanonicalSchema>;\nexport type ImportedReadonlyType = readonly CanonicalType[];",
-        "root.ts": "import type { FromSchema, JSONSchema as SchemaConstraint } from 'json-schema-to-ts';\nimport { CanonicalSchema as RenamedSchema } from './canonical.ts';\nimport type { CanonicalType } from './canonical.ts';\nimport * as Canonical from './canonical.ts';\nconst LocalSchema = { type: 'string' } as const satisfies SchemaConstraint;\ntype LocalType = FromSchema<typeof LocalSchema>;\ntype RenamedSchemaType = FromSchema<typeof RenamedSchema>;\ntype NamespaceSchemaType = FromSchema<typeof Canonical.CanonicalSchema>;\ntype LocalCompositionType = LocalType[];\ntype ImportedCompositionType = CanonicalType | null;"
-      },
-      "assertions": [
-        { "name": "LocalType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "RenamedSchemaType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "NamespaceSchemaType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "LocalCompositionType", "classification": "pureDataCanonical" },
-        { "name": "ImportedCompositionType", "classification": "pureDataCanonical" }
-      ]
+      }
     },
     {
       "shape": "owner-direct",
@@ -77,24 +57,7 @@
           { "name": "UnconstrainedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
           { "name": "InlineSchemaType", "classification": "pureDataInvalid", "reason": "unresolvedReference" }
         ]
-      },
-      "files": {
-        "proxy.ts": "export type { FromSchema, JSONSchema } from 'json-schema-to-ts';",
-        "root.ts": "import type { FromSchema as DirectFromSchema, JSONSchema as DirectJSONSchema } from 'json-schema-to-ts';\nimport type { FromSchema as ProxyFromSchema, JSONSchema as ProxyJSONSchema } from './proxy.ts';\nimport type * as JsonSchema from 'json-schema-to-ts';\nimport type * as ProxySchema from './proxy.ts';\ntype FromSchema<T> = T;\ntype JSONSchema = { readonly type: 'string' };\nconst DirectSchema = { type: 'string' } as const satisfies DirectJSONSchema;\nconst NamespaceSchema = { type: 'string' } as const satisfies JsonSchema.JSONSchema;\nconst ProxyConstrainedSchema = { type: 'string' } as const satisfies ProxyJSONSchema;\nconst ProxyNamespaceSchema = { type: 'string' } as const satisfies ProxySchema.JSONSchema;\nconst ShadowedSchema = { type: 'string' } as const satisfies JSONSchema;\nconst MutableConstrainedSchema = { type: 'string' } satisfies DirectJSONSchema;\nconst UnconstrainedSchema = { type: 'string' } as const;\ntype DirectType = DirectFromSchema<typeof DirectSchema>;\ntype DirectNamespaceType = JsonSchema.FromSchema<typeof NamespaceSchema>;\ntype ProxyType = ProxyFromSchema<typeof DirectSchema>;\ntype ProxyNamespaceType = ProxySchema.FromSchema<typeof DirectSchema>;\ntype ProxyConstraintType = DirectFromSchema<typeof ProxyConstrainedSchema>;\ntype ProxyNamespaceConstraintType = DirectFromSchema<typeof ProxyNamespaceSchema>;\ntype ShadowedFromSchemaType = FromSchema<typeof DirectSchema>;\ntype ShadowedJSONSchemaType = DirectFromSchema<typeof ShadowedSchema>;\ntype MutableConstraintType = DirectFromSchema<typeof MutableConstrainedSchema>;\ntype UnconstrainedType = DirectFromSchema<typeof UnconstrainedSchema>;\ntype InlineSchemaType = DirectFromSchema<{ readonly type: 'string' }>;"
-      },
-      "assertions": [
-        { "name": "DirectType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "DirectNamespaceType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "ProxyType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "ProxyNamespaceType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "ProxyConstraintType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "ProxyNamespaceConstraintType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "ShadowedFromSchemaType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "ShadowedJSONSchemaType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "MutableConstraintType", "classification": "pureDataInvalid", "reason": "unresolvedReference" },
-        { "name": "UnconstrainedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "InlineSchemaType", "classification": "pureDataInvalid", "reason": "unresolvedReference" }
-      ]
+      }
     },
     {
       "shape": "alias-cycles",
@@ -113,18 +76,7 @@
           { "name": "IndexedUnknownType", "classification": "interfaceContract", "reason": "unknown", "evidence": true },
           { "name": "CycleAType", "classification": "pureDataInvalid", "reason": "cycle", "evidence": true }
         ]
-      },
-      "files": {
-        "canonical.ts": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport const CanonicalSchema = {\n  additionalProperties: false,\n  properties: { id: { type: 'string' } },\n  required: ['id'],\n  type: 'object'\n} as const satisfies JSONSchema;\nexport type CanonicalType = FromSchema<typeof CanonicalSchema>;\nexport type ImportedReadonlyType = readonly CanonicalType[];",
-        "root.ts": "import type { CanonicalType } from './canonical.ts';\ntype CanonicalCompositionType = CanonicalType[];\ntype InvalidDataType = { id: string };\ntype CallableContractType = (id: string) => void;\ntype IndexedUnknownType = { [key: string]: unknown };\ntype CycleAType = CycleBType[];\ntype CycleBType = CycleAType[];"
-      },
-      "assertions": [
-        { "name": "CanonicalCompositionType", "classification": "pureDataCanonical", "reason": "canonicalComposition", "evidence": true },
-        { "name": "InvalidDataType", "classification": "pureDataInvalid", "reason": "inlineObject", "evidence": true },
-        { "name": "CallableContractType", "classification": "interfaceContract", "reason": "callable", "evidence": true },
-        { "name": "IndexedUnknownType", "classification": "interfaceContract", "reason": "unknown", "evidence": true },
-        { "name": "CycleAType", "classification": "pureDataInvalid", "reason": "cycle", "evidence": true }
-      ]
+      }
     },
     {
       "shape": "readonly-intrinsics",
@@ -151,25 +103,6 @@
             { "name": "ShadowedType", "readonlyReasons": [] }
           ]
         }
-      },
-      "programs": {
-        "intrinsic": {
-          "canonical.ts": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport const CanonicalSchema = {\n  additionalProperties: false,\n  properties: { id: { type: 'string' } },\n  required: ['id'],\n  type: 'object'\n} as const satisfies JSONSchema;\nexport type CanonicalType = FromSchema<typeof CanonicalSchema>;\nexport type ImportedReadonlyType = readonly CanonicalType[];",
-          "root.ts": "import type { CanonicalType } from './canonical.ts';\ntype IntrinsicReadonlyType = Readonly<CanonicalType>;\ntype IntrinsicArrayType = ReadonlyArray<CanonicalType>;"
-        },
-        "shadowed": {
-          "canonical.ts": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport const CanonicalSchema = {\n  additionalProperties: false,\n  properties: { id: { type: 'string' } },\n  required: ['id'],\n  type: 'object'\n} as const satisfies JSONSchema;\nexport type CanonicalType = FromSchema<typeof CanonicalSchema>;\nexport type ImportedReadonlyType = readonly CanonicalType[];",
-          "root.ts": "import type { CanonicalType } from './canonical.ts';\ntype Readonly<T> = T;\ntype ShadowedType = Readonly<CanonicalType>;"
-        }
-      },
-      "assertions": {
-        "intrinsic": [
-          { "name": "IntrinsicReadonlyType", "classification": "pureDataCanonical", "reason": "canonicalComposition", "readonlyReasons": ["intrinsicReadonly"], "fixable": false },
-          { "name": "IntrinsicArrayType", "classification": "pureDataCanonical", "reason": "canonicalComposition", "readonlyReasons": ["intrinsicReadonly"], "fixable": false }
-        ],
-        "shadowed": [
-          { "name": "ShadowedType", "readonlyReasons": [] }
-        ]
       }
     },
     {
@@ -187,16 +120,7 @@
           { "name": "ReadonlyIndexType", "readonlyReasons": ["readonlyIndex"], "fixable": true },
           { "name": "ReadonlyMappedType", "readonlyReasons": ["readonlyMapped"], "fixable": true }
         ]
-      },
-      "files": {
-        "canonical.ts": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport const CanonicalSchema = {\n  additionalProperties: false,\n  properties: { id: { type: 'string' } },\n  required: ['id'],\n  type: 'object'\n} as const satisfies JSONSchema;\nexport type CanonicalType = FromSchema<typeof CanonicalSchema>;\nexport type ImportedReadonlyType = readonly CanonicalType[];",
-        "root.ts": "import type { CanonicalType } from './canonical.ts';\ntype ReadonlyPropertyType = { readonly value: CanonicalType };\ntype ReadonlyIndexType = { readonly [key: string]: CanonicalType };\ntype ReadonlyMappedType<T> = { +readonly [K in keyof T]: CanonicalType };"
-      },
-      "assertions": [
-        { "name": "ReadonlyPropertyType", "readonlyReasons": ["readonlyProperty"], "fixable": true },
-        { "name": "ReadonlyIndexType", "readonlyReasons": ["readonlyIndex"], "fixable": true },
-        { "name": "ReadonlyMappedType", "readonlyReasons": ["readonlyMapped"], "fixable": true }
-      ]
+      }
     },
     {
       "shape": "exposed-defaults",
@@ -212,15 +136,7 @@
           { "name": "ExposedDefaultType", "readonlyReasons": ["exposedDefault"], "fixable": false },
           { "name": "UnusedDefaultType", "readonlyReasons": [] }
         ]
-      },
-      "files": {
-        "canonical.ts": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport const CanonicalSchema = {\n  additionalProperties: false,\n  properties: { id: { type: 'string' } },\n  required: ['id'],\n  type: 'object'\n} as const satisfies JSONSchema;\nexport type CanonicalType = FromSchema<typeof CanonicalSchema>;\nexport type ImportedReadonlyType = readonly CanonicalType[];",
-        "root.ts": "import type { CanonicalType } from './canonical.ts';\ntype ExposedDefaultType<T = ReadonlyArray<CanonicalType>> = T;\ntype UnusedDefaultType<T = ReadonlyArray<CanonicalType>> = CanonicalType[];"
-      },
-      "assertions": [
-        { "name": "ExposedDefaultType", "readonlyReasons": ["exposedDefault"], "fixable": false },
-        { "name": "UnusedDefaultType", "readonlyReasons": [] }
-      ]
+      }
     },
     {
       "shape": "readonly-exclusions",
@@ -244,23 +160,7 @@
           { "name": "ConditionalOutputType", "readonlyReasons": ["readonlyArray"] },
           { "name": "CallableOutputType", "readonlyReasons": ["readonlyArray"] }
         ]
-      },
-      "files": {
-        "canonical.ts": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport const CanonicalSchema = {\n  additionalProperties: false,\n  properties: { id: { type: 'string' } },\n  required: ['id'],\n  type: 'object'\n} as const satisfies JSONSchema;\nexport type CanonicalType = FromSchema<typeof CanonicalSchema>;\nexport type ImportedReadonlyType = readonly CanonicalType[];",
-        "root.ts": "import type { CanonicalType } from './canonical.ts';\ntype ConstraintType<T extends readonly CanonicalType[]> = CanonicalType[];\ntype ConditionalInspectType<T> = T extends readonly CanonicalType[] ? CanonicalType[] : CanonicalType[];\ntype CallableInputType = (input: readonly CanonicalType[]) => CanonicalType[];\ntype KeyofInspectType = keyof Readonly<CanonicalType>;\ntype IndexedInspectType = Readonly<CanonicalType>['id'];\ntype MappedRemovalType<T> = { -readonly [K in keyof T]: CanonicalType };\ntype ConditionalOutputType<T> = T extends string ? readonly CanonicalType[] : CanonicalType[];\ntype CallableOutputType = () => readonly CanonicalType[];"
-      },
-      "excluded": [
-        "ConstraintType",
-        "ConditionalInspectType",
-        "CallableInputType",
-        "KeyofInspectType",
-        "IndexedInspectType",
-        "MappedRemovalType"
-      ],
-      "assertions": [
-        { "name": "ConditionalOutputType", "readonlyReasons": ["readonlyArray"] },
-        { "name": "CallableOutputType", "readonlyReasons": ["readonlyArray"] }
-      ]
+      }
     },
     {
       "shape": "readonly-indirection",
@@ -276,15 +176,7 @@
           { "name": "LocalCompositionType", "readonlyReasons": ["readonlyAlias"], "fixable": false },
           { "name": "ImportedCompositionType", "readonlyReasons": ["readonlyAlias"], "fixable": false }
         ]
-      },
-      "files": {
-        "canonical.ts": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport const CanonicalSchema = {\n  additionalProperties: false,\n  properties: { id: { type: 'string' } },\n  required: ['id'],\n  type: 'object'\n} as const satisfies JSONSchema;\nexport type CanonicalType = FromSchema<typeof CanonicalSchema>;\nexport type ImportedReadonlyType = readonly CanonicalType[];",
-        "root.ts": "import type { CanonicalType, ImportedReadonlyType } from './canonical.ts';\ntype LocalReadonlyType = readonly CanonicalType[];\ntype LocalCompositionType = LocalReadonlyType | CanonicalType;\ntype ImportedCompositionType = ImportedReadonlyType | CanonicalType;"
-      },
-      "assertions": [
-        { "name": "LocalCompositionType", "readonlyReasons": ["readonlyAlias"], "fixable": false },
-        { "name": "ImportedCompositionType", "readonlyReasons": ["readonlyAlias"], "fixable": false }
-      ]
+      }
     },
     {
       "shape": "interface-matrix",
@@ -323,38 +215,7 @@
           { "name": "NestedContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyReasons": [] },
           { "name": "RecursivePureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] }
         ]
-      },
-      "files": {
-        "root.ts": "class Service {}\ninterface EmptyInterface {}\ninterface PureInterface { value: string }\ninterface ReadonlyInterface { readonly value: string }\ninterface CallableInterface { (value: string): void }\ninterface ConstructorInterface { new (value: string): object }\ninterface ClassInterface { service: Service }\ninterface BrandInterface { readonly __brand: unique symbol }\ninterface NonJsonInterface { value: unknown }\ninterface NestedNonJsonInterface { value: { nested: unknown } }\ninterface RecursivePureInterface { next?: RecursivePureInterface }\ninterface NamedCallableInterface { (value: string): void }\ninterface NamedCallableOwnerInterface { handler: NamedCallableInterface }\ninterface NamedPureDataInterface { value: string }\ninterface NamedPureDataOwnerInterface { data: NamedPureDataInterface }\ninterface CallableValuePureDataInterface { value: string }\ndeclare const CallableValuePureDataInterface: () => CallableValuePureDataInterface;\ninterface CallableValuePureDataOwnerInterface { data: CallableValuePureDataInterface }\ninterface RegExpOwnerInterface { value: RegExp }\ninterface ErrorOwnerInterface { value: Error }\ninterface AbortSignalOwnerInterface { value: AbortSignal }\ninterface Uint8ArrayOwnerInterface { value: Uint8Array }\ninterface ArrayBufferOwnerInterface { value: ArrayBuffer }\ninterface UrlOwnerInterface { value: URL }\ntype DirectPureInterfaceAliasType = PureInterface;\ntype NestedPureInterfaceAliasType = PureInterface[];\ntype DirectContractInterfaceAliasType = ReadonlyInterface;\ntype NestedContractInterfaceAliasType = CallableInterface[];\ntype RecursivePureInterfaceAliasType = RecursivePureInterface;"
-      },
-      "interfaceAssertions": [
-        { "name": "EmptyInterface", "classification": "pureData" },
-        { "name": "PureInterface", "classification": "pureData" },
-        { "name": "ReadonlyInterface", "reason": "readonly" },
-        { "name": "CallableInterface", "reason": "callable" },
-        { "name": "ConstructorInterface", "reason": "constructor" },
-        { "name": "ClassInterface", "reason": "classInstance" },
-        { "name": "BrandInterface", "reason": "brand" },
-        { "name": "NonJsonInterface", "reason": "nonJson" },
-        { "name": "NestedNonJsonInterface", "reason": "nonJson" },
-        { "name": "RecursivePureInterface", "classification": "pureData" },
-        { "name": "NamedCallableOwnerInterface", "reason": "callable" },
-        { "name": "NamedPureDataOwnerInterface", "classification": "pureData" },
-        { "name": "CallableValuePureDataOwnerInterface", "classification": "pureData" },
-        { "name": "RegExpOwnerInterface", "reason": "classInstance" },
-        { "name": "ErrorOwnerInterface", "reason": "classInstance" },
-        { "name": "AbortSignalOwnerInterface", "reason": "classInstance" },
-        { "name": "Uint8ArrayOwnerInterface", "reason": "classInstance" },
-        { "name": "ArrayBufferOwnerInterface", "reason": "classInstance" },
-        { "name": "UrlOwnerInterface", "reason": "classInstance" }
-      ],
-      "aliasAssertions": [
-        { "name": "DirectPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] },
-        { "name": "NestedPureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] },
-        { "name": "DirectContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyReasons": [] },
-        { "name": "NestedContractInterfaceAliasType", "classification": "interfaceContract", "reason": "interfaceReference", "readonlyReasons": [] },
-        { "name": "RecursivePureInterfaceAliasType", "classification": "pureDataInvalid", "reason": "interfaceReference", "readonlyReasons": [] }
-      ]
+      }
     },
     {
       "shape": "composition-provenance",
@@ -372,17 +233,7 @@
           { "name": "TaggedDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
           { "name": "MethodBearingDerivedType", "classification": "pureDataInvalid", "reason": "callable" }
         ]
-      },
-      "files": {
-        "root.ts": "import { Type, type Static } from '@sinclair/typebox';\nimport { z } from 'zod';\nconst TypeboxSchema = Type.Object({ name: Type.String() });\ntype TypeboxDerivedType = Static<typeof TypeboxSchema>;\nconst ZodSchema = z.object({ name: z.string() });\ntype ZodDerivedType = z.infer<typeof ZodSchema>;\ntype LocalFromSchema<S> = S extends { readonly type: 'string' } ? { readonly value: string } : never;\nconst LocalValueSchema = { type: 'string' } as const;\ntype LocalDerivedType = LocalFromSchema<typeof LocalValueSchema>;\n/** @schemaDerivation */\ninterface TaggedDerivation<T> {}\nconst TaggedSchema = { type: 'string' } as const;\ntype TaggedDerivedType = TaggedDerivation<typeof TaggedSchema>;\ntype BuilderFromSchema<S> = S extends object ? S : never;\nfunction buildSchema() { return { value: 'x', handler: () => {} } as const; }\nconst MethodBearingSchema = buildSchema();\ntype MethodBearingDerivedType = BuilderFromSchema<typeof MethodBearingSchema>;"
-      },
-      "assertions": [
-        { "name": "TypeboxDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "ZodDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "LocalDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "TaggedDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "MethodBearingDerivedType", "classification": "pureDataInvalid", "reason": "callable" }
-      ]
+      }
     },
     {
       "shape": "composition-provenance",
@@ -397,14 +248,7 @@
           { "name": "NamespaceGeneralType", "classification": "pureDataCanonical", "reason": "fromSchema" },
           { "name": "TailDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" }
         ]
-      },
-      "files": {
-        "root.ts": "namespace SchemaNamespace {\n  export const Schema = { type: 'string' } as const;\n}\ntype LocalFromSchema<S> = S extends { readonly type: 'string' } ? { readonly value: string } : never;\ntype NamespaceGeneralType = LocalFromSchema<typeof SchemaNamespace.Schema>;\nconst TailSchema = { type: 'string', inferred: { value: 'x' } } as const;\ntype TailDerivedType = typeof TailSchema.inferred;"
-      },
-      "assertions": [
-        { "name": "NamespaceGeneralType", "classification": "pureDataCanonical", "reason": "fromSchema" },
-        { "name": "TailDerivedType", "classification": "pureDataCanonical", "reason": "fromSchema" }
-      ]
+      }
     }
   ]
 }

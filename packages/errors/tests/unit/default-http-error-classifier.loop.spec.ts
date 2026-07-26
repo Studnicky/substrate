@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { DefaultHttpErrorClassifier } from '../../src/classifiers/DefaultHttpErrorClassifier.js';
 import { ErrorWithStatusEntity } from '../../src/entities/ErrorWithStatusEntity.js';
-import scenarioGroups from './default-http-error-classifier.scenarios.json';
+import scenarioGroups from './default-http-error-classifier.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {

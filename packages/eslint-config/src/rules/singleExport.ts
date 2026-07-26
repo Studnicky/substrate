@@ -3,28 +3,27 @@ import type { Rule } from 'eslint';
 import path from 'node:path';
 import { type Program, type Symbol, SymbolFlags, type Type, type TypeChecker } from 'typescript';
 
+import {
+  INDEX_FILES,
+  RESTRICTED_TOPOLOGY_NAMES,
+  SCREAMING_SNAKE_CASE_PATTERN,
+  WORD_REGEX
+} from './constants/SingleExportConstants.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
-
-const INDEX_FILES = new Set([
-  'index.cts',
-  'index.mts',
-  'index.ts',
-  'index.tsx'
-]);
-
-const RESTRICTED_TOPOLOGY_NAMES = [
-  'constants',
-  'entities',
-  'errors',
-  'interfaces',
-  'types'
-] as const;
-
-const WORD_REGEX = /[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+/gv;
 
 class CaseConverter {
   public static toWords(value: string): string[] {
-    return value.match(WORD_REGEX) ?? [];
+    const words: string[] = [];
+
+    WORD_REGEX.lastIndex = 0;
+    let match = WORD_REGEX.exec(value);
+
+    while (match !== null) {
+      words.push(match[0]);
+      match = WORD_REGEX.exec(value);
+    }
+
+    return words;
   }
 
   public static toPascalCase(value: string, preserveAcronyms: boolean): string {
@@ -486,7 +485,7 @@ export const singleExport: Rule.RuleModule = {
 
       if (restrictedTopology === 'constants') {
         const invalidConstantNames = unique.filter((name) => {
-          return !/^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/u.test(name);
+          return !SCREAMING_SNAKE_CASE_PATTERN.test(name);
         });
 
         if (invalidConstantNames.length > 0) {

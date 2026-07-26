@@ -5,7 +5,7 @@ description: 'Disallows all lint and type suppression comments.'
 
 # @studnicky/clean-diagnostics
 
-Disallows all lint, type, and coverage suppression comments: `eslint-disable`, `eslint-disable-line`, `eslint-disable-next-line`, `eslint-enable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `tslint:disable`, `tslint:disable-line`, `tslint:disable-next-line`, `c8 ignore`, `c8-ignore`, and `istanbul ignore entirely`. The auto-fix removes the entire comment line when the line is otherwise whitespace-only.
+Disallows all lint, type, and coverage suppression comments: `eslint-disable`, `eslint-disable-line`, `eslint-disable-next-line`, `eslint-enable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `tslint:disable`, `tslint:disable-line`, `tslint:disable-next-line`, `c8 ignore`, `c8-ignore`, and `istanbul ignore entirely`. The auto-fix removes the entire comment line, including its line break, when the line is otherwise whitespace-only. When the comment instead trails code on the same line, the fix removes only the comment text through the end of the line, leaving the preceding code (and any whitespace between the code and the comment) intact.
 
 **Fixable:** Yes (removes the comment line) · **Options:** No · **Suggested severity:** `error`
 

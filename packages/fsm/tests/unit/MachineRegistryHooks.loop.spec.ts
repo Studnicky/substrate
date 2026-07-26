@@ -7,7 +7,7 @@ import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MachineRegistry } from '../../src/MachineRegistry.js';
 import { StateMachine } from '../../src/StateMachine.js';
 import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
-import scenarioGroups from './MachineRegistryHooks.scenarios.json';
+import scenarioGroups from './MachineRegistryHooks.scenarios.json' with { type: 'json' };
 
 type SimpleState = { readonly variant: 'idle' };
 type SimpleEvent = { readonly type: 'noop' };
@@ -150,6 +150,10 @@ type ScenarioCase =
     };
 
 class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
+  static create(): SimpleMachine {
+    return new SimpleMachine();
+  }
+
   override getInitialState(): SimpleState { return { variant: 'idle' }; }
 
   override reduce(state: SimpleState, _event: SimpleEvent): FsmStepInterface<SimpleState> {
@@ -180,10 +184,16 @@ class ObservedRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
 }
 
 function makeInterpreter(): EffectInterpreter<SimpleState, SimpleEvent> {
-  return EffectInterpreter.create({ machine: new SimpleMachine() });
+  return EffectInterpreter.create({ machine: SimpleMachine.create() });
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+type ScenarioShape = ScenarioCase['shape'];
+
+type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
+
+type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'async-rejecting-register': async (scenarioCase) => {
     class AsyncRejectingRegisterRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
       static make(): AsyncRejectingRegisterRegistry {
@@ -338,10 +348,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
+async function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
+}
+
 void describe('MachineRegistry lifecycle hooks', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
-      await runnerMap[scenario.shape](scenario);
+      await runCase(scenario);
     });
   }
 });

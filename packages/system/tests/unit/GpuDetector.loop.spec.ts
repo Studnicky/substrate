@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { GpuDetector } from '../../src/modules/GpuDetector.js';
-import scenarioGroups from './GpuDetector.scenarios.json';
+import scenarioGroups from './GpuDetector.scenarios.json' with { type: 'json' };
 
 interface CommandOutcomeInterface {
   readonly error?: string;

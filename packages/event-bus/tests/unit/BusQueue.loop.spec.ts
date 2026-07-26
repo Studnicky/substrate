@@ -6,8 +6,7 @@ import {
 import { HookInvoker } from '@studnicky/errors';
 
 import { BusQueue } from '../../src/BusQueue.js';
-import type { BusQueueCreateOptionsInterface } from '../../src/BusQueueCreateOptionsInterface.js';
-import scenarioGroups from './BusQueue.scenarios.json';
+import scenarioGroups from './BusQueue.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'admission-and-overflow-order'
@@ -50,6 +49,14 @@ type ScenarioRunContext<K extends ScenarioShape> = {
 type ScenarioRunner<K extends ScenarioShape> = (context: ScenarioRunContext<K>) => Promise<void> | void;
 
 type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
+
+function itemAt(items: unknown, index: number): number {
+  const value = (items as number[])[index];
+  if (value === undefined) {
+    throw new Error(`Missing scenario item at index ${String(index)}`);
+  }
+  return value;
+}
 
 const runnerMap: RunnerMap = {
     'handler-order': ({ expected, input }) => {
@@ -134,7 +141,7 @@ const runnerMap: RunnerMap = {
       }
 
       process.on('unhandledRejection', onUnhandledRejection);
-      const queue = ObservedQueue.create({
+      const queue = ObservedQueue.create<number>({
         'handler': async (item) => {
           if (item === (input.throwOn as number)) { throw handlerFailure; }
           received.push(item);
@@ -149,7 +156,7 @@ const runnerMap: RunnerMap = {
         .then(() => {
           assert.deepStrictEqual(handlerErrors.map((error) => (error as Error).message), expected.handlerErrors);
           assert.deepStrictEqual(received, expected.received);
-          assert.strictEqual(unhandledRejections.length, expected.unhandledRejections.length);
+          assert.strictEqual(unhandledRejections.length, (expected.unhandledRejections as unknown[]).length);
         })
         .finally(() => {
           process.off('unhandledRejection', onUnhandledRejection);
@@ -162,7 +169,7 @@ const runnerMap: RunnerMap = {
         'handler': async (item) => { received.push(item); },
         'signal': controller.signal
       });
-      void queue.enqueue((input.items as number[])[0]);
+      void queue.enqueue(itemAt(input.items, 0));
       return queue.drain()
         .then(() => {
           controller.abort();
@@ -185,7 +192,7 @@ const runnerMap: RunnerMap = {
 
       const controller = new AbortController();
       controller.abort();
-      const queue = DropObservedQueue.create({
+      const queue = DropObservedQueue.create<number>({
         'handler': async (item) => { throw new Error(`unexpected delivery: ${String(item)}`); },
         'signal': controller.signal
       });
@@ -210,12 +217,13 @@ const runnerMap: RunnerMap = {
         }
       }
 
-      const queue = PendingEnqueueQueue.create({
+      const queue = PendingEnqueueQueue.create<number>({
         'handler': async (item) => { received.push(item); },
         'signal': controller.signal
       });
 
-      const enqueue = queue.enqueue((input.items as number[])[0]);
+      let pendingResolved = false;
+      const enqueue = queue.enqueue(itemAt(input.items, 0)).then(() => { pendingResolved = true; });
       return enqueueStarted.promise
         .then(() => {
           controller.abort();
@@ -227,7 +235,7 @@ const runnerMap: RunnerMap = {
           return enqueue;
         })
         .then(() => {
-          assert.strictEqual(expected.pendingResolved, true);
+          assert.strictEqual(pendingResolved, expected.pendingResolved);
         });
     },
     'abort-releases-drain-waiter': ({ expected, input }) => {
@@ -240,7 +248,7 @@ const runnerMap: RunnerMap = {
         'signal': controller.signal
       });
 
-      void queue.enqueue((input.items as number[])[0]);
+      void queue.enqueue(itemAt(input.items, 0));
       const draining = queue.drain().then(() => { drainWaiter.resolve(); });
 
       return Promise.resolve()
@@ -263,7 +271,7 @@ const runnerMap: RunnerMap = {
 
       const controller = new AbortController();
       controller.abort();
-      const queue = DropObservedQueue.create({
+      const queue = DropObservedQueue.create<number>({
         'handler': async (item) => { throw new Error(`unexpected delivery: ${String(item)}`); },
         'signal': controller.signal
       });
@@ -287,12 +295,9 @@ const runnerMap: RunnerMap = {
     'on-enqueue-hook': ({ expected, input }) => {
       const depths: number[] = [];
       class ObservedQueue extends BusQueue<number> {
-        static override create(options: BusQueueCreateOptionsInterface<number>): ObservedQueue {
-          return new ObservedQueue(options);
-        }
         protected override onEnqueue(depth: number): void { depths.push(depth); }
       }
-      const queue = ObservedQueue.create({ 'handler': async () => {} });
+      const queue = ObservedQueue.create<number>({ 'handler': async () => {} });
       for (const item of input.items as number[]) {
         void queue.enqueue(item);
       }
@@ -304,10 +309,6 @@ const runnerMap: RunnerMap = {
       const errors: unknown[] = [];
       const processed: number[] = [];
       class ThrowingOnDequeueQueue extends BusQueue<number> {
-        static override create(options: BusQueueCreateOptionsInterface<number>): ThrowingOnDequeueQueue {
-          return new ThrowingOnDequeueQueue(options);
-        }
-
         #thrown = false;
 
         protected override onDequeue(_depth: number): void {
@@ -320,9 +321,9 @@ const runnerMap: RunnerMap = {
         'handler': async (item) => { processed.push(item); },
         'onError': (error) => { errors.push(error); }
       });
-      void queue.enqueue((input.items as number[])[0]);
+      void queue.enqueue(itemAt(input.items, 0));
       return Promise.resolve()
-        .then(() => queue.enqueue((input.items as number[])[1]))
+        .then(() => queue.enqueue(itemAt(input.items, 1)))
         .then(() => queue.drain())
         .then(() => {
           assert.deepStrictEqual(processed, expected.processed);
@@ -341,7 +342,7 @@ const runnerMap: RunnerMap = {
           }
         }
       }
-      const queue = ThrowingEnqueueQueue.create({
+      const queue = ThrowingEnqueueQueue.create<number>({
         'handler': async (item) => { processed.push(item); }
       });
       return Promise.all((input.items as number[]).map((item) => queue.enqueue(item)))
@@ -365,10 +366,10 @@ const runnerMap: RunnerMap = {
         }
       }
       const processed: number[] = [];
-      const queue = RecordingHookErrorQueue.create({
+      const queue = RecordingHookErrorQueue.create<number>({
         'handler': async (item) => { processed.push(item); }
       });
-      return queue.enqueue((input.items as number[])[0])
+      return queue.enqueue(itemAt(input.items, 0))
         .then(() => queue.drain())
         .then(() => {
           assert.deepStrictEqual(seen, [{ 'hookName': expected.hookName as string, 'cause': failure }]);
@@ -386,7 +387,7 @@ const runnerMap: RunnerMap = {
           }
         }
       }
-      const queue = ThrowingOverflowQueue.create({
+      const queue = ThrowingOverflowQueue.create<number>({
         'handler': async (item) => { processed.push(item); },
         'highWaterMark': input.highWaterMark as number
       });
@@ -406,13 +407,13 @@ const runnerMap: RunnerMap = {
         'handler': async (item) => {
           activeHandlers += 1;
           maxConcurrentHandlers = Math.max(maxConcurrentHandlers, activeHandlers);
-          if (item === (input.items as number[])[0]) { await firstBlocked; }
+          if (item === itemAt(input.items, 0)) { await firstBlocked; }
           processed.push(item);
           activeHandlers -= 1;
         }
       });
-      const first = queue.enqueue((input.items as number[])[0]);
-      const second = queue.enqueue((input.items as number[])[1]);
+      const first = queue.enqueue(itemAt(input.items, 0));
+      const second = queue.enqueue(itemAt(input.items, 1));
       resolveFirst();
       return Promise.all([first, second]).then(() => queue.drain()).then(() => {
         assert.strictEqual(maxConcurrentHandlers, expected.maxConcurrentHandlers as number);
@@ -439,7 +440,7 @@ const runnerMap: RunnerMap = {
       class ObservedQueue extends BusQueue<number> {
         protected override onOverflow(depth: number): void { overflowDepths.push(depth); }
       }
-      const queue = ObservedQueue.create({
+      const queue = ObservedQueue.create<number>({
         'handler': async () => {
           if (first) {
             first = false;
@@ -481,11 +482,11 @@ const runnerMap: RunnerMap = {
           order.push('overflow:end');
         }
       }
-      const queue = PendingAdmissionQueue.create({
+      const queue = PendingAdmissionQueue.create<number>({
         'handler': async () => { order.push('handler'); },
         'highWaterMark': input.highWaterMark as number
       });
-      const enqueue = queue.enqueue((input.items as number[])[0]);
+      const enqueue = queue.enqueue(itemAt(input.items, 0));
       return enqueueStarted.promise
         .then(() => {
           assert.deepStrictEqual(order, (expected.order as string[]).slice(0, 1));
@@ -507,10 +508,10 @@ const runnerMap: RunnerMap = {
       class ObservedQueue extends BusQueue<number> {
         protected override onHandlerError(err: unknown): void { errors.push(err); }
       }
-      const queue = ObservedQueue.create({
+      const queue = ObservedQueue.create<number>({
         'handler': async () => { throw new Error(input.errorMessage as string); }
       });
-      return queue.enqueue((input.items as number[])[0])
+      return queue.enqueue(itemAt(input.items, 0))
         .then(() => queue.drain())
         .then(() => {
           assert.strictEqual(errors.length, expected.errors as number);

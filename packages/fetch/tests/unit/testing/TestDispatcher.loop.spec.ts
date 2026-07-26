@@ -4,7 +4,7 @@ import {
 } from 'node:test';
 
 import { TestDispatcher } from '../../../src/testing/TestDispatcher.js';
-import scenarioGroups from './TestDispatcher.scenarios.json';
+import scenarioGroups from './TestDispatcher.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
   description: string;
@@ -101,13 +101,21 @@ const requestBodyMap: Record<BodyScenarioShape, (scenarioCase: ScenarioCase) => 
   }
 };
 
+function requireUrl(value: string | undefined, label: string): string {
+  if (value === undefined) {
+    throw new Error(`${label} is required for this scenario`);
+  }
+
+  return value;
+}
+
 async function runQueuedAbortCase(scenarioCase: ScenarioCase): Promise<void> {
   const dispatcher = createDispatcher(scenarioCase);
 
   try {
-    const longRequest = dispatcher.fetch(scenarioCase.input.longUrl, {});
+    const longRequest = dispatcher.fetch(requireUrl(scenarioCase.input.longUrl, 'input.longUrl'), {});
     const controller = new AbortController();
-    const queuedRequest = dispatcher.fetch(scenarioCase.input.queuedUrl, { signal: controller.signal });
+    const queuedRequest = dispatcher.fetch(requireUrl(scenarioCase.input.queuedUrl, 'input.queuedUrl'), { signal: controller.signal });
     const queuedAssertion = assert.rejects(queuedRequest, (error: unknown) => {
       assert.ok(error instanceof DOMException);
       assert.strictEqual(error.name, scenarioCase.expected.queuedErrorName);

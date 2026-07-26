@@ -3,28 +3,11 @@
     {
       "name": "header-value-number",
       "description": "FetchClient rejects non-string header value number",
-      "clientConfig": {
-        "headers": {
-          "X-Custom": 123
-        }
-      },
-      "expect": {
-        "shape": "reject",
-        "messageIncludes": [
-          "header"
-        ]
-      },
       "input": {
         "clientConfig": {
           "headers": {
             "X-Custom": 123
           }
-        },
-        "expect": {
-          "shape": "reject",
-          "messageIncludes": [
-            "header"
-          ]
         }
       },
       "expected": {
@@ -37,28 +20,11 @@
     {
       "name": "header-value-boolean",
       "description": "FetchClient rejects non-string header value boolean",
-      "clientConfig": {
-        "headers": {
-          "X-Custom": true
-        }
-      },
-      "expect": {
-        "shape": "reject",
-        "messageIncludes": [
-          "header"
-        ]
-      },
       "input": {
         "clientConfig": {
           "headers": {
             "X-Custom": true
           }
-        },
-        "expect": {
-          "shape": "reject",
-          "messageIncludes": [
-            "header"
-          ]
         }
       },
       "expected": {
@@ -71,28 +37,11 @@
     {
       "name": "header-value-null",
       "description": "FetchClient rejects non-string header value null",
-      "clientConfig": {
-        "headers": {
-          "X-Custom": null
-        }
-      },
-      "expect": {
-        "shape": "reject",
-        "messageIncludes": [
-          "header"
-        ]
-      },
       "input": {
         "clientConfig": {
           "headers": {
             "X-Custom": null
           }
-        },
-        "expect": {
-          "shape": "reject",
-          "messageIncludes": [
-            "header"
-          ]
         }
       },
       "expected": {
@@ -105,19 +54,6 @@
     {
       "name": "header-value-undefined",
       "description": "FetchClient rejects non-string header value undefined",
-      "clientConfig": {
-        "headers": {
-          "X-Custom": {
-            "__shape": "undefined"
-          }
-        }
-      },
-      "expect": {
-        "shape": "reject",
-        "messageIncludes": [
-          "header"
-        ]
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -125,12 +61,6 @@
               "__shape": "undefined"
             }
           }
-        },
-        "expect": {
-          "shape": "reject",
-          "messageIncludes": [
-            "header"
-          ]
         }
       },
       "expected": {
@@ -143,28 +73,11 @@
     {
       "name": "header-value-object",
       "description": "FetchClient rejects non-string header value object",
-      "clientConfig": {
-        "headers": {
-          "X-Custom": {}
-        }
-      },
-      "expect": {
-        "shape": "reject",
-        "messageIncludes": [
-          "header"
-        ]
-      },
       "input": {
         "clientConfig": {
           "headers": {
             "X-Custom": {}
           }
-        },
-        "expect": {
-          "shape": "reject",
-          "messageIncludes": [
-            "header"
-          ]
         }
       },
       "expected": {
@@ -177,28 +90,11 @@
     {
       "name": "header-value-array",
       "description": "FetchClient rejects non-string header value array",
-      "clientConfig": {
-        "headers": {
-          "X-Custom": []
-        }
-      },
-      "expect": {
-        "shape": "reject",
-        "messageIncludes": [
-          "header"
-        ]
-      },
       "input": {
         "clientConfig": {
           "headers": {
             "X-Custom": []
           }
-        },
-        "expect": {
-          "shape": "reject",
-          "messageIncludes": [
-            "header"
-          ]
         }
       },
       "expected": {
@@ -211,24 +107,9 @@
     {
       "name": "headers-array",
       "description": "FetchClient rejects headers as array",
-      "clientConfig": {
-        "headers": []
-      },
-      "expect": {
-        "shape": "reject",
-        "messageIncludes": [
-          "headers"
-        ]
-      },
       "input": {
         "clientConfig": {
           "headers": []
-        },
-        "expect": {
-          "shape": "reject",
-          "messageIncludes": [
-            "headers"
-          ]
         }
       },
       "expected": {
@@ -241,24 +122,9 @@
     {
       "name": "headers-string",
       "description": "FetchClient rejects headers as string",
-      "clientConfig": {
-        "headers": "invalid"
-      },
-      "expect": {
-        "shape": "reject",
-        "messageIncludes": [
-          "headers"
-        ]
-      },
       "input": {
         "clientConfig": {
           "headers": "invalid"
-        },
-        "expect": {
-          "shape": "reject",
-          "messageIncludes": [
-            "headers"
-          ]
         }
       },
       "expected": {
@@ -271,24 +137,9 @@
     {
       "name": "headers-number",
       "description": "FetchClient rejects headers as number",
-      "clientConfig": {
-        "headers": 123
-      },
-      "expect": {
-        "shape": "reject",
-        "messageIncludes": [
-          "headers"
-        ]
-      },
       "input": {
         "clientConfig": {
           "headers": 123
-        },
-        "expect": {
-          "shape": "reject",
-          "messageIncludes": [
-            "headers"
-          ]
         }
       },
       "expected": {
@@ -301,17 +152,6 @@
     {
       "name": "headers-null-accepted",
       "description": "FetchClient accepts null headers",
-      "clientConfig": {
-        "headers": null
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": null
@@ -319,10 +159,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -333,20 +169,6 @@
     {
       "name": "header-case-sensitivity",
       "description": "FetchClient sends headers with different casing",
-      "clientConfig": {
-        "headers": {
-          "content-type": "application/json",
-          "Content-Type": "text/plain"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -357,10 +179,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -371,21 +189,6 @@
     {
       "name": "header-case-merge",
       "description": "FetchClient merges case-variant headers correctly",
-      "clientConfig": {
-        "headers": {
-          "X-Custom": "value1",
-          "x-custom": "value2",
-          "X-CUSTOM": "value3"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -397,10 +200,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -411,19 +210,6 @@
     {
       "name": "empty-header-value",
       "description": "FetchClient handles empty header values",
-      "clientConfig": {
-        "headers": {
-          "X-Empty": ""
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -433,10 +219,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -447,19 +229,6 @@
     {
       "name": "spaced-header-value",
       "description": "FetchClient handles header values with spaces",
-      "clientConfig": {
-        "headers": {
-          "X-Spaced": "value with spaces"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -469,10 +238,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -483,19 +248,6 @@
     {
       "name": "special-header-value",
       "description": "FetchClient handles header values with special characters",
-      "clientConfig": {
-        "headers": {
-          "X-Special": "value!@#$%^&*()"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -505,10 +257,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -519,32 +267,15 @@
     {
       "name": "unicode-header-value",
       "description": "FetchClient rejects unicode header values",
-      "clientConfig": {
-        "headers": {
-          "X-Unicode": "你好世界"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "reject",
-        "errorType": "TypeError"
-      },
       "input": {
         "clientConfig": {
           "headers": {
-            "X-Unicode": "你好世界"
+            "X-Unicode": "\u4f60\u597d\u4e16\u754c"
           }
         },
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "reject",
-          "errorType": "TypeError"
         }
       },
       "expected": {
@@ -555,19 +286,6 @@
     {
       "name": "long-header-value-1kb",
       "description": "FetchClient handles long 1KB header values",
-      "clientConfig": {
-        "headers": {
-          "X-Long": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -577,10 +295,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -591,19 +305,6 @@
     {
       "name": "long-header-value-8kb",
       "description": "FetchClient handles long 8KB header values",
-      "clientConfig": {
-        "headers": {
-          "X-Very-Long": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -613,10 +314,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -627,68 +324,6 @@
     {
       "name": "many-headers-50",
       "description": "FetchClient handles many headers",
-      "clientConfig": {
-        "headers": {
-          "X-Header-0": "value-0",
-          "X-Header-1": "value-1",
-          "X-Header-2": "value-2",
-          "X-Header-3": "value-3",
-          "X-Header-4": "value-4",
-          "X-Header-5": "value-5",
-          "X-Header-6": "value-6",
-          "X-Header-7": "value-7",
-          "X-Header-8": "value-8",
-          "X-Header-9": "value-9",
-          "X-Header-10": "value-10",
-          "X-Header-11": "value-11",
-          "X-Header-12": "value-12",
-          "X-Header-13": "value-13",
-          "X-Header-14": "value-14",
-          "X-Header-15": "value-15",
-          "X-Header-16": "value-16",
-          "X-Header-17": "value-17",
-          "X-Header-18": "value-18",
-          "X-Header-19": "value-19",
-          "X-Header-20": "value-20",
-          "X-Header-21": "value-21",
-          "X-Header-22": "value-22",
-          "X-Header-23": "value-23",
-          "X-Header-24": "value-24",
-          "X-Header-25": "value-25",
-          "X-Header-26": "value-26",
-          "X-Header-27": "value-27",
-          "X-Header-28": "value-28",
-          "X-Header-29": "value-29",
-          "X-Header-30": "value-30",
-          "X-Header-31": "value-31",
-          "X-Header-32": "value-32",
-          "X-Header-33": "value-33",
-          "X-Header-34": "value-34",
-          "X-Header-35": "value-35",
-          "X-Header-36": "value-36",
-          "X-Header-37": "value-37",
-          "X-Header-38": "value-38",
-          "X-Header-39": "value-39",
-          "X-Header-40": "value-40",
-          "X-Header-41": "value-41",
-          "X-Header-42": "value-42",
-          "X-Header-43": "value-43",
-          "X-Header-44": "value-44",
-          "X-Header-45": "value-45",
-          "X-Header-46": "value-46",
-          "X-Header-47": "value-47",
-          "X-Header-48": "value-48",
-          "X-Header-49": "value-49"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -747,10 +382,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -761,118 +392,6 @@
     {
       "name": "many-headers-100",
       "description": "FetchClient handles many headers",
-      "clientConfig": {
-        "headers": {
-          "X-Header-0": "value-0",
-          "X-Header-1": "value-1",
-          "X-Header-2": "value-2",
-          "X-Header-3": "value-3",
-          "X-Header-4": "value-4",
-          "X-Header-5": "value-5",
-          "X-Header-6": "value-6",
-          "X-Header-7": "value-7",
-          "X-Header-8": "value-8",
-          "X-Header-9": "value-9",
-          "X-Header-10": "value-10",
-          "X-Header-11": "value-11",
-          "X-Header-12": "value-12",
-          "X-Header-13": "value-13",
-          "X-Header-14": "value-14",
-          "X-Header-15": "value-15",
-          "X-Header-16": "value-16",
-          "X-Header-17": "value-17",
-          "X-Header-18": "value-18",
-          "X-Header-19": "value-19",
-          "X-Header-20": "value-20",
-          "X-Header-21": "value-21",
-          "X-Header-22": "value-22",
-          "X-Header-23": "value-23",
-          "X-Header-24": "value-24",
-          "X-Header-25": "value-25",
-          "X-Header-26": "value-26",
-          "X-Header-27": "value-27",
-          "X-Header-28": "value-28",
-          "X-Header-29": "value-29",
-          "X-Header-30": "value-30",
-          "X-Header-31": "value-31",
-          "X-Header-32": "value-32",
-          "X-Header-33": "value-33",
-          "X-Header-34": "value-34",
-          "X-Header-35": "value-35",
-          "X-Header-36": "value-36",
-          "X-Header-37": "value-37",
-          "X-Header-38": "value-38",
-          "X-Header-39": "value-39",
-          "X-Header-40": "value-40",
-          "X-Header-41": "value-41",
-          "X-Header-42": "value-42",
-          "X-Header-43": "value-43",
-          "X-Header-44": "value-44",
-          "X-Header-45": "value-45",
-          "X-Header-46": "value-46",
-          "X-Header-47": "value-47",
-          "X-Header-48": "value-48",
-          "X-Header-49": "value-49",
-          "X-Header-50": "value-50",
-          "X-Header-51": "value-51",
-          "X-Header-52": "value-52",
-          "X-Header-53": "value-53",
-          "X-Header-54": "value-54",
-          "X-Header-55": "value-55",
-          "X-Header-56": "value-56",
-          "X-Header-57": "value-57",
-          "X-Header-58": "value-58",
-          "X-Header-59": "value-59",
-          "X-Header-60": "value-60",
-          "X-Header-61": "value-61",
-          "X-Header-62": "value-62",
-          "X-Header-63": "value-63",
-          "X-Header-64": "value-64",
-          "X-Header-65": "value-65",
-          "X-Header-66": "value-66",
-          "X-Header-67": "value-67",
-          "X-Header-68": "value-68",
-          "X-Header-69": "value-69",
-          "X-Header-70": "value-70",
-          "X-Header-71": "value-71",
-          "X-Header-72": "value-72",
-          "X-Header-73": "value-73",
-          "X-Header-74": "value-74",
-          "X-Header-75": "value-75",
-          "X-Header-76": "value-76",
-          "X-Header-77": "value-77",
-          "X-Header-78": "value-78",
-          "X-Header-79": "value-79",
-          "X-Header-80": "value-80",
-          "X-Header-81": "value-81",
-          "X-Header-82": "value-82",
-          "X-Header-83": "value-83",
-          "X-Header-84": "value-84",
-          "X-Header-85": "value-85",
-          "X-Header-86": "value-86",
-          "X-Header-87": "value-87",
-          "X-Header-88": "value-88",
-          "X-Header-89": "value-89",
-          "X-Header-90": "value-90",
-          "X-Header-91": "value-91",
-          "X-Header-92": "value-92",
-          "X-Header-93": "value-93",
-          "X-Header-94": "value-94",
-          "X-Header-95": "value-95",
-          "X-Header-96": "value-96",
-          "X-Header-97": "value-97",
-          "X-Header-98": "value-98",
-          "X-Header-99": "value-99"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -981,10 +500,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -995,22 +510,6 @@
     {
       "name": "request-overrides-client",
       "description": "Request headers override client headers",
-      "clientConfig": {
-        "headers": {
-          "X-Custom": "client-value"
-        }
-      },
-      "request": {
-        "headers": {
-          "X-Custom": "request-value"
-        },
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -1023,10 +522,6 @@
           },
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -1037,22 +532,6 @@
     {
       "name": "request-merges-client",
       "description": "Request headers merge with client headers",
-      "clientConfig": {
-        "headers": {
-          "X-Client": "client-value"
-        }
-      },
-      "request": {
-        "headers": {
-          "X-Request": "request-value"
-        },
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -1065,10 +544,6 @@
           },
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -1079,20 +554,6 @@
     {
       "name": "content-type-json",
       "description": "FetchClient handles explicit Content-Type with JSON body",
-      "request": {
-        "body": {
-          "title": "Test"
-        },
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "POST",
-        "path": "/posts"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 201
-      },
       "input": {
         "request": {
           "body": {
@@ -1103,10 +564,6 @@
           },
           "method": "POST",
           "path": "/posts"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 201
         }
       },
       "expected": {
@@ -1117,18 +574,6 @@
     {
       "name": "content-type-mismatch",
       "description": "FetchClient handles mismatched Content-Type and body",
-      "request": {
-        "body": "{\"title\":\"Test\"}",
-        "headers": {
-          "Content-Type": "text/plain"
-        },
-        "method": "POST",
-        "path": "/posts"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 201
-      },
       "input": {
         "request": {
           "body": "{\"title\":\"Test\"}",
@@ -1137,10 +582,6 @@
           },
           "method": "POST",
           "path": "/posts"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 201
         }
       },
       "expected": {
@@ -1151,23 +592,6 @@
     {
       "name": "content-type-multiple",
       "description": "FetchClient handles multiple Content-Type declarations",
-      "clientConfig": {
-        "headers": {
-          "content-type": "application/json"
-        }
-      },
-      "request": {
-        "body": "{\"title\":\"Test\"}",
-        "headers": {
-          "Content-Type": "text/plain"
-        },
-        "method": "POST",
-        "path": "/posts"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 201
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -1181,10 +605,6 @@
           },
           "method": "POST",
           "path": "/posts"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 201
         }
       },
       "expected": {
@@ -1195,19 +615,6 @@
     {
       "name": "authorization-empty",
       "description": "FetchClient handles empty Authorization header",
-      "clientConfig": {
-        "headers": {
-          "Authorization": ""
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -1217,10 +624,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -1231,19 +634,6 @@
     {
       "name": "authorization-malformed",
       "description": "FetchClient handles malformed Authorization header",
-      "clientConfig": {
-        "headers": {
-          "Authorization": "InvalidFormat"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -1253,10 +643,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -1267,19 +653,6 @@
     {
       "name": "authorization-long",
       "description": "FetchClient handles very long Authorization token",
-      "clientConfig": {
-        "headers": {
-          "Authorization": "Bearer xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -1289,10 +662,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -1303,19 +672,6 @@
     {
       "name": "user-agent-header",
       "description": "FetchClient handles User-Agent header",
-      "clientConfig": {
-        "headers": {
-          "User-Agent": "CustomAgent/1.0"
-        }
-      },
-      "request": {
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "clientConfig": {
           "headers": {
@@ -1325,10 +681,6 @@
         "request": {
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {
@@ -1339,20 +691,6 @@
     {
       "name": "accept-variations",
       "description": "FetchClient handles Accept header variations",
-      "request": {
-        "acceptValues": [
-          "application/json",
-          "*/*",
-          "application/json, text/plain, */*",
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-        ],
-        "method": "GET",
-        "path": "/posts/1"
-      },
-      "expect": {
-        "shape": "ok",
-        "status": 200
-      },
       "input": {
         "request": {
           "acceptValues": [
@@ -1363,10 +701,6 @@
           ],
           "method": "GET",
           "path": "/posts/1"
-        },
-        "expect": {
-          "shape": "ok",
-          "status": 200
         }
       },
       "expected": {

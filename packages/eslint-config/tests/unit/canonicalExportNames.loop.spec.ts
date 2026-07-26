@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { canonicalExportNames } from '../../src/rules/canonicalExportNames.js';
-import scenarioGroups from './canonicalExportNames.scenarios.json';
+import scenarioGroups from './canonicalExportNames.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

@@ -124,9 +124,9 @@
       },
       "expected": {
         "result": {
-          "code": "CONNECTION_ERROR",
-          "statusCode": 503,
-          "retryable": true
+          "code": "AUTHENTICATION_ERROR",
+          "statusCode": 401,
+          "retryable": false
         }
       }
     },
@@ -140,9 +140,9 @@
       },
       "expected": {
         "result": {
-          "code": "CONNECTION_ERROR",
-          "statusCode": 503,
-          "retryable": true
+          "code": "NOT_FOUND",
+          "statusCode": 404,
+          "retryable": false
         }
       }
     },

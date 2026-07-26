@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ErrorClassificationGuard } from '../../src/validation/isErrorClassification.js';
-import scenarioGroups from './is-error-classification.scenarios.json';
+import scenarioGroups from './is-error-classification.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {

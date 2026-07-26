@@ -9,12 +9,12 @@
       "name": "static class field map with inline function value - pre-built, not flagged"
     },
     {
-      "code": "const map = { transform: function () { return 1; } };",
-      "name": "exempt key name \"transform\" - not flagged regardless of scope"
-    },
-    {
       "code": "const map = { a: someNamedFunction };",
       "name": "named function reference (not an inline FunctionExpression) - not flagged"
+    },
+    {
+      "code": "const map = { transform: function () { return 1; } };",
+      "name": "key name \"transform\" at module scope - not flagged because pre-built, not because of the name"
     }
   ],
   "invalid": [
@@ -44,6 +44,33 @@
         }
       ],
       "name": "non-static instance field rebuilds per instantiation - flagged"
+    },
+    {
+      "code": "function build() { return { transform: function () { return 1; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"transform\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { transformAsync: function () { return 1; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "key name \"transformAsync\" inside a rebuilt-per-call map - flagged, no name-based escape"
+    },
+    {
+      "code": "function build() { return { anyArbitraryKeyName: function () { return 1; } }; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "renaming the property key to an arbitrary name buys no escape - flagged identically"
     }
   ]
 }

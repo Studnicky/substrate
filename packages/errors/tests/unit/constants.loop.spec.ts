@@ -7,16 +7,39 @@ import {
   HttpStatus
 } from '../../src/constants/index.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
-import scenarioGroups from './constants.scenarios.json';
+import scenarioGroups from './constants.scenarios.json' with { type: 'json' };
+
+type ModuleErrorScenarioShape = 'module-error-authentication' | 'retryable' | 'integration-context-override' | 'integration-cause-override' | 'integration-retryable-override' | 'integration-status-code-override';
+
+type ModuleErrorScenarioCase<S extends ModuleErrorScenarioShape> = {
+  description: string;
+  expected: {
+    code: keyof typeof ErrorCode;
+    context?: Record<string, unknown>;
+    causeMessage?: string;
+    retryable?: boolean;
+    statusCode?: number;
+  };
+  input: {
+    error: {
+      causeMessage?: string;
+      message: string;
+      options: {
+        context?: Record<string, unknown>;
+        retryable?: boolean;
+        scenario: keyof typeof ErrorDefaults;
+        statusCode?: number;
+      };
+    };
+  };
+  shape: S;
+  name: string;
+};
 
 type ScenarioCase =
-  | {
-      description: string;
-      expected: Record<string, unknown>;
-      input: Record<string, unknown>;
-      shape: 'error-code-values' | 'http-status-client' | 'http-status-server';
-      name: string;
-    }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-code-values'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'http-status-client'; name: string }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'http-status-server'; name: string }
   | {
       description: string;
       expected: {
@@ -28,30 +51,12 @@ type ScenarioCase =
       shape: 'defaults';
       name: string;
     }
-  | {
-      description: string;
-      expected: {
-        code: keyof typeof ErrorCode;
-        context?: Record<string, unknown>;
-        causeMessage?: string;
-        retryable?: boolean;
-        statusCode?: number;
-      };
-      input: {
-        error: {
-          causeMessage?: string;
-          message: string;
-          options: {
-            context?: Record<string, unknown>;
-            retryable?: boolean;
-            scenario: keyof typeof ErrorDefaults;
-            statusCode?: number;
-          };
-        };
-      };
-      shape: 'module-error-authentication' | 'retryable' | 'integration-context-override' | 'integration-cause-override' | 'integration-retryable-override' | 'integration-status-code-override';
-      name: string;
-    };
+  | ModuleErrorScenarioCase<'module-error-authentication'>
+  | ModuleErrorScenarioCase<'retryable'>
+  | ModuleErrorScenarioCase<'integration-context-override'>
+  | ModuleErrorScenarioCase<'integration-cause-override'>
+  | ModuleErrorScenarioCase<'integration-retryable-override'>
+  | ModuleErrorScenarioCase<'integration-status-code-override'>;
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
 
@@ -59,11 +64,11 @@ type RunnerMap = {
   [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
-function createScenarioModuleError(scenarioCase: Extract<ScenarioCase, { input: { error: unknown } }>): ModuleError {
+function createScenarioModuleError(scenarioCase: Extract<ScenarioCase, { shape: ModuleErrorScenarioShape }>): ModuleError {
   const { causeMessage, message, options } = scenarioCase.input.error;
   return ModuleError.create(message, {
     ...options,
-    cause: causeMessage === undefined ? undefined : new Error(causeMessage)
+    ...(causeMessage === undefined ? {} : { cause: new Error(causeMessage) })
   });
 }
 

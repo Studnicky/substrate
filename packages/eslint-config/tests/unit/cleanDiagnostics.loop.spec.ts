@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { cleanDiagnostics } from '../../src/rules/cleanDiagnostics.js';
-import scenarioGroups from './cleanDiagnostics.scenarios.json';
+import scenarioGroups from './cleanDiagnostics.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

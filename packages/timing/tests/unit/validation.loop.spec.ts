@@ -12,7 +12,7 @@ import {
 } from '../../src/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
 import { TimingValidator } from '../../src/validation/TimingValidator.js';
-import scenarioGroups from './validation.scenarios.json';
+import scenarioGroups from './validation.scenarios.json' with { type: 'json' };
 
 type EntityValidator = (value: unknown) => boolean;
 
@@ -59,14 +59,35 @@ type ScenarioCase =
       description: string;
       expected: { errorName: 'ConfigurationError' };
       input: { value: unknown };
-      shape: 'rejects-non-object-precision' | 'rejects-array-precision';
+      shape: 'rejects-non-object-precision';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { errorName: 'ConfigurationError' };
+      input: { value: unknown };
+      shape: 'rejects-array-precision';
       name: string;
     }
   | {
       description: string;
       expected: { accepted: true };
       input: Record<string, never>;
-      shape: 'accepts-empty-precision' | 'accepts-null-max-events' | 'accepts-undefined-max-events';
+      shape: 'accepts-empty-precision';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { accepted: true };
+      input: Record<string, never>;
+      shape: 'accepts-null-max-events';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { accepted: true };
+      input: Record<string, never>;
+      shape: 'accepts-undefined-max-events';
       name: string;
     }
   | {
@@ -112,7 +133,12 @@ type ScenarioCase =
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   'accepts-valid-max-events': (scenarioCase) => {
     for (const value of scenarioCase.input.values) {
       assert.doesNotThrow(() => {
@@ -237,7 +263,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
   }
 };
 
-function runCase(scenarioCase: ScenarioCase): void {
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 

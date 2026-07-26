@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { HookInvocationError } from '@studnicky/errors';
 import { Semaphore } from '../../src/Semaphore.js';
 import { SemaphoreError } from '../../src/errors/index.js';
-import scenarioGroups from './Semaphore.scenarios.json';
+import scenarioGroups from './Semaphore.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'reject-zero' | 'reject-fractional' | 'reject-negative'; name: string }
@@ -232,10 +232,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     await flushMicrotasks();
     assert.deepEqual(order, []);
     await r1();
-    const releaseTwo = await waiters[0];
+    const waiterTwo = waiters[0];
+    assert.ok(waiterTwo);
+    const releaseTwo = await waiterTwo;
     assert.deepEqual(order, expected.order.slice(0, 1));
     await releaseTwo();
-    const releaseThree = await waiters[1];
+    const waiterThree = waiters[1];
+    assert.ok(waiterThree);
+    const releaseThree = await waiterThree;
     assert.deepEqual(order, expected.order.slice(0, 2));
     await releaseThree();
     await waiters[2];

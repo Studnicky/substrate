@@ -17,9 +17,9 @@ import {
   HTTP_SERVER_ERROR_END,
   HTTP_SERVER_ERROR_START,
   HTTP_SUCCESS_END,
-  HTTP_SUCCESS_START,
-  HttpStatus
-} from '../constants/index.js';
+  HTTP_SUCCESS_START
+} from '../constants/ClassifierConstants.js';
+import { HttpStatus } from '../constants/index.js';
 
 /**
  * Type guard matcher factory
@@ -435,7 +435,7 @@ const InstanceMatchers = Object.freeze({
    * hasProperty(error, 'originalError', instance.of(Error))
    * ```
    */
-  'of': <T>(constructor: new (...args: unknown[]) => T) => {
+  'of': <T>(constructor: new (...args: never[]) => T) => {
     return (value: unknown): value is T => {
       return value instanceof constructor;
     };
@@ -449,7 +449,7 @@ const InstanceMatchers = Object.freeze({
    * hasProperty(error, 'cause', instance.ofAny(TypeError, RangeError, ReferenceError))
    * ```
    */
-  'ofAny': <T>(...constructors: (new (...args: unknown[]) => T)[]) =>
+  'ofAny': <T>(...constructors: (new (...args: never[]) => T)[]) =>
   {return (value: unknown): value is T => { const result = constructors.some((ctor) => {return value instanceof ctor;}); return result; };}
 });
 

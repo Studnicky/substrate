@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { hashPrivateFields } from '../../src/rules/hashPrivateFields.js';
-import scenarioGroups from './hashPrivateFields.scenarios.json';
+import scenarioGroups from './hashPrivateFields.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

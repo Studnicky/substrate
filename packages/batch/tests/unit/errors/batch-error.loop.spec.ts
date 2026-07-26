@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { JSONSchema7Type } from 'json-schema';
+
 import { BatchError } from '../../../src/errors/BatchError.js';
-import scenarioGroups from './batch-error.scenarios.json';
+import scenarioGroups from './batch-error.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -19,7 +21,8 @@ type ScenarioCase =
           args?: {
             cause?: unknown;
             correlationId?: string;
-            metadata?: Record<string, unknown>;
+            metadata?: Record<string, JSONSchema7Type>;
+            retryable?: boolean;
           };
           message: string;
         };

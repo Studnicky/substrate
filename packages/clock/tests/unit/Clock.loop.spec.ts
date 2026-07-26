@@ -12,9 +12,11 @@ import { VirtualTimeCounter } from '../../src/clock/VirtualTimeCounter.js';
 import type { ClockProviderInterface } from '../../src/interfaces/ClockProviderInterface.js';
 import { RealTimeClockProviderOptionsEntity } from '../../src/entities/RealTimeClockProviderOptionsEntity.js';
 import { ClockError } from '../../src/errors/ClockError.js';
-import scenarioGroups from './Clock.scenarios.json';
+import scenarioGroups from './Clock.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
+type ScenarioCase = ScenarioCaseVariant & { name: string };
+
+type ScenarioCaseVariant =
   | { advanceMs: number; description: string; expectedNow: number; shape: 'now-returns'; startMs: number }
   | { description: string; expectedNs: string; shape: 'hrtime-returns'; startMs: number }
   | { description: string; shape: 'real-hrtime-positive'; offsetMs: number }
@@ -188,8 +190,23 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       expected: { positive: boolean };
       input: { realProviderOptions: RealTimeClockProviderOptionsInput };
     };
+    const offsetMs = materializeRealTimeClockProviderOptions(input.realProviderOptions)?.offsetMs ?? 0;
+    // Compare against a zero-offset baseline provider read at roughly the same
+    // instant so the assertion proves the offset is actually reflected in the
+    // returned nanoseconds (not just that the result happens to be positive,
+    // which a wrong offset or unit-scaling bug would still satisfy).
+    const baseline = RealTimeClockProvider.create();
     const provider = createRealTimeClockProvider(input.realProviderOptions);
-    assert.strictEqual(provider.hrtime() > ZERO_NS, expected.positive);
+    const baselineNs = baseline.hrtime();
+    const offsetNs = provider.hrtime();
+    assert.strictEqual(offsetNs > ZERO_NS, expected.positive);
+    const deltaNs = offsetNs - baselineNs;
+    const expectedDeltaNs = BigInt(offsetMs) * NS_PER_MS;
+    const toleranceNs = 50n * NS_PER_MS;
+    assert.ok(
+      deltaNs >= expectedDeltaNs - toleranceNs && deltaNs <= expectedDeltaNs + toleranceNs,
+      `expected hrtime delta ${deltaNs} to be within tolerance of ${expectedDeltaNs}`
+    );
     return;
   },
 
@@ -382,7 +399,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const clock = new HookedClock(VirtualClockProvider.create(counter));
+    const clock = HookedClock.create(VirtualClockProvider.create(counter));
     const result = clock.now();
     assert.deepStrictEqual(clock.nowEvents, expected.nowEvents);
     assert.strictEqual(result, expected.result);
@@ -402,7 +419,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const clock = new HookedClock(VirtualClockProvider.create(counter));
+    const clock = HookedClock.create(VirtualClockProvider.create(counter));
     clock.now();
     clock.now();
     assert.deepStrictEqual(clock.nowEvents, expected.nowEvents);
@@ -422,7 +439,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const clock = new HookedClock(VirtualClockProvider.create(counter));
+    const clock = HookedClock.create(VirtualClockProvider.create(counter));
     clock.now();
     counter.advance(input.advanceMs);
     clock.now();
@@ -443,7 +460,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const clock = new HookedClock(VirtualClockProvider.create(counter));
+    const clock = HookedClock.create(VirtualClockProvider.create(counter));
     const result = clock.hrtime();
     assert.deepStrictEqual(clock.hrtimeEvents.map((value) => Number(value)), expected.hrtimeEvents.map(Number));
     assert.strictEqual(result, BigInt(String(expected.result)));
@@ -463,7 +480,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const clock = new HookedClock(VirtualClockProvider.create(counter));
+    const clock = HookedClock.create(VirtualClockProvider.create(counter));
     clock.hrtime();
     counter.advance(input.advanceMs);
     clock.hrtime();
@@ -484,7 +501,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const clock = new AsyncRejectingNowClock(VirtualClockProvider.create(counter));
+    const clock = AsyncRejectingNowClock.create(VirtualClockProvider.create(counter));
     const rejectionEvents: unknown[] = [];
     const onUnhandledRejection = (reason: unknown): void => {
       rejectionEvents.push(reason);
@@ -566,8 +583,12 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const { input } = scenarioCase as ScenarioCase & {
       input: { realProviderOptions: RealTimeClockProviderOptionsInput };
     };
+    const before = Date.now();
     const provider = createRealTimeClockProvider(input.realProviderOptions);
-    assert.strictEqual(provider.now() <= Date.now() + 10, true);
+    const value = provider.now();
+    const after = Date.now();
+    assert.strictEqual(value >= before - 10, true);
+    assert.strictEqual(value <= after + 10, true);
     return;
   },
 
@@ -656,9 +677,10 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const provider = new ThrowingRealNowProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
     assert.throws(() => { provider.now(); }, (thrown: unknown) => {
       assert.equal(thrown instanceof HookInvocationError, expected.hookError);
+      assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onNow');
       assert.ok(thrown.cause instanceof Error);
-      assert.strictEqual((thrown.cause as Error).message, 'provider onNow boom');
+      assert.strictEqual(thrown.cause.message, 'provider onNow boom');
       return true;
     });
     return;
@@ -678,6 +700,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const provider = new ThrowingRealHrtimeProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
     assert.throws(() => { provider.hrtime(); }, (thrown: unknown) => {
       assert.equal(thrown instanceof HookInvocationError, expected.hookError);
+      assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onHrtime');
       return true;
     });
@@ -698,6 +721,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const provider = new ThrowingVirtualNowProvider(counter);
     assert.throws(() => { provider.now(); }, (thrown: unknown) => {
       assert.equal(thrown instanceof HookInvocationError, expected.hookError);
+      assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onNow');
       return true;
     });
@@ -718,6 +742,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const provider = new ThrowingVirtualHrtimeProvider(counter);
     assert.throws(() => { provider.hrtime(); }, (thrown: unknown) => {
       assert.equal(thrown instanceof HookInvocationError, expected.hookError);
+      assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onHrtime');
       return true;
     });
@@ -995,9 +1020,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     class OffsetRealTimeClockProvider extends RealTimeClockProvider {
       public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
       protected override readRawMs(): number { return input.rawMs; }
+      // Exposes the protected `offsetMs` getter so the subclass-access claim in
+      // this scenario's description is actually exercised.
+      public get exposedOffsetMs(): number { return this.offsetMs; }
     }
 
     const provider = new OffsetRealTimeClockProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
+    const expectedOffsetMs = materializeRealTimeClockProviderOptions(input.realProviderOptions)?.offsetMs ?? 0;
+    assert.strictEqual(provider.exposedOffsetMs, expectedOffsetMs);
     assert.strictEqual(provider.now(), expected.now);
     return;
   },
@@ -1047,9 +1077,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const provider = new LongUptimeRealTimeClockProvider(
       materializeRealTimeClockProviderOptions(input.realProviderOptions)
     );
-    const wholeMs = Math.trunc(input.rawMs);
-    const fractionalMs = input.rawMs - wholeMs;
-    const expectedNs = BigInt(wholeMs) * NS_PER_MS + BigInt(Math.round(fractionalMs * Number(NS_PER_MS)));
+    // Derive the expected nanosecond value independently of the production
+    // trunc/multiply/round split used by RealTimeClockProvider.hrtime(): format
+    // the raw ms value as a fixed-point decimal string with microsecond
+    // precision and read the whole/fractional parts straight out of the text,
+    // so a bug in the source's float-splitting formula cannot reproduce
+    // identically here.
+    const [wholeMsText, fractionalNsText] = input.rawMs.toFixed(6).split('.');
+    const expectedNs = BigInt(wholeMsText!) * NS_PER_MS + BigInt(fractionalNsText!);
     const lossyNs = BigInt(Math.round(input.rawMs * Number(NS_PER_MS)));
     const result = provider.hrtime();
     const precise = result === expectedNs && result !== lossyNs;

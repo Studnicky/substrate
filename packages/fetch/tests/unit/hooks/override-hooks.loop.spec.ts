@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 import type { RequestContextInterface } from '../../../src/interfaces/RequestContextInterface.js';
 import type { ResponseContextInterface } from '../../../src/interfaces/ResponseContextInterface.js';
 import { FetchClient } from '../../../src/index.js';
-import scenarioGroups from './override-hooks.scenarios.json';
+import scenarioGroups from './override-hooks.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -25,7 +25,7 @@ void afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-function toPlainHeaders(headers: HeadersInit | undefined): Record<string, string> {
+function toPlainHeaders(headers: RequestInit['headers']): Record<string, string> {
   const normalized = new Headers(headers);
   const result: Record<string, string> = {};
 
@@ -36,7 +36,7 @@ function toPlainHeaders(headers: HeadersInit | undefined): Record<string, string
   return result;
 }
 
-function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+function fakeFetch(input: Request | URL | string, init?: RequestInit): Promise<Response> {
   const url = new URL(String(input));
 
   if (url.pathname === '/echo-headers') {
@@ -71,10 +71,6 @@ function headerInput(scenarioCase: ScenarioCase): string {
 const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'request-header-injection': async (scenarioCase) => {
     class HeaderInjectClient extends FetchClient {
-      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): HeaderInjectClient {
-        return new this(config);
-      }
-
       protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
         return {
           ...context,
@@ -106,10 +102,6 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
     const visitedUrls: string[] = [];
 
     class UrlRewriteClient extends FetchClient {
-      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): UrlRewriteClient {
-        return new this(config);
-      }
-
       protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
         visitedUrls.push(context.url);
         return { ...context, url: context.url.replace('/original-path', '/ok') };
@@ -143,10 +135,6 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
   },
   'response-wrap': async (scenarioCase) => {
     class ResponseWrapClient extends FetchClient {
-      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ResponseWrapClient {
-        return new this(config);
-      }
-
       protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
         const body = await context.response.text();
         const wrapped = new Response(body, {
@@ -172,10 +160,6 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
   },
   'response-reject': async (scenarioCase) => {
     class StrictClient extends FetchClient {
-      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): StrictClient {
-        return new this(config);
-      }
-
       protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
         if (!context.response.ok) {
           throw new Error(`HTTP error: ${context.response.status}`);
@@ -190,7 +174,7 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
       await assert.rejects(
         () => client.get('/nonexistent'),
         (error: Error) => {
-          for (const expectedMessagePart of scenarioCase.expected.messageIncludes) {
+          for (const expectedMessagePart of scenarioCase.expected.messageIncludes ?? []) {
             assert.ok(error.message.includes(expectedMessagePart));
           }
           return true;
@@ -217,10 +201,6 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
     const capturedRequestIds: string[] = [];
 
     class MetadataClient extends FetchClient {
-      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): MetadataClient {
-        return new this(config);
-      }
-
       protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
         capturedRequestIds.push(context.request.requestId);
         return context;
@@ -241,10 +221,6 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
     const log: string[] = [];
 
     class PipelineClient extends FetchClient {
-      static override create(config: Parameters<typeof FetchClient.create>[0] = {}): PipelineClient {
-        return new this(config);
-      }
-
       protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
         log.push('onRequest');
         return {

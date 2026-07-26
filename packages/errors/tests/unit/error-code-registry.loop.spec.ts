@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ErrorCodeRegistry } from '../../src/errors/ErrorCodeRegistry.js';
-import scenarioGroups from './error-code-registry.scenarios.json';
+import scenarioGroups from './error-code-registry.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {

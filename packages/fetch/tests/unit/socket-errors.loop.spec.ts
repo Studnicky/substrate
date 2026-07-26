@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { SocketExhaustionError } from '../../src/errors/index.js';
-import type { SocketDispatcherStatsType } from '../../src/types/SocketDispatcherStatsType.js';
-import scenarioGroups from './socket-errors.scenarios.json';
+import type { SocketDispatcherStatsEntity } from '../../src/entities/SocketDispatcherStatsEntity.js';
+import scenarioGroups from './socket-errors.scenarios.json' with { type: 'json' };
+
+type SocketDispatcherStatsType = SocketDispatcherStatsEntity.Type;
 
 type ScenarioCase =
   | {
@@ -49,7 +51,10 @@ type ScenarioCase =
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
+type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
+
+const runnerMap: RunnerMap = {
   'url-only': (scenarioCase) => {
     const error = new SocketExhaustionError(scenarioCase.input.url);
     assert.ok(error instanceof Error);
@@ -116,7 +121,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Throttle } from '../../../src/throttle/index.js';
-import scenarioGroups from './instantiation.scenarios.json';
+import scenarioGroups from './instantiation.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -55,10 +55,10 @@ class ThrottleTestHelpers {
   }
 }
 
-type ScenarioShape = ScenarioCase['shape'];
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
 
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+const runnerMap: RunnerMap = {
     'chain-execute-after-create': async (scenarioCase) => {
       const result = await Throttle.create(scenarioCase.input.throttle).execute(ThrottleTestHelpers.chainedResult);
       assert.strictEqual(result, scenarioCase.expected.result);
@@ -84,7 +84,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

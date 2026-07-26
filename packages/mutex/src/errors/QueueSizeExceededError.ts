@@ -12,11 +12,16 @@ export class QueueSizeExceededError extends MutexError {
   public readonly key!: unknown;
   public readonly maxQueueSize!: number;
 
+  private static buildMessage(fields: Readonly<{ 'key': unknown; 'maxQueueSize': number }>): string {
+    const result = `Queue size exceeded for key "${String(fields.key)}". Maximum queue size is ${fields.maxQueueSize}.`;
+    return result;
+  }
+
   constructor(key: unknown, maxQueueSize: number) {
     const fields = { 'key': key, 'maxQueueSize': maxQueueSize };
     super(DomainErrorArgs.build(fields, {
       'code': 'mutex.queueSizeExceeded',
-      'message': (f) => { const result = `Queue size exceeded for key "${String(f.key)}". Maximum queue size is ${f.maxQueueSize}.`; return result; },
+      'message': QueueSizeExceededError.buildMessage,
       'retryable': false
     }));
     Object.assign(this, fields);

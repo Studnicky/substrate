@@ -15,13 +15,33 @@ import { ClockError } from '../errors/ClockError.js';
 
 const HRTIME_ZERO = 0n;
 
+interface ClockSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class ClockInstance {
+  static belongsTo<TInstance>(
+    constructor: ClockSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Time source instance. Delegates to a `ClockProvider` (real or virtual)
  * while enforcing per-instance monotonicity for `now()` and `hrtime()`.
  */
 export class Clock {
-  static create(provider: ClockProviderInterface): Clock {
-    return new this(provider);
+  static create<TInstance extends Clock = Clock>(
+    this: ClockSubclassInterface<TInstance>,
+    provider: ClockProviderInterface
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [provider]);
+    if (!ClockInstance.belongsTo(this, result)) {
+      throw new TypeError('Clock.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   readonly #provider: ClockProviderInterface;

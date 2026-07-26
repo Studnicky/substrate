@@ -1,30 +1,34 @@
 /**
- * One-shot request execution pattern composing fetch, retry, signal, timing, and context
+ * One-shot request execution pattern composing fetch, retry, signal, and context, with
+ * lifecycle hooks bracketing the retry loop for observability.
  */
 
 import type { Context } from '@studnicky/context';
-import type { Timing } from '@studnicky/timing';
+import type { HookInvocationError } from '@studnicky/errors';
 
+import { HookInvoker } from '@studnicky/errors';
 import { FetchClient } from '@studnicky/fetch';
 import { Retry } from '@studnicky/retry';
 import { Signal } from '@studnicky/signal';
-import { TIMING_STATUS, TimingEvent } from '@studnicky/timing';
 
 import type { RequestExecutorConfigInterface } from './interfaces/RequestExecutorConfigInterface.js';
 import type { RequestExecutorDepsInterface } from './interfaces/RequestExecutorDepsInterface.js';
 import type { RequestExecutorExecuteOptionsInterface } from './interfaces/RequestExecutorExecuteOptionsInterface.js';
 
 /**
- * Composes `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, `@studnicky/timing`,
- * and `@studnicky/context` into a one-shot request execution pattern.
+ * Composes `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, and `@studnicky/context`
+ * into a one-shot request execution pattern.
  *
  * `execute()` composes a cancellation signal via `Signal#compose()`, runs the caller-supplied
- * `fn` through the retry loop, optionally brackets the whole retry loop with a `Timing` span,
- * and — if a `Context` was composed — runs the entire call inside a fresh context scope.
+ * `fn` through the retry loop, brackets the whole retry loop with `onExecuteStart` /
+ * `onExecuteComplete` / `onExecuteError` lifecycle hooks, and — if a `Context` was composed —
+ * runs the entire call inside a fresh context scope.
  *
- * `RequestExecutor` has no lifecycle hooks of its own. Observability is delegated entirely to
- * the composed primitives: callers retain explicit ownership of subclassed
- * `FetchClient`/`Retry`/`Timing`/`Context` instances passed in through configuration.
+ * The three lifecycle hooks are no-ops by default and run through an internal `HookInvoker`
+ * that swallows a throwing override: a rejected hook is recorded (see `hookErrorCount` /
+ * `getHookErrors()`) but never replaces `execute()`'s resolved result or thrown error. Callers
+ * retain explicit ownership of subclassed `FetchClient`/`Retry`/`Context` instances passed in
+ * through configuration for primitive-level observability.
  *
  * @example Direct composition
  * ```typescript
@@ -36,8 +40,30 @@ import type { RequestExecutorExecuteOptionsInterface } from './interfaces/Reques
  *
  * const response = await executor.execute((client, signal) => client.get('/users', { signal }));
  * ```
+ *
+ * @example Lifecycle hooks
+ * ```typescript
+ * class ObservedRequestExecutor extends RequestExecutor {
+ *   protected override onExecuteStart(): void {
+ *     console.log('request started');
+ *   }
+ *
+ *   protected override onExecuteComplete<T>(result: T): void {
+ *     console.log('request complete', result);
+ *   }
+ *
+ *   protected override onExecuteError(error: unknown): void {
+ *     console.error('request failed', error);
+ *   }
+ * }
+ * ```
  */
 export class RequestExecutor {
+  /** Keeps request execution intact when a lifecycle hook fails. */
+  static readonly #OwnedHookInvoker = class RequestExecutorHookInvoker extends HookInvoker {
+    protected override onHookError(_hookName: string, _cause: unknown): void {}
+  };
+
   /**
    * Creates a new RequestExecutor, defaulting any omitted primitive.
    *
@@ -50,8 +76,7 @@ export class RequestExecutor {
       'deadlineMs': config.deadlineMs,
       'fetchClient': RequestExecutor.#resolveFetchClient(config.fetchClient),
       'retry': RequestExecutor.#resolveRetry(config.retry),
-      'signal': config.signal ?? Signal.create(),
-      'timing': config.timing
+      'signal': config.signal ?? Signal.create()
     });
     return result;
   }
@@ -77,20 +102,22 @@ export class RequestExecutor {
   readonly #fetchClient: FetchClient;
   readonly #retry: Retry;
   readonly #signal: Signal;
-  readonly #timing: Timing | undefined;
+
+  protected readonly hooks: HookInvoker;
 
   protected constructor(deps: RequestExecutorDepsInterface) {
     this.#fetchClient = deps.fetchClient;
     this.#retry = deps.retry;
     this.#signal = deps.signal;
-    this.#timing = deps.timing;
     this.#context = deps.context;
     this.#deadlineMs = deps.deadlineMs;
+    this.hooks = new RequestExecutor.#OwnedHookInvoker();
   }
 
   /**
    * Runs `fn` against the composed FetchClient and a composed cancellation AbortSignal, wrapped
-   * in the retry loop and (when configured) a Timing span and a Context scope.
+   * in the retry loop and (when configured) a Context scope. The retry loop is bracketed by the
+   * `onExecuteStart`/`onExecuteComplete`/`onExecuteError` lifecycle hooks.
    *
    * @param fn - Receives the composed FetchClient and the composed AbortSignal for this call.
    *   The caller passes the signal into whichever verb call it makes (e.g. `client.get(path, { signal })`).
@@ -115,13 +142,33 @@ export class RequestExecutor {
       return result;
     };
 
-    const runTimed = (): Promise<T> => {
-      const result = this.#runWithTiming(runRetryable);
-      return result;
+    const runObserved = async (): Promise<T> => {
+      this.hooks.invoke('onExecuteStart', () => {
+        const result = this.onExecuteStart();
+        return result;
+      });
+
+      try {
+        const result = await runRetryable();
+
+        this.hooks.invoke('onExecuteComplete', () => {
+          const hookResult = this.onExecuteComplete(result);
+          return hookResult;
+        });
+
+        return result;
+      } catch (error) {
+        this.hooks.invoke('onExecuteError', () => {
+          const hookResult = this.onExecuteError(error);
+          return hookResult;
+        });
+
+        throw error;
+      }
     };
 
     if (this.#context === undefined) {
-      const result = await runTimed();
+      const result = await runObserved();
       return result;
     }
 
@@ -129,7 +176,7 @@ export class RequestExecutor {
 
     try {
       const result = await scope.execute((): Promise<T> => {
-        const result = runTimed();
+        const result = runObserved();
         return result;
       });
       return result;
@@ -138,32 +185,37 @@ export class RequestExecutor {
     }
   }
 
-  #emit(status: (typeof TIMING_STATUS)[keyof typeof TIMING_STATUS]): void {
-    this.#timing?.event(TimingEvent.create({
-      'component': 'RequestExecutor',
-      'operation': 'execute',
-      'status': status
-    }));
+  // ---------------------------------------------------------------------------
+  // Lifecycle hooks — no-op by default. Override to add logging/tracing/metrics.
+  // Overrides must not throw or block. A throwing override is recorded (see
+  // `hookErrorCount`/`getHookErrors()`) and never replaces execute()'s resolved
+  // result or thrown error.
+  // ---------------------------------------------------------------------------
+
+  /** Fires before the retry loop begins, inside the context scope when one is composed. */
+  protected onExecuteStart(): void {}
+
+  /**
+   * Fires after the retry loop resolves, immediately before `execute()` returns.
+   * `result` is the value `execute()` is about to resolve with.
+   */
+  protected onExecuteComplete<T>(_result: T): void {}
+
+  /**
+   * Fires once the retry loop's final attempt has failed, immediately before `execute()`
+   * rethrows. `error` is the raw failure — the same value `execute()` throws.
+   */
+  protected onExecuteError(_error: unknown): void {}
+
+  /** Count of hook failures recorded since construction. */
+  get hookErrorCount(): number {
+    const result = this.hooks.hookErrorCount;
+    return result;
   }
 
-  async #runWithTiming<T>(fn: () => Promise<T>): Promise<T> {
-    if (this.#timing === undefined) {
-      const result = await fn();
-      return result;
-    }
-
-    this.#emit(TIMING_STATUS.START);
-
-    try {
-      const result = await fn();
-
-      this.#emit(TIMING_STATUS.COMPLETE);
-
-      return result;
-    } catch (error) {
-      this.#emit(TIMING_STATUS.ERROR);
-
-      throw error;
-    }
+  /** Returns detached diagnostics for every hook failure recorded since construction. */
+  getHookErrors(): readonly HookInvocationError[] {
+    const result = this.hooks.getHookErrors();
+    return result;
   }
 }

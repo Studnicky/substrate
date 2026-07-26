@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { NoOpTiming } from '../../src/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
-import scenarioGroups from './NoOpTiming.scenarios.json';
+import scenarioGroups from './NoOpTiming.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: { chainResult: true; durationMs: 0; sameInstance: true }; input: { event: Parameters<typeof TimingEvent.create>[0] }; shape: 'create-clear-event-get-events'; name: string }
@@ -13,7 +13,12 @@ function createTimingEvent(input: Parameters<typeof TimingEvent.create>[0]): Ret
   return TimingEvent.create(input);
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   'create-clear-event-get-events': (scenarioCase) => {
     const timer = NoOpTiming.create();
     const afterEvent = timer.event(createTimingEvent(scenarioCase.input.event));
@@ -36,7 +41,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
   }
 };
 
-function runCase(scenarioCase: ScenarioCase): void {
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 

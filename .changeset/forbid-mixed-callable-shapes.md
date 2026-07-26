@@ -1,5 +1,5 @@
 ---
-"@studnicky/eslint-config": major
+"@studnicky/eslint-config": minor
 ---
 
 ### Added

@@ -7,7 +7,7 @@ import { JsonObject } from '../../src/guards/JsonObject.js';
 import { JsonValue } from '../../src/guards/JsonValue.js';
 import { PickDefined } from '../../src/objects/PickDefined.js';
 
-import scenarioGroups from './types.scenarios.json';
+import scenarioGroups from './types.scenarios.json' with { type: 'json' };
 
 type Scenario = {
   readonly description: string;
@@ -68,6 +68,7 @@ type OutcomeAssertions = {
   readonly date: OutcomeAssertion;
   readonly function: OutcomeAssertion;
   readonly map: OutcomeAssertion;
+  readonly nan: OutcomeAssertion;
   readonly null: OutcomeAssertion;
   readonly regex: OutcomeAssertion;
   readonly set: OutcomeAssertion;
@@ -84,6 +85,9 @@ const outcomeAssertions = {
   map: (actual) => {
     assert.ok(actual instanceof Map);
     assert.equal(actual.size, 0);
+  },
+  nan: (actual) => {
+    assert.ok(Number.isNaN(actual));
   },
   null: (actual) => {
     assert.strictEqual(actual, null);

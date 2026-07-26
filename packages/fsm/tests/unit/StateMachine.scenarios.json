@@ -36,10 +36,10 @@
     },
     {
       "name": "plain-error-wraps",
-      "description": "plain reducer errors still wrap as ReducerThrewError",
+      "description": "a non-Error reducer throw still wraps as ReducerThrewError and stringifies via the String(cause) fallback",
       "shape": "plain-error-wraps",
       "input": { "variant": "off" },
-      "expected": { "errorName": "ReducerThrewError" }
+      "expected": { "errorName": "ReducerThrewError", "expectedReason": "boom-plain" }
     },
     {
       "name": "terminated-blocks-transition",

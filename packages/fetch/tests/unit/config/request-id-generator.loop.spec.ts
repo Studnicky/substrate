@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { ValidateRequestIdGenerator } from '../../../src/config/schemas/validateRequestIdGenerator.js';
 
-import scenarioGroups from './request-id-generator.scenarios.json';
+import scenarioGroups from './request-id-generator.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =
   | { __shape: 'undefined' }
@@ -92,11 +92,12 @@ const expectedOutcomeMap: Record<ScenarioCase['expected']['shape'], ExpectedOutc
     });
   },
   throws: (config, expected) => {
-    assert.ok(expected.messageIncludes !== undefined);
+    const { messageIncludes } = expected;
+    assert.ok(messageIncludes !== undefined);
     assert.throws(() => {
       ValidateRequestIdGenerator.validate(config);
     }, (error: Error) => {
-      for (const expectedMessagePart of expected.messageIncludes) {
+      for (const expectedMessagePart of messageIncludes) {
         assert.ok(error.message.includes(expectedMessagePart));
       }
       return true;
@@ -110,7 +111,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('fetch requestIdGenerator validation', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

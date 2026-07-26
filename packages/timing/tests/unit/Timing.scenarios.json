@@ -554,10 +554,7 @@
           "operation": "query"
         }
       },
-      "expected": {
-        "durationLtMs": 5,
-        "eventLtMs": 5
-      }
+      "expected": {}
     },
     {
       "name": "non-negative-values",

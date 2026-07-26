@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ThrottleValidator } from '../../../src/throttle/validation/ThrottleValidator.js';
-import scenarioGroups from './validation.scenarios.json';
+import scenarioGroups from './validation.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: { result: boolean }; input: unknown; shape: 'non-object-rejected'; name: string }

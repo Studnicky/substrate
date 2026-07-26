@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { chainedArrayIteration } from '../../../src/rules/v8/chainedArrayIteration.js';
-import scenarioGroups from './chainedArrayIteration.scenarios.json';
+import scenarioGroups from './chainedArrayIteration.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

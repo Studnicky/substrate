@@ -18,6 +18,31 @@ interface DrainableQueueInterface {
   drain(): Promise<void>;
 }
 
+interface EventBusSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class EventBusInstance {
+  static belongsTo<TInstance>(
+    constructor: EventBusSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
+// TTopicMap only appears in EventBus's covariant/contravariant members
+// (subscribe/publish), so a bound of `EventBus<TTopicMap>` would force
+// `EventBus<TTopicMap>` (the method's own general TTopicMap) to satisfy
+// `EventBus<never>`/`EventBus<any>`, which either fails to typecheck or
+// requires a banned `any`. `drain()`/`close()` are public members that don't
+// mention TTopicMap at all, so they constrain TInstance to "is actually
+// EventBus-shaped" without hitting that wall.
+interface EventBusShapeInterface {
+  close(): Promise<void>;
+  drain(): Promise<void>;
+}
+
 export class EventBus<TTopicMap extends object> {
   static readonly #OwnedSubscriptionQueue = class EventBusSubscriptionQueue<
     TOwnerTopicMap extends object,
@@ -73,8 +98,17 @@ export class EventBus<TTopicMap extends object> {
   readonly #busController = new AbortController();
   readonly #config: BusQueueOptionsEntity.Type;
 
-  static create<TTopicMap extends object>(config?: BusQueueOptionsEntity.Type): EventBus<TTopicMap> {
-    const result = new this<TTopicMap>(config);
+  static create<
+    TTopicMap extends object,
+    TInstance extends EventBusShapeInterface = EventBus<TTopicMap>
+  >(
+    this: EventBusSubclassInterface<TInstance>,
+    config?: BusQueueOptionsEntity.Type
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [config]);
+    if (!EventBusInstance.belongsTo(this, result)) {
+      throw new TypeError('EventBus.create() did not construct the requested subclass.');
+    }
     return result;
   }
 

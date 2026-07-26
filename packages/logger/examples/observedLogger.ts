@@ -35,7 +35,7 @@ class ObservedLogger extends Logger {
 
   readonly #recorder = new EventRecorder<LogEventInterface>();
 
-  get events(): LogEventInterface[] { return this.#recorder.events; }
+  get events(): readonly LogEventInterface[] { return this.#recorder.events; }
 
   protected override onLog(level: LogLevelEntity.Type, record: LogRecordEntity.Type): void {
     this.#recorder.record(

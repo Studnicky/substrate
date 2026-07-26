@@ -1,6 +1,19 @@
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
+interface NoOpTransportSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class NoOpTransportInstance {
+  static belongsTo<TInstance>(
+    constructor: NoOpTransportSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Transport that discards all records.
  *
@@ -21,8 +34,14 @@ export class NoOpTransport implements TransportInterface {
    *
    * @returns A new NoOpTransport instance
    */
-  static create(): NoOpTransport {
-    return new this();
+  static create<TInstance extends NoOpTransport = NoOpTransport>(
+    this: NoOpTransportSubclassInterface<TInstance>
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, []);
+    if (!NoOpTransportInstance.belongsTo(this, result)) {
+      throw new TypeError('NoOpTransport.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   protected constructor() {}

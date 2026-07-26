@@ -4,98 +4,98 @@
       "name": "status-lifecycle-values",
       "description": "LOG_STATUS exposes lifecycle status values",
       "shape": "status-lifecycle-values",
-      "input": { "values": ["pending", "in_progress", "complete"] },
+      "input": {},
       "expected": { "values": ["pending", "in_progress", "complete"] }
     },
     {
       "name": "status-success-values",
       "description": "LOG_STATUS exposes success status values",
       "shape": "status-success-values",
-      "input": { "values": ["success", "partial", "cached", "skipped"] },
+      "input": {},
       "expected": { "values": ["success", "partial", "cached", "skipped"] }
     },
     {
       "name": "status-failure-values",
       "description": "LOG_STATUS exposes failure status values",
       "shape": "status-failure-values",
-      "input": { "values": ["failed", "timeout", "invalid", "not_found", "unauthorized", "rate_limited", "unavailable"] },
+      "input": {},
       "expected": { "values": ["failed", "timeout", "invalid", "not_found", "unauthorized", "rate_limited", "unavailable"] }
     },
     {
       "name": "status-retry-values",
       "description": "LOG_STATUS exposes retry status values",
       "shape": "status-retry-values",
-      "input": { "values": ["retrying", "retry_exhausted"] },
+      "input": {},
       "expected": { "values": ["retrying", "retry_exhausted"] }
     },
     {
       "name": "status-categories-lifecycle",
       "description": "STATUS_CATEGORIES exposes lifecycle category",
       "shape": "status-categories-lifecycle",
-      "input": { "values": ["pending", "in_progress", "complete"] },
+      "input": {},
       "expected": { "values": ["pending", "in_progress", "complete"] }
     },
     {
       "name": "status-categories-success",
       "description": "STATUS_CATEGORIES exposes success category",
       "shape": "status-categories-success",
-      "input": { "values": ["success", "partial", "cached", "skipped"] },
+      "input": {},
       "expected": { "values": ["success", "partial", "cached", "skipped"] }
     },
     {
       "name": "status-categories-failure",
       "description": "STATUS_CATEGORIES exposes failure category",
       "shape": "status-categories-failure",
-      "input": { "values": ["failed", "timeout", "invalid", "not_found", "unauthorized", "rate_limited", "unavailable"] },
+      "input": {},
       "expected": { "values": ["failed", "timeout", "invalid", "not_found", "unauthorized", "rate_limited", "unavailable"] }
     },
     {
       "name": "status-categories-retry",
       "description": "STATUS_CATEGORIES exposes retry category",
       "shape": "status-categories-retry",
-      "input": { "values": ["retrying", "retry_exhausted"] },
+      "input": {},
       "expected": { "values": ["retrying", "retry_exhausted"] }
     },
     {
       "name": "is-success-true",
       "description": "LogStatus.isSuccess returns true for success statuses",
       "shape": "is-success-true",
-      "input": { "values": ["success", "partial", "cached", "skipped"] },
+      "input": {},
       "expected": { "values": ["success", "partial", "cached", "skipped"] }
     },
     {
       "name": "is-success-false",
       "description": "LogStatus.isSuccess returns false for non-success statuses",
       "shape": "is-success-false",
-      "input": { "values": ["failed", "pending", "retrying"] },
+      "input": {},
       "expected": { "values": ["failed", "pending", "retrying"] }
     },
     {
       "name": "is-failure-true",
       "description": "LogStatus.isFailure returns true for failure statuses",
       "shape": "is-failure-true",
-      "input": { "values": ["failed", "timeout", "invalid", "not_found", "unauthorized", "rate_limited", "unavailable"] },
+      "input": {},
       "expected": { "values": ["failed", "timeout", "invalid", "not_found", "unauthorized", "rate_limited", "unavailable"] }
     },
     {
       "name": "is-failure-false",
       "description": "LogStatus.isFailure returns false for non-failure statuses",
       "shape": "is-failure-false",
-      "input": { "values": ["success", "pending", "retrying"] },
+      "input": {},
       "expected": { "values": ["success", "pending", "retrying"] }
     },
     {
       "name": "is-lifecycle-true",
       "description": "LogStatus.isLifecycle returns true for lifecycle statuses",
       "shape": "is-lifecycle-true",
-      "input": { "values": ["pending", "in_progress", "complete"] },
+      "input": {},
       "expected": { "values": ["pending", "in_progress", "complete"] }
     },
     {
       "name": "is-lifecycle-false",
       "description": "LogStatus.isLifecycle returns false for non-lifecycle statuses",
       "shape": "is-lifecycle-false",
-      "input": { "values": ["success", "failed", "retrying"] },
+      "input": {},
       "expected": { "values": ["success", "failed", "retrying"] }
     }
   ]

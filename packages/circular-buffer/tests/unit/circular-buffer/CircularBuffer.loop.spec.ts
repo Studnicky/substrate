@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 import type { CircularBufferOptionsEntity } from '../../../src/entities/CircularBufferOptionsEntity.js';
-import scenarioGroups from './CircularBuffer.scenarios.json';
+import scenarioGroups from './CircularBuffer.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'capacity-one-cycling'
@@ -36,12 +36,19 @@ type ScenarioShape =
   | 'shift-empty-returns-undefined'
   | 'shift-empty-successive-returns-undefined'
   | 'shift-first-item-and-decrements-length'
-  | 'shift-never-pushed-returns-undefined'
   | 'shift-only-item-and-leaves-empty';
+
+type GrowOperation =
+  | { drainAll: true }
+  | { push: number }
+  | { shift: number };
 
 type BatchInput = {
   itemCount?: number;
   items?: number[];
+  operations?: GrowOperation[];
+  shiftEveryNth?: number;
+  startValue?: number;
 };
 
 type ScenarioInput = {
@@ -89,9 +96,56 @@ const requireBatch = (scenarioCase: ScenarioCase): BatchInput => {
   return batch;
 };
 
+/**
+ * Drives a `push`/`shift`/`drainAll` operation sequence from `input.batch.operations`
+ * against a live buffer, instead of a hardcoded call sequence. Pushed values are
+ * sequential integers starting at `batch.startValue` (default 0).
+ *
+ * Returns three views, since sibling scenarios assert different slices of the same run:
+ * - `allShifted` — every value removed by any `shift` or `drainAll` step, in call order
+ * - `finalDrained` — only the values removed by the terminal `drainAll` step
+ * - `lengthBeforeDrain` — `buf.length` immediately before the terminal `drainAll` step,
+ *   matching where these scenarios' `expected.length` checks are taken
+ */
+const runGrowOperations = (buf: CircularBuffer<number>, scenarioCase: ScenarioCase): { allShifted: number[]; finalDrained: number[]; lengthBeforeDrain: number } => {
+  const batch = requireBatch(scenarioCase);
+  const { operations } = batch;
+  assert.ok(Array.isArray(operations), `${scenarioCase.name} must define input.batch.operations`);
+  let counter = batch.startValue ?? 0;
+  const allShifted: number[] = [];
+  let finalDrained: number[] = [];
+  let lengthBeforeDrain = buf.length;
+  for (const operation of operations) {
+    if ('push' in operation) {
+      for (let i = 0; i < operation.push; i++) {
+        buf.push(counter);
+        counter++;
+      }
+      lengthBeforeDrain = buf.length;
+    } else if ('shift' in operation) {
+      for (let i = 0; i < operation.shift; i++) {
+        const value = buf.shift();
+        if (value !== undefined) allShifted.push(value);
+      }
+      lengthBeforeDrain = buf.length;
+    } else {
+      const drained: number[] = [];
+      while (buf.length > 0) {
+        const value = buf.shift();
+        if (value !== undefined) {
+          drained.push(value);
+          allShifted.push(value);
+        }
+      }
+      finalDrained = drained;
+    }
+  }
+  return { allShifted, finalDrained, lengthBeforeDrain };
+};
+
 const requireBatchItemCount = (scenarioCase: ScenarioCase): number => {
   const { itemCount } = requireBatch(scenarioCase);
-  assert.equal(typeof itemCount, 'number', `${scenarioCase.name} must define input.batch.itemCount`);
+  assert.ok(typeof itemCount === 'number', `${scenarioCase.name} must define input.batch.itemCount`);
   return itemCount;
 };
 
@@ -133,13 +187,13 @@ const requireExpectedFlag = (scenarioCase: ScenarioCase, name: 'preservedIdentit
 
 const requireExpectedLength = (scenarioCase: ScenarioCase): number => {
   const { length } = requireExpectedObject(scenarioCase);
-  assert.equal(typeof length, 'number', `${scenarioCase.name} must define expected.length`);
+  assert.ok(typeof length === 'number', `${scenarioCase.name} must define expected.length`);
   return length;
 };
 
 const requireExpectedMessage = (scenarioCase: ScenarioCase): string => {
   const { message } = requireExpectedObject(scenarioCase);
-  assert.equal(typeof message, 'string', `${scenarioCase.name} must define expected.message`);
+  assert.ok(typeof message === 'string', `${scenarioCase.name} must define expected.message`);
   return message;
 };
 
@@ -209,24 +263,22 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'grow-head-wraparound': () => {
       const buf = CircularBuffer.create<number>(options);
-      for (let i = 1; i <= 6; i++) buf.push(i);
-      assert.equal(buf.shift(), 1);
-      assert.equal(buf.shift(), 2);
-      assert.equal(buf.shift(), 3);
-      buf.push(7);
-      buf.push(8);
-      buf.push(9);
-      assert.deepEqual(drain(buf), [4, 5, 6, 7, 8, 9]);
+      const { finalDrained } = runGrowOperations(buf, scenarioCase);
+      assert.deepEqual(finalDrained, requireExpectedDrained(scenarioCase));
     },
     'grow-multiple-cycles-preserves-order': () => {
       const buf = CircularBuffer.create<number>(options);
+      const batch = requireBatch(scenarioCase);
+      const { itemCount, shiftEveryNth } = batch;
+      assert.ok(typeof itemCount === 'number', `${scenarioCase.name} must define input.batch.itemCount`);
+      assert.ok(typeof shiftEveryNth === 'number', `${scenarioCase.name} must define input.batch.shiftEveryNth`);
       const pushed: number[] = [];
       const shifted: number[] = [];
 
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < itemCount; i++) {
         buf.push(i);
         pushed.push(i);
-        if (i % 3 === 0) {
+        if (i % shiftEveryNth === 0) {
           const value = buf.shift();
           if (value !== undefined) shifted.push(value);
         }
@@ -253,52 +305,21 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'grow-past-capacity': () => {
       const buf = CircularBuffer.create<number>(options);
-      for (let i = 0; i < 4; i++) buf.push(i);
-      buf.push(4);
-      assert.equal(buf.length, 5);
-      for (let i = 0; i < 5; i++) {
-        assert.equal(buf.shift(), i);
-      }
+      const { finalDrained, lengthBeforeDrain } = runGrowOperations(buf, scenarioCase);
+      assert.equal(lengthBeforeDrain, requireExpectedLength(scenarioCase));
+      assert.deepEqual(finalDrained, requireExpectedDrained(scenarioCase));
     },
     'grow-preserves-items-head-not-zero': () => {
       const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      buf.push(2);
-      buf.push(3);
-      buf.push(4);
-      buf.shift();
-      buf.shift();
-      buf.push(5);
-      buf.push(6);
-      buf.push(7);
-      assert.equal(buf.length, 5);
-      assert.deepEqual(drain(buf), [3, 4, 5, 6, 7]);
+      const { finalDrained, lengthBeforeDrain } = runGrowOperations(buf, scenarioCase);
+      assert.equal(lengthBeforeDrain, requireExpectedLength(scenarioCase));
+      assert.deepEqual(finalDrained, requireExpectedDrained(scenarioCase));
     },
     'grow-wraparound-order': () => {
       const buf = CircularBuffer.create<number>(options);
-      const shiftOrder: number[] = [];
-      const recordShift = (): void => {
-        const value = buf.shift();
-        assert.ok(value !== undefined, `${scenarioCase.name} shift returned undefined`);
-        shiftOrder.push(value);
-      };
+      const { allShifted } = runGrowOperations(buf, scenarioCase);
 
-      buf.push(1);
-      buf.push(2);
-      buf.push(3);
-      buf.push(4);
-      recordShift();
-      recordShift();
-      buf.push(5);
-      buf.push(6);
-      recordShift();
-      recordShift();
-      buf.push(7);
-      buf.push(8);
-      buf.push(9);
-      while (buf.length > 0) { recordShift(); }
-
-      assert.deepEqual(shiftOrder, requireExpectedDrained(scenarioCase));
+      assert.deepEqual(allShifted, requireExpectedDrained(scenarioCase));
     },
     'length-reflects-count-not-capacity': () => {
       const buf = CircularBuffer.create<number>(options);
@@ -414,7 +435,6 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       assert.equal(buf.shift(), 42);
       assert.equal(buf.length, 1);
     },
-    'shift-never-pushed-returns-undefined': assertEmptyShiftValue,
     'shift-only-item-and-leaves-empty': () => {
       const buf = CircularBuffer.create<number>(options);
       buf.push(7);
@@ -427,7 +447,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('CircularBuffer core', () => {
-  for (const scenarioCase of scenarioGroups.cases) {
+  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

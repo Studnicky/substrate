@@ -75,7 +75,7 @@ class ObservedBoundaryKitExample {
         throw new Error('transient failure');
       }
 
-      return 'default-ok';
+      return Promise.resolve('default-ok');
     });
 
     console.log('Default kit result:', defaultResult, `(${String(defaultAttempts)} attempts)`);
@@ -99,7 +99,7 @@ class ObservedBoundaryKitExample {
         throw new Error('transient failure');
       }
 
-      return 'observed-ok';
+      return Promise.resolve('observed-ok');
     });
 
     console.log('Observed kit result:', observedResult);

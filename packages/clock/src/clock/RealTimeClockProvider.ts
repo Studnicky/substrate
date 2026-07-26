@@ -15,13 +15,33 @@ import { ClockError } from '../errors/ClockError.js';
 /** Named constant: nanoseconds per millisecond (as BigInt). */
 const NS_PER_MS = 1_000_000n;
 
+interface RealTimeClockProviderSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class RealTimeClockProviderInstance {
+  static belongsTo<TInstance>(
+    constructor: RealTimeClockProviderSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Concrete `ClockProvider` backed by `Date.now()` and `performance.now()`.
  * Supports an optional epoch offset for clock-skew correction.
  */
 export class RealTimeClockProvider implements ClockProviderInterface {
-  static create(options: RealTimeClockProviderOptionsEntity.Type = {}): RealTimeClockProvider {
-    return new this(options);
+  static create<TInstance extends RealTimeClockProvider = RealTimeClockProvider>(
+    this: RealTimeClockProviderSubclassInterface<TInstance>,
+    options: RealTimeClockProviderOptionsEntity.Type = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!RealTimeClockProviderInstance.belongsTo(this, result)) {
+      throw new TypeError('RealTimeClockProvider.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   /**

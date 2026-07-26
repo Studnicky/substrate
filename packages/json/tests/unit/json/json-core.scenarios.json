@@ -248,15 +248,75 @@
     },
     {
       "name": "json-data-deepequal-true",
-      "description": "DataType.deepEqual accepts identical primitives",
+      "description": "DataType.deepEqual accepts identical primitives and structurally-equal compound values",
       "shape": "data-deepequal-true",
       "input": {
         "json": {
-          "values": [
+          "primitives": [
             1,
             "a",
             true,
             null
+          ],
+          "pairs": [
+            {
+              "left": {
+                "a": 1,
+                "b": 2
+              },
+              "right": {
+                "a": 1,
+                "b": 2
+              }
+            },
+            {
+              "left": [
+                1,
+                [
+                  2,
+                  3
+                ],
+                {
+                  "x": 4
+                }
+              ],
+              "right": [
+                1,
+                [
+                  2,
+                  3
+                ],
+                {
+                  "x": 4
+                }
+              ]
+            },
+            {
+              "left": {
+                "nested": {
+                  "deep": {
+                    "value": [
+                      1,
+                      {
+                        "y": 2
+                      }
+                    ]
+                  }
+                }
+              },
+              "right": {
+                "nested": {
+                  "deep": {
+                    "value": [
+                      1,
+                      {
+                        "y": 2
+                      }
+                    ]
+                  }
+                }
+              }
+            }
           ]
         }
       },
@@ -290,21 +350,67 @@
       "shape": "data-deepequal-special",
       "input": {
         "json": {
-          "values": [
-            "NaN",
-            [
-              1,
-              2,
-              3
-            ],
+          "pairs": [
             {
-              "a": {
-                "b": 1
-              }
+              "shape": "nan",
+              "left": null,
+              "right": null,
+              "equal": true
             },
-            "date",
-            "set",
-            "map"
+            {
+              "shape": "array",
+              "left": [1, 2, 3],
+              "right": [1, 2, 3],
+              "equal": true
+            },
+            {
+              "shape": "array",
+              "left": [1, 2],
+              "right": [1, 2, 3],
+              "equal": false
+            },
+            {
+              "shape": "object",
+              "left": { "a": { "b": 1 } },
+              "right": { "a": { "b": 1 } },
+              "equal": true
+            },
+            {
+              "shape": "object",
+              "left": { "a": { "b": 1 } },
+              "right": { "a": { "b": 2 } },
+              "equal": false
+            },
+            {
+              "shape": "date",
+              "left": "2024-01-01",
+              "right": "2024-01-01",
+              "equal": true
+            },
+            {
+              "shape": "regexp",
+              "left": "abc",
+              "right": "def",
+              "equal": false
+            },
+            {
+              "shape": "set",
+              "left": [1, 2, 3],
+              "right": [1, 2, 3],
+              "equal": true
+            },
+            {
+              "shape": "map",
+              "left": [["a", 1]],
+              "right": [["a", 1]],
+              "equal": true
+            },
+            {
+              "shape": "mixed",
+              "left": [],
+              "right": {},
+              "equal": false
+            }
           ]
         }
       },
@@ -697,8 +803,24 @@
       "shape": "structural-hash-metadata",
       "input": {
         "json": {
-          "schema": {
-            "title": "A"
+          "base": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "metadataVariant": {
+            "$id": "https://example.com/schema.json",
+            "description": "A schema with the same structure",
+            "title": "My Schema",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
           }
         }
       },
@@ -712,9 +834,21 @@
       "shape": "structural-hash-different",
       "input": {
         "json": {
-          "schema": {
-            "title": "A",
-            "extra": true
+          "base": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "variant": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "number"
+              }
+            }
           }
         }
       },
@@ -762,10 +896,24 @@
       "input": {
         "json": {
           "left": {
-            "a": 1
+            "baseOnly": {
+              "count": 1
+            },
+            "items": [
+              {
+                "id": 1
+              }
+            ]
           },
           "right": {
-            "b": 2
+            "overlayOnly": {
+              "count": 2
+            },
+            "items": [
+              {
+                "id": 2
+              }
+            ]
           }
         }
       },
@@ -775,19 +923,36 @@
     },
     {
       "name": "json-merge-hidden-class",
-      "description": "Merge.deep preserves a canonical key write order",
+      "description": "Merge.deep preserves a canonical key write order regardless of input insertion order",
       "shape": "merge-hidden-class",
       "input": {
         "json": {
-          "left": {
-            "a": 1
+          "first": {
+            "left": {
+              "b": 1,
+              "a": 2
+            },
+            "right": {
+              "c": 3
+            }
           },
-          "right": {
-            "b": 2
+          "second": {
+            "left": {
+              "a": 10,
+              "b": 20
+            },
+            "right": {
+              "c": 30
+            }
           }
         }
       },
       "expected": {
+        "keyOrder": [
+          "a",
+          "b",
+          "c"
+        ],
         "stableShape": true
       }
     },

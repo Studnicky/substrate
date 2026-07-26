@@ -1,13 +1,32 @@
 import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
 
+interface MinimumHeapSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class MinimumHeapInstance {
+  static belongsTo<TInstance>(
+    constructor: MinimumHeapSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 export class MinimumHeap {
   readonly #heap: PendingTaskInterface[];
 
   protected constructor() { this.#heap = []; }
 
   /** Creates a new `MinimumHeap` instance. */
-  static create(): MinimumHeap {
-    return new this();
+  static create<TInstance extends MinimumHeap = MinimumHeap>(
+    this: MinimumHeapSubclassInterface<TInstance>
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, []);
+    if (!MinimumHeapInstance.belongsTo(this, result)) {
+      throw new TypeError('MinimumHeap.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   public insert(task: Readonly<PendingTaskInterface>): void {

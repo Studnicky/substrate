@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { RetryContextGuard } from '../../../src/index.js';
-import scenarioGroups from './context-guard.scenarios.json';
+import scenarioGroups from './context-guard.scenarios.json' with { type: 'json' };
 
 type ScenarioInput = {
   override?: Record<string, unknown>;

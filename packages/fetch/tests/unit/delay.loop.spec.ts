@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Delay } from '../../src/modules/Delay.js';
-import scenarioGroups from './delay.scenarios.json';
+import scenarioGroups from './delay.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
   description: string;
@@ -18,7 +18,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   'forwards-to-global-settimeout': async (scenarioCase) => {
     let receivedMs = -1;
 
-    globalThis.setTimeout = ((callback: TimerHandler, timeout?: number, ...args: unknown[]) => {
+    globalThis.setTimeout = ((callback: (...callbackArgs: unknown[]) => void, timeout?: number, ...args: unknown[]) => {
       receivedMs = timeout ?? -1;
       return originalSetTimeout(() => {
         if (typeof callback === 'function') {

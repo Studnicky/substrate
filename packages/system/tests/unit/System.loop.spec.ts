@@ -33,7 +33,7 @@ type SystemScenarioShape =
   | 'platform-is-apple-silicon'
   | 'gpu-caches-detection';
 
-import scenarioGroups from './System.scenarios.json';
+import scenarioGroups from './System.scenarios.json' with { type: 'json' };
 
 type SystemScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 

@@ -3,12 +3,25 @@ import type { ErrorClassifierInterface } from '../interfaces/index.js';
 
 import {
   EARLY_RETRY_THRESHOLD,
-  HTTP_REQUEST_TIMEOUT,
-  HttpStatus
-} from '../constants/index.js';
+  HTTP_REQUEST_TIMEOUT
+} from '../constants/ClassifierConstants.js';
+import { HttpStatus } from '../constants/index.js';
 import { ErrorWithStatusEntity } from '../entities/ErrorWithStatusEntity.js';
 import { ErrorClassifier } from './ErrorClassifier.js';
 import { matchers } from './matchers.js';
+
+interface DefaultHttpErrorClassifierSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class DefaultHttpErrorClassifierInstance {
+  static belongsTo<TInstance>(
+    constructor: DefaultHttpErrorClassifierSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
 
 /**
  * Default HTTP error classifier
@@ -28,8 +41,13 @@ import { matchers } from './matchers.js';
  * ```
  */
 export class DefaultHttpErrorClassifier extends ErrorClassifier implements ErrorClassifierInterface {
-  static create(): DefaultHttpErrorClassifier {
-    const result = new this();
+  static create<TInstance extends DefaultHttpErrorClassifier = DefaultHttpErrorClassifier>(
+    this: DefaultHttpErrorClassifierSubclassInterface<TInstance>
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, []);
+    if (!DefaultHttpErrorClassifierInstance.belongsTo(this, result)) {
+      throw new TypeError('DefaultHttpErrorClassifier.create() did not construct the requested subclass.');
+    }
     return result;
   }
 

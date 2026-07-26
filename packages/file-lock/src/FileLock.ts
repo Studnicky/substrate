@@ -20,6 +20,19 @@ interface FileLockInternalOptionsInterface {
   readonly 'originalPath': FileLockPathStateEntity.Type['originalPath'];
 }
 
+interface FileLockSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class FileLockInstance {
+  static belongsTo<TInstance>(
+    constructor: FileLockSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Process-level advisory file lock using atomic rename.
  *
@@ -49,7 +62,10 @@ export class FileLock {
     protected override onHookError(_hookName: string, _cause: unknown): void {}
   };
 
-  static async create(options: FileLockCreateOptionsInterface): Promise<FileLock> {
+  static async create<TInstance extends FileLock = FileLock>(
+    this: FileLockSubclassInterface<TInstance>,
+    options: FileLockCreateOptionsInterface
+  ): Promise<TInstance> {
     const schemaOptions: FileLockOptionsEntity.Type = {
       'path': options.path,
       ...(options.pollMs !== undefined ? { 'pollMs': options.pollMs } : {}),
@@ -72,9 +88,12 @@ export class FileLock {
     const lockPath = `${path}.lock.${ownerToken.get()}`;
 
     // Construct instance first so protected hooks can fire during acquisition.
-    const instance = new this({ 'fs': fs, 'lockPath': lockPath, 'originalPath': path });
-    await instance.#acquire(path, lockPath, pollMs, timeoutMs);
-    return instance;
+    const constructed: unknown = Reflect.construct(this, [{ 'fs': fs, 'lockPath': lockPath, 'originalPath': path }]);
+    if (!FileLockInstance.belongsTo(this, constructed)) {
+      throw new TypeError('FileLock.create() did not construct the requested subclass.');
+    }
+    await constructed.#acquire(path, lockPath, pollMs, timeoutMs);
+    return constructed;
   }
 
   readonly #fs: FileSystemInterface;

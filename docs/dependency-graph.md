@@ -123,11 +123,11 @@ p__studnicky_predicates --> p__studnicky_json
 p__studnicky_process_kit --> p__studnicky_fsm
 p__studnicky_process_kit --> p__studnicky_scheduler
 p__studnicky_request_executor --> p__studnicky_context
+p__studnicky_request_executor --> p__studnicky_errors
 p__studnicky_request_executor --> p__studnicky_fetch
 p__studnicky_request_executor --> p__studnicky_json
 p__studnicky_request_executor --> p__studnicky_retry
 p__studnicky_request_executor --> p__studnicky_signal
-p__studnicky_request_executor --> p__studnicky_timing
 p__studnicky_resilience --> p__studnicky_errors
 p__studnicky_resilience --> p__studnicky_json
 p__studnicky_resilience --> p__studnicky_signal

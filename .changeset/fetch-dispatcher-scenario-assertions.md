@@ -1,0 +1,11 @@
+---
+"@studnicky/fetch": patch
+---
+
+### Fixed
+
+- The `default-config`, `sparse-config`, and `comprehensive-config` dispatcher-agent scenarios only checked that `DispatcherAgent.create` returns an object with a `dispatch` method, never comparing the built option count or values against anything. They now read undici's `Agent` through its own `Symbol(options)` slot and assert the exact merged option set for each config.
+- The `fetch`, `body-serialization`, `headers.errors`, `timeout.errors`, and `url.errors` scenarios carried a byte-for-byte duplicate of every case's `clientConfig`/`request`/`expect` fields under `input`/`expected`, while their runners read only the top-level copies. The duplicate wrapper is removed in favor of the `input`/`expected` convention used by every other scenario file, and all five runners now read from it.
+- The `constructor.scenarios.json` valid-config cases and `examples.scenarios.json` smoke cases each carried a trailing `assert.equal(expected.<flag>, true)` that always passed regardless of outcome. The dead flags and assertions are removed; a real assertion already precedes each one.
+- Seven `url.errors` scenarios (`long-url-*`, `path-double-slashes`, `path-dot-segments`, `path-trailing-slash`, `path-root`) hardcoded `assert.ok(status === 200 || status === 404)` in the runner instead of asserting the one status each request actually and deterministically produces against the test transport's routing. They now assert the specific status. The now-unreachable `status-or-404` branch is removed from both `url.errors` and `timeout.errors` (no case in either file's fixture ever selected it).
+- The `url.errors` rejects assertion accepted `error instanceof TypeError` **or** a message containing `URL`, so a non-`TypeError` whose message happened to mention a URL would also pass. All five cases that reach this branch (`spaces-in-url`, `whitespace-url`, `relative-url-without-baseurl`, `relative-root-without-baseurl`, `relative-path-without-baseurl`) verifiably throw a real `TypeError`, so the assertion now requires that and drops the message fallback. The equivalent hedge in `timeout.errors` guarded an `error: 'TypeError'` case that no scenario in that file has ever declared; the unreachable branch and the unused `TypeError` union member are removed.

@@ -8,10 +8,6 @@ import type { RequestContextInterface, ResponseContextInterface } from '../src/i
 import { FetchClient } from '../src/index.js';
 
 class ObservedFetch extends FetchClient {
-  static override create(config: Parameters<typeof FetchClient.create>[0] = {}): ObservedFetch {
-    return new this(config);
-  }
-
   readonly hookLog: string[] = [];
 
   protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {

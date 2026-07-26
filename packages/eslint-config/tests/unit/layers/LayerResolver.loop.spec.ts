@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { LayerResolver } from '../../../src/rules/layers/LayerResolver.js';
 import type { LayerOptionsEntity } from '../../../src/rules/layers/LayerOptionsEntity.js';
-import scenarioGroups from './LayerResolver.scenarios.json';
+import scenarioGroups from './LayerResolver.scenarios.json' with { type: 'json' };
 
 const baseOptions: LayerOptionsEntity.Type = {
   aliasPrefixes: { '@domain/': 'domain', '@ports/': 'ports' },
@@ -62,7 +62,7 @@ const operations: Record<ScenarioCase['operation'], (scenario: ScenarioCase) => 
 };
 
 void describe('LayerResolver', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of scenarioGroups.cases as unknown as ScenarioCase[]) {
     void it(scenario.name, () => {
       operations[scenario.operation](scenario);
     });

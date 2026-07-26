@@ -49,142 +49,6 @@ const BANNED_SHORTENINGS = new Set([
   'val'
 ]);
 
-const WHITELISTED_ACRONYMS = new Set([
-  'Ajv',
-  'ALS',
-  'ANSI',
-  'API',
-  'ASCII',
-  'BVH',
-  'CD',
-  'CI',
-  'CLI',
-  'CPU',
-  'CRLF',
-  'CSR',
-  'CSS',
-  'CSV',
-  'DI',
-  'DNS',
-  'DOM',
-  'ESLintUtils',
-  'exclusiveMaximum',
-  'exclusiveMinimum',
-  'FromSchema',
-  'FSM',
-  'GPU',
-  'GraphQL',
-  'gRPC',
-  'HTML',
-  'HTTP',
-  'HTTPS',
-  'IndexedDb',
-  'IP',
-  'IPv4',
-  'IPv6',
-  'IRI',
-  'JSON',
-  'JsonValue',
-  'JWT',
-  'KeyValueStore',
-  'LF',
-  'LOD',
-  // Least-Recently-Used — used by this repo's cache package (e.g. LruCache).
-  'LRU',
-  'maxBindGroups',
-  'maxBindGroupsPlusVertexBuffers',
-  'maxBindingsPerBindGroup',
-  'maxBufferSize',
-  'maxColorAttachmentBytesPerSample',
-  'maxColorAttachments',
-  'maxComputeInvocationsPerWorkgroup',
-  'maxComputeWorkgroupSizeX',
-  'maxComputeWorkgroupSizeY',
-  'maxComputeWorkgroupSizeZ',
-  'maxComputeWorkgroupsPerDimension',
-  'maxComputeWorkgroupStorageSize',
-  'maxContains',
-  'maxDynamicStorageBuffersPerPipelineLayout',
-  'maxDynamicUniformBuffersPerPipelineLayout',
-  'maxImmediateSize',
-  'maximum',
-  'maxInterStageShaderVariables',
-  'maxItems',
-  'maxLength',
-  'maxProperties',
-  'maxSampledTexturesPerShaderStage',
-  'maxSamplersPerShaderStage',
-  'maxStorageBufferBindingSize',
-  'maxStorageBuffersInFragmentStage',
-  'maxStorageBuffersInVertexStage',
-  'maxStorageBuffersPerShaderStage',
-  'maxStorageTexturesInFragmentStage',
-  'maxStorageTexturesInVertexStage',
-  'maxStorageTexturesPerShaderStage',
-  'maxTextureArrayLayers',
-  'maxTextureDimension1D',
-  'maxTextureDimension2D',
-  'maxTextureDimension3D',
-  'maxUniformBufferBindingSize',
-  'maxUniformBuffersPerShaderStage',
-  'maxVertexAttributes',
-  'maxVertexBufferArrayStride',
-  'maxVertexBuffers',
-  'MIME',
-  'minContains',
-  'minimum',
-  'minItems',
-  // JSON Schema 2020-12 keywords — standards-defined, preserved as-is.
-  'minLength',
-  'minProperties',
-  'minStorageBufferOffsetAlignment',
-  'minUniformBufferOffsetAlignment',
-  'multipleOf',
-  'NaN',
-  'NQuads',
-  'NTriples',
-  'OAuth',
-  'OIDC',
-  'OPFS',
-  'OWL',
-  'PRD',
-  'RAM',
-  'RDF',
-  'RDFC',
-  'REST',
-  'SDF',
-  'SDK',
-  'SHACL',
-  'SPARQL',
-  'SSD',
-  'SSL',
-  'TCP',
-  'TLS',
-  'TOML',
-  'TRD',
-  'TriG',
-  'TSV',
-  // Time-To-Live — used across this repo's cache/clock packages.
-  'TTL',
-  'UDP',
-  'uniqueItems',
-  'URI',
-  'URL',
-  'UTF',
-  'UTF8',
-  'UTF16',
-  // Universally Unique Identifier — used across this repo's entity/store packages.
-  'UUID',
-  'WASM',
-  'WebGL',
-  'WebGPU',
-  'WGSL',
-  'XML',
-  'YAML'
-]);
-
-const LOOP_ITERATOR_PATTERN = /^[ijk]$/v;
-
 // Manual scan instead of a single backtracking regex: the equivalent
 // `/[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|$)/g` is polynomial-time on an
 // uppercase run followed by a non-letter, non-end character (e.g. a long
@@ -255,17 +119,9 @@ class CamelCase {
 
 class BannedToken {
   public static find(name: string): string | undefined {
-    if (LOOP_ITERATOR_PATTERN.test(name)) {
-      return undefined;
-    }
-    if (WHITELISTED_ACRONYMS.has(name)) {
-      return undefined;
-    }
-
     const tokens = CamelCase.split(name);
-    const found = tokens.find((token) => {
-      return !WHITELISTED_ACRONYMS.has(token) && BANNED_SHORTENINGS.has(token.toLowerCase());
-    });
+    const found = tokens.find((token) => { const result = BANNED_SHORTENINGS.has(token.toLowerCase());
+      return result; });
 
     return found !== undefined ? found.toLowerCase() : undefined;
   }

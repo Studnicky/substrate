@@ -8,10 +8,20 @@ description: 'Folder location signals what a file top-level declarations must lo
 Folder location signals what a file's top-level declarations must look like. A file matches at most one of three mutually-exclusive categories, dispatched per-file — entity detection takes priority over folder-based declaration-form checking, which takes priority over the constants-count check:
 
 1. **Entity files** (`entities/` folder, or `*Entity.ts`-style basenames, excluding barrel `index.*` files) must export a single namespace containing `Schema` (a `const` declared `as const`), `Type` (a type reference applying any schema-deriving type to `typeof Schema` — `FromSchema<typeof Schema>`, TypeBox's `Static<typeof Schema>`, or a project-local equivalent are all accepted identically), and `validate` (a type guard — either `SchemaValidator.compile<Type>(Schema)` or a hand-written `candidate is Type` predicate function).
-2. **`interfaces/` vs `types/` folders** — files under an `interfaces/` folder must declare an `interface`, not a `type` alias; files under a `types/` folder must declare a `type` alias, not an `interface`. Only top-level declarations are judged.
-3. **Constants placement** — all other, non-exempt files with 2+ top-level `const` declarations (excluding function/class-bound consts and well-known exempt names: `ajv`, `compiledValidator`, `Schema`, `validate`) must live under a `constants/` folder, or a `fixtures/` folder for test/example data. Exempt paths: `entities/`, `constants/`, `fixtures/`, `tests/`, `eslint-config/`, `eslint.config.mjs`, and `index.ts` barrels.
+2. **`interfaces/` vs `types/` folders** — files under an `interfaces/` folder must declare an `interface`, not a `type` alias; files under a `types/` folder must declare a `type` alias, not an `interface`. Only top-level declarations are judged. There is no path-based exemption from this check — a file under `tests/` or inside the `eslint-config` package itself is judged exactly like any other file.
+3. **Constants placement** — all other files with 2+ top-level `const` declarations (excluding function/class-bound consts) must live under a `constants/` folder, or a `fixtures/` folder for test/example data.
 
-A fourth, independent check runs alongside whichever category above a file falls into (except in files exempt from the constants-count check): regex literals — `/pattern/flags` syntax, or `new RegExp('pattern', ...)` with an inlined string pattern — are data constants exactly like magic numbers and enums, and must never be declared inline. **This check is zero-tolerance** — a single inline regex is enough to flag it, unlike the 2+ threshold that applies to other constants.
+None of the three categories above, nor the constants-placement check, is decided by folder name, package path, or declared identifier names — every determination is structural, from the parsed source:
+
+- A file is an **entity file** because its basename structurally matches `*Entity.ts` (or it lives under an `entities/` folder) — never because some other file nearby happens to be one.
+- A file is exempt from the constants-placement check (and, transitively, from the inline-regex check below) when it is structurally one of:
+  - a **pure constants module** — every top-level statement is an import, a type declaration, or a `const` declaration whose declarators are all genuine data constants (no function, class, or non-collection `new` value mixed in). Such a file is, by its own content, already nothing but constants — moving it changes nothing, regardless of which folder it happens to live in.
+  - a module that exports a namespace whose name ends in `Entity` — the same signal the entity-namespace check looks for, so a file carrying it is entity-shaped by content even if it lives outside an `entities/` folder.
+  - a **pure re-export barrel** — every top-level statement re-exports from another module (`export … from '…'` / `export * from '…'`), with no local declaration of its own. A re-export carries no data of its own to relocate, whatever the file is named.
+
+Renaming a directory, moving a file into a folder named `constants/`, or naming a declaration `Schema`/`validate`/`ajv` buys nothing on its own — a file that mixes a data constant with a function or class is still flagged for the data constant, no matter which folder it lives in.
+
+A fourth, independent check runs alongside whichever category above a file falls into (except in files structurally exempt from the constants-placement check, per the same three bullets above): regex literals — `/pattern/flags` syntax, or `new RegExp('pattern', ...)` with an inlined string pattern — are data constants exactly like magic numbers and enums, and must never be declared inline. **This check is zero-tolerance** — a single inline regex is enough to flag it, unlike the 2+ threshold that applies to other constants.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -89,17 +99,23 @@ export interface FooInterface { readonly id: string; }
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// two top-level non-exempt consts outside constants/ — flagged once, listing both names
-// (filename: src/http/client.ts)
-export const TIMEOUT_MS = 1000;
-export const MAX_RETRIES = 3;
+// two data consts mixed with a function const — still flagged for the two data consts;
+// the folder name alone does not exempt the file, since mixing a function disqualifies
+// the pure-constants-module exemption
+// (filename: src/constants/mixed.ts)
+export const MAX = 3;
+export const MIN = 1;
+export const handler = (): void => {};
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// destructured object pattern introducing three names — flagged
-// (filename: src/http/destructuredObject.ts)
-export const { ALPHA, BETA, GAMMA } = CONFIG;
+// index.ts mixing local consts with a re-export — still flagged; it is neither
+// a pure re-export barrel nor a pure constants module
+// (filename: src/index.ts)
+export * from './helpers.js';
+export const ALPHA = 1;
+export const BETA = 2;
 ```
 
 ### Inline regex literals (zero-tolerance)
@@ -197,7 +213,8 @@ export const MAX_RETRIES = 3;
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// two consts but one is an exempt structural name (Schema) — only one real const remains
+// validate is a function const, structurally excluded; only Schema remains,
+// below the 2+ threshold
 // (filename: src/schemas/thing.ts)
 const Schema = {};
 export const validate = (): boolean => true;
@@ -205,11 +222,11 @@ export const validate = (): boolean => true;
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// file lives under constants/ — exempt regardless of const count
-// (filename: src/constants/values.ts)
-export const ALPHA = 1;
-export const BETA = 2;
-export const GAMMA = 3;
+// a pure constants module — every top-level declaration is a data const,
+// nothing else in the file — exempt by content, regardless of folder
+// (filename: src/http/client.ts)
+export const TIMEOUT_MS = 1000;
+export const MAX_RETRIES = 3;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
@@ -220,11 +237,20 @@ export const handleClick = (): void => {};
 export const handleSubmit = (): void => {};
 ```
 
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// a pure re-export barrel, not named index.ts — exempt by content, not filename
+// (filename: src/aggregate.ts)
+export * from './helpers.js';
+export * from './other.js';
+```
+
 ### Inline regex literals
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// regex literal already declared under constants/ — not flagged
+// a pure constants module holding a single regex data const — exempt by
+// content, coincidentally under constants/
 // (filename: src/constants/patterns.ts)
 export const EMAIL_PATTERN = /^[^@]+@[^@]+$/u;
 ```

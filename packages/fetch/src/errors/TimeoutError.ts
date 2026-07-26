@@ -29,11 +29,16 @@ export class TimeoutError extends FetchBaseError {
    */
   readonly url!: string;
 
+  private static buildMessage(fields: Readonly<{ 'timeoutMs': number; 'url': string }>): string {
+    const result = `Request to ${fields.url} timed out after ${fields.timeoutMs}ms`;
+    return result;
+  }
+
   constructor(url: string, timeoutMs: number) {
     const fields = { 'timeoutMs': timeoutMs, 'url': url };
     super(DomainErrorArgs.build(fields, {
       'code': 'fetch.timeout',
-      'message': (f) => { const result = `Request to ${f.url} timed out after ${f.timeoutMs}ms`; return result; },
+      'message': TimeoutError.buildMessage,
       'retryable': true
     }));
     Object.assign(this, fields);

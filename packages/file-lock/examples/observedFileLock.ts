@@ -12,7 +12,7 @@ import { FileLock, FileLockTimeoutError } from '../src/index.js';
 class TracedFileLock extends FileLock {
   readonly #recorder = new EventRecorder<{ 'extra'?: string; 'hook': string; 'path': string }>();
 
-  get events(): { 'extra'?: string; 'hook': string; 'path': string }[] { return this.#recorder.events; }
+  get events(): readonly { 'extra'?: string; 'hook': string; 'path': string }[] { return this.#recorder.events; }
 
   protected override onAcquireStart(p: string): void {
     this.#recorder.record({ 'hook': 'onAcquireStart', 'path': p }, `[file-lock] acquireStart path=${p}`);
@@ -60,14 +60,14 @@ class FileLockScenarios {
 
     // --- Scenario 1: clean acquire and release ---
     writeFileSync(filePath, 'scenario-1');
-    const lock1 = await TracedFileLock.create({ 'path': filePath }) as TracedFileLock;
+    const lock1 = await TracedFileLock.create({ 'path': filePath });
     lock1.write('modified');
     lock1.release();
 
     // --- Scenario 2: contended acquire (second lock waits, holder released before timeout) ---
     const filePath2 = path.join(dir, 'lock-2.txt');
     writeFileSync(filePath2, 'scenario-2');
-    const holder = await TracedFileLock.create({ 'path': filePath2 }) as TracedFileLock;
+    const holder = await TracedFileLock.create({ 'path': filePath2 });
 
     // Release the holder after a short delay so the second acquirer sees contention then succeeds.
     setTimeout(() => { holder.release(); }, 60);
@@ -76,7 +76,7 @@ class FileLockScenarios {
       'path': filePath2,
       'pollMs': 20,
       'timeoutMs': 500
-    }) as TracedFileLock;
+    });
     lock2.release();
 
     // --- Scenario 3: timeout on a file that does not exist ---

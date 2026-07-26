@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { TIMING_STATUS } from '../../src/constants/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
-import scenarioGroups from './TimingEvent.scenarios.json';
+import scenarioGroups from './TimingEvent.scenarios.json' with { type: 'json' };
 
 type TimingStatus = (typeof TIMING_STATUS)[keyof typeof TIMING_STATUS];
 type TimingEventInput = { component: string; operation: string };
@@ -33,7 +33,7 @@ type ScenarioCaseByShape = {
 
 type ScenarioShape = keyof ScenarioCaseByShape;
 type ScenarioCase = ScenarioCaseByShape[ScenarioShape];
-type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: ScenarioCaseByShape[Shape]) => void;
+type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
 type RunnerMap = { [Shape in ScenarioShape]: ScenarioRunner<Shape> };
 
 function createInvalidTimingEvent(input: { component?: string; operation?: string; status?: TimingStatus }): void {
@@ -92,7 +92,7 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseByShape[Shape]): void {
+function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 

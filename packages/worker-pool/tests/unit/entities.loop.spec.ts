@@ -10,7 +10,7 @@ import {
   WorkerTaskDispositionEntity,
   WorkerTaskIndexEntity
 } from '../../src/index.js';
-import scenarioGroups from './entities.scenarios.json';
+import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
 type ValidationName =
   | 'WorkerErrorEnvelopeEntity'

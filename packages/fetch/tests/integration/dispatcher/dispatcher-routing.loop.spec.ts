@@ -4,7 +4,7 @@ import { after, before, describe, it } from 'node:test';
 import { FetchClient, UndiciDispatcher } from '../../../src/index.js';
 import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
-import scenarioGroups from './dispatcher-routing.scenarios.json';
+import scenarioGroups from './dispatcher-routing.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -34,7 +34,10 @@ void after(async () => {
   await stopTestServer();
 });
 
-const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<Operation extends ScenarioCase['operation']> = (scenarioCase: Extract<ScenarioCase, { operation: Operation }>) => Promise<void>;
+type RunnerMap = { [Operation in ScenarioCase['operation']]: ScenarioRunner<Operation> };
+
+const runnerMap: RunnerMap = {
   'routes-through-configured-dispatcher': async (scenarioCase) => {
     const origin = new URL(ctx.testUrl).origin;
     const baseURL = scenarioCase.input.fetchClient.baseURL === '__TEST_SERVER_URL__' ? ctx.testUrl : scenarioCase.input.fetchClient.baseURL;
@@ -79,7 +82,7 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<Operation extends ScenarioCase['operation']>(scenarioCase: Extract<ScenarioCase, { operation: Operation }>): Promise<void> {
   await runnerMap[scenarioCase.operation](scenarioCase);
 }
 

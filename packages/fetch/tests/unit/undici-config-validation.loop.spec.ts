@@ -29,7 +29,7 @@ type ScenarioCase = {
   name: string;
 };
 
-import scenarioGroups from './undici-config-validation.scenarios.json';
+import scenarioGroups from './undici-config-validation.scenarios.json' with { type: 'json' };
 
 type ExpectedOutcomeRunner = (config: unknown, expected: ExpectedOutcome) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
@@ -72,11 +72,12 @@ const expectedOutcomeMap: Record<ExpectedOutcome['shape'], ExpectedOutcomeRunner
     });
   },
   throws: (config, expected) => {
-    assert.ok(expected.messageIncludes !== undefined);
+    const { messageIncludes } = expected;
+    assert.ok(messageIncludes !== undefined);
     assert.throws(() => {
       validateDispatcher(config);
     }, (error: Error) => {
-      for (const expectedMessagePart of expected.messageIncludes) {
+      for (const expectedMessagePart of messageIncludes) {
         assert.ok(error.message.includes(expectedMessagePart));
       }
       return true;
@@ -90,7 +91,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('pool configuration validation', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

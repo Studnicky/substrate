@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { requireOptionsObject } from '../../src/rules/requireOptionsObject.js';
-import scenarioGroups from './requireOptionsObject.scenarios.json';
+import scenarioGroups from './requireOptionsObject.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

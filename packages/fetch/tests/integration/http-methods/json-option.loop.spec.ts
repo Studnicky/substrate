@@ -3,7 +3,7 @@ import { after, before, describe, it } from 'node:test';
 
 import { FetchClient } from '../../../src/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
-import scenarioGroups from './json-option.scenarios.json';
+import scenarioGroups from './json-option.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -33,11 +33,24 @@ type ScenarioCase =
       name: string;
     };
 
-const ctx = {
-  absoluteClient: undefined as unknown as FetchClient,
-  baseClient: undefined as unknown as FetchClient,
+const ctx: {
+  absoluteClient: FetchClient | undefined;
+  baseClient: FetchClient | undefined;
+  testUrl: string;
+} = {
+  absoluteClient: undefined,
+  baseClient: undefined,
   testUrl: ''
 };
+
+/** Both clients are built in `before()`; reading one earlier is a suite-ordering defect. */
+function requireClient(client: FetchClient | undefined, label: string): FetchClient {
+  if (client === undefined) {
+    throw new Error(`${label} is unavailable because before() has not run`);
+  }
+
+  return client;
+}
 
 void before(async () => {
   ctx.testUrl = await startTestServer();
@@ -54,7 +67,9 @@ function resolveBaseURL(baseURL: string): string {
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const client = scenarioCase.client === 'absolute' ? ctx.absoluteClient : ctx.baseClient;
+  const client = scenarioCase.client === 'absolute'
+    ? requireClient(ctx.absoluteClient, 'absoluteClient')
+    : requireClient(ctx.baseClient, 'baseClient');
   const request = scenarioCase.input;
   const url = scenarioCase.client === 'absolute' ? `${resolveBaseURL(request.baseURL)}${request.path}` : request.path;
 

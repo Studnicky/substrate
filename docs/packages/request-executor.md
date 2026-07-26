@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/request-executor'
-description: One-shot request execution pattern composing fetch, retry, signal, timing, and context.
+description: One-shot request execution pattern composing fetch, retry, signal, and context.
 ---
 
 # @studnicky/request-executor
 
-> One-shot request execution pattern composing `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, `@studnicky/timing`, and `@studnicky/context`.
+> One-shot request execution pattern composing `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, and `@studnicky/context`.
 
 ## Install
 
@@ -15,30 +15,29 @@ pnpm add @studnicky/request-executor
 
 ## Usage
 
-`RequestExecutor` does not perform HTTP calls itself — the caller's `fn` receives the composed `FetchClient` and a composed `AbortSignal` (merged from a caller-supplied `AbortSignal` and/or `deadlineMs` via `Signal#compose()`) and decides which verb to call. The call runs through the composed `Retry` loop; an optional `Timing` instance brackets the whole loop with a single span; an optional `Context` runs the whole call inside a fresh scope:
+`RequestExecutor` does not perform HTTP calls itself — the caller's `fn` receives the composed `FetchClient` and a composed `AbortSignal` (merged from a caller-supplied `AbortSignal` and/or `deadlineMs` via `Signal#compose()`) and decides which verb to call. The call runs through the composed `Retry` loop, bracketed by the `onExecuteStart`/`onExecuteComplete`/`onExecuteError` lifecycle hooks; an optional `Context` runs the whole call inside a fresh scope:
 
 <<< ../../packages/request-executor/examples/observedRequestExecutor.ts#usage
 
-## Transparency contract
+## Lifecycle hooks
 
-`RequestExecutor` introduces no hook of its own — every observable stage is already covered by the primitive it delegates to. Each composed primitive accepts either a pre-built instance (subclassed or not) or the config shape passed straight to that primitive's own `create()`:
+`RequestExecutor` exposes three protected lifecycle hooks, no-ops by default: `onExecuteStart()` fires before the retry loop begins, `onExecuteComplete<T>(result)` fires after it resolves, and `onExecuteError(error)` fires once retries are exhausted. All three run through an internal `HookInvoker` that swallows a throwing override — a rejected hook is recorded (see `hookErrorCount`/`getHookErrors()`) but never replaces `execute()`'s resolved result or thrown error. Each composed primitive accepts either a pre-built instance (subclassed or not) or the config shape passed straight to that primitive's own `create()`:
 
 | Config key | Accepts | Default |
 |------------|---------|---------|
 | `fetchClient` | `FetchClient` instance or `ClientConfigInterface` from `@studnicky/fetch` | `FetchClient.create({})` |
 | `retry` | `Retry` instance or `RetryConfigInterface` from `@studnicky/retry` | `Retry.create({})` |
 | `signal` | `Signal` instance | `Signal.create()` |
-| `timing` | `Timing` instance | `undefined` — no span recorded |
 | `context` | `Context` instance | `undefined` — no scope wrapping |
 | `deadlineMs` | Default deadline (ms) for calls that don't pass their own | `undefined` |
 
-`RequestExecutor` exposes no collaborator getters. Callers retain references to any `FetchClient`, `Retry`, `Signal`, `Timing`, or `Context` instances supplied to `RequestExecutor.create(config)` when they need those primitives' hooks or state. The executor never re-exposes a stage a wrapped primitive already owns.
+Callers retain references to any `FetchClient`, `Retry`, `Signal`, or `Context` instances supplied to `RequestExecutor.create(config)` when they need those primitives' own hooks or state. The executor never re-exposes a stage a wrapped primitive already owns.
 
 Import `RequestExecutor`, `RequestExecutorConfigInterface`, `RequestExecutorDepsInterface`, and `RequestExecutorExecuteOptionsInterface` from `@studnicky/request-executor`. The package root is the only public code entrypoint. Import dependency-owned configuration and context contracts directly from their owning package roots.
 
 ## Composition order
 
-`context` scope wraps the whole call → `timing` span brackets the retry loop → `retry` loop wraps the caller's `fn` → the composed cancellation `AbortSignal` threads into whatever call `fn` makes.
+`context` scope wraps the whole call → `onExecuteStart`/`onExecuteComplete`/`onExecuteError` bracket the retry loop → `retry` loop wraps the caller's `fn` → the composed cancellation `AbortSignal` threads into whatever call `fn` makes.
 
 ## When this composition tips into orchestration
 

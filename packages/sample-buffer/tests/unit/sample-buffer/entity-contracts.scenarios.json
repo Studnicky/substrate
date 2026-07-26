@@ -36,7 +36,7 @@
         "causeMessage": "cause",
         "correlationId": "corr-1",
         "message": "bad config",
-        "retryable": false
+        "retryable": true
       },
       "input": {
         "causeMessage": "cause",
@@ -46,6 +46,22 @@
       },
       "shape": "error-args",
       "name": "error-args"
+    },
+    {
+      "description": "defaults retryable to false when omitted",
+      "expected": {
+        "causeMessage": "cause",
+        "correlationId": "corr-2",
+        "message": "bad config",
+        "retryable": false
+      },
+      "input": {
+        "causeMessage": "cause",
+        "correlationId": "corr-2",
+        "message": "bad config"
+      },
+      "shape": "error-args",
+      "name": "error-args-default"
     }
   ]
 }

@@ -7,7 +7,7 @@ import { RuleTester } from 'eslint';
 
 import { forOfArrays } from '../../../src/rules/v8/forOfArrays.js';
 import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
-import scenarioFile from './forOfArrays.scenarios.json';
+import scenarioFile from './forOfArrays.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -84,7 +84,9 @@ const rightFactories: Record<string, RightFactory> = {
 };
 
 function requireFixtureFactory<T>(factory: T | undefined, shape: string): T {
-  assert.notEqual(factory, undefined, `Unsupported scenario fixture shape: ${shape}`);
+  if (factory === undefined) {
+    throw new Error(`Unsupported scenario fixture shape: ${shape}`);
+  }
   return factory;
 }
 
@@ -112,7 +114,7 @@ void describe('for-of-arrays', () => {
         scenarioCase.input.parserServices.shape
       );
       const listeners = forOfArrays.create({
-        report(descriptor) {
+        report(descriptor: unknown) {
           reports.push(descriptor);
         },
         sourceCode: {

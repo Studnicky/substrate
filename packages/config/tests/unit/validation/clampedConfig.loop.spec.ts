@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import type { ClampEventEntity } from '../../../src/entities/ClampEventEntity.js';
 import type { ClampRuleEntity } from '../../../src/entities/ClampRuleEntity.js';
 import { ClampedConfig } from '../../../src/validation/clampedConfig.js';
-import scenarioGroups from './clampedConfig.scenarios.json';
+import scenarioGroups from './clampedConfig.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'absent-field-untouched'
@@ -53,7 +53,7 @@ type CapturedClampResult = {
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-const typedScenarioGroups: { readonly cases: readonly ScenarioCase[] } = scenarioGroups;
+const typedScenarioGroups = scenarioGroups as { readonly cases: readonly ScenarioCase[] };
 
 function applyClamp<T extends Record<string, unknown>>(
   config: T,

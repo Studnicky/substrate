@@ -380,9 +380,11 @@ export class Predicates {
     return true;
   }
 
+  /** Checks own properties only; inherited keys (e.g. from the prototype chain) never satisfy `required`. */
   static hasAllRequiredProperties(value: Record<string, unknown>, required: string[]): boolean {
     const result = required.every((key: string): boolean => {
-      return key in value;
+      const result = Object.hasOwn(value, key);
+      return result;
     });
     return result;
   }

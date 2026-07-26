@@ -11,7 +11,57 @@
     {
       "code": "interface SchedulerInterface {\n  (): void;\n  readonly 'handle': ReturnType<typeof setTimeout>;\n}",
       "name": "a generic conditional type-level function member is not inline pure data"
+    },
+    {
+      "code": "interface DispatcherInterface {\n  handler: (() => void) | { a: 1 };\n}",
+      "name": "a member whose type mixes a callable constituent with data defers to no-mixed-callable-shapes instead of reporting a second diagnostic"
     }
   ],
-  "invalid": []
+  "invalid": [
+    {
+      "code": "interface UserReaderInterface {\n  read(): {\n    id: string;\n    name: string;\n  };\n}",
+      "errors": [
+        {
+          "data": { "interfaceName": "UserReaderInterface", "memberName": "read" },
+          "messageId": "inlineObjectInInterface"
+        }
+      ],
+      "name": "inline pure-data return value"
+    },
+    {
+      "code": "interface RegistryInterface {\n  readonly entries: {\n    [key: string]: {\n      id: string;\n      enabled: boolean;\n    };\n  };\n}",
+      "errors": [
+        {
+          "data": { "interfaceName": "RegistryInterface", "memberName": "entries" },
+          "messageId": "inlineObjectInInterface"
+        }
+      ],
+      "name": "inline pure-data index value"
+    },
+    {
+      "code": "type PlainValueType = string;\ndeclare const BrandKey: unique symbol;\ninterface RecordWithComputedBrandInterface {\n  [BrandKey]: string;\n  value: PlainValueType;\n}",
+      "errors": [
+        {
+          "data": { "interfaceName": "RecordWithComputedBrandInterface", "memberName": "value" },
+          "messageId": "inlineObjectInInterface"
+        }
+      ],
+      "name": "a computed unique-symbol-keyed brand member is exempt; its ordinary sibling member still composes named data"
+    },
+    {
+      "code": "type PlainValueType = string;\ninterface RecordWithValueBrandInterface {\n  readonly __brand: unique symbol;\n  value: PlainValueType;\n}",
+      "errors": [
+        {
+          "data": { "interfaceName": "RecordWithValueBrandInterface", "memberName": "value" },
+          "messageId": "inlineObjectInInterface"
+        }
+      ],
+      "name": "a unique-symbol-valued brand member is exempt; its ordinary sibling member still composes named data"
+    }
+  ],
+  "combined": {
+    "code": "interface DispatcherInterface {\n  handler: (() => void) | { a: 1 };\n}",
+    "filename": "MixedMemberDeferral.ts",
+    "expectedMessageIds": ["mixedCallableShape"]
+  }
 }

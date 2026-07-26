@@ -6,7 +6,7 @@ import {
 import { HookInvocationError } from '@studnicky/errors';
 
 import { SampleBuffer } from '../../../src/sample-buffer/SampleBuffer.js';
-import scenarioGroups from './SampleBufferSubclass.scenarios.json';
+import scenarioGroups from './SampleBufferSubclass.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   {

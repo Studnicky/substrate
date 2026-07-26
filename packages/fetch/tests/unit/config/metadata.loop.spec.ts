@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { ValidateMetadata } from '../../../src/config/schemas/validateMetadata.js';
 
-import scenarioGroups from './metadata.scenarios.json';
+import scenarioGroups from './metadata.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =
   | { __shape: 'undefined' };
@@ -66,11 +66,12 @@ const expectedOutcomeMap: Record<ScenarioCase['expected']['shape'], ExpectedOutc
     });
   },
   throws: (config, expected) => {
-    assert.ok(expected.messageIncludes !== undefined);
+    const { messageIncludes } = expected;
+    assert.ok(messageIncludes !== undefined);
     assert.throws(() => {
       ValidateMetadata.validate(config);
     }, (error: Error) => {
-      for (const expectedMessagePart of expected.messageIncludes) {
+      for (const expectedMessagePart of messageIncludes) {
         assert.ok(error.message.includes(expectedMessagePart));
       }
       return true;
@@ -84,7 +85,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('fetch metadata validation', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

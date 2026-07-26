@@ -4,238 +4,523 @@
       "name": "publish-delivers",
       "description": "publish delivers payload to all subscribers on the topic",
       "shape": "publish-delivers",
-      "input": { "payload": "hello", "topic": "ping" },
-      "expected": { "received": ["hello"] }
+      "input": {
+        "payload": "hello",
+        "topic": "ping"
+      },
+      "expected": {
+        "received": [
+          "hello"
+        ]
+      }
     },
     {
       "name": "unsubscribe-stops",
       "description": "unsubscribe fn stops delivery to that subscriber",
       "shape": "unsubscribe-stops",
-      "input": { "first": "first", "second": "second", "topic": "ping" },
-      "expected": { "received": ["first"] }
+      "input": {
+        "first": "first",
+        "second": "second",
+        "topic": "ping"
+      },
+      "expected": {
+        "received": [
+          "first"
+        ]
+      }
     },
     {
       "name": "multiple-subscribers",
       "description": "multiple subscribers on the same topic each receive the payload independently",
       "shape": "multiple-subscribers",
-      "input": { "payload": "broadcast", "topic": "ping" },
-      "expected": { "receivedA": ["broadcast"], "receivedB": ["broadcast"] }
+      "input": {
+        "payload": "broadcast",
+        "topic": "ping"
+      },
+      "expected": {
+        "receivedA": [
+          "broadcast"
+        ],
+        "receivedB": [
+          "broadcast"
+        ]
+      }
     },
     {
       "name": "topics-isolated",
       "description": "different topics are isolated from each other",
       "shape": "topics-isolated",
-      "input": { "countPayload": 42, "pingPayload": "pong" },
-      "expected": { "counts": [42], "pings": ["pong"] }
+      "input": {
+        "countPayload": 42,
+        "pingPayload": "pong"
+      },
+      "expected": {
+        "counts": [
+          42
+        ],
+        "pings": [
+          "pong"
+        ]
+      }
     },
     {
       "name": "handler-signal",
       "description": "handler receives an AbortSignal as second argument that is not aborted during normal delivery",
       "shape": "handler-signal",
-      "input": { "payload": "hello", "topic": "ping" },
-      "expected": { "aborted": false, "isAbortSignal": true }
+      "input": {
+        "payload": "hello",
+        "topic": "ping"
+      },
+      "expected": {
+        "aborted": false,
+        "isAbortSignal": true
+      }
     },
     {
       "name": "signal-after-unsubscribe",
       "description": "captured subscription signal is aborted after unsubscribe",
       "shape": "signal-after-unsubscribe",
-      "input": { "payload": "first", "topic": "ping" },
-      "expected": { "abortedAfterUnsubscribe": true, "abortedBeforeUnsubscribe": false }
+      "input": {
+        "payload": "first",
+        "topic": "ping"
+      },
+      "expected": {
+        "abortedAfterUnsubscribe": true,
+        "abortedBeforeUnsubscribe": false
+      }
     },
     {
       "name": "signal-after-close",
       "description": "captured subscription signal is aborted after bus.close",
       "shape": "signal-after-close",
-      "input": { "payload": "hello", "topic": "ping" },
-      "expected": { "abortedAfterClose": true, "abortedBeforeClose": false }
+      "input": {
+        "payload": "hello",
+        "topic": "ping"
+      },
+      "expected": {
+        "abortedAfterClose": true,
+        "abortedBeforeClose": false
+      }
     },
     {
       "name": "signal-listener-cleanup",
       "description": "unsubscribe removes caller-supplied signal listeners across repeated cycles",
       "shape": "signal-listener-cleanup",
-      "input": { "cycles": 8, "topic": "ping" },
-      "expected": { "addMinusRemoveAfterAdd": 1, "addMinusRemoveAfterRemove": 0 }
+      "input": {
+        "cycles": 8,
+        "topic": "ping"
+      },
+      "expected": {
+        "addMinusRemoveAfterAdd": 1,
+        "addMinusRemoveAfterRemove": 0
+      }
     },
     {
       "name": "subscribe-after-close",
       "description": "subscribing after close still returns a valid unsubscribe handle",
       "shape": "subscribe-after-close",
-      "input": { "topic": "ping" },
-      "expected": { "ok": true }
+      "input": {
+        "topic": "ping"
+      },
+      "expected": {
+        "ok": true
+      }
     },
     {
       "name": "preaborted-caller-signal",
-      "description": "pre-aborted caller signals propagate to the subscriber queue immediately",
+      "description": "a subscriber registered with a pre-aborted caller signal never receives published events",
       "shape": "preaborted-caller-signal",
-      "input": { "payload": "hello", "topic": "ping" },
-      "expected": { "aborted": true, "received": [] }
+      "input": {
+        "payload": "hello",
+        "topic": "ping"
+      },
+      "expected": {
+        "received": []
+      }
     },
     {
       "name": "close-stops-delivery",
       "description": "close stops all delivery across all topics",
       "shape": "close-stops-delivery",
-      "input": { "afterClose": "after-close", "beforeClose": "before-close", "topic": "ping" },
-      "expected": { "received": ["before-close"] }
+      "input": {
+        "afterClose": "after-close",
+        "beforeClose": "before-close",
+        "topic": "ping"
+      },
+      "expected": {
+        "received": [
+          "before-close"
+        ]
+      }
     },
     {
       "name": "publish-empty-topic",
-      "description": "publishing a topic with no subscribers is a no-op",
+      "description": "publishing a topic with no subscribers is a no-op: onPublish never fires",
       "shape": "publish-empty-topic",
-      "input": { "payload": "unused", "topic": "ping" },
-      "expected": { "ok": true }
+      "input": {
+        "payload": "unused",
+        "topic": "ping"
+      },
+      "expected": {
+        "publishFired": false
+      }
     },
     {
       "name": "on-publish",
       "description": "onPublish fires once per publish call",
       "shape": "on-publish",
-      "input": { "firstId": "a", "secondId": "b", "topic": "order:created" },
-      "expected": { "firstPayload": { "id": "a" }, "publishCount": 2 }
+      "input": {
+        "firstId": "a",
+        "secondId": "b",
+        "topic": "order:created"
+      },
+      "expected": {
+        "firstPayload": {
+          "id": "a"
+        },
+        "publishCount": 2
+      }
     },
     {
       "name": "on-subscribe",
       "description": "onSubscribe fires when a subscriber registers",
       "shape": "on-subscribe",
-      "input": { "topics": ["order:created", "order:created", "order:updated"] },
-      "expected": { "firstTopic": "order:created", "lastTopic": "order:updated", "subscribeCount": 3 }
+      "input": {
+        "topics": [
+          "order:created",
+          "order:created",
+          "order:updated"
+        ]
+      },
+      "expected": {
+        "firstTopic": "order:created",
+        "lastTopic": "order:updated",
+        "subscribeCount": 3
+      }
     },
     {
       "name": "on-unsubscribe",
       "description": "onUnsubscribe fires when unsubscribe fn is called",
       "shape": "on-unsubscribe",
-      "input": { "topic": "order:created" },
-      "expected": { "topic": "order:created", "unsubscribeCount": 1 }
+      "input": {
+        "topic": "order:created"
+      },
+      "expected": {
+        "topic": "order:created",
+        "unsubscribeCount": 1
+      }
     },
     {
       "name": "async-subscription-hooks",
       "description": "async-rejecting subscription lifecycle hooks are recorded and swallowed",
       "shape": "async-subscription-hooks",
-      "input": { "hookNames": ["onSubscribe", "onUnsubscribe"], "unhandledRejections": 0 },
-      "expected": { "hookNames": ["onSubscribe", "onUnsubscribe"], "unhandledRejections": 0 }
+      "input": {
+        "hookNames": [
+          "onSubscribe",
+          "onUnsubscribe"
+        ],
+        "unhandledRejections": 0
+      },
+      "expected": {
+        "hookNames": [
+          "onSubscribe",
+          "onUnsubscribe"
+        ],
+        "unhandledRejections": 0
+      }
     },
     {
       "name": "async-owned-queue-hooks",
       "description": "async-rejecting owned queue hooks use the owner invoker without blocking delivery",
       "shape": "async-owned-queue-hooks",
-      "input": { "hookNames": ["onEnqueue", "onDequeue", "onDeliver"], "payloadId": "owned", "topic": "order:created", "unhandledRejections": 0 },
-      "expected": { "hookNames": ["onEnqueue", "onDequeue", "onDeliver"], "received": ["owned"], "unhandledRejections": 0 }
+      "input": {
+        "hookNames": [
+          "onEnqueue",
+          "onDequeue",
+          "onDeliver"
+        ],
+        "payloadId": "owned",
+        "topic": "order:created",
+        "unhandledRejections": 0
+      },
+      "expected": {
+        "hookNames": [
+          "onEnqueue",
+          "onDequeue",
+          "onDeliver"
+        ],
+        "received": [
+          "owned"
+        ],
+        "unhandledRejections": 0
+      }
     },
     {
       "name": "on-deliver",
       "description": "onDeliver fires once per successful handler invocation",
       "shape": "on-deliver",
-      "input": { "payloadId": "x", "topic": "order:created" },
-      "expected": { "deliverCount": 2, "firstPayload": { "id": "x" } }
+      "input": {
+        "payloadId": "x",
+        "topic": "order:created"
+      },
+      "expected": {
+        "deliverCount": 2,
+        "firstPayload": {
+          "id": "x"
+        }
+      }
     },
     {
       "name": "owned-queues-isolated",
       "description": "owned subscription queues keep hook ownership isolated across bus instances",
       "shape": "owned-queues-isolated",
-      "input": { "firstId": "first", "secondId": "second", "topic": "order:created" },
+      "input": {
+        "firstId": "first",
+        "secondId": "second",
+        "topic": "order:created"
+      },
       "expected": {
-        "firstDeliver": { "payload": { "id": "first" }, "topic": "order:created" },
-        "received": ["first", "second"],
-        "secondDeliver": { "payload": { "id": "second" }, "topic": "order:created" }
+        "firstDeliver": {
+          "payload": {
+            "id": "first"
+          },
+          "topic": "order:created"
+        },
+        "received": [
+          "first",
+          "second"
+        ],
+        "secondDeliver": {
+          "payload": {
+            "id": "second"
+          },
+          "topic": "order:created"
+        }
       }
     },
     {
       "name": "on-handler-error",
       "description": "onHandlerError fires when a subscriber handler throws",
       "shape": "on-handler-error",
-      "input": { "errorMessage": "sub error", "payloadId": "y", "topic": "order:created" },
-      "expected": { "handlerErrors": 1, "message": "sub error", "topic": "order:created" }
+      "input": {
+        "errorMessage": "sub error",
+        "payloadId": "y",
+        "topic": "order:created"
+      },
+      "expected": {
+        "handlerErrors": 1,
+        "message": "sub error",
+        "topic": "order:created"
+      }
     },
     {
       "name": "enqueue-dequeue-hooks",
       "description": "onEnqueue and onDequeue fire on EventBus publish/delivery cycle",
       "shape": "enqueue-dequeue-hooks",
-      "input": { "payloadId": "z", "topic": "order:created" },
-      "expected": { "dequeueCount": 1, "enqueueCount": 1 }
+      "input": {
+        "payloadId": "z",
+        "topic": "order:created"
+      },
+      "expected": {
+        "dequeueCount": 1,
+        "enqueueCount": 1
+      }
     },
     {
       "name": "on-drop-noop",
-      "description": "drop path remains safe when the bus is closed",
+      "description": "publishing to a subscriber whose queue is already aborted drops the event and fires onDrop",
       "shape": "on-drop-noop",
-      "input": { "topic": "order:created" },
-      "expected": { "closed": true }
+      "input": {
+        "topic": "order:created",
+        "payloadId": "1"
+      },
+      "expected": {
+        "dropCount": 1,
+        "topic": "order:created"
+      }
     },
     {
       "name": "on-dispose",
       "description": "onDispose fires when bus.close is called",
       "shape": "on-dispose",
-      "input": { "disposeCount": 1 },
-      "expected": { "disposeCount": 1 }
+      "input": {
+        "disposeCount": 1
+      },
+      "expected": {
+        "disposeCount": 1
+      }
     },
     {
       "name": "hook-order",
       "description": "hooks fire in correct order",
       "shape": "hook-order",
-      "input": { "payloadId": "1", "topic": "order:created" },
-      "expected": { "order": ["subscribe", "publish", "enqueue", "dequeue", "deliver"] }
+      "input": {
+        "payloadId": "1",
+        "topic": "order:created"
+      },
+      "expected": {
+        "order": [
+          "subscribe",
+          "publish",
+          "enqueue",
+          "dequeue",
+          "deliver"
+        ]
+      }
     },
     {
       "name": "pending-admission-order",
       "description": "publish delivery waits for pending enqueue and overflow hooks in order",
       "shape": "pending-admission-order",
-      "input": { "bus": { "highWaterMark": 1 }, "payloadId": "pending", "topic": "order:created" },
+      "input": {
+        "bus": {
+          "highWaterMark": 1
+        },
+        "payloadId": "pending",
+        "topic": "order:created"
+      },
       "expected": {
-        "order": ["publish", "enqueue:start", "enqueue:end", "overflow:start", "overflow:end", "dequeue", "handler", "deliver"]
+        "order": [
+          "publish",
+          "enqueue:start",
+          "enqueue:end",
+          "overflow:start",
+          "overflow:end",
+          "dequeue",
+          "handler",
+          "deliver"
+        ]
       }
     },
     {
       "name": "default-hwm",
       "description": "default highWaterMark stays well above small publish bursts",
       "shape": "default-hwm",
-      "input": { "items": ["item-0", "item-1", "item-2", "item-3", "item-4", "item-5", "item-6", "item-7", "item-8", "item-9"], "topic": "x" },
-      "expected": { "overflowCount": 0 }
+      "input": {
+        "items": [
+          "item-0",
+          "item-1",
+          "item-2",
+          "item-3",
+          "item-4",
+          "item-5",
+          "item-6",
+          "item-7",
+          "item-8",
+          "item-9"
+        ],
+        "topic": "x"
+      },
+      "expected": {
+        "overflowCount": 0
+      }
     },
     {
       "name": "forwarded-hwm",
       "description": "configured highWaterMark is forwarded to subscriber queues",
       "shape": "forwarded-hwm",
-      "input": { "bus": { "highWaterMark": 3 }, "items": ["1", "2", "3"], "topic": "x" },
-      "expected": { "overflowCountAtLeast": 1 }
+      "input": {
+        "bus": {
+          "highWaterMark": 3
+        },
+        "items": [
+          "1",
+          "2",
+          "3"
+        ],
+        "topic": "x"
+      },
+      "expected": {
+        "overflowCountAtLeast": 1
+      }
     },
     {
       "name": "config-snapshot",
       "description": "EventBus snapshots caller-owned configuration",
       "shape": "config-snapshot",
-      "input": { "bus": { "highWaterMark": 3 }, "mutatedBus": { "highWaterMark": 1 }, "payload": "first", "topic": "x" },
-      "expected": { "overflowCount": 0 }
+      "input": {
+        "bus": {
+          "highWaterMark": 3
+        },
+        "mutatedBus": {
+          "highWaterMark": 1
+        },
+        "payload": "first",
+        "topic": "x"
+      },
+      "expected": {
+        "overflowCount": 0
+      }
     },
     {
       "name": "same-depth-no-overflow",
       "description": "the same publish depth does not overflow the default-configured bus",
       "shape": "same-depth-no-overflow",
-      "input": { "items": ["1", "2", "3"], "topic": "x" },
-      "expected": { "overflowCount": 0 }
+      "input": {
+        "items": [
+          "1",
+          "2",
+          "3"
+        ],
+        "topic": "x"
+      },
+      "expected": {
+        "overflowCount": 0
+      }
     },
     {
       "name": "throwing-on-publish",
       "description": "a throwing onPublish hook does not replace publish or prevent delivery",
       "shape": "throwing-on-publish",
-      "input": { "errorMessage": "hook boom", "payload": "hello", "topic": "ping" },
-      "expected": { "received": ["hello"] }
+      "input": {
+        "errorMessage": "hook boom",
+        "payload": "hello",
+        "topic": "ping"
+      },
+      "expected": {
+        "received": [
+          "hello"
+        ]
+      }
     },
     {
       "name": "topic-entry-cleanup",
       "description": "unsubscribing the only handler removes the topic entry",
       "shape": "topic-entry-cleanup",
-      "input": { "topic": "ping" },
-      "expected": { "after": false, "before": false, "during": true }
+      "input": {
+        "topic": "ping"
+      },
+      "expected": {
+        "after": false,
+        "before": false,
+        "during": true
+      }
     },
     {
       "name": "topic-entry-kept",
       "description": "unsubscribing one of several handlers keeps the topic entry",
       "shape": "topic-entry-kept",
-      "input": { "topic": "ping" },
-      "expected": { "after": true }
+      "input": {
+        "topic": "ping"
+      },
+      "expected": {
+        "after": true
+      }
     },
     {
       "name": "throwing-on-deliver",
       "description": "a throwing onDeliver hook does not replace successful delivery",
       "shape": "throwing-on-deliver",
-      "input": { "errorMessage": "hook boom", "payload": "hello", "topic": "ping" },
-      "expected": { "received": ["hello"] }
+      "input": {
+        "errorMessage": "hook boom",
+        "payload": "hello",
+        "topic": "ping"
+      },
+      "expected": {
+        "received": [
+          "hello"
+        ]
+      }
     }
   ]
 }

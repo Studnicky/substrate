@@ -23,9 +23,41 @@ interface ChannelStateInterface<T> {
   'subscriber': ChannelStateEntity.Type['subscriber'];
 }
 
+interface ChannelSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class ChannelInstance {
+  static belongsTo<TInstance>(
+    constructor: ChannelSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
+// T only appears in Channel's covariant/contravariant members (publish/subscribe),
+// so a bound of `Channel<T>` would force `Channel<T>` (the method's own general T)
+// to satisfy `Channel<never>`/`Channel<any>`, which either fails to typecheck or
+// requires a banned `any`. `close()` is the one public member that doesn't
+// mention T at all, so it constrains TInstance to "is actually Channel-shaped"
+// without hitting that wall.
+interface ChannelShapeInterface {
+  close(): Promise<void>;
+}
+
 export class Channel<T> {
-  static create<T>(options?: ChannelOptionsEntity.Type): Channel<T> {
-    const result = new this<T>(options);
+  static create<
+    T,
+    TInstance extends ChannelShapeInterface = Channel<T>
+  >(
+    this: ChannelSubclassInterface<TInstance>,
+    options?: ChannelOptionsEntity.Type
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!ChannelInstance.belongsTo(this, result)) {
+      throw new TypeError('Channel.create() did not construct the requested subclass.');
+    }
     return result;
   }
 

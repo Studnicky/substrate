@@ -6,7 +6,7 @@ import parser from '@typescript-eslint/parser';
 
 import { regexpInLoops } from '../../../src/rules/v8/regexpInLoops.js';
 import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
-import scenarioGroups from './regexpInLoops.scenarios.json';
+import scenarioGroups from './regexpInLoops.scenarios.json' with { type: 'json' };
 
 function toMessageId(report: unknown): string {
   if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
@@ -29,7 +29,7 @@ void describe('regexp-in-loops', () => {
   void it('ignores malformed RegExp callee shapes', () => {
     const reports: unknown[] = [];
     const listeners = regexpInLoops.create({
-      report(descriptor) {
+      report(descriptor: unknown) {
         reports.push(descriptor);
       }
     } as never);

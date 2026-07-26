@@ -31,12 +31,17 @@ export class HeadersTimeoutError extends FetchBaseError {
    */
   readonly url: string;
 
+  private static buildMessage(fields: Readonly<{ 'url': string }>): string {
+    const result = `Headers timeout for ${fields.url}`;
+    return result;
+  }
+
   constructor(url: string, cause?: Error) {
     const fields = { 'url': url };
     super(DomainErrorArgs.build(fields, {
       'cause': cause,
       'code': 'fetch.headersTimeout',
-      'message': (f) => { const result = `Headers timeout for ${f.url}`; return result; },
+      'message': HeadersTimeoutError.buildMessage,
       'retryable': true
     }));
     this.undiciCode = 'UND_ERR_HEADERS_TIMEOUT';

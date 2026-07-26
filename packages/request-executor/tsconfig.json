@@ -14,6 +14,12 @@
   ],
   "references": [
     {
+      "path": "../context"
+    },
+    {
+      "path": "../errors"
+    },
+    {
       "path": "../fetch"
     },
     {
@@ -24,12 +30,6 @@
     },
     {
       "path": "../signal"
-    },
-    {
-      "path": "../timing"
-    },
-    {
-      "path": "../context"
     }
   ]
 }

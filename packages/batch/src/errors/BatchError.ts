@@ -20,15 +20,20 @@ interface BatchErrorArgsInterface {
 
 /** Thrown when batch configuration is invalid. */
 export class BatchError extends BaseError {
+  private static buildMessage(fields: Readonly<{ 'message': string }>): string {
+    const result = fields.message;
+    return result;
+  }
+
   public constructor(message: string, args?: BatchErrorArgsInterface) {
     const fields = { 'message': message };
     super(DomainErrorArgs.build(fields, {
       'cause': args?.cause,
       'code': 'batch.invalidConfig',
       'correlationId': args?.correlationId,
-      'message': (f) => { const result = f.message; return result; },
+      'message': BatchError.buildMessage,
       'metadata': args?.metadata,
-      'retryable': false
+      'retryable': args?.retryable ?? false
     }));
   }
 }

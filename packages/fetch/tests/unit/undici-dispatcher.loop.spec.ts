@@ -6,7 +6,7 @@ import { ConfigurationError } from '../../src/errors/index.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
 import { TestDispatcher } from '../../src/testing/TestDispatcher.js';
 
-import scenarioGroups from './undici-dispatcher.scenarios.json';
+import scenarioGroups from './undici-dispatcher.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -20,14 +20,35 @@ type ScenarioCase =
       description: string;
       expected: { shape: 'healthy' };
       input: { stats: Record<string, unknown>; origin: string };
-      shape: 'health-no-stats' | 'health-invalid-stats';
+      shape: 'health-no-stats';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'healthy' };
+      input: { stats: Record<string, unknown>; origin: string };
+      shape: 'health-invalid-stats';
       name: string;
     }
   | {
       description: string;
       expected: { shape: 'health'; healthy: boolean; recommendationIncludes?: string };
       input: { stats: { connected: number; pending: number }; origin: string };
-      shape: 'health-pressure' | 'health-overload' | 'health-ok';
+      shape: 'health-pressure';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'health'; healthy: boolean; recommendationIncludes?: string };
+      input: { stats: { connected: number; pending: number }; origin: string };
+      shape: 'health-overload';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'health'; healthy: boolean; recommendationIncludes?: string };
+      input: { stats: { connected: number; pending: number }; origin: string };
+      shape: 'health-ok';
       name: string;
     }
   | {
@@ -41,7 +62,28 @@ type ScenarioCase =
       description: string;
       expected: { shape: 'called' };
       input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
-      shape: 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero';
+      shape: 'close-agent';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'called' };
+      input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
+      shape: 'destroy-agent';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'called' };
+      input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
+      shape: 'destroy-agent-delay';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'called' };
+      input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
+      shape: 'destroy-agent-zero';
       name: string;
     }
   | {
@@ -55,7 +97,14 @@ type ScenarioCase =
       description: string;
       expected: { shape: 'called' };
       input: { testDispatcher: Parameters<typeof TestDispatcher.create>[0] };
-      shape: 'test-dispatcher-close' | 'test-dispatcher-destroy';
+      shape: 'test-dispatcher-close';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'called' };
+      input: { testDispatcher: Parameters<typeof TestDispatcher.create>[0] };
+      shape: 'test-dispatcher-destroy';
       name: string;
     };
 
@@ -150,10 +199,38 @@ const runnerMap: RunnerMap = {
   },
   'destroy-agent-delay': async (scenarioCase) => {
     const { calls, dispatcher } = createSpyDispatcher(scenarioCase);
-    const start = Date.now();
-    await dispatcher.destroy({ 'timeout': scenarioCase.input.timeout ?? 1 });
-    assert.equal(calls.destroyCalls, 1);
-    assert.ok(Date.now() - start >= 0);
+    const configuredTimeout = scenarioCase.input.timeout ?? 1;
+    const originalSetTimeout = globalThis.setTimeout;
+    let capturedMs: number | undefined;
+    let releaseTimer: (() => void) | undefined;
+
+    // Spy on the global timer instead of waiting on the wall clock: Delay.for
+    // schedules a real setTimeout, so capturing its arguments and controlling
+    // when it fires proves the destroy call is actually gated behind it,
+    // deterministically and without any real wait.
+    Object.defineProperty(globalThis, 'setTimeout', {
+      'configurable': true,
+      'value': (handler: () => void, ms?: number) => {
+        capturedMs = ms;
+        releaseTimer = handler;
+        return 0;
+      }
+    });
+
+    try {
+      const destroyPromise = dispatcher.destroy({ 'timeout': configuredTimeout });
+      assert.equal(capturedMs, configuredTimeout, 'destroy must schedule the delay for the configured timeout');
+      assert.equal(calls.destroyCalls, 0, 'agent.destroy must not run before the configured delay elapses');
+      assert.equal(typeof releaseTimer, 'function');
+      releaseTimer?.();
+      await destroyPromise;
+      assert.equal(calls.destroyCalls, 1);
+    } finally {
+      Object.defineProperty(globalThis, 'setTimeout', {
+        'configurable': true,
+        'value': originalSetTimeout
+      });
+    }
   },
   'destroy-agent-zero': async (scenarioCase) => {
     const { calls, dispatcher } = createSpyDispatcher(scenarioCase);

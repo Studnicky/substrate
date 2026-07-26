@@ -25,7 +25,7 @@ type ScenarioCase = {
   name: string;
 };
 
-import scenarioGroups from './options.scenarios.json';
+import scenarioGroups from './options.scenarios.json' with { type: 'json' };
 
 type ExpectedOutcomeRunner = (config: unknown, expected: ScenarioCase['expected']) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
@@ -68,11 +68,12 @@ const expectedOutcomeMap: Record<ScenarioCase['expected']['shape'], ExpectedOutc
     });
   },
   throws: (config, expected) => {
-    assert.ok(expected.messageIncludes !== undefined);
+    const { messageIncludes } = expected;
+    assert.ok(messageIncludes !== undefined);
     assert.throws(() => {
       ValidateOptions.validate(config);
     }, (error: Error) => {
-      for (const expectedMessagePart of expected.messageIncludes) {
+      for (const expectedMessagePart of messageIncludes) {
         assert.ok(error.message.includes(expectedMessagePart));
       }
       return true;
@@ -86,7 +87,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('fetch options validation', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

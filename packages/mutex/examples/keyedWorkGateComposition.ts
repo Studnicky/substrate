@@ -99,7 +99,11 @@ class Scenarios {
         // A second caller joining the same in-flight promise, with no timeout ceiling of its
         // own on this call path, still receives the eventual result.
         await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
-        return await mutex.runExclusive('resource-3-patient-marker', async () => { await Promise.resolve(); const result = 'patient-marker'; return result; });
+        return await mutex.runExclusive(
+          'resource-3-patient-marker',
+          async () => { await Promise.resolve(); const result = 'patient-marker'; return result; },
+          (value): value is string => { return typeof value === 'string'; }
+        );
       })()
     ]);
 

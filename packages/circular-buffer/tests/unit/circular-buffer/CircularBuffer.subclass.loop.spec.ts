@@ -5,7 +5,7 @@ import { HookInvocationError, ReentrantHookInvocationError } from '@studnicky/er
 
 import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 import type { CircularBufferOptionsEntity } from '../../../src/entities/CircularBufferOptionsEntity.js';
-import scenarioGroups from './CircularBuffer.subclass.scenarios.json';
+import scenarioGroups from './CircularBuffer.subclass.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'async-rejecting-onPush-guarded'
@@ -388,40 +388,40 @@ function runCreateReturnsSubclass(scenarioCase: ScenarioCase): void {
 }
 
 function runEvictLog(scenarioCase: ScenarioCase): void {
-  const buf = EvictLogBuffer.create<BufferItem>(scenarioCase.input.options);
+  const buf = EvictLogBuffer.create<BufferItem, EvictLogBuffer<BufferItem>>(scenarioCase.input.options);
   pushAll(buf, requireItems(scenarioCase));
   assert.deepStrictEqual(buf.evictLog, requireDefined(scenarioCase.expected.evictLog, 'expected.evictLog'));
 }
 
 function runGrowLog(scenarioCase: ScenarioCase): void {
-  const buf = GrowLogBuffer.create<number>(scenarioCase.input.options);
+  const buf = GrowLogBuffer.create<number, GrowLogBuffer<number>>(scenarioCase.input.options);
   pushAll(buf, requireNumberItems(scenarioCase));
   assert.deepStrictEqual(buf.growLog, requireDefined(scenarioCase.expected.growLog, 'expected.growLog'));
 }
 
 function runPushCount(scenarioCase: ScenarioCase): void {
-  const buf = PushCountBuffer.create<number>(scenarioCase.input.options);
+  const buf = PushCountBuffer.create<number, PushCountBuffer<number>>(scenarioCase.input.options);
   pushAll(buf, requireNumberItems(scenarioCase));
   assert.strictEqual(buf.pushCount, requireDefined(scenarioCase.expected.pushCount, 'expected.pushCount'));
 }
 
 function runShiftAllLog(scenarioCase: ScenarioCase): void {
   const pushItems = requireNumberItems(scenarioCase);
-  const buf = ShiftLogBuffer.create<number>(scenarioCase.input.options);
+  const buf = ShiftLogBuffer.create<number, ShiftLogBuffer<number>>(scenarioCase.input.options);
   pushAll(buf, pushItems);
   shiftMany(buf, pushItems.length);
   assert.deepStrictEqual(buf.shiftLog, requireDefined(scenarioCase.expected.shiftLog, 'expected.shiftLog'));
 }
 
 function runShiftEmpty(scenarioCase: ScenarioCase): void {
-  const buf = ShiftLogBuffer.create<number>(scenarioCase.input.options);
+  const buf = ShiftLogBuffer.create<number, ShiftLogBuffer<number>>(scenarioCase.input.options);
   shiftMany(buf, requireDefined(scenarioCase.input.batch?.shiftCount, 'input.batch.shiftCount'));
   assert.deepStrictEqual(buf.shiftLog, requireDefined(scenarioCase.expected.shiftLog, 'expected.shiftLog'));
 }
 
 function runShiftExpectedLogCount(scenarioCase: ScenarioCase): void {
   const expectedShiftLog = requireDefined(scenarioCase.expected.shiftLog, 'expected.shiftLog');
-  const buf = ShiftLogBuffer.create<number>(scenarioCase.input.options);
+  const buf = ShiftLogBuffer.create<number, ShiftLogBuffer<number>>(scenarioCase.input.options);
   pushAll(buf, requireNumberItems(scenarioCase));
   shiftMany(buf, expectedShiftLog.length);
   assert.deepStrictEqual(buf.shiftLog, expectedShiftLog);
@@ -449,14 +449,14 @@ function runBaseClassAfterGrow(scenarioCase: ScenarioCase): void {
 }
 
 function runShiftReturnMatchesLog(scenarioCase: ScenarioCase): void {
-  const buf = ShiftLogBuffer.create<string>(scenarioCase.input.options);
+  const buf = ShiftLogBuffer.create<string, ShiftLogBuffer<string>>(scenarioCase.input.options);
   pushAll(buf, requireStringItems(scenarioCase));
   assert.strictEqual(buf.shift(), requireDefined(scenarioCase.expected.returned, 'expected.returned'));
   assert.deepStrictEqual(buf.shiftLog, requireDefined(scenarioCase.expected.shiftLog, 'expected.shiftLog'));
 }
 
 function runFullTraceGrow(scenarioCase: ScenarioCase): void {
-  const buf = FullTraceBuffer.create<number>(scenarioCase.input.options);
+  const buf = FullTraceBuffer.create<number, FullTraceBuffer<number>>(scenarioCase.input.options);
   pushAll(buf, requireNumberItems(scenarioCase));
   shiftMany(buf, requireDefined(scenarioCase.input.batch?.shiftCount, 'input.batch.shiftCount'));
   assert.strictEqual(buf.growEvents.length, requireDefined(scenarioCase.expected.growEventsLength, 'expected.growEventsLength'));
@@ -466,7 +466,7 @@ function runFullTraceGrow(scenarioCase: ScenarioCase): void {
 }
 
 function runFullTraceOverwrite(scenarioCase: ScenarioCase): void {
-  const buf = FullTraceBuffer.create<number>(scenarioCase.input.options);
+  const buf = FullTraceBuffer.create<number, FullTraceBuffer<number>>(scenarioCase.input.options);
   pushAll(buf, requireNumberItems(scenarioCase));
   assert.deepStrictEqual(buf.evictItems, requireDefined(scenarioCase.expected.evictItems, 'expected.evictItems'));
   assert.strictEqual(buf.growEvents.length, requireDefined(scenarioCase.expected.growEventsLength, 'expected.growEventsLength'));
@@ -544,14 +544,14 @@ async function runAsyncRejectingOnPushGuarded(scenarioCase: ScenarioCase): Promi
 }
 
 function runSubclassProtectedState(scenarioCase: ScenarioCase): void {
-  const buf = InspectBuffer.create<number>(scenarioCase.input.options);
+  const buf = InspectBuffer.create<number, InspectBuffer<number>>(scenarioCase.input.options);
   pushAll(buf, requireNumberItems(scenarioCase));
   buf.shift();
   assert.deepStrictEqual(buf.inspect(), requireDefined(scenarioCase.expected.state, 'expected.state'));
 }
 
 function runReentrantShift(scenarioCase: ScenarioCase): void {
-  const buf = ReentrantShiftBuffer.create<number>(scenarioCase.input.options);
+  const buf = ReentrantShiftBuffer.create<number, ReentrantShiftBuffer<number>>(scenarioCase.input.options);
   pushAll(buf, requireNumberItems(scenarioCase));
   assert.strictEqual(buf.shift(), requireDefined(scenarioCase.expected.firstShift, 'expected.firstShift'));
   assert.ok(buf.reentrantError instanceof ReentrantHookInvocationError);
@@ -560,7 +560,7 @@ function runReentrantShift(scenarioCase: ScenarioCase): void {
 }
 
 function runReentrantGrow(scenarioCase: ScenarioCase): void {
-  const buf = ReentrantGrowBuffer.create<number>(scenarioCase.input.options);
+  const buf = ReentrantGrowBuffer.create<number, ReentrantGrowBuffer<number>>(scenarioCase.input.options);
   const pushItems = requireNumberItems(scenarioCase);
   const pushStageCounts = requireDefined(scenarioCase.input.batch?.pushStageCounts, 'input.batch.pushStageCounts');
   const firstStageCount = requireDefined(pushStageCounts[0], 'input.batch.pushStageCounts[0]');

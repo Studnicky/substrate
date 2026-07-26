@@ -6,7 +6,7 @@ import {
 import { HealthRegistry } from '../../src/HealthRegistry.js';
 import type { HealthStatusEntity } from '../../src/entities/HealthStatusEntity.js';
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
-import scenarioGroups from './HealthRegistryHooks.scenarios.json';
+import scenarioGroups from './HealthRegistryHooks.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -46,7 +46,11 @@ type ScenarioCase =
     }
   | {
       description: string;
-      expected: { aggregateCalls: Array<{ overall: HealthStatusEntity.Type; size: number }>; aggregateCount: number };
+      expected: {
+        aggregateCalls: Array<{ overall: HealthStatusEntity.Type; size: number }>;
+        aggregateCountAfterFirst: number;
+        aggregateCountAfterSecond: number;
+      };
       input: { checks: Array<{ name: string; status: HealthStatusEntity.Type }> };
       shape: 'on-aggregate-after-settle';
       name: string;
@@ -131,7 +135,11 @@ async function runCheckSet(
   await registry.evaluate();
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
     'async-aggregate-rejection': async (scenarioCase) => {
       class AsyncRejectingAggregateRegistry extends HealthRegistry {
         protected override async onAggregate(): Promise<void> {
@@ -329,7 +337,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     }
 };
 
-function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   return runnerMap[scenarioCase.shape](scenarioCase);
 }
 

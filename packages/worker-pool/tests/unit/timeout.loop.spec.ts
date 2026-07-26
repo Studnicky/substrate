@@ -5,7 +5,7 @@ import { Signal } from '@studnicky/signal';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
-import scenarioGroups from './timeout.scenarios.json';
+import scenarioGroups from './timeout.scenarios.json' with { type: 'json' };
 
 interface ItemInterface {
   error?: string;
@@ -84,7 +84,7 @@ type ScenarioCase =
       input: { items: Array<{ exitAfterResult?: boolean; value: string }>; signal: { shape: 'deferred-compose' }; workerPool: WorkerPoolInputInterface };
       shape: 'compose-after-exit-queued';
       name: string;
-    }
+    };
 
 function resolveWorkerPath(relativePath: string): string {
   return new URL(relativePath, import.meta.url).pathname;
@@ -100,7 +100,11 @@ function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigIn
   return resolved;
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'worker-timeout': async (scenarioCase) => {
     const timedOutIndexes: number[] = [];
 
@@ -127,15 +131,34 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   },
 
   'signal-already-aborted': async (scenarioCase) => {
+    const abortReason = new Error('signal-already-aborted: composed signal reason');
+
     class AbortedSignal extends Signal {
-      protected override async compose(): Promise<AbortSignal> {
+      public constructor() {
+        super();
+      }
+
+      override async compose(): Promise<AbortSignal> {
         const controller = new AbortController();
-        controller.abort();
+        controller.abort(abortReason);
         return controller.signal;
       }
     }
 
-    const pool = WorkerPool.create<{ value: string }, string>({
+    const timedOutIndexes: number[] = [];
+    const workerErrors: Array<{ error: Error; index: number }> = [];
+
+    class ObservingPool extends WorkerPool<{ value: string }, string> {
+      protected override onWorkerTimeout(index: number): void {
+        timedOutIndexes.push(index);
+      }
+
+      protected override onWorkerError(error: Error, index: number): void {
+        workerErrors.push({ error, index });
+      }
+    }
+
+    const pool = ObservingPool.create({
       ...resolvePoolConfig(scenarioCase.input.workerPool),
       signal: new AbortedSignal(),
     });
@@ -145,15 +168,27 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       (error: unknown) => {
         assert.ok(error instanceof Error);
         assert.ok(error.message.includes(scenarioCase.expected.errorMessageIncludes));
+        assert.equal(error.cause, abortReason);
         return true;
       }
     );
+
+    // The task never ran, so this is not a timeout: onWorkerTimeout must not fire, and
+    // onWorkerError must fire with the abort reason reachable as the error's cause.
+    assert.deepStrictEqual(timedOutIndexes, []);
+    assert.equal(workerErrors.length, 1);
+    assert.equal(workerErrors[0]?.index, 0);
+    assert.equal(workerErrors[0]?.error.cause, abortReason);
   },
 
   'awaits-signal-composition': async (scenarioCase) => {
     class DeferredSignal extends Signal {
       readonly entered = Promise.withResolvers<void>();
       readonly release = Promise.withResolvers<void>();
+
+      public constructor() {
+        super();
+      }
 
       protected override async onCompose(): Promise<void> {
         this.entered.resolve();
@@ -185,6 +220,10 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
 
   'signal-compose-rejects': async (scenarioCase) => {
     class RejectingSignal extends Signal {
+      public constructor() {
+        super();
+      }
+
       protected override async onCompose(): Promise<void> {
         throw new Error('signal compose failed');
       }
@@ -214,6 +253,10 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   },
   'signal-compose-rejects-string': async (scenarioCase) => {
     class RejectingSignal extends Signal {
+      public constructor() {
+        super();
+      }
+
       protected override async onCompose(): Promise<void> {
         throw 'signal compose failed as string';
       }
@@ -237,6 +280,10 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       #composeCount = 0;
       readonly entered = Promise.withResolvers<void>();
       readonly release = Promise.withResolvers<void>();
+
+      public constructor() {
+        super();
+      }
 
       protected override async onCompose(): Promise<void> {
         this.#composeCount += 1;
@@ -276,6 +323,10 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       #composeCount = 0;
       readonly entered = Promise.withResolvers<void>();
 
+      public constructor() {
+        super();
+      }
+
       protected override async onCompose(): Promise<void> {
         this.#composeCount += 1;
         if (this.#composeCount === 1) {
@@ -299,7 +350,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     }
 
     const signal = new DeferredSignal();
-    const pool = GatedExitPool.create({
+    const pool = GatedExitPool.create<{ exitAfterResult?: boolean; gate: SharedArrayBuffer; value: string }, string, GatedExitPool>({
       ...resolvePoolConfig(scenarioCase.input.workerPool),
       signal,
     });
@@ -310,7 +361,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

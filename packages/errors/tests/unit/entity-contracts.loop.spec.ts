@@ -20,7 +20,7 @@ import { ValidationAggregateViewEntity } from '../../src/entities/ValidationAggr
 import { ValidationProblemDetailsEntity } from '../../src/entities/ValidationProblemDetailsEntity.js';
 import { ValidationReportOptionsEntity } from '../../src/entities/ValidationReportOptionsEntity.js';
 import { ValidationErrorArgumentsEntity } from '../../src/entities/ValidationErrorArgumentsEntity.js';
-import scenarioGroups from './entity-contracts.scenarios.json';
+import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-with-address-invalid' | 'error-with-address-valid' | 'error-with-code-invalid' | 'error-with-code-valid' | 'error-with-errno-invalid' | 'error-with-errno-valid' | 'error-with-hostname-invalid' | 'error-with-hostname-valid' | 'error-with-port-invalid' | 'error-with-port-valid' | 'error-with-retry-after-invalid' | 'error-with-retry-after-valid' | 'error-with-status-invalid' | 'error-with-status-valid' | 'error-with-status-code-invalid' | 'error-with-status-code-valid' | 'error-with-syscall-invalid' | 'error-with-syscall-valid' }

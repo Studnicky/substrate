@@ -58,9 +58,26 @@ export class LruCache<K, V> {
   #head: LruCacheNodeInterface<K, V> | undefined;
   #tail: LruCacheNodeInterface<K, V> | undefined;
 
-  static create<K = unknown, V = unknown>(options: LruCacheOptionsEntity.Type): LruCache<K, V> {
-    // `new this(...)` so subclass factories return the subclass instance.
-    return new this(options);
+  private static isConstructed<TInstance>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<
+    K = unknown,
+    V = unknown,
+    TInstance extends LruCache<K, V> = LruCache<K, V>
+  >(
+    this: Function & { readonly 'prototype': TInstance },
+    options: LruCacheOptionsEntity.Type
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!LruCache.isConstructed<TInstance>(result, this)) {
+      throw new TypeError('LruCache.create() must construct a LruCache instance');
+    }
+    return result;
   }
 
   protected constructor(options: LruCacheOptionsEntity.Type) {

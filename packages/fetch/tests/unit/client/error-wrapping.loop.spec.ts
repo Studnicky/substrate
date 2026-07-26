@@ -10,21 +10,63 @@ import {
   SocketExhaustionError
 } from '../../../src/index.js';
 
-import scenarioGroups from './error-wrapping.scenarios.json';
+import scenarioGroups from './error-wrapping.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
       description: string;
       expected: { shape: 'undefined' };
-      input: { errorCode?: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'wrap-unknown-code' | 'wrap-no-code' | 'handle-no-dispatcher' | 'handle-invalid-origin';
+      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
+      shape: 'wrap-unknown-code';
       name: string;
     }
   | {
       description: string;
-      expected: { shape: 'error'; errorName: 'BodyTimeoutError' | 'ConnectTimeoutError' | 'HeadersTimeoutError' | 'SocketError' };
+      expected: { shape: 'undefined' };
+      input: { errorCode?: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
+      shape: 'wrap-no-code';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'undefined' };
       input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'wrap-body-timeout' | 'wrap-connect-timeout' | 'wrap-headers-timeout' | 'wrap-socket-error';
+      shape: 'handle-no-dispatcher';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'undefined' };
+      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
+      shape: 'handle-invalid-origin';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'error'; errorName: 'BodyTimeoutError' };
+      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
+      shape: 'wrap-body-timeout';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'error'; errorName: 'ConnectTimeoutError' };
+      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
+      shape: 'wrap-connect-timeout';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'error'; errorName: 'HeadersTimeoutError' };
+      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
+      shape: 'wrap-headers-timeout';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { shape: 'error'; errorName: 'SocketError' };
+      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
+      shape: 'wrap-socket-error';
       name: string;
     }
   | {

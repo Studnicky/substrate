@@ -11,10 +11,6 @@ import { FetchClient } from '../src/index.js';
 // connection-pool dispatcher is a Node-only enhancement (disabled by default),
 // so this exact code runs unchanged in the browser.
 class TraceClient extends FetchClient {
-  static override create(config: Parameters<typeof FetchClient.create>[0] = {}): TraceClient {
-    return new this(config);
-  }
-
   requestHookCount = 0;
   responseHookCount = 0;
 

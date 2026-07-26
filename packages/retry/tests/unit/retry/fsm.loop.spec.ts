@@ -9,7 +9,7 @@ import type { RetryContextInterface } from '../../../src/interfaces/RetryContext
 
 import { MaxRetriesExceededError, NonRetryableError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
-import scenarioGroups from './fsm.scenarios.json';
+import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
 
 type TransitionRecord = { from: RetryCallStateEntity.Type; to: RetryCallStateEntity.Type };
 
@@ -105,7 +105,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   'exhausted-after-max-elapsed': async (scenarioCase) => {
     const retry = new TrackingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
-      maxElapsedMs: scenarioCase.input.maxElapsedMs,
+      ...(scenarioCase.input.maxElapsedMs === undefined ? {} : { maxElapsedMs: scenarioCase.input.maxElapsedMs }),
       maxRetries: scenarioCase.input.maxRetries
     });
 
@@ -127,8 +127,11 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
   },
   'illegal-transition': async (scenarioCase) => {
-    const { rejectedTransition } = scenarioCase.input;
-    assert.ok(rejectedTransition);
+    const { rejectedTransition: maybeRejectedTransition } = scenarioCase.input;
+    if (maybeRejectedTransition === undefined) {
+      throw new Error('Scenario input.rejectedTransition is required');
+    }
+    const rejectedTransition: NonNullable<typeof maybeRejectedTransition> = maybeRejectedTransition;
 
     class GuardRejectingRetry extends Retry {
       constructor(config?: Partial<RetryConfigInterface>) {
@@ -153,7 +156,6 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
         return error instanceof Error && (error.message.includes(message) || (error.cause instanceof Error && error.cause.message.includes(message)));
       }
     );
-    assert.equal(scenarioCase.expected.errorMessageIncludes, 'Illegal state transition');
   },
   'non-retryable-error': async (scenarioCase) => {
     const retry = new TrackingRetry({
@@ -163,10 +165,9 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error('fatal'); }),
-      NonRetryableError
+      (error: unknown) => error instanceof NonRetryableError && error.name === String(scenarioCase.expected.errorName)
     );
     assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
-    assert.equal(scenarioCase.expected.errorName, 'NonRetryableError');
   },
   'retryable-failure-then-success': async (scenarioCase) => {
     const retry = new TrackingRetry({

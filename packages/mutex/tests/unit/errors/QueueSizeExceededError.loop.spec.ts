@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { QueueSizeExceededError } from '../../../src/errors/index.js';
-import scenarioGroups from './QueueSizeExceededError.scenarios.json';
+import scenarioGroups from './QueueSizeExceededError.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
   expected: {

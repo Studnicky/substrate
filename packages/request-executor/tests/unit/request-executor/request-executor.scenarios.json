@@ -12,9 +12,27 @@
     {
       "name": "rejects negative deadlines",
       "description": "rejects negative deadlines",
-      "shape": "entity-rejects-negative-deadline",
+      "shape": "entity-rejects-invalid-deadline",
       "input": {
         "values": [{ "deadlineMs": -1 }]
+      },
+      "expected": { "accepted": false }
+    },
+    {
+      "name": "rejects deadlines with additional properties",
+      "description": "rejects deadlines with additional properties",
+      "shape": "entity-rejects-invalid-deadline",
+      "input": {
+        "values": [{ "deadlineMs": 5, "extra": true }]
+      },
+      "expected": { "accepted": false }
+    },
+    {
+      "name": "rejects non-numeric deadlineMs",
+      "description": "rejects non-numeric deadlineMs",
+      "shape": "entity-rejects-invalid-deadline",
+      "input": {
+        "values": [{ "deadlineMs": "5" }]
       },
       "expected": { "accepted": false }
     },
@@ -159,9 +177,9 @@
       }
     },
     {
-      "name": "captures one start/complete Timing span across all retry attempts",
-      "description": "captures one start/complete Timing span across all retry attempts",
-      "shape": "timing-brackets-retry-loop",
+      "name": "brackets one onExecuteStart/onExecuteComplete pair across all retry attempts",
+      "description": "brackets one onExecuteStart/onExecuteComplete pair across all retry attempts",
+      "shape": "hooks-bracket-retry-loop",
       "input": {
         "fetchFailures": 1,
         "fetchPath": "/flaky",
@@ -171,15 +189,14 @@
         }
       },
       "expected": {
-        "completeEvents": 1,
-        "responseStatus": 200,
-        "startEvents": 1
+        "hookNames": ["onExecuteStart", "onExecuteComplete"],
+        "responseStatus": 200
       }
     },
     {
-      "name": "timing-brackets-error",
-      "description": "records timing start and complete counts when the executor callback throws",
-      "shape": "timing-brackets-error",
+      "name": "fires onExecuteStart/onExecuteError when the executor callback throws",
+      "description": "fires onExecuteStart/onExecuteError when the executor callback throws, and the original error still propagates",
+      "shape": "hooks-bracket-error",
       "input": {
         "errorMessage": "boom",
         "requestExecutor": {
@@ -189,8 +206,39 @@
       },
       "expected": {
         "errorMessage": "boom",
-        "errorEvents": 1,
-        "startEvents": 1
+        "hookNames": ["onExecuteStart", "onExecuteError"]
+      }
+    },
+    {
+      "name": "a throwing onExecuteError override does not replace the propagated request error",
+      "description": "a throwing onExecuteError override does not replace the propagated request error, and the hook failure is recorded via getHookErrors()",
+      "shape": "hooks-error-not-swallowed",
+      "input": {
+        "errorMessage": "request failed",
+        "hookFailureMessage": "onExecuteError override failed",
+        "requestExecutor": {
+          "fetchClient": { "baseURL": "https://example.test" },
+          "retry": {}
+        }
+      },
+      "expected": {
+        "errorMessage": "request failed",
+        "hookErrorCount": 1,
+        "hookErrorName": "onExecuteError"
+      }
+    },
+    {
+      "name": "default RequestExecutor has no-op hooks and executes unaffected",
+      "description": "default RequestExecutor (no subclass overrides) has no-op lifecycle hooks and executes unaffected",
+      "shape": "hooks-noop-default",
+      "input": {
+        "fetchResponseText": "ok",
+        "fetchUrl": "https://example.test/"
+      },
+      "expected": {
+        "hookErrorCount": 0,
+        "responseStatus": 200,
+        "responseText": "ok"
       }
     },
     {

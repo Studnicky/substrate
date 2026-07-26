@@ -10,11 +10,11 @@ export {
 } from './classifiers/index.js';
 export {
   CAUSE_CHAIN_DEPTH_LIMIT,
-  CAUSE_DEPTH_SENTINEL,
+  CAUSE_DEPTH_SENTINEL
+} from './constants/CauseChainConstants.js';
+export {
   EARLY_RETRY_THRESHOLD,
   EMPTY_LENGTH,
-  ErrorCode,
-  ErrorDefaults,
   HTTP_CLIENT_ERROR_END,
   HTTP_CLIENT_ERROR_START,
   HTTP_INFORMATIONAL_END,
@@ -25,7 +25,11 @@ export {
   HTTP_SERVER_ERROR_END,
   HTTP_SERVER_ERROR_START,
   HTTP_SUCCESS_END,
-  HTTP_SUCCESS_START,
+  HTTP_SUCCESS_START
+} from './constants/ClassifierConstants.js';
+export {
+  ErrorCode,
+  ErrorDefaults,
   HttpStatus
 } from './constants/index.js';
 export { ErrorClassificationEntity } from './entities/ErrorClassificationEntity.js';

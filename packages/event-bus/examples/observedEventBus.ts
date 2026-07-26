@@ -8,10 +8,6 @@ import type { OrderStatusEventMapEntity } from './entities/OrderStatusEventMapEn
 import { EventBus } from '../src/index.js';
 
 class TracedBus extends EventBus<OrderStatusEventMapEntity.Type> {
-  static override create(): TracedBus {
-    return new TracedBus();
-  }
-
   readonly deliverLog: { 'payload': unknown; 'topic': string }[] = [];
   readonly dequeueLog: string[] = [];
   readonly disposeLog: number[] = [];

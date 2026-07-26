@@ -3,18 +3,29 @@
     {
       "name": "default-config",
       "description": "DispatcherAgent.create uses defaults when config is empty",
-      "shape": "default-config",
       "input": {
         "dispatcherAgent": {}
       },
       "expected": {
-        "optionKeys": 0
+        "options": {
+          "pipelining": 1,
+          "connections": 10,
+          "connectTimeout": 10000,
+          "bodyTimeout": 30000,
+          "headersTimeout": 30000,
+          "keepAliveTimeout": 4000,
+          "keepAliveMaxTimeout": 600000,
+          "keepAliveTimeoutThreshold": 1000,
+          "maxHeaderSize": 16384,
+          "strictContentLength": true,
+          "maxOrigins": "__INFINITY__",
+          "connect": "__UNDEFINED__"
+        }
       }
     },
     {
       "name": "sparse-config",
       "description": "DispatcherAgent.create preserves sparse config values",
-      "shape": "sparse-config",
       "input": {
         "dispatcherAgent": {
           "connections": 1,
@@ -22,13 +33,25 @@
         }
       },
       "expected": {
-        "optionKeys": 2
+        "options": {
+          "pipelining": 1,
+          "connections": 1,
+          "connectTimeout": 10000,
+          "bodyTimeout": 30000,
+          "headersTimeout": 30000,
+          "keepAliveTimeout": 4000,
+          "keepAliveMaxTimeout": 600000,
+          "keepAliveTimeoutThreshold": 1000,
+          "maxHeaderSize": 16384,
+          "strictContentLength": true,
+          "maxOrigins": "__INFINITY__",
+          "connect": "__UNDEFINED__"
+        }
       }
     },
     {
       "name": "comprehensive-config",
       "description": "DispatcherAgent.create accepts a comprehensive dispatcher config",
-      "shape": "comprehensive-config",
       "input": {
         "dispatcherAgent": {
           "allowH2": true,
@@ -54,7 +77,28 @@
         }
       },
       "expected": {
-        "optionKeys": 18
+        "options": {
+          "pipelining": 1,
+          "connections": 2,
+          "clientTtl": 40,
+          "connectTimeout": 50,
+          "bodyTimeout": 30,
+          "headersTimeout": 60,
+          "keepAliveTimeout": 80,
+          "keepAliveMaxTimeout": 70,
+          "keepAliveTimeoutThreshold": 90,
+          "allowH2": true,
+          "maxConcurrentStreams": 100,
+          "maxResponseSize": 500,
+          "maxHeaderSize": 200,
+          "maxRequestsPerClient": 4,
+          "strictContentLength": true,
+          "localAddress": "127.0.0.1",
+          "autoSelectFamily": true,
+          "autoSelectFamilyAttemptTimeout": 20,
+          "maxOrigins": 3,
+          "connect": "__UNDEFINED__"
+        }
       }
     }
   ]

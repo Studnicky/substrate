@@ -4,23 +4,23 @@ import { describe, it } from 'node:test';
 import { Batch } from '../../../src/batch/Batch.js';
 import { DEFAULT_BATCH_MAX_CONCURRENT } from '../../../src/constants/index.js';
 import { collectBatches, delay } from '../../helpers/index.js';
-import scenarioGroups from './batch.scenarios.json';
+import scenarioGroups from './batch.scenarios.json' with { type: 'json' };
 
 type ScenarioInput = Record<string, unknown> & { batch?: { maxConcurrent?: number } };
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-empty' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-single-batch' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-single-batch-concurrent' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-multi-batch' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-invalid-max-concurrent' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-order' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-default-max-concurrent' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-waits-for-batch-completion' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-propagates-errors' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-stops-on-first-error' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-returns-results' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-returns-results' };
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-empty' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-single-batch' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-single-batch-concurrent' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-multi-batch' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-invalid-max-concurrent' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-order' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-default-max-concurrent' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-waits-for-batch-completion' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-propagates-errors' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-stops-on-first-error' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-returns-results' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-settled-returns-results' };
 
 type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
@@ -52,7 +52,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
     const batches: number[][] = [];
-    for await (const batch of createScenarioBatch(input).process(input.items as number[], async (item: number) => item * 2)) {
+    for await (const batch of createScenarioBatch<number>(input).process(input.items as number[], async (item: number) => item * 2)) {
       batches.push(batch);
     }
     assert.deepStrictEqual(batches, expected.batches);
@@ -62,7 +62,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
     const batches: number[][] = [];
-    for await (const batch of createScenarioBatch(input).process(
+    for await (const batch of createScenarioBatch<number>(input).process(
       input.items as number[],
       async (item) => item * 2
     )) {
@@ -75,7 +75,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
     const executionOrder: number[] = [];
-    for await (const batch of createScenarioBatch(input).process(
+    for await (const batch of createScenarioBatch<number>(input).process(
       input.items as number[],
       async (item) => {
         executionOrder.push(item);
@@ -92,7 +92,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
     const batches: number[][] = [];
-    for await (const batch of createScenarioBatch(input).process(
+    for await (const batch of createScenarioBatch<number>(input).process(
       input.items as number[],
       async (item) => {
         await delay(Number(input.delayMs));
@@ -107,7 +107,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-invalid-max-concurrent': (scenarioCase) => {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
-    assert.throws(() => { createScenarioBatch(input); }, (error: unknown) => {
+    assert.throws(() => { createScenarioBatch<number>(input); }, (error: unknown) => {
       assertErrorMessageIncludes(error, String(expected.message));
       return true;
     });
@@ -116,7 +116,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-order': async (scenarioCase) => {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
-    const generator = createScenarioBatch(input).process(
+    const generator = createScenarioBatch<number>(input).process(
       input.items as number[],
       async (item) => {
         const index = (input.items as number[]).indexOf(item);
@@ -135,7 +135,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const items = input.items as number[];
     let maxConcurrentObserved = 0;
     let currentConcurrent = 0;
-    for await (const batch of createScenarioBatch(input).process(
+    for await (const batch of createScenarioBatch<number>(input).process(
       items,
       async (item) => {
         currentConcurrent += 1;
@@ -158,7 +158,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const items = input.items as number[];
     const batchTimestamps: number[] = [];
     const startTime = Date.now();
-    for await (const batch of createScenarioBatch(input).process(items, async (item) => {
+    for await (const batch of createScenarioBatch<number>(input).process(items, async (item) => {
       await delay(Number(input.delayMs));
       return item;
     })) {
@@ -179,7 +179,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const expected = scenarioCase.expected;
     const items = input.items as number[];
     const consumeGenerator = async (): Promise<void> => {
-      for await (const batch of createScenarioBatch(input).process(items, async (item) => {
+      for await (const batch of createScenarioBatch<number>(input).process(items, async (item) => {
         if (item === Number(input.errorItem)) {
           throw new Error(String(input.errorMessage));
         }
@@ -202,7 +202,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const batchesReceived: number[][] = [];
 
     const consumeGenerator = async (): Promise<void> => {
-      for await (const batch of createScenarioBatch(input).process(items, async (item) => {
+      for await (const batch of createScenarioBatch<number>(input).process(items, async (item) => {
         processed.push(item);
         await delay(10);
         if (item === Number(input.errorItem)) {

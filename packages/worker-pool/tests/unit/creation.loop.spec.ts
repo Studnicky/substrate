@@ -5,7 +5,7 @@ import { Signal } from '@studnicky/signal';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
-import scenarioGroups from './creation.scenarios.json';
+import scenarioGroups from './creation.scenarios.json' with { type: 'json' };
 
 interface ItemInterface {
   value: string;
@@ -81,7 +81,11 @@ function resolveRequiredPoolConfig(config: WorkerPoolInputInterface): WorkerPool
   };
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'missing-worker-path': async (scenarioCase) => {
     assert.throws(() => WorkerPool.create(resolvePoolConfig(scenarioCase.input.workerPool)), (error: unknown) => {
       assert.ok(error instanceof Error);
@@ -99,6 +103,10 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   'caller-supplied-signal': async (scenarioCase) => {
     class TrackingSignal extends Signal {
       calls = 0;
+
+      public constructor() {
+        super();
+      }
 
       protected override onCompose(): void {
         this.calls += 1;
@@ -144,7 +152,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

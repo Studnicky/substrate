@@ -7,7 +7,7 @@ import type { ErrorClassificationEntity } from '@studnicky/errors';
 
 import { MaxRetriesExceededError, NonRetryableError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
-import scenarioGroups from './hook-throw.scenarios.json';
+import scenarioGroups from './hook-throw.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'enter-call' | 'on-attempt' | 'on-give-up-exhausted' | 'on-give-up-non-retryable' | 'on-retry-scheduled' | 'on-retry-scheduled-async' | 'on-retryable-error' | 'on-success'; name: string };
@@ -111,9 +111,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
-      MaxRetriesExceededError
+      (error: unknown) => error instanceof MaxRetriesExceededError && error.name === String(expected.errorShape)
     );
-    assert.strictEqual(expected.errorShape, 'MaxRetriesExceededError');
   },
   'on-give-up-non-retryable': async (scenario) => {
     const { expected, input } = scenario;
@@ -135,9 +134,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
-      NonRetryableError
+      (error: unknown) => error instanceof NonRetryableError && error.name === String(expected.errorShape)
     );
-    assert.strictEqual(expected.errorShape, 'NonRetryableError');
   },
   'on-retry-scheduled': async (scenario) => {
     const { expected, input } = scenario;

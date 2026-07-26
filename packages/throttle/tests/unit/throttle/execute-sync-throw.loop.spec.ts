@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { HookInvocationError } from '@studnicky/errors';
 import { Throttle } from '../../../src/throttle/index.js';
-import scenarioGroups from './execute-sync-throw.scenarios.json';
+import scenarioGroups from './execute-sync-throw.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { name: string; description: string; expected: Record<string, unknown>; input: { errorMessage: string; failureMessage?: string; result?: string; throttle: { concurrencyLimit: number } }; shape: 'sync-throw-releases-slot' | 'sync-throw-reject-hook' };
@@ -63,7 +63,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Throttle synchronous throw regression', () => {
-  for (const scenarioCase of scenarioGroups.cases) {
+  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

@@ -5,7 +5,7 @@ import { BaseError } from '@studnicky/errors';
 
 import { ConfigurationError } from '../../../src/errors/ConfigurationError.js';
 
-import scenarioGroups from './ConfigurationError.scenarios.json';
+import scenarioGroups from './ConfigurationError.scenarios.json' with { type: 'json' };
 
 type ConstructionOutcome =
   | 'ConfigurationError'
@@ -36,10 +36,10 @@ type DirectScenario = {
   readonly outcome: DirectOutcome;
 };
 
-const typedScenarioGroups: {
+const typedScenarioGroups = scenarioGroups as {
   readonly construction: readonly ConstructionScenario[];
   readonly direct: readonly DirectScenario[];
-} = scenarioGroups;
+};
 
 const constructionAssertions: Record<ConstructionOutcome, (err: ConfigurationError) => void> = {
   'ConfigurationError': (err): void => {

@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { ValidateURL } from '../../../src/config/schemas/validateURL.js';
 
-import scenarioGroups from './validate-url.scenarios.json';
+import scenarioGroups from './validate-url.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: { shape: 'ok' }; input: { value: unknown }; shape: 'valid'; name: string }

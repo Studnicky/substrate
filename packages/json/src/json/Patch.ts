@@ -18,6 +18,19 @@ import { PatchError } from '../errors/PatchError.js';
 import { ARRAY_INDEX_PATTERN } from './constants/PatchConstants.js';
 import { DataType } from './DataType.js';
 
+interface PatchSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class PatchInstance {
+  static belongsTo<TInstance>(
+    constructor: PatchSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 export class Patch {
   readonly #operations: readonly PatchOperationInterface[];
 
@@ -58,13 +71,18 @@ export class Patch {
   }
 
   /**
-   * Canonical entry point — validates operations and returns a `Patch` instance.
-   *
-   * Subclasses inherit this as `SubClass.create(...)`; `new this(...)` resolves
-   * to the receiver's concrete class.
+   * Canonical entry point — validates operations and returns a `Patch` instance
+   * (or the subclass instance when called on a subclass, e.g. `SubClass.create(...)`).
    */
-  public static create(operations: unknown = []): Patch {
-    return new this(operations);
+  public static create<TInstance extends Patch = Patch>(
+    this: PatchSubclassInterface<TInstance>,
+    operations: unknown = []
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [operations]);
+    if (!PatchInstance.belongsTo(this, result)) {
+      throw new TypeError('Patch.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   protected constructor(operations: unknown = []) {

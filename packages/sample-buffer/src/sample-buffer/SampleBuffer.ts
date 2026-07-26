@@ -54,8 +54,22 @@ import { SampleBufferError } from '../errors/index.js';
  * ```
  */
 export class SampleBuffer implements SampleBufferInterface {
-  static create(options: SampleBufferOptionsEntity.Type): SampleBuffer {
-    return new this(options);
+  private static isConstructed<TInstance extends SampleBuffer>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<TInstance extends SampleBuffer = SampleBuffer>(
+    this: Function & { readonly 'prototype': TInstance },
+    options: SampleBufferOptionsEntity.Type
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!SampleBuffer.isConstructed(result, this)) {
+      throw new TypeError('SampleBuffer.create() must construct a SampleBuffer instance');
+    }
+    return result;
   }
 
   static #validate(options: SampleBufferOptionsEntity.Type): void {

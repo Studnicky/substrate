@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { interfaceMustBeContract } from '../../src/rules/interfaceMustBeContract.js';
-import scenarioGroups from './interfaceMustBeContract.scenarios.json';
+import scenarioGroups from './interfaceMustBeContract.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
