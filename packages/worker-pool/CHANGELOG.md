@@ -1,5 +1,43 @@
 # Changelog
 
+## 9.1.0
+
+### Patch Changes
+
+- 789da06: ### Fixed
+
+  - `logger`'s `logger-primitive-contracts.loop.spec.ts`, `LogEventName.loop.spec.ts`, `LogStatus.loop.spec.ts`, and `Logger.loop.spec.ts` type their scenario runner maps with the `Extract<ScenarioCase, { shape: K }>`-keyed generic form instead of a flat `Record<ScenarioCase['shape'], (c: ScenarioCase) => void>`, so each runner narrows to its own case fields instead of the full union. `LogFault`'s scenario fixture input is split into a fully-optional variant for the deliberately-incomplete `log-fault-missing-field` case and a required-field variant for the three complete fault fixtures, matching what `LogFault.create()` actually requires. `LogEventName.scenarios.json` and `LogStatus.scenarios.json`'s cases gain the `name` field on their `ScenarioCase` type. `observedLogger.ts`'s `ObservedLogger.events` getter returns `readonly LogEventInterface[]`, matching `EventRecorder`'s readonly accessor.
+  - `health-registry`'s `HealthRegistry.loop.spec.ts` and `HealthRegistryHooks.loop.spec.ts` adopt the same `Extract`-keyed runner map pattern. `HealthRegistryHooks.scenarios.json`'s `on-aggregate-after-settle` case's `ScenarioCase` type is corrected to `aggregateCountAfterFirst`/`aggregateCountAfterSecond`, matching the fixture and the assertions that already read those fields. `observedHealthRegistry.ts`'s inline health checks are `async`, matching `HealthCheckInterface`'s `Promise`-returning contract.
+  - `request-executor`'s `request-executor.loop.spec.ts` adopts the same `Extract`-keyed runner map pattern, drops an unresolvable `RequestInfo` type reference in favor of contextual inference from `typeof fetch`, guards `RequestInit.signal` against `null` alongside `undefined`, and constructs `TrackingFetchClient` through its own `static create()` instead of `new` against `FetchClient`'s protected constructor.
+  - `worker-pool`'s `creation.loop.spec.ts`, `hooks.loop.spec.ts`, `run.loop.spec.ts`, `termination.loop.spec.ts`, and `timeout.loop.spec.ts` adopt the same `Extract`-keyed runner map pattern. Local `Signal` and `WorkerPool` test subclasses that relied on the inherited `protected` constructor now declare their own `public constructor()`. `timeout.loop.spec.ts`'s `AbortedSignal` overrides `compose()` at its declared public visibility instead of narrowing it to `protected`. `pooling.loop.spec.ts` and `run.loop.spec.ts` assert `workerPool.concurrency` is defined before comparing against it, and `run.loop.spec.ts`'s `resolvePoolConfig` only sets `concurrency` on the resolved config when the input provides one, avoiding an explicit `undefined` under `exactOptionalPropertyTypes`.
+
+- 789da06: ### Fixed
+
+  - Every `*.scenarios.json` import across the test suites carries the `with { type: 'json' }` import attribute `module: NodeNext` requires, clearing 221 `TS1543` diagnostics that `tsc -b` never surfaced because test files aren't part of any package's typechecked build — only `tsconfig.eslint.json` (used for ESLint's type-aware rules) sees them, and it consumes type information without reporting `TS` diagnostics on its own.
+  - Tests that constructed a `protected`-constructor class directly with `new` now call the class's `this`-polymorphic static factory instead (`Subclass.create(...)`), clearing 78 `TS2674` diagnostics across `Clock`, `Channel`, `Coalesce`, `EntityStore`, `CircuitBreaker`, `EventBus`, `Mutex`, and `RealTimeScheduler` subclasses. The remaining 86 `TS2674` instances are left on `new` because no fitting factory exists for that call site: `StateMachine` is abstract with no static factory at all; `EffectInterpreter`, `InterpreterHistory`, `DeadLetterQueue`, `Signal`, `FetchClient`, and `ErrorClassifier`'s factories (where one exists) hardcode their own class rather than accepting `this`, so calling them on a subclass returns the base type instead of the subclass; and `Channel`/`Coalesce` subclasses that are themselves generic and expose subclass-only members lose that member's type through the factory's necessarily looser `TInstance` bound, so the direct constructor call is correct as written.
+
+- 789da06: A task whose composed timeout signal is already aborted before it is ever posted to a worker rejects with a message stating that dispatch never happened, and fires `onWorkerError` instead of `onWorkerTimeout` — that task never timed out. A genuine in-flight timeout continues to reject with a timeout message and fires `onWorkerTimeout`. Both rejections attach the signal's `reason`, when present, as the error's `cause`, so a classifier or consumer can reach the underlying reason instead of only a generic timeout label.
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+  - @studnicky/signal@9.1.0
+  - @studnicky/errors@9.1.0
+  - @studnicky/batch@9.1.0
+  - @studnicky/json@9.1.0
+  - @studnicky/system@9.1.0
+
 ## 9.0.0
 
 ### Major Changes

@@ -1,5 +1,43 @@
 # Changelog
 
+## 9.1.0
+
+### Minor Changes
+
+- 789da06: ### Changed
+
+  - `@studnicky/visible-range`'s `VisibleRange.create()`, `@studnicky/virtual-fs`'s `VirtualFileSystem.create()`, `@studnicky/sliding-window-limiter`'s `SlidingWindowLimiter.create()`, `@studnicky/sample-buffer`'s `SampleBuffer.create()`, `@studnicky/retry`'s `Retry.create()`, `@studnicky/batch`'s `Batch.create()`, `@studnicky/cache`'s `LruCache.create()`, `@studnicky/boundary-kit`'s `BoundaryKit.create()`, `@studnicky/entity-store`'s `EntityStore.create()`, `@studnicky/idempotency-guard`'s `IdempotencyGuard.create()`, `@studnicky/mutex`'s `Mutex.create()`, `@studnicky/keyed-work-gate`'s `KeyedWorkGate.create()`, and `@studnicky/bounded-dispatcher`'s `BoundedDispatcher.create()` return the invoking subclass's own type instead of the base class. Each already constructed the subclass at runtime via `new this(...)`; the factory now types its `this` parameter and constructs through `Reflect.construct`, so `MySubclass.create(...)` types as `MySubclass` and a subclass member is readable without a cast. A runtime guard throws a `TypeError` naming the factory if construction ever yields an instance outside the requested subclass's prototype chain. Calling `Base.create(...)` directly is unaffected — it still types as `Base`.
+  - `@studnicky/keyed-rate-limiter`'s `KeyedRateLimiter.create()` follows the same subclass-return pattern across all three overloads (the default `TokenBucket` configuration signature, the generic strategy signature, and the implementation signature). Its `keyed-rate-limiter.loop.spec.ts` suite drops the five `as TrackingLimiter`/`as TrackingEvictionLimiter`/`as ThrowingEvictedLimiter` return-type casts that existed only because the factory wasn't polymorphic.
+
+### Patch Changes
+
+- 789da06: ### Fixed
+
+  - `@studnicky/circular-buffer`'s `CircularBuffer.unshift.loop.spec.ts` dispatches each scenario through an `Extract`-keyed `ScenarioRunner<K>`/`RunnerMap` instead of handing every runner the full eleven-member scenario union. `CircularBuffer.loop.spec.ts`'s `requireExpected*`/`requireBatch*` helpers narrow with `assert.ok(typeof x === 'number', …)` in place of `assert.equal(typeof x, 'number', …)`, which asserts the string `typeof` result rather than narrowing `x` itself. `CircularBufferError.loop.spec.ts`'s scenario `metadata` fields type as `Record<string, JSONSchema7Type>`, matching the constructor's actual `Readonly<Record<string, JSONSchema7Type>>` contract instead of the wider `Record<string, unknown>`.
+  - `@studnicky/throttle`'s `configuration.loop.spec.ts`, `delay.loop.spec.ts`, `fsm.loop.spec.ts`, `instantiation.loop.spec.ts`, and `entity-contracts.loop.spec.ts` dispatch through the same `Extract`-keyed `RunnerMap` pattern. `tests/helpers/VirtualClockThrottle.ts` renames its clock-injecting factory to `createWithClock(...)` so it no longer collides with `Throttle`'s non-polymorphic `static create()` signature. `configuration.loop.spec.ts` narrows `concurrencyLimit` with an explicit `typeof === 'number'` check before use under `exactOptionalPropertyTypes`.
+  - `@studnicky/pipeline`'s `Pipeline.loop.spec.ts` splits three scenario members that combined multiple `shape` literals into one (e.g. `'empty-pipeline-returns-input' | 'single-async-stage-applies'`) into one member per literal, so its `Extract`-keyed dispatch narrows correctly instead of collapsing to `never`. `examples/observedPipeline.ts` and `PipelineSubclass.loop.spec.ts` give `TracingPipeline`, `BracketPipeline`, `ObservingPipeline`, and `InspectPipeline` explicit `public constructor`s and construct them with `new` — `Pipeline`'s stage functions make its type parameter invariant, so its factory stays intentionally non-polymorphic.
+  - `@studnicky/idempotency-guard`'s `idempotency-guard.loop.spec.ts` replaces its JSON-import-derived `ScenarioCase` (whose `shape` field widens to plain `string` under `resolveJsonModule`, collapsing every `Extract` to `never`) with a hand-declared 24-variant discriminated union and matching concrete `asserts scenario is Extract<ScenarioCase, {shape: '…'}>` guards, one per shape.
+  - `@studnicky/concurrency`'s `AsyncIter.loop.spec.ts` splits three scenario members with combined `shape` literals into one member per literal and parameterizes an `AsyncIter.enrich` call explicitly instead of relying on inference. `Channel.loop.spec.ts` converts to the `Extract`-keyed pattern and corrects the `onClose-hooks` scenario's declared `input` type to match its actual `{ before, after }` fixture shape. `Semaphore.loop.spec.ts` binds `waiters[0]`/`waiters[1]` to a local and asserts definedness before use under `noUncheckedIndexedAccess`. `examples/boundedDispatcherComposition.ts` makes two callbacks `async` to match `Dispatcher`'s `() => Promise<T>` contract.
+  - `@studnicky/keyed-work-gate`'s `keyed-work-gate.loop.spec.ts` converts to the `Extract`-keyed pattern via a `runCase` dispatch helper and drops a dead `delayMs` reference the `single-flight-reruns-after-settle` scenario never actually carried. `examples/observedKeyedWorkGate.ts` drops redundant `static override create()` overrides on `TelemetryMutex`/`TelemetryCoalesce` so the base classes' polymorphic factory applies directly.
+
+- 789da06: ### Fixed
+
+  - Every `*.scenarios.json` import across the test suites carries the `with { type: 'json' }` import attribute `module: NodeNext` requires, clearing 221 `TS1543` diagnostics that `tsc -b` never surfaced because test files aren't part of any package's typechecked build — only `tsconfig.eslint.json` (used for ESLint's type-aware rules) sees them, and it consumes type information without reporting `TS` diagnostics on its own.
+  - Tests that constructed a `protected`-constructor class directly with `new` now call the class's `this`-polymorphic static factory instead (`Subclass.create(...)`), clearing 78 `TS2674` diagnostics across `Clock`, `Channel`, `Coalesce`, `EntityStore`, `CircuitBreaker`, `EventBus`, `Mutex`, and `RealTimeScheduler` subclasses. The remaining 86 `TS2674` instances are left on `new` because no fitting factory exists for that call site: `StateMachine` is abstract with no static factory at all; `EffectInterpreter`, `InterpreterHistory`, `DeadLetterQueue`, `Signal`, `FetchClient`, and `ErrorClassifier`'s factories (where one exists) hardcode their own class rather than accepting `this`, so calling them on a subclass returns the base type instead of the subclass; and `Channel`/`Coalesce` subclasses that are themselves generic and expose subclass-only members lose that member's type through the factory's necessarily looser `TInstance` bound, so the direct constructor call is correct as written.
+
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+  - @studnicky/concurrency@9.1.0
+  - @studnicky/types@9.1.0
+  - @studnicky/mutex@9.1.0
+
 ## 9.0.0
 
 ### Major Changes
