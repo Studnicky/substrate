@@ -89,13 +89,38 @@ class SelectiveFrozen extends Frozen {
   }
 }
 
+/**
+ * The expressions a `regexp` scenario may name, written as literals so no
+ * pattern text reaches the engine uncompiled. Each entry builds a fresh
+ * instance per call, keeping `deepEqual` a structural comparison rather than an
+ * identity one. A scenario naming an expression that is absent here fails
+ * loudly in `requireDeepEqualRegexp`.
+ */
+const deepEqualRegexpByPattern = {
+  abc: (): RegExp => /abc/u,
+  def: (): RegExp => /def/u
+} satisfies Record<string, () => RegExp>;
+
+function isDeepEqualRegexpPattern(pattern: string): pattern is keyof typeof deepEqualRegexpByPattern {
+  return Object.hasOwn(deepEqualRegexpByPattern, pattern);
+}
+
+function requireDeepEqualRegexp(raw: unknown): RegExp {
+  const pattern = requireString(raw, 'deepEqual special regexp value');
+  if (!isDeepEqualRegexpPattern(pattern)) {
+    throw new Error(`deepEqual special regexp value '${pattern}' declares no expression in deepEqualRegexpByPattern`);
+  }
+
+  return deepEqualRegexpByPattern[pattern]();
+}
+
 const deepEqualValueByShape = {
   date: (raw: unknown): Date => new Date(requireString(raw, 'deepEqual special date value')),
   map: (raw: unknown): Map<unknown, unknown> => new Map(
     requireArray(raw, 'deepEqual special map value').map((entry) => toMapEntry(requireArray(entry, 'deepEqual special map entry')))
   ),
   nan: (): number => Number.NaN,
-  regexp: (raw: unknown): RegExp => new RegExp(requireString(raw, 'deepEqual special regexp value'), 'u'),
+  regexp: (raw: unknown): RegExp => requireDeepEqualRegexp(raw),
   set: (raw: unknown): Set<unknown> => new Set(requireArray(raw, 'deepEqual special set value'))
 } satisfies Record<string, (raw: unknown) => unknown>;
 
