@@ -1,5 +1,14 @@
 # Changelog
 
+## 9.1.1
+
+### Patch Changes
+
+- @studnicky/errors@9.1.1
+- @studnicky/resilience@9.1.1
+- @studnicky/retry@9.1.1
+- @studnicky/throttle@9.1.1
+
 ## 9.1.0
 
 ### Minor Changes
