@@ -18,10 +18,19 @@
       "path": "./tsconfig.json"
     },
     {
-      "path": "../errors"
+      "path": "../clock"
+    },
+    {
+      "path": "../fsm"
     },
     {
       "path": "../json"
+    },
+    {
+      "path": "../scheduler"
+    },
+    {
+      "path": "../signal"
     }
   ]
 }

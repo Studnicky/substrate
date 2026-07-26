@@ -18,10 +18,22 @@
       "path": "./tsconfig.json"
     },
     {
+      "path": "../batch"
+    },
+    {
+      "path": "../clock"
+    },
+    {
+      "path": "../config"
+    },
+    {
       "path": "../errors"
     },
     {
-      "path": "../json"
+      "path": "../resilience"
+    },
+    {
+      "path": "../retry"
     }
   ]
 }

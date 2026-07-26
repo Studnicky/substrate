@@ -21,7 +21,13 @@
       "path": "../errors"
     },
     {
+      "path": "../event-bus"
+    },
+    {
       "path": "../json"
+    },
+    {
+      "path": "../scheduler"
     }
   ]
 }

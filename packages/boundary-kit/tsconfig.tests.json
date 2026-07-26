@@ -18,10 +18,13 @@
       "path": "./tsconfig.json"
     },
     {
-      "path": "../errors"
+      "path": "../resilience"
     },
     {
-      "path": "../json"
+      "path": "../retry"
+    },
+    {
+      "path": "../throttle"
     }
   ]
 }

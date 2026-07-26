@@ -18,10 +18,10 @@
       "path": "./tsconfig.json"
     },
     {
-      "path": "../errors"
+      "path": "../concurrency"
     },
     {
-      "path": "../json"
+      "path": "../errors"
     }
   ]
 }

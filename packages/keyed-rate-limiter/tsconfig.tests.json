@@ -18,10 +18,7 @@
       "path": "./tsconfig.json"
     },
     {
-      "path": "../errors"
-    },
-    {
-      "path": "../json"
+      "path": "../resilience"
     }
   ]
 }

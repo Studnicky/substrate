@@ -18,10 +18,10 @@
       "path": "./tsconfig.json"
     },
     {
-      "path": "../errors"
+      "path": "../config"
     },
     {
-      "path": "../json"
+      "path": "../errors"
     }
   ]
 }

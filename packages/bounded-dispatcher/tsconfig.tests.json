@@ -18,10 +18,13 @@
       "path": "./tsconfig.json"
     },
     {
-      "path": "../errors"
+      "path": "../clock"
     },
     {
-      "path": "../json"
+      "path": "../event-bus"
+    },
+    {
+      "path": "../scheduler"
     }
   ]
 }

@@ -18,10 +18,19 @@
       "path": "./tsconfig.json"
     },
     {
+      "path": "../context"
+    },
+    {
       "path": "../errors"
     },
     {
-      "path": "../json"
+      "path": "../fetch"
+    },
+    {
+      "path": "../retry"
+    },
+    {
+      "path": "../signal"
     }
   ]
 }
