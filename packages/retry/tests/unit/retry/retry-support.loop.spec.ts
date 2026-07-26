@@ -15,7 +15,7 @@ import type {
   RetryConfigInterface,
   RetryContextInterface
 } from '../../../src/index.js';
-import scenarioGroups from './retry-support.scenarios.json';
+import scenarioGroups from './retry-support.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'backoff-config-default'
@@ -135,7 +135,7 @@ function assertConfigGuard(scenarioCase: ScenarioCase): void {
 }
 
 function assertBackoffStrategyRejected(scenarioCase: ScenarioCase): void {
-  const { expected, input } = scenarioCase;
+  const { input } = scenarioCase;
 
   assert.throws(() => {
     Retry.create({
@@ -143,7 +143,6 @@ function assertBackoffStrategyRejected(scenarioCase: ScenarioCase): void {
       maxRetries: Number(input.retry?.maxRetries)
     });
   }, ConfigurationError);
-  assert.equal(expected.result, false);
 }
 
 const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
@@ -255,7 +254,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Retry support', () => {
-  for (const scenarioCase of scenarioGroups.cases) {
+  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

@@ -6,7 +6,7 @@ import parser from '@typescript-eslint/parser';
 
 import { inlineFunctions } from '../../../src/rules/v8/inlineFunctions.js';
 import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
-import scenarioGroups from './inlineFunctions.scenarios.json';
+import scenarioGroups from './inlineFunctions.scenarios.json' with { type: 'json' };
 
 function toMessageId(report: unknown): string {
   if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
@@ -29,7 +29,7 @@ void describe('inline-functions', () => {
   void it('covers guard exits and scope checks directly', () => {
     const reports: unknown[] = [];
     const listeners = inlineFunctions.create({
-      report(descriptor) {
+      report(descriptor: unknown) {
         reports.push(descriptor);
       }
     } as never);

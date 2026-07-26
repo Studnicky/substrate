@@ -3,7 +3,7 @@ import { after, before, describe, it } from 'node:test';
 
 import { AbortError, FetchClient, TimeoutError } from '../../../src/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
-import scenarioGroups from './errors.scenarios.json';
+import scenarioGroups from './errors.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -31,7 +31,7 @@ void after(async () => {
   await stopTestServer();
 });
 
-function materializeSignal(flag: ScenarioCase['input'] extends { signal?: infer T } ? T : never): AbortSignal | undefined {
+function materializeSignal(flag: 'abort-after-ms' | undefined): AbortSignal | undefined {
   if (flag === undefined) {
     return undefined;
   }
@@ -56,29 +56,30 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     ...(signal === undefined ? {} : { signal })
   };
 
-  if ('error' in scenarioCase.expected) {
+  const { expected } = scenarioCase;
+  if ('error' in expected) {
     await assert.rejects(async () => {
       await client.get(url, options);
     }, (error: Error) => {
-      if (scenarioCase.expected.error === 'TimeoutError') {
+      if (expected.error === 'TimeoutError') {
         assert.ok(error instanceof TimeoutError);
-        if (scenarioCase.expected.timeoutMs !== undefined && error instanceof TimeoutError) {
-          assert.strictEqual(error.timeoutMs, scenarioCase.expected.timeoutMs);
+        if (expected.timeoutMs !== undefined && error instanceof TimeoutError) {
+          assert.strictEqual(error.timeoutMs, expected.timeoutMs);
         }
-      } else if (scenarioCase.expected.error === 'AbortError') {
+      } else if (expected.error === 'AbortError') {
         assert.ok(error instanceof AbortError);
       } else {
         assert.ok(error instanceof Error);
       }
 
-      if (scenarioCase.expected.messageIncludes !== undefined) {
-        for (const expectedMessagePart of scenarioCase.expected.messageIncludes) {
+      if (expected.messageIncludes !== undefined) {
+        for (const expectedMessagePart of expected.messageIncludes) {
           assert.ok(error.message.includes(expectedMessagePart));
         }
       }
 
-      if (scenarioCase.expected.urlIncludes !== undefined) {
-        assert.ok(error.message.includes(scenarioCase.expected.urlIncludes) || ('url' in error && typeof error.url === 'string' && error.url.includes(scenarioCase.expected.urlIncludes)));
+      if (expected.urlIncludes !== undefined) {
+        assert.ok(error.message.includes(expected.urlIncludes) || ('url' in error && typeof error.url === 'string' && error.url.includes(expected.urlIncludes)));
       }
 
       return true;
@@ -87,8 +88,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   }
 
   const response = await client.get(url, options);
-  assert.strictEqual(response.status, scenarioCase.expected.status);
-  assert.strictEqual(response.ok, scenarioCase.expected.ok);
+  assert.strictEqual(response.status, expected.status);
+  assert.strictEqual(response.ok, expected.ok);
 }
 
 void describe('Error Handling', () => {

@@ -43,6 +43,11 @@
     {
       "code": "type Handler = (a: string, b?: number) => void;",
       "name": "TSFunctionType with 0 or 1 optional params - fine"
+    },
+    {
+      "code": "function foo(name: string, age?: number, role?: string) {}",
+      "name": "minOptionals: 3 override - 2 optionals fall below the overridden threshold, fine",
+      "options": [{ "minOptionals": 3 }]
     }
   ],
   "invalid": [
@@ -108,6 +113,16 @@
         }
       ],
       "name": "interface property signature typed as function with 2+ optionals - flag"
+    },
+    {
+      "code": "function foo(a: string, b?: number, c?: boolean, d?: string) {}",
+      "errors": [
+        {
+          "messageId": "requireOptionsObject"
+        }
+      ],
+      "name": "minOptionals: 3 override - 3 optionals meet the overridden threshold, flag",
+      "options": [{ "minOptionals": 3 }]
     }
   ]
 }

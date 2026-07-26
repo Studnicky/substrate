@@ -11,14 +11,34 @@ import { HookInvoker } from '@studnicky/errors';
 import { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
 import { ClockError } from '../errors/ClockError.js';
 
+interface VirtualTimeCounterSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class VirtualTimeCounterInstance {
+  static belongsTo<TInstance>(
+    constructor: VirtualTimeCounterSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Mutable counter that tracks virtual epoch-ms for test scenarios.
  * Call `advance(ms)` to move time forward; all paired `VirtualClockProvider`
  * instances see the change immediately.
  */
 export class VirtualTimeCounter {
-  static create(options: VirtualTimeCounterOptionsEntity.Type = {}): VirtualTimeCounter {
-    return new this(options);
+  static create<TInstance extends VirtualTimeCounter = VirtualTimeCounter>(
+    this: VirtualTimeCounterSubclassInterface<TInstance>,
+    options: VirtualTimeCounterOptionsEntity.Type = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!VirtualTimeCounterInstance.belongsTo(this, result)) {
+      throw new TypeError('VirtualTimeCounter.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   /** Current virtual epoch-ms. Must be non-negative. */

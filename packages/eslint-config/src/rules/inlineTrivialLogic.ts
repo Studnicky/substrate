@@ -1,6 +1,7 @@
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import { DEFAULT_OPTIONS, LEADING_WHITESPACE_PATTERN } from './constants/InlineTrivialLogicConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
 import { TrivialExpression } from './shared/TrivialExpression.js';
@@ -41,13 +42,6 @@ namespace InlineTrivialLogicOptionsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 }
-
-const DEFAULT_OPTIONS: Required<InlineTrivialLogicOptionsEntity.Type> = {
-  'allowLiterals': false,
-  'allowMemberExpressions': false
-};
-
-const LEADING_WHITESPACE_PATTERN = /^\s*/v;
 
 export const inlineTrivialLogic: Rule.RuleModule = {
   'create': (context) => {

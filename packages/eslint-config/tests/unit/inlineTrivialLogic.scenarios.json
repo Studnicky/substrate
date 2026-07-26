@@ -13,7 +13,9 @@
     { "name": "accessor: this.X nested member expression", "code": "class Foo { getLen(): number { return this.items.length; } private items = []; }" },
     { "name": "ThisExpression directly (builder pattern)", "code": "class Builder { setName(name: string): this { this.name = name; return this; } private name = ''; }" },
     { "name": "object property that is not a function", "code": "const obj = { value: 42 };" },
-    { "name": "class method with multi-statement logic", "code": "class Calc { double(x: number): number { const result = x * 2; return result; } }" }
+    { "name": "class method with multi-statement logic", "code": "class Calc { double(x: number): number { const result = x * 2; return result; } }" },
+    { "name": "allowLiterals: true - literal return no longer flagged", "code": "const version = () => '1.0.0';", "options": [{ "allowLiterals": true }] },
+    { "name": "allowMemberExpressions: true - non-this member expression return no longer flagged", "code": "const getX = (obj: { x: number }) => obj.x;", "options": [{ "allowMemberExpressions": true }] }
   ],
   "invalid": [
     { "name": "trivial arrow: expression body returning non-this MemberExpression", "code": "const getX = (obj: { x: number }) => obj.x;", "errors": [{ "messageId": "trivial" }], "output": "const getX = (obj: { x: number }) => { const result = obj.x; return result; };" },

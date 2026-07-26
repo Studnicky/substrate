@@ -3,43 +3,19 @@
     {
       "name": "create-default",
       "description": "creates a logger with default INFO level and no transports",
-      "shape": "create-default",
-      "input": {
-        "shape": "create-default",
-        "description": "creates a logger with default INFO level and no transports"
-      },
-      "expected": {
-        "shape": "create-default",
-        "asserted": true
-      }
+      "shape": "create-default"
     },
     {
       "name": "create-string-level",
       "description": "creates a logger with explicit level string",
       "shape": "create-string-level",
-      "level": "debug",
-      "input": {
-        "shape": "create-string-level",
-        "description": "creates a logger with explicit level string"
-      },
-      "expected": {
-        "shape": "create-string-level",
-        "asserted": true
-      }
+      "level": "debug"
     },
     {
       "name": "create-numeric-level",
       "description": "creates a logger with explicit level numeric",
       "shape": "create-numeric-level",
-      "level": 1,
-      "input": {
-        "shape": "create-numeric-level",
-        "description": "creates a logger with explicit level numeric"
-      },
-      "expected": {
-        "shape": "create-numeric-level",
-        "asserted": true
-      }
+      "level": 1
     },
     {
       "name": "create-with-metadata",
@@ -48,55 +24,23 @@
       "level": 0,
       "metadata": {
         "service": "api"
-      },
-      "input": {
-        "shape": "create-with-metadata",
-        "description": "creates a logger with metadata"
-      },
-      "expected": {
-        "shape": "create-with-metadata",
-        "asserted": true
       }
     },
     {
       "name": "create-invalid-metadata",
       "description": "throws ConfigurationError when metadata is not a plain object",
-      "shape": "create-invalid-metadata",
-      "input": {
-        "shape": "create-invalid-metadata",
-        "description": "throws ConfigurationError when metadata is not a plain object"
-      },
-      "expected": {
-        "shape": "create-invalid-metadata",
-        "asserted": true
-      }
+      "shape": "create-invalid-metadata"
     },
     {
       "name": "create-invalid-transports",
       "description": "throws ConfigurationError when transports is not an array",
       "shape": "create-invalid-transports",
-      "expectedMessage": "transports must be an array",
-      "input": {
-        "shape": "create-invalid-transports",
-        "description": "throws ConfigurationError when transports is not an array"
-      },
-      "expected": {
-        "shape": "create-invalid-transports",
-        "asserted": true
-      }
+      "expectedMessage": "transports must be an array"
     },
     {
       "name": "snapshot-metadata-and-transports",
       "description": "snapshots caller-owned metadata and transport arrays",
-      "shape": "snapshot-metadata-and-transports",
-      "input": {
-        "shape": "snapshot-metadata-and-transports",
-        "description": "snapshots caller-owned metadata and transport arrays"
-      },
-      "expected": {
-        "shape": "snapshot-metadata-and-transports",
-        "asserted": true
-      }
+      "shape": "snapshot-metadata-and-transports"
     },
     {
       "name": "global-floor-trace",
@@ -104,14 +48,7 @@
       "shape": "global-floor",
       "level": 0,
       "expectedCount": 5,
-      "input": {
-        "level": 0,
-        "expectedCount": 5
-      },
-      "expected": {
-        "shape": "global-floor",
-        "asserted": true
-      }
+      "expectedLevels": [0, 1, 2, 3, 4]
     },
     {
       "name": "global-floor-debug",
@@ -119,14 +56,7 @@
       "shape": "global-floor",
       "level": 1,
       "expectedCount": 4,
-      "input": {
-        "level": 1,
-        "expectedCount": 4
-      },
-      "expected": {
-        "shape": "global-floor",
-        "asserted": true
-      }
+      "expectedLevels": [1, 2, 3, 4]
     },
     {
       "name": "global-floor-info",
@@ -134,14 +64,7 @@
       "shape": "global-floor",
       "level": 2,
       "expectedCount": 3,
-      "input": {
-        "level": 2,
-        "expectedCount": 3
-      },
-      "expected": {
-        "shape": "global-floor",
-        "asserted": true
-      }
+      "expectedLevels": [2, 3, 4]
     },
     {
       "name": "global-floor-warn",
@@ -149,14 +72,7 @@
       "shape": "global-floor",
       "level": 3,
       "expectedCount": 2,
-      "input": {
-        "level": 3,
-        "expectedCount": 2
-      },
-      "expected": {
-        "shape": "global-floor",
-        "asserted": true
-      }
+      "expectedLevels": [3, 4]
     },
     {
       "name": "global-floor-error",
@@ -164,14 +80,7 @@
       "shape": "global-floor",
       "level": 4,
       "expectedCount": 1,
-      "input": {
-        "level": 4,
-        "expectedCount": 1
-      },
-      "expected": {
-        "shape": "global-floor",
-        "asserted": true
-      }
+      "expectedLevels": [4]
     },
     {
       "name": "global-floor-silent",
@@ -179,14 +88,7 @@
       "shape": "global-floor",
       "level": 5,
       "expectedCount": 0,
-      "input": {
-        "level": 5,
-        "expectedCount": 0
-      },
-      "expected": {
-        "shape": "global-floor",
-        "asserted": true
-      }
+      "expectedLevels": []
     },
     {
       "name": "transport-floor-warn",
@@ -201,13 +103,9 @@
         "all": 4,
         "warn": 2
       },
-      "input": {
-        "shape": "transport-floor-warn",
-        "description": "transport with warn floor ignores records below warn"
-      },
-      "expected": {
-        "shape": "transport-floor-warn",
-        "asserted": true
+      "expectedLevels": {
+        "all": [1, 2, 3, 4],
+        "warn": [3, 4]
       }
     },
     {
@@ -222,431 +120,167 @@
       "expectedCounts": {
         "debug": 4,
         "error": 1
-      },
-      "input": {
-        "shape": "transport-floor-mixed",
-        "description": "transports with different floors receive correct subsets"
-      },
-      "expected": {
-        "shape": "transport-floor-mixed",
-        "asserted": true
       }
     },
     {
       "name": "fanout-multiple-transports",
       "description": "delivers each record to all transports",
-      "shape": "fanout-multiple-transports",
-      "input": {
-        "shape": "fanout-multiple-transports",
-        "description": "delivers each record to all transports"
-      },
-      "expected": {
-        "shape": "fanout-multiple-transports",
-        "asserted": true
-      }
+      "shape": "fanout-multiple-transports"
     },
     {
       "name": "fanout-transport-throws",
       "description": "a throwing transport does not prevent others from receiving records",
-      "shape": "fanout-transport-throws",
-      "input": {
-        "shape": "fanout-transport-throws",
-        "description": "a throwing transport does not prevent others from receiving records"
-      },
-      "expected": {
-        "shape": "fanout-transport-throws",
-        "asserted": true
-      }
+      "shape": "fanout-transport-throws"
     },
     {
       "name": "fanout-onTransportError-throws",
       "description": "a throwing onTransportError hook does not abort fan-out to remaining transports",
-      "shape": "fanout-onTransportError-throws",
-      "input": {
-        "shape": "fanout-onTransportError-throws",
-        "description": "a throwing onTransportError hook does not abort fan-out to remaining transports"
-      },
-      "expected": {
-        "shape": "fanout-onTransportError-throws",
-        "asserted": true
-      }
+      "shape": "fanout-onTransportError-throws"
     },
     {
       "name": "child-inherits-metadata",
       "description": "child inherits parent metadata",
-      "shape": "child-inherits-metadata",
-      "input": {
-        "shape": "child-inherits-metadata",
-        "description": "child inherits parent metadata"
-      },
-      "expected": {
-        "shape": "child-inherits-metadata",
-        "asserted": true
-      }
+      "shape": "child-inherits-metadata"
     },
     {
       "name": "child-overrides-metadata",
       "description": "child metadata overrides parent key when key conflicts",
-      "shape": "child-overrides-metadata",
-      "input": {
-        "shape": "child-overrides-metadata",
-        "description": "child metadata overrides parent key when key conflicts"
-      },
-      "expected": {
-        "shape": "child-overrides-metadata",
-        "asserted": true
-      }
+      "shape": "child-overrides-metadata"
     },
     {
       "name": "grandchild-merges-metadata",
       "description": "grandchild merges metadata from both ancestors",
-      "shape": "grandchild-merges-metadata",
-      "input": {
-        "shape": "grandchild-merges-metadata",
-        "description": "grandchild merges metadata from both ancestors"
-      },
-      "expected": {
-        "shape": "grandchild-merges-metadata",
-        "asserted": true
-      }
+      "shape": "grandchild-merges-metadata"
     },
     {
       "name": "child-shares-transports",
       "description": "child shares transports with parent",
-      "shape": "child-shares-transports",
-      "input": {
-        "shape": "child-shares-transports",
-        "description": "child shares transports with parent"
-      },
-      "expected": {
-        "shape": "child-shares-transports",
-        "asserted": true
-      }
+      "shape": "child-shares-transports"
     },
     {
       "name": "child-snapshots-metadata",
       "description": "child snapshots caller-owned metadata",
-      "shape": "child-snapshots-metadata",
-      "input": {
-        "shape": "child-snapshots-metadata",
-        "description": "child snapshots caller-owned metadata"
-      },
-      "expected": {
-        "shape": "child-snapshots-metadata",
-        "asserted": true
-      }
+      "shape": "child-snapshots-metadata"
     },
     {
       "name": "child-create-hook",
       "description": "a throwing onChildCreate hook surfaces as HookInvocationError",
-      "shape": "child-create-hook",
-      "input": {
-        "shape": "child-create-hook",
-        "description": "a throwing onChildCreate hook surfaces as HookInvocationError"
-      },
-      "expected": {
-        "shape": "child-create-hook",
-        "asserted": true
-      }
+      "shape": "child-create-hook"
     },
     {
       "name": "record-shape",
       "description": "record contains level, time, metadata, and data",
-      "shape": "record-shape",
-      "input": {
-        "shape": "record-shape",
-        "description": "record contains level, time, metadata, and data"
-      },
-      "expected": {
-        "shape": "record-shape",
-        "asserted": true
-      }
+      "shape": "record-shape"
     },
     {
       "name": "record-level-mapping",
       "description": "each level maps to the correct LOG_LEVEL constant",
-      "shape": "record-level-mapping",
-      "input": {
-        "shape": "record-level-mapping",
-        "description": "each level maps to the correct LOG_LEVEL constant"
-      },
-      "expected": {
-        "shape": "record-level-mapping",
-        "asserted": true
-      }
+      "shape": "record-level-mapping"
     },
     {
       "name": "record-onLog-throws",
       "description": "a throwing onLog hook surfaces as HookInvocationError and aborts transport fan-out",
-      "shape": "record-onLog-throws",
-      "input": {
-        "shape": "record-onLog-throws",
-        "description": "a throwing onLog hook surfaces as HookInvocationError and aborts transport fan-out"
-      },
-      "expected": {
-        "shape": "record-onLog-throws",
-        "asserted": true
-      }
+      "shape": "record-onLog-throws"
     },
     {
       "name": "function-transport-bridge",
       "description": "calls the sink with the assembled record",
-      "shape": "function-transport-bridge",
-      "input": {
-        "shape": "function-transport-bridge",
-        "description": "calls the sink with the assembled record"
-      },
-      "expected": {
-        "shape": "function-transport-bridge",
-        "asserted": true
-      }
+      "shape": "function-transport-bridge"
     },
     {
       "name": "noop-transport-silence",
       "description": "accepts records without throwing",
-      "shape": "noop-transport-silence",
-      "input": {
-        "shape": "noop-transport-silence",
-        "description": "accepts records without throwing"
-      },
-      "expected": {
-        "shape": "noop-transport-silence",
-        "asserted": true
-      }
+      "shape": "noop-transport-silence"
     },
     {
       "name": "no-transports-silent",
       "description": "accepts all log calls without throwing when no transports configured",
-      "shape": "no-transports-silent",
-      "input": {
-        "shape": "no-transports-silent",
-        "description": "accepts all log calls without throwing when no transports configured"
-      },
-      "expected": {
-        "shape": "no-transports-silent",
-        "asserted": true
-      }
+      "shape": "no-transports-silent"
     },
     {
       "name": "onLog-before-transport",
       "description": "onLog fires after record assembly and before transport fan-out",
-      "shape": "onLog-before-transport",
-      "input": {
-        "shape": "onLog-before-transport",
-        "description": "onLog fires after record assembly and before transport fan-out"
-      },
-      "expected": {
-        "shape": "onLog-before-transport",
-        "asserted": true
-      }
+      "shape": "onLog-before-transport"
     },
     {
       "name": "onLog-assembled-record",
       "description": "onLog receives the assembled record with correct fields",
-      "shape": "onLog-assembled-record",
-      "input": {
-        "shape": "onLog-assembled-record",
-        "description": "onLog receives the assembled record with correct fields"
-      },
-      "expected": {
-        "shape": "onLog-assembled-record",
-        "asserted": true
-      }
+      "shape": "onLog-assembled-record"
     },
     {
       "name": "onDropped-below-floor",
       "description": "onDropped fires when level is below the logger floor",
-      "shape": "onDropped-below-floor",
-      "input": {
-        "shape": "onDropped-below-floor",
-        "description": "onDropped fires when level is below the logger floor"
-      },
-      "expected": {
-        "shape": "onDropped-below-floor",
-        "asserted": true
-      }
+      "shape": "onDropped-below-floor"
     },
     {
       "name": "onDropped-at-floor",
       "description": "onDropped does not fire when record meets or exceeds the floor",
-      "shape": "onDropped-at-floor",
-      "input": {
-        "shape": "onDropped-at-floor",
-        "description": "onDropped does not fire when record meets or exceeds the floor"
-      },
-      "expected": {
-        "shape": "onDropped-at-floor",
-        "asserted": true
-      }
+      "shape": "onDropped-at-floor"
     },
     {
       "name": "onDropped-trace-debug",
       "description": "onDropped fires for trace and debug when floor is INFO",
-      "shape": "onDropped-trace-debug",
-      "input": {
-        "shape": "onDropped-trace-debug",
-        "description": "onDropped fires for trace and debug when floor is INFO"
-      },
-      "expected": {
-        "shape": "onDropped-trace-debug",
-        "asserted": true
-      }
+      "shape": "onDropped-trace-debug"
     },
     {
       "name": "onDropped-hook-error",
       "description": "a throwing onDropped hook surfaces as HookInvocationError",
-      "shape": "onDropped-hook-error",
-      "input": {
-        "shape": "onDropped-hook-error",
-        "description": "a throwing onDropped hook surfaces as HookInvocationError"
-      },
-      "expected": {
-        "shape": "onDropped-hook-error",
-        "asserted": true
-      }
+      "shape": "onDropped-hook-error"
     },
     {
       "name": "onChildCreate-hooks",
       "description": "onChildCreate fires after child creation with the passed bindings",
-      "shape": "onChildCreate-hooks",
-      "input": {
-        "shape": "onChildCreate-hooks",
-        "description": "onChildCreate fires after child creation with the passed bindings"
-      },
-      "expected": {
-        "shape": "onChildCreate-hooks",
-        "asserted": true
-      }
+      "shape": "onChildCreate-hooks"
     },
     {
       "name": "onChildCreate-bindings",
       "description": "onChildCreate receives the bindings passed to child(), not the merged metadata",
-      "shape": "onChildCreate-bindings",
-      "input": {
-        "shape": "onChildCreate-bindings",
-        "description": "onChildCreate receives the bindings passed to child(), not the merged metadata"
-      },
-      "expected": {
-        "shape": "onChildCreate-bindings",
-        "asserted": true
-      }
+      "shape": "onChildCreate-bindings"
     },
     {
       "name": "onTransportError-fires",
       "description": "onTransportError fires when a transport throws",
-      "shape": "onTransportError-fires",
-      "input": {
-        "shape": "onTransportError-fires",
-        "description": "onTransportError fires when a transport throws"
-      },
-      "expected": {
-        "shape": "onTransportError-fires",
-        "asserted": true
-      }
+      "shape": "onTransportError-fires"
     },
     {
       "name": "onTransportError-succeeds",
       "description": "onTransportError does not fire when transport succeeds",
-      "shape": "onTransportError-succeeds",
-      "input": {
-        "shape": "onTransportError-succeeds",
-        "description": "onTransportError does not fire when transport succeeds"
-      },
-      "expected": {
-        "shape": "onTransportError-succeeds",
-        "asserted": true
-      }
+      "shape": "onTransportError-succeeds"
     },
     {
       "name": "onTransportError-each-failure",
       "description": "onTransportError fires for each failing transport independently",
-      "shape": "onTransportError-each-failure",
-      "input": {
-        "shape": "onTransportError-each-failure",
-        "description": "onTransportError fires for each failing transport independently"
-      },
-      "expected": {
-        "shape": "onTransportError-each-failure",
-        "asserted": true
-      }
+      "shape": "onTransportError-each-failure"
     },
     {
       "name": "onTransportError-isolation",
       "description": "throwing onTransportError hook records are isolated between logger instances",
-      "shape": "onTransportError-isolation",
-      "input": {
-        "shape": "onTransportError-isolation",
-        "description": "throwing onTransportError hook records are isolated between logger instances"
-      },
-      "expected": {
-        "shape": "onTransportError-isolation",
-        "asserted": true
-      }
+      "shape": "onTransportError-isolation"
     },
     {
       "name": "onTransportError-detached-cause",
       "description": "getHookErrors records one failure and deeply detaches nested diagnostics",
-      "shape": "onTransportError-detached-cause",
-      "input": {
-        "shape": "onTransportError-detached-cause",
-        "description": "getHookErrors records one failure and deeply detaches nested diagnostics"
-      },
-      "expected": {
-        "shape": "onTransportError-detached-cause",
-        "asserted": true
-      }
+      "shape": "onTransportError-detached-cause"
     },
     {
       "name": "onTransportError-fanout-continues",
       "description": "one failing transport with a failing onTransportError override does not block delivery to other transports",
-      "shape": "onTransportError-fanout-continues",
-      "input": {
-        "shape": "onTransportError-fanout-continues",
-        "description": "one failing transport with a failing onTransportError override does not block delivery to other transports"
-      },
-      "expected": {
-        "shape": "onTransportError-fanout-continues",
-        "asserted": true
-      }
+      "shape": "onTransportError-fanout-continues"
     },
     {
       "name": "async-onTransportError",
       "description": "records an async onTransportError rejection without blocking later transport delivery",
-      "shape": "async-onTransportError",
-      "input": {
-        "shape": "async-onTransportError",
-        "description": "records an async onTransportError rejection without blocking later transport delivery"
-      },
-      "expected": {
-        "shape": "async-onTransportError",
-        "asserted": true
-      }
+      "shape": "async-onTransportError"
     },
     {
       "name": "hook-invocation-error-cause",
       "description": "HookInvocationError carries the failing hook name and the original cause",
-      "shape": "hook-invocation-error-cause",
-      "input": {
-        "shape": "hook-invocation-error-cause",
-        "description": "HookInvocationError carries the failing hook name and the original cause"
-      },
-      "expected": {
-        "shape": "hook-invocation-error-cause",
-        "asserted": true
-      }
+      "shape": "hook-invocation-error-cause"
     },
     {
       "name": "async-onLog-unhandled",
       "description": "never produces an unhandled rejection when an async onLog override rejects",
-      "shape": "async-onLog-unhandled",
-      "input": {
-        "shape": "async-onLog-unhandled",
-        "description": "never produces an unhandled rejection when an async onLog override rejects"
-      },
-      "expected": {
-        "shape": "async-onLog-unhandled",
-        "asserted": true
-      }
+      "shape": "async-onLog-unhandled"
     }
   ]
 }

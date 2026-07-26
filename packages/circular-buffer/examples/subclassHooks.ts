@@ -14,7 +14,7 @@ class EvictTracker<T> extends CircularBuffer<T> {
   }
 }
 
-const ring = EvictTracker.create<string>({ 'capacity': 2 });
+const ring = EvictTracker.create<string, EvictTracker<string>>({ 'capacity': 2 });
 
 ring.push('a');
 ring.push('b');
@@ -32,7 +32,7 @@ class GrowTracker<T> extends CircularBuffer<T> {
   }
 }
 
-const growing = GrowTracker.create<string>({ 'capacity': 2, 'overflow': 'grow' });
+const growing = GrowTracker.create<string, GrowTracker<string>>({ 'capacity': 2, 'overflow': 'grow' });
 
 growing.push('a');
 growing.push('b');

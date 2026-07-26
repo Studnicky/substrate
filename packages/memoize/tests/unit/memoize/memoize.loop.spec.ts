@@ -186,7 +186,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const pending = createPendingValue<string>();
     const memo = AsyncRejectingHooksMemoize.create(
-      async () => pending.promise,
+      async (_key: string) => pending.promise,
       memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
@@ -263,7 +263,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     }
 
     const memo = TrackingMemoize.create(
-      async () => {
+      async (_key: string) => {
         calls += 1;
         if (calls === 1) {
           return pendingFailure.promise;
@@ -274,6 +274,8 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     );
 
     const [leader, follower] = createSameKeyCalls(memo, key, readBatchCallCount(scenarioCase));
+    assert.ok(leader !== undefined);
+    assert.ok(follower !== undefined);
     pendingFailure.reject(new Error(readString(scenarioCase.input.failureMessage, 'Scenario input.failureMessage')));
 
     const leaderError = await leader.catch((error: unknown) => error);
@@ -371,7 +373,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     }
 
     const memo = TrackingMemoize.create(
-      async () => {
+      async (_key: string) => {
         calls += 1;
         if (calls <= readNumber(scenarioCase.input.failuresBeforeSuccess, 'Scenario input.failuresBeforeSuccess')) {
           throw new Error(readString(scenarioCase.input.failureMessage, 'Scenario input.failureMessage'));
@@ -658,24 +660,41 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     assert.equal(await memo.call('a'), scenarioCase.expected.second);
   },
   'ttl-stale-options': async (scenarioCase) => {
+    const ttlMs = readNumber(scenarioCase.input.memoize.ttlMs, 'Scenario input.memoize.ttlMs');
     let calls = 0;
-    const memo = Memoize.create(
-      (id: string) => {
-        calls += 1;
-        return `value:${id}:${calls}`;
-      },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
-    );
+    const originalNow = Date.now;
+    let currentMs = 0;
 
-    assert.equal(await memo.call('a'), scenarioCase.expected.first);
-    assert.equal(await memo.call('a'), scenarioCase.expected.second);
-    assert.equal(calls, scenarioCase.expected.calls);
+    try {
+      Date.now = (): number => currentMs;
+
+      const memo = Memoize.create(
+        (id: string) => {
+          calls += 1;
+          return `value:${id}:${calls}`;
+        },
+        memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      );
+
+      assert.equal(await memo.call('a'), scenarioCase.expected.first);
+      assert.equal(await memo.call('a'), scenarioCase.expected.second);
+      assert.equal(calls, scenarioCase.expected.calls);
+
+      // Advance the mocked clock past the configured ttlMs. This proves ttlMs
+      // actually reached the underlying LruCache: an entry that never received
+      // the option would keep replaying the first computed value forever.
+      currentMs += ttlMs + 1;
+      assert.equal(await memo.call('a'), scenarioCase.expected.afterExpiry);
+      assert.equal(calls, scenarioCase.expected.callsAfterExpiry);
+    } finally {
+      Date.now = originalNow;
+    }
   },
   'undefined-result-cache': async (scenarioCase) => {
     let calls = 0;
     const key = readString(scenarioCase.input.key, 'Scenario input.key');
     const memo = Memoize.create(
-      () => {
+      (_key: string) => {
         calls += 1;
         return undefined;
       },

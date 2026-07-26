@@ -64,8 +64,22 @@ export class SlidingWindowLimiter {
    */
   protected readonly hooks = new SlidingWindowHookInvoker();
 
-  static create(options: SlidingWindowLimiterOptionsInterface): SlidingWindowLimiter {
-    return new this(options);
+  private static isConstructed<TInstance extends SlidingWindowLimiter>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<TInstance extends SlidingWindowLimiter = SlidingWindowLimiter>(
+    this: Function & { readonly 'prototype': TInstance },
+    options: SlidingWindowLimiterOptionsInterface
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!SlidingWindowLimiter.isConstructed(result, this)) {
+      throw new TypeError('SlidingWindowLimiter.create() must construct a SlidingWindowLimiter instance');
+    }
+    return result;
   }
 
   protected constructor(options: SlidingWindowLimiterOptionsInterface) {

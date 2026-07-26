@@ -16,6 +16,7 @@ import { inlineTrivialLogic } from './rules/inlineTrivialLogic.js';
 import { interfaceMustBeContract } from './rules/interfaceMustBeContract.js';
 import { interfacesComposeNamedTypes } from './rules/interfacesComposeNamedTypes.js';
 import { interfaceSuffix } from './rules/interfaceSuffix.js';
+import { noMixedCallableShapes } from './rules/noMixedCallableShapes.js';
 import { preferCollectionTypes } from './rules/preferCollectionTypes.js';
 import { requireOptionsObject } from './rules/requireOptionsObject.js';
 import { singleExport } from './rules/singleExport.js';
@@ -41,6 +42,7 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'known-types-outside-adapters': knownTypesOutsideAdapters,
     'layer-import-boundary': layerImportBoundary,
     'lexical-this-only': lexicalThisOnly,
+    'no-mixed-callable-shapes': noMixedCallableShapes,
     'prefer-collection-types': preferCollectionTypes,
     'require-options-object': requireOptionsObject,
     'single-export': singleExport,

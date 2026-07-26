@@ -42,9 +42,23 @@ interface VisibleRangeResolvedConfigInterface {
  *   range differs from the previously computed range.
  */
 export class VisibleRange {
-  static create(config: VisibleRangeConfigInterface): VisibleRange {
+  private static isConstructed<TInstance extends VisibleRange>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<TInstance extends VisibleRange = VisibleRange>(
+    this: Function & { readonly 'prototype': TInstance },
+    config: VisibleRangeConfigInterface
+  ): TInstance {
     const resolved = VisibleRange.#resolve(config);
-    return new this(resolved);
+    const result: unknown = Reflect.construct(this, [resolved]);
+    if (!VisibleRange.isConstructed(result, this)) {
+      throw new TypeError('VisibleRange.create() must construct a VisibleRange instance');
+    }
+    return result;
   }
 
   static #resolve(config: VisibleRangeConfigInterface): VisibleRangeResolvedConfigInterface {

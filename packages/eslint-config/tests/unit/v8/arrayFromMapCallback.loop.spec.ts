@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { arrayFromMapCallback } from '../../../src/rules/v8/arrayFromMapCallback.js';
-import scenarioGroups from './arrayFromMapCallback.scenarios.json';
+import scenarioGroups from './arrayFromMapCallback.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

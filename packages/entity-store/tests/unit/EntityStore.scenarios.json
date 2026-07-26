@@ -358,9 +358,9 @@
       }
     },
     {
-      "description": "getAll caches the sorted snapshot until the next mutation",
+      "description": "getAll returns sorted output that reflects a subsequent mutation",
       "shape": "get-all-cache-invalidated",
-      "name": "getAll caches the sorted snapshot until the next mutation",
+      "name": "getAll returns sorted output that reflects a subsequent mutation",
       "input": {
         "entities": [
           {
@@ -378,9 +378,15 @@
         }
       },
       "expected": {
-        "firstGetAllCallsPositive": true,
-        "subsequentGetsStable": true,
-        "mutationInvalidatesCache": true
+        "idsBeforeMutation": [
+          "a",
+          "c"
+        ],
+        "idsAfterMutation": [
+          "a",
+          "b",
+          "c"
+        ]
       }
     },
     {
@@ -581,7 +587,16 @@
       },
       "expected": {
         "removed": 2,
-        "removeEvents": 2
+        "removeEvents": [
+          {
+            "event": "remove",
+            "id": "a"
+          },
+          {
+            "event": "remove",
+            "id": "b"
+          }
+        ]
       }
     },
     {

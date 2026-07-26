@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/fetch",
-  "version": "9.0.0",
+  "version": "9.1.0",
   "description": "Professional HTTP client with timeout, interceptors, and configured clients for Node.js",
   "type": "module",
   "sideEffects": false,
@@ -70,8 +70,5 @@
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1",
     "undici": "^8.8.0"
-  },
-  "devDependencies": {
-    "@studnicky/timing": "workspace:*"
   }
 }

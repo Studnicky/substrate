@@ -14,7 +14,7 @@ import { validateDispatcher } from '../../../src/config/schemas/validateDispatch
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
-import scenarioGroups from './connection.errors.scenarios.json';
+import scenarioGroups from './connection.errors.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =
   | { __shape: 'infinity' }
@@ -71,8 +71,8 @@ type ScenarioCase = {
   name: string;
 };
 
-type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
-type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
+type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void>;
+type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
 
 let testUrl: string;
 
@@ -84,6 +84,10 @@ void after(async () => {
   await stopTestServer();
 });
 
+function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
+  return typeof value === 'object' && value !== null && '__shape' in value;
+}
+
 function materializeRuntimeValue(value: RuntimeValue): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => { return materializeRuntimeValue(item); });
@@ -94,14 +98,15 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (value !== null && typeof value === 'object') {
-    if ('__shape' in value) {
+    if (isRuntimeTag(value)) {
       if (value.__shape === 'infinity') {
         return Number.POSITIVE_INFINITY;
       }
       if (value.__shape === 'nan') {
         return Number.NaN;
       }
-      throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
+      const exhaustiveCheck: never = value;
+      throw new Error(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -247,7 +252,12 @@ const runnerMap: RunnerMap = {
     const startTime = Date.now();
     await dispatcher.destroy({ timeout: 0 });
     const elapsed = Date.now() - startTime;
-    const waited = elapsed >= 50;
+    // A zero timeout skips the deliberate delay entirely, so the only real
+    // cost is scheduling overhead. The ceiling is set an order of magnitude
+    // above that (rather than a tight bound) so scheduler contention under
+    // parallel test load can't flip this in the flake-prone "too slow" direction;
+    // it still catches a regression that reintroduces any deliberate wait.
+    const waited = elapsed >= 1000;
     assert.equal(waited, requireExpectedBoolean(scenarioCase, 'waited'), `Expected immediate destroy, took ${elapsed}ms`);
   },
   'dns-failure': async (scenarioCase) => {
@@ -465,14 +475,18 @@ const runnerMap: RunnerMap = {
   'queue-requests-when-pool-is-full': async (scenarioCase) => {
     const { agent, dispatcher } = createManagedDispatcher(getDispatcherConfig(scenarioCase));
     const client = createClient(agent, testUrl);
+    // A short, explicit delay proves the same "full pool queues instead of
+    // dropping" contract as the endpoint's 5s default, without paying that
+    // wall-clock cost on every run.
+    const delayMs = scenarioCase.input.waitMs ?? 50;
     const startTime = Date.now();
     const results = await Promise.allSettled([
-      client.get('/delay'),
+      client.get(`/delay?ms=${delayMs}`),
       client.get('/posts/1'),
       client.get('/posts/2')
     ]);
     const elapsed = Date.now() - startTime;
-    assert.ok(elapsed >= 5000, 'Should take at least 5s due to /delay endpoint');
+    assert.ok(elapsed >= delayMs, `Should take at least ${delayMs}ms due to /delay endpoint`);
     assert.strictEqual(results[0]?.status, 'fulfilled');
     assert.strictEqual(results[1]?.status, 'fulfilled');
     assert.strictEqual(results[2]?.status, 'fulfilled');
@@ -482,10 +496,11 @@ const runnerMap: RunnerMap = {
     const { agent, dispatcher } = createManagedDispatcher(getDispatcherConfig(scenarioCase));
     const client = createClient(agent, testUrl);
 
+    const delayMs = scenarioCase.input.waitMs ?? 0;
     const slowRequests = [
-      client.get('/delay'),
-      client.get('/delay'),
-      client.get('/delay')
+      client.get(`/delay?ms=${String(delayMs)}`),
+      client.get(`/delay?ms=${String(delayMs)}`),
+      client.get(`/delay?ms=${String(delayMs)}`)
     ];
 
     await new Promise<void>((resolve) => {
@@ -493,7 +508,11 @@ const runnerMap: RunnerMap = {
     });
 
     const health = dispatcher.checkDispatcherHealth(new URL(testUrl).origin);
-    assert.ok(typeof health.healthy === 'boolean', 'Health check should return results');
+    // stats present proves a real pool was observed — checkDispatcherHealth returns a bare
+    // { healthy: true } when the origin has no stats at all, which would pass any assertion
+    // on `healthy` alone without the pool ever having been saturated.
+    assert.notStrictEqual(health.stats, undefined);
+    assert.strictEqual(health.healthy, scenarioCase.expected?.healthy);
 
     await Promise.allSettled(slowRequests);
     await dispatcher.destroy();
@@ -514,12 +533,12 @@ const runnerMap: RunnerMap = {
   }
 };
 
-async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Connection Pool Error Scenarios', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

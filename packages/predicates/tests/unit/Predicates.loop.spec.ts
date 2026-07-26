@@ -3,17 +3,17 @@ import { describe, it } from 'node:test';
 
 import { Predicates } from '../../src/Predicates.js';
 
-import scenarioGroups from './Predicates.scenarios.json';
+import scenarioGroups from './Predicates.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
   description: string;
-  expected: { result: unknown };
+  expected: { result: unknown; lastIndex?: number };
   input: { predicates: Record<string, unknown> };
   shape: string;
   name: string;
 };
 
-type PredicateRunner = (input: Record<string, unknown>, expected: { result: unknown }) => void;
+type PredicateRunner = (input: Record<string, unknown>, expected: ScenarioCase['expected']) => void;
 type PatternFactory = () => RegExp;
 
 const patternFactories: Record<string, PatternFactory> = {
@@ -23,19 +23,25 @@ const patternFactories: Record<string, PatternFactory> = {
 
 function stringField(input: Record<string, unknown>, key: string): string {
   const value = input[key];
-  assert.equal(typeof value, 'string');
+  if (typeof value !== 'string') {
+    throw new Error(`Expected string field '${key}'`);
+  }
   return value;
 }
 
 function numberField(input: Record<string, unknown>, key: string): number {
   const value = input[key];
-  assert.equal(typeof value, 'number');
+  if (typeof value !== 'number') {
+    throw new Error(`Expected number field '${key}'`);
+  }
   return value;
 }
 
 function booleanField(input: Record<string, unknown>, key: string): boolean {
   const value = input[key];
-  assert.equal(typeof value, 'boolean');
+  if (typeof value !== 'boolean') {
+    throw new Error(`Expected boolean field '${key}'`);
+  }
   return value;
 }
 
@@ -58,7 +64,20 @@ function optionalNumberField(input: Record<string, unknown>, key: string): numbe
   if (value === undefined) {
     return undefined;
   }
-  assert.equal(typeof value, 'number');
+  if (typeof value !== 'number') {
+    throw new Error(`Expected number field '${key}'`);
+  }
+  return value;
+}
+
+function optionalStringField(input: Record<string, unknown>, key: string): string | undefined {
+  const value = input[key];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'string') {
+    throw new Error(`Expected string field '${key}'`);
+  }
   return value;
 }
 
@@ -102,7 +121,7 @@ const predicateRunners: Record<string, PredicateRunner> = {
 
     if (recordField(input, 'pattern').checkTwice === true) {
       assert.equal(Predicates.checkPattern(value, pattern), expected.result);
-      assert.equal(pattern.lastIndex, 0);
+      assert.equal(pattern.lastIndex, expected.lastIndex);
     }
   },
   codePointLength: (input, expected) => {
@@ -171,7 +190,11 @@ const predicateRunners: Record<string, PredicateRunner> = {
   },
   satisfiesContentMediaType: (input, expected) => {
     assert.equal(
-      Predicates.satisfiesContentMediaType(stringField(input, 'value'), stringField(input, 'mediaType')),
+      Predicates.satisfiesContentMediaType(
+        stringField(input, 'value'),
+        stringField(input, 'mediaType'),
+        optionalStringField(input, 'encoding')
+      ),
       expected.result
     );
   },
@@ -197,6 +220,9 @@ const predicateRunners: Record<string, PredicateRunner> = {
 
 function runCase(scenarioCase: ScenarioCase): void {
   const operation = scenarioCase.shape.split(':')[0];
+  if (operation === undefined) {
+    throw new Error(`Unknown Predicates scenario shape: ${scenarioCase.shape}`);
+  }
   const runner = predicateRunners[operation];
   if (runner === undefined) {
     throw new Error(`Unknown Predicates scenario shape: ${scenarioCase.shape}`);

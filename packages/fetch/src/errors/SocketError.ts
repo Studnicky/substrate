@@ -31,12 +31,17 @@ export class SocketError extends FetchBaseError {
    */
   readonly url!: string;
 
+  private static buildMessage(fields: Readonly<{ 'undiciCode': 'UND_ERR_SOCKET'; 'url': string }>): string {
+    const result = `Socket error for ${fields.url}`;
+    return result;
+  }
+
   constructor(url: string, cause?: Error) {
     const fields = { 'undiciCode': 'UND_ERR_SOCKET' as const, 'url': url };
     super(DomainErrorArgs.build(fields, {
       'cause': cause,
       'code': 'fetch.socketError',
-      'message': (f) => { const result = `Socket error for ${f.url}`; return result; },
+      'message': SocketError.buildMessage,
       'retryable': true
     }));
     Object.assign(this, fields);

@@ -699,6 +699,40 @@
       }
     },
     {
+      "description": "returns false for a required key that only exists on the prototype chain",
+      "shape": "hasAllRequiredProperties:inherited:false",
+      "name": "returns false for a required key that only exists on the prototype chain",
+      "input": {
+        "predicates": {
+          "obj": {},
+          "required": [
+            "constructor"
+          ]
+        }
+      },
+      "expected": {
+        "result": false
+      }
+    },
+    {
+      "description": "returns true when the required key is an own property with the same name as an inherited one",
+      "shape": "hasAllRequiredProperties:own-shadowing-inherited:true",
+      "name": "returns true when the required key is an own property with the same name as an inherited one",
+      "input": {
+        "predicates": {
+          "obj": {
+            "constructor": 1
+          },
+          "required": [
+            "constructor"
+          ]
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
       "description": "returns true when value matches one of the listed types",
       "shape": "matchesAnyType:string-or-null:true",
       "name": "returns true when value matches one of the listed types",
@@ -857,6 +891,20 @@
       }
     },
     {
+      "description": "floor drops to 0 when only maxContains is set (no minContains)",
+      "shape": "satisfiesContains:0:default:2:true",
+      "name": "floor drops to 0 when only maxContains is set (no minContains)",
+      "input": {
+        "predicates": {
+          "matchCount": 0,
+          "maxContains": 2
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
       "description": "returns true for valid base64 string",
       "shape": "satisfiesContentEncoding:aGVsbG8=:base64:true",
       "name": "returns true for valid base64 string",
@@ -892,6 +940,20 @@
         "predicates": {
           "value": "anything",
           "encoding": "quoted-printable"
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "description": "remaps base64url alphabet characters before decoding",
+      "shape": "satisfiesContentEncoding:base64url-remap:base64url:true",
+      "name": "remaps base64url alphabet characters before decoding",
+      "input": {
+        "predicates": {
+          "value": "Zm9vPj4-Pz8_",
+          "encoding": "base64url"
         }
       },
       "expected": {
@@ -938,6 +1000,36 @@
       },
       "expected": {
         "result": true
+      }
+    },
+    {
+      "description": "decodes an encoded value before validating its media type",
+      "shape": "satisfiesContentMediaType:encoded-valid-json:application/json:true",
+      "name": "decodes an encoded value before validating its media type",
+      "input": {
+        "predicates": {
+          "value": "eyJ4IjoxfQ==",
+          "mediaType": "application/json",
+          "encoding": "base64"
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "description": "returns false when the declared encoding fails to decode",
+      "shape": "satisfiesContentMediaType:encoded-decode-failure:application/json:false",
+      "name": "returns false when the declared encoding fails to decode",
+      "input": {
+        "predicates": {
+          "value": "not base64!!!",
+          "mediaType": "application/json",
+          "encoding": "base64"
+        }
+      },
+      "expected": {
+        "result": false
       }
     },
     {
@@ -1092,6 +1184,32 @@
       }
     },
     {
+      "description": "coerces \"1\" to true",
+      "shape": "coerceToBoolean:1:true",
+      "name": "coerces \"1\" to true",
+      "input": {
+        "predicates": {
+          "value": "1"
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "description": "coerces \"0\" to false",
+      "shape": "coerceToBoolean:0:false",
+      "name": "coerces \"0\" to false",
+      "input": {
+        "predicates": {
+          "value": "0"
+        }
+      },
+      "expected": {
+        "result": false
+      }
+    },
+    {
       "description": "coerces numeric string to number",
       "shape": "coerceToNumber:3.14:3.14",
       "name": "coerces numeric string to number",
@@ -1190,6 +1308,23 @@
       },
       "expected": {
         "result": "hello"
+      }
+    },
+    {
+      "description": "skips a leading schema type that leaves the value unchanged and coerces with the next one in order",
+      "shape": "coerceValue:multi-type-order:number-match",
+      "name": "skips a leading schema type that leaves the value unchanged and coerces with the next one in order",
+      "input": {
+        "predicates": {
+          "types": [
+            "boolean",
+            "number"
+          ],
+          "value": "5"
+        }
+      },
+      "expected": {
+        "result": 5
       }
     },
     {

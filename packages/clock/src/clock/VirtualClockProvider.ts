@@ -15,14 +15,34 @@ import { ClockError } from '../errors/ClockError.js';
 /** Named constant: nanoseconds per millisecond, as BigInt. */
 const NS_PER_MS = 1_000_000n;
 
+interface VirtualClockProviderSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class VirtualClockProviderInstance {
+  static belongsTo<TInstance>(
+    constructor: VirtualClockProviderSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * `ClockProvider` backed by a `VirtualTimeCounter`.
  * `now()` returns the counter's current epoch-ms.
  * `hrtime()` returns the same value converted to nanoseconds.
  */
 export class VirtualClockProvider implements ClockProviderInterface {
-  static create(counter: Readonly<VirtualTimeCounter>): VirtualClockProvider {
-    return new this(counter);
+  static create<TInstance extends VirtualClockProvider = VirtualClockProvider>(
+    this: VirtualClockProviderSubclassInterface<TInstance>,
+    counter: Readonly<VirtualTimeCounter>
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [counter]);
+    if (!VirtualClockProviderInstance.belongsTo(this, result)) {
+      throw new TypeError('VirtualClockProvider.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   readonly #counter: Readonly<VirtualTimeCounter>;

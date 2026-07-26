@@ -10,7 +10,7 @@ import { HookInvocationError, HookInvoker } from '@studnicky/errors';
 
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
 import { MinimumHeap } from '../../src/scheduler/MinimumHeap.js';
-import scenarioGroups from './VirtualScheduler.scenarios.json';
+import scenarioGroups from './VirtualScheduler.scenarios.json' with { type: 'json' };
 
 class FireRecord {
   public count = 0;
@@ -87,7 +87,9 @@ function createScheduler(startMs: number): VirtualScheduler {
 
 function numberField(input: Record<string, unknown>, key: string): number {
   const value = input[key];
-  assert.equal(typeof value, 'number');
+  if (typeof value !== 'number') {
+    throw new Error(`Expected numeric field '${key}'`);
+  }
   return value;
 }
 
@@ -225,6 +227,7 @@ const scenarioRunners = {
       });
       sched.advance(run.advanceMs);
       const runExpected = scheduleAtExpected[run.expectedKey];
+      assert.ok(runExpected !== undefined, `Missing expected entry for key '${run.expectedKey}'`);
       assert.strictEqual(fired, runExpected.fired);
       assert.strictEqual(task.atMs, runExpected.atMs);
       assert.strictEqual(task.id.length > 0, runExpected.idNonEmpty);
@@ -595,7 +598,9 @@ const scenarioRunners = {
       throwingScheduleIdNonEmpty: boolean;
     };
     const requiredAuditNumber = (value: number | undefined): number => {
-      assert.notStrictEqual(value, undefined);
+      if (value === undefined) {
+        throw new Error('Expected a numeric audit field');
+      }
       return value;
     };
     const auditActionDispatch = {

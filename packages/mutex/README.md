@@ -53,6 +53,10 @@ const user = await mutex.runExclusive(
 );
 ```
 
+## Ordering
+
+Acquisitions for a given key are granted in the order they were requested. Waiters queued behind a held lock form a FIFO — `acquire()`/`runExclusive()` calls that arrive first are released first once the lock frees up. This extends to timeouts: if a burst of queued waiters for the same key all time out, they reject in that same request order.
+
 ## Extending
 
 Subclass `Mutex` and override any of the protected lifecycle hooks to add telemetry without coupling the base class to a metrics library. The hooks fire around every acquire and release cycle.

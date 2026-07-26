@@ -4,7 +4,7 @@ import {
 } from 'node:test';
 
 import { SchedulerTaskDataEntity } from '../../src/index.js';
-import scenarioGroups from './SchedulerTaskDataEntity.scenarios.json';
+import scenarioGroups from './SchedulerTaskDataEntity.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: { valid: boolean }; input: { taskData: { atMs: number; intervalMs: number; variant: 'interval' } }; shape: 'valid-task-data'; name: string }

@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { folderContentShape } from '../../src/rules/folderContentShape.js';
-import scenarioGroups from './folderContentShape.scenarios.json';
+import scenarioGroups from './folderContentShape.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

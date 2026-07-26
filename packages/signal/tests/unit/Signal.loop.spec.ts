@@ -7,7 +7,7 @@ import { HookInvocationError, HookInvoker } from '@studnicky/errors';
 
 import { RaceTimeout } from '../../src/RaceTimeout.js';
 import { Signal, SignalError } from '../../src/index.js';
-import scenarioGroups from './Signal.scenarios.json';
+import scenarioGroups from './Signal.scenarios.json' with { type: 'json' };
 
 type ComposeOptions = { deadlineMs?: number; signal?: AbortSignal };
 type ComposeSignalId = 'abort-controller' | 'provided';
@@ -82,7 +82,21 @@ type ScenarioCase =
       description: string;
       expected: { callCount: 1; resultMatches: true };
       input: { composeOptions: SerializableComposeOptions };
-      shape: 'on-compose-signal-only' | 'on-compose-deadline-only' | 'on-compose-empty-options';
+      shape: 'on-compose-signal-only';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { callCount: 1; resultMatches: true };
+      input: { composeOptions: SerializableComposeOptions };
+      shape: 'on-compose-deadline-only';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { callCount: 1; resultMatches: true };
+      input: { composeOptions: SerializableComposeOptions };
+      shape: 'on-compose-empty-options';
       name: string;
     }
   | {
@@ -171,10 +185,29 @@ function materializeComposeOptions(input: SerializableComposeOptions, runtime?: 
   return options;
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+async function runOnComposeRecording(
+  input: { composeOptions: SerializableComposeOptions },
+  expected: { callCount: 1; resultMatches: true }
+): Promise<void> {
+  const s = RecordingSignal.create();
+  const options = materializeComposeOptions(input.composeOptions);
+  const result = await s.compose(options);
+  assert.equal(s.calls.length, expected.callCount);
+  assert.equal(s.calls[0]?.options, options);
+  assert.equal(s.calls[0]?.result, result);
+  assert.ok(s.calls[0]?.result instanceof AbortSignal);
+  assert.equal(result.aborted, false);
+  assert.equal(result === s.calls[0]?.result, expected.resultMatches);
+}
+
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   'never-aborts': async (scenarioCase) => {
     const sig = Signal.never();
-    assert.equal(scenarioCase.input.aborted, scenarioCase.expected.aborted);
     assert.ok(sig instanceof AbortSignal);
     assert.equal(sig.aborted, scenarioCase.expected.aborted);
   },
@@ -182,14 +215,12 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   'never-same-instance': async (scenarioCase) => {
     const first = Signal.never();
     const second = Signal.never();
-    assert.equal(scenarioCase.input.sameInstance, scenarioCase.expected.sameInstance);
     assert.equal(first, second);
     assert.equal(first === second, scenarioCase.expected.sameInstance);
   },
 
   'compose-empty-options': async (scenarioCase) => {
     const sig = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions));
-    assert.equal(scenarioCase.input.aborted, scenarioCase.expected.aborted);
     assert.ok(sig instanceof AbortSignal);
     assert.equal(sig.aborted, scenarioCase.expected.aborted);
   },
@@ -233,7 +264,6 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   'instance-empty-options': async (scenarioCase) => {
     const s = Signal.create();
     const sig = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions));
-    assert.equal(scenarioCase.input.sameAsNever, scenarioCase.expected.sameAsNever);
     assert.ok(sig instanceof AbortSignal);
     assert.equal(sig, Signal.never());
     assert.equal(sig === Signal.never(), scenarioCase.expected.sameAsNever);
@@ -249,23 +279,15 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   },
 
   'on-compose-signal-only': async (scenarioCase) => {
-    const s = new RecordingSignal();
-    const options = materializeComposeOptions(scenarioCase.input.composeOptions);
-    const result = await s.compose(options);
-    assert.equal(s.calls.length, scenarioCase.expected.callCount);
-    assert.equal(s.calls[0]?.options, options);
-    assert.equal(s.calls[0]?.result, result);
-    assert.ok(s.calls[0]?.result instanceof AbortSignal);
-    assert.equal(result.aborted, false);
-    assert.equal(result === s.calls[0]?.result, scenarioCase.expected.resultMatches);
+    await runOnComposeRecording(scenarioCase.input, scenarioCase.expected);
   },
 
   'on-compose-deadline-only': async (scenarioCase) => {
-    await runnerMap['on-compose-signal-only'](scenarioCase);
+    await runOnComposeRecording(scenarioCase.input, scenarioCase.expected);
   },
 
   'on-compose-empty-options': async (scenarioCase) => {
-    await runnerMap['on-compose-signal-only'](scenarioCase);
+    await runOnComposeRecording(scenarioCase.input, scenarioCase.expected);
   },
 
   'throwing-on-compose-surfaces': async (scenarioCase) => {
@@ -304,7 +326,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     }
 
     await assert.rejects(
-      new AsyncThrowingSignal().compose(materializeComposeOptions(scenarioCase.input.composeOptions)),
+      AsyncThrowingSignal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions)),
       (err: unknown) => {
         assert.ok(err instanceof HookInvocationError);
         assert.equal(err.hookName, scenarioCase.expected.hookName);
@@ -363,7 +385,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

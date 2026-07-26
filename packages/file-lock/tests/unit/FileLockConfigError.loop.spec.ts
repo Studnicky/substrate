@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { FileLockConfigError } from '../../src/errors/FileLockConfigError.js';
-import scenarioGroups from './FileLockConfigError.scenarios.json';
+import scenarioGroups from './FileLockConfigError.scenarios.json' with { type: 'json' };
 
 type ScenarioShape = 'constructs-with-code';
 

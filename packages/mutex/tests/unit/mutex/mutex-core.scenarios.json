@@ -470,7 +470,7 @@
     },
     {
       "name": "burst-timeout-drains-queue",
-      "description": "Mutex rejects every queued acquisition with its own LockTimeoutError when a burst times out",
+      "description": "Mutex rejects every queued acquisition with its own LockTimeoutError when a burst times out, draining in the FIFO request order documented on Mutex",
       "shape": "burst-timeout-drains-queue",
       "input": {
         "key": "key1",

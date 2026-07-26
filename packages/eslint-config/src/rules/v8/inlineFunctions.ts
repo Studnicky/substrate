@@ -1,10 +1,7 @@
 import type { Rule } from 'eslint';
 
 import { ObjectGuard } from '../shared/ObjectGuard.js';
-import { PropertyKeyName } from '../shared/propertyKeyName.js';
 import { FunctionScope } from './functionScope.js';
-
-const EXEMPT_KEYS: ReadonlySet<string> = new Set(['transform', 'transformAsync']);
 
 export const inlineFunctions: Rule.RuleModule = {
   'create': (context) => {
@@ -16,9 +13,6 @@ export const inlineFunctions: Rule.RuleModule = {
 
       const parent = node.parent;
       if (parent.type !== 'ObjectExpression') { return; }
-
-      const keyName = PropertyKeyName.get(node);
-      if (keyName !== undefined && EXEMPT_KEYS.has(keyName)) { return; }
 
       // A map built once at module scope or a `static` class field never
       // re-allocates its function values — only a rebuilt-per-call map pays

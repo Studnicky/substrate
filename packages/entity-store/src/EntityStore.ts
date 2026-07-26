@@ -42,11 +42,26 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   protected readonly hooks: HookInvoker;
   #cachedSorted: TEntity[] | undefined;
 
-  static create<TEntity, TId extends PropertyKey = string>(
+  private static isConstructed<TInstance>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<
+    TEntity,
+    TId extends PropertyKey = string,
+    TInstance extends EntityStore<TEntity, TId> = EntityStore<TEntity, TId>
+  >(
+    this: Function & { readonly 'prototype': TInstance },
     options: EntityStoreOptionsInterface<TEntity, TId>
-  ): EntityStore<TEntity, TId> {
-    // `new this(...)` so subclass factories return the subclass instance.
-    return new this(options);
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!EntityStore.isConstructed<TInstance>(result, this)) {
+      throw new TypeError('EntityStore.create() must construct an EntityStore instance');
+    }
+    return result;
   }
 
   protected constructor(deps: EntityStoreOptionsInterface<TEntity, TId>) {

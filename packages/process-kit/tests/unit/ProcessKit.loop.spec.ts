@@ -9,7 +9,7 @@ import { ProcessKit } from '../../src/ProcessKit.js';
 import type { JobEffectEntity } from '../fixtures/entities/JobEffectEntity.js';
 import type { JobEventEntity } from '../fixtures/entities/JobEventEntity.js';
 import type { JobStateEntity } from '../fixtures/entities/JobStateEntity.js';
-import scenarioGroups from './ProcessKit.scenarios.json';
+import scenarioGroups from './ProcessKit.scenarios.json' with { type: 'json' };
 
 interface ScenarioCaseBaseInterface {
   description: string;
@@ -98,7 +98,12 @@ function materializeVirtualScheduler(input: ScheduledScenarioInputInterface['sch
   return { counter, scheduler: VirtualScheduler.create({ counter }) };
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   drive: async (scenarioCase) => {
     const kit = ProcessKit.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({
       machine: JobMachine.make()
@@ -172,16 +177,16 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     kit.start();
     await assert.rejects(() => kit.dispatch(scenarioCase.input.events.rejected), (error: unknown) => {
       assert.ok(error instanceof TransitionRejectedError);
+      assert.equal(error.constructor.name, scenarioCase.expected.rejectionName);
       assert.equal(error.eventType, scenarioCase.expected.rejectedEvent.type);
       return true;
     });
     const afterRecovery = await kit.dispatch(scenarioCase.input.events.recovery);
     assert.deepStrictEqual(afterRecovery, scenarioCase.expected.afterRecovery);
-    assert.equal(scenarioCase.expected.rejectionName, 'TransitionRejectedError');
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

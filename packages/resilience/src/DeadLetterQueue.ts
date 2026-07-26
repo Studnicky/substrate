@@ -10,6 +10,28 @@ import { DlqClosedError } from './DlqClosedError.js';
 import { DlqFullError } from './DlqFullError.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
+/**
+ * The portion of a queue's surface that never mentions its item type, so the
+ * factory can bind a subclass without the item type's variance blocking it.
+ */
+interface DeadLetterQueueShapeInterface {
+  abort(): void;
+  close(): void;
+}
+
+interface DeadLetterQueueSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class DeadLetterQueueInstance {
+  static belongsTo<TInstance>(
+    constructor: DeadLetterQueueSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 export class DeadLetterQueue<T> {
   static readonly #OwnedHookInvoker = class DeadLetterQueueHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
@@ -25,8 +47,15 @@ export class DeadLetterQueue<T> {
   /** Invokes lifecycle hooks, retaining diagnostics in the invoker while swallowing failures. */
   protected readonly hooks: HookInvoker;
 
-  static create<T>(options?: DeadLetterQueueOptionsInterface): DeadLetterQueue<T> {
-    return new DeadLetterQueue<T>(options);
+  static create<T, TInstance extends DeadLetterQueueShapeInterface = DeadLetterQueue<T>>(
+    this: DeadLetterQueueSubclassInterface<TInstance>,
+    options?: DeadLetterQueueOptionsInterface
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!DeadLetterQueueInstance.belongsTo(this, result)) {
+      throw new TypeError('DeadLetterQueue.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   protected constructor(options?: DeadLetterQueueOptionsInterface) {

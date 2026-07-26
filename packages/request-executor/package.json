@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/request-executor",
-  "version": "9.0.0",
-  "description": "One-shot request execution pattern composing @studnicky/fetch, /retry, /signal, /timing, and /context",
+  "version": "9.1.0",
+  "description": "One-shot request execution pattern composing @studnicky/fetch, /retry, /signal, and /context",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -61,7 +61,6 @@
     "@studnicky/json": "workspace:*",
     "@studnicky/retry": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/timing": "workspace:*",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   }

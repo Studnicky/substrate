@@ -2,7 +2,12 @@
   "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [["@studnicky/*"]],
+  "fixed": [
+    [
+      "@studnicky/*",
+      "!@studnicky/eslint-config"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",

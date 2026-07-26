@@ -1,5 +1,43 @@
 import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
 
+/**
+ * The browser surface this detector reads, declared structurally. The package
+ * compiles against `ESNext` only, so DOM lib types are unavailable here.
+ */
+interface WebglDebugRendererInfoInterface {
+  readonly 'UNMASKED_RENDERER_WEBGL': unknown;
+  readonly 'UNMASKED_VENDOR_WEBGL': unknown;
+}
+
+interface WebglContextInterface {
+  getExtension(name: 'WEBGL_debug_renderer_info'): WebglDebugRendererInfoInterface | null;
+  getParameter(parameter: unknown): unknown;
+}
+
+interface BrowserCanvasInterface {
+  getContext(contextId: 'webgl'): WebglContextInterface | null;
+}
+
+interface BrowserDocumentInterface {
+  createElement(tagName: 'canvas'): BrowserCanvasInterface;
+}
+
+/** Resolves the ambient browser `document`, which `globalThis` does not declare. */
+class BrowserGlobals {
+  static isDocument(value: unknown): value is BrowserDocumentInterface {
+    if (typeof value !== 'object' || value === null) { return false; }
+
+    const createElement: unknown = Reflect.get(value, 'createElement');
+    return typeof createElement === 'function';
+  }
+
+  /** Returns the document as-is, so its methods keep their receiver. */
+  static findDocument(): BrowserDocumentInterface | undefined {
+    const candidate: unknown = Reflect.get(globalThis, 'document');
+    return BrowserGlobals.isDocument(candidate) ? candidate : undefined;
+  }
+}
+
 export class GpuDetector {
   static detect(): GpuInfoEntity.Type | null {
     try {
@@ -7,11 +45,12 @@ export class GpuDetector {
         return null;
       }
 
-      if (!('document' in globalThis)) {
+      const doc = BrowserGlobals.findDocument();
+
+      if (doc === undefined) {
         return null;
       }
 
-      const doc = globalThis.document;
       const canvas = doc.createElement('canvas');
       const gl = canvas.getContext('webgl');
 

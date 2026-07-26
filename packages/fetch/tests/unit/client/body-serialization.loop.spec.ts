@@ -4,7 +4,7 @@ import { afterEach, describe, it } from 'node:test';
 
 import { FetchClient } from '../../../src/index.js';
 
-import scenarioGroups from './body-serialization.scenarios.json';
+import scenarioGroups from './body-serialization.scenarios.json' with { type: 'json' };
 
 type JsonPrimitive = null | boolean | number | string;
 
@@ -46,9 +46,9 @@ type SuccessExpectation = {
 
 type ScenarioCase = {
   description: string;
-  expect: RejectExpectation | SuccessExpectation;
+  expected: RejectExpectation | SuccessExpectation;
+  input: { request: RequestDefinition };
   name: string;
-  request: RequestDefinition;
 };
 
 const originalFetch = globalThis.fetch;
@@ -120,7 +120,8 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
       };
     }
 
-    throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
+    const exhaustiveCheck: never = value;
+    throw new Error(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
   }
 
   if (value === null || typeof value !== 'object') {
@@ -146,7 +147,7 @@ function parseJsonBody(body: string): Record<string, unknown> {
   }
 }
 
-async function readBodyText(body: BodyInit | null | undefined): Promise<string> {
+async function readBodyText(body: RequestInit['body']): Promise<string> {
   if (body === undefined || body === null) {
     return '';
   }
@@ -170,10 +171,10 @@ async function readBodyText(body: BodyInit | null | undefined): Promise<string> 
   return String(body);
 }
 
-async function bodySerializationFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+async function bodySerializationFetch(input: Request | URL | string, init?: RequestInit): Promise<Response> {
   const url = new URL(String(input));
   const method = init?.method ?? 'GET';
-  const bodyText = await readBodyText(init?.body as BodyInit | null | undefined);
+  const bodyText = await readBodyText(init?.body);
   const parsedBody = parseJsonBody(bodyText);
 
   if (method === 'POST' && url.pathname === '/posts') {
@@ -220,13 +221,14 @@ async function invokeRequest(request: RequestDefinition): Promise<Response> {
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  if ('messageIncludes' in scenarioCase.expect) {
+  const { expected } = scenarioCase;
+  if ('messageIncludes' in expected) {
     await assert.rejects(async () => {
-      await invokeRequest(scenarioCase.request);
+      await invokeRequest(scenarioCase.input.request);
     }, (error: Error) => {
       assert.ok(error instanceof TypeError);
-      assert.strictEqual(error.name, scenarioCase.expect.name);
-      for (const expectedMessagePart of scenarioCase.expect.messageIncludes) {
+      assert.strictEqual(error.name, expected.name);
+      for (const expectedMessagePart of expected.messageIncludes) {
         assert.ok(error.message.includes(expectedMessagePart));
       }
       return true;
@@ -234,17 +236,17 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     return;
   }
 
-  const response = await invokeRequest(scenarioCase.request);
-  assert.strictEqual(response.status, scenarioCase.expect.status);
+  const response = await invokeRequest(scenarioCase.input.request);
+  assert.strictEqual(response.status, expected.status);
 
-  if (scenarioCase.expect.json !== undefined) {
-    const expectedJson = materializeRuntimeValue(scenarioCase.expect.json);
+  if (expected.json !== undefined) {
+    const expectedJson = materializeRuntimeValue(expected.json);
     assert.deepStrictEqual(await response.json(), expectedJson);
   }
 }
 
 void describe('FetchClient Body Serialization', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       globalThis.fetch = bodySerializationFetch;
       await runCase(scenario);

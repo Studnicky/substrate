@@ -87,10 +87,25 @@ export class IdempotencyGuard<TResult = unknown> {
    * @param options - `{ capacity, ttlMs }` for the composed `LruCache`
    * @returns New IdempotencyGuard instance
    */
-  static create<TResult = unknown>(
+  private static isConstructed<TInstance>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<
+    TResult = unknown,
+    TInstance extends IdempotencyGuard<TResult> = IdempotencyGuard<TResult>
+  >(
+    this: Function & { readonly 'prototype': TInstance },
     options: IdempotencyGuardOptionsEntity.Type
-  ): IdempotencyGuard<TResult> {
-    return new this<TResult>(options);
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!IdempotencyGuard.isConstructed<TInstance>(result, this)) {
+      throw new TypeError('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
+    }
+    return result;
   }
 
   readonly #cache: LruCache<string, IdempotencyGuardEntryInterface<TResult>>;

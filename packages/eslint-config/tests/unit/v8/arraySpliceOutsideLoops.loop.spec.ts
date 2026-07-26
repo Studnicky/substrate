@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { arraySpliceOutsideLoops } from '../../../src/rules/v8/arraySpliceOutsideLoops.js';
-import scenarioGroups from './arraySpliceOutsideLoops.scenarios.json';
+import scenarioGroups from './arraySpliceOutsideLoops.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

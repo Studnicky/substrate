@@ -2,11 +2,8 @@ import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
 import { ObjectGuard } from '../shared/ObjectGuard.js';
+import { FUNCTION_TYPES, LOOP_TYPES, SCAN_METHODS } from './constants/ArrayScanOutsideLoopsConstants.js';
 import { FunctionScope } from './functionScope.js';
-
-const SCAN_METHODS: ReadonlySet<string> = new Set(['every', 'filter', 'find', 'includes', 'indexOf', 'some']);
-const LOOP_TYPES: ReadonlySet<string> = new Set(['DoWhileStatement', 'ForInStatement', 'ForOfStatement', 'ForStatement', 'WhileStatement']);
-const FUNCTION_TYPES: ReadonlySet<string> = new Set(['ArrowFunctionExpression', 'FunctionDeclaration', 'FunctionExpression']);
 
 interface ParserServicesInterface {
   readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;

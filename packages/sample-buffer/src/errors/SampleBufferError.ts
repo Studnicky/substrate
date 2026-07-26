@@ -20,15 +20,20 @@ interface SampleBufferErrorArgsInterface {
 
 /** Thrown when sample buffer configuration is invalid. */
 export class SampleBufferError extends BaseError {
+  private static buildMessage(fields: Readonly<{ 'message': string }>): string {
+    const result = fields.message;
+    return result;
+  }
+
   public constructor(message: string, args?: SampleBufferErrorArgsInterface) {
     const fields = { 'message': message };
     super(DomainErrorArgs.build(fields, {
       'cause': args?.cause,
       'code': 'sampleBuffer.invalidConfig',
       'correlationId': args?.correlationId,
-      'message': (f) => { const result = f.message; return result; },
+      'message': SampleBufferError.buildMessage,
       'metadata': args?.metadata,
-      'retryable': false
+      'retryable': args?.retryable ?? false
     }));
   }
 }

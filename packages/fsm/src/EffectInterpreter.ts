@@ -2,6 +2,7 @@ import { CircularBuffer, type CircularBufferOptionsEntity } from '@studnicky/cir
 import { Clone } from '@studnicky/json';
 
 import type { EffectHandlerInterface } from './EffectHandlerInterface.js';
+import type { EffectInterpreterConstructorOptionsInterface } from './EffectInterpreterConstructorOptionsInterface.js';
 import type { StateMachine } from './StateMachine.js';
 
 import { FsmConfigError } from './errors/FsmConfigError.js';
@@ -20,17 +21,6 @@ interface EffectInterpreterCreateOptionsInterface<
 > {
   readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;
-  readonly 'machineId'?: string | undefined;
-  readonly 'mailboxCapacity'?: number | undefined;
-}
-
-interface EffectInterpreterConstructorOptionsInterface<
-  TState extends { readonly 'variant': string },
-  TEvent extends { readonly 'type': string },
-  TEffect extends { readonly 'variant': string } = never
-> {
-  readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
-  readonly 'machine': StateMachine<TState, TEvent, TEffect>;
   readonly 'machineId'?: string | undefined;
   readonly 'mailboxCapacity'?: number | undefined;
 }

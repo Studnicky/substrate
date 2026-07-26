@@ -19,10 +19,6 @@ import { RequestExecutor } from '../src/index.js';
 class TelemetryFetchClient extends FetchClient {
   readonly requestPaths: string[] = [];
 
-  static override create(config = {}): TelemetryFetchClient {
-    return new this(config);
-  }
-
   protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     console.log(`[fetch] ${context.metadata.method} ${context.metadata.path}`);
     this.requestPaths.push(context.metadata.path);
@@ -49,11 +45,14 @@ class TelemetryRetry extends Retry {
 }
 
 /**
- * RequestExecutor has no hooks of its own, so the subclass explicitly owns the
- * retry dependency needed by its reporting behavior.
+ * RequestExecutor's own `onExecuteStart`/`onExecuteComplete`/`onExecuteError` hooks give
+ * span-level observability around the whole retry loop; retry-level reporting (attempt counts)
+ * still lives on `Retry` itself, so the subclass explicitly owns the `TelemetryRetry` dependency
+ * it needs for `report()`.
  */
 class ReportingRequestExecutor extends RequestExecutor {
   readonly #retry: TelemetryRetry;
+  readonly errorMessages: string[] = [];
 
   protected constructor(deps: RequestExecutorDepsInterface) {
     super(deps);
@@ -65,7 +64,7 @@ class ReportingRequestExecutor extends RequestExecutor {
 
   // `this.create(...)` (not `RequestExecutor.create(...)`) so the inherited factory's
   // `new this(...)` binds to ReportingRequestExecutor — same `new this()` polymorphism
-  // FetchClient/Timing/Retry use for their own subclass factories.
+  // FetchClient/Retry use for their own subclass factories.
   static tracked(fetchClient: TelemetryFetchClient, retry: TelemetryRetry): ReportingRequestExecutor {
     const result = this.create({ 'fetchClient': fetchClient, 'retry': retry });
 
@@ -74,6 +73,11 @@ class ReportingRequestExecutor extends RequestExecutor {
     }
 
     return result;
+  }
+
+  protected override onExecuteError(error: unknown): void {
+    console.log('[execute] failed', error instanceof Error ? error.message : error);
+    this.errorMessages.push(error instanceof Error ? error.message : String(error));
   }
 
   report(): { 'retries': number; 'totalRequests': number } {
@@ -144,6 +148,10 @@ const report = executor.report();
 
 assert.equal(report.totalRequests, 1);
 assert.equal(report.retries, 2);
+// The two /flaky 500s are absorbed by the retry loop, so execute() never fails and
+// onExecuteError never fires.
+assert.deepEqual(executor.errorMessages, []);
+assert.equal(executor.hookErrorCount, 0);
 
 server.close();
 

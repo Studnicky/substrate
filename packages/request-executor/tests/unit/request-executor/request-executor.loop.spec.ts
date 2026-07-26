@@ -2,14 +2,13 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
 import { Context } from '@studnicky/context';
-import { AbortError, FetchClient, type ClientConfigInterface, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch';
 import type { ErrorClassificationEntity } from '@studnicky/errors';
+import { AbortError, FetchClient, type ClientConfigInterface, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch';
 import { Retry, type RetryContextInterface, type RetryConfigInterface } from '@studnicky/retry';
-import { Timing } from '@studnicky/timing';
 
 import { RequestDeadlineEntity, RequestExecutor } from '../../../src/index.js';
 import type { RequestExecutorConfigInterface } from '../../../src/interfaces/RequestExecutorConfigInterface.js';
-import scenarioGroups from './request-executor.scenarios.json';
+import scenarioGroups from './request-executor.scenarios.json' with { type: 'json' };
 
 interface ScenarioRequestExecutorInputInterface {
   context?: { name: string };
@@ -35,7 +34,7 @@ type ScenarioCase =
       description: string;
       expected: { accepted: false };
       input: { values: Array<Record<string, unknown>> };
-      shape: 'entity-rejects-negative-deadline';
+      shape: 'entity-rejects-invalid-deadline';
       name: string;
     }
   | {
@@ -109,16 +108,30 @@ type ScenarioCase =
     }
   | {
       description: string;
-      expected: { completeEvents: number; responseStatus: number; startEvents: number };
+      expected: { hookNames: string[]; responseStatus: number };
       input: { fetchFailures: number; fetchPath: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      shape: 'timing-brackets-retry-loop';
+      shape: 'hooks-bracket-retry-loop';
       name: string;
     }
   | {
       description: string;
-      expected: { errorEvents: number; errorMessage: string; startEvents: number };
+      expected: { errorMessage: string; hookNames: string[] };
       input: { errorMessage: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      shape: 'timing-brackets-error';
+      shape: 'hooks-bracket-error';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { errorMessage: string; hookErrorCount: number; hookErrorName: string };
+      input: { errorMessage: string; hookFailureMessage: string; requestExecutor: ScenarioRequestExecutorInputInterface };
+      shape: 'hooks-error-not-swallowed';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { hookErrorCount: number; responseStatus: number; responseText: string };
+      input: { fetchResponseText: string; fetchUrl: string };
+      shape: 'hooks-noop-default';
       name: string;
     }
   | {
@@ -146,21 +159,55 @@ function setFetch(handler: typeof fetch): void {
   globalThis.fetch = handler;
 }
 
-class TrackingTiming extends Timing {
-  readonly eventNames: string[] = [];
+interface HookCallInterface {
+  readonly args: readonly unknown[];
+  readonly hook: string;
+}
 
-  protected override onEvent(data: { component: string; event: string; operation: string }): void {
-    this.eventNames.push(data.event);
+class TrackingRequestExecutor extends RequestExecutor {
+  readonly hookCalls: HookCallInterface[] = [];
+
+  static track(config: RequestExecutorConfigInterface = {}): TrackingRequestExecutor {
+    const result = this.create(config);
+    if (!(result instanceof TrackingRequestExecutor)) {
+      throw new TypeError('Expected TrackingRequestExecutor instance');
+    }
+    return result;
+  }
+
+  protected override onExecuteStart(): void {
+    this.hookCalls.push({ 'args': [], 'hook': 'onExecuteStart' });
+  }
+
+  protected override onExecuteComplete<T>(result: T): void {
+    this.hookCalls.push({ 'args': [result], 'hook': 'onExecuteComplete' });
+  }
+
+  protected override onExecuteError(error: unknown): void {
+    this.hookCalls.push({ 'args': [error], 'hook': 'onExecuteError' });
+  }
+}
+
+class ThrowingErrorHookRequestExecutor extends RequestExecutor {
+  #hookFailureMessage = 'onExecuteError override failed';
+
+  static thrown(config: RequestExecutorConfigInterface, hookFailureMessage: string): ThrowingErrorHookRequestExecutor {
+    const result = this.create(config);
+    if (!(result instanceof ThrowingErrorHookRequestExecutor)) {
+      throw new TypeError('Expected ThrowingErrorHookRequestExecutor instance');
+    }
+    result.#hookFailureMessage = hookFailureMessage;
+    return result;
+  }
+
+  protected override onExecuteError(_error: unknown): void {
+    throw new Error(this.#hookFailureMessage);
   }
 }
 
 class TrackingFetchClient extends FetchClient {
   readonly requestPaths: string[] = [];
   readonly responseStatuses: number[] = [];
-
-  static override create(config = {}): TrackingFetchClient {
-    return new this(config);
-  }
 
   protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     this.requestPaths.push(context.metadata.path);
@@ -218,7 +265,11 @@ function requireContextFromScenario(input: ScenarioRequestExecutorInputInterface
   return Context.create(input.context);
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'entity-validates-deadlines': async (scenarioCase) => {
     for (const value of scenarioCase.input.values) {
       assert.equal(RequestDeadlineEntity.validate(value), true);
@@ -226,7 +277,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     assert.equal(scenarioCase.expected.accepted, true);
   },
 
-  'entity-rejects-negative-deadline': async (scenarioCase) => {
+  'entity-rejects-invalid-deadline': async (scenarioCase) => {
     for (const value of scenarioCase.input.values) {
       assert.equal(RequestDeadlineEntity.validate(value), false);
     }
@@ -354,10 +405,10 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   },
 
   'cancellation-merged-signal': async (scenarioCase) => {
-    setFetch((_: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    setFetch((_input, init): Promise<Response> => {
       return new Promise<Response>((_resolve, reject) => {
         const signal = init?.signal;
-        if (signal === undefined) {
+        if (signal === undefined || signal === null) {
           return;
         }
 
@@ -438,7 +489,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     assert.equal(await response.text(), scenarioCase.input.responseText);
   },
 
-  'timing-brackets-retry-loop': async (scenarioCase) => {
+  'hooks-bracket-retry-loop': async (scenarioCase) => {
     let failuresRemaining = scenarioCase.input.fetchFailures;
     setFetch(async (input): Promise<Response> => {
       const url = new URL(String(input));
@@ -454,11 +505,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       return new Response('not found', { status: 404 });
     });
 
-    const timing = new TrackingTiming();
-    const executor = RequestExecutor.create({
-      ...resolvePlainExecutorConfig(scenarioCase.input.requestExecutor),
-      timing
-    });
+    const executor = TrackingRequestExecutor.track(resolvePlainExecutorConfig(scenarioCase.input.requestExecutor));
 
     const response = await executor.execute(async (client, signal) => {
       const result = await client.get(scenarioCase.input.fetchPath, { signal });
@@ -469,19 +516,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     });
 
     assert.equal(response.status, scenarioCase.expected.responseStatus);
-    assert.equal(timing.eventNames.filter((name) => name === 'RequestExecutor.execute.start').length, scenarioCase.expected.startEvents);
-    assert.equal(timing.eventNames.filter((name) => name === 'RequestExecutor.execute.complete').length, scenarioCase.expected.completeEvents);
-    const events = timing.getEvents();
-    assert.ok(events['RequestExecutor.execute.start'] !== undefined);
-    assert.ok(events['RequestExecutor.execute.complete'] !== undefined);
+    assert.deepStrictEqual(executor.hookCalls.map((call) => call.hook), scenarioCase.expected.hookNames);
+    assert.strictEqual(executor.hookCalls[0]?.args.length, 0);
+    assert.strictEqual(executor.hookCalls[1]?.args[0], response);
+    assert.equal(executor.hookErrorCount, 0);
   },
 
-  'timing-brackets-error': async (scenarioCase) => {
-    const timing = new TrackingTiming();
-    const executor = RequestExecutor.create({
-      ...resolvePlainExecutorConfig(scenarioCase.input.requestExecutor),
-      timing
-    });
+  'hooks-bracket-error': async (scenarioCase) => {
+    const executor = TrackingRequestExecutor.track(resolvePlainExecutorConfig(scenarioCase.input.requestExecutor));
 
     await assert.rejects(
       () => executor.execute(async () => {
@@ -489,12 +531,49 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       }),
       (error: unknown) => {
         assertErrorMessageIncludes(error, scenarioCase.input.errorMessage);
+        assert.strictEqual(executor.hookCalls[1]?.args[0], error);
         return true;
       }
     );
 
-    assert.equal(timing.eventNames.filter((name) => name === 'RequestExecutor.execute.start').length, scenarioCase.expected.startEvents);
-    assert.equal(timing.eventNames.filter((name) => name === 'RequestExecutor.execute.error').length, scenarioCase.expected.errorEvents);
+    assert.deepStrictEqual(executor.hookCalls.map((call) => call.hook), scenarioCase.expected.hookNames);
+    assert.equal(executor.hookErrorCount, 0);
+  },
+
+  'hooks-error-not-swallowed': async (scenarioCase) => {
+    const executor = ThrowingErrorHookRequestExecutor.thrown(
+      resolvePlainExecutorConfig(scenarioCase.input.requestExecutor),
+      scenarioCase.input.hookFailureMessage
+    );
+
+    await assert.rejects(
+      () => executor.execute(async () => {
+        throw new Error(scenarioCase.input.errorMessage);
+      }),
+      (error: unknown) => {
+        // A throwing onExecuteError override must not replace the request failure it
+        // observes — the original error, not the hook's HookInvocationError, propagates.
+        assertErrorMessageIncludes(error, scenarioCase.input.errorMessage);
+        return true;
+      }
+    );
+
+    assert.equal(executor.hookErrorCount, scenarioCase.expected.hookErrorCount);
+    assert.equal(executor.getHookErrors()[0]?.hookName, scenarioCase.expected.hookErrorName);
+  },
+
+  'hooks-noop-default': async (scenarioCase) => {
+    setFetch(async (): Promise<Response> => {
+      return new Response(scenarioCase.input.fetchResponseText);
+    });
+
+    const executor = RequestExecutor.create();
+    const response = await executor.execute((client, signal) => client.get(scenarioCase.input.fetchUrl, { signal }));
+
+    assert.equal(response.status, scenarioCase.expected.responseStatus);
+    assert.equal(await response.text(), scenarioCase.expected.responseText);
+    assert.equal(executor.hookErrorCount, scenarioCase.expected.hookErrorCount);
+    assert.deepStrictEqual(executor.getHookErrors(), []);
   },
 
   'hooks-fire-through-executor': async (scenarioCase) => {
@@ -513,7 +592,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       return new Response('not found', { status: 404 });
     });
 
-    const fetchClient = new TrackingFetchClient(scenarioCase.input.requestExecutor.fetchClient ?? {});
+    const fetchClient = TrackingFetchClient.create(scenarioCase.input.requestExecutor.fetchClient ?? {});
     const retry = new TrackingRetry(scenarioCase.input.requestExecutor.retry);
     const executor = RequestExecutor.create({ fetchClient, retry });
 
@@ -534,7 +613,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

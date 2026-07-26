@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Batch } from '@studnicky/batch';
-import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
 import { ConfigurationError } from '@studnicky/config';
 import { HookInvocationError } from '@studnicky/errors';
 
@@ -10,7 +9,9 @@ import { ThrottleConfigEntity, Throttle } from '../../../src/index.js';
 import { AdaptiveConfigEntity } from '../../../src/entities/AdaptiveConfigEntity.js';
 import { ValidatedAdaptiveConfigEntity } from '../../../src/entities/ValidatedAdaptiveConfigEntity.js';
 import { ValidatedThrottleConfigEntity } from '../../../src/entities/ValidatedThrottleConfigEntity.js';
-import scenarioGroups from './adaptive-config.scenarios.json';
+import type { ThrottleClockInputInterface } from '../../helpers/VirtualClockThrottle.js';
+import { VirtualClockThrottle } from '../../helpers/VirtualClockThrottle.js';
+import scenarioGroups from './adaptive-config.scenarios.json' with { type: 'json' };
 
 type AdjustmentDirection = 'down' | 'none' | 'up';
 
@@ -47,12 +48,6 @@ type ScenarioShape =
   | 'valid-disabled-no-extra-fields'
   | 'valid-required-fields';
 
-interface AdaptiveClockInputInterface {
-  operationDurationMs: number;
-  operationSpacingMs: number;
-  startMs: number;
-}
-
 interface AdaptiveBatchInputInterface {
   itemCount: number;
   maxConcurrent: number;
@@ -79,7 +74,7 @@ interface ScenarioExpectedInterface {
 
 interface ScenarioInputInterface {
   batch?: AdaptiveBatchInputInterface;
-  clock?: AdaptiveClockInputInterface;
+  clock?: ThrottleClockInputInterface;
   disabledConfig?: Record<string, unknown>;
   hookErrorMessage?: string;
   throttle?: Record<string, unknown>;
@@ -91,12 +86,6 @@ interface ScenarioCase {
   input: ScenarioInputInterface;
   shape: ScenarioShape;
   name: string;
-}
-
-interface VirtualDateNowInterface {
-  advanceOperationDuration: () => void;
-  advanceOperationStart: () => void;
-  restore: () => void;
 }
 
 function decodeThrottleConfig(config: ScenarioInputInterface['throttle']): Parameters<typeof Throttle.create>[0] {
@@ -115,50 +104,31 @@ function createScenarioThrottle(scenarioCase: ScenarioCase): Throttle {
   return Throttle.create(decodeThrottleConfig(scenarioCase.input.throttle));
 }
 
-function installVirtualDateNow(input: AdaptiveClockInputInterface): VirtualDateNowInterface {
-  const originalNow = Date.now;
-  const counter = VirtualTimeCounter.create({ startMs: input.startMs });
-  const clock = Clock.create(VirtualClockProvider.create(counter));
-
-  Date.now = () => clock.now();
-
-  return {
-    advanceOperationDuration: () => { counter.advance(input.operationDurationMs); },
-    advanceOperationStart: () => { counter.advance(input.operationSpacingMs); },
-    restore: () => { Date.now = originalNow; }
-  };
-}
-
 function createScenarioBatch<TResult>(input: AdaptiveBatchInputInterface): Batch<TResult> {
   return Batch.create<TResult>(input.maxConcurrent);
 }
 
 async function executeAdaptiveSamples(
-  throttle: Throttle,
+  throttle: VirtualClockThrottle,
   input: ScenarioInputInterface
 ): Promise<void> {
-  const { batch, clock } = input;
+  const { batch } = input;
   assert.ok(batch !== undefined);
-  assert.ok(clock !== undefined);
 
   const items = Array.from({ length: batch.itemCount }, (_unused, index) => index);
   const workload = createScenarioBatch<string | undefined>(batch);
-  const virtualDateNow = installVirtualDateNow(clock);
-  try {
-    let executed = 0;
-    for await (const results of workload.process(items, async (index) => {
-      virtualDateNow.advanceOperationStart();
-      return await throttle.execute(async () => {
-        virtualDateNow.advanceOperationDuration();
-        return `result-${String(index)}`;
-      });
-    })) {
-      executed += results.length;
-    }
-    assert.strictEqual(executed, batch.itemCount);
-  } finally {
-    virtualDateNow.restore();
+
+  let executed = 0;
+  for await (const results of workload.process(items, async (index) => {
+    throttle.advanceOperationStart();
+    return await throttle.execute(async () => {
+      throttle.advanceOperationDuration();
+      return `result-${String(index)}`;
+    });
+  })) {
+    executed += results.length;
   }
+  assert.strictEqual(executed, batch.itemCount);
 }
 
 function assertAdaptiveObservation(
@@ -252,17 +222,14 @@ function assertAdaptiveStepSizeRejects(scenarioCase: ScenarioCase): void {
 async function assertAdaptiveRuntimeObserved(scenarioCase: ScenarioCase): Promise<void> {
   const observed: Array<{ previousLimit: number; newLimit: number }> = [];
 
-  class ObservedAdaptiveThrottle extends Throttle {
-    static override create(config: Parameters<typeof Throttle.create>[0] = {}): ObservedAdaptiveThrottle {
-      return new this(config);
-    }
-
+  class ObservedAdaptiveThrottle extends VirtualClockThrottle {
     protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
       observed.push({ previousLimit, newLimit });
     }
   }
 
-  const throttle = ObservedAdaptiveThrottle.create(decodeThrottleConfig(scenarioCase.input.throttle));
+  assert.ok(scenarioCase.input.clock !== undefined);
+  const throttle = ObservedAdaptiveThrottle.createWithClock(scenarioCase.input.clock, decodeThrottleConfig(scenarioCase.input.throttle));
   await executeAdaptiveSamples(throttle, scenarioCase.input);
   assertAdaptiveObservation(scenarioCase, observed, throttle);
 }
@@ -271,11 +238,7 @@ async function assertAdaptiveRuntimeHookThrows(scenarioCase: ScenarioCase): Prom
   const observed: Array<{ previousLimit: number; newLimit: number }> = [];
   const hookError = new Error(scenarioCase.input.hookErrorMessage ?? 'adaptive adjust failed');
 
-  class ObservedAdaptiveThrottle extends Throttle {
-    static override create(config: Parameters<typeof Throttle.create>[0] = {}): ObservedAdaptiveThrottle {
-      return new this(config);
-    }
-
+  class ObservedAdaptiveThrottle extends VirtualClockThrottle {
     protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
       observed.push({ previousLimit, newLimit });
     }
@@ -288,7 +251,8 @@ async function assertAdaptiveRuntimeHookThrows(scenarioCase: ScenarioCase): Prom
     }
   }
 
-  const throttle = ThrowingAdaptiveThrottle.create(decodeThrottleConfig(scenarioCase.input.throttle));
+  assert.ok(scenarioCase.input.clock !== undefined);
+  const throttle = ThrowingAdaptiveThrottle.createWithClock(scenarioCase.input.clock, decodeThrottleConfig(scenarioCase.input.throttle));
   await assert.rejects(async () => {
     await executeAdaptiveSamples(throttle, scenarioCase.input);
   }, (error: unknown) => {

@@ -8,7 +8,7 @@ import { StateMachine } from '../../src/StateMachine.js';
 import { TransitionRejectedError } from '../../src/TransitionRejectedError.js';
 import { MachineTerminatedError } from '../../src/MachineTerminatedError.js';
 import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
-import scenarioGroups from './StateMachine.scenarios.json';
+import scenarioGroups from './StateMachine.scenarios.json' with { type: 'json' };
 
 type ToggleState = { readonly variant: 'on' } | { readonly variant: 'off' };
 type ToggleEvent = { readonly type: 'toggle' };
@@ -58,6 +58,7 @@ type ScenarioCase =
       description: string;
       expected: {
         errorName: string;
+        expectedReason: string;
       };
       input: ToggleState;
       shape: 'plain-error-wraps';
@@ -88,6 +89,8 @@ type ScenarioCase =
     };
 
 class ToggleMachine extends StateMachine<ToggleState, ToggleEvent> {
+  public constructor() { super(); }
+
   override getInitialState(): ToggleState { return { variant: 'off' }; }
 
   override reduce(state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState> {
@@ -99,6 +102,8 @@ class ToggleMachine extends StateMachine<ToggleState, ToggleEvent> {
 }
 
 class ThrowingMachine extends StateMachine<ToggleState, ToggleEvent> {
+  public constructor() { super(); }
+
   override getInitialState(): ToggleState { return { variant: 'off' }; }
 
   override reduce(_state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState> {
@@ -106,7 +111,19 @@ class ThrowingMachine extends StateMachine<ToggleState, ToggleEvent> {
   }
 }
 
+class PlainErrorThrowingMachine extends StateMachine<ToggleState, ToggleEvent> {
+  public constructor() { super(); }
+
+  override getInitialState(): ToggleState { return { variant: 'off' }; }
+
+  override reduce(_state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState> {
+    throw 'boom-plain';
+  }
+}
+
 class DeliberatelyRejectingMachine extends StateMachine<ToggleState, ToggleEvent> {
+  public constructor() { super(); }
+
   override getInitialState(): ToggleState { return { variant: 'off' }; }
 
   override reduce(state: ToggleState, event: ToggleEvent): FsmStepInterface<ToggleState> {
@@ -119,6 +136,8 @@ class DeliberatelyRejectingMachine extends StateMachine<ToggleState, ToggleEvent
 }
 
 class TerminatingMachine extends StateMachine<ToggleState, ToggleEvent> {
+  public constructor() { super(); }
+
   override getInitialState(): ToggleState { return { variant: 'off' }; }
 
   override reduce(state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState> {
@@ -133,17 +152,31 @@ class TerminatingMachine extends StateMachine<ToggleState, ToggleEvent> {
   }
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   'plain-error-wraps': (scenarioCase) => {
-    const machine = new ThrowingMachine();
+    const reasons: string[] = [];
+    class ObservedPlainErrorThrowingMachine extends PlainErrorThrowingMachine {
+      protected override onTransitionRejected(_state: ToggleState, _event: ToggleEvent, reason: string): void {
+        reasons.push(reason);
+      }
+    }
+    const machine = new ObservedPlainErrorThrowingMachine();
     assert.throws(
       () => machine.transition(scenarioCase.input, { type: 'toggle' }),
       (err: unknown) => {
         assert.ok(err instanceof ReducerThrewError);
         assert.equal(err.constructor.name, scenarioCase.expected.errorName);
+        assert.equal(err.cause, 'boom-plain');
         return true;
       }
     );
+    assert.deepEqual(reasons, [scenarioCase.expected.expectedReason]);
   },
   'rejected-error-surfaces': (scenarioCase) => {
     const machine = new DeliberatelyRejectingMachine();
@@ -216,10 +249,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
   }
 };
 
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
+}
+
 void describe('StateMachine', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
-      runnerMap[scenario.shape](scenario);
+      runCase(scenario);
     });
   }
 });

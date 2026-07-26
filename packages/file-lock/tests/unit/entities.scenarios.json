@@ -31,6 +31,70 @@
       },
       "shape": "reject-incomplete-path-state",
       "name": "reject-incomplete-path-state"
+    },
+    {
+      "description": "FileLockOptionsEntity rejects an empty path",
+      "expected": {
+        "validationResults": [
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "FileLockOptionsEntity", "expected": false, "value": { "path": "" } }
+        ]
+      },
+      "shape": "reject-empty-path",
+      "name": "reject-empty-path"
+    },
+    {
+      "description": "FileLockOptionsEntity rejects non-positive pollMs",
+      "expected": {
+        "validationResults": [
+          false,
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "FileLockOptionsEntity", "expected": false, "value": { "path": "/tmp/data.json", "pollMs": 0 } },
+          { "entity": "FileLockOptionsEntity", "expected": false, "value": { "path": "/tmp/data.json", "pollMs": -5 } }
+        ]
+      },
+      "shape": "reject-non-positive-pollMs",
+      "name": "reject-non-positive-pollMs"
+    },
+    {
+      "description": "FileLockOptionsEntity rejects non-positive timeoutMs",
+      "expected": {
+        "validationResults": [
+          false,
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "FileLockOptionsEntity", "expected": false, "value": { "path": "/tmp/data.json", "timeoutMs": 0 } },
+          { "entity": "FileLockOptionsEntity", "expected": false, "value": { "path": "/tmp/data.json", "timeoutMs": -5 } }
+        ]
+      },
+      "shape": "reject-non-positive-timeoutMs",
+      "name": "reject-non-positive-timeoutMs"
+    },
+    {
+      "description": "FileLockOptionsEntity rejects an unexpected extra property",
+      "expected": {
+        "validationResults": [
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          { "entity": "FileLockOptionsEntity", "expected": false, "value": { "path": "/tmp/data.json", "unexpectedProperty": true } }
+        ]
+      },
+      "shape": "reject-unexpected-property",
+      "name": "reject-unexpected-property"
     }
   ]
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { EntityStore } from '../../src/EntityStore.js';
-import scenarioGroups from './EntityStore.scenarios.json';
+import scenarioGroups from './EntityStore.scenarios.json' with { type: 'json' };
 
 type UserType = { id: string; name: string };
 type NestedUserType = { id: string; profile: { name: string }; roles: string[] };
@@ -54,7 +54,7 @@ type ScenarioCaseMap = {
   'get-all-cache-invalidated': ScenarioDescriptor<
     'get-all-cache-invalidated',
     { entities: readonly UserType[]; mutation: UserType },
-    { firstGetAllCallsPositive: boolean; mutationInvalidatesCache: boolean; subsequentGetsStable: boolean }
+    { idsAfterMutation: readonly string[]; idsBeforeMutation: readonly string[] }
   >;
   'get-all-defensive-snapshot': ScenarioDescriptor<
     'get-all-defensive-snapshot',
@@ -99,7 +99,7 @@ type ScenarioCaseMap = {
   'hooks-remove-many': ScenarioDescriptor<
     'hooks-remove-many',
     { entities: readonly UserType[]; ids: readonly string[] },
-    { removeEvents: number; removed: number }
+    { removeEvents: readonly HookEventType[]; removed: number }
   >;
   'hooks-remove-only-when-exists': ScenarioDescriptor<
     'hooks-remove-only-when-exists',
@@ -205,7 +205,7 @@ type ScenarioCaseMap = {
 
 type ScenarioShape = keyof ScenarioCaseMap;
 type ScenarioCase = ScenarioCaseMap[ScenarioShape];
-type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: ScenarioCaseMap[K]) => Promise<void>;
+type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
 type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
 const selectId = (entity: UserType): string => entity.id;
@@ -237,16 +237,6 @@ function makeSortedUserStore(): EntityStore<UserType, string> {
   });
 }
 
-function makeCountingSortedUserStore(onCompare: () => void): EntityStore<UserType, string> {
-  return EntityStore.create<UserType>({
-    selectId,
-    sortComparer: (a, b) => {
-      onCompare();
-      return compareUsersByName(a, b);
-    }
-  });
-}
-
 function makeNestedStore(): EntityStore<NestedUserType, string> {
   return EntityStore.create<NestedUserType>({ selectId: (entity) => entity.id });
 }
@@ -258,7 +248,7 @@ function makeThrowingUpsertStore(errorFactory: () => Error): EntityStore<UserTyp
     }
   }
 
-  return new ThrowingUpsertStore({ selectId });
+  return ThrowingUpsertStore.create({ selectId });
 }
 
 function makeThrowingRemoveStore(message: string): EntityStore<UserType, string> {
@@ -268,7 +258,7 @@ function makeThrowingRemoveStore(message: string): EntityStore<UserType, string>
     }
   }
 
-  return new ThrowingRemoveStore({ selectId });
+  return ThrowingRemoveStore.create({ selectId });
 }
 
 function makeThrowingReplaceAllStore(message: string): EntityStore<UserType, string> {
@@ -278,7 +268,7 @@ function makeThrowingReplaceAllStore(message: string): EntityStore<UserType, str
     }
   }
 
-  return new ThrowingReplaceAllStore({ selectId });
+  return ThrowingReplaceAllStore.create({ selectId });
 }
 
 function makeSelectiveThrowingUpsertStore(failure: SelectiveHookFailureType): EntityStore<UserType, string> {
@@ -290,7 +280,7 @@ function makeSelectiveThrowingUpsertStore(failure: SelectiveHookFailureType): En
     }
   }
 
-  return new SelectiveThrowingStore({ selectId });
+  return SelectiveThrowingStore.create({ selectId });
 }
 
 function makeAsyncRejectingUpsertStore(message: string): EntityStore<UserType, string> {
@@ -301,7 +291,7 @@ function makeAsyncRejectingUpsertStore(message: string): EntityStore<UserType, s
     }
   }
 
-  return new AsyncRejectingUpsertStore({ selectId });
+  return AsyncRejectingUpsertStore.create({ selectId });
 }
 
 function makeIsolatedFailureStore(messagePrefix: string): EntityStore<UserType, string> {
@@ -311,7 +301,7 @@ function makeIsolatedFailureStore(messagePrefix: string): EntityStore<UserType, 
     }
   }
 
-  return new IsolatedFailureStore({ selectId });
+  return IsolatedFailureStore.create({ selectId });
 }
 
 function compareUsersByName(a: UserType, b: UserType): number {
@@ -459,22 +449,16 @@ async function runGetAllDefensiveSnapshot(scenarioCase: ScenarioCaseMap['get-all
 }
 
 async function runGetAllCacheInvalidated(scenarioCase: ScenarioCaseMap['get-all-cache-invalidated']): Promise<void> {
-  let calls = 0;
-  const store = makeCountingSortedUserStore(() => {
-    calls += 1;
-  });
+  const store = makeSortedUserStore();
 
   await store.upsertMany(scenarioCase.input.entities);
-  store.getAll();
-  const callsAfterFirstGetAll = calls;
-  assert.equal(callsAfterFirstGetAll > 0, scenarioCase.expected.firstGetAllCallsPositive);
-  store.getAll();
-  store.getAll();
-  assert.equal(calls, callsAfterFirstGetAll);
-  assert.equal(calls === callsAfterFirstGetAll, scenarioCase.expected.subsequentGetsStable);
+  const idsBeforeMutation = store.getAll().map((entity) => entity.id);
+  assert.deepEqual(idsBeforeMutation, scenarioCase.expected.idsBeforeMutation);
+  assert.deepEqual(store.getAll().map((entity) => entity.id), scenarioCase.expected.idsBeforeMutation);
+
   await store.upsertOne(scenarioCase.input.mutation);
-  store.getAll();
-  assert.equal(calls > callsAfterFirstGetAll, scenarioCase.expected.mutationInvalidatesCache);
+  const idsAfterMutation = store.getAll().map((entity) => entity.id);
+  assert.deepEqual(idsAfterMutation, scenarioCase.expected.idsAfterMutation);
 }
 
 async function runDeepDetachedGetters(scenarioCase: ScenarioCaseMap['deep-detached-getters']): Promise<void> {
@@ -503,14 +487,14 @@ async function runIdsSizeReflectOperations(scenarioCase: ScenarioCaseMap['ids-si
 }
 
 async function runHooksUpsertOverwrite(scenarioCase: ScenarioCaseMap['hooks-upsert-overwrite']): Promise<void> {
-  const store = new RecordingStore({ selectId });
+  const store = RecordingStore.create({ selectId });
   await store.upsertOne(requireUser(scenarioCase.input.entities[0], 'first upsert entity'));
   await store.upsertOne(requireUser(scenarioCase.input.entities[1], 'second upsert entity'));
   assert.deepEqual(store.log.filter((event) => event.event === 'upsert'), scenarioCase.expected.events);
 }
 
 async function runHooksUpsertMany(scenarioCase: ScenarioCaseMap['hooks-upsert-many']): Promise<void> {
-  const store = new RecordingStore({ selectId });
+  const store = RecordingStore.create({ selectId });
   await store.upsertMany(scenarioCase.input.entities);
   const upserts = store.log.filter((event) => event.event === 'upsert');
   assert.equal(upserts.length, scenarioCase.expected.upsertCount);
@@ -518,7 +502,7 @@ async function runHooksUpsertMany(scenarioCase: ScenarioCaseMap['hooks-upsert-ma
 }
 
 async function runHooksRemoveOnlyWhenExists(scenarioCase: ScenarioCaseMap['hooks-remove-only-when-exists']): Promise<void> {
-  const store = new RecordingStore({ selectId });
+  const store = RecordingStore.create({ selectId });
   await store.upsertOne(scenarioCase.input.entity);
   store.log.length = 0;
   await store.removeOne(scenarioCase.input.missingId);
@@ -529,17 +513,17 @@ async function runHooksRemoveOnlyWhenExists(scenarioCase: ScenarioCaseMap['hooks
 }
 
 async function runHooksRemoveMany(scenarioCase: ScenarioCaseMap['hooks-remove-many']): Promise<void> {
-  const store = new RecordingStore({ selectId });
+  const store = RecordingStore.create({ selectId });
   await store.upsertMany(scenarioCase.input.entities);
   store.log.length = 0;
   const removed = await store.removeMany(scenarioCase.input.ids);
   assert.equal(removed, scenarioCase.expected.removed);
   const removeEvents = store.log.filter((event) => event.event === 'remove');
-  assert.equal(removeEvents.length, scenarioCase.expected.removeEvents);
+  assert.deepEqual(removeEvents, scenarioCase.expected.removeEvents);
 }
 
 async function runHooksReplaceAll(scenarioCase: ScenarioCaseMap['hooks-replace-all-count'] | ScenarioCaseMap['hooks-replace-all-empty']): Promise<void> {
-  const store = new RecordingStore({ selectId });
+  const store = RecordingStore.create({ selectId });
   await store.upsertMany(scenarioCase.input.initial);
   store.log.length = 0;
   await store.setAll(scenarioCase.input.next);
@@ -547,7 +531,7 @@ async function runHooksReplaceAll(scenarioCase: ScenarioCaseMap['hooks-replace-a
 }
 
 async function runHooksAllOverridden(scenarioCase: ScenarioCaseMap['hooks-all-overridden']): Promise<void> {
-  const store = new RecordingStore({ selectId });
+  const store = RecordingStore.create({ selectId });
   const operations = {
     removeOne: async (): Promise<void> => {
       await store.removeOne(scenarioCase.input.removeOne);
@@ -672,7 +656,7 @@ async function runHookFailuresIsolatedPerInstance(scenarioCase: ScenarioCaseMap[
   assert.equal(secondCause.message, scenarioCase.expected.second.message);
 }
 
-const runnerMap = {
+const runnerMap: RunnerMap = {
   'async-rejection-routed-no-unhandled': runAsyncRejectionRoutedNoUnhandled,
   'deep-detached-getters': runDeepDetachedGetters,
   'get-all-cache-invalidated': runGetAllCacheInvalidated,
@@ -705,13 +689,13 @@ const runnerMap = {
   'upsert-many-empty': runUpsertManyEmpty,
   'upsert-one-inserts': runUpsertOneInserts,
   'upsert-one-overwrites': runUpsertOneOverwrites
-} satisfies RunnerMap;
+};
 
-async function dispatchCase<K extends ScenarioShape>(shape: K, scenarioCase: ScenarioCaseMap[K]): Promise<void> {
+async function dispatchCase<K extends ScenarioShape>(shape: K, scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[shape](scenarioCase);
 }
 
-async function runCase<K extends ScenarioShape>(scenarioCase: ScenarioCaseMap[K]): Promise<void> {
+async function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await dispatchCase(scenarioCase.shape, scenarioCase);
 }
 

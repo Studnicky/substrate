@@ -46,13 +46,27 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    * @param config - Composition configuration
    * @returns New KeyedWorkGate instance
    */
-  static create<K extends PropertyKey = string>(
+  private static isConstructed<TInstance>(
+    value: unknown,
+    constructor: Function & { readonly 'prototype': TInstance }
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+
+  static create<
+    K extends PropertyKey = string,
+    TInstance extends KeyedWorkGate<K> = KeyedWorkGate<K>
+  >(
+    this: Function & { readonly 'prototype': TInstance },
     config: KeyedWorkGateConfigInterface<K> = {}
-  ): KeyedWorkGate<K> {
-    const result = new this<K>({
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [{
       'coalesce': KeyedWorkGate.#resolveCoalesce(config.coalesce),
       'mutex': KeyedWorkGate.#resolveMutex<K>(config.mutex)
-    });
+    }]);
+    if (!KeyedWorkGate.isConstructed<TInstance>(result, this)) {
+      throw new TypeError('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
+    }
     return result;
   }
 

@@ -7,9 +7,16 @@ import { join } from 'node:path';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
-import scenarioGroups from './run.scenarios.json';
+import scenarioGroups from './run.scenarios.json' with { type: 'json' };
 
-type ItemType = { error?: string; ms?: number; value: string };
+type ItemType = {
+  awaitResultCount?: number;
+  barrier?: SharedArrayBuffer;
+  barrierTarget?: number;
+  error?: string;
+  ms?: number;
+  value: string;
+};
 
 interface WorkerPoolBatchConfigInputInterface {
   concurrency?: WorkerPoolConfigInterface['batchConcurrency'];
@@ -34,9 +41,9 @@ function resolveWorkerPath(relativePath: string): string {
 
 function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface {
   const resolved: WorkerPoolConfigInterface = {
-    concurrency: config.concurrency,
     workerPath: resolveWorkerPath(config.workerPath)
   };
+  if (config.concurrency !== undefined) { resolved.concurrency = config.concurrency; }
   if (config.batch?.concurrency !== undefined) { resolved.batchConcurrency = config.batch.concurrency; }
   if (config.timeoutMs !== undefined) { resolved.timeoutMs = config.timeoutMs; }
   return resolved;
@@ -92,9 +99,13 @@ type ScenarioCase =
       input: { items: Array<{ ms?: number; value: string }>; workerPool: WorkerPoolInputInterface };
       shape: 'timeout-rejects';
       name: string;
-    }
+    };
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'result-order': async (scenarioCase) => {
     const pool = WorkerPool.create<ItemType, string>(resolvePoolConfig(scenarioCase.input.workerPool));
     assert.deepStrictEqual(await pool.run(scenarioCase.input.items), scenarioCase.expected.results);
@@ -112,23 +123,38 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     const results = await pool.run(items);
     assert.equal(results.length, scenarioCase.expected.itemCount);
     const observedMax = counts[1];
-    assert.equal(observedMax <= scenarioCase.input.workerPool.concurrency, scenarioCase.expected.observedMaxLessThanOrEqualConcurrency);
+    const { concurrency } = scenarioCase.input.workerPool;
+    assert.ok(concurrency !== undefined);
+    assert.equal(observedMax <= concurrency, scenarioCase.expected.observedMaxLessThanOrEqualConcurrency);
     assert.equal(observedMax > 1, scenarioCase.expected.observedMaxGreaterThanOne);
   },
   'error-fail-fast': async (scenarioCase) => {
     const observedResults: string[] = [];
 
+    // Shared observed-result counter: workers awaiting a barrier block until the parent has
+    // *observed* this many 'result' envelopes, closing the race between message delivery from two
+    // independent worker threads (see fixtures/echoWorker.mjs for the worker-side wait).
+    const barrier = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
+    const barrierCounts = new Int32Array(barrier);
+
     class ObservingPool extends WorkerPool<ItemType, string> {
       protected override onMessage(envelope: { type: string; value?: string }): void {
         if (envelope.type === 'result' && envelope.value !== undefined) {
           observedResults.push(envelope.value);
+          Atomics.add(barrierCounts, 0, 1);
+          Atomics.notify(barrierCounts, 0);
         }
       }
     }
 
-    const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
+    const pool = ObservingPool.create<ItemType, string, ObservingPool>(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    await assert.rejects(pool.run(scenarioCase.input.items), /boom/);
+    const items = scenarioCase.input.items.map((item) => {
+      if (item.awaitResultCount === undefined) { return item; }
+      return { ...item, barrier, barrierTarget: item.awaitResultCount };
+    });
+
+    await assert.rejects(pool.run(items), /boom/);
     assert.deepStrictEqual([...observedResults].sort(), [...scenarioCase.expected.observedResults].sort());
   },
   'exit-retry': async (scenarioCase) => {
@@ -186,7 +212,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

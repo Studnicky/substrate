@@ -11,10 +11,6 @@ import { KeyedWorkGate } from '../src/index.js';
 class TelemetryMutex extends Mutex<string> {
   readonly acquisitions: string[] = [];
 
-  static override create(config = {}): TelemetryMutex {
-    return new this(config);
-  }
-
   protected override afterAcquire(key: string, waitTimeMs: number): void {
     console.log(`[mutex] acquired '${key}' after ${waitTimeMs}ms wait`);
     this.acquisitions.push(key);
@@ -28,10 +24,6 @@ class TelemetryMutex extends Mutex<string> {
 class TelemetryCoalesce extends Coalesce<unknown> {
   readonly leaders: string[] = [];
   readonly joiners: string[] = [];
-
-  static override create(options = {}): TelemetryCoalesce {
-    return new this(options);
-  }
 
   protected override onCoalesceStart(key: string): void {
     console.log(`[coalesce] '${key}' leader executing`);

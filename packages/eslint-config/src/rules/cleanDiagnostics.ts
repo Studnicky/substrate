@@ -1,7 +1,6 @@
 import type { Rule } from 'eslint';
 
-// Longest alternatives first to avoid partial prefix shadowing in alternation.
-const SUPPRESSION_PATTERN = /istanbul ignore entirely|tslint:disable-next-line|tslint:disable-line|eslint-disable-next-line|eslint-disable-line|@ts-expect-error|eslint-disable|eslint-enable|tslint:disable|@ts-nocheck|@ts-ignore|c8-ignore|c8 ignore/v;
+import { SUPPRESSION_PATTERN } from './constants/CleanDiagnosticsConstants.js';
 
 export const cleanDiagnostics: Rule.RuleModule = {
   'create': (context) => {

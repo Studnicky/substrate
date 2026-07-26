@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/retry",
-  "version": "9.0.0",
+  "version": "9.1.0",
   "description": "Generic async retry utility with extensible error classification",
   "type": "module",
   "sideEffects": false,
@@ -61,21 +61,5 @@
     "@studnicky/types": "workspace:*",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
-  },
-  "peerDependencies": {
-    "@studnicky/logger": "workspace:*",
-    "@studnicky/timing": "workspace:*"
-  },
-  "peerDependenciesMeta": {
-    "@studnicky/logger": {
-      "optional": true
-    },
-    "@studnicky/timing": {
-      "optional": true
-    }
-  },
-  "devDependencies": {
-    "@studnicky/logger": "workspace:*",
-    "@studnicky/timing": "workspace:*"
   }
 }

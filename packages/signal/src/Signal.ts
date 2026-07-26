@@ -4,6 +4,19 @@ import { HookInvoker } from '@studnicky/errors';
 
 import { SignalError } from './errors/SignalError.js';
 
+interface SignalSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class SignalInstance {
+  static belongsTo<TInstance>(
+    constructor: SignalSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 export class Signal {
   static #never: AbortSignal | null = null;
 
@@ -13,8 +26,14 @@ export class Signal {
     this.hooks = hooks;
   }
 
-  static create(): Signal {
-    return new Signal();
+  static create<TInstance extends Signal = Signal>(
+    this: SignalSubclassInterface<TInstance>
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, []);
+    if (!SignalInstance.belongsTo(this, result)) {
+      throw new TypeError('Signal.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   static never(): AbortSignal {

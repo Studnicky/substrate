@@ -3,193 +3,136 @@
     {
       "name": "resolves a path under sourceRoot/domain/... to \"domain\"",
       "operation": "layerForPath",
-      "path": "/repo/src/domain/user/User.ts",
-      "expect": "domain",
       "input": {
-        "operation": "layerForPath",
-        "path": "/repo/src/domain/user/User.ts",
-        "expect": "domain"
+        "path": "/repo/src/domain/user/User.ts"
       },
-      "expected": { "output": "domain" }
+      "expected": {
+        "output": "domain"
+      }
     },
     {
       "name": "resolves a path under an unconfigured segment to undefined",
       "operation": "layerForPath",
-      "path": "/repo/src/utils/format.ts",
-      "expect": null,
       "input": {
-        "operation": "layerForPath",
-        "path": "/repo/src/utils/format.ts",
-        "expect": null
+        "path": "/repo/src/utils/format.ts"
       },
-      "expected": { "output": null }
+      "expected": {
+        "output": null
+      }
     },
     {
       "name": "resolves a path not under sourceRoot at all to undefined",
       "operation": "layerForPath",
-      "path": "/repo/scripts/build.ts",
-      "expect": null,
       "input": {
-        "operation": "layerForPath",
-        "path": "/repo/scripts/build.ts",
-        "expect": null
+        "path": "/repo/scripts/build.ts"
       },
-      "expected": { "output": null }
+      "expected": {
+        "output": null
+      }
     },
     {
       "name": "resolves an alias-prefixed specifier via the alias map directly",
       "operation": "layerForImport",
-      "specifier": "@domain/user",
-      "importingFile": "/repo/src/application/service.ts",
-      "expect": "domain",
       "input": {
-        "operation": "layerForImport",
         "specifier": "@domain/user",
-        "importingFile": "/repo/src/application/service.ts",
-        "expect": "domain"
+        "importingFile": "/repo/src/application/service.ts"
       },
-      "expected": { "output": "domain" }
+      "expected": {
+        "output": "domain"
+      }
     },
     {
       "name": "resolves a relative specifier via path resolution against the importing file directory",
       "operation": "layerForImport",
-      "specifier": "../domain/foo",
-      "importingFile": "/repo/src/application/service.ts",
-      "expect": "domain",
       "input": {
-        "operation": "layerForImport",
         "specifier": "../domain/foo",
-        "importingFile": "/repo/src/application/service.ts",
-        "expect": "domain"
+        "importingFile": "/repo/src/application/service.ts"
       },
-      "expected": { "output": "domain" }
+      "expected": {
+        "output": "domain"
+      }
     },
     {
       "name": "resolves a bare npm-style specifier to undefined",
       "operation": "layerForImport",
-      "specifier": "lodash",
-      "importingFile": "/repo/src/application/service.ts",
-      "expect": null,
       "input": {
-        "operation": "layerForImport",
         "specifier": "lodash",
-        "importingFile": "/repo/src/application/service.ts",
-        "expect": null
+        "importingFile": "/repo/src/application/service.ts"
       },
-      "expected": { "output": null }
+      "expected": {
+        "output": null
+      }
     },
     {
       "name": "resolves a relative specifier that resolves outside sourceRoot to undefined",
       "operation": "layerForImport",
-      "specifier": "../../scripts/build",
-      "importingFile": "/repo/src/application/service.ts",
-      "expect": null,
       "input": {
-        "operation": "layerForImport",
         "specifier": "../../scripts/build",
-        "importingFile": "/repo/src/application/service.ts",
-        "expect": null
+        "importingFile": "/repo/src/application/service.ts"
       },
-      "expected": { "output": null }
+      "expected": {
+        "output": null
+      }
     },
     {
       "name": "always allows same-layer imports",
       "operation": "canImport",
-      "from": "application",
-      "to": "application",
-      "expect": true,
       "input": {
-        "operation": "canImport",
         "from": "application",
-        "to": "application",
-        "expect": true
+        "to": "application"
       },
-      "expected": { "output": true }
+      "expected": {
+        "output": true
+      }
     },
     {
       "name": "disallows domain -> application per the default matrix",
       "operation": "canImport",
-      "from": "domain",
-      "to": "application",
-      "expect": false,
       "input": {
-        "operation": "canImport",
         "from": "domain",
-        "to": "application",
-        "expect": false
+        "to": "application"
       },
-      "expected": { "output": false }
+      "expected": {
+        "output": false
+      }
     },
     {
       "name": "allows application -> domain per the default matrix",
       "operation": "canImport",
-      "from": "application",
-      "to": "domain",
-      "expect": true,
       "input": {
-        "operation": "canImport",
         "from": "application",
-        "to": "domain",
-        "expect": true
+        "to": "domain"
       },
-      "expected": { "output": true }
+      "expected": {
+        "output": true
+      }
     },
     {
       "name": "allows infrastructure -> anything configured",
       "operation": "canImport",
-      "from": "infrastructure",
-      "to": "domain",
-      "expect": true,
       "input": {
-        "operation": "canImport",
         "from": "infrastructure",
-        "to": "domain",
-        "expect": true
+        "to": "domain"
       },
-      "expected": { "output": true }
+      "expected": {
+        "output": true
+      }
     },
     {
       "name": "allows infrastructure -> anything configured",
       "operation": "canImport",
-      "from": "infrastructure",
-      "to": "adapters",
-      "expect": true,
       "input": {
-        "operation": "canImport",
         "from": "infrastructure",
-        "to": "adapters",
-        "expect": true
+        "to": "adapters"
       },
-      "expected": { "output": true }
+      "expected": {
+        "output": true
+      }
     },
     {
       "name": "respects an allowedImports override that changes the default-matrix result",
       "operation": "canImport",
-      "from": "domain",
-      "to": "application",
-      "options": {
-        "aliasPrefixes": {
-          "@domain/": "domain",
-          "@ports/": "ports"
-        },
-        "allowedImports": {
-          "domain": [
-            "domain",
-            "application"
-          ]
-        },
-        "layers": [
-          "domain",
-          "ports",
-          "application",
-          "adapters",
-          "infrastructure"
-        ],
-        "sourceRoot": "src"
-      },
-      "expect": true,
       "input": {
-        "operation": "canImport",
         "from": "domain",
         "to": "application",
         "options": {
@@ -211,24 +154,22 @@
             "infrastructure"
           ],
           "sourceRoot": "src"
-        },
-        "expect": true
+        }
       },
-      "expected": { "output": true }
+      "expected": {
+        "output": true
+      }
     },
     {
       "name": "returns false for an unrecognized layer name",
       "operation": "canImport",
-      "from": "domain",
-      "to": "nonexistent",
-      "expect": false,
       "input": {
-        "operation": "canImport",
         "from": "domain",
-        "to": "nonexistent",
-        "expect": false
+        "to": "nonexistent"
       },
-      "expected": { "output": false }
+      "expected": {
+        "output": false
+      }
     }
   ]
 }

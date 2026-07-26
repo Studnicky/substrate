@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { BackoffStrategy } from '../../../src/retry/index.js';
-import scenarioGroups from './backoff-strategies.scenarios.json';
+import scenarioGroups from './backoff-strategies.scenarios.json' with { type: 'json' };
 
 type StrategyName = 'constant' | 'exponential' | 'linear';
 

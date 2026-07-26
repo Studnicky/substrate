@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ContextError } from '../../../src/errors/ContextError.js';
-import scenarioGroups from './context-error.scenarios.json';
+import scenarioGroups from './context-error.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {

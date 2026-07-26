@@ -5,7 +5,7 @@ import { HookInvocationError } from '@studnicky/errors';
 
 import { Channel } from '../../src/Channel.js';
 import { ChannelError } from '../../src/errors/ChannelError.js';
-import scenarioGroups from './Channel.scenarios.json';
+import scenarioGroups from './Channel.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | { description: string; expected: { items: readonly number[] }; input: { items: readonly number[]; key: string }; shape: 'buffered-publish'; name: string }
@@ -17,7 +17,7 @@ type ScenarioCase =
   | { description: string; expected: { entries: ReadonlyArray<{ item: string; key: string }>; count: number }; input: { items: readonly string[]; key: string }; shape: 'onEnqueue-hooks'; name: string }
   | { description: string; expected: { entries: ReadonlyArray<{ item: number; key: string }>; count: number }; input: { items: readonly number[]; key: string }; shape: 'onDequeue-hooks'; name: string }
   | { description: string; expected: { count: number; entry: { item: string; key: string } }; input: { item: string; key: string }; shape: 'onPublishDropped-hooks'; name: string }
-  | { description: string; expected: { before: number; after: number }; input: Record<string, never>; shape: 'onClose-hooks'; name: string }
+  | { description: string; expected: { before: number; after: number }; input: { before: number; after: number }; shape: 'onClose-hooks'; name: string }
   | { description: string; expected: { items: readonly number[]; overflowCount: number }; input: { count: number; key: string }; shape: 'no-high-water-mark'; name: string }
   | { description: string; expected: { items: readonly number[]; overflowDepths: readonly number[] }; input: { channel: { highWaterMark: number }; items: readonly number[]; key: string }; shape: 'high-water-mark'; name: string }
   | { description: string; expected: { nextValue: number }; input: { first: number; key: string; second: number }; shape: 'enqueue-rollback'; name: string }
@@ -62,10 +62,14 @@ class OverflowChannel<T> extends Channel<T> {
   }
 }
 
-const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (
+  scenarioCase: Extract<ScenarioCase, { shape: K }>
+) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const scenarioRunners: RunnerMap = {
   'buffered-publish': async (scenarioCase) => {
-    const input = scenarioCase.input as { items: readonly number[]; key: string };
-    const expected = scenarioCase.expected as { items: readonly number[] };
+    const { input, expected } = scenarioCase;
     const ch = Channel.create<number>();
     for (const item of input.items) {
       await ch.publish(input.key, item);
@@ -75,8 +79,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'live-subscribe': async (scenarioCase) => {
-    const input = scenarioCase.input as { items: readonly string[]; key: string };
-    const expected = scenarioCase.expected as { items: readonly string[] };
+    const { input, expected } = scenarioCase;
     const ch = Channel.create<string>();
     const gen = ch.subscribe(input.key);
     const collected: string[] = [];
@@ -96,8 +99,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'close-terminates': async (scenarioCase) => {
-    const input = scenarioCase.input as { items: readonly number[]; key: string };
-    const expected = scenarioCase.expected as { items: readonly number[] };
+    const { input, expected } = scenarioCase;
     const ch = Channel.create<number>();
     const gen = ch.subscribe(input.key);
     const items: number[] = [];
@@ -115,8 +117,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'independent-keys': async (scenarioCase) => {
-    const input = scenarioCase.input as { left: string; leftItem: string; key: string; right: string; rightItem: string };
-    const expected = scenarioCase.expected as { left: readonly string[]; right: readonly string[] };
+    const { input, expected } = scenarioCase;
     const ch = Channel.create<string>();
     await ch.publish(input.left, input.leftItem);
     await ch.publish(input.right, input.rightItem);
@@ -126,8 +127,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'publish-after-close': async (scenarioCase) => {
-    const input = scenarioCase.input as { item: number; key: string };
-    const expected = scenarioCase.expected as { items: readonly unknown[] };
+    const { input, expected } = scenarioCase;
     const ch = Channel.create<number>();
     await ch.close();
     await ch.publish(input.key, input.item);
@@ -139,8 +139,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'duplicate-subscribe': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string };
-    const expected = scenarioCase.expected as { errorName: string };
+    const { input, expected } = scenarioCase;
     const ch = Channel.create<string>();
     const subscriber = ch.subscribe(input.key);
     const active = subscriber.next();
@@ -156,9 +155,8 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'onEnqueue-hooks': async (scenarioCase) => {
-    const input = scenarioCase.input as { items: readonly string[]; key: string };
-    const expected = scenarioCase.expected as { count: number; entries: ReadonlyArray<{ item: string; key: string }> };
-    const ch = new ObservedChannel<string>();
+    const { input, expected } = scenarioCase;
+    const ch = ObservedChannel.create();
     for (const item of input.items) {
       await ch.publish(input.key, item);
     }
@@ -167,9 +165,8 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'onDequeue-hooks': async (scenarioCase) => {
-    const input = scenarioCase.input as { items: readonly number[]; key: string };
-    const expected = scenarioCase.expected as { count: number; entries: ReadonlyArray<{ item: number; key: string }> };
-    const ch = new ObservedChannel<number>();
+    const { input, expected } = scenarioCase;
+    const ch = ObservedChannel.create();
     for (const item of input.items) {
       await ch.publish(input.key, item);
     }
@@ -179,9 +176,8 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'onPublishDropped-hooks': async (scenarioCase) => {
-    const input = scenarioCase.input as { item: string; key: string };
-    const expected = scenarioCase.expected as { count: number; entry: { item: string; key: string } };
-    const ch = new ObservedChannel<string>();
+    const { input, expected } = scenarioCase;
+    const ch = ObservedChannel.create();
     await ch.close();
     await ch.publish(input.key, input.item);
     assert.equal(ch.droppedEvents.length, expected.count);
@@ -189,9 +185,8 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'onClose-hooks': async (scenarioCase) => {
-    const input = scenarioCase.input as { before: number; after: number };
-    const expected = scenarioCase.expected as { before: number; after: number };
-    const ch = new ObservedChannel<string>();
+    const { input, expected } = scenarioCase;
+    const ch = ObservedChannel.create();
     assert.equal(ch.closeCount, input.before);
     assert.equal(input.before, expected.before);
     await ch.close();
@@ -200,9 +195,8 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'no-high-water-mark': async (scenarioCase) => {
-    const input = scenarioCase.input as { count: number; key: string };
-    const expected = scenarioCase.expected as { items: readonly number[]; overflowCount: number };
-    const ch = new OverflowChannel<number>();
+    const { input, expected } = scenarioCase;
+    const ch = OverflowChannel.create();
     for (let i = 0; i < input.count; i += 1) {
       await ch.publish(input.key, i);
     }
@@ -212,9 +206,8 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'high-water-mark': async (scenarioCase) => {
-    const input = scenarioCase.input as { channel: { highWaterMark: number }; items: readonly number[]; key: string };
-    const expected = scenarioCase.expected as { items: readonly number[]; overflowDepths: readonly number[] };
-    const ch = new OverflowChannel<number>({ 'highWaterMark': input.channel.highWaterMark });
+    const { input, expected } = scenarioCase;
+    const ch = OverflowChannel.create({ 'highWaterMark': input.channel.highWaterMark });
     for (const item of input.items) {
       await ch.publish(input.key, item);
     }
@@ -224,8 +217,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'enqueue-rollback': async (scenarioCase) => {
-    const input = scenarioCase.input as { first: number; key: string; second: number };
-    const expected = scenarioCase.expected as { nextValue: number };
+    const { input, expected } = scenarioCase;
     class RejectFirstEnqueueChannel<T> extends Channel<T> {
       #enqueueCount = 0;
       protected override onEnqueue(): void {
@@ -235,7 +227,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
         }
       }
     }
-    const ch = new RejectFirstEnqueueChannel<number>();
+    const ch = RejectFirstEnqueueChannel.create<number>();
     const subscriber = ch.subscribe(input.key);
     const next = subscriber.next();
     await assert.rejects(() => ch.publish(input.key, input.first), HookInvocationError);
@@ -245,8 +237,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'dequeue-hook-error': async (scenarioCase) => {
-    const input = scenarioCase.input as { item: number; key: string };
-    const expected = scenarioCase.expected as { errorName: string; item: number; key: string };
+    const { input, expected } = scenarioCase;
     class ThrowingDequeueChannel<T> extends Channel<T> {
       protected override onDequeue(): void {
         throw new Error('hook boom');
@@ -262,8 +253,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   },
 
   'async-enqueue-hook': async (scenarioCase) => {
-    const input = scenarioCase.input as { first: number; key: string; second: number };
-    const expected = scenarioCase.expected as { nextValue: number; rejectionCount: number };
+    const { input, expected } = scenarioCase;
     class AsyncRejectingEnqueueChannel<T> extends Channel<T> {
       #enqueueCount = 0;
       protected override async onEnqueue(): Promise<void> {
@@ -281,7 +271,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
-      const ch = new AsyncRejectingEnqueueChannel<number>();
+      const ch = AsyncRejectingEnqueueChannel.create<number>();
       const subscriber = ch.subscribe(input.key);
       const next = subscriber.next();
       await assert.rejects(() => ch.publish(input.key, input.first), HookInvocationError);
@@ -296,7 +286,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await scenarioRunners[scenarioCase.shape](scenarioCase);
 }
 

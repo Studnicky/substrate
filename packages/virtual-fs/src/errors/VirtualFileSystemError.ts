@@ -19,15 +19,20 @@ interface VirtualFileSystemErrorArgsInterface {
 }
 
 export class VirtualFileSystemError extends BaseError {
+  private static buildMessage(fields: Readonly<{ 'message': string }>): string {
+    const result = fields.message;
+    return result;
+  }
+
   public constructor(message: string, args?: VirtualFileSystemErrorArgsInterface) {
     const fields = { 'message': message };
     super(DomainErrorArgs.build(fields, {
       'cause': args?.cause,
       'code': 'virtualFs.error',
       'correlationId': args?.correlationId,
-      'message': (f) => { const result = f.message; return result; },
+      'message': VirtualFileSystemError.buildMessage,
       'metadata': args?.metadata,
-      'retryable': false
+      'retryable': args?.retryable ?? false
     }));
   }
 }

@@ -3,7 +3,7 @@ import {
   describe, it
 } from 'node:test';
 
-import scenarioGroups from './examples.scenarios.json';
+import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
   description: string;

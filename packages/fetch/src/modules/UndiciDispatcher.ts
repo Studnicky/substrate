@@ -21,6 +21,19 @@ import { ConfigurationError } from '../errors/index.js';
 import { TestDispatcher } from '../testing/TestDispatcher.js';
 import { Delay } from './Delay.js';
 
+interface UndiciDispatcherSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class UndiciDispatcherInstance {
+  static belongsTo<TInstance>(
+    constructor: UndiciDispatcherSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Dispatcher for HTTP connection pooling using undici Agent
  *
@@ -32,7 +45,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * Creates lifecycle and health management for a caller-owned undici Agent.
    *
    * @param agent - Agent retained by the caller and used for requests
-   * @returns UndiciDispatcher instance
+   * @returns New instance of the class `create()` was called on
    *
    * @example
    * ```typescript
@@ -63,8 +76,15 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * const response = await client.get('/users');
    * ```
    */
-  static create(agent: Agent | TestDispatcher): UndiciDispatcher {
-    return new this(agent);
+  static create<TInstance extends UndiciDispatcher = UndiciDispatcher>(
+    this: UndiciDispatcherSubclassInterface<TInstance>,
+    agent: Agent | TestDispatcher
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [agent]);
+    if (!UndiciDispatcherInstance.belongsTo(this, result)) {
+      throw new TypeError('UndiciDispatcher.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   private readonly agent: Agent | TestDispatcher;

@@ -21,6 +21,19 @@ import { CancellableTask } from './CancellableTask.js';
 import { MinimumHeap } from './MinimumHeap.js';
 import { SchedulerHookInvoker } from './SchedulerHookInvoker.js';
 
+interface VirtualSchedulerSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class VirtualSchedulerInstance {
+  static belongsTo<TInstance>(
+    constructor: VirtualSchedulerSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Deterministic `SchedulerProvider` for testing.
  * Time only advances when you call `advance`, `runUntil`, or `runAll`.
@@ -59,8 +72,15 @@ export class VirtualScheduler implements SchedulerProviderInterface {
   }
 
   /** Creates a new `VirtualScheduler` with the given options. */
-  static create(options: { readonly 'counter': Readonly<VirtualTimeCounter> }): VirtualScheduler {
-    return new this(options.counter);
+  static create<TInstance extends VirtualScheduler = VirtualScheduler>(
+    this: VirtualSchedulerSubclassInterface<TInstance>,
+    options: { readonly 'counter': Readonly<VirtualTimeCounter> }
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options.counter]);
+    if (!VirtualSchedulerInstance.belongsTo(this, result)) {
+      throw new TypeError('VirtualScheduler.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   /** Returns a unique task ID. Override to customise the ID format. */

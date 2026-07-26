@@ -5,7 +5,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { allTypesAreEntities } from '../../src/rules/allTypesAreEntities.js';
-import scenarioGroups from './allTypesAreEntities.scenarios.json';
+import scenarioGroups from './allTypesAreEntities.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

@@ -127,6 +127,16 @@
       ],
       "name": "forbids istanbul ignore entirely and removes comment line",
       "output": "const x = 1;"
+    },
+    {
+      "code": "console.log('hi'); // eslint-disable-line no-console",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids a trailing suppression comment on a code line and removes only the comment, leaving the code intact",
+      "output": "console.log('hi'); "
     }
   ]
 }

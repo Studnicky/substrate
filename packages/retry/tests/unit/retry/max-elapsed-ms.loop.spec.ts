@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { MaxRetriesExceededError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
-import scenarioGroups from './max-elapsed-ms.scenarios.json';
+import scenarioGroups from './max-elapsed-ms.scenarios.json' with { type: 'json' };
 
 type RetryScenarioInput = Record<string, unknown> & {
   retry?: Partial<Pick<RetryConfigInterface, 'maxElapsedMs' | 'maxRetries'>>;

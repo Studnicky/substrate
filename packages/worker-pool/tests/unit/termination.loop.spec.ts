@@ -4,7 +4,7 @@ import { Worker } from 'node:worker_threads';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
-import scenarioGroups from './termination.scenarios.json';
+import scenarioGroups from './termination.scenarios.json' with { type: 'json' };
 
 interface ItemInterface {
   crash?: boolean;
@@ -83,7 +83,11 @@ function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigIn
   return resolved;
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'final-shutdown-rejection': async (scenarioCase) => {
     const originalTerminate = Worker.prototype.terminate;
     const terminationFailure = new Error(scenarioCase.input.terminateFailureMessage);
@@ -218,7 +222,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

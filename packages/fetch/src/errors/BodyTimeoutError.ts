@@ -31,12 +31,17 @@ export class BodyTimeoutError extends FetchBaseError {
    */
   readonly url!: string;
 
+  private static buildMessage(fields: Readonly<{ 'undiciCode': 'UND_ERR_BODY_TIMEOUT'; 'url': string }>): string {
+    const result = `Body timeout for ${fields.url}`;
+    return result;
+  }
+
   constructor(url: string, cause?: Error) {
     const fields = { 'undiciCode': 'UND_ERR_BODY_TIMEOUT' as const, 'url': url };
     super(DomainErrorArgs.build(fields, {
       'cause': cause,
       'code': 'fetch.bodyTimeout',
-      'message': (f) => { const result = `Body timeout for ${f.url}`; return result; },
+      'message': BodyTimeoutError.buildMessage,
       'retryable': true
     }));
     Object.assign(this, fields);

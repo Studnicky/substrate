@@ -3,10 +3,12 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 import {
   getCombinedModifierFlags,
   type InterfaceDeclaration,
+  type IntersectionTypeNode,
   isArrayTypeNode,
   isAsExpression,
   isCallExpression,
   isCallSignatureDeclaration,
+  isComputedPropertyName,
   isConditionalTypeNode,
   isConstructorTypeNode,
   isConstructSignatureDeclaration,
@@ -50,11 +52,13 @@ import {
   type Type,
   type TypeAliasDeclaration,
   type TypeChecker,
+  type TypeElement,
   TypeFlags,
   type TypeNode,
   type TypeParameterDeclaration,
   type TypeQueryNode,
-  type TypeReferenceNode
+  type TypeReferenceNode,
+  type UnionTypeNode
 } from 'typescript';
 
 namespace TypeContractMetadataEntity {
@@ -70,13 +74,15 @@ namespace TypeContractMetadataEntity {
         'enum': ['any', 'bigint', 'brand', 'callable', 'classInstance', 'conditional', 'constructor', 'indexedAccess', 'interfaceReference', 'mapped', 'never', 'nonJson', 'symbol', 'undefined', 'unknown']
       },
       'fixable': { 'type': 'boolean' },
+      'hasCallable': { 'type': 'boolean' },
+      'hasData': { 'type': 'boolean' },
       'interfaceClassification': { 'enum': ['contract', 'pureData'] },
       'interfaceContractReason': { 'enum': ['brand', 'callable', 'classInstance', 'constructor', 'nonJson', 'readonly'] },
       'interfaceReason': { 'enum': ['brand', 'callable', 'classInstance', 'constructor', 'nonJson', 'pureData', 'readonly'] },
       'readonlyReason': { 'enum': ['exposedDefault', 'intrinsicReadonly', 'readonlyAlias', 'readonlyArray', 'readonlyIndex', 'readonlyMapped', 'readonlyProperty'] },
       'valid': { 'type': 'boolean' }
     },
-    'required': ['aliasClassification', 'aliasReason', 'canonicalRoot', 'contractReason', 'fixable', 'interfaceClassification', 'interfaceContractReason', 'interfaceReason', 'readonlyReason', 'valid'],
+    'required': ['aliasClassification', 'aliasReason', 'canonicalRoot', 'contractReason', 'fixable', 'hasCallable', 'hasData', 'interfaceClassification', 'interfaceContractReason', 'interfaceReason', 'readonlyReason', 'valid'],
     'type': 'object'
   } as const satisfies JSONSchema;
 
@@ -117,6 +123,11 @@ interface ContractEvidenceInterface {
 interface InterfaceContractEvidenceInterface {
   readonly 'node': Node;
   readonly 'reason': TypeContractMetadataEntity.Type['interfaceContractReason'];
+}
+
+interface CallabilityFlagsInterface {
+  readonly 'hasCallable': TypeContractMetadataEntity.Type['hasCallable'];
+  readonly 'hasData': TypeContractMetadataEntity.Type['hasData'];
 }
 
 namespace SchemaDerivationMetadataEntity {
@@ -211,6 +222,17 @@ export class TypeContractClassification {
     return this.findInterfaceTypeContract(node, new Set(), 0) !== undefined;
   }
 
+  /**
+   * A brand member marks its declaration nominally and has no schema-derived equivalent, since
+   * JSON expresses no symbol. Extraction to a named entity is unavailable to it.
+   */
+  public isBrandDeclarationMember(member: Node): boolean {
+    if (!isPropertySignature(member) && !isIndexSignatureDeclaration(member) && !isMethodSignature(member)) {
+      return false;
+    }
+    return this.isBrandMember(member);
+  }
+
   public containsTypeParameterReference(node: Node): boolean {
     if (isTypeReferenceNode(node)) {
       const symbol = this.resolveSymbol(this.checker.getSymbolAtLocation(node.typeName));
@@ -232,6 +254,33 @@ export class TypeContractClassification {
 
     const data = this.classifyDataNode(node, false, new Set(), 0);
     return !data.valid || !data.canonicalRoot;
+  }
+
+  /**
+   * A union or intersection mixes shapes when at least one constituent is callable or
+   * constructable and at least one other constituent is data. A callable/constructable
+   * constituent belongs in an interface; a data constituent belongs in a schema-derived type —
+   * TypeScript has no syntax for an interface that is itself a union, so mixing the two in one
+   * type position has no interface remedy. `undefined`, `null`, and `never` constituents are
+   * neutral and never make a union mixed on their own (an optional callable stays one shape).
+   */
+  public mixesCallableAndData(node: IntersectionTypeNode | UnionTypeNode): boolean {
+    const flags = this.classifyCallability(node, new Set(), 0);
+    return flags.hasCallable && flags.hasData;
+  }
+
+  /**
+   * An alias whose own declared type is directly a mixed union or intersection has no interface
+   * remedy at all — TypeScript cannot express `interface X { (): void } | { a: 1 }`. Unwraps only
+   * a parenthesized wrapper, since `type X = ((() => void) | { a: 1 });` is the same top-level
+   * shape. A mixed union nested inside a property (`{ slot: (() => void) | { a: 1 } }`) is
+   * excluded — wrapping that outer shape in an interface remains valid TypeScript, so the alias
+   * remedy stays followable there even though the property itself still needs a split.
+   */
+  public isTopLevelMixedCallableData(node: TypeNode): boolean {
+    if (isParenthesizedTypeNode(node)) { return this.isTopLevelMixedCallableData(node.type); }
+    if (!isUnionTypeNode(node) && !isIntersectionTypeNode(node)) { return false; }
+    return this.mixesCallableAndData(node);
   }
 
   private addReadonlyEvidence(
@@ -288,17 +337,16 @@ export class TypeContractClassification {
     const nextVisiting = new Set(visiting);
     if (symbol !== undefined) { nextVisiting.add(symbol); }
 
-    if (
-      declaration.typeParameters !== undefined
-      && declaration.typeParameters.length > 0
-      && (isConditionalTypeNode(declaration.type) || isMappedTypeNode(declaration.type) || isIndexedAccessTypeNode(declaration.type))
-    ) {
-      return {
-        'classification': 'typeFunction',
-        'evidence': declaration.type,
-        'readonlyOutput': readonlyOutput,
-        'reason': this.typeFunctionReason(declaration.type)
-      };
+    if (declaration.typeParameters !== undefined && declaration.typeParameters.length > 0) {
+      const typeFunctionBody = this.containsTypeFunctionBody(declaration.type, 0);
+      if (typeFunctionBody !== undefined) {
+        return {
+          'classification': 'typeFunction',
+          'evidence': declaration.type,
+          'readonlyOutput': readonlyOutput,
+          'reason': this.typeFunctionReason(typeFunctionBody)
+        };
+      }
     }
 
     const contract = this.findAliasContract(declaration.type, nextVisiting, depth + 1);
@@ -327,6 +375,113 @@ export class TypeContractClassification {
       'readonlyOutput': readonlyOutput,
       'reason': data.reason
     };
+  }
+
+  /**
+   * Classifies a type node's callable/data composition for mixed-shape detection. Resolves
+   * through parenthesized, optional, rest, and top-level `readonly` operator wrappers; flattens
+   * nested unions and intersections so a constituent that is itself mixed propagates both flags
+   * to the caller; and resolves named references through interfaces and type aliases
+   * (cycle-guarded by `visiting`). An interface reference is callable only when
+   * {@link interfaceHasCallSignature} finds an actual call or construct signature; a `pureData`
+   * interface (per {@link analyzeInterface}) is data; any other contract reason — a method,
+   * brand, class-instance, readonly, or non-JSON computation — is neither: that interface is
+   * already a runtime contract in this codebase's ontology, not schema-derived data, so pairing
+   * it with an actual function does not make the union "mixed" on its own. `undefined`, `null`,
+   * and `never` likewise report neither flag. `Array`, `Readonly`, and `ReadonlyArray` intrinsics
+   * report data without inspecting their element type — an array of functions is still a data
+   * container, not a callable shape.
+   */
+  private classifyCallability(
+    node: TypeNode,
+    visiting: Set<Symbol>,
+    depth: number
+  ): CallabilityFlagsInterface {
+    if (depth > MAX_DEPTH) { return { 'hasCallable': false, 'hasData': true }; }
+
+    if (isParenthesizedTypeNode(node) || isOptionalTypeNode(node) || isRestTypeNode(node)) {
+      return this.classifyCallability(node.type, visiting, depth + 1);
+    }
+
+    if (isTypeOperatorNode(node) && node.operator === SyntaxKind.ReadonlyKeyword) {
+      return this.classifyCallability(node.type, visiting, depth + 1);
+    }
+
+    const kind = node.kind;
+    if (kind === SyntaxKind.UndefinedKeyword || kind === SyntaxKind.NeverKeyword) {
+      return { 'hasCallable': false, 'hasData': false };
+    }
+
+    // `null` as a type is a `LiteralTypeNode` wrapping a `NullKeyword` literal, not a bare
+    // keyword type node — unlike `undefined`, which TypeScript represents directly.
+    if (isLiteralTypeNode(node) && node.literal.kind === SyntaxKind.NullKeyword) {
+      return { 'hasCallable': false, 'hasData': false };
+    }
+
+    if (isFunctionTypeNode(node) || isConstructorTypeNode(node)) {
+      return { 'hasCallable': true, 'hasData': false };
+    }
+
+    if (isUnionTypeNode(node) || isIntersectionTypeNode(node)) {
+      let hasCallable = false;
+      let hasData = false;
+      const members = node.types;
+      const length = members.length;
+      for (let index = 0; index < length; index++) {
+        const member = members[index];
+        if (member === undefined) { continue; }
+        const classified = this.classifyCallability(member, visiting, depth + 1);
+        hasCallable = hasCallable || classified.hasCallable;
+        hasData = hasData || classified.hasData;
+      }
+      return { 'hasCallable': hasCallable, 'hasData': hasData };
+    }
+
+    if (isTypeLiteralNode(node)) {
+      const isCallableLiteral = node.members.some((member) => {return (
+        isCallSignatureDeclaration(member) || isConstructSignatureDeclaration(member)
+      );});
+      return isCallableLiteral
+        ? { 'hasCallable': true, 'hasData': false }
+        : { 'hasCallable': false, 'hasData': true };
+    }
+
+    if (isTypeReferenceNode(node)) {
+      if (this.isIntrinsic(node, 'Array') || this.isIntrinsic(node, 'Readonly') || this.isIntrinsic(node, 'ReadonlyArray')) {
+        return { 'hasCallable': false, 'hasData': true };
+      }
+
+      const symbol = this.resolveSymbol(this.checker.getSymbolAtLocation(node.typeName));
+      const declarations = symbol?.getDeclarations() ?? [];
+      const interfaceDeclaration = declarations.find(isInterfaceDeclaration);
+      if (interfaceDeclaration !== undefined) {
+        if (this.interfaceHasCallSignature(interfaceDeclaration, new Set(), 0)) {
+          return { 'hasCallable': true, 'hasData': false };
+        }
+        if (this.analyzeInterface(interfaceDeclaration).classification === 'pureData') {
+          return { 'hasCallable': false, 'hasData': true };
+        }
+        // A method, brand, class-instance, readonly, or other non-JSON contract reason is a
+        // runtime contract in this codebase's own ontology (see `interface-must-be-contract`),
+        // not schema-derived data. `Promise`, `Map`, and similar lib interfaces land here too —
+        // treating their methods as call evidence would flag the pervasive `Promise<T> | T`
+        // return-type idiom as mixed. Neither flag; it never makes a union "mixed" on its own.
+        return { 'hasCallable': false, 'hasData': false };
+      }
+
+      if (symbol !== undefined && !visiting.has(symbol)) {
+        const alias = this.aliasDeclarationForSymbol(symbol);
+        if (alias !== undefined) {
+          const nextVisiting = new Set(visiting);
+          nextVisiting.add(symbol);
+          return this.classifyCallability(alias.type, nextVisiting, depth + 1);
+        }
+      }
+
+      return { 'hasCallable': false, 'hasData': true };
+    }
+
+    return { 'hasCallable': false, 'hasData': true };
   }
 
   private classifyDataNode(
@@ -710,6 +865,95 @@ export class TypeContractClassification {
     });
   }
 
+  /**
+   * Walks parenthesized types, union/intersection members, array element types, tuple members, and
+   * type-reference type arguments to find a conditional, mapped, or indexed-access type that
+   * determines the alias's own shape. Returns the first qualifying node, or undefined when the body
+   * composes no type-level function surface.
+   */
+  private containsTypeFunctionBody(node: TypeNode, depth: number): TypeNode | undefined {
+    if (depth > MAX_DEPTH) { return undefined; }
+
+    if (isConditionalTypeNode(node) || isMappedTypeNode(node) || isIndexedAccessTypeNode(node)) {
+      return node;
+    }
+
+    if (isParenthesizedTypeNode(node) || isOptionalTypeNode(node) || isRestTypeNode(node)) {
+      return this.containsTypeFunctionBody(node.type, depth + 1);
+    }
+
+    if (isUnionTypeNode(node) || isIntersectionTypeNode(node)) {
+      const members = node.types;
+      const length = members.length;
+      for (let index = 0; index < length; index++) {
+        const member = members[index];
+        if (member === undefined) { continue; }
+        const found = this.containsTypeFunctionBody(member, depth + 1);
+        if (found !== undefined) { return found; }
+      }
+      return undefined;
+    }
+
+    if (isArrayTypeNode(node)) {
+      return this.containsTypeFunctionBody(node.elementType, depth + 1);
+    }
+
+    if (isTupleTypeNode(node)) {
+      const elements = node.elements;
+      const length = elements.length;
+      for (let index = 0; index < length; index++) {
+        const element = elements[index];
+        if (element === undefined) { continue; }
+        const found = this.containsTypeFunctionBody(isNamedTupleMember(element) ? element.type : element, depth + 1);
+        if (found !== undefined) { return found; }
+      }
+      return undefined;
+    }
+
+    if (isTypeReferenceNode(node)) {
+      const typeArguments = node.typeArguments ?? [];
+      const length = typeArguments.length;
+      for (let index = 0; index < length; index++) {
+        const typeArgument = typeArguments[index];
+        if (typeArgument === undefined) { continue; }
+        const found = this.containsTypeFunctionBody(typeArgument, depth + 1);
+        if (found !== undefined) { return found; }
+      }
+      return this.delegatedTypeFunctionBody(node, depth + 1);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * A reference that forwards a type parameter to another generic alias delegates that alias's
+   * computation. `Delegating<S> = Resolve<S>` performs whatever `Resolve` performs, so the
+   * delegating alias is a type-level function too. A reference supplying only concrete arguments
+   * composes a value instead — `Record<string, string>` names a shape rather than deferring one —
+   * and keeps its contract-portion classification.
+   */
+  private delegatedTypeFunctionBody(node: TypeReferenceNode, depth: number): TypeNode | undefined {
+    if (depth > MAX_DEPTH) { return undefined; }
+
+    const typeArguments = node.typeArguments ?? [];
+    let forwardsTypeParameter = false;
+    const argumentCount = typeArguments.length;
+    for (let index = 0; index < argumentCount; index++) {
+      const typeArgument = typeArguments[index];
+      if (typeArgument !== undefined && this.containsTypeParameterReference(typeArgument)) {
+        forwardsTypeParameter = true;
+        break;
+      }
+    }
+    if (!forwardsTypeParameter) { return undefined; }
+
+    const alias = this.aliasDeclarationForSymbol(this.checker.getSymbolAtLocation(node.typeName));
+    if (alias === undefined) { return undefined; }
+    if ((alias.typeParameters?.length ?? 0) === 0) { return undefined; }
+
+    return this.containsTypeFunctionBody(alias.type, depth + 1);
+  }
+
   private findAliasContract(
     node: TypeNode,
     visiting: Set<Symbol>,
@@ -780,7 +1024,7 @@ export class TypeContractClassification {
           return { 'node': member, 'reason': 'constructor' };
         }
         if ((isPropertySignature(member) || isIndexSignatureDeclaration(member)) && member.type !== undefined) {
-          if (this.isUniqueSymbol(member.type)) { return { 'node': member, 'reason': 'brand' }; }
+          if (this.isBrandMember(member)) { return { 'node': member, 'reason': 'brand' }; }
           const evidence = this.findAliasContract(member.type, visiting, depth + 1);
           if (evidence !== undefined) { return evidence; }
         }
@@ -877,6 +1121,53 @@ export class TypeContractClassification {
     return undefined;
   }
 
+  /**
+   * A call or construct signature — narrower than {@link findInterfaceContract}'s general
+   * contract evidence — makes an interface directly invocable. Method signatures do not qualify:
+   * `Promise`, `Map`, `Array`, and similar lib interfaces expose many methods without being
+   * callable themselves, so treating a method as call evidence here would misclassify every
+   * reference to a plain method-bearing interface as a callable constituent. Inherited through
+   * heritage clauses, cycle-guarded by `visiting`.
+   */
+  private interfaceHasCallSignature(
+    declaration: InterfaceDeclaration,
+    visiting: Set<Symbol>,
+    depth: number
+  ): boolean {
+    if (depth > MAX_DEPTH) { return false; }
+
+    const hasOwnSignature = declaration.members.some((member) => {return (
+      isCallSignatureDeclaration(member) || isConstructSignatureDeclaration(member)
+    );});
+    if (hasOwnSignature) { return true; }
+
+    const symbol = this.checker.getSymbolAtLocation(declaration.name);
+    if (symbol !== undefined && visiting.has(symbol)) { return false; }
+    const nextVisiting = new Set(visiting);
+    if (symbol !== undefined) { nextVisiting.add(symbol); }
+
+    const heritageClauses = declaration.heritageClauses ?? [];
+    const heritageLength = heritageClauses.length;
+    for (let index = 0; index < heritageLength; index++) {
+      const clause = heritageClauses[index];
+      if (clause === undefined) { continue; }
+      const types = clause.types;
+      const typesLength = types.length;
+      for (let typeIndex = 0; typeIndex < typesLength; typeIndex++) {
+        const type = types[typeIndex];
+        if (type === undefined) { continue; }
+        const resolved = this.checker.getTypeAtLocation(type);
+        const typeSymbol = this.resolveSymbol(resolved.aliasSymbol ?? resolved.getSymbol());
+        const inheritedDeclarations = typeSymbol?.getDeclarations() ?? [];
+        const inherited = inheritedDeclarations.find(isInterfaceDeclaration);
+        if (inherited !== undefined && this.interfaceHasCallSignature(inherited, nextVisiting, depth + 1)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private classifyInterface(
     declaration: InterfaceDeclaration,
     visiting: Set<Symbol>,
@@ -921,7 +1212,7 @@ export class TypeContractClassification {
         return { 'node': member, 'reason': 'constructor' };
       }
 
-      if (isPropertySignature(member) && member.type !== undefined && this.isUniqueSymbol(member.type)) {
+      if (this.isBrandMember(member)) {
         return { 'node': member, 'reason': 'brand' };
       }
 
@@ -1080,7 +1371,7 @@ export class TypeContractClassification {
           return { 'node': member, 'reason': 'constructor' };
         }
         if ((isPropertySignature(member) || isIndexSignatureDeclaration(member)) && member.type !== undefined) {
-          if (this.isUniqueSymbol(member.type)) { return { 'node': member, 'reason': 'brand' }; }
+          if (this.isBrandMember(member)) { return { 'node': member, 'reason': 'brand' }; }
           if ((getCombinedModifierFlags(member) & ModifierFlags.Readonly) !== 0) {
             return { 'node': member, 'reason': 'readonly' };
           }
@@ -1157,10 +1448,14 @@ export class TypeContractClassification {
 
     if ((flags & TypeFlags.Object) === 0) { return undefined; }
 
+    // An indexed type carries its data in the element type. Its own members are
+    // prototype methods supplied by the standard library — `push`, `map`, `filter`
+    // and friends all own call signatures — so enumerating them classifies every
+    // array as callable. The element type is the whole of the contract here.
     const elementType = type.getNumberIndexType();
     if (elementType !== undefined) {
-      const evidence = this.findResolvedTypeContract(elementType, evidenceNode, seen, depth + 1);
-      if (evidence !== undefined) { return evidence; }
+      const result = this.findResolvedTypeContract(elementType, evidenceNode, seen, depth + 1);
+      return result;
     }
 
     const properties = type.getProperties();
@@ -1280,6 +1575,26 @@ export class TypeContractClassification {
     return isTypeOperatorNode(node)
       && node.operator === SyntaxKind.UniqueKeyword
       && node.type.kind === SyntaxKind.SymbolKeyword;
+  }
+
+  /**
+   * A member keyed by a unique symbol brands its declaration nominally, whatever the member's own
+   * type. `{ [Marker]: T }` and `{ readonly brand?: unique symbol }` mark the same thing from
+   * opposite sides — one puts the symbol in the key, the other in the value — and neither is
+   * expressible in JSON.
+   */
+  private hasUniqueSymbolKey(member: TypeElement): boolean {
+    const name = member.name;
+    if (name === undefined || !isComputedPropertyName(name)) { return false; }
+
+    const keyType = this.checker.getTypeAtLocation(name.expression);
+    return (keyType.flags & TypeFlags.UniqueESSymbol) !== 0;
+  }
+
+  private isBrandMember(member: TypeElement): boolean {
+    if (this.hasUniqueSymbolKey(member)) { return true; }
+    if (!isPropertySignature(member) || member.type === undefined) { return false; }
+    return this.isUniqueSymbol(member.type);
   }
 
   private classifySchemaDerivedApplication(node: TypeNode): DataNodeResultInterface {

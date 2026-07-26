@@ -14,30 +14,34 @@ import {
   LogDataEntity,
   LogFault,
   LoggerError,
-  LoggerHookEventShapeEntity
+  LoggerHookEventShapeEntity,
+  LogLevelEntity,
+  LogStatusEntity
 } from '../../src/index.js';
 import { ParseLogLevel } from '../../src/modules/parseLogLevel.js';
 import { SafeStringify } from '../../src/modules/safeStringify.js';
-import scenarioGroups from './logger-primitive-contracts.scenarios.json';
+import scenarioGroups from './logger-primitive-contracts.scenarios.json' with { type: 'json' };
 
 type ConsoleMethod = 'debug' | 'error' | 'info' | 'trace' | 'warn';
 type ConsoleCapture = Record<ConsoleMethod, Array<{ message: unknown; record: unknown }>>;
 type FaultConfigInput = {
   cause?: string;
-  component?: string;
-  context?: Record<string, unknown>;
+  component: string;
+  context: Record<string, unknown>;
   durationMs?: number;
-  message?: string;
-  name?: string;
-  operation?: string;
+  message: string;
+  name: string;
+  operation: string;
   stack?: string;
-  status?: string;
+  status: LogStatusEntity.Type;
 };
+type PartialFaultConfigInput = Partial<FaultConfigInput>;
+type FaultConfigInputWithoutIdentity = Omit<FaultConfigInput, 'message' | 'name'>;
 type LogBodyFixtureInput = {
   component: string;
   context: Record<string, unknown>;
   operation: string;
-  status: string;
+  status: LogStatusEntity.Type;
   time: number;
 };
 
@@ -143,7 +147,7 @@ type ScenarioCase =
         message: string;
         name: 'LogBuildError';
       };
-      input: { fault: FaultConfigInput };
+      input: { fault: PartialFaultConfigInput };
       shape: 'log-fault-missing-field';
       name: string;
     }
@@ -157,7 +161,7 @@ type ScenarioCase =
       };
       input: {
         error: { cause: string; message: string; name: string };
-        fault: FaultConfigInput;
+        fault: FaultConfigInputWithoutIdentity;
       };
       shape: 'log-fault-from-error-fields';
       name: string;
@@ -170,18 +174,18 @@ type ScenarioCase =
       input: {
         body: LogBodyFixtureInput;
         records: Array<{
-          level: number;
+          level: LogLevelEntity.Type;
           message: string;
           metadata: Record<string, unknown>;
           method: ConsoleMethod;
         }>;
         transport: {
           filtered: {
-            level: number;
+            level: LogLevelEntity.Type;
             message: string;
-            minLevel: number;
+            minLevel: LogLevelEntity.Type;
           };
-          level: number;
+          level: LogLevelEntity.Type;
         };
       };
       shape: 'console-transport-dispatch';
@@ -268,7 +272,7 @@ function withConsoleCapture(action: (captures: ConsoleCapture) => void): Console
 }
 
 function createConsoleRecord(
-  level: number,
+  level: LogLevelEntity.Type,
   message: string,
   metadata: Record<string, unknown>,
   body: LogBodyFixtureInput
@@ -287,7 +291,11 @@ function createConsoleRecord(
   };
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'level-values': (scenarioCase) => {
     assert.strictEqual(LOG_LEVEL.TRACE, scenarioCase.expected.values.TRACE);
     assert.strictEqual(LOG_LEVEL.DEBUG, scenarioCase.expected.values.DEBUG);
@@ -553,12 +561,12 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
   }
 };
 
-function runCase(scenarioCase: ScenarioCase): void {
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('logger primitive contracts', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

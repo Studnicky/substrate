@@ -23,7 +23,7 @@ import type {
   TokenBucketOptionsInterface
 } from '../../../src/index.js';
 
-import scenarioGroups from './resilience.scenarios.json';
+import scenarioGroups from './resilience.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = (typeof scenarioGroups.cases)[number];
 
@@ -266,26 +266,6 @@ function recordInput(input: ScenarioInput, key: string): ScenarioInput {
   return record;
 }
 
-function unknownArrayInput(input: ScenarioInput, key: string): unknown[] {
-  const value = input[key];
-  if (!Array.isArray(value)) {
-    throw new TypeError(`Expected array resilience scenario input: ${key}`);
-  }
-  return value;
-}
-
-function assertNumberOrAtLeast(actual: number, raw: unknown, key: string): void {
-  if (typeof raw === 'number') {
-    assert.equal(actual, raw);
-    return;
-  }
-  if (typeof raw === 'string' && raw.startsWith('>=')) {
-    assert.ok(actual >= Number(raw.slice(2)));
-    return;
-  }
-  throw new TypeError(`Expected number or ">=" threshold string for resilience scenario input: ${key}`);
-}
-
 function recordArrayInput(input: ScenarioInput, key: string): ScenarioInput[] {
   const value = input[key];
   if (!Array.isArray(value)) {
@@ -457,6 +437,7 @@ type ScenarioShape =
   | 'tb-observed-wait'
   | 'tb-hook-swallows'
   | 'tb-async-hook-isolation'
+  | 'dlq-invalid-capacity'
   | 'dlq-enqueue'
   | 'dlq-enqueue-errors'
   | 'dlq-aborted-signal'
@@ -708,7 +689,7 @@ const scenarioHandlers = {
     assert.equal(cb.state, 'closed');
   },
   'cb-subclass-classifier': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const cb = new ClassifyingBreaker(circuitBreakerOptions(input));
+    const cb = ClassifyingBreaker.create(circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     assert.equal(cb.state, 'closed');
@@ -719,22 +700,22 @@ const scenarioHandlers = {
   },
   'cb-config-overrides-subclass': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const classifier = (): ErrorClassificationEntity.Type => ({ 'retryable': false });
-    const cb = new ClassifyingBreaker(circuitBreakerOptions(input, { errorClassifier: classifier }));
+    const cb = ClassifyingBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     assert.equal(cb.state, 'open');
   },
   'cb-hook-swallows': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const successBreaker = new ThrowingSuccessBreaker(circuitBreakerOptions(input));
+    const successBreaker = ThrowingSuccessBreaker.create(circuitBreakerOptions(input));
     assert.equal(await successBreaker.execute(succeed), 'ok');
     assert.equal(successBreaker.state, 'closed');
-    const rejectBreaker = new ThrowingRejectBreaker(circuitBreakerOptions(input, {
+    const rejectBreaker = ThrowingRejectBreaker.create(circuitBreakerOptions(input, {
       failureThreshold: numberInput(input, 'rejectFailureThreshold'),
       resetTimeoutMs: numberInput(input, 'rejectResetTimeoutMs')
     }));
     await assert.rejects(() => rejectBreaker.execute(fail));
     await assert.rejects(() => rejectBreaker.execute(succeed), (error: unknown) => error instanceof CircuitBreakerOpenError);
-    const tripBreaker = new ThrowingTripBreaker(circuitBreakerOptions(input, {
+    const tripBreaker = ThrowingTripBreaker.create(circuitBreakerOptions(input, {
       failureThreshold: numberInput(input, 'tripFailureThreshold')
     }));
     await assert.rejects(() => tripBreaker.execute(fail), (error: unknown) => error instanceof Error && (error as Error).message === 'failure');
@@ -840,11 +821,21 @@ const scenarioHandlers = {
     let time = clock[0] ?? 0;
     const bucket = TokenBucket.create(tokenBucketOptions(input, { clock: () => time }));
     bucket.consume();
-    const advance = new Promise<void>((resolve) => { setImmediate(() => { time = clock[1] ?? time; resolve(); }); });
     let completed = false;
     const wait = bucket.waitForToken().then(() => { completed = true; });
-    await Promise.all([advance, wait]);
+
+    // First tick nudges the clock forward, but not far enough to refill a full
+    // token — the wait must still be pending, proving it is genuinely gated on
+    // refill rather than resolving as soon as any time passes.
+    await new Promise<void>((resolve) => { setImmediate(() => { time = clock[1] ?? time; resolve(); }); });
+    assert.equal(completed, false);
+
+    // Second tick crosses the refill threshold; the pending wait now resolves.
+    await new Promise<void>((resolve) => { setImmediate(() => { time = clock[2] ?? time; resolve(); }); });
+    await wait;
+
     assert.equal(completed, booleanInput(expected, 'completed'));
+    assert.equal(bucket.available, numberInput(expected, 'availableAfterWait'));
   },
   'tb-wait-abort': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const controller = new AbortController();
@@ -861,8 +852,8 @@ const scenarioHandlers = {
     const expected: ScenarioInput = scenarioCase.expected;
     const controller = new AbortController();
     const signal = controller.signal as AbortSignal & {
-      addEventListener: typeof signal.addEventListener;
-      removeEventListener: typeof signal.removeEventListener;
+      addEventListener: typeof controller.signal.addEventListener;
+      removeEventListener: typeof controller.signal.removeEventListener;
     };
     let addCount = 0;
     let removeCount = 0;
@@ -915,16 +906,16 @@ const scenarioHandlers = {
   },
   'tb-hook-swallows': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const available = unknownArrayInput(expected, 'available');
+    const available = numberArrayInput(expected, 'available');
     const acquired = ThrowingAcquiredBucket.create(tokenBucketOptions(input, { clock: () => numberInput(input, 'clock') }));
     acquired.consume(numberInput(input, 'consume'));
-    assertNumberOrAtLeast(acquired.available, available[0], 'available[0]');
+    assert.equal(acquired.available, available[0]);
     const waitBucket = ThrowingAcquiredBucket.create(tokenBucketOptions(input, {
       burstSize: numberInput(input, 'waitBurstSize'),
       clock: () => numberInput(input, 'clock')
     }));
     await waitBucket.waitForToken({ 'tokens': numberInput(input, 'waitTokens') });
-    assertNumberOrAtLeast(waitBucket.available, available[1], 'available[1]');
+    assert.equal(waitBucket.available, available[1]);
     const depleted = ThrowingDepletedBucket.create(tokenBucketOptions(input, {
       burstSize: numberInput(input, 'depletedBurstSize'),
       clock: () => numberInput(input, 'clock')
@@ -939,7 +930,7 @@ const scenarioHandlers = {
     }));
     refill.consume(numberInput(input, 'refillBurstSize'));
     time = refillClock[1] ?? time;
-    assertNumberOrAtLeast(refill.available, available[2], 'available[2]');
+    assert.equal(refill.available, available[2]);
     assert.equal(
       acquired.hookErrorCount > 0 && waitBucket.hookErrorCount > 0 && depleted.hookErrorCount > 0 && refill.hookErrorCount > 0,
       booleanInput(expected, 'errorsSwallowed')
@@ -974,6 +965,9 @@ const scenarioHandlers = {
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
+  },
+  'dlq-invalid-capacity': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    assert.throws(() => { DeadLetterQueue.create<string>({ capacity: numberInput(input, 'capacity') }); }, ResilienceConfigError);
   },
   'dlq-enqueue': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
@@ -1101,7 +1095,7 @@ const scenarioHandlers = {
   },
   'dlq-fanout': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const dlq = new FanOutDeadLetterQueue<string>();
+    const dlq = FanOutDeadLetterQueue.create<string>();
     const collectedA: string[] = [];
     const collectedB: string[] = [];
     const drainA = (async () => { for await (const e of dlq.drain()) { collectedA.push(e.item); } })();
@@ -1172,23 +1166,23 @@ const scenarioHandlers = {
       throw new TypeError('Expected DLQ hook item fixture');
     }
     const reason = stringInput(input, 'reason');
-    const enqueueDlq = new ThrowingEnqueueDlq<string>();
+    const enqueueDlq = ThrowingEnqueueDlq.create<string>();
     enqueueDlq.enqueue(item, reason);
     assert.equal(enqueueDlq.size, numberInput(expected, 'size'));
-    const dequeueDlq = new ThrowingDequeueDlq<string>();
+    const dequeueDlq = ThrowingDequeueDlq.create<string>();
     dequeueDlq.enqueue(item, reason);
     dequeueDlq.close();
     const entries: string[] = [];
     for await (const entry of dequeueDlq.drain()) { entries.push(entry.item); }
     assert.deepEqual(entries, [item]);
     assert.equal(dequeueDlq.size, 0);
-    const overflowDlq = new ThrowingOverflowDlq<string>({ capacity: numberInput(input, 'overflowCapacity') });
+    const overflowDlq = ThrowingOverflowDlq.create<string>({ capacity: numberInput(input, 'overflowCapacity') });
     overflowDlq.enqueue('first', reason);
     assert.throws(() => { overflowDlq.enqueue('second', reason); }, DlqFullError);
-    const closeDlq = new ThrowingCloseDlq<string>();
+    const closeDlq = ThrowingCloseDlq.create<string>();
     closeDlq.close();
     assert.equal(closeDlq.closed, booleanInput(expected, 'closed'));
-    const abortDlq = new ThrowingAbortDlq<string>();
+    const abortDlq = ThrowingAbortDlq.create<string>();
     abortDlq.abort();
     if (booleanInput(expected, 'abortedRejects')) {
       assert.throws(() => { abortDlq.enqueue(item, reason); }, DlqAbortedError);

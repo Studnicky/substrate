@@ -2,6 +2,19 @@ import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
 
+interface NoOpTimingSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class NoOpTimingInstance {
+  static belongsTo<TInstance>(
+    constructor: NoOpTimingSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * No-operation timing tracker that discards all events.
  *
@@ -38,8 +51,14 @@ export class NoOpTiming implements TimingInterface {
    * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' })); // Does nothing
    * ```
    */
-  static create(): NoOpTiming {
-    return new this();
+  static create<TInstance extends NoOpTiming = NoOpTiming>(
+    this: NoOpTimingSubclassInterface<TInstance>
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, []);
+    if (!NoOpTimingInstance.belongsTo(this, result)) {
+      throw new TypeError('NoOpTiming.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   /**

@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { ConfigurationError } from '@studnicky/config';
 
 import { backoffStrategy } from '../../../src/retry/config/schemas/index.js';
-import scenarioGroups from './backoff-strategy.scenarios.json';
+import scenarioGroups from './backoff-strategy.scenarios.json' with { type: 'json' };
 
 type BackoffStrategyInputSource = 'backoff-strategy' | 'value';
 
@@ -40,14 +40,15 @@ function assertAccepted(scenarioCase: ScenarioCase): void {
   assert.doesNotThrow(() => {
     backoffStrategy.validateBackoffStrategy(resolveBackoffStrategyInput(scenarioCase.input));
   });
-  assert.strictEqual(scenarioCase.expected.accepted, true);
 }
 
 function assertRejected(scenarioCase: ScenarioCase): void {
-  assert.throws(() => {
-    backoffStrategy.validateBackoffStrategy(resolveBackoffStrategyInput(scenarioCase.input));
-  }, ConfigurationError);
-  assert.strictEqual(scenarioCase.expected.errorName, 'ConfigurationError');
+  assert.throws(
+    () => {
+      backoffStrategy.validateBackoffStrategy(resolveBackoffStrategyInput(scenarioCase.input));
+    },
+    (error: unknown) => error instanceof ConfigurationError && error.name === String(scenarioCase.expected.errorName)
+  );
 }
 
 const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {

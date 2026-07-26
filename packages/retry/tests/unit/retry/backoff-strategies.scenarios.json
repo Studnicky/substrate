@@ -4,8 +4,6 @@
       "name": "constant-100-a0",
       "description": "constant attempt 0 baseDelay 100 returns 100",
       "shape": "constant",
-      "attempt": 0,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -18,8 +16,6 @@
       "name": "constant-100-a1",
       "description": "constant attempt 1 baseDelay 100 returns 100",
       "shape": "constant",
-      "attempt": 1,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -32,8 +28,6 @@
       "name": "constant-100-a2",
       "description": "constant attempt 2 baseDelay 100 returns 100",
       "shape": "constant",
-      "attempt": 2,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -46,8 +40,6 @@
       "name": "constant-100-a5",
       "description": "constant attempt 5 baseDelay 100 returns 100",
       "shape": "constant",
-      "attempt": 5,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -60,8 +52,6 @@
       "name": "constant-100-a10",
       "description": "constant attempt 10 baseDelay 100 returns 100",
       "shape": "constant",
-      "attempt": 10,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -74,8 +64,6 @@
       "name": "constant-50",
       "description": "constant attempt 0 baseDelay 50 returns 50",
       "shape": "constant",
-      "attempt": 0,
-      "baseDelay": 50,
       "expected": {
         "result": 50
       },
@@ -88,8 +76,6 @@
       "name": "constant-200",
       "description": "constant attempt 0 baseDelay 200 returns 200",
       "shape": "constant",
-      "attempt": 0,
-      "baseDelay": 200,
       "expected": {
         "result": 200
       },
@@ -102,8 +88,6 @@
       "name": "constant-1000",
       "description": "constant attempt 0 baseDelay 1000 returns 1000",
       "shape": "constant",
-      "attempt": 0,
-      "baseDelay": 1000,
       "expected": {
         "result": 1000
       },
@@ -116,8 +100,6 @@
       "name": "linear-100-a0",
       "description": "linear attempt 0 baseDelay 100 returns 100",
       "shape": "linear",
-      "attempt": 0,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -130,8 +112,6 @@
       "name": "linear-100-a1",
       "description": "linear attempt 1 baseDelay 100 returns 200",
       "shape": "linear",
-      "attempt": 1,
-      "baseDelay": 100,
       "expected": {
         "result": 200
       },
@@ -144,8 +124,6 @@
       "name": "linear-100-a2",
       "description": "linear attempt 2 baseDelay 100 returns 300",
       "shape": "linear",
-      "attempt": 2,
-      "baseDelay": 100,
       "expected": {
         "result": 300
       },
@@ -158,8 +136,6 @@
       "name": "linear-100-a3",
       "description": "linear attempt 3 baseDelay 100 returns 400",
       "shape": "linear",
-      "attempt": 3,
-      "baseDelay": 100,
       "expected": {
         "result": 400
       },
@@ -172,8 +148,6 @@
       "name": "linear-100-a4",
       "description": "linear attempt 4 baseDelay 100 returns 500",
       "shape": "linear",
-      "attempt": 4,
-      "baseDelay": 100,
       "expected": {
         "result": 500
       },
@@ -186,8 +160,6 @@
       "name": "linear-50-a0",
       "description": "linear attempt 0 baseDelay 50 returns 50",
       "shape": "linear",
-      "attempt": 0,
-      "baseDelay": 50,
       "expected": {
         "result": 50
       },
@@ -200,8 +172,6 @@
       "name": "linear-50-a1",
       "description": "linear attempt 1 baseDelay 50 returns 100",
       "shape": "linear",
-      "attempt": 1,
-      "baseDelay": 50,
       "expected": {
         "result": 100
       },
@@ -214,8 +184,6 @@
       "name": "linear-50-a2",
       "description": "linear attempt 2 baseDelay 50 returns 150",
       "shape": "linear",
-      "attempt": 2,
-      "baseDelay": 50,
       "expected": {
         "result": 150
       },
@@ -228,8 +196,6 @@
       "name": "exponential-100-a0",
       "description": "exponential attempt 0 baseDelay 100 returns 100",
       "shape": "exponential",
-      "attempt": 0,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -242,8 +208,6 @@
       "name": "exponential-100-a1",
       "description": "exponential attempt 1 baseDelay 100 returns 200",
       "shape": "exponential",
-      "attempt": 1,
-      "baseDelay": 100,
       "expected": {
         "result": 200
       },
@@ -256,8 +220,6 @@
       "name": "exponential-100-a2",
       "description": "exponential attempt 2 baseDelay 100 returns 400",
       "shape": "exponential",
-      "attempt": 2,
-      "baseDelay": 100,
       "expected": {
         "result": 400
       },
@@ -270,8 +232,6 @@
       "name": "exponential-100-a3",
       "description": "exponential attempt 3 baseDelay 100 returns 800",
       "shape": "exponential",
-      "attempt": 3,
-      "baseDelay": 100,
       "expected": {
         "result": 800
       },
@@ -284,8 +244,6 @@
       "name": "exponential-100-a4",
       "description": "exponential attempt 4 baseDelay 100 returns 1600",
       "shape": "exponential",
-      "attempt": 4,
-      "baseDelay": 100,
       "expected": {
         "result": 1600
       },
@@ -298,8 +256,6 @@
       "name": "exponential-50-a0",
       "description": "exponential attempt 0 baseDelay 50 returns 50",
       "shape": "exponential",
-      "attempt": 0,
-      "baseDelay": 50,
       "expected": {
         "result": 50
       },
@@ -312,8 +268,6 @@
       "name": "exponential-50-a1",
       "description": "exponential attempt 1 baseDelay 50 returns 100",
       "shape": "exponential",
-      "attempt": 1,
-      "baseDelay": 50,
       "expected": {
         "result": 100
       },
@@ -326,8 +280,6 @@
       "name": "exponential-50-a2",
       "description": "exponential attempt 2 baseDelay 50 returns 200",
       "shape": "exponential",
-      "attempt": 2,
-      "baseDelay": 50,
       "expected": {
         "result": 200
       },
@@ -340,8 +292,6 @@
       "name": "exponential-50-a3",
       "description": "exponential attempt 3 baseDelay 50 returns 400",
       "shape": "exponential",
-      "attempt": 3,
-      "baseDelay": 50,
       "expected": {
         "result": 400
       },
@@ -354,8 +304,6 @@
       "name": "jitter-range-a0",
       "description": "exponentialWithJitter attempt 0 baseDelay 100 is within 50-150",
       "shape": "jitter-range",
-      "attempt": 0,
-      "baseDelay": 100,
       "minMultiplier": 0.5,
       "maxMultiplier": 1.5,
       "input": {
@@ -375,8 +323,6 @@
       "name": "jitter-range-a1",
       "description": "exponentialWithJitter attempt 1 baseDelay 100 is within 100-300",
       "shape": "jitter-range",
-      "attempt": 1,
-      "baseDelay": 100,
       "minMultiplier": 0.5,
       "maxMultiplier": 1.5,
       "input": {
@@ -396,8 +342,6 @@
       "name": "jitter-range-a2",
       "description": "exponentialWithJitter attempt 2 baseDelay 100 is within 200-600",
       "shape": "jitter-range",
-      "attempt": 2,
-      "baseDelay": 100,
       "minMultiplier": 0.5,
       "maxMultiplier": 1.5,
       "input": {
@@ -417,8 +361,6 @@
       "name": "jitter-range-a3",
       "description": "exponentialWithJitter attempt 3 baseDelay 100 is within 400-1200",
       "shape": "jitter-range",
-      "attempt": 3,
-      "baseDelay": 100,
       "minMultiplier": 0.5,
       "maxMultiplier": 1.5,
       "input": {
@@ -455,8 +397,6 @@
       "shape": "ceiling",
       "strategy": "exponential",
       "ceiling": 500,
-      "attempt": 0,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -473,8 +413,6 @@
       "shape": "ceiling",
       "strategy": "exponential",
       "ceiling": 500,
-      "attempt": 1,
-      "baseDelay": 100,
       "expected": {
         "result": 200
       },
@@ -491,8 +429,6 @@
       "shape": "ceiling",
       "strategy": "exponential",
       "ceiling": 500,
-      "attempt": 2,
-      "baseDelay": 100,
       "expected": {
         "result": 400
       },
@@ -509,8 +445,6 @@
       "shape": "ceiling",
       "strategy": "exponential",
       "ceiling": 500,
-      "attempt": 3,
-      "baseDelay": 100,
       "expected": {
         "result": 500
       },
@@ -527,8 +461,6 @@
       "shape": "ceiling",
       "strategy": "exponential",
       "ceiling": 500,
-      "attempt": 4,
-      "baseDelay": 100,
       "expected": {
         "result": 500
       },
@@ -545,8 +477,6 @@
       "shape": "ceiling",
       "strategy": "linear",
       "ceiling": 300,
-      "attempt": 0,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -563,8 +493,6 @@
       "shape": "ceiling",
       "strategy": "linear",
       "ceiling": 300,
-      "attempt": 1,
-      "baseDelay": 100,
       "expected": {
         "result": 200
       },
@@ -581,8 +509,6 @@
       "shape": "ceiling",
       "strategy": "linear",
       "ceiling": 300,
-      "attempt": 2,
-      "baseDelay": 100,
       "expected": {
         "result": 300
       },
@@ -599,8 +525,6 @@
       "shape": "ceiling",
       "strategy": "linear",
       "ceiling": 300,
-      "attempt": 3,
-      "baseDelay": 100,
       "expected": {
         "result": 300
       },
@@ -617,8 +541,6 @@
       "shape": "ceiling",
       "strategy": "constant",
       "ceiling": 500,
-      "attempt": 0,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -635,8 +557,6 @@
       "shape": "ceiling",
       "strategy": "constant",
       "ceiling": 500,
-      "attempt": 5,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -653,8 +573,6 @@
       "shape": "ceiling",
       "strategy": "constant",
       "ceiling": 500,
-      "attempt": 10,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -671,8 +589,6 @@
       "shape": "ceiling",
       "strategy": "constant",
       "ceiling": 50,
-      "attempt": 0,
-      "baseDelay": 100,
       "expected": {
         "result": 50
       },
@@ -687,8 +603,6 @@
       "name": "decorrelated-zero",
       "description": "decorrelated jitter returns baseDelay at attempt 0",
       "shape": "decorrelated-zero",
-      "attempt": 0,
-      "baseDelay": 100,
       "expected": {
         "result": 100
       },
@@ -701,8 +615,6 @@
       "name": "decorrelated-range",
       "description": "decorrelated jitter stays within the expected range at later attempts",
       "shape": "decorrelated-range",
-      "attempt": 2,
-      "baseDelay": 100,
       "expected": {
         "minResult": 100,
         "maxResult": 2700

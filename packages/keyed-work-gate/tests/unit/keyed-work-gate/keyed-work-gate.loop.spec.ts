@@ -86,7 +86,7 @@ type ScenarioCase =
       name: string;
     };
 
-import scenarioGroups from './keyed-work-gate.scenarios.json';
+import scenarioGroups from './keyed-work-gate.scenarios.json' with { type: 'json' };
 
 const acceptsNumber = (value: unknown): value is number => typeof value === 'number';
 const acceptsString = (value: unknown): value is string => typeof value === 'string';
@@ -105,7 +105,11 @@ const materializeSerializableConfig = <K extends PropertyKey>(
   mutex: config.mutex
 });
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'composed-instances': async (scenarioCase) => {
     const { coalesce, mutex } = materializeDelegateInstances<string>(scenarioCase.input.config);
     const gate = KeyedWorkGate.create<string>({ coalesce, mutex });
@@ -217,7 +221,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     let calls = 0;
     const fn = async (): Promise<number> => {
       calls += 1;
-      await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.delayMs); });
+      await Promise.resolve();
       return calls;
     };
     const first = await gate.runSingleFlight(scenarioCase.input.key, fn, acceptsNumber);
@@ -238,10 +242,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+  return runnerMap[scenarioCase.shape](scenarioCase);
+}
+
 void describe('KeyedWorkGate', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
-      await runnerMap[scenarioCase.shape](scenarioCase);
+      await runCase(scenarioCase);
     });
   }
 });

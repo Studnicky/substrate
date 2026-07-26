@@ -14,6 +14,11 @@ abstract class RateLimitError extends BaseError {
 }
 
 class RateLimitExceededError extends RateLimitError {
+  private static buildMessage(fields: Readonly<{ 'limit': number; 'route': string }>): string {
+    const result = `Rate limit of ${String(fields.limit)} exceeded for "${fields.route}"`;
+    return result;
+  }
+
   readonly limit!: number;
   readonly route!: string;
 
@@ -21,7 +26,7 @@ class RateLimitExceededError extends RateLimitError {
     const fields = { 'limit': limit, 'route': route };
     super(DomainErrorArgs.build(fields, {
       'code': 'rateLimit.exceeded',
-      'message': (f) => { const result = `Rate limit of ${String(f.limit)} exceeded for "${f.route}"`; return result; },
+      'message': RateLimitExceededError.buildMessage,
       'retryable': true
     }));
     Object.assign(this, fields);

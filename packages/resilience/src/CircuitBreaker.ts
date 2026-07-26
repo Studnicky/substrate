@@ -10,6 +10,19 @@ import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreaker
 import { CircuitBreakerOpenError } from './CircuitBreakerOpenError.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
+interface CircuitBreakerSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class CircuitBreakerInstance {
+  static belongsTo<TInstance>(
+    constructor: CircuitBreakerSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 export class CircuitBreaker {
   static readonly #OwnedHookInvoker = class CircuitBreakerHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
@@ -29,8 +42,15 @@ export class CircuitBreaker {
   /** Invokes lifecycle hooks, retaining diagnostics in the invoker while swallowing failures. */
   protected readonly hooks: HookInvoker;
 
-  static create(options: CircuitBreakerOptionsInterface): CircuitBreaker {
-    return new this(options);
+  static create<TInstance extends CircuitBreaker = CircuitBreaker>(
+    this: CircuitBreakerSubclassInterface<TInstance>,
+    options: CircuitBreakerOptionsInterface
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!CircuitBreakerInstance.belongsTo(this, result)) {
+      throw new TypeError('CircuitBreaker.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   protected constructor(options: CircuitBreakerOptionsInterface) {

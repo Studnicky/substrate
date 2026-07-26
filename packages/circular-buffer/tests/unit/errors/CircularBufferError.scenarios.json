@@ -39,6 +39,22 @@
       }
     },
     {
+      "name": "with-retryable-arg",
+      "description": "CircularBufferError honors an explicit retryable argument instead of hardcoding false",
+      "shape": "with-args",
+      "input": {
+        "message": "invalid capacity",
+        "args": {
+          "retryable": true
+        }
+      },
+      "expected": {
+        "code": "circularBuffer.invalidConfig",
+        "message": "invalid capacity",
+        "retryable": true
+      }
+    },
+    {
       "name": "with-cause",
       "description": "CircularBufferError preserves an explicit cause",
       "shape": "with-cause",

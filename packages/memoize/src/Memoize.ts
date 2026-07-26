@@ -48,6 +48,20 @@ class MemoizeInstance {
   }
 }
 
+// TArgs/TResult only appear in Memoize's covariant/contravariant members
+// (call()'s args/return, invalidate()'s args), so a bound of
+// `Memoize<TArgs, TResult>` would force `Memoize<TArgs, TResult>` (the
+// method's own general TArgs/TResult) to satisfy `Memoize<never, never>`/
+// `Memoize<any, any>`, which either fails to typecheck or requires a banned
+// `any` — and TArgs sits in `fn`'s parameter position (contravariant), which
+// collapses `this`-context inference the moment a caller passes an untyped
+// arrow function. `clear()` is the one public member that doesn't mention
+// TArgs/TResult at all, so it constrains TInstance to "is actually
+// Memoize-shaped" without hitting that wall.
+interface MemoizeShapeInterface {
+  clear(): void;
+}
+
 /**
  * Composes `@studnicky/cache` (`LruCache`) and `@studnicky/concurrency`
  * (`Coalesce`) into pure function memoization keyed by a caller-supplied key
@@ -136,7 +150,7 @@ export class Memoize<TArgs extends unknown[], TResult> {
   static create<
     TArgs extends unknown[],
     TResult,
-    TInstance extends Memoize<TArgs, TResult> = Memoize<TArgs, TResult>
+    TInstance extends MemoizeShapeInterface = Memoize<TArgs, TResult>
   >(
     this: MemoizeSubclassInterface<TInstance>,
     fn: (...args: TArgs) => TResult | Promise<TResult>,

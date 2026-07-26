@@ -76,6 +76,19 @@ class NetworkFailure extends Error {
   }
 }
 
+interface TestDispatcherSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class TestDispatcherInstance {
+  static belongsTo<TInstance>(
+    constructor: TestDispatcherSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 export class TestDispatcher {
   readonly '__substrateFetchTransport' = true;
 
@@ -84,8 +97,15 @@ export class TestDispatcher {
   #label: string;
   #originStates = new Map<string, OriginState>();
 
-  static create(config: Partial<DispatcherConfigEntity.Type> = {}): TestDispatcher {
-    return new this(config);
+  static create<TInstance extends TestDispatcher = TestDispatcher>(
+    this: TestDispatcherSubclassInterface<TInstance>,
+    config: Partial<DispatcherConfigEntity.Type> = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [config]);
+    if (!TestDispatcherInstance.belongsTo(this, result)) {
+      throw new TypeError('TestDispatcher.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   static #abortError(): DOMException {
@@ -227,7 +247,7 @@ export class TestDispatcher {
     state.stats.size = state.active + state.stats.queued;
   }
 
-  private constructor(config: Partial<DispatcherConfigEntity.Type>) {
+  protected constructor(config: Partial<DispatcherConfigEntity.Type>) {
     const connections = config.connections ?? 1;
     const pipelining = config.pipelining ?? 1;
     this.#capacity = Math.max(1, connections * Math.max(1, pipelining));

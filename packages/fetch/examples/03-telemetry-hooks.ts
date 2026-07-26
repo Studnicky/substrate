@@ -19,10 +19,6 @@ interface ErrorEventInterface {
 
 // Subclass FetchClient to capture telemetry events via protected lifecycle hooks.
 class TelemetryClient extends FetchClient {
-  static override create(config: Parameters<typeof FetchClient.create>[0] = {}): TelemetryClient {
-    return new this(config);
-  }
-
   public readonly requestEvents: RequestEventEntity.Type[] = [];
   public readonly responseEvents: ResponseEventEntity.Type[] = [];
   public readonly errorEvents: ErrorEventInterface[] = [];

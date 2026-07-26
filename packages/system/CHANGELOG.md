@@ -1,5 +1,24 @@
 # Changelog
 
+## 9.1.0
+
+### Patch Changes
+
+- 789da06: ### Fixed
+
+  - `GpuDetector.detect()` resolves the ambient browser `document` through a type-guarded `Reflect.get(globalThis, 'document')` lookup and calls `createElement` on the resolved object itself, so the method keeps its receiver. The browser surface it reads — `document.createElement('canvas')`, the WebGL context, and the `WEBGL_debug_renderer_info` extension — is declared structurally, because the package compiles against `ESNext` alone and no DOM lib types are available to name.
+
+- 789da06: ### Fixed
+
+  - Every `*.scenarios.json` import across the test suites carries the `with { type: 'json' }` import attribute `module: NodeNext` requires, clearing 221 `TS1543` diagnostics that `tsc -b` never surfaced because test files aren't part of any package's typechecked build — only `tsconfig.eslint.json` (used for ESLint's type-aware rules) sees them, and it consumes type information without reporting `TS` diagnostics on its own.
+  - Tests that constructed a `protected`-constructor class directly with `new` now call the class's `this`-polymorphic static factory instead (`Subclass.create(...)`), clearing 78 `TS2674` diagnostics across `Clock`, `Channel`, `Coalesce`, `EntityStore`, `CircuitBreaker`, `EventBus`, `Mutex`, and `RealTimeScheduler` subclasses. The remaining 86 `TS2674` instances are left on `new` because no fitting factory exists for that call site: `StateMachine` is abstract with no static factory at all; `EffectInterpreter`, `InterpreterHistory`, `DeadLetterQueue`, `Signal`, `FetchClient`, and `ErrorClassifier`'s factories (where one exists) hardcode their own class rather than accepting `this`, so calling them on a subclass returns the base type instead of the subclass; and `Channel`/`Coalesce` subclasses that are themselves generic and expose subclass-only members lose that member's type through the factory's necessarily looser `TInstance` bound, so the direct constructor call is correct as written.
+
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+  - @studnicky/json@9.1.0
+
 ## 9.0.0
 
 ### Major Changes

@@ -2,7 +2,9 @@
  * Reusable error and dispatcher statistics fixtures for tests
  */
 
-import type { SocketDispatcherStatsType } from '../../src/types/SocketDispatcherStatsType.js';
+import type { SocketDispatcherStatsEntity } from '../../src/entities/SocketDispatcherStatsEntity.js';
+
+type SocketDispatcherStatsType = SocketDispatcherStatsEntity.Type;
 
 export const mockDispatcherStatsHealthy = {
   connected: 20,

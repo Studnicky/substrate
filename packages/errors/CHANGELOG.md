@@ -1,5 +1,63 @@
 # Changelog
 
+## 9.1.0
+
+### Minor Changes
+
+- 789da06: ### Added
+
+  - `@studnicky/json`'s `Patch.create()` returns the subclass instance type when called on a subclass, instead of the base `Patch` type.
+  - `@studnicky/errors`' `ValidationErrors.create()` and `DefaultHttpErrorClassifier.create()` return the subclass instance type when called on a subclass, instead of the base type.
+  - Each of these factories now validates at runtime (via `Reflect.construct` plus an `instanceof` check) that the constructor invoked as `this` actually produced the requested subclass, throwing a `TypeError` naming the factory if it did not.
+
+### Patch Changes
+
+- 789da06: ### Changed
+
+  - `@studnicky/errors`' `constants/index.ts` declares `ErrorCode`, `HttpStatus`, and `ErrorDefaults` directly and holds nothing else, making it a pure constants module. `CAUSE_CHAIN_DEPTH_LIMIT`/`CAUSE_DEPTH_SENTINEL` and the classifier HTTP-range constants re-export from `constants/CauseChainConstants.js` and `constants/ClassifierConstants.js` directly through the package's `src/index.ts` instead of routing through `constants/index.ts`. The package's exported symbols are unchanged.
+  - The `DomainErrorArgs.build()` example names its message builder as a static method, so the message function is allocated once rather than per construction.
+  - `folder-content-shape`'s constants-placement diagnostic no longer claims a flagged file "lives outside a 'constants/' folder" — a claim that no longer holds now the check is structural rather than path-based, and one a file already inside a `constants/` folder could trip. The message (renamed from `mustLiveInConstantsFolder` to `constantsNotIsolated`) instead states the actual structural condition: the file mixes top-level constants with other declarations (re-exports, functions, classes, or mutable bindings), so it isn't a self-contained constants module, and recommends extracting the constants into their own isolated file.
+
+- 789da06: ### Changed
+
+  - `module-error.loop.spec.ts`'s `scenario-defaults` case asserts `ModuleError.create`'s scenario defaults against independent literal expectations in `module-error.scenarios.json` instead of re-deriving them from `ErrorDefaults` — the same table the code under test indexes into. The `scenario-authentication-defaults` and `scenario-not-found-defaults` fixtures now carry their real expected values (`AUTHENTICATION_ERROR`/401/non-retryable and `NOT_FOUND`/404/non-retryable) instead of a copy-pasted `CONNECTION_ERROR`/503/retryable triple.
+  - `matchers.loop.spec.ts`'s `negative-matcher-route` case reads its boolean expectations from `matchers.scenarios.json` instead of hardcoding every literal, matching the pattern used by its sibling cases. The fixture's `lessThan`, `lte`, and `not` fields are corrected to `true` to match the matchers' actual output for the case's input.
+  - `CliExitError`'s `defaults-exit-code` case genuinely omits the constructor argument (via an `{"__shape": "undefined"}` input tag) and asserts the resulting `exitCode` is `1`, instead of passing `1` explicitly and testing nothing about the default.
+  - Removes assertions across `cli-exit-error.loop.spec.ts`, `domain-error-args.loop.spec.ts`, and `examples.loop.spec.ts` that compared two fixture-only values to each other (or a fixture value to a hardcoded literal) without touching the code under test.
+
+- 789da06: ### Changed
+
+  - `packages/errors`'s `.loop.spec.ts` test files now typecheck. Most of the type errors traced back to one recurring bug: a scenario-case union declared several shape literals on a single object member (e.g. `shape: 'a' | 'b' | 'c'`) instead of one member per literal. `Extract<ScenarioCase, { shape: K }>` can't distribute over a union that isn't actually split per-literal, so it silently resolved to `never` for every runner, and every `scenario.expected`/`scenario.input` access inside those runners failed with "Property does not exist on type 'never'". Fixed per file according to what the case data actually needs:
+    - `matchers.loop.spec.ts`, `error-classifier.loop.spec.ts`, and `constants.loop.spec.ts` split the packed shape groups into real discriminated union members (one literal per member) so `Extract` narrows correctly.
+    - `validation-errors.loop.spec.ts` and `subclass-extension.loop.spec.ts` drop the `Extract`-based narrowing entirely — every case in each file already shares one structural shape, so per-literal narrowing added nothing.
+    - `base-error.loop.spec.ts` merges its two scenario-case variants into one now that `expected: Record<string, unknown>` already accommodates every field either variant reads.
+    - `module-error.loop.spec.ts` and `cli-exit-error.loop.spec.ts` were missing `name: string` on every scenario-case member despite reading `scenario.name` at the call site.
+  - Also fixes, in the same files: `exactOptionalPropertyTypes` violations from spreading a possibly-`undefined`-valued optional property directly into an options object (now conditionally spread); a `ModuleError` test subclass whose static `create()` incompatibly overrode the base class's static `create()` (renamed to `build()`); a `NetworkError` test subclass that forwarded `ModuleErrorCreateOptionsInterface` (the narrower `.create()` options shape) to its constructor instead of `ModuleErrorOptionsInterface` (the shape the constructor actually accepts); and several indexing/property accesses through JSON-sourced `Record<string, unknown>`/`unknown` fixture data narrowed with a local cast where the field's concrete shape is known from the test's own construction of the value.
+  - `matchers.ts`'s `instance.ofAny(...)` cannot accept more than one built-in `Error` subclass constructor (e.g. `ofAny(RangeError, TypeError)`) under the package's strict TypeScript config — `<T>(...constructors: (new (...args: unknown[]) => T)[])` rejects built-in constructors once two or more with different constructor parameter lists are unified into one `T`, even though `instance.of(TypeError)` (single-constructor) infers fine. Left as-is in `matchers.loop.spec.ts` (4 residual errors) since fixing it requires a source-level signature change, and the test intentionally exercises the multi-constructor call.
+
+- 789da06: ### Fixed
+
+  - `matchers.instance.of()` and `matchers.instance.ofAny()` accept built-in error constructors. Both declare their constructor parameter as `new (...args: never[]) => T`, so a constructor with its own parameter list — such as `TypeError`'s `(message?: string, options?: ErrorOptions)` — satisfies it. `ofAny(TypeError, RangeError, ReferenceError)`, the form shown in the method's own documentation, type-checks.
+
+- 789da06: ### Fixed
+
+  - `retry`'s `failed-requests-increment` and `total-retries-counted` stats specs assert the rejection with `assert.rejects` before reading stats, instead of parking every assertion inside an unchecked `.catch()` handler that silently skips if `execute()` resolves.
+  - `logger`'s `global-floor-*` and `transport-floor-warn` specs assert the exact ordered list of surviving levels, not just a record count. `create-default`, `create-string-level`, and `create-numeric-level` attach a `MemoryTransport`-free observer and log boundary levels either side of the parsed floor to prove the default and parsed levels take effect.
+  - `entity-store`'s `hooks-remove-many` spec asserts the exact `{event, id}` sequence removed, not just an event count.
+  - `bounded-dispatcher`'s `dispatch-concurrency-bound` spec asserts the exact observed concurrency ceiling instead of an inclusive range that also accepts a stricter-than-configured mutex.
+  - `context`'s `initialize-empty` scenario now initializes with a genuinely empty store, and the `initialize-scope` runner asserts the resulting key set against the fixture instead of hardcoding an unreachable branch.
+  - `errors`' `timeout-no-dangling-timer` spec asserts the hook-timeout race's timer is cleared via a `clearTimeout` spy, instead of an observation window far shorter than the timer it claims is not left dangling.
+  - `retry`'s hook-throw, hook-timeout, fsm, instantiation, backoff-strategy, and retry-support specs drop redundant fixture-literal-to-hardcoded-literal assertions that followed a real check, or replace them with an assertion against the actual thrown error's identity where one was in scope.
+
+- 789da06: ### Fixed
+
+  - Every `*.scenarios.json` import across the test suites carries the `with { type: 'json' }` import attribute `module: NodeNext` requires, clearing 221 `TS1543` diagnostics that `tsc -b` never surfaced because test files aren't part of any package's typechecked build — only `tsconfig.eslint.json` (used for ESLint's type-aware rules) sees them, and it consumes type information without reporting `TS` diagnostics on its own.
+  - Tests that constructed a `protected`-constructor class directly with `new` now call the class's `this`-polymorphic static factory instead (`Subclass.create(...)`), clearing 78 `TS2674` diagnostics across `Clock`, `Channel`, `Coalesce`, `EntityStore`, `CircuitBreaker`, `EventBus`, `Mutex`, and `RealTimeScheduler` subclasses. The remaining 86 `TS2674` instances are left on `new` because no fitting factory exists for that call site: `StateMachine` is abstract with no static factory at all; `EffectInterpreter`, `InterpreterHistory`, `DeadLetterQueue`, `Signal`, `FetchClient`, and `ErrorClassifier`'s factories (where one exists) hardcode their own class rather than accepting `this`, so calling them on a subclass returns the base type instead of the subclass; and `Channel`/`Coalesce` subclasses that are themselves generic and expose subclass-only members lose that member's type through the factory's necessarily looser `TInstance` bound, so the direct constructor call is correct as written.
+
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+  - @studnicky/types@9.1.0
+
 ## 9.0.0
 
 ### Major Changes

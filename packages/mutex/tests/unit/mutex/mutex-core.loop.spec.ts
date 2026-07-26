@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import type { MutexConfigEntity } from '../../../src/entities/MutexConfigEntity.js';
 import { LockTimeoutError } from '../../../src/errors/index.js';
 import { configInternal, Mutex } from '../../../src/mutex/index.js';
-import scenarioGroups from './mutex-core.scenarios.json';
+import scenarioGroups from './mutex-core.scenarios.json' with { type: 'json' };
 
 type BatchInput = {
   acquireCount?: number;
@@ -812,7 +812,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Mutex core', () => {
-  for (const scenarioCase of scenarioGroups.cases) {
+  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

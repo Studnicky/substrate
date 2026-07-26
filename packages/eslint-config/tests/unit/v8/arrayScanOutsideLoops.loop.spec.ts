@@ -7,7 +7,7 @@ import parser from '@typescript-eslint/parser';
 
 import { arrayScanOutsideLoops } from '../../../src/rules/v8/arrayScanOutsideLoops.js';
 import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
-import scenarioGroups from './arrayScanOutsideLoops.scenarios.json';
+import scenarioGroups from './arrayScanOutsideLoops.scenarios.json' with { type: 'json' };
 
 function toMessageId(report: unknown): string {
   if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
@@ -176,7 +176,7 @@ void describe('array-scan-outside-loops', () => {
   void it('covers remaining guard exits directly', () => {
     const reports: unknown[] = [];
     const listeners = arrayScanOutsideLoops.create({
-      report(descriptor) {
+      report(descriptor: unknown) {
         reports.push(descriptor);
       },
       sourceCode: {

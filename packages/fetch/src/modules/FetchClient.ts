@@ -54,6 +54,19 @@ const UNDICI_ERROR_MAP: Record<string, 'body' | 'connect' | 'headers' | 'socket'
   'UND_ERR_SOCKET': 'socket'
 };
 
+interface FetchClientSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class FetchClientInstance {
+  static belongsTo<TInstance>(
+    constructor: FetchClientSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * HTTP client with default configuration and subclass-overridable lifecycle hooks.
  *
@@ -64,10 +77,6 @@ const UNDICI_ERROR_MAP: Record<string, 'body' | 'connect' | 'headers' | 'socket'
  * @example Subclass with request and response transformation
  * ```typescript
  * class AuthClient extends FetchClient {
- *   static override create(config = {}): AuthClient {
- *     return new this(config);
- *   }
- *
  *   protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
  *     return {
  *       ...context,
@@ -90,10 +99,17 @@ export class FetchClient implements FetchClientInterface {
    * Creates a new configured HTTP client
    *
    * @param config - Client configuration
-   * @returns New FetchClient instance
+   * @returns New instance of the class `create()` was called on
    */
-  static create(config: ClientConfigInterface = {}): FetchClient {
-    return new this(config);
+  static create<TInstance extends FetchClient = FetchClient>(
+    this: FetchClientSubclassInterface<TInstance>,
+    config: ClientConfigInterface = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [config]);
+    if (!FetchClientInstance.belongsTo(this, result)) {
+      throw new TypeError('FetchClient.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   protected readonly hooks: HookInvoker;

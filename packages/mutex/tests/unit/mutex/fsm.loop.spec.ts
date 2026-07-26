@@ -83,7 +83,7 @@ type ScenarioCase =
       name: string;
     };
 
-import scenarioGroups from './fsm.scenarios.json';
+import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
 
 interface TransitionRecord {
   from: MutexKeyStateEntity.Type;
@@ -118,9 +118,11 @@ class ForcingMutex extends Mutex<string> {
   }
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+type ScenarioCaseOf<Shape extends ScenarioCase['shape']> = Extract<ScenarioCase, { shape: Shape }>;
+
+const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: ScenarioCaseOf<K>) => Promise<void> | void } = {
   'illegal-transition-throws': (scenarioCase) => {
-    const mutex = new ForcingMutex();
+    const mutex = ForcingMutex.create();
     assert.throws(() => { mutex.forceKeyTransition(scenarioCase.input.key, 'unlocked'); }, /Illegal state transition/);
     assert.equal(scenarioCase.expected.errorPattern, 'Illegal state transition');
   },
@@ -175,10 +177,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
+async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: ScenarioCaseOf<Shape>): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
+}
+
 void describe('Mutex FSM', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
-      await runnerMap[scenarioCase.shape](scenarioCase);
+      await runCase(scenarioCase);
     });
   }
 });

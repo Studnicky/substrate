@@ -6,7 +6,7 @@ import { Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
 
 import { entitySuite } from '../../src/suites/entitySuite.js';
-import scenarioGroups from './entitySuite.scenarios.json';
+import scenarioGroups from './entitySuite.scenarios.json' with { type: 'json' };
 
 const repoRoot = resolve(import.meta.dirname, '../../../..');
 
@@ -73,7 +73,12 @@ type ScenarioCase =
       name: string;
     };
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   'assigns-owning-rule': (scenarioCase) => {
     const actualOutputs = scenarioCase.input.scenarios.map((scenario) => {
       const linter = new Linter();
@@ -149,10 +154,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => v
   }
 };
 
+function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+  runnerMap[scenarioCase.shape](scenarioCase);
+}
+
 void describe('entitySuite', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
-      runnerMap[scenario.shape](scenario);
+      runCase(scenario);
     });
   }
 });

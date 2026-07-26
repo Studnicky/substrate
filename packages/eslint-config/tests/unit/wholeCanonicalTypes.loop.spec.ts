@@ -5,7 +5,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { wholeCanonicalTypes } from '../../src/rules/wholeCanonicalTypes.js';
-import scenarioGroups from './wholeCanonicalTypes.scenarios.json';
+import scenarioGroups from './wholeCanonicalTypes.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

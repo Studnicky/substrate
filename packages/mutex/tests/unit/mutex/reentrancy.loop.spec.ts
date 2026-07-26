@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { HookInvocationError, ReentrantHookInvocationError } from '@studnicky/errors';
 
 import { Mutex } from '../../../src/mutex/index.js';
-import scenarioGroups from './reentrancy.scenarios.json';
+import scenarioGroups from './reentrancy.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
   | {
@@ -30,7 +30,15 @@ type ScenarioCase =
     };
 
 type ScenarioShape = ScenarioCase['shape'];
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+type ScenarioCaseOf<Shape extends ScenarioShape> = Extract<ScenarioCase, { shape: Shape }>;
+
+function readArrayItem<T>(items: readonly T[], index: number, label: string): T {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`${label} is missing item ${index}`);
+  }
+  return item;
+}
 
 class ReentrantBeforeAcquireMutex extends Mutex<string> {
   #reentered = false;
@@ -84,9 +92,9 @@ class DifferentKeysMutex extends Mutex<string> {
   }
 }
 
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+const runnerMap: { [K in ScenarioShape]: (scenarioCase: ScenarioCaseOf<K>) => Promise<void> } = {
   'beforeAcquire-reentrant-same-key': async (scenarioCase) => {
-      const mutex = new ReentrantBeforeAcquireMutex();
+      const mutex = ReentrantBeforeAcquireMutex.create();
       const outerRelease = await mutex.acquire(scenarioCase.input.key);
       assert.strictEqual(mutex.getHookErrors().length, scenarioCase.expected.hookErrorCount);
       const err = mutex.getHookErrors()[0];
@@ -103,7 +111,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.ok(mutex.isComplete() === scenarioCase.expected.complete);
   },
   'different-keys-unaffected': async (scenarioCase) => {
-      const mutex = new DifferentKeysMutex();
+      const mutex = DifferentKeysMutex.create();
       const [releaseA, releaseB] = await Promise.all([
         mutex.acquire(scenarioCase.input.keys[0]!),
         mutex.acquire(scenarioCase.input.keys[1]!)
@@ -122,7 +130,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(mutex.getHookErrors().length, scenarioCase.expected.hookErrorCount);
   },
   'onRelease-reentrant-same-key': async (scenarioCase) => {
-      const mutex = new ReentrantOnReleaseMutex();
+      const mutex = ReentrantOnReleaseMutex.create();
       const release1 = await mutex.acquire(scenarioCase.input.key);
       const pendings = Array.from({ length: scenarioCase.input.batch.pendingCount }, () => mutex.acquire(scenarioCase.input.key));
       mutex.setRelease1(release1);
@@ -134,22 +142,22 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(err.hookName, scenarioCase.expected.hookName);
       assert.ok(err.cause instanceof ReentrantHookInvocationError);
       assert.strictEqual(mutex.isLocked(scenarioCase.input.key), scenarioCase.expected.lockedAfterFirstRelease);
-      const release2 = await pendings[0];
+      const release2 = await readArrayItem(pendings, 0, 'pendings');
       release2();
       assert.strictEqual(mutex.isLocked(scenarioCase.input.key), scenarioCase.expected.lockedAfterSecondRelease);
-      const release3 = await pendings[1];
+      const release3 = await readArrayItem(pendings, 1, 'pendings');
       release3();
       assert.strictEqual(mutex.isLocked(scenarioCase.input.key), scenarioCase.expected.lockedAfterThirdRelease);
       assert.ok(mutex.isComplete() === scenarioCase.expected.complete);
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseOf<Shape>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Mutex reentrancy', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

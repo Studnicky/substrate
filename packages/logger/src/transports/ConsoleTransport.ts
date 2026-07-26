@@ -25,6 +25,19 @@ const consoleDispatch = new Map<number, ConsoleFunctionInterface>([
   [LOG_LEVEL.WARN, (msg, rec) => { console.warn(msg, rec); }]
 ]);
 
+interface ConsoleTransportSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class ConsoleTransportInstance {
+  static belongsTo<TInstance>(
+    constructor: ConsoleTransportSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
 /**
  * Transport that writes records to the console using the level-appropriate method.
  *
@@ -46,8 +59,15 @@ export class ConsoleTransport implements TransportInterface {
    * @param options - Optional configuration for this transport
    * @returns A new ConsoleTransport instance
    */
-  static create(options: ConsoleTransportOptionsEntity.Type = {}): ConsoleTransport {
-    return new this(options);
+  static create<TInstance extends ConsoleTransport = ConsoleTransport>(
+    this: ConsoleTransportSubclassInterface<TInstance>,
+    options: ConsoleTransportOptionsEntity.Type = {}
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!ConsoleTransportInstance.belongsTo(this, result)) {
+      throw new TypeError('ConsoleTransport.create() did not construct the requested subclass.');
+    }
+    return result;
   }
 
   readonly #minLevel: number;

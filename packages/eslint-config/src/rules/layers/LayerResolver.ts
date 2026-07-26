@@ -2,44 +2,25 @@ import * as path from 'node:path';
 
 import type { LayerOptionsEntity } from './LayerOptionsEntity.js';
 
-// Default allow-matrix for the canonical 5-layer hexagonal architecture.
-// 'infrastructure' is resolved dynamically against options.layers (it may import any configured layer).
-const DEFAULT_STATIC_ALLOWED_IMPORTS: Record<string, readonly string[]> = {
-  'adapters': ['domain', 'ports', 'adapters'],
-  'application': ['domain', 'ports', 'application'],
-  'domain': ['domain'],
-  'ports': ['domain', 'ports']
-};
-
-const PATH_SEPARATOR_PATTERN = /[\\/]+/u;
-
-// Bounded LRU over a plain Map: Map iteration order is insertion order, so a
-// delete+set on read moves an entry to MRU and `keys().next()` is always the
-// LRU entry. This is a rule-internal cache (not a public API), so a bespoke
-// bound is simpler and lighter than pulling in @studnicky/cache's LruCache —
-// that package layers TTL/staleness/lifecycle-hook features (and its own
-// dependency on @studnicky/json's schema validation) that this cache, which
-// never expires entries and just needs a capacity ceiling, has no use for.
-const NORMALIZE_CACHE_CAPACITY = 5000;
-const normalizeCache = new Map<string, readonly string[]>();
+import { DEFAULT_STATIC_ALLOWED_IMPORTS, NORMALIZE_CACHE, NORMALIZE_CACHE_CAPACITY, PATH_SEPARATOR_PATTERN } from './constants/LayerResolverConstants.js';
 
 class PathSegments {
   public static normalize(rawPath: string): readonly string[] {
-    const cached = normalizeCache.get(rawPath);
+    const cached = NORMALIZE_CACHE.get(rawPath);
     if (cached !== undefined) {
-      normalizeCache.delete(rawPath);
-      normalizeCache.set(rawPath, cached);
+      NORMALIZE_CACHE.delete(rawPath);
+      NORMALIZE_CACHE.set(rawPath, cached);
       return cached;
     }
 
     const result = rawPath.split(PATH_SEPARATOR_PATTERN).filter((segment) => { return segment.length > 0; });
 
-    if (normalizeCache.size >= NORMALIZE_CACHE_CAPACITY) {
-      const oldestKey = normalizeCache.keys().next().value;
-      if (oldestKey !== undefined) { normalizeCache.delete(oldestKey); }
+    if (NORMALIZE_CACHE.size >= NORMALIZE_CACHE_CAPACITY) {
+      const oldestKey = NORMALIZE_CACHE.keys().next().value;
+      if (oldestKey !== undefined) { NORMALIZE_CACHE.delete(oldestKey); }
     }
 
-    normalizeCache.set(rawPath, result);
+    NORMALIZE_CACHE.set(rawPath, result);
     return result;
   }
 }

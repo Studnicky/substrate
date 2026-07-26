@@ -91,6 +91,7 @@ Import every FSM class, package-owned interface, and package error from `@studni
 | `FsmStepInterface<TState, TEffect>` | interface | Readonly `{ state, effects }` contract returned by `reduce` |
 | `FsmTransitionInterface<TState, TEvent, TEffect>` | interface | Callable contract for standalone transition functions |
 | `EffectHandlerInterface<TEffect, TEvent>` | interface | Singular callable effect handler with an in-drain `dispatch(event)` capability |
+| `EffectInterpreterConstructorOptionsInterface<TState, TEvent, TEffect>` | interface | Parameter contract for `EffectInterpreter`'s protected constructor; annotate a subclass constructor's parameter with it |
 | `InterpreterHistoryRecordInterface<TState, TEvent>` | interface | Readonly transition-history record contract |
 | `RegisteredInterpreterInterface<TState, TEvent>` | interface | Interpreter contract accepted by `MachineRegistry` |
 | `InterpreterHistoryRecordMetadataEntity` | namespace | Schema-derived transition-record timestamp contract |

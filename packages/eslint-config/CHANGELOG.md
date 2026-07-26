@@ -1,5 +1,91 @@
 # Changelog
 
+## 9.1.0
+
+### Minor Changes
+
+- 84557ec: ### Added
+
+  - `no-mixed-callable-shapes` forbids a type position that mixes a callable constituent with a data constituent. A declaration is callable or it is data, never both, and the diagnostic instructs a split rather than an interface conversion. Detection resolves named references, sees through arbitrary nesting, and treats `undefined`, `null`, and `never` as neutral so an optional callable stays a single shape. An interface counts as callable only when it owns or inherits a call or construct signature, so `Promise<T> | T` and other method-bearing library interfaces are data. The rule joins `entitySuite`.
+
+  ### Changed
+
+  - A generic type alias is a type-level function when its body reaches a conditional, mapped, or indexed-access type through a parenthesized wrapper, a union or intersection member, an array or tuple element, a type-reference argument, or a reference that forwards its own type parameters to another generic type-level function. Such a declaration is exempt from `aliasMustBeInterface`, which no interface declaration can satisfy. A reference supplying concrete type arguments composes a contract portion as before.
+  - `type-alias-invariants` reports `aliasMustBeInterface` only where an interface can express the shape. A type alias whose body is directly a mixed callable and data union or intersection is reported by `no-mixed-callable-shapes` alone.
+  - `interfaces-compose-named-types` defers to `no-mixed-callable-shapes` on a mixed member, so a mixed interface member yields one actionable diagnostic instead of two contradictory ones.
+  - A member keyed by a unique symbol brands its declaration, alongside a member typed `unique symbol`. Both idioms mark a declaration nominally and neither is expressible in JSON, so a brand member is exempt from named-data composition. The exemption reaches brand markers only: every other member on the same declaration still resolves to a schema-derived type, and a computed key that is not a unique symbol composes as ordinary data.
+
+- 789da06: ### Changed
+
+  - `v8/inline-arrow-functions` and `v8/inline-functions` no longer exempt a dispatch-map property by its key name (`callback`, `execute`, `handler`, `message`, `process`, `transform`, `transformAsync`, `validate`). Whether an inline arrow or function value is flagged depends only on whether the enclosing object literal is rebuilt on every call — a module-scope `const` or `static` class field is still exempt, a map rebuilt inside a function body is still flagged, regardless of what its properties are named.
+  - `descriptive-identifiers` no longer whitelists acronyms or loop-iterator names. Whether an identifier is flagged depends only on whether one of its camelCase tokens matches a banned shortening; single-letter loop iterators and short acronyms already fall outside that check structurally, since they never match a banned-shortening token.
+  - `folder-content-shape` no longer exempts a file from the constants-placement or inline-regex checks by path (`constants/`, `fixtures/`, `tests/`, the `eslint-config` package, `eslint.config.mjs`, `entities/`, or an `index.ts` basename) or by declared name (`ajv`, `compiledValidator`, `Schema`, `validate`). A file is exempt only when it is structurally one of: a pure constants module (every top-level declaration is an import, a type declaration, or a data `const`), a module exporting an `*Entity`-named namespace, or a pure re-export barrel. Renaming a directory, moving a file into `constants/`, or naming a declaration `Schema`/`validate`/`ajv` no longer buys an escape on its own.
+
+  ### Fixed
+
+  - Thirteen domain error classes (`VisibleRangeError`, `VirtualFileSystemError`, `SampleBufferError`, `CircularBufferError`, `BatchError`, `QueueSizeExceededError`, `FileLockTimeoutError`, `ConnectTimeoutError`, `TimeoutError`, `BodyTimeoutError`, `HeadersTimeoutError`, `SocketError`, `CoalesceTimeoutError`) hoist their `DomainErrorArgs.build()` message builder to a `private static` class method instead of an inline arrow rebuilt on every construction call.
+
+### Patch Changes
+
+- 789da06: ### Changed
+
+  - `no-mixed-callable-shapes` gains a fixture set covering every documented union/intersection mix (callable, constructor, named callable reference, callable interface reference, and a mixed member nested inside a property), the purely-callable and purely-data non-mixes, and the `Promise<T> | T` and `Map<K, V> | V` method-bearing library interface carve-outs.
+  - `interface-must-be-contract` gains `invalid` fixtures for index-only data, generic pure data, and a named pure-data reference with no contract signal.
+  - `interfaces-compose-named-types` gains `invalid` fixtures for an inline pure-data return value, an inline pure-data index value, and the brand-member exemption's narrowness — a computed unique-symbol key and a `unique symbol` value type each exempt only the brand member itself, while an ordinary sibling member still requires named-data composition. A locked-in regression test confirms a member mixing a callable constituent with data yields the `no-mixed-callable-shapes` diagnostic alone.
+
+- 789da06: ### Changed
+
+  - `@studnicky/errors`' `constants/index.ts` declares `ErrorCode`, `HttpStatus`, and `ErrorDefaults` directly and holds nothing else, making it a pure constants module. `CAUSE_CHAIN_DEPTH_LIMIT`/`CAUSE_DEPTH_SENTINEL` and the classifier HTTP-range constants re-export from `constants/CauseChainConstants.js` and `constants/ClassifierConstants.js` directly through the package's `src/index.ts` instead of routing through `constants/index.ts`. The package's exported symbols are unchanged.
+  - The `DomainErrorArgs.build()` example names its message builder as a static method, so the message function is allocated once rather than per construction.
+  - `folder-content-shape`'s constants-placement diagnostic no longer claims a flagged file "lives outside a 'constants/' folder" — a claim that no longer holds now the check is structural rather than path-based, and one a file already inside a `constants/` folder could trip. The message (renamed from `mustLiveInConstantsFolder` to `constantsNotIsolated`) instead states the actual structural condition: the file mixes top-level constants with other declarations (re-exports, functions, classes, or mutable bindings), so it isn't a self-contained constants module, and recommends extracting the constants into their own isolated file.
+
+- 789da06: ### Fixed
+
+  - `static-method-verbs` documentation describes the rule as it exists: a single `mode` option (`any` | `structural` | `typed`) gating detection, instead of the removed verb-prefix list and `additionalPrefixes`/`ignorePrefixes` options that no longer validate against the rule's schema.
+  - `hash-private-fields` documentation states that the rule has no comment-based or path-based exemption — an `external-contract` directive comment and an adapters/domain-layer file path do not exempt an underscore-prefixed field.
+  - `clean-diagnostics` documentation describes the auto-fix for a suppression comment that trails code on the same line, distinct from the whole-line removal for a comment-only line.
+  - `inline-arrow-functions` documentation lists all eight exempt dispatch-map property keys, including `message`.
+  - Fixtures for `inline-trivial-logic` (`allowLiterals`, `allowMemberExpressions`), `prefer-collection-types` (`checkArrayLiterals`, `checkFromEntries`, `checkModuleScopeArrays`), `require-options-object` (`minOptionals`), `inline-arrow-functions`, and `inline-functions` now exercise every documented option at a non-default value.
+  - `LayerResolver` and `TypeContractClassification` scenario fixtures no longer carry inert top-level keys that duplicated the nested `input`/`expected` fields the test runners actually read.
+
+- 789da06: ### Changed
+
+  - `Mutex` documents its FIFO acquisition contract: waiters queued behind a held lock are granted access in request order, and a burst of queued waiters that time out together reject in that same order. Documented on the class TSDoc and in the README's new "Ordering" section, and referenced from the `burst-timeout-drains-queue` scenario so the exact-order assertion reads as contract verification.
+  - `entitySuite`'s hand-written duplicate test (`entitySuite.test.ts`) is removed in favor of its data-driven equivalent (`entitySuite.loop.spec.ts` / `entitySuite.scenarios.json`), which gains the three `assigns-owning-rule` fixtures (naked type-alias-to-interface, suffix-collision pure data, dual-remediation contract) it was missing.
+
+- 789da06: ### Fixed
+
+  - Test-suite type errors across these packages' `tests/**` and `examples/**` are eliminated, gated on `tsc -p tsconfig.eslint.json`. Three patterns account for most of them:
+    - **Un-narrowed scenario unions**: a runner map typed `Record<ScenarioCase['shape'], (c: ScenarioCase) => void>` gives every runner the full union instead of its own variant, so per-shape property access reports `TS2339`. Each runner map now types its entries `(c: Extract<ScenarioCase, { shape: K }>) => ...` via a generic `ScenarioRunner<K>`, and the dispatching `runCase`/`runnerMap[shape]` call sites are generic over the same `K`. Where one scenario variant legitimately shared its shape across multiple literal names (`Extract` distributes per union member, not per literal, so a shared-shape variant collapses to `never`), the variant is split into one member per literal instead.
+    - **`this`-polymorphic factory explicit-type-argument pitfall**: `Subclass.create<T>(...)` on a `static create<T, TInstance extends Shape = Base<T>>(this: ..., ...)` factory blocks `TInstance` inference from `this`, silently returning the base type instead of the subclass and breaking every subclass-only member access. Dropping the explicit type argument (`Subclass.create(...)`) lets both parameters infer correctly. Constructors that already declared `public constructor() { super(); }` are unaffected by this and untouched.
+    - **JSON-import scenario casts**: `scenarioGroups.cases` types as a JSON-literal-inferred union (widened `string` discriminants) that doesn't structurally satisfy the hand-written `ScenarioCase[]`/`Record<Shape, ...>` type without an explicit cast at the JSON→TS boundary — the same idiom already used at ~200 other call sites in this test suite.
+  - A handful of one-off fixes ride along: `assert.equal(typeof x, 'y')`/`assert.ok(cond)` calls that don't narrow (replaced with explicit `if (typeof x !== 'y') throw` guards or reordered before use); array/object destructuring under strict indexed-access that needed a defined-check; a self-referential `typeof signal.addEventListener` type annotation in `resilience`; two `readonly T[]` getters typed as mutable `T[]` in `file-lock` and `cache`'s example files; a redundant no-op `.events.length = 0` on a freshly-constructed instance in `cache`'s example; and `exactOptionalPropertyTypes` mismatches where an object literal explicitly carried `| undefined` into a stricter target (`bounded-dispatcher`, `retry`).
+  - `packages/mutex/tests/fixtures/constants.ts` imported `MutexConfigInterface` from a path that no longer exists; it now imports `MutexConfigEntity.Type` from its current location.
+  - `packages/mutex/examples/keyedWorkGateComposition.ts`'s `mutex.runExclusive(key, fn)` call (no `acceptsResult` predicate) always types its result `unknown` by design; the example now supplies the `(value): value is string => ...` predicate the source's own JSDoc documents for this case.
+
+  ### Left as-is (verified, not a defect)
+
+  - `ErrorClassifier` is `abstract` with no static factory at all; subclasses are constructed directly.
+
+- 789da06: ### Fixed
+
+  - `backoff-strategies.scenarios.json` drops the top-level `attempt`/`baseDelay` fields duplicated across 44 cases — `backoff-strategies.loop.spec.ts` reads `scenarioCase.input.attempt`/`.baseDelay` exclusively, so the top-level copies were inert.
+  - `adaptive-config.scenarios.json` drops the top-level `value` field duplicated on the two `reject-non-positive-target-latency-*` cases — `adaptive-config.loop.spec.ts` never reads `scenarioCase.value`.
+  - `LayerResolver.scenarios.json` drops the `input.operation` and `input.expect` fields duplicated/orphaned across all 14 cases. `LayerResolver.loop.spec.ts` dispatches on the top-level `operation` discriminator (`operations[scenario.operation]`), so the top-level field is the live one here — the inverse of the other two files — and `input.expect` is read nowhere at all.
+
+- 789da06: ### Fixed
+
+  - Every `*.scenarios.json` import across the test suites carries the `with { type: 'json' }` import attribute `module: NodeNext` requires, clearing 221 `TS1543` diagnostics that `tsc -b` never surfaced because test files aren't part of any package's typechecked build — only `tsconfig.eslint.json` (used for ESLint's type-aware rules) sees them, and it consumes type information without reporting `TS` diagnostics on its own.
+  - Tests that constructed a `protected`-constructor class directly with `new` now call the class's `this`-polymorphic static factory instead (`Subclass.create(...)`), clearing 78 `TS2674` diagnostics across `Clock`, `Channel`, `Coalesce`, `EntityStore`, `CircuitBreaker`, `EventBus`, `Mutex`, and `RealTimeScheduler` subclasses. The remaining 86 `TS2674` instances are left on `new` because no fitting factory exists for that call site: `StateMachine` is abstract with no static factory at all; `EffectInterpreter`, `InterpreterHistory`, `DeadLetterQueue`, `Signal`, `FetchClient`, and `ErrorClassifier`'s factories (where one exists) hardcode their own class rather than accepting `this`, so calling them on a subclass returns the base type instead of the subclass; and `Channel`/`Coalesce` subclasses that are themselves generic and expose subclass-only members lose that member's type through the factory's necessarily looser `TInstance` bound, so the direct constructor call is correct as written.
+
+- 789da06: ### Fixed
+
+  - Type-contract classification treats an indexed type as its element type alone. A resolved array's own members are prototype methods supplied by the standard library — `push`, `map`, `filter` and friends each own a call signature — so enumerating them classified every array as callable. The effect was position-dependent and therefore easy to miss: an array nested in an object property passed, while the same array at a type alias's root was always rejected as "not pure data".
+
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+  - @studnicky/types@9.1.0
+
 ## 9.0.0
 
 ### Major Changes

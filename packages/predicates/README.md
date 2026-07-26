@@ -49,13 +49,13 @@ Predicates.checkMaximum(10, 10, false);      // true
 Predicates.checkMultipleOf(0.3, 0.1);        // true  (epsilon-tolerant)
 
 // Array constraints
-Predicates.checkMinItems([1, 2], 2);          // true
-Predicates.checkMaxItems([1, 2, 3], 2);       // false
-Predicates.checkUniqueItems([1, 2, 1]);       // false
+Predicates.satisfiesMinItems([1, 2], 2);      // true
+Predicates.satisfiesMaxItems([1, 2, 3], 2);   // false
+Predicates.satisfiesUniqueItems([1, 2, 1]);   // false
 Predicates.satisfiesContains(2, 1, 3);        // true  (matchCount within [min, max])
 
 // Object constraints
-Predicates.checkRequired({ a: 1 }, ['a', 'b']);            // false — 'b' missing
+Predicates.hasAllRequiredProperties({ a: 1 }, ['a', 'b']); // false — 'b' missing (own properties only)
 Predicates.hasNoAdditionalProperties({ a: 1 }, new Set(['a'])); // true
 Predicates.satisfiesMinProperties({ a: 1 }, 2);            // false
 Predicates.satisfiesMaxProperties({ a: 1, b: 2 }, 3);     // true

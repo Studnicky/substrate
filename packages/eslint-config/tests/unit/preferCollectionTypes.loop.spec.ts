@@ -4,7 +4,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { preferCollectionTypes } from '../../src/rules/preferCollectionTypes.js';
-import scenarioGroups from './preferCollectionTypes.scenarios.json';
+import scenarioGroups from './preferCollectionTypes.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

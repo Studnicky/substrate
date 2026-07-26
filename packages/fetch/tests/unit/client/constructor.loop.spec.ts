@@ -5,10 +5,11 @@ import {
   type ClientConfigInterface,
   ConfigurationError,
   FetchClient,
+  type FetchOptionsInterface,
   type RequestContextInterface
 } from '../../../src/index.js';
 
-import scenarioGroups from './constructor.scenarios.json';
+import scenarioGroups from './constructor.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'valid-no-config'
@@ -56,7 +57,7 @@ type ConfigRuntimeTag =
   | { shape: 'throwing-request-id'; message: string };
 
 type ExpectedRuntimeTag = { shape: 'undefined' };
-type ConfigRuntimeTagMaterializer = (value: ConfigRuntimeTag) => unknown;
+type ConfigRuntimeTagMaterializer<Shape extends ConfigRuntimeTag['shape']> = (value: Extract<ConfigRuntimeTag, { shape: Shape }>) => unknown;
 type ExpectedRuntimeTagMaterializer = (value: ExpectedRuntimeTag) => unknown;
 type ScenarioRunner = (scenarioCase: ScenarioCase, config: ClientConfigInterface) => Promise<void> | void;
 
@@ -97,7 +98,7 @@ function isConfigRuntimeTag(value: Record<string, unknown>): value is ConfigRunt
   return typeof value.shape === 'string' && value.shape in configRuntimeTagMap;
 }
 
-const configRuntimeTagMap: Record<ConfigRuntimeTag['shape'], ConfigRuntimeTagMaterializer> = {
+const configRuntimeTagMap: { [Shape in ConfigRuntimeTag['shape']]: ConfigRuntimeTagMaterializer<Shape> } = {
   'static-request-id': (value) => {
     return () => value.value;
   },
@@ -110,6 +111,10 @@ const expectedRuntimeTagMap: Record<ExpectedRuntimeTag['shape'], ExpectedRuntime
   undefined: () => undefined
 };
 
+function materializeConfigRuntimeTag<Shape extends ConfigRuntimeTag['shape']>(record: Extract<ConfigRuntimeTag, { shape: Shape }>): unknown {
+  return configRuntimeTagMap[record.shape](record);
+}
+
 function materializeConfigValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => { return materializeConfigValue(item); });
@@ -118,7 +123,7 @@ function materializeConfigValue(value: unknown): unknown {
   if (value !== null && typeof value === 'object') {
     const record = value as Record<string, unknown>;
     if (isConfigRuntimeTag(record)) {
-      return configRuntimeTagMap[record.shape](record);
+      return materializeConfigRuntimeTag(record);
     }
 
     return Object.fromEntries(
@@ -148,17 +153,28 @@ function materializeExpectedValue(value: unknown): unknown {
   return value;
 }
 
-function assertAcceptedClient(client: FetchClient, scenarioCase: ScenarioCase): void {
+/**
+ * Assigns `value` to `target[key]` under `exactOptionalPropertyTypes`, where an
+ * optional field must be deleted rather than explicitly set to `undefined`.
+ */
+function applyOptionalField<T extends object, K extends keyof T>(target: T, key: K, value: T[K] | undefined): void {
+  if (value === undefined) {
+    delete target[key];
+  } else {
+    target[key] = value;
+  }
+}
+
+function assertAcceptedClient(client: FetchClient): void {
   assert.ok(client instanceof FetchClient);
-  assert.equal(scenarioCase.expected.accepted, true);
 }
 
-function runValidNoConfig(scenarioCase: ScenarioCase): void {
-  assertAcceptedClient(FetchClient.create(), scenarioCase);
+function runValidNoConfig(): void {
+  assertAcceptedClient(FetchClient.create());
 }
 
-function runValidConfig(scenarioCase: ScenarioCase, config: ClientConfigInterface): void {
-  assertAcceptedClient(FetchClient.create(config), scenarioCase);
+function runValidConfig(_scenarioCase: ScenarioCase, config: ClientConfigInterface): void {
+  assertAcceptedClient(FetchClient.create(config));
 }
 
 function runInvalidConfig(scenarioCase: ScenarioCase, config: ClientConfigInterface): void {
@@ -182,10 +198,10 @@ async function runBaseUrlBehavior(scenarioCase: ScenarioCase, config: ClientConf
 }
 
 async function runDefaultTimeoutBehavior(scenarioCase: ScenarioCase, config: ClientConfigInterface): Promise<void> {
-  setFetch((_: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  setFetch((_: Request | URL | string, init?: RequestInit): Promise<Response> => {
     return new Promise<Response>((_resolve, reject) => {
       const signal = init?.signal;
-      if (signal === undefined) {
+      if (signal === undefined || signal === null) {
         return;
       }
 
@@ -217,10 +233,6 @@ async function runCustomRequestIdBehavior(scenarioCase: ScenarioCase, config: Cl
   const generatedIds: string[] = [];
 
   class TrackingClient extends FetchClient {
-    static override create(config: Parameters<typeof FetchClient.create>[0] = {}): TrackingClient {
-      return new this(config);
-    }
-
     protected override onRequestStart(_method: string, _path: string, requestId: string, _url: string): void {
       generatedIds.push(requestId);
     }
@@ -240,10 +252,6 @@ async function runExplicitRequestIdBehavior(scenarioCase: ScenarioCase, config: 
   const capturedRequestIds: string[] = [];
 
   class RequestIdClient extends FetchClient {
-    static override create(config: Parameters<typeof FetchClient.create>[0] = {}): RequestIdClient {
-      return new this(config);
-    }
-
     protected override onRequestStart(_method: string, _path: string, requestId: string, _url: string): void {
       capturedRequestIds.push(requestId);
     }
@@ -265,10 +273,6 @@ async function runMetadataMergeBehavior(scenarioCase: ScenarioCase, config: Clie
   const capturedMetadata: Record<string, unknown>[] = [];
 
   class MetadataClient extends FetchClient {
-    static override create(config: Parameters<typeof FetchClient.create>[0] = {}): MetadataClient {
-      return new this(config);
-    }
-
     protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
       capturedMetadata.push({ ...context.metadata.metadata });
       return context;
@@ -293,10 +297,6 @@ async function runDetachMutableConfigBehavior(scenarioCase: ScenarioCase): Promi
   let capturedContext: RequestContextInterface | undefined;
 
   class SnapshotClient extends FetchClient {
-    static override create(config: ClientConfigInterface = {}): SnapshotClient {
-      return new this(config);
-    }
-
     protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
       capturedContext = context;
       return context;
@@ -311,10 +311,10 @@ async function runDetachMutableConfigBehavior(scenarioCase: ScenarioCase): Promi
   const client = SnapshotClient.create(mutableConfig);
   const replacementConfig = materializeConfigValue(scenarioCase.input.replacementFetchClient) as ClientConfigInterface;
   mutableConfig.baseURL = replacementConfig.baseURL;
-  mutableConfig.headers = replacementConfig.headers;
-  mutableConfig.metadata = replacementConfig.metadata;
-  mutableConfig.options = replacementConfig.options;
-  mutableConfig.params = replacementConfig.params;
+  applyOptionalField(mutableConfig, 'headers', replacementConfig.headers);
+  applyOptionalField(mutableConfig, 'metadata', replacementConfig.metadata);
+  applyOptionalField(mutableConfig, 'options', replacementConfig.options);
+  applyOptionalField(mutableConfig, 'params', replacementConfig.params);
 
   await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'));
 
@@ -324,7 +324,10 @@ async function runDetachMutableConfigBehavior(scenarioCase: ScenarioCase): Promi
   assert.deepStrictEqual(capturedContext.options.headers, scenarioCase.expected.headers);
   assert.deepStrictEqual(capturedContext.options.metadata, scenarioCase.expected.optionsMetadata);
   assert.deepStrictEqual(capturedContext.options.json, scenarioCase.expected.json);
-  assert.deepStrictEqual(capturedContext.options.params, materializeExpectedValue(scenarioCase.expected.params));
+  // `params` is never part of `FetchOptionsInterface` — resolved query params are folded
+  // into the request URL instead — so this asserts the field does not leak onto options.
+  const optionsWithParams = capturedContext.options as FetchOptionsInterface & { params?: unknown };
+  assert.deepStrictEqual(optionsWithParams.params, materializeExpectedValue(scenarioCase.expected.params));
 }
 
 async function runPreserveNonPlainJsonBehavior(scenarioCase: ScenarioCase): Promise<void> {
@@ -340,10 +343,6 @@ async function runPreserveNonPlainJsonBehavior(scenarioCase: ScenarioCase): Prom
   }
 
   class SnapshotClient extends FetchClient {
-    static override create(config: ClientConfigInterface = {}): SnapshotClient {
-      return new this(config);
-    }
-
     protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
       capturedContext = context;
       return context;
@@ -375,10 +374,6 @@ async function runPreserveNullPrototypeJsonBehavior(scenarioCase: ScenarioCase):
   let capturedContext: RequestContextInterface | undefined;
 
   class SnapshotClient extends FetchClient {
-    static override create(config: ClientConfigInterface = {}): SnapshotClient {
-      return new this(config);
-    }
-
     protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
       capturedContext = context;
       return context;

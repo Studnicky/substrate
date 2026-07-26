@@ -19,21 +19,27 @@ type RuntimeValue =
   | { [key: string]: RuntimeValue };
 
 type ScenarioCase = {
-  clientConfig?: {
-    headers?: RuntimeValue;
-  };
   description: string;
-  expect:
+  expected:
     | { shape: 'ok'; status: number }
     | { errorType?: 'TypeError'; shape: 'reject'; messageIncludes?: readonly string[] };
+  input: {
+    clientConfig?: {
+      headers?: RuntimeValue;
+    };
+    request?: {
+      acceptValues?: readonly string[];
+      body?: RuntimeValue;
+      headerCount?: number;
+      headers?: Record<string, string>;
+      method: 'GET' | 'POST';
+      path: string;
+    };
+  };
   name: string;
-  request?:
-    | { body?: RuntimeValue; headers?: Record<string, string>; method: 'GET' | 'POST'; path: string }
-    | { acceptValues?: readonly string[]; method: 'GET'; path: string }
-    | { headerCount: number; method: 'GET'; path: string };
 };
 
-import scenarioGroups from './headers.errors.scenarios.json';
+import scenarioGroups from './headers.errors.scenarios.json' with { type: 'json' };
 
 let testUrl: string;
 
@@ -45,17 +51,22 @@ void after(async () => {
   await stopTestServer();
 });
 
+function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
+  return typeof value === 'object' && value !== null && '__shape' in value;
+}
+
 function materializeRuntimeValue(value: RuntimeValue): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => { return materializeRuntimeValue(item); });
   }
 
   if (value !== null && typeof value === 'object') {
-    if ('__shape' in value) {
+    if (isRuntimeTag(value)) {
       if (value.__shape === 'undefined') {
         return undefined;
       }
-      throw new Error(`Unknown runtime tag: ${value.__shape satisfies never}`);
+      const exhaustiveCheck: never = value.__shape;
+      throw new Error(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -77,18 +88,19 @@ function buildHeaders(count: number): Record<string, string> {
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const request = scenarioCase.request;
+  const request = scenarioCase.input.request;
+  const { expected } = scenarioCase;
   const clientConfig = {
     baseURL: testUrl,
-    ...(scenarioCase.clientConfig === undefined ? {} : (scenarioCase.clientConfig.headers === undefined ? {} : { headers: materializeRuntimeValue(scenarioCase.clientConfig.headers) as never }))
+    ...(scenarioCase.input.clientConfig === undefined ? {} : (scenarioCase.input.clientConfig.headers === undefined ? {} : { headers: materializeRuntimeValue(scenarioCase.input.clientConfig.headers) as never }))
   };
 
-  if (scenarioCase.expect.shape === 'reject') {
+  if (expected.shape === 'reject') {
     if (request === undefined) {
       assert.throws(() => {
         FetchClient.create(clientConfig as never);
       }, (error: Error) => {
-        for (const expectedMessagePart of scenarioCase.expect.messageIncludes ?? []) {
+        for (const expectedMessagePart of expected.messageIncludes ?? []) {
           assert.ok(error.message.toLowerCase().includes(expectedMessagePart.toLowerCase()));
         }
         return true;
@@ -97,7 +109,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
 
     const clientInstance = FetchClient.create(clientConfig as never);
-    const headers = 'headerCount' in request ? buildHeaders(request.headerCount) : request.headers;
+    const headers = 'headerCount' in request && request.headerCount !== undefined ? buildHeaders(request.headerCount) : request.headers;
     const options = {
       ...(headers === undefined ? {} : { headers }),
       ...(request.body === undefined ? {} : { body: materializeRuntimeValue(request.body) })
@@ -112,15 +124,15 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       }
 
       if (request.method === 'GET') {
-        await clientInstance.get(request.path, options);
+        await clientInstance.get(request.path, headers === undefined ? undefined : { headers });
       } else {
         await clientInstance.post(request.path, options);
       }
     }, (error: Error) => {
-      if (scenarioCase.expect.errorType === 'TypeError') {
+      if (expected.errorType === 'TypeError') {
         assert.ok(error instanceof TypeError);
       }
-      for (const expectedMessagePart of scenarioCase.expect.messageIncludes ?? []) {
+      for (const expectedMessagePart of expected.messageIncludes ?? []) {
         assert.ok(error.message.toLowerCase().includes(expectedMessagePart.toLowerCase()));
       }
       return true;
@@ -136,26 +148,26 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   if ('acceptValues' in request) {
     for (const accept of request.acceptValues ?? []) {
       const response = await clientInstance.get(request.path, { headers: { Accept: accept } });
-      assert.strictEqual(response.status, scenarioCase.expect.status);
+      assert.strictEqual(response.status, expected.status);
     }
     return;
   }
 
-  const headers = 'headerCount' in request ? buildHeaders(request.headerCount) : request.headers;
+  const headers = 'headerCount' in request && request.headerCount !== undefined ? buildHeaders(request.headerCount) : request.headers;
   const options = {
     ...(headers === undefined ? {} : { headers }),
     ...(request.body === undefined ? {} : { body: materializeRuntimeValue(request.body) })
   };
 
   const response = request.method === 'GET'
-    ? await clientInstance.get(request.path, options)
+    ? await clientInstance.get(request.path, headers === undefined ? undefined : { headers })
     : await clientInstance.post(request.path, options);
 
-  assert.strictEqual(response.status, scenarioCase.expect.status);
+  assert.strictEqual(response.status, expected.status);
 }
 
 void describe('Headers Error Scenarios', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

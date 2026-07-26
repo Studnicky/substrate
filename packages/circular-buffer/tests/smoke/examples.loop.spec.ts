@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 
 const examplesRoot = fileURLToPath(new URL('../../examples/', import.meta.url));
 
-import scenarioGroups from './examples.scenarios.json';
+import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {
   description: string;

@@ -47,18 +47,9 @@
         "context": {
           "name": "test"
         },
-        "scope": {
-          "initial": {
-            "requestId": "123",
-            "value": 42
-          }
-        }
+        "scope": {}
       },
       "expected": {
-        "scope": {
-          "execute": true,
-          "terminate": true
-        },
         "keys": []
       }
     },

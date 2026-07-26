@@ -6,33 +6,33 @@ import { HookInvocationError } from '@studnicky/errors';
 import type { BatchStatsEntity } from '../../../src/entities/BatchStatsEntity.js';
 import { Batch } from '../../../src/batch/Batch.js';
 import { collectBatches } from '../../helpers/index.js';
-import scenarioGroups from './batchHooks.scenarios.json';
+import scenarioGroups from './batchHooks.scenarios.json' with { type: 'json' };
 
 type ScenarioInput = Record<string, unknown> & { batch?: { maxConcurrent?: number } };
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-batch-start' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-start' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-success' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-error' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-settled' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-success-order' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-item-error-order' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-concurrency-saturated' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-batch-complete' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'on-batch-complete-abort' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-batch-start' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-item-success-error' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-item-settled' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-batch-complete' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-saturation' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-indices' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'process-settled-all-fail' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'throwing-success-hook' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'throwing-complete-hook' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'continue-on-hook-error' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'async-hook-error-safe' }
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: 'hook-errors-owned-by-instance' };
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-batch-start' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-item-start' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-item-success' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-item-error' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-item-settled' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-item-success-order' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-item-error-order' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-concurrency-saturated' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-batch-complete' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'on-batch-complete-abort' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-settled-batch-start' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-settled-item-success-error' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-settled-item-settled' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-settled-batch-complete' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-settled-saturation' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-settled-indices' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'process-settled-all-fail' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'throwing-success-hook' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'throwing-complete-hook' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'continue-on-hook-error' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'async-hook-error-safe' }
+  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; name: string; shape: 'hook-errors-owned-by-instance' };
 
 type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
@@ -290,8 +290,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       if (n === Number(input.errorItem)) { throw new Error(String(input.operationErrorMessage)); }
       return n;
     })).then((results) => {
-      assert.strictEqual(results.length, expected.statuses.length);
-      assert.deepStrictEqual(results.map((result) => result.status), expected.statuses);
+      const expectedStatuses = expected.statuses as string[];
+      assert.strictEqual(results.length, expectedStatuses.length);
+      assert.deepStrictEqual(results.map((result) => result.status), expectedStatuses);
       assert.strictEqual(batch.recordedHookErrorCount, Number(expected.hookErrorCount));
       assert.strictEqual(batch.recordedHookErrors.length, Number(expected.hookErrorCount));
     });

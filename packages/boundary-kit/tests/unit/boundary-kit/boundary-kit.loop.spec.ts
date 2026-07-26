@@ -7,7 +7,7 @@ import { Throttle, type ThrottleConfigEntity } from '@studnicky/throttle';
 
 import { BoundaryKit, type BoundaryKitConfigInterface } from '../../../src/index.js';
 import { BoundaryKitAbortedError } from '../../../src/errors/BoundaryKitAbortedError.js';
-import scenarioGroups from './boundary-kit.scenarios.json';
+import scenarioGroups from './boundary-kit.scenarios.json' with { type: 'json' };
 
 type RetryClassifierDescriptor = {
   shape: 'constant';
@@ -216,7 +216,12 @@ function createExecuteBatch<T>(batch: BatchInput, execute: () => Promise<T>): Pr
   return Array.from({ length: batch.callCount }, () => execute());
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   'plain-config': async (scenarioCase) => {
     const kit = BoundaryKit.create(materializeBoundaryKitConfig(scenarioCase.input.boundaryKit.config));
 
@@ -314,7 +319,6 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
 
     const result = await kit.execute(voidWork);
     assert.equal(result, undefined);
-    assert.equal(scenarioCase.expected.resultIsUndefined, true);
     assert.equal(ran, true);
 
     const { kit: abortKit, throttle } = materializeAbortBoundaryKit(scenarioCase.input.boundaryKit.abortConfig);
@@ -339,7 +343,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 

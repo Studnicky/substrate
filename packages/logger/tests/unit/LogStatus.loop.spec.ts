@@ -7,24 +7,25 @@ import {
   LOG_STATUS,
   STATUS_CATEGORIES
 } from '../../src/constants/LOG_STATUS.js';
+import { LogStatusEntity } from '../../src/entities/LogStatusEntity.js';
 import { LogStatus } from '../../src/modules/LogStatus.js';
-import scenarioGroups from './LogStatus.scenarios.json';
+import scenarioGroups from './LogStatus.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-lifecycle-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-success-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-failure-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-retry-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-categories-lifecycle' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-categories-success' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-categories-failure' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'status-categories-retry' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-success-true' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-success-false' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-failure-true' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-failure-false' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-lifecycle-true' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'is-lifecycle-false' };
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-lifecycle-values' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-success-values' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-failure-values' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-retry-values' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-categories-lifecycle' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-categories-success' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-categories-failure' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-categories-retry' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-success-true' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-success-false' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-failure-true' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-failure-false' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-lifecycle-true' }
+  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-lifecycle-false' };
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
@@ -35,10 +36,10 @@ function assertValues(scenarioCase: ScenarioCase, actual: readonly string[]): vo
 
 function assertPredicate(
   scenarioCase: ScenarioCase,
-  predicate: (value: string) => boolean,
+  predicate: (value: LogStatusEntity.Type) => boolean,
   expectedValue: boolean
 ): void {
-  const expected = scenarioCase.expected as { values: string[] };
+  const expected = scenarioCase.expected as { values: LogStatusEntity.Type[] };
   for (const value of expected.values) {
     assert.strictEqual(predicate(value), expectedValue);
   }

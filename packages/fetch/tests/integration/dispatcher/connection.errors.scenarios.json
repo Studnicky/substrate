@@ -332,10 +332,11 @@
       "input": {
         "dispatcher": {
           "connections": 1
-        }
+        },
+        "waitMs": 300
       },
       "expected": {
-        "healthy": true
+        "healthy": false
       }
     },
     {

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
-import scenarioGroups from './examples.scenarios.json';
+import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
 
 const currentDir = fileURLToPath(new URL('.', import.meta.url));
 const examplesRoot = resolve(currentDir, '../../examples');

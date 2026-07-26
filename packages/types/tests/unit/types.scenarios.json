@@ -38,6 +38,15 @@
         "outcome": {
           "shape": "undefined"
         }
+      },
+      {
+        "description": "returns NaN unchanged for NaN input — unlike isNumber, asNumber does not exclude NaN",
+        "input": {
+          "shape": "nan"
+        },
+        "outcome": {
+          "shape": "nan"
+        }
       }
     ],
     "asStringOrNull": [

@@ -6,7 +6,7 @@ import {
 import { ReducerThrewError } from '../../src/ReducerThrewError.js';
 import { StateMachine } from '../../src/StateMachine.js';
 import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
-import scenarioGroups from './StateMachineHooks.scenarios.json';
+import scenarioGroups from './StateMachineHooks.scenarios.json' with { type: 'json' };
 
 type TrafficState =
   | { readonly variant: 'red' }
@@ -106,6 +106,8 @@ type ScenarioCase =
     };
 
 class TrafficMachine extends StateMachine<TrafficState, TrafficEvent> {
+  public constructor() { super(); }
+
   override getInitialState(): TrafficState { return { variant: 'red' }; }
 
   override reduce(state: TrafficState, _event: TrafficEvent): FsmStepInterface<TrafficState> {
@@ -120,6 +122,8 @@ class TrafficMachine extends StateMachine<TrafficState, TrafficEvent> {
 }
 
 class ThrowingMachine extends StateMachine<TrafficState, TrafficEvent> {
+  public constructor() { super(); }
+
   override getInitialState(): TrafficState { return { variant: 'red' }; }
 
   override reduce(_state: TrafficState, _event: TrafficEvent): FsmStepInterface<TrafficState> {
@@ -158,7 +162,14 @@ class ObservedThrowingMachine extends ThrowingMachine {
   }
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> =
+  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
+
+type RunnerMap = {
+  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
+};
+
+const runnerMap: RunnerMap = {
   'async-rejection': async (scenarioCase) => {
     class AsyncRejectingEnterStateMachine extends TrafficMachine {
       readonly failureDetails = { labels: ['initial'] };
@@ -290,6 +301,8 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   },
   'unchanged-no-hooks': (scenarioCase) => {
     class SelfLoopMachine extends StateMachine<TrafficState, TrafficEvent> {
+      public constructor() { super(); }
+
       override getInitialState(): TrafficState { return { variant: 'red' }; }
       override reduce(state: TrafficState, _event: TrafficEvent): FsmStepInterface<TrafficState> {
         return { effects: [], state };
@@ -309,10 +322,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
+}
+
 void describe('StateMachine hooks', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
-      await runnerMap[scenario.shape](scenario);
+      await runCase(scenario);
     });
   }
 });

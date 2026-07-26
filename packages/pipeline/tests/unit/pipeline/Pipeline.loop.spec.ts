@@ -6,7 +6,7 @@ import {
 import { HookInvocationError, HookTimeoutError } from '@studnicky/errors';
 
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
-import scenarioGroups from './Pipeline.scenarios.json';
+import scenarioGroups from './Pipeline.scenarios.json' with { type: 'json' };
 
 type NumberStageSpec = { shape: 'add'; value: number };
 
@@ -23,21 +23,49 @@ type ScenarioCase =
       description: string;
       expected: { value: string };
       input: { value: string };
-      shape: 'empty-pipeline-returns-input' | 'single-async-stage-applies';
+      shape: 'empty-pipeline-returns-input';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { value: string };
+      input: { value: string };
+      shape: 'single-async-stage-applies';
       name: string;
     }
   | {
       description: string;
       expected: { value: number };
       input: { value: number };
-      shape: 'single-stage-applies' | 'multiple-stages-apply-all' | 'stages-is-defensive-snapshot';
+      shape: 'single-stage-applies';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { value: number };
+      input: { value: number };
+      shape: 'multiple-stages-apply-all';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { value: number };
+      input: { value: number };
+      shape: 'stages-is-defensive-snapshot';
       name: string;
     }
   | {
       description: string;
       expected: { value: number };
       input: NumberPipelineInput;
-      shape: 'hook-timeout-resolving-has-no-effect' | 'hook-timeout-unset-resolving-has-no-effect';
+      shape: 'hook-timeout-resolving-has-no-effect';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { value: number };
+      input: NumberPipelineInput;
+      shape: 'hook-timeout-unset-resolving-has-no-effect';
       name: string;
     }
   | {
@@ -206,7 +234,7 @@ const runnerMap: RunnerMap = {
       }
     }
 
-    const pipeline = ThrowingHookPipeline.create([(n) => n + 1]);
+    const pipeline = ThrowingHookPipeline.create<number>([(n) => n + 1]);
     await assert.rejects(
       () => pipeline.run(scenarioCase.input.value),
       (err: unknown) => {

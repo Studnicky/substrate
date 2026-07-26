@@ -44,6 +44,29 @@ class BusQueueEntry<T> {
   }
 }
 
+interface BusQueueSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+class BusQueueInstance {
+  static belongsTo<TInstance>(
+    constructor: BusQueueSubclassInterface<TInstance>,
+    value: unknown
+  ): value is TInstance {
+    return value instanceof constructor;
+  }
+}
+
+// T only appears in BusQueue's covariant/contravariant members (enqueue()'s item,
+// the handler passed to create()), so a bound of `BusQueue<T>` would force
+// `BusQueue<T>` (the method's own general T) to satisfy `BusQueue<never>`/
+// `BusQueue<any>`, which either fails to typecheck or requires a banned `any`.
+// `drain()` is a public member that doesn't mention T at all, so it constrains
+// TInstance to "is actually BusQueue-shaped" without hitting that wall.
+interface BusQueueShapeInterface {
+  drain(): Promise<void>;
+}
+
 export class BusQueue<T> {
   protected readonly hooks: HookInvoker = new BusQueueHookInvoker();
   readonly #handler: (item: T) => Promise<void>;
@@ -57,8 +80,17 @@ export class BusQueue<T> {
   #drainTask: Promise<void> | undefined = undefined;
   #activeEntry: BusQueueEntry<T> | undefined = undefined;
 
-  static create<T>(options: BusQueueCreateOptionsInterface<T>): BusQueue<T> {
-    const result = new this<T>(options);
+  static create<
+    T,
+    TInstance extends BusQueueShapeInterface = BusQueue<T>
+  >(
+    this: BusQueueSubclassInterface<TInstance>,
+    options: BusQueueCreateOptionsInterface<T>
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!BusQueueInstance.belongsTo(this, result)) {
+      throw new TypeError('BusQueue.create() did not construct the requested subclass.');
+    }
     return result;
   }
 

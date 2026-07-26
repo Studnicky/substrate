@@ -16,7 +16,7 @@ import {
   StructuralHash
 } from '../../../src/index.js';
 
-import scenarioGroups from './json-core.scenarios.json';
+import scenarioGroups from './json-core.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'clone-deep-array'
@@ -88,6 +88,41 @@ class SelectiveFrozen extends Frozen {
     return !('mutable' in value);
   }
 }
+
+/**
+ * The expressions a `regexp` scenario may name, written as literals so no
+ * pattern text reaches the engine uncompiled. Each entry builds a fresh
+ * instance per call, keeping `deepEqual` a structural comparison rather than an
+ * identity one. A scenario naming an expression that is absent here fails
+ * loudly in `requireDeepEqualRegexp`.
+ */
+const deepEqualRegexpByPattern = {
+  abc: (): RegExp => /abc/u,
+  def: (): RegExp => /def/u
+} satisfies Record<string, () => RegExp>;
+
+function isDeepEqualRegexpPattern(pattern: string): pattern is keyof typeof deepEqualRegexpByPattern {
+  return Object.hasOwn(deepEqualRegexpByPattern, pattern);
+}
+
+function requireDeepEqualRegexp(raw: unknown): RegExp {
+  const pattern = requireString(raw, 'deepEqual special regexp value');
+  if (!isDeepEqualRegexpPattern(pattern)) {
+    throw new Error(`deepEqual special regexp value '${pattern}' declares no expression in deepEqualRegexpByPattern`);
+  }
+
+  return deepEqualRegexpByPattern[pattern]();
+}
+
+const deepEqualValueByShape = {
+  date: (raw: unknown): Date => new Date(requireString(raw, 'deepEqual special date value')),
+  map: (raw: unknown): Map<unknown, unknown> => new Map(
+    requireArray(raw, 'deepEqual special map value').map((entry) => toMapEntry(requireArray(entry, 'deepEqual special map entry')))
+  ),
+  nan: (): number => Number.NaN,
+  regexp: (raw: unknown): RegExp => requireDeepEqualRegexp(raw),
+  set: (raw: unknown): Set<unknown> => new Set(requireArray(raw, 'deepEqual special set value'))
+} satisfies Record<string, (raw: unknown) => unknown>;
 
 const runtimeValueByShape = {
   date: (): Date => new Date(0),
@@ -163,7 +198,6 @@ const scenarioRunnerMap = {
     const cloned = requireJsonObject(Clone.deep(original), 'clone isolation result');
     Reflect.set(requireJsonObject(cloned.b, 'clone isolation nested result'), 'c', 99);
     assert.equal(requireJsonObject(original.b, 'clone isolation nested input').c, 2);
-    assert.equal(scenarioCase.expected.originalUnchanged, true);
   },
 
   'clone-shallow': (scenarioCase) => {
@@ -194,8 +228,16 @@ const scenarioRunnerMap = {
   },
 
   'data-deepequal-true': (scenarioCase) => {
-    for (const value of requireArray(readJson(scenarioCase).values, 'deepEqual true values')) {
+    const input = readJson(scenarioCase);
+    for (const value of requireArray(requiredValue(input, 'primitives'), 'deepEqual true primitives')) {
       assert.equal(DataType.deepEqual(value, value), scenarioCase.expected.result);
+    }
+    for (const pair of requireArray(requiredValue(input, 'pairs'), 'deepEqual true pairs')) {
+      const record = requireJsonObject(pair, 'deepEqual true pair');
+      const left = requiredValue(record, 'left');
+      const right = requiredValue(record, 'right');
+      assert.notStrictEqual(left, right);
+      assert.equal(DataType.deepEqual(left, right), scenarioCase.expected.result);
     }
   },
 
@@ -207,17 +249,14 @@ const scenarioRunnerMap = {
   },
 
   'data-deepequal-special': (scenarioCase) => {
-    assert.ok(DataType.deepEqual(NaN, NaN));
-    assert.ok(DataType.deepEqual([1, 2, 3], [1, 2, 3]));
-    assert.ok(!DataType.deepEqual([1, 2], [1, 2, 3]));
-    assert.ok(DataType.deepEqual({ a: { b: 1 } }, { a: { b: 1 } }));
-    assert.ok(!DataType.deepEqual({ a: { b: 1 } }, { a: { b: 2 } }));
-    assert.ok(DataType.deepEqual(new Date('2024-01-01'), new Date('2024-01-01')));
-    assert.ok(!DataType.deepEqual(/abc/u, /def/u));
-    assert.ok(DataType.deepEqual(new Set([1, 2, 3]), new Set([1, 2, 3])));
-    assert.ok(DataType.deepEqual(new Map([['a', 1]]), new Map([['a', 1]])));
-    assert.ok(!DataType.deepEqual([], {}));
-    assert.equal(scenarioCase.expected.result, true);
+    const input = readJson(scenarioCase);
+    for (const pair of requireArray(requiredValue(input, 'pairs'), 'deepEqual special pairs')) {
+      const record = requireJsonObject(pair, 'deepEqual special pair');
+      const shape = requireString(requiredValue(record, 'shape'), 'deepEqual special pair shape');
+      const left = materializeDeepEqualValue(shape, requiredValue(record, 'left'));
+      const right = materializeDeepEqualValue(shape, requiredValue(record, 'right'));
+      assert.equal(DataType.deepEqual(left, right), requiredValue(record, 'equal'));
+    }
   },
 
   'data-plain-object': (scenarioCase) => {
@@ -287,20 +326,17 @@ const scenarioRunnerMap = {
   'frozen-reference': (scenarioCase) => {
     const obj = requireJsonObject(readJson(scenarioCase).value, 'frozen reference input');
     assert.equal(Frozen.deepFreeze(obj), obj);
-    assert.equal(scenarioCase.expected.sameRef, true);
   },
 
   'frozen-cycle': (scenarioCase) => {
     const obj = materializeCycle(readJson(scenarioCase).value);
     assert.doesNotThrow(() => Frozen.deepFreeze(obj));
-    assert.equal(scenarioCase.expected.noThrow, true);
   },
 
   'frozen-primitives': (scenarioCase) => {
     for (const value of requireArray(readJson(scenarioCase).values, 'frozen primitive values')) {
       assert.equal(Frozen.deepFreeze(value), value);
     }
-    assert.equal(scenarioCase.expected.passthrough, true);
   },
 
   'frozen-map-set': (scenarioCase) => {
@@ -317,7 +353,6 @@ const scenarioRunnerMap = {
     assert.throws(() => frozenSet.delete('a'), FrozenMutationError);
     assert.throws(() => frozenSet.clear(), FrozenMutationError);
     assert.ok(frozenSet.has('a'));
-    assert.equal(scenarioCase.expected.mutationBlocked, true);
   },
 
   'frozen-map-values': (scenarioCase) => {
@@ -346,13 +381,11 @@ const scenarioRunnerMap = {
 
   'hash-hex': (scenarioCase) => {
     assert.match(Hash.value(readJson(scenarioCase).value), /^[0-9a-f]{8}$/u);
-    assert.equal(scenarioCase.expected.hexLength, 8);
   },
 
   'hash-identical': (scenarioCase) => {
     const values = requireArray(readJson(scenarioCase).values, 'hash identical values');
     assert.equal(Hash.value(values[0]), Hash.value(values[1]));
-    assert.equal(scenarioCase.expected.sameHash, true);
   },
 
   'hash-order': (scenarioCase) => {
@@ -360,7 +393,6 @@ const scenarioRunnerMap = {
     assert.equal(Hash.value(values[0]), Hash.value(values[1]));
     assert.equal(Hash.value(new Map([['a', 1], ['b', 2]])), Hash.value(new Map([['b', 2], ['a', 1]])));
     assert.equal(Hash.value(new Set(['a', 'b'])), Hash.value(new Set(['b', 'a'])));
-    assert.equal(scenarioCase.expected.sameHash, true);
   },
 
   'hash-different': (scenarioCase) => {
@@ -371,14 +403,12 @@ const scenarioRunnerMap = {
 
   'hash-primitive': (scenarioCase) => {
     assert.equal(typeof Hash.value(readJson(scenarioCase).value), 'string');
-    assert.equal(scenarioCase.expected.stringHash, true);
   },
 
   'hash-nested': (scenarioCase) => {
     const value = readJson(scenarioCase).value;
     const changed = { a: { b: { c: 2 } } };
     assert.notEqual(Hash.value(value), Hash.value(changed));
-    assert.equal(scenarioCase.expected.hashable, true);
   },
 
   'hash-distinct-shapes': (scenarioCase) => {
@@ -389,23 +419,24 @@ const scenarioRunnerMap = {
   },
 
   'structural-hash-metadata': (scenarioCase) => {
-    const s1 = { type: 'object', properties: { name: { type: 'string' } } };
-    const s2 = { $id: 'https://example.com/schema.json', description: 'A schema with the same structure', title: 'My Schema', type: 'object', properties: { name: { type: 'string' } } };
-    assert.equal(StructuralHash.of(s1), StructuralHash.of(s2));
-    assert.equal(scenarioCase.expected.sameHash, true);
+    const input = readJson(scenarioCase);
+    const base = requireJsonObject(requiredValue(input, 'base'), 'structural hash metadata base');
+    const metadataVariant = requireJsonObject(requiredValue(input, 'metadataVariant'), 'structural hash metadata variant');
+    assert.equal(StructuralHash.of(base), StructuralHash.of(metadataVariant));
   },
 
   'structural-hash-different': (scenarioCase) => {
-    const s1 = { type: 'object', properties: { name: { type: 'string' } } };
-    const s2 = { type: 'object', properties: { name: { type: 'number' } } };
-    assert.notEqual(StructuralHash.of(s1), StructuralHash.of(s2));
-    assert.equal(scenarioCase.expected.sameHash, false);
+    const input = readJson(scenarioCase);
+    const base = requireJsonObject(requiredValue(input, 'base'), 'structural hash different base');
+    const variant = requireJsonObject(requiredValue(input, 'variant'), 'structural hash different variant');
+    assert.notEqual(StructuralHash.of(base), StructuralHash.of(variant));
   },
 
   'hash-edge-values': (scenarioCase) => {
-    assert.deepEqual(readJson(scenarioCase).values, ['true', 'false', 'undefined', 'function']);
-    assert.equal(Hash.value(materializeRuntimeValue('true')) !== Hash.value(materializeRuntimeValue('false')), scenarioCase.expected.booleanDistinct);
-    assert.equal(Hash.value(materializeRuntimeValue('undefined')) !== Hash.value(materializeRuntimeValue('function')), scenarioCase.expected.functionDistinctFromUndefined);
+    const [trueShape, falseShape, undefinedShape, functionShape] = requireArray(readJson(scenarioCase).values, 'hash edge values')
+      .map((shape) => requireString(shape, 'hash edge value shape'));
+    assert.equal(Hash.value(materializeRuntimeValue(trueShape!)) !== Hash.value(materializeRuntimeValue(falseShape!)), scenarioCase.expected.booleanDistinct);
+    assert.equal(Hash.value(materializeRuntimeValue(undefinedShape!)) !== Hash.value(materializeRuntimeValue(functionShape!)), scenarioCase.expected.functionDistinctFromUndefined);
   },
 
   'merge-primitives': (scenarioCase) => {
@@ -418,8 +449,11 @@ const scenarioRunnerMap = {
   },
 
   'merge-isolation': (scenarioCase) => {
-    const base = { baseOnly: { count: 1 }, items: [{ id: 1 }] };
-    const overlay = { overlayOnly: { count: 2 }, items: [{ id: 2 }] };
+    const input = readJson(scenarioCase);
+    const base = requireJsonObject(requiredValue(input, 'left'), 'merge isolation left');
+    const overlay = requireJsonObject(requiredValue(input, 'right'), 'merge isolation right');
+    const baseSnapshot = structuredClone(base);
+    const overlaySnapshot = structuredClone(overlay);
     const result = Merge.deep(base, overlay);
     const resultBaseOnly = result.baseOnly;
     const resultOverlayOnly = result.overlayOnly;
@@ -433,17 +467,24 @@ const scenarioRunnerMap = {
     const firstResultItem = resultItems[0];
     assert.ok(typeof firstResultItem === 'object' && firstResultItem !== null);
     Reflect.set(firstResultItem, 'id', 20);
-    assert.deepEqual(base, { baseOnly: { count: 1 }, items: [{ id: 1 }] });
-    assert.deepEqual(overlay, { overlayOnly: { count: 2 }, items: [{ id: 2 }] });
-    assert.equal(scenarioCase.expected.isolated, true);
+    assert.deepEqual(base, baseSnapshot);
+    assert.deepEqual(overlay, overlaySnapshot);
   },
 
   'merge-hidden-class': (scenarioCase) => {
-    const r1 = Merge.deep({ b: 1, a: 2 }, { c: 3 });
-    const r2 = Merge.deep({ a: 10, b: 20 }, { c: 30 });
-    assert.deepEqual(Object.keys(r1), ['a', 'b', 'c']);
-    assert.deepEqual(Object.keys(r2), ['a', 'b', 'c']);
-    assert.equal(scenarioCase.expected.stableShape, true);
+    const input = readJson(scenarioCase);
+    const first = requireJsonObject(requiredValue(input, 'first'), 'merge hidden class first');
+    const second = requireJsonObject(requiredValue(input, 'second'), 'merge hidden class second');
+    const r1 = Merge.deep(
+      requireJsonObject(requiredValue(first, 'left'), 'merge hidden class first left'),
+      requireJsonObject(requiredValue(first, 'right'), 'merge hidden class first right')
+    );
+    const r2 = Merge.deep(
+      requireJsonObject(requiredValue(second, 'left'), 'merge hidden class second left'),
+      requireJsonObject(requiredValue(second, 'right'), 'merge hidden class second right')
+    );
+    assert.deepEqual(Object.keys(r1), scenarioCase.expected.keyOrder);
+    assert.deepEqual(Object.keys(r2), scenarioCase.expected.keyOrder);
   },
 
   'sort-functions': (scenarioCase) => {
@@ -472,8 +513,9 @@ const scenarioRunnerMap = {
 
   'schema-validator': (scenarioCase) => {
     const input = readJson(scenarioCase);
-    const first = SchemaValidator.compile<Record<string, unknown>>(input.schema);
-    const second = SchemaValidator.compile<Record<string, unknown>>(input.schema);
+    const schema = requireJsonObject(input.schema, 'schema-validator schema');
+    const first = SchemaValidator.compile<Record<string, unknown>>(schema);
+    const second = SchemaValidator.compile<Record<string, unknown>>(schema);
     assert.equal(first === second, scenarioCase.expected.idempotent);
     assert.equal(first(input.valid), true);
     assert.equal(first(input.invalid), false);
@@ -499,8 +541,12 @@ function normalizeScenarioCase(scenarioCase: ImportedScenarioCase): ScenarioCase
   };
 }
 
+function isScenarioShape(shape: string): shape is ScenarioShape {
+  return Object.hasOwn(scenarioRunnerMap, shape);
+}
+
 function requireScenarioShape(shape: string): ScenarioShape {
-  if (Object.hasOwn(scenarioRunnerMap, shape)) {
+  if (isScenarioShape(shape)) {
     return shape;
   }
 
@@ -543,6 +589,14 @@ function requireString(value: unknown, context: string): string {
   throw new TypeError(`Expected string for ${context}`);
 }
 
+function requiredValue(record: JsonObject, key: string): unknown {
+  if (Reflect.has(record, key)) {
+    return Reflect.get(record, key);
+  }
+
+  throw new TypeError(`Missing scenario value: ${key}`);
+}
+
 function requireMap(value: unknown, context: string): Map<unknown, unknown> {
   if (value instanceof Map) {
     return value;
@@ -565,6 +619,10 @@ function requireDate(value: unknown, context: string): Date {
   }
 
   throw new TypeError(`Expected Date for ${context}`);
+}
+
+function toMapEntry(pair: unknown[]): [unknown, unknown] {
+  return [pair[0], pair[1]];
 }
 
 function materializeMap(value: unknown): Map<unknown, unknown> {
@@ -595,12 +653,28 @@ function materializeCycle(value: unknown): JsonObject {
   return result;
 }
 
+function isRuntimeValueShape(shape: string): shape is keyof typeof runtimeValueByShape {
+  return Object.hasOwn(runtimeValueByShape, shape);
+}
+
 function materializeRuntimeValue(shape: string): unknown {
-  if (Object.hasOwn(runtimeValueByShape, shape)) {
-    return runtimeValueByShape[shape]!();
+  if (isRuntimeValueShape(shape)) {
+    return runtimeValueByShape[shape]();
   }
 
   throw new TypeError(`Unknown runtime value shape: ${shape}`);
+}
+
+function isDeepEqualValueShape(shape: string): shape is keyof typeof deepEqualValueByShape {
+  return Object.hasOwn(deepEqualValueByShape, shape);
+}
+
+function materializeDeepEqualValue(shape: string, raw: unknown): unknown {
+  if (isDeepEqualValueShape(shape)) {
+    return deepEqualValueByShape[shape](raw);
+  }
+
+  return raw;
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {

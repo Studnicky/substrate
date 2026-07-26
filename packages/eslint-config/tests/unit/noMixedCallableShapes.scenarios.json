@@ -1,0 +1,86 @@
+{
+  "valid": [
+    {
+      "code": "type DispatcherType = (() => void) | ((value: string) => void);",
+      "name": "a purely callable union is not a mix"
+    },
+    {
+      "code": "type MaybeCallbackType = (() => void) | undefined;",
+      "name": "undefined is neutral, so an optional callable stays a single shape"
+    },
+    {
+      "code": "type EitherDataType = { a: 1 } | { b: 2 };",
+      "name": "a purely data union is not a mix"
+    },
+    {
+      "code": "type MaybePromiseType<T> = Promise<T> | T;",
+      "name": "a method-bearing library interface counts as neither callable nor data evidence, so the pervasive Promise<T> | T return idiom is not a mix"
+    },
+    {
+      "code": "type MaybeMapEntryType<K, V> = Map<K, V> | V;",
+      "name": "a second method-bearing library interface union member is not callable evidence either"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "type MixedType = (() => void) | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "MixedType", "name": "MixedType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "union of callable and data"
+    },
+    {
+      "code": "type MixedIntersectionType = { a: 1 } & (() => void);",
+      "errors": [
+        {
+          "data": { "location": "MixedIntersectionType", "name": "MixedIntersectionType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "intersection of data and callable"
+    },
+    {
+      "code": "type MixedCtorType = (new () => object) | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "MixedCtorType", "name": "MixedCtorType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "constructor mixed with data"
+    },
+    {
+      "code": "type CallbackType = () => void;\ntype IndirectMixedType = CallbackType | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "IndirectMixedType", "name": "IndirectMixedType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "named callable reference mixed with data"
+    },
+    {
+      "code": "interface CallableInterface {\n  (): void;\n}\ntype ViaInterfaceType = CallableInterface | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "ViaInterfaceType", "name": "ViaInterfaceType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "callable interface reference mixed with data"
+    },
+    {
+      "code": "type NestedMixedType = {\n  readonly slot: (() => void) | { a: 1 };\n};",
+      "errors": [
+        {
+          "data": { "location": "slot", "name": "NestedMixedType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "mixed nested inside a property"
+    }
+  ]
+}

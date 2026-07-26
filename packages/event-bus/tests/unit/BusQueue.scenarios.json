@@ -5,10 +5,18 @@
       "description": "calls handler for each enqueued item in order",
       "shape": "handler-order",
       "input": {
-        "items": [1, 2, 3]
+        "items": [
+          1,
+          2,
+          3
+        ]
       },
       "expected": {
-        "received": [1, 2, 3]
+        "received": [
+          1,
+          2,
+          3
+        ]
       }
     },
     {
@@ -36,10 +44,18 @@
       "description": "size reflects queue depth before drain",
       "shape": "size-before-drain",
       "input": {
-        "items": [1, 2, 3]
+        "items": [
+          1,
+          2,
+          3
+        ]
       },
       "expected": {
-        "observedSizes": [2, 1, 0]
+        "observedSizes": [
+          2,
+          1,
+          0
+        ]
       }
     },
     {
@@ -47,10 +63,16 @@
       "description": "drain resolves when queue empties",
       "shape": "drain-empties",
       "input": {
-        "items": ["a", "b"]
+        "items": [
+          "a",
+          "b"
+        ]
       },
       "expected": {
-        "processed": ["a", "b"],
+        "processed": [
+          "a",
+          "b"
+        ],
         "size": 0
       }
     },
@@ -59,12 +81,19 @@
       "description": "onError is called when handler throws, delivery continues",
       "shape": "on-error-continues",
       "input": {
-        "items": [1, 2, 3],
+        "items": [
+          1,
+          2,
+          3
+        ],
         "throwOn": 2,
         "errorMessage": "boom"
       },
       "expected": {
-        "received": [1, 3],
+        "received": [
+          1,
+          3
+        ],
         "errorCount": 1,
         "errorMessage": "boom"
       }
@@ -74,14 +103,21 @@
       "description": "an async-rejecting onError callback is swallowed before onHandlerError and queue progress continues",
       "shape": "async-on-error-swallowed",
       "input": {
-        "items": [1, 2],
+        "items": [
+          1,
+          2
+        ],
         "throwOn": 1,
         "handlerErrorMessage": "handler failed",
         "onErrorMessage": "onError rejected"
       },
       "expected": {
-        "handlerErrors": ["handler failed"],
-        "received": [2],
+        "handlerErrors": [
+          "handler failed"
+        ],
+        "received": [
+          2
+        ],
         "unhandledRejections": []
       }
     },
@@ -90,11 +126,20 @@
       "description": "AbortSignal cancels queue: enqueue becomes no-op after abort",
       "shape": "abort-signal-cancels",
       "input": {
-        "items": [1, 2, 3],
-        "abortBeforeEnqueue": [2, 3]
+        "items": [
+          1,
+          2,
+          3
+        ],
+        "abortBeforeEnqueue": [
+          2,
+          3
+        ]
       },
       "expected": {
-        "received": [1]
+        "received": [
+          1
+        ]
       }
     },
     {
@@ -115,7 +160,9 @@
       "description": "abort releases an item waiting on its admission hook without delivery",
       "shape": "abort-releases-pending",
       "input": {
-        "items": [1],
+        "items": [
+          1
+        ],
         "abortWhilePending": true
       },
       "expected": {
@@ -128,7 +175,9 @@
       "description": "abort resolves a pending drain waiter after active work is cancelled",
       "shape": "abort-releases-drain-waiter",
       "input": {
-        "items": [1]
+        "items": [
+          1
+        ]
       },
       "expected": {
         "received": []
@@ -151,7 +200,11 @@
       "description": "highWaterMark validation rejects invalid inputs",
       "shape": "high-water-mark-validation",
       "input": {
-        "values": [0, -1, 1.5]
+        "values": [
+          0,
+          -1,
+          1.5
+        ]
       },
       "expected": {
         "message": "highWaterMark must be a positive integer"
@@ -162,10 +215,16 @@
       "description": "onEnqueue hook fires with correct depth when item is added",
       "shape": "on-enqueue-hook",
       "input": {
-        "items": [10, 20]
+        "items": [
+          10,
+          20
+        ]
       },
       "expected": {
-        "depths": [1, 2]
+        "depths": [
+          1,
+          2
+        ]
       }
     },
     {
@@ -173,11 +232,17 @@
       "description": "a throwing dequeue hook does not interrupt current or later queue work",
       "shape": "throwing-dequeue-hook",
       "input": {
-        "items": [1, 2],
+        "items": [
+          1,
+          2
+        ],
         "errorMessage": "dequeue hook boom"
       },
       "expected": {
-        "processed": [1, 2],
+        "processed": [
+          1,
+          2
+        ],
         "errors": 0
       }
     },
@@ -187,10 +252,15 @@
       "shape": "rejecting-enqueue-hook",
       "input": {
         "errorMessage": "hook boom",
-        "items": [1, 1]
+        "items": [
+          1,
+          1
+        ]
       },
       "expected": {
-        "processed": [1]
+        "processed": [
+          1
+        ]
       }
     },
     {
@@ -198,7 +268,9 @@
       "description": "a throwing admission hook is routed through onHookError and its item is not delivered",
       "shape": "admission-hook-on-hook-error",
       "input": {
-        "items": [1],
+        "items": [
+          1
+        ],
         "errorMessage": "enqueue hook boom"
       },
       "expected": {
@@ -212,11 +284,16 @@
       "shape": "rejecting-overflow-hook",
       "input": {
         "errorMessage": "overflow hook boom",
-        "items": [1, 2],
+        "items": [
+          1,
+          2
+        ],
         "highWaterMark": 1
       },
       "expected": {
-        "processed": [2]
+        "processed": [
+          2
+        ]
       }
     },
     {
@@ -224,11 +301,17 @@
       "description": "two synchronous enqueue calls in the same tick do not spawn concurrent drain loops",
       "shape": "single-drain-loop",
       "input": {
-        "items": [1, 2]
+        "items": [
+          1,
+          2
+        ]
       },
       "expected": {
         "maxConcurrentHandlers": 1,
-        "processed": [1, 2]
+        "processed": [
+          1,
+          2
+        ]
       }
     },
     {
@@ -250,7 +333,11 @@
       "shape": "overflow-hook-fires",
       "input": {
         "flushMicrotasks": 3,
-        "items": [1, 2, 3],
+        "items": [
+          1,
+          2,
+          3
+        ],
         "highWaterMark": 2
       },
       "expected": {
@@ -262,7 +349,9 @@
       "description": "waits for onEnqueue and onOverflow completion before delivering the item",
       "shape": "admission-and-overflow-order",
       "input": {
-        "items": [1],
+        "items": [
+          1
+        ],
         "highWaterMark": 1
       },
       "expected": {
@@ -280,7 +369,9 @@
       "description": "onHandlerError hook fires when handler throws",
       "shape": "handler-error-hook",
       "input": {
-        "items": [1],
+        "items": [
+          1
+        ],
         "errorMessage": "handler error"
       },
       "expected": {

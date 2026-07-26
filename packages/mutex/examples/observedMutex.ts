@@ -81,7 +81,7 @@ class MutexDemoRunner {
   }
 }
 
-const mutex = TracingMutex.create<string>();
+const mutex = TracingMutex.create();
 await MutexDemoRunner.run(mutex);
 // #endregion usage
 

@@ -6,7 +6,7 @@ import { Linter, RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { descriptiveIdentifiers } from '../../src/rules/descriptiveIdentifiers.js';
-import scenarioGroups from './descriptiveIdentifiers.scenarios.json';
+import scenarioGroups from './descriptiveIdentifiers.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

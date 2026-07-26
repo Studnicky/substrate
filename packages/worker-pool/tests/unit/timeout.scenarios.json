@@ -34,7 +34,7 @@
     },
     {
       "name": "signal-already-aborted",
-      "description": "returns normally when the composed signal is already aborted before dispatch",
+      "description": "rejects the task when the composed signal is already aborted before dispatch",
       "shape": "signal-already-aborted",
       "input": {
         "workerPool": {
@@ -45,7 +45,7 @@
         "items": [{ "value": "ready" }]
       },
       "expected": {
-        "errorMessageIncludes": "exceeded its timeout"
+        "errorMessageIncludes": "was not dispatched because its signal was already aborted"
       }
     },
     {

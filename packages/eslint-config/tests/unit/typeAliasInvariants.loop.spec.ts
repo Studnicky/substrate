@@ -7,7 +7,7 @@ import parser from '@typescript-eslint/parser';
 
 import { interfaceMustBeContract } from '../../src/rules/interfaceMustBeContract.js';
 import { typeAliasInvariants } from '../../src/rules/typeAliasInvariants.js';
-import scenarioGroups from './typeAliasInvariants.scenarios.json';
+import scenarioGroups from './typeAliasInvariants.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

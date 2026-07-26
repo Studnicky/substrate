@@ -6,7 +6,7 @@ import parser from '@typescript-eslint/parser';
 
 import { inlineArrowFunctions } from '../../../src/rules/v8/inlineArrowFunctions.js';
 import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
-import scenarioGroups from './inlineArrowFunctions.scenarios.json';
+import scenarioGroups from './inlineArrowFunctions.scenarios.json' with { type: 'json' };
 
 function toMessageId(report: unknown): string {
   if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
@@ -29,7 +29,7 @@ void describe('inline-arrow-functions', () => {
   void it('covers guard exits and rebuilt-scope checks directly', () => {
     const reports: unknown[] = [];
     const listeners = inlineArrowFunctions.create({
-      report(descriptor) {
+      report(descriptor: unknown) {
         reports.push(descriptor);
       }
     } as never);

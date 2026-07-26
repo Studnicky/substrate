@@ -6,7 +6,7 @@ import { setTimeout } from 'node:timers/promises';
 
 import { Context } from '../../../src/context/index.js';
 import type { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
-import scenarioGroups from './ContextScope.scenarios.json';
+import scenarioGroups from './ContextScope.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'active-on-construction'

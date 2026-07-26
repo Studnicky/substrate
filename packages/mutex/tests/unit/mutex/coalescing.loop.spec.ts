@@ -4,7 +4,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { Mutex } from '../../../src/mutex/index.js';
 
-import scenarioGroups from './coalescing.scenarios.json';
+import scenarioGroups from './coalescing.scenarios.json' with { type: 'json' };
 
 type MutexInput = Parameters<typeof Mutex.create>[0];
 type ScenarioInputWithMutex = { mutex?: MutexInput };
@@ -65,7 +65,14 @@ type ScenarioCase =
       description: string;
       expected: { coalescedCount: number; totalExecuted: number };
       input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string };
-      shape: 'stats-coalescedCount-enabled' | 'stats-coalescedCount-disabled';
+      shape: 'stats-coalescedCount-enabled';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { coalescedCount: number; totalExecuted: number };
+      input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string };
+      shape: 'stats-coalescedCount-disabled';
       name: string;
     }
   | {
@@ -115,7 +122,18 @@ function createExclusiveCallBatch<T>(
   return Array.from({ length: callerCount }, () => run());
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+function requireDefined<T>(value: T | undefined, fieldPath: string): T {
+  if (value === undefined) {
+    throw new Error(`Missing mutex coalescing scenario field: ${fieldPath}`);
+  }
+  return value;
+}
+
+type ScenarioCaseOf<Shape extends ScenarioCase['shape']> = Extract<ScenarioCase, { shape: Shape }>;
+
+const runnerMap: {
+  [K in ScenarioCase['shape']]: (scenarioCase: ScenarioCaseOf<K>) => Promise<void>
+} = {
   'allows-new-execution-after-complete': async (scenarioCase) => {
     const mutex = createScenarioMutex(scenarioCase.input);
     let executionCount = 0;
@@ -226,11 +244,13 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       () => mutex.runExclusive(scenarioCase.input.key, failingOperation)
     ));
     assert.strictEqual(executionCount, scenarioCase.expected.executionCount);
-    assert.strictEqual(results[0].status, 'rejected');
-    assert.strictEqual(results[1].status, 'rejected');
-    assert.strictEqual(results[2].status, 'rejected');
-    const rejected = results[0];
-    assert.strictEqual((rejected as PromiseRejectedResult).reason.message, scenarioCase.expected.rejectionMessage);
+    const first = requireDefined(results[0], 'results[0]');
+    const second = requireDefined(results[1], 'results[1]');
+    const third = requireDefined(results[2], 'results[2]');
+    if (first.status !== 'rejected') { throw new Error('expected results[0] to be rejected'); }
+    assert.strictEqual(second.status, 'rejected');
+    assert.strictEqual(third.status, 'rejected');
+    assert.strictEqual(first.reason.message, scenarioCase.expected.rejectionMessage);
   },
   'shares-result': async (scenarioCase) => {
     const mutex = createScenarioMutex(scenarioCase.input);
@@ -303,7 +323,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: ScenarioCaseOf<Shape>): Promise<void> {
   return runnerMap[scenarioCase.shape](scenarioCase);
 }
 

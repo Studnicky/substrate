@@ -2,9 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ErrorClassifier } from '../../src/classifiers/ErrorClassifier.js';
-import scenarioGroups from './error-classifier.scenarios.json';
+import scenarioGroups from './error-classifier.scenarios.json' with { type: 'json' };
 
 class TestClassifier extends ErrorClassifier {
+  public constructor() {
+    super();
+  }
+
   public classify(): never {
     throw new Error('not used');
   }
@@ -17,11 +21,11 @@ class TestClassifier extends ErrorClassifier {
     return this.messageContains(error, ...patterns);
   }
 
-  public nonRetryablePublic(reason: string): { reason: string; retryable: boolean } {
+  public nonRetryablePublic(reason: string): { reason?: string; retryable: boolean } {
     return this.nonRetryable(reason);
   }
 
-  public retryablePublic(reason: string): { reason: string; retryable: boolean } {
+  public retryablePublic(reason: string): { reason?: string; retryable: boolean } {
     return this.retryable(reason);
   }
 }
@@ -30,19 +34,19 @@ type MatcherInput = { shape: 'accepted-statuses' | 'minimum-status' | 'status'; 
 type PropertyScenarioShape = 'has-property-match-array' | 'has-property-match-predicate' | 'has-property-match-value' | 'has-property-missing' | 'has-property-mismatch-array' | 'has-property-mismatch-predicate' | 'has-property-mismatch-value' | 'has-property-present';
 type MessageScenarioShape = 'message-contains-hit' | 'message-contains-miss';
 
-type PropertyScenarioCase = {
+type PropertyScenarioCase<S extends PropertyScenarioShape = PropertyScenarioShape> = {
   description: string;
   expected: { value: boolean };
   input: { matcher?: MatcherInput; message: string; propertyName?: string; status?: number };
-  shape: PropertyScenarioShape;
+  shape: S;
   name: string;
 };
 
-type MessageScenarioCase = {
+type MessageScenarioCase<S extends MessageScenarioShape = MessageScenarioShape> = {
   description: string;
   expected: { value: boolean };
   input: { message: string; patterns?: string[] };
-  shape: MessageScenarioShape;
+  shape: S;
   name: string;
 };
 
@@ -54,7 +58,18 @@ type ClassificationScenarioCase = {
   name: string;
 };
 
-type ScenarioCase = ClassificationScenarioCase | MessageScenarioCase | PropertyScenarioCase;
+type ScenarioCase =
+  | ClassificationScenarioCase
+  | MessageScenarioCase<'message-contains-hit'>
+  | MessageScenarioCase<'message-contains-miss'>
+  | PropertyScenarioCase<'has-property-match-array'>
+  | PropertyScenarioCase<'has-property-match-predicate'>
+  | PropertyScenarioCase<'has-property-match-value'>
+  | PropertyScenarioCase<'has-property-missing'>
+  | PropertyScenarioCase<'has-property-mismatch-array'>
+  | PropertyScenarioCase<'has-property-mismatch-predicate'>
+  | PropertyScenarioCase<'has-property-mismatch-value'>
+  | PropertyScenarioCase<'has-property-present'>;
 
 function createError(input: { message: string; status?: number }): Error {
   const error = new Error(input.message);
@@ -79,14 +94,14 @@ function materializeMatcher(matcher: MatcherInput | undefined): unknown {
   return matcher === undefined ? undefined : matcherMap[matcher.shape](matcher);
 }
 
-const runHasProperty: ScenarioRunner<PropertyScenarioShape> = (scenario, classifier, error) => {
+const runHasProperty = (scenario: PropertyScenarioCase, classifier: TestClassifier, error: Error): void => {
   assert.strictEqual(
     classifier.hasPropertyPublic(error, String(scenario.input.propertyName), materializeMatcher(scenario.input.matcher)),
     scenario.expected.value
   );
 };
 
-const runMessageContains: ScenarioRunner<MessageScenarioShape> = (scenario, classifier, error) => {
+const runMessageContains = (scenario: MessageScenarioCase, classifier: TestClassifier, error: Error): void => {
   assert.strictEqual(classifier.messageContainsPublic(error, ...(scenario.input.patterns ?? [])), scenario.expected.value);
 };
 

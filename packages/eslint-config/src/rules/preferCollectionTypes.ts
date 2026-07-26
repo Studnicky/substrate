@@ -1,6 +1,7 @@
 import type { Rule, Scope } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import { DEFAULT_OPTIONS, ITERATION_METHODS } from './constants/PreferCollectionTypesConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
 
@@ -45,12 +46,6 @@ namespace PreferCollectionTypesInternalEntity {
 
   export type Type = FromSchema<typeof Schema>;
 }
-
-const DEFAULT_OPTIONS: Required<PreferCollectionTypesOptionsEntity.Type> = {
-  'checkArrayLiterals': true,
-  'checkFromEntries': true,
-  'checkModuleScopeArrays': true
-};
 
 interface ModuleScopeArrayEntryInterface {
   readonly 'name': PreferCollectionTypesInternalEntity.Type['name'];
@@ -175,8 +170,6 @@ class MembershipIndexOfCall {
     return undefined;
   }
 }
-
-const ITERATION_METHODS: ReadonlySet<string> = new Set(['every', 'filter', 'find', 'findIndex', 'some']);
 
 // Rides ESLint's own single AST traversal instead of running a second manual walk:
 // pushes a marker when an outer `.filter/.some/.every/.find/.findIndex(fn)` call is

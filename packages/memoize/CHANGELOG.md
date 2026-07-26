@@ -1,5 +1,64 @@
 # Changelog
 
+## 9.1.0
+
+### Minor Changes
+
+- 789da06: ### Changed
+
+  - `@studnicky/resilience`'s `CircuitBreaker.create()` and `TokenBucket.create()` return the invoking subclass's own type instead of the base class. Each already constructed the subclass at runtime via `new this(...)`; the factory now types its `this` parameter and constructs through `Reflect.construct`, so `MySubclass.create(...)` types as `MySubclass` and a subclass member is readable without a cast. A runtime guard throws a `TypeError` naming the factory if construction ever yields an instance outside the requested subclass's prototype chain. Calling `Base.create(...)` directly is unaffected — it still types as `Base`.
+  - `@studnicky/scheduler`'s `MinimumHeap.create()`, `VirtualScheduler.create()`, and `RealTimeScheduler.create()` follow the same subclass-return pattern.
+  - `@studnicky/concurrency`'s `Semaphore.create()` follows the same subclass-return pattern. `Channel.create<T>()` and `Coalesce.create<T>()` follow it too, with `TInstance` bounded by a new `ChannelShapeInterface`/`CoalesceShapeInterface` (each just the one public member — `close()`, `isInflight()` — that doesn't mention the class's own item-type parameter) rather than by `Channel<T>`/`Coalesce<T>` directly: binding to the class's own generic type forces the method's general, unconstrained `T` to satisfy the bound, which fails the moment `T` appears in a callback-shaped (contravariant) position. The narrower bound still proves the returned value is shaped like the base class, without that failure mode.
+  - `@studnicky/event-bus`'s `BusQueue.create<T>()` and `EventBus.create<TTopicMap>()` follow the same shape-interface-bounded pattern (`BusQueueShapeInterface`/`EventBusShapeInterface`, each the type-parameter-independent `drain()`/`close()` members). `EventBus.loop.spec.ts`, `BusQueue.loop.spec.ts`, and `examples/observedEventBus.ts` drop twelve `static override create()` overrides that hardcoded `new ConcreteClass(...)` — the pre-existing per-subclass workaround this conversion makes redundant, and one a properly polymorphic `create()` can no longer be validly overridden by.
+  - `@studnicky/memoize`'s `Memoize.create<TArgs, TResult>()` follows the same shape-interface-bounded pattern (`MemoizeShapeInterface`, just `clear()`, the one public member independent of `TArgs`/`TResult`) in place of the `TInstance extends Memoize<TArgs, TResult>` bound it carried since its own original conversion — that bound hit the identical failure the moment `TArgs` (a rest-tuple parameter of the memoized function, a callback-shaped position) was inferred from an unannotated callback. `memoize.loop.spec.ts` adds an explicit parameter type to four memoized-function literals that previously relied on inference collapsing correctly by accident.
+
+### Patch Changes
+
+- 789da06: ### Changed
+
+  - `@studnicky/clock`'s `Clock.scenarios.json` suite derives `long-uptime-precision`'s expected nanosecond value independently of `RealTimeClockProvider.hrtime()`'s internal trunc/multiply/round split, asserts both bounds around `Date.now()` for `real-provider-default-options`, reads the `offsetMs` getter from a subclass in `offset-provider-offset`, and asserts the actual offset-to-nanosecond relationship (rather than bare positivity) in `real-hrtime-positive-with-offset`/`-zero-offset`. Its smoke suite drops a tautological assertion that compared a fixture field to a hardcoded literal ahead of the real import check.
+  - `@studnicky/types`' `Guard.asNumber` scenarios cover the NaN-passthrough asymmetry with `Guard.isNumber` (which excludes NaN). Its smoke suite drops the same tautological assertion.
+  - `@studnicky/config`'s `Guard.isObject` scenarios cover `Map` and `Set` inputs, matching the documented plain-object exclusion. Its smoke suite drops the same tautological assertion.
+  - `@studnicky/signal`'s `Signal.scenarios.json` suite drops four tautological assertions that compared a fixture field to itself ahead of the real behavioral check.
+  - `@studnicky/boundary-kit`'s `undefined-result-vs-abort` scenario drops a tautological assertion ahead of the real result check.
+  - `@studnicky/process-kit`'s `rejection` scenario asserts the thrown error's `constructor.name` from within the actual `assert.rejects` callback instead of comparing a fixture field to a hardcoded literal afterward.
+  - `@studnicky/visible-range`'s `config-validation` `error-args` scenario asserts the constructed error's `cause`, `correlationId`, `metadata`, and `retryable` properties, matching its "structured error metadata" description. `visible-range.scenarios.json`'s `default-overscan` case now exercises a distinct count/itemSize combination instead of duplicating `simple-range` verbatim.
+  - `@studnicky/memoize`'s `memoize-ttl-stale-options` scenario mocks `Date.now()` to advance past the configured `ttlMs`, proving the option reaches the underlying `LruCache` (an unwired option would keep replaying the first computed value indefinitely).
+
+- 789da06: ### Fixed
+
+  - Test-suite type errors across these packages' `tests/**` and `examples/**` are eliminated, gated on `tsc -p tsconfig.eslint.json`. Three patterns account for most of them:
+    - **Un-narrowed scenario unions**: a runner map typed `Record<ScenarioCase['shape'], (c: ScenarioCase) => void>` gives every runner the full union instead of its own variant, so per-shape property access reports `TS2339`. Each runner map now types its entries `(c: Extract<ScenarioCase, { shape: K }>) => ...` via a generic `ScenarioRunner<K>`, and the dispatching `runCase`/`runnerMap[shape]` call sites are generic over the same `K`. Where one scenario variant legitimately shared its shape across multiple literal names (`Extract` distributes per union member, not per literal, so a shared-shape variant collapses to `never`), the variant is split into one member per literal instead.
+    - **`this`-polymorphic factory explicit-type-argument pitfall**: `Subclass.create<T>(...)` on a `static create<T, TInstance extends Shape = Base<T>>(this: ..., ...)` factory blocks `TInstance` inference from `this`, silently returning the base type instead of the subclass and breaking every subclass-only member access. Dropping the explicit type argument (`Subclass.create(...)`) lets both parameters infer correctly. Constructors that already declared `public constructor() { super(); }` are unaffected by this and untouched.
+    - **JSON-import scenario casts**: `scenarioGroups.cases` types as a JSON-literal-inferred union (widened `string` discriminants) that doesn't structurally satisfy the hand-written `ScenarioCase[]`/`Record<Shape, ...>` type without an explicit cast at the JSON→TS boundary — the same idiom already used at ~200 other call sites in this test suite.
+  - A handful of one-off fixes ride along: `assert.equal(typeof x, 'y')`/`assert.ok(cond)` calls that don't narrow (replaced with explicit `if (typeof x !== 'y') throw` guards or reordered before use); array/object destructuring under strict indexed-access that needed a defined-check; a self-referential `typeof signal.addEventListener` type annotation in `resilience`; two `readonly T[]` getters typed as mutable `T[]` in `file-lock` and `cache`'s example files; a redundant no-op `.events.length = 0` on a freshly-constructed instance in `cache`'s example; and `exactOptionalPropertyTypes` mismatches where an object literal explicitly carried `| undefined` into a stricter target (`bounded-dispatcher`, `retry`).
+  - `packages/mutex/tests/fixtures/constants.ts` imported `MutexConfigInterface` from a path that no longer exists; it now imports `MutexConfigEntity.Type` from its current location.
+  - `packages/mutex/examples/keyedWorkGateComposition.ts`'s `mutex.runExclusive(key, fn)` call (no `acceptsResult` predicate) always types its result `unknown` by design; the example now supplies the `(value): value is string => ...` predicate the source's own JSDoc documents for this case.
+
+  ### Left as-is (verified, not a defect)
+
+  - `ErrorClassifier` is `abstract` with no static factory at all; subclasses are constructed directly.
+
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+- Updated dependencies [789da06]
+  - @studnicky/concurrency@9.1.0
+  - @studnicky/errors@9.1.0
+  - @studnicky/json@9.1.0
+  - @studnicky/cache@9.1.0
+
 ## 9.0.0
 
 ### Major Changes

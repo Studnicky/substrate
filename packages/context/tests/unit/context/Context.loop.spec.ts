@@ -9,7 +9,7 @@ import { HookInvocationError } from '@studnicky/errors';
 import { Context } from '../../../src/context/index.js';
 import type { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
 import type { ContextScopeInterface } from '../../../src/interfaces/index.js';
-import scenarioGroups from './Context.scenarios.json';
+import scenarioGroups from './Context.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'async-on-set-safe'
@@ -199,9 +199,8 @@ const runnerMap = {
     assert.strictEqual(typeof scope.execute, 'function');
     assert.strictEqual(typeof scope.terminate, 'function');
     scope.execute(() => {
-      if (initial === undefined) {
-        assert.strictEqual(context.keys().length, 0);
-      } else {
+      assert.deepStrictEqual(context.keys().sort(), expectedStringArray(scenarioCase, 'keys').sort());
+      if (initial !== undefined) {
         for (const [key, value] of Object.entries(initial)) {
           assert.deepStrictEqual(context.get(key), value);
         }
