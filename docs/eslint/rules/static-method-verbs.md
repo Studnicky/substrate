@@ -1,61 +1,68 @@
 ---
 title: '@studnicky/static-method-verbs'
-description: 'Disallows freestanding verbNoun functions at module scope.'
+description: 'Disallows freestanding functions at module scope.'
 ---
 
 # @studnicky/static-method-verbs
 
-Disallows module-scope function declarations and `const` arrow functions whose names start with a known verb prefix followed by an uppercase letter (e.g. `parseUser`, `createToken`, `getConfig`). Move the logic into a static method of a class named after the noun being produced.
+Disallows module-scope function declarations and `const` arrow/function-expression assignments — every freestanding function or const-arrow that lives directly at the top level of a module, whether exported or not, is forbidden regardless of its name. Move the logic into a static method of a class instead. A function nested inside a class method, another function, or any non-module scope is never flagged.
 
-The default verb set covers `get`, `set`, `create`, `parse`, `build`, `fetch`, `format`, `validate`, `serialize`, `deserialize`, `handle`, `process`, `transform`, `convert`, `map`, `filter`, `reduce`, and others.
+Detection is gated by the `mode` option:
 
-**Fixable:** No · **Options:** `additionalPrefixes`, `ignorePrefixes` · **Suggested severity:** `error`
+- `"any"` — flags every module-scope function declaration or const arrow/function-expression, with no exemption.
+- `"structural"` (the default) — exempts a function whose entire body is a trivial single-statement pass-through: a block body containing only a `return` of an identifier, call expression, awaited expression, or chain (the same shape [`inline-trivial-logic`](./inline-trivial-logic.md) already flags), or the expression-bodied arrow equivalent. Any other body — multiple statements, real control flow, or a `return` that constructs a new object/array — is still flagged.
+- `"typed"` — flags a function only when the type checker resolves its return type to a named type alias or interface, as opposed to a primitive, `void`, or an inline object-literal type with no name. Requires type-aware parser services (`parserOptions.project`); if they are unavailable the rule reports nothing at all.
+
+**Fixable:** No · **Options:** `mode` · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-function parseUser(raw: unknown): User { return raw as User; }
+// Multi-statement body — flagged in every mode
+function compute(x: number): number { const y = x * 2; return y; }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-const createToken = (payload: Payload): string => sign(payload);
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-export function getConfig(): Config { return loadConfig(); }
+// Expression-bodied arrow constructing a new object — not a trivial pass-through, flagged
+const build = (x: number) => ({ value: x });
 ```
 
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-class User {
-  static parse(raw: unknown): User { return raw as User; }
+class Calculator {
+  static compute(x: number): number { const y = x * 2; return y; }
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-class Token {
-  static create(payload: Payload): string { return sign(payload); }
+class Builder {
+  static build(x: number): { value: number } { return { value: x }; }
 }
+```
+
+## Structural exemption (default)
+
+Under the default `"structural"` mode, a trivial single-return pass-through is exempt — it is `inline-trivial-logic`'s concern, not this rule's:
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// Trivial pass-through — exempt under the default "structural" mode
+export function identity(x: string): string { return x; }
 ```
 
 ## Options
 
 ```json
 {
-  "@studnicky/static-method-verbs": ["error", {
-    "additionalPrefixes": ["emit", "spawn"],
-    "ignorePrefixes": ["setup"]
-  }]
+  "@studnicky/static-method-verbs": ["error", { "mode": "structural" }]
 }
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `additionalPrefixes` | `string[]` | `[]` | Extra verb prefixes to ban beyond the built-in set. |
-| `ignorePrefixes` | `string[]` | `[]` | Verb prefixes to allow (removes from the banned set). |
+| `mode` | `"any" \| "structural" \| "typed"` | `"structural"` | Detection mode: `any` flags every module-scope function; `structural` exempts trivial pass-through bodies (already covered by `inline-trivial-logic`); `typed` flags only functions whose return type is a named type/interface (requires type-aware parser services). |
