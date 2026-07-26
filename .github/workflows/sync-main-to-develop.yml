@@ -1,13 +1,21 @@
 name: Sync main to develop
 
-# `main` must stay an ancestor of `develop`, so a release branch can be cut from
-# `develop` and still rebase onto `main`. Squash-merging a back-merge breaks that
-# — it replaces main's commits with a new one carrying the same content — and the
-# breakage only surfaces later, when the next release branch is refused.
+# `main` must stay an ancestor of `develop`: a release branch is cut from
+# `develop` and rebased onto `main`, and the pre-push rebase check refuses the
+# push unless that ancestry holds. This workflow restores it without a human in
+# the loop — it builds the back-merge branch, opens the pull request, and merges
+# it as a merge commit.
 #
-# This runs on both branches: pushing `main` opens the back-merge, and pushing
-# `develop` re-checks it, so a back-merge that landed as a squash is caught
-# immediately rather than at the next release.
+# The merge method is not incidental. Squashing replaces main's commits with a
+# new one carrying the same content, so `main` stops being an ancestor and the
+# next release branch is refused. Every merge below is `--merge`.
+#
+# `develop` is protected and admin-enforced, so nothing can push to it directly;
+# the pull request is the only route, and the merge has to happen through it.
+#
+# Runs on both branches: pushing `main` starts the back-merge, and pushing
+# `develop` re-checks it, so a sync that landed wrongly is caught at once rather
+# than at the next release.
 
 on:
   push:
@@ -17,6 +25,9 @@ on:
 concurrency:
   group: sync-main-to-develop
   cancel-in-progress: false
+
+env:
+  SYNC_BRANCH: chore/sync-main-to-develop
 
 jobs:
   sync:
@@ -28,17 +39,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-
-      - name: Probe for an open sync PR
-        id: pr
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SYNC_BRANCH: chore/sync-main-to-develop
-        run: |
-          set -euo pipefail
-          existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --base develop --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')
-          echo "existing=$existing" >> "$GITHUB_OUTPUT"
 
       - name: Check ancestry
         id: diff
@@ -53,6 +53,7 @@ jobs:
             echo "in_sync=false" >> "$GITHUB_OUTPUT"
           fi
 
+          # shellcheck source=.githooks/lib/sync-check.sh
           . .githooks/lib/sync-check.sh
           echo "behind=$(sync_unreachable_count origin/main origin/develop)" >> "$GITHUB_OUTPUT"
 
@@ -60,64 +61,104 @@ jobs:
         if: steps.diff.outputs.in_sync == 'true'
         run: echo "develop already has main as an ancestor."
 
-      - name: Publish the sync branch
+      # The branch is main plus an empty changeset. Release gates refuse a branch
+      # that changes packages without one, and the release commits this carries
+      # are already versioned, so the changeset declares no packages.
+      - name: Build the back-merge branch
         if: steps.diff.outputs.in_sync == 'false'
         shell: bash
-        env:
-          SYNC_BRANCH: chore/sync-main-to-develop
         run: |
           set -euo pipefail
-          git push --force origin "origin/main:refs/heads/${SYNC_BRANCH}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      # GitHub Actions cannot open a pull request unless the repository allows
-      # it, and that same setting also lets Actions approve reviews. Rather than
-      # depend on it, the branch above is pushed unconditionally and the PR is
-      # only attempted; a refusal degrades to a link instead of a broken sync.
-      - name: Open the sync pull request
-        id: open
-        if: steps.diff.outputs.in_sync == 'false' && steps.pr.outputs.existing == ''
+          git switch --force-create "$SYNC_BRANCH" origin/main
+
+          printf -- '---\n---\n\nSyncs the release commits on `main` into `develop`. No package changes.\n' \
+            > ".changeset/sync-main-to-develop.md"
+          git add .changeset/sync-main-to-develop.md
+          git commit -m 'chore: sync main to develop'
+
+          git push --force origin "$SYNC_BRANCH"
+
+      - name: Resolve the sync pull request
+        id: pr
+        if: steps.diff.outputs.in_sync == 'false'
         continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SYNC_BRANCH: chore/sync-main-to-develop
         run: |
           set -euo pipefail
-          gh pr create \
-            --repo "$GITHUB_REPOSITORY" \
-            --base develop \
-            --head "$SYNC_BRANCH" \
-            --title "chore: sync main to develop" \
-            --body "Restores \`main\` as an ancestor of \`develop\`.
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base develop --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')
 
-          **Merge this with a merge commit.** Squashing recreates the divergence it fixes: it replaces main's commits with a new one carrying the same content, so \`main\` stops being an ancestor and the next release branch cut from \`develop\` is refused for being behind."
+          if [ -z "$number" ]; then
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base develop \
+              --head "$SYNC_BRANCH" \
+              --title 'chore: sync main to develop' \
+              --body 'Restores `main` as an ancestor of `develop` after a release.
 
-      - name: Summarise the required action
+          Merged as a merge commit: squashing would replace main'"'"'s commits with a new one carrying the same content, so `main` would stop being an ancestor and the next release branch cut from `develop` would be refused for being behind.'
+            number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base develop --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')
+          fi
+
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      # Auto-merge lands it once the required checks pass. Where auto-merge is
+      # unavailable, an immediate merge is attempted instead; if the checks are
+      # still running it fails harmlessly, and the next push to either branch
+      # re-enters this step with the same open pull request.
+      - name: Merge the sync pull request
+        id: merge
+        if: steps.diff.outputs.in_sync == 'false' && steps.pr.outputs.number != ''
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --auto --delete-branch; then
+            echo "queued auto-merge for #${PR_NUMBER}"
+            exit 0
+          fi
+
+          echo "auto-merge unavailable; attempting an immediate merge" >&2
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --delete-branch
+
+      - name: Summarise the outcome
         if: steps.diff.outputs.in_sync == 'false'
         shell: bash
         env:
           BEHIND: ${{ steps.diff.outputs.behind }}
-          EXISTING: ${{ steps.pr.outputs.existing }}
-          OPENED: ${{ steps.open.outcome }}
-          SYNC_BRANCH: chore/sync-main-to-develop
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PR_OUTCOME: ${{ steps.pr.outcome }}
+          MERGE_OUTCOME: ${{ steps.merge.outcome }}
         run: |
           set -euo pipefail
           {
-            echo "## main is not an ancestor of develop"
+            echo "## Back-merging main into develop"
             echo
-            echo "\`main\` holds ${BEHIND} commit(s) that \`develop\` cannot reach. A release branch cut from \`develop\` will be refused for being behind \`main\`."
+            echo "\`main\` holds ${BEHIND} commit(s) that \`develop\` cannot reach."
             echo
-            echo "Branch \`${SYNC_BRANCH}\` now points at \`main\`."
-            echo
-            if [ -n "${EXISTING}" ]; then
-              echo "Sync PR #${EXISTING} is already open."
-            elif [ "${OPENED}" = "success" ]; then
-              echo "A sync PR has been opened."
-            else
-              echo "A PR could not be opened automatically — this repository does not permit GitHub Actions to create pull requests."
+
+            if [ "$PR_OUTCOME" != "success" ] || [ -z "$PR_NUMBER" ]; then
+              echo "A pull request could not be opened. This repository does not permit GitHub Actions to create pull requests — enable **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests**."
               echo
-              echo "Open it here: https://github.com/${GITHUB_REPOSITORY}/compare/develop...${SYNC_BRANCH}?expand=1"
+              echo "Branch \`${SYNC_BRANCH}\` is pushed and ready: https://github.com/${GITHUB_REPOSITORY}/compare/develop...${SYNC_BRANCH}?expand=1"
+              echo
+              echo "Merge it with a **merge commit**."
+            elif [ "$MERGE_OUTCOME" = "success" ]; then
+              echo "Pull request #${PR_NUMBER} is merging as a merge commit."
+            else
+              echo "Pull request #${PR_NUMBER} is open but could not be merged automatically. Merge it with a **merge commit**."
             fi
-            echo
-            echo "**Merge it with a merge commit.** Squashing recreates the divergence."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail when the back-merge did not land
+        if: steps.diff.outputs.in_sync == 'false' && (steps.pr.outcome != 'success' || steps.merge.outcome != 'success')
+        run: |
+          echo "::error::main is not an ancestor of develop and the back-merge did not complete; see the job summary."
+          exit 1

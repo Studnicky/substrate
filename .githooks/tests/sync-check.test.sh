@@ -108,4 +108,50 @@ repo=$(make_repo main)
 rm -rf "$repo"
 pass_count=$((pass_count + 1))
 
+# The back-merge branch the sync workflow builds — main plus an empty changeset —
+# keeps main reachable, and merging it into develop with a merge commit restores
+# the ancestry. Squashing that same branch does not, which is why the workflow
+# merges rather than squashes.
+repo=$(make_repo main)
+(
+  cd "$repo" || exit 1
+  mkdir -p .githooks/lib .changeset
+  cp "$REPO_ROOT/.githooks/lib/sync-check.sh" .githooks/lib/sync-check.sh
+
+  git switch -q -c develop
+  echo feature > feature.txt
+  git add feature.txt
+  git commit -q -m "feat: add feature"
+
+  git switch -q main
+  echo release > release.txt
+  git add release.txt
+  git commit -q -m "chore(release): prepare v1.0.0"
+
+  # What the workflow's "Build the back-merge branch" step produces.
+  git switch -q --force-create chore/sync-main-to-develop main
+  printf -- '---\n---\n\nSyncs the release commits on `main` into `develop`. No package changes.\n' \
+    > .changeset/sync-main-to-develop.md
+  git add .changeset/sync-main-to-develop.md
+  git commit -q -m "chore: sync main to develop"
+
+  # shellcheck source=/dev/null
+  . .githooks/lib/sync-check.sh
+
+  if ! sync_branches_are_ancestral main chore/sync-main-to-develop; then
+    fail "sync branch keeps main reachable" "branching from main and committing lost the ancestry"
+  fi
+
+  git switch -q develop
+  git merge -q --no-ff chore/sync-main-to-develop -m "chore: sync main to develop"
+
+  if ! assert_sync_ancestry main develop 2>/dev/null; then
+    fail "merging the sync branch restores ancestry" "main is still not an ancestor of develop"
+  fi
+
+  assert_eq "the empty changeset rides along" "" "$(sed -n '1,2p' .changeset/sync-main-to-develop.md | tr -d '-\n')"
+)
+rm -rf "$repo"
+pass_count=$((pass_count + 1))
+
 test_main
