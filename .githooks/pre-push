@@ -25,21 +25,19 @@ push_info=$(cat)
 . "$(dirname "$0")/lib/push-range.sh"
 . "$(dirname "$0")/lib/rebase-check.sh"
 
-branch=$(git rev-parse --abbrev-ref HEAD)
-check_branch_name "$branch"
+empty_sha=0000000000000000000000000000000000000000
 
-case "$branch" in
-  main|develop)
-    echo "pre-push: protected branch '$branch' cannot be pushed directly" >&2
-    exit 1
-    ;;
-esac
-
+# Git names the refs being pushed on stdin, and they need not include the
+# checked-out branch: `git push origin v1.2.3` pushes a tag and no branch at
+# all. Branch policy therefore reads the refs in the push, not HEAD.
 push_range=""
+pushed_branches=""
+pushed_tags=""
 while read -r local_ref local_sha remote_ref remote_sha; do
   case "$local_ref" in
     refs/heads/*)
-      if [ "$local_sha" != "0000000000000000000000000000000000000000" ] && [ -z "$push_range" ]; then
+      pushed_branches="$pushed_branches ${local_ref#refs/heads/}"
+      if [ "$local_sha" != "$empty_sha" ] && [ -z "$push_range" ]; then
         push_range=$(compute_push_range "$local_sha") || true
       fi
       case "$local_ref" in
@@ -50,14 +48,32 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         remote_branch=${base_ref#origin/}
         git fetch --quiet origin "+refs/heads/${remote_branch}:refs/remotes/origin/${remote_branch}" || true
       fi
-      if [ -n "$base_ref" ] && [ "$local_sha" != "0000000000000000000000000000000000000000" ]; then
+      if [ -n "$base_ref" ] && [ "$local_sha" != "$empty_sha" ]; then
         check_rebased_onto_base "${base_ref#origin/}" "$local_sha" "$local_ref"
       fi
+      ;;
+    refs/tags/*)
+      pushed_tags="$pushed_tags ${local_ref#refs/tags/}"
       ;;
   esac
 done <<EOF
 $push_info
 EOF
+
+for pushed_branch in $pushed_branches; do
+  check_branch_name "$pushed_branch"
+  case "$pushed_branch" in
+    main|develop)
+      echo "pre-push: protected branch '$pushed_branch' cannot be pushed directly" >&2
+      exit 1
+      ;;
+  esac
+done
+
+tag_only_push=false
+if [ -z "$pushed_branches" ] && [ -n "$pushed_tags" ]; then
+  tag_only_push=true
+fi
 
 if [ -n "$push_range" ]; then
   classify_changes "$push_range"
@@ -108,7 +124,11 @@ wait_stage() {
 }
 
 policy_stage=()
-if [ "$CHANGED_RELEASE" = true ] || [ "$CHANGED_SOURCE" = true ]; then
+# Release gates ask whether changed packages still owe a changeset, which is a
+# question about a branch proposing a release. A tag names a commit that has
+# already been versioned and merged, so its changesets are spent by definition
+# and the gate would report every released package as owing one.
+if [ "$tag_only_push" = false ] && { [ "$CHANGED_RELEASE" = true ] || [ "$CHANGED_SOURCE" = true ]; }; then
   policy_stage+=("release_gates:bash scripts/hook-suite.sh release-gates '$default_ref'")
 fi
 
