@@ -7,7 +7,7 @@ description: 'Folder location signals what a file top-level declarations must lo
 
 Folder location signals what a file's top-level declarations must look like. A file matches at most one of three mutually-exclusive categories, dispatched per-file — entity detection takes priority over folder-based declaration-form checking, which takes priority over the constants-count check:
 
-1. **Entity files** (`entities/` folder, or `*Entity.ts`-style basenames, excluding barrel `index.*` files) must export a single namespace containing `Schema` (a `const` declared `as const`), `Type` (a type reference applying any schema-deriving type to `typeof Schema` — `FromSchema<typeof Schema>`, TypeBox's `Static<typeof Schema>`, or a project-local equivalent are all accepted identically), and `validate` (a type guard — either `SchemaValidator.compile<Type>(Schema)` or a hand-written `candidate is Type` predicate function).
+1. **Entity files** (`entities/` folder, or `*Entity.ts`-style basenames, excluding barrel `index.*` files) must export a single namespace containing `Schema` (a `const`, value-first authored — either declared `as const` or built via a schema-builder call, e.g. `Type.Object({...})` or `z.object({...})`), `Type` (a type reference applying any schema-deriving type to `typeof Schema` — `FromSchema<typeof Schema>`, TypeBox's `Static<typeof Schema>`, Zod's `z.infer<typeof Schema>`, or a project-local equivalent are all accepted identically), and `validate` (a type guard — either `SchemaValidator.compile<Type>(Schema)` or a hand-written `candidate is Type` predicate function).
 2. **`interfaces/` vs `types/` folders** — files under an `interfaces/` folder must declare an `interface`, not a `type` alias; files under a `types/` folder must declare a `type` alias, not an `interface`. Only top-level declarations are judged. There is no path-based exemption from this check — a file under `tests/` or inside the `eslint-config` package itself is judged exactly like any other file.
 3. **Constants placement** — all other files with 2+ top-level `const` declarations (excluding function/class-bound consts) must live under a `constants/` folder, or a `fixtures/` folder for test/example data.
 
@@ -168,6 +168,36 @@ export namespace FooEntity {
   export const Schema = { type: 'object' } as const;
   export type Type = FromSchema<typeof Schema>;
   export const validate = SchemaValidator.compile<Type>(Schema);
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// valid entity: TypeBox Schema builder call, Type from Static<typeof Schema>
+// (filename: src/FooEntity.ts)
+import { Type, type Static } from '@sinclair/typebox';
+
+export namespace FooEntity {
+  export const Schema = Type.Object({ id: Type.String() });
+  export type Type = Static<typeof Schema>;
+  export function validate(candidate: unknown): candidate is Type {
+    return typeof (candidate as Record<string, unknown>).id === 'string';
+  }
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// valid entity: Zod Schema builder call, Type from z.infer<typeof Schema>
+// (filename: src/FooEntity.ts)
+import { z } from 'zod';
+
+export namespace FooEntity {
+  export const Schema = z.object({ id: z.string() });
+  export type Type = z.infer<typeof Schema>;
+  export function validate(candidate: unknown): candidate is Type {
+    return typeof (candidate as Record<string, unknown>).id === 'string';
+  }
 }
 ```
 

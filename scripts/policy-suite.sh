@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
+# Uses `local`, which POSIX sh does not define. Every call site already invokes
+# this through bash.
 set -eu
 
 run_branch_check() {
@@ -19,6 +21,12 @@ run_changeset_required_check() {
   assert_changeset_required
 }
 
+run_sync_ancestry_check() {
+  local base_ref="$1" head_ref="$2"
+  . .githooks/lib/sync-check.sh
+  assert_sync_ancestry "$base_ref" "$head_ref"
+}
+
 run_ci_secrets_check() {
   node .github/scripts/check-ci-secrets.mjs
 }
@@ -36,6 +44,9 @@ case "${1:-}" in
     ;;
   changeset-required)
     run_changeset_required_check
+    ;;
+  sync-ancestry)
+    run_sync_ancestry_check "${2:-origin/main}" "${3:-origin/develop}"
     ;;
   ci-secrets)
     run_ci_secrets_check
