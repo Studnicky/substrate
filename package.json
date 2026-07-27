@@ -87,7 +87,7 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "mermaid": "^11.16.0",
     "madge": "^8.0.0",
-    "lint-staged": "^16.1.0",
+    "lint-staged": "^17.2.0",
     "oxlint": "^1.74.0",
     "sucrase": "^3.35.1",
     "tsx": "^4.23.1",
