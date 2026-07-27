@@ -14,8 +14,6 @@ import {
   isConstructSignatureDeclaration,
   isConstTypeReference,
   isFunctionTypeNode,
-  isImportDeclaration,
-  isImportSpecifier,
   isIndexedAccessTypeNode,
   isIndexSignatureDeclaration,
   isInterfaceDeclaration,
@@ -24,7 +22,6 @@ import {
   isMappedTypeNode,
   isMethodSignature,
   isNamedTupleMember,
-  isNamespaceImport,
   isObjectLiteralExpression,
   isOptionalTypeNode,
   isParenthesizedTypeNode,
@@ -32,7 +29,6 @@ import {
   isQualifiedName,
   isRestTypeNode,
   isSatisfiesExpression,
-  isStringLiteral,
   isTupleTypeNode,
   isTypeAliasDeclaration,
   isTypeLiteralNode,
@@ -1473,75 +1469,10 @@ export class TypeContractClassification {
     return undefined;
   }
 
-  private isFromSchemaReference(node: TypeNode): boolean {
-    if (!this.isOwnerDirectTypeReference(node, 'FromSchema')) { return false; }
-
-    const typeArguments = node.typeArguments ?? [];
-    if (typeArguments.length !== 1) { return false; }
-    const schemaType = typeArguments[0];
-    if (schemaType === undefined || !isTypeQueryNode(schemaType)) { return false; }
-
-    const schemaSymbol = this.resolveSymbol(this.checker.getSymbolAtLocation(schemaType.exprName));
-    const declarations = schemaSymbol?.getDeclarations() ?? [];
-    return declarations.some((declaration) => {
-      const initializer = isVariableDeclaration(declaration) ? declaration.initializer : undefined;
-      return initializer !== undefined
-        && isSatisfiesExpression(initializer)
-        && isAsExpression(initializer.expression)
-        && isConstTypeReference(initializer.expression.type)
-        && this.isOwnerDirectTypeReference(initializer.type, 'JSONSchema');
-    });
-  }
-
-  private isOwnerDirectTypeReference(
-    node: TypeNode,
-    ownerName: 'FromSchema' | 'JSONSchema'
-  ): node is TypeReferenceNode {
-    if (!isTypeReferenceNode(node) || !this.isOwnerSymbolReference(node, ownerName)) { return false; }
-    const useSiteSymbol = this.checker.getSymbolAtLocation(node.typeName);
-    const declarations = useSiteSymbol?.getDeclarations() ?? [];
-
-    const hasDirectNamedImport = declarations.some((declaration) => {
-      if (!isImportSpecifier(declaration)) { return false; }
-      const importedName = declaration.propertyName?.text ?? declaration.name.text;
-      if (importedName !== ownerName) { return false; }
-
-      const importDeclaration = declaration.parent.parent.parent;
-      return isImportDeclaration(importDeclaration)
-        && isStringLiteral(importDeclaration.moduleSpecifier)
-        && importDeclaration.moduleSpecifier.text === 'json-schema-to-ts';
-    });
-    if (hasDirectNamedImport) { return true; }
-    if (!isQualifiedName(node.typeName) || node.typeName.right.text !== ownerName) { return false; }
-
-    const namespaceSymbol = this.checker.getSymbolAtLocation(node.typeName.left);
-    const namespaceDeclarations = namespaceSymbol?.getDeclarations() ?? [];
-    return namespaceDeclarations.some((declaration) => {
-      if (!isNamespaceImport(declaration)) { return false; }
-
-      const importDeclaration = declaration.parent.parent;
-      return isImportDeclaration(importDeclaration)
-        && isStringLiteral(importDeclaration.moduleSpecifier)
-        && importDeclaration.moduleSpecifier.text === 'json-schema-to-ts';
-    });
-  }
-
   private isFromSchemaNamedReference(node: TypeNode): boolean {
     if (!isTypeReferenceNode(node)) { return false; }
     const symbol = this.resolveSymbol(this.checker.getSymbolAtLocation(node.typeName));
     return symbol?.getName() === 'FromSchema';
-  }
-
-  private isOwnerSymbolReference(node: TypeNode, ownerName: 'FromSchema' | 'JSONSchema'): boolean {
-    if (!isTypeReferenceNode(node)) { return false; }
-    const symbol = this.resolveSymbol(this.checker.getSymbolAtLocation(node.typeName));
-    if (symbol?.getName() !== ownerName) { return false; }
-
-    const declarations = symbol.getDeclarations() ?? [];
-    return declarations.some((declaration) => {
-      const filename = declaration.getSourceFile().fileName.split('\\').join('/');
-      return filename.includes('/json-schema-to-ts/');
-    });
   }
 
   private isIntrinsic(node: TypeNode, name: 'Array' | 'Readonly' | 'ReadonlyArray'): boolean {
@@ -1613,12 +1544,9 @@ export class TypeContractClassification {
     const valueSymbol = this.resolveEntityNameSymbol(shape.valueQuery.exprName);
     if (valueSymbol === undefined) { return false; }
 
-    // Value-first authoring binds the type to the value on every path. A schema constrained by a
-    // dependency-owned `JSONSchema` is stronger evidence of a schema, never a waiver of that binding.
     const authoring = this.evaluateSchemaValueAuthoring(valueSymbol);
     if (!authoring.valid) { return false; }
 
-    if (this.isFromSchemaReference(node)) { return true; }
     if (shape.derivingReference === undefined) { return true; }
     return this.isSchemaDerivingFunction(shape.derivingReference, authoring.builderCallee);
   }

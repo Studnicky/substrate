@@ -199,6 +199,16 @@
       "code": "import type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = (candidate: unknown): candidate is Type => candidate !== null;\n}\nexport const ALPHA = 1;\nexport const BETA = 2;",
       "filename": "/project/src/shared/domainModule.ts",
       "name": "[constants] an entity-namespace export alongside extra top-level consts, outside any entities/ folder -> exempt by content, not folder"
+    },
+    {
+      "code": "import { Type, Static } from '@sinclair/typebox';\nexport namespace FooEntity {\n  export const Schema = Type.Object({ id: Type.String() });\n  export type Type = Static<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n}",
+      "filename": "/project/src/FooEntity.ts",
+      "name": "[entities] valid entity: TypeBox Schema builder call, Type from Static<typeof Schema>"
+    },
+    {
+      "code": "import { z } from 'zod';\nexport namespace FooEntity {\n  export const Schema = z.object({ id: z.string() });\n  export type Type = z.infer<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n}",
+      "filename": "/project/src/FooEntity.ts",
+      "name": "[entities] valid entity: Zod Schema builder call, Type from z.infer<typeof Schema>"
     }
   ],
   "invalid": [
