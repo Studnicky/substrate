@@ -23,8 +23,10 @@ import { ObjectGuard } from './shared/ObjectGuard.js';
  *
  *  1. Entity files (`entities/` folder, or `*Entity.ts`-style basenames,
  *     excluding barrel `index.*` files) must export a single namespace
- *     containing `Schema` (const, `as const`), `Type` (derived via
- *     `FromSchema<typeof Schema>`), and `validate` (a type guard).
+ *     containing `Schema` (const, value-first authored — `as const` or a
+ *     schema-builder call), `Type` (derived from `typeof Schema` via any
+ *     deriving type, e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`),
+ *     and `validate` (a type guard).
  *
  *  2. Files under an `interfaces/` folder must declare an `interface` (not a
  *     `type` alias); files under a `types/` folder must declare a `type`
@@ -287,7 +289,11 @@ class SchemaMemberGuards {
     return false;
   }
 
-  static isSchemaAsConst(declarator: unknown): boolean {
+  // Value-first authoring: either a const-asserted object literal (`{ ... } as const`, optionally
+  // `satisfies T`) or a schema-builder call (`Type.Object({...})`, `z.object({...})`). Either form
+  // binds `Type = FromSchema<typeof Schema>` (or an equivalent deriving type) to a value the schema
+  // itself owns, rather than to a hand-written type.
+  static isSchemaValueAuthored(declarator: unknown): boolean {
     if (!ObjectGuard.isObject(declarator)) { return false; }
     const { init } = declarator;
     if (!ObjectGuard.isObject(init)) { return false; }
@@ -303,6 +309,9 @@ class SchemaMemberGuards {
       if (!ObjectGuard.isObject(expression) || AstHelpers.getNodeType(expression) !== 'TSAsExpression') { return false; }
       return SchemaMemberGuards.isConstTypeAnnotation(expression.typeAnnotation);
     }
+    // Builder call: `Type.Object({...})`, `z.object({...})` — a schema library's own construction
+    // function, whichever library it is, owns the value the same way an `as const` literal does.
+    if (initType === 'CallExpression') { return true; }
     return false;
   }
 
@@ -458,7 +467,7 @@ class NamespaceScanner {
   static scanBody(bodyNode: unknown) {
     const result = {
       'hasSchema': false,
-      'hasSchemaAsConst': false,
+      'hasSchemaValueAuthored': false,
       'hasType': false,
       'hasTypeFromSchema': false,
       'hasValidate': false,
@@ -483,7 +492,7 @@ class NamespaceScanner {
           const { name } = d.id;
           if (name === 'Schema') {
             result.hasSchema = true;
-            result.hasSchemaAsConst = SchemaMemberGuards.isSchemaAsConst(d);
+            result.hasSchemaValueAuthored = SchemaMemberGuards.isSchemaValueAuthored(d);
           }
           if (name === 'validate') {
             result.hasValidate = true;
@@ -539,7 +548,7 @@ class EntityNamespaceCheck {
       const reportNode = exportStmt as Rule.Node;
 
       if (!members.hasSchema) { context.report({ 'messageId': 'missingSchema', 'node': reportNode }); }
-      else if (!members.hasSchemaAsConst) { context.report({ 'messageId': 'schemaNotConst', 'node': reportNode }); }
+      else if (!members.hasSchemaValueAuthored) { context.report({ 'messageId': 'schemaNotConst', 'node': reportNode }); }
       if (!members.hasType) { context.report({ 'messageId': 'missingType', 'node': reportNode }); }
       else if (!members.hasTypeFromSchema) { context.report({ 'messageId': 'typeNotFromSchema', 'node': reportNode }); }
       if (!members.hasValidate) { context.report({ 'messageId': 'missingValidate', 'node': reportNode }); }
@@ -914,17 +923,17 @@ export const folderContentShape: Rule.RuleModule = {
         "File '{{file}}' declares {{count}} top-level constants ({{names}}) alongside other top-level declarations (re-exports, functions, classes, or mutable bindings), so it is not a self-contained constants module. Extract these constants into their own '<area>/constants/<Name>.ts' (or '<area>/fixtures/<Name>.ts' for test/example data) file, isolated from the other declarations, grouped under one exported namespace or frozen object literal.",
       'interfaceInTypesFolder':
         "Interface '{{name}}' is declared in a 'types/' folder, which is reserved for data shapes (`type` alias declarations). Move this contract to an 'interfaces/' folder, or — if it's actually a pure data shape with no contract signal — declare it as a `type {{name}}` instead.",
-      'missingSchema': 'Entity namespace must export `const Schema` — a JSON Schema object literal declared `as const`.',
-      'missingType': 'Entity namespace must export `type Type` derived via `FromSchema<typeof Schema>`.',
+      'missingSchema': 'Entity namespace must export `const Schema` — a JSON Schema object literal declared `as const`, or a schema-builder call (e.g. `Type.Object({...})`).',
+      'missingType': 'Entity namespace must export `type Type` derived from `typeof Schema` (e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`).',
       'missingValidate': 'Entity namespace must export `validate` — either `const validate = SchemaValidator.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type`.',
       'namespaceMismatch': 'Namespace name `{{found}}` must match the filename base `{{expected}}`.',
       'noNamespace': 'Entity files must export exactly one namespace (e.g. `export namespace XxxEntity { ... }`).',
       'regexBelongsInConstants':
         "Regex literals must not be declared inline — they are data constants, like magic numbers and enums, and must live alongside them. Move this pattern into '<area>/constants/<Name>.ts' (or '<area>/fixtures/<Name>.ts' for test/example data) and import it from there.",
-      'schemaNotConst': 'Entity `Schema` must be declared `as const` to preserve the literal type for `FromSchema<typeof Schema>`.',
+      'schemaNotConst': 'Entity `Schema` must be value-first authored — declared `as const` (to preserve the literal type for `FromSchema<typeof Schema>`) or built via a schema-builder call (e.g. `Type.Object({...})`).',
       'typeInInterfacesFolder':
         "Type alias '{{name}}' is declared in an 'interfaces/' folder, which is reserved for runtime contracts (`interface` declarations). Move this data shape to a 'types/' folder, or declare it as an actual `interface` if it has a genuine contract signal (call/construct signature, or a member typed as a function/constructor/class instance).",
-      'typeNotFromSchema': 'Entity `type Type` must be derived as `FromSchema<typeof Schema>` — do not hand-write the type.',
+      'typeNotFromSchema': 'Entity `type Type` must be derived from `typeof Schema` (e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`) — do not hand-write the type.',
       'validateNotTypeGuard': 'Entity `validate` must be a type guard: `const validate = SchemaValidator.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type { ... }`.'
     },
     'schema': [],
