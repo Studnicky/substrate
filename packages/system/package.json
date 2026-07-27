@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/system",
-  "version": "9.1.1",
+  "version": "9.2.0",
   "description": "Hardware and platform information for runtime decisions about worker pool sizes and hardware-accelerated code paths",
   "type": "module",
   "sideEffects": false,

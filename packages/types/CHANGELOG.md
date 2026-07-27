@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.2.0
+
+### Patch Changes
+
+- Version bump only — no functional changes. Released in lockstep with the fixed-package group.
+
 ## 9.1.1
 
 ## 9.1.0
