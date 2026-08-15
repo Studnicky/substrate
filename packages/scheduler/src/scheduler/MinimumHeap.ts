@@ -22,8 +22,12 @@ export class MinimumHeap {
   static create<TInstance extends MinimumHeap = MinimumHeap>(
     this: MinimumHeapSubclassInterface<TInstance>
   ): TInstance {
-    const result: unknown = Reflect.construct(this, []);
-    if (!MinimumHeapInstance.belongsTo(this, result)) {
+    const resolveSubclassConstructor = (): MinimumHeapSubclassInterface<TInstance> => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), []);
+    if (!MinimumHeapInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('MinimumHeap.create() did not construct the requested subclass.');
     }
     return result;
@@ -47,7 +51,7 @@ export class MinimumHeap {
     const [minimum] = this.#heap;
     if (heapLength === 1) { this.#heap.pop(); return minimum; }
     const last = this.#heap.pop();
-    if (last !== undefined) { this.#heap[0] = last; this.#siftDown(0); }
+    if (last !== undefined) { this.#heap.fill(last, 0, 1); this.#siftDown(0); }
     return minimum;
   }
 
@@ -60,12 +64,12 @@ export class MinimumHeap {
     let current = index;
     while (current > 0) {
       const parentIndex = Math.floor((current - 1) / 2);
-      const parent = this.#heap[parentIndex];
-      const child = this.#heap[current];
+      const parent = this.#heap.at(parentIndex);
+      const child = this.#heap.at(current);
       if (parent === undefined || child === undefined || parent.atMs <= child.atMs) { break; }
       const temporary = parent;
-      this.#heap[parentIndex] = child;
-      this.#heap[current] = temporary;
+      this.#heap.fill(child, parentIndex, parentIndex + 1);
+      this.#heap.fill(temporary, current, current + 1);
       current = parentIndex;
     }
   }
@@ -77,18 +81,18 @@ export class MinimumHeap {
       const left = current * 2 + 1;
       const right = current * 2 + 2;
       let smallest = current;
-      const leftTask = this.#heap[left];
-      const smallestTask = this.#heap[smallest];
+      const leftTask = this.#heap.at(left);
+      const smallestTask = this.#heap.at(smallest);
       if (left < heapLength && leftTask !== undefined && smallestTask !== undefined && leftTask.atMs < smallestTask.atMs) { smallest = left; }
-      const rightTask = this.#heap[right];
-      const candidateTask = this.#heap[smallest];
+      const rightTask = this.#heap.at(right);
+      const candidateTask = this.#heap.at(smallest);
       if (right < heapLength && rightTask !== undefined && candidateTask !== undefined && rightTask.atMs < candidateTask.atMs) { smallest = right; }
       if (smallest === current) { break; }
-      const temporary = this.#heap[current];
-      const swapTarget = this.#heap[smallest];
+      const temporary = this.#heap.at(current);
+      const swapTarget = this.#heap.at(smallest);
       if (temporary === undefined || swapTarget === undefined) { break; }
-      this.#heap[current] = swapTarget;
-      this.#heap[smallest] = temporary;
+      this.#heap.fill(swapTarget, current, current + 1);
+      this.#heap.fill(temporary, smallest, smallest + 1);
       current = smallest;
     }
   }

@@ -26,9 +26,17 @@ class ConfigValidator {
     try {
       if (userConfig !== undefined) {
         const configObj: Record<string, unknown> = {};
+        const userConfigKeys = Object.keys(userConfig);
+        const userConfigKeysLength = userConfigKeys.length;
 
-        for (const key of Object.keys(userConfig)) {
-          configObj[key] = Reflect.get(userConfig, key);
+        for (let index = 0; index < userConfigKeysLength; index++) {
+          const key = userConfigKeys.at(index);
+
+          if (key === undefined) {
+            continue;
+          }
+
+          Reflect.set(configObj, key, Reflect.get(userConfig, key));
         }
 
         ConfigValidation.assertNoUnknownKeys(configObj, MUTEX_CONFIG_KEYS);

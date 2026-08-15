@@ -11,6 +11,14 @@
     {
       "code": "for (const value of [1, 2, 3]) { (() => RegExp(String(value)))(); }",
       "name": "RegExp construction inside a nested function within a loop - not flagged"
+    },
+    {
+      "code": "const pattern = /a/g;",
+      "name": "regex literal outside a loop - not flagged"
+    },
+    {
+      "code": "for (const value of [1, 2, 3]) { (() => /a/g.test(String(value)))(); }",
+      "name": "regex literal inside a nested function within a loop - not flagged"
     }
   ],
   "invalid": [
@@ -31,6 +39,15 @@
         }
       ],
       "name": "RegExp() call inside a loop - flagged"
+    },
+    {
+      "code": "for (const value of [1, 2, 3]) { const matched = /a/g.test(String(value)); void matched; }",
+      "errors": [
+        {
+          "messageId": "regexpInLoop"
+        }
+      ],
+      "name": "regex literal inside a loop - flagged (bypass: literal syntax has no CallExpression/NewExpression node)"
     }
   ]
 }

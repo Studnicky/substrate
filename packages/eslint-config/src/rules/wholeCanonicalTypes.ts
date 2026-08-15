@@ -1,6 +1,25 @@
 import type { Rule } from 'eslint';
 
-import { type Program, type Symbol, SyntaxKind, type Type, type TypeChecker } from 'typescript';
+import {
+  isIndexedAccessTypeNode,
+  isLiteralTypeNode,
+  isMappedTypeNode,
+  isPropertySignature,
+  isStringLiteral,
+  isTypeAliasDeclaration,
+  isTypeLiteralNode,
+  isTypeReferenceNode,
+  isUnionTypeNode,
+  type MappedTypeNode,
+  type Program,
+  type Symbol,
+  SymbolFlags,
+  SyntaxKind,
+  type Type,
+  type TypeChecker,
+  type TypeNode,
+  type TypeReferenceNode
+} from 'typescript';
 
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
@@ -20,7 +39,12 @@ import { ObjectGuard } from './shared/ObjectGuard.js';
 
 const SUBSETTING_UTILITY_NAMES = new Set(['Omit', 'Partial', 'Pick']);
 
+interface NodeMapInterface {
+  readonly 'get': (node: unknown) => TypeNode | undefined;
+}
+
 interface ParserServicesInterface {
+  readonly 'esTreeNodeToTSNodeMap': NodeMapInterface;
   readonly 'getTypeAtLocation': (node: unknown) => Type;
   readonly 'program': Program;
 }
@@ -32,6 +56,9 @@ interface SourceCodeServicesAccessorInterface {
 class ParserServicesGuard {
   public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
     if (!ObjectGuard.isObject(value) || typeof value.getTypeAtLocation !== 'function') { return false; }
+    if (!ObjectGuard.isObject(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
+      return false;
+    }
     return ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
   }
 }
@@ -57,7 +84,7 @@ class SubsettingUtilityMatch {
     if (!ObjectGuard.isObject(wrapper)) { return undefined; }
     const params = wrapper.params;
     if (!Array.isArray(params)) { return undefined; }
-    return params[0];
+    return params.at(0);
   }
 }
 
@@ -87,6 +114,149 @@ class CanonicalTypeResolution {
     });
     return !isExternallyOwned;
   }
+
+  /**
+   * The `TypeNode`-based twin of {@link isCanonicalOwnedType}, for callers that already hold a
+   * TypeScript compiler `TypeNode` (the mapped-type and indexed-access structural-matching paths)
+   * rather than an ESTree node paired with `getTypeAtLocation`.
+   */
+  public static isCanonicalOwnedTypeNode(typeNode: TypeNode, checker: TypeChecker): boolean {
+    if (!isTypeReferenceNode(typeNode)) { return false; }
+
+    const type = checker.getTypeFromTypeNode(typeNode);
+    const symbol: Symbol | undefined = type.aliasSymbol ?? type.getSymbol();
+    if (symbol === undefined) { return false; }
+
+    const declarations = symbol.getDeclarations() ?? [];
+    if (declarations.length === 0) { return false; }
+
+    const isGenericParameter = declarations.some((declaration) => { return declaration.kind === SyntaxKind.TypeParameter; });
+    if (isGenericParameter) { return false; }
+
+    const isNamedTypeDeclaration = declarations.some((declaration) => {
+      return declaration.kind === SyntaxKind.TypeAliasDeclaration || declaration.kind === SyntaxKind.InterfaceDeclaration;
+    });
+    if (!isNamedTypeDeclaration) { return false; }
+
+    const isExternallyOwned = declarations.every((declaration) => {
+      const fileName = declaration.getSourceFile().fileName;
+      return fileName.includes('/node_modules/');
+    });
+    return !isExternallyOwned;
+  }
+
+  /** The full set of a canonical type's own declared (own, not inherited) property names. */
+  public static ownPropertyNames(typeNode: TypeNode, checker: TypeChecker): ReadonlySet<string> {
+    const type = checker.getTypeFromTypeNode(typeNode);
+    return new Set(type.getProperties().map((property) => { const result = property.getName();
+      return result; }));
+  }
+}
+
+/**
+ * Resolves the literal string-key set a mapped type's key clause (`[K in ...]`) enumerates,
+ * when that clause is a string-literal type or a union of string-literal types — the shape a
+ * manual `Pick`/`Omit` reimplementation's key clause takes (`'a'`, `'a' | 'b'`). Any other
+ * constraint shape (a `keyof` operator, a generic type parameter, ...) returns `undefined`,
+ * since those are not the literal-key subsetting pattern this check targets.
+ */
+class MappedKeySet {
+  public static resolve(constraint: TypeNode | undefined): Set<string> | undefined {
+    if (constraint === undefined) { return undefined; }
+
+    if (isLiteralTypeNode(constraint) && isStringLiteral(constraint.literal)) {
+      return new Set([constraint.literal.text]);
+    }
+
+    if (isUnionTypeNode(constraint)) {
+      const keys = new Set<string>();
+      for (const member of constraint.types) {
+        if (!isLiteralTypeNode(member) || !isStringLiteral(member.literal)) { return undefined; }
+        keys.add(member.literal.text);
+      }
+      return keys;
+    }
+
+    return undefined;
+  }
+}
+
+/**
+ * Structural (not name-based) matching for the mapped-type shape a manual `Pick`/`Omit`
+ * reimplementation takes — `{ [P in K]: T[P] }` — used both directly on a mapped type written at
+ * the use site and, recursively, on a locally-defined generic alias's own body to catch a
+ * custom-named reimplementation (`type MyPick<T, K extends keyof T> = { [P in K]: T[P] }`).
+ */
+class MappedSubsettingShape {
+  /**
+   * True when the mapped type's value clause is an indexed-access `objectType[indexType]` where
+   * `indexType` is a bare reference to the mapped type's own key parameter — the structural core
+   * of every `Pick`/`Omit`/manual-subsetting mapped type, regardless of what the key clause or
+   * object type resolve to.
+   */
+  public static indexesOwnKeyParameter(node: MappedTypeNode, checker: TypeChecker): TypeReferenceNode | undefined {
+    if (node.type === undefined || !isIndexedAccessTypeNode(node.type)) { return undefined; }
+    const { indexType, objectType } = node.type;
+    if (!isTypeReferenceNode(objectType) || !isTypeReferenceNode(indexType)) { return undefined; }
+
+    const keyParameterSymbol = checker.getSymbolAtLocation(node.typeParameter.name);
+    const indexSymbol = checker.getSymbolAtLocation(indexType.typeName);
+    if (keyParameterSymbol === undefined || indexSymbol !== keyParameterSymbol) { return undefined; }
+
+    return objectType;
+  }
+
+  /**
+   * True when a generic alias's own declared body is structurally the `{ [P in K]: T[P] }`
+   * reimplementation shape, with `T` and `K` both being the alias's OWN, DISTINCT type
+   * parameters (a reusable utility, not yet applied to any concrete type) — the shape
+   * `type MyPick<T, K extends keyof T> = { [P in K]: T[P] }` takes.
+   *
+   * The key clause must be a bare reference to a SEPARATE type parameter, not a `keyof T`
+   * operator applied directly — that second detail is what distinguishes an externally
+   * caller-narrowable subset (`Pick`'s own `K extends keyof T`, where a caller supplies which
+   * keys to keep) from a full-key transform like `Required<T> = { [P in keyof T]-?: T[P] }` or
+   * `Partial`, which structurally share the identical `{ [P in K]: T[P] }` skeleton but always
+   * retain every one of `T`'s own keys and therefore never hide any property.
+   */
+  public static isReusableUtilityBody(mapped: MappedTypeNode, checker: TypeChecker): boolean {
+    const objectType = MappedSubsettingShape.indexesOwnKeyParameter(mapped, checker);
+    if (objectType === undefined) { return false; }
+
+    const objectSymbol = checker.getSymbolAtLocation(objectType.typeName);
+    if (objectSymbol === undefined || (objectSymbol.flags & SymbolFlags.TypeParameter) === 0) { return false; }
+
+    const constraint = mapped.typeParameter.constraint;
+    if (constraint === undefined || !isTypeReferenceNode(constraint) || constraint.typeArguments !== undefined) {
+      return false;
+    }
+    const constraintSymbol = checker.getSymbolAtLocation(constraint.typeName);
+    if (constraintSymbol === undefined || (constraintSymbol.flags & SymbolFlags.TypeParameter) === 0) { return false; }
+
+    return constraintSymbol !== objectSymbol;
+  }
+}
+
+/**
+ * Resolves `getUtilityName`'s literal-name miss (a `TSTypeReference` whose name is not
+ * `Omit`/`Partial`/`Pick`) by checking whether the referenced alias's OWN definition is itself a
+ * `{ [P in K]: T[P] }` reusable-utility reimplementation — closing the "custom-named alias"
+ * subsetting-utility gap without hardcoding any additional name.
+ */
+class CustomUtilityAliasMatch {
+  public static resolve(typeNode: TypeNode, checker: TypeChecker): string | undefined {
+    if (!isTypeReferenceNode(typeNode)) { return undefined; }
+
+    const symbol = checker.getSymbolAtLocation(typeNode.typeName);
+    if (symbol === undefined) { return undefined; }
+    const resolved = (symbol.flags & SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(symbol) : symbol;
+
+    const aliasDeclaration = (resolved.getDeclarations() ?? []).find(isTypeAliasDeclaration);
+    if (aliasDeclaration === undefined || !isMappedTypeNode(aliasDeclaration.type)) { return undefined; }
+    if (!MappedSubsettingShape.isReusableUtilityBody(aliasDeclaration.type, checker)) { return undefined; }
+
+    return resolved.getName();
+  }
 }
 
 export const wholeCanonicalTypes: Rule.RuleModule = {
@@ -96,23 +266,113 @@ export const wholeCanonicalTypes: Rule.RuleModule = {
 
     if (services === undefined || checker === undefined) { return {}; }
 
-    const onTSTypeReference = (node: Rule.Node): void => {
-      const rawNode: unknown = node;
-      if (!ObjectGuard.isObject(rawNode)) { return; }
-      const utilityName = SubsettingUtilityMatch.getUtilityName(rawNode);
-      if (utilityName === undefined) { return; }
-
-      const typeArgNode = SubsettingUtilityMatch.getFirstTypeArgument(rawNode);
-      if (!CanonicalTypeResolution.isCanonicalOwnedType(typeArgNode, services)) { return; }
-
+    const report = (node: Rule.Node, utility: string): void => {
       context.report({
-        'data': { 'utility': utilityName },
+        'data': { 'utility': utility },
         'messageId': 'noPartialCanonicalType',
         'node': node
       });
     };
 
-    return { 'TSTypeReference': onTSTypeReference };
+    const onTSTypeReference = (node: Rule.Node): void => {
+      const rawNode: unknown = node;
+      if (!ObjectGuard.isObject(rawNode)) { return; }
+      const literalUtilityName = SubsettingUtilityMatch.getUtilityName(rawNode);
+
+      if (literalUtilityName !== undefined) {
+        const typeArgNode = SubsettingUtilityMatch.getFirstTypeArgument(rawNode);
+        if (CanonicalTypeResolution.isCanonicalOwnedType(typeArgNode, services)) {
+          report(node, literalUtilityName);
+        }
+        return;
+      }
+
+      // The reference's own name isn't a literal `Omit`/`Partial`/`Pick` — check whether it
+      // resolves to a LOCALLY-DEFINED alias that is itself a `{ [P in K]: T[P] }` reusable
+      // reimplementation of the same subsetting effect (`type MyPick<T, K> = { [P in K]: T[P] }`).
+      const typeScriptNode = services.esTreeNodeToTSNodeMap.get(node);
+      if (typeScriptNode === undefined) { return; }
+      const customUtilityName = CustomUtilityAliasMatch.resolve(typeScriptNode, checker);
+      if (customUtilityName === undefined) { return; }
+
+      const typeArgNode = SubsettingUtilityMatch.getFirstTypeArgument(rawNode);
+      if (CanonicalTypeResolution.isCanonicalOwnedType(typeArgNode, services)) {
+        report(node, customUtilityName);
+      }
+    };
+
+    // A manual mapped type reproducing `Pick`/`Omit`'s effect with zero reference to any
+    // Omit/Partial/Pick-named utility type at all — `{ [K in 'a']: FooType[K] }` — subsets a
+    // canonical type's own property set exactly as `Pick<FooType, 'a'>` would, just spelled out
+    // by hand. Flagged when the mapped type's key clause resolves to a literal, non-empty,
+    // PROPER subset of the target canonical type's own property names.
+    const onMappedType = (node: Rule.Node): void => {
+      const mapped = services.esTreeNodeToTSNodeMap.get(node);
+      if (mapped === undefined || !isMappedTypeNode(mapped)) { return; }
+
+      const objectType = MappedSubsettingShape.indexesOwnKeyParameter(mapped, checker);
+      if (objectType === undefined) { return; }
+      if (!CanonicalTypeResolution.isCanonicalOwnedTypeNode(objectType, checker)) { return; }
+
+      const keys = MappedKeySet.resolve(mapped.typeParameter.constraint);
+      if (keys === undefined || keys.size === 0) { return; }
+
+      const canonicalKeys = CanonicalTypeResolution.ownPropertyNames(objectType, checker);
+      const isProperSubset = keys.size < canonicalKeys.size && [...keys].every((key) => { const result = canonicalKeys.has(key);
+        return result; });
+      if (!isProperSubset) { return; }
+
+      report(node, 'a manually mapped Pick');
+    };
+
+    // Plain inline indexed-access subsetting — `{ a: FooType['a']; b: FooType['b']; }` — reaches
+    // the same result as `Pick<FooType, 'a' | 'b'>` by spelling each retained property out
+    // individually via indexed access into the same canonical type, with no utility type or
+    // mapped-type syntax involved at all. Flagged only when EVERY member of the type literal is
+    // such an indexed-access reference into the SAME canonical type, keeping this from
+    // misfiring on a heterogeneous type literal that merely borrows one property's type.
+    const onTypeLiteral = (node: Rule.Node): void => {
+      const literal = services.esTreeNodeToTSNodeMap.get(node);
+      if (literal === undefined || !isTypeLiteralNode(literal) || literal.members.length === 0) { return; }
+
+      let canonicalObjectType: TypeReferenceNode | undefined;
+      let canonicalSymbol: Symbol | undefined;
+      const keys = new Set<string>();
+
+      for (const member of literal.members) {
+        if (!isPropertySignature(member) || member.type === undefined || !isIndexedAccessTypeNode(member.type)) { return; }
+        const { indexType, objectType } = member.type;
+        if (!isTypeReferenceNode(objectType) || !isLiteralTypeNode(indexType) || !isStringLiteral(indexType.literal)) {
+          return;
+        }
+
+        const symbol = checker.getSymbolAtLocation(objectType.typeName);
+        if (canonicalObjectType === undefined) {
+          canonicalObjectType = objectType;
+          canonicalSymbol = symbol;
+        } else if (symbol === undefined || symbol !== canonicalSymbol) {
+          return;
+        }
+
+        keys.add(indexType.literal.text);
+      }
+
+      if (canonicalObjectType === undefined) { return; }
+      if (!CanonicalTypeResolution.isCanonicalOwnedTypeNode(canonicalObjectType, checker)) { return; }
+
+      const canonicalKeys = CanonicalTypeResolution.ownPropertyNames(canonicalObjectType, checker);
+      const isProperSubset = keys.size < canonicalKeys.size && [...keys].every((key) => { const result = canonicalKeys.has(key);
+        return result; });
+      if (!isProperSubset) { return; }
+
+      report(node, 'inline indexed-access Pick');
+    };
+
+    return {
+      'TSMappedType': onMappedType,
+      'TSTypeLiteral': onTypeLiteral,
+      'TSTypeReference': onTSTypeReference
+    };
   },
   'meta': {
     'docs': {

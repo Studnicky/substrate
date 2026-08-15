@@ -7,6 +7,10 @@
     {
       "code": "switch (k) { case 0: return 1; default: return -1; }",
       "name": "trivial 1-case switch - not flagged"
+    },
+    {
+      "code": "function f(x, y) { switch (x) {\n  case 0: return 0;\n  case 1: return 1;\n  case 2: return 2;\n  case 3: return 3;\n  case 4: return 4;\n  case 5: return 5;\n  case 6: return 6;\n  case 7: return 7;\n  case 8: return 8;\n  case 9: return 9;\n  default: return -1;\n}\nswitch (y) {\n  case 0: return 0;\n  case 1: return 1;\n  case 2: return 2;\n  case 3: return 3;\n  case 4: return 4;\n  case 5: return 5;\n  case 6: return 6;\n  case 7: return 7;\n  case 8: return 8;\n  case 9: return 9;\n  default: return -1;\n} }",
+      "name": "two adjacent 10-case switches on DIFFERENT discriminants (x vs y) in the same block - not merged, neither reaches the threshold alone, not flagged"
     }
   ],
   "invalid": [
@@ -27,6 +31,14 @@
         }
       ],
       "name": "50 cases - well above threshold, flagged"
+    },
+    {
+      "code": "function f(x) { switch (x) {\n  case 0: return 0;\n  case 1: return 1;\n  case 2: return 2;\n  case 3: return 3;\n  case 4: return 4;\n  case 5: return 5;\n  case 6: return 6;\n  case 7: return 7;\n  case 8: return 8;\n  case 9: return 9;\n  case 10: return 10;\n  case 11: return 11;\n  case 12: return 12;\n  case 13: return 13;\n  case 14: return 14;\n  default: return -1;\n}\nswitch (x) {\n  case 15: return 15;\n  case 16: return 16;\n  case 17: return 17;\n  case 18: return 18;\n  case 19: return 19;\n  case 20: return 20;\n  case 21: return 21;\n  case 22: return 22;\n  case 23: return 23;\n  case 24: return 24;\n  case 25: return 25;\n  case 26: return 26;\n  case 27: return 27;\n  case 28: return 28;\n  case 29: return 29;\n  default: return -1;\n} }",
+      "errors": [
+        { "messageId": "tooManyCasesGrouped" },
+        { "messageId": "tooManyCasesGrouped" }
+      ],
+      "name": "one 30-case switch split into two adjacent 15-case switches on the identical discriminant `x` - bypass closed, total counted across siblings and flagged"
     }
   ]
 }

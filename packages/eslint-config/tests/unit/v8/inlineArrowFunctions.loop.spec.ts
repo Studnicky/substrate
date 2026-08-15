@@ -26,7 +26,7 @@ void describe('inline-arrow-functions', () => {
     ruleTester.run('inline-arrow-functions', inlineArrowFunctions, scenarioGroups);
   });
 
-  void it('covers guard exits and rebuilt-scope checks directly', () => {
+  void it('covers guard exits directly', () => {
     const reports: unknown[] = [];
     const listeners = inlineArrowFunctions.create({
       report(descriptor: unknown) {
@@ -34,42 +34,19 @@ void describe('inline-arrow-functions', () => {
       }
     } as never);
 
+    // Non-BlockStatement body short-circuits before any position check runs.
     listeners.ArrowFunctionExpression?.({
       body: { type: 'Identifier' },
       parent: { type: 'Property', parent: { type: 'ObjectExpression' } }
     } as never);
 
+    // BlockStatement body, but the containing shape matches none of the
+    // recognized rebuilt-per-call/iteration positions.
     listeners.ArrowFunctionExpression?.({
       body: { type: 'BlockStatement' },
       parent: { type: 'MethodDefinition', parent: { type: 'ClassBody' } }
     } as never);
 
-    listeners.ArrowFunctionExpression?.({
-      body: { type: 'BlockStatement' },
-      parent: {
-        parent: {
-          parent: {
-            type: 'FunctionDeclaration'
-          },
-          type: 'ObjectExpression'
-        },
-        type: 'Property'
-      }
-    } as never);
-
-    assert.deepEqual(reports.map(toMessageId), ['forbidden']);
-
-    listeners.ArrowFunctionExpression?.({
-      body: { type: 'BlockStatement' },
-      parent: {
-        parent: {
-          parent: {
-            type: 'FunctionDeclaration'
-          },
-          type: 'ObjectExpression'
-        },
-        type: 'Property'
-      }
-    } as never);
+    assert.deepEqual(reports.map(toMessageId), []);
   });
 });

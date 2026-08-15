@@ -1,0 +1,45 @@
+{
+  "valid": [
+    {
+      "code": "class Foo { bar = 1; }",
+      "name": "plain class field - not flagged"
+    },
+    {
+      "code": "class Foo { bar() { return 1; } }",
+      "name": "plain method - not flagged"
+    },
+    {
+      "code": "class Foo { method() { return { [computedKey()]: 1 }; } }",
+      "name": "computed object-literal property nested inside a class method body - not flagged (regression: rule is not a computed-object-property rule)"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "class Foo { [computedKey()] = 1; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed class field (PropertyDefinition) - flagged (regression: original selector matched object-literal Property nodes, never PropertyDefinition)"
+    },
+    {
+      "code": "const Foo = class { [computedKey()] = 1; };",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed class field in a ClassExpression - flagged"
+    },
+    {
+      "code": "class Foo { [computedMethodName()]() { return 1; } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed method name (MethodDefinition) - flagged"
+    }
+  ]
+}

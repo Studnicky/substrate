@@ -63,9 +63,12 @@ class ReceiverOrigin {
     let scope = context.sourceCode.getScope(identifierNode) as { readonly 'upper': typeof scope | null; readonly 'variables': readonly { readonly 'defs': readonly { readonly 'node': unknown }[]; readonly 'name': string }[] } | null;
 
     while (scope !== null) {
-      for (const candidate of scope.variables) {
-        if (candidate.name === name) {
-          return candidate.defs[0]?.node as Rule.Node | undefined;
+      const { variables } = scope;
+      const variablesLength = variables.length;
+      for (let index = 0; index < variablesLength; index += 1) {
+        const candidate = variables.at(index);
+        if (candidate?.name === name) {
+          return candidate.defs.at(0)?.node as Rule.Node | undefined;
         }
       }
       scope = scope.upper;
@@ -88,8 +91,13 @@ class ReceiverOrigin {
 
     const declRange = (declarationNode as unknown as { readonly 'range': readonly [number, number] }).range;
     const loopRange = (loopNode as unknown as { readonly 'range': readonly [number, number] }).range;
+    const declStart = declRange.at(0);
+    const declEnd = declRange.at(1);
+    const loopStart = loopRange.at(0);
+    const loopEnd = loopRange.at(1);
+    if (declStart === undefined || declEnd === undefined || loopStart === undefined || loopEnd === undefined) { return false; }
 
-    return declRange[0] >= loopRange[0] && declRange[1] <= loopRange[1];
+    return declStart >= loopStart && declEnd <= loopEnd;
   }
 }
 

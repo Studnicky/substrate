@@ -65,6 +65,21 @@
           }
         ],
         "name": "class property opts - flagged"
+      },
+      {
+        "code": "function process(cb, ctx, opts) {}",
+        "errors": [
+          {
+            "messageId": "banned-shortening"
+          },
+          {
+            "messageId": "banned-shortening"
+          },
+          {
+            "messageId": "banned-shortening"
+          }
+        ],
+        "name": "bare parameters of a named FunctionDeclaration - all three flagged (not exempted by the function's own id exemption)"
       }
     ]
   },

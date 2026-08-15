@@ -76,8 +76,11 @@ export class VirtualScheduler implements SchedulerProviderInterface {
     this: VirtualSchedulerSubclassInterface<TInstance>,
     options: { readonly 'counter': Readonly<VirtualTimeCounter> }
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options.counter]);
-    if (!VirtualSchedulerInstance.belongsTo(this, result)) {
+    const getCurrentConstructor = (): VirtualSchedulerSubclassInterface<TInstance> => { return this; };
+    const currentConstructor = getCurrentConstructor();
+
+    const result: unknown = Reflect.construct(currentConstructor, [options.counter]);
+    if (!VirtualSchedulerInstance.belongsTo(currentConstructor, result)) {
       throw new TypeError('VirtualScheduler.create() did not construct the requested subclass.');
     }
     return result;
@@ -116,6 +119,20 @@ export class VirtualScheduler implements SchedulerProviderInterface {
    * Extracted from the hot loop bodies so V8 can optimise the loops
    * independently of try/catch deoptimisation.
    */
+  #invokeOnFire(taskId: PendingTaskInterface['id']): void {
+    this.hooks.invoke('onFire', () => {
+      const result = this.onFire(taskId);
+      return result;
+    });
+  }
+
+  #invokeOnReschedule(taskId: PendingTaskInterface['id'], nextAtMs: number): void {
+    this.hooks.invoke('onReschedule', () => {
+      const result = this.onReschedule(taskId, nextAtMs);
+      return result;
+    });
+  }
+
   #invokeTask(task: PendingTaskInterface): boolean {
     let fireResult: Promise<void> | void;
 
@@ -320,10 +337,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
         this.#tasks.delete(task.id);
       }
 
-      this.hooks.invoke('onFire', () => {
-        const result = this.onFire(task.id);
-        return result;
-      });
+      this.#invokeOnFire(task.id);
       const succeeded = this.#invokeTask(task);
 
       if (succeeded && task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
@@ -337,10 +351,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
         };
 
         this.#heap.insert(rescheduled);
-        this.hooks.invoke('onReschedule', () => {
-          const result = this.onReschedule(task.id, nextAtMs);
-          return result;
-        });
+        this.#invokeOnReschedule(task.id, nextAtMs);
       } else if (task.variant === 'interval') {
         this.#cancelledIds.delete(task.id);
         this.#tasks.get(task.id)?.complete();
@@ -376,10 +387,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
       this.#tasks.get(task.id)?.complete();
       this.#tasks.delete(task.id);
 
-      this.hooks.invoke('onFire', () => {
-        const result = this.onFire(task.id);
-        return result;
-      });
+      this.#invokeOnFire(task.id);
       this.#invokeTask(task);
     }
 

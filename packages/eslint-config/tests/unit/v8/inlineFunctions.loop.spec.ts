@@ -26,7 +26,7 @@ void describe('inline-functions', () => {
     ruleTester.run('inline-functions', inlineFunctions, scenarioGroups);
   });
 
-  void it('covers guard exits and scope checks directly', () => {
+  void it('covers guard exits directly', () => {
     const reports: unknown[] = [];
     const listeners = inlineFunctions.create({
       report(descriptor: unknown) {
@@ -34,31 +34,13 @@ void describe('inline-functions', () => {
       }
     } as never);
 
-    listeners.Property?.({
-      parent: { type: 'ObjectExpression' },
-      value: { type: 'Identifier' }
+    // BlockStatement body (always true for FunctionExpression), but the
+    // containing shape matches none of the recognized rebuilt-per-call/iteration
+    // positions.
+    listeners.FunctionExpression?.({
+      parent: { type: 'ClassBody' }
     } as never);
 
-    listeners.Property?.({
-      parent: { type: 'ObjectExpression' },
-      value: null
-    } as never);
-
-    listeners.Property?.({
-      parent: { type: 'ClassBody' },
-      value: { type: 'FunctionExpression' }
-    } as never);
-
-    listeners.Property?.({
-      parent: {
-        parent: {
-          type: 'FunctionDeclaration'
-        },
-        type: 'ObjectExpression'
-      },
-      value: { type: 'FunctionExpression' }
-    } as never);
-
-    assert.deepEqual(reports.map(toMessageId), ['forbidden']);
+    assert.deepEqual(reports.map(toMessageId), []);
   });
 });

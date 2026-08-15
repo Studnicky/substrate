@@ -521,6 +521,23 @@
       }
     },
     {
+      "name": "resilience-circuitbreaker-hook-fires-exactly-once",
+      "description": "CircuitBreaker fires onOpen/onTrip/onHalfOpen/onClose exactly once per relevant transition, with onTrip only on closed->open",
+      "shape": "cb-hook-fires-exactly-once",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "successThreshold": 2,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {}
+    },
+    {
       "name": "resilience-tokenbucket-invalid-rps",
       "description": "TokenBucket rejects requestsPerSecond <= 0",
       "shape": "tb-invalid-rps",

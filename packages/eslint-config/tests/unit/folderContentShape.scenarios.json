@@ -46,11 +46,6 @@
       "name": "[interfaces/types] nested type alias inside a function body under interfaces/ -> not flagged (not top-level)"
     },
     {
-      "code": "namespace Ns { export interface Nested { run(): void; } }",
-      "filename": "/project/src/types/Namespaced.ts",
-      "name": "[interfaces/types] nested interface inside a namespace under types/ -> not flagged (not top-level)"
-    },
-    {
       "code": "export const MAX_RETRIES = 3;",
       "filename": "/project/src/http/client.ts",
       "name": "[constants] single top-level const -> not flagged"
@@ -96,6 +91,11 @@
       "name": "[regex] \"new RegExp(pattern)\" built from a runtime variable, not an inlined string literal -> not flagged"
     },
     {
+      "code": "export function matchesPrefix(value: string, prefix: string): boolean { return new RegExp(`^${prefix}$`).test(value); }",
+      "filename": "/project/src/validation/interpolatedRegex.ts",
+      "name": "[regex] \"new RegExp(`...${runtime}...`)\" with an interpolated expression, not a static template -> not flagged"
+    },
+    {
       "code": "export const A = 1; export const B = 2;",
       "filename": "/project/tests/unit/foo.test.ts",
       "name": "[constants] a pure constants module -> exempt by content, coincidentally under tests/"
@@ -129,6 +129,11 @@
       "code": "export const MAX = 3; export const handler = (): void => {};",
       "filename": "/project/src/http/handlers.ts",
       "name": "[constants] one data const and one function const -> only one real const remains, not flagged"
+    },
+    {
+      "code": "export const MAX = Number(3); export const handler = (): void => {};",
+      "filename": "/project/src/http/callWrappedSingle.ts",
+      "name": "[constants] one call-wrapped primitive-wrapper data const (Number(3)) and one function const -> only one real const remains, not flagged"
     },
     {
       "code": "export const { ALPHA } = CONFIG;",
@@ -299,6 +304,36 @@
       "name": "[interfaces/types] interface declared under types/ folder -> flagged"
     },
     {
+      "code": "namespace Ns { export interface Nested { run(): void; } }",
+      "errors": [
+        {
+          "messageId": "interfaceInTypesFolder"
+        }
+      ],
+      "filename": "/project/src/types/Namespaced.ts",
+      "name": "[interfaces/types] interface nested inside a non-exported namespace under types/ -> flagged (namespace wrapping is still top-level, not an escape)"
+    },
+    {
+      "code": "export namespace Wrapper { export interface Foo { readonly id: string; } }",
+      "errors": [
+        {
+          "messageId": "interfaceInTypesFolder"
+        }
+      ],
+      "filename": "/project/src/types/Wrapped.ts",
+      "name": "[interfaces/types] interface nested inside an exported namespace under types/ -> flagged (namespace wrapping is still top-level, not an escape)"
+    },
+    {
+      "code": "namespace Outer { namespace Inner { export interface DeeplyNested { run(): void; } } }",
+      "errors": [
+        {
+          "messageId": "interfaceInTypesFolder"
+        }
+      ],
+      "filename": "/project/src/types/DeeplyWrapped.ts",
+      "name": "[interfaces/types] interface nested inside two levels of namespace wrapping under types/ -> still flagged"
+    },
+    {
       "code": "export type LogBodyDataType = { context: Record<string, unknown>; event: string; };",
       "errors": [
         {
@@ -369,6 +404,16 @@
       "name": "[constants] two data consts plus a function const -> still flagged for the two data consts"
     },
     {
+      "code": "export const RETRY_LIMIT = Number(3); export const TIMEOUT_MS = Number(1000); export const handler = (): void => {};",
+      "errors": [
+        {
+          "messageId": "constantsNotIsolated"
+        }
+      ],
+      "filename": "/project/src/http/callWrappedMagicConstants.ts",
+      "name": "[constants] two call-wrapped primitive-wrapper magic constants (Number(3)/Number(1000)) plus a function const -> still flagged (call-wrapping does not exempt a data constant)"
+    },
+    {
       "code": "export function isEmail(value: string): boolean { return /^[^@]+@[^@]+$/u.test(value); }",
       "errors": [
         {
@@ -387,6 +432,26 @@
       ],
       "filename": "/project/src/validation/normalize.ts",
       "name": "[regex] inline \"new RegExp(...)\" construction with a literal string pattern -> flagged"
+    },
+    {
+      "code": "export function isId(value: string): boolean { return new RegExp(`^abc$`).test(value); }",
+      "errors": [
+        {
+          "messageId": "regexBelongsInConstants"
+        }
+      ],
+      "filename": "/project/src/validation/templateRegex.ts",
+      "name": "[regex] inline \"new RegExp(...)\" construction with a static template-literal pattern -> flagged"
+    },
+    {
+      "code": "export function isId(value: string): boolean { return new RegExp(\"^a\" + \"bc$\").test(value); }",
+      "errors": [
+        {
+          "messageId": "regexBelongsInConstants"
+        }
+      ],
+      "filename": "/project/src/validation/concatRegex.ts",
+      "name": "[regex] inline \"new RegExp(...)\" construction with a string-concatenation pattern -> flagged"
     },
     {
       "code": "export function scan(value: string): boolean {\n  return /a/u.test(value) && /b/u.test(value);\n}",

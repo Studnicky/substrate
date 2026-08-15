@@ -10,6 +10,7 @@ import {
   FILE_EXTENSION_STRIP_PATTERN,
   FUNCTION_LIKE_INIT_TYPES,
   INDEX_FILES,
+  PRIMITIVE_WRAPPER_CONSTRUCTOR_NAMES,
   TS_WRAPPER_EXPRESSION_TYPES
 } from './constants/FolderContentShapeConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
@@ -97,17 +98,37 @@ class TopLevelScope {
     return typeof rawNode.id.name === 'string' ? rawNode.id.name : undefined;
   }
 
+  // Walks up through `export` wrappers and TS namespace-module wrappers (`TSModuleBlock` →
+  // `TSModuleDeclaration`, however many levels deep) to reach `Program`. A declaration nested
+  // inside `export namespace Wrapper { ... }` is still "top level" for this check's purposes —
+  // wrapping a declaration in a namespace is not a legitimate way to escape the interfaces/types
+  // folder-shape convention. Any OTHER kind of nesting (a function body, a class body, a plain
+  // block) breaks the chain and stays genuinely non-top-level.
   public static isTopLevel(rawNode: unknown): boolean {
     if (!ObjectGuard.isObject(rawNode)) { return false; }
-    const { parent } = rawNode;
-    if (!ObjectGuard.isObject(parent)) { return false; }
+    let parent: unknown = rawNode.parent;
 
-    const parentType = parent.type;
-    if (parentType === 'Program') { return true; }
-    if (parentType !== 'ExportNamedDeclaration') { return false; }
+    while (ObjectGuard.isObject(parent)) {
+      const parentType = parent.type;
 
-    const grandparent = parent.parent;
-    return ObjectGuard.isObject(grandparent) && grandparent.type === 'Program';
+      if (parentType === 'Program') { return true; }
+
+      if (parentType === 'ExportNamedDeclaration') {
+        parent = parent.parent;
+        continue;
+      }
+
+      if (parentType === 'TSModuleBlock') {
+        const moduleDeclaration = parent.parent;
+        if (!ObjectGuard.isObject(moduleDeclaration) || moduleDeclaration.type !== 'TSModuleDeclaration') { return false; }
+        parent = moduleDeclaration.parent;
+        continue;
+      }
+
+      return false;
+    }
+
+    return false;
   }
 }
 
@@ -137,7 +158,9 @@ class DeclaratorName {
       const properties: unknown = patternNode.properties;
       if (!Array.isArray(properties)) { return; }
 
-      for (const property of properties) {
+      const propertiesLength = properties.length;
+      for (let index = 0; index < propertiesLength; index += 1) {
+        const property: unknown = properties.at(index);
         if (!ObjectGuard.isObject(property)) { continue; }
 
         if (property.type === 'RestElement') {
@@ -154,8 +177,10 @@ class DeclaratorName {
       const elements: unknown = patternNode.elements;
       if (!Array.isArray(elements)) { return; }
 
-      for (const element of elements) {
-        if (element === null) { continue; }
+      const elementsLength = elements.length;
+      for (let index = 0; index < elementsLength; index += 1) {
+        const element: unknown = elements.at(index);
+        if (element === null || element === undefined) { continue; }
         DeclaratorName.collectPatternNames(element, names);
       }
     }
@@ -182,11 +207,36 @@ class DeclaratorName {
     return current;
   }
 
+  // A call to a primitive-wrapper builtin (`Number(...)`, `String(...)`, `Boolean(...)`) with a
+  // single literal argument produces a plain primitive value, not a function/reference — a magic
+  // constant spelled `Number(3)` is still the magic constant `3`, not a factory or dispatch map.
+  static isPrimitiveWrapperLiteralCall(node: unknown): boolean {
+    if (!ObjectGuard.isObject(node) || node.type !== 'CallExpression') { return false; }
+
+    const callee: unknown = node.callee;
+    if (!ObjectGuard.isObject(callee) || callee.type !== 'Identifier') { return false; }
+
+    const { name } = callee;
+    if (typeof name !== 'string' || !PRIMITIVE_WRAPPER_CONSTRUCTOR_NAMES.has(name)) { return false; }
+
+    const args: unknown = node.arguments;
+    if (!Array.isArray(args) || args.length !== 1) { return false; }
+
+    const arg: unknown = args.at(0);
+    return ObjectGuard.isObject(arg) && arg.type === 'Literal';
+  }
+
   // A value counts as function/reference-like — and therefore not inline
   // data — when it is a function literal, a call result, a member-access
   // reference (e.g. `Ns.method`, an interop-shim `.default` access), or a
   // `??`/`||`/`&&` fallback chain composed of such values (e.g. the
   // `(Mod as ...).default ?? (Mod as ...)` CJS/ESM interop pattern).
+  //
+  // A `CallExpression` is function/reference-like only when it is NOT a primitive-wrapper
+  // builtin call with a literal argument — `Number(3)`/`String("x")`/`Boolean(true)` construct a
+  // plain data value, not a reference, so they stay counted as data constants like any other
+  // literal. Every other call (a factory, a schema-builder, an arbitrary function invocation) is
+  // still treated as a reference/function-like value, unchanged.
   static isFunctionOrReferenceValue(node: unknown): boolean {
     const unwrapped = DeclaratorName.unwrapTsExpression(node);
     if (!ObjectGuard.isObject(unwrapped)) { return false; }
@@ -195,7 +245,10 @@ class DeclaratorName {
     if (typeof nodeType !== 'string') { return false; }
 
     if (FUNCTION_LIKE_INIT_TYPES.has(nodeType)) { return true; }
-    if (nodeType === 'MemberExpression' || nodeType === 'CallExpression') { return true; }
+    if (nodeType === 'MemberExpression') { return true; }
+    if (nodeType === 'CallExpression') {
+      return !DeclaratorName.isPrimitiveWrapperLiteralCall(unwrapped);
+    }
 
     if (nodeType === 'LogicalExpression') {
       return DeclaratorName.isFunctionOrReferenceValue(unwrapped.left) || DeclaratorName.isFunctionOrReferenceValue(unwrapped.right);
@@ -332,7 +385,7 @@ class SchemaMemberGuards {
 
     const paramsLength = params.length;
     for (let index = 0; index < paramsLength; index++) {
-      const arg: unknown = params[index];
+      const arg: unknown = params.at(index);
       if (!ObjectGuard.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeQuery') { continue; }
       const { exprName } = arg;
       if (ObjectGuard.isObject(exprName) && exprName.name === 'Schema') { return true; }
@@ -351,7 +404,7 @@ class SchemaMemberGuards {
     if (AstHelpers.getNodeType(typeAnnotation) === 'TSIntersectionType') {
       const { types } = typeAnnotation;
       if (!Array.isArray(types) || types.length < 2) { return false; }
-      return SchemaMemberGuards.isSchemaDerivedRef(types[0]);
+      return SchemaMemberGuards.isSchemaDerivedRef(types.at(0));
     }
     return false;
   }
@@ -373,7 +426,7 @@ class SchemaMemberGuards {
     if (!ObjectGuard.isObject(typeParams)) { return false; }
     const { params } = typeParams;
     if (!Array.isArray(params) || params.length !== 1) { return false; }
-    const arg: unknown = params[0];
+    const arg: unknown = params.at(0);
     if (!ObjectGuard.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') { return false; }
     const { typeName } = arg;
     return ObjectGuard.isObject(typeName) && (typeName).name === 'Type';
@@ -387,8 +440,8 @@ class SchemaMemberGuards {
     // schema-as-source-of-truth form. No explicit predicate annotation needed.
     if (declType === 'VariableDeclaration') {
       const { declarations } = decl;
-      if (Array.isArray(declarations) && declarations.length > 0 && ObjectGuard.isObject(declarations[0])) {
-        const firstDeclarator = declarations[0];
+      const firstDeclarator: unknown = Array.isArray(declarations) ? declarations.at(0) : undefined;
+      if (ObjectGuard.isObject(firstDeclarator)) {
         if (SchemaMemberGuards.isSchemaValidatorCompile(firstDeclarator.init)) { return true; }
       }
     }
@@ -399,8 +452,8 @@ class SchemaMemberGuards {
     if (declType === 'FunctionDeclaration') {
       returnType = decl.returnType;
       const { params } = decl;
-      if (Array.isArray(params) && params.length > 0 && ObjectGuard.isObject(params[0])) {
-        const p = params[0];
+      const p: unknown = Array.isArray(params) ? params.at(0) : undefined;
+      if (ObjectGuard.isObject(p)) {
         if (ObjectGuard.isObject(p.name)) {
           firstParamName = (p.name).name as string | undefined;
         } else {
@@ -411,7 +464,7 @@ class SchemaMemberGuards {
       // const validate = (...): candidate is Type => { ... }
       const { declarations } = decl;
       if (!Array.isArray(declarations) || declarations.length === 0) { return false; }
-      const declarator: unknown = declarations[0];
+      const declarator: unknown = declarations.at(0);
       if (!ObjectGuard.isObject(declarator)) { return false; }
       const { init } = declarator;
       if (!ObjectGuard.isObject(init)) { return false; }
@@ -420,8 +473,8 @@ class SchemaMemberGuards {
       if (initType !== 'ArrowFunctionExpression' && initType !== 'FunctionExpression') { return false; }
       returnType = init.returnType;
       const { params } = init;
-      if (Array.isArray(params) && params.length > 0 && ObjectGuard.isObject(params[0])) {
-        const p = params[0];
+      const p: unknown = Array.isArray(params) ? params.at(0) : undefined;
+      if (ObjectGuard.isObject(p)) {
         if (ObjectGuard.isObject(p.name)) {
           firstParamName = (p.name).name as string | undefined;
         } else {
@@ -478,7 +531,9 @@ class NamespaceScanner {
     const { body } = bodyNode;
     if (!Array.isArray(body)) { return result; }
 
-    for (const stmt of body) {
+    const bodyLength = body.length;
+    for (let bodyIndex = 0; bodyIndex < bodyLength; bodyIndex += 1) {
+      const stmt: unknown = body.at(bodyIndex);
       if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') { continue; }
       const decl = FolderShapeHelpers.getDeclaration(stmt);
       const declType = AstHelpers.getNodeType(decl);
@@ -487,7 +542,9 @@ class NamespaceScanner {
         if (!ObjectGuard.isObject(decl)) { continue; }
         const { declarations } = decl;
         if (!Array.isArray(declarations)) { continue; }
-        for (const d of declarations) {
+        const declarationsLength = declarations.length;
+        for (let declIndex = 0; declIndex < declarationsLength; declIndex += 1) {
+          const d: unknown = declarations.at(declIndex);
           if (!ObjectGuard.isObject(d) || !ObjectGuard.isObject(d.id)) { continue; }
           const { name } = d.id;
           if (name === 'Schema') {
@@ -531,7 +588,10 @@ class EntityNamespaceCheck {
       return;
     }
 
-    for (const exportStmt of namespaceExports) {
+    const namespaceExportsLength = namespaceExports.length;
+    for (let index = 0; index < namespaceExportsLength; index += 1) {
+      const exportStmt: unknown = namespaceExports.at(index);
+      if (exportStmt === undefined) { continue; }
       const decl = FolderShapeHelpers.getDeclaration(exportStmt);
       if (!ObjectGuard.isObject(decl)) { continue; }
 
@@ -572,6 +632,28 @@ class RegexLiteralCheck {
     return rawNode.type === 'Literal' && ObjectGuard.isObject(rawNode.regex);
   }
 
+  // A string argument is "inlined" — and thus a regex pattern belonging in constants/fixtures —
+  // when its full text is knowable statically at the call site: a plain string literal, a
+  // template literal with no interpolated expressions (`` `^abc$` ``), or a `+`-chain of only
+  // such static operands (`"^a" + "bc$"`). A reference to a runtime variable is never inlined,
+  // regardless of how the variable itself was built elsewhere.
+  static isStaticStringArgument(node: unknown): boolean {
+    if (!ObjectGuard.isObject(node)) { return false; }
+
+    if (node.type === 'Literal') { return typeof node.value === 'string'; }
+
+    if (node.type === 'TemplateLiteral') {
+      const expressions: unknown = node.expressions;
+      return Array.isArray(expressions) && expressions.length === 0;
+    }
+
+    if (node.type === 'BinaryExpression' && node.operator === '+') {
+      return RegexLiteralCheck.isStaticStringArgument(node.left) && RegexLiteralCheck.isStaticStringArgument(node.right);
+    }
+
+    return false;
+  }
+
   static isInlineRegExpConstruction(node: Rule.Node): boolean {
     const rawNode: unknown = node;
     if (!ObjectGuard.isObject(rawNode)) { return false; }
@@ -583,8 +665,8 @@ class RegexLiteralCheck {
     const args: unknown = rawNode.arguments;
     if (!Array.isArray(args) || args.length === 0) { return false; }
 
-    const firstArg: unknown = args[0];
-    return ObjectGuard.isObject(firstArg) && firstArg.type === 'Literal' && typeof firstArg.value === 'string';
+    const firstArg: unknown = args.at(0);
+    return RegexLiteralCheck.isStaticStringArgument(firstArg);
   }
 
   static run(context: Rule.RuleContext, node: Rule.Node): void {
@@ -730,7 +812,9 @@ class ConstantsCountCheck {
 
     const constNames: string[] = [];
 
-    for (const statement of programBody) {
+    const programBodyLength = programBody.length;
+    for (let bodyIndex = 0; bodyIndex < programBodyLength; bodyIndex += 1) {
+      const statement: unknown = programBody.at(bodyIndex);
       if (!ObjectGuard.isObject(statement)) { continue; }
 
       const statementType: unknown = statement.type;
@@ -752,13 +836,17 @@ class ConstantsCountCheck {
       const declarations: unknown = variableDeclaration.declarations;
       if (!Array.isArray(declarations)) { continue; }
 
-      for (const declarator of declarations) {
+      const declarationsLength = declarations.length;
+      for (let declIndex = 0; declIndex < declarationsLength; declIndex += 1) {
+        const declarator: unknown = declarations.at(declIndex);
         if (DeclaratorName.isNonDataConstantInit(declarator)) { continue; }
 
         const declaratorNames = DeclaratorName.getAll(declarator);
 
-        for (const declaratorName of declaratorNames) {
-          constNames.push(declaratorName);
+        const declaratorNamesLength = declaratorNames.length;
+        for (let nameIndex = 0; nameIndex < declaratorNamesLength; nameIndex += 1) {
+          const declaratorName = declaratorNames.at(nameIndex);
+          if (declaratorName !== undefined) { constNames.push(declaratorName); }
         }
       }
     }

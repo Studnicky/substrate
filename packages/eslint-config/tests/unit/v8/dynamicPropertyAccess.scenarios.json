@@ -1,0 +1,64 @@
+{
+  "valid": [
+    {
+      "code": "const value = obj.staticName;",
+      "name": "static dot access - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "const o = { value: obj[key] };",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed member access nested inside an object literal - flagged (pre-existing coverage)"
+    },
+    {
+      "code": "function read(obj, key) { return obj[key]; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "bare computed member access outside any object literal (bypass) - flagged (regression: original selector required an ObjectExpression ancestor)"
+    },
+    {
+      "code": "function write(obj, key, value) { obj[key] = value; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed member access as an assignment target outside an object literal - flagged"
+    },
+    {
+      "code": "const o = {}; o[key] = 1;",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "post-creation bracket assignment - flagged here (this rule owns it, not computedObjectProperties)"
+    },
+    {
+      "code": "for (let i = 0; i < arr.length; i += 1) { total += arr[i]; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed member access with a literal-looking but non-literal (variable) key in a loop - flagged"
+    },
+    {
+      "code": "const value = obj['staticName'];",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed access with a static string-literal key - still flagged (scope decision: no literal-key exemption added, preserves pre-fix behavior)"
+    }
+  ]
+}

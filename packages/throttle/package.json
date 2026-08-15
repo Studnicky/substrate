@@ -58,6 +58,7 @@
     "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/config": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/sample-buffer": "workspace:*",
     "@studnicky/signal": "workspace:*",

@@ -169,6 +169,15 @@
           }
         ],
         "name": "Array.from on a Map constructor - flagged"
+      },
+      {
+        "code": "function* ids() { yield 1; } const output = Array.from(ids());",
+        "errors": [
+          {
+            "messageId": "forbidden"
+          }
+        ],
+        "name": "Array.from on a generator result - flagged through the typed listener path"
       }
     ],
     "valid": [
@@ -185,8 +194,12 @@
         "name": "Array.from without arguments - not flagged"
       },
       {
-        "code": "function* ids() { yield 1; } const output = Array.from(ids());",
-        "name": "Array.from on a generator result - left to the typed listener path"
+        "code": "const capacity = 4; const output = Array.from<number | undefined>({ length: capacity });",
+        "name": "Array.from({ length: n }) preallocation with a bare identifier key - not flagged, array-like has no Symbol.iterator"
+      },
+      {
+        "code": "const capacity = 4; const output = Array.from<number | undefined>({ 'length': capacity });",
+        "name": "Array.from({ 'length': n }) preallocation with a quoted string key - not flagged, same array-like shape"
       }
     ]
   }

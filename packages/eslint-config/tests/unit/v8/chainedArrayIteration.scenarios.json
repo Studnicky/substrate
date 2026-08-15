@@ -7,6 +7,18 @@
     {
       "code": "const active = users.filter((u) => u.active);",
       "name": "standalone filter() - not flagged"
+    },
+    {
+      "code": "const tmp = users.filter((u) => u.active); console.log(tmp); const r = tmp.map((u) => u.name);",
+      "name": "split-statement chain - not flagged when temp var is used more than once"
+    },
+    {
+      "code": "const tmp = users.filter((u) => u.active); const unrelated = 1; const r = tmp.map((u) => u.name);",
+      "name": "split-statement chain - not flagged when a statement intervenes between declaration and use"
+    },
+    {
+      "code": "const tmp = users.filter((u) => u.active); const r = tmp.slice(0, 1);",
+      "name": "split-statement - not flagged when the next-statement read is not itself an iteration method"
     }
   ],
   "invalid": [
@@ -27,6 +39,33 @@
         }
       ],
       "name": "map().filter() chain - flagged"
+    },
+    {
+      "code": "const tmp = users.filter((u) => u.active); const names = tmp.map((u) => u.name);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "split-statement chain (bypass #1) - flagged when temp var is used exactly once in the very next statement"
+    },
+    {
+      "code": "const result = values.map((v) => v * 2).slice(0).filter((v) => v > 0);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "interposed non-iterating call between two iteration methods (bypass #2) - flagged"
+    },
+    {
+      "code": "const result = values.map((v) => v).reduce((sum, v) => sum + v, 0);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "generalized iteration-method pair (map + reduce) - flagged"
     }
   ]
 }

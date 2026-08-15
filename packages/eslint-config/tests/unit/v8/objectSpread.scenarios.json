@@ -1,0 +1,84 @@
+{
+  "valid": [
+    {
+      "code": "class Foo { constructor(x) { this.x = x; } }",
+      "name": "explicit property assignment in constructor - not flagged"
+    },
+    {
+      "code": "class Foo { constructor(x) { this.arr = [...x]; } }",
+      "name": "array spread in constructor - not flagged (only object-literal spread targeted)"
+    },
+    {
+      "code": "class Foo { method(x) { const merged = { ...x }; return merged; } }",
+      "name": "object spread in a method never called by the constructor - not flagged"
+    },
+    {
+      "code": "class Foo { constructor() {} method(x) { const merged = { ...x }; return merged; } }",
+      "name": "object spread in a method the constructor never calls - not flagged"
+    },
+    {
+      "code": "class Foo { constructor() {} init = (x) => { const merged = Object.assign(this, x); return merged; }; }",
+      "name": "Object.assign onto an existing reference (this) - not flagged (only a fresh {} first argument targets the allocate-a-throwaway-shape pattern)"
+    },
+    {
+      "code": "function standalone(x) { return { ...x }; }",
+      "name": "object spread outside any class - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "class Foo { constructor(x) { this.y = { ...x }; } }",
+      "errors": [
+        {
+          "messageId": "objectSpread"
+        }
+      ],
+      "name": "object spread directly inside a constructor - flagged (existing baseline)"
+    },
+    {
+      "code": "class Foo { constructor(x) { this.y = Object.assign({}, x); } }",
+      "errors": [
+        {
+          "messageId": "objectSpread"
+        }
+      ],
+      "name": "Object.assign({}, x) directly inside a constructor - flagged (bypass 1: same hidden-class churn as spread, no SpreadElement node)"
+    },
+    {
+      "code": "class Foo { constructor(x) { this.init(x); } init = (x) => { this.y = { ...x }; }; }",
+      "errors": [
+        {
+          "messageId": "objectSpread"
+        }
+      ],
+      "name": "spread hoisted into a class-field arrow function called from the constructor - flagged (bypass 2: enclosing function is a PropertyDefinition, not MethodDefinition[kind=constructor])"
+    },
+    {
+      "code": "class Foo { constructor(x) { this.init(x); } init = (x) => { this.y = Object.assign({}, x); }; }",
+      "errors": [
+        {
+          "messageId": "objectSpread"
+        }
+      ],
+      "name": "Object.assign({}, x) hoisted into a class-field arrow function called from the constructor - flagged"
+    },
+    {
+      "code": "class Foo { constructor(x) { this.buildY(x); } buildY(x) { this.y = { ...x }; } }",
+      "errors": [
+        {
+          "messageId": "objectSpread"
+        }
+      ],
+      "name": "spread factored into a helper method invoked by the constructor - flagged (bypass 3: extract-method refactor, the most practically dangerous case)"
+    },
+    {
+      "code": "class Foo { constructor(x) { this.buildY(x); } buildY(x) { this.y = Object.assign({}, x); } }",
+      "errors": [
+        {
+          "messageId": "objectSpread"
+        }
+      ],
+      "name": "Object.assign({}, x) factored into a helper method invoked by the constructor - flagged"
+    }
+  ]
+}

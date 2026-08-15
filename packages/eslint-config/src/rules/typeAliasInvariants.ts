@@ -36,14 +36,21 @@ import { TypeContractClassification } from './shared/TypeContractClassification.
  * length) instead of O(body length).
  */
 class ReexportedTypeNames {
-  private static readonly cache = new WeakMap<object, ReadonlySet<string>>();
+  private static readonly cache = new WeakMap<object, ReadonlyMap<string, string>>();
 
-  public static collect(context: Rule.RuleContext): ReadonlySet<string> {
+  /**
+   * Maps each locally-declared name to the name a separate, non-declaring `export { ... }`
+   * specifier list actually re-exports it as. Consumers only ever see the `exported` name — a
+   * declaration named `LocalNameType` re-exported as `ExportedNonTypeName` is imported by every
+   * consumer as `ExportedNonTypeName`, so that is the name the `Type`-suffix requirement must be
+   * checked against, not the declaration's own local name.
+   */
+  public static collect(context: Rule.RuleContext): ReadonlyMap<string, string> {
     const program = context.sourceCode.ast;
     const cached = ReexportedTypeNames.cache.get(program);
     if (cached !== undefined) { return cached; }
 
-    const names = new Set<string>();
+    const names = new Map<string, string>();
     const body: readonly unknown[] = Array.isArray(program.body) ? program.body : [];
     body.forEach((statement) => {
       if (!ObjectGuard.isObject(statement)) { return; }
@@ -58,7 +65,10 @@ class ReexportedTypeNames {
           const localName = ObjectGuard.isObject(specifier.local)
             ? AstHelpers.getIdentifierName(specifier.local)
             : undefined;
-          if (localName !== undefined) { names.add(localName); }
+          const exportedName = ObjectGuard.isObject(specifier.exported)
+            ? AstHelpers.getIdentifierName(specifier.exported)
+            : undefined;
+          if (localName !== undefined && exportedName !== undefined) { names.set(localName, exportedName); }
         }
       });
     });
@@ -76,14 +86,18 @@ class MustEndTypeCheck {
     if (name === undefined) { return; }
 
     const isInlineExport = rawNode.parent.type === 'ExportNamedDeclaration';
-    const isSeparateReexport =
-      rawNode.parent.type === 'Program' && ReexportedTypeNames.collect(context).has(name);
+    const reexportedAs = rawNode.parent.type === 'Program' ? ReexportedTypeNames.collect(context).get(name) : undefined;
+    const isSeparateReexport = reexportedAs !== undefined;
 
     if (!isInlineExport && !isSeparateReexport) { return; }
-    if (name.endsWith('Type')) { return; }
+
+    // The exported name is the name surface consumers actually see — check that, falling back to
+    // the declared name only when there is no separate re-export renaming it.
+    const nameToCheck = reexportedAs ?? name;
+    if (nameToCheck.endsWith('Type')) { return; }
 
     context.report({
-      'data': { 'name': name },
+      'data': { 'name': nameToCheck },
       'messageId': 'mustEndType',
       'node': node
     });
@@ -129,7 +143,7 @@ class ReadonlyCheck {
     const evidenceList = analysis.readonlyOutput;
     const evidenceCount = evidenceList.length;
     for (let index = 0; index < evidenceCount; index++) {
-      const evidence = evidenceList[index];
+      const evidence = evidenceList.at(index);
       if (evidence === undefined) { continue; }
       const evidenceStart = evidence.node.getStart(sourceFile);
       const evidenceEnd = evidence.node.getEnd();
@@ -156,8 +170,8 @@ class ReadonlyCheck {
       const prefix = evidenceText.slice(0, readonlyMatch.index);
       const plusPrefix = TRAILING_PLUS_PATTERN.exec(prefix);
       const relativeStart = plusPrefix?.index ?? readonlyMatch.index;
-      let relativeEnd = readonlyMatch.index + readonlyMatch[0].length;
-      const followingCharacter = evidenceText[relativeEnd];
+      let relativeEnd = readonlyMatch.index + (readonlyMatch.at(0) ?? '').length;
+      const followingCharacter = evidenceText.at(relativeEnd);
       if (followingCharacter === ' ' || followingCharacter === '\t') { relativeEnd += 1; }
       const removalRange: readonly [number, number] = [
         evidenceStart + relativeStart,
@@ -227,7 +241,7 @@ class AliasingAstHelpers {
     const paramsLen = params.length;
 
     for (let i = 0; i < paramsLen; i += 1) {
-      const arg: unknown = params[i];
+      const arg: unknown = params.at(i);
 
       if (!ObjectGuard.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') {
         return undefined;
@@ -252,7 +266,7 @@ class AliasingAstHelpers {
     const paramsLen = params.length;
 
     for (let i = 0; i < paramsLen; i += 1) {
-      const param: unknown = params[i];
+      const param: unknown = params.at(i);
       const nameNode = ObjectGuard.isObject(param) ? param.name : undefined;
       const name = AstHelpers.getIdentifierName(nameNode);
 
@@ -298,7 +312,7 @@ class GenericAliasAnalysis {
 
     const len = leftNames.length;
     for (let i = 0; i < len; i += 1) {
-      if (leftNames[i] !== rightNames[i]) { return undefined; }
+      if (leftNames.at(i) !== rightNames.at(i)) { return undefined; }
     }
     const typeName = annotation.typeName;
     const rhsName = AstHelpers.getIdentifierName(typeName);

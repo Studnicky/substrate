@@ -378,6 +378,20 @@
         "errors": 1,
         "errorMessage": "handler error"
       }
+    },
+    {
+      "name": "abort-mid-drain-fires-exactly-once",
+      "description": "abort during an active drain loop cancels the in-flight item, releases every backpressure/drain waiter exactly once, and stops the loop from starting any further queued item",
+      "shape": "abort-mid-drain-fires-exactly-once",
+      "input": {
+        "items": [1, 2, 3],
+        "highWaterMark": 2
+      },
+      "expected": {
+        "dequeuedCount": 1,
+        "received": [1],
+        "drainResolutions": 2
+      }
     }
   ]
 }

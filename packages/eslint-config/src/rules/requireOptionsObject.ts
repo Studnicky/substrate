@@ -30,15 +30,58 @@ interface TypeScriptRuleListenerInterface extends Rule.RuleListener {
 }
 
 class ParamInspector {
-  public static isOptional(param: unknown): boolean {
-    if (!ObjectGuard.isObject(param)) { return false; }
-    if (param.type === 'RestElement') { return false; }
-    if (param.type === 'ObjectPattern') { return false; }
-    if (param.type === 'AssignmentPattern') { return true; }
+  /**
+   * Returns true when an `Identifier` param's own type annotation is a union containing
+   * `undefined` (`value: T | undefined`). No `?` and no default value are present, but a caller
+   * may still idiomatically omit the argument (`undefined` is a valid explicit value at every
+   * call site), so this counts the same as an explicitly optional parameter.
+   */
+  private static hasUndefinedUnionAnnotation(param: Record<string, unknown>): boolean {
+    const ann = param.typeAnnotation;
+    if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return false; }
+    const typeAnnotation = ann.typeAnnotation;
+    if (typeAnnotation.type !== 'TSUnionType' || !Array.isArray(typeAnnotation.types)) { return false; }
+    return typeAnnotation.types.some((member) => {return (
+      ObjectGuard.isObject(member) && member.type === 'TSUndefinedKeyword'
+    );});
+  }
+
+  /**
+   * A rest param typed as a tuple (`...args: [name?: string, age?: number]`) is not a single
+   * non-optional unit — its own optional tuple members are exactly the kind of "caller may omit
+   * this" surface the rule exists to catch. Named tuple members mark themselves via
+   * `optional: true`; unnamed members wrap their element type in `TSOptionalType`.
+   */
+  private static tupleOptionalCount(param: Record<string, unknown>): number {
+    const ann = param.typeAnnotation;
+    if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return 0; }
+    const typeAnnotation = ann.typeAnnotation;
+    if (typeAnnotation.type !== 'TSTupleType' || !Array.isArray(typeAnnotation.elementTypes)) { return 0; }
+
+    let count = 0;
+    typeAnnotation.elementTypes.forEach((element) => {
+      if (!ObjectGuard.isObject(element)) { return; }
+      if (element.type === 'TSNamedTupleMember' && element.optional === true) { count += 1; return; }
+      if (element.type === 'TSOptionalType') { count += 1; }
+    });
+    return count;
+  }
+
+  /**
+   * Returns how many "caller may omit" optional slots a single parameter contributes. Ordinary
+   * optional parameters contribute at most one; a rest-tuple parameter can contribute several,
+   * one per optional tuple member, since it is not really a single param for this rule's purposes.
+   */
+  public static optionalCount(param: unknown): number {
+    if (!ObjectGuard.isObject(param)) { return 0; }
+    if (param.type === 'RestElement') { return ParamInspector.tupleOptionalCount(param); }
+    if (param.type === 'ObjectPattern') { return 0; }
+    if (param.type === 'AssignmentPattern') { return 1; }
     if (param.type === 'Identifier') {
-      return param.optional === true;
+      if (param.optional === true) { return 1; }
+      return ParamInspector.hasUndefinedUnionAnnotation(param) ? 1 : 0;
     }
-    return false;
+    return 0;
   }
 
   public static isOptionsObject(param: unknown): boolean {
@@ -49,7 +92,13 @@ class ParamInspector {
     if (param.type === 'Identifier') {
       const ann = param.typeAnnotation;
       if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return false; }
-      return ann.typeAnnotation.type === 'TSTypeLiteral';
+      const typeAnnotation = ann.typeAnnotation;
+      if (typeAnnotation.type !== 'TSTypeLiteral' || !Array.isArray(typeAnnotation.members)) { return false; }
+      // An empty `{}` or a pure index-signature literal (`{ [key: string]: unknown }`) carries
+      // none of a real options object's type safety — require at least one named member.
+      return typeAnnotation.members.some((member) => {return (
+        ObjectGuard.isObject(member) && (member.type === 'TSPropertySignature' || member.type === 'TSMethodSignature')
+      );});
     }
     return false;
   }
@@ -61,12 +110,19 @@ class ParamInspector {
     name: string,
     minOptionals: number
   ): void {
-    const optionals = params.filter(ParamInspector.isOptional);
-    if (optionals.length < minOptionals) { return; }
-    const lastOptional = optionals[optionals.length - 1];
-    if (lastOptional !== undefined && ParamInspector.isOptionsObject(lastOptional)) { return; }
+    let optionalsCount = 0;
+    let lastOptionalParam: unknown;
+    params.forEach((param) => {
+      const contribution = ParamInspector.optionalCount(param);
+      if (contribution <= 0) { return; }
+      optionalsCount += contribution;
+      lastOptionalParam = param;
+    });
+
+    if (optionalsCount < minOptionals) { return; }
+    if (lastOptionalParam !== undefined && ParamInspector.isOptionsObject(lastOptionalParam)) { return; }
     context.report({
-      'data': { 'count': String(optionals.length), 'name': name },
+      'data': { 'count': String(optionalsCount), 'name': name },
       'messageId': 'requireOptionsObject',
       'node': node
     });

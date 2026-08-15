@@ -44,20 +44,42 @@ export class DeadLetterQueueRetryGenerator<T> {
   async *generate(): AsyncGenerator<DlqEntryInterface<T>> {
     const drainIterator = this.#dlq.drain();
     for await (const entry of drainIterator) {
-      this.hooks.invoke('onYield', () => {
-        const result = this.onYield(entry);
-        return result;
-      });
+      this.#invokeOnYield(entry);
       yield entry;
-      this.hooks.invoke('onWait', () => {
-        const result = this.onWait(this.#intervalMs);
-        return result;
-      });
-      await new Promise<void>((resolve) => { setTimeout(resolve, this.#intervalMs); });
+      this.#invokeOnWait();
+      await this.#waitInterval();
     }
+    this.#invokeOnDone();
+  }
+
+  /** Extracted so the `onYield` hook callback isn't rebuilt inline on every `generate()` iteration. */
+  #invokeOnYield(entry: DlqEntryInterface<T>): void {
+    this.hooks.invoke('onYield', () => {
+      const result = this.onYield(entry);
+      return result;
+    });
+  }
+
+  /** Extracted so the `onWait` hook callback isn't rebuilt inline on every `generate()` iteration. */
+  #invokeOnWait(): void {
+    this.hooks.invoke('onWait', () => {
+      const result = this.onWait(this.#intervalMs);
+      return result;
+    });
+  }
+
+  /** Extracted so the `onDone` hook callback isn't rebuilt inline on every `generate()` iteration. */
+  #invokeOnDone(): void {
     this.hooks.invoke('onDone', () => {
       const result = this.onDone();
       return result;
+    });
+  }
+
+  /** Extracted so the delay's executor isn't rebuilt inline on every `generate()` iteration. */
+  #waitInterval(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      setTimeout(resolve, this.#intervalMs);
     });
   }
 

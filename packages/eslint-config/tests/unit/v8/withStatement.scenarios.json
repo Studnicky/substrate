@@ -1,0 +1,19 @@
+{
+  "valid": [
+    {
+      "code": "const obj = {}; obj.x = 1;",
+      "name": "ordinary property assignment - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "with (obj) { x = 1; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "with statement - flagged (selector is a bare WithStatement match; confirmed unmodified per PASS review verdict)"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "valid": [
+    {
+      "code": "const o = { a: 1, b: 2 };",
+      "name": "plain object literal - not flagged"
+    },
+    {
+      "code": "function f() { const { [key]: value } = obj; return value; }",
+      "name": "computed destructuring pattern property (ObjectPattern) - not flagged (regression: descendant selector previously matched this)"
+    },
+    {
+      "code": "const o = { method() { const { [key]: value } = obj; return value; } };",
+      "name": "computed destructuring pattern nested inside an object-literal method body - not flagged (regression: descendant selector previously matched this)"
+    },
+    {
+      "code": "const o = {}; o[key] = 1;",
+      "name": "post-creation bracket assignment - not flagged here (owned by dynamicPropertyAccess, not this rule)"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "const o = { [key]: 1 };",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "direct computed property in an object literal - flagged"
+    },
+    {
+      "code": "const o = Object.fromEntries([[key, 1]]);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "Object.fromEntries with dynamic entries (bypass) - flagged"
+    }
+  ]
+}

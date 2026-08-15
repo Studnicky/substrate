@@ -1,0 +1,20 @@
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
+
+/** Canonical discriminator for `OperationLifecycleMachine`'s `FireOnAbortStart` effect. */
+export namespace FireOnAbortStartEffectEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'variant': { 'const': 'FireOnAbortStart', 'type': 'string' }
+    },
+    'required': ['variant'],
+    'type': 'object'
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
+
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+}

@@ -49,6 +49,11 @@ void describe('regexp-in-loops', () => {
       callee: {}
     } as never);
 
+    listeners['Literal[regex]']?.({
+      type: 'Literal',
+      regex: undefined
+    } as never);
+
     assert.deepEqual(reports.map(toMessageId), []);
   });
 });

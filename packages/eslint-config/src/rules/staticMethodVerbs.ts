@@ -52,12 +52,34 @@ class ContextHelpers {
 }
 
 class AstHelpers {
+  /**
+   * A declaration is module-scope when its nearest non-export-wrapper container is a `Program`
+   * — directly, or through an `export`/`export default` wrapper. A `namespace`/`module` body
+   * (`TSModuleBlock`) is transparent the same way: `namespace Utils { export function f() {} }`
+   * is a freestanding function at module scope in every way that matters here, just wrapped one
+   * extra layer deeper. Recurses through arbitrarily nested namespaces and export wrappers.
+   */
   public static isModuleScope(node: Rule.Node): boolean {
-    const parent = node.parent;
-    if (parent?.type === 'Program') { return true; }
-    if (parent?.type === 'ExportNamedDeclaration' || parent?.type === 'ExportDefaultDeclaration') {
-      return parent.parent?.type === 'Program';
+    const result = AstHelpers.isModuleScopeContainer(node.parent);
+    return result;
+  }
+
+  private static isModuleScopeContainer(container: unknown): boolean {
+    if (!ObjectGuard.isObject(container)) { return false; }
+    if (container.type === 'Program') { return true; }
+
+    if (container.type === 'ExportNamedDeclaration' || container.type === 'ExportDefaultDeclaration') {
+      return AstHelpers.isModuleScopeContainer((container as { readonly 'parent'?: unknown }).parent);
     }
+
+    if (container.type === 'TSModuleBlock') {
+      const moduleDeclaration = (container as { readonly 'parent'?: unknown }).parent;
+      if (!ObjectGuard.isObject(moduleDeclaration) || moduleDeclaration.type !== 'TSModuleDeclaration') {
+        return false;
+      }
+      return AstHelpers.isModuleScopeContainer((moduleDeclaration as { readonly 'parent'?: unknown }).parent);
+    }
+
     return false;
   }
 
@@ -65,6 +87,76 @@ class AstHelpers {
     if (!ObjectGuard.isObject(init)) { return false; }
     const t = init.type;
     return t === 'ArrowFunctionExpression' || t === 'FunctionExpression';
+  }
+
+  /**
+   * Collects the name/function pairs of an object literal's method-shorthand and function-valued
+   * properties (`{ calculate(x) {...} }` and `{ calculate: (x) => {...} }` alike). Computed keys
+   * and spreads are skipped — there is no static name to report against.
+   */
+  public static objectExpressionFunctionProperties(
+    objectExpression: unknown
+  ): readonly { readonly 'name': string; readonly 'node': unknown }[] {
+    if (!ObjectGuard.isObject(objectExpression) || objectExpression.type !== 'ObjectExpression') { return []; }
+    const properties = objectExpression.properties;
+    if (!Array.isArray(properties)) { return []; }
+
+    const result: { 'name': string; 'node': unknown }[] = [];
+    properties.forEach((property) => {
+      if (!ObjectGuard.isObject(property) || property.type !== 'Property') { return; }
+      if (property.computed === true) { return; }
+      const key = property.key;
+      if (!ObjectGuard.isObject(key) || key.type !== 'Identifier' || typeof key.name !== 'string') { return; }
+      if (!AstHelpers.isFunctionInit(property.value)) { return; }
+      result.push({ 'name': key.name, 'node': property.value });
+    });
+    return result;
+  }
+
+  /**
+   * Collects the local-name/function pairs produced by destructuring an object or array literal
+   * that itself contains function-valued members — `const { foo } = { foo: (x) => {...} };` and
+   * `const [foo] = [(x) => {...}];`. The reported name is the locally bound identifier, since
+   * that is the freestanding name now in scope.
+   */
+  public static destructuredFunctionEntries(
+    id: unknown,
+    init: unknown
+  ): readonly { readonly 'name': string; readonly 'node': unknown }[] {
+    if (!ObjectGuard.isObject(id)) { return []; }
+
+    if (id.type === 'ObjectPattern' && ObjectGuard.isObject(init) && init.type === 'ObjectExpression') {
+      const sourceEntries = AstHelpers.objectExpressionFunctionProperties(init);
+      const patternProperties = Array.isArray(id.properties) ? id.properties : [];
+      const result: { 'name': string; 'node': unknown }[] = [];
+      patternProperties.forEach((patternProperty) => {
+        if (!ObjectGuard.isObject(patternProperty) || patternProperty.type !== 'Property') { return; }
+        if (patternProperty.computed === true) { return; }
+        const key = patternProperty.key;
+        const value = patternProperty.value;
+        if (!ObjectGuard.isObject(key) || key.type !== 'Identifier' || typeof key.name !== 'string') { return; }
+        if (!ObjectGuard.isObject(value) || value.type !== 'Identifier' || typeof value.name !== 'string') { return; }
+        const source = sourceEntries.find((entry) => {return entry.name === key.name;});
+        if (source !== undefined) { result.push({ 'name': value.name, 'node': source.node }); }
+      });
+      return result;
+    }
+
+    if (id.type === 'ArrayPattern' && ObjectGuard.isObject(init) && init.type === 'ArrayExpression') {
+      const patternElements = Array.isArray(id.elements) ? id.elements : [];
+      const initElements = Array.isArray(init.elements) ? init.elements : [];
+      const result: { 'name': string; 'node': unknown }[] = [];
+      patternElements.forEach((patternElement, index) => {
+        if (!ObjectGuard.isObject(patternElement) || patternElement.type !== 'Identifier') { return; }
+        if (typeof patternElement.name !== 'string') { return; }
+        const initElement: unknown = initElements.at(index);
+        if (!AstHelpers.isFunctionInit(initElement)) { return; }
+        result.push({ 'name': patternElement.name, 'node': initElement });
+      });
+      return result;
+    }
+
+    return [];
   }
 
   public static isNamedType(type: Type): boolean {
@@ -133,8 +225,10 @@ export const staticMethodVerbs: Rule.RuleModule = {
 
     const onFunctionDeclaration: NonNullable<Rule.RuleListener['FunctionDeclaration']> = (node) => {
       if (!AstHelpers.isModuleScope(node)) { return; }
-      const name = node.id?.name;
-      if (name === undefined) { return; }
+      // `node.id` is only absent for an anonymous default-exported declaration
+      // (`export default function(x) {...}`) — that is still a freestanding function at module
+      // scope and still worth checking, just reported under a placeholder label.
+      const name = node.id?.name ?? '(default export)';
       if (!shouldReport(node)) { return; }
       report(node, name);
     };
@@ -143,14 +237,42 @@ export const staticMethodVerbs: Rule.RuleModule = {
       if (!AstHelpers.isModuleScope(node)) { return; }
       const { declarations } = node;
       declarations.forEach((declarator) => {
-        if (declarator.id.type !== 'Identifier') { return; }
-        const name = declarator.id.name;
-        if (!AstHelpers.isFunctionInit(declarator.init)) { return; }
-        if (!shouldReport(declarator.init)) { return; }
-        context.report({
-          'data': { 'name': name },
-          'messageId': 'freestandingFunction',
-          'node': declarator
+        if (declarator.id.type === 'Identifier') {
+          const name = declarator.id.name;
+
+          if (AstHelpers.isFunctionInit(declarator.init)) {
+            if (!shouldReport(declarator.init)) { return; }
+            context.report({
+              'data': { 'name': name },
+              'messageId': 'freestandingFunction',
+              'node': declarator
+            });
+            return;
+          }
+
+          // Object-literal method shorthand / function-valued properties bound to a module-scope
+          // const: `export const utils = { calculate(x) {...} };`. Each function member is its
+          // own freestanding function in disguise — report it under `name.member`.
+          AstHelpers.objectExpressionFunctionProperties(declarator.init).forEach((entry) => {
+            if (!shouldReport(entry.node)) { return; }
+            context.report({
+              'data': { 'name': `${name}.${entry.name}` },
+              'messageId': 'freestandingFunction',
+              'node': entry.node as Rule.Node
+            });
+          });
+          return;
+        }
+
+        // Destructured export of a non-trivial function value:
+        // `export const { foo } = { foo: (x) => {...} };` or its array-destructured equivalent.
+        AstHelpers.destructuredFunctionEntries(declarator.id, declarator.init).forEach((entry) => {
+          if (!shouldReport(entry.node)) { return; }
+          context.report({
+            'data': { 'name': entry.name },
+            'messageId': 'freestandingFunction',
+            'node': entry.node as Rule.Node
+          });
         });
       });
     };

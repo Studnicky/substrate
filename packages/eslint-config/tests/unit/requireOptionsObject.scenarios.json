@@ -48,6 +48,14 @@
       "code": "function foo(name: string, age?: number, role?: string) {}",
       "name": "minOptionals: 3 override - 2 optionals fall below the overridden threshold, fine",
       "options": [{ "minOptionals": 3 }]
+    },
+    {
+      "code": "function foo(name: string, age: number | undefined) {}",
+      "name": "single T | undefined union param - below threshold, fine"
+    },
+    {
+      "code": "function foo(...args: [name?: string]) {}",
+      "name": "rest-tuple with a single optional member - below threshold, fine"
     }
   ],
   "invalid": [
@@ -123,6 +131,46 @@
       ],
       "name": "minOptionals: 3 override - 3 optionals meet the overridden threshold, flag",
       "options": [{ "minOptionals": 3 }]
+    },
+    {
+      "code": "function foo(name: string, age: number | undefined, role: string | undefined) {}",
+      "errors": [
+        {
+          "data": { "count": "2", "name": "foo" },
+          "messageId": "requireOptionsObject"
+        }
+      ],
+      "name": "T | undefined union params with no '?' and no default still count as caller-omittable - flag"
+    },
+    {
+      "code": "function foo(...args: [name?: string, age?: number, active?: boolean]) {}",
+      "errors": [
+        {
+          "data": { "count": "3", "name": "foo" },
+          "messageId": "requireOptionsObject"
+        }
+      ],
+      "name": "rest-tuple param's own optional members count toward the threshold - flag"
+    },
+    {
+      "code": "function foo(name: string, age?: number, role?: string, opts?: {}) {}",
+      "errors": [
+        {
+          "data": { "count": "3", "name": "foo" },
+          "messageId": "requireOptionsObject"
+        }
+      ],
+      "name": "an empty {} type literal has no real type safety and is not accepted as the options object - flag"
+    },
+    {
+      "code": "function foo(name: string, age?: number, role?: string, opts?: { [key: string]: unknown }) {}",
+      "errors": [
+        {
+          "data": { "count": "3", "name": "foo" },
+          "messageId": "requireOptionsObject"
+        }
+      ],
+      "name": "a pure index-signature type literal is not accepted as the options object - flag"
     }
   ]
 }

@@ -2,8 +2,17 @@ import type ts from 'typescript';
 
 import { ObjectGuard } from './ObjectGuard.js';
 
+// `esTreeNodeToTSNodeMap` is `Map`-shaped under some parser configurations and
+// `WeakMap`-shaped under others (e.g. `@typescript-eslint/parser`'s
+// `projectService`/`allowDefaultProject` mode) — both expose the same `.get()`
+// API this rule set actually consumes, so the contract is duck-typed on that
+// method rather than pinned to the `Map` constructor.
+interface EsTreeToTsNodeMapLikeInterface {
+  get(key: unknown): ts.Node | undefined;
+}
+
 interface ParserServicesInterface {
-  readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
+  readonly 'esTreeNodeToTSNodeMap'?: EsTreeToTsNodeMapLikeInterface;
   readonly 'program'?: ts.Program;
 }
 
@@ -23,9 +32,9 @@ export class AstHelpers {
   public static hasTypeServices(value: unknown): value is Required<ParserServicesInterface> {
     if (!ObjectGuard.isObject(value)) { return false; }
     if (!('program' in value) || !ObjectGuard.isObject(value.program)) { return false; }
+    if (typeof value.program.getTypeChecker !== 'function') { return false; }
+    if (!('esTreeNodeToTSNodeMap' in value) || !ObjectGuard.isObject(value.esTreeNodeToTSNodeMap)) { return false; }
 
-    return typeof value.program.getTypeChecker === 'function'
-      && 'esTreeNodeToTSNodeMap' in value
-      && value.esTreeNodeToTSNodeMap instanceof Map;
+    return typeof value.esTreeNodeToTSNodeMap.get === 'function';
   }
 }

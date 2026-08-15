@@ -2,18 +2,27 @@
 
 import { Batch } from '@studnicky/batch';
 import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { MachineTerminatedError } from '@studnicky/fsm';
 import { Signal } from '@studnicky/signal';
 import { System } from '@studnicky/system';
 import { Worker } from 'node:worker_threads';
 
 import type { WorkerPoolConfigEntity } from './entities/WorkerPoolConfigEntity.js';
-import type { WorkerTaskDispositionEntity } from './entities/WorkerTaskDispositionEntity.js';
 import type { WorkerTaskIndexEntity } from './entities/WorkerTaskIndexEntity.js';
+import type { FireOnWorkerErrorEffectInterface } from './interfaces/FireOnWorkerErrorEffectInterface.js';
+import type { RetryGuardStateInterface } from './interfaces/RetryGuardStateInterface.js';
+import type { TaskSettlementStateInterface } from './interfaces/TaskSettlementStateInterface.js';
 import type { WorkerErrorEnvelopeInterface } from './interfaces/WorkerErrorEnvelopeInterface.js';
+import type { WorkerLifecycleStateInterface } from './interfaces/WorkerLifecycleStateInterface.js';
 import type { WorkerLogEnvelopeInterface } from './interfaces/WorkerLogEnvelopeInterface.js';
 import type { WorkerPoolConfigInterface } from './interfaces/WorkerPoolConfigInterface.js';
 import type { WorkerProgressEnvelopeInterface } from './interfaces/WorkerProgressEnvelopeInterface.js';
 import type { WorkerResultEnvelopeInterface } from './interfaces/WorkerResultEnvelopeInterface.js';
+
+import { RetryGuardMachine } from './RetryGuardMachine.js';
+import { TaskSettlementMachine } from './TaskSettlementMachine.js';
+import { WorkerFailureMachine } from './WorkerFailureMachine.js';
+import { WorkerLifecycleMachine } from './WorkerLifecycleMachine.js';
 
 
 interface WorkerPoolDepsInterface extends WorkerPoolConfigEntity.Type {
@@ -26,18 +35,25 @@ interface IndexedItemInterface<TMessage> extends WorkerTaskIndexEntity.Type {
   readonly 'item': TMessage;
 }
 
+/** One worker's `@studnicky/fsm`-driven lifecycle state plus the index of the task it last ran. */
+interface WorkerRecordInterface {
+  'lastIndex': WorkerTaskIndexEntity.Type['index'];
+  'lifecycleState': WorkerLifecycleStateInterface;
+}
+
 interface PendingEntryInterface<TMessage, TResult> extends WorkerTaskIndexEntity.Type {
   'item': TMessage;
   'reject': (error: Error) => void;
   'resolve': (value: TResult) => void;
-  'retried'?: WorkerTaskDispositionEntity.Type['retried'];
+  'retryState'?: RetryGuardStateInterface;
 }
 
-interface TaskContextInterface<TMessage, TResult>
-  extends WorkerTaskDispositionEntity.Type, WorkerTaskIndexEntity.Type {
+interface TaskContextInterface<TMessage, TResult> extends WorkerTaskIndexEntity.Type {
   'item': TMessage;
   'reject': (error: Error) => void;
   'resolve': (value: TResult) => void;
+  'retryState': RetryGuardStateInterface;
+  'settlementState': TaskSettlementStateInterface;
   'unregisterTimeout': () => void;
 }
 
@@ -47,10 +63,30 @@ interface TaskContextInterface<TMessage, TResult>
  * concurrently-running workers. `batchConcurrency` controls how many items `Batch#process()`
  * admits into a scheduling window and defaults to `concurrency`. Workers are long-lived for the duration of a single `run()`
  * call — spun up as needed up to `concurrency`, reused across every item dispatched during
- * that call, and terminated only after every dispatched item has settled. Pool state (idle
- * workers, in-flight task tracking, the pending-item queue) lives entirely in `run()`'s own
- * scope, so two concurrent `run()` calls on the same instance never share or corrupt each
+ * that call, and terminated only after every dispatched item has settled. Pool state (per-worker
+ * lifecycle records, in-flight task tracking, the pending-item queue) lives entirely in `run()`'s
+ * own scope, so two concurrent `run()` calls on the same instance never share or corrupt each
  * other's workers.
+ *
+ * Two invariants that used to be enforced by ad hoc booleans re-checked at each call site are now
+ * formalized as `@studnicky/fsm` `StateMachine` subclasses, each instantiated fresh inside `run()`
+ * alongside the rest of that call's closure-scoped state — never hoisted to an instance field:
+ *
+ * - A worker's `idle → busy → idle` / `→ dead` lifecycle — `WorkerLifecycleMachine`, replacing the
+ *   `liveWorkers`/`idleWorkers` pair that used to be updated by hand at every call site that
+ *   spawned, assigned, freed, or killed a worker. Each worker's `lifecycleState` lives on the
+ *   `WorkerRecordInterface` this file keeps in `workerRecords`.
+ * - A task settles (resolves, rejects, or times out) at most once — `TaskSettlementMachine`,
+ *   driven through `settleTask()`, the only place a task's `settlementState` changes.
+ * - A task is retried at most once after an unexpected worker exit — `RetryGuardMachine`, driven
+ *   through the worker `'exit'` handler's unexpected-exit branch.
+ *
+ * `onWorkerError` fires from exactly one place — `reportWorkerError()`, which is the only caller of
+ * `WorkerFailureMachine#transition()` and the only place that applies the resulting
+ * `FireOnWorkerError` effect. Every failure path (pre-dispatch abort, an explicit `error` envelope,
+ * an uncaught worker `'error'` event, a worker-termination failure following an abort/timeout, and
+ * a worker-termination failure during final shutdown) constructs the failure as data and calls
+ * `reportWorkerError()` — the hook itself never fires anywhere else.
  *
  * Every envelope a worker posts back — `log`, `progress`, `result`, or `error` — fires
  * `onMessage()`. A `'result'` envelope resolves that item; a `'error'` envelope, an uncaught
@@ -119,15 +155,20 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       throw new Error('WorkerPool: workerPath is required');
     }
 
+    const getCurrentConstructor = (): Function & { readonly 'prototype': TInstance } => {
+      return this;
+    };
+    const currentConstructor = getCurrentConstructor();
+
     const concurrency = config.concurrency ?? System.optimalWorkerCount;
-    const result: unknown = Reflect.construct(this, [{
+    const result: unknown = Reflect.construct(currentConstructor, [{
       'batchConcurrency': config.batchConcurrency ?? concurrency,
       'concurrency': concurrency,
       'signal': config.signal ?? Signal.create(),
       'timeoutMs': config.timeoutMs,
       'workerPath': config.workerPath
     }]);
-    if (!WorkerPool.isConstructed(result, this)) {
+    if (!WorkerPool.isConstructed(result, currentConstructor)) {
       throw new TypeError('WorkerPool.create() must construct a WorkerPool instance');
     }
     return result;
@@ -158,8 +199,17 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
    * @returns Results in the same order as `items`
    */
   async run(items: readonly TMessage[]): Promise<TResult[]> {
+    // Every FSM instance below is constructed fresh for this call and lives only in this
+    // closure — never on `this` — preserving the documented invariant that two concurrent
+    // `run()` calls on the same instance never share or corrupt each other's workers.
+    const workerLifecycleMachine = new WorkerLifecycleMachine();
+    const taskSettlementMachine = new TaskSettlementMachine();
+    const retryGuardMachine = new RetryGuardMachine();
+    const workerFailureMachine = new WorkerFailureMachine();
+    let workerFailureState = workerFailureMachine.getInitialState();
+
     const currentTaskByWorker = new Map<Worker, TaskContextInterface<TMessage, TResult>>();
-    const liveWorkers = new Map<Worker, number>();
+    const workerRecords = new Map<Worker, WorkerRecordInterface>();
     const idleWorkers: Worker[] = [];
     const pendingQueue: PendingEntryInterface<TMessage, TResult>[] = [];
     let spawnedCount = 0;
@@ -169,10 +219,62 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       return reason === undefined ? new Error(message) : new Error(message, { 'cause': reason });
     };
 
+    const invokeWorkerErrorHook = (effect: FireOnWorkerErrorEffectInterface): void => {
+      this.hooks.invoke('onWorkerError', () => {
+        const result = this.onWorkerError(effect.error, effect.index);
+        return result;
+      });
+    };
+
+    // The single place `onWorkerError` fires — see the class doc. Every call site constructs the
+    // failure as data and calls this method; the hook itself never fires anywhere else.
+    const reportWorkerError = (error: Error, index: number): void => {
+      const step = workerFailureMachine.transition(workerFailureState, {
+        'error': error,
+        'index': index,
+        'type': 'workerFailure'
+      });
+      workerFailureState = step.state;
+      const effectsLength = step.effects.length;
+      for (let effectIndex = 0; effectIndex < effectsLength; effectIndex++) {
+        const effect = step.effects.at(effectIndex);
+        if (effect === undefined) { continue; }
+        invokeWorkerErrorHook(effect);
+      }
+    };
+
+    const reportOperationFailure = (cause: unknown, index: number): void => {
+      const error = cause instanceof Error
+        ? cause
+        : new Error('WorkerPool: asynchronous worker operation failed', { 'cause': cause });
+      reportWorkerError(error, index);
+    };
+
+    /** Idempotent: a no-op if `worker` is already dead — `WorkerLifecycleMachine` makes that structural rather than a re-checked boolean. */
+    const killWorker = (worker: Worker): void => {
+      const record = workerRecords.get(worker);
+      if (record === undefined) { return; }
+      try {
+        const step = workerLifecycleMachine.transition(record.lifecycleState, { 'type': 'kill' });
+        record.lifecycleState = step.state;
+      } catch (cause) {
+        if (!(cause instanceof MachineTerminatedError)) { throw cause; }
+      }
+      workerRecords.delete(worker);
+      const idleIndex = idleWorkers.indexOf(worker);
+      if (idleIndex !== -1) { idleWorkers.splice(idleIndex, 1); }
+    };
+
     const settleTask = (worker: Worker, fn: (context: TaskContextInterface<TMessage, TResult>) => void): boolean => {
       const context = currentTaskByWorker.get(worker);
-      if (context === undefined || context.settled) { return false; }
-      context.settled = true;
+      if (context === undefined) { return false; }
+      try {
+        const step = taskSettlementMachine.transition(context.settlementState, { 'type': 'settle' });
+        context.settlementState = step.state;
+      } catch (cause) {
+        if (cause instanceof MachineTerminatedError) { return false; }
+        throw cause;
+      }
       context.unregisterTimeout();
       currentTaskByWorker.delete(worker);
       fn(context);
@@ -184,6 +286,11 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       if (next !== undefined) {
         await assignTask(worker, next);
         return;
+      }
+      const record = workerRecords.get(worker);
+      if (record?.lifecycleState.variant === 'busy') {
+        const step = workerLifecycleMachine.transition(record.lifecycleState, { 'type': 'free' });
+        record.lifecycleState = step.state;
       }
       idleWorkers.push(worker);
     };
@@ -206,7 +313,8 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         return;
       }
 
-      if (!liveWorkers.has(worker)) {
+      const record = workerRecords.get(worker);
+      if (record === undefined) {
         const replacement = idleWorkers.pop();
         if (replacement === undefined) {
           pendingQueue.unshift(entry);
@@ -216,15 +324,22 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         return;
       }
 
-      liveWorkers.set(worker, entry.index);
+      // A freshly created or pooled-idle worker is idle; a direct hand-off from freeWorker() is
+      // already busy (it never re-enters the idle pool between tasks) — only the former is a
+      // real transition.
+      if (record.lifecycleState.variant === 'idle') {
+        const step = workerLifecycleMachine.transition(record.lifecycleState, { 'type': 'assign' });
+        record.lifecycleState = step.state;
+      }
+      record.lastIndex = entry.index;
 
       const context: TaskContextInterface<TMessage, TResult> = {
         'index': entry.index,
         'item': entry.item,
         'reject': entry.reject,
         'resolve': entry.resolve,
-        'retried': entry.retried === true,
-        'settled': false,
+        'retryState': entry.retryState ?? retryGuardMachine.getInitialState(),
+        'settlementState': taskSettlementMachine.getInitialState(),
         'unregisterTimeout': WorkerPool.#noopUnregisterTimeout
       };
 
@@ -233,10 +348,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
           const terminationError = cause instanceof Error
             ? cause
             : new Error('WorkerPool: worker termination failed', { 'cause': cause });
-          this.hooks.invoke('onWorkerError', () => {
-            const result = this.onWorkerError(terminationError, ctx.index);
-            return result;
-          });
+          reportWorkerError(terminationError, ctx.index);
         });
       };
 
@@ -264,10 +376,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
             `WorkerPool: task at index ${String(ctx.index)} was not dispatched because its signal was already aborted`,
             timeoutSignal?.reason
           );
-          this.hooks.invoke('onWorkerError', () => {
-            const result = this.onWorkerError(error, ctx.index);
-            return result;
-          });
+          reportWorkerError(error, ctx.index);
           ctx.reject(error);
           terminateAfterAbort(ctx);
         });
@@ -300,10 +409,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     const handleErrorEnvelope = async (worker: Worker, message: string): Promise<void> => {
       const settled = settleTask(worker, (ctx) => {
         const error = new Error(message);
-        this.hooks.invoke('onWorkerError', () => {
-          const result = this.onWorkerError(error, ctx.index);
-          return result;
-        });
+        reportWorkerError(error, ctx.index);
         ctx.reject(error);
       });
       if (settled) {
@@ -311,19 +417,9 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       }
     };
 
-    const reportOperationFailure = (cause: unknown, index: number): void => {
-      const error = cause instanceof Error
-        ? cause
-        : new Error('WorkerPool: asynchronous worker operation failed', { 'cause': cause });
-      this.hooks.invoke('onWorkerError', () => {
-        const result = this.onWorkerError(error, index);
-        return result;
-      });
-    };
-
     const createWorker = (workerIndex: number): Worker => {
       const worker = new Worker(this.#workerPath);
-      liveWorkers.set(worker, workerIndex);
+      workerRecords.set(worker, { 'lastIndex': workerIndex, 'lifecycleState': workerLifecycleMachine.getInitialState() });
       this.hooks.invoke('onWorkerCreated', () => {
         const result = this.onWorkerCreated(worker.threadId);
         return result;
@@ -365,38 +461,32 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       });
 
       worker.on('error', (error: Error) => {
-        const workerIndex = liveWorkers.get(worker) ?? -1;
+        const record = workerRecords.get(worker);
+        const workerIndex2 = record?.lastIndex ?? -1;
         settleTask(worker, (ctx) => {
-          this.hooks.invoke('onWorkerError', () => {
-            const result = this.onWorkerError(error, ctx.index);
-            return result;
-          });
+          reportWorkerError(error, ctx.index);
           ctx.reject(error);
         });
         worker.terminate().catch((cause: unknown) => {
           const terminationError = cause instanceof Error
             ? cause
             : new Error('WorkerPool: worker termination failed', { 'cause': cause });
-          this.hooks.invoke('onWorkerError', () => {
-            const result = this.onWorkerError(terminationError, workerIndex);
-            return result;
-          });
+          reportWorkerError(terminationError, workerIndex2);
         });
       });
 
       worker.on('exit', (code: number) => {
-        const workerIndex = liveWorkers.get(worker) ?? -1;
-        liveWorkers.delete(worker);
-        const idleIndex = idleWorkers.indexOf(worker);
-        if (idleIndex !== -1) { idleWorkers.splice(idleIndex, 1); }
+        const record = workerRecords.get(worker);
+        const workerIndex3 = record?.lastIndex ?? -1;
+        killWorker(worker);
 
         const context = currentTaskByWorker.get(worker);
 
-        if (context === undefined || context.settled) {
+        if (context === undefined || context.settlementState.variant === 'settled') {
           if (!shuttingDown) {
-            const replacement = createWorker(workerIndex);
+            const replacement = createWorker(workerIndex3);
             freeWorker(replacement).catch((cause: unknown) => {
-              reportOperationFailure(cause, workerIndex);
+              reportOperationFailure(cause, workerIndex3);
             });
           }
           return;
@@ -407,15 +497,27 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         // A worker that vanishes mid-task without a matching envelope is retried once on a
         // freshly spawned worker before being treated as a failure — this absorbs a worker
         // thread tearing itself down on its own between tasks, while a task that still fails
-        // after the retry surfaces as a genuine rejection.
-        if (!context.retried && !shuttingDown) {
+        // after the retry surfaces as a genuine rejection. RetryGuardMachine makes "retry once"
+        // structural: a second unexpected exit for the same task lands on isTerminated() and
+        // throws MachineTerminatedError instead of re-checking a mutable flag.
+        let retriedState: RetryGuardStateInterface | undefined;
+        if (!shuttingDown) {
+          try {
+            const step = retryGuardMachine.transition(context.retryState, { 'type': 'requestRetry' });
+            retriedState = step.state;
+          } catch (cause) {
+            if (!(cause instanceof MachineTerminatedError)) { throw cause; }
+          }
+        }
+
+        if (retriedState !== undefined) {
           const replacement = createWorker(context.index);
           assignTask(replacement, {
             'index': context.index,
             'item': context.item,
             'reject': context.reject,
             'resolve': context.resolve,
-            'retried': true
+            'retryState': retriedState
           }).catch((cause: unknown) => {
             reportOperationFailure(cause, context.index);
           });
@@ -466,12 +568,14 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     const allDispatchedPromises: Promise<TResult>[] = [];
     const results: TResult[] = [];
 
+    const dispatchAndTrack = (entry: IndexedItemInterface<TMessage>): Promise<TResult> => {
+      const result = dispatch(entry.item, entry.index);
+      allDispatchedPromises.push(result);
+      return result;
+    };
+
     try {
-      for await (const chunk of batch.process(indexed, (entry) => {
-        const result = dispatch(entry.item, entry.index);
-        allDispatchedPromises.push(result);
-        return result;
-      })) {
+      for await (const chunk of batch.process(indexed, dispatchAndTrack)) {
         results.push(...chunk);
       }
 
@@ -479,22 +583,22 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     } finally {
       shuttingDown = true;
       await Promise.allSettled(allDispatchedPromises);
-      const workersToTerminate = [...liveWorkers.entries()];
+      const workersToTerminate = [...workerRecords.entries()].map(
+        ([worker, record]) => {return [worker, record.lastIndex] as const;}
+      );
       const terminationResults = await Promise.allSettled(
         workersToTerminate.map(([worker]) => { const result = worker.terminate(); return result; })
       );
       terminationResults.forEach((outcome, index) => {
         if (outcome.status === 'fulfilled') { return; }
-        const workerEntry = workersToTerminate[index];
+        const workerEntry = workersToTerminate.at(index);
         if (workerEntry === undefined) { return; }
         const terminationCause: unknown = outcome.reason;
         const terminationError = terminationCause instanceof Error
           ? terminationCause
           : new Error('WorkerPool: worker termination failed', { 'cause': terminationCause });
-        this.hooks.invoke('onWorkerError', () => {
-          const result = this.onWorkerError(terminationError, workerEntry[1]);
-          return result;
-        });
+        const [, workerIndex] = workerEntry;
+        reportWorkerError(terminationError, workerIndex);
       });
     }
   }

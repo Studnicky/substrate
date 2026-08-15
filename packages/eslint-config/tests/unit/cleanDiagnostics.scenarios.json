@@ -119,13 +119,63 @@
       "output": "const x = 1;"
     },
     {
-      "code": "/* istanbul ignore entirely */\nconst x = 1;",
+      "code": "/* istanbul ignore next */\nconst x = 1;",
       "errors": [
         {
           "messageId": "suppression"
         }
       ],
-      "name": "forbids istanbul ignore entirely and removes comment line",
+      "name": "forbids real istanbul ignore next directive and removes comment line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "/* istanbul ignore if */\nif (x) { y(); }",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids real istanbul ignore if directive and removes comment line",
+      "output": "if (x) { y(); }"
+    },
+    {
+      "code": "/* istanbul ignore else */\nif (x) { y(); } else { z(); }",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids real istanbul ignore else directive and removes comment line",
+      "output": "if (x) { y(); } else { z(); }"
+    },
+    {
+      "code": "/* eslint no-console: \"off\" */\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids bare eslint config-comment double-quoted off form and removes comment line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "/* eslint no-console: 'off' */\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids bare eslint config-comment single-quoted off form and removes comment line",
+      "output": "const x = 1;"
+    },
+    {
+      "code": "/* eslint no-console: 0 */\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids bare eslint config-comment numeric-off form and removes comment line",
       "output": "const x = 1;"
     },
     {

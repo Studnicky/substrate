@@ -70,12 +70,12 @@ class CamelCase {
     let i = 0;
 
     while (i < length) {
-      const char = name[i]!;
+      const char = name.at(i)!;
 
       if (CamelCase.isLower(char)) {
         let j = i + 1;
 
-        while (j < length && CamelCase.isLower(name[j]!)) {
+        while (j < length && CamelCase.isLower(name.at(j)!)) {
           j += 1;
         }
         tokens.push(name.slice(i, j));
@@ -84,10 +84,10 @@ class CamelCase {
       }
 
       if (CamelCase.isUpper(char)) {
-        if (i + 1 < length && CamelCase.isLower(name[i + 1]!)) {
+        if (i + 1 < length && CamelCase.isLower(name.at(i + 1)!)) {
           let j = i + 2;
 
-          while (j < length && CamelCase.isLower(name[j]!)) {
+          while (j < length && CamelCase.isLower(name.at(j)!)) {
             j += 1;
           }
           tokens.push(name.slice(i, j));
@@ -97,10 +97,10 @@ class CamelCase {
 
         let j = i + 1;
 
-        while (j < length && CamelCase.isUpper(name[j]!)) {
+        while (j < length && CamelCase.isUpper(name.at(j)!)) {
           j += 1;
         }
-        if (j < length && CamelCase.isLower(name[j]!) && j - i > 1) {
+        if (j < length && CamelCase.isLower(name.at(j)!) && j - i > 1) {
           tokens.push(name.slice(i, j - 1));
           i = j - 1;
         } else {
@@ -153,7 +153,7 @@ class DescriptiveIdentifiers {
     function getNodeProperty(node: Rule.Node, property: string): unknown {
       const nodeAsObject: unknown = node;
 
-      return ObjectGuard.isObject(nodeAsObject) ? nodeAsObject[property] : undefined;
+      return ObjectGuard.isObject(nodeAsObject) ? Reflect.get(nodeAsObject, property) : undefined;
     }
 
     function onNodeWithId(node: Rule.Node): void {
@@ -172,9 +172,18 @@ class DescriptiveIdentifiers {
       }
       const parentType: unknown = parent.type;
 
+      // `FunctionDeclaration`/`VariableDeclarator` are exempted here only for their own `.id` node
+      // (already reported separately by `onNodeWithId`/`onNodeWithKey`) — never for the whole
+      // parent type, or bare parameters of a named `function process(cb, ctx) {}` would be
+      // invisible to this rule (its own `.id` exemption accidentally swallowing `.params` too).
+      if (
+        (parentType === 'FunctionDeclaration' || parentType === 'VariableDeclarator')
+        && parent.id === node
+      ) {
+        return;
+      }
       if (
         parentType === 'ExportSpecifier'
-        || parentType === 'FunctionDeclaration'
         || parentType === 'MethodDefinition'
         || parentType === 'Property'
         || parentType === 'PropertyDefinition'
@@ -182,7 +191,6 @@ class DescriptiveIdentifiers {
         || parentType === 'TSMethodSignature'
         || parentType === 'TSPropertySignature'
         || parentType === 'TSTypeParameter'
-        || parentType === 'VariableDeclarator'
       ) {
         return;
       }

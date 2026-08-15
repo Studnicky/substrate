@@ -3,7 +3,9 @@
 import { HookInvoker } from '@studnicky/errors';
 
 import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
+import type { CoalesceKeyStateInterface } from './interfaces/CoalesceKeyStateInterface.js';
 
+import { CoalesceKeyMachine } from './CoalesceKeyMachine.js';
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
 
 interface CoalesceSubclassInterface<TInstance> extends Function {
@@ -37,8 +39,12 @@ export class Coalesce<T> {
     this: CoalesceSubclassInterface<TInstance>,
     options?: CoalesceOptionsEntity.Type
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!CoalesceInstance.belongsTo(this, result)) {
+    const resolveSubclassConstructor = (): CoalesceSubclassInterface<TInstance> => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
+    if (!CoalesceInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Coalesce.create() did not construct the requested subclass.');
     }
     return result;
@@ -46,6 +52,8 @@ export class Coalesce<T> {
 
   protected readonly hooks: HookInvoker = new HookInvoker();
   readonly #inFlight = new Map<string, Promise<T>>();
+  readonly #keyMachine = new CoalesceKeyMachine();
+  readonly #keyStates = new Map<string, CoalesceKeyStateInterface>();
   readonly #timeout: number | undefined;
 
   protected constructor(options?: CoalesceOptionsEntity.Type) {
@@ -68,9 +76,14 @@ export class Coalesce<T> {
       )
       .finally(async () => {
         this.#inFlight.delete(key);
+        const settledState = this.#keyStates.get(key) ?? this.#keyMachine.getInitialState();
+        this.#keyStates.set(key, this.#keyMachine.transition(settledState, { 'type': 'settle' }).state);
+        this.#keyStates.delete(key);
         await this.hooks.invokeAsync('onCoalesceSettled', () => { const result = this.onCoalesceSettled(key, success); return result; });
       });
     this.#inFlight.set(key, started);
+    const startedState = this.#keyStates.get(key) ?? this.#keyMachine.getInitialState();
+    this.#keyStates.set(key, this.#keyMachine.transition(startedState, { 'type': 'start' }).state);
 
     try {
       await this.hooks.invokeAsync('onCoalesceStart', () => { const result = this.onCoalesceStart(key); return result; });

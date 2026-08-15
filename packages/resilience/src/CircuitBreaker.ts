@@ -4,9 +4,26 @@ import type { ErrorClassificationEntity } from '@studnicky/errors';
 
 import { HookInvoker } from '@studnicky/errors';
 
+import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
+import type { CircuitBreakerCallSucceededEventEntity } from './entities/CircuitBreakerCallSucceededEventEntity.js';
+import type { CircuitBreakerClosedStateEntity } from './entities/CircuitBreakerClosedStateEntity.js';
+import type { CircuitBreakerHalfOpenStateEntity } from './entities/CircuitBreakerHalfOpenStateEntity.js';
+import type { CircuitBreakerManualOpenEventEntity } from './entities/CircuitBreakerManualOpenEventEntity.js';
+import type { CircuitBreakerManualResetEventEntity } from './entities/CircuitBreakerManualResetEventEntity.js';
+import type { CircuitBreakerOnCloseEffectEntity } from './entities/CircuitBreakerOnCloseEffectEntity.js';
+import type { CircuitBreakerOnHalfOpenEffectEntity } from './entities/CircuitBreakerOnHalfOpenEffectEntity.js';
+import type { CircuitBreakerOnOpenEffectEntity } from './entities/CircuitBreakerOnOpenEffectEntity.js';
+import type { CircuitBreakerOnRejectEffectEntity } from './entities/CircuitBreakerOnRejectEffectEntity.js';
+import type { CircuitBreakerOnSuccessEffectEntity } from './entities/CircuitBreakerOnSuccessEffectEntity.js';
+import type { CircuitBreakerOnTripEffectEntity } from './entities/CircuitBreakerOnTripEffectEntity.js';
+import type { CircuitBreakerOpenStateEntity } from './entities/CircuitBreakerOpenStateEntity.js';
+import type { CircuitBreakerResetTimeoutElapsedEventEntity } from './entities/CircuitBreakerResetTimeoutElapsedEventEntity.js';
 import type { CircuitStateEntity } from './entities/CircuitStateEntity.js';
+import type { CircuitBreakerCallFailedEventInterface } from './interfaces/CircuitBreakerCallFailedEventInterface.js';
+import type { CircuitBreakerOnFailureEffectInterface } from './interfaces/CircuitBreakerOnFailureEffectInterface.js';
 import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 
+import { CircuitBreakerMachine } from './CircuitBreakerMachine.js';
 import { CircuitBreakerOpenError } from './CircuitBreakerOpenError.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
@@ -28,16 +45,23 @@ export class CircuitBreaker {
     protected override onHookError(): void {}
   };
 
-  readonly #failureThreshold: number;
   readonly #resetTimeoutMs: number;
-  readonly #successThreshold: number;
   readonly #name: string;
   readonly #clock: () => number;
   readonly #classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
-  #state: CircuitStateEntity.Type = 'closed';
-  #failureCount = 0;
-  #successCount = 0;
-  #openedAt = 0;
+  readonly #machine: CircuitBreakerMachine;
+  #machineState: CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type;
+  /**
+   * Mirrors the `attemptNumber` semantics `classifyError`/`errorClassifier`
+   * always saw pre-refactor: it counts consecutive failures while `closed`,
+   * is zeroed on a `closed`-state success or `reset()`, and is otherwise left
+   * untouched while `open`/`halfOpen` — including across a halfOpen failure,
+   * where it still reports the count from before the circuit last tripped.
+   * No test or doc exercises this value once the circuit leaves `closed`; it
+   * is preserved here purely for exact behavioral parity rather than because
+   * the value is meaningful in `open`/`halfOpen`.
+   */
+  #classifierAttemptCount = 0;
 
   /** Invokes lifecycle hooks, retaining diagnostics in the invoker while swallowing failures. */
   protected readonly hooks: HookInvoker;
@@ -46,8 +70,12 @@ export class CircuitBreaker {
     this: CircuitBreakerSubclassInterface<TInstance>,
     options: CircuitBreakerOptionsInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!CircuitBreakerInstance.belongsTo(this, result)) {
+    const resolveSubclassConstructor = (): CircuitBreakerSubclassInterface<TInstance> => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
+    if (!CircuitBreakerInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('CircuitBreaker.create() did not construct the requested subclass.');
     }
     return result;
@@ -57,11 +85,14 @@ export class CircuitBreaker {
     this.hooks = new CircuitBreaker.#OwnedHookInvoker();
     if (options.failureThreshold < 1) {throw new ResilienceConfigError('failureThreshold must be >= 1');}
     if (options.resetTimeoutMs < 0) {throw new ResilienceConfigError('resetTimeoutMs must be >= 0');}
-    this.#failureThreshold = options.failureThreshold;
     this.#resetTimeoutMs = options.resetTimeoutMs;
-    this.#successThreshold = options.successThreshold ?? 1;
     this.#name = options.name ?? 'circuit-breaker';
     this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
+    this.#machine = new CircuitBreakerMachine({
+      'failureThreshold': options.failureThreshold,
+      'successThreshold': options.successThreshold ?? 1
+    });
+    this.#machineState = this.#machine.getInitialState();
 
     let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
     if (options.errorClassifier === undefined) {
@@ -77,46 +108,43 @@ export class CircuitBreaker {
     this.#classifierFn = classifierFn;
   }
 
-  get state(): CircuitStateEntity.Type { const result = this.#state;
+  get state(): CircuitStateEntity.Type { const result = this.#machineState.variant;
     return result; }
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     this.#checkHalfOpen();
-    if (this.#state === 'open') {
-      this.hooks.invoke('onReject', () => {
-        const result = this.onReject();
-        return result;
-      });
+    if (this.#machineState.variant === 'open') {
+      this.#dispatch({ 'type': 'callRejected' });
       throw new CircuitBreakerOpenError(this.#name);
     }
+    const wasHalfOpen = this.#machineState.variant === 'halfOpen';
     try {
       const result = await fn();
-      this.#recordSuccess();
+      this.#dispatch({ 'type': 'callSucceeded' });
+      if (!wasHalfOpen) {
+        this.#classifierAttemptCount = 0;
+      }
       return result;
     } catch (err: unknown) {
-      this.#recordFailure(err);
+      const error = err instanceof Error ? err : new Error(String(err));
+      const classification = this.#classifierFn(error, this.#classifierAttemptCount);
+      if (!classification.retryable) {
+        if (!wasHalfOpen) {
+          this.#classifierAttemptCount += 1;
+        }
+        this.#dispatch({ 'at': this.#clock(), 'error': err, 'type': 'callFailed' });
+      }
       throw err;
     }
   }
 
   reset(): void {
-    this.#state = 'closed';
-    this.#failureCount = 0;
-    this.#successCount = 0;
-    this.#openedAt = 0;
-    this.hooks.invoke('onClose', () => {
-      const result = this.onClose();
-      return result;
-    });
+    this.#classifierAttemptCount = 0;
+    this.#dispatch({ 'type': 'manualReset' });
   }
 
   forceOpen(): void {
-    this.#state = 'open';
-    this.#openedAt = this.#clock();
-    this.hooks.invoke('onOpen', () => {
-      const result = this.onOpen();
-      return result;
-    });
+    this.#dispatch({ 'at': this.#clock(), 'type': 'manualOpen' });
   }
 
   /**
@@ -184,87 +212,74 @@ export class CircuitBreaker {
   protected onReject(): void {}
 
   #checkHalfOpen(): void {
-    if (this.#state === 'open' && this.#clock() - this.#openedAt >= this.#resetTimeoutMs) {
-      this.#state = 'halfOpen';
-      this.#successCount = 0;
-      this.hooks.invoke('onHalfOpen', () => {
-        const result = this.onHalfOpen();
-        return result;
-      });
+    if (this.#machineState.variant === 'open' && this.#clock() - this.#machineState.openedAt >= this.#resetTimeoutMs) {
+      this.#dispatch({ 'type': 'resetTimeoutElapsed' });
     }
   }
 
-  #recordSuccess(): void {
-    if (this.#state === 'halfOpen') {
-      this.#successCount += 1;
-      if (this.#successCount >= this.#successThreshold) {
-        this.#state = 'closed';
-        this.#failureCount = 0;
-        this.#successCount = 0;
-        this.#openedAt = 0;
-        this.hooks.invoke('onSuccess', () => {
-          const result = this.onSuccess();
-          return result;
-        });
-        this.hooks.invoke('onClose', () => {
-          const result = this.onClose();
-          return result;
-        });
-      } else {
-        this.hooks.invoke('onSuccess', () => {
-          const result = this.onSuccess();
-          return result;
-        });
-      }
-    } else {
-      this.#failureCount = 0;
-      this.hooks.invoke('onSuccess', () => {
-        const result = this.onSuccess();
-        return result;
-      });
+  /**
+   * Advances the machine one event and plays back the effects `reduce()`
+   * decided on — this is the ONLY place a lifecycle hook is invoked from, so
+   * a hook can neither double-fire nor get skipped: the reducer emits its
+   * `effects` list once per event, and this loop invokes each entry exactly
+   * once, in the order the reducer returned them.
+   */
+  #dispatch(
+    event: CircuitBreakerCallFailedEventInterface
+    | CircuitBreakerCallRejectedEventEntity.Type
+    | CircuitBreakerCallSucceededEventEntity.Type
+    | CircuitBreakerManualOpenEventEntity.Type
+    | CircuitBreakerManualResetEventEntity.Type
+    | CircuitBreakerResetTimeoutElapsedEventEntity.Type
+  ): void {
+    const step = this.#machine.transition(this.#machineState, event);
+    this.#machineState = step.state;
+    const effectsLength = step.effects.length;
+    for (let i = 0; i < effectsLength; i++) {
+      const effect = step.effects.at(i);
+      if (effect === undefined) {continue;}
+      this.#applyEffect(effect);
     }
   }
 
-  #recordFailure(err: unknown): void {
-    const error = err instanceof Error ? err : new Error(String(err));
-    const classification = this.#classifierFn(error, this.#failureCount);
-    if (classification.retryable) {
-      return;
-    }
-    if (this.#state === 'halfOpen') {
-      this.#state = 'open';
-      this.#openedAt = this.#clock();
-      this.hooks.invoke('onFailure', () => {
-        const result = this.onFailure(err);
-        return result;
-      });
-      this.hooks.invoke('onOpen', () => {
-        const result = this.onOpen();
-        return result;
-      });
-      return;
-    }
-    this.#failureCount += 1;
-    if (this.#failureCount >= this.#failureThreshold) {
-      this.#state = 'open';
-      this.#openedAt = this.#clock();
-      this.hooks.invoke('onFailure', () => {
-        const result = this.onFailure(err);
-        return result;
-      });
-      this.hooks.invoke('onTrip', () => {
-        const result = this.onTrip();
-        return result;
-      });
-      this.hooks.invoke('onOpen', () => {
-        const result = this.onOpen();
-        return result;
-      });
-    } else {
-      this.hooks.invoke('onFailure', () => {
-        const result = this.onFailure(err);
-        return result;
-      });
+  #applyEffect(
+    effect: CircuitBreakerOnCloseEffectEntity.Type
+    | CircuitBreakerOnFailureEffectInterface
+    | CircuitBreakerOnHalfOpenEffectEntity.Type
+    | CircuitBreakerOnOpenEffectEntity.Type
+    | CircuitBreakerOnRejectEffectEntity.Type
+    | CircuitBreakerOnSuccessEffectEntity.Type
+    | CircuitBreakerOnTripEffectEntity.Type
+  ): void {
+    switch (effect.variant) {
+      case 'onClose':
+        this.hooks.invoke('onClose', () => { const result = this.onClose();
+          return result; });
+        return;
+      case 'onFailure':
+        this.hooks.invoke('onFailure', () => { const result = this.onFailure(effect.error);
+          return result; });
+        return;
+      case 'onHalfOpen':
+        this.hooks.invoke('onHalfOpen', () => { const result = this.onHalfOpen();
+          return result; });
+        return;
+      case 'onOpen':
+        this.hooks.invoke('onOpen', () => { const result = this.onOpen();
+          return result; });
+        return;
+      case 'onReject':
+        this.hooks.invoke('onReject', () => { const result = this.onReject();
+          return result; });
+        return;
+      case 'onSuccess':
+        this.hooks.invoke('onSuccess', () => { const result = this.onSuccess();
+          return result; });
+        return;
+      case 'onTrip':
+        this.hooks.invoke('onTrip', () => { const result = this.onTrip();
+          return result; });
+        return;
     }
   }
 }

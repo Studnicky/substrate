@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@studnicky/errors": "workspace:*",
+    "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",

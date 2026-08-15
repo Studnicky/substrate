@@ -29,6 +29,7 @@
  */
 
 import { HookInvoker, ReentrantHookInvocationError } from '@studnicky/errors';
+import { TransitionRejectedError } from '@studnicky/fsm';
 
 import type { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
@@ -52,6 +53,7 @@ import {
   QueueSizeExceededError
 } from '../errors/index.js';
 import { configInternal } from './configInternal.js';
+import { MutexKeyMachine } from './MutexKeyMachine.js';
 
 interface QueueEntryInterface {
   'queuedAt': MutexQueueEntryEntity.Type['queuedAt'];
@@ -192,7 +194,7 @@ class LinkedAcquisitionQueue {
  * double-release guard a single implementation instead of duplicating it
  * between a release closure and a disposer closure.
  */
-class MutexLock<K extends PropertyKey> implements MutexLockInterface {
+class MutexLock<K extends PropertyKey> {
   readonly 'key': K;
 
   #released = false;
@@ -208,12 +210,6 @@ class MutexLock<K extends PropertyKey> implements MutexLockInterface {
       this.#released = true;
       this.#releaseFn();
     }
-  }
-
-  async [Symbol.asyncDispose](): Promise<void> {
-    // Async disposal pattern - ensure proper Promise resolution
-    await Promise.resolve();
-    this.release();
   }
 }
 
@@ -274,6 +270,16 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     return value instanceof constructor;
   }
 
+  /**
+   * Narrows `value` to `MutexLockInterface` after `acquireDisposable` has
+   * attached `Symbol.asyncDispose` onto a `MutexLock` instance at runtime
+   * (the symbol-keyed member cannot be a computed class member — see
+   * `MutexLock` above — so it is not statically present on the class type).
+   */
+  private static hasAsyncDispose(value: object): value is MutexLockInterface {
+    return Symbol.asyncDispose in value;
+  }
+
   static create<
     K extends PropertyKey = string,
     TInstance extends Mutex<K> = Mutex<K>
@@ -281,8 +287,12 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     this: Function & { readonly 'prototype': TInstance },
     config?: Partial<MutexConfigEntity.Type>
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
-    if (!Mutex.isConstructed<TInstance>(result, this)) {
+    const resolveConstructor = (): Function & { readonly 'prototype': TInstance } => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveConstructor(), [config]);
+    if (!Mutex.isConstructed<TInstance>(result, resolveConstructor())) {
       throw new TypeError('Mutex.create() must construct a Mutex instance');
     }
     return result;
@@ -290,6 +300,14 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
   readonly #keyStates: Map<K, MutexKeyStateEntity.Type>;
   readonly #activeKeys: Set<K>;
+
+  /**
+   * Owned `@studnicky/fsm` reducer judging per-key edge legality (see
+   * `MutexKeyMachine`). Stateless and synchronous — `#keyStates` above
+   * remains the actual per-key state store, exactly as before this class
+   * composed the FSM package.
+   */
+  readonly #machine: MutexKeyMachine;
 
   private coalescedCount = INITIAL_COUNTER;
   private readonly config: MutexConfigEntity.Type;
@@ -315,6 +333,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   protected constructor(config?: Partial<MutexConfigEntity.Type>) {
     this.#keyStates = new Map();
     this.#activeKeys = new Set();
+    this.#machine = new MutexKeyMachine();
     this.locks = new Set();
     this.queues = new Map();
     this.lockMetrics = new Map();
@@ -419,7 +438,20 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   async acquireDisposable(key: K): Promise<MutexLockInterface> {
     const release = await this.acquire(key);
-    return new MutexLock<K>(key, release);
+    const lock = new MutexLock<K>(key, release);
+    const asyncDispose = async (): Promise<void> => {
+      // Async disposal pattern - ensure proper Promise resolution
+      await Promise.resolve();
+      lock.release();
+    };
+
+    Reflect.set(lock, Symbol.asyncDispose, asyncDispose);
+
+    if (!Mutex.hasAsyncDispose(lock)) {
+      throw new TypeError('Mutex.acquireDisposable() failed to attach Symbol.asyncDispose');
+    }
+
+    return lock;
   }
 
   /**
@@ -503,19 +535,22 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   /**
    * Returns true if the `from → to` edge is legal for per-key FSM.
    *
-   * Legal edges:
-   * - `unlocked → locked`
-   * - `locked → queued`
-   * - `queued → locked`
-   * - `locked → unlocked`
+   * Delegates to `MutexKeyMachine.reduce()` — the single declarative source
+   * of truth for the legal edge set (`unlocked → locked`, `locked → queued`,
+   * `queued → locked`, `locked → unlocked`) — and interprets a deliberate
+   * `TransitionRejectedError` as an illegal edge. Any other thrown value
+   * (a reducer defect) propagates rather than being swallowed as `false`.
    */
   protected guardKey(from: MutexKeyStateEntity.Type, to: MutexKeyStateEntity.Type): boolean {
-    if (from === 'unlocked' && to === 'locked') {return true;}
-    if (from === 'locked' && to === 'queued') {return true;}
-    if (from === 'queued' && to === 'locked') {return true;}
-    if (from === 'locked' && to === 'unlocked') {return true;}
-
-    return false;
+    try {
+      this.#machine.transition({ 'variant': from }, { 'to': to, 'type': 'transitionTo' });
+      return true;
+    } catch (error) {
+      if (error instanceof TransitionRejectedError) {
+        return false;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -565,7 +600,16 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   clear(): void {
     for (const queue of this.queues.values()) {
-      for (const entry of queue.values()) {
+      const entries = queue.values();
+      const entriesLength = entries.length;
+
+      for (let index = FIRST_ARRAY_INDEX; index < entriesLength; index++) {
+        const entry = entries.at(index);
+
+        if (entry === undefined) {
+          continue;
+        }
+
         if (entry.timeoutId !== undefined) {
           clearTimeout(entry.timeoutId);
         }
@@ -577,10 +621,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     for (const [key, keyState] of this.#keyStates) {
       if (keyState !== 'unlocked') {
         this.#keyStates.set(key, 'unlocked');
-        this.hooks.invoke('onEnterKey', () => {
-          const result = this.onEnterKey(key, 'unlocked', keyState);
-          return result;
-        });
+        this.forceKeyStateUnlocked(key, keyState);
       }
     }
 
@@ -620,6 +661,18 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     return new Promise<void>((resolve) => {
       this.observers.push(resolve);
+    });
+  }
+
+  /**
+   * Fire the `onEnterKey` hook for a key force-transitioned to `unlocked` by `clear()`.
+   * Extracted so the callback is built once per call rather than rebuilt on every
+   * loop iteration in `clear()`.
+   */
+  private forceKeyStateUnlocked(key: K, previousState: MutexKeyStateEntity.Type): void {
+    this.hooks.invoke('onEnterKey', () => {
+      const result = this.onEnterKey(key, 'unlocked', previousState);
+      return result;
     });
   }
 
@@ -879,7 +932,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     const length = this.observers.length;
 
     for (let index = FIRST_ARRAY_INDEX; index < length; index++) {
-      const observer = this.observers[index];
+      const observer = this.observers.at(index);
 
       if (observer !== undefined) {
         observer();
@@ -978,6 +1031,18 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
         this.releaseLockCompletely(key);
       }
 
+      // Single call site for both hooks below — regardless of which branch
+      // above ran, this release has now either processed the queue (handed
+      // the lock to the next waiter) or dropped it (nobody waiting). Firing
+      // from one place after the branch, rather than nesting the call inside
+      // each branch, guarantees each hook fires exactly once per release()
+      // for *every* outcome instead of only the outcomes whichever branch
+      // happened to remember to fire it from.
+      this.hooks.invoke('afterRelease', () => {
+        const result = this.afterRelease(key);
+        return result;
+      });
+
       this.hooks.invoke('onRelease', () => {
         const result = this.onRelease(key);
         return result;
@@ -998,11 +1063,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     this.locks.delete(key);
     this.lockMetrics.delete(key);
 
-    this.hooks.invoke('afterRelease', () => {
-      const result = this.afterRelease(key);
-      return result;
-    });
-
+    // afterRelease now fires from release()'s single call site, covering
+    // this branch and the queue-handoff branch alike — see the comment there.
     if (this.locks.size === EMPTY_LENGTH && this.queues.size === EMPTY_LENGTH) {
       this.notifyObservers();
     }

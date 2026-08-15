@@ -1,0 +1,68 @@
+{
+  "valid": [
+    {
+      "code": "obj.x = 1;",
+      "name": "plain assignment instead of defineProperty - not flagged"
+    },
+    {
+      "code": "const notObject = { defineProperty() { return 1; } }; notObject.defineProperty();",
+      "name": "unrelated local object with its own defineProperty method - not flagged (alias tracking must not over-match)"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "Object.defineProperty(obj, 'x', { value: 1 });",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "Object.defineProperty - flagged (pre-existing coverage)"
+    },
+    {
+      "code": "Object.defineProperties(obj, { x: { value: 1 } });",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "Object.defineProperties (plural, bypass) - flagged"
+    },
+    {
+      "code": "Reflect.defineProperty(obj, 'x', { value: 1 });",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "Reflect.defineProperty (bypass) - flagged"
+    },
+    {
+      "code": "const { defineProperty } = Object; defineProperty(obj, 'x', { value: 1 });",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "destructured Object.defineProperty (bypass) - flagged"
+    },
+    {
+      "code": "const O = Object; O.defineProperty(obj, 'x', { value: 1 });",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "aliased Object (bypass) - flagged"
+    },
+    {
+      "code": "Object['defineProperty'](obj, 'x', { value: 1 });",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "bracket-notation Object['defineProperty'] (bypass) - flagged"
+    }
+  ]
+}

@@ -2,7 +2,9 @@ import type { Rule } from 'eslint';
 
 import {
   getCombinedModifierFlags,
+  type InterfaceDeclaration,
   isIdentifier,
+  isInterfaceDeclaration,
   isModuleBlock,
   isModuleDeclaration,
   isTypeAliasDeclaration,
@@ -78,6 +80,47 @@ class EntityTypeDeclaration {
   }
 }
 
+/**
+ * The interface spelling of the same canonical-derivation pattern:
+ * `interface FooType extends FromSchema<typeof Schema> {}` derives the identical schema-backed
+ * pure-data shape a `type FooType = FromSchema<typeof Schema>` alias does, just via a heritage
+ * clause instead of an assignment. `allTypesAreEntities` only ever listened for
+ * `TSTypeAliasDeclaration`, so this interface form was invisible to it entirely.
+ */
+class EntityInterfaceDeclaration {
+  static isCanonical(declaration: InterfaceDeclaration, classification: TypeContractClassification): boolean {
+    if (declaration.name.text !== 'Type') { return false; }
+    if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) { return false; }
+
+    const namespaceBlock = declaration.parent;
+    if (!isModuleBlock(namespaceBlock)) { return false; }
+
+    const extendsClause = (declaration.heritageClauses ?? []).find((clause) => {
+      return clause.token === SyntaxKind.ExtendsKeyword;
+    });
+    if (extendsClause?.types.length !== 1) { return false; }
+    const [extendedType] = extendsClause.types;
+    if (extendedType === undefined || !classification.isSchemaDerivedHeritageType(extendedType)) { return false; }
+
+    const ownsExportedSchema = namespaceBlock.statements.some((statement) => {
+      if (!isVariableStatement(statement)) { return false; }
+      const exported = statement.modifiers?.some((modifier) => {
+        return modifier.kind === SyntaxKind.ExportKeyword;
+      }) ?? false;
+      if (!exported) { return false; }
+      return statement.declarationList.declarations.some((schemaDeclaration) => {
+        return isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema';
+      });
+    });
+    if (!ownsExportedSchema) { return false; }
+
+    const namespaceDeclaration = namespaceBlock.parent;
+    return isModuleDeclaration(namespaceDeclaration)
+      && isIdentifier(namespaceDeclaration.name)
+      && namespaceDeclaration.name.text.endsWith('Entity');
+  }
+}
+
 export const allTypesAreEntities: Rule.RuleModule = {
   'create': (context) => {
     const services: unknown = context.sourceCode.parserServices;
@@ -99,7 +142,33 @@ export const allTypesAreEntities: Rule.RuleModule = {
       });
     };
 
-    return { 'TSTypeAliasDeclaration': onTSTypeAliasDeclaration };
+    const onTSInterfaceDeclaration = (node: Rule.Node): void => {
+      const declaration = services.esTreeNodeToTSNodeMap.get(node);
+      if (declaration === undefined || !isInterfaceDeclaration(declaration)) { return; }
+
+      const extendsClause = (declaration.heritageClauses ?? []).find((clause) => {
+        return clause.token === SyntaxKind.ExtendsKeyword;
+      });
+      if (extendsClause === undefined) { return; }
+
+      let hasSchemaDerivedHeritage = false;
+      for (const type of extendsClause.types) {
+        if (classification.isSchemaDerivedHeritageType(type)) {
+          hasSchemaDerivedHeritage = true;
+          break;
+        }
+      }
+      if (!hasSchemaDerivedHeritage) { return; }
+      if (EntityInterfaceDeclaration.isCanonical(declaration, classification)) { return; }
+
+      context.report({
+        'data': { 'name': declaration.name.text },
+        'messageId': 'forbidden-type-alias',
+        'node': node
+      });
+    };
+
+    return { 'TSInterfaceDeclaration': onTSInterfaceDeclaration, 'TSTypeAliasDeclaration': onTSTypeAliasDeclaration };
   },
   'meta': {
     'docs': {

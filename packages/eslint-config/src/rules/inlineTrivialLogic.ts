@@ -13,8 +13,8 @@ class SourceRangeAccess {
 
     if (!Array.isArray(range) || range.length < 2) { return undefined; }
 
-    const first: unknown = range[0];
-    const second: unknown = range[1];
+    const first: unknown = range.at(0);
+    const second: unknown = range.at(1);
 
     if (typeof first !== 'number' || typeof second !== 'number') { return undefined; }
 
@@ -56,6 +56,13 @@ export const inlineTrivialLogic: Rule.RuleModule = {
     };
     const { sourceCode } = context;
 
+    // A bare `SequenceExpression` (`0, bar(x)`) is invalid directly on the right-hand side of a
+    // `const` initializer — `const result = 0, bar(x);` parses as two declarators, not one. The
+    // source range of a parenthesized expression excludes its wrapping parens, so re-wrap here.
+    const assignableText = (text: string, node: unknown): string => {
+      return AstHelpers.getNodeType(node) === 'SequenceExpression' ? `(${text})` : text;
+    };
+
     const fixBlockBody = (fixer: Rule.RuleFixer, statement: unknown, argument: unknown): Rule.Fix | null => {
       const argRange = SourceRangeAccess.getSourceRange(argument);
       const stmtRange = SourceRangeAccess.getSourceRange(statement);
@@ -63,7 +70,7 @@ export const inlineTrivialLogic: Rule.RuleModule = {
       if (argRange === undefined || stmtRange === undefined) { return null; }
       const [argStart, argEnd] = argRange;
       const [stmtStart, stmtEnd] = stmtRange;
-      const argText = sourceCode.getText().slice(argStart, argEnd);
+      const argText = assignableText(sourceCode.getText().slice(argStart, argEnd), argument);
       const stmtText = sourceCode.getText().slice(stmtStart, stmtEnd);
       const match = LEADING_WHITESPACE_PATTERN.exec(stmtText);
       const indent = match?.at(0) ?? '  ';
@@ -77,7 +84,7 @@ export const inlineTrivialLogic: Rule.RuleModule = {
 
       if (exprRange === undefined) { return null; }
       const [exprStart, exprEnd] = exprRange;
-      const exprText = sourceCode.getText().slice(exprStart, exprEnd);
+      const exprText = assignableText(sourceCode.getText().slice(exprStart, exprEnd), expression);
       const replacement = `{ const result = ${exprText}; return result; }`;
 
       return fixer.replaceTextRange(exprRange, replacement);
@@ -98,8 +105,13 @@ export const inlineTrivialLogic: Rule.RuleModule = {
     };
 
     const reportBodyIfSingleReturn = (node: Rule.Node, body: readonly unknown[]): void => {
-      if (body.length !== 1) { return; }
-      const [statement] = body;
+      // `EmptyStatement` padding (a lone leading/trailing `;`) carries no logic of its own —
+      // `[EmptyStatement, ReturnStatement]` is the same trivial shape as `[ReturnStatement]`.
+      const substantiveStatements = body.filter((entry) => { const result = AstHelpers.getNodeType(entry) !== 'EmptyStatement';
+        return result; });
+
+      if (substantiveStatements.length !== 1) { return; }
+      const [statement] = substantiveStatements;
 
       if (statement === undefined) { return; }
       if (AstHelpers.getNodeType(statement) !== 'ReturnStatement') { return; }

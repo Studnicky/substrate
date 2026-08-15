@@ -35,10 +35,10 @@ class LayerAfterRoot {
     for (let start = 0; start <= maxStart; start += 1) {
       let matches = true;
       for (let offset = 0; offset < rootLen; offset += 1) {
-        if (fileSegments[start + offset] !== rootSegments[offset]) { matches = false; break; }
+        if (fileSegments.at(start + offset) !== rootSegments.at(offset)) { matches = false; break; }
       }
       if (matches) {
-        const candidate = fileSegments[start + rootLen];
+        const candidate = fileSegments.at(start + rootLen);
         if (candidate !== undefined && layerSet.has(candidate)) { return candidate; }
         return undefined;
       }
@@ -51,7 +51,7 @@ class LayerAfterRoot {
 class DefaultAllowedImports {
   public static get(sourceLayer: string, layers: readonly string[]): readonly string[] | undefined {
     if (sourceLayer === 'infrastructure') { return layers; }
-    return DEFAULT_STATIC_ALLOWED_IMPORTS[sourceLayer];
+    return DEFAULT_STATIC_ALLOWED_IMPORTS.get(sourceLayer);
   }
 }
 
@@ -68,9 +68,10 @@ export class LayerResolver {
       const prefixes = Object.keys(aliasPrefixes);
       const prefixesLen = prefixes.length;
       for (let pi = 0; pi < prefixesLen; pi += 1) {
-        const prefix = prefixes[pi];
+        const prefix = prefixes.at(pi);
         if (prefix !== undefined && importSpecifier.startsWith(prefix)) {
-          return aliasPrefixes[prefix];
+          const layer: unknown = Reflect.get(aliasPrefixes, prefix);
+          return typeof layer === 'string' ? layer : undefined;
         }
       }
     }
@@ -86,7 +87,9 @@ export class LayerResolver {
     if (!options.layers.includes(sourceLayer) || !options.layers.includes(targetLayer)) { return false; }
     if (sourceLayer === targetLayer) { return true; }
 
-    const override = options.allowedImports?.[sourceLayer];
+    const allowedImports = options.allowedImports;
+    const overrideValue: unknown = allowedImports === undefined ? undefined : Reflect.get(allowedImports, sourceLayer);
+    const override = Array.isArray(overrideValue) ? overrideValue : undefined;
     const allowed = override ?? DefaultAllowedImports.get(sourceLayer, options.layers);
     if (allowed === undefined) { return false; }
 

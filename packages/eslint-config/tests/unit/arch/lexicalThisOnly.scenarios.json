@@ -1,0 +1,81 @@
+{
+  "valid": [
+    {
+      "code": "class Foo { bar() { return this.baz; } }",
+      "name": "direct member access off this - allowed"
+    },
+    {
+      "code": "class Foo { bar() { return this; } }",
+      "name": "return this - allowed, method-chaining/fluent pattern"
+    },
+    {
+      "code": "const o = { bar() { this.baz(); } };",
+      "name": "direct method call off this in object method - allowed"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "class Foo { bar() { const self = this; } }",
+      "errors": [
+        {
+          "messageId": "alias"
+        }
+      ],
+      "name": "const self = this - VariableDeclarator alias, pre-existing coverage"
+    },
+    {
+      "code": "class Foo { bar() { let x; x = this; } }",
+      "errors": [
+        {
+          "messageId": "alias"
+        }
+      ],
+      "name": "x = this - AssignmentExpression alias, pre-existing coverage"
+    },
+    {
+      "code": "function capture(x) {} class Foo { bar() { capture(this); } }",
+      "errors": [
+        {
+          "messageId": "alias"
+        }
+      ],
+      "name": "capture(this) - call argument bypass"
+    },
+    {
+      "code": "class Foo { bar(foo) { foo.bind(this); } }",
+      "errors": [
+        {
+          "messageId": "alias"
+        }
+      ],
+      "name": "foo.bind(this) - call argument via member-call bypass"
+    },
+    {
+      "code": "class Foo { bar() { const arr = [this]; } }",
+      "errors": [
+        {
+          "messageId": "alias"
+        }
+      ],
+      "name": "const arr = [this] - array-element bypass"
+    },
+    {
+      "code": "class Foo { bar() { const o = { self: this }; } }",
+      "errors": [
+        {
+          "messageId": "alias"
+        }
+      ],
+      "name": "const o = { self: this } - object-property-value bypass"
+    },
+    {
+      "code": "class Foo { bar() { this.x = 1; } baz = this; }",
+      "errors": [
+        {
+          "messageId": "alias"
+        }
+      ],
+      "name": "class-field self = this - PropertyDefinition value bypass"
+    }
+  ]
+}

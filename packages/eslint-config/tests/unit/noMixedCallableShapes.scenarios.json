@@ -81,6 +81,46 @@
         }
       ],
       "name": "mixed nested inside a property"
+    },
+    {
+      "code": "type MixedFunctionType = Function | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "MixedFunctionType", "name": "MixedFunctionType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "the global Function type mixed with data is callable evidence, not an exempt lib-interface fallback"
+    },
+    {
+      "code": "type MixedAnyType = any | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "MixedAnyType", "name": "MixedAnyType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "any admits a callable value, so any mixed with data is still a mix"
+    },
+    {
+      "code": "interface Weird {\n  a: number;\n}\ninterface Weird {\n  (): void;\n}\ntype ViaMergedInterfaceType = Weird | { b: 2 };",
+      "errors": [
+        {
+          "data": { "location": "ViaMergedInterfaceType", "name": "ViaMergedInterfaceType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "a call signature in the second block of a declaration-merged interface is still callable evidence"
+    },
+    {
+      "code": "type Wrap<T> = T;\ntype ViaWrapType = Wrap<() => void> | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "ViaWrapType", "name": "ViaWrapType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "a generic identity alias substitutes the caller's concrete type argument instead of recursing into its bare type parameter"
     }
   ]
 }

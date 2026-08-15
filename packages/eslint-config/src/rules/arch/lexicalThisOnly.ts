@@ -1,31 +1,29 @@
 import type { Rule } from 'eslint';
 
-class ThisExpressionNode {
-  public static is(node: unknown): boolean {
-    if (node === null || node === undefined) {
-      return false;
-    }
-    if (typeof node !== 'object') {
-      return false;
+class LegitimateThisUse {
+  public static check(node: Rule.Node): boolean {
+    const parent = node.parent as Rule.Node | undefined;
+
+    if (parent === undefined) {
+      return true;
     }
 
-    return Reflect.get(node, 'type') === 'ThisExpression';
+    if (parent.type === 'MemberExpression' && parent.object === node) {
+      return true;
+    }
+
+    if (parent.type === 'ReturnStatement' && parent.argument === node) {
+      return true;
+    }
+
+    return false;
   }
 }
 
 export const lexicalThisOnly: Rule.RuleModule = {
   'create': (context) => {
-    const onAssignmentExpression: NonNullable<Rule.RuleListener['AssignmentExpression']> = (node) => {
-      if (ThisExpressionNode.is(node.right)) {
-        context.report({
-          'messageId': 'alias',
-          'node': node
-        });
-      }
-    };
-
-    const onVariableDeclarator: NonNullable<Rule.RuleListener['VariableDeclarator']> = (node) => {
-      if (ThisExpressionNode.is(node.init)) {
+    const onThisExpression: NonNullable<Rule.RuleListener['ThisExpression']> = (node) => {
+      if (!LegitimateThisUse.check(node)) {
         context.report({
           'messageId': 'alias',
           'node': node
@@ -34,8 +32,7 @@ export const lexicalThisOnly: Rule.RuleModule = {
     };
 
     return {
-      'AssignmentExpression': onAssignmentExpression,
-      'VariableDeclarator': onVariableDeclarator
+      'ThisExpression': onThisExpression
     };
   },
   'meta': {

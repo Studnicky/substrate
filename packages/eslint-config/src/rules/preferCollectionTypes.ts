@@ -67,17 +67,17 @@ interface IterationStackEntryInterface {
 
 class NodePropertyAccess {
   public static getString(obj: Record<string, unknown>, key: string): string | undefined {
-    const val = obj[key];
+    const val = Reflect.get(obj, key);
     return typeof val === 'string' ? val : undefined;
   }
 
   public static getBool(obj: Record<string, unknown>, key: string): boolean | undefined {
-    const val = obj[key];
+    const val = Reflect.get(obj, key);
     return typeof val === 'boolean' ? val : undefined;
   }
 
   public static getNode(obj: Record<string, unknown>, key: string): Record<string, unknown> | undefined {
-    const val = obj[key];
+    const val: unknown = Reflect.get(obj, key);
     return ObjectGuard.isObject(val) ? val : undefined;
   }
 }
@@ -146,11 +146,31 @@ class MembershipCallDetection {
     return MembershipIndexOfCall.get(parent) === node;
   }
 
+  // Returns true if node is: Object.fromEntries(...)
+  public static isObjectFromEntriesCall(node: unknown): boolean {
+    if (AstHelpers.getNodeType(node) !== 'CallExpression') { return false; }
+    if (!ObjectGuard.isObject(node)) { return false; }
+    const callee = node.callee;
+    if (!ObjectGuard.isObject(callee)) { return false; }
+    if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
+    if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return false; }
+
+    const obj = callee.object;
+    if (!ObjectGuard.isObject(obj) || AstHelpers.getNodeType(obj) !== 'Identifier') { return false; }
+    if (NodePropertyAccess.getString(obj, 'name') !== 'Object') { return false; }
+
+    const property = callee.property;
+    if (!ObjectGuard.isObject(property)) { return false; }
+    return NodePropertyAccess.getString(property, 'name') === 'fromEntries';
+  }
+
 }
 
 class MembershipIndexOfCall {
   // Returns the indexOf CallExpression node if `node` is a BinaryExpression testing
-  // its result for membership: x.indexOf(y) !== -1 | x.indexOf(y) > -1 | x.indexOf(y) < 0
+  // its result for membership, in any of its equivalent forms:
+  // x.indexOf(y) !== -1 | x.indexOf(y) === -1 (negated) | x.indexOf(y) > -1
+  // x.indexOf(y) < 0 | x.indexOf(y) >= 0 (negated)
   public static get(node: unknown): unknown {
     if (AstHelpers.getNodeType(node) !== 'BinaryExpression') { return undefined; }
     if (!ObjectGuard.isObject(node)) { return undefined; }
@@ -158,12 +178,12 @@ class MembershipIndexOfCall {
     const left = node.left;
     const right = node.right;
     if (
-      (operator === '!==' || operator === '>')
+      (operator === '!==' || operator === '===' || operator === '>')
       && MembershipCallDetection.isIndexOfCall(left)
       && MembershipCallDetection.isNumericLiteral(right, -1)
     ) { return left; }
     if (
-      operator === '<'
+      (operator === '<' || operator === '>=')
       && MembershipCallDetection.isIndexOfCall(left)
       && MembershipCallDetection.isNumericLiteral(right, 0)
     ) { return left; }
@@ -202,7 +222,7 @@ class IterationCallbackTracker {
     const pendingArgs = new Set<unknown>();
     const argsLen = args.length;
     for (let ai = 0; ai < argsLen; ai += 1) {
-      const arg: unknown = args[ai];
+      const arg: unknown = args.at(ai);
       const argType = AstHelpers.getNodeType(arg);
       if (argType === 'ArrowFunctionExpression' || argType === 'FunctionExpression') {
         pendingArgs.add(arg);
@@ -220,7 +240,7 @@ class IterationCallbackTracker {
   public static markActiveFound(stack: IterationStackEntryInterface[]): void {
     const stackLen = stack.length;
     for (let si = 0; si < stackLen; si += 1) {
-      const entry = stack[si];
+      const entry = stack.at(si);
       if (entry !== undefined) { entry.found = true; }
     }
   }
@@ -293,6 +313,29 @@ class ScopeReferenceDetection {
     const greatGrandParent = (grandParent as unknown as { readonly 'parent'?: unknown }).parent;
     return MembershipIndexOfCall.get(greatGrandParent) === (grandParent as unknown);
   }
+
+  // Returns true if this scope reference is: ident[key] — a computed member lookup with
+  // the identifier as the object, e.g. a variable bound to Object.fromEntries(...) read via
+  // bracket notation.
+  public static isComputedMemberObjectRef(ref: Scope.Reference): boolean {
+    const id = ref.identifier;
+    const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
+    if (!ObjectGuard.isObject(parent)) { return false; }
+    if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
+    if (NodePropertyAccess.getBool(parent, 'computed') !== true) { return false; }
+    return parent.object === (id as unknown);
+  }
+}
+
+class ReferenceGuards {
+  public static isReadReference(ref: Scope.Reference): boolean {
+    return !ref.isWrite();
+  }
+
+  public static isMembershipRef(ref: Scope.Reference): boolean {
+    return ScopeReferenceDetection.isIncludesCalleeRef(ref) || ScopeReferenceDetection.isIndexOfCalleeMembershipRef(ref);
+  }
+
 }
 
 class RuleHandlers {
@@ -354,31 +397,49 @@ class RuleHandlers {
     _node: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0],
     opts: Required<PreferCollectionTypesOptionsEntity.Type>,
     context: Rule.RuleContext,
-    moduleScopeArrays: ModuleScopeArrayEntryInterface[]
+    moduleScopeArrays: ModuleScopeArrayEntryInterface[],
+    fromEntriesBindings: ModuleScopeArrayEntryInterface[]
   ): void {
-    if (!opts.checkModuleScopeArrays || moduleScopeArrays.length === 0) { return; }
+    if (opts.checkModuleScopeArrays) {
+      const entriesLen = moduleScopeArrays.length;
+      for (let ei = 0; ei < entriesLen; ei += 1) {
+        const entry = moduleScopeArrays.at(ei); if (entry === undefined) { continue; }
+        // references is fully populated at Program:exit
+        const readRefs = entry.variable.references.filter(ReferenceGuards.isReadReference);
 
-    const entriesLen = moduleScopeArrays.length;
-    for (let ei = 0; ei < entriesLen; ei += 1) {
-      const entry = moduleScopeArrays[ei]; if (entry === undefined) { continue; }
-      // references is fully populated at Program:exit
-      const readRefs = entry.variable.references.filter((ref: Scope.Reference) => { return !ref.isWrite(); });
+        if (readRefs.length === 0) {
+          // No reads — unused; skip (other rules handle unused vars)
+          continue;
+        }
 
-      if (readRefs.length === 0) {
-        // No reads — unused; skip (other rules handle unused vars)
-        continue;
+        const allRefsAreIncludes = readRefs.every(ReferenceGuards.isMembershipRef);
+
+        if (allRefsAreIncludes) {
+          context.report({
+            'data': { 'name': entry.name },
+            'messageId': 'constantArrayForMembership',
+            'node': entry.node
+          });
+        }
       }
+    }
 
-      const allRefsAreIncludes = readRefs.every((ref: Scope.Reference) => {
-        return ScopeReferenceDetection.isIncludesCalleeRef(ref) || ScopeReferenceDetection.isIndexOfCalleeMembershipRef(ref);
-      });
+    if (opts.checkFromEntries) {
+      const bindingsLen = fromEntriesBindings.length;
+      for (let bi = 0; bi < bindingsLen; bi += 1) {
+        const entry = fromEntriesBindings.at(bi); if (entry === undefined) { continue; }
+        const readRefs = entry.variable.references.filter(ReferenceGuards.isReadReference);
 
-      if (allRefsAreIncludes) {
-        context.report({
-          'data': { 'name': entry.name },
-          'messageId': 'constantArrayForMembership',
-          'node': entry.node
-        });
+        if (readRefs.length === 0) { continue; }
+
+        const allRefsAreComputedLookups = readRefs.every(ScopeReferenceDetection.isComputedMemberObjectRef);
+
+        if (allRefsAreComputedLookups) {
+          context.report({
+            'messageId': 'fromEntriesWithBracket',
+            'node': entry.node
+          });
+        }
       }
     }
   }
@@ -387,38 +448,45 @@ class RuleHandlers {
     node: Rule.Node,
     opts: Required<PreferCollectionTypesOptionsEntity.Type>,
     context: Rule.RuleContext,
-    moduleScopeArrays: ModuleScopeArrayEntryInterface[]
+    moduleScopeArrays: ModuleScopeArrayEntryInterface[],
+    fromEntriesBindings: ModuleScopeArrayEntryInterface[]
   ): void {
-    // Pattern C: const VALID = ['a', 'b'] at module scope, used only for .includes()
-    if (!opts.checkModuleScopeArrays) { return; }
-
     const parent = node.parent as unknown as Record<string, unknown>;
     if (AstHelpers.getNodeType(parent) !== 'VariableDeclaration') { return; }
     if (NodePropertyAccess.getString(parent, 'kind') !== 'const') { return; }
 
-    // Must be at Program (module scope) level
-    const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
-    if (AstHelpers.getNodeType(grandParent) !== 'Program') { return; }
-
-    // Init must be an array literal
-    const declaratorRaw = node as unknown as Record<string, unknown>;
-    if (AstHelpers.getNodeType(declaratorRaw.init) !== 'ArrayExpression') { return; }
-
     // Binding must be a simple identifier
+    const declaratorRaw = node as unknown as Record<string, unknown>;
     const id = declaratorRaw.id;
     if (AstHelpers.getNodeType(id) !== 'Identifier') { return; }
     const name = NodePropertyAccess.getString(id as Record<string, unknown>, 'name');
     if (name === undefined) { return; }
 
-    // getDeclaredVariables on the VariableDeclaration gives us the scope variable
-    // with full reference tracking populated by the end of the AST pass
+    const isArrayLiteralInit = AstHelpers.getNodeType(declaratorRaw.init) === 'ArrayExpression';
+    const isFromEntriesInit = MembershipCallDetection.isObjectFromEntriesCall(declaratorRaw.init);
+    if (!isArrayLiteralInit && !isFromEntriesInit) { return; }
+
+    // getDeclaredVariables on the VariableDeclaration gives us the scope variable — from
+    // whichever scope (module, function, or class-method body) it was declared in — with full
+    // reference tracking populated by the end of the AST pass. Tracking is no longer limited to
+    // Program (module) scope: a const array/fromEntries binding used exclusively for membership
+    // or lookup is just as much a collection-type candidate inside a function body.
     const parentNode = node.parent;
     if (parentNode === null) { return; }
     const declared = context.sourceCode.getDeclaredVariables(parentNode);
     const variable = declared.find((v: Scope.Variable) => { return v.name === name; });
     if (variable === undefined) { return; }
 
-    moduleScopeArrays.push({ 'name': name, 'node': node, 'variable': variable });
+    // Pattern C: const VALID = ['a', 'b'], used only for .includes()/.indexOf() membership
+    if (isArrayLiteralInit && opts.checkModuleScopeArrays) {
+      moduleScopeArrays.push({ 'name': name, 'node': node, 'variable': variable });
+      return;
+    }
+
+    // Pattern B (indirect): const lookup = Object.fromEntries(...), used only via lookup[key]
+    if (isFromEntriesInit && opts.checkFromEntries) {
+      fromEntriesBindings.push({ 'name': name, 'node': node, 'variable': variable });
+    }
   }
 }
 
@@ -443,12 +511,13 @@ export const preferCollectionTypes: Rule.RuleModule = {
     const opts = Options.build(context.options.at(0));
 
     const moduleScopeArrays: ModuleScopeArrayEntryInterface[] = [];
+    const fromEntriesBindings: ModuleScopeArrayEntryInterface[] = [];
     const iterationStack: IterationStackEntryInterface[] = [];
 
     const callExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onCallExpression(node, opts, context, iterationStack); };
     const memberExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onMemberExpression(node, opts, context); };
-    const programExitHandler: NonNullable<Rule.RuleListener['Program:exit']> = (node): void => { RuleHandlers.onProgramExit(node, opts, context, moduleScopeArrays); };
-    const variableDeclaratorHandler = (node: Rule.Node): void => { RuleHandlers.onVariableDeclarator(node, opts, context, moduleScopeArrays); };
+    const programExitHandler: NonNullable<Rule.RuleListener['Program:exit']> = (node): void => { RuleHandlers.onProgramExit(node, opts, context, moduleScopeArrays, fromEntriesBindings); };
+    const variableDeclaratorHandler = (node: Rule.Node): void => { RuleHandlers.onVariableDeclarator(node, opts, context, moduleScopeArrays, fromEntriesBindings); };
     const iterationCallbackExitHandler = (node: unknown): void => { RuleHandlers.onIterationCallbackExit(node, context, iterationStack); };
 
     return {

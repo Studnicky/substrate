@@ -4,7 +4,15 @@ import { CircularBuffer } from '@studnicky/circular-buffer';
 import { HookInvoker } from '@studnicky/errors';
 
 import type { BusQueueCreateOptionsInterface } from './BusQueueCreateOptionsInterface.js';
+import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
+import type { BusQueueAbortEventEntity } from './entities/BusQueueAbortEventEntity.js';
+import type { BusQueueAbortingStateEntity } from './entities/BusQueueAbortingStateEntity.js';
+import type { BusQueueDrainingStateEntity } from './entities/BusQueueDrainingStateEntity.js';
+import type { BusQueueLoopFinishedEventEntity } from './entities/BusQueueLoopFinishedEventEntity.js';
+import type { BusQueueOpenStateEntity } from './entities/BusQueueOpenStateEntity.js';
+import type { BusQueueStartLoopEventEntity } from './entities/BusQueueStartLoopEventEntity.js';
 
+import { BusQueueLifecycleMachine } from './BusQueueLifecycleMachine.js';
 import {
   BUS_QUEUE_DEFAULT_HIGH_WATER_MARK,
   BUS_QUEUE_DEFAULT_WAITER_CAPACITY
@@ -75,8 +83,17 @@ export class BusQueue<T> {
   readonly #queue: CircularBuffer<BusQueueEntry<T>>;
   readonly #backpressureWaiters: CircularBuffer<{ 'resolve': () => void }>;
   readonly #drainWaiters: { 'resolve': () => void }[] = [];
-  #draining = false;
-  #aborted = false;
+  readonly #machine = new BusQueueLifecycleMachine();
+  #lifecycleState: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type
+    = this.#machine.getInitialState();
+  // Not representable in the lifecycle FSM's state: `#drainTask` holds a live
+  // Promise (not the serializable-shaped data an FSM state variant models)
+  // and memoizes the in-flight drain loop so concurrent `drain()` callers
+  // await the same awaitable instead of each registering a waiter. `#activeEntry`
+  // holds a live `BusQueueEntry` (with its own promise/closures) so `abort`'s
+  // `releaseForAbort` effect has something concrete to cancel. Both are
+  // bookkeeping the FSM's `variant` alone cannot carry — same reasoning as
+  // `Paginator` keeping non-serializable data outside its owned machine.
   #drainTask: Promise<void> | undefined = undefined;
   #activeEntry: BusQueueEntry<T> | undefined = undefined;
 
@@ -87,8 +104,13 @@ export class BusQueue<T> {
     this: BusQueueSubclassInterface<TInstance>,
     options: BusQueueCreateOptionsInterface<T>
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!BusQueueInstance.belongsTo(this, result)) {
+    // Lexical arrow closure over `this` (rather than `Reflect.construct(this, ...)`
+    // passing `this` directly as a call argument) so the receiver is obtained
+    // only through the rule-permitted `return this` form.
+    const getConstructor = (): BusQueueSubclassInterface<TInstance> => { return this; };
+    const constructor = getConstructor();
+    const result: unknown = Reflect.construct(constructor, [options]);
+    if (!BusQueueInstance.belongsTo(constructor, result)) {
       throw new TypeError('BusQueue.create() did not construct the requested subclass.');
     }
     return result;
@@ -114,15 +136,13 @@ export class BusQueue<T> {
       'overflow': 'grow'
     });
     const signal = options.signal;
-    let aborted = false;
     if (signal !== undefined) {
       if (signal.aborted) {
-        aborted = true;
+        this.#handleAbort();
       } else {
         signal.addEventListener('abort', () => { this.#handleAbort(); }, { 'once': true });
       }
     }
-    this.#aborted = aborted;
   }
 
   get size(): number {
@@ -131,7 +151,7 @@ export class BusQueue<T> {
   }
 
   async enqueue(item: T): Promise<void> {
-    if (this.#aborted) {
+    if (this.#isAborted()) {
       await this.hooks.invokeAsync('onDrop', () => { const result = this.onDrop(); return result; });
       return;
     }
@@ -179,7 +199,7 @@ export class BusQueue<T> {
     // A drain loop in flight may have already shifted the last item off #queue
     // (so #queue.length reads 0) while that item's handler is still running —
     // only the absence of an active loop means nothing is left to wait for.
-    if ((this.#queue.length === 0 && !this.#draining) || this.#aborted) { return; }
+    if ((this.#queue.length === 0 && !this.#isDraining()) || this.#isAborted()) { return; }
     const drainTask = this.#drainTask;
     if (drainTask !== undefined) {
       await drainTask;
@@ -190,21 +210,66 @@ export class BusQueue<T> {
     });
   }
 
-  #handleAbort(): void {
-    this.#aborted = true;
+  /** `true` from the instant abort is requested (`aborting`) through the terminal `aborted` state — mirrors what the old `#aborted` boolean tracked. */
+  #isAborted(): boolean {
+    const variant = this.#lifecycleState.variant;
+    const result = variant === 'aborting' || variant === 'aborted';
+    return result;
+  }
+
+  /** `true` while a drain loop is running, including while it is winding down after an abort request — mirrors what the old `#draining` boolean tracked. */
+  #isDraining(): boolean {
+    const variant = this.#lifecycleState.variant;
+    const result = variant === 'draining' || variant === 'aborting';
+    return result;
+  }
+
+  /** Dispatches `event` through the lifecycle machine, commits the resulting state, and runs the effects it returns. */
+  #dispatch(event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type): void {
+    const step = this.#machine.transition(this.#lifecycleState, event);
+    this.#lifecycleState = step.state;
+    const effects = step.effects;
+    const effectsLength = effects.length;
+    for (let i = 0; i < effectsLength; i++) {
+      const effect = effects.at(i);
+      if (effect === undefined) { continue; }
+      switch (effect.variant) {
+        case 'releaseForAbort': this.#releaseForAbort(); break;
+      }
+    }
+  }
+
+  /** Cancels the active entry (if any) and releases every waiting backpressure/drain caller. */
+  #releaseForAbort(): void {
     this.#activeEntry?.cancel();
     let waiter = this.#backpressureWaiters.shift();
     while (waiter !== undefined) {
       waiter.resolve();
       waiter = this.#backpressureWaiters.shift();
     }
-    for (const w of this.#drainWaiters) { w.resolve(); }
-    this.#drainWaiters.length = 0;
+    let drainWaiter = this.#drainWaiters.shift();
+    while (drainWaiter !== undefined) {
+      drainWaiter.resolve();
+      drainWaiter = this.#drainWaiters.shift();
+    }
+  }
+
+  #handleAbort(): void {
+    // Defensive: `BusQueue` only ever wires one abort call site per instance
+    // (the constructor's already-aborted check and the signal listener are
+    // mutually exclusive), so this should never actually run twice — but
+    // unlike the old bare `#aborted = true` assignment, a genuine second call
+    // would hit the machine's terminal `aborted` state and throw rather than
+    // silently re-running cancellation against already-cleared bookkeeping.
+    // Guard rather than let that surface as an uncaught exception from an
+    // AbortSignal listener.
+    if (this.#lifecycleState.variant === 'aborted') { return; }
+    this.#dispatch({ 'type': 'abort' });
   }
 
   #scheduleLoop(): void {
-    if (this.#draining) { return; }
-    this.#draining = true;
+    if (this.#lifecycleState.variant !== 'open') { return; }
+    this.#dispatch({ 'type': 'startLoop' });
     queueMicrotask(() => {
       this.#drainTask = this.#runDrainLoop();
     });
@@ -231,7 +296,7 @@ export class BusQueue<T> {
       const waiter = this.#backpressureWaiters.shift();
       if (waiter !== undefined) { waiter.resolve(); }
       await entry.ready;
-      if (!entry.cancelled && !this.#aborted) {
+      if (!entry.cancelled && !this.#isAborted()) {
         await this.hooks.invokeAsync('onDequeue', () => {
           const result = this.onDequeue(this.#queue.length);
           return result;
@@ -245,7 +310,7 @@ export class BusQueue<T> {
 
   async #runDrainLoop(): Promise<void> {
     try {
-      while (this.#queue.length > 0 && !this.#aborted) {
+      while (this.#queue.length > 0 && this.#lifecycleState.variant === 'draining') {
         const entry = this.#queue.shift();
         if (entry === undefined) { break; }
         await this.#processEntry(entry);
@@ -259,11 +324,14 @@ export class BusQueue<T> {
         });
       }
     } finally {
-      this.#draining = false;
+      this.#dispatch({ 'type': 'loopFinished' });
       this.#drainTask = undefined;
-      if (this.#queue.length === 0 || this.#aborted) {
-        for (const w of this.#drainWaiters) { w.resolve(); }
-        this.#drainWaiters.length = 0;
+      if (this.#queue.length === 0 || this.#isAborted()) {
+        let drainWaiter = this.#drainWaiters.shift();
+        while (drainWaiter !== undefined) {
+          drainWaiter.resolve();
+          drainWaiter = this.#drainWaiters.shift();
+        }
       }
     }
   }

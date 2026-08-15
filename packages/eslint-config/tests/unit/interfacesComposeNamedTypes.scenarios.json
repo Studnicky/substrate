@@ -22,7 +22,10 @@
       "code": "interface UserReaderInterface {\n  read(): {\n    id: string;\n    name: string;\n  };\n}",
       "errors": [
         {
-          "data": { "interfaceName": "UserReaderInterface", "memberName": "read" },
+          "data": {
+            "interfaceName": "UserReaderInterface",
+            "memberName": "read"
+          },
           "messageId": "inlineObjectInInterface"
         }
       ],
@@ -32,7 +35,10 @@
       "code": "interface RegistryInterface {\n  readonly entries: {\n    [key: string]: {\n      id: string;\n      enabled: boolean;\n    };\n  };\n}",
       "errors": [
         {
-          "data": { "interfaceName": "RegistryInterface", "memberName": "entries" },
+          "data": {
+            "interfaceName": "RegistryInterface",
+            "memberName": "entries"
+          },
           "messageId": "inlineObjectInInterface"
         }
       ],
@@ -42,7 +48,10 @@
       "code": "type PlainValueType = string;\ndeclare const BrandKey: unique symbol;\ninterface RecordWithComputedBrandInterface {\n  [BrandKey]: string;\n  value: PlainValueType;\n}",
       "errors": [
         {
-          "data": { "interfaceName": "RecordWithComputedBrandInterface", "memberName": "value" },
+          "data": {
+            "interfaceName": "RecordWithComputedBrandInterface",
+            "memberName": "value"
+          },
           "messageId": "inlineObjectInInterface"
         }
       ],
@@ -52,16 +61,47 @@
       "code": "type PlainValueType = string;\ninterface RecordWithValueBrandInterface {\n  readonly __brand: unique symbol;\n  value: PlainValueType;\n}",
       "errors": [
         {
-          "data": { "interfaceName": "RecordWithValueBrandInterface", "memberName": "value" },
+          "data": {
+            "interfaceName": "RecordWithValueBrandInterface",
+            "memberName": "value"
+          },
           "messageId": "inlineObjectInInterface"
         }
       ],
       "name": "a unique-symbol-valued brand member is exempt; its ordinary sibling member still composes named data"
+    },
+    {
+      "code": "interface BigInterface {\n  a: { x: string; y: string };\n  b: string;\n}\ninterface WrapperInterface {\n  run(): void;\n  value: BigInterface['a'];\n}",
+      "errors": [
+        {
+          "data": {
+            "interfaceName": "WrapperInterface",
+            "memberName": "value"
+          },
+          "messageId": "inlineObjectInInterface"
+        }
+      ],
+      "name": "indexed-access indirection into a separately-declared inline shape still requires named composition"
+    },
+    {
+      "code": "interface HandlerInterface<T extends { a: string; b: string } = never> {\n  run(): void;\n  handler: T;\n}",
+      "errors": [
+        {
+          "data": {
+            "interfaceName": "HandlerInterface",
+            "memberName": "handler"
+          },
+          "messageId": "inlineObjectInInterface"
+        }
+      ],
+      "name": "an inline shape laundered through a generic constraint still requires named composition"
     }
   ],
   "combined": {
     "code": "interface DispatcherInterface {\n  handler: (() => void) | { a: 1 };\n}",
     "filename": "MixedMemberDeferral.ts",
-    "expectedMessageIds": ["mixedCallableShape"]
+    "expectedMessageIds": [
+      "mixedCallableShape"
+    ]
   }
 }

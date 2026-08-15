@@ -29,7 +29,7 @@ class AdapterOnlyMatch {
   public static find(specifier: string, adapterOnlyImports: readonly string[]): string | undefined {
     const entriesLen = adapterOnlyImports.length;
     for (let index = 0; index < entriesLen; index += 1) {
-      const entry = adapterOnlyImports[index];
+      const entry = adapterOnlyImports.at(index);
       if (entry !== undefined && (specifier === entry || specifier.startsWith(`${entry}/`))) {
         return entry;
       }

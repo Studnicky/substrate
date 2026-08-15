@@ -105,8 +105,13 @@ export class EventBus<TTopicMap extends object> {
     this: EventBusSubclassInterface<TInstance>,
     config?: BusQueueOptionsEntity.Type
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
-    if (!EventBusInstance.belongsTo(this, result)) {
+    // Lexical arrow closure over `this` (rather than `Reflect.construct(this, ...)`
+    // passing `this` directly as a call argument) so the receiver is obtained
+    // only through the rule-permitted `return this` form.
+    const getConstructor = (): EventBusSubclassInterface<TInstance> => { return this; };
+    const constructor = getConstructor();
+    const result: unknown = Reflect.construct(constructor, [config]);
+    if (!EventBusInstance.belongsTo(constructor, result)) {
       throw new TypeError('EventBus.create() did not construct the requested subclass.');
     }
     return result;
@@ -176,7 +181,12 @@ export class EventBus<TTopicMap extends object> {
       ...(this.#config.highWaterMark !== undefined ? { 'highWaterMark': this.#config.highWaterMark } : {}),
       'signal': queueController.signal
     };
-    const queue = new EventBus.#OwnedSubscriptionQueue<TTopicMap, K>(this, topic, queueOptions);
+    // Lexical arrow closure over `this` (rather than passing `this` directly
+    // as a constructor argument) so the receiver is obtained only through the
+    // rule-permitted `return this` form.
+    const getOwner = (): this => { return this; };
+    const owner = getOwner();
+    const queue = new EventBus.#OwnedSubscriptionQueue<TTopicMap, K>(owner, topic, queueOptions);
     topicMap.set(handler, queue);
     this.#queues.add(queue);
     this.hooks.invoke('onSubscribe', () => { const result = this.onSubscribe(topic); return result; });

@@ -136,6 +136,26 @@
       ],
       "filename": "packages/retry/src/models/FooComment.ts",
       "name": "comment before a canonical alias is inert"
+    },
+    {
+      "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst CanonicalSchema = { type: 'string' } as const satisfies JSONSchema;\ntype FooType = FromSchema<typeof CanonicalSchema> extends infer R ? R : never;",
+      "errors": [
+        {
+          "messageId": "forbidden-type-alias"
+        }
+      ],
+      "filename": "packages/retry/src/entities/FooEntity.ts",
+      "name": "a trivial distributive-identity conditional wrapper does not hide a canonical alias"
+    },
+    {
+      "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst CanonicalSchema = { type: 'string' } as const satisfies JSONSchema;\ninterface FooType extends FromSchema<typeof CanonicalSchema> {}",
+      "errors": [
+        {
+          "messageId": "forbidden-type-alias"
+        }
+      ],
+      "filename": "packages/retry/src/entities/FooEntity.ts",
+      "name": "an interface extending a schema-derived type is the same canonical-derivation pattern as a type alias"
     }
   ]
 }

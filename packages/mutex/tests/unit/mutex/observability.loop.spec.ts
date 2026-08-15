@@ -35,6 +35,7 @@ type ScenarioShape =
   | 'afterAcquire-separate-keys'
   | 'afterAcquire-waiting'
   | 'afterRelease-fires'
+  | 'afterRelease-fires-on-handoff-and-drop'
   | 'async-hook-rejections-are-recorded'
   | 'beforeAcquire-error-is-recorded'
   | 'beforeRelease-fires'
@@ -112,6 +113,19 @@ class AfterReleaseTrackingMutex extends Mutex<string> {
 
   protected override afterRelease(key: string): void {
     this.afterReleaseEvents.push(key);
+  }
+}
+
+class AfterReleaseHandoffTrackingMutex extends Mutex<string> {
+  readonly afterReleaseEvents: string[] = [];
+  readonly onReleaseEvents: string[] = [];
+
+  protected override afterRelease(key: string): void {
+    this.afterReleaseEvents.push(key);
+  }
+
+  protected override onRelease(key: string): void {
+    this.onReleaseEvents.push(key);
   }
 }
 
@@ -405,6 +419,27 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const release = await mutex.acquire(key);
     release();
     assert.deepStrictEqual(mutex.afterReleaseEvents, scenarioCase.expected.afterReleaseEvents);
+  },
+  'afterRelease-fires-on-handoff-and-drop': async (scenarioCase) => {
+    const key = readStringKey(scenarioCase.input);
+    const mutex = AfterReleaseHandoffTrackingMutex.create();
+    const holderRelease = await mutex.acquire(key);
+    const waiterAcquire = mutex.acquire(key);
+    await delay(0);
+
+    // Releasing the holder hands the lock straight to the queued waiter —
+    // this is the outcome afterRelease used to silently skip entirely.
+    holderRelease();
+    await delay(0);
+    assert.deepStrictEqual(mutex.afterReleaseEvents, scenarioCase.expected.afterReleaseEventsAfterHandoff);
+
+    // Releasing the waiter now drops the lock with nobody left queued —
+    // afterRelease must fire again (not skip, and not have already fired
+    // twice for the handoff above).
+    const waiterRelease = await waiterAcquire;
+    waiterRelease();
+    assert.deepStrictEqual(mutex.afterReleaseEvents, scenarioCase.expected.afterReleaseEventsAfterDrop);
+    assert.deepStrictEqual(mutex.onReleaseEvents, scenarioCase.expected.onReleaseEventsAfterDrop);
   },
   'async-hook-rejections-are-recorded': async (scenarioCase) => {
     const keys = readStringKeys(scenarioCase.input);

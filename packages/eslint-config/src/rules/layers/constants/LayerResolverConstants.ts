@@ -2,12 +2,14 @@
 
 // Default allow-matrix for the canonical 5-layer hexagonal architecture.
 // 'infrastructure' is resolved dynamically against options.layers (it may import any configured layer).
-export const DEFAULT_STATIC_ALLOWED_IMPORTS: Record<string, readonly string[]> = {
-  'adapters': ['domain', 'ports', 'adapters'],
-  'application': ['domain', 'ports', 'application'],
-  'domain': ['domain'],
-  'ports': ['domain', 'ports']
-};
+// A Map (not a Record) so lookups go through `.get(...)` rather than a dynamic
+// (computed) property access, which breaks V8 hidden-class optimization.
+export const DEFAULT_STATIC_ALLOWED_IMPORTS = new Map<string, readonly string[]>([
+  ['adapters', ['domain', 'ports', 'adapters']],
+  ['application', ['domain', 'ports', 'application']],
+  ['domain', ['domain']],
+  ['ports', ['domain', 'ports']]
+]);
 
 export const PATH_SEPARATOR_PATTERN = /[\\/]+/u;
 

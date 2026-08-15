@@ -5,16 +5,27 @@ import { ObjectGuard } from './shared/ObjectGuard.js';
 class UnderscoreName {
   public static get(node: unknown): string | undefined {
     if (!ObjectGuard.isObject(node)) { return undefined; }
-    if (Reflect.get(node, 'computed') === true) { return undefined; }
 
     const key: unknown = Reflect.get(node, 'key');
     if (!ObjectGuard.isObject(key)) { return undefined; }
-    if (Reflect.get(key, 'type') !== 'Identifier') { return undefined; }
+    const keyType = Reflect.get(key, 'type');
+    const computed = Reflect.get(node, 'computed') === true;
 
-    const name: unknown = Reflect.get(key, 'name');
-    if (typeof name !== 'string' || !name.startsWith('_')) { return undefined; }
+    // Bare, non-computed identifier key: `_bar = 1`.
+    if (!computed && keyType === 'Identifier') {
+      const name: unknown = Reflect.get(key, 'name');
+      return typeof name === 'string' && name.startsWith('_') ? name : undefined;
+    }
 
-    return name;
+    // String-literal key, either bracketed (`['_secret'] = 1`, computed) or bare
+    // (`'_secret' = 1`, non-computed) — both name the member the same way an
+    // identifier key would, and both must be checked the same way.
+    if (keyType === 'Literal') {
+      const value: unknown = Reflect.get(key, 'value');
+      return typeof value === 'string' && value.startsWith('_') ? value : undefined;
+    }
+
+    return undefined;
   }
 }
 

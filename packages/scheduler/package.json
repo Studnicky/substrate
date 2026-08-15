@@ -55,6 +55,7 @@
   "dependencies": {
     "@studnicky/clock": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"

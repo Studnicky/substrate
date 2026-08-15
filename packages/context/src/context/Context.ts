@@ -72,8 +72,12 @@ export class Context implements ContextInterface {
     this: ContextSubclassInterface<TInstance>,
     config: ContextConfigEntity.Type
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
-    if (!ContextInstance.belongsTo(this, result)) {
+    const resolveSubclassConstructor = (): ContextSubclassInterface<TInstance> => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config]);
+    if (!ContextInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Context.create() did not construct the requested subclass.');
     }
     return result;
@@ -332,7 +336,10 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   snapshot(): Record<string, unknown> {
-    const result = Object.fromEntries(this.#getStore());
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of this.#getStore()) {
+      Reflect.set(result, key, value);
+    }
     return result;
   }
 

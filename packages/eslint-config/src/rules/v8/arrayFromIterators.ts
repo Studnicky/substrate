@@ -28,6 +28,25 @@ class ArrayIteratorDetection {
     const name = callee.name;
     return name === 'Map' || name === 'Set';
   }
+
+  // `{ length: n }` — a plain object literal whose only member is a non-computed `length`
+  // property — is the idiomatic array-LIKE shape used to preallocate a fixed-size array
+  // (`Array.from({ length: n })`). It has no `Symbol.iterator`, so consuming it is not the
+  // iterator-allocation anti-pattern this rule targets; it is structurally certain regardless
+  // of type-checker availability, so this check applies on both the typed and untyped paths.
+  public static isLengthOnlyArrayLikeLiteral(node: unknown): boolean {
+    if (!ObjectGuard.isObject(node) || node.type !== 'ObjectExpression') { return false; }
+    const properties = node.properties;
+    if (!Array.isArray(properties) || properties.length !== 1) { return false; }
+    const [property] = properties as readonly unknown[];
+    if (!ObjectGuard.isObject(property) || property.type !== 'Property') { return false; }
+    if (property.computed === true) { return false; }
+    const key = property.key;
+    if (!ObjectGuard.isObject(key)) { return false; }
+    if (key.type === 'Identifier') { return key.name === 'length'; }
+    if (key.type === 'Literal') { return key.value === 'length'; }
+    return false;
+  }
 }
 
 class FirstArg {
@@ -46,6 +65,11 @@ export const arrayFromIterators: Rule.RuleModule = {
       const args = rawNode.arguments;
       if (!Array.isArray(args) || args.length === 0) { return; }
       const firstArg = FirstArg.get(args as readonly unknown[]);
+
+      // `Array.from({ length: n })` — the idiomatic array-LIKE preallocation shape — has no
+      // `Symbol.iterator` and is not iterator consumption at all, so it's exempt regardless of
+      // type-service availability.
+      if (ArrayIteratorDetection.isLengthOnlyArrayLikeLiteral(firstArg)) { return; }
 
       const servicesUnknown: unknown = context.sourceCode.parserServices;
 

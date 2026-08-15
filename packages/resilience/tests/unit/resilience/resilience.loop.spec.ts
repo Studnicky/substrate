@@ -181,6 +181,14 @@ async function tick(): Promise<void> {
   await new Promise<void>((resolve) => { setImmediate(resolve); });
 }
 
+function countEvents(events: readonly string[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const event of events) {
+    counts[event] = (counts[event] ?? 0) + 1;
+  }
+  return counts;
+}
+
 type ScenarioInput = Record<string, unknown>;
 
 function numberInput(input: ScenarioInput, key: string): number {
@@ -418,6 +426,7 @@ type ScenarioShape =
   | 'cb-config-overrides-subclass'
   | 'cb-hook-swallows'
   | 'cb-async-hook-isolation'
+  | 'cb-hook-fires-exactly-once'
   | 'tb-invalid-rps'
   | 'tb-invalid-burst'
   | 'tb-consume-ok'
@@ -748,6 +757,55 @@ const scenarioHandlers = {
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
+  },
+  /**
+   * Proves hook-firing correctness is structurally guaranteed by the FSM
+   * reducer rather than incidentally true of the current wiring: each of
+   * `onOpen`/`onTrip`/`onHalfOpen`/`onClose` fires exactly once per relevant
+   * transition, with `onTrip` firing only on the closed→open path and
+   * `onOpen` firing on both closed→open and halfOpen→open. The reducer emits
+   * an `effects` array once per event and `CircuitBreaker` plays it back
+   * exactly once — the class of bug this guards against (a hook invoked
+   * twice, or from two different call sites that can drift out of sync) is
+   * the "Throttle-style double/missed-fire" this refactor was set out to
+   * make structurally impossible.
+   */
+  'cb-hook-fires-exactly-once': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const clock = numberArrayInput(input, 'clock');
+
+    // Reopen path: closed → open (trip) → halfOpen → open (reopen, no trip).
+    let reopenTime = clock[0] ?? 0;
+    const reopenBreaker = new ObservedBreaker(circuitBreakerOptions(input, { clock: () => reopenTime }));
+    await assert.rejects(() => reopenBreaker.execute(fail));
+    await assert.rejects(() => reopenBreaker.execute(fail));
+    assert.equal(reopenBreaker.state, 'open');
+    reopenTime = clock[1] ?? reopenTime;
+    await assert.rejects(() => reopenBreaker.execute(fail));
+    assert.equal(reopenBreaker.state, 'open');
+    const reopenCounts = countEvents(reopenBreaker.events);
+    assert.equal(reopenCounts.trip, 1);
+    assert.equal(reopenCounts.open, 2);
+    assert.equal(reopenCounts.halfOpen, 1);
+    assert.equal(reopenCounts.failure, 3);
+    assert.equal(reopenCounts.close ?? 0, 0);
+    assert.equal(reopenCounts.success ?? 0, 0);
+
+    // Close path: closed → open (trip) → halfOpen → closed (trial successes).
+    let closeTime = clock[0] ?? 0;
+    const closeBreaker = new ObservedBreaker(circuitBreakerOptions(input, { clock: () => closeTime }));
+    await assert.rejects(() => closeBreaker.execute(fail));
+    await assert.rejects(() => closeBreaker.execute(fail));
+    closeTime = clock[1] ?? closeTime;
+    await closeBreaker.execute(succeed);
+    await closeBreaker.execute(succeed);
+    assert.equal(closeBreaker.state, 'closed');
+    const closeCounts = countEvents(closeBreaker.events);
+    assert.equal(closeCounts.trip, 1);
+    assert.equal(closeCounts.open, 1);
+    assert.equal(closeCounts.halfOpen, 1);
+    assert.equal(closeCounts.success, 2);
+    assert.equal(closeCounts.close, 1);
+    assert.equal(closeCounts.failure, 2);
   },
   'tb-invalid-rps': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     assert.throws(() => { TokenBucket.create(tokenBucketOptions(input)); }, ResilienceConfigError);

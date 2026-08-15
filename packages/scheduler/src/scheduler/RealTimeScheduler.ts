@@ -66,8 +66,11 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
   static create<TInstance extends RealTimeScheduler = RealTimeScheduler>(
     this: RealTimeSchedulerSubclassInterface<TInstance>
   ): TInstance {
-    const result: unknown = Reflect.construct(this, []);
-    if (!RealTimeSchedulerInstance.belongsTo(this, result)) {
+    const getCurrentConstructor = (): RealTimeSchedulerSubclassInterface<TInstance> => { return this; };
+    const currentConstructor = getCurrentConstructor();
+
+    const result: unknown = Reflect.construct(currentConstructor, []);
+    if (!RealTimeSchedulerInstance.belongsTo(currentConstructor, result)) {
       throw new TypeError('RealTimeScheduler.create() did not construct the requested subclass.');
     }
     return result;

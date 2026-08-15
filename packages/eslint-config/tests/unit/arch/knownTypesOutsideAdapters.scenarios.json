@@ -2,7 +2,7 @@
   "valid": [
     {
       "code": "function parse(input: any): unknown { return input; }",
-      "filename": "/repo/src/adapters/HttpAdapter.ts",
+      "filename": "src/adapters/HttpAdapter.ts",
       "name": "adapters-layer file using 'any'/'unknown' - allowed, adapters are exempt",
       "options": [
         {
@@ -19,7 +19,7 @@
     },
     {
       "code": "function parse(input: string): number { return input.length; }",
-      "filename": "/repo/src/domain/user/UserService.ts",
+      "filename": "src/domain/user/UserService.ts",
       "name": "domain-layer file using only known types - not flagged",
       "options": [
         {
@@ -36,7 +36,7 @@
     },
     {
       "code": "function parse(input: any): void {}",
-      "filename": "/repo/scripts/build.ts",
+      "filename": "scripts/build.ts",
       "name": "file outside the configured layer tree - out of scope for this rule",
       "options": [
         {
@@ -53,7 +53,7 @@
     },
     {
       "code": "function parse(input: any): void {}",
-      "filename": "/repo/src/implementations/HttpAdapter.ts",
+      "filename": "src/implementations/HttpAdapter.ts",
       "name": "implementations-layer file with adapterLayerName configured - allowed, configured exemption name is respected",
       "options": [
         {
@@ -71,9 +71,26 @@
     },
     {
       "code": "function parse(input: any): void {}",
-      "filename": "/repo/src/domain/user/User.ts",
+      "filename": "src/domain/user/User.ts",
       "name": "rule with no options configured - no-op",
       "options": []
+    },
+    {
+      "code": "type Foo = string; let x: Foo;",
+      "filename": "src/domain/user/User.ts",
+      "name": "domain-layer file using a type alias that resolves to a concrete type - not flagged",
+      "options": [
+        {
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
     }
   ],
   "invalid": [
@@ -84,7 +101,7 @@
           "messageId": "noAny"
         }
       ],
-      "filename": "/repo/src/domain/user/User.ts",
+      "filename": "src/domain/user/User.ts",
       "name": "domain-layer file using 'any' - forbidden",
       "options": [
         {
@@ -106,7 +123,7 @@
           "messageId": "noUnknown"
         }
       ],
-      "filename": "/repo/src/domain/user/User.ts",
+      "filename": "src/domain/user/User.ts",
       "name": "domain-layer file using 'unknown' - forbidden",
       "options": [
         {
@@ -128,7 +145,7 @@
           "messageId": "noAny"
         }
       ],
-      "filename": "/repo/src/application/UserService.ts",
+      "filename": "src/application/UserService.ts",
       "name": "application-layer file using 'any' - forbidden",
       "options": [
         {
@@ -150,7 +167,7 @@
           "messageId": "noUnknown"
         }
       ],
-      "filename": "/repo/src/ports/UserPort.ts",
+      "filename": "src/ports/UserPort.ts",
       "name": "ports-layer file using 'unknown' - forbidden",
       "options": [
         {
@@ -172,7 +189,7 @@
           "messageId": "noAny"
         }
       ],
-      "filename": "/repo/src/infrastructure/Bootstrap.ts",
+      "filename": "src/infrastructure/Bootstrap.ts",
       "name": "infrastructure-layer file using 'any' - forbidden despite being able to import any layer",
       "options": [
         {
@@ -197,7 +214,7 @@
           "messageId": "noUnknown"
         }
       ],
-      "filename": "/repo/src/domain/user/User.ts",
+      "filename": "src/domain/user/User.ts",
       "name": "domain-layer file using both 'any' and 'unknown' - both flagged",
       "options": [
         {
@@ -219,7 +236,7 @@
           "messageId": "noAny"
         }
       ],
-      "filename": "/repo/src/implementations/HttpAdapter.ts",
+      "filename": "src/implementations/HttpAdapter.ts",
       "name": "implementations-layer file using 'any' without adapterLayerName configured - flagged, default \"adapters\" name does not match \"implementations\"",
       "options": [
         {
@@ -228,6 +245,56 @@
             "ports",
             "application",
             "implementations",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "code": "type Escape = any; let x: Escape;",
+      "errors": [
+        {
+          "messageId": "noAny"
+        },
+        {
+          "messageId": "noAny"
+        }
+      ],
+      "filename": "src/domain/user/User.ts",
+      "name": "domain-layer file using a type alias that resolves to 'any' - forbidden, alias bypass detected via type resolution (alias declaration and reference both flagged)",
+      "options": [
+        {
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "code": "type Escape = unknown; let x: Escape;",
+      "errors": [
+        {
+          "messageId": "noUnknown"
+        },
+        {
+          "messageId": "noUnknown"
+        }
+      ],
+      "filename": "src/domain/user/User.ts",
+      "name": "domain-layer file using a type alias that resolves to 'unknown' - forbidden, alias bypass detected via type resolution (alias declaration and reference both flagged)",
+      "options": [
+        {
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
             "infrastructure"
           ],
           "sourceRoot": "src"

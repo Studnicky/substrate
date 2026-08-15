@@ -12,6 +12,7 @@ type ScenarioShape =
   | 'admission-and-overflow-order'
   | 'admission-hook-on-hook-error'
   | 'abort-initially-cancelled'
+  | 'abort-mid-drain-fires-exactly-once'
   | 'abort-releases-drain-waiter'
   | 'abort-releases-pending'
   | 'abort-signal-cancels'
@@ -259,6 +260,55 @@ const runnerMap: RunnerMap = {
         .then(() => drainWaiter.promise)
         .then(() => {
           assert.deepStrictEqual(received, expected.received);
+        });
+    },
+    'abort-mid-drain-fires-exactly-once': ({ expected, input }) => {
+      // Proves the lifecycle FSM's `releaseForAbort` effect fires exactly
+      // once for an abort requested mid-drain: the in-flight item is left to
+      // finish (its handler already started, so cancellation cannot un-run
+      // it), every backpressure waiter is released so the still-pending
+      // `enqueue()` calls settle rather than hang, both concurrent `drain()`
+      // callers resolve exactly once each, and the loop does not go on to
+      // start any further queued item (`draining` -> `aborting` stops the
+      // loop before its next iteration).
+      const controller = new AbortController();
+      const dequeued: number[] = [];
+      const received: number[] = [];
+      const handlerGate = Promise.withResolvers<void>();
+      const handlerStarted = Promise.withResolvers<void>();
+
+      class ObservedQueue extends BusQueue<number> {
+        protected override onDequeue(_depth: number): void {
+          dequeued.push(1);
+        }
+      }
+
+      const queue = ObservedQueue.create<number>({
+        'handler': async (item) => {
+          handlerStarted.resolve();
+          await handlerGate.promise;
+          received.push(item);
+        },
+        'highWaterMark': input.highWaterMark as number,
+        'signal': controller.signal
+      });
+
+      const enqueues = (input.items as number[]).map((item) => queue.enqueue(item));
+
+      let drainResolutions = 0;
+      const drainA = queue.drain().then(() => { drainResolutions += 1; });
+      const drainB = queue.drain().then(() => { drainResolutions += 1; });
+
+      return handlerStarted.promise
+        .then(() => {
+          controller.abort();
+          handlerGate.resolve();
+          return Promise.all([drainA, drainB, ...enqueues]);
+        })
+        .then(() => {
+          assert.strictEqual(dequeued.length, expected.dequeuedCount as number);
+          assert.deepStrictEqual(received, expected.received);
+          assert.strictEqual(drainResolutions, expected.drainResolutions as number);
         });
     },
     'on-drop-noop': ({ expected, input }) => {

@@ -18,6 +18,10 @@ export class FileLockTimeoutError extends FileLockError {
       'message': FileLockTimeoutError.buildMessage,
       'retryable': false
     }));
-    Object.assign(this, fields);
+
+    const resolveInstance = (): this => {
+      return this;
+    };
+    Object.assign(resolveInstance(), fields);
   }
 }

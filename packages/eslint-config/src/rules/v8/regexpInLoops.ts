@@ -23,6 +23,22 @@ class AstHelpers {
 
     return callee.type === 'Identifier' && callee.name === 'RegExp';
   }
+
+  // A regex literal (`/foo/g`) allocates a fresh RegExp object on every evaluation,
+  // identically to the `new RegExp(...)`/`RegExp(...)` constructor forms above.
+  public static isRegExpLiteral(node: Rule.Node): boolean {
+    if (node.type !== 'Literal') {
+      return false;
+    }
+
+    const raw: unknown = node;
+
+    if (!ObjectGuard.isObject(raw)) {
+      return false;
+    }
+
+    return 'regex' in raw && ObjectGuard.isObject(raw.regex);
+  }
 }
 
 export const regexpInLoops: Rule.RuleModule = {
@@ -40,8 +56,22 @@ export const regexpInLoops: Rule.RuleModule = {
       }
     };
 
+    const onLiteral = (node: Rule.Node): void => {
+      if (!AstHelpers.isRegExpLiteral(node)) {
+        return;
+      }
+
+      if (FunctionScope.isInsideLoop(node)) {
+        context.report({
+          'messageId': 'regexpInLoop',
+          'node': node
+        });
+      }
+    };
+
     return {
       'CallExpression': onExpression,
+      'Literal[regex]': onLiteral,
       'NewExpression': onExpression
     };
   },

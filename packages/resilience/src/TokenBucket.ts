@@ -39,8 +39,12 @@ export class TokenBucket {
     this: TokenBucketSubclassInterface<TInstance>,
     options: TokenBucketOptionsInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!TokenBucketInstance.belongsTo(this, result)) {
+    const resolveSubclassConstructor = (): TokenBucketSubclassInterface<TInstance> => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
+    if (!TokenBucketInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('TokenBucket.create() did not construct the requested subclass.');
     }
     return result;
@@ -97,10 +101,7 @@ export class TokenBucket {
       this.#refill();
       if (this.#tokens >= tokens) {
         this.#tokens -= tokens;
-        this.hooks.invoke('onTokenAcquired', () => {
-          const result = this.onTokenAcquired(tokens);
-          return result;
-        });
+        this.#invokeOnTokenAcquired(tokens);
         return;
       }
       const waitMs = Math.ceil((tokens - this.#tokens) / this.#requestsPerSecond * 1000);
@@ -128,6 +129,13 @@ export class TokenBucket {
    * Only fires when `added > 0`. Must not throw or block.
    */
   protected onRefill(_added: number): void {}
+
+  #invokeOnTokenAcquired(tokens: number): void {
+    this.hooks.invoke('onTokenAcquired', () => {
+      const result = this.onTokenAcquired(tokens);
+      return result;
+    });
+  }
 
   #refill(): void {
     const now = this.#clock();

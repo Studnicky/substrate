@@ -29,6 +29,11 @@ type ScenarioShape =
   | 'on-reject-throws'
   | 'on-release-throws'
   | 'on-window-slide-throws'
+  | 'on-release-fires-exactly-once-became-idle'
+  | 'on-release-fires-exactly-once-handoff-granted'
+  | 'on-release-fires-exactly-once-on-acquire-rollback'
+  | 'on-release-fires-exactly-once-on-rejection'
+  | 'on-release-fires-exactly-once-still-busy'
   | 'queued-operation-completes-after-release';
 
 type ThrottleConfigInput = NonNullable<Parameters<typeof Throttle.create>[0]>;
@@ -46,6 +51,7 @@ type ScenarioCase = {
     isComplete?: boolean;
     order?: readonly string[];
     queuedCount?: number;
+    releaseCount?: number;
     queuedResolvedWithUndefined?: boolean;
     queuedStarted?: boolean;
     result?: string;
@@ -555,6 +561,110 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
       await throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
     }, ThrottleDrainingError);
     await draining;
+  },
+
+  // The following four scenarios are the fix's core regression coverage: onRelease must
+  // fire EXACTLY once per completed operation, across every outcome branch (still busy,
+  // became idle, handoff granted) and every call site that leads to a release (success,
+  // rejection, acquire-hook-failure rollback). A count of anything other than 1 per
+  // release, or a total mismatched with the number of completed operations, means the
+  // OperationLifecycleMachine's single-effect-per-event guarantee has been violated.
+
+  'on-release-fires-exactly-once-still-busy': async (scenarioCase) => {
+    const releaseCounts: number[] = [];
+
+    class CountingThrottle extends TrackingThrottle {
+      protected override onRelease(): void {
+        releaseCounts.push(1);
+      }
+    }
+
+    const throttle = CountingThrottle.create(scenarioCase.input.throttle);
+    // concurrencyLimit: 2 — both operations acquire immediately, no queue, so each
+    // release lands in the "still busy" branch (the other operation stays active) except
+    // the very last one, which becomes idle. Both must still each fire onRelease once.
+    const first = throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
+    const second = throttle.execute(async () => requireStringInput(scenarioCase.input.queuedResult, 'queuedResult'));
+    await Promise.all([first, second]);
+
+    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
+  },
+
+  'on-release-fires-exactly-once-became-idle': async (scenarioCase) => {
+    const releaseCounts: number[] = [];
+
+    class CountingThrottle extends TrackingThrottle {
+      protected override onRelease(): void {
+        releaseCounts.push(1);
+      }
+    }
+
+    const throttle = CountingThrottle.create(scenarioCase.input.throttle);
+    await throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
+
+    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
+    assert.strictEqual(throttle.isComplete(), true);
+  },
+
+  'on-release-fires-exactly-once-handoff-granted': async (scenarioCase) => {
+    const releaseCounts: number[] = [];
+
+    class CountingThrottle extends TrackingThrottle {
+      protected override onRelease(): void {
+        releaseCounts.push(1);
+      }
+    }
+
+    const throttle = CountingThrottle.create(scenarioCase.input.throttle);
+    // concurrencyLimit: 1 — the leader occupies the only slot, the waiter queues behind
+    // it. The leader's release hands the slot off to the waiter (handoff-granted), then
+    // the waiter's own release becomes-idle. Both releases must fire onRelease once each.
+    const leader = throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
+    const waiter = throttle.execute(async () => requireStringInput(scenarioCase.input.queuedResult, 'queuedResult'));
+    await Promise.all([leader, waiter]);
+
+    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
+  },
+
+  'on-release-fires-exactly-once-on-rejection': async (scenarioCase) => {
+    const releaseCounts: number[] = [];
+
+    class CountingThrottle extends TrackingThrottle {
+      protected override onRelease(): void {
+        releaseCounts.push(1);
+      }
+    }
+
+    const throttle = CountingThrottle.create(scenarioCase.input.throttle);
+    await assert.rejects(throttle.execute(async () => {
+      throw new Error(requireStringInput(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'));
+    }));
+
+    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
+  },
+
+  'on-release-fires-exactly-once-on-acquire-rollback': async (scenarioCase) => {
+    const releaseCounts: number[] = [];
+    const original = new Error(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+
+    class CountingRollbackThrottle extends TrackingThrottle {
+      protected override onAcquire(): void {
+        throw original;
+      }
+
+      protected override onRelease(): void {
+        releaseCounts.push(1);
+      }
+    }
+
+    const throttle = CountingRollbackThrottle.create(scenarioCase.input.throttle);
+    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error: unknown) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.strictEqual(error.cause, original);
+      return true;
+    });
+
+    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
   }
 };
 

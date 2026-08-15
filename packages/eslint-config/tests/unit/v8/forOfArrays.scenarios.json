@@ -70,6 +70,25 @@
         }
       },
       "name": "ignores non-arrays when type services do not resolve a TS node"
+    },
+    {
+      "expected": {
+        "messageIds": [
+          "forOfArrays"
+        ]
+      },
+      "input": {
+        "parserServices": {
+          "hasTsNode": true,
+          "isArrayType": true,
+          "isTupleType": false,
+          "shape": "typedWeakMap"
+        },
+        "right": {
+          "shape": "object"
+        }
+      },
+      "name": "reports arrays through WeakMap-shaped esTreeNodeToTSNodeMap (regression: real @typescript-eslint/parser under projectService uses a WeakMap, not a Map)"
     }
   ],
   "ruleTester": {
@@ -82,20 +101,30 @@
           }
         ],
         "name": "for...of over a literal array - flagged without type services"
+      },
+      {
+        "code": "declare const input: number[]; for (const value of input) { value.toFixed(); }",
+        "errors": [
+          {
+            "messageId": "forOfArrays"
+          }
+        ],
+        "name": "for...of over an array-typed identifier - flagged through the real typed parser services (regression: hasTypeServices previously required esTreeNodeToTSNodeMap instanceof Map, which is false for the WeakMap the installed @typescript-eslint/parser actually uses, making this branch dead code)"
+      },
+      {
+        "code": "declare const input: readonly [number, string]; for (const value of input) { value; }",
+        "errors": [
+          {
+            "messageId": "forOfArrays"
+          }
+        ],
+        "name": "for...of over a tuple-typed identifier - flagged through the real typed parser services (same WeakMap-vs-Map regression)"
       }
     ],
     "valid": [
       {
         "code": "declare const input: Set<number>; for (const value of input) { value.toFixed(); }",
         "name": "for...of over a Set - not flagged"
-      },
-      {
-        "code": "declare const input: number[]; for (const value of input) { value.toFixed(); }",
-        "name": "for...of over an array identifier - left to the typed listener path"
-      },
-      {
-        "code": "declare const input: readonly [number, string]; for (const value of input) { value; }",
-        "name": "for...of over a tuple identifier - left to the typed listener path"
       }
     ]
   }

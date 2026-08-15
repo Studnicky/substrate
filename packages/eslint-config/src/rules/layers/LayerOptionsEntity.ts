@@ -1,6 +1,7 @@
+import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { SchemaValidator } from '@studnicky/json';
 
 export namespace LayerOptionsEntity {
   export const Schema = {
@@ -35,48 +36,19 @@ export namespace LayerOptionsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  function isStringArray(value: unknown): boolean {
-    if (!Array.isArray(value)) { return false; }
+  // `validate` is called at runtime not only on options shaped exactly like `Type`, but also on
+  // wider option objects declared by rules that extend this base shape with their own additional
+  // properties (e.g. `AdapterOnlyImportOptionsEntity`, `DomainPurityOptionsEntity`) — those rules
+  // spread `LayerOptionsEntity.Schema` into their OWN stricter `additionalProperties: false`
+  // schema for their public ESLint options declaration, then narrow further with
+  // `LayerOptionsEntity.validate` purely to confirm the shared base shape is present. Compiling
+  // `Schema` (with its `additionalProperties: false`) directly here would reject every one of
+  // those legitimate supersets, so `validate` is compiled from a lenient variant that only checks
+  // the base shape's own properties/required fields and tolerates unrelated extras.
+  const LenientSchema = {
+    ...Schema,
+    'additionalProperties': true
+  } as const satisfies JSONSchema;
 
-    const length = value.length;
-    for (let index = 0; index < length; index += 1) {
-      if (typeof value[index] !== 'string') { return false; }
-    }
-    return true;
-  }
-
-  function isStringRecord(value: unknown): boolean {
-    if (!Guard.isObject(value)) { return false; }
-
-    const keys = Object.keys(value);
-    const length = keys.length;
-    for (let index = 0; index < length; index += 1) {
-      const key = keys[index];
-      if (key === undefined || typeof value[key] !== 'string') { return false; }
-    }
-    return true;
-  }
-
-  function isStringArrayRecord(value: unknown): boolean {
-    if (!Guard.isObject(value)) { return false; }
-
-    const keys = Object.keys(value);
-    const length = keys.length;
-    for (let index = 0; index < length; index += 1) {
-      const key = keys[index];
-      if (key === undefined || !isStringArray(value[key])) { return false; }
-    }
-    return true;
-  }
-
-  export function validate(candidate: unknown): candidate is Type {
-    if (!Guard.isObject(candidate)) { return false; }
-
-    const aliasPrefixes = candidate.aliasPrefixes;
-    const allowedImports = candidate.allowedImports;
-    return isStringArray(candidate.layers)
-      && typeof candidate.sourceRoot === 'string'
-      && (aliasPrefixes === undefined || isStringRecord(aliasPrefixes))
-      && (allowedImports === undefined || isStringArrayRecord(allowedImports));
-  }
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(LenientSchema);
 }

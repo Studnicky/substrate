@@ -43,6 +43,17 @@ export class DeadLetterQueue<T> {
   #closed = false;
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
+  #pendingDequeueItem: T | undefined;
+
+  /** Built once and reused across `drain()` iterations to avoid rebuilding a closure on every loop pass. */
+  readonly #onDequeueHook = (): void => {
+    this.onDequeue(this.#pendingDequeueItem as T);
+  };
+
+  /** Built once and reused across `drain()` iterations; threads `resolve` through to `registerDrainWaiter`. */
+  readonly #registerDrainWaiterExecutor = (resolve: () => void): void => {
+    this.registerDrainWaiter(resolve);
+  };
 
   /** Invokes lifecycle hooks, retaining diagnostics in the invoker while swallowing failures. */
   protected readonly hooks: HookInvoker;
@@ -51,8 +62,12 @@ export class DeadLetterQueue<T> {
     this: DeadLetterQueueSubclassInterface<TInstance>,
     options?: DeadLetterQueueOptionsInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!DeadLetterQueueInstance.belongsTo(this, result)) {
+    const resolveSubclassConstructor = (): DeadLetterQueueSubclassInterface<TInstance> => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
+    if (!DeadLetterQueueInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('DeadLetterQueue.create() did not construct the requested subclass.');
     }
     return result;
@@ -104,15 +119,13 @@ export class DeadLetterQueue<T> {
     while (true) {
       const entry = this.#entries.shift();
       if (entry !== undefined) {
-        this.hooks.invoke('onDequeue', () => {
-          const result = this.onDequeue(entry.item);
-          return result;
-        });
+        this.#pendingDequeueItem = entry.item;
+        this.hooks.invoke('onDequeue', this.#onDequeueHook);
         yield entry;
         continue;
       }
       if (this.#closed || this.#aborted) { return; }
-      await new Promise<void>((resolve) => { this.registerDrainWaiter(resolve); });
+      await new Promise<void>(this.#registerDrainWaiterExecutor);
     }
   }
 

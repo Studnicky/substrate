@@ -3,6 +3,7 @@ import {
   type ErrorClassificationEntity,
   HookInvoker
 } from '@studnicky/errors';
+import { TransitionRejectedError } from '@studnicky/fsm';
 
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
@@ -20,6 +21,7 @@ import {
 } from '../errors/index.js';
 import { validateRetryConfig } from './config/validateRetryConfig.js';
 import { Delay } from './Delay.js';
+import { RetryCallMachine } from './RetryCallMachine.js';
 
 interface RetryCallFsmInterface {
   readonly 'state': RetryCallStateEntity.Type;
@@ -133,8 +135,12 @@ export class Retry implements RetryInterface {
     this: Function & { readonly 'prototype': TInstance },
     config?: RetryConfigInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
-    if (!Retry.isConstructed(result, this)) {
+    const resolveSubclassConstructor = (): Function & { readonly 'prototype': TInstance } => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config]);
+    if (!Retry.isConstructed(result, resolveSubclassConstructor())) {
       throw new TypeError('Retry.create() must construct a Retry instance');
     }
     return result;
@@ -142,6 +148,8 @@ export class Retry implements RetryInterface {
   private readonly classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
   private readonly defaultClassifier: DefaultHttpErrorClassifier;
   private readonly backoffStrategy: RetryConfigInterface['backoffStrategy'];
+
+  readonly #callMachine: RetryCallMachine = new RetryCallMachine();
 
   protected readonly hooks: RetryHookInvoker;
   protected readonly maxRetries: number;
@@ -249,23 +257,24 @@ export class Retry implements RetryInterface {
   /**
    * Guard: returns true when the from → to transition is legal for a single call.
    *
-   * Legal edges:
-   * - attempting → succeeded
-   * - attempting → waiting
-   * - attempting → failed
-   * - waiting   → attempting
-   * - waiting   → exhausted
-   * - waiting   → aborted
+   * Delegates to `RetryCallMachine.reduce()` — the single declarative source
+   * of truth for the legal edge set (`attempting → succeeded`,
+   * `attempting → waiting`, `attempting → failed`, `waiting → attempting`,
+   * `waiting → exhausted`, `waiting → aborted`) — and interprets a
+   * deliberate `TransitionRejectedError` as an illegal edge. Any other
+   * thrown value (a reducer defect) propagates rather than being swallowed
+   * as `false`.
    */
   protected guardCall(from: RetryCallStateEntity.Type, to: RetryCallStateEntity.Type): boolean {
-    if (from === 'attempting' && to === 'succeeded') {return true;}
-    if (from === 'attempting' && to === 'waiting') {return true;}
-    if (from === 'attempting' && to === 'failed') {return true;}
-    if (from === 'waiting' && to === 'attempting') {return true;}
-    if (from === 'waiting' && to === 'exhausted') {return true;}
-    if (from === 'waiting' && to === 'aborted') {return true;}
-
-    return false;
+    try {
+      this.#callMachine.transition({ 'variant': from }, { 'to': to, 'type': 'transitionTo' });
+      return true;
+    } catch (error) {
+      if (error instanceof TransitionRejectedError) {
+        return false;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -296,7 +305,11 @@ export class Retry implements RetryInterface {
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     this.stats.totalRequests++;
 
-    const callFsm = new Retry.#OwnedCallFsm(this);
+    const resolveOwner = (): Retry => {
+      return this;
+    };
+
+    const callFsm = new Retry.#OwnedCallFsm(resolveOwner());
     const startTime = Date.now();
     const errors: Error[] = [];
     const state: Record<string, unknown> = {};
@@ -306,10 +319,7 @@ export class Retry implements RetryInterface {
     // elapsed-time budget is exhausted. That is the single exhaustion path —
     // there is no post-loop fallthrough to guard against.
     for (let attempt = INITIAL_COUNTER; ; attempt++) {
-      await this.hooks.invokeAsync('onAttempt', () => {
-        const result = this.onAttempt(attempt);
-        return result;
-      });
+      await this.fireOnAttempt(attempt);
 
       const outcome = await this.tryAttempt(fn);
 
@@ -321,6 +331,14 @@ export class Retry implements RetryInterface {
       errors.push(outcome.error);
       await this.handleError(callFsm, attempt, outcome.error, errors, startTime, state);
     }
+  }
+
+  /** Fires the `onAttempt` lifecycle hook for the given attempt number. */
+  private async fireOnAttempt(attempt: number): Promise<void> {
+    await this.hooks.invokeAsync('onAttempt', () => {
+      const result = this.onAttempt(attempt);
+      return result;
+    });
   }
 
   /**

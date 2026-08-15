@@ -15,6 +15,14 @@
     {
       "code": "const map = { transform: function () { return 1; } };",
       "name": "key name \"transform\" at module scope - not flagged because pre-built, not because of the name"
+    },
+    {
+      "code": "function build(items) { return items.map(function (x) { return x; }); }",
+      "name": "inline function callback argument, but call site is NOT inside a loop - not flagged"
+    },
+    {
+      "code": "const arr = [function () { return 1; }];",
+      "name": "bare array literal holding an inline function, not passed to any call - not flagged"
     }
   ],
   "invalid": [
@@ -71,6 +79,59 @@
         }
       ],
       "name": "renaming the property key to an arbitrary name buys no escape - flagged identically"
+    },
+    {
+      "code": "for (const it of items) { process(it, function (x) { return x; }); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "inline function callback argument passed directly to a call inside a for-of loop - flagged (the textbook per-iteration-closure-allocation case)"
+    },
+    {
+      "code": "while (hasNext()) { process(function (x) { return x; }); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "inline function callback argument inside a while loop - flagged"
+    },
+    {
+      "code": "function build(cond) { return { a: cond ? function (x) { return x; } : function (x) { return -x; } }; }",
+      "errors": [
+        { "messageId": "forbidden" },
+        { "messageId": "forbidden" }
+      ],
+      "name": "ternary-branched inline functions as an object value in a rebuilt-per-call map - both branches flagged"
+    },
+    {
+      "code": "function build(handler = function (x) { return x; }) { return handler; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "default-parameter value is an inline function closure - flagged"
+    },
+    {
+      "code": "while (hasNext()) { register(Object.fromEntries([[\"a\", function (x) { return x; }]])); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "non-literal dispatch-table construction (Object.fromEntries) inside a loop - flagged"
+    },
+    {
+      "code": "while (hasNext()) { register(new Map([[\"a\", function (x) { return x; }]])); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "non-literal dispatch-table construction (new Map) inside a loop - flagged"
     }
   ]
 }

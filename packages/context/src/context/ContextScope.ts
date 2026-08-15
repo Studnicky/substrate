@@ -1,6 +1,7 @@
 import type { AsyncLocalStorage } from 'node:async_hooks';
 
 import { HookInvoker } from '@studnicky/errors';
+import { TransitionRejectedError } from '@studnicky/fsm';
 
 /**
  * ContextScope - An initialized context ready for execution.
@@ -12,6 +13,7 @@ import type { ContextScopeStateEntity } from '../entities/ContextScopeStateEntit
 import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
 
 import { ContextError } from '../errors/ContextError.js';
+import { ContextScopeMachine } from './ContextScopeMachine.js';
 
 /**
  * An initialized context scope returned from Context.initialize().
@@ -82,6 +84,7 @@ import { ContextError } from '../errors/ContextError.js';
 export class ContextScope implements ContextScopeInterface {
   readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
   readonly #store: Map<string, unknown>;
+  readonly #machine: ContextScopeMachine = new ContextScopeMachine();
   #state: ContextScopeStateEntity.Type = 'created';
 
   /**
@@ -130,17 +133,22 @@ export class ContextScope implements ContextScopeInterface {
   /**
    * Guard: returns true if the from → to transition is legal.
    *
-   * Legal edges:
-   * - created → active (initialization)
-   * - active → terminated (termination)
-   *
-   * All other transitions are illegal.
+   * Delegates to `ContextScopeMachine.reduce()` — the single declarative
+   * source of truth for the legal edge set (`created → active`,
+   * `active → terminated`) — and interprets a deliberate
+   * `TransitionRejectedError` as an illegal edge. Any other thrown value (a
+   * reducer defect) propagates rather than being swallowed as `false`.
    */
   protected guard(from: ContextScopeStateEntity.Type, to: ContextScopeStateEntity.Type): boolean {
-    if (from === 'created' && to === 'active') {return true;}
-    if (from === 'active' && to === 'terminated') {return true;}
-
-    return false;
+    try {
+      this.#machine.transition({ 'variant': from }, { 'to': to, 'type': 'transitionTo' });
+      return true;
+    } catch (error) {
+      if (error instanceof TransitionRejectedError) {
+        return false;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -300,7 +308,10 @@ export class ContextScope implements ContextScopeInterface {
 
     this.transition('terminated');
 
-    const snapshot = Object.fromEntries(this.#store);
+    const snapshot: Record<string, unknown> = {};
+    for (const [key, value] of this.#store) {
+      Reflect.set(snapshot, key, value);
+    }
 
     this.#store.clear();
     this.hooks.invoke('onDispose', () => {

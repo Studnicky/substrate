@@ -219,6 +219,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -259,6 +262,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -356,6 +362,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -395,6 +404,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -585,6 +597,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -698,6 +713,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -722,6 +740,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -761,6 +782,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -800,6 +824,9 @@ importers:
 
   packages/system:
     dependencies:
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -821,6 +848,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -924,6 +954,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json

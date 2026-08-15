@@ -1,4 +1,5 @@
 import type { Rule } from 'eslint';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import path from 'node:path';
 import { type Program, type Symbol, SymbolFlags, type Type, type TypeChecker } from 'typescript';
@@ -19,7 +20,7 @@ class CaseConverter {
     let match = WORD_REGEX.exec(value);
 
     while (match !== null) {
-      words.push(match[0]);
+      words.push(match.at(0) ?? '');
       match = WORD_REGEX.exec(value);
     }
 
@@ -71,7 +72,7 @@ class CaseConverter {
     const valueLength = value.length;
 
     for (let index = 0; index < valueLength; index += 1) {
-      const character = value[index];
+      const character = value.at(index);
 
       if (character === undefined) {
         continue;
@@ -182,19 +183,40 @@ class CaseConverter {
   }
 }
 
-enum ExportShape {
-  'ConstFunction' = 'const-function',
-  'ConstValue' = 'const-value',
-  'Enum' = 'enum',
-  'ErrorClass' = 'error-class',
-  'Function' = 'function',
-  'Interface' = 'interface',
-  'Namespace' = 'namespace',
-  'Other' = 'other',
-  'OtherClass' = 'other-class',
-  'Type' = 'type',
-  'TypeReexport' = 'type-reexport'
+namespace ExportShapeEntity {
+  export const Schema = {
+    'enum': [
+      'const-function',
+      'const-value',
+      'enum',
+      'error-class',
+      'function',
+      'interface',
+      'namespace',
+      'other',
+      'other-class',
+      'type',
+      'type-reexport'
+    ],
+    'type': 'string'
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
 }
+
+const ExportShape = {
+  'ConstFunction': 'const-function',
+  'ConstValue': 'const-value',
+  'Enum': 'enum',
+  'ErrorClass': 'error-class',
+  'Function': 'function',
+  'Interface': 'interface',
+  'Namespace': 'namespace',
+  'Other': 'other',
+  'OtherClass': 'other-class',
+  'Type': 'type',
+  'TypeReexport': 'type-reexport'
+} as const satisfies Record<string, ExportShapeEntity.Type>;
 
 interface ParserServicesInterface {
   readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
@@ -259,19 +281,24 @@ class TypeCheckerHelpers {
 }
 
 class ExportClassifier {
-  public static classify(node: Rule.Node, services: ParserServicesInterface | undefined): ExportShape {
+  public static classify(node: Rule.Node, services: ParserServicesInterface | undefined): ExportShapeEntity.Type {
     if (node.type !== 'ExportNamedDeclaration') {
       return ExportShape.Other;
     }
     const exportNode: unknown = node;
     if (!ObjectGuard.isObject(exportNode)) { return ExportShape.Other; }
 
-    // Type-only re-export: export type { Foo } from '...' or export type { Foo }
-    if (exportNode.exportKind === 'type') {
+    const decl: unknown = exportNode.declaration;
+
+    // Type-only re-export: `export type { Foo } from '...'` / `export type { Foo }` — no local
+    // declaration of its own. `exportKind: 'type'` alone is not enough to detect this: this
+    // parser sets it on `export type Foo = ...`/`export interface Foo { ... }` too, since a type
+    // alias or interface declaration is inherently type-only — those own an actual `declaration`
+    // and must fall through to the `TSTypeAliasDeclaration`/`TSInterfaceDeclaration` branches
+    // below instead of being swallowed into `TypeReexport` here.
+    if (exportNode.exportKind === 'type' && !ObjectGuard.isObject(decl)) {
       return ExportShape.TypeReexport;
     }
-
-    const decl: unknown = exportNode.declaration;
 
     if (!ObjectGuard.isObject(decl)) {
       return ExportShape.Other;
@@ -309,7 +336,9 @@ class ExportClassifier {
 
     if (declType === 'VariableDeclaration' && decl.kind === 'const') {
       const declarations: readonly unknown[] = Array.isArray(decl.declarations) ? decl.declarations : [];
-      for (const declarator of declarations) {
+      const declarationsLength = declarations.length;
+      for (let index = 0; index < declarationsLength; index += 1) {
+        const declarator = declarations.at(index);
         if (!ObjectGuard.isObject(declarator) || !ObjectGuard.isObject(declarator.init)) { continue; }
         const initType = declarator.init.type;
 
@@ -324,7 +353,7 @@ class ExportClassifier {
     return ExportShape.Other;
   }
 
-  public static isEnumOrConstValueShape(shape: ExportShape): boolean {
+  public static isEnumOrConstValueShape(shape: ExportShapeEntity.Type): boolean {
     return shape === ExportShape.ConstValue || shape === ExportShape.Enum;
   }
 }
@@ -361,8 +390,11 @@ class ExportNames {
       }
 
       if (declarationType === 'VariableDeclaration') {
-        for (const declarator of declaration.declarations ?? []) {
-          if (declarator.id?.type === 'Identifier') {
+        const declarators = declaration.declarations ?? [];
+        const declaratorsLength = declarators.length;
+        for (let index = 0; index < declaratorsLength; index += 1) {
+          const declarator = declarators.at(index);
+          if (declarator?.id?.type === 'Identifier') {
             const idName = declarator.id.name;
 
             if (typeof idName === 'string' && idName.length > 0) {
@@ -374,7 +406,10 @@ class ExportNames {
     }
 
     if (node.specifiers.length > 0) {
-      for (const specifier of node.specifiers) {
+      const specifiersLength = node.specifiers.length;
+      for (let index = 0; index < specifiersLength; index += 1) {
+        const specifier = node.specifiers.at(index);
+        if (specifier === undefined) { continue; }
         if (specifier.exported.type === 'Identifier') {
           names.push(specifier.exported.name);
         }
@@ -393,13 +428,78 @@ class RestrictedTopology {
     const normalized = fileName.split(path.sep).join('/');
     const base = CaseConverter.getFileBase(fileName);
 
-    for (const name of RESTRICTED_TOPOLOGY_NAMES) {
-      if (normalized.includes(`/${name}/`) || base === name || base.endsWith(`.${name}`)) {
+    const namesLength = RESTRICTED_TOPOLOGY_NAMES.length;
+    for (let index = 0; index < namesLength; index += 1) {
+      const name = RESTRICTED_TOPOLOGY_NAMES.at(index);
+      if (name !== undefined && (normalized.includes(`/${name}/`) || base === name || base.endsWith(`.${name}`))) {
         return name;
       }
     }
 
     return undefined;
+  }
+}
+
+interface ExportRecordInterface {
+  readonly 'names': readonly string[];
+  readonly 'shape': ExportShapeEntity.Type;
+}
+
+/**
+ * `errors/`/`entities/`/`interfaces/`/`types/` grant a topology exemption from the multi-export
+ * and filename-match checks — but only once each file's own exports actually earn it. A path
+ * alone (living under `errors/`, being named `*.errors.ts`) is not proof of shape; a file that
+ * exports nothing but arbitrary consts still needs the normal checks. This reuses the same
+ * type-aware `ExportShape` classification `ExportClassifier` already computes for every export
+ * (including its existing `TypeCheckerHelpers.isErrorClass` real-`Error`-inheritance check) rather
+ * than introducing a second, parallel classifier — deliberately scoped to "does at least one
+ * export in this file carry the shape this folder claims," not a full per-export audit, since the
+ * folder-shape checks (`folder-content-shape`) already own the stricter per-declaration form
+ * rules for `interfaces/`/`types/`; this rule only needs to stop a blank/arbitrary-content file
+ * from slipping through on path alone.
+ *
+ * `constants/` is intentionally excluded — its exemption is already content-gated by the
+ * SCREAMING_SNAKE_CASE check above this in `onProgramExit`, so no further verification is needed
+ * here.
+ */
+class TopologyContentVerification {
+  private static isErrorShapedClassName(name: string): boolean {
+    const result = name.endsWith('Error');
+    return result;
+  }
+
+  public static isSatisfied(
+    topology: (typeof RESTRICTED_TOPOLOGY_NAMES)[number],
+    records: readonly ExportRecordInterface[]
+  ): boolean {
+    if (topology === 'errors') {
+      return records.some((record) => {
+        if (record.shape === ExportShape.ErrorClass) { return true; }
+        // Without type services (a plain, non-type-aware lint run) a class can never classify as
+        // `ErrorClass` — `TypeCheckerHelpers.isErrorClass` requires the checker. Fall back to the
+        // same `*Error`-suffixed naming convention `single-export`'s own filename-matching already
+        // treats as this topology's signal, rather than granting no exemption at all whenever type
+        // information happens to be unavailable.
+        return record.shape === ExportShape.OtherClass && record.names.some(TopologyContentVerification.isErrorShapedClassName);
+      });
+    }
+
+    if (topology === 'interfaces') {
+      return records.some((record) => {return record.shape === ExportShape.Interface;});
+    }
+
+    if (topology === 'types') {
+      return records.some((record) => {return record.shape === ExportShape.Type;});
+    }
+
+    if (topology === 'entities') {
+      // The entity convention (see `folder-content-shape`) is a namespace or a schema-derived
+      // `Type` alias — either is proof the file is genuinely entity-shaped, not an arbitrary
+      // grab-bag of consts sitting under `entities/`.
+      return records.some((record) => {return record.shape === ExportShape.Type || record.shape === ExportShape.Namespace;});
+    }
+
+    return true;
   }
 }
 
@@ -413,7 +513,6 @@ export const singleExport: Rule.RuleModule = {
 
     const baseName = path.basename(fileName);
     const restrictedTopology = RestrictedTopology.get(fileName);
-    const exemptPath = restrictedTopology !== undefined;
 
     if (INDEX_FILES.has(baseName)) {
       // Index files are exempt: multiple exports and export * are allowed.
@@ -431,8 +530,9 @@ export const singleExport: Rule.RuleModule = {
     }
 
     const services = ContextHelpers.getServices(context);
-    const exportShapes: ExportShape[] = [];
+    const exportShapes: ExportShapeEntity.Type[] = [];
     const exportNames: string[] = [];
+    const exportRecords: ExportRecordInterface[] = [];
     let reportedDefault = false;
     let firstExportNode: Rule.Node | undefined = undefined;
     let sawExportAll = false;
@@ -458,8 +558,12 @@ export const singleExport: Rule.RuleModule = {
         return;
       }
       firstExportNode ??= node;
-      exportShapes.push(ExportClassifier.classify(node, services));
-      exportNames.push(...ExportNames.extract(node));
+      const shape = ExportClassifier.classify(node, services);
+      const names = ExportNames.extract(node);
+
+      exportShapes.push(shape);
+      exportNames.push(...names);
+      exportRecords.push({ 'names': names, 'shape': shape });
     };
 
     const onProgramExit: NonNullable<Rule.RuleListener['Program:exit']> = (node) => {
@@ -506,8 +610,16 @@ export const singleExport: Rule.RuleModule = {
         }
       }
 
-      if (exemptPath) {
-        return;
+      // `constants/` is already content-gated above (SCREAMING_SNAKE_CASE); every other
+      // restricted topology is exempt only once its own exports earn it — a blank/arbitrary-value
+      // file merely sitting under `errors/`/`entities/`/`interfaces/`/`types/` (or matching the
+      // filename-suffix convention) does not get a pass on path alone.
+      if (restrictedTopology !== undefined) {
+        const contentVerified = restrictedTopology === 'constants' || TopologyContentVerification.isSatisfied(restrictedTopology, exportRecords);
+
+        if (contentVerified) {
+          return;
+        }
       }
 
       if (exportShapes.includes(ExportShape.Enum) && exportShapes.every(ExportClassifier.isEnumOrConstValueShape)) {

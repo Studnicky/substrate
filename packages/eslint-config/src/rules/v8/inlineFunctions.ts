@@ -1,35 +1,29 @@
 import type { Rule } from 'eslint';
 
-import { ObjectGuard } from '../shared/ObjectGuard.js';
-import { FunctionScope } from './functionScope.js';
+import { InlineCallablePosition } from './inlineCallablePosition.js';
 
 export const inlineFunctions: Rule.RuleModule = {
   'create': (context) => {
-    const onProperty: NonNullable<Rule.RuleListener['Property']> = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-      const value: unknown = rawNode.value;
-
-      if (!ObjectGuard.isObject(value) || value.type !== 'FunctionExpression') { return; }
-
-      const parent = node.parent;
-      if (parent.type !== 'ObjectExpression') { return; }
-
-      // A map built once at module scope or a `static` class field never
-      // re-allocates its function values — only a rebuilt-per-call map pays
-      // repeated allocation cost.
-      if (!FunctionScope.isRebuiltInFunctionScope(parent)) { return; }
+    const onFunctionExpression: NonNullable<Rule.RuleListener['FunctionExpression']> = (node) => {
+      // Loop-callback arguments (`items.forEach(function () { ... })` inside
+      // a loop), ternary-branched/default-parameter closures, and
+      // dispatch-map property values (including via nested array-literal
+      // construction, e.g. `new Map([["a", function () {...}]])`) are all
+      // rebuilt-per-call/iteration allocation sites — not just the direct
+      // `Property > ObjectExpression` shape.
+      if (!InlineCallablePosition.isFlagged(node)) { return; }
 
       context.report({ 'messageId': 'forbidden', 'node': node });
     };
 
-    return { 'Property': onProperty };
+    return { 'FunctionExpression': onFunctionExpression };
   },
   'meta': {
     'docs': {
-      'description': 'Disallow inline function expressions in a dispatch map that is rebuilt on every call. Pre-built (module-scope or `static`) maps are exempt.',
+      'description': 'Disallow inline function expressions in a position rebuilt on every call/iteration (dispatch map, loop callback, ternary branch, or default-parameter closure). Pre-built (module-scope or `static`) maps are exempt.',
       'recommended': false
     },
-    'messages': { 'forbidden': 'v8Optimization/inlineFunctions: Inline function expression in a dispatch map rebuilt on every call. Extract to a static class method, or hoist the map to module/static scope so it is built once.' },
+    'messages': { 'forbidden': 'v8Optimization/inlineFunctions: Inline function expression in a position rebuilt on every call/iteration. Extract to a static class method or named function, or hoist to module/static scope so it is built once.' },
     'schema': [],
     'type': 'problem'
   }

@@ -30,13 +30,37 @@ export const canonicalExportNames: Rule.RuleModule = {
         'specifiers': { 'local': unknown }[];
       };
 
-      for (const specifier of rawNode.specifiers) {
-        const localName = AstHelpers.getIdentifierName(specifier.local);
+      const specifiers = rawNode.specifiers;
+      const specifiersLength = specifiers.length;
+      for (let index = 0; index < specifiersLength; index += 1) {
+        const specifier = specifiers.at(index);
+        const localName = specifier === undefined ? undefined : AstHelpers.getIdentifierName(specifier.local);
 
         if (localName !== undefined) {
           importedBindings.add(localName);
         }
       }
+    };
+
+    // Propagates the "this is an imported binding" taint through one level of simple
+    // reassignment (`const localCopy = helper;`) — otherwise `export { localCopy }` for a name
+    // that is really just a re-exported import escapes `exportImportedBindingOutsideIndex`
+    // entirely, since only literal `ImportDeclaration` specifiers previously populated
+    // `importedBindings`. Import declarations are hoisted and always precede their use, so this
+    // single-pass, declaration-order propagation is sufficient for the direct-aliasing pattern;
+    // it does not attempt to trace an identifier through arbitrary reassignment chains.
+    const onVariableDeclarator = (node: Rule.Node): void => {
+      const rawNode = node as unknown as {
+        'id': unknown;
+        'init': unknown;
+      };
+
+      if (AstHelpers.getNodeType(rawNode.init) !== 'Identifier') { return; }
+      const initName = AstHelpers.getIdentifierName(rawNode.init);
+      if (initName === undefined || !importedBindings.has(initName)) { return; }
+
+      const declaredName = AstHelpers.getIdentifierName(rawNode.id);
+      if (declaredName !== undefined) { importedBindings.add(declaredName); }
     };
 
     const onExportSpecifier = (node: Rule.Node): void => {
@@ -107,11 +131,30 @@ export const canonicalExportNames: Rule.RuleModule = {
       });
     };
 
+    // `export = Foo` (`TSExportAssignment`) is structurally distinct from every other export
+    // form this rule already listens for — it has no `ExportNamedDeclaration`/`ExportSpecifier`
+    // shape at all — so re-exporting an imported namespace/binding through it was a blind spot.
+    const onTSExportAssignment = (node: Rule.Node): void => {
+      if (inIndex) { return; }
+
+      const rawNode = node as unknown as { 'expression': unknown };
+      if (AstHelpers.getNodeType(rawNode.expression) !== 'Identifier') { return; }
+      const name = AstHelpers.getIdentifierName(rawNode.expression);
+      if (name === undefined || !importedBindings.has(name)) { return; }
+
+      context.report({
+        'messageId': 'reExportOutsideIndex',
+        'node': node
+      });
+    };
+
     return {
       'ExportAllDeclaration': onExportAllDeclaration,
       'ExportNamedDeclaration': onExportNamedDeclaration,
       'ExportSpecifier': onExportSpecifier,
-      'ImportDeclaration': onImportDeclaration
+      'ImportDeclaration': onImportDeclaration,
+      'TSExportAssignment': onTSExportAssignment,
+      'VariableDeclarator': onVariableDeclarator
     };
   },
   'meta': {

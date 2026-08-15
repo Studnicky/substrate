@@ -1,0 +1,46 @@
+{
+  "valid": [
+    {
+      "code": "obj.x = undefined;",
+      "name": "assignment to undefined instead of delete - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "delete obj.x;",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "delete on a plain member expression - flagged (pre-existing coverage)"
+    },
+    {
+      "code": "delete obj['x'];",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "delete on a bracket-notation member expression - flagged (pre-existing coverage)"
+    },
+    {
+      "code": "Reflect.deleteProperty(obj, 'x');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "Reflect.deleteProperty (bypass) - flagged"
+    },
+    {
+      "code": "delete obj?.x;",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "delete through optional chaining, argument wrapped in a ChainExpression (bypass) - flagged"
+    }
+  ]
+}

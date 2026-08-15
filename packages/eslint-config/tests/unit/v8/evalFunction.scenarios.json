@@ -1,0 +1,107 @@
+{
+  "valid": [
+    {
+      "code": "obj.eval();",
+      "name": "method named \"eval\" on an unrelated object (not globalThis/window/self) - not flagged"
+    },
+    {
+      "code": "const notEval = 42; notEval();",
+      "name": "unrelated identifier call - not flagged"
+    },
+    {
+      "code": "myEval();",
+      "name": "identifier merely containing \"eval\" as a substring - not flagged, no name-based false positive"
+    },
+    {
+      "code": "const f = function () { return 1; }; f();",
+      "name": "aliasing an unrelated function (not eval) - not flagged"
+    },
+    {
+      "code": "new Functionish();",
+      "name": "new-expression callee name that is not exactly \"Function\" - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "eval('1 + 1');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "direct eval() call - flagged"
+    },
+    {
+      "code": "const e = eval; e('1 + 1');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "const alias of eval, then called through the alias - flagged via scope-aware alias tracking"
+    },
+    {
+      "code": "let indirect = eval; indirect('1 + 1');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "let declared and initialized from eval in the same declarator - flagged"
+    },
+    {
+      "code": "globalThis['eval']('1 + 1');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "globalThis[\"eval\"] computed member access - flagged"
+    },
+    {
+      "code": "window.eval('1 + 1');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "window.eval member access - flagged"
+    },
+    {
+      "code": "self.eval('1 + 1');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "self.eval member access - flagged"
+    },
+    {
+      "code": "(0, eval)('1 + 1');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "(0, eval)(...) indirect-eval idiom via SequenceExpression callee - flagged"
+    },
+    {
+      "code": "(0, window.eval)('1 + 1');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "(0, window.eval)(...) indirect-eval idiom with a member-expression tail - flagged"
+    },
+    {
+      "code": "new Function('return 1');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "new Function(...) - flagged as the equally-forbidden arbitrary-code-from-string construct"
+    }
+  ]
+}

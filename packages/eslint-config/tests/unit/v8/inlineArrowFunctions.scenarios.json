@@ -11,6 +11,18 @@
     {
       "code": "const map = { a: (x) => x + 1 };",
       "name": "single-expression arrow body (not a BlockStatement) - not flagged"
+    },
+    {
+      "code": "function build(items) { return items.map((x) => { let y = x; return y; }); }",
+      "name": "inline arrow callback argument, but call site is NOT inside a loop - not flagged"
+    },
+    {
+      "code": "const arr = [(x) => { let y = x; return y; }];",
+      "name": "bare array literal holding an inline arrow, not passed to any call - not flagged"
+    },
+    {
+      "code": "function handler(cb = (x) => x + 1) { return cb; }",
+      "name": "default-parameter value is a single-expression arrow (not a BlockStatement) - not flagged"
     }
   ],
   "invalid": [
@@ -112,6 +124,59 @@
         }
       ],
       "name": "renaming the property key to an arbitrary name buys no escape - flagged identically"
+    },
+    {
+      "code": "for (const it of items) { process(it, (x) => { let y = x; return y; }); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "inline arrow callback argument passed directly to a call inside a for-of loop - flagged (the textbook per-iteration-closure-allocation case)"
+    },
+    {
+      "code": "while (hasNext()) { process((x) => { let y = x; return y; }); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "inline arrow callback argument inside a while loop - flagged"
+    },
+    {
+      "code": "function build(cond) { return { a: cond ? (x) => { let y = x; return y; } : (x) => { let z = x; return z; } }; }",
+      "errors": [
+        { "messageId": "forbidden" },
+        { "messageId": "forbidden" }
+      ],
+      "name": "ternary-branched inline arrows as an object value in a rebuilt-per-call map - both branches flagged"
+    },
+    {
+      "code": "function build(handler = (x) => { let y = x; return y; }) { return handler; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "default-parameter value is an inline multi-statement arrow closure - flagged"
+    },
+    {
+      "code": "while (hasNext()) { register(Object.fromEntries([[\"a\", (x) => { let y = x; return y; }]])); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "non-literal dispatch-table construction (Object.fromEntries) inside a loop - flagged"
+    },
+    {
+      "code": "while (hasNext()) { register(new Map([[\"a\", (x) => { let y = x; return y; }]])); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "non-literal dispatch-table construction (new Map) inside a loop - flagged"
     }
   ]
 }

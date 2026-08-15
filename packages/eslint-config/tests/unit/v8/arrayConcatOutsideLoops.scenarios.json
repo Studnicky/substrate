@@ -1,0 +1,108 @@
+{
+  "valid": [
+    {
+      "code": "items.concat(more);",
+      "name": "concat() outside any loop - not flagged"
+    },
+    {
+      "code": "function helper() { items.concat(more); } helper(); for (const id of ids) { helper(); }",
+      "name": "helper's concat() called from both inside and outside a loop - not provably per-iteration, not flagged"
+    },
+    {
+      "code": "function helper() { items.concat(more); } const ref = helper; for (const id of ids) { ref(); }",
+      "name": "helper referenced as a value (not only called) - unprovable, not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "for (let i = 0; i < items.length; i++) { items.concat(more); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "concat() inside for loop - flagged"
+    },
+    {
+      "code": "while (items.length > 0) { items.concat(more); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "concat() inside while loop - flagged"
+    },
+    {
+      "code": "let i = 0; do { items.concat(more); i++; } while (i < 10);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "concat() inside do...while loop - flagged"
+    },
+    {
+      "code": "for (const id of ids) { items.concat(more); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "concat() inside for...of loop - flagged"
+    },
+    {
+      "code": "for (const key in obj) { items.concat(more); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "concat() inside for...in loop - flagged"
+    },
+    {
+      "code": "for (const id of ids) { items.concat.call(items, more); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "concat.call() indirection inside a loop - flagged"
+    },
+    {
+      "code": "for (const id of ids) { items.concat.apply(items, [more]); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "concat.apply() indirection inside a loop - flagged"
+    },
+    {
+      "code": "const c = items.concat; for (const id of ids) { c(more); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "aliased concat reference called inside a loop - flagged"
+    },
+    {
+      "code": "function helper() { items.concat(more); } for (const id of ids) { helper(); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "helper function's only call site is inside a loop - flagged (fix B)"
+    },
+    {
+      "code": "const helper = () => { items.concat(more); }; for (const id of ids) { helper(); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "const arrow-function helper's only call site is inside a loop - flagged (fix B)"
+    }
+  ]
+}

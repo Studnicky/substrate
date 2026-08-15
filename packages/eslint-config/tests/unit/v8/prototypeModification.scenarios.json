@@ -1,0 +1,112 @@
+{
+  "valid": [
+    {
+      "code": "const foo = {}; foo.bar = 1;",
+      "name": "ordinary property assignment on a plain object - not flagged"
+    },
+    {
+      "code": "class Foo { bar() { return 1; } }",
+      "name": "ordinary method definition - not flagged"
+    },
+    {
+      "code": "Object.defineProperty(obj, 'bar', { value: 1 });",
+      "name": "Object.defineProperty targeting a non-prototype object - not flagged"
+    },
+    {
+      "code": "Reflect.set(obj, 'bar', 1);",
+      "name": "Reflect.set targeting a non-prototype object - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "Foo.prototype = {};",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "whole-prototype reassignment - flagged"
+    },
+    {
+      "code": "Foo.prototype.bar = function () {};",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "property-on-prototype mutation (rule's own canonical target pattern) - flagged (was the CRITICAL bypass: selector only matched whole-prototype reassignment)"
+    },
+    {
+      "code": "Foo['prototype'].bar = function () {};",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "computed property-on-prototype mutation via bracket access on the object - flagged"
+    },
+    {
+      "code": "Foo['prototype'] = {};",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "computed whole-prototype reassignment - flagged"
+    },
+    {
+      "code": "Object.defineProperty(Foo.prototype, 'bar', { value: 1 });",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "Object.defineProperty targeting a prototype - flagged"
+    },
+    {
+      "code": "Object.defineProperties(Foo.prototype, { bar: { value: 1 } });",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "Object.defineProperties targeting a prototype - flagged"
+    },
+    {
+      "code": "Object.setPrototypeOf(instance, Foo.prototype);",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "Object.setPrototypeOf targeting a prototype - flagged"
+    },
+    {
+      "code": "Reflect.set(Foo.prototype, 'bar', 1);",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "Reflect.set targeting a prototype - flagged"
+    },
+    {
+      "code": "Reflect.setPrototypeOf(instance, Foo.prototype);",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "Reflect.setPrototypeOf targeting a prototype - flagged"
+    },
+    {
+      "code": "obj.__proto__ = Foo.prototype;",
+      "errors": [
+        {
+          "messageId": "prototypeModification"
+        }
+      ],
+      "name": "__proto__ assignment - flagged"
+    }
+  ]
+}

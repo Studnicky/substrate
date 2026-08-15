@@ -67,6 +67,18 @@ export class TrivialExpression {
       return TrivialExpression.isTrivial(NodeExpressionAccess.getExpression(node), opts);
     }
 
+    // `(0, trivialCall(x))` — a comma-sequence-expression whose leading operands are throwaway
+    // noise. Only the LAST expression is the value the sequence evaluates to; recurse into it
+    // against the same triviality rules.
+    if (type === 'SequenceExpression') {
+      const rawNode: unknown = node;
+      const expressions: unknown = ObjectGuard.isObject(rawNode) ? rawNode.expressions : undefined;
+
+      if (!Array.isArray(expressions) || expressions.length === 0) { return false; }
+
+      return TrivialExpression.isTrivial(expressions.at(-1), opts);
+    }
+
     return false;
   }
 }
