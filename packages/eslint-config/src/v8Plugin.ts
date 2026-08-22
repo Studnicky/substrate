@@ -19,7 +19,7 @@ import { forInLoops } from './rules/v8/forInLoops.js';
 import { forOfArrays } from './rules/v8/forOfArrays.js';
 import { inlineArrowFunctions } from './rules/v8/inlineArrowFunctions.js';
 import { inlineFunctions } from './rules/v8/inlineFunctions.js';
-import { maxSwitchCases } from './rules/v8/maxSwitchCases.js';
+import { maximumSwitchCases } from './rules/v8/maximumSwitchCases.js';
 import { memoizeArrayLength } from './rules/v8/memoizeArrayLength.js';
 import { objectSpread } from './rules/v8/objectSpread.js';
 import { prototypeModification } from './rules/v8/prototypeModification.js';
@@ -49,7 +49,7 @@ export const v8Plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'for-of-arrays': forOfArrays,
     'inline-arrow-functions': inlineArrowFunctions,
     'inline-functions': inlineFunctions,
-    'max-switch-cases': maxSwitchCases,
+    'max-switch-cases': maximumSwitchCases,
     'memoize-array-length': memoizeArrayLength,
     'object-spread': objectSpread,
     'prototype-modification': prototypeModification,

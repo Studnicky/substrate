@@ -2,7 +2,6 @@ import type { Rule } from 'eslint';
 
 import {
   getCombinedModifierFlags,
-  type InterfaceDeclaration,
   isIdentifier,
   isInterfaceDeclaration,
   isModuleBlock,
@@ -32,26 +31,43 @@ interface ParserServicesInterface {
 
 class ParserServices {
   static has(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) { return false; }
+    if (!ObjectGuard.isObject(value)) {
+      return false;
+    }
 
     const program = value.program;
     const nodeMap = value.esTreeNodeToTSNodeMap;
-    if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) { return false; }
 
-    return typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
+    if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) {
+      return false;
+    }
+
+    const result = typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
+
+    return result;
   }
 }
 
 class EntityTypeDeclaration {
   static isCanonical(declaration: TypeAliasDeclaration): boolean {
-    if (declaration.name.text !== 'Type') { return false; }
-    if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) { return false; }
+    if (declaration.name.text !== 'Type') {
+      return false;
+    }
+    if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) {
+      return false;
+    }
 
     const namespaceBlock = declaration.parent;
-    if (!isModuleBlock(namespaceBlock)) { return false; }
 
-    if (!isTypeReferenceNode(declaration.type)) { return false; }
+    if (!isModuleBlock(namespaceBlock)) {
+      return false;
+    }
+
+    if (!isTypeReferenceNode(declaration.type)) {
+      return false;
+    }
     const [schemaArgument] = declaration.type.typeArguments ?? [];
+
     if (
       schemaArgument === undefined
       || !isTypeQueryNode(schemaArgument)
@@ -62,78 +78,77 @@ class EntityTypeDeclaration {
     }
 
     const ownsExportedSchema = namespaceBlock.statements.some((statement) => {
-      if (!isVariableStatement(statement)) { return false; }
-      const exported = statement.modifiers?.some((modifier) => {
-        return modifier.kind === SyntaxKind.ExportKeyword;
-      }) ?? false;
-      if (!exported) { return false; }
-      return statement.declarationList.declarations.some((schemaDeclaration) => {
-        return isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema';
-      });
+      if (!isVariableStatement(statement)) {
+        return false;
+      }
+
+      let exported = false;
+      const modifiers = statement.modifiers;
+
+      for (let modifierIndex = 0; modifierIndex < (modifiers?.length ?? 0); modifierIndex += 1) {
+        if (modifiers?.at(modifierIndex)?.kind === SyntaxKind.ExportKeyword) {
+          exported = true;
+          break;
+        }
+      }
+
+      if (!exported) {
+        return false;
+      }
+
+      const declarations = statement.declarationList.declarations;
+      let ownsSchema = false;
+
+      for (let declarationIndex = 0; declarationIndex < declarations.length; declarationIndex += 1) {
+        const schemaDeclaration = declarations.at(declarationIndex);
+
+        if (schemaDeclaration !== undefined && isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema') {
+          ownsSchema = true;
+          break;
+        }
+      }
+
+      return ownsSchema;
     });
-    if (!ownsExportedSchema) { return false; }
+
+    if (!ownsExportedSchema) {
+      return false;
+    }
 
     const namespaceDeclaration = namespaceBlock.parent;
-    return isModuleDeclaration(namespaceDeclaration)
+
+    const result = isModuleDeclaration(namespaceDeclaration)
       && isIdentifier(namespaceDeclaration.name)
       && namespaceDeclaration.name.text.endsWith('Entity');
-  }
-}
 
-/**
- * The interface spelling of the same canonical-derivation pattern:
- * `interface FooType extends FromSchema<typeof Schema> {}` derives the identical schema-backed
- * pure-data shape a `type FooType = FromSchema<typeof Schema>` alias does, just via a heritage
- * clause instead of an assignment. `allTypesAreEntities` only ever listened for
- * `TSTypeAliasDeclaration`, so this interface form was invisible to it entirely.
- */
-class EntityInterfaceDeclaration {
-  static isCanonical(declaration: InterfaceDeclaration, classification: TypeContractClassification): boolean {
-    if (declaration.name.text !== 'Type') { return false; }
-    if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) { return false; }
-
-    const namespaceBlock = declaration.parent;
-    if (!isModuleBlock(namespaceBlock)) { return false; }
-
-    const extendsClause = (declaration.heritageClauses ?? []).find((clause) => {
-      return clause.token === SyntaxKind.ExtendsKeyword;
-    });
-    if (extendsClause?.types.length !== 1) { return false; }
-    const [extendedType] = extendsClause.types;
-    if (extendedType === undefined || !classification.isSchemaDerivedHeritageType(extendedType)) { return false; }
-
-    const ownsExportedSchema = namespaceBlock.statements.some((statement) => {
-      if (!isVariableStatement(statement)) { return false; }
-      const exported = statement.modifiers?.some((modifier) => {
-        return modifier.kind === SyntaxKind.ExportKeyword;
-      }) ?? false;
-      if (!exported) { return false; }
-      return statement.declarationList.declarations.some((schemaDeclaration) => {
-        return isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema';
-      });
-    });
-    if (!ownsExportedSchema) { return false; }
-
-    const namespaceDeclaration = namespaceBlock.parent;
-    return isModuleDeclaration(namespaceDeclaration)
-      && isIdentifier(namespaceDeclaration.name)
-      && namespaceDeclaration.name.text.endsWith('Entity');
+    return result;
   }
 }
 
 export const allTypesAreEntities: Rule.RuleModule = {
   'create': (context) => {
     const services: unknown = context.sourceCode.parserServices;
-    if (!ParserServices.has(services)) { return {}; }
+
+    if (!ParserServices.has(services)) {
+      return {};
+    }
 
     const classification = TypeContractClassification.forProgram(services.program);
 
     const onTSTypeAliasDeclaration = (node: Rule.Node): void => {
       const declaration = services.esTreeNodeToTSNodeMap.get(node);
-      if (declaration === undefined || !isTypeAliasDeclaration(declaration)) { return; }
+
+      if (declaration === undefined || !isTypeAliasDeclaration(declaration)) {
+        return;
+      }
       const analysis = classification.analyzeAlias(declaration);
-      if (analysis.classification !== 'pureDataCanonical') { return; }
-      if (analysis.reason === 'fromSchema' && EntityTypeDeclaration.isCanonical(declaration)) { return; }
+
+      if (analysis.classification !== 'pureDataCanonical') {
+        return;
+      }
+      if (analysis.reason === 'fromSchema' && EntityTypeDeclaration.isCanonical(declaration)) {
+        return;
+      }
 
       context.report({
         'data': { 'name': declaration.name.text },
@@ -144,22 +159,35 @@ export const allTypesAreEntities: Rule.RuleModule = {
 
     const onTSInterfaceDeclaration = (node: Rule.Node): void => {
       const declaration = services.esTreeNodeToTSNodeMap.get(node);
-      if (declaration === undefined || !isInterfaceDeclaration(declaration)) { return; }
+
+      if (declaration === undefined || !isInterfaceDeclaration(declaration)) {
+        return;
+      }
 
       const extendsClause = (declaration.heritageClauses ?? []).find((clause) => {
-        return clause.token === SyntaxKind.ExtendsKeyword;
+        const result = clause.token === SyntaxKind.ExtendsKeyword;
+
+        return result;
       });
-      if (extendsClause === undefined) { return; }
+
+      if (extendsClause === undefined) {
+        return;
+      }
 
       let hasSchemaDerivedHeritage = false;
+
       for (const type of extendsClause.types) {
         if (classification.isSchemaDerivedHeritageType(type)) {
           hasSchemaDerivedHeritage = true;
           break;
         }
       }
-      if (!hasSchemaDerivedHeritage) { return; }
-      if (EntityInterfaceDeclaration.isCanonical(declaration, classification)) { return; }
+      if (!hasSchemaDerivedHeritage) {
+        return;
+      }
+      if (classification.isCanonicalEntityInterface(declaration)) {
+        return;
+      }
 
       context.report({
         'data': { 'name': declaration.name.text },
@@ -168,16 +196,16 @@ export const allTypesAreEntities: Rule.RuleModule = {
       });
     };
 
-    return { 'TSInterfaceDeclaration': onTSInterfaceDeclaration, 'TSTypeAliasDeclaration': onTSTypeAliasDeclaration };
+    return {
+      'TSInterfaceDeclaration': onTSInterfaceDeclaration, 'TSTypeAliasDeclaration': onTSTypeAliasDeclaration
+    };
   },
   'meta': {
     'docs': {
       'description': "Require every canonical pure-data alias to be an exported '*Entity.Type' derived from its namespace's Schema.",
       'recommended': false
     },
-    'messages': {
-      'forbidden-type-alias': "Canonical pure-data alias '{{name}}' must be the exported 'Type' member of an '*Entity' namespace and derive directly from that entity's JSON Schema."
-    },
+    'messages': { 'forbidden-type-alias': "Canonical pure-data alias '{{name}}' must be the exported 'Type' member of an '*Entity' namespace and derive directly from that entity's JSON Schema." },
     'schema': [],
     'type': 'problem'
   }

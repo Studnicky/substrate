@@ -1,5 +1,6 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { resolve } from 'node:path';
+import { describe, it } from 'node:test';
 
 import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
@@ -17,8 +18,24 @@ function toMessageId(report: unknown): string {
 RuleTester.describe = describe;
 RuleTester.it = it;
 
+const repoRoot = resolve(import.meta.dirname, '../../../..');
+
+// `projectService`/`tsconfigRootDir` (not bare `sourceType: 'module'`) is required
+// here: the redesigned rule resolves `.forEach` and other per-element iteration
+// methods through `CallIdentity`, which needs a real type checker. Without type
+// services `CallIdentity.isBuiltinCall` always returns `false` (see its own
+// module comment), so any scenario relying on it would silently pass with zero
+// errors regardless of what the rule actually does — a vacuous test.
 const ruleTester = new RuleTester({
-  languageOptions: { parser, parserOptions: { sourceType: 'module' } }
+  languageOptions: {
+    parser,
+    parserOptions: {
+      projectService: {
+        allowDefaultProject: ['*.ts']
+      },
+      tsconfigRootDir: repoRoot
+    }
+  }
 });
 
 void describe('inline-functions', () => {

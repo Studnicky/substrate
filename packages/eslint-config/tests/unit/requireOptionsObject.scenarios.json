@@ -47,7 +47,7 @@
     {
       "code": "function foo(name: string, age?: number, role?: string) {}",
       "name": "minOptionals: 3 override - 2 optionals fall below the overridden threshold, fine",
-      "options": [{ "minOptionals": 3 }]
+      "options": [{ "minimumOptionals": 3 }]
     },
     {
       "code": "function foo(name: string, age: number | undefined) {}",
@@ -130,7 +130,7 @@
         }
       ],
       "name": "minOptionals: 3 override - 3 optionals meet the overridden threshold, flag",
-      "options": [{ "minOptionals": 3 }]
+      "options": [{ "minimumOptionals": 3 }]
     },
     {
       "code": "function foo(name: string, age: number | undefined, role: string | undefined) {}",

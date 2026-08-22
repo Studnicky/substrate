@@ -19,18 +19,25 @@
     {
       "code": "for (const value of [1, 2, 3]) { (() => /a/g.test(String(value)))(); }",
       "name": "regex literal inside a nested function within a loop - not flagged"
+    },
+    {
+      "code": "for (const value of [1, 2, 3]) { const pattern = new RegExp(String(value)); void pattern; }",
+      "name": "A13: new RegExp() referencing the for-of loop's own binding - loop-variant, cannot be hoisted, not flagged"
+    },
+    {
+      "code": "for (let i = 0; i < 3; i += 1) { const pattern = new RegExp(patterns[i]); void pattern; }",
+      "name": "A13: new RegExp() referencing a for-loop's own index variable - loop-variant, not flagged"
+    },
+    {
+      "code": "for (const value of [1, 2, 3]) { const suffix = String(value); const pattern = new RegExp(suffix); void pattern; }",
+      "name": "A13: new RegExp() referencing a loop-BODY-local const (itself derived from the loop binding) - loop-variant, not flagged"
+    },
+    {
+      "code": "while (true) { const key = nextKey(); const pattern = RegExp(key); void pattern; break; }",
+      "name": "A13: RegExp() call form referencing a loop-body-local variable - loop-variant, not flagged"
     }
   ],
   "invalid": [
-    {
-      "code": "for (const value of [1, 2, 3]) { const pattern = new RegExp(String(value)); void pattern; }",
-      "errors": [
-        {
-          "messageId": "regexpInLoop"
-        }
-      ],
-      "name": "new RegExp() inside a loop - flagged"
-    },
     {
       "code": "while (true) { const pattern = RegExp('a'); void pattern; break; }",
       "errors": [
@@ -48,6 +55,24 @@
         }
       ],
       "name": "regex literal inside a loop - flagged (bypass: literal syntax has no CallExpression/NewExpression node)"
+    },
+    {
+      "code": "const config = { pattern: 'a' }; for (const value of [1, 2, 3]) { const pattern = new RegExp(config.pattern); void pattern, value; }",
+      "errors": [
+        {
+          "messageId": "regexpInLoop"
+        }
+      ],
+      "name": "A13: new RegExp() referencing only an outer-scope binding - loop-INVARIANT and hoistable, still flagged"
+    },
+    {
+      "code": "for (const value of [1, 2, 3]) { const pattern = new RegExp('a', 'g'); void pattern, value; }",
+      "errors": [
+        {
+          "messageId": "regexpInLoop"
+        }
+      ],
+      "name": "A13: new RegExp() with only literal arguments - trivially loop-invariant, still flagged"
     }
   ]
 }

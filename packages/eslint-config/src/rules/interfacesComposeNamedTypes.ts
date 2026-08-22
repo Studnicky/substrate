@@ -35,7 +35,8 @@ class ParserServices {
     const nodeMap = value.esTreeNodeToTSNodeMap;
     if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) { return false; }
 
-    return typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
+    const result = typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
+    return result;
   }
 }
 
@@ -44,7 +45,8 @@ class NodeType {
     if (!ObjectGuard.isObject(rawNode)) { return ''; }
 
     const nodeType = rawNode.type;
-    return typeof nodeType === 'string' ? nodeType : '';
+    const result = typeof nodeType === 'string' ? nodeType : '';
+    return result;
   }
 }
 
@@ -57,12 +59,14 @@ class Member {
 
     if (key.type === 'Identifier') {
       const name = key.name;
-      return typeof name === 'string' && name.length > 0 ? name : '<unnamed>';
+      const result = typeof name === 'string' && name.length > 0 ? name : '<unnamed>';
+      return result;
     }
 
     if (key.type === 'Literal') {
       const value = key.value;
-      return typeof value === 'string' && value.length > 0 ? value : '<unnamed>';
+      const result = typeof value === 'string' && value.length > 0 ? value : '<unnamed>';
+      return result;
     }
 
     return '<unnamed>';
@@ -71,7 +75,8 @@ class Member {
 
 class Parent {
   public static get(rawNode: unknown): unknown {
-    return ObjectGuard.isObject(rawNode) ? rawNode.parent : undefined;
+    const result = ObjectGuard.isObject(rawNode) ? rawNode.parent : undefined;
+    return result;
   }
 }
 
@@ -129,7 +134,8 @@ class IndexedAccessResolution {
     if (property === undefined) { return undefined; }
 
     const declaration = property.valueDeclaration ?? (property.getDeclarations() ?? []).at(0);
-    return declaration !== undefined && isPropertySignature(declaration) ? declaration.type : undefined;
+    const result = declaration !== undefined && isPropertySignature(declaration) ? declaration.type : undefined;
+    return result;
   }
 }
 

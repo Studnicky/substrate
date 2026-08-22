@@ -37,140 +37,51 @@ void describe('array-scan-outside-loops', () => {
     ruleTester.run('array-scan-outside-loops', arrayScanOutsideLoops, scenarioGroups);
   });
 
-  void it('covers loop-local and parser-service branches directly', () => {
-    const makeListener = (context: unknown) => arrayScanOutsideLoops.create(context as never).CallExpression as NonNullable<ReturnType<typeof arrayScanOutsideLoops.create>['CallExpression']>;
-
-    const noReports: unknown[] = [];
-    const reportContext = {
-      report(descriptor: unknown) {
-        noReports.push(descriptor);
-      },
-      sourceCode: {
-        getScope() {
-          return {
-            upper: null,
-            variables: [
-              {
-                defs: [{ node: { range: [12, 22] } }],
-                name: 'inner'
-              }
-            ]
-          };
+  // B1: identity is now resolved via `CallIdentity`/`checker.getResolvedSignature`
+  // rather than a hand-rolled `callee.property.name` check, so the branches below are
+  // exercised through real source over the RuleTester instead of a hand-mocked
+  // `parserServices` object shaped for the previous implementation's internals.
+  void it('B1: computed-key and const-held-key scan calls resolve identically to the plain call', () => {
+    ruleTester.run('array-scan-outside-loops', arrayScanOutsideLoops, {
+      'invalid': [
+        {
+          'code': 'declare const records: number[]; declare const ids: number[]; for (const id of ids) { records[\'find\']((r) => r === id); }',
+          'errors': [{ 'messageId': 'forbidden' }],
+          'name': 'computed string-literal key find() inside a loop - flagged'
         },
-        parserServices: {}
-      }
-    };
-
-    makeListener(reportContext)({
-      callee: {
-        object: { type: 'Identifier', name: 'inner' },
-        property: { type: 'Identifier', name: 'find' },
-        type: 'MemberExpression'
-      },
-      parent: {
-        type: 'ForOfStatement',
-        range: [0, 30]
-      },
-      type: 'CallExpression'
-    } as never);
-
-    assert.deepEqual(noReports.map(toMessageId), []);
-
-    const typedReports: unknown[] = [];
-    const typedReceiver = { type: 'Identifier', name: 'records' };
-    const typedContext = {
-      report(descriptor: unknown) {
-        typedReports.push(descriptor);
-      },
-      sourceCode: {
-        getScope() {
-          return {
-              upper: null,
-              variables: []
-            };
-          },
-          parserServices: {
-          esTreeNodeToTSNodeMap: new Map([[typedReceiver, {}]]),
-          program: {
-            getTypeChecker() {
-              return {
-                getTypeAtLocation() {
-                  return {};
-                },
-                isArrayType() {
-                  return true;
-                },
-                isTupleType() {
-                  return false;
-                }
-              };
-            }
-          }
+        {
+          'code': 'declare const records: number[]; declare const ids: number[]; const FIND = \'find\' as const; for (const id of ids) { records[FIND]((r) => r === id); }',
+          'errors': [{ 'messageId': 'forbidden' }],
+          'name': 'const-held computed key find() inside a loop - flagged'
         }
-      }
-    };
+      ],
+      'valid': []
+    });
+  });
 
-    makeListener(typedContext)({
-      callee: {
-        object: typedReceiver,
-        property: { type: 'Identifier', name: 'find' },
-        type: 'MemberExpression'
-      },
-      parent: {
-        type: 'ForStatement',
-        range: [0, 40]
-      },
-      type: 'CallExpression'
-    } as never);
-
-    assert.deepEqual(typedReports.map(toMessageId), ['forbidden']);
-
-    const typedNoReportContext = {
-      report(descriptor: unknown) {
-        typedReports.push(descriptor);
-      },
-      sourceCode: {
-        getScope() {
-          return {
-            upper: null,
-            variables: []
-          };
-        },
-        parserServices: {
-          esTreeNodeToTSNodeMap: new Map([[typedReceiver, {}]]),
-          program: {
-            getTypeChecker() {
-              return {
-                getTypeAtLocation() {
-                  return {};
-                },
-                isArrayType() {
-                  return false;
-                },
-                isTupleType() {
-                  return false;
-                }
-              };
-            }
-          }
+  void it('B1: PER-ITERATION IS RESOLVED VIA LoopContext: scan inside a .forEach() callback is flagged', () => {
+    ruleTester.run('array-scan-outside-loops', arrayScanOutsideLoops, {
+      'invalid': [
+        {
+          'code': 'declare const recordGroups: number[][]; declare const id: number; recordGroups.forEach((records) => { records.find((r) => r === id); });',
+          'errors': [{ 'messageId': 'forbidden' }],
+          'name': 'find() inside a .forEach() callback - flagged (FunctionScope.isInsideLoop stopped at the callback boundary and missed this)'
         }
-      }
-    };
+      ],
+      'valid': []
+    });
+  });
 
-    makeListener(typedNoReportContext)({
-      callee: {
-        object: typedReceiver,
-        property: { type: 'Identifier', name: 'find' },
-        type: 'MemberExpression'
-      },
-      parent: {
-        type: 'WhileStatement',
-        range: [0, 40]
-      },
-      type: 'CallExpression'
-    } as never);
-
-    assert.deepEqual(typedReports.map(toMessageId), ['forbidden']);
+  void it('B1: a same-named method on an unrelated class is not flagged', () => {
+    ruleTester.run('array-scan-outside-loops', arrayScanOutsideLoops, {
+      'invalid': [],
+      'valid': [
+        {
+          'code': 'class Rope { find(pred: (x: number) => boolean): number | undefined { void pred; return undefined; } } declare const acc: Rope; declare const ids: number[]; for (const id of ids) { acc.find((r) => r === id); }',
+          'name': 'same-named `Rope.find` on an unrelated class - not flagged (CallIdentity requires the Array/ReadonlyArray origin, not just the name)'
+        }
+      ]
+    });
   });
 
   void it('covers remaining guard exits directly', () => {

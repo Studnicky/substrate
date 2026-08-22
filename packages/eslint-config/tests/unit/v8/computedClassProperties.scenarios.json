@@ -1,45 +1,63 @@
 {
   "valid": [
     {
-      "code": "class Foo { bar = 1; }",
-      "name": "plain class field - not flagged"
+      "name": "computed field at module scope - class body evaluates once, %HaveSameMap true across instances",
+      "code": "const KEY = 'dyn'; class Widget { [KEY] = 1; alpha = 2; }"
     },
     {
-      "code": "class Foo { bar() { return 1; } }",
-      "name": "plain method - not flagged"
+      "name": "computed method name at module scope - evaluated once at class-definition time",
+      "code": "const KEY = 'run'; class Widget { [KEY]() { return 1; } }"
     },
     {
-      "code": "class Foo { method() { return { [computedKey()]: 1 }; } }",
-      "name": "computed object-literal property nested inside a class method body - not flagged (regression: rule is not a computed-object-property rule)"
+      "name": "computed field in a module-scope ClassExpression - same once-only evaluation",
+      "code": "const KEY = 'dyn'; const Widget = class { [KEY] = 1; };"
+    },
+    {
+      "name": "literal computed key inside a factory - resolves identically every call",
+      "code": "function makeClass() { return class { ['fixedName'] = 1; }; }"
+    },
+    {
+      "name": "well-known symbol inside a factory - no non-computed spelling exists in JavaScript",
+      "code": "function makeClass() { return class { [Symbol.iterator]() { return [][Symbol.iterator](); } }; }"
+    },
+    {
+      "name": "Symbol.asyncIterator at module scope - unconditionally exempt",
+      "code": "class Stream { [Symbol.asyncIterator]() { return this; } }"
+    },
+    {
+      "name": "non-computed class members are never matched",
+      "code": "class Widget { alpha = 1; run() { return this.alpha; } }"
+    },
+    {
+      "name": "nested class members are not double-matched through the outer class",
+      "code": "const KEY = 'dyn'; class Outer { static Inner = class { [KEY] = 1; }; }"
     }
   ],
   "invalid": [
     {
-      "code": "class Foo { [computedKey()] = 1; }",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "computed class field (PropertyDefinition) - flagged (regression: original selector matched object-literal Property nodes, never PropertyDefinition)"
+      "name": "variable computed field in a factory function - each call mints a distinct runtime class",
+      "code": "function makeClass(key) { return class { [key] = 1; }; }",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "const Foo = class { [computedKey()] = 1; };",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "computed class field in a ClassExpression - flagged"
+      "name": "variable computed method name in a factory function",
+      "code": "function makeClass(key) { return class { [key]() { return 1; } }; }",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "class Foo { [computedMethodName()]() { return 1; } }",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "computed method name (MethodDefinition) - flagged"
+      "name": "variable computed field in a class declared inside a loop",
+      "code": "declare const keys: readonly string[]; const length = keys.length; for (let index = 0; index < length; index += 1) { const key = keys[index] ?? ''; class Widget { [key] = 1; } }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "template-literal computed key in a factory - not a compile-time constant",
+      "code": "function makeClass(suffix) { return class { [`field_${suffix}`] = 1; }; }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "variable computed field in an arrow-function factory",
+      "code": "const makeClass = (key) => { return class { [key] = 1; }; };",
+      "errors": [{ "messageId": "forbidden" }]
     }
   ]
 }

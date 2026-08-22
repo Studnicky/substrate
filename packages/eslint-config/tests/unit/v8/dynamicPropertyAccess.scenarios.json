@@ -1,64 +1,80 @@
 {
   "valid": [
     {
-      "code": "const value = obj.staticName;",
-      "name": "static dot access - not flagged"
+      "name": "dot access - never a computed member expression",
+      "code": "declare const record: Record<string, unknown>; const value = record.alpha;"
+    },
+    {
+      "name": "string-literal key - V8 folds it to the same GetNamedProperty bytecode as dot access",
+      "code": "declare const record: Record<string, unknown>; const value = record['alpha'];"
+    },
+    {
+      "name": "numeric-literal key - statically known, not a dynamic lookup",
+      "code": "declare const record: Record<number, unknown>; const value = record[42];"
+    },
+    {
+      "name": "array index by variable - elements store, never transitions the hidden class",
+      "code": "declare const values: readonly number[]; declare const index: number; const value = values[index];"
+    },
+    {
+      "name": "array index assignment by variable - same elements-store reasoning",
+      "code": "declare const values: number[]; declare const index: number; values[index] = 1;"
+    },
+    {
+      "name": "typed-array index by variable - FLOAT64ELEMENTS store, map unchanged",
+      "code": "declare const buffer: Float64Array; declare const index: number; const value = buffer[index];"
+    },
+    {
+      "name": "tuple index by variable - isTupleType exemption",
+      "code": "declare const pair: readonly [number, string]; declare const index: number; const value = pair[index];"
+    },
+    {
+      "name": "string index by variable - character access, not a named property",
+      "code": "declare const text: string; declare const index: number; const value = text[index];"
+    },
+    {
+      "name": "array possibly undefined - union-aware exemption",
+      "code": "declare const values: readonly number[] | undefined; declare const index: number; const value = values === undefined ? 0 : values[index];"
+    },
+    {
+      "name": "well-known symbol key - Symbol.iterator has no non-computed spelling in JavaScript",
+      "code": "declare const values: readonly number[]; const iterator = values[Symbol.iterator]();"
+    },
+    {
+      "name": "index loop over an array - the fast path for-of-arrays mandates, 3.9ms vs 26.9ms at 5M",
+      "code": "declare const values: readonly number[]; let total = 0; const length = values.length; for (let index = 0; index < length; index += 1) { total += values[index] ?? 0; }"
     }
   ],
   "invalid": [
     {
-      "code": "const o = { value: obj[key] };",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "computed member access nested inside an object literal - flagged (pre-existing coverage)"
+      "name": "variable key read on a plain object - the dictionary-mode hazard",
+      "code": "declare const record: Record<string, unknown>; declare const key: string; const value = record[key];",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "function read(obj, key) { return obj[key]; }",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "bare computed member access outside any object literal (bypass) - flagged (regression: original selector required an ObjectExpression ancestor)"
+      "name": "variable key assignment on a plain object - drives it out of fast properties",
+      "code": "declare const record: Record<string, unknown>; declare const key: string; record[key] = 1;",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "function write(obj, key, value) { obj[key] = value; }",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "computed member access as an assignment target outside an object literal - flagged"
+      "name": "variable key on a plain object inside a loop",
+      "code": "declare const record: Record<string, unknown>; declare const keys: readonly string[]; const length = keys.length; for (let index = 0; index < length; index += 1) { const key = keys[index] ?? ''; const value = record[key]; }",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "const o = {}; o[key] = 1;",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "post-creation bracket assignment - flagged here (this rule owns it, not computedObjectProperties)"
+      "name": "variable key on an interface-typed object",
+      "code": "interface ShapeInterface { readonly alpha: number; readonly beta: number; } declare const shape: ShapeInterface; declare const key: 'alpha' | 'beta'; const value = shape[key];",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "for (let i = 0; i < arr.length; i += 1) { total += arr[i]; }",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "computed member access with a literal-looking but non-literal (variable) key in a loop - flagged"
+      "name": "computed access on a plain object nested inside an object literal",
+      "code": "declare const record: Record<string, unknown>; declare const key: string; const wrapper = { 'value': record[key] };",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "const value = obj['staticName'];",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "computed access with a static string-literal key - still flagged (scope decision: no literal-key exemption added, preserves pre-fix behavior)"
+      "name": "post-creation bracket assignment with a variable key",
+      "code": "declare const key: string; const created: Record<string, number> = {}; created[key] = 1;",
+      "errors": [{ "messageId": "forbidden" }]
     }
   ]
 }

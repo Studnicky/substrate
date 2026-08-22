@@ -1,7 +1,18 @@
 import type { Rule } from 'eslint';
 
-import { MESSAGE, RULE_NAME } from './constants/ArraySpreadOutsideLoopsConstants.js';
-import { FunctionScope } from './functionScope.js';
+import { LoopContext } from '../shared/LoopContext.js';
+import {
+  MESSAGE, RULE_NAME
+} from './constants/ArraySpreadOutsideLoopsConstants.js';
+
+// PER-ITERATION IS RESOLVED VIA `LoopContext`, NOT `FunctionScope.isInsideLoop`. A spread
+// inside a `.forEach()`/`.map()` callback allocates a fresh array once per element,
+// identically to one written with a loop keyword — `LoopContext.isPerIteration` treats
+// the callback as a loop body; the previous `FunctionScope.isInsideLoop` walk stopped at
+// the callback's function boundary and missed it. `CallIdentity` is not used here: a
+// `SpreadElement` inside an `ArrayExpression` is pure syntax, not a resolved call, so
+// there is no callee signature to resolve identity from — unlike every sibling rule in
+// this file set that targets a method call.
 
 class SpreadBinding {
   // A spread element is only the O(n^2) allocate-and-copy anti-pattern when it
@@ -16,17 +27,27 @@ class SpreadBinding {
   // its immediate parent is a CallExpression, not an ArrayExpression.
   public static isBoundArrayLiteral(arrayExpression: Rule.Node): boolean {
     const parent = arrayExpression.parent;
-    if (parent === null) { return false; }
+
+    if (parent === null) {
+      return false;
+    }
 
     if (parent.type === 'AssignmentExpression') {
       const assignment = parent as unknown as { readonly 'left': { readonly 'type': string }; readonly 'right': unknown };
-      if (assignment.right !== arrayExpression) { return false; }
-      return assignment.left.type === 'Identifier' || assignment.left.type === 'MemberExpression';
+
+      if (assignment.right !== arrayExpression) {
+        return false;
+      }
+
+      const result = assignment.left.type === 'Identifier' || assignment.left.type === 'MemberExpression';
+      return result;
     }
 
     if (parent.type === 'VariableDeclarator') {
       const declarator = parent as unknown as { readonly 'init': unknown };
-      return declarator.init === arrayExpression;
+
+      const result = declarator.init === arrayExpression;
+      return result;
     }
 
     return false;
@@ -37,11 +58,20 @@ export const arraySpreadOutsideLoops: Rule.RuleModule = {
   'create': (context) => {
     const onSpreadElement: NonNullable<Rule.RuleListener['SpreadElement']> = (node) => {
       const arrayExpression = node.parent as Rule.Node | null;
-      if (arrayExpression?.type !== 'ArrayExpression') { return; }
-      if (!SpreadBinding.isBoundArrayLiteral(arrayExpression)) { return; }
-      if (!FunctionScope.isInsideLoop(node)) { return; }
 
-      context.report({ 'messageId': 'forbidden', 'node': node });
+      if (arrayExpression?.type !== 'ArrayExpression') {
+        return;
+      }
+      if (!SpreadBinding.isBoundArrayLiteral(arrayExpression)) {
+        return;
+      }
+      if (!LoopContext.isPerIteration(node, context)) {
+        return;
+      }
+
+      context.report({
+        'messageId': 'forbidden', 'node': node
+      });
     };
 
     return { 'SpreadElement': onSpreadElement };

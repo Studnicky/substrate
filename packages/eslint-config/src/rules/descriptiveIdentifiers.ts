@@ -1,53 +1,10 @@
 import type { Rule } from 'eslint';
 
+import {
+  BANNED_SHORTENINGS, IDENTIFIER_NAME_PATTERN
+} from './constants/DescriptiveIdentifiersConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
-
-const BANNED_SHORTENINGS = new Set([
-  'args',
-  'arr',
-  'buf',
-  'cb',
-  'cfg',
-  'cnt',
-  'conf',
-  'ctx',
-  'curr',
-  'dlq',
-  'doc',
-  'dst',
-  'env',
-  'err',
-  'fn',
-  'idx',
-  'kv',
-  'len',
-  'lst',
-  'max',
-  'mgr',
-  'min',
-  'mq',
-  'msg',
-  'num',
-  'nxt',
-  'obj',
-  'opts',
-  'params',
-  'prev',
-  'ptr',
-  'rcv',
-  'ref',
-  'repo',
-  'ret',
-  'snd',
-  'src',
-  'str',
-  'svc',
-  'tmp',
-  'util',
-  'utils',
-  'val'
-]);
 
 // Manual scan instead of a single backtracking regex: the equivalent
 // `/[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|$)/g` is polynomial-time on an
@@ -57,11 +14,15 @@ const BANNED_SHORTENINGS = new Set([
 // step, for every starting position within the run.
 class CamelCase {
   private static isUpper(char: string): boolean {
-    return char >= 'A' && char <= 'Z';
+    const result = char >= 'A' && char <= 'Z';
+
+    return result;
   }
 
   private static isLower(char: string): boolean {
-    return char >= 'a' && char <= 'z';
+    const result = char >= 'a' && char <= 'z';
+
+    return result;
   }
 
   public static split(name: string): string[] {
@@ -120,10 +81,75 @@ class CamelCase {
 class BannedToken {
   public static find(name: string): string | undefined {
     const tokens = CamelCase.split(name);
-    const found = tokens.find((token) => { const result = BANNED_SHORTENINGS.has(token.toLowerCase());
-      return result; });
+    const tokensLength = tokens.length;
 
-    return found !== undefined ? found.toLowerCase() : undefined;
+    for (let index = 0; index < tokensLength; index += 1) {
+      const token = tokens.at(index);
+      const lowered = token?.toLowerCase();
+
+      if (lowered !== undefined && BANNED_SHORTENINGS.has(lowered)) {
+        return lowered;
+      }
+    }
+
+    return undefined;
+  }
+}
+
+// THE BLIND SPOT THIS CLASS CLOSES.
+//
+// `AstHelpers.getIdentifierName` reads only `node.name` — correct for an
+// `Identifier`, but a key forced into quotes is a `Literal` node instead, and
+// `Literal` has no `.name`. `eslint.config.mjs` sets
+// `@stylistic/quote-props: ['error', 'always']`, which forces EVERY object
+// key — every `Property`/class-member key this rule inspects via
+// `onNodeWithKey` — into that shape. Before this fix, `{ cb: fn }` (unquoted,
+// pre-quote-props) was checked; `{ 'cb': fn }` (what quote-props actually
+// requires) was invisible, making the `Property`/`PropertyDefinition`/
+// `MethodDefinition`/`TSPropertySignature`/`TSMethodSignature` paths
+// permanently blind for their entire configured lifetime.
+//
+// `AstHelpers.getIdentifierName` itself is a `shared/` module used by other
+// rules and out of this rule's ownership scope — this key-specific extension
+// stays local to `descriptive-identifiers` rather than changing shared
+// behavior other rules depend on. It tries the `Identifier` shape first
+// (unchanged behavior for every non-quoted-key call site: `onNodeWithId`,
+// `onIdentifier`, `onTSTypeParameter` are untouched), then falls back to a
+// string-valued `Literal` — deliberately NOT a numeric literal (`{ 5: x }`),
+// which is an index, not a name, and carries no shortening to flag.
+//
+// THE OVER-CORRECTION THAT FIX INTRODUCED, AND WHY THIS CHECKS IDENTIFIER SHAPE.
+//
+// Reading `Literal.value` for every quoted key also picks up a key that is a
+// string ONLY because it needed to be one — an ESLint rule id
+// (`'@studnicky/v8/max-switch-cases'`), a URL, a file path, anything foreign
+// with no author-chosen "identifier" reading at all. `max-switch-cases`
+// contains `max` only because `-` glued unrelated words together; it is not
+// camelCase/PascalCase the way `cb`/`ctx`/`opts` are, and CamelCase.split
+// would butcher it regardless. A quoted key that IS a valid JavaScript
+// identifier (`'cb'`, `'ctx'`) is "an identifier the author chose, merely
+// quoted (by quote-props)" and stays in scope; a quoted key that is NOT a
+// valid identifier (contains `@`, `/`, `-`, a leading digit, whitespace, …)
+// is a foreign/opaque string key and is out of scope, same as any other
+// string literal this rule never inspects.
+class KeyName {
+  public static extract(node: unknown): string | undefined {
+    const identifierName = AstHelpers.getIdentifierName(node);
+
+    if (identifierName !== undefined) {
+      return identifierName;
+    }
+    if (!ObjectGuard.isObject(node) || node.type !== 'Literal') {
+      return undefined;
+    }
+
+    const { value } = node;
+
+    if (typeof value !== 'string' || !IDENTIFIER_NAME_PATTERN.test(value)) {
+      return undefined;
+    }
+
+    return value;
   }
 }
 
@@ -152,8 +178,9 @@ class DescriptiveIdentifiers {
   public static create(context: Rule.RuleContext): Rule.RuleListener {
     function getNodeProperty(node: Rule.Node, property: string): unknown {
       const nodeAsObject: unknown = node;
+      const result = ObjectGuard.isObject(nodeAsObject) ? Reflect.get(nodeAsObject, property) : undefined;
 
-      return ObjectGuard.isObject(nodeAsObject) ? Reflect.get(nodeAsObject, property) : undefined;
+      return result;
     }
 
     function onNodeWithId(node: Rule.Node): void {
@@ -211,7 +238,7 @@ class DescriptiveIdentifiers {
     }
 
     function onNodeWithKey(node: Rule.Node): void {
-      const name = AstHelpers.getIdentifierName(getNodeProperty(node, 'key'));
+      const name = KeyName.extract(getNodeProperty(node, 'key'));
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);
@@ -241,6 +268,18 @@ class DescriptiveIdentifiers {
   }
 }
 
+// NO FIXER, BY DESIGN — NOT AN OVERSIGHT.
+//
+// Standing policy: an autofixer may exist only for a transformation that is
+// GUARANTEED safe; any residual risk means no fixer at all. A rename here is
+// not mechanical — it requires renaming the DECLARATION and every USE SITE of
+// the identifier, sitewide and possibly cross-file for an exported name, and
+// the message's suggested replacement (`cb`→`callback`, etc.) is a single
+// heuristic guess per banned token that can collide with an existing binding
+// already in scope. Same risk category, same standing policy, as
+// `inline-trivial-logic`'s "inline the logic at the call site" and
+// `explicitReturnBinding.ts`'s deleted fixer (see that file's "NO FIXER"
+// note) — a human renames each violation by hand.
 export const descriptiveIdentifiers: Rule.RuleModule = {
   'create': DescriptiveIdentifiers.create,
   'meta': {

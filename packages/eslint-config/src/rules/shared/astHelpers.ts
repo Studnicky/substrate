@@ -20,13 +20,15 @@ export class AstHelpers {
   public static getNodeType(node: unknown): string | undefined {
     if (!ObjectGuard.isObject(node)) { return undefined; }
     const type = node.type;
-    return typeof type === 'string' ? type : undefined;
+    const result = typeof type === 'string' ? type : undefined;
+    return result;
   }
 
   public static getIdentifierName(node: unknown): string | undefined {
     if (!ObjectGuard.isObject(node)) { return undefined; }
     const name = node.name;
-    return typeof name === 'string' ? name : undefined;
+    const result = typeof name === 'string' ? name : undefined;
+    return result;
   }
 
   public static hasTypeServices(value: unknown): value is Required<ParserServicesInterface> {
@@ -35,6 +37,7 @@ export class AstHelpers {
     if (typeof value.program.getTypeChecker !== 'function') { return false; }
     if (!('esTreeNodeToTSNodeMap' in value) || !ObjectGuard.isObject(value.esTreeNodeToTSNodeMap)) { return false; }
 
-    return typeof value.esTreeNodeToTSNodeMap.get === 'function';
+    const result = typeof value.esTreeNodeToTSNodeMap.get === 'function';
+    return result;
   }
 }

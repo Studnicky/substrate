@@ -16,7 +16,8 @@ class TypeGuards {
     if (!('esTreeNodeToTSNodeMap' in value) || !ObjectGuard.isObject(value.esTreeNodeToTSNodeMap)) { return false; }
 
     // Duck-type the Map: avoid cross-realm instanceof failures when the Map is from a different module instance.
-    return typeof value.esTreeNodeToTSNodeMap.get === 'function';
+    const result = typeof value.esTreeNodeToTSNodeMap.get === 'function';
+    return result;
   }
 }
 
@@ -27,11 +28,13 @@ class BannedProperty {
 
     if (Reflect.get(node, 'type') === 'Identifier') {
       const name: unknown = Reflect.get(node, 'name');
-      return name === 'bind' || name === 'call' || name === 'apply';
+      const result = name === 'bind' || name === 'call' || name === 'apply';
+      return result;
     }
     if (Reflect.get(node, 'type') === 'Literal') {
       const value: unknown = Reflect.get(node, 'value');
-      return value === 'bind' || value === 'call' || value === 'apply';
+      const result = value === 'bind' || value === 'call' || value === 'apply';
+      return result;
     }
 
     return false;
@@ -44,7 +47,8 @@ class BannedProperty {
     if (node === null || node === undefined || typeof node !== 'object') { return false; }
     if (Reflect.get(node, 'type') !== 'MemberExpression') { return false; }
 
-    return BannedProperty.isMatch(Reflect.get(node, 'property'));
+    const result = BannedProperty.isMatch(Reflect.get(node, 'property'));
+    return result;
   }
 }
 
@@ -75,7 +79,8 @@ export const directInvocationOnly: Rule.RuleModule = {
 
       // A callable Function has at least one call signature.
       // Class instances, plain objects, and `any` have zero call signatures — not provably callable.
-      return type.getCallSignatures().length > 0;
+      const result = type.getCallSignatures().length > 0;
+      return result;
     };
 
     const reportIfBannedMember = (reportNode: Rule.Node, memberExpression: unknown): void => {

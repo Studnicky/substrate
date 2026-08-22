@@ -1,0 +1,25 @@
+{
+  "valid": [
+    { "name": "bare return, no argument", "code": "function f(): void { return; }" },
+    { "name": "return this (fluent interface)", "code": "class C { m(): this { return this; } }" },
+    { "name": "return of a bare identifier - already a binding", "code": "function f(value: number): number { return value; }" },
+    { "name": "return of a literal", "code": "function f(): number { return 0; }" },
+    { "name": "return of a template literal", "code": "function f(): string { return `x${1}`; }" },
+    { "name": "return of a single-hop member expression off this", "code": "class C { get(): number { return this.count; } private count = 0; }" },
+    { "name": "return of a chained member expression - member reads are never flagged, at any depth", "code": "class C { get(): number { return this.inner.count; } private inner = { count: 0 }; }" },
+    { "name": "return of a new expression (construction, not delegation)", "code": "function f(): Date { return new Date(); }" },
+    { "name": "return of an object literal (construction, not delegation)", "code": "function f(): { a: number } { return { a: 1 }; }" },
+    { "name": "return of an array literal (construction, not delegation)", "code": "function f(): number[] { return [1, 2, 3]; }" },
+    { "name": "return of a closure (construction, not delegation)", "code": "function f(): () => number { return () => 1; }" },
+    { "name": "return await - the await keyword already marks the suspension point, 0/26 bound in the survey", "code": "async function f(): Promise<number> { return await g(); } async function g(): Promise<number> { return 1; }" },
+    { "name": "already bound - the point of the rule, not a violation", "code": "function f(): number { const result = g(); return result; } function g(): number { return 1; }" }
+  ],
+  "invalid": [
+    { "name": "hazard: unbound call - and no fixer is ever emitted, verified via output: null", "code": "function f(): number { return Math.abs(-1); }", "errors": [{ "messageId": "unbound" }], "output": null },
+    { "name": "hazard: unbound conditional (the exact reported shape - conditional-of-object-literals)", "code": "interface R { readonly classification: 'contract' | 'pureData'; } function f(evidence: unknown): R { return evidence === undefined ? { 'classification': 'pureData' } : { 'classification': 'contract' }; }", "errors": [{ "messageId": "unbound" }], "output": null },
+    { "name": "hazard: unbound logical expression", "code": "function f(a: string | undefined, b: string): string { return a || b; }", "errors": [{ "messageId": "unbound" }] },
+    { "name": "hazard: unbound binary expression", "code": "function f(a: number, b: number): number { return a + b; }", "errors": [{ "messageId": "unbound" }] },
+    { "name": "hazard: unbound unary expression", "code": "function f(a: number): number { return -a; }", "errors": [{ "messageId": "unbound" }] },
+    { "name": "hazard: unbound optional-chained call", "code": "function f(g?: () => number): number | undefined { return g?.(); }", "errors": [{ "messageId": "unbound" }] }
+  ]
+}

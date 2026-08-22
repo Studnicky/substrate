@@ -1,68 +1,55 @@
 {
   "valid": [
     {
-      "code": "obj.x = 1;",
-      "name": "plain assignment instead of defineProperty - not flagged"
+      "name": "fresh data-property definition - %HaveSameMap identical to plain assignment, measured safe",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { value: 1, writable: true, enumerable: true, configurable: true });"
     },
     {
-      "code": "const notObject = { defineProperty() { return 1; } }; notObject.defineProperty();",
-      "name": "unrelated local object with its own defineProperty method - not flagged (alias tracking must not over-match)"
+      "name": "fresh non-enumerable data property - still %HasFastProperties true",
+      "code": "const target = {}; Object.defineProperty(target, 'hidden', { value: 1, enumerable: false, writable: false, configurable: false });"
+    },
+    {
+      "name": "two DIFFERENT fresh properties - neither redefines the other",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { value: 1 }); Object.defineProperty(target, 'beta', { value: 2 });"
+    },
+    {
+      "name": "plain assignment is not this rule's concern",
+      "code": "const target = {}; target.alpha = 1;"
+    },
+    {
+      "name": "class accessor syntax - the compliant spelling for a getter",
+      "code": "class Widget { get alpha() { return 1; } }"
+    },
+    {
+      "name": "object-literal accessor syntax - also compliant, no defineProperty involved",
+      "code": "const target = { get alpha() { return 1; } };"
     }
   ],
   "invalid": [
     {
-      "code": "Object.defineProperty(obj, 'x', { value: 1 });",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "Object.defineProperty - flagged (pre-existing coverage)"
+      "name": "redefinition of a property established earlier in the same scope",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { value: 1 }); Object.defineProperty(target, 'alpha', { value: 2 });",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "Object.defineProperties(obj, { x: { value: 1 } });",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "Object.defineProperties (plural, bypass) - flagged"
+      "name": "accessor descriptor with get - drops fast properties, 15.8x measured on reads",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { get() { return 1; } });",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "Reflect.defineProperty(obj, 'x', { value: 1 });",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "Reflect.defineProperty (bypass) - flagged"
+      "name": "accessor descriptor with set",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { set(value) { void value; } });",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "const { defineProperty } = Object; defineProperty(obj, 'x', { value: 1 });",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "destructured Object.defineProperty (bypass) - flagged"
+      "name": "redefinition of a plainly-assigned property",
+      "code": "const target = {}; target.alpha = 1; Object.defineProperty(target, 'alpha', { value: 2 });",
+      "errors": [{ "messageId": "forbidden" }]
     },
     {
-      "code": "const O = Object; O.defineProperty(obj, 'x', { value: 1 });",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "aliased Object (bypass) - flagged"
-    },
-    {
-      "code": "Object['defineProperty'](obj, 'x', { value: 1 });",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "bracket-notation Object['defineProperty'] (bypass) - flagged"
+      "name": "accessor descriptor via Reflect.defineProperty - same hazard, different spelling",
+      "code": "const target = {}; Reflect.defineProperty(target, 'alpha', { get() { return 1; } });",
+      "errors": [{ "messageId": "forbidden" }]
     }
   ]
 }

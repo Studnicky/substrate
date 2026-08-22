@@ -170,6 +170,86 @@
       "expected": {
         "output": false
       }
+    },
+    {
+      "name": "D7: continues scanning past a non-layer occurrence of sourceRoot instead of giving up (vendored nested src)",
+      "operation": "layerForPath",
+      "input": {
+        "path": "/repo/src/vendor/x/src/domain/Foo.ts"
+      },
+      "expected": {
+        "output": "domain"
+      }
+    },
+    {
+      "name": "D7: still resolves to undefined when no occurrence of sourceRoot is followed by a configured layer",
+      "operation": "layerForPath",
+      "input": {
+        "path": "/repo/src/vendor/x/src/utils/format.ts"
+      },
+      "expected": {
+        "output": null
+      }
+    },
+    {
+      "name": "D7: default allow-matrix resolves by position, not literal name, so a renamed application-role layer can still import the renamed domain-role layer",
+      "operation": "canImport",
+      "input": {
+        "from": "organisms",
+        "to": "atoms",
+        "options": {
+          "layers": ["atoms", "molecules", "organisms", "templates", "pages"],
+          "sourceRoot": "src"
+        }
+      },
+      "expected": {
+        "output": true
+      }
+    },
+    {
+      "name": "D7: default allow-matrix still denies a renamed application-role layer importing the renamed adapters-role layer",
+      "operation": "canImport",
+      "input": {
+        "from": "organisms",
+        "to": "templates",
+        "options": {
+          "layers": ["atoms", "molecules", "organisms", "templates", "pages"],
+          "sourceRoot": "src"
+        }
+      },
+      "expected": {
+        "output": false
+      }
+    },
+    {
+      "name": "D7: the renamed infrastructure-role layer (last position) still imports every configured layer",
+      "operation": "canImport",
+      "input": {
+        "from": "pages",
+        "to": "atoms",
+        "options": {
+          "layers": ["atoms", "molecules", "organisms", "templates", "pages"],
+          "sourceRoot": "src"
+        }
+      },
+      "expected": {
+        "output": true
+      }
+    },
+    {
+      "name": "D7: a renamed adapters-role layer can import the renamed ports-role layer per the positional matrix",
+      "operation": "canImport",
+      "input": {
+        "from": "templates",
+        "to": "molecules",
+        "options": {
+          "layers": ["atoms", "molecules", "organisms", "templates", "pages"],
+          "sourceRoot": "src"
+        }
+      },
+      "expected": {
+        "output": true
+      }
     }
   ]
 }

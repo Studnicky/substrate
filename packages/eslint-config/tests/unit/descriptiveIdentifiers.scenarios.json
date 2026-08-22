@@ -36,6 +36,10 @@
       {
         "code": "export { cfg as config } from './config.js';",
         "name": "re-exported and renamed cfg through a barrel - no duplicate report"
+      },
+      {
+        "code": "const rules = { '@studnicky/v8/max-switch-cases': 'error' }; void rules;",
+        "name": "quoted foreign string key (rule id, not a valid JS identifier) containing a banned substring - no report"
       }
     ],
     "invalid": [
@@ -80,6 +84,15 @@
           }
         ],
         "name": "bare parameters of a named FunctionDeclaration - all three flagged (not exempted by the function's own id exemption)"
+      },
+      {
+        "code": "const holder = { 'cb': 1 }; void holder;",
+        "errors": [
+          {
+            "messageId": "banned-shortening"
+          }
+        ],
+        "name": "quoted object key that is itself a valid JS identifier (quote-props forced quoting) - still flagged"
       }
     ]
   },

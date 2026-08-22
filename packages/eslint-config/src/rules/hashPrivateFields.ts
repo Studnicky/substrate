@@ -14,7 +14,8 @@ class UnderscoreName {
     // Bare, non-computed identifier key: `_bar = 1`.
     if (!computed && keyType === 'Identifier') {
       const name: unknown = Reflect.get(key, 'name');
-      return typeof name === 'string' && name.startsWith('_') ? name : undefined;
+      const result = typeof name === 'string' && name.startsWith('_') ? name : undefined;
+      return result;
     }
 
     // String-literal key, either bracketed (`['_secret'] = 1`, computed) or bare
@@ -22,7 +23,8 @@ class UnderscoreName {
     // identifier key would, and both must be checked the same way.
     if (keyType === 'Literal') {
       const value: unknown = Reflect.get(key, 'value');
-      return typeof value === 'string' && value.startsWith('_') ? value : undefined;
+      const result = typeof value === 'string' && value.startsWith('_') ? value : undefined;
+      return result;
     }
 
     return undefined;
@@ -48,11 +50,13 @@ class ClassMemberCheck {
     if (Reflect.get(parameter, 'type') !== 'AssignmentPattern') { return parameter; }
 
     const left: unknown = Reflect.get(parameter, 'left');
-    return ObjectGuard.isObject(left) ? left : undefined;
+    const result = ObjectGuard.isObject(left) ? left : undefined;
+    return result;
   }
 
   public static isDeclaredField(node: Record<string, unknown>): boolean {
-    return Reflect.get(node, 'accessibility') !== undefined || Reflect.get(node, 'readonly') === true;
+    const result = Reflect.get(node, 'accessibility') !== undefined || Reflect.get(node, 'readonly') === true;
+    return result;
   }
 
   public static onParameterProperty(context: Rule.RuleContext, node: unknown): void {

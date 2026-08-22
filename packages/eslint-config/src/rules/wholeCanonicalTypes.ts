@@ -59,7 +59,8 @@ class ParserServicesGuard {
     if (!ObjectGuard.isObject(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
       return false;
     }
-    return ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    const result = ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    return result;
   }
 }
 
@@ -67,7 +68,8 @@ class ContextHelpers {
   public static getServices(context: Rule.RuleContext): ParserServicesInterface | undefined {
     const sourceCode: SourceCodeServicesAccessorInterface = context.sourceCode;
     const services: unknown = sourceCode.parserServices;
-    return ParserServicesGuard.hasTypeInformation(services) ? services : undefined;
+    const result = ParserServicesGuard.hasTypeInformation(services) ? services : undefined;
+    return result;
   }
 }
 
@@ -82,9 +84,10 @@ class SubsettingUtilityMatch {
   public static getFirstTypeArgument(node: Record<string, unknown>): unknown {
     const wrapper = node.typeArguments ?? node.typeParameters;
     if (!ObjectGuard.isObject(wrapper)) { return undefined; }
-    const params = wrapper.params;
-    if (!Array.isArray(params)) { return undefined; }
-    return params.at(0);
+    const parameters: unknown = wrapper.params;
+    if (!Array.isArray(parameters)) { return undefined; }
+    const result: unknown = parameters.at(0);
+    return result;
   }
 }
 
@@ -100,19 +103,23 @@ class CanonicalTypeResolution {
     const declarations = symbol.getDeclarations() ?? [];
     if (declarations.length === 0) { return false; }
 
-    const isGenericParameter = declarations.some((declaration) => { return declaration.kind === SyntaxKind.TypeParameter; });
+    const isGenericParameter = declarations.some((declaration) => { const result = declaration.kind === SyntaxKind.TypeParameter;
+      return result; });
     if (isGenericParameter) { return false; }
 
     const isNamedTypeDeclaration = declarations.some((declaration) => {
-      return declaration.kind === SyntaxKind.TypeAliasDeclaration || declaration.kind === SyntaxKind.InterfaceDeclaration;
+      const result = declaration.kind === SyntaxKind.TypeAliasDeclaration || declaration.kind === SyntaxKind.InterfaceDeclaration;
+      return result;
     });
     if (!isNamedTypeDeclaration) { return false; }
 
     const isExternallyOwned = declarations.every((declaration) => {
       const fileName = declaration.getSourceFile().fileName;
-      return fileName.includes('/node_modules/');
+      const result = fileName.includes('/node_modules/');
+      return result;
     });
-    return !isExternallyOwned;
+    const result = !isExternallyOwned;
+    return result;
   }
 
   /**
@@ -130,27 +137,25 @@ class CanonicalTypeResolution {
     const declarations = symbol.getDeclarations() ?? [];
     if (declarations.length === 0) { return false; }
 
-    const isGenericParameter = declarations.some((declaration) => { return declaration.kind === SyntaxKind.TypeParameter; });
+    const isGenericParameter = declarations.some((declaration) => { const result = declaration.kind === SyntaxKind.TypeParameter;
+      return result; });
     if (isGenericParameter) { return false; }
 
     const isNamedTypeDeclaration = declarations.some((declaration) => {
-      return declaration.kind === SyntaxKind.TypeAliasDeclaration || declaration.kind === SyntaxKind.InterfaceDeclaration;
+      const result = declaration.kind === SyntaxKind.TypeAliasDeclaration || declaration.kind === SyntaxKind.InterfaceDeclaration;
+      return result;
     });
     if (!isNamedTypeDeclaration) { return false; }
 
     const isExternallyOwned = declarations.every((declaration) => {
       const fileName = declaration.getSourceFile().fileName;
-      return fileName.includes('/node_modules/');
+      const result = fileName.includes('/node_modules/');
+      return result;
     });
-    return !isExternallyOwned;
+    const result = !isExternallyOwned;
+    return result;
   }
 
-  /** The full set of a canonical type's own declared (own, not inherited) property names. */
-  public static ownPropertyNames(typeNode: TypeNode, checker: TypeChecker): ReadonlySet<string> {
-    const type = checker.getTypeFromTypeNode(typeNode);
-    return new Set(type.getProperties().map((property) => { const result = property.getName();
-      return result; }));
-  }
 }
 
 /**
@@ -233,7 +238,8 @@ class MappedSubsettingShape {
     const constraintSymbol = checker.getSymbolAtLocation(constraint.typeName);
     if (constraintSymbol === undefined || (constraintSymbol.flags & SymbolFlags.TypeParameter) === 0) { return false; }
 
-    return constraintSymbol !== objectSymbol;
+    const result = constraintSymbol !== objectSymbol;
+    return result;
   }
 }
 
@@ -255,7 +261,8 @@ class CustomUtilityAliasMatch {
     if (aliasDeclaration === undefined || !isMappedTypeNode(aliasDeclaration.type)) { return undefined; }
     if (!MappedSubsettingShape.isReusableUtilityBody(aliasDeclaration.type, checker)) { return undefined; }
 
-    return resolved.getName();
+    const result = resolved.getName();
+    return result;
   }
 }
 
@@ -317,9 +324,15 @@ export const wholeCanonicalTypes: Rule.RuleModule = {
       const keys = MappedKeySet.resolve(mapped.typeParameter.constraint);
       if (keys === undefined || keys.size === 0) { return; }
 
-      const canonicalKeys = CanonicalTypeResolution.ownPropertyNames(objectType, checker);
-      const isProperSubset = keys.size < canonicalKeys.size && [...keys].every((key) => { const result = canonicalKeys.has(key);
-        return result; });
+      const canonicalKeys = new Set<string>();
+      const properties = checker.getTypeFromTypeNode(objectType).getProperties();
+      const propertyCount = properties.length;
+      for (let propertyIndex = 0; propertyIndex < propertyCount; propertyIndex += 1) {
+        const property = properties.at(propertyIndex);
+        if (property === undefined) { continue; }
+        canonicalKeys.add(property.getName());
+      }
+      const isProperSubset = keys.size < canonicalKeys.size && [...keys].every(canonicalKeys.has, canonicalKeys);
       if (!isProperSubset) { return; }
 
       report(node, 'a manually mapped Pick');
@@ -360,9 +373,15 @@ export const wholeCanonicalTypes: Rule.RuleModule = {
       if (canonicalObjectType === undefined) { return; }
       if (!CanonicalTypeResolution.isCanonicalOwnedTypeNode(canonicalObjectType, checker)) { return; }
 
-      const canonicalKeys = CanonicalTypeResolution.ownPropertyNames(canonicalObjectType, checker);
-      const isProperSubset = keys.size < canonicalKeys.size && [...keys].every((key) => { const result = canonicalKeys.has(key);
-        return result; });
+      const canonicalKeys = new Set<string>();
+      const properties = checker.getTypeFromTypeNode(canonicalObjectType).getProperties();
+      const propertyCount = properties.length;
+      for (let propertyIndex = 0; propertyIndex < propertyCount; propertyIndex += 1) {
+        const property = properties.at(propertyIndex);
+        if (property === undefined) { continue; }
+        canonicalKeys.add(property.getName());
+      }
+      const isProperSubset = keys.size < canonicalKeys.size && [...keys].every(canonicalKeys.has, canonicalKeys);
       if (!isProperSubset) { return; }
 
       report(node, 'inline indexed-access Pick');

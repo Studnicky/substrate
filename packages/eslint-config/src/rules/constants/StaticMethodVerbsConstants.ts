@@ -2,7 +2,7 @@
 
 export const DEFAULT_MODE = 'structural';
 
-export const TRIVIAL_OPTS: Readonly<{ 'allowLiterals': boolean; 'allowMemberExpressions': boolean }> = {
+export const TRIVIAL_OPTIONS: Readonly<{ 'allowLiterals': boolean; 'allowMemberExpressions': boolean }> = {
   'allowLiterals': false,
   'allowMemberExpressions': false
 };

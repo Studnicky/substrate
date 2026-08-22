@@ -13,45 +13,70 @@ class NodeExpressionAccess {
 
 class ThisAccess {
   public static isRooted(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) { return false; }
+    if (!ObjectGuard.isObject(node)) {
+      return false;
+    }
     const t = AstHelpers.getNodeType(node);
-    if (t === 'ThisExpression') { return true; }
-    if (t === 'MemberExpression') { return ThisAccess.isRooted(node.object); }
+
+    if (t === 'ThisExpression') {
+      return true;
+    }
+    if (t === 'MemberExpression') {
+      const result = ThisAccess.isRooted(node.object);
+
+      return result;
+    }
 
     return false;
   }
 
   public static isMemberExpression(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) { return false; }
-    if (node.type !== 'MemberExpression') { return false; }
+    if (!ObjectGuard.isObject(node)) {
+      return false;
+    }
+    if (node.type !== 'MemberExpression') {
+      return false;
+    }
 
-    return ThisAccess.isRooted(node.object);
+    const result = ThisAccess.isRooted(node.object);
+
+    return result;
   }
 }
 
 export class TrivialExpression {
-  public static isTrivial(node: unknown, opts: { 'allowLiterals': boolean; 'allowMemberExpressions': boolean }): boolean {
+  public static isTrivial(node: unknown, options: { 'allowLiterals': boolean; 'allowMemberExpressions': boolean }): boolean {
     const type = AstHelpers.getNodeType(node);
 
-    if (type === undefined) { return false; }
+    if (type === undefined) {
+      return false;
+    }
 
     // Factories and constructors — creating new value, not forwarding one. Never a shim.
     if (
       type === 'ObjectExpression'
       || type === 'ArrayExpression'
       || type === 'NewExpression'
-    ) { return false; }
+    ) {
+      return false;
+    }
 
     // Accessor pattern: `return this.x` inside a method body. Not a shim — it exposes a field.
     if (type === 'MemberExpression') {
-      if (ThisAccess.isMemberExpression(node)) { return false; }
+      if (ThisAccess.isMemberExpression(node)) {
+        return false;
+      }
 
-      return !opts.allowMemberExpressions;
+      const result = !options.allowMemberExpressions;
+
+      return result;
     }
 
     // Constant literals — inline at call site rather than wrapping.
     if (type === 'Literal' || type === 'TemplateLiteral') {
-      return !opts.allowLiterals;
+      const result = !options.allowLiterals;
+
+      return result;
     }
 
     // Pure pass-through: forwarding an identifier, delegating a call, or chaining.
@@ -60,11 +85,15 @@ export class TrivialExpression {
       || type === 'CallExpression'
       || type === 'AwaitExpression'
       || type === 'ChainExpression'
-    ) { return true; }
+    ) {
+      return true;
+    }
 
     // Strip TS wrappers and recurse.
     if (type === 'TSAsExpression' || type === 'TSNonNullExpression' || type === 'TSSatisfiesExpression') {
-      return TrivialExpression.isTrivial(NodeExpressionAccess.getExpression(node), opts);
+      const result = TrivialExpression.isTrivial(NodeExpressionAccess.getExpression(node), options);
+
+      return result;
     }
 
     // `(0, trivialCall(x))` — a comma-sequence-expression whose leading operands are throwaway
@@ -74,9 +103,13 @@ export class TrivialExpression {
       const rawNode: unknown = node;
       const expressions: unknown = ObjectGuard.isObject(rawNode) ? rawNode.expressions : undefined;
 
-      if (!Array.isArray(expressions) || expressions.length === 0) { return false; }
+      if (!Array.isArray(expressions) || expressions.length === 0) {
+        return false;
+      }
 
-      return TrivialExpression.isTrivial(expressions.at(-1), opts);
+      const result = TrivialExpression.isTrivial(expressions.at(-1), options);
+
+      return result;
     }
 
     return false;

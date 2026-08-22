@@ -2,20 +2,27 @@ import type { Rule } from 'eslint';
 
 import { ObjectGuard } from '../shared/ObjectGuard.js';
 
-const TERMINATOR_TYPES: ReadonlySet<string> = new Set(['BreakStatement', 'ContinueStatement', 'ReturnStatement']);
+const TERMINATOR_TYPES: ReadonlySet<string> = new Set([
+  'BreakStatement',
+  'ContinueStatement',
+  'ReturnStatement'
+]);
 
 class SwitchCaseShape {
   // Counts the statements a case body actually inlines, ignoring a single trailing
   // break/continue/return terminator so a one-statement-plus-break case (the
   // idiomatic delegate-then-break shape) is not penalized for the terminator.
   public static countInlinedStatements(consequent: readonly unknown[]): number {
-    if (consequent.length === 0) { return 0; }
+    if (consequent.length === 0) {
+      return 0;
+    }
 
     const last = consequent.at(-1);
     const lastType = ObjectGuard.isObject(last) ? last.type : undefined;
     const hasTrailingTerminator = typeof lastType === 'string' && TERMINATOR_TYPES.has(lastType);
 
-    return hasTrailingTerminator ? consequent.length - 1 : consequent.length;
+    const result = hasTrailingTerminator ? consequent.length - 1 : consequent.length;
+    return result;
   }
 }
 
@@ -30,27 +37,49 @@ class SwitchCaseShape {
  *  - a case body explicitly wrapped in `{ }` (a `BlockStatement`)
  *  - a case body with 2+ statements attached directly to `SwitchCase.consequent`
  *    (braces are optional in JS/TS switch-case syntax)
+ *
+ * NOT a V8 optimization rule, despite living in this package's `v8/` rule
+ * set. Proven with `node --allow-natives-syntax --print-bytecode
+ * --print-bytecode-filter=<fn>` on a 20-case int switch: a version with
+ * one-line delegating case bodies and a version with multi-statement inlined
+ * case bodies both compile to the identical dispatch opcode
+ * `SwitchOnSmiNoFeedback [0], [20], [0]` — case-body size has ZERO effect on
+ * dispatch strategy. The rule is retained purely as a readability/structure
+ * constraint (paired with `max-switch-cases`, which DOES carry a proven
+ * performance claim about case COUNT, not case-body size) — the message
+ * below carries no `v8Optimization/` prefix because it protects no V8
+ * mechanism.
  */
 export const switchStatements: Rule.RuleModule = {
   'create': (context) => {
     const onBlockStatement = (node: Rule.Node): void => {
-      context.report({ 'messageId': 'switchStatements', 'node': node });
+      context.report({
+        'messageId': 'switchStatements', 'node': node
+      });
     };
 
     const onSwitchCase: NonNullable<Rule.RuleListener['SwitchCase']> = (node) => {
       const raw = node as unknown as Record<string, unknown>;
       const consequent = raw.consequent;
-      if (!ObjectGuard.isArray(consequent)) { return; }
+
+      if (!ObjectGuard.isArray(consequent)) {
+        return;
+      }
 
       // A single BlockStatement child is handled by the dedicated listener above;
       // do not double-report it here.
       if (consequent.length === 1) {
         const only = consequent.at(0);
-        if (ObjectGuard.isObject(only) && only.type === 'BlockStatement') { return; }
+
+        if (ObjectGuard.isObject(only) && only.type === 'BlockStatement') {
+          return;
+        }
       }
 
       if (SwitchCaseShape.countInlinedStatements(consequent) >= 2) {
-        context.report({ 'messageId': 'switchStatements', 'node': node });
+        context.report({
+          'messageId': 'switchStatements', 'node': node
+        });
       }
     };
 
@@ -64,7 +93,7 @@ export const switchStatements: Rule.RuleModule = {
       'description': 'Switch cases must be simple calls/returns only — delegate to a static class method, do not inline multi-statement logic.',
       'recommended': false
     },
-    'messages': { 'switchStatements': 'v8Optimization/switchStatements: Switch cases must be simple calls/returns only — delegate to a static class method, do not inline multi-statement logic.' },
+    'messages': { 'switchStatements': 'switchStatements: Switch cases must be simple calls/returns only — delegate to a static class method, do not inline multi-statement logic. (Readability constraint, not a V8 optimization — case-body size has no effect on dispatch bytecode; see paired rule `max-switch-cases` for the actual performance-relevant constraint on case COUNT.)' },
     'schema': [],
     'type': 'problem'
   }

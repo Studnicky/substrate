@@ -1,112 +1,65 @@
 {
   "valid": [
     {
-      "code": "const foo = {}; foo.bar = 1;",
-      "name": "ordinary property assignment on a plain object - not flagged"
+      "name": "one-shot prototype method setup at module top level - runs once, before any instance exists",
+      "code": "function Widget() {} Widget.prototype.run = function () { return 1; };"
     },
     {
-      "code": "class Foo { bar() { return 1; } }",
-      "name": "ordinary method definition - not flagged"
+      "name": "one-shot whole-prototype assignment at module top level",
+      "code": "function Widget() {} Widget.prototype = { run: function () { return 1; } };"
     },
     {
-      "code": "Object.defineProperty(obj, 'bar', { value: 1 });",
-      "name": "Object.defineProperty targeting a non-prototype object - not flagged"
+      "name": "one-shot Object.assign onto a prototype at module top level",
+      "code": "function Widget() {} Object.assign(Widget.prototype, { run: function () { return 1; } });"
     },
     {
-      "code": "Reflect.set(obj, 'bar', 1);",
-      "name": "Reflect.set targeting a non-prototype object - not flagged"
+      "name": "class syntax - no prototype mutation node exists at all",
+      "code": "class Widget { run() { return 1; } }"
+    },
+    {
+      "name": "reading from a prototype is not modification",
+      "code": "function Widget() {} const runner = Widget.prototype.run;"
+    },
+    {
+      "name": "assigning a static property is not prototype modification",
+      "code": "function Widget() {} Widget.version = 1;"
     }
   ],
   "invalid": [
     {
-      "code": "Foo.prototype = {};",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "whole-prototype reassignment - flagged"
+      "name": "prototype method assignment inside a function - can run again after instances exist",
+      "code": "function Widget() {} function install() { Widget.prototype.run = function () { return 1; }; }",
+      "errors": [{ "messageId": "prototypeModification" }]
     },
     {
-      "code": "Foo.prototype.bar = function () {};",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "property-on-prototype mutation (rule's own canonical target pattern) - flagged (was the CRITICAL bypass: selector only matched whole-prototype reassignment)"
+      "name": "prototype method assignment inside a loop",
+      "code": "function Widget() {} for (let index = 0; index < 3; index += 1) { Widget.prototype.run = function () { return index; }; }",
+      "errors": [{ "messageId": "prototypeModification" }]
     },
     {
-      "code": "Foo['prototype'].bar = function () {};",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "computed property-on-prototype mutation via bracket access on the object - flagged"
+      "name": "whole-prototype reassignment inside a function",
+      "code": "function Widget() {} function install() { Widget.prototype = { run: function () { return 1; } }; }",
+      "errors": [{ "messageId": "prototypeModification" }]
     },
     {
-      "code": "Foo['prototype'] = {};",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "computed whole-prototype reassignment - flagged"
+      "name": "Object.assign onto a prototype inside a function - previously evaded name matching entirely",
+      "code": "function Widget() {} function install() { Object.assign(Widget.prototype, { run: function () { return 1; } }); }",
+      "errors": [{ "messageId": "prototypeModification" }]
     },
     {
-      "code": "Object.defineProperty(Foo.prototype, 'bar', { value: 1 });",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "Object.defineProperty targeting a prototype - flagged"
+      "name": "Object.setPrototypeOf inside a function",
+      "code": "function Widget() {} const base = {}; function install() { Object.setPrototypeOf(Widget.prototype, base); }",
+      "errors": [{ "messageId": "prototypeModification" }]
     },
     {
-      "code": "Object.defineProperties(Foo.prototype, { bar: { value: 1 } });",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "Object.defineProperties targeting a prototype - flagged"
+      "name": "__proto__ assignment inside a function",
+      "code": "const base = {}; function install(target) { target.__proto__ = base; }",
+      "errors": [{ "messageId": "prototypeModification" }]
     },
     {
-      "code": "Object.setPrototypeOf(instance, Foo.prototype);",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "Object.setPrototypeOf targeting a prototype - flagged"
-    },
-    {
-      "code": "Reflect.set(Foo.prototype, 'bar', 1);",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "Reflect.set targeting a prototype - flagged"
-    },
-    {
-      "code": "Reflect.setPrototypeOf(instance, Foo.prototype);",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "Reflect.setPrototypeOf targeting a prototype - flagged"
-    },
-    {
-      "code": "obj.__proto__ = Foo.prototype;",
-      "errors": [
-        {
-          "messageId": "prototypeModification"
-        }
-      ],
-      "name": "__proto__ assignment - flagged"
+      "name": "prototype mutation inside a forEach callback - a loop body via LoopContext",
+      "code": "function Widget() {} const names = ['a', 'b']; names.forEach((name) => { Widget.prototype[name] = function () { return 1; }; });",
+      "errors": [{ "messageId": "prototypeModification" }]
     }
   ]
 }

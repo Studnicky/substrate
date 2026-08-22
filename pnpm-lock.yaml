@@ -304,6 +304,9 @@ importers:
 
   packages/eslint-config:
     dependencies:
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
@@ -313,6 +316,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: '>=8.0.0'
         version: 8.65.0(eslint@10.7.0)(typescript@6.0.3)
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1

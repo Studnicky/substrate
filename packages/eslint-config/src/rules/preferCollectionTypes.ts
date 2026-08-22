@@ -61,24 +61,27 @@ interface IterationStackEntryInterface {
   'found': PreferCollectionTypesInternalEntity.Type['found'];
   readonly 'method': PreferCollectionTypesInternalEntity.Type['method'];
   readonly 'outerNode': Rule.Node;
-  readonly 'pendingArgs': Set<unknown>;
+  readonly 'pendingArguments': Set<unknown>;
   'reported': PreferCollectionTypesInternalEntity.Type['reported'];
 }
 
 class NodePropertyAccess {
-  public static getString(obj: Record<string, unknown>, key: string): string | undefined {
-    const val = Reflect.get(obj, key);
-    return typeof val === 'string' ? val : undefined;
+  public static getString(object: Record<string, unknown>, key: string): string | undefined {
+    const value = Reflect.get(object, key);
+    const result = typeof value === 'string' ? value : undefined;
+    return result;
   }
 
-  public static getBool(obj: Record<string, unknown>, key: string): boolean | undefined {
-    const val = Reflect.get(obj, key);
-    return typeof val === 'boolean' ? val : undefined;
+  public static getBool(object: Record<string, unknown>, key: string): boolean | undefined {
+    const value = Reflect.get(object, key);
+    const result = typeof value === 'boolean' ? value : undefined;
+    return result;
   }
 
-  public static getNode(obj: Record<string, unknown>, key: string): Record<string, unknown> | undefined {
-    const val: unknown = Reflect.get(obj, key);
-    return ObjectGuard.isObject(val) ? val : undefined;
+  public static getNode(object: Record<string, unknown>, key: string): Record<string, unknown> | undefined {
+    const value: unknown = Reflect.get(object, key);
+    const result = ObjectGuard.isObject(value) ? value : undefined;
+    return result;
   }
 }
 
@@ -93,7 +96,8 @@ class MembershipCallDetection {
     if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return false; }
     const property = callee.property;
     if (!ObjectGuard.isObject(property)) { return false; }
-    return NodePropertyAccess.getString(property, 'name') === 'includes';
+    const result = NodePropertyAccess.getString(property, 'name') === 'includes';
+    return result;
   }
 
   // Returns true if node is: SomeExpr.indexOf(...)
@@ -106,7 +110,8 @@ class MembershipCallDetection {
     if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return false; }
     const property = callee.property;
     if (!ObjectGuard.isObject(property)) { return false; }
-    return NodePropertyAccess.getString(property, 'name') === 'indexOf';
+    const result = NodePropertyAccess.getString(property, 'name') === 'indexOf';
+    return result;
   }
 
   // Returns true if node is a numeric literal matching `value`, handling negative
@@ -118,9 +123,11 @@ class MembershipCallDetection {
       if (NodePropertyAccess.getString(node, 'operator') !== '-') { return false; }
       const argument = node.argument;
       if (!ObjectGuard.isObject(argument)) { return false; }
-      return AstHelpers.getNodeType(argument) === 'Literal' && argument.value === Math.abs(value);
+      const result = AstHelpers.getNodeType(argument) === 'Literal' && argument.value === Math.abs(value);
+      return result;
     }
-    return AstHelpers.getNodeType(node) === 'Literal' && node.value === value;
+    const result = AstHelpers.getNodeType(node) === 'Literal' && node.value === value;
+    return result;
   }
 
   // Returns true if node is: ArrayExpression.includes(...)
@@ -129,8 +136,9 @@ class MembershipCallDetection {
     if (!ObjectGuard.isObject(node)) { return false; }
     const callee = node.callee;
     if (!ObjectGuard.isObject(callee)) { return false; }
-    const obj = callee.object;
-    return AstHelpers.getNodeType(obj) === 'ArrayExpression';
+    const object = callee.object;
+    const result = AstHelpers.getNodeType(object) === 'ArrayExpression';
+    return result;
   }
 
   // Returns true if node is: ArrayExpression.indexOf(...) used in a membership comparison
@@ -140,10 +148,11 @@ class MembershipCallDetection {
     if (!ObjectGuard.isObject(node)) { return false; }
     const callee = node.callee;
     if (!ObjectGuard.isObject(callee)) { return false; }
-    const obj = callee.object;
-    if (AstHelpers.getNodeType(obj) !== 'ArrayExpression') { return false; }
+    const object = callee.object;
+    if (AstHelpers.getNodeType(object) !== 'ArrayExpression') { return false; }
     const parent = (node as unknown as { readonly 'parent'?: unknown }).parent;
-    return MembershipIndexOfCall.get(parent) === node;
+    const result = MembershipIndexOfCall.get(parent) === node;
+    return result;
   }
 
   // Returns true if node is: Object.fromEntries(...)
@@ -155,13 +164,14 @@ class MembershipCallDetection {
     if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return false; }
 
-    const obj = callee.object;
-    if (!ObjectGuard.isObject(obj) || AstHelpers.getNodeType(obj) !== 'Identifier') { return false; }
-    if (NodePropertyAccess.getString(obj, 'name') !== 'Object') { return false; }
+    const object = callee.object;
+    if (!ObjectGuard.isObject(object) || AstHelpers.getNodeType(object) !== 'Identifier') { return false; }
+    if (NodePropertyAccess.getString(object, 'name') !== 'Object') { return false; }
 
     const property = callee.property;
     if (!ObjectGuard.isObject(property)) { return false; }
-    return NodePropertyAccess.getString(property, 'name') === 'fromEntries';
+    const result = NodePropertyAccess.getString(property, 'name') === 'fromEntries';
+    return result;
   }
 
 }
@@ -216,31 +226,31 @@ class IterationCallbackTracker {
     const methodName = NodePropertyAccess.getString(property, 'name');
     if (methodName === undefined || !ITERATION_METHODS.has(methodName)) { return; }
 
-    const args = raw.arguments;
-    if (!Array.isArray(args) || args.length === 0) { return; }
+    const argumentList = raw.arguments;
+    if (!Array.isArray(argumentList) || argumentList.length === 0) { return; }
 
-    const pendingArgs = new Set<unknown>();
-    const argsLen = args.length;
-    for (let ai = 0; ai < argsLen; ai += 1) {
-      const arg: unknown = args.at(ai);
-      const argType = AstHelpers.getNodeType(arg);
-      if (argType === 'ArrowFunctionExpression' || argType === 'FunctionExpression') {
-        pendingArgs.add(arg);
+    const pendingArguments = new Set<unknown>();
+    const argumentListLength = argumentList.length;
+    for (let argumentIndex = 0; argumentIndex < argumentListLength; argumentIndex += 1) {
+      const argument: unknown = argumentList.at(argumentIndex);
+      const argumentType = AstHelpers.getNodeType(argument);
+      if (argumentType === 'ArrowFunctionExpression' || argumentType === 'FunctionExpression') {
+        pendingArguments.add(argument);
       }
     }
 
-    if (pendingArgs.size === 0) { return; }
+    if (pendingArguments.size === 0) { return; }
 
-    stack.push({ 'found': false, 'method': methodName, 'outerNode': node, 'pendingArgs': pendingArgs, 'reported': false });
+    stack.push({ 'found': false, 'method': methodName, 'outerNode': node, 'pendingArguments': pendingArguments, 'reported': false });
   }
 
   // Marks every currently-active outer call as containing a match — mirrors the old
   // manual walk's behavior of finding matches at any depth beneath the callback body,
   // including inside further-nested qualifying calls.
   public static markActiveFound(stack: IterationStackEntryInterface[]): void {
-    const stackLen = stack.length;
-    for (let si = 0; si < stackLen; si += 1) {
-      const entry = stack.at(si);
+    const stackLength = stack.length;
+    for (let stackIndex = 0; stackIndex < stackLength; stackIndex += 1) {
+      const entry = stack.at(stackIndex);
       if (entry !== undefined) { entry.found = true; }
     }
   }
@@ -251,10 +261,10 @@ class IterationCallbackTracker {
   public static onFunctionArgumentExit(node: unknown, stack: IterationStackEntryInterface[], context: Rule.RuleContext): void {
     const top = stack.at(-1);
     if (top === undefined) { return; }
-    if (!top.pendingArgs.has(node)) { return; }
+    if (!top.pendingArguments.has(node)) { return; }
 
-    top.pendingArgs.delete(node);
-    if (top.pendingArgs.size > 0) { return; }
+    top.pendingArguments.delete(node);
+    if (top.pendingArguments.size > 0) { return; }
 
     stack.pop();
     if (top.found && !top.reported) {
@@ -270,8 +280,8 @@ class IterationCallbackTracker {
 
 class ScopeReferenceDetection {
   // Returns true if this scope reference is: ident.includes(...) as a call callee
-  public static isIncludesCalleeRef(ref: Scope.Reference): boolean {
-    const id = ref.identifier;
+  public static isIncludesCalleeReference(reference: Scope.Reference): boolean {
+    const id = reference.identifier;
     const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
     if (!ObjectGuard.isObject(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
@@ -293,8 +303,8 @@ class ScopeReferenceDetection {
   }
 
   // Returns true if this scope reference is: ident.indexOf(...) used in a membership comparison
-  public static isIndexOfCalleeMembershipRef(ref: Scope.Reference): boolean {
-    const id = ref.identifier;
+  public static isIndexOfCalleeMembershipReference(reference: Scope.Reference): boolean {
+    const id = reference.identifier;
     const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
     if (!ObjectGuard.isObject(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
@@ -311,29 +321,33 @@ class ScopeReferenceDetection {
     if (grandParent.callee !== (parent as unknown)) { return false; }
 
     const greatGrandParent = (grandParent as unknown as { readonly 'parent'?: unknown }).parent;
-    return MembershipIndexOfCall.get(greatGrandParent) === (grandParent as unknown);
+    const result = MembershipIndexOfCall.get(greatGrandParent) === (grandParent as unknown);
+    return result;
   }
 
   // Returns true if this scope reference is: ident[key] — a computed member lookup with
   // the identifier as the object, e.g. a variable bound to Object.fromEntries(...) read via
   // bracket notation.
-  public static isComputedMemberObjectRef(ref: Scope.Reference): boolean {
-    const id = ref.identifier;
+  public static isComputedMemberObjectReference(reference: Scope.Reference): boolean {
+    const id = reference.identifier;
     const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
     if (!ObjectGuard.isObject(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(parent, 'computed') !== true) { return false; }
-    return parent.object === (id as unknown);
+    const result = parent.object === (id as unknown);
+    return result;
   }
 }
 
 class ReferenceGuards {
-  public static isReadReference(ref: Scope.Reference): boolean {
-    return !ref.isWrite();
+  public static isReadReference(reference: Scope.Reference): boolean {
+    const result = !reference.isWrite();
+    return result;
   }
 
-  public static isMembershipRef(ref: Scope.Reference): boolean {
-    return ScopeReferenceDetection.isIncludesCalleeRef(ref) || ScopeReferenceDetection.isIndexOfCalleeMembershipRef(ref);
+  public static isMembershipReference(reference: Scope.Reference): boolean {
+    const result = ScopeReferenceDetection.isIncludesCalleeReference(reference) || ScopeReferenceDetection.isIndexOfCalleeMembershipReference(reference);
+    return result;
   }
 
 }
@@ -341,11 +355,11 @@ class ReferenceGuards {
 class RuleHandlers {
   public static onCallExpression(
     node: Rule.Node,
-    opts: Required<PreferCollectionTypesOptionsEntity.Type>,
+    options: Required<PreferCollectionTypesOptionsEntity.Type>,
     context: Rule.RuleContext,
     iterationStack: IterationStackEntryInterface[]
   ): void {
-    if (!opts.checkArrayLiterals) { return; }
+    if (!options.checkArrayLiterals) { return; }
 
     // Pattern A: [a, b, c].includes(x) — inline array literal membership test
     if (
@@ -370,23 +384,23 @@ class RuleHandlers {
     IterationCallbackTracker.onFunctionArgumentExit(node, iterationStack, context);
   }
 
-  public static onMemberExpression(node: Rule.Node, opts: Required<PreferCollectionTypesOptionsEntity.Type>, context: Rule.RuleContext): void {
+  public static onMemberExpression(node: Rule.Node, options: Required<PreferCollectionTypesOptionsEntity.Type>, context: Rule.RuleContext): void {
     // Pattern B: Object.fromEntries(...)[key] — inline computed access on fromEntries result
-    if (!opts.checkFromEntries) { return; }
+    if (!options.checkFromEntries) { return; }
     const raw = node as unknown as Record<string, unknown>;
     if (NodePropertyAccess.getBool(raw, 'computed') !== true) { return; }
 
-    const obj = NodePropertyAccess.getNode(raw, 'object');
-    if (AstHelpers.getNodeType(obj) !== 'CallExpression' || obj === undefined) { return; }
+    const object = NodePropertyAccess.getNode(raw, 'object');
+    if (AstHelpers.getNodeType(object) !== 'CallExpression' || object === undefined) { return; }
 
-    const callee = NodePropertyAccess.getNode(obj, 'callee');
+    const callee = NodePropertyAccess.getNode(object, 'callee');
     if (AstHelpers.getNodeType(callee) !== 'MemberExpression' || callee === undefined) { return; }
     if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return; }
 
-    const calleeObj = NodePropertyAccess.getNode(callee, 'object');
+    const calleeObject = NodePropertyAccess.getNode(callee, 'object');
     const calleeProperty = NodePropertyAccess.getNode(callee, 'property');
-    if (AstHelpers.getNodeType(calleeObj) !== 'Identifier' || calleeObj === undefined) { return; }
-    if (NodePropertyAccess.getString(calleeObj, 'name') !== 'Object') { return; }
+    if (AstHelpers.getNodeType(calleeObject) !== 'Identifier' || calleeObject === undefined) { return; }
+    if (NodePropertyAccess.getString(calleeObject, 'name') !== 'Object') { return; }
     if (AstHelpers.getNodeType(calleeProperty) !== 'Identifier' || calleeProperty === undefined) { return; }
     if (NodePropertyAccess.getString(calleeProperty, 'name') !== 'fromEntries') { return; }
 
@@ -395,15 +409,15 @@ class RuleHandlers {
 
   public static onProgramExit(
     _node: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0],
-    opts: Required<PreferCollectionTypesOptionsEntity.Type>,
+    options: Required<PreferCollectionTypesOptionsEntity.Type>,
     context: Rule.RuleContext,
     moduleScopeArrays: ModuleScopeArrayEntryInterface[],
     fromEntriesBindings: ModuleScopeArrayEntryInterface[]
   ): void {
-    if (opts.checkModuleScopeArrays) {
-      const entriesLen = moduleScopeArrays.length;
-      for (let ei = 0; ei < entriesLen; ei += 1) {
-        const entry = moduleScopeArrays.at(ei); if (entry === undefined) { continue; }
+    if (options.checkModuleScopeArrays) {
+      const entryCount = moduleScopeArrays.length;
+      for (let entryIndex = 0; entryIndex < entryCount; entryIndex += 1) {
+        const entry = moduleScopeArrays.at(entryIndex); if (entry === undefined) { continue; }
         // references is fully populated at Program:exit
         const readRefs = entry.variable.references.filter(ReferenceGuards.isReadReference);
 
@@ -412,7 +426,7 @@ class RuleHandlers {
           continue;
         }
 
-        const allRefsAreIncludes = readRefs.every(ReferenceGuards.isMembershipRef);
+        const allRefsAreIncludes = readRefs.every(ReferenceGuards.isMembershipReference);
 
         if (allRefsAreIncludes) {
           context.report({
@@ -424,15 +438,15 @@ class RuleHandlers {
       }
     }
 
-    if (opts.checkFromEntries) {
-      const bindingsLen = fromEntriesBindings.length;
-      for (let bi = 0; bi < bindingsLen; bi += 1) {
-        const entry = fromEntriesBindings.at(bi); if (entry === undefined) { continue; }
+    if (options.checkFromEntries) {
+      const bindingCount = fromEntriesBindings.length;
+      for (let bindingIndex = 0; bindingIndex < bindingCount; bindingIndex += 1) {
+        const entry = fromEntriesBindings.at(bindingIndex); if (entry === undefined) { continue; }
         const readRefs = entry.variable.references.filter(ReferenceGuards.isReadReference);
 
         if (readRefs.length === 0) { continue; }
 
-        const allRefsAreComputedLookups = readRefs.every(ScopeReferenceDetection.isComputedMemberObjectRef);
+        const allRefsAreComputedLookups = readRefs.every(ScopeReferenceDetection.isComputedMemberObjectReference);
 
         if (allRefsAreComputedLookups) {
           context.report({
@@ -446,7 +460,7 @@ class RuleHandlers {
 
   public static onVariableDeclarator(
     node: Rule.Node,
-    opts: Required<PreferCollectionTypesOptionsEntity.Type>,
+    options: Required<PreferCollectionTypesOptionsEntity.Type>,
     context: Rule.RuleContext,
     moduleScopeArrays: ModuleScopeArrayEntryInterface[],
     fromEntriesBindings: ModuleScopeArrayEntryInterface[]
@@ -474,17 +488,18 @@ class RuleHandlers {
     const parentNode = node.parent;
     if (parentNode === null) { return; }
     const declared = context.sourceCode.getDeclaredVariables(parentNode);
-    const variable = declared.find((v: Scope.Variable) => { return v.name === name; });
+    const variable = declared.find((v: Scope.Variable) => { const result = v.name === name;
+      return result; });
     if (variable === undefined) { return; }
 
     // Pattern C: const VALID = ['a', 'b'], used only for .includes()/.indexOf() membership
-    if (isArrayLiteralInit && opts.checkModuleScopeArrays) {
+    if (isArrayLiteralInit && options.checkModuleScopeArrays) {
       moduleScopeArrays.push({ 'name': name, 'node': node, 'variable': variable });
       return;
     }
 
     // Pattern B (indirect): const lookup = Object.fromEntries(...), used only via lookup[key]
-    if (isFromEntriesInit && opts.checkFromEntries) {
+    if (isFromEntriesInit && options.checkFromEntries) {
       fromEntriesBindings.push({ 'name': name, 'node': node, 'variable': variable });
     }
   }
@@ -508,16 +523,16 @@ class Options {
 
 export const preferCollectionTypes: Rule.RuleModule = {
   'create': (context) => {
-    const opts = Options.build(context.options.at(0));
+    const options = Options.build(context.options.at(0));
 
     const moduleScopeArrays: ModuleScopeArrayEntryInterface[] = [];
     const fromEntriesBindings: ModuleScopeArrayEntryInterface[] = [];
     const iterationStack: IterationStackEntryInterface[] = [];
 
-    const callExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onCallExpression(node, opts, context, iterationStack); };
-    const memberExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onMemberExpression(node, opts, context); };
-    const programExitHandler: NonNullable<Rule.RuleListener['Program:exit']> = (node): void => { RuleHandlers.onProgramExit(node, opts, context, moduleScopeArrays, fromEntriesBindings); };
-    const variableDeclaratorHandler = (node: Rule.Node): void => { RuleHandlers.onVariableDeclarator(node, opts, context, moduleScopeArrays, fromEntriesBindings); };
+    const callExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onCallExpression(node, options, context, iterationStack); };
+    const memberExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onMemberExpression(node, options, context); };
+    const programExitHandler: NonNullable<Rule.RuleListener['Program:exit']> = (node): void => { RuleHandlers.onProgramExit(node, options, context, moduleScopeArrays, fromEntriesBindings); };
+    const variableDeclaratorHandler = (node: Rule.Node): void => { RuleHandlers.onVariableDeclarator(node, options, context, moduleScopeArrays, fromEntriesBindings); };
     const iterationCallbackExitHandler = (node: unknown): void => { RuleHandlers.onIterationCallbackExit(node, context, iterationStack); };
 
     return {

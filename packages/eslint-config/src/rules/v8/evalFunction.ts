@@ -7,7 +7,8 @@ import { MESSAGE, RULE_NAME } from './constants/EvalFunctionConstants.js';
 class EvalAstHelpers {
   /** `eval` (direct identifier reference to the global). */
   public static isEvalIdentifier(node: unknown): boolean {
-    return ObjectGuard.isObject(node) && node.type === 'Identifier' && node.name === 'eval';
+    const result = ObjectGuard.isObject(node) && node.type === 'Identifier' && node.name === 'eval';
+    return result;
   }
 
   /** `globalThis["eval"]`, `window.eval`, `globalThis.eval` — member access resolving to the global `eval`. */
@@ -24,10 +25,12 @@ class EvalAstHelpers {
     if (!ObjectGuard.isObject(property)) { return false; }
 
     if (node.computed === true) {
-      return property.type === 'Literal' && property.value === 'eval';
+      const result = property.type === 'Literal' && property.value === 'eval';
+      return result;
     }
 
-    return property.type === 'Identifier' && property.name === 'eval';
+    const result = property.type === 'Identifier' && property.name === 'eval';
+    return result;
   }
 
   /** `(0, eval)` — a SequenceExpression whose final expression resolves to `eval`, the classic indirect-eval idiom. */
@@ -38,18 +41,21 @@ class EvalAstHelpers {
     if (!Array.isArray(expressions) || expressions.length === 0) { return false; }
 
     const last: unknown = (expressions as readonly unknown[]).at(-1);
-    return EvalAstHelpers.isEvalIdentifier(last) || EvalAstHelpers.isEvalMemberExpression(last);
+    const result = EvalAstHelpers.isEvalIdentifier(last) || EvalAstHelpers.isEvalMemberExpression(last);
+    return result;
   }
 
   public static isEvalReference(node: unknown): boolean {
-    return EvalAstHelpers.isEvalIdentifier(node)
+    const result = EvalAstHelpers.isEvalIdentifier(node)
       || EvalAstHelpers.isEvalMemberExpression(node)
       || EvalAstHelpers.isEvalSequenceExpression(node);
+    return result;
   }
 
   public static isNewFunctionExpression(node: unknown): boolean {
     if (!ObjectGuard.isObject(node) || node.type !== 'NewExpression') { return false; }
-    return AstHelpers.getIdentifierName(node.callee) === 'Function';
+    const result = AstHelpers.getIdentifierName(node.callee) === 'Function';
+    return result;
   }
 }
 

@@ -1,8 +1,12 @@
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type {
+  FromSchema, JSONSchema
+} from 'json-schema-to-ts';
 
 import path from 'node:path';
-import { type Program, type Symbol, SymbolFlags, type Type, type TypeChecker } from 'typescript';
+import {
+  type Program, type Symbol, SymbolFlags, type Type
+} from 'typescript';
 
 import {
   INDEX_FILES,
@@ -11,6 +15,13 @@ import {
   WORD_REGEX
 } from './constants/SingleExportConstants.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
+
+// Locale-aware string comparator for display-ordering export names in lint messages.
+// `Intl.Collator.prototype.compare` is a pre-bound native function (per ECMA-402) —
+// passing it directly avoids writing a wrapper arrow that would do nothing but forward
+// to `String.prototype.localeCompare`, and default-options comparison is spec-equivalent
+// to calling `left.localeCompare(right)` with no arguments.
+const NAME_COLLATOR = new Intl.Collator();
 
 class CaseConverter {
   public static toWords(value: string): string[] {
@@ -34,13 +45,17 @@ class CaseConverter {
       return '';
     }
 
-    return words.map((word) => {
+    const result = words.map((word) => {
       if (preserveAcronyms && CaseConverter.isAllUpper(word)) {
         return word;
       }
 
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      const result = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+      return result;
     }).join('');
+
+    return result;
   }
 
   public static toCamelCase(value: string, preserveAcronyms: boolean): string {
@@ -59,7 +74,9 @@ class CaseConverter {
         return word;
       }
 
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      const result = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+      return result;
     }).join('');
 
     return `${firstOut}${restOut}`;
@@ -124,11 +141,15 @@ class CaseConverter {
       return baseName;
     }
 
-    return baseName.slice(0, -extension.length);
+    const result = baseName.slice(0, -extension.length);
+
+    return result;
   }
 
   public static isAllUpper(value: string): boolean {
-    return value.length > 1 && value === value.toUpperCase() && value !== value.toLowerCase();
+    const result = value.length > 1 && value === value.toUpperCase() && value !== value.toLowerCase();
+
+    return result;
   }
 
   public static matchesFilename(exportName: string, fileName: string): boolean {
@@ -136,7 +157,9 @@ class CaseConverter {
     const normalized = fileName.split(path.sep).join('/');
 
     if (normalized.includes('/constants/')) {
-      return base === CaseConverter.toScreamingSnakeCase(exportName);
+      const result = base === CaseConverter.toScreamingSnakeCase(exportName);
+
+      return result;
     }
     const candidates = new Set<string>();
 
@@ -150,7 +173,9 @@ class CaseConverter {
     candidates.add(CaseConverter.toPascalCase(exportName, true));
     candidates.add(CaseConverter.toPascalCase(exportName, false));
 
-    return candidates.has(base);
+    const result = candidates.has(base);
+
+    return result;
   }
 
   public static getFilenameCandidates(exportName: string, fileName: string): string[] {
@@ -160,7 +185,9 @@ class CaseConverter {
     if (normalized.includes('/constants/')) {
       const constant = CaseConverter.toScreamingSnakeCase(exportName);
 
-      return base === constant ? [constant] : [constant];
+      const result = base === constant ? [constant] : [constant];
+
+      return result;
     }
     const candidates = new Set<string>();
 
@@ -174,12 +201,13 @@ class CaseConverter {
     candidates.add(CaseConverter.toPascalCase(exportName, true));
     candidates.add(CaseConverter.toPascalCase(exportName, false));
 
-    return [...candidates].filter((candidate) => {
-      return candidate.length > 0;
-    }).toSorted((left, right) => {
-      const result = left.localeCompare(right);
+    const result = [...candidates].filter((candidate) => {
+      const result = candidate.length > 0;
+
       return result;
-    });
+    }).toSorted(NAME_COLLATOR.compare);
+
+    return result;
   }
 }
 
@@ -230,11 +258,15 @@ interface SourceCodeServicesAccessorInterface {
 
 class ParserServicesGuard {
   public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) { return false; }
+    if (!ObjectGuard.isObject(value)) {
+      return false;
+    }
     if (typeof value.getSymbolAtLocation !== 'function' || typeof value.getTypeAtLocation !== 'function') {
       return false;
     }
-    return ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    const result = ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+
+    return result;
   }
 }
 
@@ -242,16 +274,13 @@ class ContextHelpers {
   public static getServices(context: Rule.RuleContext): ParserServicesInterface | undefined {
     const sourceCode: SourceCodeServicesAccessorInterface = context.sourceCode;
     const services: unknown = sourceCode.parserServices;
-    return ParserServicesGuard.hasTypeInformation(services) ? services : undefined;
+    const result = ParserServicesGuard.hasTypeInformation(services) ? services : undefined;
+
+    return result;
   }
 }
 
 class TypeCheckerHelpers {
-  public static isAssignable(checker: TypeChecker, a: Type, b: Type): boolean {
-    const result = checker.isTypeAssignableTo(a, b);
-    return result;
-  }
-
   /**
    * Resolves whether a class declaration actually, through the type system,
    * extends the real global `Error` — direct or indirect inheritance. Falls
@@ -276,7 +305,9 @@ class TypeCheckerHelpers {
     const errorType = checker.getDeclaredTypeOfSymbol(errorSymbol);
     const classType = services.getTypeAtLocation(classNode);
 
-    return TypeCheckerHelpers.isAssignable(checker, classType, errorType);
+    const result = checker.isTypeAssignableTo(classType, errorType);
+
+    return result;
   }
 }
 
@@ -286,7 +317,10 @@ class ExportClassifier {
       return ExportShape.Other;
     }
     const exportNode: unknown = node;
-    if (!ObjectGuard.isObject(exportNode)) { return ExportShape.Other; }
+
+    if (!ObjectGuard.isObject(exportNode)) {
+      return ExportShape.Other;
+    }
 
     const decl: unknown = exportNode.declaration;
 
@@ -337,9 +371,13 @@ class ExportClassifier {
     if (declType === 'VariableDeclaration' && decl.kind === 'const') {
       const declarations: readonly unknown[] = Array.isArray(decl.declarations) ? decl.declarations : [];
       const declarationsLength = declarations.length;
+
       for (let index = 0; index < declarationsLength; index += 1) {
         const declarator = declarations.at(index);
-        if (!ObjectGuard.isObject(declarator) || !ObjectGuard.isObject(declarator.init)) { continue; }
+
+        if (!ObjectGuard.isObject(declarator) || !ObjectGuard.isObject(declarator.init)) {
+          continue;
+        }
         const initType = declarator.init.type;
 
         if (initType === 'ArrowFunctionExpression' || initType === 'FunctionExpression') {
@@ -354,7 +392,9 @@ class ExportClassifier {
   }
 
   public static isEnumOrConstValueShape(shape: ExportShapeEntity.Type): boolean {
-    return shape === ExportShape.ConstValue || shape === ExportShape.Enum;
+    const result = shape === ExportShape.ConstValue || shape === ExportShape.Enum;
+
+    return result;
   }
 }
 
@@ -392,8 +432,10 @@ class ExportNames {
       if (declarationType === 'VariableDeclaration') {
         const declarators = declaration.declarations ?? [];
         const declaratorsLength = declarators.length;
+
         for (let index = 0; index < declaratorsLength; index += 1) {
           const declarator = declarators.at(index);
+
           if (declarator?.id?.type === 'Identifier') {
             const idName = declarator.id.name;
 
@@ -407,9 +449,13 @@ class ExportNames {
 
     if (node.specifiers.length > 0) {
       const specifiersLength = node.specifiers.length;
+
       for (let index = 0; index < specifiersLength; index += 1) {
         const specifier = node.specifiers.at(index);
-        if (specifier === undefined) { continue; }
+
+        if (specifier === undefined) {
+          continue;
+        }
         if (specifier.exported.type === 'Identifier') {
           names.push(specifier.exported.name);
         }
@@ -429,8 +475,10 @@ class RestrictedTopology {
     const base = CaseConverter.getFileBase(fileName);
 
     const namesLength = RESTRICTED_TOPOLOGY_NAMES.length;
+
     for (let index = 0; index < namesLength; index += 1) {
       const name = RESTRICTED_TOPOLOGY_NAMES.at(index);
+
       if (name !== undefined && (normalized.includes(`/${name}/`) || base === name || base.endsWith(`.${name}`))) {
         return name;
       }
@@ -463,40 +511,69 @@ interface ExportRecordInterface {
  * here.
  */
 class TopologyContentVerification {
-  private static isErrorShapedClassName(name: string): boolean {
-    const result = name.endsWith('Error');
-    return result;
-  }
-
   public static isSatisfied(
     topology: (typeof RESTRICTED_TOPOLOGY_NAMES)[number],
     records: readonly ExportRecordInterface[]
   ): boolean {
     if (topology === 'errors') {
-      return records.some((record) => {
-        if (record.shape === ExportShape.ErrorClass) { return true; }
+      const result = records.some((record) => {
+        if (record.shape === ExportShape.ErrorClass) {
+          return true;
+        }
         // Without type services (a plain, non-type-aware lint run) a class can never classify as
         // `ErrorClass` — `TypeCheckerHelpers.isErrorClass` requires the checker. Fall back to the
         // same `*Error`-suffixed naming convention `single-export`'s own filename-matching already
         // treats as this topology's signal, rather than granting no exemption at all whenever type
         // information happens to be unavailable.
-        return record.shape === ExportShape.OtherClass && record.names.some(TopologyContentVerification.isErrorShapedClassName);
+        if (record.shape !== ExportShape.OtherClass) {
+          return false;
+        }
+
+        const names = record.names;
+
+        for (let nameIndex = 0; nameIndex < names.length; nameIndex += 1) {
+          if (names.at(nameIndex)?.endsWith('Error') === true) {
+            return true;
+          }
+        }
+
+        return false;
       });
+
+      return result;
     }
 
     if (topology === 'interfaces') {
-      return records.some((record) => {return record.shape === ExportShape.Interface;});
+      const result = records.some((record) => {
+        const result = record.shape === ExportShape.Interface;
+
+        return result;
+      });
+
+      return result;
     }
 
     if (topology === 'types') {
-      return records.some((record) => {return record.shape === ExportShape.Type;});
+      const result = records.some((record) => {
+        const result = record.shape === ExportShape.Type;
+
+        return result;
+      });
+
+      return result;
     }
 
     if (topology === 'entities') {
       // The entity convention (see `folder-content-shape`) is a namespace or a schema-derived
       // `Type` alias — either is proof the file is genuinely entity-shaped, not an arbitrary
       // grab-bag of consts sitting under `entities/`.
-      return records.some((record) => {return record.shape === ExportShape.Type || record.shape === ExportShape.Namespace;});
+      const result = records.some((record) => {
+        const result = record.shape === ExportShape.Type || record.shape === ExportShape.Namespace;
+
+        return result;
+      });
+
+      return result;
     }
 
     return true;
@@ -524,9 +601,7 @@ export const singleExport: Rule.RuleModule = {
         });
       };
 
-      return {
-        'ExportDefaultDeclaration': onExportDefaultDeclaration
-      };
+      return { 'ExportDefaultDeclaration': onExportDefaultDeclaration };
     }
 
     const services = ContextHelpers.getServices(context);
@@ -563,7 +638,9 @@ export const singleExport: Rule.RuleModule = {
 
       exportShapes.push(shape);
       exportNames.push(...names);
-      exportRecords.push({ 'names': names, 'shape': shape });
+      exportRecords.push({
+        'names': names, 'shape': shape
+      });
     };
 
     const onProgramExit: NonNullable<Rule.RuleListener['Program:exit']> = (node) => {
@@ -580,7 +657,9 @@ export const singleExport: Rule.RuleModule = {
       }
 
       const unique = [...new Set(exportNames)].filter((name) => {
-        return name.length > 0;
+        const result = name.length > 0;
+
+        return result;
       });
 
       if (unique.length === 0) {
@@ -589,7 +668,9 @@ export const singleExport: Rule.RuleModule = {
 
       if (restrictedTopology === 'constants') {
         const invalidConstantNames = unique.filter((name) => {
-          return !SCREAMING_SNAKE_CASE_PATTERN.test(name);
+          const result = !SCREAMING_SNAKE_CASE_PATTERN.test(name);
+
+          return result;
         });
 
         if (invalidConstantNames.length > 0) {
@@ -597,10 +678,7 @@ export const singleExport: Rule.RuleModule = {
 
           context.report({
             'data': {
-              'exports': invalidConstantNames.toSorted((left, right) => {
-                const result = left.localeCompare(right);
-                return result;
-              }).join(', ')
+              'exports': invalidConstantNames.toSorted(NAME_COLLATOR.compare).join(', ')
             },
             'messageId': 'constantsCase',
             'node': reportNode
@@ -631,10 +709,7 @@ export const singleExport: Rule.RuleModule = {
 
         context.report({
           'data': {
-            'exports': unique.toSorted((left, right) => {
-              const result = left.localeCompare(right);
-              return result;
-            }).join(', ')
+            'exports': unique.toSorted(NAME_COLLATOR.compare).join(', ')
           },
           'messageId': 'tooMany',
           'node': reportNode

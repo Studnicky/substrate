@@ -10,6 +10,7 @@ import { canonicalExportNames } from './rules/canonicalExportNames.js';
 import { cleanDiagnostics } from './rules/cleanDiagnostics.js';
 import { descriptiveIdentifiers } from './rules/descriptiveIdentifiers.js';
 import { directInvocationOnly } from './rules/directInvocationOnly.js';
+import { explicitReturnBinding } from './rules/explicitReturnBinding.js';
 import { folderContentShape } from './rules/folderContentShape.js';
 import { hashPrivateFields } from './rules/hashPrivateFields.js';
 import { inlineTrivialLogic } from './rules/inlineTrivialLogic.js';
@@ -33,6 +34,7 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'descriptive-identifiers': descriptiveIdentifiers,
     'direct-invocation-only': directInvocationOnly,
     'domain-purity': domainPurity,
+    'explicit-return-binding': explicitReturnBinding,
     'folder-content-shape': folderContentShape,
     'hash-private-fields': hashPrivateFields,
     'inline-trivial-logic': inlineTrivialLogic,
