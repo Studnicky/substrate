@@ -2,9 +2,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
-  DraftNodeStateEntity,
-  PatchApplyResultStatusEntity,
-  PathWildcardResultEntity,
   Clone,
   DataType,
   Frozen,
@@ -15,6 +12,11 @@ import {
   Sort,
   StructuralHash
 } from '../../../src/index.js';
+import {
+  DraftNodeStateEntity,
+  PatchApplyResultStatusEntity,
+  PathWildcardResultEntity
+} from '../../../src/entities/index.js';
 
 import scenarioGroups from './json-core.scenarios.json' with { type: 'json' };
 

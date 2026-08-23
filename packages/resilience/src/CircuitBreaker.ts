@@ -1,6 +1,7 @@
 /** Async circuit breaker: closed → open (on failure threshold) → halfOpen (on timeout) → closed. */
 
-import type { ErrorClassificationEntity, ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors';
+import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import { HookInvoker } from '@studnicky/errors';
 

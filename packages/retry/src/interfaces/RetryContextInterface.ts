@@ -1,4 +1,4 @@
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryConfigEntity } from '../entities/RetryConfigEntity.js';

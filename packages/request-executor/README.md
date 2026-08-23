@@ -6,7 +6,7 @@
 
 Composes four substrate primitives into the "one-shot request execution" pattern: a caller-supplied `AbortSignal` and/or `deadlineMs` are merged via `Signal#compose()`, the call runs through the `Retry` loop bracketed by `onExecuteStart`/`onExecuteComplete`/`onExecuteError` lifecycle hooks, and — when a `Context` is composed — the entire call runs inside a fresh `ContextScope`. `RequestExecutor` does not perform HTTP calls itself; the caller's `fn` receives the composed `FetchClient` and the composed `AbortSignal` and decides which verb to call.
 
-`RequestDeadlineEntity` is the package-root schema contract shared by executor defaults, resolved dependencies, and per-call overrides. Its validator accepts an omitted deadline or a non-negative `deadlineMs`, matching `Signal#compose()`.
+`RequestDeadlineEntity` is the schema contract shared by executor defaults, resolved dependencies, and per-call overrides. Import it from `@studnicky/request-executor/entities`; its validator accepts an omitted deadline or a non-negative `deadlineMs`, matching `Signal#compose()`.
 
 ## Install
 
@@ -46,7 +46,7 @@ Override `onExecuteStart`/`onExecuteComplete`/`onExecuteError` to observe the wh
 
 ```typescript
 import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
-import type { RequestExecutorDepsInterface } from '@studnicky/request-executor';
+import type { RequestExecutorDepsInterface } from '@studnicky/request-executor/interfaces';
 
 import { Retry } from '@studnicky/retry';
 import { RequestExecutor } from '@studnicky/request-executor';

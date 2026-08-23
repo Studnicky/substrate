@@ -3,7 +3,7 @@ import {
   describe, it
 } from 'node:test';
 
-import { SampleBufferStateEntity } from '../../../src/index.js';
+import { SampleBufferStateEntity } from '../../../src/entities/index.js';
 import { SampleBufferError } from '../../../src/errors/SampleBufferError.js';
 import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
 

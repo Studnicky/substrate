@@ -68,3 +68,25 @@ The output shows live CPU architecture, model, logical and physical counts, `opt
 | `'software'` | software renderer | reported by providers that identify a software-backed renderer |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/system)
+
+## Entities
+
+`@studnicky/system/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { SystemInfoEntity } from '@studnicky/system/entities';
+```
+
+## Interfaces
+
+`@studnicky/system/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+```typescript
+import type { SystemProviderInterface } from '@studnicky/system/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `System` | Provides system functionality. | `@studnicky/system` |

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { BatchStatsEntity } from '../src/index.js';
+import type { BatchStatsEntity } from '../src/entities/index.js';
 
 import { Batch } from '../src/index.js';
 import { ObservedBatchFixture } from './fixtures/ObservedBatchFixture.js';

@@ -54,3 +54,26 @@ A hook override that throws or rejects does not abort `evaluate()` — the failu
 Full reference: https://studnicky.github.io/substrate/packages/health-registry
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/health-registry)
+
+## Entities
+
+`@studnicky/health-registry/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { HealthStatusEntity } from '@studnicky/health-registry/entities';
+```
+
+## Interfaces
+
+`@studnicky/health-registry/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+```typescript
+import type { HealthCheckResultInterface } from '@studnicky/health-registry/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `HealthRegistry` | Provides health registry functionality. | `@studnicky/health-registry` |
+| `HealthCheckInterface` | Defines the health check contract. | `@studnicky/health-registry` |

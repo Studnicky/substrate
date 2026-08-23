@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import { MaximumRetriesExceededError, NonRetryableError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';

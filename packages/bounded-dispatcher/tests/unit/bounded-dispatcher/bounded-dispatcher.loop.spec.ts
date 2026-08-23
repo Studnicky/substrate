@@ -5,7 +5,7 @@ import { VirtualTimeCounter } from '@studnicky/clock';
 import { EventBus } from '@studnicky/event-bus';
 import { VirtualScheduler } from '@studnicky/scheduler';
 
-import type { BoundedDispatcherConfigInterface, BoundedDispatcherTopicMapInterface } from '../../../src/index.js';
+import type { BoundedDispatcherConfigInterface, BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
 import { BoundedDispatcher } from '../../../src/index.js';
 
 type DispatcherBusDescriptor =

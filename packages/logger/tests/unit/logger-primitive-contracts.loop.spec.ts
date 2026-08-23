@@ -4,19 +4,21 @@ import { describe, it } from 'node:test';
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { LOG_LEVEL_MAP } from '../../src/constants/LOG_LEVEL_MAP.js';
 import {
-  CircularReferenceError,
   CloudWatchLogSchemaFieldsEntity,
+  LogDataEntity,
+  LoggerHookEventShapeEntity,
+  LogLevelEntity,
+  LogStatusEntity
+} from '../../src/entities/index.js';
+import {
+  CircularReferenceError,
   ConsoleTransport,
   FileDestinationError,
   InvalidLogLevelError,
   LogBody,
   LogBuildError,
-  LogDataEntity,
   LogFault,
-  LoggerError,
-  LoggerHookEventShapeEntity,
-  LogLevelEntity,
-  LogStatusEntity
+  LoggerError
 } from '../../src/index.js';
 import { ParseLogLevel } from '../../src/modules/parseLogLevel.js';
 import { SafeStringify } from '../../src/modules/safeStringify.js';

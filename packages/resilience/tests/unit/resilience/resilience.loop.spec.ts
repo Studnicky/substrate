@@ -1,22 +1,25 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { ErrorClassificationEntity, HookInvocationError } from '@studnicky/errors';
+import type { HookInvocationError } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import {
   CircuitBreaker,
   CircuitBreakerOpenError,
-  CircuitStateEntity,
   DeadLetterQueue,
   DeadLetterQueueRetryGenerator,
   DeadLetterQueueAbortedError,
   DeadLetterQueueClosedError,
-  DeadLetterQueueEntryMetadataEntity,
   DeadLetterQueueFullError,
   ResilienceConfigError,
   TokenBucket,
   TokenBucketExhaustedError
 } from '../../../src/index.js';
+import {
+  CircuitStateEntity,
+  DeadLetterQueueEntryMetadataEntity
+} from '../../../src/entities/index.js';
 import type {
   CircuitBreakerOptionsInterface,
   DeadLetterQueueOptionsInterface,

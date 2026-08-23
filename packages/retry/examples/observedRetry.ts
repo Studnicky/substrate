@@ -1,11 +1,11 @@
 /** observedRetry — override onRetryScheduled and onGiveUp to collect telemetry. Run: npx tsx examples/observedRetry.ts */
 
 // #region usage
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import assert from 'node:assert/strict';
 
-import type { RetryConfigInterface, RetryContextInterface } from '../src/index.js';
+import type { RetryConfigInterface, RetryContextInterface } from '../src/interfaces/index.js';
 
 import { MaximumRetriesExceededError, Retry } from '../src/index.js';
 

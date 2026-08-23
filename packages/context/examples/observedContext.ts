@@ -3,10 +3,9 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import {
-  Context,
-  type ContextScopeInterface
-} from '../src/index.js';
+import type { ContextScopeInterface } from '../src/interfaces/index.js';
+
+import { Context } from '../src/index.js';
 
 class ObservedContext extends Context {
   readonly deleteEvents: { 'existed': boolean; 'key': string }[] = [];

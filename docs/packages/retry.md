@@ -35,7 +35,7 @@ The output shows `Retry.create({ maxRetries: 3 })`, the operation failing twice 
 
 ## Public API
 
-Import `Retry`, `BackoffStrategy`, the retry entities and guards, `MaximumRetriesExceededError`, `NonRetryableError`, `RetryError`, and the public retry interfaces from `@studnicky/retry`. The package root is the only public code entrypoint; algorithm constants are implementation details.
+Import `Retry`, `BackoffStrategy`, the guards, and retry errors from `@studnicky/retry`. Retry entities use `@studnicky/retry/entities`, and retry contracts use `@studnicky/retry/interfaces`; algorithm constants are implementation details.
 
 ## Custom error classification
 
@@ -54,3 +54,32 @@ The base class never calls any logger or metrics library. Observer hooks are no-
 The observation-only hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). Pass `hookTimeoutMs` to `Retry.create({ hookTimeoutMs })` to bound how long an async hook may run before it fails through `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/retry)
+
+## Entities
+
+`@studnicky/retry/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { RetryConfigEntity } from '@studnicky/retry/entities';
+```
+
+## Interfaces
+
+`@studnicky/retry/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+```typescript
+import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `BackoffStrategy` | Provides backoff strategy functionality. | `@studnicky/retry` |
+| `BackoffStrategyInterface` | Defines the backoff strategy contract. | `@studnicky/retry` |
+| `Retry` | Provides retry functionality. | `@studnicky/retry` |
+| `RetryConfigGuard` | Validates retry config input. | `@studnicky/retry` |
+| `RetryContextGuard` | Validates retry context input. | `@studnicky/retry` |
+| `MaximumRetriesExceededError` | Represents maximum retries exceeded failures. | `@studnicky/retry` |
+| `NonRetryableError` | Represents non retryable failures. | `@studnicky/retry` |
+| `RetryError` | Represents retry failures. | `@studnicky/retry` |

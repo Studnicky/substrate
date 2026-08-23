@@ -45,17 +45,18 @@ await throttle.abort();
 
 ## Public API
 
-Import `Throttle`, its schema-backed entities, `ThrottleAbortedError`, `ThrottleDrainingError`, `ThrottleInterface`, and `ThrottleValidator` from `@studnicky/throttle`. The package root is the only public code entrypoint; defaults and scheduling constants are implementation details.
+Import the runtime API from `@studnicky/throttle`. Defaults and scheduling constants are implementation details.
 
 `Throttle.create(config)` validates and copies the supplied configuration into instance-owned state. Adaptive concurrency may adjust the instance's effective limit without mutating the caller's config object.
 
 Use `ThrottleConfigEntity.validate(candidate)` at an untrusted configuration boundary. It validates against `ThrottleConfigEntity.Schema`, throws for invalid input, and narrows a valid candidate to `ThrottleConfigEntity.Type`.
 
-`getStats()` returns `ThrottleStatsEntity.Type`. Use the root-exported compiled validator at trust boundaries:
+`getStats()` returns `ThrottleStatsEntity.Type`. Use the entity-subpath compiled validator at trust boundaries:
 
 <!-- inline-ts-ok: compact validation example -->
 ```typescript
-import { Throttle, ThrottleStatsEntity } from '@studnicky/throttle';
+import { Throttle } from '@studnicky/throttle';
+import { ThrottleStatsEntity } from '@studnicky/throttle/entities';
 
 const throttle = Throttle.create({ concurrencyLimit: 3 });
 const stats = throttle.getStats();
@@ -64,6 +65,32 @@ if (!ThrottleStatsEntity.validate(stats)) {
   throw new Error('invalid throttle statistics');
 }
 ```
+
+## Entities
+
+`@studnicky/throttle/entities` exports every schema namespace in `src/entities`, including configuration, statistics, abort results, and lifecycle state, event, and effect values.
+
+```typescript
+import { ThrottleConfigEntity } from '@studnicky/throttle/entities';
+```
+
+## Interfaces
+
+`@studnicky/throttle/interfaces` exports the `ThrottleInterface` contract for consumers that accept or implement a throttle abstraction.
+
+```typescript
+import type { ThrottleInterface } from '@studnicky/throttle/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Throttle` | Creates and runs a sliding-window concurrency throttle. | `@studnicky/throttle` |
+| `ThrottleInterface` | Defines the consumer-facing throttle contract. | `@studnicky/throttle` |
+| `ThrottleValidator` | Guards an unknown value as a throttle implementation. | `@studnicky/throttle` |
+| `ThrottleAbortedError` | Represents an aborted throttle operation. | `@studnicky/throttle` |
+| `ThrottleDrainingError` | Represents work rejected while the throttle drains. | `@studnicky/throttle` |
 
 ## Observability hooks
 

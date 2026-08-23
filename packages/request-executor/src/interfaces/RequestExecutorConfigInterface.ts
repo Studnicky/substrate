@@ -1,6 +1,7 @@
 import type { Context } from '@studnicky/context';
 import type { ClientConfigInterface, FetchClient } from '@studnicky/fetch';
-import type { Retry, RetryConfigInterface } from '@studnicky/retry';
+import type { Retry } from '@studnicky/retry';
+import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 import type { Signal } from '@studnicky/signal';
 
 import type { RequestDeadlineEntity } from '../entities/RequestDeadlineEntity.js';

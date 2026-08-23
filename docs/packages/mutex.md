@@ -57,3 +57,28 @@ Subclass `Mutex` and override any protected hook to inject trace logging, metric
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/mutex)
+
+## Entities
+
+`@studnicky/mutex/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { MutexConfigEntity } from '@studnicky/mutex/entities';
+```
+
+## Interfaces
+
+`@studnicky/mutex/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+```typescript
+import type { MutexInterface } from '@studnicky/mutex/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Mutex` | Provides mutex functionality. | `@studnicky/mutex` |
+| `LockTimeoutError` | Represents lock timeout failures. | `@studnicky/mutex` |
+| `MutexError` | Represents mutex failures. | `@studnicky/mutex` |
+| `QueueSizeExceededError` | Represents queue size exceeded failures. | `@studnicky/mutex` |

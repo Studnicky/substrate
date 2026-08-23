@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { EventBus } from '@studnicky/event-bus';
 
-import type { BoundedDispatcherTopicMapInterface } from '../../../src/index.js';
+import type { BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
 
 import { BoundedDispatcher } from '../../../src/index.js';
 

@@ -13,7 +13,7 @@ description: Per-key rate limiting composing cache and resilience — one strate
 pnpm add @studnicky/keyed-rate-limiter
 ```
 
-`@studnicky/keyed-rate-limiter` is the sole public code entrypoint.
+`@studnicky/keyed-rate-limiter` declares a root usage API and explicit public subpaths.
 
 ## Usage
 
@@ -66,3 +66,28 @@ The composed cache remains private. Callers observe rate-limiter behavior throug
 Full reference: https://studnicky.github.io/substrate/packages/keyed-rate-limiter
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/keyed-rate-limiter)
+
+## Entities
+
+`@studnicky/keyed-rate-limiter/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { RateLimitRequestEntity } from '@studnicky/keyed-rate-limiter/entities';
+```
+
+## Interfaces
+
+`@studnicky/keyed-rate-limiter/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+```typescript
+import type { KeyedRateLimiterCreateConfigInterface } from '@studnicky/keyed-rate-limiter/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `KeyedRateLimiter` | Provides keyed rate limiter functionality. | `@studnicky/keyed-rate-limiter` |
+| `KeyedRateLimiterConfigError` | Represents keyed rate limiter config failures. | `@studnicky/keyed-rate-limiter` |
+| `KeyedRateLimiterError` | Represents keyed rate limiter failures. | `@studnicky/keyed-rate-limiter` |
+| `RateLimiterStrategyInterface` | Defines the rate limiter strategy contract. | `@studnicky/keyed-rate-limiter` |

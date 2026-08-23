@@ -52,4 +52,27 @@ Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `
 
 Full reference: https://studnicky.github.io/substrate/packages/flag-evaluator
 
+## Entities
+
+`@studnicky/flag-evaluator/entities` exports flag context and definition schemas.
+
+```typescript
+import { FlagDefinitionEntity } from '@studnicky/flag-evaluator/entities';
+```
+
+## Interfaces
+
+`@studnicky/flag-evaluator/interfaces` exports the evaluation-context contract.
+
+```typescript
+import type { FlagContextInterface } from '@studnicky/flag-evaluator/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `FlagEvaluator` | Registers and deterministically evaluates local boolean flags. | `@studnicky/flag-evaluator` |
+| `FlagDefinitionValidationError` | Represents invalid flag definitions. | `@studnicky/flag-evaluator` |
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/flag-evaluator)

@@ -5,10 +5,13 @@ import { Batch } from '@studnicky/batch';
 import { ConfigurationError } from '@studnicky/config';
 import { HookInvocationError } from '@studnicky/errors';
 
-import { ThrottleConfigEntity, Throttle } from '../../../src/index.js';
-import { AdaptiveConfigEntity } from '../../../src/entities/AdaptiveConfigEntity.js';
-import { ValidatedAdaptiveConfigEntity } from '../../../src/entities/ValidatedAdaptiveConfigEntity.js';
-import { ValidatedThrottleConfigEntity } from '../../../src/entities/ValidatedThrottleConfigEntity.js';
+import { Throttle } from '../../../src/index.js';
+import {
+  AdaptiveConfigEntity,
+  ThrottleConfigEntity,
+  ValidatedAdaptiveConfigEntity,
+  ValidatedThrottleConfigEntity
+} from '../../../src/entities/index.js';
 import type { ThrottleClockInputInterface } from '../../helpers/VirtualClockThrottle.js';
 import { VirtualClockThrottle } from '../../helpers/VirtualClockThrottle.js';
 import scenarioGroups from './adaptive-config.scenarios.json' with { type: 'json' };

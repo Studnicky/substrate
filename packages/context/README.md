@@ -6,7 +6,7 @@
 
 Scoped key-value stores that propagate automatically through async boundaries — promises, timers, and callbacks — without passing values down the call stack.
 
-`@studnicky/context` is the sole public code entrypoint.
+`@studnicky/context` exposes a root usage API plus declared `./entities` and `./interfaces` subpaths.
 
 ## Install
 
@@ -57,7 +57,8 @@ Context is designed for subclassing. Two commonly overridden extension points:
 **1. Seed default values with `onInitialize`**
 
 ```typescript
-import { Context, type ContextScopeInterface } from '@studnicky/context';
+import { Context } from '@studnicky/context';
+import type { ContextScopeInterface } from '@studnicky/context/interfaces';
 
 class RequestContext extends Context {
   protected override onInitialize(

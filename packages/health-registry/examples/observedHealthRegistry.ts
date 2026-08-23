@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { HealthCheckResultInterface, HealthStatusEntity } from '../src/index.js';
+import type { HealthStatusEntity } from '../src/entities/index.js';
+import type { HealthCheckResultInterface } from '../src/interfaces/index.js';
 
 import { HealthRegistry } from '../src/index.js';
 

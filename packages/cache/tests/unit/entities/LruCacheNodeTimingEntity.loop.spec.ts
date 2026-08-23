@@ -3,7 +3,7 @@ import {
   describe, it
 } from 'node:test';
 
-import { LruCacheNodeTimingEntity } from '../../../src/index.js';
+import { LruCacheNodeTimingEntity } from '../../../src/entities/index.js';
 import scenarioGroups from './LruCacheNodeTimingEntity.scenarios.json' with { type: 'json' };
 
 type ScenarioCaseByShape = {

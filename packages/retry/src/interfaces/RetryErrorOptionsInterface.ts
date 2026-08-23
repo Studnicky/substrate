@@ -1,5 +1,5 @@
 /** Runtime options for RetryError construction. */
-import type { ErrorWithCodeEntity } from '@studnicky/errors';
+import type { ErrorWithCodeEntity } from '@studnicky/errors/entities';
 
 export interface RetryErrorOptionsInterface {
   readonly 'cause'?: Error;

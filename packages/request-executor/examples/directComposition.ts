@@ -12,7 +12,7 @@ import { Signal } from '@studnicky/signal';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 
-import type { RequestDeadlineEntity } from '../src/index.js';
+import type { RequestDeadlineEntity } from '../src/entities/index.js';
 
 interface ExecuteOptionsInterface<T> {
   'deadlineMs'?: RequestDeadlineEntity.Type['deadlineMs'];

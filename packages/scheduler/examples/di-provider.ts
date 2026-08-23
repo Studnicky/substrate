@@ -8,7 +8,8 @@
 import { VirtualTimeCounter } from '@studnicky/clock';
 import assert from 'node:assert/strict';
 
-import type { SchedulerLogEntryEntity, SchedulerProviderInterface } from '../src/index.js';
+import type { SchedulerLogEntryEntity } from '../src/entities/index.js';
+import type { SchedulerProviderInterface } from '../src/index.js';
 
 import { VirtualScheduler } from '../src/index.js';
 

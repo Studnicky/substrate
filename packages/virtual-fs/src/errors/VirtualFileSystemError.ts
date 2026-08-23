@@ -1,4 +1,4 @@
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { JSONSchema7Type } from 'json-schema';
 
 import { BaseError, DomainErrorArgumentList } from '@studnicky/errors';

@@ -31,7 +31,7 @@ pnpm add @studnicky/process-kit
 
 `ProcessKit` exposes no collaborator getters. Callers retain their machine and optional scheduler references when they need those primitives' lifecycle APIs. The interpreter is owned internally and receives the singular handler through `ProcessKit.create({ machine, handler, scheduler? })`.
 
-Import `ProcessKit` and `ProcessKitConfigInterface` from `@studnicky/process-kit`. The package root is the only public code entrypoint.
+Import `ProcessKit` from `@studnicky/process-kit` and `ProcessKitConfigInterface` from `@studnicky/process-kit/interfaces`.
 
 ## `dispatch()` vs. the effect-handler `dispatch` capability
 
@@ -52,5 +52,19 @@ Import `ProcessKit` and `ProcessKitConfigInterface` from `@studnicky/process-kit
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/process-kit
+
+## Interfaces
+
+`@studnicky/process-kit/interfaces` exports process-kit configuration contracts.
+
+```typescript
+import type { ProcessKitConfigInterface } from '@studnicky/process-kit/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `ProcessKit` | Combines an FSM, effect interpreter, and scheduler for one process. | `@studnicky/process-kit` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/process-kit)

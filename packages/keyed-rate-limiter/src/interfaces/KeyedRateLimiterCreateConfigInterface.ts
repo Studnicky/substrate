@@ -1,4 +1,4 @@
-import type { TokenBucketOptionsEntity } from '@studnicky/resilience';
+import type { TokenBucketOptionsEntity } from '@studnicky/resilience/entities';
 
 import type { KeyedRateLimiterRegistryOptionsEntity } from '../entities/KeyedRateLimiterRegistryOptionsEntity.js';
 

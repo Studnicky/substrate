@@ -23,7 +23,7 @@ Validate required fields and check types in a configuration object. All assertio
 
 ## Public API
 
-Import `ConfigValidation`, `ClampedConfig`, `ClampEventEntity`, `ClampRuleEntity`, and `ConfigurationError` from `@studnicky/config`. The package root is the only public code entrypoint.
+Import `ConfigValidation`, `ClampedConfig`, and `ConfigurationError` from `@studnicky/config`; import clamping schemas from `@studnicky/config/entities`.
 
 ## Try it
 
@@ -43,7 +43,8 @@ The output shows fields passing validation and the `ConfigurationError` messages
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 ```ts
-import { ClampedConfig, ClampRuleEntity } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config';
+import { ClampRuleEntity } from '@studnicky/config/entities';
 
 interface WorkerConfig {
   timeoutMs: number;
@@ -64,7 +65,8 @@ Override the protected `onClamp` static method to observe clamp events — loggi
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 ```ts
-import { ClampEventEntity, ClampedConfig } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config';
+import { ClampEventEntity } from '@studnicky/config/entities';
 
 class LoggingClampedConfig extends ClampedConfig {
   protected static override onClamp(event: ClampEventEntity.Type): void {
@@ -74,5 +76,21 @@ class LoggingClampedConfig extends ClampedConfig {
 
 LoggingClampedConfig.apply(raw, rules);
 ```
+
+## Entities
+
+`@studnicky/config/entities` exports clamping rule and event schemas.
+
+```typescript
+import { ClampRuleEntity } from '@studnicky/config/entities';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `ConfigValidation` | Provides runtime configuration assertions. | `@studnicky/config` |
+| `ClampedConfig` | Applies declarative numeric clamping rules. | `@studnicky/config` |
+| `ConfigurationError` | Represents invalid configuration values. | `@studnicky/config` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/config)

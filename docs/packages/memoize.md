@@ -15,7 +15,7 @@ description: Pure function memoization composing cache and concurrency — LRU+T
 pnpm add @studnicky/memoize
 ```
 
-`@studnicky/memoize` is the sole public code entrypoint.
+`@studnicky/memoize` exposes runtime operations at its root, schemas at `@studnicky/memoize/entities`, and type contracts at `@studnicky/memoize/interfaces`.
 
 ## Usage
 
@@ -52,5 +52,29 @@ The composed `LruCache` and `Coalesce` remain private. Callers control cached st
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/memoize
+
+## Entities
+
+`@studnicky/memoize/entities` exports memoized cache lookup schemas.
+
+```typescript
+import { CacheLookupEntity } from '@studnicky/memoize/entities';
+```
+
+## Interfaces
+
+`@studnicky/memoize/interfaces` exports memoization option contracts.
+
+```typescript
+import type { MemoizeOptionsInterface } from '@studnicky/memoize/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Memoize` | Wraps a function with cache-backed, single-flight memoization. | `@studnicky/memoize` |
+| `MemoizeConfigError` | Represents invalid memoization configuration. | `@studnicky/memoize` |
+| `MemoizeError` | Base error for memoization failures. | `@studnicky/memoize` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/memoize)

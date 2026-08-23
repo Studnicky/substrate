@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { setTimeout } from 'node:timers/promises';
 
-import type { ThrottleStateEntity } from '../src/index.js';
+import type { ThrottleStateEntity } from '../src/entities/index.js';
 
 import { Throttle } from '../src/index.js';
 

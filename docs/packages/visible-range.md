@@ -57,6 +57,29 @@ Subclass `VisibleRange` and override the protected hook to inject trace logging,
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
-Import `VisibleRange`, `VisibleRangeEntity`, `VisibleRangeConfigInterface`, and `VisibleRangeError` from `@studnicky/visible-range`. The package root is the only public code entrypoint.
+Import `VisibleRange`, `VisibleRangeEntity`, `VisibleRangeConfigInterface`, and `VisibleRangeError` from `@studnicky/visible-range`. The package declares separate root, entity, and interface import surfaces.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/visible-range)
+
+## Entities
+
+`@studnicky/visible-range/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { VisibleRangeEntity } from '@studnicky/visible-range/entities';
+```
+
+## Interfaces
+
+`@studnicky/visible-range/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+```typescript
+import type { VisibleRangeConfigInterface } from '@studnicky/visible-range/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `VisibleRange` | Provides visible range functionality. | `@studnicky/visible-range` |
+| `VisibleRangeError` | Represents visible range failures. | `@studnicky/visible-range` |

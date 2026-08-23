@@ -48,4 +48,19 @@ Throttle bounds concurrency first, so the circuit breaker and retry never observ
 
 Full reference: https://studnicky.github.io/substrate/packages/boundary-kit
 
+## Interfaces
+
+`@studnicky/boundary-kit/interfaces` exports boundary configuration and resolved-dependency contracts.
+
+```typescript
+import type { BoundaryKitConfigInterface } from '@studnicky/boundary-kit/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `BoundaryKit` | Applies throttle, circuit breaking, and retry in a fixed order. | `@studnicky/boundary-kit` |
+| `BoundaryKitAbortedError` | Signals a detached throttle call that never ran. | `@studnicky/boundary-kit` |
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/boundary-kit)

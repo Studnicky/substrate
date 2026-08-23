@@ -3,7 +3,8 @@ import {
   beforeEach, describe, it
 } from 'node:test';
 
-import { FlagContextEntity, FlagDefinitionValidationError, FlagEvaluator } from '../../src/index.js';
+import { FlagDefinitionValidationError, FlagEvaluator } from '../../src/index.js';
+import { FlagContextEntity } from '../../src/entities/index.js';
 import scenarioGroups from './FlagEvaluator.scenarios.json' with { type: 'json' };
 
 type ScenarioCase = {

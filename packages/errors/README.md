@@ -98,7 +98,7 @@ class RateLimitExceededError extends RateLimitError {
 
 ## Classifier, module, and validation contracts
 
-`ErrorClassifierFunctionInterface` is the callable classifier contract: `(error: Error, attemptNumber: number) => ErrorClassificationEntity.Type`. Class-based classifiers implement `ErrorClassifierInterface`. Both contracts return the schema-derived classification owned by `ErrorClassificationEntity`.
+`ErrorClassifierFunctionInterface` is the callable classifier contract: `(error: Error, attemptNumber: number) => ErrorClassificationEntity.Type`. Class-based classifiers implement `ErrorClassifierInterface`. Both contracts return the schema-derived classification owned by `ErrorClassificationEntity`, which is available from `@studnicky/errors/entities`.
 
 `ModuleError.create(message, options)` accepts `ModuleErrorCreateOptionsInterface`. Its required `scenario` selects a key from `ErrorDefaults`; `cause`, `context`, `retryable`, and `statusCode` are optional overrides. The protected `ModuleError` constructor accepts `ModuleErrorOptionsInterface`, the resolved contract with a required `code` and explicit context, retry, and status fields.
 
@@ -173,7 +173,7 @@ class ObservedStore {
 `HookInvoker` snapshots and records each complete hook-error graph once before applying its disposition, so later mutation of the originally thrown error, its cause, arrays, or plain objects cannot alter stored diagnostics. `hookErrorCount` reports the invoker-owned diagnostic count and `getHookErrors()` returns another fresh `HookInvocationError`, nested `Error`, and cause projection on every read. An owning class delegates its diagnostic surface to those two members and never retains a second error array. The protected `onHookError(hookName, cause): void | Promise<void>` method controls failure disposition only. Its base implementation throws a `HookInvocationError` carrying the hook name and original thrown value as `cause`. An override may swallow the failure by completing normally, or propagate a failure by throwing or rejecting; it cannot fabricate a replacement value for the hook or invoking business operation. A synchronous terminal failure reached by `invoke` propagates synchronously. For asynchronous completion, `invoke` observes the terminal failure internally while `invokeAsync` rejects with it. The same disposition applies to an optional `timeoutMs`, which bounds async hook completion and routes a timeout to `onHookError` with a `HookTimeoutError` cause:
 
 ```typescript
-import type { HookInvokerOptionsEntity } from '@studnicky/errors';
+import type { HookInvokerOptionsEntity } from '@studnicky/errors/entities';
 
 import { HookInvoker } from '@studnicky/errors';
 
@@ -206,9 +206,25 @@ class TracingCache {
 }
 ```
 
-## Public entrypoint
+## Entities
 
-`@studnicky/errors` is the sole public code entrypoint. It exports error classes, classifiers, entity namespaces, guards, constants, public interfaces, and `EventRecorder`.
+`@studnicky/errors/entities` exports every schema namespace in `src/entities`, including error classifications, construction arguments, error diagnostics, native-error projections, and validation reports.
+
+```typescript
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
+```
+
+## Interfaces
+
+`@studnicky/errors/interfaces` exports every TypeScript interface in `src/interfaces`, including `ModuleErrorInterface` and the construction and classifier contracts.
+
+```typescript
+import type { ModuleErrorInterface } from '@studnicky/errors/interfaces';
+```
+
+## Exports
+
+The complete root API is listed in the package documentation: https://studnicky.github.io/substrate/packages/errors#exports.
 
 ## Documentation
 

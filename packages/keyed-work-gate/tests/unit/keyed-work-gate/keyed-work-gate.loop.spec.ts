@@ -4,7 +4,8 @@ import { describe, it } from 'node:test';
 import { Coalesce } from '@studnicky/concurrency';
 import { Mutex } from '@studnicky/mutex';
 
-import { KeyedWorkGate, type KeyedWorkGateConfigInterface } from '../../../src/index.js';
+import { KeyedWorkGate } from '../../../src/index.js';
+import type { KeyedWorkGateConfigInterface } from '../../../src/interfaces/index.js';
 
 type SerializableGateConfigInput = {
   coalesce: { timeout: number };

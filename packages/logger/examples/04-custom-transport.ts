@@ -9,7 +9,8 @@
 
 import assert from 'node:assert/strict';
 
-import type { LogRecordEntity, TransportInterface } from '../src/index.js';
+import type { LogRecordEntity } from '../src/entities/index.js';
+import type { TransportInterface } from '../src/index.js';
 
 // #region usage
 import { LogBody, Logger, ParseLogLevel } from '../src/index.js';

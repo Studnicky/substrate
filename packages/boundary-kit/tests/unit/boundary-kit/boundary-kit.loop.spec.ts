@@ -2,10 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { CircuitBreaker, CircuitBreakerOpenError, type CircuitBreakerOptionsInterface } from '@studnicky/resilience';
-import { MaximumRetriesExceededError, Retry, type RetryConfigInterface } from '@studnicky/retry';
-import { Throttle, type ThrottleConfigEntity } from '@studnicky/throttle';
+import { MaximumRetriesExceededError, Retry } from '@studnicky/retry';
+import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
+import { Throttle } from '@studnicky/throttle';
+import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
-import { BoundaryKit, type BoundaryKitConfigInterface } from '../../../src/index.js';
+import { BoundaryKit } from '../../../src/index.js';
+import type { BoundaryKitConfigInterface } from '../../../src/interfaces/index.js';
 import { BoundaryKitAbortedError } from '../../../src/errors/BoundaryKitAbortedError.js';
 import scenarioGroups from './boundary-kit.scenarios.json' with { type: 'json' };
 

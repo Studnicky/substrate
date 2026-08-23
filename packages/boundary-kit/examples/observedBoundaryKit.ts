@@ -2,8 +2,8 @@
 
 // #region usage
 import type { CircuitBreakerOptionsInterface } from '@studnicky/resilience';
-import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
-import type { ThrottleConfigEntity } from '@studnicky/throttle';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
+import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
 import { CircuitBreaker } from '@studnicky/resilience';
 import { Retry } from '@studnicky/retry';

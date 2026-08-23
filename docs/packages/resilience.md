@@ -15,7 +15,7 @@ pnpm add @studnicky/resilience
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-`@studnicky/resilience` is the sole public code entrypoint. Construct each primitive through its root-exported `create(options)` factory.
+Construct runtime primitives through the package root. Schema-backed data declarations live at `@studnicky/resilience/entities`, and type-only contracts live at `@studnicky/resilience/interfaces`.
 
 ## Usage
 
@@ -93,41 +93,43 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 
 <RunnableExample src="packages/resilience/examples/observedResilience" title="Resilience lifecycle hooks" />
 
-## API
+## Exports
 
-| Export | Type | Description |
-|--------|------|-------------|
-| `CircuitBreaker` | class | Three-state async circuit breaker |
-| `CircuitBreakerOpenError` | class | Thrown when the circuit is open |
-| `CircuitBreakerOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for serializable circuit-breaker options |
-| `CircuitBreakerOptionsInterface` | interface | Circuit-breaker options plus runtime `clock` and error-classifier contracts |
-| `CircuitStateEntity` | namespace | JSON Schema, derived `Type`, and validator for `closed`, `halfOpen`, and `open` states |
-| `TokenBucket` | class | Token bucket rate limiter |
-| `TokenBucketExhaustedError` | class | Thrown by `consume()` when no tokens remain |
-| `TokenBucketOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for serializable token-bucket options |
-| `TokenBucketOptionsInterface` | interface | Token-bucket options plus the runtime `clock` contract |
-| `DeadLetterQueue<T>` | class | Bounded FIFO DLQ with async-generator drain |
-| `DeadLetterQueueEntryInterface<T>` | interface | Runtime queue entry containing caller-owned `T` and an `Error \| undefined` value |
-| `DeadLetterQueueOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for serializable queue options |
-| `DeadLetterQueueOptionsInterface` | interface | Queue options plus runtime `clock` and `AbortSignal` contracts |
-| `DeadLetterQueueRetryGenerator<T>` | class | Re-yields DLQ entries with a configurable pause |
-| `DeadLetterQueueRetryGeneratorOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for `intervalMs` |
-| `DeadLetterQueueRetryGeneratorOptionsInterface<T>` | interface | Retry timing options plus the live `DeadLetterQueue<T>` instance |
-| `DeadLetterQueueFullError` | class | Thrown by `enqueue` when at capacity |
-| `DeadLetterQueueClosedError` | class | Thrown by `enqueue` after `close()` |
-| `DeadLetterQueueAbortedError` | class | Thrown by `enqueue` after signal abort |
-| `ResilienceConfigError` | class | Thrown when resilience configuration is invalid |
-| `ResilienceError` | class | Base error for the package |
+| Symbol | Purpose | Import path |
+|--------|---------|-------------|
+| `CircuitBreaker` | Three-state async circuit breaker. | `@studnicky/resilience` |
+| `CircuitBreakerOpenError` | Signals a call rejected by an open circuit. | `@studnicky/resilience` |
+| `CircuitBreakerOptionsInterface` | Caller-supplied circuit-breaker options, including clock and error classifier. | `@studnicky/resilience` |
+| `DeadLetterQueue<T>` | Bounded FIFO queue with async-generator drain. | `@studnicky/resilience` |
+| `DeadLetterQueueAbortedError` | Signals enqueue after queue abort. | `@studnicky/resilience` |
+| `DeadLetterQueueClosedError` | Signals enqueue after queue close. | `@studnicky/resilience` |
+| `DeadLetterQueueFullError` | Signals enqueue at queue capacity. | `@studnicky/resilience` |
+| `DeadLetterQueueOptionsInterface` | Caller-supplied queue options, including clock and abort signal. | `@studnicky/resilience` |
+| `DeadLetterQueueRetryGenerator<T>` | Re-yields queue entries after a configurable pause. | `@studnicky/resilience` |
+| `DeadLetterQueueRetryGeneratorOptionsInterface<T>` | Caller-supplied retry-generator options with a live queue. | `@studnicky/resilience` |
+| `ResilienceConfigError` | Signals invalid resilience configuration. | `@studnicky/resilience` |
+| `ResilienceError` | Base error for the package. | `@studnicky/resilience` |
+| `TokenBucket` | Token-bucket rate limiter. | `@studnicky/resilience` |
+| `TokenBucketExhaustedError` | Signals insufficient available tokens. | `@studnicky/resilience` |
+| `TokenBucketOptionsInterface` | Caller-supplied token-bucket options, including clock. | `@studnicky/resilience` |
 
-### Declaration boundaries
+## Entities
 
-Entity namespaces own JSON-compatible data. Each entity exposes `Schema`, a schema-derived `Type`, and `validate`. `CircuitStateEntity.Type` is the canonical circuit-state data type.
+`@studnicky/resilience/entities` exports all schema-backed configuration, state, event, and effect declarations. Each entity namespace provides `Schema`, `Type`, and `validate`.
 
-Interfaces describe contracts that include runtime values or access policy. `DeadLetterQueueEntryInterface<T>` remains a runtime contract because the payload is caller-defined and `error` is an `Error` instance. Retry-generator options compose the schema-owned `DeadLetterQueueRetryGeneratorOptionsEntity.Type` with a live queue through `DeadLetterQueueRetryGeneratorOptionsInterface<T>`.
+<!-- inline-ts-ok: Documents the entities subpath import. -->
+```typescript
+import { CircuitBreakerOptionsEntity } from '@studnicky/resilience/entities';
+```
 
-Entity source files import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`. `@studnicky/resilience` declares both owner packages directly and does not acquire dependency-owned declarations through a substrate proxy export.
+## Interfaces
 
-All classes, errors, entity namespaces, and type-only interfaces listed above are imported from `@studnicky/resilience`.
+`@studnicky/resilience/interfaces` exports type-only event, effect, queue-entry, and option contracts. Option interfaces that callers pass to public factories are also available from the package root.
+
+<!-- inline-ts-ok: Documents the interfaces subpath import. -->
+```typescript
+import type { DeadLetterQueueEntryInterface } from '@studnicky/resilience/interfaces';
+```
 
 ### `CircuitBreaker`
 

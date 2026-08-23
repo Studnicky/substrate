@@ -3,12 +3,12 @@ import { describe, it } from 'node:test';
 
 import { TokenBucketExhaustedError } from '@studnicky/resilience';
 
+import { KeyedRateLimiter } from '../../../src/index.js';
 import {
-  KeyedRateLimiter,
   KeyedRateLimiterRegistryOptionsEntity,
   RateLimitRequestEntity
-} from '../../../src/index.js';
-import type { KeyedRateLimiterCreateConfigInterface } from '../../../src/index.js';
+} from '../../../src/entities/index.js';
+import type { KeyedRateLimiterCreateConfigInterface } from '../../../src/interfaces/index.js';
 
 type ScenarioCase = {
   description: string;

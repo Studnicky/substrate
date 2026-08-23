@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { PipelineFunctionInterface, PipelineOptionsEntity } from '../src/index.js';
+import type { PipelineOptionsEntity } from '../src/entities/index.js';
+import type { PipelineFunctionInterface } from '../src/interfaces/index.js';
 import type { StepContextTypeEntity } from './entities/StepContextTypeEntity.js';
 
 import { Pipeline, PipelineError } from '../src/index.js';

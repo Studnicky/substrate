@@ -34,7 +34,7 @@ pnpm add @studnicky/idempotency-guard
 
 `IdempotencyGuard.create({ capacity, ttlMs })` creates and owns its cache and coalescer. Those collaborators are implementation details and have no public getters. Consumers observe the guard through `onReplay`, `onCoalesce`, `onConflict`, and `onExecute`.
 
-Import `IdempotencyGuard`, `IdempotencyGuardOptionsEntity`, `IdempotencyGuardEntryMetadataEntity`, `IdempotencyGuardEntryInterface`, `IdempotencyConflictError`, and `IdempotencyGuardError` from `@studnicky/idempotency-guard`. `IdempotencyGuardEntryInterface<TResult>` composes the schema-derived fingerprint from the metadata entity and retains the caller-owned generic result. The package root is the only public code entrypoint.
+Import `IdempotencyGuard`, `IdempotencyConflictError`, and `IdempotencyGuardError` from `@studnicky/idempotency-guard`; import schemas from `@studnicky/idempotency-guard/entities` and `IdempotencyGuardEntryInterface` from `@studnicky/idempotency-guard/interfaces`. `IdempotencyGuardEntryInterface<TResult>` composes the schema-derived fingerprint from the metadata entity and retains the caller-owned generic result.
 
 ## Composition order
 
@@ -50,5 +50,29 @@ Import `IdempotencyGuard`, `IdempotencyGuardOptionsEntity`, `IdempotencyGuardEnt
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/idempotency-guard
+
+## Entities
+
+`@studnicky/idempotency-guard/entities` exports idempotency entry metadata and guard-option schemas.
+
+```typescript
+import { IdempotencyGuardOptionsEntity } from '@studnicky/idempotency-guard/entities';
+```
+
+## Interfaces
+
+`@studnicky/idempotency-guard/interfaces` exports cached-entry contracts.
+
+```typescript
+import type { IdempotencyGuardEntryInterface } from '@studnicky/idempotency-guard/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `IdempotencyGuard` | Deduplicates work, replays matching cached results, and rejects conflicts. | `@studnicky/idempotency-guard` |
+| `IdempotencyConflictError` | Represents reuse of an idempotency key with a different payload. | `@studnicky/idempotency-guard` |
+| `IdempotencyGuardError` | Base error for idempotency-guard failures. | `@studnicky/idempotency-guard` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/idempotency-guard)

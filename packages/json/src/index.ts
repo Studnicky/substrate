@@ -17,17 +17,7 @@
  * - SchemaValidator — compile a JSON Schema 2020-12 into a type-guard predicate (Ajv-backed)
  */
 
-export { DraftNodeStateEntity } from './entities/DraftNodeStateEntity.js';
-export { PatchApplyResultStatusEntity } from './entities/PatchApplyResultStatusEntity.js';
-export { PatchOperationCoreEntity } from './entities/PatchOperationCoreEntity.js';
-export { PathGetOptionsEntity } from './entities/PathGetOptionsEntity.js';
-export { PathWildcardResultEntity } from './entities/PathWildcardResultEntity.js';
 export { FrozenMutationError, JsonError, PatchError } from './errors/index.js';
-export type {
-  PatchApplyResultInterface,
-  PatchOperationInterface,
-  PathWildcardResultInterface
-} from './interfaces/index.js';
 export { Clone } from './json/index.js';
 export { DataType } from './json/index.js';
 export { Draft } from './json/index.js';

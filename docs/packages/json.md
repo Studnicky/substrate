@@ -106,10 +106,45 @@ Import schema and validator types from their declaring packages and declare thos
 
 ## Public API
 
-Import JSON operations, `SchemaValidator`, package-owned entities and interfaces, and `FrozenMutationError`, `JsonError`, and `PatchError` from `@studnicky/json`. The package root is the only public code entrypoint. Dependency-owned schema declarations remain imported directly from `json-schema-to-ts`, `ajv`, and `json-schema`.
+Import JSON operations, `SchemaValidator`, `FrozenMutationError`, `JsonError`, and `PatchError` from `@studnicky/json`. Package-owned schemas use `@studnicky/json/entities` and contracts use `@studnicky/json/interfaces`. Dependency-owned schema declarations remain imported directly from `json-schema-to-ts`, `ajv`, and `json-schema`.
 
 ## Extending
 
 Most utilities are pure-static; `Patch` is instance-based. Compose the static utilities in a domain-specific class or subclass their protected customization seams. The `merge-clone` example above shows subclassing `Merge` to change array-merge behaviour.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/json)
+
+## Entities
+
+`@studnicky/json/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { PatchOperationCoreEntity } from '@studnicky/json/entities';
+```
+
+## Interfaces
+
+`@studnicky/json/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+```typescript
+import type { PatchOperationInterface } from '@studnicky/json/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Clone` | Provides clone functionality. | `@studnicky/json` |
+| `DataType` | Provides data type functionality. | `@studnicky/json` |
+| `Draft` | Provides draft functionality. | `@studnicky/json` |
+| `Frozen` | Provides frozen functionality. | `@studnicky/json` |
+| `Hash` | Provides hash functionality. | `@studnicky/json` |
+| `Merge` | Provides merge functionality. | `@studnicky/json` |
+| `Patch` | Provides patch functionality. | `@studnicky/json` |
+| `Path` | Provides path functionality. | `@studnicky/json` |
+| `Sort` | Provides sort functionality. | `@studnicky/json` |
+| `StructuralHash` | Provides structural hash functionality. | `@studnicky/json` |
+| `SchemaValidator` | Provides schema validator functionality. | `@studnicky/json` |
+| `FrozenMutationError` | Represents frozen mutation failures. | `@studnicky/json` |
+| `JsonError` | Represents json failures. | `@studnicky/json` |
+| `PatchError` | Represents patch failures. | `@studnicky/json` |

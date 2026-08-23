@@ -14,7 +14,7 @@ import { EventBus } from '@studnicky/event-bus';
 import { RealTimeScheduler } from '@studnicky/scheduler';
 import assert from 'node:assert/strict';
 
-import type { DispatchCompletedEventEntity, DispatchStartedEventEntity } from '../src/index.js';
+import type { DispatchCompletedEventEntity, DispatchStartedEventEntity } from '../src/entities/index.js';
 
 import { Semaphore } from '../src/index.js';
 

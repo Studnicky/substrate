@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
-  CacheLookupEntity,
   Memoize,
   MemoizeConfigError
 } from '../../../src/index.js';
-import type { MemoizeOptionsInterface } from '../../../src/index.js';
+import { CacheLookupEntity } from '../../../src/entities/index.js';
+import type { MemoizeOptionsInterface } from '../../../src/interfaces/index.js';
 import scenarioGroups from './memoize.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =

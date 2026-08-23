@@ -4,12 +4,14 @@ import { describe, it } from 'node:test';
 import { ConfigurationError } from '@studnicky/config';
 
 import {
+  Timing
+} from '../../src/index.js';
+import {
   TimeUnitEntity,
-  Timing,
   TimingOptionsEntity,
   TimingPrecisionEntity,
   TimingStatusEntity
-} from '../../src/index.js';
+} from '../../src/entities/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
 import { TimingValidator } from '../../src/validation/TimingValidator.js';
 import scenarioGroups from './validation.scenarios.json' with { type: 'json' };

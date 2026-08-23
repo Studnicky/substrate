@@ -13,7 +13,7 @@ description: High-resolution operation timing tracker using process.hrtime.bigin
 pnpm add @studnicky/timing
 ```
 
-`@studnicky/timing` is the sole public code entrypoint.
+`@studnicky/timing` declares a root usage API and explicit public subpaths.
 
 ## Usage
 
@@ -43,7 +43,7 @@ Create a `Timing` instance with `Timing.create(options?)`, then record frozen `c
 
 ## Public API
 
-The package root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TimingInterface`, `TIMING_STATUS`, schema-backed timing entities, `TimingBuildError`, and `TimingValidator`.
+The root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TIMING_STATUS`, `TimingBuildError`, and `TimingValidator`. Schema-backed timing entities use `@studnicky/timing/entities`; `TimingInterface` uses `@studnicky/timing/interfaces`.
 
 ## Extending
 
@@ -66,3 +66,30 @@ The package root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TimingInterface
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/timing)
+
+## Entities
+
+`@studnicky/timing/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { TimingEventDataEntity } from '@studnicky/timing/entities';
+```
+
+## Interfaces
+
+`@studnicky/timing/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+```typescript
+import type { TimingInterface } from '@studnicky/timing/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `TIMING_STATUS` | Provides supported timing status values. | `@studnicky/timing` |
+| `NoOpTiming` | Provides no op timing functionality. | `@studnicky/timing` |
+| `Timing` | Provides timing functionality. | `@studnicky/timing` |
+| `TimingBuildError` | Represents timing build failures. | `@studnicky/timing` |
+| `TimingEvent` | Provides timing event functionality. | `@studnicky/timing` |
+| `TimingValidator` | Provides timing validator functionality. | `@studnicky/timing` |

@@ -109,3 +109,23 @@ The hooks demo subclasses `EventBus` and overrides seven protected lifecycle met
 | `size` | `number` | Current queue depth |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/event-bus)
+
+## Entities
+
+`@studnicky/event-bus/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `BusQueue` | Provides bus queue functionality. | `@studnicky/event-bus` |
+| `BusQueueCreateOptionsInterface` | Defines the bus queue create options contract. | `@studnicky/event-bus` |
+| `BusQueueConfigError` | Represents bus queue config failures. | `@studnicky/event-bus` |
+| `EventBus` | Provides event bus functionality. | `@studnicky/event-bus` |
+| `EventBusError` | Represents event bus failures. | `@studnicky/event-bus` |
+| `EventHandlerInterface` | Defines the event handler contract. | `@studnicky/event-bus` |
+| `UnsubscribeInterface` | Defines the unsubscribe contract. | `@studnicky/event-bus` |

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { VisibleRangeEntity } from '../src/index.js';
+import type { VisibleRangeEntity } from '../src/entities/index.js';
 
 import { VisibleRange } from '../src/index.js';
 

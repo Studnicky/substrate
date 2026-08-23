@@ -6,7 +6,7 @@
 
 Wraps an arbitrary function and caches its result keyed by a caller-supplied key derivation over its arguments, with LRU+TTL eviction and in-flight call dedup. It composes two existing primitives into the "check cache → check in-flight → run → store" sequence: an `LruCache` for TTL-bounded result storage and a `Coalesce` for in-flight dedup — no new storage engine, no implicit argument hashing.
 
-`MemoizeOptionsInterface` indexes its cache fields from `LruCacheOptionsEntity.Type`, and `CacheLookupEntity` owns the serializable hit/miss state used by the generic lookup contract. `CacheLookupEntity` is exported from the package root with its schema-derived type and runtime validator.
+`MemoizeOptionsInterface` indexes its cache fields from `LruCacheOptionsEntity.Type`, and `CacheLookupEntity` owns the serializable hit/miss state used by the generic lookup contract. Import `CacheLookupEntity` from `@studnicky/memoize/entities` and `MemoizeOptionsInterface` from `@studnicky/memoize/interfaces`.
 
 **`@studnicky/memoize` vs. `@studnicky/idempotency-guard`:** both compose `LruCache` + `Coalesce`, but solve different problems. `Memoize` is pure memoization — the same derived key always replays the cached result, no conflict detection. `IdempotencyGuard` fingerprints a payload alongside the cached result and *errors* when a key is reused for a different payload — pick `IdempotencyGuard` when key reuse with a different payload is a bug you want to catch, pick `Memoize` when you just want to cache a function's result.
 

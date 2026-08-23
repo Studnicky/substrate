@@ -4,14 +4,16 @@ import { describe, it } from 'node:test';
 import { HookInvocationError } from '@studnicky/errors';
 
 import type {
-  PaginatorAvailableCursorInterface,
   PaginatorExhaustedCursorEntity,
+  PaginatorIdleStateEntity,
+  PaginatorResetEventEntity
+} from '../../../src/entities/index.js';
+import type {
+  PaginatorAvailableCursorInterface,
   PaginatorExhaustedStateInterface,
   PaginatorHasMoreStateInterface,
-  PaginatorIdleStateEntity,
-  PaginatorPageReceivedEventInterface,
-  PaginatorResetEventEntity
-} from '../../../src/index.js';
+  PaginatorPageReceivedEventInterface
+} from '../../../src/interfaces/index.js';
 
 import { Paginator } from '../../../src/index.js';
 

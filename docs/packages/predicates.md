@@ -57,11 +57,11 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 The output shows `inferValueType` mapping JS values to JSON Schema type names, `isFiniteNumber`/`isIntegerValue` narrowing numerics, and `matchesType`/`matchesAnyType` performing union-aware dispatch.
 
-## API
+## Exports
 
-| Export | Type | Description |
-|--------|------|-------------|
-| `Predicates` | class | Static-only predicate and coercion library |
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Predicates` | Provides static validation predicates and coercion helpers. | `@studnicky/predicates` |
 
 ### Selected `Predicates` static methods
 

@@ -3,7 +3,7 @@ import {
   describe, it
 } from 'node:test';
 
-import { SchedulerTaskDataEntity } from '../../src/index.js';
+import { SchedulerTaskDataEntity } from '../../src/entities/index.js';
 import scenarioGroups from './SchedulerTaskDataEntity.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =

@@ -3,11 +3,9 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import {
-  FetchClient,
-  type RequestEventEntity,
-  type ResponseEventEntity
-} from '../src/index.js';
+import type { RequestEventEntity, ResponseEventEntity } from '../src/entities/index.js';
+
+import { FetchClient } from '../src/index.js';
 
 interface ErrorEventInterface {
   'durationMs': ResponseEventEntity.Type['durationMs'];

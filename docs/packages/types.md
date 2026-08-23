@@ -81,9 +81,15 @@ Import `JSONSchema7Type` directly from `json-schema` when a public signature or 
 
 The output shows direct configuration with required defaults and an optional `clock` field that is present only when defined.
 
-## Public API
+## Exports
 
-Import `Empty`, `Guard`, `JsonObject`, `JsonValue`, and `PickDefined` from `@studnicky/types`.
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Empty` | Produces and identifies empty values. | `@studnicky/types` |
+| `Guard` | Provides runtime type guards and accessors. | `@studnicky/types` |
+| `JsonObject` | Narrows values at the plain-object JSON boundary. | `@studnicky/types` |
+| `JsonValue` | Validates and coerces recursive JSON values. | `@studnicky/types` |
+| `PickDefined` | Omits undefined-valued properties from an object. | `@studnicky/types` |
 
 ## Extending
 

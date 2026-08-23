@@ -1,4 +1,6 @@
-import { CircularBuffer, type CircularBufferOptionsEntity } from '@studnicky/circular-buffer';
+import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
+
+import { CircularBuffer } from '@studnicky/circular-buffer';
 import { Clone } from '@studnicky/json';
 
 import type { EffectHandlerInterface } from './EffectHandlerInterface.js';

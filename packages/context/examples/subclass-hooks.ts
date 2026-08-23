@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { ContextScopeInterface } from '../src/index.js';
+import type { ContextScopeInterface } from '../src/interfaces/index.js';
 
 import { Context } from '../src/index.js';
 

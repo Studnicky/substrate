@@ -36,7 +36,7 @@ The hooks demo subclasses `Pipeline` and overrides all eight protected lifecycle
 
 ## Public API
 
-Import `Pipeline`, `PipelineError`, `PipelineOptionsEntity`, `PipelineFunctionInterface`, and `PipelineInterface` from `@studnicky/pipeline`.
+Import `Pipeline` and `PipelineError` from `@studnicky/pipeline`; import schema namespaces from `@studnicky/pipeline/entities` and type contracts from `@studnicky/pipeline/interfaces`.
 
 ## Extending
 
@@ -69,5 +69,28 @@ for inspection or tooling.
 The base class never calls any logger or metrics library. Observer hooks are no-ops by default; transform hooks are the behavioral seams.
 
 The four observer hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). A throwing observer surfaces as `HookInvocationError`. Pass `hookTimeoutMs` to `Pipeline.create<T>([...stages], { hookTimeoutMs })` to bound an asynchronous observer; exceeding the bound surfaces through `HookTimeoutError`. Without `hookTimeoutMs`, hook invocation is unbounded.
+
+## Entities
+
+`@studnicky/pipeline/entities` exports the pipeline option schema namespace.
+
+```typescript
+import { PipelineOptionsEntity } from '@studnicky/pipeline/entities';
+```
+
+## Interfaces
+
+`@studnicky/pipeline/interfaces` exports pipeline stage and runner contracts.
+
+```typescript
+import type { PipelineFunctionInterface } from '@studnicky/pipeline/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Pipeline` | Runs typed transformation stages in sequence. | `@studnicky/pipeline` |
+| `PipelineError` | Represents pipeline execution failures. | `@studnicky/pipeline` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/pipeline)

@@ -2,7 +2,7 @@
 
 import assert from 'node:assert/strict';
 
-import type { SlidingWindowLimiterOptionsInterface } from '../src/index.js';
+import type { SlidingWindowLimiterOptionsInterface } from '../src/interfaces/index.js';
 
 // #region usage
 import { SlidingWindowExhaustedError, SlidingWindowLimiter } from '../src/index.js';

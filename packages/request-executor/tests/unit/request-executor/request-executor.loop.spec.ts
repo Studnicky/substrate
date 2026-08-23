@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
 import { Context } from '@studnicky/context';
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import { AbortError, FetchClient, type ClientConfigInterface, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch';
-import { Retry, type RetryContextInterface, type RetryConfigInterface } from '@studnicky/retry';
+import { Retry } from '@studnicky/retry';
+import type { RetryContextInterface, RetryConfigInterface } from '@studnicky/retry/interfaces';
 
-import { RequestDeadlineEntity, RequestExecutor } from '../../../src/index.js';
+import { RequestExecutor } from '../../../src/index.js';
+import { RequestDeadlineEntity } from '../../../src/entities/index.js';
 import type { RequestExecutorConfigInterface } from '../../../src/interfaces/RequestExecutorConfigInterface.js';
 import scenarioGroups from './request-executor.scenarios.json' with { type: 'json' };
 

@@ -54,4 +54,15 @@ Full documentation for all 49 custom rules is in the **ESLint Plugins** section:
 - [Configuration rules](/eslint/) — 22 `@studnicky` structural and semantic rules
 - [V8 performance rules](/eslint/) — 27 `@studnicky/v8` optimization rules
 
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `plugin` | Provides the `@studnicky` ESLint plugin. | `@studnicky/eslint-config` |
+| `v8Plugin` | Provides the `@studnicky/v8` ESLint plugin. | `@studnicky/eslint-config` |
+| `entitySuite` | Provides entity-focused configuration rules. | `@studnicky/eslint-config` |
+| `hygieneSuite` | Provides code-hygiene configuration rules. | `@studnicky/eslint-config` |
+| `HexagonalSuite` | Provides hexagonal-architecture configuration rules. | `@studnicky/eslint-config` |
+| `v8Suite` | Provides V8 performance configuration rules. | `@studnicky/eslint-config` |
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/eslint-config)

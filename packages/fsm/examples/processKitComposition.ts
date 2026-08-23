@@ -5,7 +5,7 @@
  * drain cycle ends. Virtual time keeps scheduling deterministic, and Signal supplies the
  * cancellation boundary. Run: npx tsx examples/processKitComposition.ts */
 
-import type { ScheduledTaskInterface } from '@studnicky/scheduler';
+import type { ScheduledTaskInterface } from '@studnicky/scheduler/interfaces';
 
 // #region usage
 import { VirtualTimeCounter } from '@studnicky/clock';

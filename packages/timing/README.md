@@ -6,7 +6,7 @@
 
 Collects `process.hrtime.bigint()` timestamps for named `component.operation[.status]` events and returns them as a flat record of elapsed milliseconds. Designed for low-overhead instrumentation of async pipelines, adapters, and services.
 
-`@studnicky/timing` is the sole public code entrypoint.
+`@studnicky/timing` exposes a root usage API plus declared `./entities` and `./interfaces` subpaths.
 
 ## Install
 
@@ -78,7 +78,7 @@ const timing = Timing.create({
 Override the protected `onEvent` hook to instrument or export timing data without changing the public API:
 
 ```typescript
-import type { TimingEventDataEntity } from '@studnicky/timing';
+import type { TimingEventDataEntity } from '@studnicky/timing/entities';
 
 import { Timing } from '@studnicky/timing';
 

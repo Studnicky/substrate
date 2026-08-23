@@ -1,6 +1,7 @@
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
+
 import {
   DefaultHttpErrorClassifier,
-  type ErrorClassificationEntity,
   HookInvoker
 } from '@studnicky/errors';
 import { TransitionRejectedError } from '@studnicky/fsm';

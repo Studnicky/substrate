@@ -82,7 +82,8 @@ try {
 `ClampedConfig` is the soft-correction sibling to `ConfigValidation`'s hard-fail assertions: given a flat config object and a declarative table of `{minimum, maximum, reason}` per numeric field, `apply` returns a **new** object with out-of-range numeric fields clamped into range instead of throwing. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
 
 ```typescript
-import { ClampRuleEntity, ClampedConfig } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config';
+import { ClampRuleEntity } from '@studnicky/config/entities';
 
 interface WorkerConfig {
   timeoutMs: number;
@@ -102,7 +103,8 @@ const clamped = ClampedConfig.apply(raw, rules);
 Override the protected `onClamp` static method to observe clamp events — logging is the caller's responsibility, `ClampedConfig` has no dependency on any logging package:
 
 ```typescript
-import { ClampEventEntity, ClampedConfig } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config';
+import { ClampEventEntity } from '@studnicky/config/entities';
 
 class LoggingClampedConfig extends ClampedConfig {
   protected static override onClamp(event: ClampEventEntity.Type): void {

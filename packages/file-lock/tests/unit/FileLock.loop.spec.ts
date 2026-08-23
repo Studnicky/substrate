@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, afterEach, describe, it } from 'node:test';
 
-import type { FileSystemInterface, StatResultInterface } from '@studnicky/virtual-fs';
+import type { FileSystemInterface } from '@studnicky/virtual-fs';
+import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
 
 import { FileLock, FileLockTimeoutError } from '../../src/index.js';
 import scenarioGroups from './FileLock.scenarios.json' with { type: 'json' };

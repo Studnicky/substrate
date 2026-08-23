@@ -41,3 +41,25 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 Pure discriminants and fixed pure-data variants are entity-derived: `PaginatorAvailableCursorDiscriminantEntity.Type`, `PaginatorExhaustedCursorEntity.Type`, `PaginatorExhaustedStateDiscriminantEntity.Type`, `PaginatorHasMoreStateDiscriminantEntity.Type`, `PaginatorIdleStateEntity.Type`, `PaginatorPageReceivedEventDiscriminantEntity.Type`, and `PaginatorResetEventEntity.Type`. Generic composite variants are `PaginatorAvailableCursorInterface<TCursor>`, `PaginatorHasMoreStateInterface<TPage, TCursor>`, `PaginatorExhaustedStateInterface<TPage>`, and `PaginatorPageReceivedEventInterface<TPage, TCursor>`.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/paginator)
+
+## Entities
+
+`@studnicky/paginator/entities` exports every schema namespace in `src/entities`.
+
+```typescript
+import { PaginatorIdleStateEntity } from '@studnicky/paginator/entities';
+```
+
+## Interfaces
+
+`@studnicky/paginator/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+```typescript
+import type { PaginatorAvailableCursorInterface } from '@studnicky/paginator/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Paginator` | Provides paginator functionality. | `@studnicky/paginator` |

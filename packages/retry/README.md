@@ -55,7 +55,7 @@ const retry = Retry.create({
 Subclass-override, for full control over `context.delayMs`:
 
 ```typescript
-import type { RetryContextInterface } from '@studnicky/retry';
+import type { RetryContextInterface } from '@studnicky/retry/interfaces';
 
 import { Retry, BackoffStrategy } from '@studnicky/retry';
 
@@ -96,7 +96,7 @@ Subclass `Retry` and override any of the protected lifecycle hooks to add teleme
 
 ```typescript
 import type { ErrorClassificationEntity } from '@studnicky/errors';
-import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
 
 import { Retry } from '@studnicky/retry';
 

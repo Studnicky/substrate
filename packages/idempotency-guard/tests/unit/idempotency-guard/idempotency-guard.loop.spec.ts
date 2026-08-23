@@ -13,7 +13,8 @@ import {
   ScriptTarget
 } from 'typescript';
 
-import { IdempotencyConflictError, IdempotencyGuard, IdempotencyGuardEntryMetadataEntity } from '../../../src/index.js';
+import { IdempotencyConflictError, IdempotencyGuard } from '../../../src/index.js';
+import { IdempotencyGuardEntryMetadataEntity } from '../../../src/entities/index.js';
 
 import scenarioGroups from './idempotency-guard.scenarios.json' with { type: 'json' };
 

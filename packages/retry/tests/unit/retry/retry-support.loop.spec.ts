@@ -5,16 +5,15 @@ import { ConfigurationError } from '@studnicky/config';
 import { DefaultHttpErrorClassifier } from '@studnicky/errors';
 
 import {
-  BackoffConfigEntity,
   BackoffStrategy,
   Retry,
-  RetryConfigGuard,
-  RetryContextDataEntity
+  RetryConfigGuard
 } from '../../../src/index.js';
+import { BackoffConfigEntity, RetryContextDataEntity } from '../../../src/entities/index.js';
 import type {
   RetryConfigInterface,
   RetryContextInterface
-} from '../../../src/index.js';
+} from '../../../src/interfaces/index.js';
 import scenarioGroups from './retry-support.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =

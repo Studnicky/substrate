@@ -1,7 +1,7 @@
 /** observedRequestExecutor — direct composition of caller-owned subclassed primitives. Run: npx tsx examples/observedRequestExecutor.ts */
 
 // #region usage
-import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
 
 import {
   FetchClient,
@@ -12,7 +12,7 @@ import { Retry } from '@studnicky/retry';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 
-import type { RequestExecutorDepsInterface } from '../src/index.js';
+import type { RequestExecutorDepsInterface } from '../src/interfaces/index.js';
 
 import { RequestExecutor } from '../src/index.js';
 

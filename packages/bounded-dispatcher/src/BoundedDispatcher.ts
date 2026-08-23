@@ -1,7 +1,8 @@
 /** Bounded work dispatch composing concurrency's Semaphore, event-bus's EventBus, and scheduler. */
 
 import type { HookInvocationError } from '@studnicky/errors';
-import type { ScheduledTaskInterface, SchedulerProviderInterface } from '@studnicky/scheduler';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler';
+import type { ScheduledTaskInterface } from '@studnicky/scheduler/interfaces';
 
 import { Semaphore } from '@studnicky/concurrency';
 import { HookInvoker } from '@studnicky/errors';

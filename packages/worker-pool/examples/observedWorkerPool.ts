@@ -9,7 +9,7 @@ import type {
   WorkerLogEnvelopeInterface,
   WorkerProgressEnvelopeInterface,
   WorkerResultEnvelopeInterface
-} from '../src/index.js';
+} from '../src/interfaces/index.js';
 import type { ItemEntity } from './entities/ItemEntity.js';
 
 import { WorkerPool } from '../src/index.js';

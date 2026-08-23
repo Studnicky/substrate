@@ -1,8 +1,6 @@
 export type { EffectHandlerInterface } from './EffectHandlerInterface.js';
 export { EffectInterpreter } from './EffectInterpreter.js';
 export type { EffectInterpreterConstructorOptionsInterface } from './EffectInterpreterConstructorOptionsInterface.js';
-export { InterpreterHistoryRecordMetadataEntity } from './entities/InterpreterHistoryRecordMetadataEntity.js';
-export { RegisteredInterpreterMetricsEntity } from './entities/RegisteredInterpreterMetricsEntity.js';
 export { FsmConfigError, FsmError, InterpreterNotRunningError, InterpreterNotStartedError, MailboxCapacityExceededError } from './errors/index.js';
 export type { FsmStepInterface } from './FsmStepInterface.js';
 export type { FsmTransitionInterface } from './FsmTransitionInterface.js';

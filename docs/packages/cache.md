@@ -15,7 +15,7 @@ pnpm add @studnicky/cache
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-`@studnicky/cache` is the sole public code entrypoint.
+`@studnicky/cache` exposes runtime cache operations at its root and schema namespaces at `@studnicky/cache/entities`.
 
 ## Usage
 
@@ -72,8 +72,6 @@ no-ops by default.
 | Export | Type | Description |
 |--------|------|-------------|
 | `LruCache<K, V>` | class | LRU + TTL cache; generic key and value types |
-| `LruCacheOptionsEntity` | namespace | Schema, derived `Type`, and validator for `{ capacity, staleMs?, ttlMs? }` |
-| `LruCacheNodeTimingEntity` | namespace | Schema, derived `Type`, and validator for cache-node `expiresAt` and `staleAt` timestamps |
 | `CacheError` | class | Base package error |
 | `CacheConfigError` | class | Invalid cache configuration |
 
@@ -81,7 +79,7 @@ no-ops by default.
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| `create` | `static create<K, V>(options: LruCacheOptionsEntity.Type): LruCache<K, V>` | Constructs a cache from validated options |
+| `create` | `static create<K, V>(options: LruCacheOptionsEntity.Type): LruCache<K, V>` | Constructs a cache from validated options; import the schema namespace from `@studnicky/cache/entities` |
 | `size` | `get size(): number` | Current entry count |
 | `get` | `(key: K) => V \| undefined` | Returns value; promotes to MRU; evicts expired |
 | `tryGet` | `(key: K) => { found: boolean; value: V \| undefined }` | Distinguishes a miss from a stored `undefined` value in one traversal |
@@ -90,5 +88,21 @@ no-ops by default.
 | `delete` | `(key: K) => boolean` | Removes entry; returns whether it existed |
 | `deleteWhere` | `(predicate: (key: K, value: V) => boolean) => number` | Removes matching entries and returns the removal count |
 | `clear` | `() => void` | Removes all entries |
+
+## Entities
+
+`@studnicky/cache/entities` exports cache option and node-timing schemas.
+
+```typescript
+import { LruCacheOptionsEntity } from '@studnicky/cache/entities';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `LruCache` | Stores bounded least-recently-used values with optional expiry. | `@studnicky/cache` |
+| `CacheConfigError` | Represents invalid cache configuration. | `@studnicky/cache` |
+| `CacheError` | Base error for cache failures. | `@studnicky/cache` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/cache)

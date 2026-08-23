@@ -1,4 +1,4 @@
-import type { LruCacheOptionsEntity } from '@studnicky/cache';
+import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 
 /** Construction options for {@link Memoize}. */
 export interface MemoizeOptionsInterface<TArgumentList extends unknown[]> {

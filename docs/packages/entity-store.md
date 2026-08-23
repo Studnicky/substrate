@@ -71,4 +71,18 @@ Unlike `@studnicky/cache`'s `LruCache`, `EntityStore` is deliberately unbounded 
 | `hookErrorCount` | `get hookErrorCount(): number` | Count of hook failures recorded since construction |
 | `getHookErrors` | `() => readonly HookErrorEntryInterface[]` | Defensive copy of every hook failure recorded since construction |
 
+## Interfaces
+
+`@studnicky/entity-store/interfaces` exports entity-store option contracts.
+
+```typescript
+import type { EntityStoreOptionsInterface } from '@studnicky/entity-store/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `EntityStore` | Maintains an ID-indexed entity collection. | `@studnicky/entity-store` |
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/entity-store)

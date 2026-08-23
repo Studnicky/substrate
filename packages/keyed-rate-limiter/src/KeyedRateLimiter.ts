@@ -2,7 +2,7 @@
  * Per-key rate limiting composing cache and resilience
  */
 
-import type { LruCacheOptionsEntity } from '@studnicky/cache';
+import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 import type { TokenBucketOptionsInterface } from '@studnicky/resilience';
 
 import { LruCache } from '@studnicky/cache';

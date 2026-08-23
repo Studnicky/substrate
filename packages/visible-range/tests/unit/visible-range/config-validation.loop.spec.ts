@@ -3,7 +3,7 @@ import {
   describe, it
 } from 'node:test';
 
-import type { VisibleRangeConfigInterface } from '../../../src/index.js';
+import type { VisibleRangeConfigInterface } from '../../../src/interfaces/index.js';
 
 import { VisibleRange, VisibleRangeError } from '../../../src/index.js';
 import scenarioGroups from './config-validation.scenarios.json' with { type: 'json' };

@@ -7,12 +7,11 @@ import assert from 'node:assert/strict';
 import type {
   LogBodyDataEntity,
   LoggerHookEventShapeEntity,
-  LoggerOptionsInterface,
   LogLevelEntity,
-  LogMetadataInterface,
-  LogRecordEntity,
-  TransportInterface
-} from '../src/index.js';
+  LogRecordEntity
+} from '../src/entities/index.js';
+import type { TransportInterface } from '../src/index.js';
+import type { LoggerOptionsInterface, LogMetadataInterface } from '../src/interfaces/index.js';
 
 import { FunctionTransport, LogBody, Logger } from '../src/index.js';
 
