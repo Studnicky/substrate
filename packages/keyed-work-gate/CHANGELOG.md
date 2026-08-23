@@ -1,5 +1,13 @@
 # Changelog
 
+## 10.0.0
+
+### Patch Changes
+
+- @studnicky/concurrency@10.0.0
+  - @studnicky/mutex@10.0.0
+  - @studnicky/types@10.0.0
+
 ## 9.2.0
 
 ### Patch Changes

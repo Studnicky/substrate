@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/worker-pool",
-  "version": "9.2.0",
+  "version": "10.0.0",
   "description": "Bounded node:worker_threads pool that fans work items across workers with a typed message envelope and per-task timeout",
   "type": "module",
   "sideEffects": false,
