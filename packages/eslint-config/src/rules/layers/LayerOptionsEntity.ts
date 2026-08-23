@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type {
   FromSchema, JSONSchema
@@ -12,11 +13,13 @@ export namespace LayerOptionsEntity {
     'additionalProperties': false,
     'properties': {
       'allowedImports': {
-        'additionalProperties': {
-          'items': { 'type': 'string' },
-          'type': 'array'
-        },
         'description': 'Override of the default allow-matrix: source layer name -> list of layers it may import from.',
+        'patternProperties': {
+          '.*': {
+            'items': { 'type': 'string' },
+            'type': 'array'
+          }
+        },
         'type': 'object'
       },
       'bindings': {
@@ -44,19 +47,17 @@ export namespace LayerOptionsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  // `validate` is called at runtime not only on options shaped exactly like `Type`, but also on
-  // wider option objects declared by rules that extend this base shape with their own additional
-  // properties (e.g. `AdapterOnlyImportOptionsEntity`, `DomainPurityOptionsEntity`) — those rules
-  // spread `LayerOptionsEntity.Schema` into their OWN stricter `additionalProperties: false`
-  // schema for their public ESLint options declaration, then narrow further with
-  // `LayerOptionsEntity.validate` purely to confirm the shared base shape is present. Compiling
-  // `Schema` (with its `additionalProperties: false`) directly here would reject every one of
-  // those legitimate supersets, so `validate` is compiled from a lenient variant that only checks
-  // the base shape's own properties/required fields and tolerates unrelated extras.
+  // `validate` remains a predicate for callers checking the shared base shape inside a wider
+  // derived option object. It therefore accepts those legitimate supersets. `intake` is the
+  // closed base parser and strips properties that this schema does not declare; derived rules
+  // must compile their own intake from a schema that spreads these properties before adding its
+  // stricter `additionalProperties: false`, so their rule-specific fields survive parsing.
   const LenientSchema = {
     ...Schema,
     'additionalProperties': true
   } as const satisfies JSONSchema;
 
   export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(LenientSchema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

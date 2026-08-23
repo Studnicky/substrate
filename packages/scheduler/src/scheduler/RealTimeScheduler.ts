@@ -28,10 +28,7 @@ interface RealTimeSchedulerSubclassInterface<TInstance> extends Function {
 }
 
 class RealTimeSchedulerInstance {
-  static belongsTo<TInstance>(
-    constructor: RealTimeSchedulerSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+  static belongsTo<TInstance extends object>(constructor: RealTimeSchedulerSubclassInterface<TInstance>, value: object): value is TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -67,11 +64,8 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
   static create<TInstance extends RealTimeScheduler = RealTimeScheduler>(
     this: RealTimeSchedulerSubclassInterface<TInstance>
   ): TInstance {
-    const getCurrentConstructor = (): RealTimeSchedulerSubclassInterface<TInstance> => { return this; };
-    const currentConstructor = getCurrentConstructor();
-
-    const result: unknown = Reflect.construct(currentConstructor, []);
-    if (!RealTimeSchedulerInstance.belongsTo(currentConstructor, result)) {
+    const result: unknown = Reflect.construct(this, []);
+    if (typeof result !== 'object' || result === null || !RealTimeSchedulerInstance.belongsTo(this, result)) {
       throw new TypeError('RealTimeScheduler.create() did not construct the requested subclass.');
     }
     return result;
@@ -128,7 +122,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
    * The error is still silently swallowed by the scheduler — this hook is the only
    * observability seam for task-level failures.
    */
-  protected onFireError(_id: string, _error: unknown): void { return; }
+  protected onFireError(_id: string, _error: Error): void { return; }
 
   /**
    * Called when a one-shot task fires later than its scheduled `atMs`.
@@ -242,18 +236,20 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
 
         try {
           result = fire();
-        } catch (error: unknown) {
+        } catch (error) {
+          const taskError = error instanceof Error ? error : new Error(String(error));
           this.hooks.invoke('onFireError', () => {
-            const result = this.onFireError(id, error);
+            const result = this.onFireError(id, taskError);
             return result;
           });
           return;
         }
 
         if (result instanceof Promise) {
-          result.catch((error: unknown) => {
+          result.catch((error) => {
+            const taskError = error instanceof Error ? error : new Error(String(error));
             this.hooks.invoke('onFireError', () => {
-              const result = this.onFireError(id, error);
+              const result = this.onFireError(id, taskError);
               return result;
             });
           });
@@ -310,18 +306,20 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
 
       try {
         result = fire();
-      } catch (error: unknown) {
+      } catch (error) {
+        const taskError = error instanceof Error ? error : new Error(String(error));
         this.hooks.invoke('onFireError', () => {
-          const result = this.onFireError(id, error);
+          const result = this.onFireError(id, taskError);
           return result;
         });
         return;
       }
 
       if (result instanceof Promise) {
-        result.catch((error: unknown) => {
+        result.catch((error) => {
+          const taskError = error instanceof Error ? error : new Error(String(error));
           this.hooks.invoke('onFireError', () => {
-            const result = this.onFireError(id, error);
+            const result = this.onFireError(id, taskError);
             return result;
           });
         });

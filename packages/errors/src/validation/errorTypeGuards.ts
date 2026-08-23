@@ -33,6 +33,7 @@ import type { ErrorWithRetryAfterEntity } from '../entities/ErrorWithRetryAfterE
 import type { ErrorWithStatusCodeEntity } from '../entities/ErrorWithStatusCodeEntity.js';
 import type { ErrorWithStatusEntity } from '../entities/ErrorWithStatusEntity.js';
 import type { ErrorWithSyscallEntity } from '../entities/ErrorWithSyscallEntity.js';
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 
 /**
  * Check if value is an error or error-like object
@@ -42,7 +43,7 @@ class ErrorLikeGuard {
    * Check if value is an error or error-like object using Node.js 24's Error.isError()
    * Falls back to object check for error-like objects that aren't true Error instances
    */
-  public static isErrorOrObjectLike(value: unknown): value is Record<string, unknown> {
+  public static isErrorOrObjectLike(value: Parameters<EntityValidateFunctionInterface<Record<string, unknown>>>[0]): value is Record<string, unknown> {
     if (Error.isError(value)) {
       return true;
     }
@@ -66,7 +67,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithStatus(error: unknown): error is ErrorWithStatusEntity.Type {
+  public static isErrorWithStatus(error: Parameters<EntityValidateFunctionInterface<ErrorWithStatusEntity.Type>>[0]): error is ErrorWithStatusEntity.Type {
     const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'status' in error
@@ -85,7 +86,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithStatusCode(error: unknown): error is ErrorWithStatusCodeEntity.Type {
+  public static isErrorWithStatusCode(error: Parameters<EntityValidateFunctionInterface<ErrorWithStatusCodeEntity.Type>>[0]): error is ErrorWithStatusCodeEntity.Type {
     const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'statusCode' in error
@@ -106,7 +107,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithCode(error: unknown): error is ErrorWithCodeEntity.Type {
+  public static isErrorWithCode(error: Parameters<EntityValidateFunctionInterface<ErrorWithCodeEntity.Type>>[0]): error is ErrorWithCodeEntity.Type {
     const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'code' in error
@@ -125,7 +126,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithRetryAfter(error: unknown): error is ErrorWithRetryAfterEntity.Type {
+  public static isErrorWithRetryAfter(error: Parameters<EntityValidateFunctionInterface<ErrorWithRetryAfterEntity.Type>>[0]): error is ErrorWithRetryAfterEntity.Type {
     const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'retryAfter' in error
@@ -144,7 +145,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithErrno(error: unknown): error is ErrorWithErrnoEntity.Type {
+  public static isErrorWithErrno(error: Parameters<EntityValidateFunctionInterface<ErrorWithErrnoEntity.Type>>[0]): error is ErrorWithErrnoEntity.Type {
     const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'errno' in error
@@ -163,7 +164,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithSyscall(error: unknown): error is ErrorWithSyscallEntity.Type {
+  public static isErrorWithSyscall(error: Parameters<EntityValidateFunctionInterface<ErrorWithSyscallEntity.Type>>[0]): error is ErrorWithSyscallEntity.Type {
     const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'syscall' in error
@@ -182,7 +183,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithHostname(error: unknown): error is ErrorWithHostnameEntity.Type {
+  public static isErrorWithHostname(error: Parameters<EntityValidateFunctionInterface<ErrorWithHostnameEntity.Type>>[0]): error is ErrorWithHostnameEntity.Type {
     const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'hostname' in error
@@ -201,7 +202,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithPort(error: unknown): error is ErrorWithPortEntity.Type {
+  public static isErrorWithPort(error: Parameters<EntityValidateFunctionInterface<ErrorWithPortEntity.Type>>[0]): error is ErrorWithPortEntity.Type {
     const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'port' in error
@@ -220,7 +221,7 @@ class ErrorPropertyGuards {
    * }
    * ```
    */
-  public static isErrorWithAddress(error: unknown): error is ErrorWithAddressEntity.Type {
+  public static isErrorWithAddress(error: Parameters<EntityValidateFunctionInterface<ErrorWithAddressEntity.Type>>[0]): error is ErrorWithAddressEntity.Type {
     const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'address' in error

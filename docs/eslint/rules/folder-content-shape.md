@@ -1,6 +1,6 @@
 ---
 title: '@studnicky/folder-content-shape'
-description: 'Constrains entity files, declaration folders, top-level data constants, and inline regex literals.'
+description: 'Constrains entity boundaries, declaration folders, top-level data constants, and inline regex literals.'
 ---
 
 # @studnicky/folder-content-shape
@@ -15,21 +15,42 @@ An entity file is a non-barrel file under an `entities/` path segment or with a 
 
 - `Schema`: a value-first `const`, either authored with `as const` or built by a schema-builder call;
 - `Type`: a type alias derived from `typeof Schema`; and
-- `validate`: either `SchemaValidator.compile<Type>(Schema)` or a function type guard.
+- `validate`: either `SchemaValidator.compile<Type>(Schema)` or a function type guard;
+- `intake`: `SchemaValidator.compileIntake<Type>(Schema)`, the boundary that returns a newly proven entity value; and
+- `create`: `SchemaValidator.compileCreate<Type>(Schema)` when the `Schema` declarator is an object literal whose top-level `type` property is `'object'`.
+
+`validate` narrows in place, while `intake` returns a new value whose type proves it crossed the unparsed-input boundary. `create` has a different provenance contract: it accepts locally produced partial object data without intake's coercion, default-filling, or unknown-property stripping. Scalars do not require `create`; `Partial<'healthy' | 'degraded'>` has no useful meaning.
+
+The object-only decision reads the `Schema` declarator's own top-level `type` property. A nested property schema does not count. When a builder call, spread, or composition does not expose a literal root type, the rule does not require `create`, avoiding a false positive.
 
 The rule reports a missing namespace and every namespace export that does not match the entity filename. It checks every exported namespace rather than silently choosing one.
 
 <!-- inline-ts-ok: conceptual rule example -->
 ```ts
 // src/entities/UserEntity.ts
+import { SchemaValidator } from '@studnicky/json';
 import type { FromSchema } from 'json-schema-to-ts';
 
 export namespace UserEntity {
   export const Schema = { type: 'object' } as const;
   export type Type = FromSchema<typeof Schema>;
-  export function validate(candidate: unknown): candidate is Type {
-    return typeof candidate === 'object' && candidate !== null;
-  }
+  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const intake = SchemaValidator.compileIntake<Type>(Schema);
+  export const create = SchemaValidator.compileCreate<Type>(Schema);
+}
+```
+
+<!-- inline-ts-ok: scalar entity example -->
+```ts
+// src/entities/HealthStatusEntity.ts
+import { SchemaValidator } from '@studnicky/json';
+import type { FromSchema } from 'json-schema-to-ts';
+
+export namespace HealthStatusEntity {
+  export const Schema = { enum: ['healthy', 'degraded'], type: 'string' } as const;
+  export type Type = FromSchema<typeof Schema>;
+  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const intake = SchemaValidator.compileIntake<Type>(Schema);
 }
 ```
 
@@ -105,7 +126,15 @@ export function matches(value: string, pattern: string): boolean {
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 // filename: /project/src/FooEntity.ts
-export const FooEntity = {};
+import { SchemaValidator } from '@studnicky/json';
+import type { FromSchema } from 'json-schema-to-ts';
+
+export namespace FooEntity {
+  export const Schema = { type: 'object' } as const;
+  export type Type = FromSchema<typeof Schema>;
+  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const create = SchemaValidator.compileCreate<Type>(Schema);
+}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
@@ -140,9 +169,9 @@ import type { FromSchema } from 'json-schema-to-ts';
 export namespace FooEntity {
   export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;
   export type Type = FromSchema<typeof Schema>;
-  export function validate(candidate: unknown): candidate is Type {
-    return typeof (candidate as Record<string, unknown>).id === 'string';
-  }
+  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const intake = SchemaValidator.compileIntake<Type>(Schema);
+  export const create = SchemaValidator.compileCreate<Type>(Schema);
 }
 ```
 

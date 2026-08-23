@@ -134,35 +134,35 @@ function readQueuedPerKey(input: MutexScenarioInput): Record<string, number> {
   return value;
 }
 
-function readNumber(value: unknown, label: string): number {
+function readNumber<TValue>(value: TValue, label: string): number {
   if (typeof value !== 'number') {
     throw new Error(`${label} must be a number`);
   }
   return value;
 }
 
-function readString(value: unknown, label: string): string {
+function readString<TValue>(value: TValue, label: string): string {
   if (typeof value !== 'string') {
     throw new Error(`${label} must be a string`);
   }
   return value;
 }
 
-function readBoolean(value: unknown, label: string): boolean {
+function readBoolean<TValue>(value: TValue, label: string): boolean {
   if (typeof value !== 'boolean') {
     throw new Error(`${label} must be a boolean`);
   }
   return value;
 }
 
-function readStringArray(value: unknown, label: string): string[] {
+function readStringArray<TValue>(value: TValue, label: string): string[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
     throw new Error(`${label} must be a string array`);
   }
   return value;
 }
 
-function readNumberArray(value: unknown, label: string): number[] {
+function readNumberArray<TValue>(value: TValue, label: string): number[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'number')) {
     throw new Error(`${label} must be a number array`);
   }

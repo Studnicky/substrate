@@ -64,8 +64,7 @@ type ScenarioCase =
 
 import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
 
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
+function assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
@@ -159,7 +158,8 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
         }
       }
       const throttle = new GuardBlockingThrottle(caseData.input.throttle);
-      assert.throws(() => { throttle.forceTransition(caseData.input.illegalTo); }, (error: unknown) => {
+      assert.throws(() => { throttle.forceTransition(caseData.input.illegalTo); }, (error) => {
+        if (!(error instanceof Error)) { return false; }
         assertErrorMessageIncludes(error, caseData.expected.errorMessage);
         return true;
       });

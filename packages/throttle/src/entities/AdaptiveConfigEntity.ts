@@ -1,7 +1,7 @@
 import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { ConfigurationError } from '@studnicky/config';
 import { SchemaValidator } from '@studnicky/json';
 
 export namespace AdaptiveConfigEntity {
@@ -10,7 +10,7 @@ export namespace AdaptiveConfigEntity {
     'properties': {
       'adjustmentInterval': {
         'description': 'Minimum milliseconds between adjustments.',
-        'minimum': 1,
+        'minimum': 100,
         'type': 'integer'
       },
       'enabled': {
@@ -29,7 +29,7 @@ export namespace AdaptiveConfigEntity {
       },
       'sampleWindow': {
         'description': 'Number of samples in sliding window.',
-        'minimum': 1,
+        'minimum': 10,
         'type': 'integer'
       },
       'scaleDownThreshold': {
@@ -59,14 +59,7 @@ export namespace AdaptiveConfigEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  const compiledValidate = SchemaValidator.compile<Type>(Schema);
-
-  export const validate = (candidate: unknown): candidate is Type => {
-    if (!compiledValidate(candidate)) {
-      throw ConfigurationError.create(SchemaValidator.formatErrors(compiledValidate.errors));
-    }
-    return true;
-  };
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
   export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
   export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

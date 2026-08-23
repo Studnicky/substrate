@@ -6,9 +6,9 @@ import { ImportSourceValue } from '../shared/importSourceValue.js';
 
 export const layerImportBoundary: Rule.RuleModule = {
   'create': (context) => {
-    const options: unknown = context.options.at(0);
-
-    if (!LayerOptionsEntity.validate(options)) { return {}; }
+    const rawOptions: unknown = context.options.at(0);
+    if (rawOptions === undefined) { return {}; }
+    const options = LayerOptionsEntity.intake(rawOptions);
 
     const filename = context.physicalFilename;
     const sourceLayer = LayerResolver.layerForPath(filename, options);

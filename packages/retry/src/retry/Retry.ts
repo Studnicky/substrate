@@ -1,10 +1,12 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
+import { ConfigurationError } from '@studnicky/config';
 import {
   DefaultHttpErrorClassifier,
   HookInvoker
 } from '@studnicky/errors';
 import { TransitionRejectedError } from '@studnicky/fsm';
+import { SchemaIntakeError } from '@studnicky/json';
 
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
@@ -16,11 +18,11 @@ import {
   INITIAL_COUNTER,
   NO_DELAY_MS
 } from '../constants/index.js';
+import { RetryConfigEntity } from '../entities/RetryConfigEntity.js';
 import {
   MaximumRetriesExceededError,
   NonRetryableError
 } from '../errors/index.js';
-import { validateRetryConfig } from './config/validateRetryConfig.js';
 import { Delay } from './Delay.js';
 import { RetryCallMachine } from './RetryCallMachine.js';
 
@@ -35,7 +37,7 @@ interface RetryCallFsmInterface {
  * consumed without replacing the canonical `execute()` result.
  */
 class RetryHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {
+  protected override onHookError(_hookName: string): void {
     // Retry lifecycle hooks are advisory and never replace execute()'s result.
   }
 }
@@ -120,7 +122,7 @@ export class Retry implements RetryInterface {
   };
 
   private static isConstructed<TInstance extends Retry>(
-    value: unknown,
+    value: object,
     constructor: typeof Retry & { readonly 'prototype': TInstance }
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -137,10 +139,11 @@ export class Retry implements RetryInterface {
     this: typeof Retry & { readonly 'prototype': TInstance },
     config?: RetryConfigInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
-    if (!Retry.isConstructed(result, this)) {
+    const constructed: unknown = Reflect.construct(this, [config]);
+    if (constructed === null || typeof constructed !== 'object' || !Retry.isConstructed(constructed, this)) {
       throw new TypeError('Retry.create() must construct a Retry instance');
     }
+    const result = constructed;
     return result;
   }
   private readonly classifierCallback: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
@@ -161,7 +164,7 @@ export class Retry implements RetryInterface {
   };
 
   protected constructor(config: RetryConfigInterface = {}) {
-    const validated = validateRetryConfig.validate(config);
+    const validated = Retry.validateConfig(config);
 
     this.hooks = new RetryHookInvoker(
       validated.hookTimeoutMs === undefined ? undefined : { 'timeoutMs': validated.hookTimeoutMs }
@@ -183,6 +186,24 @@ export class Retry implements RetryInterface {
       classifierCallback = (error, attemptNumber) => { const result = classifier.classify(error, attemptNumber); return result; };
     }
     this.classifierCallback = classifierCallback;
+  }
+
+  /** Converts entity intake failures into Retry's established public config error. */
+  private static validateConfig(config: RetryConfigInterface): RetryConfigInterface {
+    try {
+      const parsed = RetryConfigEntity.intake(config);
+      const result: RetryConfigInterface = {
+        ...parsed,
+        ...(config.backoffStrategy === undefined ? {} : { 'backoffStrategy': config.backoffStrategy }),
+        ...(config.errorClassifier === undefined ? {} : { 'errorClassifier': config.errorClassifier })
+      };
+      return result;
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw ConfigurationError.create(error.message);
+      }
+      throw error;
+    }
   }
 
   /**

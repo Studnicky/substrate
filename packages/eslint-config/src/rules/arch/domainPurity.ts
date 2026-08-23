@@ -1,9 +1,12 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type {
   Rule, Scope
 } from 'eslint';
 import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
@@ -16,15 +19,18 @@ namespace DomainPurityOptionsEntity {
     'properties': {
       ...LayerOptionsEntity.Schema.properties,
       'domainLayerName': {
+        'default': 'domain',
         'description': 'Name of the layer treated as the pure-data domain layer, e.g. "domain" or "entities". Defaults to "domain".',
         'type': 'string'
       },
       'forbiddenCalls': {
+        'default': [],
         'description': 'Dotted call expressions forbidden in domain-layer files, e.g. ["Date.now", "Math.random"].',
         'items': { 'type': 'string' },
         'type': 'array'
       },
       'forbiddenImports': {
+        'default': [],
         'description': 'Bare import specifiers or roots forbidden in domain-layer files, e.g. ["fs", "axios", "node:fs"].',
         'items': { 'type': 'string' },
         'type': 'array'
@@ -35,6 +41,9 @@ namespace DomainPurityOptionsEntity {
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
+
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }
 
 class CalleeDottedName {
@@ -221,38 +230,18 @@ class CalleeDottedName {
 
 export const domainPurity: Rule.RuleModule = {
   'create': (context) => {
-    const options: unknown = context.options.at(0);
-
-    if (!LayerOptionsEntity.validate(options)) {
-      return {};
-    }
+    const rawOptions: unknown = context.options.at(0);
+    if (rawOptions === undefined) { return {}; }
+    const options = DomainPurityOptionsEntity.intake(rawOptions);
 
     const filename = context.physicalFilename;
-    const domainLayerNameValue: unknown = Reflect.get(options, 'domainLayerName');
-    const domainLayerName = typeof domainLayerNameValue === 'string' ? domainLayerNameValue : 'domain';
-    const domainLayerFile = LayerResolver.layerForPath(filename, options) === domainLayerName;
+    const domainLayerFile = LayerResolver.layerForPath(filename, options) === options.domainLayerName;
 
     if (!domainLayerFile) {
       return {};
     }
 
-    const forbiddenImportsValue: unknown = Reflect.get(options, 'forbiddenImports');
-    const forbiddenCallsValue: unknown = Reflect.get(options, 'forbiddenCalls');
-    const forbiddenImports = Array.isArray(forbiddenImportsValue)
-      ? forbiddenImportsValue.filter((value): value is string => {
-        const result = typeof value === 'string';
-
-        return result;
-      })
-      : [];
-    const forbiddenCalls = Array.isArray(forbiddenCallsValue)
-      ? forbiddenCallsValue.filter((value): value is string => {
-        const result = typeof value === 'string';
-
-        return result;
-      })
-      : [];
-    const forbiddenCallsSet = new Set(forbiddenCalls);
+    const forbiddenCallsSet = new Set(options.forbiddenCalls);
 
     const checkForbiddenImport = (node: Rule.Node): void => {
       const specifier = ImportSourceValue.get(node);
@@ -261,7 +250,7 @@ export const domainPurity: Rule.RuleModule = {
         return;
       }
 
-      const isForbiddenImport = forbiddenImports.some((entry) => {
+      const isForbiddenImport = options.forbiddenImports.some((entry) => {
         const result = specifier === entry || specifier.startsWith(`${entry}/`);
 
         return result;

@@ -37,8 +37,8 @@ class ObservedScheduler extends VirtualScheduler {
     this.events.push(line);
   }
 
-  protected override onFireError(id: string, error: unknown): void {
-    const message = error instanceof Error ? error.message : String(error);
+  protected override onFireError(id: string, error: Error): void {
+    const message = error.message;
     const line = `[scheduler] fireError id=${id} error="${message}"`;
     console.log(line);
     this.events.push(line);

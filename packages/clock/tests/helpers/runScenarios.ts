@@ -46,7 +46,7 @@ export class ScenarioRunner {
             exec(scenario.input);
             assert.fail(`expected throw with code ${expectedCode}`);
           } catch (thrownError) {
-            if (CodeGuard.has(thrownError)) {
+            if (thrownError instanceof Error && CodeGuard.has(thrownError)) {
               assert.equal(thrownError.code, expectedCode);
             } else {
               assert.fail(`expected thrown value to have a code property, got: ${typeof thrownError}`);

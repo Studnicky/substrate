@@ -8,6 +8,6 @@ export type { FetchClientInterface } from './FetchClientInterface.js';
 export type { FetchOptionsInterface } from './FetchOptionsInterface.js';
 export type { QueryParametersInterface } from './QueryParametersInterface.js';
 export type { RequestContextInterface } from './RequestContextInterface.js';
+export type { RequestIdGeneratorInterface } from './RequestIdGeneratorInterface.js';
 export type { ResponseContextInterface } from './ResponseContextInterface.js';
 export type { UndiciDispatcherInterface } from './UndiciDispatcherInterface.js';
-export type { ValidatorCallbackInterface } from './ValidatorCallbackInterface.js';

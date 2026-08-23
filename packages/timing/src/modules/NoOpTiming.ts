@@ -2,15 +2,16 @@ import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
 
-interface NoOpTimingSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
 class NoOpTimingInstance {
-  static belongsTo<TInstance>(
-    constructor: NoOpTimingSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+  static construct(constructor: Function): object {
+    const result: unknown = Reflect.construct(constructor, []);
+    if (typeof result !== 'object' || result === null) {
+      throw new TypeError('NoOpTiming.create() did not construct an object.');
+    }
+    return result;
+  }
+
+  static belongsTo<TInstance extends object>(constructor: Function, value: object): value is TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -53,10 +54,10 @@ export class NoOpTiming implements TimingInterface {
    * ```
    */
   static create<TInstance extends NoOpTiming = NoOpTiming>(
-    this: NoOpTimingSubclassInterface<TInstance>
+    this: Function & { readonly 'prototype': TInstance; }
   ): TInstance {
-    const result: unknown = Reflect.construct(this, []);
-    if (!NoOpTimingInstance.belongsTo(this, result)) {
+    const result = NoOpTimingInstance.construct(this);
+    if (!NoOpTimingInstance.belongsTo<TInstance>(this, result)) {
       throw new TypeError('NoOpTiming.create() did not construct the requested subclass.');
     }
     return result;

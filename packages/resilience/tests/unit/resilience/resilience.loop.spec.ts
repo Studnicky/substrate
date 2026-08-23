@@ -37,7 +37,7 @@ class ObservedBreaker extends CircuitBreaker {
   readonly events: string[] = [];
   constructor(options: CircuitBreakerOptionsInterface) { super(options); }
   protected override onSuccess(): void { this.events.push('success'); }
-  protected override onFailure(_error: unknown): void { this.events.push('failure'); }
+  protected override onFailure(_error: Error): void { this.events.push('failure'); }
   protected override onTrip(): void { this.events.push('trip'); }
   protected override onOpen(): void { this.events.push('open'); }
   protected override onHalfOpen(): void { this.events.push('halfOpen'); }
@@ -67,7 +67,7 @@ function resilienceErrorTypeInput(value: string): (typeof resilienceErrorTypes)[
 }
 
 class ClassifyingBreaker extends CircuitBreaker {
-  protected override classifyError(error: unknown): ErrorClassificationEntity.Type {
+  protected override classifyError(error: Error): ErrorClassificationEntity.Type {
     return { 'retryable': error instanceof TransientError };
   }
 }
@@ -524,7 +524,7 @@ const scenarioHandlers = {
     await assert.rejects(() => cb.execute(fail));
     assert.equal(cb.state, 'open');
     if (booleanInput(expected, 'openError')) {
-      await assert.rejects(() => cb.execute(succeed), (err: unknown) => err instanceof CircuitBreakerOpenError);
+      await assert.rejects(() => cb.execute(succeed), (err) => err instanceof CircuitBreakerOpenError);
     } else {
       await cb.execute(succeed);
     }
@@ -536,7 +536,7 @@ const scenarioHandlers = {
     if (booleanInput(expected, 'openError')) {
       await assert.rejects(
         () => cb.execute(succeed),
-        (err: unknown) => err instanceof CircuitBreakerOpenError && err.message.includes(stringInput(expected, 'messageIncludes'))
+        (err) => err instanceof CircuitBreakerOpenError && err.message.includes(stringInput(expected, 'messageIncludes'))
       );
     } else {
       await cb.execute(succeed);
@@ -559,7 +559,7 @@ const scenarioHandlers = {
     await assert.rejects(() => cb.execute(fail));
     assert.equal(cb.state, 'open');
     time = clock[1] ?? time;
-    await assert.rejects(() => cb.execute(succeed), (err: unknown) => err instanceof CircuitBreakerOpenError);
+    await assert.rejects(() => cb.execute(succeed), (err) => err instanceof CircuitBreakerOpenError);
     assert.equal(cb.state, 'open');
   },
   'cb-close-on-success-threshold': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
@@ -625,7 +625,7 @@ const scenarioHandlers = {
     const cb = new ObservedBreaker(circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     cb.events.length = 0;
-    await assert.rejects(() => cb.execute(succeed), (e: unknown) => e instanceof CircuitBreakerOpenError);
+    await assert.rejects(() => cb.execute(succeed), (e) => e instanceof CircuitBreakerOpenError);
     assert.ok(cb.events.includes('reject'));
   },
   'cb-observed-halfopen': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
@@ -697,7 +697,7 @@ const scenarioHandlers = {
     const classifier = (): ErrorClassificationEntity.Type => ({ 'retryable': true });
     const cb = CircuitBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
     const thrownType = resilienceErrorTypeInput(stringInput(expected, 'thrown'));
-    await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }), (err: unknown) => err instanceof thrownType);
+    await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }), (err) => err instanceof thrownType);
     assert.equal(cb.state, 'closed');
   },
   'cb-subclass-classifier': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
@@ -726,17 +726,17 @@ const scenarioHandlers = {
       resetTimeoutMs: numberInput(input, 'rejectResetTimeoutMs')
     }));
     await assert.rejects(() => rejectBreaker.execute(fail));
-    await assert.rejects(() => rejectBreaker.execute(succeed), (error: unknown) => error instanceof CircuitBreakerOpenError);
+    await assert.rejects(() => rejectBreaker.execute(succeed), (error) => error instanceof CircuitBreakerOpenError);
     const tripBreaker = ThrowingTripBreaker.create(circuitBreakerOptions(input, {
       failureThreshold: numberInput(input, 'tripFailureThreshold')
     }));
-    await assert.rejects(() => tripBreaker.execute(fail), (error: unknown) => error instanceof Error && (error as Error).message === 'failure');
+    await assert.rejects(() => tripBreaker.execute(fail), (error) => error instanceof Error && error.message === 'failure');
     assert.equal(tripBreaker.state, stringInput(expected, 'openState'));
   },
   'cb-async-hook-isolation': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (): void => { rejectionEvents.push(undefined); };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
       const firstCause = new Error(stringInput(input, 'first'));
@@ -1000,7 +1000,7 @@ const scenarioHandlers = {
   'tb-async-hook-isolation': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (): void => { rejectionEvents.push(undefined); };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
       const firstCause = new Error(stringInput(input, 'first'));
@@ -1254,7 +1254,7 @@ const scenarioHandlers = {
   'dlq-async-hook-isolation': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (): void => { rejectionEvents.push(undefined); };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
       const firstCause = new Error(stringInput(input, 'first'));
@@ -1338,7 +1338,7 @@ const scenarioHandlers = {
   'dlqr-async-hook-isolation': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (): void => { rejectionEvents.push(undefined); };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
       const firstQueue = DeadLetterQueue.create<string>();

@@ -28,7 +28,7 @@ interface UndiciDispatcherSubclassInterface<TInstance> extends Function {
 class UndiciDispatcherInstance {
   static belongsTo<TInstance>(
     constructor: UndiciDispatcherSubclassInterface<TInstance>,
-    value: unknown
+    value: TInstance | object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -81,7 +81,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     this: UndiciDispatcherSubclassInterface<TInstance>,
     agent: Agent | TestDispatcher
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [agent]);
+    const result = Reflect.construct(this, [agent]) as object;
     if (!UndiciDispatcherInstance.belongsTo(this, result)) {
       throw new TypeError('UndiciDispatcher.create() did not construct the requested subclass.');
     }

@@ -15,8 +15,8 @@ export class Batch<TResult = unknown> {
     protected override onHookError(): void {}
   };
 
-  private static isConstructed<TInstance>(
-    value: unknown,
+  private static isConstructed<TInstance extends object>(
+    value: object,
     constructor: BatchSubclassInterface<TInstance>
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -28,7 +28,7 @@ export class Batch<TResult = unknown> {
     maximumConcurrent?: number
   ): TInstance {
     const result: unknown = Reflect.construct(this, [maximumConcurrent]);
-    if (!Batch.isConstructed<TInstance>(result, this)) {
+    if (typeof result !== 'object' || result === null || !Batch.isConstructed<TInstance>(result, this)) {
       throw new TypeError('Batch.create() must construct a Batch instance');
     }
     return result;
@@ -51,7 +51,7 @@ export class Batch<TResult = unknown> {
   protected onConcurrencySaturated(): void {}
   protected onItemStart(_index: number): void {}
   protected onItemSuccess(_index: number, _result: TResult): void {}
-  protected onItemError(_index: number, _error: unknown): void {}
+  protected onItemError(_index: number, _error: Error): void {}
   protected onItemSettled(_index: number): void {}
   protected onBatchComplete(_stats: BatchStatsEntity.Type): void {}
 
@@ -138,8 +138,9 @@ export class Batch<TResult = unknown> {
       return result;
     } catch (error) {
       counters.set('failed', (counters.get('failed') ?? 0) + 1);
+      const itemError = error instanceof Error ? error : new Error(String(error));
       await this.hooks.invokeAsync('onItemError', () => {
-        const hookResult = this.onItemError(globalIndex, error);
+        const hookResult = this.onItemError(globalIndex, itemError);
         return hookResult;
       });
       await this.hooks.invokeAsync('onItemSettled', () => {

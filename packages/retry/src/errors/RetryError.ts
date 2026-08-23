@@ -7,7 +7,7 @@ import { EMPTY_LENGTH } from '../constants/index.js';
 /** Creates detached diagnostic graphs without retaining caller-owned values. */
 class RetryDiagnosticSnapshot {
   static error(error: Error, seen = new WeakMap<object, unknown>()): Error {
-    const snapshot = this.value(error, seen);
+    const snapshot = this.object(error, seen);
 
     if (!(snapshot instanceof Error)) {
       throw new TypeError('Retry diagnostic snapshot must preserve Error values.');
@@ -16,14 +16,13 @@ class RetryDiagnosticSnapshot {
     return snapshot;
   }
 
-  private static value(value: unknown, seen: WeakMap<object, unknown>): unknown {
-    if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
-      return value;
-    }
-
+  private static object(value: object, seen: WeakMap<object, unknown>): object {
     if (seen.has(value)) {
       const result = seen.get(value);
 
+      if (result === undefined || result === null || (typeof result !== 'object' && typeof result !== 'function')) {
+        throw new TypeError('Retry diagnostic snapshot must preserve object values.');
+      }
       return result;
     }
 
@@ -39,7 +38,11 @@ class RetryDiagnosticSnapshot {
         const key = propertyKeys[propertyKeyIndex]!;
         const propertyValue: unknown = Reflect.get(value, key);
 
-        Reflect.set(snapshot, key, this.value(propertyValue, seen));
+        if (propertyValue !== null && (typeof propertyValue === 'object' || typeof propertyValue === 'function')) {
+          Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
+        } else {
+          Reflect.set(snapshot, key, propertyValue);
+        }
       }
 
       return snapshot;
@@ -54,7 +57,11 @@ class RetryDiagnosticSnapshot {
       for (let index = 0; index < length; index += 1) {
         const entry: unknown = value[index];
 
-        snapshot.push(this.value(entry, seen));
+        if (entry !== null && (typeof entry === 'object' || typeof entry === 'function')) {
+          snapshot.push(RetryDiagnosticSnapshot.object(entry, seen));
+        } else {
+          snapshot.push(entry);
+        }
       }
 
       return snapshot;
@@ -71,7 +78,11 @@ class RetryDiagnosticSnapshot {
         const key = propertyKeys[propertyKeyIndex]!;
         const propertyValue: unknown = Reflect.get(value, key);
 
-        Reflect.set(snapshot, key, this.value(propertyValue, seen));
+        if (propertyValue !== null && (typeof propertyValue === 'object' || typeof propertyValue === 'function')) {
+          Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
+        } else {
+          Reflect.set(snapshot, key, propertyValue);
+        }
       }
 
       return snapshot;
@@ -94,7 +105,11 @@ class RetryDiagnosticSnapshot {
         const key = propertyKeys[propertyKeyIndex]!;
         const propertyValue: unknown = Reflect.get(value, key);
 
-        Reflect.set(snapshot, key, this.value(propertyValue, seen));
+        if (propertyValue !== null && (typeof propertyValue === 'object' || typeof propertyValue === 'function')) {
+          Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
+        } else {
+          Reflect.set(snapshot, key, propertyValue);
+        }
       }
 
       return snapshot;

@@ -10,7 +10,7 @@ import type { CacheLookupEntity } from './entities/CacheLookupEntity.js';
 import type { MemoizeOptionsInterface } from './interfaces/MemoizeOptionsInterface.js';
 
 class MemoizeHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(_hookName: string): void {}
 }
 
 interface CacheLookupInterface<T> {
@@ -41,9 +41,9 @@ interface MemoizeSubclassInterface<TInstance> extends Function {
 }
 
 class MemoizeInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: MemoizeSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -171,7 +171,7 @@ export class Memoize<TArgumentList extends unknown[], TResult> {
     };
     const result: unknown = Reflect.construct(this, [deps]);
 
-    if (!MemoizeInstance.belongsTo(this, result)) {
+    if (typeof result !== 'object' || result === null || !MemoizeInstance.belongsTo(this, result)) {
       throw new TypeError('Memoize.create() did not construct the requested subclass.');
     }
 

@@ -3,7 +3,6 @@ import { describe, it } from 'node:test';
 
 import { HookInvocationError } from '@studnicky/errors';
 import { Semaphore } from '../../src/Semaphore.js';
-import { SemaphoreError } from '../../src/errors/index.js';
 import scenarioGroups from './Semaphore.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
@@ -38,11 +37,6 @@ function semaphoreOptions(input: { semaphore: { permits: number } }): { permits:
   return { 'permits': input.semaphore.permits };
 }
 
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
-  assert.equal(error.message.includes(expectedMessage), true);
-}
-
 class ObservedSemaphore extends Semaphore {
   readonly acquireEvents: number[] = [];
   readonly acquireWaitEvents: number[] = [];
@@ -60,11 +54,7 @@ class ObservedSemaphore extends Semaphore {
 const rejectInvalidPermits: ScenarioRunner = (scenarioCase) => {
     const input = scenarioCase.input as { semaphore: { permits: number } };
     const expected = scenarioCase.expected as { errorName: string };
-    assert.throws(() => Semaphore.create(semaphoreOptions(input)), (error: unknown) => {
-      assert.ok(error instanceof SemaphoreError);
-      assert.equal(error.constructor.name, expected.errorName);
-      return true;
-    });
+    assert.throws(() => Semaphore.create(semaphoreOptions(input)), { 'name': expected.errorName });
 };
 
 const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
@@ -91,18 +81,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         throw new Error(input.message);
       }
     }
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    let rejectionCount = 0;
+    const onUnhandledRejection = (): void => { rejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
       const sem = AsyncRejectingAcquireSemaphore.create(semaphoreOptions(input));
-      await assert.rejects(() => sem.acquire(), (error: unknown) => {
-        assert.ok(error instanceof HookInvocationError);
-        assert.equal(error.hookName, expected.hookName);
-        return true;
-      });
+      await assert.rejects(() => sem.acquire(), { 'hookName': expected.hookName, 'name': HookInvocationError.name });
       await new Promise((resolve) => { setImmediate(resolve); });
-      assert.equal(rejectionEvents.length, expected.unhandledRejections);
+      assert.equal(rejectionCount, expected.unhandledRejections);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
@@ -155,11 +141,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const releaseFirst = await sem.acquire();
     const second = sem.acquire();
     await sem.entered.promise;
-    const secondRejected = assert.rejects(second, (error: unknown) => {
-      assert.ok(error instanceof HookInvocationError);
-      assert.equal(error.hookName, expected.hookName);
-      return true;
-    });
+    const secondRejected = assert.rejects(second, { 'hookName': expected.hookName, 'name': HookInvocationError.name });
     let thirdAcquired = false;
     const third = sem.acquire().then((release) => { thirdAcquired = true; return release; });
     await flushMicrotasks();
@@ -193,11 +175,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const releaseFirst = await sem.acquire();
     const second = sem.acquire();
     await sem.entered.promise;
-    const secondRejected = assert.rejects(second, (error: unknown) => {
-      assert.ok(error instanceof HookInvocationError);
-      assert.equal(error.hookName, expected.hookName);
-      return true;
-    });
+    const secondRejected = assert.rejects(second, { 'hookName': expected.hookName, 'name': HookInvocationError.name });
     const third = sem.acquire();
     await releaseFirst();
     sem.finish.resolve();
@@ -342,11 +320,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       }
     }
     const sem = ThrowingAcquireSemaphore.create(semaphoreOptions(input));
-    await assert.rejects(() => sem.acquire(), (error: unknown) => {
-      assert.ok(error instanceof HookInvocationError);
-      assert.equal(error.hookName, expected.hookName);
-      return true;
-    });
+    await assert.rejects(() => sem.acquire(), { 'hookName': expected.hookName, 'name': HookInvocationError.name });
     assert.equal(sem.available, expected.availableAfter);
   },
   'throwing-onContended': async (scenarioCase) => {
@@ -360,11 +334,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const sem = ThrowingContendedSemaphore.create(semaphoreOptions(input));
     const releaseFirst = await sem.acquire();
     const pendingSecond = sem.acquire();
-    await assert.rejects(() => pendingSecond, (error: unknown) => {
-      assert.ok(error instanceof HookInvocationError);
-      assert.equal(error.hookName, expected.hookName);
-      return true;
-    });
+    await assert.rejects(() => pendingSecond, { 'hookName': expected.hookName, 'name': HookInvocationError.name });
     await releaseFirst();
     assert.equal(sem.available, expected.availableAfter);
     const releaseThird = await sem.acquire();
@@ -387,10 +357,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const input = scenarioCase.input as { message: string; semaphore: { permits: number } };
     const expected = scenarioCase.expected as { availableAfter: number };
     const sem = Semaphore.create(semaphoreOptions(input));
-    await assert.rejects(() => sem.withPermit(async () => { throw new Error(input.message); }), (error: unknown) => {
-      assertErrorMessageIncludes(error, input.message);
-      return true;
-    });
+    await assert.rejects(() => sem.withPermit(async () => { throw new Error(input.message); }), new RegExp(input.message));
     assert.equal(sem.available, expected.availableAfter);
   }
 };

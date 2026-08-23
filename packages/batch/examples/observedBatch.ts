@@ -32,8 +32,8 @@ class ObservedBatch extends Batch<string> {
     this.capturedSaturations++;
   }
 
-  protected override onItemError(index: number, error: unknown): void {
-    const message = error instanceof Error ? error.message : String(error);
+  protected override onItemError(index: number, error: Error): void {
+    const message = error.message;
     console.log(`[batch] item[${index}] error — ${message}`);
     this.capturedErrors.push({ 'index': index, 'message': message });
   }

@@ -1,4 +1,8 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { Rule } from 'eslint';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 import { DEFAULT_EXEMPT_PACKAGES } from '../constants/IntakeParseOnlyConstants.js';
 import { ObjectGuard } from '../shared/ObjectGuard.js';
@@ -84,16 +88,29 @@ class UntypedParameter {
   }
 }
 
+namespace IntakeParseOnlyOptionsEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'exemptPackages': {
+        'default': DEFAULT_EXEMPT_PACKAGES,
+        'items': { 'type': 'string' },
+        'type': 'array'
+      }
+    },
+    'type': 'object'
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
+
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+}
+
 export const intakeParseOnly: Rule.RuleModule = {
   'create': (context) => {
-    const rawOptions: unknown = context.options.at(0);
-    const exemptPackages = ObjectGuard.isObject(rawOptions) && Array.isArray(rawOptions.exemptPackages)
-      ? rawOptions.exemptPackages.filter((entry): entry is string => {
-        const result = typeof entry === 'string';
-
-        return result;
-      })
-      : DEFAULT_EXEMPT_PACKAGES;
+    const options = IntakeParseOnlyOptionsEntity.intake(context.options.at(0) ?? {});
+    const exemptPackages = options.exemptPackages;
     if (ExemptPackage.matches(context.filename, exemptPackages)) {
       return {};
     }
@@ -133,13 +150,7 @@ export const intakeParseOnly: Rule.RuleModule = {
     'messages': {
       'unparsedOutsideIntake': "An `unknown`/`any` parameter is permitted only on an entity namespace's `intake` member. Parse the input through `SomeEntity.intake(input)` and accept `SomeEntity.Type` here — a value whose type proves it crossed the boundary."
     },
-    'schema': [
-      {
-        'additionalProperties': false,
-        'properties': { 'exemptPackages': { 'items': { 'type': 'string' }, 'type': 'array' } },
-        'type': 'object'
-      }
-    ],
+    'schema': [IntakeParseOnlyOptionsEntity.Schema],
     'type': 'problem'
   }
 };

@@ -463,7 +463,7 @@ class CallArgumentForwarding {
 // that IS the constant-backoff ALGORITHM: always answer with the base delay, regardless of
 // attempt number. A single-parameter identity function has nothing to discard, so this
 // distinction is invisible there — it only shows up once a second declared parameter exists
-// and goes unused by the return. `DEFAULT_OPTIONS.allowLiterals` in `inline-trivial-logic`
+// and goes unused by the return. The `allowLiterals` schema default in `inline-trivial-logic`
 // makes the same point from a different angle for a body that reduces to a literal instead of
 // a parameter reference: a body that IS the value forwards to nothing, so "inline the logic at
 // the call site" names a rewrite that does not apply. `parameterNames.size > 1` is the check

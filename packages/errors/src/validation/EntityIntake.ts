@@ -1,5 +1,8 @@
 import { Guard } from '@studnicky/types';
 
+import type { EntityCreateFunctionInterface } from '../interfaces/EntityCreateFunctionInterface.js';
+import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
+
 import { ValidationError } from '../errors/ValidationError.js';
 
 export namespace EntityIntake {
@@ -9,14 +12,14 @@ export namespace EntityIntake {
   }
 
   export interface ParserInterface<TEntity> {
-    (candidate: Record<string, unknown>, options: ParseOptionsInterface): TEntity | undefined;
+    (candidate: Record<string, Parameters<EntityIntakeFunctionInterface<never>>[0]>, options: ParseOptionsInterface): TEntity | undefined;
   }
 }
 
 /** Shared untrusted-input boundary for schema-backed error entities. */
 export class EntityIntake {
-  public static create<TEntity>(
-    input: unknown,
+  private static create<TEntity>(
+    input: Parameters<EntityIntakeFunctionInterface<never>>[0],
     parser: EntityIntake.ParserInterface<TEntity>,
     entityName: string
   ): TEntity {
@@ -31,8 +34,8 @@ export class EntityIntake {
   public static compileCreate<TEntity>(
     parser: EntityIntake.ParserInterface<TEntity>,
     entityName: string
-  ): (partial?: Partial<TEntity>) => TEntity {
-    const create = (partial: Partial<TEntity> = {}): TEntity => {
+  ): EntityCreateFunctionInterface<TEntity> {
+    const create: EntityCreateFunctionInterface<TEntity> = (partial = {}) => {
       const result = EntityIntake.create(partial, parser, entityName);
       return result;
     };
@@ -43,8 +46,8 @@ export class EntityIntake {
     parser: EntityIntake.ParserInterface<TEntity>,
     entityName: string
   ): {
-    readonly 'create': (partial?: Partial<TEntity>) => TEntity;
-    readonly 'intake': (input: unknown) => TEntity;
+    readonly 'create': EntityCreateFunctionInterface<TEntity>;
+    readonly 'intake': EntityIntakeFunctionInterface<TEntity>;
   } {
     const create = EntityIntake.compileCreate(parser, entityName);
     const intake = EntityIntake.compileIntake(parser, entityName);
@@ -55,15 +58,15 @@ export class EntityIntake {
   public static compileIntake<TEntity>(
     parser: EntityIntake.ParserInterface<TEntity>,
     entityName: string
-  ): (input: unknown) => TEntity {
-    const intake = (input: unknown): TEntity => {
+  ): EntityIntakeFunctionInterface<TEntity> {
+    const intake: EntityIntakeFunctionInterface<TEntity> = (input) => {
       const result = EntityIntake.intake(input, parser, entityName);
       return result;
     };
     return intake;
   }
 
-  public static intake<TEntity>(input: unknown, parser: EntityIntake.ParserInterface<TEntity>, entityName: string): TEntity {
+  private static intake<TEntity>(input: Parameters<EntityIntakeFunctionInterface<never>>[0], parser: EntityIntake.ParserInterface<TEntity>, entityName: string): TEntity {
     const candidate = EntityIntake.clone(input, entityName);
     const result = EntityIntake.parse(candidate, parser, entityName, {
       'coerce': true,
@@ -72,7 +75,7 @@ export class EntityIntake {
     return result;
   }
 
-  public static hasOnlyKeys(candidate: Record<string, unknown>, keys: readonly string[]): boolean {
+  public static hasOnlyKeys(candidate: Record<string, Parameters<EntityIntakeFunctionInterface<never>>[0]>, keys: readonly string[]): boolean {
     const permittedKeys = new Set(keys);
     const result = Object.keys(candidate).every((key) => {
       const permitted = permittedKeys.has(key);
@@ -81,7 +84,7 @@ export class EntityIntake {
     return result;
   }
 
-  public static boolean(value: unknown, coerce: boolean): boolean | undefined {
+  public static boolean(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): boolean | undefined {
     if (Guard.isBoolean(value)) {
       return value;
     }
@@ -97,7 +100,7 @@ export class EntityIntake {
     return undefined;
   }
 
-  public static number(value: unknown, coerce: boolean): number | undefined {
+  public static number(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): number | undefined {
     if (Guard.isNumber(value) && Number.isFinite(value)) {
       return value;
     }
@@ -105,13 +108,14 @@ export class EntityIntake {
       return undefined;
     }
     if (value === null || Guard.isBoolean(value) || (Guard.isString(value) && value !== '')) {
-      const result = Number(value);
-      return Number.isFinite(result) ? result : undefined;
+      const number = Number(value);
+      const result = Number.isFinite(number) ? number : undefined;
+      return result;
     }
     return undefined;
   }
 
-  public static string(value: unknown, coerce: boolean): string | undefined {
+  public static string(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): string | undefined {
     if (Guard.isString(value)) {
       return value;
     }
@@ -128,11 +132,12 @@ export class EntityIntake {
     return undefined;
   }
 
-  private static clone(value: unknown, entityName: string): unknown {
-    return EntityIntake.cloneValue(value, new WeakSet<object>(), entityName);
+  private static clone(value: Parameters<EntityIntakeFunctionInterface<never>>[0], entityName: string): Parameters<EntityIntakeFunctionInterface<never>>[0] {
+    const result = EntityIntake.cloneValue(value, new WeakSet<object>(), entityName);
+    return result;
   }
 
-  private static cloneValue(value: unknown, ancestors: WeakSet<object>, entityName: string): unknown {
+  private static cloneValue(value: Parameters<EntityIntakeFunctionInterface<never>>[0], ancestors: WeakSet<object>, entityName: string): Parameters<EntityIntakeFunctionInterface<never>>[0] {
     if (value === null || typeof value !== 'object') {
       return value;
     }
@@ -143,7 +148,13 @@ export class EntityIntake {
     ancestors.add(value);
     try {
       if (Array.isArray(value)) {
-        return value.map((item) => {return EntityIntake.cloneValue(item, ancestors, entityName);});
+        const result: unknown[] = [];
+        const length = value.length;
+        for (let index = 0; index < length; index += 1) {
+          const item: unknown = value[index];
+          result.push(EntityIntake.cloneValue(item, ancestors, entityName));
+        }
+        return result;
       }
       if (value instanceof Map) {
         const cloned = new Map<unknown, unknown>();
@@ -163,11 +174,16 @@ export class EntityIntake {
         return cloned;
       }
       if (value instanceof Date) {
-        return new Date(value.getTime());
+        const result = new Date(value.getTime());
+        return result;
       }
       if (Guard.isObject(value)) {
         const cloned: Record<string, unknown> = {};
-        for (const key of Object.keys(value)) {
+        const keys = Object.keys(value);
+        const keysLength = keys.length;
+        for (let keyIndex = 0; keyIndex < keysLength; keyIndex += 1) {
+          const key = keys[keyIndex];
+          if (key === undefined) { continue; }
           Reflect.set(cloned, key, EntityIntake.cloneValue(Reflect.get(value, key), ancestors, entityName));
         }
         return cloned;
@@ -186,17 +202,19 @@ export class EntityIntake {
   }
 
   private static parse<TEntity>(
-    candidate: unknown,
+    candidate: Parameters<EntityIntakeFunctionInterface<never>>[0],
     parser: EntityIntake.ParserInterface<TEntity>,
     entityName: string,
     options: EntityIntake.ParseOptionsInterface
   ): TEntity {
     if (!Guard.isObject(candidate)) {
-      return EntityIntake.fail(entityName, 'must be an object');
+      const result = EntityIntake.fail(entityName, 'must be an object');
+      return result;
     }
     const result = parser(candidate, options);
     if (result === undefined) {
-      return EntityIntake.fail(entityName, 'does not match the declared schema');
+      const failure = EntityIntake.fail(entityName, 'does not match the declared schema');
+      return failure;
     }
     return result;
   }

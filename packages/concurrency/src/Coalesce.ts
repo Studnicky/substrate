@@ -15,8 +15,8 @@ interface CoalesceSubclassInterface<TInstance> extends Function {
 class CoalesceInstance {
   static belongsTo<TInstance>(
     constructor: CoalesceSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+    value: object
+  ): value is object & TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -41,7 +41,7 @@ export class Coalesce<T> {
     options?: CoalesceOptionsEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!CoalesceInstance.belongsTo(this, result)) {
+    if (typeof result !== 'object' || result === null || !CoalesceInstance.belongsTo(this, result)) {
       throw new TypeError('Coalesce.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
@@ -67,18 +67,17 @@ export class Coalesce<T> {
 
     const completion = Promise.withResolvers<T>();
     let success = false;
-    const started = completion.promise
-      .then(
-        (value) => { success = true; return value; },
-        (error: unknown) => { success = false; throw error; }
-      )
-      .finally(async () => {
-        this.#inFlight.delete(key);
-        const settledState = this.#keyStates.get(key) ?? this.#keyMachine.getInitialState();
-        this.#keyStates.set(key, this.#keyMachine.transition(settledState, { 'type': 'settle' }).state);
-        this.#keyStates.delete(key);
-        await this.hooks.invokeAsync('onCoalesceSettled', () => { const result = this.onCoalesceSettled(key, success); return result; });
-      });
+    void completion.promise.then(
+      () => { success = true; },
+      () => { success = false; }
+    );
+    const started = completion.promise.finally(async () => {
+      this.#inFlight.delete(key);
+      const settledState = this.#keyStates.get(key) ?? this.#keyMachine.getInitialState();
+      this.#keyStates.set(key, this.#keyMachine.transition(settledState, { 'type': 'settle' }).state);
+      this.#keyStates.delete(key);
+      await this.hooks.invokeAsync('onCoalesceSettled', () => { const result = this.onCoalesceSettled(key, success); return result; });
+    });
     this.#inFlight.set(key, started);
     const startedState = this.#keyStates.get(key) ?? this.#keyMachine.getInitialState();
     this.#keyStates.set(key, this.#keyMachine.transition(startedState, { 'type': 'start' }).state);
@@ -117,20 +116,10 @@ export class Coalesce<T> {
           reject
         );
       }, timeoutMs);
-      inFlight.then(
-        (value) => {
-          if (settled) { return; }
-          settled = true;
-          clearTimeout(timer);
-          resolve(value);
-        },
-        (error: unknown) => {
-          if (settled) { return; }
-          settled = true;
-          clearTimeout(timer);
-          reject(error instanceof Error ? error : new Error(String(error)));
-        }
-      );
+      void inFlight.then(resolve, reject).then(() => {
+        settled = true;
+        clearTimeout(timer);
+      });
     });
   }
 

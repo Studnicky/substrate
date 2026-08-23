@@ -20,10 +20,7 @@ interface ClockSubclassInterface<TInstance> extends Function {
 }
 
 class ClockInstance {
-  static belongsTo<TInstance>(
-    constructor: ClockSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+  static belongsTo<TInstance extends object>(constructor: ClockSubclassInterface<TInstance>, value: object): value is TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -39,7 +36,7 @@ export class Clock {
     provider: ClockProviderInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [provider]);
-    if (!ClockInstance.belongsTo(this, result)) {
+    if (typeof result !== 'object' || result === null || !ClockInstance.belongsTo(this, result)) {
       throw new TypeError('Clock.create() did not construct the requested subclass.');
     }
     return result;
@@ -63,15 +60,8 @@ export class Clock {
     this.#lastNow = 0;
   }
 
-  private static isValidProvider(provider: unknown): provider is ClockProviderInterface {
-    const result = (
-      typeof provider === 'object' &&
-      provider !== null &&
-      'now' in provider &&
-      typeof provider.now === 'function' &&
-      'hrtime' in provider &&
-      typeof provider.hrtime === 'function'
-    );
+  private static isValidProvider(provider: ClockProviderInterface): boolean {
+    const result = typeof provider.now === 'function' && typeof provider.hrtime === 'function';
     return result;
   }
 

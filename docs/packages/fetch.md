@@ -57,6 +57,10 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 
 ## Entities
 
+`ClientConfigDataEntity.intake` is the configuration data boundary. It accepts the JSON-shaped configuration fields (`autoGenerateRequestId`, `baseURL`, pool `dispatcher` settings, headers, hook timeout, metadata, default options, parameters, and timeout), clones and normalizes them, and rejects invalid data. `FetchClient` translates a failed intake to `ConfigurationError`.
+
+`requestIdGenerator` remains an injected `RequestIdGeneratorInterface` collaborator. Default fetch options can also carry runtime values such as request bodies, abort signals, and a per-request dispatcher; those retain their typed runtime contracts and are not represented as JSON schema data.
+
 `@studnicky/fetch/entities` exports every schema namespace in `src/entities`, including client and dispatcher configuration, request and response metadata, events, and dispatcher health data.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
@@ -66,11 +70,11 @@ import { ClientConfigDataEntity } from '@studnicky/fetch/entities';
 
 ## Interfaces
 
-`@studnicky/fetch/interfaces` exports every TypeScript contract in `src/interfaces`, including request, client, dispatcher, lifecycle-context, and validator contracts.
+`@studnicky/fetch/interfaces` exports every TypeScript contract in `src/interfaces`, including request, client, dispatcher, lifecycle-context, and request-ID-generator contracts.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
-import type { ValidatorCallbackInterface } from '@studnicky/fetch/interfaces';
+import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
 ```
 
 ## Exports
@@ -97,6 +101,7 @@ import type { ValidatorCallbackInterface } from '@studnicky/fetch/interfaces';
 | `FetchOptionsInterface` | Defines options for non-body requests. | `@studnicky/fetch` |
 | `QueryParametersInterface` | Defines URL query parameter values. | `@studnicky/fetch` |
 | `RequestContextInterface` | Defines the request lifecycle context. | `@studnicky/fetch` |
+| `RequestIdGeneratorInterface` | Defines the request-ID collaborator contract. | `@studnicky/fetch` |
 | `ResponseContextInterface` | Defines the response lifecycle context. | `@studnicky/fetch` |
 | `UndiciDispatcherInterface` | Defines the dispatcher lifecycle contract. | `@studnicky/fetch` |
 

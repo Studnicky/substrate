@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/config'
-description: Configuration validation and clamping utilities.
+description: Configuration parsing, errors, and clamping utilities.
 ---
 
 # @studnicky/config
 
-> Configuration validation and clamping utilities.
+> Configuration parsing, errors, and clamping utilities.
 
 ## Install
 
@@ -17,29 +17,29 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-Validate required fields and check types in a configuration object. All assertion methods skip `undefined`/`null` values, and throw `ConfigurationError` on failure:
+Parse external configuration through an entity's `intake` function. Intake coerces compatible values, supplies schema defaults, and removes undeclared properties:
 
 <<< ../../packages/config/examples/validate-config.ts#usage
 
 ## Public API
 
-Import `ConfigValidation`, `ClampedConfig`, and `ConfigurationError` from `@studnicky/config`; import clamping schemas from `@studnicky/config/entities`.
+Import `ClampedConfig` and `ConfigurationError` from `@studnicky/config`; import clamping schemas from `@studnicky/config/entities`.
 
 ## Try it
 
-<RunnableExample src="packages/config/examples/validate-config" title="Config validation" />
+<RunnableExample src="packages/config/examples/validate-config" title="Configuration intake" />
 
-The output shows fields passing validation and the `ConfigurationError` messages thrown for wrong types and unknown keys.
+The output shows a typed configuration with defaults applied and undeclared properties removed.
 
-## Extending
+## Configuration errors
 
-`ConfigValidation` is a static class. Subclass it and override `onValidationError` to emit a domain-specific error type instead of `ConfigurationError`:
+Build a `ConfigurationError` with an `Error` cause when an already-parsed configuration cannot be used:
 
 <<< ../../packages/config/examples/custom-error.ts#usage
 
 ## Clamping
 
-`ClampedConfig` is the soft-correction sibling to `ConfigValidation`'s hard-fail assertions: given a flat config object and a declarative table of `{min, max, reason}` per numeric field, `apply` returns a **new** object with out-of-range numeric fields clamped into range instead of throwing. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
+`ClampedConfig` applies declarative `{min, max, reason}` rules to a flat configuration object. `apply` returns a new object with out-of-range numeric fields clamped into range. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 ```ts
@@ -90,7 +90,6 @@ import { ClampRuleEntity } from '@studnicky/config/entities';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `ConfigValidation` | Provides runtime configuration assertions. | `@studnicky/config` |
 | `ClampedConfig` | Applies declarative numeric clamping rules. | `@studnicky/config` |
 | `ConfigurationError` | Represents invalid configuration values. | `@studnicky/config` |
 

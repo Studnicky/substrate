@@ -304,7 +304,7 @@ const runnerMap: RunnerMap = {
     assert.equal(callCount, scenarioCase.expected.callCount * 2);
     assert.equal(circuitBreaker.state, scenarioCase.expected.breakerStateAfterSecond);
 
-    await assert.rejects(() => kit.execute(alwaysFails), (error: unknown) => {
+    await assert.rejects(() => kit.execute(alwaysFails), (error) => {
       assert.ok(error instanceof CircuitBreakerOpenError);
       assert.equal(error.constructor.name, scenarioCase.expected.rejectionName);
       return true;

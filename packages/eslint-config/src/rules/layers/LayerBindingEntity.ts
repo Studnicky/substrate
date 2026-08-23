@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type {
   FromSchema, JSONSchema
@@ -95,4 +96,6 @@ export namespace LayerBindingEntity {
   // variant. An unrecognized property on a binding entry is a config mistake, not a
   // legitimate superset to tolerate.
   export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

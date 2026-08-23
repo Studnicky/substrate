@@ -32,6 +32,7 @@ export type {
   FetchOptionsInterface,
   QueryParametersInterface,
   RequestContextInterface,
+  RequestIdGeneratorInterface,
   ResponseContextInterface,
   UndiciDispatcherInterface
 } from './interfaces/index.js';

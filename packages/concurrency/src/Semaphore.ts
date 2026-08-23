@@ -24,8 +24,8 @@ interface SemaphoreSubclassInterface<TInstance> extends Function {
 class SemaphoreInstance {
   static belongsTo<TInstance>(
     constructor: SemaphoreSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+    value: object
+  ): value is object & TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -41,7 +41,7 @@ export class Semaphore {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!SemaphoreInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (typeof result !== 'object' || result === null || !SemaphoreInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Semaphore.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;

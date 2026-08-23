@@ -51,7 +51,7 @@ export class BoundedDispatcher<
   TTopicMap extends BoundedDispatcherTopicMapInterface = BoundedDispatcherTopicMapInterface
 > {
   static readonly #OwnedHookInvoker = class BoundedDispatcherHookInvoker extends HookInvoker {
-    protected override onHookError(_hookName: string, _cause: unknown): void {}
+    protected override onHookError(): void {}
   };
 
   /**
@@ -60,8 +60,8 @@ export class BoundedDispatcher<
    * @param config - Composition configuration
    * @returns New BoundedDispatcher instance
    */
-  private static isConstructed<TInstance>(
-    value: unknown,
+  private static isConstructed<TInstance extends object>(
+    value: object,
     constructor: BoundedDispatcherSubclassInterface<TInstance>
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -83,7 +83,7 @@ export class BoundedDispatcher<
       'scheduler': config.scheduler ?? RealTimeScheduler.create(),
       'semaphore': Semaphore.create({ 'permits': config.permits ?? 1 })
     }]);
-    if (!BoundedDispatcher.isConstructed<TInstance>(result, this)) {
+    if (typeof result !== 'object' || result === null || !BoundedDispatcher.isConstructed<TInstance>(result, this)) {
       throw new TypeError('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
     }
     return result;

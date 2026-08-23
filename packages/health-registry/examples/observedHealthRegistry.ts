@@ -18,9 +18,9 @@ class TelemetryHealthRegistry extends HealthRegistry {
     this.registeredChecks.push(name);
   }
 
-  protected override onCheckResult(name: string, status: HealthStatusEntity.Type, metadata?: unknown): void {
-    console.log(`[health] '${name}' -> ${status}${metadata !== undefined ? ` (${JSON.stringify(metadata)})` : ''}`);
-    this.checkResults.push({ 'name': name, 'status': status });
+  protected override onCheckResult(name: string, result: HealthCheckResultInterface): void {
+    console.log(`[health] '${name}' -> ${result.status}${result.metadata !== undefined ? ` (${JSON.stringify(result.metadata)})` : ''}`);
+    this.checkResults.push({ 'name': name, 'status': result.status });
   }
 
   protected override onCheckTimeout(name: string, timeoutMs: number): void {

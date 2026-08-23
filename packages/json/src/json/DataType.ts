@@ -1,20 +1,11 @@
-/**
- * DataType — type guards and deep structural equality.
- *
- * Deep structural equality across primitives, NaN, Date, RegExp, Set, Map, arrays
- * and plain objects, with cycle detection.
- *
- * Subclass `DataType` and override `protected static compare*` steps or
- * `walkForCycle` to customise equality and cycle-detection.
- */
+/** JSON-value type guards, cycle detection, and structural equality. */
+
+import type { JsonObjectEntity } from '../entities/JsonObjectEntity.js';
+import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
 
 export class DataType {
-  // ---------------------------------------------------------------------------
-  // Protected steps — override in subclasses to customise comparison
-  // ---------------------------------------------------------------------------
-
-  /** Walk the value graph for cycles. Override in subclasses to customise. */
-  protected static walkForCycle(value: unknown, seen: WeakSet<object>): boolean {
+  /** Walk the parsed JSON value graph for cycles. */
+  protected static walkForCycle(value: JsonValueEntity.Type, seen: WeakSet<object>): boolean {
     if (value === null || typeof value !== 'object') {
       return false;
     }
@@ -26,7 +17,8 @@ export class DataType {
     if (Array.isArray(value)) {
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
-        if (this.walkForCycle(value[index], seen)) {
+        const item = value.at(index);
+        if (item !== undefined && this.walkForCycle(item, seen)) {
           return true;
         }
       }
@@ -39,7 +31,8 @@ export class DataType {
       const children = Object.values(value);
       const length = children.length;
       for (let index = 0; index < length; index += 1) {
-        if (this.walkForCycle(children[index], seen)) {
+        const item = children.at(index);
+        if (item !== undefined && this.walkForCycle(item, seen)) {
           return true;
         }
       }
@@ -49,39 +42,10 @@ export class DataType {
     return false;
   }
 
-  /** Compare two Maps entry-by-entry. */
-  protected static compareMaps(left: Map<unknown, unknown>, right: Map<unknown, unknown>): boolean {
-    if (left.size !== right.size) {
-      return false;
-    }
-    for (const [key, leftValue] of left.entries()) {
-      if (!right.has(key)) {
-        return false;
-      }
-      if (!this.deepEqual(leftValue, right.get(key))) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /** Compare two Sets by membership. */
-  protected static compareSets(left: Set<unknown>, right: Set<unknown>): boolean {
-    if (left.size !== right.size) {
-      return false;
-    }
-    for (const item of left.values()) {
-      if (!right.has(item)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /** Compare two plain objects key-by-key. */
+  /** Compare two parsed JSON objects key-by-key. */
   protected static compareObjects(
-    left: Record<string, unknown>,
-    right: Record<string, unknown>
+    left: JsonObjectEntity.Type,
+    right: JsonObjectEntity.Type
   ): boolean {
     const leftKeys = Object.keys(left);
     const rightKeys = Object.keys(right);
@@ -90,16 +54,19 @@ export class DataType {
       return false;
     }
 
-    const length = leftKeys.length;
-    for (let index = 0; index < length; index += 1) {
-      const key = leftKeys[index];
-      if (key === undefined) {
+    const rightValues = new Map(Object.entries(right));
+    const leftEntries = Object.entries(left);
+    for (let index = 0; index < leftEntries.length; index += 1) {
+      const entry = leftEntries[index];
+      if (entry === undefined) {
         continue;
       }
-      if (!(key in right)) {
+      const [key, leftValue] = entry;
+      const rightValue = rightValues.get(key);
+      if (leftValue === undefined || rightValue === undefined) {
         return false;
       }
-      if (!this.deepEqual(Reflect.get(left, key), Reflect.get(right, key))) {
+      if (!this.deepEqual(leftValue, rightValue)) {
         return false;
       }
     }
@@ -107,17 +74,8 @@ export class DataType {
     return true;
   }
 
-  // ---------------------------------------------------------------------------
-  // Public static API
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Structural deep equality for any JavaScript value.
-   *
-   * Handles: primitives, NaN, Date, RegExp, Set, Map, Array, plain objects.
-   * Does NOT deeply merge class instances beyond the types listed above.
-   */
-  public static deepEqual(left: unknown, right: unknown): boolean {
+  /** Structural deep equality for parsed JSON values. */
+  public static deepEqual(left: JsonValueEntity.Type, right: JsonValueEntity.Type): boolean {
     // NaN self-equality
     if (typeof left === 'number' && typeof right === 'number') {
       if (Number.isNaN(left) && Number.isNaN(right)) {
@@ -141,42 +99,6 @@ export class DataType {
       return false;
     }
 
-    // Date
-    if (left instanceof Date && right instanceof Date) {
-      const result = left.getTime() === right.getTime();
-      return result;
-    }
-    if (left instanceof Date || right instanceof Date) {
-      return false;
-    }
-
-    // RegExp
-    if (left instanceof RegExp && right instanceof RegExp) {
-      const result = left.toString() === right.toString();
-      return result;
-    }
-    if (left instanceof RegExp || right instanceof RegExp) {
-      return false;
-    }
-
-    // Set
-    if (left instanceof Set && right instanceof Set) {
-      const result = this.compareSets(left, right);
-      return result;
-    }
-    if (left instanceof Set || right instanceof Set) {
-      return false;
-    }
-
-    // Map
-    if (left instanceof Map && right instanceof Map) {
-      const result = this.compareMaps(left, right);
-      return result;
-    }
-    if (left instanceof Map || right instanceof Map) {
-      return false;
-    }
-
     // Arrays
     if (Array.isArray(left) && Array.isArray(right)) {
       if (left.length !== right.length) {
@@ -184,7 +106,9 @@ export class DataType {
       }
       const length = left.length;
       for (let index = 0; index < length; index += 1) {
-        if (!this.deepEqual(left[index], right[index])) {
+        const leftItem = left.at(index);
+        const rightItem = right.at(index);
+        if (leftItem === undefined || rightItem === undefined || !this.deepEqual(leftItem, rightItem)) {
           return false;
         }
       }
@@ -195,7 +119,7 @@ export class DataType {
     }
 
     // Plain objects
-    if (this.isRecord(left) && this.isRecord(right)) {
+    if (this.isPlainObject(left) && this.isPlainObject(right)) {
       const result = this.compareObjects(left, right);
       return result;
     }
@@ -206,16 +130,15 @@ export class DataType {
   /**
    * Detect whether the value graph reachable from `value` contains a cycle.
    *
-   * Walks plain objects and arrays only. Primitives and other reference types
-   * (Date, Map, Set, class instances) are treated as leaves.
+   * Walks parsed JSON plain objects and arrays only.
    */
-  public static hasCycle(value: unknown): boolean {
+  public static hasCycle(value: JsonValueEntity.Type): boolean {
     const result = this.walkForCycle(value, new WeakSet());
     return result;
   }
 
-  /** Type guard for plain objects whose prototype is `Object.prototype` or `null`. */
-  public static isPlainObject(value: unknown): value is Record<string, unknown> {
+  /** Type guard for parsed JSON objects whose prototype is standard or null. */
+  public static isPlainObject(value: JsonValueEntity.Type): value is JsonObjectEntity.Type {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) {
       return false;
     }
@@ -225,8 +148,8 @@ export class DataType {
     return result;
   }
 
-  /** Type guard for non-null, non-array objects (`Record<string, unknown>`). */
-  public static isRecord(value: unknown): value is Record<string, unknown> {
+  /** Type guard for parsed non-null, non-array JSON objects. */
+  public static isRecord(value: JsonValueEntity.Type): value is JsonObjectEntity.Type {
     const result = typeof value === 'object' && value !== null && !Array.isArray(value);
     return result;
   }

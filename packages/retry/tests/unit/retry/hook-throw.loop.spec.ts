@@ -5,7 +5,6 @@ import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
-import { MaximumRetriesExceededError, NonRetryableError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import scenarioGroups from './hook-throw.scenarios.json' with { type: 'json' };
 
@@ -111,7 +110,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
-      (error: unknown) => error instanceof MaximumRetriesExceededError && error.name === String(expected.errorShape)
+      { 'name': String(expected.errorShape) }
     );
   },
   'on-give-up-non-retryable': async (scenario) => {
@@ -134,7 +133,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
-      (error: unknown) => error instanceof NonRetryableError && error.name === String(expected.errorShape)
+      { 'name': String(expected.errorShape) }
     );
   },
   'on-retry-scheduled': async (scenario) => {

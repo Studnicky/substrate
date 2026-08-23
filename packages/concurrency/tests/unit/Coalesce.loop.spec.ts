@@ -41,11 +41,6 @@ class ObservedTimeoutCoalesce<T> extends Coalesce<T> {
   }
 }
 
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
-  assert.equal(error.message.includes(expectedMessage), true);
-}
-
 const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'shared-factory': async (scenarioCase) => {
     const input = scenarioCase.input as { calls: number; delayMs: number; key: string; result: string };
@@ -94,10 +89,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
-    await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(new Error(input.message))), (error: unknown) => {
-      assertErrorMessageIncludes(error, input.message);
-      return true;
-    });
+    await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
 
@@ -105,10 +97,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
-    await assert.rejects(() => coalesce.run(input.key, () => { throw new Error(input.message); }), (error: unknown) => {
-      assertErrorMessageIncludes(error, input.message);
-      return true;
-    });
+    await assert.rejects(() => coalesce.run(input.key, () => { throw new Error(input.message); }), new RegExp(input.message));
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
 
@@ -195,10 +184,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { success: boolean };
     const c = ObservedCoalesce.create();
-    await assert.rejects(() => c.run(input.key, () => Promise.reject(new Error(input.message))), (error: unknown) => {
-      assertErrorMessageIncludes(error, input.message);
-      return true;
-    });
+    await assert.rejects(() => c.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
     assert.equal(c.settledEvents.length, 1);
     assert.deepEqual(c.settledEvents[0], { 'key': input.key, 'success': expected.success });
   },
@@ -218,11 +204,10 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const c = ObservedTimeoutCoalesce.create({ 'timeout': input.coalesce.timeout });
     const deferred = Promise.withResolvers<string>();
     const pending = c.run(input.key, () => deferred.promise);
-    await assert.rejects(pending, (err: unknown) => {
-      assert.ok(err instanceof CoalesceTimeoutError);
-      assert.equal(err.key, input.key);
-      assert.equal(err.timeoutMs, input.coalesce.timeout);
-      return true;
+    await assert.rejects(pending, {
+      'key': input.key,
+      'name': CoalesceTimeoutError.name,
+      'timeoutMs': input.coalesce.timeout
     });
     assert.deepEqual(c.timeoutEvents, expected.timeoutEvents);
     assert.equal(c.isInflight(input.key), expected.inflightAfterTimeout);
@@ -255,21 +240,17 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
         throw new Error('timeout hook boom');
       }
     }
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    let rejectionCount = 0;
+    const onUnhandledRejection = (): void => { rejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
       const c = RejectingTimeoutCoalesce.create<string>({ 'timeout': input.coalesce.timeout });
       const deferred = Promise.withResolvers<string>();
       const pending = c.run(input.key, () => deferred.promise);
-      await assert.rejects(pending, (error: unknown) => {
-        assert.ok(error instanceof HookInvocationError);
-        assert.equal(error.hookName, expected.hookName);
-        return true;
-      });
+      await assert.rejects(pending, { 'hookName': expected.hookName, 'name': HookInvocationError.name });
       assert.equal(c.isInflight(input.key), true);
       await new Promise((resolve) => { setImmediate(resolve); });
-      assert.equal(rejectionEvents.length, expected.unhandledRejections);
+      assert.equal(rejectionCount, expected.unhandledRejections);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }

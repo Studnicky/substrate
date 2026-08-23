@@ -163,7 +163,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'missing-default-value': () => {
     assert.throws(() => {
       evaluator.register(input.flag as string, input.definition as never);
-    }, (error: unknown) => error instanceof FlagDefinitionValidationError && String(error.message).includes(expected.message as string));
+    }, (error: Error) => error instanceof FlagDefinitionValidationError && String(error.message).includes(expected.message as string));
     return;
     },
 
@@ -295,7 +295,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     const asyncEvaluator = AsyncRejectingEvaluateEvaluator.create();
     asyncEvaluator.register(input.flag as string, definitionOf(input) as never);
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (reason: Error): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     return Promise.resolve()

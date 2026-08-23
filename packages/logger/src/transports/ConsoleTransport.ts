@@ -55,9 +55,9 @@ interface ConsoleTransportSubclassInterface<TInstance> extends Function {
 }
 
 class ConsoleTransportInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: ConsoleTransportSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
 
@@ -92,7 +92,7 @@ export class ConsoleTransport implements TransportInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
 
-    if (!ConsoleTransportInstance.belongsTo(this, result)) {
+    if (result === null || typeof result !== 'object' || !ConsoleTransportInstance.belongsTo(this, result)) {
       throw new TypeError('ConsoleTransport.create() did not construct the requested subclass.');
     }
 

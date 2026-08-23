@@ -15,16 +15,10 @@ interface RetryBackoffConfigInterface extends BackoffConfigEntity.Type {
  * runtime members (errorClassifier, backoffStrategy). This interface is the full
  * contract accepted by {@link Retry.create}.
  *
- * Schema validation covers only the JSON subset (maximumRetries). Runtime members are
- * validated by the Retry construction path.
+ * The configuration intake parses the JSON subset and verifies the runtime-member
+ * contracts before Retry construction uses them.
  */
 export interface RetryConfigInterface extends RetryConfigEntity.Type {
-  /**
-   * Config-based backoff. When supplied, the default `onRetryScheduled` body
-   * computes `context.delayMs = strategy(context.attemptNumber, baseDelayMs)`.
-   * Takes precedence over the default (no-op) `onRetryScheduled` body — a
-   * subclass that overrides `onRetryScheduled` bypasses this entirely.
-   */
   readonly 'backoffStrategy'?: RetryBackoffConfigInterface;
   readonly 'errorClassifier'?: ErrorClassifierFunctionInterface | ErrorClassifierInterface;
 }

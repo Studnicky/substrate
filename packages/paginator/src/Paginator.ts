@@ -65,7 +65,7 @@ export class Paginator<TPage, TCursor> {
     TCursor,
     TInstance extends Paginator<TPage, TCursor>
   >(
-    value: unknown,
+    value: object,
     constructor: Function
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -84,7 +84,7 @@ export class Paginator<TPage, TCursor> {
       super({ 'detectReentrancy': true });
     }
 
-    protected override onHookError(hookName: string, cause: unknown): void {
+    protected override onHookError(hookName: string, cause: Error): void {
       const failure = cause instanceof HookInvocationError
         ? cause
         : new HookInvocationError(hookName, cause);
@@ -178,7 +178,7 @@ export class Paginator<TPage, TCursor> {
     }
     const result: unknown = Reflect.construct(this, []);
 
-    if (!Paginator.isConstructed<TPage, TCursor, TInstance>(result, this)) {
+    if (typeof result !== 'object' || result === null || !Paginator.isConstructed<TPage, TCursor, TInstance>(result, this)) {
       throw new TypeError('Paginator.create() must construct a Paginator instance');
     }
 

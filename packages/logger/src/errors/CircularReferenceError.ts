@@ -13,14 +13,14 @@ import { LoggerError } from './LoggerError.js';
  * throw new CircularReferenceError('Circular reference detected in metadata');
  * ```
  */
-export class CircularReferenceError extends LoggerError {
+export class CircularReferenceError<TCause = unknown> extends LoggerError<TCause> {
   /**
    * Creates a new CircularReferenceError
    *
    * @param message - Descriptive error message
    * @param cause - Optional underlying error that caused this error
    */
-  constructor(message: string, cause?: unknown) {
+  constructor(message: string, cause?: TCause) {
     super(message, cause);
   }
 }

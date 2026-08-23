@@ -1,91 +1,51 @@
-/** validate-config — asserting required fields, type guards, and null-skip behaviour. Run: npx tsx packages/config/examples/validate-config.ts */
+/** validate-config — parse an external configuration blob into a typed entity. Run: npx tsx packages/config/examples/validate-config.ts */
 
-// #region usage
-import { Guard } from '@studnicky/types';
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 import assert from 'node:assert/strict';
 
-import { ConfigurationError, ConfigValidation } from '../src/index.js';
-import { ValidateConfigFixtures } from './fixtures/ValidateConfigFixtures.js';
+// #region usage
+namespace ServerConfigEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'debug': { 'default': false, 'type': 'boolean' },
+      'host': { 'minLength': 1, 'type': 'string' },
+      'maximumRetries': { 'default': 3, 'minimum': 0, 'type': 'integer' },
+      'port': { 'default': 8080, 'maximum': 65_535, 'minimum': 1, 'type': 'integer' }
+    },
+    'required': ['host'],
+    'type': 'object'
+  } as const satisfies JSONSchema;
 
-const { config } = ValidateConfigFixtures;
+  export type Type = FromSchema<typeof Schema>;
 
-// Valid config — all assertions pass silently
-ConfigValidation.assertNoUnknownKeys(config, ValidateConfigFixtures.knownKeys);
-ConfigValidation.assertString(config.host, 'host');
-ConfigValidation.assertNumber(config.port, 'port');
-ConfigValidation.assertBoolean(config.debug, 'debug');
-ConfigValidation.assertPositive(config.maximumRetries, 'maximumRetries');
-
-console.log('Config validated:', config);
-
-// Type guards
-console.log('isPositiveInteger(5):', Guard.isPositiveInteger(5));
-console.log('isPositiveInteger(0):', Guard.isPositiveInteger(0));
-console.log('isObject({}):', Guard.isObject({ 'key': 'value' }));
-console.log('isObject(null):', Guard.isObject(null));
-console.log('isNonNegativeInteger(0):', Guard.isNonNegativeInteger(0));
-console.log('isFunction(fn):', Guard.isFunction(() => {}));
-
-// Null/undefined inputs are skipped — no error thrown
-ConfigValidation.assertString(undefined, 'optionalField');
-ConfigValidation.assertNumber(null, 'optionalCount');
-ConfigValidation.assertBoolean(undefined, 'optionalFlag');
-
-// Invalid input throws ConfigurationError
-let caughtString: ConfigurationError | undefined;
-try {
-  ConfigValidation.assertString(42, 'host');
-} catch (error) {
-  if (error instanceof ConfigurationError) {
-    caughtString = error;
-  }
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }
 
-let caughtNumber: ConfigurationError | undefined;
-try {
-  ConfigValidation.assertNumber('not-a-number', 'port');
-} catch (error) {
-  if (error instanceof ConfigurationError) {
-    caughtNumber = error;
-  }
-}
+const config = ServerConfigEntity.intake({ 'host': 'localhost', 'ignored': true, 'port': '8081' });
 
-let caughtUnknownKey: ConfigurationError | undefined;
-try {
-  ConfigValidation.assertNoUnknownKeys({ 'host': 'localhost', 'unknownKey': true }, ValidateConfigFixtures.knownKeys);
-} catch (error) {
-  if (error instanceof ConfigurationError) {
-    caughtUnknownKey = error;
-  }
-}
+console.log('Parsed config:', config);
 
-console.log('assertString(42) threw:', caughtString?.message);
-console.log('assertNumber("x") threw:', caughtNumber?.message);
-console.log('assertNoUnknownKeys threw:', caughtUnknownKey?.message);
+assert.deepEqual(config, {
+  'debug': false,
+  'host': 'localhost',
+  'maximumRetries': 3,
+  'port': 8081
+});
+
+const localConfig = ServerConfigEntity.create({ 'host': 'test.local' });
+assert.deepEqual(localConfig, {
+  'debug': false,
+  'host': 'test.local',
+  'maximumRetries': 3,
+  'port': 8080
+});
 // #endregion usage
-
-assert.equal(Guard.isPositiveInteger(5), true);
-assert.equal(Guard.isPositiveInteger(0), false);
-assert.equal(Guard.isPositiveInteger(-1), false);
-assert.equal(Guard.isPositiveInteger(1.5), false);
-assert.equal(Guard.isObject({ 'key': 'value' }), true);
-assert.equal(Guard.isObject(null), false);
-assert.equal(Guard.isObject('string'), false);
-assert.equal(Guard.isObject([]), false);
-assert.equal(Guard.isNonNegativeInteger(0), true);
-assert.equal(Guard.isNonNegativeInteger(10), true);
-assert.equal(Guard.isNonNegativeInteger(-1), false);
-assert.equal(Guard.isFunction(() => {}), true);
-assert.equal(Guard.isFunction('notafn'), false);
-
-assert.ok(caughtString instanceof ConfigurationError, 'Expected ConfigurationError for string');
-assert.equal(caughtString.message, 'host must be a string');
-assert.equal(caughtString.code, 'config.invalid');
-
-assert.ok(caughtNumber instanceof ConfigurationError, 'Expected ConfigurationError for number');
-assert.equal(caughtNumber.message, 'port must be a number');
-
-assert.ok(caughtUnknownKey instanceof ConfigurationError, 'Expected ConfigurationError for unknown key');
-assert.ok(caughtUnknownKey.message.includes('unknownKey'));
 
 console.log('validate-config: all assertions passed');

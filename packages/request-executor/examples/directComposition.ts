@@ -17,7 +17,7 @@ import type { RequestDeadlineEntity } from '../src/entities/index.js';
 interface ExecuteOptionsInterface<T> {
   'deadlineMs'?: RequestDeadlineEntity.Type['deadlineMs'];
   'onExecuteComplete'?: (result: T) => void;
-  'onExecuteError'?: (error: unknown) => void;
+  'onExecuteError'?: (error: Error) => void;
   'onExecuteStart'?: () => void;
 }
 
@@ -54,9 +54,10 @@ class Directly {
           options.onExecuteComplete?.(attemptResult);
 
           return attemptResult;
-        } catch (error) {
+        } catch (cause) {
+          const error = cause instanceof Error ? cause : new Error(String(cause));
           options.onExecuteError?.(error);
-          throw error;
+          throw cause;
         }
       });
 

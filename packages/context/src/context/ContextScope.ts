@@ -196,7 +196,7 @@ export class ContextScope implements ContextScopeInterface {
    *
    * @param _error - The error thrown by the wrapped function
    */
-  protected onError(_error: unknown): void {}
+  protected onError<TError>(_error: TError): void {}
 
   /**
    * Hook called in `terminate()` after the internal store is cleared.
@@ -268,7 +268,7 @@ export class ContextScope implements ContextScopeInterface {
             return hookResult;
           });
         },
-        (error: unknown) => {
+        (error) => {
           this.hooks.invoke('onError', () => {
             const hookResult = this.onError(error);
             return hookResult;

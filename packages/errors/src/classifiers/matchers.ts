@@ -1,8 +1,7 @@
 /**
  * Composable matcher utilities for flexible property checking
  *
- * These matchers can be used with ErrorClassifier.hasProperty() to create
- * expressive, reusable property matching logic.
+ * These matchers compose checks over values whose type is already established.
  */
 
 import {
@@ -22,19 +21,6 @@ import {
 import { HttpStatus } from '../constants/index.js';
 
 /**
- * Type guard matcher factory
- */
-class TypeGuardFactory {
-  /**
-   * Type guard matcher - ensures value is of specific type
-   */
-  public static isType<T>(type: string): (value: unknown) => value is T {
-    const result: (value: unknown) => value is T = (value: unknown): value is T => {const typeMatches = typeof value === type; return typeMatches;};
-    return result;
-  }
-}
-
-/**
  * Number matchers
  */
 const NumberMatchers = Object.freeze({
@@ -51,10 +37,6 @@ const NumberMatchers = Object.freeze({
   /**
    * Check if number is in range (inclusive)
    *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'status', number.inRange(500, 599))
-   * ```
    */
   'inRange': (minimum: number, maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value >= minimum && value <= maximum; return comparisonResult;}; return result;},
 
@@ -252,62 +234,12 @@ const ArrayMatchers = Object.freeze({
 });
 
 /**
- * Object matchers
- */
-const ObjectMatchers = Object.freeze({
-  /**
-   * Check if object has all properties
-   */
-  'hasAllProperties': (...propertyNames: string[]) =>
-  {return (value: Record<string, unknown>): boolean => {
-    const propertyNamesLength = propertyNames.length;
-    for (let propertyNameIndex = 0; propertyNameIndex < propertyNamesLength; propertyNameIndex += 1) {
-      const propertyName = propertyNames[propertyNameIndex];
-      if (propertyName === undefined || !(propertyName in value)) {
-        return false;
-      }
-    }
-    return true;
-  };},
-
-  /**
-   * Check if object has any of the properties
-   */
-  'hasAnyProperty': (...propertyNames: string[]) =>
-  {return (value: Record<string, unknown>): boolean => {
-    const propertyNamesLength = propertyNames.length;
-    for (let propertyNameIndex = 0; propertyNameIndex < propertyNamesLength; propertyNameIndex += 1) {
-      const propertyName = propertyNames[propertyNameIndex];
-      if (propertyName !== undefined && propertyName in value) {
-        return true;
-      }
-    }
-    return false;
-  };},
-
-  /**
-   * Check if object has property
-   */
-  'hasProperty': (propertyName: string) =>
-  {return (value: Record<string, unknown>): boolean => {const result = propertyName in value; return result;};}
-});
-
-/**
  * Logical combinators for composing matchers
  */
 const LogicMatchers = Object.freeze({
   /**
    * Combine matchers with AND logic
    *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'status',
-   *   logic.and(
-   *     number.gte(400),
-   *     number.lessThan(500)
-   *   )
-   * )
-   * ```
    */
   'and': <T>(...predicates: ((value: T) => boolean)[]) => {
     return (value: T): boolean => {
@@ -326,10 +258,6 @@ const LogicMatchers = Object.freeze({
   /**
    * Negate a matcher
    *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'status', logic.not(number.inRange(200, 299)))
-   * ```
    */
   'not': <T>(predicate: (value: T) => boolean) => {
     return (value: T): boolean => {
@@ -341,15 +269,6 @@ const LogicMatchers = Object.freeze({
   /**
    * Combine matchers with OR logic
    *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'status',
-   *   logic.or(
-   *     number.inRange(500, 599),
-   *     number.oneOf(429)
-   *   )
-   * )
-   * ```
    */
   'or': <T>(...predicates: ((value: T) => boolean)[]) => {
     return (value: T): boolean => {
@@ -482,236 +401,6 @@ const DatabaseMatchers = Object.freeze({
 });
 
 /**
- * Instance and type checking matchers
- */
-const InstanceMatchers = Object.freeze({
-  /**
-   * Check if value is an Error instance (any Error type)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.isError)
-   * ```
-   */
-  'isError': (value: unknown): value is Error => {
-    const result = value instanceof Error;
-    return result;
-  },
-
-  /**
-   * Check constructor name (useful for cross-realm checks)
-   *
-   * Works across different execution contexts where instanceof might fail
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.named('TypeError'))
-   * ```
-   */
-  'named': (name: string) => {return (value: unknown): boolean => {
-    if (value === null || value === undefined || typeof value !== 'object') { return false; }
-
-    const result = (value as { 'constructor'?: { 'name'?: string } }).constructor?.name === name;
-    return result;
-  };},
-
-  /**
-   * Check if constructor name matches any of the provided names
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.namedAny('TypeError', 'RangeError'))
-   * ```
-   */
-  'namedAny': (...names: string[]) => {return (value: unknown): boolean => {
-    if (value === null || value === undefined || typeof value !== 'object') { return false; }
-
-    const constructorName = (value as { 'constructor'?: { 'name'?: string } }).constructor?.name ?? '';
-
-    const result = names.includes(constructorName);
-    return result;
-  };},
-
-  /**
-   * Check if value is an instance of a constructor
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.of(TypeError))
-   * hasProperty(error, 'originalError', instance.of(Error))
-   * ```
-   */
-  'of': <T>(constructor: new (...argumentList: never[]) => T) => {
-    return (value: unknown): value is T => {
-      const result = value instanceof constructor;
-      return result;
-    };
-  },
-
-  /**
-   * Check if value is an instance of any of the provided constructors
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.ofAny(TypeError, RangeError, ReferenceError))
-   * ```
-   */
-  'ofAny': <T>(...constructors: (new (...argumentList: never[]) => T)[]) => {
-    const result = (value: unknown): value is T => {
-      const matches = constructors.some((targetConstructor) => {
-        const instanceMatches = value instanceof targetConstructor;
-        return instanceMatches;
-      });
-      return matches;
-    };
-    return result;
-  }
-});
-
-/**
- * Prototype checking matchers
- */
-class ProtoMatcherFactory {
-  public static hasAllMethods(...methodNames: string[]) {
-    return (value: unknown): boolean => {
-      if (value === null || value === undefined) { return false; }
-
-      const result = methodNames.every((name) => {
-        const hasMethod = typeof Reflect.get(value, name) === 'function';
-        return hasMethod;
-      });
-      return result;
-    };
-  }
-
-  public static hasAnyMethod(...methodNames: string[]) {
-    return (value: unknown): boolean => {
-      if (value === null || value === undefined) { return false; }
-
-      const result = methodNames.some((name) => {
-        const hasMethod = typeof Reflect.get(value, name) === 'function';
-        return hasMethod;
-      });
-      return result;
-    };
-  }
-
-  public static hasMethod(methodName: string) {
-    return (value: unknown): boolean => {
-      if (value === null || value === undefined) { return false; }
-
-      const result = typeof Reflect.get(value, methodName) === 'function';
-      return result;
-    };
-  }
-
-  public static hasProperty(propertyName: string) {
-    return (value: unknown): boolean => {
-      if (value === null || value === undefined) { return false; }
-
-      const result = typeof value === 'object' && propertyName in value;
-      return result;
-    };
-  }
-
-  public static isAsyncIterable(value: unknown): boolean {
-    if (value === null || value === undefined) {
-      return false;
-    }
-
-    const result = typeof Reflect.get(value, Symbol.asyncIterator) === 'function';
-    return result;
-  }
-
-  public static isCallable(value: unknown): value is (...argumentList: unknown[]) => unknown {
-    const result = typeof value === 'function';
-    return result;
-  }
-
-  public static isIterable(value: unknown): boolean {
-    if (value === null || value === undefined) {
-      return false;
-    }
-
-    const result = typeof Reflect.get(value, Symbol.iterator) === 'function';
-    return result;
-  }
-}
-
-const ProtoMatchers = Object.freeze({
-  /**
-   * Check if value's prototype has all specified methods
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'stream', prototype.hasAllMethods('read', 'write', 'pipe'))
-   * ```
-   */
-  'hasAllMethods': ProtoMatcherFactory.hasAllMethods,
-
-  /**
-   * Check if value's prototype has any of the specified methods
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'stream', prototype.hasAnyMethod('read', 'pipe'))
-   * ```
-   */
-  'hasAnyMethod': ProtoMatcherFactory.hasAnyMethod,
-
-  /**
-   * Check if value's prototype has a specific method
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', prototype.hasMethod('toString'))
-   * hasProperty(error, 'stream', prototype.hasMethod('pipe'))
-   * ```
-   */
-  'hasMethod': ProtoMatcherFactory.hasMethod,
-
-  /**
-   * Check if value has a specific property (not just method)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'metadata', prototype.hasProperty('requestId'))
-   * ```
-   */
-  'hasProperty': ProtoMatcherFactory.hasProperty,
-
-  /**
-   * Check if value is async iterable (has Symbol.asyncIterator)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'stream', prototype.isAsyncIterable)
-   * ```
-   */
-  'isAsyncIterable': ProtoMatcherFactory.isAsyncIterable,
-
-  /**
-   * Check if value is callable (is a function)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'retry', prototype.isCallable)
-   * ```
-   */
-  'isCallable': ProtoMatcherFactory.isCallable,
-
-  /**
-   * Check if value is iterable (has Symbol.iterator)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'items', prototype.isIterable)
-   * ```
-   */
-  'isIterable': ProtoMatcherFactory.isIterable
-});
-
-/**
  * Aggregated matchers export matching filename
  */
 const matchers = Object.freeze({
@@ -719,13 +408,9 @@ const matchers = Object.freeze({
   'boolean': BooleanMatchers,
   'database': DatabaseMatchers,
   'http': HttpMatchers,
-  'instance': InstanceMatchers,
-  'isType': TypeGuardFactory.isType,
   'logic': LogicMatchers,
   'network': NetworkMatchers,
   'number': NumberMatchers,
-  'object': ObjectMatchers,
-  'proto': ProtoMatchers,
   'string': StringMatchers
 });
 

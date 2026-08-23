@@ -13,7 +13,7 @@ export namespace RealTimeClockProviderOptionsEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'offsetMs': { 'type': 'number' }
+      'offsetMs': { 'default': 0, 'type': 'number' }
     },
     'type': 'object'
   } as const satisfies JSONSchema;

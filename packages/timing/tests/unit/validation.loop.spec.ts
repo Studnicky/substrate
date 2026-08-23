@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { ConfigurationError } from '@studnicky/config';
-
 import {
   Timing
 } from '../../src/index.js';
@@ -13,7 +11,6 @@ import {
   TimingStatusEntity
 } from '../../src/entities/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
-import { TimingValidator } from '../../src/validation/TimingValidator.js';
 import scenarioGroups from './validation.scenarios.json' with { type: 'json' };
 
 type EntityValidator = (value: unknown) => boolean;
@@ -156,18 +153,16 @@ const runnerMap: RunnerMap = {
   'rejects-invalid-max-events': (scenarioCase) => {
     const errorNames: string[] = [];
     for (const value of scenarioCase.input.values) {
-      assert.throws(() => {
-        TimingValidator.validateMaximumEvents(value);
-      }, ConfigurationError);
-      errorNames.push('ConfigurationError');
+      assert.equal(TimingOptionsEntity.validate({ 'maximumEvents': value }), false);
+      errorNames.push('invalid');
     }
-    assert.deepStrictEqual(errorNames, scenarioCase.expected.errorNames);
+    assert.equal(errorNames.length, scenarioCase.expected.errorNames.length);
   },
 
   'accepts-valid-precision': (scenarioCase) => {
     for (const precision of scenarioCase.input.values) {
       assert.doesNotThrow(() => {
-        Timing.create({ precision });
+        Timing.create(TimingOptionsEntity.create({ 'precision': TimingPrecisionEntity.intake(precision) }));
       });
     }
     assert.doesNotThrow(() => {
@@ -178,54 +173,46 @@ const runnerMap: RunnerMap = {
 
   'accepts-empty-precision': (scenarioCase) => {
     assert.doesNotThrow(() => {
-      TimingValidator.validatePrecision({});
+      TimingOptionsEntity.create();
     });
     assert.equal(scenarioCase.expected.accepted, true);
   },
 
   'accepts-null-max-events': (scenarioCase) => {
     assert.doesNotThrow(() => {
-      TimingValidator.validateMaximumEvents(null);
+      TimingOptionsEntity.create({ 'maximumEvents': null });
     });
     assert.equal(scenarioCase.expected.accepted, true);
   },
 
   'accepts-undefined-max-events': (scenarioCase) => {
     assert.doesNotThrow(() => {
-      TimingValidator.validateMaximumEvents(undefined);
+      TimingOptionsEntity.create();
     });
     assert.equal(scenarioCase.expected.accepted, true);
   },
 
   'rejects-non-object-precision': (scenarioCase) => {
-    assert.throws(() => {
-      TimingValidator.validatePrecision(scenarioCase.input.value);
-    }, ConfigurationError);
+    assert.equal(TimingOptionsEntity.validate({ 'precision': scenarioCase.input.value }), false);
     assert.equal(scenarioCase.expected.errorName, 'ConfigurationError');
   },
 
   'rejects-array-precision': (scenarioCase) => {
-    assert.throws(() => {
-      TimingValidator.validatePrecision(scenarioCase.input.value);
-    }, ConfigurationError);
+    assert.equal(TimingOptionsEntity.validate({ 'precision': scenarioCase.input.value }), false);
     assert.equal(scenarioCase.expected.errorName, 'ConfigurationError');
   },
 
   'rejects-invalid-precision': (scenarioCase) => {
     const errorNames: string[] = [];
     for (const value of scenarioCase.input.values) {
-      assert.throws(() => {
-        TimingValidator.validatePrecision(value);
-      }, ConfigurationError);
-      errorNames.push('ConfigurationError');
+      assert.equal(TimingOptionsEntity.validate({ 'precision': value }), false);
+      errorNames.push('invalid');
     }
-    assert.deepStrictEqual(errorNames, scenarioCase.expected.errorNames);
+    assert.equal(errorNames.length, scenarioCase.expected.errorNames.length);
   },
 
   'rejects-invalid-time-units': (scenarioCase) => {
-    assert.throws(() => {
-      TimingValidator.validatePrecision(scenarioCase.input.value);
-    }, ConfigurationError);
+    assert.equal(TimingOptionsEntity.validate({ 'precision': scenarioCase.input.value }), false);
     assert.equal(scenarioCase.expected.errorName, 'ConfigurationError');
   },
 
@@ -238,7 +225,9 @@ const runnerMap: RunnerMap = {
   },
 
   'applies-precision': (scenarioCase) => {
-    const timer = Timing.create(scenarioCase.input.timing);
+    const timer = Timing.create(TimingOptionsEntity.create({
+      'precision': TimingPrecisionEntity.create(scenarioCase.input.timing.precision)
+    }));
     timer.event(createTimingEvent(scenarioCase.input.event));
     const events = timer.getEvents();
     assert.ok(events.get('initialize') !== undefined);
@@ -251,7 +240,10 @@ const runnerMap: RunnerMap = {
 
   'accepts-all-options': (scenarioCase) => {
     assert.doesNotThrow(() => {
-      Timing.create(scenarioCase.input.timing);
+      Timing.create(TimingOptionsEntity.create({
+        'maximumEvents': scenarioCase.input.timing.maximumEvents,
+        'precision': TimingPrecisionEntity.create(scenarioCase.input.timing.precision)
+      }));
     });
     assert.equal(scenarioCase.expected.accepted, true);
   },

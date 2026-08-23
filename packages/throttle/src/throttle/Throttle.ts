@@ -1,6 +1,7 @@
 import { CircularBuffer } from '@studnicky/circular-buffer';
-import { ConfigurationError, ConfigValidation } from '@studnicky/config';
+import { ConfigurationError } from '@studnicky/config';
 import { HookInvoker } from '@studnicky/errors';
+import { SchemaValidator } from '@studnicky/json';
 import { SampleBuffer } from '@studnicky/sample-buffer';
 
 import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
@@ -24,8 +25,6 @@ import {
   EMPTY_LENGTH,
   FIRST_ARRAY_INDEX,
   INITIAL_COUNTER,
-  MINIMUM_ADJUSTMENT_INTERVAL,
-  MINIMUM_SAMPLE_WINDOW,
   NO_DELAY_MS,
   PERCENTILE_P50,
   PERCENTILE_P95,
@@ -44,9 +43,9 @@ interface ThrottleSubclassInterface<TInstance> extends Function {
 }
 
 class ThrottleInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: ThrottleSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -191,7 +190,7 @@ export class Throttle implements ThrottleInterface {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config]);
-    if (!ThrottleInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (typeof result !== 'object' || result === null || !ThrottleInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Throttle.create() did not construct the requested subclass.');
     }
     return result;
@@ -569,7 +568,7 @@ export class Throttle implements ThrottleInterface {
       // failures through its completion promise, so the same catch handles
       // either failure mode.
       this.fireLifecycleEffectAsync({ 'queuedCount': this.queue.length, 'type': 'Queued' })
-        .catch((error: unknown) => {
+        .catch((error) => {
           const queuedCount = this.queue.length;
 
           for (let i = INITIAL_COUNTER; i < queuedCount; i++) {
@@ -706,10 +705,10 @@ export class Throttle implements ThrottleInterface {
           // rejects execute() instead of becoming an unhandled rejection.
           callback().then(
             (result) => { this.handleOperationSuccess(operation, result, operationStartTime, resolveExecute); },
-            (error) => { this.handleOperationError(operation, error, rejectExecute); }
+            (error) => { this.handleOperationError(operation, error instanceof Error ? error : new Error(String(error)), rejectExecute); }
           ).catch(rejectExecute);
         } catch (error) {
-          this.handleOperationError(operation, error, rejectExecute);
+          this.handleOperationError(operation, error instanceof Error ? error : new Error(String(error)), rejectExecute);
         }
       })
         .catch(rejectExecute);
@@ -790,7 +789,7 @@ export class Throttle implements ThrottleInterface {
    */
   private handleOperationError(
     operation: ActiveOperationInterface,
-    error: unknown,
+    error: Error,
     rejectExecute: (error: Error) => void
   ): void {
     if (operation.completed) {
@@ -1213,15 +1212,6 @@ export class Throttle implements ThrottleInterface {
       throw ConfigurationError.create('adaptive.scaleUpThreshold must be less than adaptive.scaleDownThreshold');
     }
 
-    // The schema's structural minimum for these two fields (1) is looser than
-    // their actual business minimum, so that stricter floor is enforced here.
-    if (adaptive.sampleWindow !== undefined) {
-      ConfigValidation.assertMinimum(adaptive.sampleWindow, MINIMUM_SAMPLE_WINDOW, 'adaptive.sampleWindow');
-    }
-    if (adaptive.adjustmentInterval !== undefined) {
-      ConfigValidation.assertMinimum(adaptive.adjustmentInterval, MINIMUM_ADJUSTMENT_INTERVAL, 'adaptive.adjustmentInterval');
-    }
-
     const result: ValidatedAdaptiveConfigEntity.Type = {
       'adjustmentInterval': adaptive.adjustmentInterval ?? defaults.adjustmentInterval,
       'enabled': true,
@@ -1280,10 +1270,13 @@ export class Throttle implements ThrottleInterface {
   ): ValidatedThrottleConfigEntity.Type {
     const configuration = config ?? {};
 
-    ThrottleConfigEntity.validate(configuration);
+    if (!ThrottleConfigEntity.validate(configuration)) {
+      throw ConfigurationError.create(SchemaValidator.formatErrors(ThrottleConfigEntity.validate.errors));
+    }
 
-    const adaptive = Throttle.validateAdaptiveConfig(configuration.adaptive);
-    const concurrencyLimit = configuration.concurrencyLimit ?? DEFAULT_THROTTLE_CONCURRENCY;
+    const parsedConfiguration = ThrottleConfigEntity.intake(configuration);
+    const adaptive = Throttle.validateAdaptiveConfig(parsedConfiguration.adaptive);
+    const concurrencyLimit = parsedConfiguration.concurrencyLimit ?? DEFAULT_THROTTLE_CONCURRENCY;
 
     // Cross-field business rule the static JSON Schema cannot express:
     // concurrencyLimit compared against adaptive.minimumConcurrency/maximumConcurrency.

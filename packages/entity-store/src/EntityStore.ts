@@ -2,10 +2,6 @@ import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 
 import type { EntityStoreOptionsInterface } from './interfaces/EntityStoreOptionsInterface.js';
 
-interface EntityStoreConstructorInterface<TInstance> {
-  readonly 'prototype': TInstance;
-}
-
 /**
  * Normalized, ID-indexed entity collection — the RTK `createEntityAdapter` shape
  * (`upsertOne`/`upsertMany`/`removeOne`/`removeMany`/`setAll`, O(1) lookup by id,
@@ -46,16 +42,8 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   protected readonly hooks: HookInvoker;
   #cachedSorted: TEntity[] | undefined;
 
-  private static isConstructed<TInstance>(
-    value: unknown,
-    constructor: Function
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
-  private static isConstructor(value: object): value is Function {
-    const result = typeof value === 'function';
+  private static hasConstructedInstance(instance: object, constructor: Function): boolean {
+    const result = instance instanceof constructor;
     return result;
   }
 
@@ -64,14 +52,18 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
     TId extends PropertyKey = string,
     TInstance extends EntityStore<TEntity, TId> = EntityStore<TEntity, TId>
   >(
-    this: EntityStoreConstructorInterface<TInstance>,
+    this: { readonly 'prototype': TInstance },
     options: EntityStoreOptionsInterface<TEntity, TId>
-  ): TInstance {
-    if (!EntityStore.isConstructor(this)) {
-      throw new TypeError('EntityStore.create() requires a constructor');
-    }
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!EntityStore.isConstructed<TInstance>(result, this)) {
+  ): TInstance;
+  static create<
+    TEntity,
+    TId extends PropertyKey = string
+  >(
+    this: typeof EntityStore<TEntity, TId>,
+    options: EntityStoreOptionsInterface<TEntity, TId>
+  ): EntityStore<TEntity, TId> {
+    const result = new this(options);
+    if (!EntityStore.hasConstructedInstance(result, this)) {
       throw new TypeError('EntityStore.create() must construct an EntityStore instance');
     }
     return result;

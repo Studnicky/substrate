@@ -1,8 +1,10 @@
-/** merge-clone — deep merge with nested objects and Clone with Date/array awareness. Run: npx tsx packages/json/examples/merge-clone.ts */
+/** merge-clone — deep merge and clone for JSON objects and arrays. Run: npx tsx packages/json/examples/merge-clone.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
+import type { JsonValueEntity } from '../src/entities/index.js';
+
 import { Clone, Merge } from '../src/index.js';
 import { MergeCloneFixture } from './fixtures/MergeCloneFixture.js';
 
@@ -25,7 +27,7 @@ console.log('merged.tags:', merged.tags);
 const original = MergeCloneFixture.Original;
 const copy = Clone.deep(original);
 
-console.log('copy.created:', copy.created);
+console.log('copy.createdAt:', copy.createdAt);
 console.log('same reference?', copy === original);
 
 // ---------------------------------------------------------------------------
@@ -33,7 +35,7 @@ console.log('same reference?', copy === original);
 // ---------------------------------------------------------------------------
 
 class ConcatMerge extends Merge {
-  protected static override mergeArrays(base: unknown[], overlay: unknown[]): unknown[] {
+  protected static override mergeArrays(base: JsonValueEntity.Type[], overlay: JsonValueEntity.Type[]): JsonValueEntity.Type[] {
     return [...base, ...overlay];
   }
 }
@@ -52,8 +54,7 @@ assert.deepEqual(merged.tags, ['beta'], 'arrays replaced atomically');
 assert.deepEqual(copy, original, 'deep clone is structurally equal');
 assert.notEqual(copy, original, 'clone is a different reference');
 assert.notEqual(copy.items, original.items, 'nested array is a different reference');
-assert.notEqual(copy.created, original.created, 'Date is cloned to a new instance');
-assert.equal(copy.created.getTime(), original.created.getTime(), 'Date value is preserved');
+assert.equal(copy.createdAt, original.createdAt, 'JSON string value is preserved');
 
 assert.deepEqual(
   concatResult.tags,

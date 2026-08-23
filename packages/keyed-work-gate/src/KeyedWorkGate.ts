@@ -18,6 +18,10 @@ interface KeyedWorkGateConstructorInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
+interface ResultEntityInterface<T> {
+  readonly 'intake': (input: unknown) => T;
+}
+
 /**
  * Composes `@studnicky/mutex`'s `Mutex` and `@studnicky/concurrency`'s `Coalesce` into two
  * keyed work-gating patterns: single-flight (`runSingleFlight`) and strict serialization
@@ -31,12 +35,12 @@ interface KeyedWorkGateConstructorInterface<TInstance> extends Function {
  * const gate = KeyedWorkGate.create<string>({
  *   mutex: { enableCoalescing: false, timeout: 5000 }
  * });
- * const acceptsUser = (value: unknown): value is User => value instanceof User;
+ * const user = await UserEntity.intake(await fetchUser('user1'));
  *
  * // Concurrent calls with the same key share one execution
  * const [a, b] = await Promise.all([
- *   gate.runSingleFlight('user1', () => fetchUser('user1'), acceptsUser),
- *   gate.runSingleFlight('user1', () => fetchUser('user1'), acceptsUser)
+ *   gate.runSingleFlight('user1', UserEntity, () => Promise.resolve(user)),
+ *   gate.runSingleFlight('user1', UserEntity, () => Promise.resolve(user))
  * ]);
  * ```
  *
@@ -50,8 +54,8 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    * @param config - Composition configuration
    * @returns New KeyedWorkGate instance
    */
-  private static isConstructed<TInstance>(
-    value: unknown,
+  private static isConstructed<TInstance extends object>(
+    value: object,
     constructor: KeyedWorkGateConstructorInterface<TInstance>
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -69,6 +73,9 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
       'coalesce': KeyedWorkGate.#resolveCoalesce(config.coalesce),
       'mutex': KeyedWorkGate.#resolveMutex<K>(config.mutex)
     }]);
+    if (typeof result !== 'object' || result === null) {
+      throw new TypeError('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
+    }
     if (!KeyedWorkGate.isConstructed<TInstance>(result, this)) {
       throw new TypeError('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
@@ -126,27 +133,24 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    *
    * @param key - Coalesce join-key and mutex lock key (coalesce keys are string; `key` is
    *   stringified via `String(key)`)
+   * @param resultEntity - Entity that parses the shared result for this caller
    * @param callback - The function to execute at most once per concurrent same-key group
-   * @param acceptsResult - Runtime predicate applied independently for every joined caller
    * @returns The shared result for every caller in the coalesced group
    */
   async runSingleFlight<T>(
     key: K,
-    callback: () => Promise<unknown>,
-    acceptsResult: (value: unknown) => value is T
+    resultEntity: ResultEntityInterface<T>,
+    callback: () => Promise<T>
   ): Promise<T> {
     const coalesceKey = String(key);
 
     const result = await this.#coalesce.run(coalesceKey, async () => {
-      const value = await this.runSerialized(key, callback, acceptsResult);
+      const value = await this.runSerialized(key, callback);
       return value;
     });
 
-    if (!acceptsResult(result)) {
-      throw new TypeError(`KeyedWorkGate result for key ${String(key)} does not satisfy the requested type`);
-    }
-
-    return result;
+    const parsedResult = resultEntity.intake(result);
+    return parsedResult;
   }
 
   /**
@@ -155,18 +159,17 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    *
    * @param key - Mutex lock key
    * @param callback - The function to execute exclusively
-   * @param acceptsResult - Runtime predicate proving the returned result type
    * @returns The result of this specific call to `callback`
    */
   async runSerialized<T>(
     key: K,
-    callback: () => Promise<unknown>,
-    acceptsResult: (value: unknown) => value is T
+    callback: () => Promise<T>
   ): Promise<T> {
-    const result = await this.#mutex.runExclusive(key, callback);
-    if (!acceptsResult(result)) {
-      throw new TypeError(`Mutex result for key ${String(key)} does not satisfy the requested type`);
+    const release = await this.#mutex.acquire(key);
+    try {
+      return await callback();
+    } finally {
+      release();
     }
-    return result;
   }
 }

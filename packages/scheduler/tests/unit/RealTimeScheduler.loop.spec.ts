@@ -13,18 +13,18 @@ import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
 import scenarioGroups from './RealTimeScheduler.scenarios.json' with { type: 'json' };
 
 type ScenarioInput = {
-  batch?: Record<string, unknown>;
-  scheduler: Record<string, unknown>;
+  batch?: Record<string, boolean | number | string | object | null>;
+  scheduler: Record<string, boolean | number | string | object | null>;
 };
 type ScenarioRunnerContext = {
-  batch: Record<string, unknown>;
-  expected: Record<string, unknown>;
-  input: Record<string, unknown>;
+  batch: Record<string, boolean | number | string | object | null>;
+  expected: Record<string, boolean | number | string | object | null>;
+  input: Record<string, boolean | number | string | object | null>;
 };
 type ScenarioRunner = (context: ScenarioRunnerContext) => Promise<void> | void;
 type ScenarioCase = {
   description: string;
-  expected: Record<string, unknown>;
+  expected: Record<string, boolean | number | string | object | null>;
   input: ScenarioInput;
   shape: string;
   name: string;
@@ -55,7 +55,7 @@ class AuditScheduler extends RealTimeScheduler {
   }
 }
 
-function numberField(input: Record<string, unknown>, key: string): number {
+function numberField(input: Record<string, boolean | number | string | object | null>, key: string): number {
   const value = input[key];
   if (typeof value !== 'number') {
     throw new Error(`Expected numeric field '${key}'`);
@@ -63,7 +63,7 @@ function numberField(input: Record<string, unknown>, key: string): number {
   return value;
 }
 
-function futureAtMs(input: Record<string, unknown>): number {
+function futureAtMs(input: Record<string, boolean | number | string | object | null>): number {
   return Date.now() + numberField(input, 'delayMs');
 }
 
@@ -171,9 +171,9 @@ const scenarioRunners = {
   },
 
   'rejecting-scheduleAt': ({ expected, input }): Promise<void> => {
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    let rejectionEvents = 0;
+    const onUnhandledRejection = (): void => {
+      rejectionEvents++;
     };
     const sched = RealTimeScheduler.create();
     const atMs = Date.now() + numberField(input, 'pastMsOffset');
@@ -183,7 +183,7 @@ const scenarioRunners = {
       throw new Error('scheduleAt reject');
     });
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-      assert.strictEqual(rejectionEvents.length, expected.unhandledRejectionCount);
+      assert.strictEqual(rejectionEvents, expected.unhandledRejectionCount);
       sched.cancelAll();
     }).finally(() => {
       process.off('unhandledRejection', onUnhandledRejection);
@@ -191,9 +191,9 @@ const scenarioRunners = {
   },
 
   'rejecting-scheduleEvery': ({ expected, input }): Promise<void> => {
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    let rejectionEvents = 0;
+    const onUnhandledRejection = (): void => {
+      rejectionEvents++;
     };
     const sched = RealTimeScheduler.create();
     process.on('unhandledRejection', onUnhandledRejection);
@@ -204,7 +204,7 @@ const scenarioRunners = {
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
       task.cancel();
       sched.cancelAll();
-      assert.strictEqual(rejectionEvents.length, expected.unhandledRejectionCount);
+      assert.strictEqual(rejectionEvents, expected.unhandledRejectionCount);
     }).finally(() => {
       process.off('unhandledRejection', onUnhandledRejection);
     });
@@ -304,7 +304,7 @@ const scenarioRunners = {
     class FireErrorHookScheduler extends RealTimeScheduler {
       public fireErrorCount = 0;
       public constructor() { super(); }
-      protected override onFireError(_id: string, _error: unknown): void {
+      protected override onFireError(_id: string, _error: Error): void {
         this.fireErrorCount++;
       }
     }
@@ -320,7 +320,7 @@ const scenarioRunners = {
     class FireErrorHookScheduler extends RealTimeScheduler {
       public fireErrorCount = 0;
       public constructor() { super(); }
-      protected override onFireError(_id: string, _error: unknown): void {
+      protected override onFireError(_id: string, _error: Error): void {
         this.fireErrorCount++;
       }
     }
@@ -440,10 +440,10 @@ const scenarioRunners = {
 
   'async-onFire-rejection-guarded': ({ expected, input }): Promise<void> => {
     const recordedHookNames: string[] = [];
-    const recordedCauses: unknown[] = [];
+    const recordedCauses: Error[] = [];
 
     class RecordingSwallowingInvoker extends HookInvoker {
-      protected override onHookError(hookName: string, cause: unknown): void {
+      protected override onHookError(hookName: string, cause: Error): void {
         recordedHookNames.push(hookName);
         recordedCauses.push(cause);
       }
@@ -460,9 +460,9 @@ const scenarioRunners = {
       }
     }
 
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    let rejectionEvents = 0;
+    const onUnhandledRejection = (): void => {
+      rejectionEvents++;
     };
     process.on('unhandledRejection', onUnhandledRejection);
 
@@ -474,7 +474,7 @@ const scenarioRunners = {
         await setTimeoutPromise(numberField(input, 'waitMs'));
         await new Promise((resolve) => { setImmediate(resolve); });
         await new Promise((resolve) => { setImmediate(resolve); });
-        assert.strictEqual(rejectionEvents.length, Number(expected.unhandledRejections));
+        assert.strictEqual(rejectionEvents, Number(expected.unhandledRejections));
         assert.deepStrictEqual(recordedHookNames, ['onFire']);
         assert.strictEqual(recordedCauses[0], rejectionError);
       } finally {
@@ -522,7 +522,7 @@ const scenarioRunners = {
     class FireErrorScheduler extends RealTimeScheduler {
       public fireErrorCount = 0;
       public constructor() { super(); }
-      protected override onFireError(_id: string, _error: unknown): void {
+      protected override onFireError(_id: string, _error: Error): void {
         this.fireErrorCount++;
       }
     }
@@ -540,7 +540,7 @@ const scenarioRunners = {
     class FireErrorScheduler extends RealTimeScheduler {
       public fireErrorCount = 0;
       public constructor() { super(); }
-      protected override onFireError(_id: string, _error: unknown): void {
+      protected override onFireError(_id: string, _error: Error): void {
         this.fireErrorCount++;
       }
     }

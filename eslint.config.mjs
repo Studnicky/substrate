@@ -200,6 +200,7 @@ export default [
         '@studnicky/interfaces-compose-named-types': 'error',
         '@studnicky/lexical-this-only': 'error',
         '@studnicky/no-mixed-callable-shapes': 'error',
+        '@studnicky/no-unparsed-assertion': 'error',
         '@studnicky/prefer-collection-types': 'error',
         '@studnicky/require-options-object': 'error',
         '@studnicky/single-export': 'error',

@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import { IdempotencyPayloadEntity } from '../src/entities/index.js';
 import { IdempotencyConflictError, IdempotencyGuard } from '../src/index.js';
 
 class ChargeResult {
@@ -65,18 +66,18 @@ class IdempotencyGuardDemo {
     const guard = TelemetryIdempotencyGuard.tracked();
 
     // New key -> onExecute, factory runs
-    const first = await guard.run('order-42', { 'amount': 500 }, () => {
+    const first = await guard.run('order-42', IdempotencyPayloadEntity.create({ 'amount': 500 }), () => {
       return new ChargeResult('ch_1');
     });
 
     // Same key, same payload -> onReplay, factory does NOT run
-    const replayed = await guard.run('order-42', { 'amount': 500 }, () => {
+    const replayed = await guard.run('order-42', IdempotencyPayloadEntity.create({ 'amount': 500 }), () => {
       return new ChargeResult('ch_should_not_run');
     });
 
     // Same key, DIFFERENT payload -> onConflict, then throws
     try {
-      await guard.run('order-42', { 'amount': 999 }, () => {
+      await guard.run('order-42', IdempotencyPayloadEntity.create({ 'amount': 999 }), () => {
         return new ChargeResult('ch_should_not_run');
       });
     } catch (error) {
@@ -88,8 +89,8 @@ class IdempotencyGuardDemo {
     }
 
     // Concurrent calls with the same (new) key share one execution via Coalesce
-    const callA = guard.run('order-99', { 'region': 'us' }, SharedFactory.create);
-    const callB = guard.run('order-99', { 'region': 'us' }, SharedFactory.create);
+    const callA = guard.run('order-99', IdempotencyPayloadEntity.create({ 'region': 'us' }), SharedFactory.create);
+    const callB = guard.run('order-99', IdempotencyPayloadEntity.create({ 'region': 'us' }), SharedFactory.create);
     Shared.resolve(new ChargeResult('shared-result'));
     const [resultA, resultB] = await Promise.all([callA, callB]);
 

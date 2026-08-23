@@ -55,7 +55,7 @@ async function flushTurn(): Promise<void> {
 
 async function captureUnhandledRejections(scenarioName: string, action: () => Promise<void> | void): Promise<unknown[]> {
   const rejectionEvents: unknown[] = [];
-  const onUnhandledRejection = (reason: unknown): void => {
+  const onUnhandledRejection = (reason: Error): void => {
     rejectionEvents.push(reason);
     console.error('[%s] captured unhandledRejection', scenarioName, reason);
   };
@@ -159,7 +159,7 @@ const runnerMap: RunnerMap = {
       });
 
       const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
-        await assert.rejects(pool.run([scenarioCase.input.timeoutItem]), (error: unknown) => {
+        await assert.rejects(pool.run([scenarioCase.input.timeoutItem]), (error: Error) => {
           assert.ok(error instanceof Error);
           assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
           return true;
@@ -205,7 +205,7 @@ const runnerMap: RunnerMap = {
         ...resolvePoolConfig(scenarioCase.input.workerPool)
       });
       const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
-        await assert.rejects(pool.run([scenarioCase.input.crashItem]), (error: unknown) => {
+        await assert.rejects(pool.run([scenarioCase.input.crashItem]), (error: Error) => {
           assert.ok(error instanceof Error);
           assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
           return true;

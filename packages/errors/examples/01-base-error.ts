@@ -34,10 +34,16 @@ console.log('AppError.toJSON().domain:', json.domain);
 const cause = new Error('DB connection refused');
 const wrapped = new AppError({ 'cause': cause, 'code': 'app.queryFailed', 'message': 'Query failed', 'retryable': false });
 const chain = BaseError.getCauseChain(wrapped);
+const firstCause = chain[0];
+const secondCause = chain[1];
+
+if (!(firstCause instanceof Error) || !(secondCause instanceof Error)) {
+  throw new Error('cause chain contains a non-error value');
+}
 
 console.log('Cause chain length:', chain.length);
-console.log('Cause chain[0]:', (chain[0] as Error).message);
-console.log('Cause chain[1]:', (chain[1] as Error).message);
+console.log('Cause chain[0]:', firstCause.message);
+console.log('Cause chain[1]:', secondCause.message);
 // #endregion usage
 
 assert.ok(error instanceof AppError, 'instanceof AppError');
@@ -50,7 +56,7 @@ assert.strictEqual(error.toUserMessage(), 'Application error: Something failed')
 assert.strictEqual(json.code, 'app.failure');
 assert.strictEqual(json.domain, 'app', 'serializeExtra() merged into toJSON()');
 assert.strictEqual(chain.length, 2, 'Cause chain has 2 nodes');
-assert.strictEqual((chain[0] as Error).message, 'Query failed');
-assert.strictEqual((chain[1] as Error).message, 'DB connection refused');
+assert.strictEqual(firstCause.message, 'Query failed');
+assert.strictEqual(secondCause.message, 'DB connection refused');
 
 console.log('01-base-error: all assertions passed');

@@ -158,6 +158,17 @@ type RunnerMap = {
   [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
+function captureThrownError(callback: () => void): Error {
+  try {
+    callback();
+  } catch (error) {
+    assert.ok(error instanceof Error);
+    return error;
+  }
+
+  assert.fail('Expected callback to throw');
+}
+
 const runnerMap: RunnerMap = {
   'plain-error-wraps': (scenarioCase) => {
     const reasons: string[] = [];
@@ -167,30 +178,20 @@ const runnerMap: RunnerMap = {
       }
     }
     const machine = new ObservedPlainErrorThrowingMachine();
-    assert.throws(
-      () => machine.transition(scenarioCase.input, { type: 'toggle' }),
-      (err: unknown) => {
-        assert.ok(err instanceof ReducerThrewError);
-        assert.equal(err.constructor.name, scenarioCase.expected.errorName);
-        assert.equal(err.cause, 'boom-plain');
-        return true;
-      }
-    );
+    const error = captureThrownError(() => machine.transition(scenarioCase.input, { type: 'toggle' }));
+    assert.ok(error instanceof ReducerThrewError);
+    assert.equal(error.constructor.name, scenarioCase.expected.errorName);
+    assert.equal(error.cause, 'boom-plain');
     assert.deepEqual(reasons, [scenarioCase.expected.expectedReason]);
   },
   'rejected-error-surfaces': (scenarioCase) => {
     const machine = new DeliberatelyRejectingMachine();
-    assert.throws(
-      () => machine.transition(scenarioCase.input, { type: 'toggle' }),
-      (err: unknown) => {
-        assert.ok(err instanceof TransitionRejectedError);
-        assert.ok(!(err instanceof ReducerThrewError));
-        assert.equal(err.constructor.name, scenarioCase.expected.errorName);
-        assert.equal((err as TransitionRejectedError).eventType, scenarioCase.expected.eventType);
-        assert.equal((err as TransitionRejectedError).stateVariant, scenarioCase.expected.stateVariant);
-        return true;
-      }
-    );
+    const error = captureThrownError(() => machine.transition(scenarioCase.input, { type: 'toggle' }));
+    assert.ok(error instanceof TransitionRejectedError);
+    assert.ok(!(error instanceof ReducerThrewError));
+    assert.equal(error.constructor.name, scenarioCase.expected.errorName);
+    assert.equal(error.eventType, scenarioCase.expected.eventType);
+    assert.equal(error.stateVariant, scenarioCase.expected.stateVariant);
   },
   'terminated-access-hook': (scenarioCase) => {
     const calls: Array<{ event: string; state: string }> = [];
@@ -211,16 +212,11 @@ const runnerMap: RunnerMap = {
     const onState = machine.transition(scenarioCase.input, { type: 'toggle' });
     assert.deepEqual(onState.state, { variant: scenarioCase.expected.firstTransitionStateVariant });
 
-    assert.throws(
-      () => machine.transition(onState.state, { type: 'toggle' }),
-      (err: unknown) => {
-        assert.ok(err instanceof MachineTerminatedError);
-        assert.equal(err.constructor.name, scenarioCase.expected.secondErrorName);
-        assert.equal((err as MachineTerminatedError).eventType, scenarioCase.expected.secondEventType);
-        assert.equal((err as MachineTerminatedError).stateVariant, scenarioCase.expected.secondStateVariant);
-        return true;
-      }
-    );
+    const error = captureThrownError(() => machine.transition(onState.state, { type: 'toggle' }));
+    assert.ok(error instanceof MachineTerminatedError);
+    assert.equal(error.constructor.name, scenarioCase.expected.secondErrorName);
+    assert.equal(error.eventType, scenarioCase.expected.secondEventType);
+    assert.equal(error.stateVariant, scenarioCase.expected.secondStateVariant);
   },
   'transitions-off-on': (scenarioCase) => {
     const machine = new ToggleMachine();
@@ -236,16 +232,11 @@ const runnerMap: RunnerMap = {
   },
   'wraps-reducer-throw': (scenarioCase) => {
     const machine = new ThrowingMachine();
-    assert.throws(
-      () => machine.transition(scenarioCase.input, { type: 'toggle' }),
-      (err: unknown) => {
-        assert.ok(err instanceof ReducerThrewError);
-        assert.equal(err.constructor.name, scenarioCase.expected.errorName);
-        assert.equal((err as ReducerThrewError).eventType, 'toggle');
-        assert.equal((err as ReducerThrewError).stateVariant, 'off');
-        return true;
-      }
-    );
+    const error = captureThrownError(() => machine.transition(scenarioCase.input, { type: 'toggle' }));
+    assert.ok(error instanceof ReducerThrewError);
+    assert.equal(error.constructor.name, scenarioCase.expected.errorName);
+    assert.equal(error.eventType, 'toggle');
+    assert.equal(error.stateVariant, 'off');
   }
 };
 

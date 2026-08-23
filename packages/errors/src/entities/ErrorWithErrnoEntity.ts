@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
 import { EntityIntake } from '../validation/EntityIntake.js';
 
 /** Error with system errno. */
@@ -25,20 +27,20 @@ export namespace ErrorWithErrnoEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export const validate = (candidate: unknown): candidate is Type => {
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     const result = typeof candidate.errno === 'number';
     return result;
   };
 
-  export const intake = (input: unknown): Type => {return EntityIntake.intake(input, (candidate, options) => {
-    const errno = EntityIntake.number(candidate.errno, options.coerce);
-    return errno === undefined ? undefined : { 'errno': errno };
-  }, 'ErrorWithErrno');};
-
-  export const create = (partial: Partial<Type> = {}): Type => {return EntityIntake.create(partial, (candidate, options) => {
+  const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['errno'])) { return undefined; }
     const errno = EntityIntake.number(candidate.errno, options.coerce);
-    return errno === undefined ? undefined : { 'errno': errno };
-  }, 'ErrorWithErrno');};
+    if (errno === undefined) { return undefined; }
+    const result = { 'errno': errno };
+    return result;
+  }, 'ErrorWithErrno');
+
+  export const intake = boundary.intake;
+  export const create = boundary.create;
 }

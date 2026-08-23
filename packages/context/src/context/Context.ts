@@ -17,9 +17,9 @@ interface ContextSubclassInterface<TInstance> extends Function {
 }
 
 class ContextInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: ContextSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -74,7 +74,7 @@ export class Context implements ContextInterface {
     config: ContextConfigEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
-    if (!ContextInstance.belongsTo(this, result)) {
+    if (typeof result !== 'object' || result === null || !ContextInstance.belongsTo(this, result)) {
       throw new TypeError('Context.create() did not construct the requested subclass.');
     }
     return result;
@@ -191,7 +191,7 @@ export class Context implements ContextInterface {
    * @param _key - The key that was set
    * @param _value - The value that was stored
    */
-  protected onSet(_key: string, _value: unknown): void {}
+  protected onSet<TValue>(_key: string, _value: TValue): void {}
 
   /**
    * Hook called after a successful `get()` retrieval.
@@ -202,7 +202,7 @@ export class Context implements ContextInterface {
    * @param _key - The key that was retrieved
    * @param _value - The value that was returned
    */
-  protected onGet(_key: string, _value: unknown): void {}
+  protected onGet<TValue>(_key: string, _value: TValue): void {}
 
   /**
    * Hook called after `delete()` removes (or attempts to remove) a key.

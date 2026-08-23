@@ -1,7 +1,7 @@
 /**
  * Configuration clamping utility.
  *
- * Soft-correction sibling to `ConfigValidation`'s hard-fail assertions: given a
+ * Soft-correction utility for configuration fields: given a
  * flat config object and a declarative table of `{min, max, reason}` per
  * numeric field, returns a NEW object with out-of-range numeric fields clamped
  * into range instead of throwing.
@@ -16,7 +16,7 @@ import type { ClampEventEntity } from '../entities/ClampEventEntity.js';
 import type { ClampRuleEntity } from '../entities/ClampRuleEntity.js';
 
 class ClampedConfigHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(): void {}
 }
 
 export class ClampedConfig {

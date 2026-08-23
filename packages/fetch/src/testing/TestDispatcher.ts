@@ -83,7 +83,7 @@ interface TestDispatcherSubclassInterface<TInstance> extends Function {
 class TestDispatcherInstance {
   static belongsTo<TInstance>(
     constructor: TestDispatcherSubclassInterface<TInstance>,
-    value: unknown
+    value: TInstance | object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -108,7 +108,7 @@ export class TestDispatcher {
     this: TestDispatcherSubclassInterface<TInstance>,
     config: Partial<DispatcherConfigEntity.Type> = {}
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
+    const result = Reflect.construct(this, [config]) as object;
     if (!TestDispatcherInstance.belongsTo(this, result)) {
       throw new TypeError('TestDispatcher.create() did not construct the requested subclass.');
     }
@@ -152,7 +152,21 @@ export class TestDispatcher {
     }
 
     try {
-      const result = JSON.parse(body) as Record<string, unknown>;
+      const parsed: unknown = JSON.parse(body);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return {};
+      }
+      const result: Record<string, unknown> = {};
+      const keys = Object.keys(parsed);
+      const keyLength = keys.length;
+      for (let index = 0; index < keyLength; index += 1) {
+        const key = keys[index];
+        if (key === undefined) {
+          continue;
+        }
+        const value: unknown = Reflect.get(parsed, key);
+        Reflect.set(result, key, value);
+      }
       return result;
     } catch {
       return {};
@@ -181,7 +195,7 @@ export class TestDispatcher {
     return result;
   }
 
-  static #readBodyValue(body: unknown): string {
+  static #readBodyValue(body: ArrayBuffer | ArrayBufferView | Blob | null | string | undefined): string {
     if (body === undefined || body === null) {
       return '';
     }
@@ -213,7 +227,7 @@ export class TestDispatcher {
     return result;
   }
 
-  static #jsonResponse(status: number, value: unknown, headers: Record<string, string> = {}): Response {
+  static #jsonResponse(status: number, value: object, headers: Record<string, string> = {}): Response {
     return new Response(JSON.stringify(value), {
       'headers': {
         'Content-Type': 'application/json',
@@ -355,8 +369,16 @@ export class TestDispatcher {
 
   #normalizeRequest(url: string, init: Record<string, unknown>): TestRequest {
     const parsedUrl = new URL(url);
+    const rawBody = init.body;
+    const body = rawBody === null
+      || typeof rawBody === 'string'
+      || rawBody instanceof ArrayBuffer
+      || ArrayBuffer.isView(rawBody)
+      || rawBody instanceof Blob
+      ? rawBody
+      : String(rawBody);
     return new TestRequest(
-      TestDispatcher.#readBodyValue(init.body),
+      TestDispatcher.#readBodyValue(body),
       TestDispatcher.#toPlainHeaders(init.headers as ConstructorParameters<typeof Headers>[0] | undefined),
       typeof init.method === 'string' ? init.method.toUpperCase() : 'GET',
       parsedUrl.origin,

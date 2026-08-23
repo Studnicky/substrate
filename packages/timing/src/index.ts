@@ -8,7 +8,7 @@
  * ```typescript
  * import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
  *
- * const timing = Timing.create({ 'maximumEvents': 100 });
+ * const timing = Timing.create();
  *
  * // Record immutable event data
  * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
@@ -35,6 +35,3 @@ export { Timing } from './modules/Timing.js';
 
 /** Immutable timing event data factory */
 export { TimingEvent } from './modules/TimingEvent.js';
-
-/** Static validation methods for timing configuration values */
-export { TimingValidator } from './validation/TimingValidator.js';

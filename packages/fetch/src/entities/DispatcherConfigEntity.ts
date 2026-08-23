@@ -46,6 +46,8 @@ export namespace DispatcherConfigEntity {
       },
       'connections': {
         'description': 'Number of connections in the pool (per origin). null means no limit',
+        'maximum': 1000,
+        'minimum': 1,
         'type': ['integer', 'null']
       },
       'connectTimeout': {
@@ -109,6 +111,7 @@ export namespace DispatcherConfigEntity {
       },
       'pipelining': {
         'description': 'HTTP/1.1 pipelining factor - number of concurrent requests per connection',
+        'maximum': 10,
         'minimum': 0,
         'type': 'integer'
       },

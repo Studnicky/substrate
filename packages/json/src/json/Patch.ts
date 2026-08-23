@@ -3,29 +3,31 @@
  *
  * Supports: add, remove, replace, move, copy, test.
  * Paths must be JSON Pointer strings (RFC-6901): `/foo/bar`, `/items/0`.
+ * Parse externally supplied operations through `PatchOperationEntity.intake`
+ * or `PatchOperationsEntity.intake` before constructing a patch.
  *
  * Subclass `Patch` and override any `protected` step to customise patch
  * behaviour.
  */
 
-import { JsonObject, JsonValue } from '@studnicky/types';
-
-import type { PatchOperationInterface } from '../interfaces/PatchOperationInterface.js';
+import type { PatchOperationEntity } from '../entities/PatchOperationEntity.js';
+import type { PatchOperationsEntity } from '../entities/PatchOperationsEntity.js';
 
 import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
-import { PatchOperationCoreEntity } from '../entities/PatchOperationCoreEntity.js';
+import { JsonObjectEntity } from '../entities/JsonObjectEntity.js';
+import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import { PatchError } from '../errors/PatchError.js';
 import { ARRAY_INDEX_PATTERN } from './constants/PatchConstants.js';
 import { DataType } from './DataType.js';
 
-interface PatchSubclassInterface<TInstance> extends Function {
+interface PatchSubclassInterface<TInstance extends Patch> extends Function {
   readonly 'prototype': TInstance;
 }
 
 class PatchInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends Patch>(
     constructor: PatchSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -33,97 +35,31 @@ class PatchInstance {
 }
 
 export class Patch {
-  readonly #operations: readonly PatchOperationInterface[];
-
-  private static readonly operationKeys = new Set(['from', 'op', 'path', 'value']);
-
-  /** Validate and normalize an unknown operation into its canonical wire contract. */
-  private static parseOperation(candidate: unknown): PatchOperationInterface | undefined {
-    if (!JsonObject.is(candidate)) {
-      return undefined;
-    }
-
-    const candidateKeys = Object.keys(candidate);
-    const candidateKeyLength = candidateKeys.length;
-    for (let index = 0; index < candidateKeyLength; index += 1) {
-      const key = candidateKeys[index];
-      if (key === undefined) {
-        continue;
-      }
-      if (!Patch.operationKeys.has(key)) {
-        return undefined;
-      }
-    }
-
-    const coreCandidate = {
-      ...(Reflect.has(candidate, 'from') ? { 'from': Reflect.get(candidate, 'from') } : {}),
-      'op': Reflect.get(candidate, 'op'),
-      'path': Reflect.get(candidate, 'path')
-    };
-
-    if (!PatchOperationCoreEntity.validate(coreCandidate)) {
-      return undefined;
-    }
-
-    if (!Reflect.has(candidate, 'value')) {
-      return coreCandidate;
-    }
-
-    const value: unknown = Reflect.get(candidate, 'value');
-    if (!JsonValue.is(value)) {
-      return undefined;
-    }
-
-    return { ...coreCandidate, 'value': value };
-  }
+  readonly #operations: readonly PatchOperationEntity.Type[];
 
   /**
-   * Canonical entry point — validates operations and returns a `Patch` instance
+   * Canonical entry point — builds a `Patch` instance from parsed operations
    * (or the subclass instance when called on a subclass, e.g. `SubClass.create(...)`).
    */
   public static create<TInstance extends Patch = Patch>(
     this: PatchSubclassInterface<TInstance>,
-    operations: unknown = []
+    operations: PatchOperationEntity.Type | PatchOperationsEntity.Type = []
   ): TInstance {
     const result: unknown = Reflect.construct(this, [operations]);
-    if (!PatchInstance.belongsTo(this, result)) {
+    if (result === null || typeof result !== 'object' || !PatchInstance.belongsTo(this, result)) {
       throw new TypeError('Patch.create() did not construct the requested subclass.');
     }
     return result;
   }
 
-  protected constructor(operations: unknown = []) {
-    const candidates = Array.isArray(operations) ? Array.from<unknown>(operations) : [operations];
-    const ops: PatchOperationInterface[] = [];
-    const operationLength = candidates.length;
-    for (let i = 0; i < operationLength; i += 1) {
-      const candidate = candidates[i];
-
-      const operation = Patch.parseOperation(candidate);
-      if (operation === undefined) {
-        const operationName: unknown = candidate !== null && typeof candidate === 'object'
-          ? Reflect.get(candidate, 'op')
-          : candidate;
-        const operationPath: unknown = candidate !== null && typeof candidate === 'object'
-          ? Reflect.get(candidate, 'path')
-          : undefined;
-
-        throw new PatchError(
-          `Invalid patch operation "${String(operationName)}"`,
-          String(operationName),
-          typeof operationPath === 'string' ? operationPath : ''
-        );
-      }
-
-      ops.push(operation);
-    }
-
-    this.#operations = structuredClone(ops);
+  protected constructor(operations: PatchOperationEntity.Type | PatchOperationsEntity.Type = []) {
+    const parsedOperations = Array.isArray(operations) ? operations : [operations];
+    this.#operations = structuredClone<PatchOperationEntity.Type[]>(Array.from(parsedOperations));
   }
 
   /** Return a deeply isolated projection of the patch operations. */
-  public get operations(): readonly PatchOperationInterface[] {
-    const operations: PatchOperationInterface[] = [];
+  public get operations(): readonly PatchOperationEntity.Type[] {
+    const operations: PatchOperationEntity.Type[] = [];
     const operationLength = this.#operations.length;
     for (let index = 0; index < operationLength; index += 1) {
       const operation = this.#operations[index];
@@ -139,11 +75,11 @@ export class Patch {
   // ---------------------------------------------------------------------------
 
   /**
-   * Apply this patch to `target` (mutates target in-place, per RFC-6902).
+   * Apply this patch to a parsed JSON object (mutates it in-place, per RFC-6902).
    *
    * Throws `PatchError` if any operation cannot be applied.
    */
-  public apply(target: Record<string, unknown>): Record<string, unknown> {
+  public apply(target: JsonObjectEntity.Type): JsonObjectEntity.Type {
     const operationLength = this.#operations.length;
     for (let index = 0; index < operationLength; index += 1) {
       const op = this.#operations[index];
@@ -198,9 +134,9 @@ export class Patch {
   }
 
   /** Read the value at `path` from `target`. */
-  protected getValue(target: Record<string, unknown>, path: string): unknown {
+  protected getValue(target: JsonObjectEntity.Type, path: string): JsonValueEntity.Type {
     const parts = this.parsePath(path);
-    let current: unknown = target;
+    let current: JsonValueEntity.Type = target;
 
     const partLength = parts.length;
     for (let i = 0; i < partLength; i += 1) {
@@ -213,14 +149,18 @@ export class Patch {
       if (!Reflect.has(current, part)) {
         throw new PatchError(`Path not found: ${path}`, 'getValue', path);
       }
-      current = Reflect.get(current, part);
+      const rawValue: unknown = Reflect.get(current, part);
+      if (!JsonValueEntity.validate(rawValue)) {
+        throw new PatchError(`Path contains a non-JSON value: ${path}`, 'getValue', path);
+      }
+      current = rawValue;
     }
 
     return current;
   }
 
   /** Return `true` when `path` resolves to a value in `target`. */
-  protected hasValue(target: Record<string, unknown>, path: string): boolean {
+  protected hasValue(target: JsonObjectEntity.Type, path: string): boolean {
     try {
       this.getValue(target, path);
 
@@ -231,7 +171,7 @@ export class Patch {
   }
 
   /** Write `value` at `path` in `target`, creating intermediate objects. */
-  protected setValue(target: Record<string, unknown>, path: string, value: unknown): void {
+  protected setValue(target: JsonObjectEntity.Type, path: string, value: JsonValueEntity.Type): void {
     const parts = this.parsePath(path);
 
     if (parts.length === 0) {
@@ -239,7 +179,7 @@ export class Patch {
       return;
     }
 
-    let current: unknown = target;
+    let current: JsonValueEntity.Type = target;
 
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
@@ -253,9 +193,13 @@ export class Patch {
       }
 
       if (!Reflect.has(current, part)) {
-        Reflect.set(current, part, {});
+        Reflect.set(current, part, JsonObjectEntity.create());
       }
-      current = Reflect.get(current, part);
+      const rawValue: unknown = Reflect.get(current, part);
+      if (!JsonValueEntity.validate(rawValue)) {
+        throw new PatchError(`Intermediate path contains a non-JSON value: ${path}`, 'setValue', path);
+      }
+      current = rawValue;
     }
 
     const lastPart = parts.at(-1);
@@ -272,14 +216,14 @@ export class Patch {
   }
 
   /** Remove the value at `path` from `target`. */
-  protected removeValue(target: Record<string, unknown>, path: string): void {
+  protected removeValue(target: JsonObjectEntity.Type, path: string): void {
     const parts = this.parsePath(path);
 
     if (parts.length === 0) {
       return;
     }
 
-    let current: unknown = target;
+    let current: JsonValueEntity.Type = target;
 
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
@@ -295,7 +239,11 @@ export class Patch {
       if (!Reflect.has(current, part)) {
         throw new PatchError(`Path not found: ${path}`, 'removeValue', path);
       }
-      current = Reflect.get(current, part);
+      const rawValue: unknown = Reflect.get(current, part);
+      if (!JsonValueEntity.validate(rawValue)) {
+        throw new PatchError(`Path contains a non-JSON value: ${path}`, 'removeValue', path);
+      }
+      current = rawValue;
     }
 
     const lastPart = parts.at(-1);
@@ -315,13 +263,14 @@ export class Patch {
 
       current.splice(parseInt(lastPart, 10), 1);
     } else {
-      Reflect.deleteProperty(current, lastPart);
+      const { 'deleteProperty': removeProperty } = Reflect;
+      removeProperty(current, lastPart);
     }
   }
 
   /** Apply a single RFC-6902 `add` operation. */
-  private applyAdd(target: Record<string, unknown>, op: PatchOperationInterface): void {
-    this.setValue(target, op.path, op.value);
+  private applyAdd(target: JsonObjectEntity.Type, op: PatchOperationEntity.Type): void {
+    this.setValue(target, op.path, this.requireValue(op));
   }
 
   /**
@@ -332,16 +281,16 @@ export class Patch {
    * `setValue`'s root handling).
    */
   private resolveReplaceTarget(
-    target: Record<string, unknown>,
+    target: JsonObjectEntity.Type,
     path: string
-  ): { 'container': object; 'key': string } | undefined {
+  ): { 'container': JsonObjectEntity.Type | JsonValueEntity.Type[]; 'key': string } | undefined {
     const parts = this.parsePath(path);
 
     if (parts.length === 0) {
       return undefined;
     }
 
-    let current: unknown = target;
+    let current: JsonValueEntity.Type = target;
 
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
@@ -357,7 +306,11 @@ export class Patch {
       if (!Reflect.has(current, part)) {
         throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
       }
-      current = Reflect.get(current, part);
+      const rawValue: unknown = Reflect.get(current, part);
+      if (!JsonValueEntity.validate(rawValue)) {
+        throw new PatchError(`Cannot replace a non-JSON path: ${path}`, 'replace', path);
+      }
+      current = rawValue;
     }
 
     const lastPart = parts.at(-1);
@@ -378,55 +331,51 @@ export class Patch {
   }
 
   /** Apply a single RFC-6902 `replace` operation. */
-  private applyReplace(target: Record<string, unknown>, op: PatchOperationInterface): void {
+  private applyReplace(target: JsonObjectEntity.Type, op: PatchOperationEntity.Type): void {
     const resolved = this.resolveReplaceTarget(target, op.path);
 
     if (resolved === undefined) {
       return;
     }
-    Reflect.set(resolved.container, resolved.key, op.value);
+    Reflect.set(resolved.container, resolved.key, this.requireValue(op));
   }
 
   /** Apply a single RFC-6902 `remove` operation. */
-  private applyRemove(target: Record<string, unknown>, op: PatchOperationInterface): void {
+  private applyRemove(target: JsonObjectEntity.Type, op: PatchOperationEntity.Type): void {
     this.removeValue(target, op.path);
   }
 
   /** Apply a single RFC-6902 `copy` operation. */
-  private applyCopy(target: Record<string, unknown>, op: PatchOperationInterface): void {
-    if (op.from === undefined) {
-      throw new PatchError('copy operation requires "from"', op.op, op.path);
-    }
-    const copied = this.getValue(target, op.from);
+  private applyCopy(target: JsonObjectEntity.Type, op: PatchOperationEntity.Type): void {
+    const copied = this.getValue(target, this.requireFrom(op));
 
     this.setValue(target, op.path, copied);
   }
 
   /** Apply a single RFC-6902 `move` operation. */
-  private applyMove(target: Record<string, unknown>, op: PatchOperationInterface): void {
-    if (op.from === undefined) {
-      throw new PatchError('move operation requires "from"', op.op, op.path);
-    }
-    const moved = this.getValue(target, op.from);
+  private applyMove(target: JsonObjectEntity.Type, op: PatchOperationEntity.Type): void {
+    const from = this.requireFrom(op);
+    const moved = this.getValue(target, from);
 
-    this.removeValue(target, op.from);
+    this.removeValue(target, from);
     this.setValue(target, op.path, moved);
   }
 
   /** Apply a single RFC-6902 `test` operation. */
-  private applyTest(target: Record<string, unknown>, op: PatchOperationInterface): void {
+  private applyTest(target: JsonObjectEntity.Type, op: PatchOperationEntity.Type): void {
     const actual = this.getValue(target, op.path);
 
-    if (!DataType.deepEqual(actual, op.value)) {
+    const expected = this.requireValue(op);
+    if (!DataType.deepEqual(actual, expected)) {
       throw new PatchError(
-        `Test failed at ${op.path}: expected ${String(op.value)}, got ${String(actual)}`,
+        `Test failed at ${op.path}: expected ${String(expected)}, got ${String(actual)}`,
         op.op,
         op.path
       );
     }
   }
 
-  readonly #operationAppliers = new Map<string, (target: Record<string, unknown>, operation: PatchOperationInterface) => void>([
+  readonly #operationAppliers = new Map<string, (target: JsonObjectEntity.Type, operation: PatchOperationEntity.Type) => void>([
     ['add', (target, operation) => { this.applyAdd(target, operation); }],
     ['copy', (target, operation) => { this.applyCopy(target, operation); }],
     ['move', (target, operation) => { this.applyMove(target, operation); }],
@@ -445,7 +394,7 @@ export class Patch {
   ]);
 
   /** Apply a single RFC-6902 operation to `target`. */
-  protected applyOperation(target: Record<string, unknown>, op: PatchOperationInterface): void {
+  protected applyOperation(target: JsonObjectEntity.Type, op: PatchOperationEntity.Type): void {
     const applier = this.#operationAppliers.get(op.op);
 
     if (applier === undefined) {
@@ -455,15 +404,31 @@ export class Patch {
   }
 
   /** Produce a human-readable description of a single operation. */
-  protected describeOp(op: PatchOperationInterface): string {
+  protected describeOp(op: PatchOperationEntity.Type): string {
     const description = Patch.operationDescriptions.get(op.op);
     if (description !== undefined) {
-      const source = description.includesSource ? `${op.from ?? '?'} → ` : '';
-      const value = description.includesValue ? ` = ${JSON.stringify(op.value)}` : '';
+      const source = description.includesSource ? `${this.requireFrom(op)} → ` : '';
+      const value = description.includesValue ? ` = ${JSON.stringify(this.requireValue(op))}` : '';
       const result = `${description.label} ${source}${op.path}${value}`;
       return result;
     }
     const result = `${String(op.op).toUpperCase()} ${op.path}`;
     return result;
+  }
+
+  /** Return an operation's schema-required JSON operand. */
+  private requireValue(operation: PatchOperationEntity.Type): JsonValueEntity.Type {
+    if (!('value' in operation)) {
+      throw new PatchError(`${operation.op} operation requires "value"`, operation.op, operation.path);
+    }
+    return operation.value;
+  }
+
+  /** Return an operation's schema-required source pointer. */
+  private requireFrom(operation: PatchOperationEntity.Type): string {
+    if (!('from' in operation)) {
+      throw new PatchError(`${operation.op} operation requires "from"`, operation.op, operation.path);
+    }
+    return operation.from;
   }
 }

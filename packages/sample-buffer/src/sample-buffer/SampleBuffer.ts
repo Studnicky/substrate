@@ -18,7 +18,9 @@ import {
 import { SampleBufferOptionsEntity } from '../entities/SampleBufferOptionsEntity.js';
 import { SampleBufferError } from '../errors/index.js';
 
-interface SampleBufferConstructorInterface<TInstance extends SampleBuffer> extends Function {
+interface SampleBufferConstructorInterface<
+  TInstance extends SampleBuffer
+> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -59,7 +61,7 @@ interface SampleBufferConstructorInterface<TInstance extends SampleBuffer> exten
  */
 export class SampleBuffer implements SampleBufferInterface {
   private static isConstructed<TInstance extends SampleBuffer>(
-    value: unknown,
+    value: object,
     constructor: SampleBufferConstructorInterface<TInstance>
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -70,11 +72,18 @@ export class SampleBuffer implements SampleBufferInterface {
     this: SampleBufferConstructorInterface<TInstance>,
     options: SampleBufferOptionsEntity.Type
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!SampleBuffer.isConstructed(result, this)) {
-      throw new TypeError('SampleBuffer.create() must construct a SampleBuffer instance');
+    const constructed: unknown = Reflect.construct(this, [options]);
+    if (typeof constructed !== 'object' || constructed === null) {
+      throw new TypeError(
+        'SampleBuffer.create() must construct a SampleBuffer instance'
+      );
     }
-    return result;
+    if (!SampleBuffer.isConstructed(constructed, this)) {
+      throw new TypeError(
+        'SampleBuffer.create() must construct a SampleBuffer instance'
+      );
+    }
+    return constructed;
   }
 
   static #validate(options: SampleBufferOptionsEntity.Type): void {
@@ -86,7 +95,9 @@ export class SampleBuffer implements SampleBufferInterface {
         return result;
       });
       const message = parts.join('; ');
-      throw new SampleBufferError(message.length > 0 ? message : 'invalid options');
+      throw new SampleBufferError(
+        message.length > 0 ? message : 'invalid options'
+      );
     }
     // Domain invariant: capacity must be a positive integer (schema enforces minimum:1 and type:integer)
   }
@@ -141,9 +152,7 @@ export class SampleBuffer implements SampleBufferInterface {
     const result: number[] = Array.from<number>({ 'length': length });
 
     for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
-      const index = length < capacity
-        ? i
-        : (head + i) % capacity;
+      const index = length < capacity ? i : (head + i) % capacity;
 
       result[i] = samples[index]!;
     }
@@ -247,7 +256,10 @@ export class SampleBuffer implements SampleBufferInterface {
    * @param _length - Number of samples that were sorted
    * @param _sorted - The sorted sample array (do not mutate)
    */
-  protected onComputeComplete(_length: number, _sorted: readonly number[]): void {}
+  protected onComputeComplete(
+    _length: number,
+    _sorted: readonly number[]
+  ): void {}
 
   /**
    * Calculate a percentile from the buffered samples using linear interpolation
@@ -285,7 +297,8 @@ export class SampleBuffer implements SampleBufferInterface {
     }
 
     // Linear interpolation for percentile
-    const rank = (pct / PERCENTILE_MAXIMUM) * (sorted.length - INCREMENT_BY_ONE);
+    const rank =
+      (pct / PERCENTILE_MAXIMUM) * (sorted.length - INCREMENT_BY_ONE);
     const lowerIndex = Math.floor(rank);
     const upperIndex = Math.ceil(rank);
 

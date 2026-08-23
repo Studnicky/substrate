@@ -48,7 +48,7 @@ interface HealthCheckEntryInterface {
  */
 export class HealthRegistry {
   private static isConstructed<TInstance extends HealthRegistry>(
-    value: unknown,
+    value: object,
     constructor: Function & { readonly 'prototype': TInstance }
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -63,7 +63,10 @@ export class HealthRegistry {
   static create<TInstance extends HealthRegistry>(this: Function & { readonly 'prototype': TInstance }): TInstance {
     const result: unknown = Reflect.construct(this, []);
 
-    if (!HealthRegistry.isConstructed(result, this)) {
+    if (typeof result !== 'object' || result === null) {
+      throw new TypeError('HealthRegistry.create() must construct a HealthRegistry instance');
+    }
+    if (!HealthRegistry.isConstructed<TInstance>(result, this)) {
       throw new TypeError('HealthRegistry.create() must construct a HealthRegistry instance');
     }
 
@@ -213,7 +216,7 @@ export class HealthRegistry {
     }
 
     this.hooks.invoke('onCheckResult', () => {
-      const hookResult = this.onCheckResult(name, result.status, result.metadata);
+      const hookResult = this.onCheckResult(name, result);
 
       return hookResult;
     });
@@ -262,7 +265,7 @@ export class HealthRegistry {
   protected onCheckRegistered(_name: string): void {}
 
   /** Fires once per check as it settles during `evaluate()` — success, rejection, or timeout. */
-  protected onCheckResult(_name: string, _status: HealthStatusEntity.Type, _metadata?: unknown): void {}
+  protected onCheckResult(_name: string, _result: HealthCheckResultInterface): void {}
 
   /** Fires once per `evaluate()` call, after every registered check has settled. */
   protected onAggregate(_overall: HealthStatusEntity.Type, _results: ReadonlyMap<string, HealthCheckResultInterface>): void {}

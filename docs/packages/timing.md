@@ -17,7 +17,7 @@ pnpm add @studnicky/timing
 
 ## Usage
 
-Create a `Timing` instance with `Timing.create(options?)`, then record frozen `component.operation[.status]` data with `TimingEvent.create({ component, operation, status? })`. Elapsed milliseconds are collected in a flat map keyed by event name:
+Create a `Timing` instance with `Timing.create()` or a trusted `TimingOptionsEntity.create(...)` value, then record frozen `component.operation[.status]` data with `TimingEvent.create({ component, operation, status? })`. Elapsed milliseconds are collected in a flat map keyed by event name:
 
 <<< ../../packages/timing/examples/basic-usage.ts#usage
 
@@ -31,7 +31,7 @@ Create a `Timing` instance with `Timing.create(options?)`, then record frozen `c
 
 ### Direct factory
 
-`Timing.create({ maxEvents: 50 })` constructs the tracker. The example records a `GraphAdapter.query` event plus three `CacheService.get` events with `start`, `complete`, and `hit` statuses. The output map shows each event key with its elapsed-milliseconds value relative to instance creation.
+`Timing.create(TimingOptionsEntity.create({ maximumEvents: 50 }))` constructs the tracker. The example records a `GraphAdapter.query` event plus three `CacheService.get` events with `start`, `complete`, and `hit` statuses. The output map shows each event key with its elapsed-milliseconds value relative to instance creation.
 
 <RunnableExample src="packages/timing/examples/basic-usage" title="Basic timing — direct factory, events, elapsed-ms output" />
 
@@ -43,7 +43,7 @@ Create a `Timing` instance with `Timing.create(options?)`, then record frozen `c
 
 ## Public API
 
-The root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TIMING_STATUS`, `TimingBuildError`, and `TimingValidator`. Schema-backed timing entities use `@studnicky/timing/entities`; `TimingInterface` uses `@studnicky/timing/interfaces`.
+The root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TIMING_STATUS`, and `TimingBuildError`. Schema-backed timing entities use `@studnicky/timing/entities`; `TimingInterface` uses `@studnicky/timing/interfaces`.
 
 ## Extending
 
@@ -94,4 +94,3 @@ import type { TimingInterface } from '@studnicky/timing/interfaces';
 | `Timing` | Provides timing functionality. | `@studnicky/timing` |
 | `TimingBuildError` | Represents timing build failures. | `@studnicky/timing` |
 | `TimingEvent` | Provides timing event functionality. | `@studnicky/timing` |
-| `TimingValidator` | Provides timing validator functionality. | `@studnicky/timing` |

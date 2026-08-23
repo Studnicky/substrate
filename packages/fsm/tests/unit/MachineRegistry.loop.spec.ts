@@ -112,11 +112,7 @@ const runnerMap: RunnerMap = {
     registry.register(scenarioCase.input.name, Fixture.interpreter());
     assert.throws(
       () => registry.register(scenarioCase.input.name, Fixture.interpreter()),
-      (err: unknown) => {
-        assert.ok(err instanceof MachineAlreadyRegisteredError);
-        assert.equal(err.constructor.name, scenarioCase.expected.errorName);
-        return true;
-      }
+      MachineAlreadyRegisteredError
     );
   },
   'has-check': (scenarioCase) => {

@@ -6,6 +6,7 @@ import type { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
 import type { FetchOptionsInterface } from './FetchOptionsInterface.js';
 import type { QueryParametersInterface } from './QueryParametersInterface.js';
+import type { RequestIdGeneratorInterface } from './RequestIdGeneratorInterface.js';
 
 /**
  * Client configuration options
@@ -107,7 +108,7 @@ export interface ClientConfigInterface {
    * }
    * ```
    */
-  'requestIdGenerator'?: () => string;
+  'requestIdGenerator'?: RequestIdGeneratorInterface;
 
   /**
    * Default timeout in milliseconds

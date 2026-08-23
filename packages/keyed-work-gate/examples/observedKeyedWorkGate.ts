@@ -2,6 +2,7 @@
 
 // #region usage
 import { Coalesce } from '@studnicky/concurrency';
+import { CoalesceOptionsEntity } from '@studnicky/concurrency/entities';
 import { Mutex } from '@studnicky/mutex';
 import assert from 'node:assert/strict';
 import { setTimeout } from 'node:timers/promises';
@@ -68,28 +69,11 @@ class ReportingKeyedWorkGate extends KeyedWorkGate<string> {
 
 let fetchCount = 0;
 
-class UserProfile {
-  static async fetch(userId: string): Promise<UserProfile> {
+class WorkResult {
+  static async fetch(): Promise<CoalesceOptionsEntity.Type> {
     fetchCount += 1;
     await setTimeout(30);
-    return new UserProfile(userId, fetchCount);
-  }
-
-  private constructor(
-    readonly id: string,
-    readonly version: number
-  ) {
-  }
-}
-
-class ResultValidation {
-  static acceptsUndefined(value: unknown): value is undefined {
-    const result = value === undefined;
-    return result;
-  }
-
-  static acceptsUserProfile(value: unknown): value is UserProfile {
-    const result = value instanceof UserProfile;
+    const result = CoalesceOptionsEntity.create({ 'timeout': fetchCount });
     return result;
   }
 }
@@ -102,20 +86,20 @@ const gate = ReportingKeyedWorkGate.tracked(mutex, coalesce);
 
 // Three concurrent callers for the same key collapse into one execution via
 // runSingleFlight — the leader still acquires the mutex before running.
-const profiles = await Promise.all([
-  gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }, ResultValidation.acceptsUserProfile),
-  gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }, ResultValidation.acceptsUserProfile),
-  gate.runSingleFlight('user-42', () => { const result = UserProfile.fetch('user-42'); return result; }, ResultValidation.acceptsUserProfile)
+const results = await Promise.all([
+  gate.runSingleFlight('user-42', CoalesceOptionsEntity, WorkResult.fetch),
+  gate.runSingleFlight('user-42', CoalesceOptionsEntity, WorkResult.fetch),
+  gate.runSingleFlight('user-42', CoalesceOptionsEntity, WorkResult.fetch)
 ]);
 
-console.log('Single-flight results:', profiles[0], profiles[1], profiles[2]);
+console.log('Single-flight results:', results[0], results[1], results[2]);
 console.log('Report:', gate.report());
 // #endregion usage
 
 assert.ok(gate instanceof ReportingKeyedWorkGate);
 assert.equal(fetchCount, 1, 'the coalesced group only invoked fetchUserProfile once');
-assert.deepEqual(profiles[0], profiles[1]);
-assert.deepEqual(profiles[1], profiles[2]);
+assert.deepEqual(results[0], results[1]);
+assert.deepEqual(results[1], results[2]);
 
 const report = gate.report();
 
@@ -130,11 +114,11 @@ await Promise.all([
   gate.runSerialized('user-42', async () => {
     serializedRuns += 1;
     await setTimeout(5);
-  }, ResultValidation.acceptsUndefined),
+  }),
   gate.runSerialized('user-42', async () => {
     serializedRuns += 1;
     await setTimeout(5);
-  }, ResultValidation.acceptsUndefined)
+  })
 ]);
 
 assert.equal(serializedRuns, 2, 'runSerialized never skips or shares calls');

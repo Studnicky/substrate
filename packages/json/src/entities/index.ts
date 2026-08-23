@@ -1,5 +1,9 @@
 export { DraftNodeStateEntity } from './DraftNodeStateEntity.js';
+export { JsonObjectEntity } from './JsonObjectEntity.js';
+export { JsonValueEntity } from './JsonValueEntity.js';
 export { PatchApplyResultStatusEntity } from './PatchApplyResultStatusEntity.js';
 export { PatchOperationCoreEntity } from './PatchOperationCoreEntity.js';
+export { PatchOperationEntity } from './PatchOperationEntity.js';
+export { PatchOperationsEntity } from './PatchOperationsEntity.js';
 export { PathGetOptionsEntity } from './PathGetOptionsEntity.js';
 export { PathWildcardResultEntity } from './PathWildcardResultEntity.js';

@@ -66,7 +66,7 @@ function runErrorArgsCase(): void {
 function runInvalidConfigCase(scenarioCase: ScenarioCase): void {
   assert.throws(() => {
     VisibleRange.create(buildConfig(scenarioCase.input.visibleRange));
-  }, (error: unknown) => {
+  }, (error: Error) => {
     assert.ok(error instanceof VisibleRangeError);
     assert.equal(error.constructor.name, scenarioCase.expected.errorName);
     return true;

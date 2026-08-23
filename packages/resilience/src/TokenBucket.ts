@@ -13,9 +13,9 @@ interface TokenBucketSubclassInterface<TInstance> extends Function {
 }
 
 class TokenBucketInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: TokenBucketSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -45,7 +45,7 @@ export class TokenBucket {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!TokenBucketInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (typeof result !== 'object' || result === null || !TokenBucketInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('TokenBucket.create() did not construct the requested subclass.');
     }
     return result;

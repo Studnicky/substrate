@@ -1,9 +1,11 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { Rule } from 'eslint';
 import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { DEFAULT_OPTIONS } from './constants/InlineTrivialLogicConstants.js';
+import { SchemaValidator } from '@studnicky/json';
+
 import { AstHelpers } from './shared/astHelpers.js';
 import { DeclareThenReturnShape } from './shared/DeclareThenReturnShape.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
@@ -133,6 +135,9 @@ namespace InlineTrivialLogicOptionsEntity {
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
+
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }
 
 /**
@@ -492,7 +497,7 @@ class TypeContractGuard {
 // nothing. None of these forwards to anything else; each one IS the value it produces. There
 // is no callee to inline, no hidden delegation these three could be replaced by calling
 // directly instead. `Empty.string()` and `LogEventName.create()` are the general case:
-// `DEFAULT_OPTIONS.allowLiterals` (see that constant's own comment) now defaults to `true`, so
+// The schema's `allowLiterals` default is `true`, so
 // a body that reduces to a `Literal`/`TemplateLiteral` is exempt by default — a changed
 // default rather than a new branch, since the option already existed for exactly this
 // question and only its DEFAULT value was wrong. `BackoffStrategy.constant` needs one more
@@ -551,15 +556,7 @@ class ForwardedReturnReduction {
 
 export const inlineTrivialLogic: Rule.RuleModule = {
   'create': (context) => {
-    const rawOptions: unknown = context.options.at(0);
-    const options: Required<InlineTrivialLogicOptionsEntity.Type> = {
-      'allowLiterals': ObjectGuard.isObject(rawOptions) && typeof rawOptions.allowLiterals === 'boolean'
-        ? rawOptions.allowLiterals
-        : DEFAULT_OPTIONS.allowLiterals,
-      'allowMemberExpressions': ObjectGuard.isObject(rawOptions) && typeof rawOptions.allowMemberExpressions === 'boolean'
-        ? rawOptions.allowMemberExpressions
-        : DEFAULT_OPTIONS.allowMemberExpressions
-    };
+    const options = InlineTrivialLogicOptionsEntity.intake(context.options.at(0) ?? {});
 
     const reportIfTrivial = (node: Rule.Node, expression: unknown): void => {
       const type = AstHelpers.getNodeType(expression);

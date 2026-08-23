@@ -24,9 +24,9 @@ interface DeadLetterQueueSubclassInterface<TInstance> extends Function {
 }
 
 class DeadLetterQueueInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: DeadLetterQueueSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -68,7 +68,7 @@ export class DeadLetterQueue<T> {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!DeadLetterQueueInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (typeof result !== 'object' || result === null || !DeadLetterQueueInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('DeadLetterQueue.create() did not construct the requested subclass.');
     }
     return result;

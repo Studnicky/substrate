@@ -3,8 +3,9 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { TimingEventDataEntity, TimingOptionsEntity } from '../src/entities/index.js';
+import type { TimingEventDataEntity } from '../src/entities/index.js';
 
+import { TimingOptionsEntity } from '../src/entities/index.js';
 import { Timing, TimingEvent } from '../src/index.js';
 
 class ObservedTiming extends Timing {
@@ -17,7 +18,7 @@ class ObservedTiming extends Timing {
   clearCount = 0;
   getEventsCalls: { 'eventCount': number }[] = [];
 
-  public constructor(options: TimingOptionsEntity.Type = {}) {
+  public constructor(options: TimingOptionsEntity.Type = TimingOptionsEntity.create()) {
     super(options);
   }
 
@@ -50,7 +51,7 @@ class ObservedTiming extends Timing {
 }
 
 // Create an ObservedTiming with a small maximumEvents to trigger eviction
-const timing = new ObservedTiming({ 'maximumEvents': 3 });
+const timing = new ObservedTiming(TimingOptionsEntity.create({ 'maximumEvents': 3 }));
 
 // Record two events (cache: initialize + DbAdapter.query + CacheService.get = 3, at capacity)
 timing.event(

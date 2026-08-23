@@ -7,15 +7,17 @@ import scenarioGroups from './error-type-guards.scenarios.json' with { type: 'js
 type ScenarioCase = {
   description: string;
   expected: { result: boolean };
-  input: { error: unknown; guard: keyof typeof errorTypeGuards };
+  input: { error: ErrorFixture; guard: keyof typeof errorTypeGuards };
   name: string;
 };
 
-function materializeError(error: unknown): unknown {
+type ErrorFixture = string | Record<string, number | string>;
+
+function materializeError(error: ErrorFixture): ErrorFixture | Error {
   if (error !== null && typeof error === 'object' && 'shape' in error && (error as { shape?: string }).shape === 'native-error') {
     const nativeError = new Error('native error');
     Object.assign(nativeError, error);
-    delete (nativeError as { shape?: unknown }).shape;
+    Reflect.deleteProperty(nativeError, 'shape');
     return nativeError;
   }
 

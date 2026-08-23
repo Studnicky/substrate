@@ -11,6 +11,7 @@ import { VirtualClockProvider } from '../../src/clock/VirtualClockProvider.js';
 import { VirtualTimeCounter } from '../../src/clock/VirtualTimeCounter.js';
 import type { ClockProviderInterface } from '../../src/interfaces/ClockProviderInterface.js';
 import { RealTimeClockProviderOptionsEntity } from '../../src/entities/RealTimeClockProviderOptionsEntity.js';
+import { VirtualTimeCounterOptionsEntity } from '../../src/entities/VirtualTimeCounterOptionsEntity.js';
 import { ClockError } from '../../src/errors/ClockError.js';
 import scenarioGroups from './Clock.scenarios.json' with { type: 'json' };
 
@@ -552,9 +553,9 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const counter = createVirtualTimeCounter(input.counterOptions);
     const clock = AsyncRejectingNowClock.create(VirtualClockProvider.create(counter));
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    let rejectionEvents = 0;
+    const onUnhandledRejection = (): void => {
+      rejectionEvents++;
     };
     process.on('unhandledRejection', onUnhandledRejection);
     return (async () => {
@@ -563,7 +564,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
         assert.strictEqual(result, expected.result);
         await new Promise((resolve) => { setImmediate(resolve); });
         await new Promise((resolve) => { setImmediate(resolve); });
-        assert.strictEqual(rejectionEvents.length, expected.unhandledRejections);
+        assert.strictEqual(rejectionEvents, expected.unhandledRejections);
       } finally {
         process.off('unhandledRejection', onUnhandledRejection);
       }
@@ -578,7 +579,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     class HookedRealProvider extends RealTimeClockProvider {
       readonly nowEvents: number[] = [];
       readonly hrtimeEvents: bigint[] = [];
-      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+      public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
       protected override onNow(timestamp: number): void { this.nowEvents.push(timestamp); }
       protected override onHrtime(value: bigint): void { this.hrtimeEvents.push(value); }
     }
@@ -602,7 +603,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class HookedRealProvider extends RealTimeClockProvider {
       readonly nowEvents: number[] = [];
-      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+      public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
       protected override onNow(timestamp: number): void { this.nowEvents.push(timestamp); }
     }
 
@@ -624,7 +625,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class HookedRealProvider extends RealTimeClockProvider {
       readonly hrtimeEvents: bigint[] = [];
-      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+      public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
       protected override onHrtime(value: bigint): void { this.hrtimeEvents.push(value); }
     }
 
@@ -730,14 +731,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
     };
     class ThrowingRealNowProvider extends RealTimeClockProvider {
-      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+      public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
       protected override onNow(): void { throw new Error('provider onNow boom'); }
     }
 
     const realTimeMock = mockRealTime(input.rawMs);
     try {
       const provider = new ThrowingRealNowProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
-      assert.throws(() => { provider.now(); }, (thrown: unknown) => {
+      assert.throws(() => { provider.now(); }, (thrown: Error) => {
         assert.equal(thrown instanceof HookInvocationError, expected.hookError);
         assert.ok(thrown instanceof HookInvocationError);
         assert.strictEqual(thrown.hookName, 'onNow');
@@ -757,14 +758,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
     };
     class ThrowingRealHrtimeProvider extends RealTimeClockProvider {
-      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+      public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
       protected override onHrtime(): void { throw new Error('provider onHrtime boom'); }
     }
 
     const realTimeMock = mockRealTime(input.rawMs);
     try {
       const provider = new ThrowingRealHrtimeProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
-      assert.throws(() => { provider.hrtime(); }, (thrown: unknown) => {
+      assert.throws(() => { provider.hrtime(); }, (thrown: Error) => {
         assert.equal(thrown instanceof HookInvocationError, expected.hookError);
         assert.ok(thrown instanceof HookInvocationError);
         assert.strictEqual(thrown.hookName, 'onHrtime');
@@ -788,7 +789,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const counter = createVirtualTimeCounter(input.counterOptions);
     const provider = new ThrowingVirtualNowProvider(counter);
-    assert.throws(() => { provider.now(); }, (thrown: unknown) => {
+    assert.throws(() => { provider.now(); }, (thrown: Error) => {
       assert.equal(thrown instanceof HookInvocationError, expected.hookError);
       assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onNow');
@@ -809,7 +810,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const counter = createVirtualTimeCounter(input.counterOptions);
     const provider = new ThrowingVirtualHrtimeProvider(counter);
-    assert.throws(() => { provider.hrtime(); }, (thrown: unknown) => {
+    assert.throws(() => { provider.hrtime(); }, (thrown: Error) => {
       assert.equal(thrown instanceof HookInvocationError, expected.hookError);
       assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onHrtime');
@@ -826,7 +827,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     class HookedCounter extends VirtualTimeCounter {
       readonly advanceEvents: Array<{ deltaMs: number; nowMs: number }> = [];
       readonly nowMsEvents: number[] = [];
-      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
       protected override onAdvance(deltaMs: number, nowMs: number): void {
         this.advanceEvents.push({ deltaMs, nowMs });
       }
@@ -850,7 +851,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class HookedCounter extends VirtualTimeCounter {
       readonly advanceEvents: Array<{ deltaMs: number; nowMs: number }> = [];
-      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
       protected override onAdvance(deltaMs: number, nowMs: number): void {
         this.advanceEvents.push({ deltaMs, nowMs });
       }
@@ -871,7 +872,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class HookedCounter extends VirtualTimeCounter {
       readonly advanceEvents: Array<{ deltaMs: number; nowMs: number }> = [];
-      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
       protected override onAdvance(deltaMs: number, nowMs: number): void {
         this.advanceEvents.push({ deltaMs, nowMs });
       }
@@ -892,7 +893,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class HookedCounter extends VirtualTimeCounter {
       readonly nowMsEvents: number[] = [];
-      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
       protected override onNowMs(value: number): void {
         this.nowMsEvents.push(value);
       }
@@ -913,7 +914,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class HookedCounter extends VirtualTimeCounter {
       readonly nowMsEvents: number[] = [];
-      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
       protected override onNowMs(value: number): void {
         this.nowMsEvents.push(value);
       }
@@ -939,7 +940,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const counter = createVirtualTimeCounter(input.counterOptions);
     const clock = new ThrowingNowClock(VirtualClockProvider.create(counter));
-    assert.throws(() => { clock.now(); }, (thrown: unknown) => {
+    assert.throws(() => { clock.now(); }, (thrown: Error) => {
       assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onNow');
       return true;
@@ -958,7 +959,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const counter = createVirtualTimeCounter(input.counterOptions);
     const clock = new ThrowingHrtimeClock(VirtualClockProvider.create(counter));
-    assert.throws(() => { clock.hrtime(); }, (thrown: unknown) => {
+    assert.throws(() => { clock.hrtime(); }, (thrown: Error) => {
       assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onHrtime');
       return true;
@@ -971,12 +972,12 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
     };
     class ThrowingAdvanceCounter extends VirtualTimeCounter {
-      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
       protected override onAdvance(): void { throw new Error('onAdvance boom'); }
     }
 
     const counter = new ThrowingAdvanceCounter(materializeVirtualTimeCounterOptions(input.counterOptions));
-    assert.throws(() => { counter.advance(input.advanceMs); }, (thrown: unknown) => {
+    assert.throws(() => { counter.advance(input.advanceMs); }, (thrown: Error) => {
       assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onAdvance');
       return true;
@@ -989,12 +990,12 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       input: { counterOptions: VirtualTimeCounterOptionsInput };
     };
     class ThrowingNowMsCounter extends VirtualTimeCounter {
-      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(options ?? {}); }
+      public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
       protected override onNowMs(): void { throw new Error('onNowMs boom'); }
     }
 
     const counter = new ThrowingNowMsCounter(materializeVirtualTimeCounterOptions(input.counterOptions));
-    assert.throws(() => { counter.nowMs(); }, (thrown: unknown) => {
+    assert.throws(() => { counter.nowMs(); }, (thrown: Error) => {
       assert.ok(thrown instanceof HookInvocationError);
       assert.strictEqual(thrown.hookName, 'onNowMs');
       return true;
@@ -1057,7 +1058,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
     };
     class OffsetRealTimeClockProvider extends RealTimeClockProvider {
-      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
+      public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
       // Exposes the protected `offsetMs` getter so the subclass-access claim in
       // this scenario's description is actually exercised.
       public get exposedOffsetMs(): number { return this.offsetMs; }

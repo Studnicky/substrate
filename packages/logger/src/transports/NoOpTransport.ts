@@ -6,9 +6,9 @@ interface NoOpTransportSubclassInterface<TInstance> extends Function {
 }
 
 class NoOpTransportInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: NoOpTransportSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -39,7 +39,7 @@ export class NoOpTransport implements TransportInterface {
     this: NoOpTransportSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (!NoOpTransportInstance.belongsTo(this, result)) {
+    if (result === null || typeof result !== 'object' || !NoOpTransportInstance.belongsTo(this, result)) {
       throw new TypeError('NoOpTransport.create() did not construct the requested subclass.');
     }
     return result;

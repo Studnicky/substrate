@@ -1,10 +1,11 @@
 import type { DraftNodeStateEntity } from '../entities/DraftNodeStateEntity.js';
+import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
 
 /** Internal copy-on-write state for one draftable object or array. */
 export interface DraftNodeInterface {
-  'base': unknown;
+  'base': JsonValueEntity.Type;
   'children': Map<PropertyKey, DraftNodeInterface>;
-  'copy': Record<PropertyKey, unknown> | unknown[] | undefined;
+  'copy': Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[] | undefined;
   'isArray': DraftNodeStateEntity.Type['isArray'];
-  'proxies': Map<PropertyKey, unknown>;
+  'proxies': Map<PropertyKey, object>;
 }

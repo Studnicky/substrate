@@ -12,9 +12,9 @@ export class DispatcherAgent {
     throw new TypeError('DispatcherAgent is a static factory');
   }
 
-  static create(config: DispatcherConfigEntity.Type): Agent {
+  static create(config: DispatcherConfigEntity.Type): Agent | TestDispatcher {
     if (process.env.SUBSTRATE_FETCH_TEST_TRANSPORT === '1') {
-      const result = TestDispatcher.create(config) as unknown as Agent;
+      const result = TestDispatcher.create(config);
       return result;
     }
 
@@ -73,15 +73,15 @@ export class DispatcherAgent {
     };
   }
 
-  static #setIfTruthy(options: Record<string, unknown>, key: string, value: unknown): void {
-    if (value !== undefined && value !== null && value !== 0 && value !== '') { Reflect.set(options, key, value); }
+  static #setIfTruthy(options: Record<string, unknown>, key: string, value: number | undefined): void {
+    if (value !== undefined && value !== 0) { Reflect.set(options, key, value); }
   }
 
-  static #setIfDefined(options: Record<string, unknown>, key: string, value: unknown): void {
+  static #setIfDefined(options: Record<string, unknown>, key: string, value: number | string | undefined): void {
     if (value !== undefined) { Reflect.set(options, key, value); }
   }
 
-  static #setIfNotNull(options: Record<string, unknown>, key: string, value: unknown): void {
+  static #setIfNotNull(options: Record<string, unknown>, key: string, value: number | null): void {
     if (value !== null) { Reflect.set(options, key, value); }
   }
 

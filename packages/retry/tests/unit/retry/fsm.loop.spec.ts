@@ -7,7 +7,7 @@ import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateE
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { RetryContextInterface } from '../../../src/interfaces/RetryContextInterface.js';
 
-import { MaximumRetriesExceededError, NonRetryableError } from '../../../src/errors/index.js';
+import { MaximumRetriesExceededError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
 
@@ -151,10 +151,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
     await assert.rejects(
       () => retry.execute(async () => 'should not reach caller'),
-      (error: unknown): boolean => {
-        const message = String(scenarioCase.expected.errorMessageIncludes);
-        return error instanceof Error && (error.message.includes(message) || (error.cause instanceof Error && error.cause.message.includes(message)));
-      }
+      new RegExp(String(scenarioCase.expected.errorMessageIncludes))
     );
   },
   'non-retryable-error': async (scenarioCase) => {
@@ -165,7 +162,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error('fatal'); }),
-      (error: unknown) => error instanceof NonRetryableError && error.name === String(scenarioCase.expected.errorName)
+      { 'name': String(scenarioCase.expected.errorName) }
     );
     assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
   },

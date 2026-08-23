@@ -1,5 +1,3 @@
-import { Guard } from '@studnicky/types';
-
 import type { BackoffStrategyInterface } from '../../interfaces/BackoffStrategyInterface.js';
 
 import {
@@ -46,10 +44,5 @@ export class BackoffStrategy {
   /** Wraps a strategy capping its output at ceilingMs. */
   static withCeiling(strategy: BackoffStrategyInterface, ceilingMs: number): BackoffStrategyInterface {
     return (attempt, base) => { const result = Math.min(ceilingMs, strategy(attempt, base)); return result; };
-  }
-
-  static isValid(value: unknown): value is BackoffStrategyInterface {
-    const result = Guard.isFunction(value);
-    return result;
   }
 }

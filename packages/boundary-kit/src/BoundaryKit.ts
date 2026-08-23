@@ -59,7 +59,7 @@ interface BoundaryKitSubclassInterface<TInstance> extends Function {
  */
 export class BoundaryKit {
   private static isConstructed<TInstance extends BoundaryKit>(
-    value: unknown,
+    value: object,
     constructor: BoundaryKitSubclassInterface<TInstance>
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -81,6 +81,9 @@ export class BoundaryKit {
       'retry': BoundaryKit.#resolveRetry(config.retry),
       'throttle': BoundaryKit.#resolveThrottle(config.throttle)
     }]);
+    if (typeof result !== 'object' || result === null) {
+      throw new TypeError('BoundaryKit.create() must construct a BoundaryKit instance');
+    }
     if (!BoundaryKit.isConstructed(result, this)) {
       throw new TypeError('BoundaryKit.create() must construct a BoundaryKit instance');
     }

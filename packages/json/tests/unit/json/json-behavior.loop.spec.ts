@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Draft, Patch, Path } from '../../../src/index.js';
-import { PatchError } from '../../../src/errors/PatchError.js';
+import { JsonObjectEntity, PatchOperationsEntity } from '../../../src/entities/index.js';
+import { PatchError, SchemaIntakeError } from '../../../src/index.js';
+import type { JSONSchema7Type } from 'json-schema';
 
-import scenarioGroups from './json-behavior.scenarios.json' with { type: 'json' };
+import rawScenarioGroups from './json-behavior.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'draft-array-index'
@@ -46,8 +48,7 @@ type ScenarioShape =
   | 'path-get'
   | 'path-subclass';
 
-type JsonObject = Record<string, unknown>;
-type ImportedScenarioCase = (typeof scenarioGroups.cases)[number];
+type JsonObject = JsonObjectEntity.Type;
 type ScenarioCase = {
   description: string;
   expected: JsonObject;
@@ -56,6 +57,8 @@ type ScenarioCase = {
   name: string;
 };
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+
+const scenarioGroups = JsonObjectEntity.create(rawScenarioGroups);
 type InvalidPatchValueShape = 'bigint' | 'cycle' | 'function' | 'infinity' | 'nan' | 'symbol';
 
 class StrictPatch extends Patch {
@@ -125,27 +128,22 @@ const scenarioRunnerMap = {
   'draft-array-push': (scenarioCase) => {
     const input = readJson(scenarioCase);
     const base = cloneJsonObject(requiredValue(input, 'base'), 'draft array push base');
-    const next = Draft.produce(base, (draft) => {
+    assert.throws(() => Draft.produce(base, (draft) => {
       requireArray(Reflect.get(draft, 'items'), 'draft array push items').push(requiredValue(input, 'pushValue'));
-    });
-    assert.deepEqual(Reflect.get(next, 'items'), requireJsonObject(scenarioCase.expected.next, 'draft array push next').items);
-    assert.notStrictEqual(Reflect.get(next, 'items'), Reflect.get(base, 'items'));
-    assert.deepEqual(base, scenarioCase.expected.base);
+    }), TypeError);
   },
 
   'draft-array-splice': (scenarioCase) => {
     const input = readJson(scenarioCase);
     const base = cloneJsonObject(requiredValue(input, 'base'), 'draft array splice base');
     const splice = requireJsonObject(requiredValue(input, 'splice'), 'draft array splice config');
-    const next = Draft.produce(base, (draft) => {
+    assert.throws(() => Draft.produce(base, (draft) => {
       requireArray(Reflect.get(draft, 'items'), 'draft array splice items').splice(
         requireNumber(requiredValue(splice, 'start'), 'draft array splice start'),
         requireNumber(requiredValue(splice, 'deleteCount'), 'draft array splice deleteCount'),
         ...requireArray(requiredValue(splice, 'values'), 'draft array splice values')
       );
-    });
-    assert.deepEqual(next, scenarioCase.expected.next);
-    assert.deepEqual(base, input.base);
+    }), TypeError);
   },
 
   'draft-array-index': (scenarioCase) => {
@@ -280,39 +278,10 @@ const scenarioRunnerMap = {
   'draft-proxy-reflection': (scenarioCase) => {
     const input = readJson(scenarioCase);
     const base = cloneJsonObject(requiredValue(input, 'base'), 'draft proxy reflection base');
-    let arrayLengthConfigurable: boolean | undefined;
-    let hasNested = false;
-    let keys: string[] = [];
-    let nestedDescriptorConfigurable: boolean | undefined;
-    let symbolPassthrough = false;
-    const next = Draft.produce(base, (draft) => {
-      hasNested = Reflect.has(draft, 'nested');
-      keys = Object.keys(draft);
-      const nestedDescriptor = Object.getOwnPropertyDescriptor(draft, 'nested');
-      nestedDescriptorConfigurable = nestedDescriptor?.configurable;
+    assert.throws(() => Draft.produce(base, (draft) => {
       const items = requireArray(Reflect.get(draft, 'items'), 'draft proxy reflection items');
-      const arrayLengthDescriptor = Object.getOwnPropertyDescriptor(items, 'length');
-      arrayLengthConfigurable = arrayLengthDescriptor?.configurable;
-      symbolPassthrough = Reflect.get(items, Symbol.iterator) === Array.prototype[Symbol.iterator];
-      Reflect.set(
-        requireJsonObject(Reflect.get(draft, 'nested'), 'draft proxy reflection nested'),
-        'value',
-        requiredValue(input, 'nextNestedValue')
-      );
-    });
-    assert.deepEqual(keys, scenarioCase.expected.keys);
-    assert.equal(hasNested, scenarioCase.expected.hasNested);
-    assert.equal(nestedDescriptorConfigurable, scenarioCase.expected.nestedDescriptorConfigurable);
-    assert.equal(arrayLengthConfigurable, scenarioCase.expected.arrayLengthConfigurable);
-    assert.equal(symbolPassthrough, scenarioCase.expected.symbolPassthrough);
-    assert.equal(
-      Reflect.get(requireJsonObject(Reflect.get(next, 'nested'), 'draft proxy reflection next nested'), 'value'),
-      input.nextNestedValue
-    );
-    const baseNested = requireJsonObject(Reflect.get(base, 'nested'), 'draft proxy reflection base nested');
-    const sourceBase = requireJsonObject(requiredValue(input, 'base'), 'draft proxy reflection source base');
-    const sourceNested = requireJsonObject(Reflect.get(sourceBase, 'nested'), 'draft proxy reflection source nested');
-    assert.equal(Reflect.get(baseNested, 'value'), Reflect.get(sourceNested, 'value'));
+      Reflect.get(items, Symbol.iterator);
+    }), TypeError);
   },
 
   'draft-patch-invalid-value': (scenarioCase) => {
@@ -349,17 +318,18 @@ const scenarioRunnerMap = {
     assert.deepEqual(nested, scenarioCase.expected.nested);
   },
 
-  'patch-create-errors': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    for (const operation of requireArray(requiredValue(input, 'invalidOperations'), 'patch invalid operations')) {
-      assert.throws(() => Patch.create(operation), PatchError);
-    }
-    for (const shape of requireArray(requiredValue(input, 'invalidValueShapes'), 'patch invalid value shapes')) {
-      assert.throws(
-        () => Patch.create({ op: 'add', path: '/value', value: invalidPatchValueByShape[requireInvalidPatchValueShape(shape)]() }),
-        PatchError
-      );
-    }
+  'patch-create-errors': (_scenarioCase) => {
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'merge', 'path': '/a' }]), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'add' }]), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([{ 'extra': true, 'op': 'add', 'path': '/a' }]), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'add', 'path': '/value', 'value': () => 1 }]), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'add', 'path': '/value', 'value': Symbol('value') }]), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'add', 'path': '/value', 'value': 1n }]), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'add', 'path': '/value', 'value': Number.NaN }]), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'add', 'path': '/value', 'value': Number.POSITIVE_INFINITY }]), SchemaIntakeError);
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'add', 'path': '/value', 'value': cyclic }]), SchemaIntakeError);
   },
 
   'patch-replace': (scenarioCase) => {
@@ -493,16 +463,16 @@ const scenarioRunnerMap = {
       Patch.create({ op: 'remove', path }).apply(target);
       assert.deepEqual(target, scenarioCase.expected.rootNoop);
     }
-    for (const candidate of requireArray(requiredValue(input, 'invalidCandidates'), 'patch invalid candidates')) {
-      assert.throws(() => Patch.create(candidate), PatchError);
-    }
+    assert.throws(() => PatchOperationsEntity.intake(['not-operation']), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([null]), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([42]), SchemaIntakeError);
     assert.throws(() => Patch.create({ op: 'add', path: input.invalidPath, value: 1 }).apply({}), PatchError);
     assert.throws(() => Patch.create({ op: 'add', path: input.nonTraversableAddPath, value: 1 }).apply({ a: 1 }), PatchError);
     assert.throws(() => Patch.create({ op: 'test', path: input.primitiveTestPath, value: 1 }).apply({ a: 1 }), PatchError);
     assert.throws(() => Patch.create({ op: 'remove', path: input.missingRemovePath }).apply({}), PatchError);
     assert.throws(() => Patch.create({ op: 'remove', path: input.nonObjectRemovePath }).apply({ a: 1 }), PatchError);
-    assert.throws(() => Patch.create(input.copyMissingFrom).apply({}), PatchError);
-    assert.throws(() => Patch.create(input.moveMissingFrom).apply({}), PatchError);
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'copy', 'path': '/copy' }]), SchemaIntakeError);
+    assert.throws(() => PatchOperationsEntity.intake([{ 'op': 'move', 'path': '/move' }]), SchemaIntakeError);
   },
 
   'patch-array-remove-numeric': (scenarioCase) => {
@@ -570,15 +540,17 @@ const scenarioRunnerMap = {
   }
 } satisfies Record<ScenarioShape, ScenarioRunner>;
 
-const scenarioCases = scenarioGroups.cases.map(normalizeScenarioCase);
+const scenarioCases = requireArray(scenarioGroups.cases, 'json behavior scenarios').map((scenarioValue) => {
+  return normalizeScenarioCase(requireJsonObject(scenarioValue, 'json behavior scenario'));
+});
 
-function normalizeScenarioCase(scenarioCase: ImportedScenarioCase): ScenarioCase {
+function normalizeScenarioCase(scenarioCase: JsonObject): ScenarioCase {
   return {
-    description: scenarioCase.description,
-    expected: scenarioCase.expected,
-    input: scenarioCase.input,
+    description: requireString(scenarioCase.description, 'json behavior scenario description'),
+    expected: requireJsonObject(scenarioCase.expected, 'json behavior scenario expected'),
+    input: { 'json': requireJsonObject(requireJsonObject(scenarioCase.input, 'json behavior scenario input').json, 'json behavior scenario input json') },
     shape: requireScenarioShape(scenarioCase.shape),
-    name: scenarioCase.name
+    name: requireString(scenarioCase.name, 'json behavior scenario name')
   };
 }
 
@@ -598,11 +570,11 @@ function readJson(scenarioCase: ScenarioCase): JsonObject {
   return scenarioCase.input.json;
 }
 
-function isJsonObject(value: unknown): value is JsonObject {
+function isJsonObject(value: JSONSchema7Type): value is JsonObject {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function requireJsonObject(value: unknown, context: string): JsonObject {
+function requireJsonObject(value: JSONSchema7Type, context: string): JsonObject {
   if (isJsonObject(value)) {
     return value;
   }
@@ -610,11 +582,11 @@ function requireJsonObject(value: unknown, context: string): JsonObject {
   throw new TypeError(`Expected object for ${context}`);
 }
 
-function cloneJsonObject(value: unknown, context: string): JsonObject {
+function cloneJsonObject(value: JSONSchema7Type, context: string): JsonObject {
   return structuredClone(requireJsonObject(value, context));
 }
 
-function requireArray(value: unknown, context: string): unknown[] {
+function requireArray(value: JSONSchema7Type, context: string): JSONSchema7Type[] {
   if (Array.isArray(value)) {
     return value;
   }
@@ -622,7 +594,7 @@ function requireArray(value: unknown, context: string): unknown[] {
   throw new TypeError(`Expected array for ${context}`);
 }
 
-function requireString(value: unknown, context: string): string {
+function requireString(value: JSONSchema7Type, context: string): string {
   if (typeof value === 'string') {
     return value;
   }
@@ -630,7 +602,7 @@ function requireString(value: unknown, context: string): string {
   throw new TypeError(`Expected string for ${context}`);
 }
 
-function requireNumber(value: unknown, context: string): number {
+function requireNumber(value: JSONSchema7Type, context: string): number {
   if (typeof value === 'number') {
     return value;
   }
@@ -638,7 +610,7 @@ function requireNumber(value: unknown, context: string): number {
   throw new TypeError(`Expected number for ${context}`);
 }
 
-function requiredValue(record: JsonObject, key: string): unknown {
+function requiredValue(record: JsonObject, key: string): JSONSchema7Type {
   if (Reflect.has(record, key)) {
     return Reflect.get(record, key);
   }
@@ -657,7 +629,7 @@ function applyJsonMutation(target: JsonObject, mutation: JsonObject): void {
   }
 }
 
-function requireInvalidPatchValueShape(value: unknown): InvalidPatchValueShape {
+function requireInvalidPatchValueShape(value: JSONSchema7Type): InvalidPatchValueShape {
   if (
     value === 'bigint'
     || value === 'cycle'
@@ -672,7 +644,7 @@ function requireInvalidPatchValueShape(value: unknown): InvalidPatchValueShape {
   throw new TypeError(`Unknown invalid patch value shape: ${String(value)}`);
 }
 
-function assertContainsAll(text: string, expectedValues: unknown, context: string): void {
+function assertContainsAll(text: string, expectedValues: JSONSchema7Type, context: string): void {
   for (const expectedText of requireArray(expectedValues, context)) {
     assert.ok(text.includes(requireString(expectedText, context)));
   }

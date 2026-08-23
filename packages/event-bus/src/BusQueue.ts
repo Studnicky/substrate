@@ -21,7 +21,7 @@ import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 
 /** Swallows hook failures rather than throwing — a queue processing loop must not halt because an observer hook threw. */
 class BusQueueHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(_hookName: string): void {}
 }
 
 class BusQueueEntry<T> {
@@ -57,9 +57,9 @@ interface BusQueueSubclassInterface<TInstance> extends Function {
 }
 
 class BusQueueInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: BusQueueSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -111,7 +111,7 @@ export class BusQueue<T> {
     const getConstructor = (): BusQueueSubclassInterface<TInstance> => { return this; };
     const constructor = getConstructor();
     const result: unknown = Reflect.construct(constructor, [options]);
-    if (!BusQueueInstance.belongsTo(constructor, result)) {
+    if (typeof result !== 'object' || result === null || !BusQueueInstance.belongsTo(constructor, result)) {
       throw new TypeError('BusQueue.create() did not construct the requested subclass.');
     }
     return result;
@@ -350,5 +350,5 @@ export class BusQueue<T> {
   protected onOverflow(_depth: number): void | Promise<void> {}
 
   /** Fires after handler throws and onError callback (if any) has been called. */
-  protected onHandlerError(_error: unknown): void | Promise<void> {}
+  protected onHandlerError<TError>(_error: TError): void | Promise<void> {}
 }

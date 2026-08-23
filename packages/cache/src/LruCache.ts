@@ -32,7 +32,7 @@ const noExpiry = 0;
  * never affect cache read/write behavior.
  */
 class LruCacheHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(): void {}
 }
 
 /**
@@ -64,9 +64,10 @@ export class LruCache<K, V> {
   #head: LruCacheNodeInterface<K, V> | undefined;
   #tail: LruCacheNodeInterface<K, V> | undefined;
 
-  private static isConstructed<TInstance>(
-    value: unknown,
-    constructor: LruCacheConstructorInterface<TInstance> & LruCacheFunctionInterface
+  private static isConstructed<TInstance extends object>(
+    value: object,
+    constructor: LruCacheConstructorInterface<TInstance> &
+      LruCacheFunctionInterface
   ): value is TInstance {
     const isInstance = value instanceof constructor;
     return isInstance;
@@ -80,11 +81,18 @@ export class LruCache<K, V> {
     this: LruCacheConstructorInterface<TInstance> & LruCacheFunctionInterface,
     options: LruCacheOptionsEntity.Type
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!LruCache.isConstructed<TInstance>(result, this)) {
-      throw new TypeError('LruCache.create() must construct a LruCache instance');
+    const constructed: unknown = Reflect.construct(this, [options]);
+    if (typeof constructed !== 'object' || constructed === null) {
+      throw new TypeError(
+        'LruCache.create() must construct a LruCache instance'
+      );
     }
-    return result;
+    if (!LruCache.isConstructed<TInstance>(constructed, this)) {
+      throw new TypeError(
+        'LruCache.create() must construct a LruCache instance'
+      );
+    }
+    return constructed;
   }
 
   protected constructor(options: LruCacheOptionsEntity.Type) {
@@ -95,7 +103,9 @@ export class LruCache<K, V> {
           return message;
         })
         .join('; ');
-      throw new CacheConfigError(messages.length > 0 ? messages : 'invalid options');
+      throw new CacheConfigError(
+        messages.length > 0 ? messages : 'invalid options'
+      );
     }
 
     this.#capacity = options.capacity;
@@ -180,7 +190,10 @@ export class LruCache<K, V> {
    * `has()` call. Same promotion/expiry/staleness semantics as `get()` — `get()`
    * is implemented in terms of this method.
    */
-  public tryGet(key: K): { readonly 'found': boolean; readonly 'value': V | undefined } {
+  public tryGet(key: K): {
+    readonly 'found': boolean;
+    readonly 'value': V | undefined;
+  } {
     const node = this.#nodes.get(key);
 
     if (node === undefined) {
@@ -222,11 +235,17 @@ export class LruCache<K, V> {
   }
 
   /** Stores value; promotes existing key to MRU or evicts LRU tail if at capacity. */
-  public set(key: K, value: V, options?: { 'staleMs'?: number; 'ttlMs'?: number }): void {
+  public set(
+    key: K,
+    value: V,
+    options?: { 'staleMs'?: number; 'ttlMs'?: number }
+  ): void {
     const effectiveTtl = options?.ttlMs ?? this.#defaultTtlMs;
-    const expiresAt = effectiveTtl !== undefined ? Date.now() + effectiveTtl : noExpiry;
+    const expiresAt =
+      effectiveTtl !== undefined ? Date.now() + effectiveTtl : noExpiry;
     const effectiveStale = options?.staleMs ?? this.#defaultStaleMs;
-    const staleAt = effectiveStale !== undefined ? Date.now() + effectiveStale : noExpiry;
+    const staleAt =
+      effectiveStale !== undefined ? Date.now() + effectiveStale : noExpiry;
 
     const existing = this.#nodes.get(key);
 

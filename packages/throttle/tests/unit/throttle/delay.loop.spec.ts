@@ -50,7 +50,7 @@ const runnerMap: RunnerMap = {
       controller.abort();
       await assert.rejects(
         Delay.for(scenarioCase.input.timeoutMs, controller.signal),
-        (error: unknown) => error instanceof DOMException && error.name === scenarioCase.expected.abortErrorName
+        (error) => error instanceof DOMException && error.name === scenarioCase.expected.abortErrorName
       );
     },
     'delay-rejects-before-timeout': async (scenarioCase) => {
@@ -59,7 +59,7 @@ const runnerMap: RunnerMap = {
       controller.abort();
       await assert.rejects(
         promise,
-        (error: unknown) => error instanceof DOMException && error.name === scenarioCase.expected.abortErrorName
+        (error) => error instanceof DOMException && error.name === scenarioCase.expected.abortErrorName
       );
     },
     'delay-removes-abort-listener': async (scenarioCase) => {

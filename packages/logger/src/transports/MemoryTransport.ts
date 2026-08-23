@@ -10,9 +10,9 @@ interface MemoryTransportSubclassInterface<TInstance> extends Function {
 }
 
 class MemoryTransportInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: MemoryTransportSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
 
@@ -51,7 +51,7 @@ export class MemoryTransport implements TransportInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
 
-    if (!MemoryTransportInstance.belongsTo(this, result)) {
+    if (result === null || typeof result !== 'object' || !MemoryTransportInstance.belongsTo(this, result)) {
       throw new TypeError('MemoryTransport.create() did not construct the requested subclass.');
     }
 

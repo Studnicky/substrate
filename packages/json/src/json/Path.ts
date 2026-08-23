@@ -8,10 +8,12 @@
  * property deny-list.
  */
 
+import type { JsonObjectEntity } from '../entities/JsonObjectEntity.js';
 import type { PathGetOptionsEntity } from '../entities/PathGetOptionsEntity.js';
 import type { PathWildcardResultInterface } from '../interfaces/PathWildcardResultInterface.js';
 
 import { BRACKET_QUOTED_KEY_PATTERN, DANGEROUS_PROPERTIES, NUMERIC_SEGMENT_PATTERN, VALID_IDENTIFIER } from '../constants/PathConstants.js';
+import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 
 export class Path {
   // ---------------------------------------------------------------------------
@@ -93,15 +95,15 @@ export class Path {
    * When `[*]` is encountered, returns a `PathWildcardResultInterface` sentinel
    * describing the matched array and any remaining path suffix.
    *
-   * @param object - The root value to traverse.
+   * @param object - The parsed JSON object to traverse.
    * @param path - Dot-separated path (e.g. `"user.address.city"`).
    * @param options - Optional `maximumDepth` to limit traversal depth.
    */
   public static get(
-    object: unknown,
+    object: JsonObjectEntity.Type,
     path: string,
     options?: PathGetOptionsEntity.Type
-  ): unknown {
+  ): JsonValueEntity.Type | PathWildcardResultInterface | undefined {
     if (path === '') {
       return object;
     }
@@ -111,7 +113,7 @@ export class Path {
       const matches = [...path.matchAll(BRACKET_QUOTED_KEY_PATTERN)];
 
       if (matches.length > 0) {
-        let current: unknown = object;
+        let current: JsonValueEntity.Type = object;
 
         const length = matches.length;
         for (let index = 0; index < length; index += 1) {
@@ -128,7 +130,11 @@ export class Path {
           if (current === null || typeof current !== 'object') {
             return undefined;
           }
-          current = Reflect.get(current, key);
+          const rawValue: unknown = Reflect.get(current, key);
+          if (!JsonValueEntity.validate(rawValue)) {
+            return undefined;
+          }
+          current = rawValue;
         }
 
         return current;
@@ -141,7 +147,7 @@ export class Path {
       return undefined;
     }
 
-    let current: unknown = object;
+    let current: JsonValueEntity.Type = object;
     const length = parts.length;
 
     for (let index = 0; index < length; index += 1) {
@@ -168,7 +174,11 @@ export class Path {
           return undefined;
         }
 
-        const arrayValue: unknown = Reflect.get(current, fieldName);
+        const rawArrayValue: unknown = Reflect.get(current, fieldName);
+        if (!JsonValueEntity.validate(rawArrayValue)) {
+          return undefined;
+        }
+        const arrayValue = rawArrayValue;
 
         if (!Array.isArray(arrayValue)) {
           return undefined;
@@ -190,7 +200,11 @@ export class Path {
 
         const arrayIndexNumber = Number(arrayIndex);
 
-        current = arrayValue[arrayIndexNumber];
+        const rawIndexedValue: unknown = Reflect.get(arrayValue, arrayIndexNumber);
+        if (!JsonValueEntity.validate(rawIndexedValue)) {
+          return undefined;
+        }
+        current = rawIndexedValue;
       } else {
         if (!this.isSafeProperty(part)) {
           return undefined;
@@ -199,7 +213,11 @@ export class Path {
           return undefined;
         }
 
-        current = Reflect.get(current, part);
+        const rawValue: unknown = Reflect.get(current, part);
+        if (!JsonValueEntity.validate(rawValue)) {
+          return undefined;
+        }
+        current = rawValue;
       }
     }
 

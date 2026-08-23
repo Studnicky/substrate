@@ -5,10 +5,7 @@ interface MinimumHeapSubclassInterface<TInstance> extends Function {
 }
 
 class MinimumHeapInstance {
-  static belongsTo<TInstance>(
-    constructor: MinimumHeapSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+  static belongsTo<TInstance extends object>(constructor: MinimumHeapSubclassInterface<TInstance>, value: object): value is TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -23,12 +20,8 @@ export class MinimumHeap {
   static create<TInstance extends MinimumHeap = MinimumHeap>(
     this: MinimumHeapSubclassInterface<TInstance>
   ): TInstance {
-    const resolveSubclassConstructor = (): MinimumHeapSubclassInterface<TInstance> => {
-      return this;
-    };
-
-    const result: unknown = Reflect.construct(resolveSubclassConstructor(), []);
-    if (!MinimumHeapInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    const result: unknown = Reflect.construct(this, []);
+    if (typeof result !== 'object' || result === null || !MinimumHeapInstance.belongsTo(this, result)) {
       throw new TypeError('MinimumHeap.create() did not construct the requested subclass.');
     }
     return result;

@@ -4,5 +4,4 @@
  */
 
 export { ConfigurationError } from './errors/index.js';
-export { ConfigValidation } from './validation/index.js';
 export { ClampedConfig } from './validation/index.js';

@@ -35,7 +35,7 @@ The output shows `Retry.create({ maxRetries: 3 })`, the operation failing twice 
 
 ## Public API
 
-Import `Retry`, `BackoffStrategy`, the guards, and retry errors from `@studnicky/retry`. Retry entities use `@studnicky/retry/entities`, and retry contracts use `@studnicky/retry/interfaces`; algorithm constants are implementation details.
+Import `Retry`, `BackoffStrategy`, and retry errors from `@studnicky/retry`. Configuration is parsed at the boundary through `RetryConfigEntity.intake`, so there are no standalone guard exports. Retry entities use `@studnicky/retry/entities`, and retry contracts use `@studnicky/retry/interfaces`; algorithm constants are implementation details.
 
 ## Custom error classification
 
@@ -80,8 +80,6 @@ import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 | `BackoffStrategy` | Provides backoff strategy functionality. | `@studnicky/retry` |
 | `BackoffStrategyInterface` | Defines the backoff strategy contract. | `@studnicky/retry` |
 | `Retry` | Provides retry functionality. | `@studnicky/retry` |
-| `RetryConfigGuard` | Validates retry config input. | `@studnicky/retry` |
-| `RetryContextGuard` | Validates retry context input. | `@studnicky/retry` |
 | `MaximumRetriesExceededError` | Represents maximum retries exceeded failures. | `@studnicky/retry` |
 | `NonRetryableError` | Represents non retryable failures. | `@studnicky/retry` |
 | `RetryError` | Represents retry failures. | `@studnicky/retry` |

@@ -4,17 +4,17 @@ import { HookInvoker } from '@studnicky/errors';
 
 import { SignalError } from './errors/SignalError.js';
 
-interface SignalSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
 class SignalInstance {
-  static belongsTo<TInstance>(
-    constructor: SignalSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    const result = value instanceof constructor;
+  static construct(constructor: Function): object {
+    const result: unknown = Reflect.construct(constructor, []);
+    if (typeof result !== 'object' || result === null) {
+      throw new TypeError('Signal.create() did not construct an object.');
+    }
+    return result;
+  }
 
+  static belongsTo<TInstance extends object>(constructor: Function, value: object): value is TInstance {
+    const result = value instanceof constructor;
     return result;
   }
 }
@@ -28,13 +28,11 @@ export class Signal {
     this.hooks = hooks;
   }
 
-  static create<TInstance extends Signal = Signal>(this: SignalSubclassInterface<TInstance>): TInstance {
-    const result: unknown = Reflect.construct(this, []);
-
-    if (!SignalInstance.belongsTo(this, result)) {
+  static create<TInstance extends Signal = Signal>(this: Function & { readonly 'prototype': TInstance; }): TInstance {
+    const result = SignalInstance.construct(this);
+    if (!SignalInstance.belongsTo<TInstance>(this, result)) {
       throw new TypeError('Signal.create() did not construct the requested subclass.');
     }
-
     return result;
   }
 

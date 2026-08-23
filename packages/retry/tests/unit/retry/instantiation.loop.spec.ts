@@ -191,7 +191,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
         Number(input.attemptNumber),
         { 'errors': [String(input.invalidError)] }
       ]);
-    }, (error: unknown) => error instanceof TypeError && error.name === String(expected.errorName));
+    }, { 'name': String(expected.errorName) });
   },
   'retry-error-snapshot-clone-fallback': (scenario) => {
     const { expected, input } = scenario;

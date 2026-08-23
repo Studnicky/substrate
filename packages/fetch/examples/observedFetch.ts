@@ -49,7 +49,7 @@ class ObservedFetch extends FetchClient {
     this.hookLog.push('onResponseError');
   }
 
-  protected override onRequestError(error: unknown, method: string, requestId: string, url: string, durationMs: number): void {
+  protected override onRequestError(error: Error, method: string, requestId: string, url: string, durationMs: number): void {
     const line = `[fetch] onRequestError method=${method} url=${url} error=${String(error)} durationMs=${durationMs} requestId=${requestId}`;
 
     console.log(line);

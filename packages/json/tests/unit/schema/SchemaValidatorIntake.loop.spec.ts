@@ -7,10 +7,12 @@ import {
   SchemaIntakeError,
   SchemaValidator
 } from '../../../src/index.js';
-import scenarioGroups from './SchemaValidatorIntake.scenarios.json' with { type: 'json' };
+import { JsonObjectEntity } from '../../../src/entities/index.js';
+import type { JSONSchema7Type } from 'json-schema';
+import rawScenarioGroups from './SchemaValidatorIntake.scenarios.json' with { type: 'json' };
 
-type JsonObject = Record<string, unknown>;
-type ScenarioCase = (typeof scenarioGroups.cases)[number];
+type JsonObject = JsonObjectEntity.Type;
+type ScenarioCase = JsonObject;
 type ScenarioShape =
   | 'assert-isolated'
   | 'create-defaults'
@@ -20,6 +22,8 @@ type ScenarioShape =
   | 'intake-transforms'
   | 'separate-registries';
 type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
+
+const scenarioGroups = JsonObjectEntity.create(rawScenarioGroups);
 
 const scenarioRunnerMap = {
   'intake-transforms': (scenarioCase) => {
@@ -171,7 +175,7 @@ function isScenarioShape(value: string): value is ScenarioShape {
   return Object.hasOwn(scenarioRunnerMap, value);
 }
 
-function requireObject(value: unknown, context: string): JsonObject {
+function requireObject(value: JSONSchema7Type, context: string): JsonObject {
   if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
     const result: JsonObject = {};
     for (const [key, item] of Object.entries(value)) {
@@ -184,7 +188,15 @@ function requireObject(value: unknown, context: string): JsonObject {
   throw new TypeError(`Expected object for ${context}`);
 }
 
-function requireString(value: unknown, context: string): string {
+function requireArray(value: JSONSchema7Type, context: string): JSONSchema7Type[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  throw new TypeError(`Expected array for ${context}`);
+}
+
+function requireString(value: JSONSchema7Type, context: string): string {
   if (typeof value === 'string') {
     return value;
   }
@@ -192,7 +204,7 @@ function requireString(value: unknown, context: string): string {
   throw new TypeError(`Expected string for ${context}`);
 }
 
-function requiredValue(record: JsonObject, key: string): unknown {
+function requiredValue(record: JsonObject, key: string): JSONSchema7Type {
   if (Reflect.has(record, key)) {
     return Reflect.get(record, key);
   }
@@ -200,14 +212,53 @@ function requiredValue(record: JsonObject, key: string): unknown {
   throw new TypeError(`Missing scenario value: ${key}`);
 }
 
+function assertSchemaIntakeMessage(action: () => void, expectedMessage: string): void {
+  try {
+    action();
+    assert.fail('Expected intake to reject non-JSON data');
+  } catch (error) {
+    if (!(error instanceof SchemaIntakeError)) {
+      throw error;
+    }
+
+    assert.equal(error.message, expectedMessage);
+  }
+}
+
 void describe('SchemaValidator intake and create', () => {
-  for (const scenarioCase of scenarioGroups.cases) {
-    void it(scenarioCase.name, () => {
-      if (!isScenarioShape(scenarioCase.shape)) {
-        throw new Error(`Unhandled schema intake scenario shape: ${scenarioCase.shape}`);
+  for (const scenarioValue of requireArray(scenarioGroups.cases, 'schema intake scenarios')) {
+    const scenarioCase = requireObject(scenarioValue, 'schema intake scenario');
+    const shape = requireString(scenarioCase.shape, 'schema intake scenario shape');
+    void it(requireString(scenarioCase.name, 'schema intake scenario name'), () => {
+      if (!isScenarioShape(shape)) {
+        throw new Error(`Unhandled schema intake scenario shape: ${shape}`);
       }
 
-      scenarioRunnerMap[scenarioCase.shape](scenarioCase);
+      scenarioRunnerMap[shape](scenarioCase);
     });
   }
+
+  void it('schema-intake-rejects-nested-non-json-values-with-their-json-pointer', () => {
+    const intake = SchemaValidator.compileIntake<Record<string, never>>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-nested-non-json-value',
+      'type': 'object'
+    });
+
+    assertSchemaIntakeMessage(
+      () => intake({ 'nested': { 'deep': { 'field': Number.NaN } } }),
+      '/nested/deep/field: NaN is not valid JSON data'
+    );
+  });
+
+  void it('schema-intake-reports-every-non-json-value-with-its-json-pointer', () => {
+    const intake = SchemaValidator.compileIntake<Record<string, never>>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-multiple-non-json-values',
+      'type': 'object'
+    });
+
+    assertSchemaIntakeMessage(
+      () => intake({ 'function': () => undefined, 'symbol': Symbol('invalid') }),
+      '/function: function is not valid JSON data; /symbol: symbol is not valid JSON data'
+    );
+  });
 });

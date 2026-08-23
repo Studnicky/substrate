@@ -9,4 +9,3 @@ export {
 } from './errors/index.js';
 export type { ThrottleInterface } from './interfaces/ThrottleInterface.js';
 export { Throttle } from './throttle/Throttle.js';
-export { ThrottleValidator } from './throttle/validation/ThrottleValidator.js';

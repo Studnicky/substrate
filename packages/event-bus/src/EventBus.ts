@@ -11,7 +11,7 @@ import { BusQueue } from './BusQueue.js';
 
 /** Swallows hook failures rather than throwing — a throwing hook must not replace publish()/subscribe() or block delivery. */
 class EventBusHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(_hookName: string): void {}
 }
 
 interface DrainableQueueInterface {
@@ -23,9 +23,9 @@ interface EventBusSubclassInterface<TInstance> extends Function {
 }
 
 class EventBusInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: EventBusSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -90,7 +90,7 @@ export class EventBus<TTopicMap extends object> {
       return result;
     }
 
-    protected override onHandlerError(error: unknown): Promise<void> {
+    protected override onHandlerError<TError>(error: TError): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
       const result = owner.hooks.invokeAsync('onHandlerError', () => { const invocationResult = owner.onHandlerError(topic, error); return invocationResult; });
@@ -117,7 +117,7 @@ export class EventBus<TTopicMap extends object> {
     const getConstructor = (): EventBusSubclassInterface<TInstance> => { return this; };
     const constructor = getConstructor();
     const result: unknown = Reflect.construct(constructor, [config]);
-    if (!EventBusInstance.belongsTo(constructor, result)) {
+    if (typeof result !== 'object' || result === null || !EventBusInstance.belongsTo(constructor, result)) {
       throw new TypeError('EventBus.create() did not construct the requested subclass.');
     }
     return result;
@@ -238,7 +238,7 @@ export class EventBus<TTopicMap extends object> {
   protected onDeliver<K extends keyof TTopicMap>(_topic: K, _payload: TTopicMap[K]): void | Promise<void> {}
 
   /** Fires when a subscriber handler throws an error. */
-  protected onHandlerError<K extends keyof TTopicMap>(_topic: K, _error: unknown): void | Promise<void> {}
+  protected onHandlerError<K extends keyof TTopicMap, TError>(_topic: K, _error: TError): void | Promise<void> {}
 
   /** Fires when the bus is closed (bus.close() called). */
   protected onDispose(): void | Promise<void> {}

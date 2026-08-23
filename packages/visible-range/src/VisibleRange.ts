@@ -49,7 +49,7 @@ interface VisibleRangeConstructorInterface<TInstance> {
  */
 export class VisibleRange {
   private static isConstructed<TInstance extends VisibleRange>(
-    value: unknown,
+    value: object,
     constructor: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface
   ): value is TInstance {
     const isInstance = value instanceof constructor;
@@ -62,7 +62,7 @@ export class VisibleRange {
   ): TInstance {
     const resolved = VisibleRange.#resolve(config);
     const result: unknown = Reflect.construct(this, [resolved]);
-    if (!VisibleRange.isConstructed(result, this)) {
+    if (typeof result !== 'object' || result === null || !VisibleRange.isConstructed<TInstance>(result, this)) {
       throw new TypeError('VisibleRange.create() must construct a VisibleRange instance');
     }
     return result;

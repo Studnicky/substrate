@@ -20,8 +20,8 @@ type ScenarioRunner = (scenario: ScenarioCase) => Promise<void>;
 const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'async-rejects-are-guarded': async (scenario) => {
     const { expected, input } = scenario;
-    const unhandledRejections: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+    let unhandledRejectionCount = 0;
+    const onUnhandledRejection = (): void => { unhandledRejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
 
     class RejectingEnterCallRetry extends Retry {
@@ -46,7 +46,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       await new Promise((resolve) => { setImmediate(resolve); });
 
       assert.strictEqual(result, String(expected.result));
-      assert.strictEqual(unhandledRejections.length, Number(expected.unhandledRejections));
+      assert.strictEqual(unhandledRejectionCount, Number(expected.unhandledRejections));
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
@@ -71,13 +71,16 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'hookinvoker-default-throws': async (scenario) => {
     const { expected, input } = scenario;
     const invoker = new HookInvoker();
-    await assert.rejects(async () => invoker.invoke(String(input.hookName), () => { throw new Error(String(input.message)); }), (error: unknown) => {
+    try {
+      await invoker.invoke(String(input.hookName), () => { throw new Error(String(input.message)); });
+      assert.fail('HookInvoker.invoke must reject when its hook throws.');
+    } catch (error) {
       assert.ok(error instanceof HookInvocationError);
       assert.strictEqual(error.name, String(expected.errorShape));
       assert.strictEqual(error.hookName, String(expected.hookName));
-      assert.strictEqual((error.cause as Error).message, String(expected.causeMessage));
-      return true;
-    });
+      assert.ok(error.cause instanceof Error);
+      assert.strictEqual(error.cause.message, String(expected.causeMessage));
+    }
   }
 };
 

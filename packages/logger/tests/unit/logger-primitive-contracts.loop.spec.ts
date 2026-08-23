@@ -8,6 +8,7 @@ import {
   LogDataEntity,
   LoggerHookEventShapeEntity,
   LogLevelEntity,
+  LogRecordEntity,
   LogStatusEntity
 } from '../../src/entities/index.js';
 import {
@@ -25,7 +26,7 @@ import { SafeStringify } from '../../src/modules/safeStringify.js';
 import scenarioGroups from './logger-primitive-contracts.scenarios.json' with { type: 'json' };
 
 type ConsoleMethod = 'debug' | 'error' | 'info' | 'trace' | 'warn';
-type ConsoleCapture = Record<ConsoleMethod, Array<{ message: unknown; record: unknown }>>;
+type ConsoleCapture = Record<ConsoleMethod, Array<{ message: string; record: LogRecordEntity.Type }>>;
 type FaultConfigInput = {
   cause?: string;
   component: string;
@@ -251,7 +252,7 @@ function withConsoleCapture(action: (captures: ConsoleCapture) => void): Console
     descriptors.set(method, Object.getOwnPropertyDescriptor(console, method));
     Object.defineProperty(console, method, {
       'configurable': true,
-      'value': (message: unknown, record: unknown): void => {
+      'value': (message: string, record: LogRecordEntity.Type): void => {
         captures[method].push({ message, record });
       }
     });

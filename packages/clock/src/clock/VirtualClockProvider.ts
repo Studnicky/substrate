@@ -20,10 +20,7 @@ interface VirtualClockProviderSubclassInterface<TInstance> extends Function {
 }
 
 class VirtualClockProviderInstance {
-  static belongsTo<TInstance>(
-    constructor: VirtualClockProviderSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+  static belongsTo<TInstance extends object>(constructor: VirtualClockProviderSubclassInterface<TInstance>, value: object): value is TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -40,7 +37,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
     counter: Readonly<VirtualTimeCounter>
   ): TInstance {
     const result: unknown = Reflect.construct(this, [counter]);
-    if (!VirtualClockProviderInstance.belongsTo(this, result)) {
+    if (typeof result !== 'object' || result === null || !VirtualClockProviderInstance.belongsTo(this, result)) {
       throw new TypeError('VirtualClockProvider.create() did not construct the requested subclass.');
     }
     return result;
@@ -60,15 +57,8 @@ export class VirtualClockProvider implements ClockProviderInterface {
     this.#counter = counter;
   }
 
-  private static isValidCounter(counter: unknown): counter is Readonly<VirtualTimeCounter> {
-    const result = (
-      typeof counter === 'object' &&
-      counter !== null &&
-      'nowMs' in counter &&
-      typeof counter.nowMs === 'function' &&
-      'advance' in counter &&
-      typeof counter.advance === 'function'
-    );
+  private static isValidCounter(counter: Readonly<VirtualTimeCounter>): boolean {
+    const result = typeof counter.nowMs === 'function' && typeof counter.advance === 'function';
     return result;
   }
 

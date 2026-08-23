@@ -1,36 +1,21 @@
-/**
- * Merge — deep merge with V8-monomorphic write order.
- *
- * Semantics:
- * - Primitives: overlay wins when defined; base preserved on overlay = undefined.
- * - Arrays: overlay replaces base atomically (override `mergeArrays` to change).
- * - Objects: key-wise recursive merge; alphabetical union write order (monomorphic).
- * - Mismatched shapes (object vs array, primitive vs object): overlay wins entirely.
- * - Null is treated as a primitive (overlay-wins, not deep-merged).
- *
- * Subclass `Merge` and override protected static steps to customise merge behaviour.
- */
+/** Deep merging for parsed JSON values. */
+
+import type { JsonObjectEntity } from '../entities/JsonObjectEntity.js';
+import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
 
 import { DataType } from './DataType.js';
 
 export class Merge {
-  // ---------------------------------------------------------------------------
-  // Protected steps — override in subclasses to customise merging
-  // ---------------------------------------------------------------------------
-
-  /** Return `true` when `value` is a mergeable plain object (not null, not array). */
-  protected static isMergeable(value: unknown): value is Readonly<Record<string, unknown>> {
-    if (!DataType.isPlainObject(value)) {
-      return false;
-    }
-
-    return true;
+  /** Return whether a parsed JSON value is a mergeable object. */
+  protected static isMergeable(value: JsonValueEntity.Type): value is JsonObjectEntity.Type {
+    const result = DataType.isPlainObject(value);
+    return result;
   }
 
   /** Return the sorted union of keys from `base` and `overlay`. */
   protected static unionKeys(
-    base: Readonly<Record<string, unknown>>,
-    overlay: Readonly<Record<string, unknown>>
+    base: JsonObjectEntity.Type,
+    overlay: JsonObjectEntity.Type
   ): readonly string[] {
     const seenKeys: Record<string, true> = {};
 
@@ -63,18 +48,24 @@ export class Merge {
    * Default: overlay replaces base atomically.
    * Override to union, concat, or otherwise combine arrays.
    */
-  protected static mergeArrays(_base: unknown[], overlay: unknown[]): unknown[] {
+  protected static mergeArrays(
+    _base: JsonValueEntity.Type[],
+    overlay: JsonValueEntity.Type[]
+  ): JsonValueEntity.Type[] {
     const result = overlay;
     return result;
   }
 
   /** Return a detached snapshot for JSON containers while preserving atomic values. */
-  protected static snapshot(value: unknown): unknown {
+  protected static snapshot(value: JsonValueEntity.Type): JsonValueEntity.Type {
     if (Array.isArray(value)) {
-      const snapshot: unknown[] = [];
+      const snapshot: JsonValueEntity.Type[] = [];
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
-        snapshot.push(this.snapshot(value[index]));
+        const item = value.at(index);
+        if (item !== undefined) {
+          snapshot.push(this.snapshot(item));
+        }
       }
       return snapshot;
     }
@@ -83,42 +74,52 @@ export class Merge {
       return value;
     }
 
-    const snapshot: Record<string, unknown> = {};
-    const keys = Object.keys(value).sort();
-    const length = keys.length;
-    for (let index = 0; index < length; index += 1) {
-      const key = keys[index];
-      if (key === undefined) {
+    const snapshot: JsonObjectEntity.Type = {};
+    const entries = Object.entries(value).sort(([leftKey], [rightKey]) => {
+      const result = leftKey.localeCompare(rightKey);
+      return result;
+    });
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index];
+      if (entry === undefined) {
         continue;
       }
-      Reflect.set(snapshot, key, this.snapshot(Reflect.get(value, key)));
+      const [key, item] = entry;
+      if (item !== undefined) {
+        Reflect.set(snapshot, key, this.snapshot(item));
+      }
     }
     return snapshot;
   }
 
   /** Merge two plain objects key-by-key in alphabetical union order. */
   protected static mergeObjects(
-    base: Readonly<Record<string, unknown>>,
-    overlay: Readonly<Record<string, unknown>>
-  ): Record<string, unknown> {
-    const keys = this.unionKeys(base, overlay);
-    const merged: Record<string, unknown> = {};
+    base: JsonObjectEntity.Type,
+    overlay: JsonObjectEntity.Type
+  ): JsonObjectEntity.Type {
+    const merged: JsonObjectEntity.Type = {};
+    const baseValues = new Map(Object.entries(base));
+    const overlayValues = new Map(Object.entries(overlay));
 
-    const length = keys.length;
-    for (let index = 0; index < length; index += 1) {
+    const keys = this.unionKeys(base, overlay);
+    for (let index = 0; index < keys.length; index += 1) {
       const key = keys[index];
       if (key === undefined) {
         continue;
       }
-      Reflect.set(merged, key, this.deep(Reflect.get(base, key), Reflect.get(overlay, key)));
+      const baseValue = baseValues.get(key);
+      const overlayValue = overlayValues.get(key);
+      if (baseValue === undefined && overlayValue !== undefined) {
+        Reflect.set(merged, key, this.snapshot(overlayValue));
+      } else if (baseValue !== undefined && overlayValue === undefined) {
+        Reflect.set(merged, key, this.snapshot(baseValue));
+      } else if (baseValue !== undefined && overlayValue !== undefined) {
+        Reflect.set(merged, key, this.deep(baseValue, overlayValue));
+      }
     }
 
     return merged;
   }
-
-  // ---------------------------------------------------------------------------
-  // Public static API
-  // ---------------------------------------------------------------------------
 
   /**
    * Deeply merge `overlayValue` onto `baseValue` and return a new value.
@@ -127,22 +128,21 @@ export class Merge {
    * Plain objects merged key-wise in alphabetical union order (monomorphic).
    */
   public static deep(
-    baseValue: Readonly<Record<string, unknown>>,
-    overlayValue: Readonly<Record<string, unknown>>
-  ): Record<string, unknown>;
-  public static deep(baseValue: readonly unknown[], overlayValue: readonly unknown[]): readonly unknown[];
-  public static deep(baseValue: unknown, overlayValue: unknown): unknown;
-  public static deep(baseValue: unknown, overlayValue: unknown): unknown {
-    if (overlayValue === undefined) {
-      const result = this.snapshot(baseValue);
-      return result;
-    }
-
-    if (baseValue === undefined) {
-      const result = this.snapshot(overlayValue);
-      return result;
-    }
-
+    baseValue: JsonObjectEntity.Type,
+    overlayValue: JsonObjectEntity.Type
+  ): JsonObjectEntity.Type;
+  public static deep(
+    baseValue: JsonValueEntity.Type[],
+    overlayValue: JsonValueEntity.Type[]
+  ): JsonValueEntity.Type[];
+  public static deep(
+    baseValue: JsonValueEntity.Type,
+    overlayValue: JsonValueEntity.Type
+  ): JsonValueEntity.Type;
+  public static deep(
+    baseValue: JsonValueEntity.Type,
+    overlayValue: JsonValueEntity.Type
+  ): JsonValueEntity.Type {
     if (Array.isArray(overlayValue)) {
       if (Array.isArray(baseValue)) {
         const result = this.snapshot(this.mergeArrays(baseValue, overlayValue));

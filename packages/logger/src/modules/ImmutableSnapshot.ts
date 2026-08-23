@@ -5,7 +5,7 @@ export class ImmutableSnapshot {
     return snapshot;
   }
 
-  static #freeze(value: unknown, visited: WeakSet<object>): void {
+  static #freeze<T>(value: T, visited: WeakSet<object>): void {
     if (value === null || typeof value !== 'object' || visited.has(value)) { return; }
 
     visited.add(value);

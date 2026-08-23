@@ -1,63 +1,18 @@
-/** custom-error — subclass ConfigValidation and override onValidationError to use a domain error type. Run: npx tsx packages/config/examples/custom-error.ts */
+/** custom-error — build a configuration error with an Error cause. Run: npx tsx packages/config/examples/custom-error.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
-import { ConfigValidation } from '../src/index.js';
+import { ConfigurationError } from '../src/index.js';
 
-class AppConfigValidation extends ConfigValidation {
-  protected static override onValidationError(message: string): never {
-    throw new Error(`[app] ${message}`);
-  }
-}
+const cause = new Error('environment variable CONFIG_URL is not set');
+const configurationError = ConfigurationError.create('configuration is invalid', cause);
 
-// Invalid string — custom prefix applied
-let caughtString: Error | undefined;
-try {
-  AppConfigValidation.assertString(123, 'apiKey');
-} catch (error) {
-  if (error instanceof Error) {
-    caughtString = error;
-  }
-}
-
-// Invalid number — same override path
-let caughtNumber: Error | undefined;
-try {
-  AppConfigValidation.assertNumber('oops', 'timeout');
-} catch (error) {
-  if (error instanceof Error) {
-    caughtNumber = error;
-  }
-}
-
-// Invalid boolean — same override path
-let caughtBoolean: Error | undefined;
-try {
-  AppConfigValidation.assertBoolean(1, 'enabled');
-} catch (error) {
-  if (error instanceof Error) {
-    caughtBoolean = error;
-  }
-}
-
-// Valid inputs pass silently
-AppConfigValidation.assertString('valid', 'name');
-AppConfigValidation.assertNumber(42, 'count');
-
-console.log('assertString(123) threw:', caughtString?.message);
-console.log('assertNumber("oops") threw:', caughtNumber?.message);
-console.log('assertBoolean(1) threw:', caughtBoolean?.message);
+console.log('Configuration error:', configurationError.message);
+console.log('Cause:', configurationError.cause);
 // #endregion usage
 
-assert.ok(caughtString instanceof Error, 'Expected an Error');
-assert.ok(caughtString.message.startsWith('[app]'));
-assert.equal(caughtString.message, '[app] apiKey must be a string');
-
-assert.ok(caughtNumber instanceof Error, 'Expected an Error');
-assert.equal(caughtNumber.message, '[app] timeout must be a number');
-
-assert.ok(caughtBoolean instanceof Error, 'Expected an Error');
-assert.equal(caughtBoolean.message, '[app] enabled must be a boolean');
+assert.equal(configurationError.message, 'configuration is invalid');
+assert.strictEqual(configurationError.cause, cause);
 
 console.log('custom-error: all assertions passed');

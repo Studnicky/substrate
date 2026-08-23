@@ -8,9 +8,12 @@ export namespace MutexConfigEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'enableCoalescing': { 'type': 'boolean' },
-      'maximumQueueSize': { 'minimum': 0, 'type': 'integer' },
-      'timeout': { 'minimum': 0, 'type': 'integer' }
+      'enableCoalescing': { 'default': false, 'type': 'boolean' },
+      'maximumQueueSize': { 'default': 0, 'minimum': 0, 'type': 'integer' },
+      'timeout': { 'default': 0, 'minimum': 0, 'type': 'integer' }
+    },
+    'propertyNames': {
+      'enum': ['enableCoalescing', 'maximumQueueSize', 'timeout']
     },
     'required': ['enableCoalescing', 'maximumQueueSize', 'timeout'],
     'type': 'object'

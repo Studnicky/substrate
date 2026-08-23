@@ -6,20 +6,27 @@ import { SchemaValidator } from '@studnicky/json';
 
 export namespace FetchRequestOptionsEntity {
   export const Schema = {
-    'additionalProperties': false,
+    'additionalProperties': true,
     'properties': {
       'cache': { 'enum': ['default', 'force-cache', 'no-cache', 'no-store', 'only-if-cached', 'reload'] },
       'credentials': { 'enum': ['include', 'omit', 'same-origin'] },
+      'headers': {
+        'additionalProperties': false,
+        'patternProperties': { '^.*$': { 'type': 'string' } },
+        'type': 'object'
+      },
       'integrity': { 'type': 'string' },
       'keepalive': { 'type': 'boolean' },
+      'metadata': { 'type': 'object' },
       'method': { 'type': 'string' },
+      'mode': { 'enum': ['cors', 'navigate', 'no-cors', 'same-origin'] },
       'redirect': { 'enum': ['error', 'follow', 'manual'] },
       'referrer': { 'type': 'string' },
       'referrerPolicy': {
         'enum': ['', 'no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url']
       },
       'requestId': { 'type': 'string' },
-      'timeout': { 'minimum': 0, 'type': 'number' }
+      'timeout': { 'exclusiveMinimum': 0, 'type': 'number' }
     },
     'type': 'object'
   } as const satisfies JSONSchema;

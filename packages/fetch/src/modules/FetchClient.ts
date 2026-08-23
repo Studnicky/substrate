@@ -5,6 +5,7 @@
 import type { Agent } from 'undici';
 
 import { HookInvoker } from '@studnicky/errors';
+import { Clone, SchemaIntakeError } from '@studnicky/json';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { RequestMetadataEntity } from '../entities/RequestMetadataEntity.js';
@@ -13,22 +14,12 @@ import type { ClientConfigInterface } from '../interfaces/ClientConfigInterface.
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
 import type { FetchOptionsInterface } from '../interfaces/FetchOptionsInterface.js';
 import type { RequestContextInterface } from '../interfaces/RequestContextInterface.js';
+import type { RequestIdGeneratorInterface } from '../interfaces/RequestIdGeneratorInterface.js';
 import type { ResponseContextInterface } from '../interfaces/ResponseContextInterface.js';
-import type { ValidatorCallbackInterface } from '../interfaces/ValidatorCallbackInterface.js';
+import type { TestDispatcher } from '../testing/TestDispatcher.js';
 
 import { DispatcherAgent } from '../config/DispatcherAgent.js';
-import {
-  ValidateAutoGenerateRequestId,
-  validateDispatcher,
-  ValidateHeaders,
-  ValidateHookTimeoutMs,
-  ValidateMetadata,
-  ValidateOptions,
-  ValidateParameters,
-  ValidateRequestIdGenerator,
-  ValidateTimeout,
-  ValidateURL
-} from '../config/schemas/index.js';
+import { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.js';
 import {
   AbortError,
   BodyTimeoutError,
@@ -61,7 +52,7 @@ interface FetchClientSubclassInterface<TInstance> extends Function {
 class FetchClientInstance {
   static belongsTo<TInstance>(
     constructor: FetchClientSubclassInterface<TInstance>,
-    value: unknown
+    value: TInstance | object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -106,7 +97,7 @@ export class FetchClient implements FetchClientInterface {
     this: FetchClientSubclassInterface<TInstance>,
     config: ClientConfigInterface = {}
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
+    const result = Reflect.construct(this, [config]) as object;
     if (!FetchClientInstance.belongsTo(this, result)) {
       throw new TypeError('FetchClient.create() did not construct the requested subclass.');
     }
@@ -117,7 +108,7 @@ export class FetchClient implements FetchClientInterface {
 
   private readonly config: ClientConfigInterface;
   private readonly dispatcher: undefined | UndiciDispatcher;
-  private readonly dispatcherAgent: Agent | undefined;
+  private readonly dispatcherAgent: Agent | TestDispatcher | undefined;
 
   protected constructor(config: ClientConfigInterface = {}) {
     const validated = FetchClient.validateConfig(config);
@@ -338,13 +329,15 @@ export class FetchClient implements FetchClientInterface {
           : new AbortError(requestContext.url, error.message);
       }
 
+      const hookError = requestError instanceof Error ? requestError : new Error(String(requestError));
+
       if (requestError instanceof TimeoutError) {
         await this.hooks.invokeAsync('onTimeout', () => {
           const result = this.onTimeout(method, requestId, requestContext.url, requestError.timeoutMs);
           return result;
         });
         await this.hooks.invokeAsync('onRequestError', () => {
-          const result = this.onRequestError(requestError, method, requestId, requestContext.url, duration);
+          const result = this.onRequestError(hookError, method, requestId, requestContext.url, duration);
           return result;
         });
         throw requestError;
@@ -356,7 +349,7 @@ export class FetchClient implements FetchClientInterface {
           return result;
         });
         await this.hooks.invokeAsync('onRequestError', () => {
-          const result = this.onRequestError(requestError, method, requestId, requestContext.url, duration);
+          const result = this.onRequestError(hookError, method, requestId, requestContext.url, duration);
           return result;
         });
         throw requestError;
@@ -371,7 +364,7 @@ export class FetchClient implements FetchClientInterface {
       }
 
       await this.hooks.invokeAsync('onRequestError', () => {
-        const result = this.onRequestError(requestError, method, requestId, requestContext.url, duration);
+        const result = this.onRequestError(hookError, method, requestId, requestContext.url, duration);
         return result;
       });
       throw requestError;
@@ -561,7 +554,7 @@ export class FetchClient implements FetchClientInterface {
 
   /** Fires when an HTTP request fails. */
   protected onRequestError(
-    _error: unknown,
+    _error: Error,
     _method: string,
     _requestId: string,
     _url: string,
@@ -763,56 +756,126 @@ export class FetchClient implements FetchClientInterface {
     return new BodyTimeoutError(url, error);
   }
 
-  private static readonly CONFIG_VALIDATORS = new Map<string, ValidatorCallbackInterface>([
-    ['autoGenerateRequestId', (value) => { ValidateAutoGenerateRequestId.validate(value); }],
-    ['baseURL', (value) => { ValidateURL.validate(value); }],
-    ['dispatcher', validateDispatcher],
-    ['headers', ValidateHeaders.validate],
-    ['hookTimeoutMs', (value) => { ValidateHookTimeoutMs.validate(value); }],
-    ['metadata', ValidateMetadata.validate],
-    ['options', ValidateOptions.validate],
-    ['parameters', ValidateParameters.validate],
-    ['requestIdGenerator', (value) => { ValidateRequestIdGenerator.validate(value); }],
-    ['timeout', (value) => { ValidateTimeout.validate(value); }]
-  ]);
-
   private static validateConfig(config: ClientConfigInterface): ClientConfigInterface {
-    if (typeof config !== 'object' || Array.isArray(config)) {
+    if (config === null || typeof config !== 'object' || Array.isArray(config)) {
       throw new ConfigurationError('config must be an object');
     }
 
-    const configNames = Object.keys(config);
-    const configNameLength = configNames.length;
-    for (let index = 0; index < configNameLength; index += 1) {
-      const key = configNames[index];
+    const {
+      'options': configuredOptions,
+      'requestIdGenerator': requestIdGenerator,
+      ...configData
+    } = config;
+    const intakeData: object = {};
+    const configKeys = Object.keys(configData);
+    const configKeyLength = configKeys.length;
+    for (let index = 0; index < configKeyLength; index += 1) {
+      const key = configKeys[index];
       if (key === undefined) {
         continue;
       }
-      const value: unknown = Reflect.get(config, key);
-      const validator = FetchClient.CONFIG_VALIDATORS.get(key);
-
-      if (validator === undefined) {
-        throw new ConfigurationError(`"${key}" is not declared in the schema`);
+      const value: unknown = Reflect.get(configData, key);
+      if (value !== null) {
+        Reflect.set(intakeData, key, value);
       }
+    }
+    if (configData.hookTimeoutMs !== undefined && configData.hookTimeoutMs !== null && typeof configData.hookTimeoutMs !== 'number') {
+      throw new ConfigurationError('hookTimeoutMs must be a number');
+    }
+    if (typeof configData.hookTimeoutMs === 'number' && configData.hookTimeoutMs <= 0) {
+      throw new ConfigurationError('hookTimeoutMs must be positive');
+    }
+    if (typeof configData.hookTimeoutMs === 'number' && !Number.isFinite(configData.hookTimeoutMs)) {
+      throw new ConfigurationError('hookTimeoutMs must be finite');
+    }
+    if (configData.timeout !== undefined && configData.timeout !== null && typeof configData.timeout !== 'number') {
+      throw new ConfigurationError('timeout must be a number');
+    }
+    if (typeof configData.timeout === 'number' && configData.timeout <= 0) {
+      throw new ConfigurationError('timeout must be positive');
+    }
+    if (typeof configData.timeout === 'number' && !Number.isFinite(configData.timeout)) {
+      throw new ConfigurationError('timeout must be finite');
+    }
+    if (configuredOptions !== undefined && configuredOptions !== null && (typeof configuredOptions !== 'object' || Array.isArray(configuredOptions))) {
+      throw new ConfigurationError('options must be an object');
+    }
+    const {
+      body,
+      dispatcher,
+      headers,
+      json,
+      metadata,
+      signal,
+      ...optionData
+    } = configuredOptions ?? {};
+    const { 'timeout': optionTimeout, ...optionsWithoutTimeout } = optionData;
+    const normalizedOptionData = optionTimeout === null ? optionsWithoutTimeout : optionData;
+    if (normalizedOptionData.integrity !== undefined && typeof normalizedOptionData.integrity !== 'string') {
+      throw new ConfigurationError('integrity must be a string');
+    }
+    if (normalizedOptionData.referrer !== undefined && typeof normalizedOptionData.referrer !== 'string') {
+      throw new ConfigurationError('referrer must be a string');
+    }
+    if (optionTimeout !== undefined && optionTimeout !== null && typeof optionTimeout !== 'number') {
+      throw new ConfigurationError('timeout must be a number');
+    }
+    if (signal !== undefined && signal !== null && !(signal instanceof AbortSignal)) {
+      throw new ConfigurationError('signal must be an AbortSignal instance');
+    }
+    const input = configuredOptions === undefined || configuredOptions === null
+      ? intakeData
+      : { ...intakeData, 'options': normalizedOptionData };
 
-      validator(value);
+    let parsed: ClientConfigDataEntity.Type;
+    try {
+      parsed = ClientConfigDataEntity.intake(input);
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new ConfigurationError(error.message);
+      }
+      throw error;
     }
 
-    const result = FetchClient.snapshotConfig(config);
+    if (requestIdGenerator !== undefined && requestIdGenerator !== null) {
+      FetchClient.assertRequestIdGenerator(requestIdGenerator);
+    }
+
+    const options: FetchOptionsInterface | undefined = parsed.options === undefined
+      ? undefined
+      : FetchClient.snapshotOptions({
+        ...parsed.options,
+        ...(body === undefined ? {} : { 'body': body }),
+        ...(dispatcher === undefined ? {} : { 'dispatcher': dispatcher }),
+        ...(headers === undefined ? {} : { 'headers': headers }),
+        ...(json === undefined ? {} : { 'json': json }),
+        ...(metadata === undefined ? {} : { 'metadata': metadata }),
+        ...(signal === undefined ? {} : { 'signal': signal })
+      });
+    const result: ClientConfigInterface = {
+      ...parsed,
+      ...(options === undefined ? {} : { 'options': options }),
+      ...(requestIdGenerator === undefined || requestIdGenerator === null ? {} : { 'requestIdGenerator': requestIdGenerator })
+    };
     return result;
   }
 
-  /** Detaches constructor-owned configuration from caller-owned mutable data. */
-  private static snapshotConfig(config: ClientConfigInterface): ClientConfigInterface {
-    const result: ClientConfigInterface = {
-      ...config,
-      ...(config.dispatcher === undefined ? {} : { 'dispatcher': { ...config.dispatcher } }),
-      ...(config.headers === undefined ? {} : { 'headers': { ...config.headers } }),
-      ...(config.metadata === undefined ? {} : { 'metadata': FetchClient.snapshotRecord(config.metadata) }),
-      ...(config.options === undefined ? {} : { 'options': FetchClient.snapshotOptions(config.options) }),
-      ...(config.parameters === undefined ? {} : { 'parameters': FetchClient.snapshotParameters(config.parameters) })
-    };
-    return result;
+  /** Verifies the injected request-ID collaborator's runtime contract once at construction. */
+  private static assertRequestIdGenerator(requestIdGenerator: RequestIdGeneratorInterface): void {
+    if (typeof requestIdGenerator !== 'function') {
+      throw new ConfigurationError('requestIdGenerator must be a function');
+    }
+
+    try {
+      if (typeof requestIdGenerator() !== 'string') {
+        throw new ConfigurationError('requestIdGenerator must return a string');
+      }
+    } catch (error) {
+      if (error instanceof ConfigurationError) {
+        throw error;
+      }
+      throw new ConfigurationError(`requestIdGenerator function error: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   private static snapshotOptions(options: FetchOptionsInterface): FetchOptionsInterface {
@@ -823,83 +886,20 @@ export class FetchClient implements FetchClientInterface {
       body = Uint8Array.from(options.body);
     }
 
-    return {
+    const json = options.json;
+    const snapshotJson = json !== null
+      && typeof json === 'object'
+      && Object.getPrototypeOf(json) !== Object.prototype
+      && Object.getPrototypeOf(json) !== null
+      ? json
+      : Clone.deep(json);
+    const result: FetchOptionsInterface = {
       ...options,
       ...(body === undefined ? {} : { 'body': body }),
       ...(options.headers === undefined ? {} : { 'headers': { ...options.headers } }),
-      ...(options.json === undefined ? {} : { 'json': FetchClient.snapshotValue(options.json) }),
-      ...(options.metadata === undefined ? {} : { 'metadata': FetchClient.snapshotRecord(options.metadata) })
+      ...(json === undefined ? {} : { 'json': snapshotJson }),
+      ...(options.metadata === undefined ? {} : { 'metadata': Clone.deep(options.metadata) })
     };
-  }
-
-  private static snapshotParameters(
-    parameters: NonNullable<ClientConfigInterface['parameters']>
-  ): NonNullable<ClientConfigInterface['parameters']> {
-    const snapshot: NonNullable<ClientConfigInterface['parameters']> = {};
-
-    const parameterEntries = Object.entries(parameters);
-    const parameterEntryLength = parameterEntries.length;
-    for (let index = 0; index < parameterEntryLength; index += 1) {
-      const entry = parameterEntries[index];
-      if (entry === undefined) {
-        continue;
-      }
-      const [key, value] = entry;
-      Reflect.set(snapshot, key, Array.isArray(value) ? [...value] : value);
-    }
-
-    return snapshot;
-  }
-
-  private static snapshotRecord(record: Record<string, unknown>): Record<string, unknown> {
-    const snapshot: Record<string, unknown> = {};
-
-    const propertyNames = Object.keys(record);
-    const propertyNameLength = propertyNames.length;
-    for (let index = 0; index < propertyNameLength; index += 1) {
-      const key = propertyNames[index];
-      if (key === undefined) {
-        continue;
-      }
-      const value: unknown = Reflect.get(record, key);
-      Reflect.set(snapshot, key, FetchClient.snapshotValue(value));
-    }
-
-    return snapshot;
-  }
-
-  private static snapshotValue(value: unknown): unknown {
-    if (Array.isArray(value)) {
-      const snapshot: unknown[] = [];
-      const valueLength = value.length;
-      for (let index = 0; index < valueLength; index += 1) {
-        const item: unknown = Reflect.get(value, index);
-        snapshot.push(FetchClient.snapshotValue(item));
-      }
-      return snapshot;
-    }
-
-    if (value === null || typeof value !== 'object') {
-      return value;
-    }
-
-    if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
-      return value;
-    }
-
-    const snapshot: Record<string, unknown> = {};
-
-    const propertyNames = Object.keys(value);
-    const propertyNameLength = propertyNames.length;
-    for (let index = 0; index < propertyNameLength; index += 1) {
-      const key = propertyNames[index];
-      if (key === undefined) {
-        continue;
-      }
-      const nested: unknown = Reflect.get(value, key);
-      Reflect.set(snapshot, key, FetchClient.snapshotValue(nested));
-    }
-
-    return snapshot;
+    return result;
   }
 }

@@ -1,24 +1,12 @@
-/**
- * StructuralHash — schema hash with metadata-key stripping.
- *
- * Strips metadata-only keys (title, description, $id) before hashing so that
- * two schemas differing only in annotations compare as equal.
- *
- * Subclass `StructuralHash` and override `protected static stripMetadata` or
- * `isMetadataKey` to customise which keys are stripped.
- */
+/** Schema hashing with metadata-key stripping. */
+
+import type { JsonObjectEntity } from '../entities/JsonObjectEntity.js';
+import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
 
 import { Hash } from './Hash.js';
 
 export class StructuralHash {
-  // ---------------------------------------------------------------------------
-  // Protected steps — override in subclasses to customise stripping
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Return `true` when `key` should be stripped before hashing.
-   * Override to extend or restrict the metadata key set.
-   */
+  /** Return whether a key is metadata rather than schema structure. */
   protected static isMetadataKey(key: string): boolean {
     if (key === '$id' || key === 'description' || key === 'title') {
       return true;
@@ -27,16 +15,16 @@ export class StructuralHash {
     return false;
   }
 
-  /**
-   * Recursively strip metadata keys from `value`.
-   * Uses `this.isMetadataKey` so overrides propagate.
-   */
-  protected static stripMetadata(value: unknown): unknown {
+  /** Recursively strip metadata from a parsed JSON value. */
+  protected static stripMetadata(value: JsonValueEntity.Type): JsonValueEntity.Type {
     if (Array.isArray(value)) {
-      const result: unknown[] = [];
+      const result: JsonValueEntity.Type[] = [];
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
-        result.push(this.stripMetadata(value[index]));
+        const item = value.at(index);
+        if (item !== undefined) {
+          result.push(this.stripMetadata(item));
+        }
       }
       return result;
     }
@@ -45,36 +33,28 @@ export class StructuralHash {
       return value;
     }
 
-    const result: Record<string, unknown> = {};
+    const result: JsonObjectEntity.Type = {};
 
-    const keys = Object.keys(value);
-    const keyLength = keys.length;
-    for (let index = 0; index < keyLength; index += 1) {
-      const key = keys[index];
-      if (key === undefined) {
+    const entries = Object.entries(value);
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index];
+      if (entry === undefined) {
         continue;
       }
+      const [key, nestedValue] = entry;
       if (this.isMetadataKey(key)) {
         continue;
       }
-      const nestedValue: unknown = Reflect.get(value, key);
-      Reflect.set(result, key, this.stripMetadata(nestedValue));
+      if (nestedValue !== undefined) {
+        Reflect.set(result, key, this.stripMetadata(nestedValue));
+      }
     }
 
     return result;
   }
 
-  // ---------------------------------------------------------------------------
-  // Public static API
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Hash a JSON Schema object, stripping metadata-only fields
-   * (`$id`, `title`, `description`) before hashing.
-   *
-   * Two schemas that differ only in annotations produce the same hash.
-   */
-  public static of(schema: Record<string, unknown>): string {
+  /** Hash a parsed JSON Schema object after stripping annotation-only fields. */
+  public static of(schema: JsonObjectEntity.Type): string {
     const structuralSchema = this.stripMetadata(schema);
     const result = Hash.value(structuralSchema);
     return result;

@@ -1,7 +1,10 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { Rule, Scope } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { DEFAULT_OPTIONS, ITERATION_METHODS } from './constants/PreferCollectionTypesConstants.js';
+import { SchemaValidator } from '@studnicky/json';
+
+import { ITERATION_METHODS } from './constants/PreferCollectionTypesConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
 
@@ -29,6 +32,9 @@ namespace PreferCollectionTypesOptionsEntity {
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
+
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }
 
 namespace PreferCollectionTypesInternalEntity {
@@ -505,25 +511,9 @@ class RuleHandlers {
   }
 }
 
-class Options {
-  static build(rawOptions: unknown): Required<PreferCollectionTypesOptionsEntity.Type> {
-    return {
-      'checkArrayLiterals': ObjectGuard.isObject(rawOptions) && typeof rawOptions.checkArrayLiterals === 'boolean'
-        ? rawOptions.checkArrayLiterals
-        : DEFAULT_OPTIONS.checkArrayLiterals,
-      'checkFromEntries': ObjectGuard.isObject(rawOptions) && typeof rawOptions.checkFromEntries === 'boolean'
-        ? rawOptions.checkFromEntries
-        : DEFAULT_OPTIONS.checkFromEntries,
-      'checkModuleScopeArrays': ObjectGuard.isObject(rawOptions) && typeof rawOptions.checkModuleScopeArrays === 'boolean'
-        ? rawOptions.checkModuleScopeArrays
-        : DEFAULT_OPTIONS.checkModuleScopeArrays
-    };
-  }
-}
-
 export const preferCollectionTypes: Rule.RuleModule = {
   'create': (context) => {
-    const options = Options.build(context.options.at(0));
+    const options = PreferCollectionTypesOptionsEntity.intake(context.options.at(0) ?? {});
 
     const moduleScopeArrays: ModuleScopeArrayEntryInterface[] = [];
     const fromEntriesBindings: ModuleScopeArrayEntryInterface[] = [];

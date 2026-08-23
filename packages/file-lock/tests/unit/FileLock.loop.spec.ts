@@ -84,14 +84,6 @@ function getFileLockConfig(scenarioCase: ScenarioCase): FileLockScenarioConfig {
   return (scenarioCase.input.fileLock ?? {}) as FileLockScenarioConfig;
 }
 
-function requireStringArray(value: unknown, context: string): string[] {
-  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
-    return value;
-  }
-
-  throw new TypeError(`Expected string array for ${context}`);
-}
-
 beforeEach(() => {
   TEST_DIR = mkdtempSync(join(tmpdir(), 'file-lock-tests-'));
 });
@@ -137,9 +129,9 @@ const runnerMap: ScenarioRunnerMap = {
     await assert.rejects(
       FileLock.create({
         path: FileLockTestHelpers.makePath(scenarioCase.input.path as string),
-        timeoutMs: getFileLockConfig(scenarioCase).timeoutMs
+        ...getFileLockConfig(scenarioCase)
       }),
-      (error: unknown) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
+      (error: Error) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
   },
   'acquire-success-restores-path': async (scenarioCase) => {
@@ -155,8 +147,8 @@ const runnerMap: ScenarioRunnerMap = {
     writeFileSync(path, scenarioCase.input.content as string);
     const lock = await FileLock.create({ path });
     await assert.rejects(
-      FileLock.create({ path, timeoutMs: getFileLockConfig(scenarioCase).timeoutMs }),
-      (error: unknown) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
+      FileLock.create({ path, ...getFileLockConfig(scenarioCase) }),
+      (error: Error) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
     lock.release();
   },
@@ -197,7 +189,7 @@ const runnerMap: ScenarioRunnerMap = {
     const firstLock = await FileLock.create({ path });
     await assert.rejects(
       FileLock.create({ path, ...getFileLockConfig(scenarioCase) }),
-      (error: unknown) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
+      (error: Error) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
     firstLock.release();
   },
@@ -237,7 +229,7 @@ const runnerMap: ScenarioRunnerMap = {
     let lock: RecordingFileLock | undefined;
     let caughtError: unknown;
     try {
-      lock = await RecordingFileLock.create({ path, timeoutMs: getFileLockConfig(scenarioCase).timeoutMs });
+      lock = await RecordingFileLock.create({ path, ...getFileLockConfig(scenarioCase) });
     } catch (error) {
       caughtError = error;
     }
@@ -289,9 +281,9 @@ const runnerMap: ScenarioRunnerMap = {
     }
     await assert.rejects(
       OrderingFileLock.create({ path, ...getFileLockConfig(scenarioCase) }),
-      (e: unknown) => e instanceof FileLockTimeoutError
+      (error: Error) => error instanceof FileLockTimeoutError
     );
-    const order = requireStringArray(scenarioCase.expected.order, 'hook-order expected order');
+    const order = scenarioCase.expected.order;
     const distinctOrder = capturedHooks.filter((hook, index) => capturedHooks.indexOf(hook) === index);
     assert.deepEqual(distinctOrder, order);
     holder.release();
@@ -320,8 +312,8 @@ const runnerMap: ScenarioRunnerMap = {
         return Promise.reject(AsyncRejectingAcquireLock.hookCause);
       }
     }
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const rejectionEvents: Error[] = [];
+    const onUnhandledRejection = (reason: Error): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
       const lock = await AsyncRejectingAcquireLock.create({ path });
@@ -389,8 +381,8 @@ const runnerMap: ScenarioRunnerMap = {
       const holder = await FileLock.create({ path: scenarioCase.input.filename as string });
       assert.equal(existsSync(scenarioCase.input.filename as string), scenarioCase.expected.existedDuringLock as boolean);
       await assert.rejects(
-        FileLock.create({ path: scenarioCase.input.filename as string, timeoutMs: getFileLockConfig(scenarioCase).timeoutMs }),
-        (error: unknown) => error instanceof FileLockTimeoutError
+        FileLock.create({ path: scenarioCase.input.filename as string, ...getFileLockConfig(scenarioCase) }),
+        (error: Error) => error instanceof FileLockTimeoutError
       );
       holder.release();
       assert.equal(existsSync(scenarioCase.input.filename as string), scenarioCase.expected.existedAfterRelease as boolean);
@@ -415,9 +407,9 @@ const runnerMap: ScenarioRunnerMap = {
       ErrorRoutingFileLock.create({
         fileSystem: new FaultyFileSystem(fileSystemError),
         path: scenarioCase.input.path as string,
-        timeoutMs: getFileLockConfig(scenarioCase).timeoutMs,
+        ...getFileLockConfig(scenarioCase),
       }),
-      (error: unknown) => error instanceof Error && error.message.includes(scenarioCase.expected.errorMessageIncludes as string)
+      (error: Error) => error.message.includes(scenarioCase.expected.errorMessageIncludes as string)
     );
     const elapsed = Date.now() - start;
     assert.strictEqual(errorEvents.length, scenarioCase.expected.errorCount as number);

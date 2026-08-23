@@ -1,6 +1,8 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import { SchemaValidator } from '@studnicky/json';
 import { isTypeReferenceNode, type Node, type Program, TypeFlags } from 'typescript';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
@@ -13,6 +15,7 @@ namespace KnownTypesOutsideAdaptersOptionsEntity {
     'properties': {
       ...LayerOptionsEntity.Schema.properties,
       'adapterLayerName': {
+        'default': 'adapters',
         'description': 'Name of the layer exempted from this ban — the layer responsible for converting untyped intake data into known shapes. Defaults to "adapters".',
         'type': 'string'
       }
@@ -20,6 +23,9 @@ namespace KnownTypesOutsideAdaptersOptionsEntity {
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
+
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }
 
 interface NodeMapInterface {
@@ -88,16 +94,14 @@ class ResolvedTypeReferenceReport {
 
 export const knownTypesOutsideAdapters: Rule.RuleModule = {
   'create': (context) => {
-    const options: unknown = context.options.at(0);
-
-    if (!LayerOptionsEntity.validate(options)) { return {}; }
+    const rawOptions: unknown = context.options.at(0);
+    if (rawOptions === undefined) { return {}; }
+    const options = KnownTypesOutsideAdaptersOptionsEntity.intake(rawOptions);
 
     const filename = context.physicalFilename;
     const sourceLayer = LayerResolver.layerForPath(filename, options);
 
-    const adapterLayerNameValue: unknown = Reflect.get(options, 'adapterLayerName');
-    const adapterLayerName = typeof adapterLayerNameValue === 'string' ? adapterLayerNameValue : 'adapters';
-    if (sourceLayer === undefined || sourceLayer === adapterLayerName) { return {}; }
+    if (sourceLayer === undefined || sourceLayer === options.adapterLayerName) { return {}; }
 
     const listeners: Rule.RuleListener = {
       'TSAnyKeyword': TypeKeywordReport.listener(context, sourceLayer, 'noAny'),

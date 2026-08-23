@@ -206,8 +206,8 @@ const runnerMap: RunnerMap = {
       }
     }
 
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    let rejectionEventCount = 0;
+    const onUnhandledRejection = (): void => { rejectionEventCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
@@ -217,7 +217,7 @@ const runnerMap: RunnerMap = {
       assert.equal(registry.get(scenarioCase.input.id), interpreter);
       await new Promise((resolve) => { setImmediate(resolve); });
       await new Promise((resolve) => { setImmediate(resolve); });
-      assert.equal(rejectionEvents.length, scenarioCase.expected.rejectionEvents);
+      assert.equal(rejectionEventCount, scenarioCase.expected.rejectionEvents);
       assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
       assert.equal(scenarioCase.expected.valuePreserved, true);
     } finally {

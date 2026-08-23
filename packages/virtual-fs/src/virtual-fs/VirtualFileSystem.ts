@@ -10,12 +10,17 @@ import type { VirtualFileSystemOptionsInterface } from '../interfaces/VirtualFil
 
 import { VirtualFileSystemError } from '../errors/VirtualFileSystemError.js';
 
-interface VirtualFileSystemConstructorInterface<TInstance extends VirtualFileSystem> extends Function {
+interface VirtualFileSystemConstructorInterface<
+  TInstance extends VirtualFileSystem
+> extends Function {
   readonly 'prototype': TInstance;
 }
 
 const DEFAULT_CLOCK: ClockProviderInterface = {
-  'hrtime': () => { const result = BigInt(Date.now()) * 1_000_000n; return result; },
+  'hrtime': () => {
+    const result = BigInt(Date.now()) * 1_000_000n;
+    return result;
+  },
   'now': Date.now
 };
 
@@ -23,7 +28,10 @@ class StatResult implements StatResultInterface {
   readonly mtimeMs: EntryEntity.Type['mtimeMs'];
   private readonly shape: EntryEntity.Type['shape'];
 
-  constructor(shape: EntryEntity.Type['shape'], mtimeMs: EntryEntity.Type['mtimeMs']) {
+  constructor(
+    shape: EntryEntity.Type['shape'],
+    mtimeMs: EntryEntity.Type['mtimeMs']
+  ) {
     this.shape = shape;
     this.mtimeMs = mtimeMs;
   }
@@ -41,7 +49,7 @@ class StatResult implements StatResultInterface {
 
 export class VirtualFileSystem implements FileSystemInterface {
   private static isConstructed<TInstance extends VirtualFileSystem>(
-    value: unknown,
+    value: object,
     constructor: VirtualFileSystemConstructorInterface<TInstance>
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -52,18 +60,28 @@ export class VirtualFileSystem implements FileSystemInterface {
     this: VirtualFileSystemConstructorInterface<TInstance>,
     options?: VirtualFileSystemOptionsInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options ?? {}]);
-    if (!VirtualFileSystem.isConstructed(result, this)) {
-      throw new TypeError('VirtualFileSystem.create() must construct a VirtualFileSystem instance');
+    const constructed: unknown = Reflect.construct(this, [options ?? {}]);
+    if (typeof constructed !== 'object' || constructed === null) {
+      throw new TypeError(
+        'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
+      );
     }
-    return result;
+    if (!VirtualFileSystem.isConstructed(constructed, this)) {
+      throw new TypeError(
+        'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
+      );
+    }
+    return constructed;
   }
 
   static #splitPath(path: string): { 'name': string; 'parent': string } {
     const separatorIndex = path.lastIndexOf('/');
     const name = path.slice(separatorIndex + 1);
     const parent = separatorIndex === 0 ? '/' : path.slice(0, separatorIndex);
-    const result: { 'name': string; 'parent': string } = { 'name': name, 'parent': parent };
+    const result: { 'name': string; 'parent': string } = {
+      'name': name,
+      'parent': parent
+    };
     return result;
   }
 
@@ -142,13 +160,17 @@ export class VirtualFileSystem implements FileSystemInterface {
 
     if (existingEntry?.shape === 'directory') {
       if (!recursive) {
-        throw new VirtualFileSystemError(`EEXIST: directory already exists, mkdir '${path}'`);
+        throw new VirtualFileSystemError(
+          `EEXIST: directory already exists, mkdir '${path}'`
+        );
       }
       return;
     }
 
     if (this.#files.has(path)) {
-      throw new VirtualFileSystemError(`EEXIST: file already exists, mkdir '${path}'`);
+      throw new VirtualFileSystemError(
+        `EEXIST: file already exists, mkdir '${path}'`
+      );
     }
 
     if (recursive) {
@@ -168,10 +190,15 @@ export class VirtualFileSystem implements FileSystemInterface {
         if (seg !== undefined) {
           current = `${current}/${seg}`;
           if (this.#files.has(current)) {
-            throw new VirtualFileSystemError(`ENOTDIR: not a directory, mkdir '${path}'`);
+            throw new VirtualFileSystemError(
+              `ENOTDIR: not a directory, mkdir '${path}'`
+            );
           }
           if (!this.#entries.has(current)) {
-            const entry: EntryEntity.Type = { 'mtimeMs': this.#clock.now(), 'shape': 'directory' };
+            const entry: EntryEntity.Type = {
+              'mtimeMs': this.#clock.now(),
+              'shape': 'directory'
+            };
             this.#entries.set(current, entry);
             this.#indexAdd(current);
             this.#invokeCreateHook(current);
@@ -179,7 +206,10 @@ export class VirtualFileSystem implements FileSystemInterface {
         }
       }
     } else {
-      const entry: EntryEntity.Type = { 'mtimeMs': this.#clock.now(), 'shape': 'directory' };
+      const entry: EntryEntity.Type = {
+        'mtimeMs': this.#clock.now(),
+        'shape': 'directory'
+      };
       this.#entries.set(path, entry);
       this.#indexAdd(path);
       this.hooks.invoke('onCreate', () => {
@@ -192,10 +222,14 @@ export class VirtualFileSystem implements FileSystemInterface {
   readdirSync(path: string): string[] {
     const entry = this.#entries.get(path);
     if (entry === undefined) {
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, scandir '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, scandir '${path}'`
+      );
     }
     if (entry.shape !== 'directory') {
-      throw new VirtualFileSystemError(`ENOTDIR: not a directory, scandir '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOTDIR: not a directory, scandir '${path}'`
+      );
     }
 
     const siblings = this.#children.get(path);
@@ -211,7 +245,9 @@ export class VirtualFileSystem implements FileSystemInterface {
   readFileSync(path: string, _encoding: 'utf8'): string {
     const content = this.#files.get(path);
     if (content === undefined) {
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, open '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, open '${path}'`
+      );
     }
     this.hooks.invoke('onRead', () => {
       const result = this.onRead(path);
@@ -225,7 +261,9 @@ export class VirtualFileSystem implements FileSystemInterface {
     const oldEntry = this.#entries.get(oldPath);
 
     if (content === undefined && oldEntry === undefined) {
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, rename '${oldPath}' -> '${newPath}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, rename '${oldPath}' -> '${newPath}'`
+      );
     }
 
     const mtimeMs = this.#clock.now();
@@ -283,7 +321,8 @@ export class VirtualFileSystem implements FileSystemInterface {
         this.#files.delete(oldPath);
       }
 
-      const shape: EntryEntity.Type['shape'] = oldEntry !== undefined ? oldEntry.shape : 'file';
+      const shape: EntryEntity.Type['shape'] =
+        oldEntry !== undefined ? oldEntry.shape : 'file';
       this.#entries.set(newPath, { 'mtimeMs': mtimeMs, 'shape': shape });
       this.#entries.delete(oldPath);
       this.#indexRemove(oldPath);
@@ -301,11 +340,15 @@ export class VirtualFileSystem implements FileSystemInterface {
     const hasFile = this.#files.has(path);
 
     if (entry === undefined && !hasFile) {
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, stat '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, stat '${path}'`
+      );
     }
 
-    const shape: EntryEntity.Type['shape'] = entry !== undefined ? entry.shape : 'file';
-    const mtimeMs: number = entry !== undefined ? entry.mtimeMs : this.#clock.now();
+    const shape: EntryEntity.Type['shape'] =
+      entry !== undefined ? entry.shape : 'file';
+    const mtimeMs: number =
+      entry !== undefined ? entry.mtimeMs : this.#clock.now();
 
     const result = new StatResult(shape, mtimeMs);
     return result;
@@ -315,9 +358,13 @@ export class VirtualFileSystem implements FileSystemInterface {
     if (!this.#files.has(path)) {
       const entry = this.#entries.get(path);
       if (entry?.shape === 'directory') {
-        throw new VirtualFileSystemError(`EISDIR: illegal operation on a directory, unlink '${path}'`);
+        throw new VirtualFileSystemError(
+          `EISDIR: illegal operation on a directory, unlink '${path}'`
+        );
       }
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, unlink '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, unlink '${path}'`
+      );
     }
     this.#files.delete(path);
     this.#entries.delete(path);

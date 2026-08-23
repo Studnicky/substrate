@@ -65,11 +65,11 @@ class TracedClient extends FetchClient {
 const api = TracedClient.create({ baseURL: 'https://api.example.com' });
 ```
 
-`FetchRequestOptionsEntity` owns the schema-expressible request fields shared by `FetchOptionsInterface` and `BodyRequestOptionsInterface`. `ClientConfigDataEntity` owns the schema-expressible client settings. The interfaces compose those entity fields with runtime-only values such as headers, signals, dispatchers, metadata, and request-ID generators.
+`FetchRequestOptionsEntity` owns schema-expressible request fields shared by `FetchOptionsInterface` and `BodyRequestOptionsInterface`. `ClientConfigDataEntity.intake` owns the client configuration data boundary. `RequestIdGeneratorInterface` represents the injected request-ID collaborator; runtime request bodies, signals, and per-request dispatchers remain typed runtime values.
 
 ```typescript
 import { ClientConfigDataEntity, FetchRequestOptionsEntity } from '@studnicky/fetch/entities';
-import type { ValidatorCallbackInterface } from '@studnicky/fetch/interfaces';
+import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
 ```
 
 ## Documentation

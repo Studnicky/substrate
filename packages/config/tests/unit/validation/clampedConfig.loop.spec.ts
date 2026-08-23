@@ -140,9 +140,9 @@ const scenarioRunners: Record<ScenarioShape, ScenarioRunner> = {
       }
     }
 
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    const rejectionEvents: Error[] = [];
+    const onUnhandledRejection = (): void => {
+      rejectionEvents.push(new Error('unexpected unhandled rejection'));
     };
     process.on('unhandledRejection', onUnhandledRejection);
 

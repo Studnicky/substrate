@@ -1,6 +1,7 @@
 import { Guard } from '@studnicky/types';
 
 import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 
 /**
  * Type guard for ErrorClassificationEntity.Type
@@ -21,7 +22,7 @@ class ErrorClassificationGuard {
    * }
    * ```
    */
-  public static isErrorClassification(value: unknown): value is ErrorClassificationEntity.Type {
+  public static isErrorClassification(value: Parameters<EntityValidateFunctionInterface<ErrorClassificationEntity.Type>>[0]): value is ErrorClassificationEntity.Type {
     if (!Guard.isObject(value)) {
       return false;
     }

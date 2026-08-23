@@ -14,23 +14,22 @@
  * Replaying that patch through `Patch.create(patch).apply(base)` reproduces
  * `next`.
  *
- * Only plain objects and arrays are drafted (nested access recurses into a
- * new memoized proxy on first touch). Non-plain values — functions, Map,
- * Set, Date, class instances — pass through as direct references, matching
- * `Clone`'s type dispatch and Immer's own default (non-plugin) behaviour.
+ * Drafts contain canonical JSON values. Callers parse external values through
+ * `JsonValueEntity.intake` before calling this API; nested plain objects and
+ * arrays recurse into a new memoized proxy on first access.
  *
  * Subclass `Draft` and override any `protected static` step to customise
  * draftability or diffing.
  */
 
-import type { JSONSchema7Type } from 'json-schema';
-
 import { JsonValue } from '@studnicky/types';
 
+import type { JsonObjectEntity } from '../entities/JsonObjectEntity.js';
+import type { PatchOperationEntity } from '../entities/PatchOperationEntity.js';
 import type { DraftNodeInterface } from '../interfaces/DraftNodeInterface.js';
-import type { PatchOperationInterface } from '../interfaces/PatchOperationInterface.js';
 
 import { SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
+import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import { DataType } from './DataType.js';
 
 export class Draft {
@@ -39,13 +38,15 @@ export class Draft {
   // ---------------------------------------------------------------------------
 
   /** Return `true` when `value` should be wrapped in a nested draft proxy. */
-  protected static isDraftable(value: unknown): value is Record<string, unknown> | unknown[] {
+  protected static isDraftable(
+    value: JsonValueEntity.Type
+  ): value is JsonObjectEntity.Type | JsonValueEntity.Type[] {
     const result = Array.isArray(value) || DataType.isPlainObject(value);
     return result;
   }
 
   /** Return a canonical JSON value or reject a non-JSON draft patch operand. */
-  protected static requireJsonValue(value: unknown): JSONSchema7Type {
+  protected static requireJsonValue(value: JsonValueEntity.Type): JsonValueEntity.Type {
     if (!JsonValue.is(value)) {
       throw new TypeError('Draft patches require finite, acyclic JSON values');
     }
@@ -54,21 +55,23 @@ export class Draft {
   }
 
   /** Create a fresh draft node wrapping `base`. */
-  protected static createNode(base: unknown): DraftNodeInterface {
+  protected static createNode(base: JsonValueEntity.Type): DraftNodeInterface {
     return {
       'base': base,
       'children': new Map<PropertyKey, DraftNodeInterface>(),
       'copy': undefined,
       'isArray': Array.isArray(base),
-      'proxies': new Map<PropertyKey, unknown>()
+      'proxies': new Map<PropertyKey, object>()
     };
   }
 
   /** Copy-on-write: create `node.copy` from `node.base` on first mutation. */
-  protected static ensureCopy(node: DraftNodeInterface): Record<PropertyKey, unknown> | unknown[] {
+  protected static ensureCopy(
+    node: DraftNodeInterface
+  ): Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[] {
     if (node.copy === undefined) {
       if (Array.isArray(node.base)) {
-        node.copy = Array.from<unknown>(node.base);
+        node.copy = Array.from(node.base);
       } else if (DataType.isRecord(node.base)) {
         node.copy = { ...node.base };
       } else {
@@ -95,12 +98,18 @@ export class Draft {
   }
 
   /** Return (creating if needed) the memoized child proxy for `node[key]`. */
-  protected static getChildProxy(node: DraftNodeInterface, key: PropertyKey, value: unknown): unknown {
+  protected static getChildProxy(
+    node: DraftNodeInterface,
+    key: PropertyKey,
+    value: JsonObjectEntity.Type | JsonValueEntity.Type[]
+  ): object {
     const existingChild = node.children.get(key);
 
-    if (existingChild !== undefined && existingChild.base === value) {
-      const result = node.proxies.get(key);
-      return result;
+    if (existingChild?.base === value) {
+      const existingProxy = node.proxies.get(key);
+      if (existingProxy !== undefined) {
+        return existingProxy;
+      }
     }
 
     const childNode = this.createNode(value);
@@ -115,9 +124,9 @@ export class Draft {
 
   /** Build the `Proxy` handler for a single draft node. */
   protected static createProxy(node: DraftNodeInterface): object {
-    const target: Record<PropertyKey, unknown> | unknown[] = node.isArray ? [] : {};
+    const target: Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[] = node.isArray ? [] : {};
 
-    const deletePropertyHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey): boolean => {
+    const deletePropertyHandler = (_target: Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[], prop: PropertyKey): boolean => {
       const copy = this.ensureCopy(node);
 
       node.children.delete(prop);
@@ -127,14 +136,18 @@ export class Draft {
       return true;
     };
 
-    const getHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey): unknown => {
+    const getHandler = (_target: Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[], prop: PropertyKey): unknown => {
       const source = node.copy ?? node.base;
 
       if (source === null || typeof source !== 'object') {
         return undefined;
       }
 
-      const value: unknown = Reflect.get(source, prop, source);
+      const rawValue: unknown = Reflect.get(source, prop, source);
+      if (!JsonValueEntity.validate(rawValue)) {
+        throw new TypeError('Draft node contains a non-JSON value');
+      }
+      const value = rawValue;
 
       if (typeof prop === 'symbol' || !this.isDraftable(value)) {
         return value;
@@ -144,7 +157,7 @@ export class Draft {
       return result;
     };
 
-    const getOwnPropertyDescriptorHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey): PropertyDescriptor | undefined => {
+    const getOwnPropertyDescriptorHandler = (_target: Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[], prop: PropertyKey): PropertyDescriptor | undefined => {
       const source = node.copy ?? node.base;
 
       if (source === null || typeof source !== 'object') {
@@ -162,7 +175,7 @@ export class Draft {
       return descriptor;
     };
 
-    const hasHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey): boolean => {
+    const hasHandler = (_target: Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[], prop: PropertyKey): boolean => {
       const source = node.copy ?? node.base;
 
       if (source === null || typeof source !== 'object') {
@@ -173,7 +186,7 @@ export class Draft {
       return result;
     };
 
-    const ownKeysHandler = (_target: Record<PropertyKey, unknown> | unknown[]): ArrayLike<string | symbol> => {
+    const ownKeysHandler = (_target: Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[]): ArrayLike<string | symbol> => {
       const source = node.copy ?? node.base;
 
       if (source === null || typeof source !== 'object') {
@@ -184,7 +197,7 @@ export class Draft {
       return result;
     };
 
-    const setHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey, value: unknown): boolean => {
+    const setHandler = (_target: Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[], prop: PropertyKey, value: JsonValueEntity.Type): boolean => {
       const copy = this.ensureCopy(node);
 
       node.children.delete(prop);
@@ -194,7 +207,7 @@ export class Draft {
       return true;
     };
 
-    const handler: ProxyHandler<Record<PropertyKey, unknown> | unknown[]> = {
+    const handler: ProxyHandler<Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[]> = {
       'deleteProperty': deletePropertyHandler,
       'get': getHandler,
       'getOwnPropertyDescriptor': getOwnPropertyDescriptorHandler,
@@ -207,7 +220,7 @@ export class Draft {
   }
 
   /** Recursively resolve a node to its finalized (structurally-shared) value. */
-  protected static finalize(node: DraftNodeInterface): unknown {
+  protected static finalize(node: DraftNodeInterface): JsonValueEntity.Type {
     const childEntries: [PropertyKey, DraftNodeInterface, boolean][] = [];
     let anyChildDirty = false;
 
@@ -226,10 +239,10 @@ export class Draft {
     }
 
     const source = node.copy ?? node.base;
-    let result: Record<PropertyKey, unknown> | unknown[];
+    let result: Record<PropertyKey, JsonValueEntity.Type> | JsonValueEntity.Type[];
 
     if (Array.isArray(source)) {
-      result = Array.from<unknown>(source);
+      result = Array.from(source);
     } else if (DataType.isRecord(source)) {
       result = { ...source };
     } else {
@@ -252,7 +265,12 @@ export class Draft {
   }
 
   /** Diff two arbitrary values, dispatching to `diffArray`/`diffObject` or emitting `replace`. */
-  protected static diffValues(base: unknown, next: unknown, path: string, ops: PatchOperationInterface[]): void {
+  protected static diffValues(
+    base: JsonValueEntity.Type,
+    next: JsonValueEntity.Type,
+    path: string,
+    ops: PatchOperationEntity.Type[]
+  ): void {
     if (base === next) {
       return;
     }
@@ -271,7 +289,12 @@ export class Draft {
   }
 
   /** Diff two arrays index-wise, or emit a single `replace` when the length changed. */
-  protected static diffArray(base: unknown[], next: unknown[], path: string, ops: PatchOperationInterface[]): void {
+  protected static diffArray(
+    base: JsonValueEntity.Type[],
+    next: JsonValueEntity.Type[],
+    path: string,
+    ops: PatchOperationEntity.Type[]
+  ): void {
     if (base.length !== next.length) {
       ops.push({ 'op': 'replace', 'path': path, 'value': this.requireJsonValue(next) });
       return;
@@ -279,16 +302,21 @@ export class Draft {
 
     const length = base.length;
     for (let index = 0; index < length; index += 1) {
-      this.diffValues(base[index], next[index], `${path}/${index}`, ops);
+      const baseValue = base[index];
+      const nextValue = next[index];
+      if (baseValue === undefined || nextValue === undefined) {
+        continue;
+      }
+      this.diffValues(baseValue, nextValue, `${path}/${index}`, ops);
     }
   }
 
   /** Diff two plain objects key-by-key, emitting `add`/`remove`/`replace` operations. */
   protected static diffObject(
-    base: Record<string, unknown>,
-    next: Record<string, unknown>,
+    base: JsonObjectEntity.Type,
+    next: JsonObjectEntity.Type,
     path: string,
-    ops: PatchOperationInterface[]
+    ops: PatchOperationEntity.Type[]
   ): void {
     const baseKeys = Object.keys(base);
     const baseKeyLength = baseKeys.length;
@@ -326,16 +354,22 @@ export class Draft {
   // ---------------------------------------------------------------------------
 
   /**
-   * Mutate a draft proxy of `base` inside `recipe` and return a new value
+   * Mutate a draft proxy of parsed `base` inside `recipe` and return a new value
    * reflecting only the written paths.
    *
    * Unchanged branches are the same reference as in `base` (structural
    * sharing); `base` itself is never mutated. A recipe that writes nothing
    * returns `base` itself (reference identity).
    */
-  public static produce<T>(base: T, recipe: (draft: T) => void): T;
-  public static produce(base: unknown, recipe: (draft: never) => void): unknown;
-  public static produce(base: unknown, recipe: (draft: never) => void): unknown {
+  public static produce<T extends JsonValueEntity.Type>(base: T, recipe: (draft: T) => void): T;
+  public static produce(
+    base: JsonValueEntity.Type,
+    recipe: (draft: JsonValueEntity.Type) => void
+  ): JsonValueEntity.Type;
+  public static produce(
+    base: JsonValueEntity.Type,
+    recipe: (draft: JsonValueEntity.Type) => void
+  ): JsonValueEntity.Type {
     const rootNode = this.createNode(base);
     const proxy = this.createProxy(rootNode);
 
@@ -347,25 +381,21 @@ export class Draft {
 
   /**
    * Same mechanics as `produce`, additionally returning the RFC-6902 patch
-   * (`PatchOperationInterface[]`) describing the difference between `base` and
+   * (`PatchOperationEntity.Type[]`) describing the difference between `base` and
    * the result. `Patch.create(patch).apply(base)` reproduces `next`.
    */
-  public static producePatch<T>(
+  public static producePatch<T extends JsonValueEntity.Type>(
     base: T,
     recipe: (draft: T) => void
-  ): { 'next': T; 'patch': PatchOperationInterface[] };
+  ): { 'next': T; 'patch': PatchOperationEntity.Type[] };
   public static producePatch(
-    base: unknown,
-    recipe: (draft: never) => void
-  ): { 'next': unknown; 'patch': PatchOperationInterface[] };
-  public static producePatch(
-    base: unknown,
-    recipe: (draft: never) => void
-  ): { 'next': unknown; 'patch': PatchOperationInterface[] } {
+    base: JsonValueEntity.Type,
+    recipe: (draft: JsonValueEntity.Type) => void
+  ): { 'next': JsonValueEntity.Type; 'patch': PatchOperationEntity.Type[] } {
     this.requireJsonValue(base);
-    const next: unknown = Reflect.apply(this.produce, this, [base, recipe]);
+    const next: JsonValueEntity.Type = Reflect.apply(this.produce, this, [base, recipe]);
     this.requireJsonValue(next);
-    const ops: PatchOperationInterface[] = [];
+    const ops: PatchOperationEntity.Type[] = [];
 
     this.diffValues(base, next, '', ops);
 

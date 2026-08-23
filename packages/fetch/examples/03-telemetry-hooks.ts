@@ -29,7 +29,7 @@ class TelemetryClient extends FetchClient {
     this.responseEvents.push({ 'durationMs': durationMs, 'method': method, 'requestId': requestId, 'statusCode': statusCode });
   }
 
-  protected override onRequestError(error: unknown, method: string, requestId: string, url: string, durationMs: number): void {
+  protected override onRequestError(error: Error, method: string, requestId: string, url: string, durationMs: number): void {
     this.errorEvents.push({ 'durationMs': durationMs, 'error': error, 'method': method, 'requestId': requestId, 'url': url });
   }
 
@@ -42,7 +42,7 @@ class TelemetryClient extends FetchClient {
     this.onResponseSuccess(method, requestId, statusCode, durationMs);
   }
 
-  simulateError(error: unknown, method: string, requestId: string, url: string, durationMs: number): void {
+  simulateError(error: Error, method: string, requestId: string, url: string, durationMs: number): void {
     this.onRequestError(error, method, requestId, url, durationMs);
   }
 }

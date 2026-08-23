@@ -19,7 +19,7 @@ class ObservedContext extends Context {
     this.deleteEvents.push({ 'existed': existed, 'key': key });
   }
 
-  protected override onGet(key: string, value: unknown): void {
+  protected override onGet<TValue>(key: string, value: TValue): void {
     console.log(`[context] onGet key=${key} value=${String(value)}`);
     this.getEvents.push({ 'key': key, 'value': value });
   }
@@ -38,7 +38,7 @@ class ObservedContext extends Context {
     return false;
   }
 
-  protected override onSet(key: string, value: unknown): void {
+  protected override onSet<TValue>(key: string, value: TValue): void {
     console.log(`[context] onSet key=${key} value=${String(value)}`);
     this.setEvents.push({ 'key': key, 'value': value });
   }

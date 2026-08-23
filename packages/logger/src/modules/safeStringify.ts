@@ -6,10 +6,10 @@ export class SafeStringify {
    * @param object - The object to stringify
    * @returns JSON string representation, with '[Circular]' replacing circular references
    */
-  public static stringify(object: unknown): string {
+  public static stringify<T>(object: T): string {
     const seen = new WeakSet();
 
-    const result = JSON.stringify(object, (_key, value: unknown) => {
+    const result = JSON.stringify(object, (_key, value) => {
       if (typeof value === 'object' && value !== null) {
         if (seen.has(value)) {
           return '[Circular]';

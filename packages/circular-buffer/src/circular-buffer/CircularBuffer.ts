@@ -57,9 +57,9 @@ interface CircularBufferSubclassInterface<TInstance> extends Function {
 }
 
 class CircularBufferInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: CircularBufferSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -78,22 +78,32 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * const buf = CircularBuffer.create<number>({ capacity: 16 });
    * ```
    */
-  static create<
-    T,
-    TInstance extends CircularBuffer<T> = CircularBuffer<T>
-  >(
+  static create<T, TInstance extends CircularBuffer<T> = CircularBuffer<T>>(
     this: CircularBufferSubclassInterface<TInstance>,
     options: CircularBufferOptionsEntity.Type = {}
   ): TInstance {
-    const resolveSubclassConstructor = (): CircularBufferSubclassInterface<TInstance> => {
-      return this;
-    };
+    const resolveSubclassConstructor =
+      (): CircularBufferSubclassInterface<TInstance> => {
+        return this;
+      };
 
-    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!CircularBufferInstance.belongsTo(resolveSubclassConstructor(), result)) {
-      throw new TypeError('CircularBuffer.create() did not construct the requested subclass.');
+    const constructed: unknown = Reflect.construct(
+      resolveSubclassConstructor(),
+      [options]
+    );
+    if (typeof constructed !== 'object' || constructed === null) {
+      throw new TypeError(
+        'CircularBuffer.create() did not construct the requested subclass.'
+      );
     }
-    return result;
+    if (
+      !CircularBufferInstance.belongsTo(resolveSubclassConstructor(), constructed)
+    ) {
+      throw new TypeError(
+        'CircularBuffer.create() did not construct the requested subclass.'
+      );
+    }
+    return constructed;
   }
 
   protected count = INITIAL_BUFFER_COUNT;
@@ -101,7 +111,9 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   protected items: (T | undefined)[];
   protected tail = INITIAL_BUFFER_TAIL;
   protected capacity: number;
-  protected readonly hooks: HookInvoker = new HookInvoker({ 'detectReentrancy': true });
+  protected readonly hooks: HookInvoker = new HookInvoker({
+    'detectReentrancy': true
+  });
 
   readonly #overflow: 'grow' | 'overwrite';
 
@@ -366,7 +378,8 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
         } else {
           // overwrite: evict from tail (opposite end from insertion), retreat
           // tail, keep length at capacity.
-          this.tail = (this.tail - INCREMENT_BY_ONE + this.capacity) % this.capacity;
+          this.tail =
+            (this.tail - INCREMENT_BY_ONE + this.capacity) % this.capacity;
           // Buffer is full (count === capacity), so the slot before tail always
           // holds a real item — occupancy is already known, no value check needed.
           const evicted = this.items.at(this.tail)!;

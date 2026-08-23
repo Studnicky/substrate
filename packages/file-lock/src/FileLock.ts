@@ -7,9 +7,7 @@ import type { FileLockCreateOptionsInterface } from './FileLockCreateOptionsInte
 import type { FileLockStateInterface } from './FileLockStateInterface.js';
 import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
 
-import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from './constants/FileLockDefaults.js';
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
-import { FileLockConfigError } from './errors/FileLockConfigError.js';
 import { FileLockMachine } from './FileLockMachine.js';
 import { FileLockTimeoutError } from './FileLockTimeoutError.js';
 import { LockPathHelpers } from './LockPathHelpers.js';
@@ -42,9 +40,9 @@ interface FileLockDisposableInterface {
 }
 
 class FileLockInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: FileLockSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -82,31 +80,20 @@ class FileLockInstance {
 export class FileLock {
   /** Swallows hook failures after the composed invoker records them. */
   static readonly #OwnedHookInvoker = class FileLockHookInvoker extends HookInvoker {
-    protected override onHookError(_hookName: string, _cause: unknown): void {}
+    protected override onHookError(): void {}
   };
 
   static async create<TInstance extends FileLock = FileLock>(
     this: FileLockSubclassInterface<TInstance>,
     options: FileLockCreateOptionsInterface
   ): Promise<FileLockDisposableInterface & TInstance> {
-    const schemaOptions: FileLockOptionsEntity.Type = {
+    const schemaOptions = FileLockOptionsEntity.intake({
       'path': options.path,
       ...(options.pollMs !== undefined ? { 'pollMs': options.pollMs } : {}),
       ...(options.timeoutMs !== undefined ? { 'timeoutMs': options.timeoutMs } : {})
-    };
+    });
 
-    if (!FileLockOptionsEntity.validate(schemaOptions)) {
-      const messages = (FileLockOptionsEntity.validate.errors ?? [])
-        .map((e) => {
-          const result = e.message ?? String(e);
-          return result;
-        })
-        .join('; ');
-      const result = await Promise.reject(new FileLockConfigError(messages.length > 0 ? messages : 'invalid options'));
-      return result;
-    }
-
-    const { path, pollMs = DEFAULT_POLL_MS, timeoutMs = DEFAULT_TIMEOUT_MS } = schemaOptions;
+    const { path, pollMs, timeoutMs } = schemaOptions;
 
     const fs: FileSystemInterface = options.fileSystem ?? new NodeFileSystem();
     const ownerToken: OwnerTokenInterface = options.ownerToken ?? new NodeOwnerToken();
@@ -120,7 +107,7 @@ export class FileLock {
     const constructed: unknown = Reflect.construct(resolveSubclassConstructor(), [
       { 'fs': fs, 'lockPath': lockPath, 'originalPath': path }
     ]);
-    if (!FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
+    if (typeof constructed !== 'object' || constructed === null || !FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
       throw new TypeError('FileLock.create() did not construct the requested subclass.');
     }
 
@@ -191,12 +178,12 @@ export class FileLock {
             return result;
           });
           resolve();
-        } catch (error: unknown) {
+        } catch (error) {
           // Rename failed. ENOENT means another holder already renamed `path` away
           // (expected contention for this lock's race); any other code (or no code
           // at all) is a genuine filesystem failure that must fail fast.
-          if (!FileLock.#isContentionError(error)) {
-            const actualError = error instanceof Error ? error : new Error(String(error));
+          const actualError = error instanceof Error ? error : new Error(String(error));
+          if (!FileLock.#isContentionError(actualError)) {
             this.hooks.invoke('onError', () => {
               const result = this.onError(path, actualError);
               return result;
@@ -239,8 +226,7 @@ export class FileLock {
    * conventional `ENOENT: ...` message prefix (fakes that model an errno in
    * text, e.g. `@studnicky/virtual-fs`, without a matching `.code`).
    */
-  static #isContentionError(error: unknown): boolean {
-    if (!(error instanceof Error)) { return false; }
+  static #isContentionError(error: Error): boolean {
     if ('code' in error && error.code === 'ENOENT') { return true; }
     const result = error.message.startsWith('ENOENT');
     return result;

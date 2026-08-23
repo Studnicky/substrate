@@ -179,7 +179,7 @@ async function inspectRequest(clientInstance: ReturnType<typeof FetchClient.crea
   }
 }
 
-function assertRejectedExpectation(error: unknown, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
+function assertRejectedExpectation(error: Error, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
   assert.ok(error instanceof Error);
 
   if (expectation.error === 'TimeoutError') {
@@ -214,6 +214,7 @@ async function assertRequestExpectation(
   }
 
   assert.ok(!result.ok, 'expected request rejection');
+  assert.ok(result.error instanceof Error);
   assertRejectedExpectation(result.error, expectation);
 }
 

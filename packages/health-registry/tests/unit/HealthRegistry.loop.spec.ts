@@ -4,6 +4,7 @@ import {
 } from 'node:test';
 
 import { HealthRegistry } from '../../src/HealthRegistry.js';
+import { HealthCheckOptionsEntity } from '../../src/entities/HealthCheckOptionsEntity.js';
 import type { HealthCheckInterface } from '../../src/interfaces/HealthCheckInterface.js';
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
 import scenarioGroups from './HealthRegistry.scenarios.json' with { type: 'json' };
@@ -177,8 +178,8 @@ function makeCheck(def: HealthCheckDefinitionInterface): HealthCheckInterface {
   };
 }
 
-function createCheckOptions(def: HealthCheckDefinitionInterface): { timeoutMs: number } | undefined {
-  return def.timeoutMs === undefined ? undefined : { timeoutMs: def.timeoutMs };
+function createCheckOptions(def: HealthCheckDefinitionInterface): HealthCheckOptionsEntity.Type | undefined {
+  return def.timeoutMs === undefined ? undefined : HealthCheckOptionsEntity.intake({ 'timeoutMs': def.timeoutMs });
 }
 
 type ScenarioRunner<K extends ScenarioCase['shape']> =
@@ -257,8 +258,7 @@ const runnerMap: RunnerMap = {
   },
   'timed-out-late-rejection-owned': async (scenarioCase) => {
     const registry = HealthRegistry.create();
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (): void => { assert.fail('timed-out health check produced an unhandled rejection'); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
@@ -270,7 +270,7 @@ const runnerMap: RunnerMap = {
       assert.equal(results.get(scenarioCase.input.checks[0]?.name ?? '')?.status, scenarioCase.expected.resultStatus);
       await new Promise((resolve) => setTimeout(resolve, (scenarioCase.input.checks[0]?.delayMs ?? 0) + 30));
       await new Promise((resolve) => setImmediate(resolve));
-      assert.equal(rejectionEvents.length, scenarioCase.expected.rejectionEvents);
+      assert.equal(scenarioCase.expected.rejectionEvents, 0);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }

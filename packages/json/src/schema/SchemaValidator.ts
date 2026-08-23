@@ -21,11 +21,12 @@
  */
 import type { ErrorObject, ValidateFunction } from 'ajv';
 
+import { JsonObject, JsonValue } from '@studnicky/types';
+
 import type { SchemaCreateFunctionInterface } from '../interfaces/SchemaCreateFunctionInterface.js';
 import type { SchemaIntakeFunctionInterface } from '../interfaces/SchemaIntakeFunctionInterface.js';
 
 import { SchemaIntakeError } from '../errors/SchemaIntakeError.js';
-import { Clone } from '../json/Clone.js';
 import { AjvInstance } from './AjvInstance.js';
 
 export class SchemaValidator {
@@ -62,9 +63,8 @@ export class SchemaValidator {
    * Compiles `schema` into an untrusted-input parser. The parser clones input
    * before Ajv applies intake transforms, leaving the caller's value unchanged.
    *
-   * Cyclic values are rejected before cloning: `Clone.deep` intentionally has no
-   * reference tracking, so rejecting cycles prevents recursive cloning from
-   * overflowing the stack while JSON Schema continues to model JSON trees.
+   * Cyclic values are rejected before cloning because JSON Schema models JSON
+   * trees rather than object graphs.
    */
   public static compileIntake<TValidated>(schema: object): SchemaIntakeFunctionInterface<TValidated> {
     const id: unknown = Reflect.get(schema, '$id');
@@ -76,8 +76,16 @@ export class SchemaValidator {
       if (SchemaValidator.hasCloneCycle(input)) {
         throw new SchemaIntakeError('cyclic input is not supported', [], schemaIdentifier);
       }
+      if (!JsonValue.is(input)) {
+        throw new SchemaIntakeError(SchemaValidator.formatJsonValidityErrors(input), [], schemaIdentifier);
+      }
 
-      const cloned = Clone.deep(input);
+      let cloned: unknown;
+      try {
+        cloned = structuredClone(input);
+      } catch {
+        throw new SchemaIntakeError('input is not structured-cloneable', [], schemaIdentifier);
+      }
       if (!validate(cloned)) {
         const errors = validate.errors ?? [];
         throw new SchemaIntakeError(SchemaValidator.formatErrors(errors), errors, schemaIdentifier);
@@ -102,7 +110,7 @@ export class SchemaValidator {
     const schemaIdentifier = SchemaValidator.schemaIdentifier(schema);
 
     const create: SchemaCreateFunctionInterface<TValidated> = (partial = {}) => {
-      const cloned = Clone.deep(partial);
+      const cloned = structuredClone(partial);
       if (!validate(cloned)) {
         const errors = validate.errors ?? [];
         throw new SchemaIntakeError(SchemaValidator.formatErrors(errors), errors, schemaIdentifier);
@@ -129,9 +137,72 @@ export class SchemaValidator {
 
   /** Renders a single Ajv error object. Override to customise per-error wording. */
   protected static formatError(error: Readonly<ErrorObject>): string {
-    const path = error.instancePath !== '' ? error.instancePath : '(root)';
+    const result = SchemaValidator.formatPathMessage(error.instancePath, error.message ?? 'invalid');
+    return result;
+  }
 
-    return `${path}: ${error.message ?? 'invalid'}`;
+  /** Renders JSON-validity errors using the same path convention as Ajv errors. */
+  protected static formatJsonValidityErrors<T>(value: T): string {
+    const messages = SchemaValidator.collectJsonValidityErrors(value);
+    const result = messages.join('; ');
+    return result;
+  }
+
+  /** Finds every non-JSON value in a finite, acyclic candidate. */
+  protected static collectJsonValidityErrors<T>(value: T, path = ''): string[] {
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+      return [];
+    }
+    if (typeof value === 'number') {
+      const message = Number.isFinite(value) ? undefined : SchemaValidator.describeInvalidJsonNumber(value);
+      const result = message === undefined ? [] : [SchemaValidator.formatPathMessage(path, message)];
+      return result;
+    }
+    if (Array.isArray(value)) {
+      const messages: string[] = [];
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        const item: unknown = value.at(index);
+        messages.push(...SchemaValidator.collectJsonValidityErrors(item, `${path}/${index}`));
+      }
+      return messages;
+    }
+    if (JsonObject.is(value)) {
+      const messages: string[] = [];
+      const keys = Object.keys(value);
+      const length = keys.length;
+      for (let index = 0; index < length; index += 1) {
+        const key = keys[index]!;
+        const item: unknown = Reflect.get(value, key);
+        const nextPath = `${path}/${SchemaValidator.escapeJsonPointerSegment(key)}`;
+        messages.push(...SchemaValidator.collectJsonValidityErrors(item, nextPath));
+      }
+      return messages;
+    }
+
+    return [SchemaValidator.formatPathMessage(path, `${typeof value} is not valid JSON data`)];
+  }
+
+  /** Formats a message at a JSON Pointer path, substituting the root label when needed. */
+  protected static formatPathMessage(path: string, message: string): string {
+    const formattedPath = path !== '' ? path : '(root)';
+
+    return `${formattedPath}: ${message}`;
+  }
+
+  /** Escapes one property segment according to RFC 6901. */
+  protected static escapeJsonPointerSegment(segment: string): string {
+    const result = segment.replaceAll('~', '~0').replaceAll('/', '~1');
+    return result;
+  }
+
+  /** Describes a non-finite number without exposing a JavaScript implementation detail. */
+  protected static describeInvalidJsonNumber(value: number): string {
+    if (Number.isNaN(value)) {
+      return 'NaN is not valid JSON data';
+    }
+    const result = value < 0 ? '-Infinity is not valid JSON data' : 'Infinity is not valid JSON data';
+    return result;
   }
 
   /** Finds the schema label carried by intake errors. */

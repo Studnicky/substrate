@@ -15,7 +15,7 @@ import {
 class TracedBreaker extends CircuitBreaker {
   constructor(options: CircuitBreakerOptionsInterface) { super(options); }
   protected override onSuccess(): void { console.log('[resilience:cb] onSuccess — circuit closed and call succeeded'); }
-  protected override onFailure(error: unknown): void { console.log(`[resilience:cb] onFailure — error=${String(error)}`); }
+  protected override onFailure(error: Error): void { console.log(`[resilience:cb] onFailure — error=${error.message}`); }
   protected override onTrip(): void { console.log('[resilience:cb] onTrip — failure threshold reached, circuit OPEN'); }
   protected override onOpen(): void { console.log('[resilience:cb] onOpen — circuit is now open'); }
   protected override onHalfOpen(): void { console.log('[resilience:cb] onHalfOpen — probing after timeout'); }

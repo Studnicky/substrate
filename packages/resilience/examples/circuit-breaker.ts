@@ -33,7 +33,7 @@ for (let i = 0; i < 3; i++) {
 console.log('State after 3 failures:', breaker.state);
 
 // --- OPEN: next call is fast-rejected with CircuitBreakerOpenError ---
-await breaker.execute(() => { const result = Promise.resolve('should not run'); return result; }).catch((error: unknown) => {
+await breaker.execute(() => { const result = Promise.resolve('should not run'); return result; }).catch((error) => {
   console.log('Open-circuit rejection:', error instanceof CircuitBreakerOpenError ? 'CircuitBreakerOpenError' : 'other');
 });
 

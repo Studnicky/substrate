@@ -350,7 +350,7 @@ const onRangeChangeRunners = {
     const range = createConfiguredRange(scenario.input, AsyncRejectingVisibleRange);
 
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (reason: Error): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {

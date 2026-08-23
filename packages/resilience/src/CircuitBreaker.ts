@@ -33,9 +33,9 @@ interface CircuitBreakerSubclassInterface<TInstance> extends Function {
 }
 
 class CircuitBreakerInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: CircuitBreakerSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -77,7 +77,7 @@ export class CircuitBreaker {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!CircuitBreakerInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (typeof result !== 'object' || result === null || !CircuitBreakerInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('CircuitBreaker.create() did not construct the requested subclass.');
     }
     return result;
@@ -116,16 +116,16 @@ export class CircuitBreaker {
         this.#classifierAttemptCount = 0;
       }
       return result;
-    } catch (caughtError: unknown) {
+    } catch (caughtError) {
       const error = caughtError instanceof Error ? caughtError : new Error(String(caughtError));
       const classification = this.#classifyError(error, this.#classifierAttemptCount);
       if (!classification.retryable) {
         if (!wasHalfOpen) {
           this.#classifierAttemptCount += 1;
         }
-        this.#dispatch({ 'at': this.#clock(), 'error': caughtError, 'type': 'callFailed' });
+        this.#dispatch({ 'at': this.#clock(), 'error': error, 'type': 'callFailed' });
       }
-      throw caughtError;
+      throw error;
     }
   }
 
@@ -156,7 +156,7 @@ export class CircuitBreaker {
    * @param attemptNumber - Count of consecutive failures so far (`#failureCount`)
    * @returns Classification result indicating whether the error counts as a failure
    */
-  protected classifyError(_error: unknown, _attemptNumber: number): ErrorClassificationEntity.Type {
+  protected classifyError(_error: Error, _attemptNumber: number): ErrorClassificationEntity.Type {
     const result: ErrorClassificationEntity.Type = { 'retryable': false };
     return result;
   }
@@ -171,7 +171,7 @@ export class CircuitBreaker {
    * Fires after `fn()` throws in any circuit state.
    * Override to add logging, metrics, or tracing. Must not throw or block.
    */
-  protected onFailure(_error: unknown): void {}
+  protected onFailure(_error: Error): void {}
 
   /**
    * Fires when the failure threshold is reached and the circuit transitions closed → open.

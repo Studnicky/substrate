@@ -267,8 +267,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * });
    * ```
    */
-  private static isConstructed<TInstance>(
-    value: unknown,
+  private static isConstructed<TInstance extends object>(
+    value: object,
     constructor: MutexConstructorInterface<TInstance>
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -294,7 +294,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     config?: Partial<MutexConfigEntity.Type>
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
-    if (!Mutex.isConstructed<TInstance>(result, this)) {
+    if (result === null || typeof result !== 'object' || !Mutex.isConstructed<TInstance>(result, this)) {
       throw new TypeError('Mutex.create() must construct a Mutex instance');
     }
     return result;

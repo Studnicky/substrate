@@ -195,7 +195,7 @@ const runnerMap: RunnerMap = {
 
     const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    await assert.rejects(pool.run(scenarioCase.input.items), (error: unknown) => {
+    await assert.rejects(pool.run(scenarioCase.input.items), (error: Error) => {
       assert.ok(error instanceof Error);
       assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
       return true;
@@ -205,7 +205,7 @@ const runnerMap: RunnerMap = {
   'timeout-rejects': async (scenarioCase) => {
     const pool = WorkerPool.create<{ ms?: number; value: string }, string>(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    await assert.rejects(pool.run(scenarioCase.input.items), (error: unknown) => {
+    await assert.rejects(pool.run(scenarioCase.input.items), (error: Error) => {
       assert.ok(error instanceof Error);
       assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
       return true;

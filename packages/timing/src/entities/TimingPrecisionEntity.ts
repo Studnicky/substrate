@@ -4,6 +4,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
 
+import { DEFAULT_DECIMAL_PRECISION, VALID_TIME_UNITS } from '../constants/index.js';
+
 /** Decimal precision configuration keyed by supported time unit. */
 export namespace TimingPrecisionEntity {
   const PrecisionPropertySchema = {
@@ -17,12 +19,13 @@ export namespace TimingPrecisionEntity {
     'additionalProperties': false,
     'description': 'Decimal precision configuration per time unit (h, m, ms, ns, s).',
     'properties': {
-      'h': PrecisionPropertySchema,
-      'm': PrecisionPropertySchema,
-      'ms': PrecisionPropertySchema,
-      'ns': PrecisionPropertySchema,
-      's': PrecisionPropertySchema
+      'h': { ...PrecisionPropertySchema, 'default': DEFAULT_DECIMAL_PRECISION.h },
+      'm': { ...PrecisionPropertySchema, 'default': DEFAULT_DECIMAL_PRECISION.m },
+      'ms': { ...PrecisionPropertySchema, 'default': DEFAULT_DECIMAL_PRECISION.ms },
+      'ns': { ...PrecisionPropertySchema, 'default': DEFAULT_DECIMAL_PRECISION.ns },
+      's': { ...PrecisionPropertySchema, 'default': DEFAULT_DECIMAL_PRECISION.s }
     },
+    'propertyNames': { 'enum': VALID_TIME_UNITS },
     'type': 'object'
   } as const satisfies JSONSchema;
 

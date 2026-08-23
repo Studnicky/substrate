@@ -185,8 +185,8 @@ const runnerMap: RunnerMap = {
       }
     }
 
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    let rejectionEventCount = 0;
+    const onUnhandledRejection = (): void => { rejectionEventCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
@@ -195,7 +195,7 @@ const runnerMap: RunnerMap = {
       assert.deepEqual(step.state, { variant: scenarioCase.expected.state });
       await new Promise((resolve) => { setImmediate(resolve); });
       await new Promise((resolve) => { setImmediate(resolve); });
-      assert.equal(rejectionEvents.length, scenarioCase.expected.rejectionEvents);
+      assert.equal(rejectionEventCount, scenarioCase.expected.rejectionEvents);
       assert.equal(machine.hookErrorCount, scenarioCase.expected.hookCount);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
@@ -252,10 +252,7 @@ const runnerMap: RunnerMap = {
     }
 
     const machine = new ThrowingRejectedHookMachine();
-    assert.throws(
-      () => machine.transition(scenarioCase.input.state, scenarioCase.input.event),
-      (err: unknown) => err instanceof ReducerThrewError
-    );
+    assert.throws(() => machine.transition(scenarioCase.input.state, scenarioCase.input.event), ReducerThrewError);
     assert.equal(machine.hookErrorCount, scenarioCase.expected.hookCount);
   },
   'throwing-transition-hook': (scenarioCase) => {
@@ -286,13 +283,7 @@ const runnerMap: RunnerMap = {
   },
   'transition-rejected-hook': (scenarioCase) => {
     const machine = new ObservedThrowingMachine();
-    assert.throws(
-      () => machine.transition(scenarioCase.input.state, scenarioCase.input.event),
-      (err: unknown) => {
-        assert.ok(err instanceof ReducerThrewError);
-        return true;
-      }
-    );
+    assert.throws(() => machine.transition(scenarioCase.input.state, scenarioCase.input.event), ReducerThrewError);
     assert.equal(machine.rejections.length, 1);
     assert.equal(machine.rejections[0]!.args.state, scenarioCase.expected.state);
     assert.equal(machine.rejections[0]!.args.event, scenarioCase.expected.event);

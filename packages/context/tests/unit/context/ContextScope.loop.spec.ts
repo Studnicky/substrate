@@ -62,11 +62,11 @@ type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 type FunctionFixtureName = 'doubleNumber';
 type FunctionFixture = (num: number) => number;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord<TValue>(value: TValue): value is TValue & Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
+function requireRecord<TValue>(value: TValue, label: string): Record<string, unknown> {
   if (!isRecord(value)) {
     throw new TypeError(`${label} must be an object`);
   }
@@ -504,7 +504,7 @@ const runnerMap = {
       throw new Error(message);
     }).then(() => {
       throw new Error('Should have thrown');
-    }, (error: unknown) => {
+    }, (error: Error) => {
       assert.ok(error instanceof Error);
       assert.strictEqual(error.message, message);
     });

@@ -38,7 +38,9 @@ class SettledProcessingExample {
         if (result.status === 'fulfilled') {
           console.log('  fulfilled:', result.value);
         } else {
-          console.log('  rejected:', (result.reason as Error).message);
+          const error = result.reason instanceof Error ? result.reason : new Error(String(result.reason));
+          const message = error.message;
+          console.log('  rejected:', message);
         }
       }
       allSettled.push(...batch);

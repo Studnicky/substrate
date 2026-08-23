@@ -108,7 +108,7 @@ type ScenarioCase =
 
 const TRACE_DELAY_TESTS = process.env.SUBSTRATE_TEST_TRACE === '1';
 
-function traceDelayTest(message: string, payload?: unknown): void {
+function traceDelayTest(message: string, payload?: object): void {
   if (!TRACE_DELAY_TESTS) {
     return;
   }
@@ -185,7 +185,7 @@ const runnerMap: RunnerMap = {
       }
     };
     const promise = Delay.sleep(scenarioCase.input.sleepMs, { 'clock': clock, 'scheduler': scheduler, 'signal': controller.signal });
-    await assert.rejects(promise, (error: unknown) => error === reason);
+    await assert.rejects(promise, (error: Error) => error === reason);
     scheduler.advance(scenarioCase.input.sleepMs);
     assert.strictEqual(scheduler.scheduleCount, scenarioCase.expected.scheduleCount);
     assert.strictEqual(scheduler.cancelCount, scenarioCase.expected.cancelCount);
@@ -206,7 +206,7 @@ const runnerMap: RunnerMap = {
     }
     const scheduler = new AbortOnScheduleScheduler();
     const promise = Delay.sleep(scenarioCase.input.sleepMs, { 'clock': clock, 'scheduler': scheduler, 'signal': controller.signal });
-    await assert.rejects(promise, (error: unknown) => error === reason);
+    await assert.rejects(promise, (error: Error) => error === reason);
     scheduler.advance(scenarioCase.input.sleepMs);
     assert.strictEqual(scheduler.scheduleCount, scenarioCase.expected.scheduleCount);
     assert.strictEqual(scheduler.cancelCount, scenarioCase.expected.cancelCount);
@@ -237,7 +237,7 @@ const runnerMap: RunnerMap = {
     const reason = createReason(scenarioCase.input);
     const promise = Delay.sleep(scenarioCase.input.sleepMs, { 'clock': clock, 'scheduler': scheduler, 'signal': controller.signal });
     controller.abort(reason);
-    await assert.rejects(promise, (error: unknown) => error === reason);
+    await assert.rejects(promise, (error: Error) => error === reason);
     scheduler.advance(scenarioCase.input.sleepMs);
     assert.strictEqual(scheduler.cancelCount, scenarioCase.expected.cancelCount);
     assert.strictEqual(scheduler.fireCount, scenarioCase.expected.fireCount);
@@ -251,7 +251,7 @@ const runnerMap: RunnerMap = {
     controller.abort(reason);
     await assert.rejects(
       Delay.sleep(scenarioCase.input.sleepMs, { 'clock': clock, 'scheduler': scheduler, 'signal': controller.signal }),
-      (error: unknown) => error === reason
+      (error: Error) => error === reason
     );
     assert.strictEqual(scheduler.scheduleCount, scenarioCase.expected.scheduleCount);
   },
@@ -261,7 +261,7 @@ const runnerMap: RunnerMap = {
     const reason = createReason(scenarioCase.input);
     const promise = Delay.sleep(scenarioCase.input.sleepMs, { 'scheduler': scheduler, 'signal': controller.signal });
     controller.abort(reason);
-    await assert.rejects(promise, (error: unknown) => error === reason);
+    await assert.rejects(promise, (error: Error) => error === reason);
     assert.strictEqual(scheduler.cancelCount, scenarioCase.expected.cancelCount);
     assert.strictEqual(reason.message, scenarioCase.expected.reasonMessage);
   },
@@ -277,7 +277,7 @@ const runnerMap: RunnerMap = {
     const listenersBefore = getEventListeners(controller.signal, 'abort').length;
     const promise = Delay.sleep(scenarioCase.input.sleepMs, { 'scheduler': new ThrowingScheduler(schedulerError), 'signal': controller.signal });
     assert.strictEqual(getEventListeners(controller.signal, 'abort').length, listenersBefore);
-    await assert.rejects(promise, (error: unknown) => error === schedulerError);
+    await assert.rejects(promise, (error: Error) => error === schedulerError);
     assert.equal(scenarioCase.expected.errorMessage, schedulerError.message);
     assert.equal(scenarioCase.expected.listenerCountUnchanged, true);
   },

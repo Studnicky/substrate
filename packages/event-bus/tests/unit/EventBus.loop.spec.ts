@@ -88,7 +88,7 @@ class ObservedBus extends EventBus<HookTopics> {
   protected override onDeliver<K extends keyof HookTopics>(topic: K, payload: HookTopics[K]): void {
     this.deliverEvents.push({ 'topic': topic, 'payload': payload });
   }
-  protected override onHandlerError<K extends keyof HookTopics>(topic: K, error: unknown): void {
+  protected override onHandlerError<K extends keyof HookTopics, TError>(topic: K, error: TError): void {
     this.handlerErrors.push({ 'topic': topic, 'error': error });
   }
   protected override onEnqueue<K extends keyof HookTopics>(topic: K): void {
@@ -109,7 +109,7 @@ class RecordingHookInvoker extends HookInvoker {
   readonly hookNames: string[] = [];
   readonly causes: unknown[] = [];
 
-  protected override onHookError(hookName: string, cause: unknown): void {
+  protected override onHookError(hookName: string, cause: Error): void {
     this.hookNames.push(hookName);
     this.causes.push(cause);
   }
@@ -457,7 +457,7 @@ const runnerMap: RunnerMap = {
     const expected = scenarioCase.expected as { hookNames: string[]; unhandledRejections: number };
     const bus = RejectingLifecycleBus.create();
     const unhandledRejections: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+    const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     const unsubscribe = bus.subscribe('order:created', async () => {});
@@ -485,7 +485,7 @@ const runnerMap: RunnerMap = {
     const bus = RejectingQueueHooksBus.create();
     const received: string[] = [];
     const unhandledRejections: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+    const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     return Promise.resolve()

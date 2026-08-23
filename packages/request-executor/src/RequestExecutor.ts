@@ -52,7 +52,7 @@ import type { RequestExecutorExecuteOptionsInterface } from './interfaces/Reques
  *     console.log('request complete', result);
  *   }
  *
- *   protected override onExecuteError(error: unknown): void {
+ *   protected override onExecuteError(error: Error): void {
  *     console.error('request failed', error);
  *   }
  * }
@@ -61,7 +61,7 @@ import type { RequestExecutorExecuteOptionsInterface } from './interfaces/Reques
 export class RequestExecutor {
   /** Keeps request execution intact when a lifecycle hook fails. */
   static readonly #OwnedHookInvoker = class RequestExecutorHookInvoker extends HookInvoker {
-    protected override onHookError(_hookName: string, _cause: unknown): void {}
+    protected override onHookError(): void {}
   };
 
   /**
@@ -152,13 +152,14 @@ export class RequestExecutor {
         });
 
         return result;
-      } catch (error) {
+      } catch (cause) {
+        const error = cause instanceof Error ? cause : new Error(String(cause));
         this.hooks.invoke('onExecuteError', () => {
           const hookResult = this.onExecuteError(error);
           return hookResult;
         });
 
-        throw error;
+        throw cause;
       }
     };
 
@@ -198,9 +199,10 @@ export class RequestExecutor {
 
   /**
    * Fires once the retry loop's final attempt has failed, immediately before `execute()`
-   * rethrows. `error` is the raw failure — the same value `execute()` throws.
+   * rethrows. Non-Error failures are represented as an Error for this hook while
+   * `execute()` rethrows the original value unchanged.
    */
-  protected onExecuteError(_error: unknown): void {}
+  protected onExecuteError(_error: Error): void {}
 
   /** Count of hook failures recorded since construction. */
   get hookErrorCount(): number {

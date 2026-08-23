@@ -3,7 +3,7 @@ import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
 import { LOG_LEVEL_MAP } from '../constants/LOG_LEVEL_MAP.js';
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 
-const logLevelDispatch = new Map<unknown, LogLevelEntity.Type>();
+const logLevelDispatch = new Map<string | number, LogLevelEntity.Type>();
 const logLevelEntries = Object.entries(LOG_LEVEL_MAP);
 const length = logLevelEntries.length;
 for (let index = 0; index < length; index += 1) {
@@ -32,7 +32,7 @@ export class ParseLogLevel {
    * ParseLogLevel.parse('unknown'); // LOG_LEVEL.INFO (default)
    * ```
   */
-  public static parse(level: unknown): LogLevelEntity.Type {
+  public static parse(level: string | number): LogLevelEntity.Type {
     const result = logLevelDispatch.get(level) ?? LOG_LEVEL.INFO;
     return result;
   }

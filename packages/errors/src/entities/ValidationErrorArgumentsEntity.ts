@@ -2,6 +2,9 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
 import { EntityIntake } from '../validation/EntityIntake.js';
 import { ValidationViolationDetailEntity } from './ValidationViolationDetailEntity.js';
 
@@ -40,7 +43,7 @@ export namespace ValidationErrorArgumentsEntity {
   export type Type = FromSchema<typeof Schema>;
 
   /** Validates construction arguments without introducing a dependency on `@studnicky/json`. */
-  export const validate = (candidate: unknown): candidate is Type => {
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     const hasUnknownKey = Object.keys(candidate).some((key) => { const result = !ALLOWED_KEYS.has(key); return result; });
     if (hasUnknownKey) { return false; }
@@ -56,39 +59,48 @@ export namespace ValidationErrorArgumentsEntity {
     return true;
   };
 
-  const parseViolations = (value: unknown, intake: boolean): ValidationViolationDetailEntity.Type[] | undefined => {
-    if (!Array.isArray(value)) { return undefined; }
-    const result: ValidationViolationDetailEntity.Type[] = [];
-    for (const item of value) {
-      const violation = intake ? ValidationViolationDetailEntity.intake(item) : ValidationViolationDetailEntity.create(item);
-      result.push(violation);
+  class Parser {
+    public static parseViolations(value: Parameters<EntityIntakeFunctionInterface<never>>[0], intake: boolean): ValidationViolationDetailEntity.Type[] | undefined {
+      if (!Array.isArray(value)) { return undefined; }
+      const result: ValidationViolationDetailEntity.Type[] = [];
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        const item: unknown = value[index];
+        if (intake) {
+          result.push(ValidationViolationDetailEntity.intake(item));
+          continue;
+        }
+        if (!ValidationViolationDetailEntity.validate(item)) { return undefined; }
+        const violation = ValidationViolationDetailEntity.create(item);
+        result.push(violation);
+      }
+      return result;
     }
-    return result;
-  };
 
-  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
-    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['correlationId', 'message', 'path', 'violations'])) { return undefined; }
-    const message = EntityIntake.string(candidate.message, options.coerce);
-    const path = EntityIntake.string(candidate.path, options.coerce);
-    if (message === undefined || path === undefined) { return undefined; }
-    let correlationId: string | undefined;
-    if (candidate.correlationId !== undefined) {
-      correlationId = EntityIntake.string(candidate.correlationId, options.coerce);
-      if (correlationId === undefined) { return undefined; }
+    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+      if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['correlationId', 'message', 'path', 'violations'])) { return undefined; }
+      const message = EntityIntake.string(candidate.message, options.coerce);
+      const path = EntityIntake.string(candidate.path, options.coerce);
+      if (message === undefined || path === undefined) { return undefined; }
+      let correlationId: string | undefined;
+      if (candidate.correlationId !== undefined) {
+        correlationId = EntityIntake.string(candidate.correlationId, options.coerce);
+        if (correlationId === undefined) { return undefined; }
+      }
+      let violations: ValidationViolationDetailEntity.Type[] | undefined;
+      if (candidate.violations !== undefined) {
+        violations = Parser.parseViolations(candidate.violations, options.coerce);
+        if (violations === undefined) { return undefined; }
+      }
+      if (correlationId === undefined) {
+        if (violations === undefined) { return { 'message': message, 'path': path }; }
+        return { 'message': message, 'path': path, 'violations': violations };
+      }
+      if (violations === undefined) { return { 'correlationId': correlationId, 'message': message, 'path': path }; }
+      return { 'correlationId': correlationId, 'message': message, 'path': path, 'violations': violations };
     }
-    let violations: ValidationViolationDetailEntity.Type[] | undefined;
-    if (candidate.violations !== undefined) {
-      violations = parseViolations(candidate.violations, options.coerce);
-      if (violations === undefined) { return undefined; }
-    }
-    if (correlationId === undefined) {
-      if (violations === undefined) { return { 'message': message, 'path': path }; }
-      return { 'message': message, 'path': path, 'violations': violations };
-    }
-    if (violations === undefined) { return { 'correlationId': correlationId, 'message': message, 'path': path }; }
-    return { 'correlationId': correlationId, 'message': message, 'path': path, 'violations': violations };
-  };
+  }
 
-  export const intake = EntityIntake.compileIntake(parser, 'ValidationErrorArguments');
-  export const create = EntityIntake.compileCreate(parser, 'ValidationErrorArguments');
+  export const intake = EntityIntake.compileIntake(Parser.parse, 'ValidationErrorArguments');
+  export const create = EntityIntake.compileCreate(Parser.parse, 'ValidationErrorArguments');
 }

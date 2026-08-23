@@ -1,19 +1,34 @@
 {
   "valid": [
     {
-      "code": "import type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n}",
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n  export const create = SchemaValidator.compileCreate<Type>(Schema);\n}",
       "filename": "/project/src/FooEntity.ts",
       "name": "[entities] valid entity: Schema as const, Type from FromSchema, function type guard"
     },
     {
-      "code": "import type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = (candidate: unknown): candidate is Type => {\n    return candidate !== null;\n  };\n}",
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = (candidate: unknown): candidate is Type => {\n    return candidate !== null;\n  };\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n  export const create = SchemaValidator.compileCreate<Type>(Schema);\n}",
       "filename": "/project/src/FooEntity.ts",
       "name": "[entities] valid entity: validate as const arrow function with type guard"
     },
     {
-      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = SchemaValidator.compile<Type>(Schema);\n}",
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = SchemaValidator.compile<Type>(Schema);\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n  export const create = SchemaValidator.compileCreate<Type>(Schema);\n}",
       "filename": "/project/src/FooEntity.ts",
       "name": "[entities] valid entity: validate compiled from schema via SchemaValidator.compile<Type>(Schema)"
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace HealthStatusEntity {\n  export const Schema = { enum: ['healthy', 'degraded'], type: 'string' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = SchemaValidator.compile<Type>(Schema);\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n}",
+      "filename": "/project/src/HealthStatusEntity.ts",
+      "name": "[entities] scalar Schema requires intake but not create"
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace BuilderEntity {\n  export const Schema = schemaBuilder();\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = SchemaValidator.compile<Type>(Schema);\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n}",
+      "filename": "/project/src/BuilderEntity.ts",
+      "name": "[entities] builder Schema root type is undecidable, so create is not required"
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace NestedObjectEntity {\n  export const Schema = { properties: { detail: { type: 'object' } }, type: 'string' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = SchemaValidator.compile<Type>(Schema);\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n}",
+      "filename": "/project/src/NestedObjectEntity.ts",
+      "name": "[entities] nested object property does not make a scalar root require create"
     },
     {
       "code": "export * from './FooEntity.js';\nexport * from './BarEntity.js';",
@@ -206,12 +221,12 @@
       "name": "[constants] an entity-namespace export alongside extra top-level consts, outside any entities/ folder -> exempt by content, not folder"
     },
     {
-      "code": "import { Type, Static } from '@sinclair/typebox';\nexport namespace FooEntity {\n  export const Schema = Type.Object({ id: Type.String() });\n  export type Type = Static<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n}",
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport { Type, Static } from '@sinclair/typebox';\nexport namespace FooEntity {\n  export const Schema = Type.Object({ id: Type.String() });\n  export type Type = Static<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n}",
       "filename": "/project/src/FooEntity.ts",
       "name": "[entities] valid entity: TypeBox Schema builder call, Type from Static<typeof Schema>"
     },
     {
-      "code": "import { z } from 'zod';\nexport namespace FooEntity {\n  export const Schema = z.object({ id: z.string() });\n  export type Type = z.infer<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n}",
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport { z } from 'zod';\nexport namespace FooEntity {\n  export const Schema = z.object({ id: z.string() });\n  export type Type = z.infer<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n}",
       "filename": "/project/src/FooEntity.ts",
       "name": "[entities] valid entity: Zod Schema builder call, Type from z.infer<typeof Schema>"
     }
@@ -228,7 +243,7 @@
       "name": "[entities] missing namespace entirely"
     },
     {
-      "code": "import type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' };\n  export type Type = FromSchema<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return true;\n  }\n}",
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' };\n  export type Type = FromSchema<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return true;\n  }\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n  export const create = SchemaValidator.compileCreate<Type>(Schema);\n}",
       "errors": [
         {
           "messageId": "schemaNotConst"
@@ -238,7 +253,7 @@
       "name": "[entities] Schema present but not as const -> schemaNotConst"
     },
     {
-      "code": "export namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = { id: string };\n  export function validate(candidate: unknown): candidate is Type {\n    return true;\n  }\n}",
+      "code": "import { SchemaValidator } from '@studnicky/json';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = { id: string };\n  export function validate(candidate: unknown): candidate is Type {\n    return true;\n  }\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n  export const create = SchemaValidator.compileCreate<Type>(Schema);\n}",
       "errors": [
         {
           "messageId": "typeNotFromSchema"
@@ -248,7 +263,7 @@
       "name": "[entities] type Type hand-written (not FromSchema) -> typeNotFromSchema"
     },
     {
-      "code": "import type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export function validate(_candidate: unknown): boolean {\n    return true;\n  }\n}",
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export function validate(_candidate: unknown): boolean {\n    return true;\n  }\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n  export const create = SchemaValidator.compileCreate<Type>(Schema);\n}",
       "errors": [
         {
           "messageId": "validateNotTypeGuard"
@@ -268,10 +283,53 @@
         },
         {
           "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
         }
       ],
       "filename": "/project/src/FooEntity.ts",
-      "name": "[entities] missing Schema, Type, and validate -> three errors"
+      "name": "[entities] missing Schema, Type, validate, and intake -> four errors"
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace MissingIntakeEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = SchemaValidator.compile<Type>(Schema);\n  export const create = SchemaValidator.compileCreate<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "missingIntake"
+        }
+      ],
+      "filename": "/project/src/MissingIntakeEntity.ts",
+      "name": "[entities] object Schema missing intake is reported"
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace MissingCreateEntity {\n  export const Schema = { type: 'object' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = SchemaValidator.compile<Type>(Schema);\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "missingCreate"
+        }
+      ],
+      "filename": "/project/src/MissingCreateEntity.ts",
+      "name": "[entities] object Schema missing create is reported"
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace MissingScalarIntakeEntity {\n  export const Schema = { enum: ['healthy', 'degraded'], type: 'string' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = SchemaValidator.compile<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "missingIntake"
+        }
+      ],
+      "filename": "/project/src/MissingScalarIntakeEntity.ts",
+      "name": "[entities] scalar Schema missing intake is reported without create"
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace NestedMissingIntakeEntity {\n  export const Schema = { properties: { detail: { type: 'object' } }, type: 'string' } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = SchemaValidator.compile<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "missingIntake"
+        }
+      ],
+      "filename": "/project/src/NestedMissingIntakeEntity.ts",
+      "name": "[entities] nested object property with scalar root reports only missing intake"
     },
     {
       "code": "export const A = 1; export const B = 2;",

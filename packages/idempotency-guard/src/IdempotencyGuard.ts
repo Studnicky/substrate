@@ -5,15 +5,15 @@
 import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
 import { HookInvoker } from '@studnicky/errors';
-import { Hash } from '@studnicky/json';
 
 import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
+import type { IdempotencyPayloadEntity } from './entities/IdempotencyPayloadEntity.js';
 import type { IdempotencyGuardEntryInterface } from './interfaces/IdempotencyGuardEntryInterface.js';
 
 import { IdempotencyConflictError } from './errors/index.js';
 
 class IdempotencyGuardHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(): void {}
 }
 
 /**
@@ -21,7 +21,7 @@ class IdempotencyGuardHookInvoker extends HookInvoker {
  * (`Coalesce`), and `@studnicky/json` (`Hash`) into the "check cache → check
  * in-flight → run → store" idempotency-key pattern.
  *
- * `run(key, payload, factory)` fingerprints `payload` via `Hash.value()` and
+ * `run(key, payload, factory)` fingerprints `payload` by sorted entries and
  * checks the composed `LruCache` for an existing entry under `key`:
  * - Entry present, fingerprint matches → the cached result is replayed
  *   without re-running `factory` (`onReplay`).
@@ -90,9 +90,9 @@ export class IdempotencyGuard<TResult = unknown> {
    * @returns New IdempotencyGuard instance
    */
   private static isConstructed<TInstance>(
-    value: unknown,
+    value: object,
     constructor: Function & { readonly 'prototype': TInstance }
-  ): value is TInstance {
+  ): value is object & TInstance {
     const result = value instanceof constructor;
 
     return result;
@@ -106,6 +106,10 @@ export class IdempotencyGuard<TResult = unknown> {
     options: IdempotencyGuardOptionsEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
+
+    if (typeof result !== 'object' || result === null) {
+      throw new TypeError('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
+    }
 
     if (!IdempotencyGuard.isConstructed<TInstance>(result, this)) {
       throw new TypeError('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
@@ -132,7 +136,7 @@ export class IdempotencyGuard<TResult = unknown> {
    * Runs `factory` under idempotency-key protection.
    *
    * @param key - Caller-supplied idempotency key
-   * @param payload - Request payload; fingerprinted via `Hash.value()` to
+   * @param payload - Request payload; structurally fingerprinted to
    *   detect key reuse with a different payload
    * @param factory - Produces the result for a genuinely new (or expired) key
    * @returns The result — either freshly produced or replayed from cache
@@ -142,10 +146,15 @@ export class IdempotencyGuard<TResult = unknown> {
    */
   async run(
     key: string,
-    payload: unknown,
+    payload: IdempotencyPayloadEntity.Type,
     factory: () => TResult | Promise<TResult>
   ): Promise<TResult> {
-    const fingerprint = Hash.value(payload);
+    const payloadEntries = Object.entries(payload).sort(([leftKey], [rightKey]) => {
+      const result = leftKey.localeCompare(rightKey);
+      return result;
+    });
+    const payloadFingerprint = JSON.stringify(payloadEntries) ?? '';
+    const fingerprint = payloadFingerprint;
     const cached = this.#cache.get(key);
 
     if (cached !== undefined) {

@@ -3,26 +3,18 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import { JsonObjectEntity } from '../src/entities/index.js';
 import { DataType, Frozen, Patch, PatchError } from '../src/index.js';
 import { PatchDatatypeFixture } from './fixtures/PatchDatatypeFixture.js';
 
 // ---------------------------------------------------------------------------
-// Working documents — mutated in-place by Patch.apply/DataType.hasCycle below,
-// so they stay local rather than living as shared, read-only fixture data.
+// Working documents are trusted JSON values produced by this example.
 // ---------------------------------------------------------------------------
 
-const workingDocs: {
-  'circular': Record<string, unknown>;
-  'cyclic': Record<string, unknown>;
-  'document': Record<string, unknown>;
-  'documentThree': Record<string, unknown>;
-  'documentTwo': Record<string, unknown>;
-} = {
-  'circular': { 'name': 'cycle' },
-  'cyclic': { 'a': 1 },
-  'document': { 'count': 0, 'meta': { 'version': 1 }, 'status': 'draft' },
-  'documentThree': {},
-  'documentTwo': { 'name': 'alpha', 'tags': ['a', 'b'] }
+const workingDocs = {
+  'document': JsonObjectEntity.create({ 'count': 0, 'meta': { 'version': 1 }, 'status': 'draft' }),
+  'documentThree': JsonObjectEntity.create(),
+  'documentTwo': JsonObjectEntity.create({ 'name': 'alpha', 'tags': ['a', 'b'] })
 };
 
 // ---------------------------------------------------------------------------
@@ -70,27 +62,12 @@ console.log('isEmpty:', Patch.create([]).isEmpty(), Patch.create({ 'op': 'add', 
 // ---------------------------------------------------------------------------
 
 const nestedEqual = DataType.deepEqual({ 'a': [1, 2] }, { 'a': [1, 2] });
-const nanEqual = DataType.deepEqual(Number.NaN, Number.NaN);
-
-const firstDate = new Date(1_000_000);
-const secondDate = new Date(1_000_000);
-const firstMap = PatchDatatypeFixture.M1;
-const secondMap = PatchDatatypeFixture.M2;
-
 console.log('deepEqual nested arrays:', nestedEqual);
-console.log('NaN equals NaN:', nanEqual);
-console.log('Date equality:', DataType.deepEqual(firstDate, secondDate));
-console.log('Map equality:', DataType.deepEqual(firstMap, secondMap));
 console.log('isPlainObject({}):', DataType.isPlainObject({}));
 console.log('isRecord({a:1}):', DataType.isRecord({ 'a': 1 }));
 
-workingDocs.cyclic.self = workingDocs.cyclic;
-
-console.log('hasCycle (cyclic):', DataType.hasCycle(workingDocs.cyclic));
-console.log('hasCycle (plain):', DataType.hasCycle({ 'a': { 'b': 1 } }));
-
 // ---------------------------------------------------------------------------
-// Frozen — cycle-safe deep freeze
+// Frozen — deep freeze JSON data
 // ---------------------------------------------------------------------------
 
 const tree = PatchDatatypeFixture.Tree;
@@ -99,10 +76,6 @@ const frozen = Frozen.deepFreeze(tree);
 console.log('frozen === tree:', frozen === tree);
 console.log('Object.isFrozen(frozen):', Object.isFrozen(frozen));
 
-workingDocs.circular.back = workingDocs.circular;
-Frozen.deepFreeze(workingDocs.circular);
-
-console.log('circular frozen safely:', Object.isFrozen(workingDocs.circular));
 // #endregion usage
 
 assert.equal(workingDocs.document.status, 'published', 'replace operation applied');
@@ -120,9 +93,6 @@ assert.equal(Patch.create({ 'op': 'add', 'path': '/a', 'value': 1 }).isEmpty(), 
 
 assert.equal(nestedEqual, true, 'deepEqual for nested arrays');
 assert.equal(DataType.deepEqual({ 'a': 1 }, { 'a': 2 }), false, 'deepEqual detects difference');
-assert.equal(nanEqual, true, 'NaN equals NaN');
-assert.equal(DataType.deepEqual(firstDate, secondDate), true, 'Date equality by value');
-assert.equal(DataType.deepEqual(firstMap, secondMap), true, 'Map deep equality');
 
 assert.equal(DataType.isPlainObject({}), true, 'plain object guard');
 assert.equal(DataType.isPlainObject([]), false, 'array is not plain object');
@@ -130,13 +100,10 @@ assert.equal(DataType.isPlainObject(null), false, 'null is not plain object');
 assert.equal(DataType.isRecord([]), false, 'array is not record');
 assert.equal(DataType.isRecord({ 'a': 1 }), true, 'object is record');
 
-assert.equal(DataType.hasCycle(workingDocs.cyclic), true, 'cycle detected');
 assert.equal(DataType.hasCycle({ 'a': { 'b': 1 } }), false, 'no cycle in plain object');
 
 assert.equal(frozen, tree, 'deepFreeze returns same reference');
 assert.equal(Object.isFrozen(frozen), true, 'root frozen');
 assert.equal(Object.isFrozen(frozen.root), true, 'nested object frozen');
 assert.equal(Object.isFrozen(frozen.root.child), true, 'deeply nested object frozen');
-assert.doesNotThrow(() => { Frozen.deepFreeze(workingDocs.circular); }, 'circular reference handled safely');
-
 console.log('patch-datatype: all assertions passed');

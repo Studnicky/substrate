@@ -20,7 +20,7 @@ interface FlagEvaluatorConstructorInterface<TInstance> {
  * `HookInvoker`'s default (throwing) behavior propagate out of `evaluate()`.
  */
 class FlagEvaluationHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(_hookName: string): void {}
 }
 
 /**
@@ -60,7 +60,7 @@ export class FlagEvaluator {
   }
 
   private static isConstructed<TInstance extends FlagEvaluator>(
-    value: unknown,
+    value: object,
     constructor: Function
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -79,7 +79,7 @@ export class FlagEvaluator {
       throw new TypeError('FlagEvaluator.create() requires a constructor');
     }
     const result: unknown = Reflect.construct(this, []);
-    if (!FlagEvaluator.isConstructed<TInstance>(result, this)) {
+    if (typeof result !== 'object' || result === null || !FlagEvaluator.isConstructed<TInstance>(result, this)) {
       throw new TypeError('FlagEvaluator.create() must construct a FlagEvaluator instance');
     }
     return result;

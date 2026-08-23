@@ -2,6 +2,9 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
 import { EntityIntake } from '../validation/EntityIntake.js';
 import { ValidationViolationEntity } from './ValidationViolationEntity.js';
 
@@ -33,7 +36,7 @@ export namespace ValidationProblemDetailsEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export const validate = (candidate: unknown): candidate is Type => {
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (typeof candidate.detail !== 'string') { return false; }
     if (typeof candidate.status !== 'number') { return false; }
@@ -47,27 +50,36 @@ export namespace ValidationProblemDetailsEntity {
     return true;
   };
 
-  const parseViolations = (value: unknown, intake: boolean): ValidationViolationEntity.Type[] | undefined => {
-    if (!Array.isArray(value)) { return undefined; }
-    const result: ValidationViolationEntity.Type[] = [];
-    for (const item of value) {
-      const violation = intake ? ValidationViolationEntity.intake(item) : ValidationViolationEntity.create(item);
-      result.push(violation);
+  class Parser {
+    public static parseViolations(value: Parameters<EntityIntakeFunctionInterface<never>>[0], intake: boolean): ValidationViolationEntity.Type[] | undefined {
+      if (!Array.isArray(value)) { return undefined; }
+      const result: ValidationViolationEntity.Type[] = [];
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        const item: unknown = value[index];
+        if (intake) {
+          result.push(ValidationViolationEntity.intake(item));
+          continue;
+        }
+        if (!ValidationViolationEntity.validate(item)) { return undefined; }
+        const violation = ValidationViolationEntity.create(item);
+        result.push(violation);
+      }
+      return result;
     }
-    return result;
-  };
 
-  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
-    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['detail', 'errors', 'status', 'title', 'type'])) { return undefined; }
-    const detail = EntityIntake.string(candidate.detail, options.coerce);
-    const errors = parseViolations(candidate.errors, options.coerce);
-    const status = EntityIntake.number(candidate.status, options.coerce);
-    const title = EntityIntake.string(candidate.title, options.coerce);
-    const type = EntityIntake.string(candidate.type, options.coerce);
-    if (detail === undefined || errors === undefined || status === undefined || title === undefined || type === undefined) { return undefined; }
-    return { 'detail': detail, 'errors': errors, 'status': status, 'title': title, 'type': type };
-  };
+    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+      if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['detail', 'errors', 'status', 'title', 'type'])) { return undefined; }
+      const detail = EntityIntake.string(candidate.detail, options.coerce);
+      const errors = Parser.parseViolations(candidate.errors, options.coerce);
+      const status = EntityIntake.number(candidate.status, options.coerce);
+      const title = EntityIntake.string(candidate.title, options.coerce);
+      const type = EntityIntake.string(candidate.type, options.coerce);
+      if (detail === undefined || errors === undefined || status === undefined || title === undefined || type === undefined) { return undefined; }
+      return { 'detail': detail, 'errors': errors, 'status': status, 'title': title, 'type': type };
+    }
+  }
 
-  export const intake = EntityIntake.compileIntake(parser, 'ValidationProblemDetails');
-  export const create = EntityIntake.compileCreate(parser, 'ValidationProblemDetails');
+  export const intake = EntityIntake.compileIntake(Parser.parse, 'ValidationProblemDetails');
+  export const create = EntityIntake.compileCreate(Parser.parse, 'ValidationProblemDetails');
 }

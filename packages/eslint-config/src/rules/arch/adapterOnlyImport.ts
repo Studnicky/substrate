@@ -1,7 +1,10 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { Rule } from 'eslint';
 import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
@@ -13,10 +16,12 @@ namespace AdapterOnlyImportOptionsEntity {
     'properties': {
       ...LayerOptionsEntity.Schema.properties,
       'adapterLayerName': {
+        'default': 'adapters',
         'description': 'Name of the layer treated as the adapters layer for exemption purposes. Defaults to "adapters".',
         'type': 'string'
       },
       'adapterOnlyImports': {
+        'default': [],
         'description': 'Package names/roots restricted to the adapters layer, e.g. ["express", "pg", "axios"].',
         'items': { 'type': 'string' },
         'type': 'array'
@@ -25,6 +30,9 @@ namespace AdapterOnlyImportOptionsEntity {
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
+
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }
 
 class AdapterOnlyMatch {
@@ -45,37 +53,15 @@ class AdapterOnlyMatch {
 
 export const adapterOnlyImport: Rule.RuleModule = {
   'create': (context) => {
-    const options: unknown = context.options.at(0);
-
-    if (!LayerOptionsEntity.validate(options)) {
-      return {};
-    }
+    const rawOptions: unknown = context.options.at(0);
+    if (rawOptions === undefined) { return {}; }
+    const options = AdapterOnlyImportOptionsEntity.intake(rawOptions);
 
     const filename = context.physicalFilename;
     const sourceLayer = LayerResolver.layerForPath(filename, options);
 
-    const adapterLayerNameValue: unknown = Reflect.get(options, 'adapterLayerName');
-    const adapterLayerName = typeof adapterLayerNameValue === 'string' ? adapterLayerNameValue : 'adapters';
-
-    if (sourceLayer === undefined || sourceLayer === adapterLayerName) {
+    if (sourceLayer === undefined || sourceLayer === options.adapterLayerName) {
       return {};
-    }
-
-    const adapterOnlyImportsValue: unknown = Reflect.get(options, 'adapterOnlyImports');
-
-    if (!Array.isArray(adapterOnlyImportsValue)) {
-      return {};
-    }
-    const adapterOnlyImports: string[] = [];
-    const importsLength = adapterOnlyImportsValue.length;
-
-    for (let index = 0; index < importsLength; index += 1) {
-      const entry: unknown = adapterOnlyImportsValue.at(index);
-
-      if (typeof entry !== 'string') {
-        return {};
-      }
-      adapterOnlyImports.push(entry);
     }
 
     const onImportDeclaration: NonNullable<Rule.RuleListener['ImportDeclaration']> = (node) => {
@@ -85,7 +71,7 @@ export const adapterOnlyImport: Rule.RuleModule = {
         return;
       }
 
-      const matched = AdapterOnlyMatch.find(specifier, adapterOnlyImports);
+      const matched = AdapterOnlyMatch.find(specifier, options.adapterOnlyImports);
 
       if (matched === undefined) {
         return;

@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
 import { EntityIntake } from '../validation/EntityIntake.js';
 
 /** Error with hostname information. */
@@ -25,20 +27,20 @@ export namespace ErrorWithHostnameEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export const validate = (candidate: unknown): candidate is Type => {
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     const result = typeof candidate.hostname === 'string';
     return result;
   };
 
-  export const intake = (input: unknown): Type => {return EntityIntake.intake(input, (candidate, options) => {
-    const hostname = EntityIntake.string(candidate.hostname, options.coerce);
-    return hostname === undefined ? undefined : { 'hostname': hostname };
-  }, 'ErrorWithHostname');};
-
-  export const create = (partial: Partial<Type> = {}): Type => {return EntityIntake.create(partial, (candidate, options) => {
+  const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['hostname'])) { return undefined; }
     const hostname = EntityIntake.string(candidate.hostname, options.coerce);
-    return hostname === undefined ? undefined : { 'hostname': hostname };
-  }, 'ErrorWithHostname');};
+    if (hostname === undefined) { return undefined; }
+    const result = { 'hostname': hostname };
+    return result;
+  }, 'ErrorWithHostname');
+
+  export const intake = boundary.intake;
+  export const create = boundary.create;
 }

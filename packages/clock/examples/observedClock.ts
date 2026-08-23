@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import { VirtualTimeCounterOptionsEntity } from '../src/entities/VirtualTimeCounterOptionsEntity.js';
 import {
   Clock,
   VirtualClockProvider,
@@ -11,7 +12,7 @@ import {
 
 class TracedCounter extends VirtualTimeCounter {
   public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) {
-    super(options ?? {});
+    super(VirtualTimeCounterOptionsEntity.intake(options));
   }
 
   protected override onAdvance(deltaMs: number, nowMs: number): void {

@@ -8,10 +8,9 @@
 
 import assert from 'node:assert/strict';
 
-// #region usage
-import type { HookRequestContextEntity } from './entities/HookRequestContextEntity.js';
-
 import { Pipeline } from '../src/index.js';
+// #region usage
+import { HookRequestContextEntity } from './entities/HookRequestContextEntity.js';
 
 class TimedPipeline extends Pipeline<HookRequestContextEntity.Type> {
   private startTime = 0;
@@ -34,7 +33,7 @@ const pipeline = TimedPipeline.create<HookRequestContextEntity.Type>([
   }; }
 ]);
 
-const result = await pipeline.run({ 'headers': {}, 'url': '/api/data' });
+const result = await pipeline.run(HookRequestContextEntity.create({ 'headers': {}, 'url': '/api/data' }));
 
 console.log(`url:           ${result.url}`);
 console.log(`Authorization: ${result.headers.Authorization}`);

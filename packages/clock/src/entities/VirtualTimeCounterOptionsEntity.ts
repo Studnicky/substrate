@@ -13,7 +13,7 @@ export namespace VirtualTimeCounterOptionsEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'startMs': { 'type': 'number' }
+      'startMs': { 'default': 0, 'minimum': 0, 'type': 'number' }
     },
     'type': 'object'
   } as const satisfies JSONSchema;

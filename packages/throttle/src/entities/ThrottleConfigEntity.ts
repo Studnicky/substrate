@@ -1,7 +1,7 @@
 import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { ConfigurationError } from '@studnicky/config';
 import { SchemaValidator } from '@studnicky/json';
 
 import { AdaptiveConfigEntity } from './AdaptiveConfigEntity.js';
@@ -25,14 +25,7 @@ export namespace ThrottleConfigEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  const compiledValidate = SchemaValidator.compile<Type>(Schema);
-
-  export const validate = (candidate: unknown): candidate is Type => {
-    if (!compiledValidate(candidate)) {
-      throw ConfigurationError.create(SchemaValidator.formatErrors(compiledValidate.errors));
-    }
-    return true;
-  };
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
   export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
   export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

@@ -13,10 +13,6 @@ class TestClassifier extends ErrorClassifier {
     throw new Error('not used');
   }
 
-  public hasPropertyPublic(error: Error, propertyName: string, matcher?: unknown): boolean {
-    return this.hasProperty(error, propertyName, matcher as never);
-  }
-
   public messageContainsPublic(error: Error, ...patterns: string[]): boolean {
     return this.messageContains(error, ...patterns);
   }
@@ -30,17 +26,7 @@ class TestClassifier extends ErrorClassifier {
   }
 }
 
-type MatcherInput = { shape: 'accepted-statuses' | 'minimum-status' | 'status'; min?: number; value?: number; values?: number[] };
-type PropertyScenarioShape = 'has-property-match-array' | 'has-property-match-predicate' | 'has-property-match-value' | 'has-property-missing' | 'has-property-mismatch-array' | 'has-property-mismatch-predicate' | 'has-property-mismatch-value' | 'has-property-present';
 type MessageScenarioShape = 'message-contains-hit' | 'message-contains-miss';
-
-type PropertyScenarioCase<S extends PropertyScenarioShape = PropertyScenarioShape> = {
-  description: string;
-  expected: { value: boolean };
-  input: { matcher?: MatcherInput; message: string; propertyName?: string; status?: number };
-  shape: S;
-  name: string;
-};
 
 type MessageScenarioCase<S extends MessageScenarioShape = MessageScenarioShape> = {
   description: string;
@@ -61,48 +47,15 @@ type ClassificationScenarioCase = {
 type ScenarioCase =
   | ClassificationScenarioCase
   | MessageScenarioCase<'message-contains-hit'>
-  | MessageScenarioCase<'message-contains-miss'>
-  | PropertyScenarioCase<'has-property-match-array'>
-  | PropertyScenarioCase<'has-property-match-predicate'>
-  | PropertyScenarioCase<'has-property-match-value'>
-  | PropertyScenarioCase<'has-property-missing'>
-  | PropertyScenarioCase<'has-property-mismatch-array'>
-  | PropertyScenarioCase<'has-property-mismatch-predicate'>
-  | PropertyScenarioCase<'has-property-mismatch-value'>
-  | PropertyScenarioCase<'has-property-present'>;
+  | MessageScenarioCase<'message-contains-miss'>;
 
-function createError(input: { message: string; status?: number }): Error {
-  const error = new Error(input.message);
-  if (input.status !== undefined) {
-    Reflect.set(error, 'status', input.status);
-  }
-  return error;
-}
-
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>, classifier: TestClassifier, error: Error) => void;
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>, classifier: TestClassifier) => void;
 type RunnerMap = {
   [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
-const matcherMap = {
-  'accepted-statuses': (matcher: MatcherInput) => matcher.values ?? [],
-  'minimum-status': (matcher: MatcherInput) => (value: number) => value >= Number(matcher.min),
-  'status': (matcher: MatcherInput) => matcher.value
-} satisfies Record<MatcherInput['shape'], (matcher: MatcherInput) => unknown>;
-
-function materializeMatcher(matcher: MatcherInput | undefined): unknown {
-  return matcher === undefined ? undefined : matcherMap[matcher.shape](matcher);
-}
-
-const runHasProperty = (scenario: PropertyScenarioCase, classifier: TestClassifier, error: Error): void => {
-  assert.strictEqual(
-    classifier.hasPropertyPublic(error, String(scenario.input.propertyName), materializeMatcher(scenario.input.matcher)),
-    scenario.expected.value
-  );
-};
-
-const runMessageContains = (scenario: MessageScenarioCase, classifier: TestClassifier, error: Error): void => {
-  assert.strictEqual(classifier.messageContainsPublic(error, ...(scenario.input.patterns ?? [])), scenario.expected.value);
+const runMessageContains = (scenario: MessageScenarioCase, classifier: TestClassifier): void => {
+  assert.strictEqual(classifier.messageContainsPublic(new Error(scenario.input.message), ...(scenario.input.patterns ?? [])), scenario.expected.value);
 };
 
 const runnerMap: RunnerMap = {
@@ -110,27 +63,21 @@ const runnerMap: RunnerMap = {
     assert.deepStrictEqual(classifier.retryablePublic('x'), { reason: 'x', retryable: scenario.expected.retryable });
     assert.deepStrictEqual(classifier.nonRetryablePublic('y'), { reason: 'y', retryable: scenario.expected.nonRetryable });
   },
-  'has-property-match-array': runHasProperty,
-  'has-property-match-predicate': runHasProperty,
-  'has-property-match-value': runHasProperty,
-  'has-property-mismatch-array': runHasProperty,
-  'has-property-mismatch-predicate': runHasProperty,
-  'has-property-mismatch-value': runHasProperty,
-  'has-property-missing': runHasProperty,
-  'has-property-present': runHasProperty,
   'message-contains-hit': runMessageContains,
   'message-contains-miss': runMessageContains
 };
 
 function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase, { shape: K }>): void {
-  const classifier = new TestClassifier();
-  const error = createError(scenario.input);
+  runnerMap[scenario.shape](scenario, new TestClassifier());
+}
 
-  runnerMap[scenario.shape](scenario, classifier, error);
+function isScenarioCase(scenario: { shape: string }): scenario is ScenarioCase {
+  return scenario.shape === 'classifications' || scenario.shape === 'message-contains-hit' || scenario.shape === 'message-contains-miss';
 }
 
 void describe('ErrorClassifier', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of scenarioGroups.cases as { name: string; shape: string }[]) {
+    if (!isScenarioCase(scenario)) { continue; }
     void it(scenario.name, () => {
       runCase(scenario);
     });

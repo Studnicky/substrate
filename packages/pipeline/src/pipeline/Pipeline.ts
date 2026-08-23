@@ -52,12 +52,12 @@
  * ```
  */
 
-import { HookInvoker, ValidationError } from '@studnicky/errors';
+import { HookInvoker } from '@studnicky/errors';
 
+import type { PipelineOptionsEntity } from '../entities/PipelineOptionsEntity.js';
 import type { PipelineFunctionInterface } from '../interfaces/PipelineFunctionInterface.js';
 import type { PipelineInterface } from '../interfaces/PipelineInterface.js';
 
-import { PipelineOptionsEntity } from '../entities/PipelineOptionsEntity.js';
 import { PipelineError } from '../errors/PipelineError.js';
 
 export class Pipeline<T> implements PipelineInterface<T> {
@@ -96,12 +96,6 @@ export class Pipeline<T> implements PipelineInterface<T> {
     stages: readonly PipelineFunctionInterface<T>[],
     options?: Readonly<PipelineOptionsEntity.Type>
   ) {
-    if (options !== undefined && !PipelineOptionsEntity.validate(options)) {
-      throw ValidationError.create({
-        'message': 'Must match PipelineOptionsEntity.Schema',
-        'path': 'options'
-      });
-    }
     this.hooks = options?.hookTimeoutMs === undefined
       ? new HookInvoker()
       : new HookInvoker({ 'timeoutMs': options.hookTimeoutMs });
@@ -197,9 +191,9 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * No-op by default. Overrides must not throw or block.
    *
    * @param _index - Zero-based index of the failing stage
-   * @param _error - The raw error thrown by the stage fn
+   * @param _error - The normalized error thrown by the stage fn
    */
-  protected onStageError(_index: number, _error: unknown): void {}
+  protected onStageError(_index: number, _error: Error): void {}
 
   /**
    * Fires when a stage fn throws, immediately after onStageError().
@@ -208,9 +202,9 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * `afterStage`, `onStageStart`, `onStageSuccess`, `onRunStart`, or
    * `onRunComplete`. No-op by default. Overrides must not throw or block.
    *
-   * @param _error - The PipelineError wrapping the stage fn's failure
+   * @param _error - The error propagated by a failed stage invocation
    */
-  protected onRunError(_error: unknown): void {}
+  protected onRunError(_error: Error): void {}
 
   /**
    * Run the context through all registered transforms in order
@@ -223,11 +217,12 @@ export class Pipeline<T> implements PipelineInterface<T> {
       const output = await stageFunction(input);
       return output;
     } catch (error: unknown) {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
       await this.hooks.invokeAsync('onStageError', () => {
-        const result = this.onStageError(index, error);
+        const result = this.onStageError(index, normalizedError);
         return result;
       });
-      throw new PipelineError('Pipeline stage failed', error);
+      throw new PipelineError('Pipeline stage failed', normalizedError);
     }
   }
 
@@ -248,11 +243,12 @@ export class Pipeline<T> implements PipelineInterface<T> {
       const output = await this.runStage(stageFunction, input, index);
       return output;
     } catch (error: unknown) {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
       await this.hooks.invokeAsync('onRunError', () => {
-        const result = this.onRunError(error);
+        const result = this.onRunError(normalizedError);
         return result;
       });
-      throw error;
+      throw normalizedError;
     }
   }
 

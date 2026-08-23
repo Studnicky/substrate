@@ -8,7 +8,7 @@ import { HookInvocationError } from '@studnicky/errors';
 
 import { DEFAULT_MAXIMUM_EVENTS, TIMING_STATUS } from '../../src/constants/index.js';
 import type { TimingEventDataEntity } from '../../src/entities/TimingEventDataEntity.js';
-import type { TimingOptionsEntity } from '../../src/entities/TimingOptionsEntity.js';
+import { TimingOptionsEntity } from '../../src/entities/TimingOptionsEntity.js';
 import { Timing } from '../../src/modules/Timing.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
 import scenarioGroups from './Timing.scenarios.json' with { type: 'json' };
@@ -104,7 +104,7 @@ class TracedTiming extends Timing {
   public getEventsCount = 0;
   public lastGetEventsEventCount: number | undefined = undefined;
 
-  public constructor(options: TimingOptionsEntity.Type = {}) {
+  public constructor(options: Parameters<typeof TimingOptionsEntity.create>[0] = {}) {
     super(options);
   }
 
@@ -219,7 +219,7 @@ const runnerMap: RunnerMap = {
 
     assert.throws(() => {
       ThrowingHrtimeTiming.create();
-    }, (error: unknown) => {
+    }, (error) => {
       assert.ok(error instanceof ConfigurationError);
       assert.ok(error.cause instanceof Error);
       assert.equal(error.cause.message, scenarioCase.input.errorMessage);
@@ -482,8 +482,8 @@ const runnerMap: RunnerMap = {
       }
     }
     const timer = AsyncRejectingEventTiming.create();
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    let rejectionCount = 0;
+    const onUnhandledRejection = (): void => { rejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
     return (async () => {
       try {
@@ -491,7 +491,7 @@ const runnerMap: RunnerMap = {
         for (let tick = 0; tick < scenarioCase.input.settleTicks; tick++) {
           await new Promise<void>((resolve) => { setImmediate(resolve); });
         }
-        assert.strictEqual(rejectionEvents.length, scenarioCase.expected.unhandledRejections);
+        assert.strictEqual(rejectionCount, scenarioCase.expected.unhandledRejections);
       } finally {
         process.off('unhandledRejection', onUnhandledRejection);
       }

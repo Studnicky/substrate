@@ -10,8 +10,6 @@ import { HookInvoker } from '@studnicky/errors';
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
 import { RealTimeClockProviderOptionsEntity } from '../entities/RealTimeClockProviderOptionsEntity.js';
-import { ClockError } from '../errors/ClockError.js';
-
 /** Named constant: nanoseconds per millisecond (as BigInt). */
 const NS_PER_MS = 1_000_000n;
 
@@ -20,10 +18,7 @@ interface RealTimeClockProviderSubclassInterface<TInstance> extends Function {
 }
 
 class RealTimeClockProviderInstance {
-  static belongsTo<TInstance>(
-    constructor: RealTimeClockProviderSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+  static belongsTo<TInstance extends object>(constructor: RealTimeClockProviderSubclassInterface<TInstance>, value: object): value is TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -36,10 +31,11 @@ class RealTimeClockProviderInstance {
 export class RealTimeClockProvider implements ClockProviderInterface {
   static create<TInstance extends RealTimeClockProvider = RealTimeClockProvider>(
     this: RealTimeClockProviderSubclassInterface<TInstance>,
-    options: RealTimeClockProviderOptionsEntity.Type = {}
+    options: Partial<RealTimeClockProviderOptionsEntity.Type> = {}
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!RealTimeClockProviderInstance.belongsTo(this, result)) {
+    const resolvedOptions = RealTimeClockProviderOptionsEntity.intake(options);
+    const result: unknown = Reflect.construct(this, [resolvedOptions]);
+    if (typeof result !== 'object' || result === null || !RealTimeClockProviderInstance.belongsTo(this, result)) {
       throw new TypeError('RealTimeClockProvider.create() did not construct the requested subclass.');
     }
     return result;
@@ -57,14 +53,7 @@ export class RealTimeClockProvider implements ClockProviderInterface {
    * Property write order: #offsetMs.
    */
   protected constructor(options: RealTimeClockProviderOptionsEntity.Type) {
-    if (!RealTimeClockProviderOptionsEntity.validate(options)) {
-      throw new ClockError('invalid RealTimeClockProvider options');
-    }
-    const resolved = options.offsetMs ?? 0;
-    if (!Number.isFinite(resolved)) {
-      throw new ClockError('offsetMs must be a finite number');
-    }
-    this.#offsetMs = resolved;
+    this.#offsetMs = options.offsetMs;
   }
 
   /**

@@ -86,28 +86,28 @@ function memoizeOptions<TArgs extends unknown[]>(
   };
 }
 
-function readString(value: unknown, label: string): string {
+function readString<TValue>(value: TValue, label: string): string {
   if (typeof value !== 'string') {
     throw new Error(`${label} must be a string`);
   }
   return value;
 }
 
-function readNumber(value: unknown, label: string): number {
+function readNumber<TValue>(value: TValue, label: string): number {
   if (typeof value !== 'number') {
     throw new Error(`${label} must be a number`);
   }
   return value;
 }
 
-function readStringArray(value: unknown, label: string): string[] {
+function readStringArray<TValue>(value: TValue, label: string): string[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
     throw new Error(`${label} must be a string array`);
   }
   return value;
 }
 
-function readTupleRecord(value: unknown, label: string): Record<string, [string, number]> {
+function readTupleRecord<TValue>(value: TValue, label: string): Record<string, [string, number]> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${label} must be a tuple record`);
   }
@@ -161,7 +161,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'async-hooks-safe': async (scenarioCase) => {
     const events: string[] = [];
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (reason: Error): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     class AsyncRejectingHooksMemoize extends Memoize<[string], string> {
@@ -278,8 +278,8 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     assert.ok(follower !== undefined);
     pendingFailure.reject(new Error(readString(scenarioCase.input.failureMessage, 'Scenario input.failureMessage')));
 
-    const leaderError = await leader.catch((error: unknown) => error);
-    const followerError = await follower.catch((error: unknown) => error);
+    const leaderError = await leader.catch((error: Error) => error);
+    const followerError = await follower.catch((error: Error) => error);
     assert.ok(leaderError instanceof Error);
     assert.ok(followerError instanceof Error);
     assert.equal(leaderError.message, scenarioCase.expected.firstErrorMessage);

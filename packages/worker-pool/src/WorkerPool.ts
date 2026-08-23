@@ -126,7 +126,7 @@ interface TaskContextInterface<TMessage, TResult> extends WorkerTaskIndexEntity.
  */
 export class WorkerPool<TMessage = unknown, TResult = unknown> {
   static readonly #OwnedHookInvoker = class WorkerPoolHookInvoker extends HookInvoker {
-    protected override onHookError(_hookName: string, _cause: unknown): void {}
+    protected override onHookError(_hookName: string): void {}
   };
 
   /**
@@ -141,7 +141,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     TResult,
     TInstance extends WorkerPool<TMessage, TResult>
   >(
-    value: unknown,
+    value: object,
     constructor: WorkerPoolConstructorInterface<TMessage, TResult, TInstance>
   ): value is TInstance {
     const result = value instanceof constructor;
@@ -168,7 +168,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       'timeoutMs': config.timeoutMs,
       'workerPath': config.workerPath
     }]);
-    if (!WorkerPool.isConstructed(result, this)) {
+    if (typeof result !== 'object' || result === null || !WorkerPool.isConstructed(result, this)) {
       throw new TypeError('WorkerPool.create() must construct a WorkerPool instance');
     }
     return result;
@@ -215,7 +215,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     let spawnedCount = 0;
     let shuttingDown = false;
 
-    const errorWithReason = (message: string, reason: unknown): Error => {
+    const errorWithReason = (message: string, reason: Error): Error => {
       const result = reason === undefined ? new Error(message) : new Error(message, { 'cause': reason });
       return result;
     };
@@ -244,7 +244,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       }
     };
 
-    const reportOperationFailure = (cause: unknown, index: number): void => {
+    const reportOperationFailure = (cause: Error, index: number): void => {
       const error = cause instanceof Error
         ? cause
         : new Error('WorkerPool: asynchronous worker operation failed', { 'cause': cause });
@@ -345,7 +345,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       };
 
       const terminateAfterAbort = (context: TaskContextInterface<TMessage, TResult>): void => {
-        worker.terminate().catch((cause: unknown) => {
+        worker.terminate().catch((cause: Error) => {
           const terminationError = cause instanceof Error
             ? cause
             : new Error('WorkerPool: worker termination failed', { 'cause': cause });
@@ -444,7 +444,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
         switch (envelope.type) {
           case 'error':
-            handleErrorEnvelope(worker, envelope.error).catch((cause: unknown) => {
+            handleErrorEnvelope(worker, envelope.error).catch((cause: Error) => {
               reportOperationFailure(cause, context.index);
             });
             break;
@@ -452,7 +452,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
           case 'progress':
             break;
           case 'result':
-            handleResultEnvelope(worker, envelope.value).catch((cause: unknown) => {
+            handleResultEnvelope(worker, envelope.value).catch((cause: Error) => {
               reportOperationFailure(cause, context.index);
             });
             break;
@@ -468,7 +468,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
           reportWorkerError(error, context.index);
           context.reject(error);
         });
-        worker.terminate().catch((cause: unknown) => {
+        worker.terminate().catch((cause: Error) => {
           const terminationError = cause instanceof Error
             ? cause
             : new Error('WorkerPool: worker termination failed', { 'cause': cause });
@@ -486,7 +486,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         if (context === undefined || context.settlementState.variant === 'settled') {
           if (!shuttingDown) {
             const replacement = createWorker(workerIndex3);
-            freeWorker(replacement).catch((cause: unknown) => {
+            freeWorker(replacement).catch((cause: Error) => {
               reportOperationFailure(cause, workerIndex3);
             });
           }
@@ -519,7 +519,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
             'reject': context.reject,
             'resolve': context.resolve,
             'retryState': retriedState
-          }).catch((cause: unknown) => {
+          }).catch((cause: Error) => {
             reportOperationFailure(cause, context.index);
           });
           return;
@@ -529,7 +529,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
         if (!shuttingDown) {
           const replacement = createWorker(context.index);
-          freeWorker(replacement).catch((cause: unknown) => {
+          freeWorker(replacement).catch((cause: Error) => {
             reportOperationFailure(cause, context.index);
           });
         }

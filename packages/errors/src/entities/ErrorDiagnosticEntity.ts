@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
 import { EntityIntake } from '../validation/EntityIntake.js';
 
 /** Human-readable diagnostic fields exposed by Error-compatible contracts. */
@@ -23,23 +25,27 @@ export namespace ErrorDiagnosticEntity {
   export type Type = FromSchema<typeof Schema>;
 
   /** Validates the schema-backed diagnostic fields without introducing a json-package cycle. */
-  export const validate = (candidate: unknown): candidate is Type => {
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (typeof candidate.message !== 'string' || typeof candidate.name !== 'string') { return false; }
     const result = candidate.stack === undefined || typeof candidate.stack === 'string';
     return result;
   };
 
-  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
-    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['message', 'name', 'stack'])) { return undefined; }
-    const message = EntityIntake.string(candidate.message, options.coerce);
-    const name = EntityIntake.string(candidate.name, options.coerce);
-    if (message === undefined || name === undefined) { return undefined; }
-    if (candidate.stack === undefined) { return { 'message': message, 'name': name }; }
-    const stack = EntityIntake.string(candidate.stack, options.coerce);
-    return stack === undefined ? undefined : { 'message': message, 'name': name, 'stack': stack };
-  };
+  class Parser {
+    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+      if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['message', 'name', 'stack'])) { return undefined; }
+      const message = EntityIntake.string(candidate.message, options.coerce);
+      const name = EntityIntake.string(candidate.name, options.coerce);
+      if (message === undefined || name === undefined) { return undefined; }
+      if (candidate.stack === undefined) { return { 'message': message, 'name': name }; }
+      const stack = EntityIntake.string(candidate.stack, options.coerce);
+      if (stack === undefined) { return undefined; }
+      const result = { 'message': message, 'name': name, 'stack': stack };
+      return result;
+    }
+  }
 
-  export const intake = EntityIntake.compileIntake(parser, 'ErrorDiagnostic');
-  export const create = EntityIntake.compileCreate(parser, 'ErrorDiagnostic');
+  export const intake = EntityIntake.compileIntake(Parser.parse, 'ErrorDiagnostic');
+  export const create = EntityIntake.compileCreate(Parser.parse, 'ErrorDiagnostic');
 }

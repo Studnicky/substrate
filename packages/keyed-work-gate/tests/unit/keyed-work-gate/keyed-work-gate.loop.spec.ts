@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Coalesce } from '@studnicky/concurrency';
+import { CoalesceOptionsEntity } from '@studnicky/concurrency/entities';
 import { Mutex } from '@studnicky/mutex';
+import { MutexKeyStateEntity } from '@studnicky/mutex/entities';
 
 import { KeyedWorkGate } from '../../../src/index.js';
 import type { KeyedWorkGateConfigInterface } from '../../../src/interfaces/index.js';
@@ -60,7 +62,7 @@ type ScenarioCase =
     }
   | {
       description: string;
-      expected: { calls: 1; values: ['shared-result', 'shared-result', 'shared-result'] };
+      expected: { calls: 1; values: [number, number, number] };
       input: { key: string; delayMs: number };
       shape: 'single-flight-shares-result';
       name: string;
@@ -74,9 +76,9 @@ type ScenarioCase =
     }
   | {
       description: string;
-      expected: { resolved: 'shared-result'; rejectedName: 'TypeError' };
+      expected: { rejectedName: 'SchemaIntakeError'; resolved: number };
       input: { key: string; delayMs: number };
-      shape: 'single-flight-validates-result';
+      shape: 'single-flight-parses-result';
       name: string;
     }
   | {
@@ -88,9 +90,6 @@ type ScenarioCase =
     };
 
 import scenarioGroups from './keyed-work-gate.scenarios.json' with { type: 'json' };
-
-const acceptsNumber = (value: unknown): value is number => typeof value === 'number';
-const acceptsString = (value: unknown): value is string => typeof value === 'string';
 
 const materializeDelegateInstances = <K extends PropertyKey>(
   config: SerializableGateConfigInput
@@ -114,7 +113,7 @@ const runnerMap: RunnerMap = {
   'composed-instances': async (scenarioCase) => {
     const { coalesce, mutex } = materializeDelegateInstances<string>(scenarioCase.input.config);
     const gate = KeyedWorkGate.create<string>({ coalesce, mutex });
-    assert.equal(await gate.runSerialized(scenarioCase.input.key, async () => scenarioCase.expected.result, acceptsString), scenarioCase.expected.result);
+    assert.equal(await gate.runSerialized(scenarioCase.input.key, async () => scenarioCase.expected.result), scenarioCase.expected.result);
     assert.equal(mutex.isLocked(scenarioCase.input.key), scenarioCase.expected.mutexIsLocked);
     assert.equal(coalesce.isInflight(scenarioCase.input.key), scenarioCase.expected.coalesceIsInflight);
   },
@@ -122,8 +121,8 @@ const runnerMap: RunnerMap = {
     const gate = KeyedWorkGate.create<string>();
     const order: string[] = [];
     const results = await Promise.all([
-      gate.runSerialized(scenarioCase.input.key, async () => { order.push('first'); return 1; }, acceptsNumber),
-      gate.runSerialized(scenarioCase.input.key, async () => { order.push('second'); return 2; }, acceptsNumber)
+      gate.runSerialized(scenarioCase.input.key, async () => { order.push('first'); return 1; }),
+      gate.runSerialized(scenarioCase.input.key, async () => { order.push('second'); return 2; })
     ]);
     assert.deepStrictEqual(order, scenarioCase.expected.order);
     assert.deepStrictEqual(results, scenarioCase.expected.results);
@@ -137,13 +136,13 @@ const runnerMap: RunnerMap = {
         await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.key1DelayMs); });
         order.push('user1-end');
         return 'user1';
-      }, acceptsString),
+      }),
       gate.runSerialized(scenarioCase.input.key2, async () => {
         order.push('user2-start');
         await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.key2DelayMs); });
         order.push('user2-end');
         return 'user2';
-      }, acceptsString)
+      })
     ]);
     assert.deepStrictEqual(order, scenarioCase.expected.order);
   },
@@ -151,10 +150,10 @@ const runnerMap: RunnerMap = {
     const gate = KeyedWorkGate.create<string>(materializeSerializableConfig<string>(scenarioCase.input.config));
     let runs = 0;
     const values = await Promise.all([
-      gate.runSingleFlight(scenarioCase.input.key, async () => { runs += 1; await Promise.resolve(); return runs; }, acceptsNumber),
-      gate.runSingleFlight(scenarioCase.input.key, async () => { runs += 1; await Promise.resolve(); return runs; }, acceptsNumber)
+      gate.runSingleFlight(scenarioCase.input.key, CoalesceOptionsEntity, async () => { runs += 1; await Promise.resolve(); return CoalesceOptionsEntity.create({ 'timeout': runs }); }),
+      gate.runSingleFlight(scenarioCase.input.key, CoalesceOptionsEntity, async () => { runs += 1; await Promise.resolve(); return CoalesceOptionsEntity.create({ 'timeout': runs }); })
     ]);
-    assert.deepStrictEqual(values, scenarioCase.expected.result);
+    assert.deepStrictEqual(values.map((value) => value.timeout), scenarioCase.expected.result);
     assert.equal(runs, scenarioCase.expected.runs);
   },
   'same-key-serialized-exclusion': async (scenarioCase) => {
@@ -173,9 +172,9 @@ const runnerMap: RunnerMap = {
       return index;
     };
     const results = await Promise.all([
-      gate.runSerialized(scenarioCase.input.key, () => fn(0), acceptsNumber),
-      gate.runSerialized(scenarioCase.input.key, () => fn(1), acceptsNumber),
-      gate.runSerialized(scenarioCase.input.key, () => fn(2), acceptsNumber)
+      gate.runSerialized(scenarioCase.input.key, () => fn(0)),
+      gate.runSerialized(scenarioCase.input.key, () => fn(1)),
+      gate.runSerialized(scenarioCase.input.key, () => fn(2))
     ]);
     assert.equal(calls, scenarioCase.expected.calls);
     assert.equal(maxActive, scenarioCase.expected.maxActive);
@@ -185,35 +184,35 @@ const runnerMap: RunnerMap = {
   'single-flight-shares-result': async (scenarioCase) => {
     const gate = KeyedWorkGate.create<string>();
     let calls = 0;
-    const fn = async (): Promise<string> => {
+    const fn = async (): Promise<number> => {
       calls += 1;
       await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.delayMs); });
-      return 'shared-result';
+      return 100;
     };
     const [a, b, c] = await Promise.all([
-      gate.runSingleFlight(scenarioCase.input.key, fn, acceptsString),
-      gate.runSingleFlight(scenarioCase.input.key, fn, acceptsString),
-      gate.runSingleFlight(scenarioCase.input.key, fn, acceptsString)
+      gate.runSingleFlight(scenarioCase.input.key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() })),
+      gate.runSingleFlight(scenarioCase.input.key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() })),
+      gate.runSingleFlight(scenarioCase.input.key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() }))
     ]);
     assert.equal(calls, scenarioCase.expected.calls);
-    assert.deepStrictEqual([a, b, c], scenarioCase.expected.values);
+    assert.deepStrictEqual([a.timeout, b.timeout, c.timeout], scenarioCase.expected.values);
   },
   'single-flight-holds-mutex-against-serialized': async (scenarioCase) => {
     const gate = KeyedWorkGate.create<string>();
     const order: string[] = [];
-    const leader = gate.runSingleFlight(scenarioCase.input.key, async () => {
+    const leader = gate.runSingleFlight(scenarioCase.input.key, CoalesceOptionsEntity, async () => {
       order.push('single-flight-start');
       await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.leaderDelayMs); });
       order.push('single-flight-end');
-      return 'leader';
-    }, acceptsString);
+      return CoalesceOptionsEntity.create({ 'timeout': 1 });
+    });
     await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.waitBeforeSerializedMs); });
     const serialized = gate.runSerialized(scenarioCase.input.key, async () => {
       order.push('serialized-start');
       await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.serializedDelayMs); });
       order.push('serialized-end');
       return 'serialized';
-    }, acceptsString);
+    });
     await Promise.all([leader, serialized]);
     assert.deepStrictEqual(order, scenarioCase.expected.order);
   },
@@ -225,21 +224,21 @@ const runnerMap: RunnerMap = {
       await Promise.resolve();
       return calls;
     };
-    const first = await gate.runSingleFlight(scenarioCase.input.key, fn, acceptsNumber);
-    const second = await gate.runSingleFlight(scenarioCase.input.key, fn, acceptsNumber);
+    const first = await gate.runSingleFlight(scenarioCase.input.key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() }));
+    const second = await gate.runSingleFlight(scenarioCase.input.key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() }));
     assert.equal(calls, scenarioCase.expected.calls);
-    assert.equal(first, scenarioCase.expected.first);
-    assert.equal(second, scenarioCase.expected.second);
+    assert.equal(first.timeout, scenarioCase.expected.first);
+    assert.equal(second.timeout, scenarioCase.expected.second);
   },
-  'single-flight-validates-result': async (scenarioCase) => {
+  'single-flight-parses-result': async (scenarioCase) => {
     const gate = KeyedWorkGate.create<string>();
-    const stringResult = gate.runSingleFlight(scenarioCase.input.key, async () => {
+    const validResult = gate.runSingleFlight(scenarioCase.input.key, CoalesceOptionsEntity, async () => {
       await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.delayMs); });
-      return 'shared-result';
-    }, acceptsString);
-    const numberResult = gate.runSingleFlight(scenarioCase.input.key, async () => 42, acceptsNumber);
-    assert.equal(await stringResult, scenarioCase.expected.resolved);
-    await assert.rejects(numberResult, (error: unknown): boolean => error instanceof TypeError && error.name === scenarioCase.expected.rejectedName);
+      return CoalesceOptionsEntity.create({ 'timeout': scenarioCase.expected.resolved });
+    });
+    const invalidResult = gate.runSingleFlight(scenarioCase.input.key, MutexKeyStateEntity, async () => 'locked');
+    assert.equal((await validResult).timeout, scenarioCase.expected.resolved);
+    await assert.rejects(invalidResult, { 'name': scenarioCase.expected.rejectedName });
   }
 };
 

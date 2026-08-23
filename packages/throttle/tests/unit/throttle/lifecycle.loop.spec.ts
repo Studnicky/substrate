@@ -114,8 +114,7 @@ function createBlockedPair(
   };
 }
 
-function assertHookInvocation(error: unknown, expected: ScenarioCase['expected']): boolean {
-  assert.ok(error instanceof HookInvocationError);
+function assertHookInvocation(error: HookInvocationError, expected: ScenarioCase['expected']): boolean {
   assert.strictEqual(error.name, expected.errorName);
   assert.ok(error.cause instanceof Error);
   assert.strictEqual(error.cause.message, expected.causeMessage);
@@ -267,7 +266,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     });
     await Promise.resolve();
 
-    await assert.rejects(throttle.abort(), (error: unknown) => {
+    await assert.rejects(throttle.abort(), (error) => {
       assert.ok(error instanceof HookInvocationError);
       assert.strictEqual(error.cause, original);
       return true;
@@ -345,7 +344,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     }
 
     const throttle = ThrowingAcquireThrottle.create(scenarioCase.input.throttle);
-    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error: unknown) => {
+    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error) => {
       assert.ok(error instanceof HookInvocationError);
       assert.strictEqual(error.cause, original);
       return true;
@@ -364,7 +363,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     }
 
     const throttle = ThrowingReleaseThrottle.create(scenarioCase.input.throttle);
-    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error: unknown) => {
+    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error) => {
       assert.ok(error instanceof HookInvocationError);
       assert.strictEqual(error.cause, original);
       return true;
@@ -389,8 +388,8 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     });
     await settleLoop(settleMs(scenarioCase.input));
 
-    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error: unknown) => {
-      return assertHookInvocation(error, scenarioCase.expected);
+    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error) => {
+      return error instanceof HookInvocationError && assertHookInvocation(error, scenarioCase.expected);
     });
 
     assert.strictEqual(throttle.getStats().activeCount, requireNumber(scenarioCase.expected.activeCount, 'activeCount'));
@@ -418,8 +417,8 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     await settleLoop(settleMs(scenarioCase.input));
 
     const queued = throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
-    await assert.rejects(queued, (error: unknown) => {
-      return assertHookInvocation(error, scenarioCase.expected);
+    await assert.rejects(queued, (error) => {
+      return error instanceof HookInvocationError && assertHookInvocation(error, scenarioCase.expected);
     });
 
     assert.strictEqual(throttle.getStats().activeCount, requireNumber(scenarioCase.expected.activeCount, 'activeCount'));
@@ -441,8 +440,8 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     const throttle = ThrowingRejectThrottle.create(scenarioCase.input.throttle);
     await assert.rejects(throttle.execute(async () => {
       throw new Error(requireStringInput(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'));
-    }), (error: unknown) => {
-      return assertHookInvocation(error, scenarioCase.expected);
+    }), (error) => {
+      return error instanceof HookInvocationError && assertHookInvocation(error, scenarioCase.expected);
     });
 
     assert.strictEqual(throttle.getStats().activeCount, requireNumber(scenarioCase.expected.activeCount, 'activeCount'));
@@ -538,7 +537,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     await settleLoop(settleMs(scenarioCase.input));
     assert.ok(releaseFirst !== undefined);
     releaseFirst();
-    await assert.rejects(second, (error: unknown) => {
+    await assert.rejects(second, (error) => {
       assert.ok(error instanceof HookInvocationError);
       assert.strictEqual(error.cause, original);
       return true;
@@ -658,7 +657,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     }
 
     const throttle = CountingRollbackThrottle.create(scenarioCase.input.throttle);
-    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error: unknown) => {
+    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error) => {
       assert.ok(error instanceof HookInvocationError);
       assert.strictEqual(error.cause, original);
       return true;

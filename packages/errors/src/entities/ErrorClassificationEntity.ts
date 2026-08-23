@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
 import { EntityIntake } from '../validation/EntityIntake.js';
 
 /**
@@ -37,22 +39,26 @@ export namespace ErrorClassificationEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export const validate = (candidate: unknown): candidate is Type => {
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (typeof candidate.retryable !== 'boolean') { return false; }
     if (candidate.reason !== undefined && typeof candidate.reason !== 'string') { return false; }
     return true;
   };
 
-  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
-    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['reason', 'retryable'])) { return undefined; }
-    const retryable = EntityIntake.boolean(candidate.retryable, options.coerce);
-    if (retryable === undefined) { return undefined; }
-    if (candidate.reason === undefined) { return { 'retryable': retryable }; }
-    const reason = EntityIntake.string(candidate.reason, options.coerce);
-    return reason === undefined ? undefined : { 'reason': reason, 'retryable': retryable };
-  };
+  class Parser {
+    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+      if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['reason', 'retryable'])) { return undefined; }
+      const retryable = EntityIntake.boolean(candidate.retryable, options.coerce);
+      if (retryable === undefined) { return undefined; }
+      if (candidate.reason === undefined) { return { 'retryable': retryable }; }
+      const reason = EntityIntake.string(candidate.reason, options.coerce);
+      if (reason === undefined) { return undefined; }
+      const result = { 'reason': reason, 'retryable': retryable };
+      return result;
+    }
+  }
 
-  export const intake = EntityIntake.compileIntake(parser, 'ErrorClassification');
-  export const create = EntityIntake.compileCreate(parser, 'ErrorClassification');
+  export const intake = EntityIntake.compileIntake(Parser.parse, 'ErrorClassification');
+  export const create = EntityIntake.compileCreate(Parser.parse, 'ErrorClassification');
 }

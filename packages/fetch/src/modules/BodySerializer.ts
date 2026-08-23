@@ -1,3 +1,5 @@
+import type { BodyRequestOptionsInterface } from '../interfaces/BodyRequestOptionsInterface.js';
+
 /**
  * Request body serialization utilities as static class methods
  */
@@ -16,7 +18,7 @@ export class BodySerializer {
    * @param body - Request body to check
    * @returns True if Content-Type should be set
    */
-  static needsJsonContentType(body: unknown): boolean {
+  static needsJsonContentType(body: BodyRequestOptionsInterface['body']): boolean {
     const result = typeof body === 'object'
       && body !== null
       && !(body instanceof Buffer)
@@ -33,7 +35,7 @@ export class BodySerializer {
    * - ArrayBufferView: copied into a detached Uint8Array of the visible byte range
    * - any other value: JSON.stringify
    */
-  static serialize(body: unknown): ArrayBuffer | string | Uint8Array | undefined {
+  static serialize(body: BodyRequestOptionsInterface['body']): ArrayBuffer | string | Uint8Array | undefined {
     if (body === undefined || body === null) {
       const result = undefined;
       return result;

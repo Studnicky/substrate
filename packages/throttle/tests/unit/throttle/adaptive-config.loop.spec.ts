@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import { Batch } from '@studnicky/batch';
 import { ConfigurationError } from '@studnicky/config';
 import { HookInvocationError } from '@studnicky/errors';
+import { SchemaIntakeError } from '@studnicky/json';
 
 import { Throttle } from '../../../src/index.js';
 import {
@@ -193,15 +194,15 @@ function assertValidDisabledDefaultedConfig(scenarioCase: ScenarioCase): void {
     scenarioCase.expected.throttleValidated
   );
   assert.throws(() => {
-    return ValidatedAdaptiveConfigEntity.validate({ ...disabledConfig, enabled: true });
-  }, ConfigurationError);
+    return ValidatedAdaptiveConfigEntity.intake({ ...disabledConfig, enabled: true });
+  }, SchemaIntakeError);
   assert.strictEqual(scenarioCase.expected.rejectEnabledTrue, true);
 }
 
 function assertThrottleConfigEntityRejects(scenarioCase: ScenarioCase): void {
   assert.throws(() => {
-    return ThrottleConfigEntity.validate(getThrottleConfigRecord(scenarioCase));
-  }, ConfigurationError);
+    return ThrottleConfigEntity.intake(getThrottleConfigRecord(scenarioCase));
+  }, SchemaIntakeError);
 }
 
 function assertThrottleCreateRejects(scenarioCase: ScenarioCase): void {
@@ -212,13 +213,13 @@ function assertThrottleCreateRejects(scenarioCase: ScenarioCase): void {
 
 function assertAdaptiveEmptyRejects(scenarioCase: ScenarioCase): void {
   const throttleConfig = getThrottleConfigRecord(scenarioCase);
-  assert.throws(() => { return AdaptiveConfigEntity.validate(throttleConfig.adaptive); }, ConfigurationError);
-  assert.throws(() => { return ValidatedThrottleConfigEntity.validate(throttleConfig); }, ConfigurationError);
+  assert.throws(() => { return AdaptiveConfigEntity.intake(throttleConfig.adaptive); }, SchemaIntakeError);
+  assert.throws(() => { return ValidatedThrottleConfigEntity.intake(throttleConfig); }, SchemaIntakeError);
 }
 
 function assertAdaptiveStepSizeRejects(scenarioCase: ScenarioCase): void {
   const throttleConfig = getThrottleConfigRecord(scenarioCase);
-  assert.throws(() => { return AdaptiveConfigEntity.validate(throttleConfig.adaptive); }, ConfigurationError);
+  assert.throws(() => { return AdaptiveConfigEntity.intake(throttleConfig.adaptive); }, SchemaIntakeError);
   assertThrottleCreateRejects(scenarioCase);
 }
 
@@ -258,7 +259,7 @@ async function assertAdaptiveRuntimeHookThrows(scenarioCase: ScenarioCase): Prom
   const throttle = ThrowingAdaptiveThrottle.createWithClock(scenarioCase.input.clock, decodeThrottleConfig(scenarioCase.input.throttle));
   await assert.rejects(async () => {
     await executeAdaptiveSamples(throttle, scenarioCase.input);
-  }, (error: unknown) => {
+  }, (error) => {
     assert.ok(error instanceof HookInvocationError);
     assert.strictEqual(error.cause, hookError);
     assert.strictEqual(error.name, scenarioCase.expected.error);

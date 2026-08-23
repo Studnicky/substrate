@@ -1,3 +1,5 @@
+import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
+
 /** Builds detached projections of arrays and plain records without cloning collaborator instances. */
 export class DefensiveSnapshot {
   private constructor() {}
@@ -16,7 +18,7 @@ export class DefensiveSnapshot {
     return result;
   }
 
-  private static value(value: unknown): unknown {
+  private static value(value: Parameters<EntityIntakeFunctionInterface<never>>[0]): Parameters<EntityIntakeFunctionInterface<never>>[0] {
     if (Array.isArray(value)) {
       const result: unknown[] = [];
       const length = value.length;

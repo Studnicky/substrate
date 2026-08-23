@@ -21,18 +21,18 @@ class FireRecord {
 }
 
 type ScenarioInput = {
-  batch?: Record<string, unknown>;
-  scheduler: Record<string, unknown>;
+  batch?: Record<string, boolean | number | string | object | null>;
+  scheduler: Record<string, boolean | number | string | object | null>;
 };
 type ScenarioRunnerContext = {
-  batch: Record<string, unknown>;
-  expected: Record<string, unknown>;
-  input: Record<string, unknown>;
+  batch: Record<string, boolean | number | string | object | null>;
+  expected: Record<string, boolean | number | string | object | null>;
+  input: Record<string, boolean | number | string | object | null>;
 };
 type ScenarioRunner = (context: ScenarioRunnerContext) => Promise<void> | void;
 type ScenarioCase = {
   description: string;
-  expected?: Record<string, unknown>;
+  expected?: Record<string, boolean | number | string | object | null>;
   input: ScenarioInput;
   shape: string;
   name: string;
@@ -85,7 +85,7 @@ function createScheduler(startMs: number): VirtualScheduler {
   return VirtualScheduler.create({ counter: createCounter(startMs) });
 }
 
-function numberField(input: Record<string, unknown>, key: string): number {
+function numberField(input: Record<string, boolean | number | string | object | null>, key: string): number {
   const value = input[key];
   if (typeof value !== 'number') {
     throw new Error(`Expected numeric field '${key}'`);
@@ -460,7 +460,7 @@ const scenarioRunners = {
     const fireErrorInput = input as { atMs: number; counterStartMs: number; intervalAdvanceDeltas: number[]; intervalMs: number };
 
     class ErrorHookScheduler extends VirtualScheduler {
-      public errors: unknown[] = [];
+      public errors: Error[] = [];
       public fireCount = 0;
 
       public constructor(counter: Readonly<VirtualTimeCounter>) {
@@ -471,7 +471,7 @@ const scenarioRunners = {
         this.fireCount++;
       }
 
-      protected override onFireError(_id: string, error: unknown): void {
+      protected override onFireError(_id: string, error: Error): void {
         this.errors.push(error);
       }
     }
@@ -707,12 +707,12 @@ const scenarioRunners = {
 
     class ErrorHookScheduler extends VirtualScheduler {
       public fireErrorIds: string[] = [];
-      public fireErrorValues: unknown[] = [];
+      public fireErrorValues: Error[] = [];
       public constructor(counter: Readonly<VirtualTimeCounter>) {
         super(counter);
       }
 
-      protected override onFireError(id: string, error: unknown): void {
+      protected override onFireError(id: string, error: Error): void {
         this.fireErrorIds.push(id);
         this.fireErrorValues.push(error);
       }
@@ -737,7 +737,7 @@ const scenarioRunners = {
         super(counter);
       }
 
-      protected override onFireError(_id: string, _error: unknown): void {
+      protected override onFireError(_id: string, _error: Error): void {
         this.asyncErrorCount++;
       }
     }
@@ -833,7 +833,7 @@ const scenarioRunners = {
 
     let receivedError: HookInvocationError | undefined;
     class RecordingHookInvoker extends HookInvoker {
-      protected override onHookError(hookName: string, cause: unknown): void {
+      protected override onHookError(hookName: string, cause: Error): void {
         receivedError = new HookInvocationError(hookName, cause);
       }
     }
@@ -894,9 +894,9 @@ const scenarioRunners = {
     assert.strictEqual(throwingFireError.fireErrorCount, subclassExpected.throwingFireErrorCount);
 
     const recordedHookNames: string[] = [];
-    const recordedCauses: unknown[] = [];
+    const recordedCauses: Error[] = [];
     class RecordingSwallowingInvoker extends HookInvoker {
-      protected override onHookError(hookName: string, cause: unknown): void {
+      protected override onHookError(hookName: string, cause: Error): void {
         recordedHookNames.push(hookName);
         recordedCauses.push(cause);
       }
@@ -914,9 +914,9 @@ const scenarioRunners = {
         throw rejectionError;
       }
     }
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    let rejectionEvents = 0;
+    const onUnhandledRejection = (): void => {
+      rejectionEvents++;
     };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
@@ -926,7 +926,7 @@ const scenarioRunners = {
       asyncFire.runAll();
       await Promise.resolve();
       await Promise.resolve();
-      assert.strictEqual(rejectionEvents.length, subclassExpected.rejectionEventsLength);
+      assert.strictEqual(rejectionEvents, subclassExpected.rejectionEventsLength);
       assert.deepStrictEqual(recordedHookNames, subclassExpected.recordedHookNames);
       assert.strictEqual(recordedCauses[0], rejectionError);
     } finally {

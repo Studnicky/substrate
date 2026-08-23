@@ -5,9 +5,9 @@ import assert from 'node:assert/strict';
 // #region usage
 import type { PipelineOptionsEntity } from '../src/entities/index.js';
 import type { PipelineFunctionInterface } from '../src/interfaces/index.js';
-import type { StepContextTypeEntity } from './entities/StepContextTypeEntity.js';
 
 import { Pipeline, PipelineError } from '../src/index.js';
+import { StepContextTypeEntity } from './entities/StepContextTypeEntity.js';
 
 class TracingPipeline<T extends StepContextTypeEntity.Type> extends Pipeline<T> {
   public constructor(
@@ -19,8 +19,8 @@ class TracingPipeline<T extends StepContextTypeEntity.Type> extends Pipeline<T> 
 
   readonly stageStartEvents: { 'context': T; 'index': number }[] = [];
   readonly stageSuccessEvents: { 'context': T; 'index': number }[] = [];
-  readonly stageErrorEvents: { 'error': unknown; 'index': number }[] = [];
-  readonly runErrorEvents: { 'error': unknown }[] = [];
+  readonly stageErrorEvents: { 'error': Error; 'index': number }[] = [];
+  readonly runErrorEvents: { 'error': Error }[] = [];
 
   protected override onRunStart(context: T): T {
     console.log('[pipeline] runStart');
@@ -47,14 +47,13 @@ class TracingPipeline<T extends StepContextTypeEntity.Type> extends Pipeline<T> 
     return context;
   }
 
-  protected override onStageError(index: number, error: unknown): void {
-    const message = error instanceof Error ? error.message : String(error);
-    console.log(`[pipeline] stageError index=${index} error=${message}`);
+  protected override onStageError(index: number, error: Error): void {
+    console.log(`[pipeline] stageError index=${index} error=${error.message}`);
     this.stageErrorEvents.push({ 'error': error, 'index': index });
   }
 
-  protected override onRunError(error: unknown): void {
-    const message = error instanceof PipelineError ? `PipelineError: ${error.message}` : String(error);
+  protected override onRunError(error: Error): void {
+    const message = error instanceof PipelineError ? `PipelineError: ${error.message}` : error.message;
     console.log(`[pipeline] runError error=${message}`);
     this.runErrorEvents.push({ 'error': error });
   }
@@ -74,7 +73,7 @@ const successPipeline = new TracingPipeline<StepContextTypeEntity.Type>([
 ]);
 
 console.log('\n--- happy path ---');
-const successResult = await successPipeline.run({ 'step': 0, 'value': 'start' });
+const successResult = await successPipeline.run(StepContextTypeEntity.create({ 'step': 0, 'value': 'start' }));
 console.log(`result: step=${successResult.step} value=${successResult.value}`);
 
 // ── Failing run: 2 stages where the second throws ────────────────────────────
@@ -86,7 +85,7 @@ const failPipeline = new TracingPipeline<StepContextTypeEntity.Type>([
 
 console.log('\n--- failing path ---');
 try {
-  await failPipeline.run({ 'step': 0, 'value': 'start' });
+  await failPipeline.run(StepContextTypeEntity.create({ 'step': 0, 'value': 'start' }));
 } catch (error: unknown) {
   const message = error instanceof PipelineError ? `PipelineError: ${error.message}` : String(error);
   console.log(`caught: ${message}`);

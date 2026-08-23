@@ -7,7 +7,7 @@ import { BaseError } from '@studnicky/errors';
  * accessing destroyed contexts or exceeding scope limits.
  */
 export class ContextError extends BaseError {
-  constructor(message: string, cause?: unknown) {
+  constructor(message: string, cause?: Error) {
     super({ 'cause': cause, 'code': 'context.error', 'message': message, 'retryable': false });
   }
 }
@@ -19,7 +19,7 @@ export class ContextError extends BaseError {
  * does not satisfy required constraints.
  */
 export class ContextConfigError extends BaseError {
-  constructor(message: string, cause?: unknown) {
+  constructor(message: string, cause?: Error) {
     super({ 'cause': cause, 'code': 'context.invalidConfig', 'message': message, 'retryable': false });
   }
 }

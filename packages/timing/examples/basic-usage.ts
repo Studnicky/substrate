@@ -3,9 +3,10 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import { TimingOptionsEntity } from '../src/entities/index.js';
 import { Timing, TIMING_STATUS, TimingEvent } from '../src/index.js';
 
-const timing = Timing.create({ 'maximumEvents': 50 });
+const timing = Timing.create(TimingOptionsEntity.create({ 'maximumEvents': 50 }));
 
 // Record a plain component.operation event
 timing.event(

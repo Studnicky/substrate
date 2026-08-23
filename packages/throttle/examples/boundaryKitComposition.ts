@@ -139,7 +139,7 @@ await badThrottle.execute(() => {
     return retryResult;
   });
   return breakerResult;
-}).catch((error: unknown) => {
+}).catch((error) => {
   fastRejected = error instanceof CircuitBreakerOpenError;
 });
 

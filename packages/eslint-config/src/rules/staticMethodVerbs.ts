@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { Rule } from 'eslint';
 import type {
   FromSchema, JSONSchema
@@ -6,9 +7,9 @@ import type {
   Program, Symbol, Type
 } from 'typescript';
 
-import {
-  DEFAULT_MODE, TRIVIAL_OPTIONS
-} from './constants/StaticMethodVerbsConstants.js';
+import { SchemaValidator } from '@studnicky/json';
+
+import { TRIVIAL_OPTIONS } from './constants/StaticMethodVerbsConstants.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
 import { ParameterNames } from './shared/ParameterNames.js';
 import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
@@ -33,6 +34,9 @@ namespace StaticMethodVerbsOptionsEntity {
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
+
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }
 
 interface ParserServicesInterface {
@@ -311,11 +315,8 @@ class AstHelpers {
 // two rules cannot drift back into disagreement.
 export const staticMethodVerbs: Rule.RuleModule = {
   'create': (context) => {
-    const rawOptions: unknown = context.options.at(0);
-    const rawMode = ObjectGuard.isObject(rawOptions) ? rawOptions.mode : undefined;
-    const mode = rawMode === 'any' || rawMode === 'structural' || rawMode === 'typed'
-      ? rawMode
-      : DEFAULT_MODE;
+    const options = StaticMethodVerbsOptionsEntity.intake(context.options.at(0) ?? {});
+    const mode = options.mode;
 
     const services = mode === 'typed' ? ContextHelpers.getServices(context) : undefined;
     const checker = services?.program !== undefined ? services.program.getTypeChecker() : undefined;

@@ -21,7 +21,7 @@ import { FunctionTransport, LogBody, Logger } from '../src/index.js';
 
 interface LogEventInterface {
   readonly 'bindings'?: LogMetadataInterface;
-  readonly 'error'?: unknown;
+  readonly 'error'?: Error;
   readonly 'level'?: LogLevelEntity.Type;
   readonly 'message'?: LogBodyDataEntity.Type['message'];
   readonly 'shape': LoggerHookEventShapeEntity.Type;
@@ -54,7 +54,7 @@ class ObservedLogger extends Logger {
     );
   }
 
-  protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
+  protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: Error): void {
     this.#recorder.record(
       { 'error': error, 'shape': 'transportError' },
       `[logger] onTransportError error=${String(error instanceof Error ? error.message : error)}`

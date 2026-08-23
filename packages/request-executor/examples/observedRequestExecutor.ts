@@ -77,9 +77,9 @@ class ReportingRequestExecutor extends RequestExecutor {
     return result;
   }
 
-  protected override onExecuteError(error: unknown): void {
-    console.log('[execute] failed', error instanceof Error ? error.message : error);
-    this.errorMessages.push(error instanceof Error ? error.message : String(error));
+  protected override onExecuteError(error: Error): void {
+    console.log('[execute] failed', error.message);
+    this.errorMessages.push(error.message);
   }
 
   report(): { 'retries': number; 'totalRequests': number } {

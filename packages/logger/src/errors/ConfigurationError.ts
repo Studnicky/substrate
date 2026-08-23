@@ -12,14 +12,14 @@ import { LoggerError } from './LoggerError.js';
  * }
  * ```
  */
-export class ConfigurationError extends LoggerError {
+export class ConfigurationError<TCause = unknown> extends LoggerError<TCause> {
   /**
    * Creates a new ConfigurationError
    *
    * @param message - Descriptive error message
    * @param cause - Optional underlying error that caused this error
    */
-  constructor(message: string, cause?: unknown) {
+  constructor(message: string, cause?: TCause) {
     super(message, cause);
   }
 }

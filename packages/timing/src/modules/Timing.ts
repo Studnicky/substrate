@@ -3,21 +3,21 @@ import { HookInvocationError, HookInvoker } from '@studnicky/errors';
 
 import type { TimeUnitEntity } from '../entities/TimeUnitEntity.js';
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
-import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
-import { DEFAULT_DECIMAL_PRECISION, DEFAULT_MAXIMUM_EVENTS, NS_PER_UNIT } from '../constants/index.js';
-import { TimingValidator } from '../validation/TimingValidator.js';
-
-interface TimingSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
+import { DEFAULT_MAXIMUM_EVENTS, NS_PER_UNIT } from '../constants/index.js';
+import { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 
 class TimingInstance {
-  static belongsTo<TInstance>(
-    constructor: TimingSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+  static construct(constructor: Function, argumentsList: readonly object[]): object {
+    const result: unknown = Reflect.construct(constructor, argumentsList);
+    if (typeof result !== 'object' || result === null) {
+      throw new TypeError('Timing.create() did not construct an object.');
+    }
+    return result;
+  }
+
+  static belongsTo<TInstance extends object>(constructor: Function, value: object): value is TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -36,7 +36,7 @@ class TimingInstance {
  * ```typescript
  * import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
  *
- * const timing = Timing.create({ 'maximumEvents': 100, 'precision': { ms: 2 } });
+ * const timing = Timing.create();
  *
  * // Record immutable event data
  * timing.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.START }));
@@ -70,15 +70,15 @@ export class Timing implements TimingInterface {
    * ```typescript
    * import { Timing } from '@studnicky/timing';
    *
-   * const timing = Timing.create({ maximumEvents: 100 });
+   * const timing = Timing.create();
    * ```
    */
   static create<TInstance extends Timing = Timing>(
-    this: TimingSubclassInterface<TInstance>,
-    options: TimingOptionsEntity.Type = {}
+    this: Function & { readonly 'prototype': TInstance; },
+    options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!TimingInstance.belongsTo(this, result)) {
+    const result = TimingInstance.construct(this, [options]);
+    if (!TimingInstance.belongsTo<TInstance>(this, result)) {
       throw new TypeError('Timing.create() did not construct the requested subclass.');
     }
     return result;
@@ -100,27 +100,20 @@ export class Timing implements TimingInterface {
    * @throws ConfigurationError - When configuration validation fails
    * @throws HookInvocationError - When the onInitialize hook throws
    */
-  protected constructor(options: TimingOptionsEntity.Type = {}) {
+  protected constructor(options: Parameters<typeof TimingOptionsEntity.create>[0] = {}) {
     try {
-      if (options.maximumEvents !== undefined) {
-        TimingValidator.validateMaximumEvents(options.maximumEvents);
-      }
-
-      if (options.precision !== undefined) {
-        TimingValidator.validatePrecision(options.precision);
-      }
-
-      const maximumEventCount = options.maximumEvents ?? DEFAULT_MAXIMUM_EVENTS;
+      const timingOptions = TimingOptionsEntity.create(options);
+      const maximumEventCount = timingOptions.maximumEvents ?? DEFAULT_MAXIMUM_EVENTS;
 
       this.#timingCache = new Set();
       this.maximumEvents = maximumEventCount;
 
       this.#precisions = new Map([
-        ['h', options.precision?.h ?? DEFAULT_DECIMAL_PRECISION.h],
-        ['m', options.precision?.m ?? DEFAULT_DECIMAL_PRECISION.m],
-        ['ms', options.precision?.ms ?? DEFAULT_DECIMAL_PRECISION.ms],
-        ['ns', options.precision?.ns ?? DEFAULT_DECIMAL_PRECISION.ns],
-        ['s', options.precision?.s ?? DEFAULT_DECIMAL_PRECISION.s]
+        ['h', timingOptions.precision.h],
+        ['m', timingOptions.precision.m],
+        ['ms', timingOptions.precision.ms],
+        ['ns', timingOptions.precision.ns],
+        ['s', timingOptions.precision.s]
       ]);
       this.#nanosecondsPerUnit = new Map([
         ['h', NS_PER_UNIT.h],
@@ -227,7 +220,7 @@ export class Timing implements TimingInterface {
     const currentTime = this.readHrtime();
 
     if (this.#timingCache.size >= this.maximumEvents) {
-      // maximumEvents is validated to be >= 1 (TimingValidator.validateMaximumEvents), so
+      // maximumEvents is validated to be >= 1 by TimingOptionsEntity, so
       // size >= maximumEvents >= 1 here, meaning the cache is non-empty and the
       // iterator always yields a value.
       const firstEvent = this.#timingCache.values().next().value!;

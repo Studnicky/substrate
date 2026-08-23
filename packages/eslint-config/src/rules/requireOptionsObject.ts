@@ -1,5 +1,8 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 import { ObjectGuard } from './shared/ObjectGuard.js';
 
@@ -18,9 +21,10 @@ namespace RequireOptionsObjectOptionsEntity {
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
-}
 
-const DEFAULT_MINIMUM_OPTIONALS = 2;
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+}
 
 interface TypeScriptRuleListenerInterface extends Rule.RuleListener {
   'TSCallSignatureDeclaration': (node: Rule.Node) => void;
@@ -197,20 +201,10 @@ class RuleHandlers {
   }
 }
 
-class MinimumOptionals {
-  static get(rawOptions: unknown): number {
-    if (!ObjectGuard.isObject(rawOptions)) { return DEFAULT_MINIMUM_OPTIONALS; }
-    const value = rawOptions.minimumOptionals;
-    const result = typeof value === 'number' && Number.isInteger(value) && value >= 2
-      ? value
-      : DEFAULT_MINIMUM_OPTIONALS;
-    return result;
-  }
-}
-
 export const requireOptionsObject: Rule.RuleModule = {
   'create': (context) => {
-    const minimumOptionals = MinimumOptionals.get(context.options.at(0));
+    const options = RequireOptionsObjectOptionsEntity.intake(context.options.at(0) ?? {});
+    const minimumOptionals = options.minimumOptionals;
 
     const arrowFunctionHandler = (node: Rule.Node): void => { RuleHandlers.onArrowFunctionExpression(node, context, minimumOptionals); };
     const functionDeclarationHandler = (node: Rule.Node): void => { RuleHandlers.onFunctionDeclaration(node, context, minimumOptionals); };

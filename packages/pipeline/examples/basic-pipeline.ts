@@ -8,10 +8,9 @@
 
 import assert from 'node:assert/strict';
 
-// #region usage
-import type { NumberContextTypeEntity } from './entities/NumberContextTypeEntity.js';
-
 import { Pipeline } from '../src/index.js';
+// #region usage
+import { NumberContextTypeEntity } from './entities/NumberContextTypeEntity.js';
 
 class NumberStages {
   static double(context: NumberContextTypeEntity.Type): NumberContextTypeEntity.Type { return { 'value': context.value * 2 }; }
@@ -36,11 +35,11 @@ class PipelineRunDemo {
   // results so the caller ends up with a single top-level binding.
   static async run(): Promise<{ 'withDouble': number; 'withoutDouble': number }> {
     // (5 * 2 + 10) * 3 = 60
-    const result = await threeStagePipeline.run({ 'value': 5 });
+    const result = await threeStagePipeline.run(NumberContextTypeEntity.create({ 'value': 5 }));
     console.log(`Result with 3 stages: ${result.value}`);
 
     // (5 + 10) * 3 = 45
-    const resultWithoutDouble = await twoStagePipeline.run({ 'value': 5 });
+    const resultWithoutDouble = await twoStagePipeline.run(NumberContextTypeEntity.create({ 'value': 5 }));
     console.log(`Result without double stage: ${resultWithoutDouble.value}`);
 
     return { 'withDouble': result.value, 'withoutDouble': resultWithoutDouble.value };

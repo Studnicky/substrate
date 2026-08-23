@@ -90,7 +90,6 @@ import type { ThrottleInterface } from '@studnicky/throttle/interfaces';
 |---|---|---|
 | `Throttle` | Creates and runs a sliding-window concurrency throttle. | `@studnicky/throttle` |
 | `ThrottleInterface` | Defines the consumer-facing throttle contract. | `@studnicky/throttle` |
-| `ThrottleValidator` | Guards an unknown value as a throttle implementation. | `@studnicky/throttle` |
 | `ThrottleAbortedError` | Represents an aborted throttle operation. | `@studnicky/throttle` |
 | `ThrottleDrainingError` | Represents work rejected while the throttle drains. | `@studnicky/throttle` |
 

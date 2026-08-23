@@ -33,7 +33,7 @@ const DEFAULT_MAXIMUM_KEYS = 10_000;
  * exhaustion errors reported by the limiter.
  */
 class KeyedRateLimiterFailureIsolatingHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(): void {}
 }
 
 /**
@@ -134,9 +134,9 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
   };
 
   private static isConstructed<TInstance>(
-    value: unknown,
+    value: object,
     constructor: KeyedRateLimiterSubclassInterface<TInstance>
-  ): value is TInstance {
+  ): value is object & TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -178,7 +178,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         'factory': config.factory,
         'tokenBucketOptions': undefined
       }]);
-      if (!KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+      if (typeof result !== 'object' || result === null || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
         throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
       }
       return result;
@@ -193,7 +193,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         ...(config.clock !== undefined ? { 'clock': config.clock } : {})
       }
     }]);
-    if (!KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+    if (typeof result !== 'object' || result === null || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
       throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
     }
     return result;

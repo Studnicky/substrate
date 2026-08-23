@@ -146,7 +146,7 @@
         }
       },
       "expected": {
-        "message": "invalid RealTimeClockProvider options"
+        "message": "/offsetMs: NaN is not valid JSON data"
       }
     },
     {
@@ -164,7 +164,7 @@
         }
       },
       "expected": {
-        "message": "invalid RealTimeClockProvider options"
+        "message": "/offsetMs: Infinity is not valid JSON data"
       }
     },
     {
@@ -182,7 +182,7 @@
         }
       },
       "expected": {
-        "message": "invalid RealTimeClockProvider options"
+        "message": "/offsetMs: -Infinity is not valid JSON data"
       }
     },
     {
@@ -213,7 +213,7 @@
         }
       },
       "expected": {
-        "message": "invalid RealTimeClockProvider options"
+        "message": "/offsetMs: NaN is not valid JSON data"
       }
     },
     {
@@ -242,7 +242,7 @@
         }
       },
       "expected": {
-        "message": "startMs must be a finite non-negative number"
+        "message": "/startMs: must be >= 0"
       }
     },
     {

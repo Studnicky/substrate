@@ -51,9 +51,12 @@ type ScenarioRunner<K extends ScenarioShape> = (context: ScenarioRunContext<K>) 
 
 type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
-function itemAt(items: unknown, index: number): number {
-  const value = (items as number[])[index];
-  if (value === undefined) {
+function itemAt<TValue>(items: TValue, index: number): number {
+  if (!Array.isArray(items)) {
+    throw new Error('Scenario items must be an array');
+  }
+  const value: unknown = items[index];
+  if (typeof value !== 'number') {
     throw new Error(`Missing scenario item at index ${String(index)}`);
   }
   return value;
@@ -133,10 +136,10 @@ const runnerMap: RunnerMap = {
       const handlerErrors: unknown[] = [];
       const received: number[] = [];
       const unhandledRejections: unknown[] = [];
-      const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+      const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
 
       class ObservedQueue extends BusQueue<number> {
-        protected override onHandlerError(error: unknown): void {
+        protected override onHandlerError<TError>(error: TError): void {
           handlerErrors.push(error);
         }
       }
@@ -405,7 +408,7 @@ const runnerMap: RunnerMap = {
       const seen: Array<{ 'hookName': string; 'cause': unknown }> = [];
       const failure = new Error(input.errorMessage as string);
       class RecordingHookInvoker extends HookInvoker {
-        protected override onHookError(hookName: string, cause: unknown): void {
+        protected override onHookError(hookName: string, cause: Error): void {
           seen.push({ 'hookName': hookName, 'cause': cause });
         }
       }
@@ -556,7 +559,7 @@ const runnerMap: RunnerMap = {
     'handler-error-hook': ({ expected, input }) => {
       const errors: unknown[] = [];
       class ObservedQueue extends BusQueue<number> {
-        protected override onHandlerError(err: unknown): void { errors.push(err); }
+        protected override onHandlerError<TError>(err: TError): void { errors.push(err); }
       }
       const queue = ObservedQueue.create<number>({
         'handler': async () => { throw new Error(input.errorMessage as string); }

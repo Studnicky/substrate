@@ -2,6 +2,9 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
 import { EntityIntake } from '../validation/EntityIntake.js';
 
 /** Compact rollup of deduplicated paths and keywords with a total error count. */
@@ -33,7 +36,7 @@ export namespace ValidationAggregateViewEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export const validate = (candidate: unknown): candidate is Type => {
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (typeof candidate.count !== 'number') { return false; }
     if (!Array.isArray(candidate.keywords) || !candidate.keywords.every((keyword) => { const result = typeof keyword === 'string'; return result; })) { return false; }
@@ -41,26 +44,29 @@ export namespace ValidationAggregateViewEntity {
     return true;
   };
 
-  const parseStrings = (value: unknown, coerce: boolean): string[] | undefined => {
-    if (!Array.isArray(value)) { return undefined; }
-    const result: string[] = [];
-    for (const item of value) {
-      const string = EntityIntake.string(item, coerce);
-      if (string === undefined) { return undefined; }
-      result.push(string);
+  class Parser {
+    public static parseStrings(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): string[] | undefined {
+      if (!Array.isArray(value)) { return undefined; }
+      const result: string[] = [];
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        const string = EntityIntake.string(value[index], coerce);
+        if (string === undefined) { return undefined; }
+        result.push(string);
+      }
+      return result;
     }
-    return result;
-  };
 
-  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
-    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['count', 'keywords', 'paths'])) { return undefined; }
-    const count = EntityIntake.number(candidate.count, options.coerce);
-    const keywords = parseStrings(candidate.keywords, options.coerce);
-    const paths = parseStrings(candidate.paths, options.coerce);
-    if (count === undefined || keywords === undefined || paths === undefined) { return undefined; }
-    return { 'count': count, 'keywords': keywords, 'paths': paths };
-  };
+    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+      if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['count', 'keywords', 'paths'])) { return undefined; }
+      const count = EntityIntake.number(candidate.count, options.coerce);
+      const keywords = Parser.parseStrings(candidate.keywords, options.coerce);
+      const paths = Parser.parseStrings(candidate.paths, options.coerce);
+      if (count === undefined || keywords === undefined || paths === undefined) { return undefined; }
+      return { 'count': count, 'keywords': keywords, 'paths': paths };
+    }
+  }
 
-  export const intake = EntityIntake.compileIntake(parser, 'ValidationAggregateView');
-  export const create = EntityIntake.compileCreate(parser, 'ValidationAggregateView');
+  export const intake = EntityIntake.compileIntake(Parser.parse, 'ValidationAggregateView');
+  export const create = EntityIntake.compileCreate(Parser.parse, 'ValidationAggregateView');
 }

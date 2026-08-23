@@ -30,7 +30,25 @@ import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
  *     containing `Schema` (const, value-first authored — `as const` or a
  *     schema-builder call), `Type` (derived from `typeof Schema` via any
  *     deriving type, e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`),
- *     and `validate` (a type guard).
+ *     `validate` (a type guard), and `intake` (the boundary that returns a
+ *     newly proven entity value). Entities whose literal root Schema type is
+ *     `object` must also export `create`.
+ *
+ *     `validate` narrows a variable in place and produces no value, so nothing
+ *     a caller holds proves the check happened and every downstream site
+ *     re-checks. `intake` returns a new value whose type cannot be obtained
+ *     without crossing the boundary. Both exist for those distinct jobs, and
+ *     `intake` is mandatory because entities are the proof that unparsed input
+ *     crossed it.
+ *
+ *     `create` is separate from `intake` because the distinction is provenance,
+ *     not shape. `intake` parses outside data — HTTP bodies, queue messages,
+ *     config blobs, file imports, database rows, and IPC payloads — and runs
+ *     coercion, default-filling, and unknown-property stripping. `create` is
+ *     for data produced locally: defaults merged, no transforms. Transforming
+ *     a local fixture is wrong; skipping transforms on a request body is worse.
+ *     `create` is object-only because `Partial<'healthy' | 'degraded'>` is
+ *     meaningless.
  *
  *  2. Files under an `interfaces/` folder must declare an `interface` (not a
  *     `type` alias); files under a `types/` folder must declare a `type`
@@ -439,8 +457,60 @@ class FolderShapeHelpers {
 
 
 class NamespaceScanner {
+  // Object composition and schema builders can describe an object without a
+  // literal root `type`. That is undecidable from this one declarator, so do
+  // not require `create` and risk a false positive.
+  private static hasObjectRootType(schemaDeclarator: unknown): boolean {
+    if (!ObjectGuard.isObject(schemaDeclarator)) {
+      return false;
+    }
+
+    const schemaExpression = DeclaratorName.unwrapTsExpression(schemaDeclarator.init);
+
+    if (!ObjectGuard.isObject(schemaExpression) || AstHelpers.getNodeType(schemaExpression) !== 'ObjectExpression') {
+      return false;
+    }
+
+    const properties: unknown = schemaExpression.properties;
+
+    if (!Array.isArray(properties)) {
+      return false;
+    }
+
+    const propertiesLength = properties.length;
+
+    for (let propertyIndex = 0; propertyIndex < propertiesLength; propertyIndex += 1) {
+      const property: unknown = properties.at(propertyIndex);
+
+      if (!ObjectGuard.isObject(property) || AstHelpers.getNodeType(property) !== 'Property' || property.computed === true) {
+        continue;
+      }
+
+      const key: unknown = property.key;
+      const isTypeKey = ObjectGuard.isObject(key)
+        && ((AstHelpers.getNodeType(key) === 'Identifier' && key.name === 'type')
+          || (AstHelpers.getNodeType(key) === 'Literal' && key.value === 'type'));
+
+      if (!isTypeKey) {
+        continue;
+      }
+
+      const value = DeclaratorName.unwrapTsExpression(property.value);
+      const result = ObjectGuard.isObject(value)
+        && AstHelpers.getNodeType(value) === 'Literal'
+        && value.value === 'object';
+
+      return result;
+    }
+
+    return false;
+  }
+
   static scanBody(bodyNode: unknown) {
     const result = {
+      'hasCreate': false,
+      'hasIntake': false,
+      'hasObjectRootSchema': false,
       'hasSchema': false,
       'hasSchemaValueAuthored': false,
       'hasType': false,
@@ -491,6 +561,13 @@ class NamespaceScanner {
           if (name === 'Schema') {
             result.hasSchema = true;
             result.hasSchemaValueAuthored = SchemaMemberGuards.isSchemaValueAuthored(d);
+            result.hasObjectRootSchema = NamespaceScanner.hasObjectRootType(d);
+          }
+          if (name === 'intake') {
+            result.hasIntake = true;
+          }
+          if (name === 'create') {
+            result.hasCreate = true;
           }
           if (name === 'validate') {
             result.hasValidate = true;
@@ -591,6 +668,16 @@ class EntityNamespaceCheck {
       } else if (!members.hasValidateTypeGuard) {
         context.report({
           'messageId': 'validateNotTypeGuard', 'node': reportNode
+        });
+      }
+      if (!members.hasIntake) {
+        context.report({
+          'messageId': 'missingIntake', 'node': reportNode
+        });
+      }
+      if (members.hasObjectRootSchema && !members.hasCreate) {
+        context.report({
+          'messageId': 'missingCreate', 'node': reportNode
         });
       }
     }
@@ -1196,6 +1283,8 @@ export const folderContentShape: Rule.RuleModule = {
         "File '{{file}}' declares {{count}} top-level constants ({{names}}) alongside other top-level declarations (re-exports, functions, classes, or mutable bindings), so it is not a self-contained constants module. Extract these constants into their own '<area>/constants/<Name>.ts' (or '<area>/fixtures/<Name>.ts' for test/example data) file, isolated from the other declarations, grouped under one exported frozen object literal.",
       'interfaceInTypesFolder':
         "Interface '{{name}}' is declared in a 'types/' folder, which is reserved for data shapes (`type` alias declarations). Move this contract to an 'interfaces/' folder, or — if it's actually a pure data shape with no contract signal — declare it as a `type {{name}}` instead.",
+      'missingCreate': 'Entity namespace with a literal object `Schema` must export `create` as `const create = SchemaValidator.compileCreate<Type>(Schema)` for locally produced partial data.',
+      'missingIntake': 'Entity namespace must export `intake` as `const intake = SchemaValidator.compileIntake<Type>(Schema)`, so callers hold a value proven to have crossed the input boundary.',
       'missingSchema': 'Entity namespace must export `const Schema` — a JSON Schema object literal declared `as const`, or a schema-builder call (e.g. `Type.Object({...})`).',
       'missingType': 'Entity namespace must export `type Type` derived from `typeof Schema` (e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`).',
       'missingValidate': 'Entity namespace must export `validate` — either `const validate = SchemaValidator.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type`.',

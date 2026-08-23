@@ -42,8 +42,8 @@ interface ChannelSubclassInterface<TInstance> extends Function {
 class ChannelInstance {
   static belongsTo<TInstance>(
     constructor: ChannelSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
+    value: object
+  ): value is object & TInstance {
     const result = value instanceof constructor;
     return result;
   }
@@ -71,7 +71,7 @@ export class Channel<T> {
     const currentConstructor = getCurrentConstructor();
 
     const result: unknown = Reflect.construct(currentConstructor, [options]);
-    if (!ChannelInstance.belongsTo(currentConstructor, result)) {
+    if (typeof result !== 'object' || result === null || !ChannelInstance.belongsTo(currentConstructor, result)) {
       throw new TypeError('Channel.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;

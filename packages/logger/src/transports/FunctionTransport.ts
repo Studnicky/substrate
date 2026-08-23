@@ -10,9 +10,9 @@ interface FunctionTransportSubclassInterface<TInstance> extends Function {
 }
 
 class FunctionTransportInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: FunctionTransportSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     const result = value instanceof constructor;
 
@@ -57,7 +57,7 @@ export class FunctionTransport implements TransportInterface {
       options
     ]);
 
-    if (!FunctionTransportInstance.belongsTo(this, result)) {
+    if (result === null || typeof result !== 'object' || !FunctionTransportInstance.belongsTo(this, result)) {
       throw new TypeError('FunctionTransport.create() did not construct the requested subclass.');
     }
 

@@ -154,8 +154,8 @@ class ObservingPipeline<T> extends Pipeline<T> {
     super(stages, options);
   }
 
-  readonly runErrorEvents: Array<{ error: unknown }> = [];
-  readonly stageErrorEvents: Array<{ error: unknown; index: number }> = [];
+  readonly runErrorEvents: Array<{ error: Error }> = [];
+  readonly stageErrorEvents: Array<{ error: Error; index: number }> = [];
   readonly stageStartEvents: Array<{ ctx: T; index: number }> = [];
   readonly stageSuccessEvents: Array<{ ctx: T; index: number }> = [];
 
@@ -167,11 +167,11 @@ class ObservingPipeline<T> extends Pipeline<T> {
     this.stageSuccessEvents.push({ ctx, index });
   }
 
-  protected override onStageError(index: number, error: unknown): void {
+  protected override onStageError(index: number, error: Error): void {
     this.stageErrorEvents.push({ error, index });
   }
 
-  protected override onRunError(error: unknown): void {
+  protected override onRunError(error: Error): void {
     this.runErrorEvents.push({ error });
   }
 }
@@ -380,11 +380,11 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const expected = scenarioCase.expected as { order: string[] };
       const order: string[] = [];
       class OrderedErrorPipeline extends Pipeline<number> {
-        protected override onStageError(_index: number, _error: unknown): void {
+        protected override onStageError(_index: number, _error: Error): void {
           order.push('onStageError');
         }
 
-        protected override onRunError(_error: unknown): void {
+        protected override onRunError(_error: Error): void {
           order.push('onRunError');
         }
       }
@@ -458,7 +458,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         }
       }
       const pipeline = new ThrowingBeforeStagePipeline(buildStages(input.stages));
-      await assert.rejects(() => pipeline.run(input.ctx), (err: unknown) => err === rawError);
+      await assert.rejects(async () => {
+        try {
+          await pipeline.run(input.ctx);
+        } catch (error) {
+          assert.strictEqual(error, rawError);
+          throw error;
+        }
+      });
       assert.strictEqual(pipeline.runErrorEvents.length, expected.runErrorCount);
     },
   'after-stage-throw-does-not-trigger-run-error': async (scenarioCase) => {
@@ -471,7 +478,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         }
       }
       const pipeline = new ThrowingAfterStagePipeline(buildStages(input.stages));
-      await assert.rejects(() => pipeline.run(input.ctx), (err: unknown) => err === rawError);
+      await assert.rejects(async () => {
+        try {
+          await pipeline.run(input.ctx);
+        } catch (error) {
+          assert.strictEqual(error, rawError);
+          throw error;
+        }
+      });
       assert.strictEqual(pipeline.runErrorEvents.length, expected.runErrorCount);
     },
   'on-run-start-throw-does-not-trigger-run-error': async (scenarioCase) => {
@@ -484,7 +498,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         }
       }
       const pipeline = new ThrowingRunStartPipeline(buildStages(input.stages));
-      await assert.rejects(() => pipeline.run(input.ctx), (err: unknown) => err === rawError);
+      await assert.rejects(async () => {
+        try {
+          await pipeline.run(input.ctx);
+        } catch (error) {
+          assert.strictEqual(error, rawError);
+          throw error;
+        }
+      });
       assert.strictEqual(pipeline.runErrorEvents.length, expected.runErrorCount);
     },
   'on-run-complete-throw-does-not-trigger-run-error': async (scenarioCase) => {
@@ -497,7 +518,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         }
       }
       const pipeline = new ThrowingRunCompletePipeline(buildStages(input.stages));
-      await assert.rejects(() => pipeline.run(input.ctx), (err: unknown) => err === rawError);
+      await assert.rejects(async () => {
+        try {
+          await pipeline.run(input.ctx);
+        } catch (error) {
+          assert.strictEqual(error, rawError);
+          throw error;
+        }
+      });
       assert.strictEqual(pipeline.runErrorEvents.length, expected.runErrorCount);
     }
 };
