@@ -59,6 +59,7 @@ The observation-only hooks run through a composed `HookInvoker` (see [`@studnick
 
 `@studnicky/retry/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { RetryConfigEntity } from '@studnicky/retry/entities';
 ```
@@ -67,6 +68,7 @@ import { RetryConfigEntity } from '@studnicky/retry/entities';
 
 `@studnicky/retry/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 ```

@@ -69,6 +69,7 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 `@studnicky/sliding-window-limiter/entities` exports the limiter option schema.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { SlidingWindowLimiterOptionsEntity } from '@studnicky/sliding-window-limiter/entities';
 ```
@@ -77,6 +78,7 @@ import { SlidingWindowLimiterOptionsEntity } from '@studnicky/sliding-window-lim
 
 `@studnicky/sliding-window-limiter/interfaces` exports the limiter option contract.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { SlidingWindowLimiterOptionsInterface } from '@studnicky/sliding-window-limiter/interfaces';
 ```

@@ -57,6 +57,7 @@ Full reference: https://studnicky.github.io/substrate/packages/memoize
 
 `@studnicky/memoize/entities` exports memoized cache lookup schemas.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { CacheLookupEntity } from '@studnicky/memoize/entities';
 ```
@@ -65,6 +66,7 @@ import { CacheLookupEntity } from '@studnicky/memoize/entities';
 
 `@studnicky/memoize/interfaces` exports memoization option contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { MemoizeOptionsInterface } from '@studnicky/memoize/interfaces';
 ```

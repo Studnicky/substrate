@@ -74,9 +74,9 @@ const twitterHandle = seo.twitterHandle ?? '';
 const ESLINT_CONFIG_RULES = [
   'adapter-only-import', 'all-types-are-entities', 'canonical-export-names', 'clean-diagnostics',
   'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'folder-content-shape',
-  'hash-private-fields', 'inline-trivial-logic', 'interface-must-be-contract', 'interface-suffix',
+  'explicit-return-binding', 'hash-private-fields', 'inline-trivial-logic', 'intake-parse-only', 'interface-must-be-contract', 'interface-suffix',
   'interfaces-compose-named-types', 'known-types-outside-adapters', 'layer-import-boundary',
-  'lexical-this-only', 'prefer-collection-types', 'require-options-object', 'single-export',
+  'lexical-this-only', 'no-mixed-callable-shapes', 'prefer-collection-types', 'require-options-object', 'single-export',
   'static-method-verbs', 'type-alias-invariants', 'whole-canonical-types'
 ] as const;
 

@@ -1,0 +1,81 @@
+{
+  "valid": [
+    {
+      "code": "declare namespace RecordEntity { function intake(input: unknown): Type; }",
+      "filename": "/repo/packages/records/src/RecordEntity.ts",
+      "name": "entity namespace intake declaration accepts unknown input"
+    },
+    {
+      "code": "function handle(payload: string): string { return payload; }",
+      "filename": "/repo/packages/records/src/handler.ts",
+      "name": "function with no unknown or any parameters is not reported"
+    },
+    {
+      "code": "export function isObject(value: unknown): boolean { return typeof value === 'object'; }",
+      "filename": "/repo/packages/types/src/Guard.ts",
+      "name": "unknown parameter in package whose nearest package.json name is exempt is not reported"
+    },
+    {
+      "code": "namespace RecordEntity { export function intake(input: unknown): Type { return Guard.isObject(input) ? {} : {}; } }",
+      "filename": "/repo/packages/records/src/RecordEntity.ts",
+      "name": "Guard.isObject call inside an entity intake body is not a declaration"
+    },
+    {
+      "code": "namespace RecordEntity { export const intake = (input: unknown): Type => ({}); }",
+      "filename": "/repo/packages/records/src/RecordEntity.ts",
+      "name": "arrow function assigned to entity intake accepts unknown input"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "namespace RecordEntity { export function validate(value: unknown): value is Type { return true; } }",
+      "errors": [
+        {
+          "messageId": "unparsedOutsideIntake"
+        }
+      ],
+      "filename": "/repo/packages/records/src/RecordEntity.ts",
+      "name": "entity validate predicate is not intake and is reported"
+    },
+    {
+      "code": "function handle(payload: unknown): void {}",
+      "errors": [
+        {
+          "messageId": "unparsedOutsideIntake"
+        }
+      ],
+      "filename": "/repo/packages/handlers/src/handle.ts",
+      "name": "plain function in a non-entity file is reported"
+    },
+    {
+      "code": "function handle(payload: any): void {}",
+      "errors": [
+        {
+          "messageId": "unparsedOutsideIntake"
+        }
+      ],
+      "filename": "/repo/packages/handlers/src/handle.ts",
+      "name": "function parameter typed any is reported"
+    },
+    {
+      "code": "namespace Record { export function intake(input: unknown): Type { return {}; } }",
+      "errors": [
+        {
+          "messageId": "unparsedOutsideIntake"
+        }
+      ],
+      "filename": "/repo/packages/records/src/Record.ts",
+      "name": "intake in a namespace not ending in Entity is reported"
+    },
+    {
+      "code": "export function intake(input: unknown): Type { return {}; }",
+      "errors": [
+        {
+          "messageId": "unparsedOutsideIntake"
+        }
+      ],
+      "filename": "/repo/packages/records/src/intake.ts",
+      "name": "intake outside an entity namespace is reported"
+    }
+  ]
+}

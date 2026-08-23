@@ -1,11 +1,13 @@
 ---
 title: '@studnicky/v8/switch-statements'
-description: 'Disallows block statement bodies in switch cases.'
+description: 'Requires switch cases to delegate with a simple call or return.'
 ---
 
 # @studnicky/v8/switch-statements
 
-Disallows `switch` cases with a `BlockStatement` body (`case X: { ... }`). V8 switch dispatch expects simple calls or returns; block statement bodies inhibit the fast dispatch table and prevent V8 from generating optimal jump-table code.
+Requires each switch case to delegate rather than contain inline multi-statement logic. A case body wrapped in a block is reported, as is an unwrapped case with two or more statements after ignoring one trailing `break`, `continue`, or `return`. A single delegated call or return, optionally followed by one of those terminators, is allowed.
+
+This is a readability and structure rule, not a V8-performance rule. On Node v24, a 20-case integer switch with one-line delegating bodies and one with multi-statement bodies both emitted the same `SwitchOnSmiNoFeedback` dispatch bytecode. The related `max-switch-cases` rule addresses the measured performance threshold for case count.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -15,13 +17,13 @@ Disallows `switch` cases with a `BlockStatement` body (`case X: { ... }`). V8 sw
 ```ts
 switch (action) {
   case 'start': {
-    const result = init();
+    const result = initialize();
     return result;
   }
-  case 'stop': {
+  case 'stop':
     cleanup();
+    audit();
     break;
-  }
 }
 ```
 
@@ -29,20 +31,25 @@ switch (action) {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Simple calls or returns without block wrappers
 switch (action) {
-  case 'start': return init();
-  case 'stop': return cleanup();
-  default: return noop();
+  case 'start': return initialize();
+  case 'stop':
+    cleanup();
+    break;
+  default: return undefined;
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Or use a dispatch map instead of switch
-const handlers = new Map<string, () => void>([
-  ['start', () => init()],
-  ['stop', () => cleanup()]
-]);
-handlers.get(action)?.();
+function stop(): void {
+  cleanup();
+  audit();
+}
+
+switch (action) {
+  case 'stop':
+    stop();
+    break;
+}
 ```

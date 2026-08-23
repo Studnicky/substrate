@@ -1,45 +1,41 @@
 ---
 title: '@studnicky/clean-diagnostics'
-description: 'Disallows all lint and type suppression comments.'
+description: 'Disallows lint, type, and coverage suppression comments.'
 ---
 
 # @studnicky/clean-diagnostics
 
-Disallows all lint, type, and coverage suppression comments: `eslint-disable`, `eslint-disable-line`, `eslint-disable-next-line`, `eslint-enable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `tslint:disable`, `tslint:disable-line`, `tslint:disable-next-line`, `c8 ignore`, `c8-ignore`, and `istanbul ignore entirely`. The auto-fix removes the entire comment line, including its line break, when the line is otherwise whitespace-only. When the comment instead trails code on the same line, the fix removes only the comment text through the end of the line, leaving the preceding code (and any whitespace between the code and the comment) intact.
+Disallows lint, type, and coverage suppression comments. The rule examines every source comment and reports values matching its suppression pattern, including `eslint-disable`, `eslint-disable-line`, `eslint-disable-next-line`, `eslint-enable`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `tslint:disable`, `tslint:disable-line`, `tslint:disable-next-line`, `c8 ignore`, `c8-ignore`, and `istanbul ignore` forms.
 
-**Fixable:** Yes (removes the comment line) · **Options:** No · **Suggested severity:** `error`
+This rule reports only. It has no autofixer: removing a suppression can change diagnostics or remove source when a comment shares a line with code, so the underlying issue requires a deliberate human change.
+
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
 // eslint-disable-next-line no-console
-console.log(x);
+console.log(value);
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
 // @ts-ignore
-const y = badlyTyped as string;
+const value = badlyTyped as string;
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// c8 ignore next
-export function hardToReachBranch() { /* ... */ }
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function process(data: any) { /* ... */ }
-/* eslint-enable @typescript-eslint/no-explicit-any */
+/* c8 ignore next */
+export function hardToReachBranch(): void {}
 ```
 
 ## ✓ Correct
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// Fix the underlying type or lint issue instead
-function process(data: unknown) { /* ... */ }
+function process(value: unknown): void {
+  console.log(value);
+}
 ```

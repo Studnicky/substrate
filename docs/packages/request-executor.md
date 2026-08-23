@@ -51,6 +51,7 @@ Full reference: https://studnicky.github.io/substrate/packages/request-executor
 
 `@studnicky/request-executor/entities` exports request deadline schemas.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { RequestDeadlineEntity } from '@studnicky/request-executor/entities';
 ```
@@ -59,6 +60,7 @@ import { RequestDeadlineEntity } from '@studnicky/request-executor/entities';
 
 `@studnicky/request-executor/interfaces` exports executor configuration, dependency, and execution-option contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { RequestExecutorConfigInterface } from '@studnicky/request-executor/interfaces';
 ```

@@ -57,6 +57,7 @@ Full reference: https://studnicky.github.io/substrate/packages/process-kit
 
 `@studnicky/process-kit/interfaces` exports process-kit configuration contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { ProcessKitConfigInterface } from '@studnicky/process-kit/interfaces';
 ```

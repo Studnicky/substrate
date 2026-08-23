@@ -2,6 +2,7 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
 import { ValidationViolationEntity } from './ValidationViolationEntity.js';
 
 /** RFC 7807 Problem Details payload for validation failure HTTP responses. */
@@ -45,4 +46,28 @@ export namespace ValidationProblemDetailsEntity {
     }
     return true;
   };
+
+  const parseViolations = (value: unknown, intake: boolean): ValidationViolationEntity.Type[] | undefined => {
+    if (!Array.isArray(value)) { return undefined; }
+    const result: ValidationViolationEntity.Type[] = [];
+    for (const item of value) {
+      const violation = intake ? ValidationViolationEntity.intake(item) : ValidationViolationEntity.create(item);
+      result.push(violation);
+    }
+    return result;
+  };
+
+  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['detail', 'errors', 'status', 'title', 'type'])) { return undefined; }
+    const detail = EntityIntake.string(candidate.detail, options.coerce);
+    const errors = parseViolations(candidate.errors, options.coerce);
+    const status = EntityIntake.number(candidate.status, options.coerce);
+    const title = EntityIntake.string(candidate.title, options.coerce);
+    const type = EntityIntake.string(candidate.type, options.coerce);
+    if (detail === undefined || errors === undefined || status === undefined || title === undefined || type === undefined) { return undefined; }
+    return { 'detail': detail, 'errors': errors, 'status': status, 'title': title, 'type': type };
+  };
+
+  export const intake = EntityIntake.compileIntake(parser, 'ValidationProblemDetails');
+  export const create = EntityIntake.compileCreate(parser, 'ValidationProblemDetails');
 }

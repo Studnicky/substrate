@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Error with port information. */
 export namespace ErrorWithPortEntity {
   export const Schema = {
@@ -28,4 +30,15 @@ export namespace ErrorWithPortEntity {
     const result = typeof candidate.port === 'number';
     return result;
   };
+
+  export const intake = (input: unknown): Type => {return EntityIntake.intake(input, (candidate, options) => {
+    const port = EntityIntake.number(candidate.port, options.coerce);
+    return port === undefined ? undefined : { 'port': port };
+  }, 'ErrorWithPort');};
+
+  export const create = (partial: Partial<Type> = {}): Type => {return EntityIntake.create(partial, (candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['port'])) { return undefined; }
+    const port = EntityIntake.number(candidate.port, options.coerce);
+    return port === undefined ? undefined : { 'port': port };
+  }, 'ErrorWithPort');};
 }

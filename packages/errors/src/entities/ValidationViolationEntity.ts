@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Describes one validation failure from a schema check. */
 export namespace ValidationViolationEntity {
   export const Schema = {
@@ -41,4 +43,16 @@ export namespace ValidationViolationEntity {
     if (typeof candidate.path !== 'string') { return false; }
     return true;
   };
+
+  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['keyword', 'message', 'path'])) { return undefined; }
+    const keyword = EntityIntake.string(candidate.keyword, options.coerce);
+    const message = EntityIntake.string(candidate.message, options.coerce);
+    const path = EntityIntake.string(candidate.path, options.coerce);
+    if (keyword === undefined || message === undefined || path === undefined) { return undefined; }
+    return { 'keyword': keyword, 'message': message, 'path': path };
+  };
+
+  export const intake = EntityIntake.compileIntake(parser, 'ValidationViolation');
+  export const create = EntityIntake.compileCreate(parser, 'ValidationViolation');
 }

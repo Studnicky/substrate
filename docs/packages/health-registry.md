@@ -59,6 +59,7 @@ Full reference: https://studnicky.github.io/substrate/packages/health-registry
 
 `@studnicky/health-registry/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { HealthStatusEntity } from '@studnicky/health-registry/entities';
 ```
@@ -67,6 +68,7 @@ import { HealthStatusEntity } from '@studnicky/health-registry/entities';
 
 `@studnicky/health-registry/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { HealthCheckResultInterface } from '@studnicky/health-registry/interfaces';
 ```

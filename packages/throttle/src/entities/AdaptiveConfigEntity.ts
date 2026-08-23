@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { ConfigurationError } from '@studnicky/config';
@@ -66,4 +67,6 @@ export namespace AdaptiveConfigEntity {
     }
     return true;
   };
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Error with system errno. */
 export namespace ErrorWithErrnoEntity {
   export const Schema = {
@@ -28,4 +30,15 @@ export namespace ErrorWithErrnoEntity {
     const result = typeof candidate.errno === 'number';
     return result;
   };
+
+  export const intake = (input: unknown): Type => {return EntityIntake.intake(input, (candidate, options) => {
+    const errno = EntityIntake.number(candidate.errno, options.coerce);
+    return errno === undefined ? undefined : { 'errno': errno };
+  }, 'ErrorWithErrno');};
+
+  export const create = (partial: Partial<Type> = {}): Type => {return EntityIntake.create(partial, (candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['errno'])) { return undefined; }
+    const errno = EntityIntake.number(candidate.errno, options.coerce);
+    return errno === undefined ? undefined : { 'errno': errno };
+  }, 'ErrorWithErrno');};
 }

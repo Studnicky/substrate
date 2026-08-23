@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Compact rollup of deduplicated paths and keywords with a total error count. */
 export namespace ValidationAggregateViewEntity {
   export const Schema = {
@@ -38,4 +40,27 @@ export namespace ValidationAggregateViewEntity {
     if (!Array.isArray(candidate.paths) || !candidate.paths.every((path) => { const result = typeof path === 'string'; return result; })) { return false; }
     return true;
   };
+
+  const parseStrings = (value: unknown, coerce: boolean): string[] | undefined => {
+    if (!Array.isArray(value)) { return undefined; }
+    const result: string[] = [];
+    for (const item of value) {
+      const string = EntityIntake.string(item, coerce);
+      if (string === undefined) { return undefined; }
+      result.push(string);
+    }
+    return result;
+  };
+
+  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['count', 'keywords', 'paths'])) { return undefined; }
+    const count = EntityIntake.number(candidate.count, options.coerce);
+    const keywords = parseStrings(candidate.keywords, options.coerce);
+    const paths = parseStrings(candidate.paths, options.coerce);
+    if (count === undefined || keywords === undefined || paths === undefined) { return undefined; }
+    return { 'count': count, 'keywords': keywords, 'paths': paths };
+  };
+
+  export const intake = EntityIntake.compileIntake(parser, 'ValidationAggregateView');
+  export const create = EntityIntake.compileCreate(parser, 'ValidationAggregateView');
 }

@@ -54,6 +54,7 @@ A hook override that throws or rejects does not abort a worker's task settlement
 
 `@studnicky/worker-pool/entities` exports every schema namespace in `src/entities`, including worker-pool configuration, worker envelopes, task state, and lifecycle state, event, and effect values.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { WorkerPoolConfigEntity } from '@studnicky/worker-pool/entities';
 ```
@@ -62,6 +63,7 @@ import { WorkerPoolConfigEntity } from '@studnicky/worker-pool/entities';
 
 `@studnicky/worker-pool/interfaces` exports every TypeScript interface in `src/interfaces`, including the envelope contracts used by worker entry scripts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { WorkerResultEnvelopeInterface } from '@studnicky/worker-pool/interfaces';
 ```

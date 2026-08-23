@@ -71,6 +71,7 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 `@studnicky/timing/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { TimingEventDataEntity } from '@studnicky/timing/entities';
 ```
@@ -79,6 +80,7 @@ import { TimingEventDataEntity } from '@studnicky/timing/entities';
 
 `@studnicky/timing/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { TimingInterface } from '@studnicky/timing/interfaces';
 ```

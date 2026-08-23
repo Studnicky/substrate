@@ -61,6 +61,7 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 `@studnicky/sample-buffer/entities` exports buffer option and observable-state schemas.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { SampleBufferOptionsEntity } from '@studnicky/sample-buffer/entities';
 ```
@@ -69,6 +70,7 @@ import { SampleBufferOptionsEntity } from '@studnicky/sample-buffer/entities';
 
 `@studnicky/sample-buffer/interfaces` exports the sample-buffer contract.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { SampleBufferInterface } from '@studnicky/sample-buffer/interfaces';
 ```

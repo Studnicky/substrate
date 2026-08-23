@@ -74,6 +74,7 @@ The four observer hooks run through a composed `HookInvoker` (see [`@studnicky/e
 
 `@studnicky/pipeline/entities` exports the pipeline option schema namespace.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { PipelineOptionsEntity } from '@studnicky/pipeline/entities';
 ```
@@ -82,6 +83,7 @@ import { PipelineOptionsEntity } from '@studnicky/pipeline/entities';
 
 `@studnicky/pipeline/interfaces` exports pipeline stage and runner contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { PipelineFunctionInterface } from '@studnicky/pipeline/interfaces';
 ```

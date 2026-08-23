@@ -148,6 +148,8 @@ export default [
       // `layer-import-boundary` is enabled because substrate genuinely HAS what it describes —
       // a dependency-depth hierarchy with an enforceable upward-import ban — which is why it
       // reports zero against real code instead of hundreds against real idioms.
+      '@studnicky/adapter-only-import': ['error', { ...SUBSTRATE_LAYERS, 'adapterLayerName': 'capability' }],
+      '@studnicky/domain-purity': ['error', { ...SUBSTRATE_LAYERS, 'domainLayerName': 'foundation' }],
       '@studnicky/layer-import-boundary': ['error', SUBSTRATE_LAYERS]
     }
   },

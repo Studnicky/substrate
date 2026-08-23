@@ -1,0 +1,98 @@
+{
+  "cases": [
+    {
+      "name": "schema-intake-transforms-without-mutating-input",
+      "description": "intake coerces, defaults, strips, and preserves the caller input",
+      "shape": "intake-transforms",
+      "input": {
+        "port": "8080",
+        "unexpected": "discard"
+      },
+      "expected": {
+        "original": {
+          "port": "8080",
+          "unexpected": "discard"
+        },
+        "result": {
+          "host": "localhost",
+          "port": 8080
+        }
+      }
+    },
+    {
+      "name": "schema-intake-rejects-invalid-values-with-path",
+      "description": "intake reports a typed error that identifies the rejected property",
+      "shape": "intake-rejection",
+      "input": {
+        "port": "not-a-number"
+      },
+      "expected": {
+        "path": "/port",
+        "schemaIdentifier": "https://studnicky.dev/schemas/schema-intake-rejection"
+      }
+    },
+    {
+      "name": "schema-create-fills-defaults-with-or-without-partial-data",
+      "description": "create returns all defaults with no input and fills omitted trusted fields",
+      "shape": "create-defaults",
+      "input": {
+        "port": 9000
+      },
+      "expected": {
+        "allDefaults": {
+          "host": "localhost",
+          "port": 3000
+        },
+        "partialDefaults": {
+          "host": "localhost",
+          "port": 9000
+        }
+      }
+    },
+    {
+      "name": "schema-create-does-not-coerce-wrong-typed-data",
+      "description": "create rejects a wrong-typed value instead of applying intake transforms",
+      "shape": "create-no-coercion",
+      "input": {
+        "port": "8080"
+      },
+      "expected": {
+        "path": "/port"
+      }
+    },
+    {
+      "name": "schema-assert-validator-remains-untransformed",
+      "description": "compile does not coerce, strip, or fill defaults",
+      "shape": "assert-isolated",
+      "input": {
+        "port": "8080",
+        "unexpected": "keep"
+      },
+      "expected": {
+        "original": {
+          "port": "8080",
+          "unexpected": "keep"
+        },
+        "withoutDefault": {
+          "port": 8080
+        }
+      }
+    },
+    {
+      "name": "schema-validator-uses-separate-schema-registries",
+      "description": "the same schema identifier compiles independently for assert, intake, and create",
+      "shape": "separate-registries",
+      "input": {},
+      "expected": {}
+    },
+    {
+      "name": "schema-intake-rejects-cyclic-input-before-cloning",
+      "description": "intake rejects cyclic input without entering Clone.deep recursion",
+      "shape": "cyclic-input",
+      "input": {},
+      "expected": {
+        "message": "cyclic"
+      }
+    }
+  ]
+}

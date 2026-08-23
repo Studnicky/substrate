@@ -75,6 +75,7 @@ Unlike `@studnicky/cache`'s `LruCache`, `EntityStore` is deliberately unbounded 
 
 `@studnicky/entity-store/interfaces` exports entity-store option contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { EntityStoreOptionsInterface } from '@studnicky/entity-store/interfaces';
 ```

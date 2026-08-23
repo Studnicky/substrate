@@ -37,6 +37,7 @@ Extend `BaseError` or `ModuleError` for a domain-specific error, and use `Domain
 
 `@studnicky/errors/entities` exports every schema namespace in `src/entities`, including error classifications, validation arguments and reports, error diagnostics, and native-error field projections. Each namespace exposes its `Schema`, inferred `Type`, and runtime `validate` predicate.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 ```
@@ -45,6 +46,7 @@ import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 `@studnicky/errors/interfaces` exports every TypeScript interface in `src/interfaces`, including `ModuleErrorInterface` plus construction and classifier contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { ModuleErrorInterface } from '@studnicky/errors/interfaces';
 ```

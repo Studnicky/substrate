@@ -65,6 +65,7 @@ Import `VisibleRange`, `VisibleRangeEntity`, `VisibleRangeConfigInterface`, and 
 
 `@studnicky/visible-range/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { VisibleRangeEntity } from '@studnicky/visible-range/entities';
 ```
@@ -73,6 +74,7 @@ import { VisibleRangeEntity } from '@studnicky/visible-range/entities';
 
 `@studnicky/visible-range/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { VisibleRangeConfigInterface } from '@studnicky/visible-range/interfaces';
 ```

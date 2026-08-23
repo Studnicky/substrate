@@ -1,21 +1,11 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-export namespace BoundedDispatcherStartEventEntity {
-  class StartEventValidator {
-    static validate(candidate: unknown): candidate is Type {
-      if (candidate === null) {
-        return false;
-      }
-      const result = typeof candidate === 'object'
-        && Object.hasOwn(candidate, 'phase')
-        && Object.keys(candidate).length === 1
-        && Reflect.get(candidate, 'phase') === 'start';
-      return result;
-    }
-  }
+import { SchemaValidator } from '@studnicky/json';
 
+export namespace BoundedDispatcherStartEventEntity {
   export const Schema = {
     'additionalProperties': false,
+    'minProperties': 1,
     'properties': {
       'phase': { 'const': 'start', 'type': 'string' }
     },
@@ -25,8 +15,7 @@ export namespace BoundedDispatcherStartEventEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate = (candidate: unknown): candidate is Type => {
-    const result = StartEventValidator.validate(candidate);
-    return result;
-  };
+  export const validate: (candidate: unknown) => candidate is Type = SchemaValidator.compile<Type>(Schema);
+  export const intake = SchemaValidator.compileIntake<Type>(Schema);
+  export const create = SchemaValidator.compileCreate<Type>(Schema);
 }

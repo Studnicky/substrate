@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /**
  * Error classification result.
  *
@@ -41,4 +43,16 @@ export namespace ErrorClassificationEntity {
     if (candidate.reason !== undefined && typeof candidate.reason !== 'string') { return false; }
     return true;
   };
+
+  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['reason', 'retryable'])) { return undefined; }
+    const retryable = EntityIntake.boolean(candidate.retryable, options.coerce);
+    if (retryable === undefined) { return undefined; }
+    if (candidate.reason === undefined) { return { 'retryable': retryable }; }
+    const reason = EntityIntake.string(candidate.reason, options.coerce);
+    return reason === undefined ? undefined : { 'reason': reason, 'retryable': retryable };
+  };
+
+  export const intake = EntityIntake.compileIntake(parser, 'ErrorClassification');
+  export const create = EntityIntake.compileCreate(parser, 'ErrorClassification');
 }

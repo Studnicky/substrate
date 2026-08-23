@@ -56,6 +56,7 @@ Full reference: https://studnicky.github.io/substrate/packages/flag-evaluator
 
 `@studnicky/flag-evaluator/entities` exports flag context and definition schemas.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { FlagDefinitionEntity } from '@studnicky/flag-evaluator/entities';
 ```
@@ -64,6 +65,7 @@ import { FlagDefinitionEntity } from '@studnicky/flag-evaluator/entities';
 
 `@studnicky/flag-evaluator/interfaces` exports the evaluation-context contract.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { FlagContextInterface } from '@studnicky/flag-evaluator/interfaces';
 ```

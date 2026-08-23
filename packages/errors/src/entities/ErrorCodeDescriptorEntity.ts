@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Describes a registered error code entry in `ErrorCodeRegistry`. */
 export namespace ErrorCodeDescriptorEntity {
   export const Schema = {
@@ -41,4 +43,16 @@ export namespace ErrorCodeDescriptorEntity {
     if (typeof candidate.retryable !== 'boolean') { return false; }
     return true;
   };
+
+  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['code', 'description', 'retryable'])) { return undefined; }
+    const code = EntityIntake.string(candidate.code, options.coerce);
+    const description = EntityIntake.string(candidate.description, options.coerce);
+    const retryable = EntityIntake.boolean(candidate.retryable, options.coerce);
+    if (code === undefined || description === undefined || retryable === undefined) { return undefined; }
+    return { 'code': code, 'description': description, 'retryable': retryable };
+  };
+
+  export const intake = EntityIntake.compileIntake(parser, 'ErrorCodeDescriptor');
+  export const create = EntityIntake.compileCreate(parser, 'ErrorCodeDescriptor');
 }

@@ -70,6 +70,7 @@ if (!ThrottleStatsEntity.validate(stats)) {
 
 `@studnicky/throttle/entities` exports every schema namespace in `src/entities`, including configuration, statistics, abort results, and lifecycle state, event, and effect values.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 ```
@@ -78,6 +79,7 @@ import { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
 `@studnicky/throttle/interfaces` exports the `ThrottleInterface` contract for consumers that accept or implement a throttle abstraction.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { ThrottleInterface } from '@studnicky/throttle/interfaces';
 ```

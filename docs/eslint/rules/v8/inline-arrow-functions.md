@@ -1,11 +1,13 @@
 ---
 title: '@studnicky/v8/inline-arrow-functions'
-description: 'Disallows inline multi-statement arrow functions in a dispatch map rebuilt on every call.'
+description: 'Reports multi-statement block arrows only at positions proven to allocate them once per iteration.'
 ---
 
 # @studnicky/v8/inline-arrow-functions
 
-A dispatch map (an object literal whose values are handler functions) built once at module scope, or as a `static` class field, allocates its arrow-function values exactly once. The same map literal built inside a function body or an instance field re-allocates every arrow function on every invocation, which is pure churn for the garbage collector and defeats V8's ability to reuse a single closure. This rule flags multi-statement (block-body) arrow functions used as object-literal property values only when the enclosing literal is rebuilt per call — a module-scope `const` or `static` field is exempt, as are single-expression arrow bodies. The property's key name carries no weight: an arrow function inside a rebuilt-per-call map is flagged regardless of what its key is called, so renaming the property buys no escape. Hoist the arrow out to a named module-scope `const` (or a `static` class field) to fix a violation.
+Reports a block-bodied arrow with at least two effective statements only when its position is proven to allocate it once per iteration: as a property value in an object literal built per iteration, as a direct call or constructor argument at a per-iteration call site, or as a default parameter of a function whose resolvable direct call sites are all per iteration. One-shot factories and unproven call paths remain outside the rule.
+
+The statement count treats an immediately adjacent `const value = expression; return value;` pair as one effective statement. [`explicit-return-binding`](../explicit-return-binding) requires that return-binding form, so treating it as two statements would make the rules mutually unsatisfiable. A `let` or `var` pair, a non-adjacent return, and every other two-statement body remain multi-statement.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -13,10 +15,24 @@ A dispatch map (an object literal whose values are handler functions) built once
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-function build() {
-  return {
-    a: (x) => { let y = x; return y; }
+for (let index = 0; index < 10; index += 1) {
+  const handlers = {
+    'next': () => {
+      const value = index + 1;
+      return value + 1;
+    }
   };
+  handlers.next();
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+for (const value of values) {
+  consume(() => {
+    const next = value + 1;
+    return next + 1;
+  });
 }
 ```
 
@@ -24,19 +40,25 @@ function build() {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-const map = {
-  a: (x) => { let y = x; return y; }
-};
+for (let index = 0; index < 10; index += 1) {
+  const handlers = {
+    'next': () => {
+      const value = index + 1;
+      return value;
+    }
+  };
+  handlers.next();
+}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// key name carries no weight — hoisting the arrow itself is what matters
-function build() {
-  return {
-    handler: buildHandler
-  };
-}
+const handler = (value: number): number => {
+  const next = value + 1;
+  return next + 1;
+};
 
-const buildHandler = (x: number): number => { const y = x; return y; };
+for (let index = 0; index < 10; index += 1) {
+  consume(handler);
+}
 ```

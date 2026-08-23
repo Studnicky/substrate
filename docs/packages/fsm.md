@@ -140,6 +140,7 @@ Every variant-changing state transition fires hooks on both the machine and inte
 
 `@studnicky/fsm/entities` exports interpreter history and registry metrics schemas.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { InterpreterHistoryRecordMetadataEntity } from '@studnicky/fsm/entities';
 ```

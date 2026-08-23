@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Error with string code (e.g., 'ECONNREFUSED', 'ETIMEDOUT'). */
 export namespace ErrorWithCodeEntity {
   export const Schema = {
@@ -28,4 +30,15 @@ export namespace ErrorWithCodeEntity {
     const result = typeof candidate.code === 'string';
     return result;
   };
+
+  export const intake = (input: unknown): Type => {return EntityIntake.intake(input, (candidate, options) => {
+    const code = EntityIntake.string(candidate.code, options.coerce);
+    return code === undefined ? undefined : { 'code': code };
+  }, 'ErrorWithCode');};
+
+  export const create = (partial: Partial<Type> = {}): Type => {return EntityIntake.create(partial, (candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['code'])) { return undefined; }
+    const code = EntityIntake.string(candidate.code, options.coerce);
+    return code === undefined ? undefined : { 'code': code };
+  }, 'ErrorWithCode');};
 }

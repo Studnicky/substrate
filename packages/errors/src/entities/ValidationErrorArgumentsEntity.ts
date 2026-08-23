@@ -2,6 +2,7 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
 import { ValidationViolationDetailEntity } from './ValidationViolationDetailEntity.js';
 
 const ALLOWED_KEYS = new Set(['correlationId', 'message', 'path', 'violations']);
@@ -54,4 +55,40 @@ export namespace ValidationErrorArgumentsEntity {
     }
     return true;
   };
+
+  const parseViolations = (value: unknown, intake: boolean): ValidationViolationDetailEntity.Type[] | undefined => {
+    if (!Array.isArray(value)) { return undefined; }
+    const result: ValidationViolationDetailEntity.Type[] = [];
+    for (const item of value) {
+      const violation = intake ? ValidationViolationDetailEntity.intake(item) : ValidationViolationDetailEntity.create(item);
+      result.push(violation);
+    }
+    return result;
+  };
+
+  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['correlationId', 'message', 'path', 'violations'])) { return undefined; }
+    const message = EntityIntake.string(candidate.message, options.coerce);
+    const path = EntityIntake.string(candidate.path, options.coerce);
+    if (message === undefined || path === undefined) { return undefined; }
+    let correlationId: string | undefined;
+    if (candidate.correlationId !== undefined) {
+      correlationId = EntityIntake.string(candidate.correlationId, options.coerce);
+      if (correlationId === undefined) { return undefined; }
+    }
+    let violations: ValidationViolationDetailEntity.Type[] | undefined;
+    if (candidate.violations !== undefined) {
+      violations = parseViolations(candidate.violations, options.coerce);
+      if (violations === undefined) { return undefined; }
+    }
+    if (correlationId === undefined) {
+      if (violations === undefined) { return { 'message': message, 'path': path }; }
+      return { 'message': message, 'path': path, 'violations': violations };
+    }
+    if (violations === undefined) { return { 'correlationId': correlationId, 'message': message, 'path': path }; }
+    return { 'correlationId': correlationId, 'message': message, 'path': path, 'violations': violations };
+  };
+
+  export const intake = EntityIntake.compileIntake(parser, 'ValidationErrorArguments');
+  export const create = EntityIntake.compileCreate(parser, 'ValidationErrorArguments');
 }

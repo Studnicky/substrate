@@ -10,6 +10,7 @@
 import * as addFormatsModule from 'ajv-formats';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 
+/** Assert validation stays non-mutating so `compile` remains a pure predicate. */
 const ajvInstance = new Ajv2020({
   'allErrors': true,
   'allowUnionTypes': true,
@@ -17,6 +18,31 @@ const ajvInstance = new Ajv2020({
   'strict': true
 });
 
-addFormatsModule.default.default(ajvInstance);
+/** Intake transforms a private clone; it is separate because Ajv transforms mutate values. */
+const ajvIntakeInstance = new Ajv2020({
+  'allErrors': true,
+  'allowUnionTypes': true,
+  'coerceTypes': true,
+  'removeAdditional': 'all',
+  'strict': true,
+  'useDefaults': true
+});
 
-export { ajvInstance };
+/** Create only fills defaults; it is separate so trusted values are never coerced or stripped. */
+const ajvCreateInstance = new Ajv2020({
+  'allErrors': true,
+  'allowUnionTypes': true,
+  'strict': true,
+  'useDefaults': true
+});
+
+addFormatsModule.default.default(ajvInstance);
+addFormatsModule.default.default(ajvIntakeInstance);
+addFormatsModule.default.default(ajvCreateInstance);
+
+/** The isolated Ajv instances that back assertion, intake, and creation. */
+export const AjvInstance = {
+  'assert': ajvInstance,
+  'create': ajvCreateInstance,
+  'intake': ajvIntakeInstance
+};

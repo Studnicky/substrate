@@ -71,6 +71,7 @@ Full reference: https://studnicky.github.io/substrate/packages/keyed-rate-limite
 
 `@studnicky/keyed-rate-limiter/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { RateLimitRequestEntity } from '@studnicky/keyed-rate-limiter/entities';
 ```
@@ -79,6 +80,7 @@ import { RateLimitRequestEntity } from '@studnicky/keyed-rate-limiter/entities';
 
 `@studnicky/keyed-rate-limiter/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { KeyedRateLimiterCreateConfigInterface } from '@studnicky/keyed-rate-limiter/interfaces';
 ```

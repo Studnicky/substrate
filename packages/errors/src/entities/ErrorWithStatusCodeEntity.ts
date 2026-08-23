@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Error with HTTP status code (alternative property name). */
 export namespace ErrorWithStatusCodeEntity {
   export const Schema = {
@@ -28,4 +30,15 @@ export namespace ErrorWithStatusCodeEntity {
     const result = typeof candidate.statusCode === 'number';
     return result;
   };
+
+  export const intake = (input: unknown): Type => {return EntityIntake.intake(input, (candidate, options) => {
+    const statusCode = EntityIntake.number(candidate.statusCode, options.coerce);
+    return statusCode === undefined ? undefined : { 'statusCode': statusCode };
+  }, 'ErrorWithStatusCode');};
+
+  export const create = (partial: Partial<Type> = {}): Type => {return EntityIntake.create(partial, (candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['statusCode'])) { return undefined; }
+    const statusCode = EntityIntake.number(candidate.statusCode, options.coerce);
+    return statusCode === undefined ? undefined : { 'statusCode': statusCode };
+  }, 'ErrorWithStatusCode');};
 }

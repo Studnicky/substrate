@@ -5,17 +5,16 @@ description: 'Disallows with statements.'
 
 # @studnicky/v8/with-statement
 
-Disallows `with` statements. The `with` statement makes scope resolution dynamic — V8 cannot determine at compile time which binding a variable name refers to, so it cannot generate optimized code for the entire surrounding function.
+Disallows every `with` statement. A `with` statement changes name resolution for its body at runtime, so the engine cannot rely on the lexical binding for an unqualified name and optimization is impaired. TypeScript strict-mode code also rejects this legacy JavaScript construct.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual JavaScript construct rejected by TypeScript strict mode -->
 ```ts
-// @ts-ignore — shown for documentation only; with is not valid in strict mode
 with (Math) {
-  const r = sqrt(pow(x, 2) + pow(y, 2));
+  const radius = sqrt(pow(x, 2) + pow(y, 2));
 }
 ```
 
@@ -23,13 +22,11 @@ with (Math) {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Use explicit object access
-const r = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+const radius = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Or destructure once at the call site
-const { sqrt, pow } = Math;
-const r = sqrt(pow(x, 2) + pow(y, 2));
+const { pow, sqrt } = Math;
+const radius = sqrt(pow(x, 2) + pow(y, 2));
 ```

@@ -123,6 +123,7 @@ Two `FileLock` instances share the same `VirtualFileSystem` path. The holder acq
 
 `@studnicky/file-lock/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { FileLockOptionsEntity } from '@studnicky/file-lock/entities';
 ```

@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Error with hostname information. */
 export namespace ErrorWithHostnameEntity {
   export const Schema = {
@@ -28,4 +30,15 @@ export namespace ErrorWithHostnameEntity {
     const result = typeof candidate.hostname === 'string';
     return result;
   };
+
+  export const intake = (input: unknown): Type => {return EntityIntake.intake(input, (candidate, options) => {
+    const hostname = EntityIntake.string(candidate.hostname, options.coerce);
+    return hostname === undefined ? undefined : { 'hostname': hostname };
+  }, 'ErrorWithHostname');};
+
+  export const create = (partial: Partial<Type> = {}): Type => {return EntityIntake.create(partial, (candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['hostname'])) { return undefined; }
+    const hostname = EntityIntake.string(candidate.hostname, options.coerce);
+    return hostname === undefined ? undefined : { 'hostname': hostname };
+  }, 'ErrorWithHostname');};
 }

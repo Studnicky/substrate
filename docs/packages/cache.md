@@ -93,6 +93,7 @@ no-ops by default.
 
 `@studnicky/cache/entities` exports cache option and node-timing schemas.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 ```

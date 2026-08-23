@@ -55,6 +55,7 @@ Full reference: https://studnicky.github.io/substrate/packages/keyed-work-gate
 
 `@studnicky/keyed-work-gate/interfaces` exports keyed work-gate configuration contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { KeyedWorkGateConfigInterface } from '@studnicky/keyed-work-gate/interfaces';
 ```

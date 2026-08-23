@@ -46,6 +46,7 @@ Pure discriminants and fixed pure-data variants are entity-derived: `PaginatorAv
 
 `@studnicky/paginator/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { PaginatorIdleStateEntity } from '@studnicky/paginator/entities';
 ```
@@ -54,6 +55,7 @@ import { PaginatorIdleStateEntity } from '@studnicky/paginator/entities';
 
 `@studnicky/paginator/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { PaginatorAvailableCursorInterface } from '@studnicky/paginator/interfaces';
 ```

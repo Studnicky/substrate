@@ -90,6 +90,7 @@ Each `now()` and `hrtime()` read fires the corresponding hook on the counter, pr
 
 `@studnicky/clock/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { RealTimeClockProviderOptionsEntity } from '@studnicky/clock/entities';
 ```
@@ -98,6 +99,7 @@ import { RealTimeClockProviderOptionsEntity } from '@studnicky/clock/entities';
 
 `@studnicky/clock/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
 ```

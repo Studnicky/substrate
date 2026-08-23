@@ -59,6 +59,7 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 
 `@studnicky/fetch/entities` exports every schema namespace in `src/entities`, including client and dispatcher configuration, request and response metadata, events, and dispatcher health data.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { ClientConfigDataEntity } from '@studnicky/fetch/entities';
 ```
@@ -67,6 +68,7 @@ import { ClientConfigDataEntity } from '@studnicky/fetch/entities';
 
 `@studnicky/fetch/interfaces` exports every TypeScript contract in `src/interfaces`, including request, client, dispatcher, lifecycle-context, and validator contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { ValidatorCallbackInterface } from '@studnicky/fetch/interfaces';
 ```

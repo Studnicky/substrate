@@ -7,9 +7,9 @@ description: 'Prefers Set/Map over arrays and POJOs for membership tests and key
 
 Flags four patterns where arrays or plain objects perform worse than `Set` or `Map`:
 
-- **Pattern A**: Inline array literal `.includes()` — `['a', 'b'].includes(x)` should use `new Set(['a', 'b']).has(x)`.
-- **Pattern B**: `Object.fromEntries()` accessed via computed bracket — use `new Map(pairs).get(key)`.
-- **Pattern C**: Module-scope `const` arrays used exclusively for `.includes()` membership tests — declare as `new Set(...)`.
+- **Pattern A**: Inline array literal membership using `.includes()` or an `indexOf()` comparison — use `new Set([...]).has(value)`.
+- **Pattern B**: An `Object.fromEntries()` result accessed through computed brackets, directly or through a `const` binding — use `new Map(pairs).get(key)`.
+- **Pattern C**: A `const` array used exclusively for `.includes()` or `indexOf()` membership tests, in any scope — declare it as `new Set(...)`.
 - **Pattern D**: Array literal `.includes()` inside `.filter()`, `.some()`, `.every()`, `.find()`, or `.findIndex()` callbacks — convert the array to a `Set`.
 
 Set.has is 29× faster than Array.includes on equal-size inputs.
@@ -26,7 +26,7 @@ if (['admin', 'moderator', 'owner'].includes(role)) { /* ... */ }
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Pattern C — module-scope array used only for .includes()
+// Pattern C — const array used only for membership checks
 const VALID_METHODS = ['GET', 'POST', 'PUT', 'DELETE'];
 if (VALID_METHODS.includes(method)) { /* ... */ }
 ```
@@ -86,6 +86,6 @@ const value = map.get(key);
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `checkArrayLiterals` | `boolean` | `true` | Flag inline array literals used with `.includes()` (Patterns A and D). |
-| `checkFromEntries` | `boolean` | `true` | Flag `Object.fromEntries()` results accessed with computed bracket notation (Pattern B). |
-| `checkModuleScopeArrays` | `boolean` | `true` | Flag module-scope const arrays used exclusively for `.includes()` membership tests (Pattern C). |
+| `checkArrayLiterals` | `boolean` | `true` | Flag inline array literals used with `.includes()` or membership-style `indexOf()` comparisons (Patterns A and D). |
+| `checkFromEntries` | `boolean` | `true` | Flag direct and const-bound `Object.fromEntries()` results accessed with computed bracket notation (Pattern B). |
+| `checkModuleScopeArrays` | `boolean` | `true` | Flag const arrays used exclusively for `.includes()` or membership-style `indexOf()` tests (Pattern C). |

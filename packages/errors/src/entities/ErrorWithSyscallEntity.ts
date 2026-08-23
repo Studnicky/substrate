@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Error with syscall information. */
 export namespace ErrorWithSyscallEntity {
   export const Schema = {
@@ -28,4 +30,15 @@ export namespace ErrorWithSyscallEntity {
     const result = typeof candidate.syscall === 'string';
     return result;
   };
+
+  export const intake = (input: unknown): Type => {return EntityIntake.intake(input, (candidate, options) => {
+    const syscall = EntityIntake.string(candidate.syscall, options.coerce);
+    return syscall === undefined ? undefined : { 'syscall': syscall };
+  }, 'ErrorWithSyscall');};
+
+  export const create = (partial: Partial<Type> = {}): Type => {return EntityIntake.create(partial, (candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['syscall'])) { return undefined; }
+    const syscall = EntityIntake.string(candidate.syscall, options.coerce);
+    return syscall === undefined ? undefined : { 'syscall': syscall };
+  }, 'ErrorWithSyscall');};
 }

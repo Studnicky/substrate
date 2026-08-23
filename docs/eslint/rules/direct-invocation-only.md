@@ -1,44 +1,50 @@
 ---
 title: '@studnicky/direct-invocation-only'
-description: 'Disallows .bind(), .call(), and .apply() on callable receivers.'
+description: 'Disallows Function.prototype.bind, call, and apply on provably callable values.'
 ---
 
 # @studnicky/direct-invocation-only
 
-Disallows `.bind()`, `.call()`, and `.apply()` on callable receivers. When TypeScript type services are available the rule confirms the receiver is a `Function` via the type checker before reporting. Refactor to use arrow functions or pass arguments directly.
+Disallows `.bind()`, `.call()`, and `.apply()` when TypeScript parser services prove that the receiver has at least one call signature. Values that are not provably callable, including `any`, are not reported.
+
+The rule checks direct member calls, a banned member used as the final expression in a sequence call, and calls through an alias declared directly from a banned member expression. Alias resolution follows ESLint scope bindings, so shadowed names do not inherit an outer alias.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-fn.call(thisArg, arg1);
-fn.apply(thisArg, args);
+fn.call(thisArg, argument);
+fn.apply(thisArg, argumentsList);
 const bound = fn.bind(thisArg);
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-class MyClass {
-  run() { setTimeout(this.handler.bind(this), 100); }
-  handler() { /* ... */ }
-}
+const rebind = fn.bind;
+rebind(thisArg);
+```
+
+<!-- inline-ts-ok: conceptual rule example -->
+```ts
+(0, fn.call)(thisArg, argument);
 ```
 
 ## ✓ Correct
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// Call directly — no binding needed
-fn(arg1);
+fn(argument);
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// Arrow function preserves lexical this
-class MyClass {
-  run() { setTimeout(() => { this.handler(); }, 100); }
-  handler() { /* ... */ }
+class Handler {
+  public run(): void {
+    setTimeout(() => this.handle(), 100);
+  }
+
+  private handle(): void {}
 }
 ```

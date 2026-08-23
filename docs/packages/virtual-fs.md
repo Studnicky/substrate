@@ -94,6 +94,7 @@ The root exports `VirtualFileSystem`, `VirtualFileSystemError`, and `FileSystemI
 
 `@studnicky/virtual-fs/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { EntryEntity } from '@studnicky/virtual-fs/entities';
 ```
@@ -102,6 +103,7 @@ import { EntryEntity } from '@studnicky/virtual-fs/entities';
 
 `@studnicky/virtual-fs/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
 ```

@@ -62,6 +62,7 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 `@studnicky/logger/entities` exports every schema namespace in `src/entities`, including serializable log records, bodies, faults, levels, statuses, and transport options.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { LogRecordEntity } from '@studnicky/logger/entities';
 ```
@@ -70,6 +71,7 @@ import { LogRecordEntity } from '@studnicky/logger/entities';
 
 `@studnicky/logger/interfaces` exports every TypeScript interface in `src/interfaces`, including logger configuration, metadata, schema, and request contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { LoggerOptionsInterface } from '@studnicky/logger/interfaces';
 ```

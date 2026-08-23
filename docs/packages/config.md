@@ -81,6 +81,7 @@ LoggingClampedConfig.apply(raw, rules);
 
 `@studnicky/config/entities` exports clamping rule and event schemas.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { ClampRuleEntity } from '@studnicky/config/entities';
 ```

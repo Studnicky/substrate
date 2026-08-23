@@ -55,6 +55,7 @@ Full reference: https://studnicky.github.io/substrate/packages/idempotency-guard
 
 `@studnicky/idempotency-guard/entities` exports idempotency entry metadata and guard-option schemas.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { IdempotencyGuardOptionsEntity } from '@studnicky/idempotency-guard/entities';
 ```
@@ -63,6 +64,7 @@ import { IdempotencyGuardOptionsEntity } from '@studnicky/idempotency-guard/enti
 
 `@studnicky/idempotency-guard/interfaces` exports cached-entry contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { IdempotencyGuardEntryInterface } from '@studnicky/idempotency-guard/interfaces';
 ```

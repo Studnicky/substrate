@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Error with address information. */
 export namespace ErrorWithAddressEntity {
   export const Schema = {
@@ -28,4 +30,15 @@ export namespace ErrorWithAddressEntity {
     const result = typeof candidate.address === 'string';
     return result;
   };
+
+  export const intake = (input: unknown): Type => {return EntityIntake.intake(input, (candidate, options) => {
+    const address = EntityIntake.string(candidate.address, options.coerce);
+    return address === undefined ? undefined : { 'address': address };
+  }, 'ErrorWithAddress');};
+
+  export const create = (partial: Partial<Type> = {}): Type => {return EntityIntake.create(partial, (candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['address'])) { return undefined; }
+    const address = EntityIntake.string(candidate.address, options.coerce);
+    return address === undefined ? undefined : { 'address': address };
+  }, 'ErrorWithAddress');};
 }

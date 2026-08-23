@@ -71,6 +71,7 @@ Each overridden hook fires in order — `onBatchStart`, then per-item `onItemSta
 
 `@studnicky/batch/entities` exports batch statistics schemas.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { BatchStatsEntity } from '@studnicky/batch/entities';
 ```

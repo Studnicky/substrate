@@ -8,7 +8,7 @@ description: '@studnicky ESLint plugins — configuration rules and V8 performan
 `@studnicky/eslint-config` ships two custom ESLint plugins:
 
 - **`@studnicky`** — 22 structural and semantic rules that enforce the substrate codebase doctrine.
-- **`@studnicky/v8`** — 27 V8 performance rules that flag patterns preventing V8 from using optimized code paths.
+- **`@studnicky/v8`** — 27 rules for V8 optimization-sensitive code and the related constructs the codebase constrains consistently.
 
 Register both plugins in your flat config to enable the rules.
 
@@ -158,9 +158,9 @@ export default [
 | [`@studnicky/type-alias-invariants`](/eslint/rules/type-alias-invariants) | Partial | `error` |
 | [`@studnicky/whole-canonical-types`](/eslint/rules/whole-canonical-types) | No | `error` |
 
-## V8 performance rules
+## V8 rules
 
-27 rules that flag patterns preventing V8 from using optimized code paths.
+27 rules covering V8 optimization-sensitive allocation, object-shape, iteration, and dynamic-code patterns, alongside related source constraints where measurement does not establish a V8 cost.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|

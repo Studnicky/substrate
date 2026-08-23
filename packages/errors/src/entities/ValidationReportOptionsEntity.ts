@@ -2,6 +2,8 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '@studnicky/types';
 
+import { EntityIntake } from '../validation/EntityIntake.js';
+
 /** Overrides applied when generating an RFC 7807 Problem Details payload. */
 export namespace ValidationReportOptionsEntity {
   export const Schema = {
@@ -40,4 +42,40 @@ export namespace ValidationReportOptionsEntity {
     if (candidate.type !== undefined && typeof candidate.type !== 'string') { return false; }
     return true;
   };
+
+  const parser = (candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['status', 'title', 'type'])) { return undefined; }
+    let status: number | undefined;
+    let title: string | undefined;
+    let type: string | undefined;
+    if (candidate.status !== undefined) {
+      status = EntityIntake.number(candidate.status, options.coerce);
+      if (status === undefined) { return undefined; }
+    }
+    if (candidate.title !== undefined) {
+      title = EntityIntake.string(candidate.title, options.coerce);
+      if (title === undefined) { return undefined; }
+    }
+    if (candidate.type !== undefined) {
+      type = EntityIntake.string(candidate.type, options.coerce);
+      if (type === undefined) { return undefined; }
+    }
+    if (status === undefined) {
+      if (title === undefined) {
+        if (type === undefined) { return {}; }
+        return { 'type': type };
+      }
+      if (type === undefined) { return { 'title': title }; }
+      return { 'title': title, 'type': type };
+    }
+    if (title === undefined) {
+      if (type === undefined) { return { 'status': status }; }
+      return { 'status': status, 'type': type };
+    }
+    if (type === undefined) { return { 'status': status, 'title': title }; }
+    return { 'status': status, 'title': title, 'type': type };
+  };
+
+  export const intake = EntityIntake.compileIntake(parser, 'ValidationReportOptions');
+  export const create = EntityIntake.compileCreate(parser, 'ValidationReportOptions');
 }

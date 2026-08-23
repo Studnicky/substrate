@@ -52,6 +52,7 @@ Full reference: https://studnicky.github.io/substrate/packages/boundary-kit
 
 `@studnicky/boundary-kit/interfaces` exports boundary configuration and resolved-dependency contracts.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import type { BoundaryKitConfigInterface } from '@studnicky/boundary-kit/interfaces';
 ```

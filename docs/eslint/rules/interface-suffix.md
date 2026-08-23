@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/interface-suffix'
-description: "Requires every interface declaration's name to end with 'Interface'."
+description: "Requires every retained contract interface declaration's name to end with 'Interface'."
 ---
 
 # @studnicky/interface-suffix
 
-Requires every `interface` declaration's name to end with `Interface`, with no exemptions — including interfaces declared inside a namespace. The suffix makes interfaces visually distinct from type aliases and classes at every call site, so a reader never has to check the declaration to know what category of symbol they're looking at.
+Requires every retained contract `interface` declaration's name to end with `Interface`, including interfaces declared inside a namespace. Pure-data interfaces are outside this rule's scope; [`interface-must-be-contract`](./interface-must-be-contract.md) owns their diagnostic. The suffix makes contract interfaces visually distinct from type aliases and classes at every call site.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -13,15 +13,15 @@ Requires every `interface` declaration's name to end with `Interface`, with no e
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// top-level interface missing the Interface suffix
-interface Foo { readonly x: number; }
+// contract interface missing the Interface suffix
+interface Foo { run(): void; }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 // namespace-nested interface missing the suffix — no namespace exemption
 namespace X {
-  interface Foo { readonly x: number; }
+  interface Foo { run(): void; }
 }
 ```
 
@@ -29,14 +29,22 @@ namespace X {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// interface name ends with Interface
-interface FooInterface { readonly x: number; }
+// contract interface name ends with Interface
+interface FooInterface { run(): void; }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 // namespace-nested interface with the suffix — not flagged
 namespace X {
-  interface FooInterface { readonly x: number; }
+  interface FooInterface { run(): void; }
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// pure-data interfaces are skipped here; interface-must-be-contract owns them
+interface UserRecord {
+  id: string;
 }
 ```

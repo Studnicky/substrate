@@ -114,6 +114,7 @@ The hooks demo subclasses `EventBus` and overrides seven protected lifecycle met
 
 `@studnicky/event-bus/entities` exports every schema namespace in `src/entities`.
 
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
 import { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
 ```

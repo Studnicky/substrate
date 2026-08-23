@@ -67,6 +67,7 @@
     "@studnicky/concurrency": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/event-bus": "workspace:*",
+    "@studnicky/json": "workspace:*",
     "@studnicky/scheduler": "workspace:*",
     "json-schema-to-ts": "^3.1.1"
   },
